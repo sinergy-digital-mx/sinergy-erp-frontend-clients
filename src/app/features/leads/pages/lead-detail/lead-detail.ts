@@ -7,6 +7,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { LeadEditDialog } from '../../components/lead-detail/lead-edit-dialog';
 import { LeadService } from '../../../../core/services/leads.service';
 import { ActivatedRoute } from '@angular/router';
+import { LeadActivityDialog } from '../../components/lead-activity-dialog/lead-activity-dialog';
 
 @Component({
   selector: 'app-lead-detail',
@@ -41,6 +42,16 @@ export class LeadDetail {
   getDetail(){
     this.leads_service.getDetail(this.lead_id()).subscribe(res=>{
       this.lead.set(res)
+    })
+  }
+
+  createActivity(){
+    this.dialog.open(LeadActivityDialog,{
+
+    }).afterClosed().subscribe(res=>{
+      if(res){
+        this.getDetail()
+      }
     })
   }
 
