@@ -1,0 +1,34 @@
+<div class="w-full" [class]="showError ? 'text-red-600' : ''">
+  @if (label) {
+    <label class="block text-sm font-medium text-gray-700 mb-1">
+      {{ label }}
+      @if (showError) {
+        <span class="text-red-500">*</span>
+      }
+    </label>
+  }
+
+  @if (type == 'text' || type == 'number' || type == 'time') {
+    <input
+      [type]="type"
+      [formControl]="form_control"
+      (input)="!form_control && onInputChange($event)"
+      class="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+      [ngClass]="showError
+        ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
+        : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'"
+    />
+  }
+
+  @if (type == 'textarea') {
+    <textarea
+      rows="4"
+      [formControl]="form_control"
+      (input)="!form_control && onInputChange($event)"
+      class="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+      [ngClass]="showError
+        ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
+        : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'"
+    ></textarea>
+  }
+</div>

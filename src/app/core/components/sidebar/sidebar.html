@@ -1,0 +1,38 @@
+<aside class="w-60 h-screen flex flex-col justify-between text-white text-[14px] overflow-hidden"
+    style="background: linear-gradient(180deg, #0046FF 0%, #0038E0 100%)">
+    <div class="flex flex-col px-4 pt-6">
+        <h2 class="text-base font-semibold mb-8 opacity-80 tracking-tight"></h2>
+
+        <nav class="flex flex-col gap-1.5">
+          <a [routerLink]="item.route" class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/10 transition" *ngFor="let item of menu">
+            <lucide-icon [img]="item.icon" class="w-4 h-4 opacity-90"></lucide-icon>
+            {{item.label}}
+          </a>
+        </nav>
+
+
+        <div class="mt-6 mb-2 border-t border-white/20"></div>
+
+        <nav class="flex flex-col gap-1.5">
+            <a routerLink="/notifications"
+                class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/10 transition">
+                <lucide-icon [img]="icons.Bell" class="w-4 h-4 opacity-90"></lucide-icon>
+                Notifications
+            </a>
+            <a routerLink="/settings" class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/10 transition">
+                <lucide-icon [img]="icons.Settings" class="w-4 h-4 opacity-90"></lucide-icon>
+                Settings
+            </a>
+        </nav>
+    </div>
+
+    <div class="px-6 py-5 border-t border-white/20 flex items-center justify-between text-[14px] text-blue-100">
+        <div>
+            <div class="font-medium leading-tight">Active User</div>
+            <div class="text-[12px] opacity-70">user@erp.com</div>
+        </div>
+        <button class="p-1.5 hover:bg-white/10 rounded-full transition" title="Cerrar sesión">
+            <lucide-icon [img]="icons.LogOut" class="w-4 h-4 text-white opacity-80"></lucide-icon>
+        </button>
+    </div>
+</aside>

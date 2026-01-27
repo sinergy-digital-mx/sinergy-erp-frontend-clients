@@ -1,0 +1,65 @@
+<div class="container">
+  <div class="dialog_main">
+    <div class="body">
+      <div
+        class="icon_container animate__animated animate__heartBeat"
+        [ngClass]="{
+          icon_success: data.type == 'success' || data.type == 'success_confirm',
+          icon_error: data.type == 'error',
+          icon_warning: data.type == 'warning' || data.type == 'message'
+        }"
+        >
+        <i
+          class="fi"
+          [ngClass]="{
+            'fi-sr-shield-check': data.type == 'success' || data.type == 'success_confirm',
+            'fi-ss-shield-exclamation': data.type != 'success' && data.type != 'success_confirm'
+          }"
+        ></i>
+      </div>
+      @if (!data.title) {
+        <div>
+          @if (data.type == 'error') {
+            <span>Error!</span>
+          }
+          @if (data.type == 'success' || data.type == 'success_confirm') {
+            <span>Success!</span>
+          }
+          @if (data.type == 'warning' || data.type == 'message') {
+            <span>Warning!</span>
+          }
+        </div>
+      }
+      @if (data.title) {
+        <div>
+          <span>{{ data.title }}</span>
+        </div>
+      }
+      <div>
+        <p>{{ data.message }}</p>
+      </div>
+    </div>
+    @if (data.type == 'warning' || data.type == 'success_confirm') {
+      <div class="footer">
+        <button class="button-primary-outline" (click)="closeDialog(false)">
+          <span>{{ data.text_cancel ? data.text_cancel : 'CLOSE' }}</span>
+        </button>
+        @if (data.type == 'warning' || data.type == 'success_confirm') {
+          <button
+            class="button-primary-solid"
+            (click)="closeDialog(true)"
+            >
+            <span>{{ data.text_accept ? data.text_accept : 'ACCEPT' }}</span>
+          </button>
+        }
+      </div>
+    }
+    @if (data.type != 'warning' && data.type != 'success_confirm') {
+      <div class="footer">
+        <button class="button-primary-solid" (click)="closeDialog(false)">
+          <span>{{ data.text_cancel ? data.text_cancel : 'CLOSE' }}</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

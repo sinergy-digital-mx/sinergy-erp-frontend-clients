@@ -1,0 +1,53 @@
+
+// Include theming for Angular Material with `mat.theme()`.
+// This Sass mixin will define CSS variables that are used for styling Angular Material
+// components according to the Material 3 design spec.
+// Learn more about theming and how to use it for your application's
+// custom components at https://material.angular.dev/guide/theming
+
+@use '@angular/material' as mat;
+@use "primeicons/primeicons.css" as *;
+
+.dialog {
+  background: #fff;
+  width: 100vw;
+  max-width: 466px;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  row-gap: 24px;
+  max-height: 100dvh;
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    h2 {
+      color: #272d37;
+      font-size: 20px;
+    }
+    .close {
+      cursor: pointer;
+      font-size: 24px;
+    }
+  }
+  &__body {
+    display: flex;
+    flex-direction: column;
+    row-gap: 16px;
+    overflow: auto;
+
+    h4 {
+      margin: 0;
+      padding-bottom: 8px;
+    }
+  }
+  &__footer {
+    width: 100%;
+    display: flex;
+    column-gap: 16px;
+    & > * {
+      flex: 1;
+    }
+  }
+}
+

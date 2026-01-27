@@ -1,0 +1,26 @@
+.container{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    label{
+        font-size: 14px;
+    }
+
+}
+
+.error {
+    label {
+      color: red;
+    }
+    input,
+    select,
+    textarea {
+      border: 1px solid red;
+    }
+}
+
+input:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
