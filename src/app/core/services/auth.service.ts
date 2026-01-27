@@ -13,7 +13,7 @@ export class AuthService {
   api = environment.api;
 
   user_info: any;
-  name_token = 'token'
+  name_token = 'sinergy_erp_token'
   token: string;
 
 

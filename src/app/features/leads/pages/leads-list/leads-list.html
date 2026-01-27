@@ -9,7 +9,7 @@
         </p-floatlabel>
     </div>
 
-    <p-table #dt [value]="leads" [columns]="cols" class="w-full" [paginator]="true" [rows]="8"
+    <p-table #dt [value]="leads()" [columns]="cols" class="w-full" [paginator]="true" [rows]="8"
         responsiveLayout="scroll" styleClass="p-datatable-sm">
         <ng-template pTemplate="header" let-columns>
             <tr>
@@ -24,7 +24,7 @@
                 <td>{{ row.name }}</td>
                 <td>{{ row.email }}</td>
                 <td>{{ row.phone }}</td>
-                <td>{{ row.created_at }}</td>
+                <td>{{ row.created_at | date:'mediumDate' }}</td>
                 <td class="text-right">
                     <p-button size="small" label="Detalle" icon="pi pi-arrow-right" iconPos="right"
                         (click)="viewDetail(row)" />

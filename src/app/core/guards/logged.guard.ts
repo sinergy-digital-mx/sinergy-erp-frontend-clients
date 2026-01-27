@@ -10,7 +10,7 @@ export class LoggedGuard implements CanActivate {
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
     let token = this.auth_service.token  
     if (token) {
-      this.router.navigate(['/account']);
+      this.router.navigate(['/leads']);
       return false;
     }
 
