@@ -1,0 +1,74 @@
+<div class="dialog">
+
+  <!-- HEADER -->
+  <div class="dialog__header">
+    <h2>Create Activity</h2>
+
+    <lucide-icon
+      name="x"
+      class="close cursor-pointer"
+      (click)="closeDialog()">
+    </lucide-icon>
+  </div>
+
+  <!-- BODY -->
+  <div class="dialog__body">
+    <div class="container grid grid-cols-1 md:grid-cols-2 gap-4" [formGroup]="form">
+
+      <!-- Activity type -->
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium text-gray-700">
+          Activity type
+        </label>
+
+        <select
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
+                 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                 focus:border-indigo-500"
+          formControlName="type">
+
+          <option value="" disabled>Select type</option>
+          <option value="call">Call</option>
+          <option value="email">Email</option>
+          <option value="meeting">Meeting</option>
+          <option value="note">Note</option>
+          <option value="task">Task</option>
+          <option value="follow_up">Follow up</option>
+
+        </select>
+      </div>
+
+      <!-- Title -->
+      <app-input
+        label="Title"
+        placeholder="e.g. Follow-up call"
+        [form_control]="form.controls['title']">
+      </app-input>
+
+      <app-input
+      label="Descripcion"
+      placeholder="e.g. Follow-up call"
+      [form_control]="form.controls['description']">
+      </app-input>
+
+      <app-input
+      label="Notes"
+      [type]="'textarea'"
+      placeholder="e.g. Follow-up call"
+      [form_control]="form.controls['notes']">
+      </app-input>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="dialog__footer">
+    <app-button
+      text="Create activity"
+      custom_class="btn_primary"
+      [loading]="loading"
+      (click)="submit()">
+    </app-button>
+  </div>
+
+</div>
