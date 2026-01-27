@@ -1,9 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { InputComponent } from '../../../../core/components/input/input.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { LucideAngularModule, X } from 'lucide-angular';
@@ -13,6 +13,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-lead-edit-dialog',
   standalone: true,
+  styleUrls: ['./lead-edit-dialog.scss'],
   imports: [CommonModule, TableModule, TagModule, ButtonModule,ButtonComponent,LucideAngularModule,InputComponent],
   templateUrl: 'lead-edit-dialog.html',
 })
@@ -28,7 +29,8 @@ export class LeadEditDialog {
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    public dialog:MatDialog, public dialog_ref:MatDialogRef<LeadEditDialog>
+    public dialog:MatDialog, public dialog_ref:MatDialogRef<LeadEditDialog>,
+    @Inject(MAT_DIALOG_DATA)public data:any
     // private authService: AuthService
   ) {
     this.form = this.fb.group({
@@ -36,7 +38,16 @@ export class LeadEditDialog {
       phone: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
       rfc: ['', [Validators.required]],
+      address: ['', [Validators.required]],
     });
+
+    this.form.patchValue({
+      name: this.data.legalName,
+      phone: this.data.phone,
+      email: this.data.email,
+      rfc: this.data.rfc,
+      address: this.data.address,
+    })
   }
 
   ngOnInit(){
