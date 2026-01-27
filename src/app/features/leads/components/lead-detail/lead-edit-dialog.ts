@@ -35,18 +35,24 @@ export class LeadEditDialog {
   ) {
     this.form = this.fb.group({
       name: ['', [Validators.required]],
-      phone: ['', [Validators.required]],
+      lastname: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
-      rfc: ['', [Validators.required]],
-      address: ['', [Validators.required]],
+      phone: ['', [Validators.required]],
+      phone_code: ['+1', [Validators.required]],
+      phone_country: ['US', [Validators.required]],
+      source: ['', [Validators.required]],
+      status_id: [null, [Validators.required]],
     });
 
     this.form.patchValue({
-      name: this.data.legalName,
-      phone: this.data.phone,
+      name: this.data.name,
+      lastname: this.data.lastname,
       email: this.data.email,
-      rfc: this.data.rfc,
-      address: this.data.address,
+      phone: this.data.phone,
+      phone_code: this.data.phone_code,
+      phone_country: this.data.phone_country,
+      source: this.data.source,
+      status_id: this.data.status_id
     })
   }
 

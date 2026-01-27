@@ -25,7 +25,7 @@ export class LeadService {
   }
 
   getDetail(id: any): Observable<any> {
-    return this.http.get(`${this.api}/leads?id=${id}`);
+    return this.http.get(`${this.api}/leads/${id}`);
   }
 
 }

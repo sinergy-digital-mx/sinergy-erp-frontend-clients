@@ -38,7 +38,7 @@ export class LeadsList {
 
   getLeads(){
     this.leads_service.getLeads({}).subscribe(res =>{
-      this.leads.set(res)
+      this.leads.set(res.data)
     })
   }
   
