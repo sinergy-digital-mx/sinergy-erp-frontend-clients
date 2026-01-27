@@ -1,0 +1,43 @@
+<button
+  [type]="type"
+  [disabled]="isDisabled"
+  class="
+    w-full mt-6
+    flex items-center justify-center gap-2
+    rounded-lg
+    bg-indigo-600
+    py-2
+    text-sm font-semibold text-white
+    transition
+    hover:bg-indigo-700
+    disabled:opacity-50
+    disabled:cursor-not-allowed
+  "
+  [ngClass]="customClass"
+>
+
+  <!-- Spinner -->
+  @if (loading) {
+    <app-spinner
+      [width]="16"
+      [height]="16"
+      [border_width]="3">
+    </app-spinner>
+  }
+
+  <!-- Icon (solo si NO está cargando) -->
+  @if (!loading && icon) {
+    <lucide-icon
+      [name]="icon"
+      class="w-4 h-4">
+    </lucide-icon>
+  }
+
+  <!-- Texto SIEMPRE visible -->
+  @if (text) {
+    <span>{{ text }}</span>
+  } @else {
+    <ng-content></ng-content>
+  }
+
+</button>

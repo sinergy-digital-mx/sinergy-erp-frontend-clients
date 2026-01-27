@@ -1,0 +1,36 @@
+<div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="flex items-center justify-between mb-5">
+        <h2 class="text-2xl font-semibold text-gray-800">Customers</h2>
+
+        <p-floatlabel variant="on">
+            <input pInputText id="search" [(ngModel)]="search" autocomplete="off" class="w-64"
+                (input)="dt.filterGlobal($event.target.value, 'contains')" />
+            <label for="search">Search Customer</label>
+        </p-floatlabel>
+    </div>
+
+    <p-table #dt [value]="leads" [columns]="cols" class="w-full" [paginator]="true" [rows]="8"
+        responsiveLayout="scroll" styleClass="p-datatable-sm">
+        <ng-template pTemplate="header" let-columns>
+            <tr>
+                <th *ngFor="let col of columns" class="font-medium text-gray-700">
+                    {{ col.header }}
+                </th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-row let-columns="columns">
+            <tr>
+                <td>{{ row.name }}</td>
+                <td>{{ row.email }}</td>
+                <td>{{ row.phone }}</td>
+                <td>{{ row.created_at }}</td>
+                <td class="text-right">
+                    <p-button size="small" label="Detalle" icon="pi pi-arrow-right" iconPos="right"
+                        (click)="viewDetail(row)" />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+

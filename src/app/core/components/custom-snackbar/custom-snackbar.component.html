@@ -1,0 +1,39 @@
+<main class="snackbar animate__animated animate__fadeIn"
+  [class.highlight]="data.type === 'highlight' "
+  [class.error]="data.type === 'error' "
+  [class.success]="data.type === 'success' "
+  [class.warning]="data.type === 'warning' "
+  >
+  <section class="snackbar__icon">
+    @if (data.type === 'highlight') {
+      <img src="../../../../assets/snackbar/highlight.svg">
+    }
+    @if (data.type === 'error') {
+      <img src="../../../../assets/snackbar/error.svg"    >
+    }
+    @if (data.type === 'success') {
+      <img src="../../../../assets/snackbar/success.svg"  >
+    }
+    @if (data.type === 'warning') {
+      <img src="../../../../assets/snackbar/warning.svg"  >
+    }
+    @if (data.type === 'warning outline') {
+      <img src="../../../../assets/snackbar/warning_outline.svg">
+    }
+  </section>
+  <section class="snackbar__wrap_info">
+    <div class="snackbar__wrap_info__title">
+      <!-- <p *ngIf="this.snackbar_settings.snackbar_type === 'highlight'">Highlight:</p> -->
+      <!-- <p *ngIf="this.snackbar_settings.snackbar_type === 'error'">Error:</p> -->
+      <!-- <p *ngIf="this.snackbar_settings.snackbar_type === 'success'">Success:</p> -->
+      <!-- <p  *ngIf="this.snackbar_settings.snackbar_type === 'warning' || this.snackbar_settings.snackbar_type === 'warning outline'">Warning:</p> -->
+      <p>{{data.title}}</p>
+    </div>
+    <div class="snackbar__wrap_info__description">
+      <p>{{data.message}}</p>
+    </div>
+    <!-- <div class="snackbar__wrap_info__actions">
+    <p>Actions</p>
+  </div> -->
+</section>
+</main>

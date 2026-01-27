@@ -1,0 +1,36 @@
+<div class="space-y-10 min-h-screen">
+
+    <!-- ENCABEZADO -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-900">{{ client.commercialName }}</h2>
+            <p class="text-sm text-gray-500">{{ client.rfc }}</p>
+        </div>
+        <button (click)="openEdit()" pButton label="Editar lead" icon="pi pi-pencil" class="p-button-rounded p-button-solid text-sm"
+            size="small"></button>
+    </div>
+
+    <!-- FICHA DEL CLIENTE -->
+    <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Cliente</h3>
+
+        <div class="grid grid-cols-2 gap-y-3 gap-x-10 text-sm text-gray-800">
+            <div><span class="font-semibold text-gray-500">Nombre comercial:</span> {{ client.commercialName }}</div>
+            <div><span class="font-semibold text-gray-500">Razón social:</span> {{ client.legalName }}</div>
+
+            <div><span class="font-semibold text-gray-500">RFC:</span> {{ client.rfc }}</div>
+            <div><span class="font-semibold text-gray-500">Régimen fiscal:</span> {{ client.taxRegime }}</div>
+
+            <div class="flex items-center gap-2">
+                <span class="font-semibold text-gray-500">Estatus:</span>
+                <p-tag [value]="client.status" [severity]="getSeverity(client.status)" rounded="true"></p-tag>
+                <i *ngIf="client.status==='Validado'" class="pi pi-check-circle text-emerald-500 text-base"></i>
+            </div>
+
+            <div class="col-span-2">
+                <span class="font-semibold text-gray-500">Domicilio:</span>
+                <div class="mt-0.5">{{ client.address }}</div>
+            </div>
+        </div>
+    </div>
+</div>

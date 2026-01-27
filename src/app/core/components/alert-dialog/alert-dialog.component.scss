@@ -1,0 +1,119 @@
+@use '../../../../base/variables.scss' as *;
+@use '../../../../base/mixins.scss' as *;
+
+.container {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.dialog_main {
+  width: auto;
+  height: 240px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 24px;
+  height: 100%;
+  row-gap: 10px;
+}
+
+.header {
+  height: 30px;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.header > span {
+  color: #d5d7e3;
+  cursor: pointer;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.icon_container {
+  height: 80px;
+  width: 80px;
+  border-radius: 50%;
+  display: flex;
+  margin-bottom: 20px;
+  justify-content: center;
+  align-items: center;
+  & > i {
+    font-size: 40px;
+  }
+}
+
+.icon_success {
+  background: $color-success-200;
+  & > i {
+    color: $color-success-700;
+  }
+}
+
+.icon_warning {
+  background: $color-warning-200;
+  & > i {
+    color: $color-warning-900;
+  }
+}
+
+.icon_error {
+  background: $color-error-100;
+  & > i {
+    color: $color-error-700;
+  }
+}
+
+.body > div:nth-child(2) > span {
+  display: flex;
+  width: 100%;
+  
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 28px;
+}
+
+.body > div:nth-child(3) {
+  font-size: 14px;
+  line-height: 18px;
+  color: #656565;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  word-break: break-word;
+  overflow: auto;
+  max-height: 300px;
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  column-gap: 20px;
+  row-gap: 15px;
+  & > button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 440px) {
+  .container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  .footer {
+    flex-direction: column;
+    row-gap: 15px;
+  }
+}

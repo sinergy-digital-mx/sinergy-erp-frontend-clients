@@ -1,0 +1,58 @@
+@mixin screen($break-point) {
+  @media (max-width: $break-point) {
+    @content;
+  }
+}
+
+@mixin media-query($break-point) {
+  @if $break-point==xlg {
+    @media (max-width: 1400px) {
+      @content;
+    }
+  }
+
+  @if $break-point==lg {
+    @media (max-width: 1080px) {
+      @content;
+    }
+  }
+
+  @if $break-point==md {
+    @media (max-width: 900px) {
+      @content;
+    }
+  }
+
+  @if $break-point==sm {
+    @media (max-width: 600px) {
+      @content;
+    }
+  }
+
+  @if $break-point==xsm {
+    @media (max-width: 450px) {
+      @content;
+    }
+  }
+}
+
+.btn {
+  display: flex;
+  width: 100%;
+  column-gap: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 0px 24px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-size: 14px;
+  height: 37px;
+}
+
+@mixin btn($color, $bg) {
+  @extend .btn;
+  color: $color;
+  background: $bg;
+}
