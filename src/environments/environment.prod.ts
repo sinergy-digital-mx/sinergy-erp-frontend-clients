@@ -1,4 +1,4 @@
 export const environment = {
-  api: 'https://covadigitallab.com/api',
+  api: 'https://sapi.sinergydigital.mx',
   production: true,
 };

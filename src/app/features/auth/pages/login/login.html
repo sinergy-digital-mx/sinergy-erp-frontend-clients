@@ -46,11 +46,11 @@
           </div>
           <!-- Error -->
           <p *ngIf="error" class="mt-3 text-sm text-red-600">
-            {{ error }}
+            {{ error() }}
           </p>
         
           <!-- Button -->
-          <app-button (click)="submit()" [loading]="loading">Iniciar sesión</app-button>
+          <app-button (click)="submit()" [loading]="loading()">Iniciar sesión</app-button>
         
         </div>
         
