@@ -1,36 +1,144 @@
 <div class="space-y-10 min-h-screen">
 
-    <!-- ENCABEZADO -->
+    <!-- HEADER -->
     <div class="flex items-center justify-between">
-        <div>
-            <h2 class="text-3xl font-bold text-gray-900">{{ client.commercialName }}</h2>
-            <p class="text-sm text-gray-500">{{ client.rfc }}</p>
-        </div>
-        <button (click)="openEdit()" pButton label="Editar lead" icon="pi pi-pencil" class="p-button-rounded p-button-solid text-sm"
-            size="small"></button>
+      <div>
+        <h2 class="text-3xl font-bold text-gray-900">
+          {{ lead()?.name }} {{ lead()?.lastname }}
+        </h2>
+        <p class="text-sm text-gray-500">
+          {{ lead()?.email }}
+        </p>
+      </div>
+  
+      <button
+        (click)="openEdit()"
+        pButton
+        label="Edit lead"
+        icon="pi pi-pencil"
+        class="p-button-rounded p-button-solid text-sm"
+        size="small">
+      </button>
     </div>
-
-    <!-- FICHA DEL CLIENTE -->
+  
+    <!-- LEAD INFORMATION -->
     <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Cliente</h3>
-
-        <div class="grid grid-cols-2 gap-y-3 gap-x-10 text-sm text-gray-800">
-            <div><span class="font-semibold text-gray-500">Nombre comercial:</span> {{ client.commercialName }}</div>
-            <div><span class="font-semibold text-gray-500">Razón social:</span> {{ client.legalName }}</div>
-
-            <div><span class="font-semibold text-gray-500">RFC:</span> {{ client.rfc }}</div>
-            <div><span class="font-semibold text-gray-500">Régimen fiscal:</span> {{ client.taxRegime }}</div>
-
-            <div class="flex items-center gap-2">
-                <span class="font-semibold text-gray-500">Estatus:</span>
-                <p-tag [value]="client.status" [severity]="getSeverity(client.status)" rounded="true"></p-tag>
-                <i *ngIf="client.status==='Validado'" class="pi pi-check-circle text-emerald-500 text-base"></i>
-            </div>
-
-            <div class="col-span-2">
-                <span class="font-semibold text-gray-500">Domicilio:</span>
-                <div class="mt-0.5">{{ client.address }}</div>
-            </div>
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">
+        Lead Information
+      </h3>
+  
+      <div class="grid grid-cols-2 gap-y-3 gap-x-10 text-sm text-gray-800">
+  
+        <div>
+          <span class="font-semibold text-gray-500">First name:</span>
+          {{ lead()?.name }}
         </div>
+  
+        <div>
+          <span class="font-semibold text-gray-500">Last name:</span>
+          {{ lead()?.lastname }}
+        </div>
+  
+        <div>
+          <span class="font-semibold text-gray-500">Email:</span>
+          {{ lead()?.email }}
+        </div>
+  
+        <div>
+          <span class="font-semibold text-gray-500">Phone:</span>
+          {{ lead()?.phone }}
+          <span class="text-xs text-gray-400">
+            ({{ lead()?.phone_country }})
+          </span>
+        </div>
+  
+        <div>
+          <span class="font-semibold text-gray-500">Source:</span>
+          {{ lead()?.source }}
+        </div>
+  
+        <div class="flex items-center gap-2">
+          <span class="font-semibold text-gray-500">Status:</span>
+          <p-tag
+            [value]="lead()?.status?.name"
+            rounded="true">
+          </p-tag>
+        </div>
+  
+        <div class="col-span-2">
+          <span class="font-semibold text-gray-500">Created at:</span>
+          <div class="mt-0.5">
+            {{ lead()?.created_at | date:'medium' }}
+          </div>
+        </div>
+  
+      </div>
     </div>
-</div>
+  
+    <!-- ADDRESSES -->
+    <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">
+        Addresses
+      </h3>
+  
+      <p-table
+        [value]="lead()?.addresses"
+        responsiveLayout="scroll"
+        styleClass="p-datatable-sm w-full">
+  
+        <!-- HEADER -->
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Type</th>
+            <th>Street address</th>
+            <th>City</th>
+            <th>State</th>
+            <th>Postal code</th>
+            <th>Country</th>
+            <th>Primary</th>
+          </tr>
+        </ng-template>
+  
+        <!-- BODY -->
+        <ng-template pTemplate="body" let-address>
+          <tr>
+            <td class="capitalize">
+              {{ address.type }}
+            </td>
+  
+            <td>
+              {{ address.street_address }}
+            </td>
+  
+            <td>
+              {{ address.city }}
+            </td>
+  
+            <td>
+              {{ address.state }}
+            </td>
+  
+            <td>
+              {{ address.postal_code }}
+            </td>
+  
+            <td>
+              {{ address.country }}
+            </td>
+  
+            <td class="text-center">
+              <p-tag
+                *ngIf="address.is_primary"
+                value="Primary"
+                severity="success"
+                rounded="true">
+              </p-tag>
+            </td>
+          </tr>
+        </ng-template>
+  
+      </p-table>
+    </div>
+  
+  </div>
+  

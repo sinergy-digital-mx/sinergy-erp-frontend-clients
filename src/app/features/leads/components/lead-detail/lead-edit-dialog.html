@@ -14,12 +14,41 @@
     <div class="dialog__body">
         <div class="container grid grid-cols-1 md:grid-cols-2 gap-4" form="form">
 
-            <app-input label="Nombre" [form_control]="form.controls['name']"></app-input>
-            <app-input label="Correo" [form_control]="form.controls['email']"></app-input>
-      
-            <app-input label="Teléfono" [form_control]="form.controls['phone']"></app-input>
-            <app-input label="RFC" [form_control]="form.controls['rfc']"></app-input>  
-            <app-input label="Direccion" [form_control]="form.controls['address']"></app-input> 
+            <app-input
+                label="Nombre"
+                [form_control]="form.controls['name']">
+            </app-input>
+
+            <!-- Apellido -->
+            <app-input
+                label="Apellido"
+                [form_control]="form.controls['lastname']">
+            </app-input>
+
+            <!-- Correo -->
+            <app-input
+                label="Correo"
+                [form_control]="form.controls['email']">
+            </app-input>
+
+            <!-- Teléfono -->
+            <app-input
+                label="Teléfono"
+                [form_control]="form.controls['phone']">
+            </app-input>
+
+            <!-- Código país -->
+            <app-input
+                label="Código país"
+                [form_control]="form.controls['phone_code']">
+            </app-input>
+
+            <!-- País -->
+            <app-input
+                label="País"
+                [form_control]="form.controls['phone_country']">
+            </app-input>
+
         </div>
     </div>
   
