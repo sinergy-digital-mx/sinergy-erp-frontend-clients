@@ -9,7 +9,7 @@
         </p-floatlabel>
     </div>
 
-    <p-table #dt [value]="leads()" [columns]="cols" class="w-full" [paginator]="true" [rows]="8"
+    <p-table #dt [value]="leads()" [columns]="cols" class="w-full" [paginator]="true" [rows]="100"
         responsiveLayout="scroll" styleClass="p-datatable-sm">
         <ng-template pTemplate="header" let-columns>
             <tr>
