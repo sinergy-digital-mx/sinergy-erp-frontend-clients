@@ -7,14 +7,14 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { InputComponent } from '../../../../core/components/input/input.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { LucideAngularModule, X } from 'lucide-angular';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-lead-edit-dialog',
   standalone: true,
   styleUrls: ['./lead-edit-dialog.scss'],
-  imports: [CommonModule, TableModule, TagModule, ButtonModule,ButtonComponent,LucideAngularModule,InputComponent],
+  imports: [CommonModule, TableModule, TagModule, ButtonModule,ButtonComponent,LucideAngularModule,InputComponent, ReactiveFormsModule],
   templateUrl: 'lead-edit-dialog.html',
 })
 export class LeadEditDialog {
