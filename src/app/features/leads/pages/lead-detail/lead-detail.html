@@ -75,70 +75,176 @@
       </div>
     </div>
   
-    <!-- ADDRESSES -->
-    <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
-      <h3 class="text-lg font-semibold text-gray-800 mb-4">
+   
+<!-- ADDRESSES -->
+<div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+
+    <!-- Header with action -->
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold text-gray-800">
         Addresses
       </h3>
   
-      <p-table
-        [value]="lead()?.addresses"
-        responsiveLayout="scroll"
-        styleClass="p-datatable-sm w-full">
-  
-        <!-- HEADER -->
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Type</th>
-            <th>Street address</th>
-            <th>City</th>
-            <th>State</th>
-            <th>Postal code</th>
-            <th>Country</th>
-            <th>Primary</th>
-          </tr>
-        </ng-template>
-  
-        <!-- BODY -->
-        <ng-template pTemplate="body" let-address>
-          <tr>
-            <td class="capitalize">
-              {{ address.type }}
-            </td>
-  
-            <td>
-              {{ address.street_address }}
-            </td>
-  
-            <td>
-              {{ address.city }}
-            </td>
-  
-            <td>
-              {{ address.state }}
-            </td>
-  
-            <td>
-              {{ address.postal_code }}
-            </td>
-  
-            <td>
-              {{ address.country }}
-            </td>
-  
-            <td class="text-center">
-              <p-tag
-                *ngIf="address.is_primary"
-                value="Primary"
-                severity="success"
-                rounded="true">
-              </p-tag>
-            </td>
-          </tr>
-        </ng-template>
-  
-      </p-table>
+      <button
+        pButton
+        icon="pi pi-plus"
+        label="Add address"
+        class="p-button-sm p-button-outlined"
+    >
+      </button>
     </div>
+  
+    <p-table
+      [value]="lead()?.addresses"
+      responsiveLayout="scroll"
+      styleClass="p-datatable-sm w-full">
+  
+      <!-- HEADER -->
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Type</th>
+          <th>Street address</th>
+          <th>City</th>
+          <th>State</th>
+          <th>Postal code</th>
+          <th>Country</th>
+          <th>Primary</th>
+        </tr>
+      </ng-template>
+  
+      <!-- BODY -->
+      <ng-template pTemplate="body" let-address>
+        <tr>
+          <td class="capitalize">
+            {{ address.type }}
+          </td>
+  
+          <td>
+            {{ address.street_address }}
+          </td>
+  
+          <td>
+            {{ address.city }}
+          </td>
+  
+          <td>
+            {{ address.state }}
+          </td>
+  
+          <td>
+            {{ address.postal_code }}
+          </td>
+  
+          <td>
+            {{ address.country }}
+          </td>
+  
+          <td class="text-center">
+            <p-tag
+              *ngIf="address.is_primary"
+              value="Primary"
+              severity="success"
+              rounded="true">
+            </p-tag>
+          </td>
+        </tr>
+      </ng-template>
+  
+    </p-table>
+</div>
+
+
+<!-- ACTIVITIES -->
+<div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+
+    <!-- Header with action -->
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold text-gray-800">
+        Activities
+      </h3>
+  
+      <button
+        pButton
+        icon="pi pi-plus"
+        label="Add activity"
+        class="p-button-sm p-button-outlined"
+        (click)="createActivity()"
+        >
+      </button>
+    </div>
+  
+    <p-table
+      [value]="lead()?.activities"
+      responsiveLayout="scroll"
+      styleClass="p-datatable-sm w-full"
+      >
+  
+      <!-- HEADER -->
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Type</th>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Activity date</th>
+          <th>Duration</th>
+          <th>Outcome</th>
+        </tr>
+      </ng-template>
+  
+      <!-- BODY -->
+      <ng-template pTemplate="body" let-activity>
+        <tr>
+  
+          <!-- Type -->
+          <td class="capitalize">
+            <p-tag
+              [value]="activity.type"
+              severity="info"
+              rounded="true">
+            </p-tag>
+          </td>
+  
+          <!-- Title + description -->
+          <td>
+            <div class="font-medium text-gray-800">
+              {{ activity.title }}
+            </div>
+            <div class="text-xs text-gray-500">
+              {{ activity.description }}
+            </div>
+          </td>
+  
+          <!-- Status -->
+          <td>
+            <p-tag
+              [value]="activity.status"
+              severity="success"
+              rounded="true">
+            </p-tag>
+          </td>
+  
+          <!-- Activity date -->
+          <td>
+            {{ activity.activity_date | date:'medium' }}
+          </td>
+  
+          <!-- Duration -->
+          <td>
+            {{ activity.duration_minutes }} min
+          </td>
+  
+          <!-- Outcome -->
+          <td class="capitalize">
+            {{ activity.outcome?.replace('_', ' ') }}
+          </td>
+  
+        </tr>
+      </ng-template>
+  
+    </p-table>
+  </div>
+  
+  
   
   </div>
   
