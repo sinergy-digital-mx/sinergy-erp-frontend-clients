@@ -5,6 +5,7 @@ import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { MatDialog } from '@angular/material/dialog';
 import { LeadEditDialog } from '../../components/lead-detail/lead-edit-dialog';
+import { LeadService } from '../../../../core/services/leads.service';
 
 @Component({
   selector: 'app-lead-detail',
@@ -45,7 +46,7 @@ export class LeadDetail {
     ]
   };
 
-  constructor(public dialog:MatDialog){
+  constructor(public dialog:MatDialog, public leads_service: LeadService){
 
   }
 
@@ -72,7 +73,9 @@ export class LeadDetail {
     this.dialog.open(LeadEditDialog, {
       data: this.client
     }).afterClosed().subscribe(res=>{
-      
+
     })
   }
+
+
 }

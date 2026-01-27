@@ -44,12 +44,9 @@ export class Login{
   
     this.authService.login(this.form.value).subscribe({
       next: (res: any) => {
-        if (res.status) {
-          this.router.navigate(['/']);
-        } else {
-          this.loading.set(false);
-          this.error.set('Usuario o contraseña incorrectos');
-        }
+        localStorage.setItem(this.authService.name_token, res.access_token);
+        this.authService.BuildTokensToInit()
+        this.router.navigate(['/']);
       },
       error: () => {
         this.loading.set(false);

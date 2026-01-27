@@ -7,6 +7,8 @@ import { definePreset } from '@primeuix/styled';
 
 
 import { routes } from './app.routes';
+import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { InterceptorService } from './core/services/interceptor.service';
 
 const MyPreset = definePreset(Aura, {
   semantic: {
@@ -38,6 +40,12 @@ export const appConfig: ApplicationConfig = {
       }
     }),
     provideBrowserGlobalErrorListeners(),
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: InterceptorService,
+      multi: true,
+    },
+    provideHttpClient(withInterceptorsFromDi()),
     provideRouter(routes)
   ]
 };

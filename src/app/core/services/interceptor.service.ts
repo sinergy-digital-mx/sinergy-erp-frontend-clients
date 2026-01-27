@@ -26,13 +26,14 @@ export class InterceptorService implements HttpInterceptor {
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const token = window.localStorage.getItem(this.auth_service.name_token);
+    console.log()
 
     let request = req;
 
     if (token) {
       request = req.clone({
         setHeaders: {
-          Authorization: token, // si tu API usa Bearer, usa: `Bearer ${token}`
+          Authorization: `Bearer ${token}`, // si tu API usa Bearer, usa: `Bearer ${token}`
         },
       });
     }

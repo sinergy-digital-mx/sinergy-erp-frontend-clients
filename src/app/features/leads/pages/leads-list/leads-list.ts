@@ -7,6 +7,8 @@ import { FloatLabelModule } from 'primeng/floatlabel';
 import { TagModule } from 'primeng/tag';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { LeadService } from '../../../../core/services/leads.service';
+import { signal } from '@angular/core';
 
 @Component({
   selector: 'app-leads-list',
@@ -26,40 +28,19 @@ export class LeadsList {
     { field: 'actions', header: 'Actions' },
   ];
 
-  leads = [
-    {
-      name: 'Juan Pérez',
-      email: 'juan.perez@email.com',
-      phone: '+52 55 1234 5678',
-      created_at: '2024-11-12'
-    },
-    {
-      name: 'María González',
-      email: 'maria.gonzalez@email.com',
-      phone: '+52 33 9876 5432',
-      created_at: '2024-11-15'
-    },
-    {
-      name: 'Carlos Ramírez',
-      email: 'carlos.ramirez@email.com',
-      phone: '+1 305 555 8912',
-      created_at: '2024-12-01'
-    },
-    {
-      name: 'Ana López',
-      email: 'ana.lopez@email.com',
-      phone: '+34 612 345 678',
-      created_at: '2024-12-05'
-    },
-    {
-      name: 'Luis Fernández',
-      email: 'luis.fernandez@email.com',
-      phone: '+57 300 456 7890',
-      created_at: '2025-01-10'
-    }
-  ];
+  leads = signal([]);
 
-  constructor(private router: Router) { }
+  constructor(private router: Router, public leads_service:LeadService) { }
+
+  ngOnInit(){
+    this.getLeads()
+  }
+
+  getLeads(){
+    this.leads_service.getLeads({}).subscribe(res =>{
+      this.leads.set(res)
+    })
+  }
   
   getSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' {
     switch (status) {
@@ -71,7 +52,7 @@ export class LeadsList {
   }
 
   viewDetail(row: any) {
-    this.router.navigate(['/leads/detail', 1]);
+    this.router.navigate(['/leads/detail', row.id]);
   }
 
 }
