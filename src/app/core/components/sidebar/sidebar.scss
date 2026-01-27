@@ -1,0 +1,121 @@
+.sidebar {
+  background: linear-gradient(180deg, #4f39f6 0%, #5b47f7 100%);
+  border-right: 1px solid rgba(79, 57, 246, 0.1);
+  
+  .logo-section {
+    background: rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    
+    h1 {
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      letter-spacing: 0.05em;
+    }
+    
+    p {
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.75rem;
+    }
+  }
+  
+  .nav-item {
+    position: relative;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+    
+    lucide-icon {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    &:hover lucide-icon {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    &.router-link-active {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      
+      lucide-icon {
+        color: white;
+      }
+      
+      &::before {
+        content: '';
+        position: absolute;
+        left: -16px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 20px;
+        background: white;
+        border-radius: 0 2px 2px 0;
+      }
+    }
+  }
+  
+  .user-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    
+    .user-info {
+      color: rgba(255, 255, 255, 0.9);
+      
+      .user-name {
+        color: white;
+        font-weight: 600;
+      }
+      
+      .user-email {
+        color: rgba(255, 255, 255, 0.6);
+      }
+    }
+    
+    .user-avatar {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      font-weight: 600;
+    }
+    
+    button {
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      
+      lucide-icon {
+        color: rgba(255, 255, 255, 0.7);
+      }
+      
+      &:hover lucide-icon {
+        color: white;
+      }
+    }
+  }
+}
+
+// Smooth transitions for all interactive elements
+* {
+  transition: all 0.15s ease;
+}
+
+// Custom scrollbar for the sidebar
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
