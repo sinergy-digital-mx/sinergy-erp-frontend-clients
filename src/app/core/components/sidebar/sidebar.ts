@@ -33,10 +33,30 @@ export class Sidebar {
       icon: Users
     },
     {
+      label: 'Follow ups',
+      route: '/customers',
+      icon: Users
+    },
+    {
       label: 'Customers',
       route: '/customers',
       icon: Users
     },
+    {
+      label: 'Map',
+      route: '/customers',
+      icon: Users
+    },
+    {
+      label: 'Quotes',
+      route: '/customers',
+      icon: Users
+    },
+    {
+      label: 'Contracts',
+      route: '/customers',
+      icon: Users
+    }
   ];
 
   icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText };
