@@ -1,0 +1,25 @@
+<div class="pagination" [formGroup]="form" #content [class.mobile]="width_mobile">
+  <div class="pagination__left">
+    <p class="pagination__text">Showing</p>
+    <select name="" id="" class="pagination__input" formControlName="limit" (change)="changeLimit()" readonly>
+      @for (value of limit_array; track value) {
+        <option [ngValue]="value">{{ value }}</option>
+      }
+    </select>
+    <p class="pagination__text">of {{ total_results }} results</p>
+  </div>
+  <div class="pagination__right">
+    <div class="pagination__action" [class.disabled]="page == 1" (click)="goPrevious()">
+      <i class="fi fi-sr-angle-left"></i>
+      <span> Previous </span>
+    </div>
+    <div class="pagination__action--input">
+      <input type="number" class="pagination__input" #input_number formControlName="page" />
+      <p class="pagination__text">/ {{ total_pages }}</p>
+    </div>
+    <div class="pagination__action" [class.disabled]="page == total_pages" (click)="goNext()">
+      <span class="pagination__action__next">Next </span>
+      <i class="icon fi fi-sr-angle-right"></i>
+    </div>
+  </div>
+</div>

@@ -8,6 +8,7 @@ import { InputComponent } from '../../../../core/components/input/input.componen
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { ActivatedRoute } from '@angular/router';
 import { LeadService } from '../../../../core/services/leads.service';
+import { InterceptorService } from '../../../../core/services/interceptor.service';
 
 @Component({
   selector: 'app-lead-activity-dialog',
@@ -19,7 +20,7 @@ import { LeadService } from '../../../../core/services/leads.service';
     InputComponent,
     ButtonComponent,
     ɵInternalFormsSharedModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
 ],
   templateUrl: 'lead-activity-dialog.html',
 })
@@ -27,9 +28,9 @@ export class LeadActivityDialog {
 
   readonly X = X;
 
-  loading = false;
+  loading = signal(false);
   form: FormGroup;
-  update = signal(false)
+  update = signal<boolean>(false)
 
   // Opciones de tipo de actividad
   activityTypes = [
@@ -48,19 +49,22 @@ export class LeadActivityDialog {
     private dialogRef: MatDialogRef<LeadActivityDialog>,
     @Inject(MAT_DIALOG_DATA) public data: { lead_id: number },
     public route: ActivatedRoute,
-    public leads_service:LeadService
+    public leads_service:LeadService,
+    public interceptor_service:InterceptorService
   ) {
-    this.lead_id.set(this.route.snapshot.paramMap.get('id'));
+    this.lead_id.set(data.lead_id);
     this.form = this.fb.group({
       type: [null, Validators.required],
       title: ['', Validators.required],
       description: [''],
-      notes: ['']
+      notes: [''],
+      duration_minutes: ['']
     });
   }
 
   closeDialog(): void {
-    if (!this.loading) {
+    console.log(this.loading())
+    if (!this.loading()) {
       this.dialogRef.close(this.update());
     }
   }
@@ -70,17 +74,27 @@ export class LeadActivityDialog {
       this.form.markAllAsTouched();
       return;
     }
-
-    this.loading = true;
-
+    this.loading.set(true);
     const payload = {
-      lead_id: this.lead_id,
+      lead_id: this.lead_id(),
       ...this.form.value,
     };
-
     this.leads_service.createActivity(payload).subscribe(res=>{
       this.update.set(true)
+      this.loading.set(false)
+      this.interceptor_service.openSnackbar({
+        type: 'success',
+        title: 'Success',
+        message: 'Activity created successfully.'
+      });
       this.closeDialog()
+    },error=>{
+      this.interceptor_service.openSnackbar({
+        type: 'error',
+        title: 'Error',
+        message: 'We couldn’t create the activity. Please try again.'
+      });
+      this.loading.set(false)
     })
   }
 }

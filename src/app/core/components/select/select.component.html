@@ -1,0 +1,36 @@
+<div class="container" [class.error]="has_error || (config?.form_control?.invalid && config?.form_control?.touched)">
+  @if (config.label || label) {
+    <label for="">
+      {{label ?? config.label}}@if (has_error || (config?.form_control?.invalid && config?.form_control?.touched)) {
+      <span>*</span>
+    }
+  </label>
+}
+<div class="select_container">
+  <select
+    class="filter__control"
+    [formControl]="config.form_control ? config.form_control : select"
+    [style.min-height]="config.height ? config.height + 'px' : '100%'"
+    >
+    @if (config.all) {
+      <option [ngValue]="null">{{ config.all_message ? config.all_message : 'All' }}</option>
+    }
+    @if (!config.all) {
+      <option [ngValue]="null" disabled selected hidden>
+        {{ config.placeholder }}
+      </option>
+    }
+    @for (item of config.data; track item) {
+      <option [ngValue]="item[config.value]" [disabled]="item[config.disabled_option]">
+        {{ item[config.option] }}
+      </option>
+    }
+  </select>
+  @if (config.loading) {
+    <app-spinner [width]="22" [height]="22" [color]="'#1a1a34'" [border_width]="2"></app-spinner>
+  }
+  @if (config.error) {
+    <i class="ti ti-refresh" (click)="getRefresh()"></i>
+  }
+</div>
+</div>

@@ -6,6 +6,7 @@
 
     <lucide-icon
       name="x"
+      [img]="X"
       class="close cursor-pointer"
       (click)="closeDialog()">
     </lucide-icon>
@@ -46,17 +47,27 @@
       </app-input>
 
       <app-input
-      label="Descripcion"
+      label="Description"
       placeholder="e.g. Follow-up call"
       [form_control]="form.controls['description']">
       </app-input>
 
       <app-input
-      label="Notes"
-      [type]="'textarea'"
+      label="Duration"
       placeholder="e.g. Follow-up call"
-      [form_control]="form.controls['notes']">
+      [form_control]="form.controls['duration_minutes']"
+      type="number"
+      >
       </app-input>
+
+      <div class="md:col-span-2">
+        <app-input
+          label="Notes"
+          [type]="'textarea'"
+          placeholder="e.g. Follow-up call"
+          [form_control]="form.controls['notes']">
+        </app-input>
+      </div>
 
     </div>
   </div>
@@ -66,7 +77,7 @@
     <app-button
       text="Create activity"
       custom_class="btn_primary"
-      [loading]="loading"
+      [loading]="loading()"
       (click)="submit()">
     </app-button>
   </div>

@@ -29,6 +29,7 @@ export class LeadService {
   }
 
   createActivity(data): Observable<any> {
+    console.log(data)
     return this.http.post(`${this.api}/leads/${data.lead_id}/activities`,data);
   }
 

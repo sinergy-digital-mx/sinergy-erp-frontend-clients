@@ -1,0 +1,17 @@
+<ng-container>
+  <div class="empty_stage" [ngStyle]="setStyles()">
+    <div>
+      <div [class.circle_icon]="params.wrapper_icon_circle">
+        @if (!image) {
+          <i [class]="icon ? icon : 'fi-rr-search'"></i>
+        }
+        @if (image) {
+          <img [src]="image" alt="" />
+        }
+      </div>
+      <p>
+        {{ message }} <span>{{ sub_message ? sub_message : '' }}</span>
+      </p>
+    </div>
+  </div>
+</ng-container>

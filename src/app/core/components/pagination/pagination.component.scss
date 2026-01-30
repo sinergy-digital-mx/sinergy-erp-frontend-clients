@@ -1,0 +1,98 @@
+@use '../../../../base/variables.scss' as *;
+
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none;
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.mobile {
+  .pagination__left {
+    display: none;
+  }
+
+  .pagination__right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+.pagination {
+  display: flex;
+  padding: $space-s $space-l;
+  justify-content: space-between;
+  &__left {
+    display: flex;
+    align-items: center;
+  }
+  &__right {
+    display: flex;
+  }
+  &__text {
+    font-size: $text-regular;
+    color: $color-secondary-600;
+  }
+  &__input {
+    font-weight: 700;
+    width: 50px;
+    max-width: 80px;
+    padding: $space-xs;
+    text-align: center;
+    border-radius: 3px;
+    margin: 0 $space-xs;
+    font-size: $text-regular;
+    background-color: $color-neutral-50;
+    border: 1px solid $color-neutral-400;
+  }
+
+  &__action {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    font-size: $text-regular;
+    color: $color-secondary-800;
+    &__next {
+      font-weight: 700;
+    }
+    & > .icon {
+      padding-top: 3px;
+      padding-left: 6px;
+      font-size: 10px;
+    }
+    & > i {
+      font-size: 10px;
+      padding-top: 4px;
+      padding-right: 6px;
+    }
+  }
+
+  &__action--input {
+    @extend .pagination__action;
+    cursor: default;
+    margin-right: $space-xs;
+    color: $color-secondary-600;
+  }
+
+  &__group .chevron-icon {
+    font-size: 22px;
+  }
+}
+
+.disabled {
+  color: $color-neutral-400;
+  cursor: not-allowed;
+}
