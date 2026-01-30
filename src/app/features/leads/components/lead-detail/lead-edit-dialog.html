@@ -15,38 +15,48 @@
         <div class="container grid grid-cols-1 md:grid-cols-2 gap-4" [formGroup]="form">
 
             <app-input
-                label="Nombre"
+                label="Name"
                 [form_control]="form.controls['name']">
             </app-input>
 
             <!-- Apellido -->
             <app-input
-                label="Apellido"
+                label="Last name"
                 [form_control]="form.controls['lastname']">
             </app-input>
 
             <!-- Correo -->
             <app-input
-                label="Correo"
+                label="Email"
                 [form_control]="form.controls['email']">
             </app-input>
 
             <!-- Teléfono -->
             <app-input
-                label="Teléfono"
+                label="Phone"
                 [form_control]="form.controls['phone']">
             </app-input>
 
             <!-- Código país -->
             <app-input
-                label="Código país"
+                label="Phone code"
                 [form_control]="form.controls['phone_code']">
             </app-input>
 
             <!-- País -->
             <app-input
-                label="País"
+                label="Phone country"
                 [form_control]="form.controls['phone_country']">
+            </app-input>
+
+            <app-input
+            label="Company name"
+            [form_control]="form.controls['company_name']">
+            </app-input>
+
+            <app-input
+            label="Website"
+            [form_control]="form.controls['website']">
             </app-input>
 
         </div>
@@ -56,7 +66,7 @@
       <app-button
         text="Actualizar"
         custom_class="btn_primary"
-        [loading]="loading"
+        [loading]="loading()"
         (click)="submmit()">
       </app-button>
     </div>
