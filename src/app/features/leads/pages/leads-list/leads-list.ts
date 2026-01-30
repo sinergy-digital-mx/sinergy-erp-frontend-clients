@@ -12,10 +12,13 @@ import { signal } from '@angular/core';
 import { ITable, TableComponent } from '../../../../core/components/table/table.component';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { MatDialog } from '@angular/material/dialog';
+import { LeadEditDialog } from '../../components/lead-detail/lead-edit-dialog';
 
 @Component({
   selector: 'app-leads-list',
-  imports: [CommonModule, FormsModule, TableModule, InputTextModule, FloatLabelModule, TagModule, ButtonModule,TableComponent,SearchComponent],
+  imports: [CommonModule, FormsModule, TableModule, InputTextModule, FloatLabelModule, TagModule, ButtonModule,TableComponent,SearchComponent,ButtonComponent],
   templateUrl: './leads-list.html',
   styleUrl: './leads-list.scss',
 })
@@ -49,7 +52,7 @@ export class LeadsList {
   ];
 
   leads = signal([]);
-  constructor(private router: Router, public leads_service: LeadService, public route: ActivatedRoute) {
+  constructor(private router: Router, public leads_service: LeadService, public route: ActivatedRoute, public dialog:MatDialog) {
     this.route.queryParams.subscribe((query) => {
       this.search=query?.search ?? ''
   
@@ -97,6 +100,17 @@ export class LeadsList {
 
   viewDetail(row: any) {
     this.router.navigate(['/leads/detail', row.id]);
+  }
+
+  createLead(){
+    this.dialog.open(LeadEditDialog,{
+      data: {
+      }
+    }).afterClosed().subscribe(res=>{
+      if(res){
+        this.getLeads()
+      }
+    })
   }
 
 }

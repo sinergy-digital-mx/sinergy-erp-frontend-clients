@@ -44,24 +44,26 @@ export class LeadEditDialog {
       phone: ['', [Validators.required]],
       phone_code: ['+1', [Validators.required]],
       phone_country: ['US', [Validators.required]],
-      source: ['', [Validators.required]],
-      status_id: [null, [Validators.required]],
+      source: [''],
+      status_id: [null],
       company_name: [null, []],
       website: [null, []],
     });
 
-    this.form.patchValue({
-      name: this.data.name,
-      lastname: this.data.lastname,
-      email: this.data.email,
-      phone: this.data.phone,
-      phone_code: this.data.phone_code,
-      phone_country: this.data.phone_country,
-      source: this.data.source,
-      status_id: this.data?.status?.id,
-      company_name: this.data.company_name,
-      website: this.data.website,
-    })
+    if(this.data?.id){
+      this.form.patchValue({
+        name: this.data.name,
+        lastname: this.data.lastname,
+        email: this.data.email,
+        phone: this.data.phone,
+        phone_code: this.data.phone_code,
+        phone_country: this.data.phone_country,
+        source: this.data.source,
+        status_id: this.data?.status?.id,
+        company_name: this.data.company_name,
+        website: this.data.website,
+      })
+    }
   }
 
   ngOnInit(){
@@ -75,11 +77,12 @@ export class LeadEditDialog {
   }
 
   submmit(){
-    console.log(this.data)
-    console.log(this.form.invalid)
-    console.log(this.form.value)
-    if(this.data.id){
+    if(this.data?.id){
       this.updateLead()
+    }else{
+      console.log('entre')
+      console.log(this.form.value)
+      this.createLead()
     }
   }
 
@@ -115,6 +118,49 @@ export class LeadEditDialog {
           type: 'error',
           title: 'Error',
           message: 'We couldn’t update the lead. Please try again.',
+        });
+      },
+    });
+  }
+  
+  createLead(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+  
+    this.loading.set(true);
+  
+    const payload = {
+      tenant_id:1,
+      status_id: 1,
+      ...this.form.value,
+    };
+  
+    this.lead_service.createLead(payload).subscribe({
+      next: (res) => {
+        this.update.set(true);
+        this.loading.set(false);
+  
+        this.interceptor_service.openSnackbar({
+          type: 'success',
+          title: 'Success',
+          message: 'Lead created successfully.',
+        });
+  
+        // opcional: si quieres cerrar el dialog
+        this.closeDialog();
+  
+        // opcional: si el API devuelve el lead creado y quieres guardarlo
+        // this.data = res?.data ?? res;
+      },
+      error: (err) => {
+        this.loading.set(false);
+  
+        this.interceptor_service.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: 'We couldn’t create the lead. Please try again.',
         });
       },
     });
