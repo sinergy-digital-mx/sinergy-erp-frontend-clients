@@ -28,6 +28,10 @@ export class LeadService {
     return this.http.get(`${this.api}/leads/${id}`);
   }
 
+  createLead(params: any): Observable<any> {
+    return this.http.post(`${this.api}/leads`,params);
+  }
+
   updateLead(params: any): Observable<any> {
     return this.http.put(`${this.api}/leads/${params.id}`,params);
   }
