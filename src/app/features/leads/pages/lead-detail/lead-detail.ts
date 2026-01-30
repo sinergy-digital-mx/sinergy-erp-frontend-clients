@@ -8,6 +8,7 @@ import { LeadEditDialog } from '../../components/lead-detail/lead-edit-dialog';
 import { LeadService } from '../../../../core/services/leads.service';
 import { ActivatedRoute } from '@angular/router';
 import { LeadActivityDialog } from '../../components/lead-activity-dialog/lead-activity-dialog';
+import { LeadAddressDialog } from '../../components/lead-address-dialog/lead-address-dialog';
 
 @Component({
   selector: 'app-lead-detail',
@@ -35,7 +36,9 @@ export class LeadDetail {
     this.dialog.open(LeadEditDialog, {
       data: this.lead()
     }).afterClosed().subscribe(res=>{
-
+      if(res){
+        this.getDetail()
+      }
     })
   }
 
@@ -47,6 +50,18 @@ export class LeadDetail {
 
   createActivity(){
     this.dialog.open(LeadActivityDialog,{
+      data: {
+        lead_id: this.lead_id()
+      }
+    }).afterClosed().subscribe(res=>{
+      if(res){
+        this.getDetail()
+      }
+    })
+  }
+
+  createAddress(){
+    this.dialog.open(LeadAddressDialog,{
       data: {
         lead_id: this.lead_id()
       }

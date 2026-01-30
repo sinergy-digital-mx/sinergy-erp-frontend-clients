@@ -1,0 +1,71 @@
+<div class="dialog">
+
+  <!-- HEADER -->
+  <div class="dialog__header">
+    <h2>Create address</h2>
+
+    <lucide-icon
+      name="x"
+      [img]="X"
+      class="close cursor-pointer"
+      (click)="closeDialog()">
+    </lucide-icon>
+  </div>
+
+  <!-- BODY -->
+  <div class="dialog__body">
+    <div class="container grid grid-cols-1 md:grid-cols-2 gap-4" [formGroup]="form">
+
+      <app-input
+        label="Street address"
+        placeholder="e.g. 123 Main St, Apt 4B"
+        [form_control]="form.controls['street_address']">
+      </app-input>
+
+      <app-input
+        label="City"
+        placeholder="e.g. Tijuana"
+        [form_control]="form.controls['city']">
+      </app-input>
+
+      <app-input
+        label="State"
+        placeholder="e.g. Baja California"
+        [form_control]="form.controls['state']">
+      </app-input>
+
+      <app-input
+        label="Postal code"
+        placeholder="e.g. 22000"
+        [form_control]="form.controls['postal_code']">
+      </app-input>
+
+      <app-input
+        label="Country"
+        placeholder="e.g. Mexico"
+        [form_control]="form.controls['country']">
+      </app-input>
+
+      <div class="md:col-span-2">
+        <app-input
+          label="Notes"
+          [type]="'textarea'"
+          placeholder="e.g. Gate code, delivery instructions..."
+          [form_control]="form.controls['notes']">
+        </app-input>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="dialog__footer">
+    <app-button
+      text="Create address"
+      custom_class="btn_primary"
+      [loading]="loading()"
+      (click)="submit()">
+    </app-button>
+  </div>
+
+</div>
