@@ -55,3 +55,10 @@
   max-width: 100dvw !important;
 }
 
+.mat-mdc-snack-bar-container .mdc-snackbar__label {
+  padding: 0;
+}
+.mdc-snackbar__surface {
+  padding-right: 0 !important;
+}
+

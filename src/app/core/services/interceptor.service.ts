@@ -70,7 +70,7 @@ export class InterceptorService implements HttpInterceptor {
     this.snackBar.openFromComponent(CustomSnackbarComponent, {
       duration: options.duration ?? 3000,
       verticalPosition: options.vertical_position ?? "top",
-      horizontalPosition: options.horizontal_position ?? "center",
+      horizontalPosition: options.horizontal_position ?? "right",
       data: {
         title: options.title,
         message: options.message,

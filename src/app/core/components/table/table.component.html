@@ -1,0 +1,171 @@
+<div class="table_container" [class.mobile]="is_mobile" [class.is_loading]="config.loading">
+  @if (config.title) {
+    <div class="table_header">
+      <div class="table_header__title">
+        @if (config.title) {
+          <p>{{ config.title }}</p>
+        }
+      </div>
+      <!-- @if (config.top_button !== undefined) {
+        <div class="table_header__btn">
+          <button class="{{ config.top_button.class }}" (click)="buttonHeaderEvent()">
+            <p>{{ config.top_button.title }}</p>
+            <i class="{{ config.top_button.icon_class }}"></i>
+          </button>
+        </div>
+      } -->
+      <!-- @if (config.select_config !== undefined) {
+        <div class="table_header__btn">
+          <app-select [config]="config.select_config" (changeOption)="selectChangeEvent($event.value)"></app-select>
+        </div>
+      } -->
+    </div>
+  }
+  <div class="table_body">
+    <table [style.min-width.px]="columns_mobile ? 0 : config.min_width ? config.min_width : default_min_width">
+      @if (!columns_mobile) {
+        <thead>
+          <tr [ngStyle]="rowStyles()">
+            @if (config.index) {
+              <td></td>
+            }
+            @if (config.drag_drop) {
+              <td></td>
+            }
+            @if (config.checkbox) {
+              <td class="checkbox">
+                @if (config.checkbox_all) {
+                  <label for="check">
+                    <input type="checkbox" name="check" id="check" (click)="checkedAll($event.target)" class="check" />
+                  </label>
+                }
+              </td>
+            }
+            @for (header of config.header; track header; let i = $index) {
+              <td (click)="sortColumn(header, i)">
+                {{ (validateDataType(header) ? header.name : header)}}
+                @if (validateDataType(header)) {
+                  <i
+                    class="fi-rr-caret-down sort-icon"
+                    [class.rotate]="header.order_asc"
+                  ></i>
+                }
+              </td>
+            }
+          </tr>
+        </thead>
+      }
+      @if (config.total_results == 0 && !config.loading) {
+        <div class="empty_stage">
+          <app-empty-stage
+            [icon]="'fi fi-rr-browser'"
+            [params]="params_empty_state"
+            [background]="'#ffff'"
+            [message]="config.empty_state && config.empty_state.title"
+            [sub_message]="config.empty_state && config.empty_state.subtitle"
+          ></app-empty-stage>
+        </div>
+      }
+      @if (config.loading) {
+        <ngx-skeleton-loader
+          count="15"
+          appearance="line"
+          [theme]="{ height: '72px', 'background-color': 'rgb(237 237 237)' }"
+          >
+        </ngx-skeleton-loader>
+      }
+      @if (config.total_results > 0) {
+        <tbody
+          #tbody
+          cdkDropList
+          [cdkDropListData]="config.data"
+          (cdkDropListDropped)="moveColumnEvent($event)"
+          infiniteScroll
+          [infiniteScrollDistance]="0.1"
+          [infiniteScrollThrottle]="1000"
+          [scrollWindow]="false"
+          [infiniteScrollDisabled]="!config.active_infinite_scroll"
+          (scrolled)="onScroll()"
+        [ngStyle]="{
+          height: 'calc(100% - ' + (columns_mobile ? 0 : 40) + 'px )'
+        }"
+          >
+          @if (row_template) {
+            @for (item of config.data; track item; let i = $index) {
+              <tr
+                class="row"
+                cdkDrag
+                [cdkDragStartDelay]="0"
+                [cdkDragData]="item"
+                [cdkDragDisabled]="!config.drag_drop || item[config.drag_disable]"
+                [ngStyle]="{ 'grid-template-columns': columns_mobile != '' ? columns_mobile : config.columns }"
+                (click)="clickEvent(item)"
+                >
+                <ng-container>
+                  @if (config.index) {
+                    <td class="index" [class.index_mobile]="is_mobile">
+                      {{ i + 1 }}
+                      @if (!is_mobile) {
+                        <div class="border_index"></div>
+                      }
+                    </td>
+                  }
+                  @if (config.drag_drop) {
+                    <td class="drag_icon">
+                      <i class="ti ti-menu-order"   cdkDragHandle></i>
+                    </td>
+                  }
+                  @if (config.checkbox) {
+                    <td class="checkbox">
+                      <label [for]="i" (click)="$event.stopPropagation()">
+                        <input
+                          matTooltip="Mark as visited"
+                          [matTooltipPosition]="'right'"
+                          class="check"
+                          type="checkbox"
+                          [name]="i"
+                          [id]="i"
+                          (click)="checkRow($event.target, i, item)"
+                          [checked]="check_all || item[config.checkbox_value]"
+                          [disabled]="config.checkbox_disabled_all"
+                          />
+                      </label>
+                    </td>
+                  }
+                  <ng-content *ngTemplateOutlet="row_template; context: { item, index: i }"></ng-content>
+                </ng-container>
+              </tr>
+            }
+          }
+        </tbody>
+      }
+    </table>
+    @if (config.loading_scroll) {
+      <app-spinner
+        [width]="32"
+        [height]="32"
+        [color]="'#1A1A34'"
+        [border_width]="3"
+      ></app-spinner>
+    }
+  </div>
+  @if (config.pagination) {
+    <div
+      class="pagination"
+      [style.border-bottom-left-radius]="config.border_radius ? config.border_radius + 'px' : '12px'"
+      [style.border-bottom-right-radius]="config.border_radius ? config.border_radius + 'px' : '12px'"
+      >
+      @if (config.pagination) {
+        <app-pagination
+          #pagination
+          [(limit)]="config.limit"
+          [limit_array]="config.limit_array"
+          [(page)]="config.page"
+          [total_results]="config.total_results"
+          (goPage)="eventPagination($event)"
+          [activate_params]="config.activate_params"
+        ></app-pagination>
+      }
+    </div>
+  }
+</div>

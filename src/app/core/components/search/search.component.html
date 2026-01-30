@@ -1,0 +1,16 @@
+<div class="search_container">
+  <p-floatLabel variant="on">
+    <input
+      pInputText
+      id="search"
+      [formControl]="search"
+      autocomplete="off"
+      class="w-64"
+    />
+    <label for="search">{{ label }}</label>
+  </p-floatLabel>
+
+  @if (search.value) {
+    <i class="fi fi-rr-cross-small" (click)="clear()"></i>
+  }
+</div>
