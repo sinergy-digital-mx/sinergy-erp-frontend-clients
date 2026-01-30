@@ -47,7 +47,9 @@ export class LeadDetail {
 
   createActivity(){
     this.dialog.open(LeadActivityDialog,{
-
+      data: {
+        lead_id: this.lead_id()
+      }
     }).afterClosed().subscribe(res=>{
       if(res){
         this.getDetail()

@@ -50,6 +50,7 @@ export class LeadActivityDialog {
     public route: ActivatedRoute,
     public leads_service:LeadService
   ) {
+    console.log(this.route.snapshot.paramMap.get('id'))
     this.lead_id.set(this.route.snapshot.paramMap.get('id'));
     this.form = this.fb.group({
       type: [null, Validators.required],
@@ -74,7 +75,7 @@ export class LeadActivityDialog {
     this.loading = true;
 
     const payload = {
-      lead_id: this.lead_id,
+      lead_id: this.lead_id(),
       ...this.form.value,
     };
 
