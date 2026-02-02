@@ -7,6 +7,8 @@
 
 @use '@angular/material' as mat;
 @use "primeicons/primeicons.css" as *;
+@import "tailwindcss";
+
 
 .dialog {
   background: #fff;
@@ -61,4 +63,27 @@
 .mdc-snackbar__surface {
   padding-right: 0 !important;
 }
+
+/* links elegantes reutilizables */
+.link-pro {
+  @apply inline-flex items-center gap-1 rounded-md
+         text-indigo-700 font-medium
+         hover:text-indigo-800 hover:underline
+         focus:outline-none focus:ring-2 focus:ring-indigo-500/40
+         transition-colors duration-150;
+}
+
+.link-pro-muted {
+  @apply text-gray-600 hover:text-gray-800;
+}
+
+.link-pro-icon {
+  @apply text-[11px] opacity-70;
+}
+
+/* para textos largos (email / url) */
+.link-pro-break {
+  @apply break-all;
+}
+
 

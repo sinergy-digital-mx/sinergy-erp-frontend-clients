@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideAngularModule, LucideIconData } from 'lucide-angular';
 import { SpinnerComponent } from '../spinner/spinner.component';
 
 @Component({
@@ -12,7 +12,7 @@ import { SpinnerComponent } from '../spinner/spinner.component';
 export class ButtonComponent {
 
   @Input() text?: string;
-  @Input() icon?: string;
+  @Input() icon?: LucideIconData;
   @Input() loading = false;
   @Input() disabled = false;
   @Input() type: 'button' | 'submit' = 'button';

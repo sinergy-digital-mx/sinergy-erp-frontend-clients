@@ -14,7 +14,8 @@ import { SearchComponent } from '../../../../core/components/search/search.compo
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { MatDialog } from '@angular/material/dialog';
-import { LeadEditDialog } from '../../components/lead-detail/lead-edit-dialog';
+import { LeadEditDialog } from '../../components/lead-edit-dialog/lead-edit-dialog';
+import { LucideAngularModule,ArrowRight  } from 'lucide-angular';
 
 @Component({
   selector: 'app-leads-list',
@@ -41,6 +42,7 @@ export class LeadsList {
     activate_params:true
   });
 
+  readonly ArrowRight = ArrowRight;
   search = '';
 
   cols = [

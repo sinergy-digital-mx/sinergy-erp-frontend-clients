@@ -19,13 +19,13 @@
     <app-spinner [width]="16" [height]="16" [border_width]="3"></app-spinner>
   }
 
-  @if (!loading && icon) {
-    <lucide-icon [name]="icon" class="w-4 h-4"></lucide-icon>
-  }
-
   @if (text) {
     <span>{{ text }}</span>
   } @else {
     <ng-content></ng-content>
+  }
+  
+  @if (!loading && icon) {
+    <lucide-icon [img]="icon" class="w-4 h-4"></lucide-icon>
   }
 </button>
