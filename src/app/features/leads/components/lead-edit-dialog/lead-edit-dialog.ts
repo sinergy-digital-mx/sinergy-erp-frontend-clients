@@ -11,6 +11,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { LeadService } from '../../../../core/services/leads.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-lead-edit-dialog',
@@ -34,7 +35,8 @@ export class LeadEditDialog {
     public dialog:MatDialog, public dialog_ref:MatDialogRef<LeadEditDialog>,
     @Inject(MAT_DIALOG_DATA)public data:any,
     public lead_service: LeadService,
-    public interceptor_service:InterceptorService
+    public interceptor_service:InterceptorService,
+    public auth_service:AuthService
     // private authService: AuthService
   ) {
     this.form = this.fb.group({
@@ -132,7 +134,7 @@ export class LeadEditDialog {
     this.loading.set(true);
   
     const payload = {
-      tenant_id:1,
+      tenant_id:this.auth_service.user_info.tenant_id,
       status_id: 1,
       ...this.form.value,
     };

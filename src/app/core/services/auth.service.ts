@@ -12,12 +12,11 @@ import { environment } from '../../../environments/environment.prod';
 export class AuthService {
   api = environment.api;
 
-  user_info: any;
+  user_info: UserInfoI;
   name_token = 'sinergy_erp_token'
   token: string;
 
 
-  public render_menu: boolean = false;
 
   constructor(private router: Router, public http: HttpClient, public activated_route: ActivatedRoute) {
     this.BuildTokensToInit();
@@ -27,8 +26,8 @@ export class AuthService {
   BuildTokensToInit() {
     if (localStorage.getItem(this.name_token)) {
       this.user_info = jwtDecode(localStorage.getItem(this.name_token) || '{}');
+      console.log(this.user_info)
       this.token = localStorage.getItem(this.name_token) || '';
-      this.render_menu = true;
     } else {
       localStorage.removeItem(this.name_token);
     }
@@ -48,4 +47,21 @@ export class AuthService {
     return this.http.post(this.api + '/auth/user/login', data);
   }
 
+}
+
+export interface UserInfoI {
+  email: string;
+  exp: number;
+  hasAdminRole: boolean;
+  iat: number;
+  permissionCount: number;
+  permissions: string[];
+  roles: Role[];
+  status:string;
+  sub: string;        // user id (uuid)
+  tenant_id: string;  // tenant id (uuid)
+}
+
+interface Role {
+  [key: string]: unknown;
 }

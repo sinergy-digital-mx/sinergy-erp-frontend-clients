@@ -4,7 +4,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { MatDialog } from '@angular/material/dialog';
-import { LeadEditDialog } from '../../components/lead-detail/lead-edit-dialog';
+import { LeadEditDialog } from '../../components/lead-edit-dialog/lead-edit-dialog';
 import { LeadService } from '../../../../core/services/leads.service';
 import { ActivatedRoute } from '@angular/router';
 import { LeadActivityDialog } from '../../components/lead-activity-dialog/lead-activity-dialog';
@@ -70,6 +70,19 @@ export class LeadDetail {
         this.getDetail()
       }
     })
+  }
+
+  mapsUrl(address): string {
+    const parts = [
+      address.street_address,
+      address.city,
+      address.state,
+      address.postal_code,
+      address.country,
+    ].filter(Boolean);
+
+    const query = parts.join(', ');
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
   }
 
 }

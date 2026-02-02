@@ -11,6 +11,7 @@ import {
   LogOut,
   FileText,
 } from 'lucide-angular';
+import { AuthService } from '../../services/auth.service';
 
 interface MenuItem {
   label: string;
@@ -60,5 +61,9 @@ export class Sidebar {
   ];
 
   icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText };
+
+  constructor(public auth_service:AuthService){
+
+  }
 
 }

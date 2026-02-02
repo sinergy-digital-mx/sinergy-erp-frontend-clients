@@ -21,59 +21,95 @@
       </button>
     </div>
   
-    <!-- LEAD INFORMATION -->
-    <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
-      <h3 class="text-lg font-semibold text-gray-800 mb-4">
-        Lead Information
-      </h3>
-  
-      <div class="grid grid-cols-2 gap-y-3 gap-x-10 text-sm text-gray-800">
-  
-        <div>
-          <span class="font-semibold text-gray-500">First name:</span>
-          {{ lead()?.name }}
-        </div>
-  
-        <div>
-          <span class="font-semibold text-gray-500">Last name:</span>
-          {{ lead()?.lastname }}
-        </div>
-  
-        <div>
-          <span class="font-semibold text-gray-500">Email:</span>
-          {{ lead()?.email }}
-        </div>
-  
-        <div>
-          <span class="font-semibold text-gray-500">Phone:</span>
-          {{ lead()?.phone }}
-          <span class="text-xs text-gray-400">
-            ({{ lead()?.phone_country }})
-          </span>
-        </div>
-  
-        <div>
-          <span class="font-semibold text-gray-500">Source:</span>
-          {{ lead()?.source }}
-        </div>
-  
-        <div class="flex items-center gap-2">
-          <span class="font-semibold text-gray-500">Status:</span>
-          <p-tag
-            [value]="lead()?.status?.name"
-            rounded="true">
-          </p-tag>
-        </div>
-  
-        <div class="col-span-2">
-          <span class="font-semibold text-gray-500">Created at:</span>
-          <div class="mt-0.5">
-            {{ lead()?.created_at | date:'medium' }}
-          </div>
-        </div>
-  
+<!-- LEAD INFORMATION -->
+<div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+  <h3 class="text-lg font-semibold text-gray-800 mb-4">
+    Lead Information
+  </h3>
+
+  <div class="grid grid-cols-2 gap-y-3 gap-x-10 text-sm text-gray-800">
+
+    <div>
+      <span class="font-semibold text-gray-500">First name:</span>
+      {{ lead()?.name }}
+    </div>
+
+    <div>
+      <span class="font-semibold text-gray-500">Last name:</span>
+      {{ lead()?.lastname }}
+    </div>
+
+    <div>
+      <span class="font-semibold text-gray-500">Email:</span>
+      <a
+      *ngIf="lead()?.email; else noEmail"
+      [href]="'mailto:' + lead()?.email"
+      class="link-pro link-pro-break"
+    >
+      {{ lead()?.email }}
+      <i class="pi pi-envelope link-pro-icon"></i>
+    </a>
+      <ng-template #noEmail>—</ng-template>
+    </div>
+
+    <div>
+      <span class="font-semibold text-gray-500">Phone:</span>
+
+      <a
+      *ngIf="lead()?.phone; else noPhone"
+      [href]="'tel:' + lead()?.phone"
+      class="link-pro"
+    >
+      {{ lead()?.phone }}
+      <i class="pi pi-phone link-pro-icon"></i>
+    </a>
+      <ng-template #noPhone>—</ng-template>
+
+      <span class="text-xs text-gray-400" *ngIf="lead()?.phone_country">
+        ({{ lead()?.phone_country }})
+      </span>
+    </div>
+
+    <div>
+      <span class="font-semibold text-gray-500">Source:</span>
+      {{ lead()?.source }}
+    </div>
+
+    <!-- Website ocupa 2 columnas -->
+    <div class="col-span-2">
+      <span class="font-semibold text-gray-500">Website:</span>
+
+      <a
+      *ngIf="lead()?.website; else noWebsite"
+      [href]="lead()?.website?.startsWith('http') ? lead()?.website : ('https://' + lead()?.website)"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="link-pro link-pro-break"
+    >
+      {{ lead()?.website }}
+      <i class="pi pi-external-link link-pro-icon"></i>
+    </a>
+      <ng-template #noWebsite>—</ng-template>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <span class="font-semibold text-gray-500">Status:</span>
+      <p-tag
+        [value]="lead()?.status?.name"
+        rounded="true">
+      </p-tag>
+    </div>
+
+    <div class="col-span-2">
+      <span class="font-semibold text-gray-500">Created at:</span>
+      <div class="mt-0.5">
+        {{ lead()?.created_at | date:'medium' }}
       </div>
     </div>
+
+  </div>
+</div>
+
   
    
 <!-- ADDRESSES -->
@@ -120,8 +156,17 @@
           </td>
   
           <td>
+            <a
+            [href]="mapsUrl(address)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="link-pro link-pro-muted"
+          >
             {{ address.street_address }}
+            <i class="pi pi-map-marker link-pro-icon"></i>
+          </a>
           </td>
+          
   
           <td>
             {{ address.city }}
