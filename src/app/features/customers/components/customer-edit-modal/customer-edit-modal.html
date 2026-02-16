@@ -1,0 +1,62 @@
+<div class="dialog">
+  <div class="dialog__header">
+    <h2>{{ isCreateMode() ? 'Create Customer' : 'Edit Customer' }}</h2>
+    <lucide-icon
+      [img]="X"
+      class="close cursor-pointer"
+      (click)="closeDialog()">
+    </lucide-icon>
+  </div>
+
+  <div class="dialog__body">
+    <div class="container grid grid-cols-1 md:grid-cols-2 gap-4" [formGroup]="form">
+      <app-input
+        label="Name"
+        [form_control]="form.controls['name']">
+      </app-input>
+
+      <app-input
+        label="Email"
+        [form_control]="form.controls['email']">
+      </app-input>
+
+      <app-input
+        label="Phone"
+        appPhoneDigits
+        [form_control]="form.controls['phone']">
+      </app-input>
+
+      <app-phone-code-select
+        [control]="getPhoneCodeControl()">
+      </app-phone-code-select>
+
+      <app-phone-country-select
+        [control]="getPhoneCountryControl()">
+      </app-phone-country-select>
+
+      <app-input
+        label="Company"
+        [form_control]="form.controls['company_name']">
+      </app-input>
+
+      <!-- Group Dropdown -->
+      <div class="md:col-span-2">
+        <label class="block text-sm font-medium mb-2">Group</label>
+        <app-customer-group-dropdown
+          [selectedGroupId]="selectedGroupId()"
+          [disabled]="loading()"
+          (groupSelect)="onGroupSelected($event)">
+        </app-customer-group-dropdown>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog__footer">
+    <app-button
+      [text]="isCreateMode() ? 'Create' : 'Update'"
+      custom_class="btn_primary"
+      [loading]="loading()"
+      (clicked)="submit()">
+    </app-button>
+  </div>
+</div>

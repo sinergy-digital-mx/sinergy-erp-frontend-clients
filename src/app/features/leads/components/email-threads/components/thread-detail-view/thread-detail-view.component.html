@@ -1,0 +1,80 @@
+<!-- Back Button -->
+<div class="thread-detail-header">
+  <button (click)="goBack()" class="back-btn">
+    <i class="pi pi-arrow-left"></i>
+    Back to threads
+  </button>
+</div>
+
+<!-- Loading State -->
+<div *ngIf="isLoading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Loading thread details...</p>
+</div>
+
+<!-- Error State -->
+<div *ngIf="error && !isLoading" class="error-state">
+  <div class="error-icon">
+    <i class="pi pi-exclamation-circle"></i>
+  </div>
+  <p class="error-message">{{ error.message }}</p>
+  <button *ngIf="error.retryable" (click)="retry()" class="retry-btn">
+    <i class="pi pi-refresh"></i>
+    Retry
+  </button>
+</div>
+
+<!-- Thread Detail -->
+<div *ngIf="!isLoading && !error && threadDetail" class="thread-detail">
+  <!-- Thread Subject -->
+  <div class="thread-subject">
+    <h2>{{ threadDetail.subject }}</h2>
+  </div>
+
+  <!-- Messages List -->
+  <div class="messages-list">
+    <div
+      *ngFor="let message of threadDetail.messages"
+      class="message-item"
+      [class.outgoing]="message.isOutgoing"
+    >
+      <div class="message-header">
+        <div class="message-sender">
+          <div class="sender-avatar">
+            {{ message.sender.charAt(0).toUpperCase() }}
+          </div>
+          <div class="sender-info">
+            <div class="sender-name">{{ message.sender }}</div>
+            <div class="sender-email">{{ message.senderEmail }}</div>
+          </div>
+        </div>
+        <div class="message-timestamp">{{ formatTimestamp(message.timestamp) }}</div>
+      </div>
+
+      <div class="message-body">
+        {{ message.body }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Reply Compose -->
+  <div class="reply-section">
+    <button
+      *ngIf="!isReplyComposeOpen"
+      (click)="openReply()"
+      class="reply-btn"
+      [disabled]="isSendingReply"
+    >
+      <i class="pi pi-reply"></i>
+      Reply
+    </button>
+
+    <app-reply-compose
+      *ngIf="isReplyComposeOpen"
+      [isSending]="isSendingReply"
+      [error]="sendError"
+      (replySent)="sendReply($event)"
+      (replyCancelled)="cancelReply()"
+    ></app-reply-compose>
+  </div>
+</div>

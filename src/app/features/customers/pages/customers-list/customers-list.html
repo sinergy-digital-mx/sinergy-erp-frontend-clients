@@ -9,34 +9,76 @@
           label="Search Customer"
           [param_activate]="true"
           param_name="search"
-          (searchChange)="search = $event;">
+          (searchChange)="onSearchChange($event)">
         </app-search>
   
         <app-button
           text="Create Customer"
-          custom_class="btn_primary">
+          custom_class="btn_primary"
+          (click)="createCustomer()">
         </app-button>
       </div>
     </div>
+
+    <!-- Group Dropdown and Status Filter -->
+    <div class="flex flex-col gap-3 md:flex-row md:items-center mb-5">
+      <app-customer-group-dropdown
+        [selectedGroupId]="selectedGroupId"
+        (groupSelect)="onGroupSelect($event)">
+      </app-customer-group-dropdown>
+
+      <select 
+        [(ngModel)]="selectedStatusId"
+        (change)="onStatusSelect(selectedStatusId)"
+        class="status-select">
+        <option value="">Filtrar por estado</option>
+        <option value="active">Activo</option>
+        <option value="inactive">Inactivo</option>
+      </select>
+    </div>
+
+    <!-- Filter Indicator -->
+    <app-customer-filter-indicator
+      [activeGroupId]="selectedGroupId"
+      [activeGroupName]="selectedGroupName"
+      [activeStatusFilter]="selectedStatusId"
+      [activeSearchTerm]="search"
+      (filterClear)="onFilterClear($event)">
+    </app-customer-filter-indicator>
   
-    <app-table
+    <app-datatable-wrapper
       [config]="table_config()"
-      [row_template]="table_template">
-    </app-table>
+      [rowTemplate]="tableTemplate"
+      (pageChange)="onPageChange($event)"
+      (sortChange)="onSortChange($event)"
+      (rowClick)="onRowClick($event)">
+    </app-datatable-wrapper>
   </div>
   
-  <ng-template #table_template let-item="item">
+  <ng-template #tableTemplate let-item="$implicit" let-rowIndex="rowIndex">
     <td><p>{{ item.name }}</p></td>
     <td>{{ item.email }}</td>
-    <td>{{ item.phone }}</td>
-    <td>{{ item.created_at | date:'mediumDate' }}</td>
     <td>
-      <p-button
-        size="small"
-        label="Detalle"
-        icon="pi pi-arrow-right"
-        iconPos="right"
-        (click)="viewDetail(item)" />
+      <app-phone 
+        [phone]="item.phone"
+        [countryCode]="item.phone_country"
+        [countryPhoneCode]="item.phone_code">
+      </app-phone>
+    </td>
+    <td>{{ item.company_name }}</td>
+    <td>{{ item.group_id }}</td>
+    <td>{{ item.status?.name || item.status_id }}</td>
+    <td>{{ item.created_at | date:'mediumDate' }}</td>
+    <td (click)="$event.stopPropagation()">
+      <div class="flex gap-2">
+        <app-button
+          text="Detail"
+          size="sm"
+          [fullWidth]="false"
+          custom_class="btn_primary"
+          (clicked)="viewDetail(item)"
+          [icon]="ArrowRight">
+        </app-button>
+      </div>
     </td>
   </ng-template>
-  

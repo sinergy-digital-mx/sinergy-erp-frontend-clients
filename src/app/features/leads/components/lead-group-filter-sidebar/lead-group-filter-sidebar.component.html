@@ -1,0 +1,57 @@
+<div class="lead-group-filter-sidebar" [ngClass]="{ 'collapsed': sidebarCollapsed }">
+  <!-- Mobile toggle button -->
+  <div class="mobile-toggle">
+    <button 
+      pButton 
+      type="button" 
+      icon="pi pi-bars"
+      class="p-button-rounded p-button-text"
+      (click)="toggleSidebar()">
+    </button>
+  </div>
+
+  <!-- Sidebar content -->
+  <div class="sidebar-content">
+    <h3 class="sidebar-title">Filtrar por Grupo</h3>
+
+    <!-- Loading state -->
+    <div *ngIf="isLoadingGroups" class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando grupos...</p>
+    </div>
+
+    <!-- Error state -->
+    <div *ngIf="groupsError && !isLoadingGroups" class="error-state">
+      <p class="error-message">{{ groupsError.message }}</p>
+      <button 
+        pButton 
+        type="button" 
+        label="Reintentar"
+        class="p-button-sm p-button-outlined"
+        (click)="retryLoadGroups()">
+      </button>
+    </div>
+
+    <!-- Groups list -->
+    <div *ngIf="!isLoadingGroups && !groupsError" class="groups-list">
+      <!-- View All option -->
+      <div 
+        class="group-item view-all"
+        [ngClass]="{ 'selected': isGroupSelected(null) }"
+        (click)="selectViewAll()">
+        <span class="group-name">Ver Todos</span>
+        <span class="lead-count-badge">{{ getTotalLeads() }}</span>
+      </div>
+
+      <!-- Group items -->
+      <div 
+        *ngFor="let group of groups"
+        class="group-item"
+        [ngClass]="{ 'selected': isGroupSelected(group.id) }"
+        (click)="selectGroup(group.id)">
+        <span class="group-name">{{ group.name }}</span>
+        <span class="lead-count-badge">{{ group.lead_count || 0 }}</span>
+      </div>
+    </div>
+  </div>
+</div>

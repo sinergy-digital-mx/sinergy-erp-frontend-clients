@@ -1,0 +1,73 @@
+<div class="datatable-wrapper">
+  <!-- Loading Indicator -->
+  <div *ngIf="config?.loading" class="loading-overlay">
+    <app-spinner></app-spinner>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!config?.loading && (!config?.rows || config?.rows.length === 0)" class="empty-state-container">
+    <app-empty-stage
+      [message]="config?.emptyState?.title || 'No result found'"
+      [sub_message]="config?.emptyState?.subtitle || ''"
+      [params]="emptyStateParams"
+    ></app-empty-stage>
+  </div>
+
+  <!-- Data Table -->
+  <div *ngIf="!config?.loading && config?.rows && config?.rows.length > 0" class="datatable-container">
+    <table class="datatable-table">
+      <thead>
+        <tr>
+          <th *ngFor="let column of config?.columns; trackBy: trackByIndex" 
+              [style.width]="column.width ? column.width + 'px' : 'auto'"
+              [ngClass]="getSortIndicatorClass(column)">
+            <span class="column-header">
+              {{ column.name }}
+              <span class="sort-indicator" *ngIf="isColumnSorted(column)">
+                {{ getSortIndicator(column) }}
+              </span>
+            </span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of config?.rows; trackBy: trackByIndex" 
+            (click)="onRowClick({ data: row })"
+            class="datatable-row">
+          <ng-container *ngIf="rowTemplate">
+            <ng-container *ngTemplateOutlet="rowTemplate; context: { $implicit: row }"></ng-container>
+          </ng-container>
+          <ng-container *ngIf="!rowTemplate">
+            <td *ngFor="let column of config?.columns; trackBy: trackByIndex">
+              {{ row[column.prop] }}
+            </td>
+          </ng-container>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination Controls -->
+    <div class="pagination-controls" *ngIf="config?.externalPaging">
+      <div class="pagination-info">
+        <span>
+          Page {{ config?.page }} of {{ (config?.totalResults / config?.limit) | number: '1.0-0' }}
+          ({{ config?.totalResults }} total)
+        </span>
+      </div>
+      <div class="pagination-buttons">
+        <button 
+          class="pagination-btn"
+          [disabled]="config?.page === 1"
+          (click)="onPrevPage()">
+          ← Previous
+        </button>
+        <button 
+          class="pagination-btn"
+          [disabled]="!config?.hasNext"
+          (click)="onNextPage()">
+          Next →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

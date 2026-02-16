@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { MainLayout } from './layout/main-layout/main-layout';
 import { AuthGuard } from './core/guards/auth.guard';
 import { LoggedGuard } from './core/guards/logged.guard';
+import { AdminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   // LOGIN (público)
@@ -30,6 +31,13 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/customers/customers.routes')
             .then(m => m.CUSTOMERS_ROUTES),
+      },
+      {
+        path: 'settings',
+        canActivate: [AdminGuard],
+        loadChildren: () =>
+          import('./features/rbac-tenant-ui/rbac-tenant-ui.routes')
+            .then(m => m.RBAC_TENANT_UI_ROUTES),
       },
       {
         path: '',

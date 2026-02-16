@@ -33,20 +33,19 @@
             <!-- Teléfono -->
             <app-input
                 label="Phone"
+                appPhoneDigits
                 [form_control]="form.controls['phone']">
             </app-input>
 
             <!-- Código país -->
-            <app-input
-                label="Phone code"
-                [form_control]="form.controls['phone_code']">
-            </app-input>
+            <app-phone-code-select
+                [control]="getPhoneCodeControl()">
+            </app-phone-code-select>
 
             <!-- País -->
-            <app-input
-                label="Phone country"
-                [form_control]="form.controls['phone_country']">
-            </app-input>
+            <app-phone-country-select
+                [control]="getPhoneCountryControl()">
+            </app-phone-country-select>
 
             <app-input
             label="Company name"
@@ -58,6 +57,12 @@
             [form_control]="form.controls['website']">
             </app-input>
 
+            <!-- Group Select -->
+            <app-group-select
+              [control]="getGroupControl()"
+              groupType="lead">
+            </app-group-select>
+
         </div>
     </div>
   
@@ -66,7 +71,7 @@
         [text]="data.id ? 'Update':'Create'"
         custom_class="btn_primary"
         [loading]="loading()"
-        (click)="submmit()">
+        (click)="submit()">
       </app-button>
     </div>
   </div>

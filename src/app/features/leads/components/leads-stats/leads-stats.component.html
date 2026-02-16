@@ -1,0 +1,27 @@
+<div class="stats-container">
+  <div class="stats-grid">
+    <div
+      *ngFor="let stat of stats"
+      class="stat-card"
+      [ngClass]="{ active: isActive(stat.filter) }"
+      (click)="onCardClick(stat.filter)"
+    >
+      <div class="card-content">
+        <div class="icon">{{ stat.icon }}</div>
+        <div class="info">
+          <p class="title">{{ stat.title }}</p>
+          <p class="value">{{ stat.value }}</p>
+        </div>
+      </div>
+      <div [ngClass]="'gradient-' + stat.gradient"></div>
+    </div>
+  </div>
+
+  <button
+    *ngIf="activeFilter"
+    class="view-all-btn"
+    (click)="onCardClick(null)"
+  >
+    ✕ View All
+  </button>
+</div>

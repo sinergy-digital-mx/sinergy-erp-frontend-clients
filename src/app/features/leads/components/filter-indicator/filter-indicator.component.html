@@ -1,0 +1,26 @@
+<div *ngIf="hasActiveFilters()" class="filter-indicator">
+  <div class="filters-container">
+    <span class="filters-label">Filtros activos:</span>
+    <div class="filter-chips">
+      <div *ngFor="let filter of activeFilters" class="filter-chip">
+        <i [class]="'pi ' + getFilterIcon(filter.type)"></i>
+        <span>{{ filter.label }}</span>
+        <button 
+          type="button"
+          class="remove-btn"
+          (click)="clearFilter(filter.type)"
+          title="Limpiar filtro">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+    </div>
+    <button 
+      type="button"
+      class="clear-all-btn"
+      (click)="clearAllFilters()"
+      pButton
+      label="Limpiar todos"
+      class="p-button-sm p-button-text">
+    </button>
+  </div>
+</div>

@@ -12,16 +12,18 @@ import {
   FileText,
 } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
+import { IsAdminDirective } from '../../directives/is-admin.directive';
 
 interface MenuItem {
   label: string;
   icon?: any;
   route: string;
+  id?: string;
 }
 
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule, RouterModule,LucideAngularModule],
+  imports: [CommonModule, RouterModule, LucideAngularModule, IsAdminDirective],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
 })
@@ -31,34 +33,42 @@ export class Sidebar {
     {
       label: 'Leads',
       route: '/leads',
-      icon: Users
+      icon: Users,
+      id: 'menu-leads'
     },
     {
       label: 'Follow ups',
-      route: '/customers',
-      icon: Users
+      route: '/follow-ups',
+      icon: Users,
+      id: 'menu-follow-ups'
     },
     {
       label: 'Customers',
       route: '/customers',
-      icon: Users
+      icon: Users,
+      id: 'menu-customers'
     },
     {
       label: 'Map',
-      route: '/customers',
-      icon: Users
+      route: '/map',
+      icon: Users,
+      id: 'menu-map'
     },
     {
       label: 'Quotes',
-      route: '/customers',
-      icon: Users
+      route: '/quotes',
+      icon: Users,
+      id: 'menu-quotes'
     },
     {
       label: 'Contracts',
-      route: '/customers',
-      icon: Users
+      route: '/contracts',
+      icon: Users,
+      id: 'menu-contracts'
     }
   ];
+
+  private menuIdCounter = 0;
 
   icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText };
 

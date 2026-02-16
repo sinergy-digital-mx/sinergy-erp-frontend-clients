@@ -1,0 +1,43 @@
+<div class="dialog">
+  <div class="dialog__header">
+    <h2>Create User</h2>
+    <app-close-button (clicked)="closeDialog()"></app-close-button>
+  </div>
+
+  <div class="dialog__body">
+    <div class="container grid grid-cols-1 md:grid-cols-2 gap-4" [formGroup]="form">
+      <!-- First Name -->
+      <app-input
+        label="First Name"
+        [form_control]="form.controls['first_name']">
+      </app-input>
+
+      <!-- Last Name -->
+      <app-input
+        label="Last Name"
+        [form_control]="form.controls['last_name']">
+      </app-input>
+
+      <!-- Email -->
+      <app-input
+        label="Email"
+        [form_control]="form.controls['email']">
+      </app-input>
+
+      <!-- Phone -->
+      <app-input
+        label="Phone"
+        [form_control]="form.controls['phone']">
+      </app-input>
+    </div>
+  </div>
+
+  <div class="dialog__footer">
+    <app-button
+      text="Create"
+      custom_class="btn_primary"
+      [loading]="loading()"
+      (click)="submit()">
+    </app-button>
+  </div>
+</div>

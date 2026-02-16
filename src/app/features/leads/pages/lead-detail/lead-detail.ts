@@ -9,11 +9,13 @@ import { LeadService } from '../../../../core/services/leads.service';
 import { ActivatedRoute } from '@angular/router';
 import { LeadActivityDialog } from '../../components/lead-activity-dialog/lead-activity-dialog';
 import { LeadAddressDialog } from '../../components/lead-address-dialog/lead-address-dialog';
+import { EmailThreadsSection } from '../../components/email-threads/email-threads-section';
+import { PhoneComponent } from '../../../../core/components/phone/phone.component';
 
 @Component({
   selector: 'app-lead-detail',
   standalone: true,
-  imports: [CommonModule, TableModule, TagModule, ButtonModule],
+  imports: [CommonModule, TableModule, TagModule, ButtonModule, EmailThreadsSection, PhoneComponent],
   templateUrl: 'lead-detail.html',
 })
 export class LeadDetail {

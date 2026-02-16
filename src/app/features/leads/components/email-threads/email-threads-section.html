@@ -1,0 +1,52 @@
+<div class="email-threads-section">
+  <!-- Header with Send Email button -->
+  <div class="email-threads-header">
+    <h3 class="text-lg font-semibold text-gray-800">Email Threads</h3>
+    <button
+      (click)="openComposeModal()"
+      class="send-email-btn"
+      [disabled]="state().isSendingEmail"
+    >
+      <i class="pi pi-envelope"></i>
+      Send Email
+    </button>
+  </div>
+
+  <!-- Thread List View -->
+  <div *ngIf="!state().selectedThreadId" class="thread-list-container">
+    <app-thread-list-view
+      [threads]="state().threads"
+      [isLoading]="state().isLoadingThreads"
+      [error]="state().threadsError"
+      (threadSelected)="selectThread($event)"
+      (retryClicked)="retryLastAction()"
+    ></app-thread-list-view>
+  </div>
+
+  <!-- Thread Detail View -->
+  <div *ngIf="state().selectedThreadId" class="thread-detail-container">
+    <app-thread-detail-view
+      [threadDetail]="state().selectedThreadDetails"
+      [isLoading]="state().isLoadingThreadDetail"
+      [error]="state().threadDetailError"
+      [isReplyComposeOpen]="state().isReplyComposeOpen"
+      [isSendingReply]="state().isSendingReply"
+      [sendError]="state().sendError"
+      (backClicked)="goBackToThreadList()"
+      (replyClicked)="openReplyCompose()"
+      (replyCancelled)="closeReplyCompose()"
+      (replySent)="sendReply($event)"
+      (retryClicked)="retryLastAction()"
+    ></app-thread-detail-view>
+  </div>
+
+  <!-- Compose Modal -->
+  <app-compose-modal
+    *ngIf="state().isComposeModalOpen"
+    [recipientEmail]="leadEmail"
+    [isSending]="state().isSendingEmail"
+    [error]="state().sendError"
+    (emailSent)="sendEmail($event)"
+    (modalClosed)="closeComposeModal()"
+  ></app-compose-modal>
+</div>

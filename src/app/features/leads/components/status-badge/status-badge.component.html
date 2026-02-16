@@ -1,0 +1,13 @@
+<div 
+  *ngIf="badgeData"
+  class="status-badge"
+  [style.backgroundColor]="getBgColor()"
+  [style.borderColor]="getBorderColor()"
+  [style.borderStyle]="getBorderStyle()"
+  [pTooltip]="badgeData.tooltip"
+  tooltipPosition="top"
+  (click)="onBadgeClick()"
+  [ngClass]="{ 'active-filter': isFilterActive }">
+  <i [class]="'pi ' + badgeData.icon" [style.color]="badgeData.color"></i>
+  <span [style.color]="badgeData.color">{{ badgeData.label }}</span>
+</div>

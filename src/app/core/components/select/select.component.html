@@ -1,8 +1,8 @@
 <div class="container" [class.error]="has_error || (config?.form_control?.invalid && config?.form_control?.touched)">
   @if (config.label || label) {
-    <label for="">
+    <label class="block text-sm font-medium text-gray-700 mb-1">
       {{label ?? config.label}}@if (has_error || (config?.form_control?.invalid && config?.form_control?.touched)) {
-      <span>*</span>
+      <span class="text-red-500">*</span>
     }
   </label>
 }

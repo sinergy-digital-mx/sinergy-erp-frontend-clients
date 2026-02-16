@@ -1,19 +1,19 @@
 <button
   [type]="type"
   [disabled]="isDisabled"
-  class="
-    w-full
-    flex items-center justify-center gap-2
-    rounded-lg
-    bg-indigo-600
-    px-4 py-2
-    text-sm font-semibold text-white
-    transition
-    hover:bg-indigo-700
-    disabled:opacity-50
-    disabled:cursor-not-allowed
-  "
-  [ngClass]="customClass"
+  [title]="title"
+  (click)="onClick()"
+  [ngClass]="[
+    'flex items-center justify-center gap-2 rounded-lg transition font-semibold',
+    fullWidth ? 'w-full' : 'w-auto',
+    size === 'sm' ? 'px-3 py-1.5 text-xs' : size === 'lg' ? 'px-6 py-3 text-base' : 'px-4 py-2 text-sm',
+    variant === 'primary' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 
+    variant === 'secondary' ? 'bg-gray-200 text-gray-900 hover:bg-gray-300' :
+    variant === 'danger' ? 'bg-red-600 text-white hover:bg-red-700' :
+    variant === 'success' ? 'bg-green-600 text-white hover:bg-green-700' : '',
+    'disabled:opacity-50 disabled:cursor-not-allowed',
+    customClass
+  ]"
 >
   @if (loading) {
     <app-spinner [width]="16" [height]="16" [border_width]="3"></app-spinner>

@@ -1,41 +1,82 @@
-<div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-  <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-5">
-    <h2 class="text-2xl font-semibold text-gray-800">Leads</h2>
+<div class="leads-list-container">
+  <!-- Main content area -->
+  <div class="leads-content">
+    <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-5">
+        <h2 class="text-2xl font-semibold text-gray-800">Leads</h2>
 
-    <!-- Right side: Search + Button juntos -->
-    <div class="flex items-center gap-3 md:justify-end">
-      <app-search
-        class="w-64"
-        label="Search Lead"
-        [param_activate]="true"
-        param_name="search"
-        (searchChange)="search = $event;">
-      </app-search>
+        <!-- Right side: Group Filter + Search + Button -->
+        <div class="flex items-center gap-3 md:justify-end flex-wrap">
+          <app-group-dropdown
+            [selectedGroupId]="activeGroupId"
+            (groupSelect)="onGroupDropdownSelect($event)">
+          </app-group-dropdown>
 
-      <app-button
-        text="Create lead"
-        custom_class="btn_primary"
-        (click)="createLead()">
-      </app-button>
+          <app-search
+            class="w-64"
+            label="Search Lead"
+            [param_activate]="true"
+            param_name="search"
+            (searchChange)="search = $event;">
+          </app-search>
+
+          <app-button
+            text="Create lead"
+            custom_class="btn_primary"
+            (click)="createLead()">
+          </app-button>
+        </div>
+      </div>
+
+      <!-- Filter Indicator -->
+      <app-filter-indicator
+        [activeStatusFilter]="activeStatusFilter"
+        [activeGroupId]="activeGroupId"
+        [activeGroupName]="activeGroupName"
+        (filterClear)="onFilterClear($event)">
+      </app-filter-indicator>
+
+      <!-- Stats Dashboard -->
+      <app-leads-stats (filterChange)="onFilterChange($event)"></app-leads-stats>
+
+      <app-datatable-wrapper
+        [config]="table_config()"
+        [rowTemplate]="tableTemplate"
+        (pageChange)="onPageChange($event)"
+        (sortChange)="onSortChange($event)"
+        (rowClick)="viewDetail($event)">
+      </app-datatable-wrapper>
     </div>
   </div>
-
-  <app-table
-    [config]="table_config()"
-    [row_template]="table_template">
-  </app-table>
 </div>
 
-<ng-template #table_template let-item="item">
-  <td><p>{{ item.name }}</p></td>
+<ng-template #tableTemplate let-item="$implicit" let-rowIndex="rowIndex">
+  <td>
+    <p>{{ item.name }}</p>
+  </td>
+  <td>
+    <app-status-badge
+      [lead]="item"
+      [isFilterActive]="isStatusFilterActive(item.id)"
+      (statusFilterChange)="onStatusFilterChange($event)">
+    </app-status-badge>
+  </td>
   <td>{{ item.email }}</td>
-  <td>{{ item.phone }}</td>
+  <td>
+    <app-phone 
+      [phone]="item.phone"
+      [countryCode]="item.phone_country"
+      [countryPhoneCode]="item.phone_code">
+    </app-phone>
+  </td>
   <td>{{ item.created_at | date:'mediumDate' }}</td>
   <td>
     <app-button
       text="Detail"
+      size="sm"
+      [fullWidth]="false"
       custom_class="btn_primary"
-      (click)="viewDetail(item)"
+      (click)="viewDetail(item); $event.stopPropagation()"
       [icon]="ArrowRight"
       >
     </app-button>

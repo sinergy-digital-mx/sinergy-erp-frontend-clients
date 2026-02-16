@@ -7,7 +7,7 @@
 
 @use '@angular/material' as mat;
 @use "primeicons/primeicons.css" as *;
-@import "tailwindcss";
+@use "tailwindcss" as *;
 
 
 .dialog {

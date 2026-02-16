@@ -1,0 +1,42 @@
+<div class="group-dropdown-container">
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="spinner"></div>
+    <span>Loading groups...</span>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error() && !isLoading()" class="error-state">
+    <div class="error-message">
+      <span>{{ error() }}</span>
+      <button
+        type="button"
+        class="retry-button"
+        (click)="retryLoadGroups()"
+        [disabled]="isLoading()"
+      >
+        Retry
+      </button>
+    </div>
+  </div>
+
+  <!-- Dropdown -->
+  <div *ngIf="!isLoading() && !error()" class="dropdown-wrapper">
+    <select
+      class="group-select"
+      [(ngModel)]="selectedGroupId"
+      (change)="onSelectChange($event)"
+      [disabled]="disabled"
+    >
+      <option [value]="null">-- No group selected --</option>
+      <option *ngFor="let group of groups()" [value]="group.id">
+        {{ group.name }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Current Group Display (for reference) -->
+  <div *ngIf="currentGroupId && !isLoading()" class="current-group-info">
+    <small>Current: {{ getCurrentGroupName() }}</small>
+  </div>
+</div>

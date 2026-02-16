@@ -1,37 +1,227 @@
 <div class="space-y-10 min-h-screen">
 
-    <!-- ENCABEZADO -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h2 class="text-3xl font-bold text-gray-900">{{ client.commercialName }}</h2>
-            <p class="text-sm text-gray-500">{{ client.rfc }}</p>
-        </div>
-        <button pButton label="Editar cliente" icon="pi pi-pencil" class="p-button-rounded p-button-solid text-sm"
-            size="small"></button>
-    </div>
+    <!-- LOADING STATE -->
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-12">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p class="ml-4">Loading customer details...</p>
+      </div>
+    }
 
-    <!-- FICHA DEL CLIENTE -->
-    <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Cliente</h3>
+    <!-- ERROR STATE -->
+    @if (error() && !isLoading()) {
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="text-red-800">{{ error().message }}</p>
+        <button
+          pButton
+          label="Retry"
+          (click)="loadCustomer()"
+          class="p-button-sm mt-2">
+        </button>
+      </div>
+    }
+
+    <!-- CUSTOMER DETAILS -->
+    @if (customer() && !isLoading() && !error()) {
+      <!-- HEADER -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-3xl font-bold text-gray-900">{{ customer()!.name }}</h2>
+          <p class="text-sm text-gray-500">{{ customer()!.email }}</p>
+        </div>
+        <button
+          (click)="editCustomer()"
+          pButton
+          label="Edit customer"
+          icon="pi pi-pencil"
+          class="p-button-rounded p-button-solid text-sm"
+          size="small">
+        </button>
+      </div>
+
+      <!-- CUSTOMER INFORMATION -->
+      <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+          Customer Information
+        </h3>
 
         <div class="grid grid-cols-2 gap-y-3 gap-x-10 text-sm text-gray-800">
-            <div><span class="font-semibold text-gray-500">Nombre comercial:</span> {{ client.commercialName }}</div>
-            <div><span class="font-semibold text-gray-500">Razón social:</span> {{ client.legalName }}</div>
 
-            <div><span class="font-semibold text-gray-500">RFC:</span> {{ client.rfc }}</div>
-            <div><span class="font-semibold text-gray-500">Régimen fiscal:</span> {{ client.taxRegime }}</div>
+          <div>
+            <span class="font-semibold text-gray-500">Name:</span>
+            {{ customer()!.name }}
+          </div>
 
-            <div><span class="font-semibold text-gray-500">Condiciones de Pago:</span> {{ client.paymentTerms }}</div>
-            <div class="flex items-center gap-2">
-                <span class="font-semibold text-gray-500">Estatus:</span>
-                <p-tag [value]="client.status" [severity]="getSeverity(client.status)" rounded="true"></p-tag>
-                <i *ngIf="client.status==='Validado'" class="pi pi-check-circle text-emerald-500 text-base"></i>
+          <div>
+            <span class="font-semibold text-gray-500">Email:</span>
+            @if (customer()!.email) {
+              <a [href]="'mailto:' + customer()!.email" class="link-pro link-pro-break">
+                {{ customer()!.email }}
+                <i class="pi pi-envelope link-pro-icon"></i>
+              </a>
+            } @else {
+              —
+            }
+          </div>
+
+          <div>
+            <span class="font-semibold text-gray-500">Phone:</span>
+            <app-phone 
+              [phone]="customer()!.phone"
+              [countryCode]="customer()!.phone_country"
+              [countryPhoneCode]="customer()!.phone_code">
+            </app-phone>
+          </div>
+
+          <div>
+            <span class="font-semibold text-gray-500">Company:</span>
+            {{ customer()!.company_name || '—' }}
+          </div>
+
+          <div>
+            <span class="font-semibold text-gray-500">Group:</span>
+            {{ customer()!.group_id || '—' }}
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-gray-500">Status:</span>
+            <p-tag 
+              [value]="customer()!.status?.name || customer()!.status_id || 'Unknown'" 
+              [severity]="getSeverity(customer()!.status?.name || customer()!.status_id || '')" 
+              rounded="true">
+            </p-tag>
+          </div>
+
+          <div class="col-span-2">
+            <span class="font-semibold text-gray-500">Created at:</span>
+            <div class="mt-0.5">
+              {{ customer()!.created_at | date:'medium' }}
             </div>
+          </div>
 
-            <div class="col-span-2">
-                <span class="font-semibold text-gray-500">Domicilio:</span>
-                <div class="mt-0.5">{{ client.address }}</div>
+          <div class="col-span-2">
+            <span class="font-semibold text-gray-500">Updated at:</span>
+            <div class="mt-0.5">
+              {{ customer()!.updated_at | date:'medium' }}
             </div>
+          </div>
+
         </div>
-    </div>
+      </div>
+
+      <!-- ADDRESSES SECTION -->
+      <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">
+            Addresses
+          </h3>
+          <button
+            pButton
+            icon="pi pi-plus"
+            label="Add address"
+            class="p-button-sm p-button-outlined">
+          </button>
+        </div>
+
+        @if (customer()!.addresses && customer()!.addresses.length > 0) {
+          <p-table
+            [value]="customer()!.addresses"
+            responsiveLayout="scroll"
+            styleClass="p-datatable-sm w-full">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Type</th>
+                <th>Street address</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Postal code</th>
+                <th>Country</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-address>
+              <tr>
+                <td class="capitalize">{{ address.type }}</td>
+                <td>{{ address.street_address }}</td>
+                <td>{{ address.city }}</td>
+                <td>{{ address.state }}</td>
+                <td>{{ address.postal_code }}</td>
+                <td>{{ address.country }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        } @else {
+          <div class="text-center py-8 text-gray-500">
+            <p class="text-sm">No addresses added yet</p>
+          </div>
+        }
+      </div>
+
+      <!-- ACTIVITIES SECTION -->
+      <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">
+            Activities
+          </h3>
+          <button
+            pButton
+            icon="pi pi-plus"
+            label="Add activity"
+            class="p-button-sm p-button-outlined">
+          </button>
+        </div>
+
+        @if (customer()!.activities && customer()!.activities.length > 0) {
+          <p-table
+            [value]="customer()!.activities"
+            responsiveLayout="scroll"
+            styleClass="p-datatable-sm w-full">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Activity date</th>
+                <th>Duration</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-activity>
+              <tr>
+                <td class="capitalize">
+                  <p-tag
+                    [value]="activity.type"
+                    severity="info"
+                    rounded="true">
+                  </p-tag>
+                </td>
+                <td>
+                  <div class="font-medium text-gray-800">
+                    {{ activity.title }}
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ activity.description }}
+                  </div>
+                </td>
+                <td>
+                  <p-tag
+                    [value]="activity.status"
+                    severity="success"
+                    rounded="true">
+                  </p-tag>
+                </td>
+                <td>
+                  {{ activity.activity_date | date:'medium' }}
+                </td>
+                <td>
+                  {{ activity.duration_minutes }} min
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        } @else {
+          <div class="text-center py-8 text-gray-500">
+            <p class="text-sm">No activities added yet</p>
+          </div>
+        }
+      </div>
+    }
 </div>

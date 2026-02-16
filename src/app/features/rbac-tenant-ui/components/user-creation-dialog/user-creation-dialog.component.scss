@@ -1,0 +1,17 @@
+// Inherits dialog styles from global styles.scss
+
+// Fix for custom dialog container
+:host ::ng-deep .custom-dialog-container {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+}
+
+// Ensure dialog content doesn't overflow
+:host ::ng-deep .mat-mdc-dialog-container {
+  .mdc-dialog__surface {
+    overflow: visible !important;
+  }
+}
+

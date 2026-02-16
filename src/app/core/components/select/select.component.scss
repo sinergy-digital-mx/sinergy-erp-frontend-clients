@@ -27,8 +27,8 @@
     border: none;
     background-color: #fff;
     color: #131523;
-    border: 1px solid $color-secondary-400;
-    border-radius: 3px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
     font-weight: 400;
     font-size: 14px;
     transition: 0.2s ease all;
@@ -44,6 +44,16 @@
     background-position: right 0.7em top 50%, 0 0;
     background-size: 20px auto, 100%;
     flex: 1;
+
+    &:hover {
+      border-color: #9ca3af;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
   }
   .disabled {
     border-color: #d2d4de;

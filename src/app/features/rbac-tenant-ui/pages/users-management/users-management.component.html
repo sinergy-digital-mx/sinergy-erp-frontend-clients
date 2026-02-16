@@ -1,0 +1,92 @@
+<!-- Users Management Container with Two-Column Layout -->
+<div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+  <!-- Header with Back Button -->
+  <div class="flex items-center gap-3 mb-6 justify-between">
+    <div class="flex items-center gap-3">
+      <app-back-button (clicked)="goBackToSettings()"></app-back-button>
+      <h1 class="text-2xl font-semibold text-gray-900">Users Management</h1>
+    </div>
+    <app-button
+      text="+ Create User"
+      variant="primary"
+      size="md"
+      [fullWidth]="false"
+      (clicked)="openCreateUserDialog()">
+    </app-button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex gap-6 h-[calc(100vh-200px)]">
+    <!-- Left Panel: User List -->
+    <div class="w-1/3 bg-gray-50 rounded-lg border border-gray-200 flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-gray-200 bg-white">
+        <h2 class="text-lg font-semibold text-gray-900">Users</h2>
+      </div>
+
+      <!-- Search and Filter Section -->
+      <div class="px-6 py-4 border-b border-gray-200 bg-white space-y-3">
+        <!-- Search Input and Status Filter -->
+        <app-user-search-filter></app-user-search-filter>
+      </div>
+
+      <!-- User List -->
+      <div class="flex-1 overflow-y-auto bg-white">
+        @if (filteredUsers$ | async; as users) {
+          @if (users.length === 0) {
+            <div class="p-4 text-center text-gray-500">
+              <p>No users found</p>
+            </div>
+          } @else {
+            @for (user of users; track user.id) {
+              <div class="border-b border-gray-100 last:border-b-0">
+                <button
+                  (click)="onUserSelected(user.id)"
+                  [class.bg-blue-50]="(selectedUserId$ | async) === user.id"
+                  class="w-full text-left px-6 py-4 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-gray-900 truncate">
+                        {{ user.first_name || 'N/A' }} {{ user.last_name || 'N/A' }}
+                      </p>
+                      <p class="text-xs text-gray-600 mt-1 truncate">{{ user.email }}</p>
+                      <p class="text-xs text-gray-500 mt-1">
+                        <span [class]="getStatusClass(user.status)">
+                          {{ getNormalizedStatus(user.status) | titlecase }}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            }
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Right Panel: User Details -->
+    <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 flex flex-col overflow-hidden">
+      @if (selectedUser$ | async; as user) {
+        <div class="flex flex-col h-full overflow-hidden bg-white">
+          <app-user-details
+            [user]="user"
+            [userRoles$]="selectedUserRoles$"
+            [availableRoles$]="roles$"
+            [isLoadingRoles$]="isLoadingRoles$"
+            (roleAssigned)="onRoleAssigned($event)"
+            (roleReplaced)="onRoleReplaced($event)"
+            (roleDeleted)="onRoleDeleted($event)"
+          ></app-user-details>
+        </div>
+      } @else {
+        <div class="flex items-center justify-center h-full bg-white">
+          <div class="text-center">
+            <p class="text-gray-500 text-lg">Select a user to view details</p>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

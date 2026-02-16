@@ -1,0 +1,84 @@
+<div class="modal-backdrop" (click)="closeOnBackdropClick($event)">
+  <div class="modal-content">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <h2>Compose Email</h2>
+      <button (click)="cancel()" class="close-btn" [disabled]="isSending">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body">
+      <!-- Error Message -->
+      <div *ngIf="error" class="error-message">
+        <i class="pi pi-exclamation-circle"></i>
+        <span>{{ error.message }}</span>
+      </div>
+
+      <!-- Recipient Field -->
+      <div class="form-group">
+        <label for="recipient">To:</label>
+        <input
+          id="recipient"
+          type="email"
+          [(ngModel)]="formData().recipientEmail"
+          placeholder="Recipient email"
+          disabled
+          class="form-input"
+        />
+      </div>
+
+      <!-- Subject Field -->
+      <div class="form-group">
+        <label for="subject">Subject:</label>
+        <input
+          id="subject"
+          type="text"
+          [(ngModel)]="formData().subject"
+          placeholder="Email subject"
+          [disabled]="isSending"
+          class="form-input"
+          [class.error]="validationErrors()['subject']"
+        />
+        <span *ngIf="validationErrors()['subject']" class="error-text">
+          {{ validationErrors()['subject'] }}
+        </span>
+      </div>
+
+      <!-- Message Body Field -->
+      <div class="form-group">
+        <label for="body">Message:</label>
+        <textarea
+          id="body"
+          [(ngModel)]="formData().body"
+          placeholder="Write your message here..."
+          [disabled]="isSending"
+          class="form-textarea"
+          [class.error]="validationErrors()['body']"
+          rows="8"
+        ></textarea>
+        <span *ngIf="validationErrors()['body']" class="error-text">
+          {{ validationErrors()['body'] }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+      <button (click)="cancel()" class="cancel-btn" [disabled]="isSending">
+        Cancel
+      </button>
+      <button (click)="submit()" class="send-btn" [disabled]="isSending">
+        <span *ngIf="!isSending">
+          <i class="pi pi-send"></i>
+          Send
+        </span>
+        <span *ngIf="isSending">
+          <i class="pi pi-spin pi-spinner"></i>
+          Sending...
+        </span>
+      </button>
+    </div>
+  </div>
+</div>

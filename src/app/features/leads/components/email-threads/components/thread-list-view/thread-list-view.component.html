@@ -1,0 +1,61 @@
+<!-- Loading State -->
+<div *ngIf="isLoading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Loading email threads...</p>
+</div>
+
+<!-- Error State -->
+<div *ngIf="error && !isLoading" class="error-state">
+  <div class="error-icon">
+    <i class="pi pi-exclamation-circle"></i>
+  </div>
+  <p class="error-message">{{ error.message }}</p>
+  <button *ngIf="error.retryable" (click)="retry()" class="retry-btn">
+    <i class="pi pi-refresh"></i>
+    Retry
+  </button>
+</div>
+
+<!-- Empty State -->
+<div *ngIf="!isLoading && !error && threads.length === 0" class="empty-state">
+  <div class="empty-icon">
+    <i class="pi pi-inbox"></i>
+  </div>
+  <p>No email threads yet</p>
+  <p class="empty-subtitle">Start a conversation by sending an email</p>
+</div>
+
+<!-- Thread List -->
+<div *ngIf="!isLoading && !error && threads.length > 0" class="thread-list">
+  <div
+    *ngFor="let thread of threads"
+    class="thread-item"
+    (click)="selectThread(thread.id)"
+    role="button"
+    tabindex="0"
+    (keydown.enter)="selectThread(thread.id)"
+    (keydown.space)="selectThread(thread.id)"
+  >
+    <div class="thread-item-header">
+      <div class="thread-sender">
+        <div class="sender-avatar">
+          {{ thread.sender.charAt(0).toUpperCase() }}
+        </div>
+        <div class="sender-info">
+          <div class="sender-name">{{ thread.sender }}</div>
+          <div class="sender-email">{{ thread.senderEmail }}</div>
+        </div>
+      </div>
+      <div class="thread-date">{{ formatDate(thread.lastMessageDate) }}</div>
+    </div>
+
+    <div class="thread-item-body">
+      <div class="thread-subject">{{ thread.subject }}</div>
+      <div class="thread-preview">{{ truncatePreview(thread.messagePreview) }}</div>
+    </div>
+
+    <div class="thread-item-footer">
+      <span class="message-count">{{ thread.messageCount }} messages</span>
+    </div>
+  </div>
+</div>

@@ -54,20 +54,11 @@
 
     <div>
       <span class="font-semibold text-gray-500">Phone:</span>
-
-      <a
-      *ngIf="lead()?.phone; else noPhone"
-      [href]="'tel:' + lead()?.phone"
-      class="link-pro"
-    >
-      {{ lead()?.phone }}
-      <i class="pi pi-phone link-pro-icon"></i>
-    </a>
-      <ng-template #noPhone>—</ng-template>
-
-      <span class="text-xs text-gray-400" *ngIf="lead()?.phone_country">
-        ({{ lead()?.phone_country }})
-      </span>
+      <app-phone 
+        [phone]="lead()?.phone"
+        [countryCode]="lead()?.phone_country"
+        [countryPhoneCode]="lead()?.phone_code">
+      </app-phone>
     </div>
 
     <div>
@@ -110,8 +101,12 @@
   </div>
 </div>
 
-  
-   
+<!-- EMAIL THREADS -->
+<app-email-threads-section
+  [leadId]="lead_id()"
+  [leadEmail]="lead()?.email"
+></app-email-threads-section>
+
 <!-- ADDRESSES -->
 <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
 

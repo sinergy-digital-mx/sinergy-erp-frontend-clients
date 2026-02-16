@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 import { ActivatedRoute, Router } from '@angular/router';
-import { environment } from '../../../environments/environment.prod';
+import { environment } from '../../../environments/environment';
 
 
 @Injectable({
@@ -16,7 +16,6 @@ export class LeadService {
   constructor(private router: Router, public http: HttpClient, public activated_route: ActivatedRoute) {
     
   }
-
 
   getLeads(params: any): Observable<any> {
     return this.http.get(`${this.api}/leads`, {
@@ -39,6 +38,10 @@ export class LeadService {
   createActivity(data): Observable<any> {
     console.log(data)
     return this.http.post(`${this.api}/leads/${data.lead_id}/activities`,data);
+  }
+
+  getLeadsStats(): Observable<any> {
+    return this.http.get(`${this.api}/leads/stats/overview`);
   }
 
 }
