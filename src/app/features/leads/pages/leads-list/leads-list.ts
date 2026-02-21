@@ -2,8 +2,6 @@ import { Component, effect, TemplateRef, ViewChild, OnDestroy } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
-import { InputTextModule } from 'primeng/inputtext';
-import { FloatLabelModule } from 'primeng/floatlabel';
 import { TagModule } from 'primeng/tag';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -14,17 +12,17 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { MatDialog } from '@angular/material/dialog';
 import { LeadEditDialog } from '../../components/lead-edit-dialog/lead-edit-dialog';
-import { LucideAngularModule, ArrowRight } from 'lucide-angular';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IColumn, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { LeadsStatsComponent } from '../../components/leads-stats/leads-stats.component';
 import { StatusBadgeComponent } from '../../components/status-badge/status-badge.component';
-import { GroupDropdownComponent } from '../../components/group-dropdown/group-dropdown.component';
+import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
 import { FilterIndicatorComponent } from '../../components/filter-indicator/filter-indicator.component';
 import { CommunicationStatus } from '../../models/lead-group.model';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { PhoneComponent } from '../../../../core/components/phone/phone.component';
+import { GroupFetchService } from '../../services/group-fetch.service';
 
 @Component({
   selector: 'app-leads-list',
@@ -32,8 +30,6 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
     CommonModule,
     FormsModule,
     TableModule,
-    InputTextModule,
-    FloatLabelModule,
     TagModule,
     ButtonModule,
     DatatableWrapperComponent,
@@ -41,7 +37,7 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
     ButtonComponent,
     LeadsStatsComponent,
     StatusBadgeComponent,
-    GroupDropdownComponent,
+    SelectComponent,
     FilterIndicatorComponent,
     PhoneComponent,
   ],
@@ -51,15 +47,18 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
 export class LeadsList implements OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
 
+  readonly Math = Math;
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Name', prop: 'name', sortable: true, canAutoResize: true },
-      { name: 'Status', prop: 'status', sortable: false, canAutoResize: true },
-      { name: 'Email', prop: 'email', sortable: true, canAutoResize: true },
-      { name: 'Phone', prop: 'phone', sortable: true, canAutoResize: true },
-      { name: 'Created at', prop: 'created_at', sortable: true, canAutoResize: true },
-      { name: 'Actions', prop: 'actions', sortable: false, canAutoResize: true },
+      { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: false, width: 100 },
+      { name: 'Estado', prop: 'status', sortable: false, canAutoResize: false, width: 75 },
+      { name: 'Contacto', prop: 'contact_status', sortable: false, canAutoResize: false, width: 85 },
+      { name: 'Grupo', prop: 'group', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Email', prop: 'email', sortable: true, canAutoResize: false, width: 140 },
+      { name: 'Teléfono', prop: 'phone', sortable: true, canAutoResize: false, width: 100 },
+      { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 75 },
+      { name: '', prop: 'actions', sortable: false, canAutoResize: false, width: 45 },
     ],
     externalPaging: true,
     externalSorting: true,
@@ -67,12 +66,11 @@ export class LeadsList implements OnDestroy {
     limit: 15,
     totalResults: 0,
     loading: false,
-    emptyState: { title: 'No results', subtitle: 'No leads found' },
+    emptyState: { title: 'Sin resultados', subtitle: 'No se encontraron leads' },
     columnMode: 'force',
     reorderable: false,
   });
 
-  readonly ArrowRight = ArrowRight;
   search = '';
   private destroy$ = new Subject<void>();
   private lastQueryParams: string = '';
@@ -80,8 +78,20 @@ export class LeadsList implements OnDestroy {
   activeStatusFilter: CommunicationStatus | null = null;
   activeGroupId: string | null = null;
   activeGroupName: string | null = null;
+  
+  groupSelectConfig: ISelect = {
+    placeholder: 'Filtrar por grupo',
+    data: [],
+    value: 'id',
+    option: 'name',
+    all: true,
+    all_message: 'Ver Todos',
+    loading: false,
+    error: false,
+    value_default: null
+  };
 
-  constructor(private router: Router, public leads_service: LeadService, public route: ActivatedRoute, public dialog: MatDialog) {
+  constructor(private router: Router, public leads_service: LeadService, public route: ActivatedRoute, public dialog: MatDialog, private groupFetchService: GroupFetchService) {
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((query) => {
       const queryString = JSON.stringify(query);
       
@@ -103,14 +113,18 @@ export class LeadsList implements OnDestroy {
       }));
 
       // Handle status filter from query params
-      if (query?.email_contacted === 'true') {
+      if (query?.email_contacted === 'false') {
+        this.activeStatusFilter = CommunicationStatus.NOT_CONTACTED;
+        this.activeFilter = 'not_contacted';
+      } else if (query?.email_contacted === 'true' && query?.customer_answered === 'false') {
         this.activeStatusFilter = CommunicationStatus.CONTACTED;
-      } else if (query?.customer_answered === 'true') {
+        this.activeFilter = 'contacted_no_response';
+      } else if (query?.email_contacted === 'true' && query?.customer_answered === 'true') {
         this.activeStatusFilter = CommunicationStatus.RESPONDED;
-      } else if (query?.contacted_no_reply === 'true') {
-        this.activeStatusFilter = CommunicationStatus.CONTACTED;
+        this.activeFilter = 'customer_responded';
       } else {
         this.activeStatusFilter = null;
+        this.activeFilter = null;
       }
 
       // Handle group filter from query params
@@ -122,6 +136,35 @@ export class LeadsList implements OnDestroy {
 
       this.getLeads();
     });
+    
+    // Load groups for the select
+    this.loadGroups();
+  }
+
+  /**
+   * Load groups for the select dropdown
+   */
+  loadGroups() {
+    this.groupSelectConfig.loading = true;
+    this.groupSelectConfig.error = false;
+
+    this.groupFetchService.fetchGroups()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (groups) => {
+          this.groupSelectConfig.data = groups.map(group => ({
+            id: group.id,
+            name: `${group.name} (${group.lead_count || 0})`,
+            lead_count: group.lead_count || 0
+          }));
+          this.groupSelectConfig.loading = false;
+        },
+        error: (error) => {
+          this.groupSelectConfig.loading = false;
+          this.groupSelectConfig.error = true;
+          console.error('Error loading groups:', error);
+        }
+      });
   }
 
   ngOnDestroy() {
@@ -142,9 +185,13 @@ export class LeadsList implements OnDestroy {
     };
 
     // Add status filter if active
-    if (this.activeStatusFilter === CommunicationStatus.CONTACTED) {
+    if (this.activeFilter === 'not_contacted') {
+      data.email_contacted = false;
+    } else if (this.activeFilter === 'contacted_no_response') {
       data.email_contacted = true;
-    } else if (this.activeStatusFilter === CommunicationStatus.RESPONDED) {
+      data.customer_answered = false;
+    } else if (this.activeFilter === 'customer_responded') {
+      data.email_contacted = true;
       data.customer_answered = true;
     }
 
@@ -184,13 +231,21 @@ export class LeadsList implements OnDestroy {
     const params: any = {
       page: config.page,
       limit: config.limit,
-      search: this.search || undefined,
     };
 
+    // Add search if present
+    if (this.search) {
+      params.search = this.search;
+    }
+
     // Add status filter if active
-    if (this.activeStatusFilter === CommunicationStatus.CONTACTED) {
+    if (this.activeFilter === 'not_contacted') {
+      params.email_contacted = 'false';
+    } else if (this.activeFilter === 'contacted_no_response') {
       params.email_contacted = 'true';
-    } else if (this.activeStatusFilter === CommunicationStatus.RESPONDED) {
+      params.customer_answered = 'false';
+    } else if (this.activeFilter === 'customer_responded') {
+      params.email_contacted = 'true';
       params.customer_answered = 'true';
     }
 
@@ -202,7 +257,7 @@ export class LeadsList implements OnDestroy {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: params,
-      queryParamsHandling: 'merge',
+      replaceUrl: true
     });
   }
 
@@ -231,28 +286,23 @@ export class LeadsList implements OnDestroy {
   }
 
   onFilterChange(filter: string | null) {
+    // Clear all previous filters first
     this.activeFilter = filter;
+    this.activeStatusFilter = null;
+    
     this.table_config.update(c => ({ ...c, page: 1 }));
     
-    const params: any = { page: 1, limit: this.table_config().limit };
-    
-    if (filter === 'email_contacted') {
-      params.email_contacted = true;
-    } else if (filter === 'customer_answered') {
-      params.customer_answered = true;
-    } else if (filter === 'contacted_no_reply') {
-      params.contacted_no_reply = true;
+    // Update the status filter based on the selected filter
+    if (filter === 'not_contacted') {
+      this.activeStatusFilter = CommunicationStatus.NOT_CONTACTED;
+    } else if (filter === 'contacted_no_response') {
+      this.activeStatusFilter = CommunicationStatus.CONTACTED;
+    } else if (filter === 'customer_responded') {
+      this.activeStatusFilter = CommunicationStatus.RESPONDED;
     }
     
-    if (this.search) {
-      params.search = this.search;
-    }
-
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: params,
-      queryParamsHandling: 'merge',
-    });
+    // Update URL parameters and trigger data reload
+    this.updateUrlParams();
   }
 
   /**
@@ -282,11 +332,26 @@ export class LeadsList implements OnDestroy {
   }
 
   /**
+   * Handle group select change (new method for app-select)
+   */
+  onGroupSelectChange(event: any) {
+    const selectedGroupId = event.value;
+    const selectedGroup = this.groupSelectConfig.data.find(g => g.id === selectedGroupId);
+    const groupName = selectedGroup?.name?.split(' (')[0] || null; // Remove count from name
+    
+    this.activeGroupId = selectedGroupId;
+    this.activeGroupName = groupName;
+    this.table_config.update(c => ({ ...c, page: 1 }));
+    this.updateUrlParams();
+  }
+
+  /**
    * Handle filter clearing
    */
   onFilterClear(filterType: 'status' | 'group' | 'all') {
     if (filterType === 'status' || filterType === 'all') {
       this.activeStatusFilter = null;
+      this.activeFilter = null;
     }
     if (filterType === 'group' || filterType === 'all') {
       this.activeGroupId = null;
@@ -294,7 +359,40 @@ export class LeadsList implements OnDestroy {
     }
     
     this.table_config.update(c => ({ ...c, page: 1 }));
-    this.updateUrlParams();
+    
+    // Navigate to clean URL without filters
+    const params: any = { 
+      page: 1, 
+      limit: this.table_config().limit 
+    };
+    
+    if (this.search) {
+      params.search = this.search;
+    }
+
+    // Keep only non-cleared filters
+    if (filterType !== 'status' && filterType !== 'all' && this.activeFilter) {
+      // Re-apply status filter if not clearing status
+      if (this.activeFilter === 'not_contacted') {
+        params.email_contacted = 'false';
+      } else if (this.activeFilter === 'contacted_no_response') {
+        params.email_contacted = 'true';
+        params.customer_answered = 'false';
+      } else if (this.activeFilter === 'customer_responded') {
+        params.email_contacted = 'true';
+        params.customer_answered = 'true';
+      }
+    }
+
+    if (filterType !== 'group' && filterType !== 'all' && this.activeGroupId) {
+      params.group_id = this.activeGroupId;
+    }
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: params,
+      replaceUrl: true
+    });
   }
 
   /**

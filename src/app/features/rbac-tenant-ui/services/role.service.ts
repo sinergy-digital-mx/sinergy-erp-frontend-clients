@@ -79,6 +79,22 @@ export class RoleService {
   }
 
   /**
+   * Updates role permissions specifically
+   * @param roleId - The ID of the role to update
+   * @param permissionIds - Array of permission IDs to assign to the role
+   * @returns Observable<Role> - The updated role
+   */
+  updateRolePermissions(roleId: string, permissionIds: string[]): Observable<Role> {
+    return this.http.put<any>(`${this.api}/tenant/roles/${roleId}`, { 
+      permission_ids: permissionIds 
+    }).pipe(
+      map(backendRole => this.dataMapper.mapRole(backendRole)),
+      tap(() => this.clearCache()),
+      shareReplay(1)
+    );
+  }
+
+  /**
    * Deletes a role
    * @param roleId - The ID of the role to delete
    * @returns Observable<void>
@@ -86,6 +102,48 @@ export class RoleService {
   deleteRole(roleId: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/roles/${roleId}`).pipe(
       tap(() => this.clearCache()),
+      shareReplay(1)
+    );
+  }
+
+  /**
+   * Fetches users assigned to a specific role
+   * @param roleId - The ID of the role
+   * @returns Observable with users assigned to the role
+   */
+  getRoleUsers(roleId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.api}/tenant/roles/${roleId}/users`).pipe(
+      shareReplay(1)
+    );
+  }
+
+  /**
+   * Fetches available permissions for a specific role with assignment status
+   * @param roleId - The ID of the role
+   * @returns Observable with role and modules with permissions and their assignment status
+   */
+  getRolePermissionsAvailable(roleId: string): Observable<any> {
+    return this.http.get<any>(`${this.api}/tenant/roles/${roleId}/permissions/available`).pipe(
+      shareReplay(1)
+    );
+  }
+
+  /**
+   * Fetches available permissions organized by modules for the tenant
+   * @returns Observable with modules and their available permissions
+   */
+  getAvailablePermissions(): Observable<any> {
+    return this.http.get<any>(`${this.api}/tenant/roles/permissions/available`).pipe(
+      shareReplay(1)
+    );
+  }
+
+  /**
+   * Fetches role summary statistics
+   * @returns Observable with role statistics and summary
+   */
+  getRoleSummary(): Observable<any> {
+    return this.http.get<any>(`${this.api}/tenant/roles/summary/counts`).pipe(
       shareReplay(1)
     );
   }

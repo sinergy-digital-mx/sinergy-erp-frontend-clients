@@ -1,7 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { pairwise, startWith, Subscription } from 'rxjs';
-import { SpinnerComponent } from '../spinner/spinner.component';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -9,7 +8,7 @@ import { CommonModule } from '@angular/common';
   templateUrl: './select.component.html',
   styleUrls: ['./select.component.scss'],
   standalone: true,
-  imports:[ReactiveFormsModule,SpinnerComponent,CommonModule]
+  imports:[ReactiveFormsModule, CommonModule]
 })
 export class SelectComponent implements OnInit, OnChanges {
   @Input() config = <ISelect>{

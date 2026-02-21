@@ -17,7 +17,7 @@ export interface PhoneCountry {
   template: `
     <app-select
       [config]="selectConfig()"
-      [label]="'Country'"
+      [label]="'País'"
       [has_error]="control?.invalid && control?.touched">
     </app-select>
   `,
@@ -38,7 +38,7 @@ export class PhoneCountrySelectComponent implements OnInit {
 
   selectConfig() {
     return {
-      placeholder: 'Select a country',
+      placeholder: 'Selecciona un país',
       data: this.countries(),
       value: 'code',
       option: 'displayName',
@@ -56,7 +56,7 @@ export class PhoneCountrySelectComponent implements OnInit {
             code: item.code,
             name: item.name,
             phoneCode: item.value || '',
-            displayName: item.code
+            displayName: item.name
           })) as any
         );
         this.loading.set(false);

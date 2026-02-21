@@ -48,9 +48,9 @@ export class LeadEditDialog {
       phone_code: ['+1', [Validators.required]],
       phone_country: ['US', [Validators.required]],
       source: [''],
-      status_id: [null],
-      company_name: [null, []],
-      website: [null, []],
+      status_id: [''],
+      company_name: [''],
+      website: [''],
       group_id: ['']
     });
 
@@ -138,8 +138,8 @@ export class LeadEditDialog {
 
         this.interceptor_service.openSnackbar({
           type: 'success',
-          title: 'Success',
-          message: 'Lead updated successfully.'
+          title: 'Éxito',
+          message: 'Lead actualizado exitosamente.'
         });
       },
       error: () => {
@@ -148,7 +148,7 @@ export class LeadEditDialog {
         this.interceptor_service.openSnackbar({
           type: 'error',
           title: 'Error',
-          message: 'We couldn\'t update the lead. Please try again.'
+          message: 'No pudimos actualizar el lead. Por favor intenta de nuevo.'
         });
       }
     });
@@ -176,8 +176,8 @@ export class LeadEditDialog {
 
         this.interceptor_service.openSnackbar({
           type: 'success',
-          title: 'Success',
-          message: 'Lead created successfully.'
+          title: 'Éxito',
+          message: 'Lead creado exitosamente.'
         });
 
         this.closeDialog();
@@ -188,7 +188,7 @@ export class LeadEditDialog {
         this.interceptor_service.openSnackbar({
           type: 'error',
           title: 'Error',
-          message: 'We couldn\'t create the lead. Please try again.'
+          message: 'No pudimos crear el lead. Por favor intenta de nuevo.'
         });
       }
     });

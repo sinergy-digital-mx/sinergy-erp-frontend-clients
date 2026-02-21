@@ -109,23 +109,28 @@
         border-radius: 50%;
         z-index: 1;
       }
-    }
-  }
 
-  .view-all-btn {
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #6b7280;
-    background-color: #f3f4f6;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+      .gradient-from-teal-500 {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(13, 148, 136, 0.05));
+        border-radius: 50%;
+        z-index: 1;
+      }
 
-    &:hover {
-      background-color: #e5e7eb;
-      color: #374151;
+      .gradient-from-gray-500 {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, rgba(107, 114, 128, 0.1), rgba(75, 85, 99, 0.05));
+        border-radius: 50%;
+        z-index: 1;
+      }
     }
   }
 }
@@ -194,11 +199,6 @@
           }
         }
       }
-    }
-
-    .view-all-btn {
-      padding: 6px 12px;
-      font-size: 12px;
     }
   }
 }

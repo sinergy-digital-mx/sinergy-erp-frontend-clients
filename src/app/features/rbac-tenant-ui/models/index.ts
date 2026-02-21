@@ -47,7 +47,8 @@ export interface Role {
 export interface RoleDefinition {
   name: string;
   description: string;
-  permissions: string[];
+  permissions?: string[];
+  permission_ids?: string[];
 }
 
 export interface ModulePermission {

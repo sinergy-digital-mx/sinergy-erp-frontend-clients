@@ -1,0 +1,219 @@
+<div class="dialog" [class.dialog--wide]="activeTab() === 'payments'">
+  <div class="dialog__header">
+    <div>
+      <div class="flex items-center gap-2">
+        <h2>Contrato {{ data.contract.contract_number }}</h2>
+        <span 
+          class="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
+          [ngClass]="{
+            'bg-green-100 text-green-800': data.contract.status === 'activo',
+            'bg-blue-100 text-blue-800': data.contract.status === 'completado',
+            'bg-red-100 text-red-800': data.contract.status === 'cancelado',
+            'bg-yellow-100 text-yellow-800': data.contract.status === 'suspendido'
+          }">
+          {{ data.contract.status | titlecase }}
+        </span>
+      </div>
+      <div class="mt-1" *ngIf="data.contract.customer">
+        <span 
+          (click)="navigateToCustomer()"
+          class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors">
+          {{ getCustomerName() }}
+        </span>
+      </div>
+    </div>
+    <lucide-icon
+      [img]="X"
+      class="close cursor-pointer"
+      (click)="closeDialog()">
+    </lucide-icon>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs px-6 pt-4">
+    <button 
+      class="tab"
+      [class.active]="activeTab() === 'edit'"
+      (click)="setActiveTab('edit')">
+      Editar
+    </button>
+    <button 
+      class="tab"
+      [class.active]="activeTab() === 'payments'"
+      (click)="setActiveTab('payments')">
+      Pagos
+    </button>
+    <button 
+      class="tab"
+      [class.active]="activeTab() === 'documents'"
+      (click)="setActiveTab('documents')">
+      Documentos
+    </button>
+  </div>
+
+  <!-- Contract Summary - Always Visible -->
+  <div class="contract-summary px-6 py-3 bg-gray-50 border-b border-gray-200">
+    <div class="grid grid-cols-7 gap-3 text-xs">
+      <div>
+        <span class="block text-gray-500 font-medium mb-0.5">Fecha Contrato</span>
+        <span class="text-gray-900 font-semibold">{{ data.contract.contract_date | localDate:'mediumDate' }}</span>
+      </div>
+      <div>
+        <span class="block text-gray-500 font-medium mb-0.5">Precio Total</span>
+        <span class="text-gray-900 font-semibold">{{ data.contract.total_price | currency:data.contract.currency }}</span>
+      </div>
+      <div>
+        <span class="block text-gray-500 font-medium mb-0.5">Enganche</span>
+        <span class="text-gray-900 font-semibold">{{ data.contract.down_payment | currency:data.contract.currency }}</span>
+      </div>
+      <div>
+        <span class="block text-gray-500 font-medium mb-0.5">Total Pagado</span>
+        <span class="text-green-600 font-semibold">{{ (data.contract.total_price - data.contract.remaining_balance) | currency:data.contract.currency }}</span>
+      </div>
+      <div>
+        <span class="block text-gray-500 font-medium mb-0.5">Saldo Pendiente</span>
+        <span class="text-red-600 font-semibold">{{ data.contract.remaining_balance | currency:data.contract.currency }}</span>
+      </div>
+      <div>
+        <span class="block text-gray-500 font-medium mb-0.5">Meses de Pago</span>
+        <span class="text-gray-900 font-semibold">{{ data.contract.payment_months }} meses</span>
+      </div>
+      <div>
+        <span class="block text-gray-500 font-medium mb-0.5">Pago Mensual</span>
+        <span class="text-gray-900 font-semibold">{{ data.contract.monthly_payment | currency:data.contract.currency }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog__body">
+    <!-- Tab: Editar -->
+    <div class="tab-content" [class.active]="activeTab() === 'edit'">
+      <!-- Fechas de Sistema -->
+      <div class="mb-2 p-1.5 bg-gray-50 rounded-lg border border-gray-200">
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <span class="block font-semibold text-gray-500 mb-0.5">Creado</span>
+            <span class="text-gray-600">{{ data.contract.created_at | date:'medium' }}</span>
+          </div>
+          <div>
+            <span class="block font-semibold text-gray-500 mb-0.5">Actualizado</span>
+            <span class="text-gray-600">{{ data.contract.updated_at | date:'medium' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2.5" [formGroup]="form">
+        <!-- Número de Contrato y Lote (lado a lado) -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Número de Contrato</span>
+            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+              {{ data.contract.contract_number }}
+            </span>
+          </div>
+
+          <div>
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Lote</span>
+            <span 
+              *ngIf="data.contract.property"
+              (click)="openPropertyModal()"
+              class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 cursor-pointer hover:bg-green-200 transition-colors">
+              {{ data.contract.property.code }}
+            </span>
+            <span *ngIf="!data.contract.property" class="text-gray-900">—</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <!-- Fecha del Contrato -->
+          <app-input
+            label="Fecha del Contrato"
+            [form_control]="form.controls['contract_date']">
+          </app-input>
+
+          <!-- Estado -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+            <app-select [config]="statusSelectConfig"></app-select>
+          </div>
+
+          <!-- Precio Total -->
+          <app-input
+            label="Precio Total"
+            type="number"
+            [form_control]="form.controls['total_price']">
+          </app-input>
+
+          <!-- Enganche -->
+          <app-input
+            label="Enganche"
+            type="number"
+            [form_control]="form.controls['down_payment']">
+          </app-input>
+
+          <!-- Saldo Pendiente -->
+          <app-input
+            label="Saldo Pendiente"
+            type="number"
+            [form_control]="form.controls['remaining_balance']">
+          </app-input>
+
+          <!-- Meses de Pago -->
+          <app-input
+            label="Meses de Pago"
+            type="number"
+            [form_control]="form.controls['payment_months']">
+          </app-input>
+
+          <!-- Pago Mensual -->
+          <app-input
+            label="Pago Mensual"
+            type="number"
+            [form_control]="form.controls['monthly_payment']">
+          </app-input>
+
+          <!-- Primer Pago -->
+          <app-input
+            label="Primer Pago"
+            [form_control]="form.controls['first_payment_date']">
+          </app-input>
+        </div>
+
+        <!-- Notas -->
+        <app-input
+          label="Notas"
+          type="textarea"
+          [form_control]="form.controls['notes']">
+        </app-input>
+      </div>
+    </div>
+
+    <!-- Tab: Pagos -->
+    <div class="tab-content" [class.active]="activeTab() === 'payments'">
+      <app-contract-payments 
+        [contractId]="data.contract.id"
+        [currency]="data.contract.currency">
+      </app-contract-payments>
+    </div>
+
+    <!-- Tab: Documentos -->
+    <div class="tab-content" [class.active]="activeTab() === 'documents'">
+      <app-contract-documents [contractId]="data.contract.id"></app-contract-documents>
+    </div>
+  </div>
+
+  <div class="dialog__footer">
+    <app-button
+      text="Cancelar"
+      custom_class="btn_secondary"
+      (clicked)="closeDialog()">
+    </app-button>
+    <app-button
+      *ngIf="activeTab() === 'edit'"
+      text="Guardar Cambios"
+      custom_class="btn_primary"
+      [loading]="saving()"
+      (clicked)="saveContract()">
+    </app-button>
+  </div>
+</div>

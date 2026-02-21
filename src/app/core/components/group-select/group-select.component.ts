@@ -16,17 +16,22 @@ export interface GroupOption {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, SelectComponent],
   template: `
-    <app-select
-      [config]="selectConfig()"
-      [label]="'Group'"
-      [has_error]="control?.invalid && control?.touched">
-    </app-select>
+    <div>
+      @if (label) {
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ label }}</label>
+      }
+      <app-select
+        [config]="selectConfig()"
+        [has_error]="control?.invalid && control?.touched">
+      </app-select>
+    </div>
   `,
   styles: []
 })
 export class GroupSelectComponent implements OnInit {
   @Input() control: AbstractControl | null = null;
   @Input() groupType: 'lead' | 'customer' = 'lead';
+  @Input() label: string = '';
   @Output() groupSelected = new EventEmitter<GroupOption>();
 
   groups = signal<GroupOption[]>([]);
@@ -41,7 +46,7 @@ export class GroupSelectComponent implements OnInit {
 
   selectConfig() {
     return {
-      placeholder: 'Select a group',
+      placeholder: 'Selecciona un grupo',
       data: this.groups(),
       value: 'id',
       option: 'displayName',

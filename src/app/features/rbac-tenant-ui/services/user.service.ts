@@ -104,6 +104,20 @@ export class UserService {
   }
 
   /**
+   * Updates an existing user
+   * @param userId - The ID of the user to update
+   * @param userData - The user data to update
+   * @returns Observable<User>
+   */
+  updateUser(userId: string, userData: any): Observable<User> {
+    return this.http.put<any>(`${this.api}/tenant/users/${userId}`, userData).pipe(
+      map(backendUser => this.dataMapper.mapUser(backendUser)),
+      tap(() => this.clearCache()),
+      shareReplay(1)
+    );
+  }
+
+  /**
    * Clears the user cache
    * Useful for forcing a refresh of user data
    */

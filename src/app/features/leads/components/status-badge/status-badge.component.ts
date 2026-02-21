@@ -8,19 +8,20 @@ import { Lead, CommunicationStatus, StatusBadgeData } from '../../models/lead-gr
   selector: 'app-status-badge',
   standalone: true,
   imports: [CommonModule, TooltipModule, TagModule],
-  template: `<div 
-  *ngIf="badgeData"
-  class="status-badge"
-  [style.backgroundColor]="getBgColor()"
-  [style.borderColor]="getBorderColor()"
-  [style.borderStyle]="getBorderStyle()"
-  [pTooltip]="badgeData.tooltip"
-  tooltipPosition="top"
-  (click)="onBadgeClick()"
-  [ngClass]="{ 'active-filter': isFilterActive }">
-  <i [class]="'pi ' + badgeData.icon" [style.color]="badgeData.color"></i>
-  <span [style.color]="badgeData.color">{{ badgeData.label }}</span>
-</div>`,
+  template: `@if (badgeData) {
+  <div 
+    class="status-badge"
+    [style.backgroundColor]="getBgColor()"
+    [style.borderColor]="getBorderColor()"
+    [style.borderStyle]="getBorderStyle()"
+    [pTooltip]="badgeData.tooltip"
+    tooltipPosition="top"
+    (click)="onBadgeClick()"
+    [ngClass]="{ 'active-filter': isFilterActive }">
+    <i [class]="'pi ' + badgeData.icon" [style.color]="badgeData.color"></i>
+    <span [style.color]="badgeData.color">{{ badgeData.label }}</span>
+  </div>
+}`,
   styles: [`
 .status-badge {
   display: inline-flex;
@@ -105,7 +106,8 @@ export class StatusBadgeComponent implements OnInit {
    * Determine the communication status based on lead properties
    */
   private getStatusFromLead(lead: Lead): CommunicationStatus {
-    if (lead.customer_answered) {
+    // Simplified 3-state logic
+    if (lead.email_contacted && lead.customer_answered) {
       return CommunicationStatus.RESPONDED;
     } else if (lead.email_contacted) {
       return CommunicationStatus.CONTACTED;
@@ -125,9 +127,15 @@ export class StatusBadgeComponent implements OnInit {
     
     let tooltip = '';
     if (typeof config.tooltip === 'function') {
-      const dateField = status === CommunicationStatus.CONTACTED 
-        ? this.lead.first_email_sent_at 
-        : this.lead.customer_answered_at;
+      let dateField = null;
+      switch (status) {
+        case CommunicationStatus.CONTACTED:
+          dateField = this.lead.first_email_sent_at;
+          break;
+        case CommunicationStatus.RESPONDED:
+          dateField = this.lead.customer_answered_at;
+          break;
+      }
       tooltip = config.tooltip(dateField);
     } else {
       tooltip = config.tooltip;

@@ -26,10 +26,13 @@ export class StateService {
   private userStatusFilterSubject = new BehaviorSubject<UserStatus | 'all'>('all');
   private roleSearchFilterSubject = new BehaviorSubject<string>('');
 
-  // Custom comparator for arrays
+  // Custom comparator for arrays - compares id and permission_count to detect updates
   private arrayComparator = (prev: any[], curr: any[]): boolean => {
     if (prev.length !== curr.length) return false;
-    return prev.every((item, index) => item.id === curr[index].id);
+    return prev.every((item, index) => 
+      item.id === curr[index].id && 
+      item.permission_count === curr[index].permission_count
+    );
   };
 
   // Public observables for core data
@@ -90,7 +93,10 @@ export class StateService {
     }),
     distinctUntilChanged((prev, curr) => {
       if (prev.length !== curr.length) return false;
-      return prev.every((item, index) => item.id === curr[index].id);
+      return prev.every((item, index) => 
+        item.id === curr[index].id && 
+        item.permission_count === curr[index].permission_count
+      );
     })
   );
 

@@ -34,21 +34,46 @@ export interface CustomerAddress {
 export interface Customer {
   id: string;
   name: string;
+  lastname?: string;
   email: string;
   phone?: string;
   phone_country?: string;
   phone_code?: string;
   company_name?: string;
-  group_id: string | null;
+  group?: CustomerGroup | null;
+  group_id?: string | null;
   status_id?: string;
   status?: {
     id: string;
     name: string;
   };
+  contracts?: CustomerContract[];
   addresses?: CustomerAddress[];
   activities?: CustomerActivity[];
   created_at?: string;
   updated_at?: string;
+}
+
+/**
+ * Customer Contract Model
+ * Represents a contract associated with a customer
+ */
+export interface CustomerContract {
+  id: string;
+  status: string;
+  contract_number: string;
+  contract_date: string;
+  total_price: number;
+  currency: string;
+  property: {
+    id: string;
+    code: string;
+    name: string;
+    block: string;
+    total_area: number;
+    total_price: number;
+    status: string;
+  };
 }
 
 /**

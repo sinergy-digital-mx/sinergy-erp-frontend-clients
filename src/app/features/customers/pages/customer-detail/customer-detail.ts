@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { CustomerEditModalComponent } from '../../components/customer-edit-modal/customer-edit-modal.component';
+import { CustomerDocumentsComponent } from '../../components/customer-documents/customer-documents.component';
 import { Customer } from '../../models/customer-group.model';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -24,7 +25,8 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
     ButtonModule,
     MatCardModule,
     MatProgressSpinnerModule,
-    PhoneComponent
+    PhoneComponent,
+    CustomerDocumentsComponent
   ],
   templateUrl: 'customer-detail.html',
   styleUrl: 'customer-detail.scss'
@@ -103,6 +105,13 @@ export class CustomerDetail implements OnInit, OnDestroy {
    */
   goBack() {
     this.router.navigate(['/customers']);
+  }
+
+  /**
+   * Navigate to property detail
+   */
+  navigateToProperty(propertyId: string) {
+    this.router.navigate(['/properties/detail', propertyId]);
   }
 
   getSeverity(s: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | null {

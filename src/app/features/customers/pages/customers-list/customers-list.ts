@@ -2,8 +2,6 @@ import { Component, signal, TemplateRef, ViewChild, OnDestroy } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
-import { InputTextModule } from 'primeng/inputtext';
-import { FloatLabelModule } from 'primeng/floatlabel';
 import { TagModule } from 'primeng/tag';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -14,6 +12,7 @@ import { DatatableWrapperComponent } from '../../../../core/components/datatable
 import { IDatatableConfig, IColumn, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { SelectComponent } from '../../../../core/components/select/select.component';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { CustomerGroupDropdownComponent } from '../../components/customer-group-dropdown/customer-group-dropdown.component';
@@ -29,12 +28,11 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
     CommonModule,
     FormsModule,
     TableModule,
-    InputTextModule,
-    FloatLabelModule,
     TagModule,
     ButtonModule,
     SearchComponent,
     ButtonComponent,
+    SelectComponent,
     DatatableWrapperComponent,
     CustomerGroupDropdownComponent,
     FilterIndicatorComponent,
@@ -49,14 +47,14 @@ export class CustomersList implements OnDestroy {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Name', prop: 'name', sortable: true, canAutoResize: true },
+      { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true },
       { name: 'Email', prop: 'email', sortable: true, canAutoResize: true },
-      { name: 'Phone', prop: 'phone', sortable: true, canAutoResize: true },
-      { name: 'Company', prop: 'company_name', sortable: true, canAutoResize: true },
-      { name: 'Group', prop: 'group_id', sortable: true, canAutoResize: true },
-      { name: 'Status', prop: 'status', sortable: true, canAutoResize: true },
-      { name: 'Created at', prop: 'created_at', sortable: true, canAutoResize: true },
-      { name: 'Actions', prop: 'actions', sortable: false, canAutoResize: true },
+      { name: 'Teléfono', prop: 'phone', sortable: true, canAutoResize: true },
+      { name: 'Grupo', prop: 'group_id', sortable: true, canAutoResize: true },
+      { name: 'Lotes', prop: 'contracts', sortable: false, canAutoResize: true },
+      { name: 'Estado', prop: 'status', sortable: true, canAutoResize: true },
+      { name: 'Creado', prop: 'created_at', sortable: true, canAutoResize: true },
+      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true },
     ],
     externalPaging: true,
     externalSorting: true,
@@ -64,7 +62,7 @@ export class CustomersList implements OnDestroy {
     limit: 20,
     totalResults: 0,
     loading: false,
-    emptyState: { title: 'No results', subtitle: 'No Customer found' },
+    emptyState: { title: 'Sin resultados', subtitle: 'No se encontraron clientes' },
     columnMode: 'force',
     reorderable: false,
   });
@@ -77,6 +75,18 @@ export class CustomersList implements OnDestroy {
   currentSort: ISortEvent | null = null;
   private destroy$ = new Subject<void>();
   private lastQueryParams: string = '';
+
+  statusSelectConfig = {
+    placeholder: 'Filtrar por estado',
+    data: [
+      { id: 'active', name: 'Activo' },
+      { id: 'inactive', name: 'Inactivo' }
+    ],
+    value: null,
+    option: 'name',
+    all: true,
+    all_message: 'Ver Todos'
+  };
 
   constructor(
     private router: Router,
@@ -131,6 +141,11 @@ export class CustomersList implements OnDestroy {
       ...(this.currentSort && this.currentSort.direction && { sort: this.currentSort.column.prop, order: this.currentSort.direction })
     };
     this.customer_service.getCustomers(data).subscribe(res => {
+      console.log('Customers with contracts:', res?.data?.map(c => ({ 
+        name: c.name, 
+        contractsCount: c.contracts?.length || 0,
+        contracts: c.contracts 
+      })));
       this.table_config.update(c => ({
         ...c,
         rows: res?.data ?? [],
@@ -189,7 +204,8 @@ export class CustomersList implements OnDestroy {
     });
   }
 
-  onStatusSelect(statusId: string | null) {
+  onStatusSelect(event: any) {
+    const statusId = event?.value || null;
     this.selectedStatusId = statusId;
     this.router.navigate([], {
       relativeTo: this.route,
@@ -251,7 +267,7 @@ export class CustomersList implements OnDestroy {
   createCustomer() {
     this.dialog.open(CustomerEditModalComponent, {
       data: { customer: null },
-      width: '600px'
+      width: '500px'
     }).afterClosed().subscribe((result) => {
       if (result) {
         this.getCustomers();
@@ -270,5 +286,23 @@ export class CustomersList implements OnDestroy {
 
   viewDetail(row: any) {
     this.router.navigate(['/customers/detail', row.id]);
+  }
+
+  getFirstLotCode(customer: Customer): string {
+    if (!customer.contracts || customer.contracts.length === 0) {
+      return '—';
+    }
+    return customer.contracts[0].property.code;
+  }
+
+  getAdditionalLotsCount(customer: Customer): number {
+    if (!customer.contracts || customer.contracts.length <= 1) {
+      return 0;
+    }
+    return customer.contracts.length - 1;
+  }
+
+  hasMultipleLots(customer: Customer): boolean {
+    return (customer.contracts?.length || 0) > 1;
   }
 }

@@ -2,30 +2,10 @@
 @use '../../../../base/mixins' as *;
 
 .search_container {
-  // flex: 1;
   position: relative;
+  width: 100%;
 
-  .fi-rr-search {
-    color: $color-secondary-400;
-    position: absolute;
-    top: 10px;
-    left: 5px;
-    padding-left: $text-small;
-
-    @include media-query(sm) {
-      top: 11px;
-      font-size: 18px;
-      color: $color-secondary-800;
-      padding-left: 6px;
-    }
-  }
-
-
-  input:focus {
-    border: 1px solid $color-secondary-800;
-  }
-
-  .fi-rr-cross-small {
+  .clear-icon {
     display: flex;
     cursor: pointer;
     position: absolute;
@@ -34,14 +14,18 @@
     border-radius: 50px;
     background-color: #f2f2f2;
     padding: 4px;
-    gap: 10px;
-    top: 11px;
-    right: 6px;
+    top: 50%;
+    right: 12px;
     height: 18px;
     width: 18px;
+    transform: translateY(-50%);
+    z-index: 10;
+
+    &:hover {
+      background-color: #e5e5e5;
+    }
 
     @include media-query(sm) {
-      top: 10px;
       font-size: $text-large;
     }
   }
@@ -49,16 +33,10 @@
 
 @media screen and (max-width: 450px) {
   .search_container {
-    .fi-rr-search {
-      // padding-left: 2px;
-      //font-size: 1.2em;
-      //color: $color-secondary-800;
-    }
-
-    input {
-      // border: 1px solid $color-secondary-400;
-      // border-radius: 8px;
-      // align-items: center;
+    .clear-icon {
+      right: 8px;
+      height: 16px;
+      width: 16px;
     }
   }
 }

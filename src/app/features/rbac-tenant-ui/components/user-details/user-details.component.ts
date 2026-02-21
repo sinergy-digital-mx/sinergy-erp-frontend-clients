@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
+import { UserEditDialogComponent } from '../user-edit-dialog/user-edit-dialog.component';
 
 /**
  * UserDetailsComponent
@@ -65,6 +66,11 @@ export class UserDetailsComponent implements OnInit {
    * Event emitted when a role is deleted from a user
    */
   @Output() roleDeleted = new EventEmitter<{ userId: string; roleId: string }>();
+
+  /**
+   * Event emitted when a user is updated
+   */
+  @Output() userUpdated = new EventEmitter<void>();
 
   // Internal state for role replacement dropdown
   showRoleReplacementDropdown$ = new BehaviorSubject<boolean>(false);
@@ -230,5 +236,18 @@ export class UserDetailsComponent implements OnInit {
       return status.code;
     }
     return 'active';
+  }
+
+  /**
+   * Opens the edit user dialog
+   */
+  openEditDialog(): void {
+    this.dialog.open(UserEditDialogComponent, {
+      data: { user: this.user }
+    }).afterClosed().subscribe(result => {
+      if (result) {
+        this.userUpdated.emit();
+      }
+    });
   }
 }

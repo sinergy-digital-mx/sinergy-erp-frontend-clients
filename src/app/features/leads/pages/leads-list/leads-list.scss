@@ -24,6 +24,50 @@
   }
 }
 
+/* Force table to be compact and never overflow */
+:host ::ng-deep {
+  .datatable-wrapper {
+    .ngx-datatable {
+      width: 100% !important;
+      max-width: 760px !important;
+      font-size: 12px !important;
+      
+      .datatable-header {
+        .datatable-header-cell {
+          padding: 0.5rem 0.25rem !important;
+          font-size: 0.875rem !important;
+          font-weight: 600 !important;
+          height: 32px !important;
+          min-height: 32px !important;
+        }
+      }
+      
+      .datatable-body {
+        .datatable-body-row {
+          height: 40px !important;
+          min-height: 40px !important;
+          
+          .datatable-body-cell {
+            padding: 0.5rem 0.25rem !important;
+            font-size: 0.875rem !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            line-height: 1.4 !important;
+          }
+        }
+      }
+      
+      .datatable-row-wrapper {
+        .datatable-body-row {
+          height: 40px !important;
+          min-height: 40px !important;
+        }
+      }
+    }
+  }
+}
+
 /* Mobile styles */
 @media (max-width: 767px) {
   .leads-list-container {

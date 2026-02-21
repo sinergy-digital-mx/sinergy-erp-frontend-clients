@@ -16,7 +16,7 @@ export interface PhoneCode {
   template: `
     <app-select
       [config]="selectConfig()"
-      [label]="'Phone Code'"
+      [label]="'Código de Teléfono'"
       [has_error]="control?.invalid && control?.touched">
     </app-select>
   `,
@@ -37,7 +37,7 @@ export class PhoneCodeSelectComponent implements OnInit {
 
   selectConfig() {
     return {
-      placeholder: 'Select a phone code',
+      placeholder: 'Selecciona un código de teléfono',
       data: this.phoneCodes(),
       value: 'code',
       option: 'name',

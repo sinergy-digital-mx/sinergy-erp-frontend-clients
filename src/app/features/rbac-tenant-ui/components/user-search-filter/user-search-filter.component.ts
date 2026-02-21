@@ -21,7 +21,7 @@ import { UserStatus } from '../../models';
       <!-- Email Search Input -->
       <div class="w-full overflow-hidden">
         <app-search
-          placeholder="Search by email..."
+          placeholder="Buscar por email..."
           (searchChange)="onSearchChange($event)"
         ></app-search>
       </div>
@@ -65,12 +65,12 @@ export class UserSearchFilterComponent implements OnInit {
   constructor(private stateService: StateService) {
     // Initialize status filter configuration
     this.statusFilterConfig = {
-      placeholder: 'Filter by status',
+      placeholder: 'Filtrar por estado',
       data: [
-        { value: 'all', label: 'All Status' },
-        { value: 'active', label: 'Active' },
-        { value: 'inactive', label: 'Inactive' },
-        { value: 'pending', label: 'Pending' }
+        { value: 'all', label: 'Todos los Estados' },
+        { value: 'active', label: 'Activo' },
+        { value: 'inactive', label: 'Inactivo' },
+        { value: 'pending', label: 'Pendiente' }
       ],
       name_select: 'status',
       value: null,

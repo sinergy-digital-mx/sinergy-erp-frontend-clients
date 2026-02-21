@@ -4,10 +4,10 @@
   <div class="flex items-center gap-3 mb-6 justify-between">
     <div class="flex items-center gap-3">
       <app-back-button (clicked)="goBackToSettings()"></app-back-button>
-      <h1 class="text-2xl font-semibold text-gray-900">Users Management</h1>
+      <h1 class="text-2xl font-semibold text-gray-900">Gestión de Usuarios</h1>
     </div>
     <app-button
-      text="+ Create User"
+      text="+ Crear Usuario"
       variant="primary"
       size="md"
       [fullWidth]="false"
@@ -21,7 +21,7 @@
     <div class="w-1/3 bg-gray-50 rounded-lg border border-gray-200 flex flex-col overflow-hidden">
       <!-- Header -->
       <div class="px-6 py-4 border-b border-gray-200 bg-white">
-        <h2 class="text-lg font-semibold text-gray-900">Users</h2>
+        <h2 class="text-lg font-semibold text-gray-900">Usuarios</h2>
       </div>
 
       <!-- Search and Filter Section -->
@@ -35,7 +35,7 @@
         @if (filteredUsers$ | async; as users) {
           @if (users.length === 0) {
             <div class="p-4 text-center text-gray-500">
-              <p>No users found</p>
+              <p>No se encontraron usuarios</p>
             </div>
           } @else {
             @for (user of users; track user.id) {
@@ -78,12 +78,13 @@
             (roleAssigned)="onRoleAssigned($event)"
             (roleReplaced)="onRoleReplaced($event)"
             (roleDeleted)="onRoleDeleted($event)"
+            (userUpdated)="onUserUpdated()"
           ></app-user-details>
         </div>
       } @else {
         <div class="flex items-center justify-center h-full bg-white">
           <div class="text-center">
-            <p class="text-gray-500 text-lg">Select a user to view details</p>
+            <p class="text-gray-500 text-lg">Selecciona un usuario para ver los detalles</p>
           </div>
         </div>
       }

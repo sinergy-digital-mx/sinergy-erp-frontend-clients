@@ -7,21 +7,20 @@
 
         <!-- Right side: Group Filter + Search + Button -->
         <div class="flex items-center gap-3 md:justify-end flex-wrap">
-          <app-group-dropdown
-            [selectedGroupId]="activeGroupId"
-            (groupSelect)="onGroupDropdownSelect($event)">
-          </app-group-dropdown>
+          <app-select
+            [config]="groupSelectConfig"
+            (changeOption)="onGroupSelectChange($event)">
+          </app-select>
 
           <app-search
             class="w-64"
-            label="Search Lead"
             [param_activate]="true"
             param_name="search"
             (searchChange)="search = $event;">
           </app-search>
 
           <app-button
-            text="Create lead"
+            text="Crear lead"
             custom_class="btn_primary"
             (click)="createLead()">
           </app-button>
@@ -37,48 +36,136 @@
       </app-filter-indicator>
 
       <!-- Stats Dashboard -->
-      <app-leads-stats (filterChange)="onFilterChange($event)"></app-leads-stats>
+      <app-leads-stats 
+        [activeFilter]="activeFilter"
+        (filterChange)="onFilterChange($event)">
+      </app-leads-stats>
 
-      <app-datatable-wrapper
-        [config]="table_config()"
-        [rowTemplate]="tableTemplate"
-        (pageChange)="onPageChange($event)"
-        (sortChange)="onSortChange($event)"
-        (rowClick)="viewDetail($event)">
-      </app-datatable-wrapper>
+      <!-- Desktop Table -->
+      <div class="hidden md:block">
+        <app-datatable-wrapper
+          [config]="table_config()"
+          [rowTemplate]="tableTemplate"
+          (pageChange)="onPageChange($event)"
+          (sortChange)="onSortChange($event)"
+          (rowClick)="viewDetail($event)">
+        </app-datatable-wrapper>
+      </div>
+
+      <!-- Mobile Cards -->
+      <div class="block md:hidden">
+        <div class="space-y-3">
+          @for (item of table_config().rows; track item.id) {
+            <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm" (click)="viewDetail(item)">
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="font-semibold text-gray-900 truncate flex-1 mr-2">{{ item.name }}</h3>
+                <app-button
+                  text="Ver"
+                  size="sm"
+                  [fullWidth]="false"
+                  custom_class="btn_primary text-xs px-2 py-1"
+                  (click)="viewDetail(item); $event.stopPropagation()">
+                </app-button>
+              </div>
+              
+              <div class="space-y-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                    {{ item.status?.name || 'Sin estado' }}
+                  </span>
+                  <app-status-badge
+                    [lead]="item"
+                    [isFilterActive]="isStatusFilterActive(item.id)"
+                    (statusFilterChange)="onStatusFilterChange($event)">
+                  </app-status-badge>
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                    {{ item.group?.name || 'Sin grupo' }}
+                  </span>
+                </div>
+                
+                <div class="text-sm text-gray-600">
+                  <div class="truncate">{{ item.email }}</div>
+                  <div class="mt-1">
+                    <app-phone 
+                      [phone]="item.phone"
+                      [countryCode]="item.phone_country"
+                      [countryPhoneCode]="item.phone_code">
+                    </app-phone>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-1">
+                    {{ item.created_at | date:'shortDate' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Mobile Pagination -->
+        @if (table_config().totalResults > table_config().limit) {
+          <div class="mt-4 flex justify-center">
+            <div class="flex items-center gap-2">
+              <button 
+                [disabled]="table_config().page === 1"
+                (click)="onPageChange({page: table_config().page - 1, limit: table_config().limit})"
+                class="px-3 py-1 text-sm border rounded disabled:opacity-50">
+                Anterior
+              </button>
+              <span class="text-sm text-gray-600">
+                Página {{ table_config().page }} de {{ Math.ceil(table_config().totalResults / table_config().limit) }}
+              </span>
+              <button 
+                [disabled]="!table_config().hasNext"
+                (click)="onPageChange({page: table_config().page + 1, limit: table_config().limit})"
+                class="px-3 py-1 text-sm border rounded disabled:opacity-50">
+                Siguiente
+              </button>
+            </div>
+          </div>
+        }
+      </div>
     </div>
   </div>
 </div>
 
 <ng-template #tableTemplate let-item="$implicit" let-rowIndex="rowIndex">
-  <td>
-    <p>{{ item.name }}</p>
+  <td class="px-2 py-2 w-[100px]">
+    <p class="truncate text-sm font-medium m-0">{{ item.name }}</p>
   </td>
-  <td>
+  <td class="px-2 py-2 w-[75px]">
+    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap max-w-[70px] h-[24px] min-h-[24px] overflow-hidden text-ellipsis">
+      {{ item.status?.name || 'N/A' }}
+    </span>
+  </td>
+  <td class="px-2 py-2 w-[85px]">
     <app-status-badge
       [lead]="item"
       [isFilterActive]="isStatusFilterActive(item.id)"
       (statusFilterChange)="onStatusFilterChange($event)">
     </app-status-badge>
   </td>
-  <td>{{ item.email }}</td>
-  <td>
+  <td class="px-2 py-2 w-[110px]">
+    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap max-w-[105px] h-[24px] min-h-[24px] overflow-hidden text-ellipsis">
+      {{ item.group?.name || 'Sin grupo' }}
+    </span>
+  </td>
+  <td class="px-2 py-2 w-[140px]">
+    <span class="truncate text-sm block m-0">{{ item.email }}</span>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
     <app-phone 
       [phone]="item.phone"
       [countryCode]="item.phone_country"
       [countryPhoneCode]="item.phone_code">
     </app-phone>
   </td>
-  <td>{{ item.created_at | date:'mediumDate' }}</td>
-  <td>
-    <app-button
-      text="Detail"
-      size="sm"
-      [fullWidth]="false"
-      custom_class="btn_primary"
+  <td class="px-2 py-2 w-[75px] text-xs">{{ item.created_at | date:'M/d/yy' }}</td>
+  <td class="px-2 py-2 w-[45px]">
+    <button
+      class="text-blue-600 hover:text-blue-800 text-sm p-1"
       (click)="viewDetail(item); $event.stopPropagation()"
-      [icon]="ArrowRight"
-      >
-    </app-button>
+      title="Ver">
+      <i class="pi pi-arrow-right w-4 h-4"></i>
+    </button>
   </td>
 </ng-template>

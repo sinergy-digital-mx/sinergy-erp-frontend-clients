@@ -14,7 +14,7 @@
       <button
         (click)="openEdit()"
         pButton
-        label="Edit lead"
+        label="Editar lead"
         icon="pi pi-pencil"
         class="p-button-rounded p-button-solid text-sm"
         size="small">
@@ -24,18 +24,18 @@
 <!-- LEAD INFORMATION -->
 <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
   <h3 class="text-lg font-semibold text-gray-800 mb-4">
-    Lead Information
+    Información del Lead
   </h3>
 
   <div class="grid grid-cols-2 gap-y-3 gap-x-10 text-sm text-gray-800">
 
     <div>
-      <span class="font-semibold text-gray-500">First name:</span>
+      <span class="font-semibold text-gray-500">Nombre:</span>
       {{ lead()?.name }}
     </div>
 
     <div>
-      <span class="font-semibold text-gray-500">Last name:</span>
+      <span class="font-semibold text-gray-500">Apellido:</span>
       {{ lead()?.lastname }}
     </div>
 
@@ -53,7 +53,7 @@
     </div>
 
     <div>
-      <span class="font-semibold text-gray-500">Phone:</span>
+      <span class="font-semibold text-gray-500">Teléfono:</span>
       <app-phone 
         [phone]="lead()?.phone"
         [countryCode]="lead()?.phone_country"
@@ -62,13 +62,13 @@
     </div>
 
     <div>
-      <span class="font-semibold text-gray-500">Source:</span>
+      <span class="font-semibold text-gray-500">Fuente:</span>
       {{ lead()?.source }}
     </div>
 
     <!-- Website ocupa 2 columnas -->
     <div class="col-span-2">
-      <span class="font-semibold text-gray-500">Website:</span>
+      <span class="font-semibold text-gray-500">Sitio web:</span>
 
       <a
       *ngIf="lead()?.website; else noWebsite"
@@ -84,7 +84,7 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <span class="font-semibold text-gray-500">Status:</span>
+      <span class="font-semibold text-gray-500">Estado:</span>
       <p-tag
         [value]="lead()?.status?.name"
         rounded="true">
@@ -92,7 +92,7 @@
     </div>
 
     <div class="col-span-2">
-      <span class="font-semibold text-gray-500">Created at:</span>
+      <span class="font-semibold text-gray-500">Creado el:</span>
       <div class="mt-0.5">
         {{ lead()?.created_at | date:'medium' }}
       </div>
@@ -113,13 +113,13 @@
     <!-- Header with action -->
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-800">
-        Addresses
+        Direcciones
       </h3>
   
       <button
         pButton
         icon="pi pi-plus"
-        label="Add address"
+        label="Agregar dirección"
         class="p-button-sm p-button-outlined"
     >
       </button>
@@ -133,13 +133,13 @@
       <!-- HEADER -->
       <ng-template pTemplate="header">
         <tr>
-          <th>Type</th>
-          <th>Street address</th>
-          <th>City</th>
-          <th>State</th>
-          <th>Postal code</th>
-          <th>Country</th>
-          <th>Primary</th>
+          <th>Tipo</th>
+          <th>Dirección</th>
+          <th>Ciudad</th>
+          <th>Estado</th>
+          <th>Código postal</th>
+          <th>País</th>
+          <th>Principal</th>
         </tr>
       </ng-template>
   
@@ -182,7 +182,7 @@
           <td class="text-center">
             <p-tag
               *ngIf="address.is_primary"
-              value="Primary"
+              value="Principal"
               severity="success"
               rounded="true">
             </p-tag>
@@ -200,13 +200,13 @@
     <!-- Header with action -->
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-800">
-        Activities
+        Actividades
       </h3>
   
       <button
         pButton
         icon="pi pi-plus"
-        label="Add activity"
+        label="Agregar actividad"
         class="p-button-sm p-button-outlined"
         (click)="createActivity()"
         >
@@ -222,12 +222,12 @@
       <!-- HEADER -->
       <ng-template pTemplate="header">
         <tr>
-          <th>Type</th>
-          <th>Title</th>
-          <th>Status</th>
-          <th>Activity date</th>
-          <th>Duration</th>
-          <th>Outcome</th>
+          <th>Tipo</th>
+          <th>Título</th>
+          <th>Estado</th>
+          <th>Fecha de actividad</th>
+          <th>Duración</th>
+          <th>Resultado</th>
         </tr>
       </ng-template>
   

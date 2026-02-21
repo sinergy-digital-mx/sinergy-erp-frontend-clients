@@ -1,0 +1,90 @@
+<div class="documents-section">
+  <div class="flex items-center justify-between mb-4">
+    <h4 class="text-base font-semibold text-gray-800">Documentos del Contrato</h4>
+    <app-button
+      text="Subir Documento"
+      custom_class="btn_primary"
+      size="sm"
+      [icon]="Plus"
+      (clicked)="openUploadModal()">
+    </app-button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="text-center py-6">
+    <p class="text-sm text-gray-500">Cargando documentos...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading() && documents().length === 0" class="text-center py-6 text-gray-500">
+    <p class="text-sm">No hay documentos subidos</p>
+  </div>
+
+  <!-- Documents List -->
+  <div *ngIf="!loading() && documents().length > 0" class="space-y-2">
+    <div *ngFor="let doc of documents()" 
+         class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+      
+      <div class="flex items-center gap-3 flex-1 min-w-0">
+        <lucide-icon 
+          [img]="getFileIcon(doc.mime_type)"
+          class="text-gray-400 flex-shrink-0"
+          [size]="20">
+        </lucide-icon>
+
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-medium text-gray-900 truncate">{{ doc.file_name }}</span>
+            <span [class]="getStatusClass(doc.status)">
+              {{ getStatusLabel(doc.status) }}
+            </span>
+          </div>
+          
+          <div class="flex items-center gap-2 text-xs text-gray-500">
+            <span>{{ formatFileSize(doc.file_size) }}</span>
+            <span>•</span>
+            <span>{{ doc.created_at | date:'mediumDate' }}</span>
+          </div>
+
+          <p *ngIf="doc.notes" class="text-xs text-gray-600 mt-1 truncate">{{ doc.notes }}</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <!-- Status Actions -->
+        <div *ngIf="doc.status === 'pending'" class="flex gap-1">
+          <button
+            (click)="updateStatus(doc, 'approved')"
+            class="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+            title="Aprobar">
+            <lucide-icon [img]="FileCheck" [size]="16"></lucide-icon>
+          </button>
+          <button
+            (click)="updateStatus(doc, 'rejected')"
+            class="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+            title="Rechazar">
+            <lucide-icon [img]="FileX" [size]="16"></lucide-icon>
+          </button>
+        </div>
+
+        <!-- Download -->
+        <a 
+          *ngIf="doc.download_url"
+          [href]="doc.download_url"
+          target="_blank"
+          class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+          title="Descargar">
+          <lucide-icon [img]="Download" [size]="16"></lucide-icon>
+        </a>
+
+        <!-- Delete -->
+        <button
+          (click)="deleteDocument(doc)"
+          class="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+          title="Eliminar">
+          <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

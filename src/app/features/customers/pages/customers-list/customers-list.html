@@ -1,40 +1,38 @@
 <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-5">
-      <h2 class="text-2xl font-semibold text-gray-800">Customers</h2>
+      <h2 class="text-2xl font-semibold text-gray-800">Clientes</h2>
   
-      <!-- Right side: Search + Button juntos -->
-      <div class="flex items-center gap-3 md:justify-end">
-        <app-search
-          class="w-64"
-          label="Search Customer"
-          [param_activate]="true"
-          param_name="search"
-          (searchChange)="onSearchChange($event)">
-        </app-search>
-  
-        <app-button
-          text="Create Customer"
-          custom_class="btn_primary"
-          (click)="createCustomer()">
-        </app-button>
+      <!-- Right side: Filters + Search + Button -->
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
+        <!-- Filters -->
+        <div class="flex flex-col gap-3 md:flex-row md:items-center">
+          <app-customer-group-dropdown
+            [selectedGroupId]="selectedGroupId"
+            (groupSelect)="onGroupSelect($event)">
+          </app-customer-group-dropdown>
+
+          <app-select
+            [config]="statusSelectConfig"
+            (changeOption)="onStatusSelect($event)">
+          </app-select>
+        </div>
+
+        <!-- Search + Button -->
+        <div class="flex items-center gap-3">
+          <app-search
+            class="w-64"
+            [param_activate]="true"
+            param_name="search"
+            (searchChange)="onSearchChange($event)">
+          </app-search>
+    
+          <app-button
+            text="Crear Cliente"
+            custom_class="btn_primary"
+            (click)="createCustomer()">
+          </app-button>
+        </div>
       </div>
-    </div>
-
-    <!-- Group Dropdown and Status Filter -->
-    <div class="flex flex-col gap-3 md:flex-row md:items-center mb-5">
-      <app-customer-group-dropdown
-        [selectedGroupId]="selectedGroupId"
-        (groupSelect)="onGroupSelect($event)">
-      </app-customer-group-dropdown>
-
-      <select 
-        [(ngModel)]="selectedStatusId"
-        (change)="onStatusSelect(selectedStatusId)"
-        class="status-select">
-        <option value="">Filtrar por estado</option>
-        <option value="active">Activo</option>
-        <option value="inactive">Inactivo</option>
-      </select>
     </div>
 
     <!-- Filter Indicator -->
@@ -56,7 +54,7 @@
   </div>
   
   <ng-template #tableTemplate let-item="$implicit" let-rowIndex="rowIndex">
-    <td><p>{{ item.name }}</p></td>
+    <td><p>{{ item.name }} {{ item.lastname }}</p></td>
     <td>{{ item.email }}</td>
     <td>
       <app-phone 
@@ -65,14 +63,26 @@
         [countryPhoneCode]="item.phone_code">
       </app-phone>
     </td>
-    <td>{{ item.company_name }}</td>
-    <td>{{ item.group_id }}</td>
+    <td>{{ item.group?.name || '—' }}</td>
+    <td>
+      <div *ngIf="item.contracts && item.contracts.length > 0; else noLots" class="flex items-center gap-1.5">
+        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
+          {{ item.contracts[0].property.code }}
+        </span>
+        <span *ngIf="item.contracts.length > 1" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+          +{{ item.contracts.length - 1 }}
+        </span>
+      </div>
+      <ng-template #noLots>
+        <span class="text-sm text-gray-400">—</span>
+      </ng-template>
+    </td>
     <td>{{ item.status?.name || item.status_id }}</td>
     <td>{{ item.created_at | date:'mediumDate' }}</td>
     <td (click)="$event.stopPropagation()">
       <div class="flex gap-2">
         <app-button
-          text="Detail"
+          text="Detalle"
           size="sm"
           [fullWidth]="false"
           custom_class="btn_primary"

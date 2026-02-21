@@ -1,16 +1,12 @@
 <div class="search_container">
-  <p-floatLabel variant="on">
-    <input
-      pInputText
-      id="search"
-      [formControl]="search"
-      autocomplete="off"
-      class="w-64"
-    />
-    <label for="search">{{ label }}</label>
-  </p-floatLabel>
+  <app-input
+    [label]="label"
+    [placeholder]="placeholder"
+    [form_control]="search"
+    type="text">
+  </app-input>
 
   @if (search.value) {
-    <i class="fi fi-rr-cross-small" (click)="clear()"></i>
+    <i class="fi fi-rr-cross-small clear-icon" (click)="clear()"></i>
   }
 </div>

@@ -1,6 +1,7 @@
-import { Component, OnInit, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LeadService } from '../../../../core/services/leads.service';
+import { LeadsStats } from '../../models/lead-group.model';
 
 interface StatCard {
   title: string;
@@ -19,11 +20,11 @@ interface StatCard {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LeadsStatsComponent implements OnInit {
+  @Input() activeFilter: string | null = null;
   @Output() filterChange = new EventEmitter<string | null>();
 
   stats: StatCard[] = [];
   loading = false;
-  activeFilter: string | null = null;
 
   constructor(private leadsService: LeadService, private cdr: ChangeDetectorRef) {}
 
@@ -36,35 +37,35 @@ export class LeadsStatsComponent implements OnInit {
     this.cdr.markForCheck();
     
     this.leadsService.getLeadsStats().subscribe({
-      next: (data) => {
+      next: (data: LeadsStats) => {
         this.stats = [
           {
-            title: 'Total Leads',
+            title: 'Total de Leads',
             value: data.total_leads,
             icon: '📊',
             gradient: 'from-blue-500 to-blue-600',
             filter: null,
           },
           {
-            title: 'Contacted via Email',
-            value: data.contacted_via_email,
-            icon: '✉️',
-            gradient: 'from-purple-500 to-purple-600',
-            filter: 'email_contacted',
+            title: 'No Contactados',
+            value: data.not_contacted,
+            icon: '📧',
+            gradient: 'from-gray-500 to-gray-600',
+            filter: 'not_contacted',
           },
           {
-            title: 'Customer Responded',
-            value: data.customer_responded,
-            icon: '💬',
-            gradient: 'from-green-500 to-green-600',
-            filter: 'customer_answered',
-          },
-          {
-            title: 'Awaiting Our Reply',
+            title: 'Contactados',
             value: data.customer_responded_no_reply,
             icon: '⏳',
             gradient: 'from-orange-500 to-orange-600',
-            filter: 'contacted_no_reply',
+            filter: 'contacted_no_response',
+          },
+          {
+            title: 'Cliente Respondió',
+            value: data.customer_responded,
+            icon: '✅',
+            gradient: 'from-green-500 to-green-600',
+            filter: 'customer_responded',
           },
         ];
         this.loading = false;
@@ -78,7 +79,6 @@ export class LeadsStatsComponent implements OnInit {
   }
 
   onCardClick(filter: string | null) {
-    this.activeFilter = filter;
     this.filterChange.emit(filter);
   }
 

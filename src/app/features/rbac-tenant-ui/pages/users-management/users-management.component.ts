@@ -148,14 +148,14 @@ export class UsersManagementComponent implements OnInit {
         // Success: Trigger refresh of user roles
         this.refreshUserRoles$.next(this.refreshUserRoles$.value + 1);
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Role assigned successfully', type: 'success' },
+          data: { message: 'Rol asignado correctamente', type: 'success' },
           duration: 3000
         });
       },
       error: (error) => {
         // Error: Display error message
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: error.error?.message || 'Failed to assign role', type: 'error' },
+          data: { message: error.error?.message || 'No pudimos asignar el rol', type: 'error' },
           duration: 5000
         });
       }
@@ -172,14 +172,14 @@ export class UsersManagementComponent implements OnInit {
         // Success: Trigger refresh of user roles
         this.refreshUserRoles$.next(this.refreshUserRoles$.value + 1);
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Role replaced successfully', type: 'success' },
+          data: { message: 'Rol reemplazado correctamente', type: 'success' },
           duration: 3000
         });
       },
       error: (error) => {
         // Error: Display error message
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: error.error?.message || 'Failed to replace role', type: 'error' },
+          data: { message: error.error?.message || 'No pudimos reemplazar el rol', type: 'error' },
           duration: 5000
         });
       }
@@ -196,14 +196,14 @@ export class UsersManagementComponent implements OnInit {
         // Success: Trigger refresh of user roles
         this.refreshUserRoles$.next(this.refreshUserRoles$.value + 1);
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Role removed successfully', type: 'success' },
+          data: { message: 'Rol eliminado correctamente', type: 'success' },
           duration: 3000
         });
       },
       error: (error) => {
         // Error: Display error message
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: error.error?.message || 'Failed to remove role', type: 'error' },
+          data: { message: error.error?.message || 'No pudimos eliminar el rol', type: 'error' },
           duration: 5000
         });
       }
@@ -223,6 +223,30 @@ export class UsersManagementComponent implements OnInit {
       return status.code;
     }
     return 'active';
+  }
+
+  /**
+   * Handles user update event
+   * Refreshes the users list and maintains the selected user
+   */
+  onUserUpdated(): void {
+    // Clear the user service cache first
+    this.userService.clearCache();
+    
+    // Get current selected user ID before refreshing
+    let currentSelectedId: string | null = null;
+    this.selectedUserId$.subscribe(id => currentSelectedId = id).unsubscribe();
+    
+    this.userService.getUsers().subscribe(users => {
+      this.stateService.updateUsers(users);
+      // Re-select the user to trigger UI update
+      if (currentSelectedId) {
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          this.stateService.selectUser(currentSelectedId!);
+        }, 50);
+      }
+    });
   }
 
   /**

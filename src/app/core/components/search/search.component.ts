@@ -4,15 +4,14 @@ import { debounceTime } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { FloatLabelModule } from 'primeng/floatlabel';
-import { InputTextModule } from 'primeng/inputtext';
+import { InputComponent } from '../input/input.component';
 
 @Component({
     selector: 'app-search',
     templateUrl: './search.component.html',
     styleUrls: ['./search.component.scss'],
     standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FloatLabelModule, InputTextModule],
+  imports: [CommonModule, ReactiveFormsModule, InputComponent],
 })
 export class SearchComponent implements OnInit {
   search = new FormControl();

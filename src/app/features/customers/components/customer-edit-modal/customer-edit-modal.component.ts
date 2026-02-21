@@ -33,7 +33,7 @@ import { Customer } from '../../models/customer-group.model';
 export class CustomerEditModalComponent {
   loading = signal(false);
   update = signal(false);
-  selectedGroupId = signal<string | null>(null);
+  selectedGroup = signal<any>(null);
   isCreateMode = signal(false);
 
   readonly X = X;
@@ -49,31 +49,36 @@ export class CustomerEditModalComponent {
   ) {
     this.form = this.fb.group({
       name: ['', [Validators.required]],
+      lastname: [''],
       email: ['', [Validators.required, Validators.email]],
       phone: [''],
-      phone_code: ['', [Validators.required]],
-      phone_country: ['', [Validators.required]],
+      phone_code: ['+52', [Validators.required]],
+      phone_country: ['MX', [Validators.required]],
       company_name: ['']
     });
 
     if (this.data?.customer) {
       this.isCreateMode.set(false);
+      // Clean phone number to remove country code if present
+      const cleanPhone = this.data.customer.phone?.replace(/\D/g, '').slice(-10) || '';
       this.form.patchValue({
         name: this.data.customer.name,
+        lastname: this.data.customer.lastname || '',
         email: this.data.customer.email,
-        phone: this.data.customer.phone || '',
-        phone_code: this.data.customer.phone_code || '',
-        phone_country: this.data.customer.phone_country || '',
+        phone: cleanPhone,
+        phone_code: this.data.customer.phone_code || '+52',
+        phone_country: this.data.customer.phone_country || 'MX',
         company_name: this.data.customer.company_name || ''
       });
-      this.selectedGroupId.set(this.data.customer.group_id || null);
+      this.selectedGroup.set(this.data.customer.group || null);
     } else {
       this.isCreateMode.set(true);
     }
   }
 
   onGroupSelected(event: { groupId: string | null; groupName: string | null }): void {
-    this.selectedGroupId.set(event.groupId);
+    // Find the group object from the event
+    this.selectedGroup.set(event.groupId ? { id: event.groupId, name: event.groupName } : null);
   }
 
   get phoneCodeControl() {
@@ -116,7 +121,7 @@ export class CustomerEditModalComponent {
 
     const payload = {
       ...this.form.value,
-      group_id: this.selectedGroupId()
+      group_id: this.selectedGroup()?.id || null
     };
 
     this.customerService.createCustomer(payload).subscribe({
@@ -126,8 +131,8 @@ export class CustomerEditModalComponent {
 
         this.interceptor_service.openSnackbar({
           type: 'success',
-          title: 'Success',
-          message: 'Customer created successfully.'
+          title: 'Éxito',
+          message: 'Cliente creado correctamente.'
         });
 
         this.closeDialog();
@@ -138,7 +143,7 @@ export class CustomerEditModalComponent {
         this.interceptor_service.openSnackbar({
           type: 'error',
           title: 'Error',
-          message: 'We couldn\'t create the customer. Please try again.'
+          message: 'No pudimos crear el cliente. Por favor intenta de nuevo.'
         });
       }
     });
@@ -155,7 +160,7 @@ export class CustomerEditModalComponent {
     const payload = {
       ...this.data.customer,
       ...this.form.value,
-      group_id: this.selectedGroupId()
+      group_id: this.selectedGroup()?.id || null
     };
 
     this.customerService.updateCustomer(payload.id, payload).subscribe({
@@ -165,8 +170,8 @@ export class CustomerEditModalComponent {
 
         this.interceptor_service.openSnackbar({
           type: 'success',
-          title: 'Success',
-          message: 'Customer updated successfully.'
+          title: 'Éxito',
+          message: 'Cliente actualizado correctamente.'
         });
 
         this.closeDialog();
@@ -177,7 +182,7 @@ export class CustomerEditModalComponent {
         this.interceptor_service.openSnackbar({
           type: 'error',
           title: 'Error',
-          message: 'We couldn\'t update the customer. Please try again.'
+          message: 'No pudimos actualizar el cliente. Por favor intenta de nuevo.'
         });
       }
     });

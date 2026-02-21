@@ -133,9 +133,9 @@ export class FilterIndicatorComponent {
   activeFilters: ActiveFilter[] = [];
 
   private statusLabels = {
-    [CommunicationStatus.NOT_CONTACTED]: 'No Contactado',
-    [CommunicationStatus.CONTACTED]: 'Contactado',
-    [CommunicationStatus.RESPONDED]: 'Respondido'
+    [CommunicationStatus.NOT_CONTACTED]: 'No Contactados',
+    [CommunicationStatus.CONTACTED]: 'Contactados',
+    [CommunicationStatus.RESPONDED]: 'Cliente Respondió'
   };
 
   ngOnChanges() {

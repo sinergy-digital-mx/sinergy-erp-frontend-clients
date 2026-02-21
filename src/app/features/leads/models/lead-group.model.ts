@@ -50,6 +50,17 @@ export interface Lead {
 }
 
 /**
+ * Leads Stats Model
+ * Contains statistics for leads dashboard
+ */
+export interface LeadsStats {
+  total_leads: number;
+  not_contacted: number;
+  customer_responded_no_reply: number;
+  customer_responded: number;
+}
+
+/**
  * Status Badge Data Model
  * Contains information for rendering a status badge
  */

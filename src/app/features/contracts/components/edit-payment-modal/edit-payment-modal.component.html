@@ -1,0 +1,52 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2 class="dialog-title">Editar Pago #{{ data.payment.payment_number }}</h2>
+    <button (click)="close()" class="close-button">
+      <lucide-icon [img]="X" [size]="20"></lucide-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content" [formGroup]="form">
+    <div class="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+      <p class="text-sm text-blue-900">
+        <span class="font-semibold">Estado:</span> {{ data.payment.status }}
+      </p>
+      <p class="text-sm text-blue-900">
+        <span class="font-semibold">Vencimiento Original:</span> {{ data.payment.due_date | localDate:'mediumDate' }}
+      </p>
+    </div>
+
+    <div class="space-y-3">
+      <app-input
+        label="Monto"
+        type="number"
+        [form_control]="form.controls['amount']">
+      </app-input>
+
+      <app-input
+        label="Fecha de Vencimiento"
+        [form_control]="form.controls['due_date']">
+      </app-input>
+
+      <app-input
+        label="Notas"
+        type="textarea"
+        [form_control]="form.controls['notes']">
+      </app-input>
+    </div>
+  </div>
+
+  <div class="dialog-footer">
+    <app-button
+      text="Cancelar"
+      custom_class="btn_secondary"
+      (clicked)="close()">
+    </app-button>
+    <app-button
+      text="Guardar Cambios"
+      custom_class="btn_primary"
+      [loading]="saving()"
+      (clicked)="save()">
+    </app-button>
+  </div>
+</div>

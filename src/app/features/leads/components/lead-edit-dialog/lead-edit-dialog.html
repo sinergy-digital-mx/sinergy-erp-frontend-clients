@@ -1,6 +1,6 @@
 <div class="dialog">
     <div class="dialog__header">
-      <h2>{{data.id ? 'Update lead':'Create lead'}}</h2>
+      <h2>{{data.id ? 'Actualizar lead':'Crear lead'}}</h2>
   
       <lucide-icon
         [img]="X"
@@ -14,13 +14,13 @@
         <div class="container grid grid-cols-1 md:grid-cols-2 gap-4" [formGroup]="form">
 
             <app-input
-                label="Name"
+                label="Nombre"
                 [form_control]="form.controls['name']">
             </app-input>
 
             <!-- Apellido -->
             <app-input
-                label="Last name"
+                label="Apellido"
                 [form_control]="form.controls['lastname']">
             </app-input>
 
@@ -32,7 +32,7 @@
 
             <!-- Teléfono -->
             <app-input
-                label="Phone"
+                label="Teléfono"
                 appPhoneDigits
                 [form_control]="form.controls['phone']">
             </app-input>
@@ -48,18 +48,19 @@
             </app-phone-country-select>
 
             <app-input
-            label="Company name"
+            label="Nombre de la empresa"
             [form_control]="form.controls['company_name']">
             </app-input>
 
             <app-input
-            label="Website"
+            label="Sitio web"
             [form_control]="form.controls['website']">
             </app-input>
 
             <!-- Group Select -->
             <app-group-select
               [control]="getGroupControl()"
+              [label]="'Grupo'"
               groupType="lead">
             </app-group-select>
 
@@ -68,7 +69,7 @@
   
     <div class="dialog__footer">
       <app-button
-        [text]="data.id ? 'Update':'Create'"
+        [text]="data.id ? 'Actualizar':'Crear'"
         custom_class="btn_primary"
         [loading]="loading()"
         (click)="submit()">

@@ -11,8 +11,9 @@ import { Subscription, debounceTime } from 'rxjs';
   imports:[ReactiveFormsModule,NgClass]
 })
 export class InputComponent {
-  @Input() label: string = null
-  @Input() disabled: string = null
+  @Input() label: string = ''
+  @Input() placeholder: string = ''
+  @Input() disabled: string = ''
   @Input() form_control: any
   @Input() type: 'text' | 'number' | 'time' | 'textarea' = 'text'
   @Input() has_error: boolean = false

@@ -10,6 +10,11 @@ import {
   Settings,
   LogOut,
   FileText,
+  MapPin,
+  FileCheck,
+  DollarSign,
+  Megaphone,
+  LandPlot,
 } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
 import { IsAdminDirective } from '../../directives/is-admin.directive';
@@ -37,43 +42,77 @@ export class Sidebar {
       id: 'menu-leads'
     },
     {
-      label: 'Follow ups',
-      route: '/follow-ups',
-      icon: Users,
-      id: 'menu-follow-ups'
-    },
-    {
-      label: 'Customers',
+      label: 'Clientes',
       route: '/customers',
-      icon: Users,
+      icon: CreditCard,
       id: 'menu-customers'
     },
     {
-      label: 'Map',
-      route: '/map',
-      icon: Users,
-      id: 'menu-map'
+      label: 'Lotes',
+      route: '/properties',
+      icon: LandPlot,
+      id: 'menu-properties'
     },
     {
-      label: 'Quotes',
-      route: '/quotes',
-      icon: Users,
-      id: 'menu-quotes'
-    },
-    {
-      label: 'Contracts',
+      label: 'Contratos',
       route: '/contracts',
-      icon: Users,
+      icon: FileCheck,
       id: 'menu-contracts'
+    },
+    {
+      label: 'Pagos',
+      route: '/payments',
+      icon: DollarSign,
+      id: 'menu-payments'
+    },
+    {
+      label: 'Marketing',
+      route: '/marketing',
+      icon: Megaphone,
+      id: 'menu-marketing'
     }
   ];
 
   private menuIdCounter = 0;
 
-  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText };
+  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot };
 
   constructor(public auth_service:AuthService){
 
+  }
+
+  getUserName(): string {
+    if (!this.auth_service.user_info) {
+      return 'Usuario';
+    }
+    
+    const email = this.auth_service.user_info.email;
+    if (!email) {
+      return 'Usuario';
+    }
+    
+    // Extract name from email (part before @)
+    const namePart = email.split('@')[0];
+    // Convert to title case (capitalize first letter of each word)
+    return namePart
+      .split('.')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  getInitials(email?: string): string {
+    if (!email) {
+      return 'U';
+    }
+    
+    const namePart = email.split('@')[0];
+    const words = namePart.split('.');
+    
+    if (words.length >= 2) {
+      return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+    }
+    
+    return namePart.substring(0, 2).toUpperCase();
   }
 
 }

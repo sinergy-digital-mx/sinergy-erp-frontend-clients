@@ -1,0 +1,77 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2 class="dialog-title">Subir Documento</h2>
+    <button (click)="close()" class="close-button">
+      <lucide-icon [img]="X" [size]="20"></lucide-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content">
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="field-label">Tipo de Documento</label>
+        <select 
+          [(ngModel)]="selectedTypeId"
+          class="field-input">
+          <option value="" disabled selected>Selecciona un tipo de documento</option>
+          <option *ngFor="let type of documentTypes()" [value]="type.id">
+            {{ type.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="field-label">Archivo</label>
+        <div class="file-input-wrapper">
+          <input 
+            type="file"
+            (change)="onFileSelected($event)"
+            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+            class="field-input file-input"
+            id="fileInput">
+        </div>
+        <p *ngIf="selectedFile" class="file-info">
+          ✓ {{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})
+        </p>
+      </div>
+
+      <div class="form-field">
+        <label class="field-label">Fecha de Expiración (Opcional)</label>
+        <input 
+          type="date"
+          [(ngModel)]="expirationDate"
+          class="field-input">
+      </div>
+
+      <div class="form-field full-width">
+        <label class="field-label">Notas (Opcional)</label>
+        <textarea 
+          [(ngModel)]="notes"
+          placeholder="Notas adicionales..."
+          rows="3"
+          class="field-input">
+        </textarea>
+      </div>
+    </div>
+
+    <p class="help-text">
+      Formatos permitidos: JPG, PNG, PDF, DOC, DOCX (máx. 10MB)
+    </p>
+  </div>
+
+  <div class="dialog-footer">
+    <app-button
+      text="Cancelar"
+      custom_class="btn_secondary"
+      (clicked)="close()">
+    </app-button>
+    <app-button
+      text="Subir Documento"
+      custom_class="btn_primary"
+      [loading]="uploading()"
+      [disabled]="!selectedFile || !selectedTypeId"
+      [icon]="Upload"
+      (clicked)="uploadDocument()">
+    </app-button>
+  </div>
+</div>

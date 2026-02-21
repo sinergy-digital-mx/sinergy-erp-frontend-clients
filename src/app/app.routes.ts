@@ -33,11 +33,29 @@ export const routes: Routes = [
             .then(m => m.CUSTOMERS_ROUTES),
       },
       {
+        path: 'properties',
+        loadChildren: () =>
+          import('./features/properties/properties.routes')
+            .then(m => m.PROPERTIES_ROUTES),
+      },
+      {
+        path: 'contracts',
+        loadChildren: () =>
+          import('./features/contracts/contracts.routes')
+            .then(m => m.CONTRACTS_ROUTES),
+      },
+      {
         path: 'settings',
         canActivate: [AdminGuard],
         loadChildren: () =>
           import('./features/rbac-tenant-ui/rbac-tenant-ui.routes')
             .then(m => m.RBAC_TENANT_UI_ROUTES),
+      },
+      {
+        path: 'marketing',
+        loadChildren: () =>
+          import('./features/marketing/marketing.routes')
+            .then(m => m.MARKETING_ROUTES),
       },
       {
         path: '',

@@ -4,7 +4,7 @@
     @if (isLoading()) {
       <div class="flex items-center justify-center py-12">
         <mat-spinner diameter="40"></mat-spinner>
-        <p class="ml-4">Loading customer details...</p>
+        <p class="ml-4">Cargando detalles del cliente...</p>
       </div>
     }
 
@@ -14,7 +14,7 @@
         <p class="text-red-800">{{ error().message }}</p>
         <button
           pButton
-          label="Retry"
+          label="Reintentar"
           (click)="loadCustomer()"
           class="p-button-sm mt-2">
         </button>
@@ -32,7 +32,7 @@
         <button
           (click)="editCustomer()"
           pButton
-          label="Edit customer"
+          label="Editar cliente"
           icon="pi pi-pencil"
           class="p-button-rounded p-button-solid text-sm"
           size="small">
@@ -42,30 +42,34 @@
       <!-- CUSTOMER INFORMATION -->
       <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">
-          Customer Information
+          Información del Cliente
         </h3>
 
-        <div class="grid grid-cols-2 gap-y-3 gap-x-10 text-sm text-gray-800">
+        <div class="grid grid-cols-2 gap-4 text-sm">
 
           <div>
-            <span class="font-semibold text-gray-500">Name:</span>
-            {{ customer()!.name }}
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Nombre</span>
+            <span class="text-gray-900">{{ customer()!.name }}</span>
           </div>
 
           <div>
-            <span class="font-semibold text-gray-500">Email:</span>
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Apellido</span>
+            <span class="text-gray-900">{{ customer()!.lastname || '—' }}</span>
+          </div>
+
+          <div>
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Email</span>
             @if (customer()!.email) {
-              <a [href]="'mailto:' + customer()!.email" class="link-pro link-pro-break">
+              <a [href]="'mailto:' + customer()!.email" class="text-indigo-600 hover:text-indigo-800 break-all">
                 {{ customer()!.email }}
-                <i class="pi pi-envelope link-pro-icon"></i>
               </a>
             } @else {
-              —
+              <span class="text-gray-900">—</span>
             }
           </div>
 
           <div>
-            <span class="font-semibold text-gray-500">Phone:</span>
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Teléfono</span>
             <app-phone 
               [phone]="customer()!.phone"
               [countryCode]="customer()!.phone_country"
@@ -74,51 +78,111 @@
           </div>
 
           <div>
-            <span class="font-semibold text-gray-500">Company:</span>
-            {{ customer()!.company_name || '—' }}
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Empresa</span>
+            <span class="text-gray-900">{{ customer()!.company_name || '—' }}</span>
           </div>
 
           <div>
-            <span class="font-semibold text-gray-500">Group:</span>
-            {{ customer()!.group_id || '—' }}
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Grupo</span>
+            <span class="text-gray-900">{{ customer()!.group?.name || '—' }}</span>
           </div>
 
-          <div class="flex items-center gap-2">
-            <span class="font-semibold text-gray-500">Status:</span>
-            <p-tag 
-              [value]="customer()!.status?.name || customer()!.status_id || 'Unknown'" 
-              [severity]="getSeverity(customer()!.status?.name || customer()!.status_id || '')" 
-              rounded="true">
-            </p-tag>
-          </div>
-
-          <div class="col-span-2">
-            <span class="font-semibold text-gray-500">Created at:</span>
-            <div class="mt-0.5">
-              {{ customer()!.created_at | date:'medium' }}
+          <div>
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Estado</span>
+            <div>
+              <p-tag 
+                [value]="customer()!.status?.name || customer()!.status_id || 'Desconocido'" 
+                [severity]="getSeverity(customer()!.status?.name || customer()!.status_id || '')" 
+                rounded="true">
+              </p-tag>
             </div>
           </div>
 
+          <div>
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Creado</span>
+            <span class="text-gray-900">{{ customer()!.created_at | date:'medium' }}</span>
+          </div>
+
           <div class="col-span-2">
-            <span class="font-semibold text-gray-500">Updated at:</span>
-            <div class="mt-0.5">
-              {{ customer()!.updated_at | date:'medium' }}
-            </div>
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Actualizado</span>
+            <span class="text-gray-900">{{ customer()!.updated_at | date:'medium' }}</span>
           </div>
 
         </div>
       </div>
 
+      <!-- CONTRACTS AND PROPERTIES SECTION -->
+      <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">
+            Propiedades y Contratos
+          </h3>
+        </div>
+
+        @if (customer()!.contracts && customer()!.contracts.length > 0) {
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Área</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contrato</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                @for (contract of customer()!.contracts; track contract.id) {
+                  <tr class="hover:bg-gray-50 cursor-pointer" (click)="navigateToProperty(contract.property.id)">
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                        {{ contract.property.code }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-900">{{ contract.property.name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ contract.property.total_area }} m²</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">{{ contract.total_price | currency:contract.currency }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                        {{ contract.contract_number }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                            [ngClass]="{
+                              'bg-green-100 text-green-800': contract.status === 'activo',
+                              'bg-gray-100 text-gray-800': contract.status === 'completado',
+                              'bg-red-100 text-red-800': contract.status === 'cancelado'
+                            }">
+                        {{ contract.status | titlecase }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="text-center py-8 text-gray-500">
+            <p class="text-sm">No hay contratos asociados</p>
+          </div>
+        }
+      </div>
+
+      <!-- CUSTOMER DOCUMENTS SECTION -->
+      <app-customer-documents [customerId]="customer()!.id"></app-customer-documents>
+
       <!-- ADDRESSES SECTION -->
       <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800">
-            Addresses
+            Direcciones
           </h3>
           <button
             pButton
             icon="pi pi-plus"
-            label="Add address"
+            label="Agregar dirección"
             class="p-button-sm p-button-outlined">
           </button>
         </div>
@@ -130,12 +194,12 @@
             styleClass="p-datatable-sm w-full">
             <ng-template pTemplate="header">
               <tr>
-                <th>Type</th>
-                <th>Street address</th>
-                <th>City</th>
-                <th>State</th>
-                <th>Postal code</th>
-                <th>Country</th>
+                <th>Tipo</th>
+                <th>Dirección</th>
+                <th>Ciudad</th>
+                <th>Estado</th>
+                <th>Código postal</th>
+                <th>País</th>
               </tr>
             </ng-template>
             <ng-template pTemplate="body" let-address>
@@ -151,7 +215,7 @@
           </p-table>
         } @else {
           <div class="text-center py-8 text-gray-500">
-            <p class="text-sm">No addresses added yet</p>
+            <p class="text-sm">No hay direcciones agregadas</p>
           </div>
         }
       </div>
@@ -160,12 +224,12 @@
       <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800">
-            Activities
+            Actividades
           </h3>
           <button
             pButton
             icon="pi pi-plus"
-            label="Add activity"
+            label="Agregar actividad"
             class="p-button-sm p-button-outlined">
           </button>
         </div>
@@ -177,11 +241,11 @@
             styleClass="p-datatable-sm w-full">
             <ng-template pTemplate="header">
               <tr>
-                <th>Type</th>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Activity date</th>
-                <th>Duration</th>
+                <th>Tipo</th>
+                <th>Título</th>
+                <th>Estado</th>
+                <th>Fecha de actividad</th>
+                <th>Duración</th>
               </tr>
             </ng-template>
             <ng-template pTemplate="body" let-activity>
@@ -219,7 +283,7 @@
           </p-table>
         } @else {
           <div class="text-center py-8 text-gray-500">
-            <p class="text-sm">No activities added yet</p>
+            <p class="text-sm">No hay actividades agregadas</p>
           </div>
         }
       </div>
