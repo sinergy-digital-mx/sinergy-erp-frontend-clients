@@ -1,5 +1,4 @@
 export const environment = {
-  // api: 'https://sapi.sinergydigital.mx',
-  api: "http://localhost:3001/api",
+  api: 'https://sapi.sinergydigital.mx/api',
   production: true,
 };
