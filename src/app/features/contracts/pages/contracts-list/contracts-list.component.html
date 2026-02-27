@@ -126,7 +126,7 @@
   <td>{{ item.contract_date | date:'mediumDate' }}</td>
   <td>{{ item.total_price | currency:item.currency }}</td>
   <td>{{ item.remaining_balance | currency:item.currency }}</td>
-  <td>{{ item.first_payment_date | date:'mediumDate' }}</td>
+  <td>{{ item.next_payment_date | date:'mediumDate' }}</td>
   <td>
     <span [class]="getStatusClass(item.status)">
       {{ getStatusLabel(item.status) }}

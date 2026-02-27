@@ -60,12 +60,6 @@ export class Sidebar {
       id: 'menu-contracts'
     },
     {
-      label: 'Pagos',
-      route: '/payments',
-      icon: DollarSign,
-      id: 'menu-payments'
-    },
-    {
       label: 'Marketing',
       route: '/marketing',
       icon: Megaphone,
