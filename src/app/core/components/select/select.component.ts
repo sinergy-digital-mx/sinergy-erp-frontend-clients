@@ -34,10 +34,20 @@ export class SelectComponent implements OnInit, OnChanges {
   select = new FormControl(null);
   disabled: boolean = false;
   subscription: Subscription;
+  
+  // Generate unique ID for aria-describedby
+  private static idCounter = 0
+  selectId: string
+  errorId: string
 
   constructor() { }
 
   ngOnInit(): void {
+    // Generate unique IDs for accessibility
+    SelectComponent.idCounter++
+    this.selectId = `select-${SelectComponent.idCounter}`
+    this.errorId = `error-${SelectComponent.idCounter}`
+    
     if (this.config.form_control) {
       this.subscription = this.config.form_control.valueChanges.subscribe((value) => {
         const data = this.config.data.find((option) => option[this.config.value] === value);
@@ -66,6 +76,22 @@ export class SelectComponent implements OnInit, OnChanges {
   getRefresh() {
     this.config.error = false;
     this.refresh.emit();
+  }
+  
+  get showError(): boolean {
+    return this.has_error || (this.config?.form_control?.invalid && this.config?.form_control?.touched)
+  }
+  
+  get errorMessage(): string {
+    if (!this.showError || !this.config?.form_control?.errors) {
+      return ''
+    }
+    
+    const errors = this.config.form_control.errors
+    if (errors['required']) {
+      return 'Este campo es obligatorio'
+    }
+    return 'Este campo tiene un error'
   }
 
 }

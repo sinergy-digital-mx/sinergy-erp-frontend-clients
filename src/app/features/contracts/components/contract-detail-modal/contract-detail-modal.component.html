@@ -71,7 +71,17 @@
         <span class="text-green-600 font-semibold">{{ (data.contract.total_price - data.contract.remaining_balance) | currency:data.contract.currency }}</span>
       </div>
       <div>
-        <span class="block text-gray-500 font-medium mb-0.5">Saldo Pendiente</span>
+        <span class="flex items-center gap-1 text-gray-500 font-medium mb-0.5">
+          Saldo Pendiente
+          <span 
+            *ngIf="paymentStats()"
+            class="cursor-help text-gray-400 hover:text-gray-600"
+            [matTooltip]="getPendingBreakdown()"
+            matTooltipPosition="above"
+            matTooltipShowDelay="100">
+            ⓘ
+          </span>
+        </span>
         <span class="text-red-600 font-semibold">{{ data.contract.remaining_balance | currency:data.contract.currency }}</span>
       </div>
       <div>
@@ -172,9 +182,9 @@
             [form_control]="form.controls['monthly_payment']">
           </app-input>
 
-          <!-- Primer Pago -->
+          <!-- Fecha Primer Pago -->
           <app-input
-            label="Primer Pago"
+            label="Fecha Primer Pago"
             [form_control]="form.controls['first_payment_date']">
           </app-input>
         </div>

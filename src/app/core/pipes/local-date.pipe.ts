@@ -13,8 +13,9 @@ export class LocalDatePipe implements PipeTransform {
 
     // If it's a date string in format YYYY-MM-DD, treat it as local date
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      // Add 'T00:00:00' to force local timezone interpretation
-      const localDate = new Date(value + 'T00:00:00');
+      // Parse the date components manually to avoid timezone issues
+      const [year, month, day] = value.split('-').map(Number);
+      const localDate = new Date(year, month - 1, day);
       return this.datePipe.transform(localDate, format);
     }
 

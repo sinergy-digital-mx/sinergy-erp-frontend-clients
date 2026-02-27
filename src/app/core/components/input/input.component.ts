@@ -15,11 +15,16 @@ export class InputComponent {
   @Input() placeholder: string = ''
   @Input() disabled: string = ''
   @Input() form_control: any
-  @Input() type: 'text' | 'number' | 'time' | 'textarea' = 'text'
+  @Input() type: 'text' | 'number' | 'time' | 'date' | 'textarea' = 'text'
   @Input() has_error: boolean = false
   @Input() debounce: number = 0
   @Output() change = new EventEmitter()
   subscription: Subscription
+  
+  // Generate unique ID for aria-describedby
+  private static idCounter = 0
+  inputId: string
+  errorId: string
 
 
   ngOnChanges(changes) {
@@ -29,6 +34,11 @@ export class InputComponent {
   }
 
   ngOnInit(): void {
+    // Generate unique IDs for accessibility
+    InputComponent.idCounter++
+    this.inputId = `input-${InputComponent.idCounter}`
+    this.errorId = `error-${InputComponent.idCounter}`
+    
     if (this.form_control) {
       this.subscription = this.form_control.valueChanges.pipe(debounceTime(this.debounce)).subscribe((value) => {
         this.change.emit(value)
@@ -47,6 +57,30 @@ export class InputComponent {
 
   get showError(): boolean {
     return this.has_error || (!!this.form_control && this.form_control.invalid && this.form_control.touched);
+  }
+  
+  get errorMessage(): string {
+    if (!this.showError || !this.form_control?.errors) {
+      return ''
+    }
+    
+    const errors = this.form_control.errors
+    if (errors['required']) {
+      return 'Este campo es obligatorio'
+    }
+    if (errors['min']) {
+      return `El valor mínimo es ${errors['min'].min}`
+    }
+    if (errors['max']) {
+      return `El valor máximo es ${errors['max'].max}`
+    }
+    if (errors['email']) {
+      return 'Ingresa un email válido'
+    }
+    if (errors['pattern']) {
+      return 'El formato no es válido'
+    }
+    return 'Este campo tiene un error'
   }
 
 }

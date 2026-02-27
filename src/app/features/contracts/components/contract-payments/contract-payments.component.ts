@@ -5,8 +5,8 @@ import { PaymentService } from '../../services/payment.service';
 import { Payment, PaymentStats } from '../../models/payment.model';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { LucideAngularModule, Plus, RefreshCw, Edit, Trash2, Check, X } from 'lucide-angular';
-import { MarkPaymentPaidModalComponent } from '../mark-payment-paid-modal/mark-payment-paid-modal.component';
+import { LucideAngularModule, Plus, RefreshCw, Edit, Trash2, X, DollarSign } from 'lucide-angular';
+import { PartialPaymentModalComponent } from '../partial-payment-modal/partial-payment-modal.component';
 import { EditPaymentModalComponent } from '../edit-payment-modal/edit-payment-modal.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 
@@ -36,8 +36,8 @@ export class ContractPaymentsComponent implements OnInit {
   readonly RefreshCw = RefreshCw;
   readonly Edit = Edit;
   readonly Trash2 = Trash2;
-  readonly Check = Check;
   readonly X = X;
+  readonly DollarSign = DollarSign;
 
   constructor(
     private paymentService: PaymentService,
@@ -71,6 +71,7 @@ export class ContractPaymentsComponent implements OnInit {
   loadStats() {
     this.paymentService.getPaymentStats(this.contractId).subscribe({
       next: (stats) => {
+        console.log('Payment stats received:', stats);
         this.stats.set(stats);
       },
       error: () => {
@@ -101,19 +102,6 @@ export class ContractPaymentsComponent implements OnInit {
           title: 'Error',
           message: err.error?.message || 'Error al generar pagos'
         });
-      }
-    });
-  }
-
-  markAsPaid(payment: Payment) {
-    const dialogRef = this.dialog.open(MarkPaymentPaidModalComponent, {
-      data: { payment, contractId: this.contractId, currency: this.currency }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.loadPayments();
-        this.loadStats();
       }
     });
   }
@@ -181,6 +169,7 @@ export class ContractPaymentsComponent implements OnInit {
     const statusMap: Record<string, string> = {
       'pendiente': 'bg-yellow-100 text-yellow-800',
       'pagado': 'bg-green-100 text-green-800',
+      'parcial': 'bg-blue-100 text-blue-800',
       'vencido': 'bg-red-100 text-red-800',
       'cancelado': 'bg-gray-100 text-gray-800'
     };
@@ -191,6 +180,7 @@ export class ContractPaymentsComponent implements OnInit {
     const labels: Record<string, string> = {
       'pendiente': 'Pendiente',
       'pagado': 'Pagado',
+      'parcial': 'Parcial',
       'vencido': 'Vencido',
       'cancelado': 'Cancelado'
     };
@@ -209,7 +199,20 @@ export class ContractPaymentsComponent implements OnInit {
     return payment.status === 'pendiente' || payment.status === 'vencido';
   }
 
-  canMarkAsPaid(payment: Payment): boolean {
-    return payment.status === 'pendiente' || payment.status === 'vencido';
+  canRegisterPayment(payment: Payment): boolean {
+    return payment.status === 'pendiente' || payment.status === 'vencido' || payment.status === 'parcial';
+  }
+
+  registerPayment(payment: Payment) {
+    const dialogRef = this.dialog.open(PartialPaymentModalComponent, {
+      data: { payment, contractId: this.contractId, currency: this.currency }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.loadPayments();
+        this.loadStats();
+      }
+    });
   }
 }

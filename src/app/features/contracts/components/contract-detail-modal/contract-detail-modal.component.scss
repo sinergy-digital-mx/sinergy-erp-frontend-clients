@@ -1,20 +1,20 @@
 .dialog {
-  width: 100dvw;
-  max-width: 900px;
-  height: 85vh;
-  max-height: 92vh;
-  margin: 0.75rem auto;
+  width: 90vw;
+  max-width: 1400px;
+  height: 90vh;
+  max-height: 95vh;
+  margin: 0.5rem auto;
   display: flex;
   flex-direction: column;
   transition: max-width 0.3s ease;
 
   &.dialog--wide {
-    max-width: 1200px;
+    max-width: 1400px;
   }
 }
 
 .dialog__header {
-  padding: 0.875rem 1.125rem;
+  padding: 0.75rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -41,12 +41,12 @@
 .dialog__body {
   flex: 1;
   overflow-y: auto;
-  padding: 0.625rem 1.125rem;
+  padding: 0.5rem 1rem;
   min-height: 0;
 }
 
 .dialog__footer {
-  padding: 0.75rem 1.125rem;
+  padding: 0.625rem 1rem;
   border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: flex-end;

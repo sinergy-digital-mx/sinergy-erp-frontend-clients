@@ -6,8 +6,11 @@ export interface Payment {
   contract_id: string;
   payment_number: number;
   amount: number;
+  amount_paid: number;
+  amount_pending: number;
   due_date: string;
   paid_date: string | null;
+  first_partial_payment_date: string | null;
   status: PaymentStatus;
   payment_method: string | null;
   reference_number: string | null;
@@ -19,7 +22,7 @@ export interface Payment {
 /**
  * Payment Status
  */
-export type PaymentStatus = 'pendiente' | 'pagado' | 'vencido' | 'cancelado';
+export type PaymentStatus = 'pendiente' | 'pagado' | 'parcial' | 'vencido' | 'cancelado';
 
 /**
  * Payment Statistics
@@ -28,10 +31,21 @@ export interface PaymentStats {
   total_payments: number;
   paid_count: number;
   pending_count: number;
+  partial_count: number;
   overdue_count: number;
   cancelled_count: number;
   total_paid: number;
+  total_partial: number;
   total_pending: number;
+  total_pending_amount: number;
+  pending_full_payments: number;
+  paid_months?: number;
+  partial_payment?: {
+    installment_number: number;
+    amount_paid: number;
+    remaining_amount: number;
+    status: string;
+  };
   next_payment: {
     payment_number: number;
     due_date: string;
@@ -54,5 +68,16 @@ export interface MarkPaymentPaidDto {
 export interface UpdatePaymentDto {
   amount?: number;
   due_date?: string;
+  notes?: string;
+}
+
+/**
+ * Register Partial Payment DTO
+ */
+export interface RegisterPartialPaymentDto {
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  reference_number?: string;
   notes?: string;
 }

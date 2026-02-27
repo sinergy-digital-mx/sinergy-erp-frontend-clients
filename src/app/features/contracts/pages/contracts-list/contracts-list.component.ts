@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ContractService } from '../../services/contract.service';
-import { Contract } from '../../models/contract.model';
+import { Contract, ContractStats } from '../../models/contract.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
@@ -12,6 +12,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { PropertyService } from '../../../properties/services/property.service';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
 import { ContractDetailModalComponent } from '../../components/contract-detail-modal/contract-detail-modal.component';
+import { ContractCreateModalComponent } from '../../components/contract-create-modal/contract-create-modal.component';
 import { ArrowRight } from 'lucide-angular';
 
 @Component({
@@ -42,8 +43,8 @@ export class ContractsListComponent implements OnDestroy {
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 120 },
     ],
-    externalPaging: true,
-    externalSorting: true,
+    externalPaging: false,
+    externalSorting: false,
     page: 1,
     limit: 20,
     totalResults: 0,
@@ -56,6 +57,8 @@ export class ContractsListComponent implements OnDestroy {
   ArrowRight = ArrowRight;
   search = '';
   currentSort: ISortEvent | null = null;
+  stats = signal<ContractStats | null>(null);
+  activeFilter = signal<string | null>(null);
   private destroy$ = new Subject<void>();
   private lastQueryParams: string = '';
 
@@ -66,6 +69,8 @@ export class ContractsListComponent implements OnDestroy {
     private propertyService: PropertyService,
     private dialog: MatDialog
   ) {
+    this.loadStats();
+    
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((query) => {
       const queryString = JSON.stringify(query);
       
@@ -75,14 +80,19 @@ export class ContractsListComponent implements OnDestroy {
       this.lastQueryParams = queryString;
 
       this.search = query?.search ?? '';
-      const page = query?.page ? Number(query.page) : 1;
-      const limit = query?.limit ? Number(query.limit) : 20;
-
-      this.table_config.update(c => ({
-        ...c,
-        page: isNaN(page) ? 1 : page,
-        limit: isNaN(limit) ? 20 : limit,
-      }));
+      
+      // Detect active filter from query params
+      if (query?.status === 'completado') {
+        this.activeFilter.set('completed');
+      } else if (query?.status === 'activo') {
+        this.activeFilter.set('pending');
+      } else if (query?.hasOverdue === 'true') {
+        this.activeFilter.set('overdue');
+      } else if (!query?.status && !query?.hasOverdue) {
+        this.activeFilter.set('total');
+      } else {
+        this.activeFilter.set(null);
+      }
 
       this.getContracts();
     });
@@ -93,59 +103,76 @@ export class ContractsListComponent implements OnDestroy {
     this.destroy$.complete();
   }
 
+  loadStats() {
+    this.contractService.getContractStats().subscribe({
+      next: (stats) => {
+        this.stats.set(stats);
+      },
+      error: (error) => {
+        console.error('Error loading stats:', error);
+      }
+    });
+  }
+
+  applyFilter(filter: 'total' | 'completed' | 'pending' | 'overdue') {
+    const queryParams: any = { 
+      // Preserve search if exists
+      ...(this.search && { search: this.search })
+    };
+    
+    switch (filter) {
+      case 'completed':
+        queryParams.status = 'completado';
+        break;
+      case 'pending':
+        queryParams.status = 'activo';
+        break;
+      case 'overdue':
+        queryParams.hasOverdue = 'true';
+        break;
+      case 'total':
+      default:
+        // No filter params for total - remove status and hasOverdue
+        break;
+    }
+    
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams
+    });
+  }
+
   getContracts() {
     this.table_config.update(c => ({ ...c, loading: true }));
-    const config = this.table_config();
+    const queryParams = this.route.snapshot.queryParams;
     
     let data: any = {
-      page: config.page,
-      limit: config.limit,
       ...(this.search && { search: this.search }),
-      ...(this.currentSort && this.currentSort.direction && { 
-        sort: this.currentSort.column.prop, 
-        order: this.currentSort.direction 
-      })
+      ...(queryParams.status && { status: queryParams.status }),
+      ...(queryParams.hasOverdue && { hasOverdue: queryParams.hasOverdue })
     };
     
     this.contractService.getContracts(data).subscribe((res: any) => {
       // Handle both array response and paginated response
       const contracts = Array.isArray(res) ? res : (res?.data ?? []);
       const total = Array.isArray(res) ? res.length : (res?.total ?? 0);
-      const hasNext = Array.isArray(res) ? false : (res?.hasNext ?? false);
       
       this.table_config.update(c => ({
         ...c,
         rows: contracts,
         totalResults: total,
-        hasNext: hasNext,
         loading: false,
       }));
     });
   }
 
   onPageChange(event: IPaginationEvent) {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: event.page,
-        limit: event.limit,
-        search: this.search || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    // Client-side pagination - no need to reload data
   }
 
   onSortChange(event: ISortEvent) {
+    // Client-side sorting - no need to reload data
     this.currentSort = event;
-    this.table_config.update(c => ({ ...c, page: 1 }));
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        search: this.search || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
   }
 
   onRowClick(row: Contract) {
@@ -157,7 +184,6 @@ export class ContractsListComponent implements OnDestroy {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
-        page: 1,
         search: searchTerm || undefined
       },
       queryParamsHandling: 'merge'
@@ -167,6 +193,19 @@ export class ContractsListComponent implements OnDestroy {
   createContract() {
     // Open create modal
     console.log('Create contract');
+  }
+
+  openCreateContractModal() {
+    const dialogRef = this.dialog.open(ContractCreateModalComponent, {
+      width: '900px',
+      disableClose: false
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.getContracts();
+      }
+    });
   }
 
   viewDetail(contract: Contract) {

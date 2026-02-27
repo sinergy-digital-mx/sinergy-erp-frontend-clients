@@ -2,6 +2,7 @@ import { Component, Inject, signal, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InputComponent } from '../../../../core/components/input/input.component';
@@ -9,6 +10,8 @@ import { SelectComponent, ISelect } from '../../../../core/components/select/sel
 import { LucideAngularModule, X } from 'lucide-angular';
 import { Contract } from '../../models/contract.model';
 import { ContractService } from '../../services/contract.service';
+import { PaymentService } from '../../services/payment.service';
+import { PaymentStats } from '../../models/payment.model';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
 import { PropertyService } from '../../../properties/services/property.service';
 import { ContractDocumentsComponent } from '../contract-documents/contract-documents.component';
@@ -26,6 +29,7 @@ import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
     InputComponent,
     SelectComponent,
     LucideAngularModule,
+    MatTooltipModule,
     ContractDocumentsComponent,
     ContractPaymentsComponent,
     LocalDatePipe
@@ -40,6 +44,7 @@ export class ContractDetailModalComponent implements OnInit {
   form: FormGroup;
   saving = signal(false);
   activeTab = signal<'edit' | 'payments' | 'documents'>('edit');
+  paymentStats = signal<PaymentStats | null>(null);
 
   statusSelectConfig: ISelect = {
     placeholder: 'Selecciona un estado',
@@ -61,6 +66,7 @@ export class ContractDetailModalComponent implements OnInit {
     private router: Router,
     private propertyService: PropertyService,
     private contractService: ContractService,
+    private paymentService: PaymentService,
     private interceptorService: InterceptorService,
     private fb: FormBuilder
   ) {
@@ -68,9 +74,9 @@ export class ContractDetailModalComponent implements OnInit {
       contract_date: [this.data.contract.contract_date, Validators.required],
       total_price: [this.data.contract.total_price, [Validators.required, Validators.min(0)]],
       down_payment: [this.data.contract.down_payment, [Validators.required, Validators.min(0)]],
-      remaining_balance: [this.data.contract.remaining_balance, [Validators.required, Validators.min(0)]],
+      remaining_balance: [{value: this.data.contract.remaining_balance, disabled: true}, [Validators.required, Validators.min(0)]],
       payment_months: [this.data.contract.payment_months, [Validators.required, Validators.min(0)]],
-      monthly_payment: [this.data.contract.monthly_payment, [Validators.required, Validators.min(0)]],
+      monthly_payment: [{value: this.data.contract.monthly_payment, disabled: true}, [Validators.required, Validators.min(0)]],
       first_payment_date: [this.data.contract.first_payment_date, Validators.required],
       currency: [this.data.contract.currency || 'USD', Validators.required],
       status: [this.data.contract.status, Validators.required],
@@ -82,7 +88,39 @@ export class ContractDetailModalComponent implements OnInit {
   }
 
   ngOnInit() {
-    // No additional initialization needed
+    this.loadPaymentStats();
+  }
+
+  loadPaymentStats() {
+    this.paymentService.getPaymentStats(this.data.contract.id).subscribe({
+      next: (stats) => {
+        this.paymentStats.set(stats);
+      },
+      error: () => {
+        // Stats are optional
+      }
+    });
+  }
+
+  getPendingBreakdown(): string {
+    const stats = this.paymentStats();
+    if (!stats) return '';
+    
+    const currency = this.data.contract.currency || 'USD';
+    const monthlyPayment = this.formatCurrency(this.data.contract.monthly_payment, currency);
+    const partialAmount = stats.partial_payment ? this.formatCurrency(stats.partial_payment.remaining_amount, currency) : '';
+    const total = this.formatCurrency(stats.total_pending_amount, currency);
+    
+    let breakdown = `${stats.pending_full_payments} pagos × ${monthlyPayment}`;
+    if (stats.partial_payment) {
+      breakdown += ` + ${partialAmount} (pago parcial #${stats.partial_payment.installment_number})`;
+    }
+    breakdown += ` = ${total}`;
+    return breakdown;
+  }
+
+  formatCurrency(amount: number, currency: string): string {
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: currency }).format(amount);
   }
 
   setActiveTab(tab: 'edit' | 'payments' | 'documents') {

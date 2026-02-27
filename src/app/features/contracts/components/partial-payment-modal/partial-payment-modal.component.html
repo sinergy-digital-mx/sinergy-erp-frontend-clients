@@ -1,0 +1,88 @@
+<div class="modal-container">
+  <!-- Header -->
+  <div class="modal-header">
+    <div>
+      <h2 class="text-xl font-semibold text-gray-800">Registrar Pago</h2>
+      <p class="text-sm text-gray-600 mt-1">
+        Pago #{{ data.payment.payment_number }} - Monto pendiente: 
+        <span class="font-semibold text-orange-600">{{ amountPending | currency:data.currency }}</span>
+      </p>
+    </div>
+    <button (click)="close()" class="close-button" type="button">
+      <lucide-icon [img]="X" [size]="20"></lucide-icon>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="modal-body">
+    <form [formGroup]="form" class="space-y-4">
+      <!-- Amount -->
+      <div>
+        <app-input
+          label="Monto a Pagar"
+          type="number"
+          placeholder="Ingresa el monto"
+          [form_control]="form.get('amount')">
+        </app-input>
+        <p *ngIf="form.get('amount')?.hasError('maxAmount')" class="text-xs text-red-600 mt-1">
+          El monto no puede exceder {{ amountPending | currency:data.currency }}
+        </p>
+        <p *ngIf="!form.get('amount')?.hasError('maxAmount') && form.get('amount')?.value" class="text-xs mt-1" [class.text-green-600]="isFullPayment" [class.text-blue-600]="!isFullPayment">
+          {{ paymentTypeMessage }}
+        </p>
+      </div>
+
+      <!-- Payment Date -->
+      <div>
+        <app-input
+          label="Fecha de Pago"
+          type="date"
+          [form_control]="form.get('payment_date')">
+        </app-input>
+      </div>
+
+      <!-- Payment Method -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Método de Pago <span class="text-red-500">*</span>
+        </label>
+        <app-select [config]="paymentMethodSelectConfig"></app-select>
+      </div>
+
+      <!-- Reference Number -->
+      <div>
+        <app-input
+          label="Número de Referencia"
+          type="text"
+          placeholder="Ej: REF123456"
+          [form_control]="form.get('reference_number')">
+        </app-input>
+      </div>
+
+      <!-- Notes -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+        <textarea
+          formControlName="notes"
+          rows="3"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="Notas adicionales sobre el pago..."></textarea>
+      </div>
+    </form>
+  </div>
+
+  <!-- Footer -->
+  <div class="modal-footer">
+    <app-button
+      text="Cancelar"
+      custom_class="btn_secondary"
+      (clicked)="close()">
+    </app-button>
+    <app-button
+      text="Registrar Pago"
+      custom_class="btn_primary"
+      [loading]="saving()"
+      (clicked)="save()">
+    </app-button>
+  </div>
+</div>

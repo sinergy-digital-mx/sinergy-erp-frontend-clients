@@ -63,10 +63,44 @@ export interface CreateContractDto {
 export interface UpdateContractDto extends Partial<CreateContractDto> {}
 
 export interface ContractStats {
-  total: number;
+  total: {
+    count: number;
+    value: number;
+  };
+  completed: {
+    count: number;
+    value: number;
+  };
+  pending: {
+    count: number;
+    value: number;
+    paid: number;
+    remaining: number;
+  };
+  overdue: {
+    count: number;
+    value: number;
+  };
+}
+
+export interface ContractStatsResponse {
   active: number;
   completed: number;
   cancelled: number;
-  total_value: number;
-  pending_balance: number;
+  suspended: number;
+  total_contracts: number;
+  total_contract_value: number;
+  completed_value: number;
+  pending_value: number;
+  overdue_value: number;
+  with_overdue_payments: number;
+  amount_collected: number;
+  amount_pending: number;
+  total_down_payments: number;
+  total_pending_balance: number;
+  payments_completed: number;
+  payments_pending: number;
+  payments_overdue: number;
+  total_payments: number;
+  up_to_date: number;
 }

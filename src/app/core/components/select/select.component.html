@@ -1,18 +1,21 @@
-<div class="container" [class.error]="has_error || (config?.form_control?.invalid && config?.form_control?.touched)">
+<div class="container" [class.error]="showError">
   @if (config.label || label) {
-    <label class="block text-sm font-medium text-gray-700 mb-1">
-      {{label ?? config.label}}@if (has_error || (config?.form_control?.invalid && config?.form_control?.touched)) {
+    <label [attr.for]="selectId" class="block text-sm font-medium text-gray-700 mb-1">
+      {{label ?? config.label}}@if (showError) {
       <span class="text-red-500">*</span>
     }
   </label>
 }
 <div class="select_container">
   <select
+    [id]="selectId"
     class="filter__control"
     [class.loading]="config.loading"
     [formControl]="config.form_control ? config.form_control : select"
     [style.min-height]="config.height ? config.height + 'px' : '100%'"
     [disabled]="config.loading"
+    [attr.aria-describedby]="showError ? errorId : null"
+    [attr.aria-invalid]="showError"
     >
     @if (config.loading) {
       <option [ngValue]="null" disabled selected>Cargando...</option>
@@ -37,4 +40,9 @@
     <i class="ti ti-refresh" (click)="getRefresh()"></i>
   }
 </div>
+@if (showError && errorMessage) {
+  <p [id]="errorId" class="mt-1 text-sm text-red-600" role="alert">
+    {{ errorMessage }}
+  </p>
+}
 </div>

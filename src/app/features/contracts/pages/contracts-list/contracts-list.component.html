@@ -13,8 +13,79 @@
       <app-button
         text="Crear Contrato"
         custom_class="btn_primary"
-        (clicked)="createContract()">
+        (clicked)="openCreateContractModal()">
       </app-button>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div *ngIf="stats()" class="grid grid-cols-4 gap-4 mb-6">
+    <!-- Total -->
+    <div 
+      (click)="applyFilter('total')"
+      [class.ring-2]="activeFilter() === 'total'"
+      [class.ring-gray-500]="activeFilter() === 'total'"
+      class="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-xl border border-gray-200 cursor-pointer hover:shadow-lg transition-all">
+      <div class="mb-2">
+        <p class="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-0.5">Total</p>
+        <p class="text-[10px] text-gray-500">Todos los contratos</p>
+      </div>
+      <div class="flex items-center justify-between">
+        <p class="text-xl font-bold text-gray-900">{{ stats()!.total.value | currency:'USD':'symbol':'1.0-0' }}</p>
+        <span class="text-2xl font-bold text-gray-900">{{ stats()!.total.count }}</span>
+      </div>
+    </div>
+
+    <!-- Completados -->
+    <div 
+      (click)="applyFilter('completed')"
+      [class.ring-2]="activeFilter() === 'completed'"
+      [class.ring-blue-500]="activeFilter() === 'completed'"
+      class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200 cursor-pointer hover:shadow-lg transition-all">
+      <div class="mb-2">
+        <p class="text-xs text-blue-600 font-semibold uppercase tracking-wide mb-0.5">Completados</p>
+        <p class="text-[10px] text-blue-500">Pagados en su totalidad</p>
+      </div>
+      <div class="flex items-center justify-between">
+        <p class="text-xl font-bold text-blue-900">{{ stats()!.completed.value | currency:'USD':'symbol':'1.0-0' }}</p>
+        <span class="text-2xl font-bold text-blue-900">{{ stats()!.completed.count }}</span>
+      </div>
+    </div>
+
+    <!-- Activos (Pendientes) -->
+    <div 
+      (click)="applyFilter('pending')"
+      [class.ring-2]="activeFilter() === 'pending'"
+      [class.ring-green-500]="activeFilter() === 'pending'"
+      class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200 cursor-pointer hover:shadow-lg transition-all">
+      <div class="mb-2">
+        <p class="text-xs text-green-600 font-semibold uppercase tracking-wide mb-0.5">Activos</p>
+        <p class="text-[10px] text-green-500">En proceso de pago</p>
+      </div>
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xl font-bold text-green-900">{{ stats()!.pending.value | currency:'USD':'symbol':'1.0-0' }}</p>
+        <span class="text-2xl font-bold text-green-900">{{ stats()!.pending.count }}</span>
+      </div>
+      <div class="flex gap-2 text-xs">
+        <span class="text-green-700">Pagado: <strong>{{ stats()!.pending.paid | currency:'USD':'symbol':'1.0-0' }}</strong></span>
+        <span class="text-orange-700">Pendiente: <strong>{{ stats()!.pending.remaining | currency:'USD':'symbol':'1.0-0' }}</strong></span>
+      </div>
+    </div>
+
+    <!-- Vencidos -->
+    <div 
+      (click)="applyFilter('overdue')"
+      [class.ring-2]="activeFilter() === 'overdue'"
+      [class.ring-red-500]="activeFilter() === 'overdue'"
+      class="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-xl border border-red-200 cursor-pointer hover:shadow-lg transition-all">
+      <div class="mb-2">
+        <p class="text-xs text-red-600 font-semibold uppercase tracking-wide mb-0.5">Vencidos</p>
+        <p class="text-[10px] text-red-500">Con pagos atrasados</p>
+      </div>
+      <div class="flex items-center justify-between">
+        <p class="text-xl font-bold text-red-900">{{ stats()!.overdue.value | currency:'USD':'symbol':'1.0-0' }}</p>
+        <span class="text-2xl font-bold text-red-900">{{ stats()!.overdue.count }}</span>
+      </div>
     </div>
   </div>
 

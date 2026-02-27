@@ -1,0 +1,210 @@
+<div class="modal-container">
+  <!-- Header -->
+  <div class="modal-header">
+    <h2>Crear Contrato</h2>
+    <button type="button" (click)="close()" class="close-button">
+      <lucide-icon [img]="X" [size]="20"></lucide-icon>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="modal-body" #modalBody>
+    <form [formGroup]="form">
+      <!-- Sección: Cliente -->
+      <div class="section">
+        <h3>Cliente</h3>
+        <div class="autocomplete-with-button">
+          <div class="autocomplete-field">
+            <label for="customer-search" class="field-label">
+              Cliente *
+              @if (form.get('customer_id')?.invalid && form.get('customer_id')?.touched) {
+                <span class="text-red-500">*</span>
+              }
+            </label>
+            <input
+              #customerAutocompleteTrigger="matAutocompleteTrigger"
+              id="customer-search"
+              type="text"
+              formControlName="customer_search"
+              placeholder="Buscar por nombre, apellido o email"
+              class="autocomplete-input"
+              [class.error-border]="form.get('customer_id')?.invalid && form.get('customer_id')?.touched"
+              [matAutocomplete]="autoCustomer"
+              aria-label="Buscar cliente"
+              [attr.aria-describedby]="(form.get('customer_id')?.invalid && form.get('customer_id')?.touched) ? 'customer-error' : 'customer-help-text'"
+              [attr.aria-invalid]="form.get('customer_id')?.invalid && form.get('customer_id')?.touched"
+              role="combobox"
+              aria-expanded="false"
+              aria-autocomplete="list">
+            <span id="customer-help-text" class="sr-only">Busca clientes por nombre, apellido o email. Usa las flechas para navegar por los resultados.</span>
+            @if (form.get('customer_id')?.invalid && form.get('customer_id')?.touched) {
+              <p id="customer-error" class="mt-1 text-sm text-red-600" role="alert">
+                Selecciona un cliente
+              </p>
+            }
+            <mat-autocomplete #autoCustomer="matAutocomplete" [displayWith]="displayCustomer.bind(this)">
+              <mat-option *ngFor="let customer of filteredCustomers()" [value]="customer" (onSelectionChange)="onCustomerSelected(customer)">
+                {{ displayCustomer(customer) }}
+              </mat-option>
+              <mat-option *ngIf="filteredCustomers().length === 0" disabled>
+                <span class="no-results-text">No se encontraron clientes</span>
+              </mat-option>
+            </mat-autocomplete>
+          </div>
+          <app-button
+            [text]="'Crear Cliente'"
+            [variant]="'secondary'"
+            [size]="'md'"
+            [fullWidth]="false"
+            (clicked)="openCreateCustomerModal()">
+          </app-button>
+        </div>
+      </div>
+
+      <!-- Sección: Propiedad -->
+      <div class="section">
+        <h3>Propiedad</h3>
+        <div class="autocomplete-field">
+          <label for="property-search" class="field-label">
+            Lote *
+            @if (form.get('property_id')?.invalid && form.get('property_id')?.touched) {
+              <span class="text-red-500">*</span>
+            }
+          </label>
+          <input
+            #propertyAutocompleteTrigger="matAutocompleteTrigger"
+            id="property-search"
+            type="text"
+            formControlName="property_search"
+            placeholder="Buscar por código, nombre o manzana"
+            class="autocomplete-input"
+            [class.error-border]="form.get('property_id')?.invalid && form.get('property_id')?.touched"
+            [matAutocomplete]="autoProperty"
+            aria-label="Buscar propiedad"
+            [attr.aria-describedby]="(form.get('property_id')?.invalid && form.get('property_id')?.touched) ? 'property-error' : 'property-help-text'"
+            [attr.aria-invalid]="form.get('property_id')?.invalid && form.get('property_id')?.touched"
+            role="combobox"
+            aria-expanded="false"
+            aria-autocomplete="list">
+          <span id="property-help-text" class="sr-only">Busca propiedades disponibles por código, nombre o manzana. Usa las flechas para navegar por los resultados.</span>
+          @if (form.get('property_id')?.invalid && form.get('property_id')?.touched) {
+            <p id="property-error" class="mt-1 text-sm text-red-600" role="alert">
+              Selecciona un lote
+            </p>
+          }
+          <mat-autocomplete #autoProperty="matAutocomplete" [displayWith]="displayProperty.bind(this)">
+            <mat-option *ngFor="let property of filteredProperties()" [value]="property" (onSelectionChange)="onPropertySelected(property)">
+              {{ displayProperty(property) }}
+            </mat-option>
+            <mat-option *ngIf="filteredProperties().length === 0" disabled>
+              <span class="no-results-text">No hay lotes disponibles</span>
+            </mat-option>
+          </mat-autocomplete>
+        </div>
+      </div>
+
+      <!-- Sección: Datos del Contrato -->
+      <div class="section">
+        <h3>Datos del Contrato</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <app-input
+            [label]="'Número de Contrato *'"
+            [placeholder]="'Ej: CONT-001'"
+            [form_control]="form.get('contract_number')"
+            [type]="'text'">
+          </app-input>
+
+          <app-input
+            [label]="'Fecha de Contrato *'"
+            [form_control]="form.get('contract_date')"
+            [type]="'date'">
+          </app-input>
+
+          <app-input
+            [label]="'Precio Total *'"
+            [placeholder]="'0.00'"
+            [form_control]="form.get('total_price')"
+            [type]="'number'">
+          </app-input>
+
+          <app-input
+            [label]="'Enganche *'"
+            [placeholder]="'0.00'"
+            [form_control]="form.get('down_payment')"
+            [type]="'number'">
+          </app-input>
+
+          <div class="w-full p-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Saldo Pendiente
+            </label>
+            <div class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+              {{ formattedRemainingBalance() }}
+            </div>
+          </div>
+
+          <app-input
+            [label]="'Meses de Pago *'"
+            [placeholder]="'1'"
+            [form_control]="form.get('payment_months')"
+            [type]="'number'">
+          </app-input>
+
+          <div class="w-full p-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Pago Mensual
+            </label>
+            <div class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+              {{ formattedMonthlyPayment() }}
+            </div>
+          </div>
+
+          <app-input
+            [label]="'Fecha Primer Pago *'"
+            [form_control]="form.get('first_payment_date')"
+            [type]="'date'">
+          </app-input>
+
+          <app-select
+            [label]="'Moneda *'"
+            [config]="currencySelectConfig">
+          </app-select>
+
+          <app-select
+            [label]="'Estado *'"
+            [config]="statusSelectConfig">
+          </app-select>
+        </div>
+
+        <div class="mt-4">
+          <app-input
+            [label]="'Notas'"
+            [placeholder]="'Notas adicionales (opcional)'"
+            [form_control]="form.get('notes')"
+            [type]="'textarea'">
+          </app-input>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Footer -->
+  <div class="modal-footer">
+    <app-button
+      [text]="'Cancelar'"
+      [variant]="'secondary'"
+      [size]="'md'"
+      [fullWidth]="false"
+      (clicked)="close()">
+    </app-button>
+    <app-button
+      [text]="'Crear Contrato'"
+      [variant]="'primary'"
+      [size]="'md'"
+      [fullWidth]="false"
+      [disabled]="form.invalid || loading()"
+      [loading]="loading()"
+      (clicked)="submit()">
+    </app-button>
+  </div>
+</div>
