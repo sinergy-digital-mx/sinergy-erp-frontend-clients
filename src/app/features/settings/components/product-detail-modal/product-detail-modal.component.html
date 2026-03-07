@@ -1,0 +1,264 @@
+<div class="dialog">
+  <div class="dialog__header">
+    <h2>{{ isNew ? 'Nuevo Producto' : 'Editar Producto' }}</h2>
+    <button (click)="close()" class="close">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button 
+      class="tab"
+      [class.active]="selectedTabIndex() === 0"
+      (click)="selectedTabIndex.set(0)">
+      General
+    </button>
+    <button 
+      class="tab"
+      [class.active]="selectedTabIndex() === 1"
+      (click)="selectedTabIndex.set(1)">
+      Asignar Unidades
+    </button>
+  </div>
+
+  <div class="dialog__body">
+    <!-- Tab: General -->
+    <div class="tab-content" [class.active]="selectedTabIndex() === 0">
+      <form [formGroup]="form">
+        <!-- SKU Field -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            SKU <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            formControlName="sku"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            placeholder="SKU"
+            [class.border-red-500]="form.get('sku')?.invalid && form.get('sku')?.touched"
+          />
+          <p class="text-red-500 text-xs mt-1" *ngIf="getErrorMessage('sku')">
+            {{ getErrorMessage('sku') }}
+          </p>
+        </div>
+
+        <!-- Name Field -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Nombre <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            formControlName="name"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            placeholder="Nombre"
+            [class.border-red-500]="form.get('name')?.invalid && form.get('name')?.touched"
+          />
+          <p class="text-red-500 text-xs mt-1" *ngIf="getErrorMessage('name')">
+            {{ getErrorMessage('name') }}
+          </p>
+        </div>
+
+        <!-- Category Field -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Categoría
+          </label>
+          <select
+            formControlName="category_id"
+            (change)="onCategoryChange(form.get('category_id')?.value)"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            [disabled]="loadingCategories()"
+          >
+            <option value="">Selecciona una categoría</option>
+            <option *ngFor="let cat of categories()" [value]="cat.id">
+              {{ cat.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- SubCategory Field -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Subcategoría
+          </label>
+          <select
+            formControlName="subcategory_id"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            [disabled]="loadingSubcategories() || subcategories().length === 0"
+          >
+            <option value="">Selecciona una subcategoría</option>
+            <option *ngFor="let subcat of subcategories()" [value]="subcat.id">
+              {{ subcat.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Description Field -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Descripción
+          </label>
+          <textarea
+            formControlName="description"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            placeholder="Descripción (opcional)"
+            rows="3"
+          ></textarea>
+        </div>
+      </form>
+    </div>
+
+    <!-- Tab: UOMs -->
+    <div class="tab-content" [class.active]="selectedTabIndex() === 1">
+      <div class="space-y-4">
+        <!-- Section 1: Asignar Nuevas Unidades -->
+        <div class="border border-gray-200 rounded-md p-4">
+          <h3 class="font-semibold text-gray-900 mb-3">1️⃣ Asignar Nueva Unidad</h3>
+          <div class="flex gap-2">
+            <select 
+              [(ngModel)]="selectedCatalogUomId"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
+              [disabled]="loadingCatalog() || saving()">
+              <option value="">Seleccionar unidad...</option>
+              <option *ngFor="let uom of catalogUoms()" [value]="uom.id">
+                {{ uom.name }} - {{ uom.description }}
+              </option>
+            </select>
+            <button 
+              (click)="assignSingleUoM()"
+              [disabled]="!selectedCatalogUomId() || saving()"
+              class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 text-sm font-medium whitespace-nowrap">
+              {{ saving() ? 'Asignando...' : 'Asignar' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 2: Unidades Asignadas -->
+        <div class="border border-gray-200 rounded-md p-4">
+          <h3 class="font-semibold text-gray-900 mb-3">2️⃣ Unidades Asignadas</h3>
+          <div *ngIf="uoms().length === 0" class="text-center py-4 text-gray-500">
+            <p class="text-sm">No hay unidades asignadas</p>
+          </div>
+          <div *ngIf="uoms().length > 0" class="space-y-2">
+            <div *ngFor="let uom of uoms()" class="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100">
+              <p class="font-medium text-gray-900">✓ {{ uom.name }}</p>
+              <button 
+                (click)="deleteUOM(uom)"
+                class="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Relaciones de Conversión -->
+        <div class="border border-gray-200 rounded-md p-4">
+          <h3 class="font-semibold text-gray-900 mb-3">3️⃣ Relaciones de Conversión</h3>
+          
+          <!-- Create Relationship Form -->
+          <div class="mb-4 p-3 border border-purple-200 rounded-md bg-purple-50">
+            <p class="text-sm font-medium text-gray-700 mb-3">Crear Nueva Relación</p>
+            <form [formGroup]="newRelationshipForm" class="space-y-2">
+              <div class="flex gap-2">
+                <select 
+                  formControlName="source_uom_id"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500">
+                  <option value="">De (origen)...</option>
+                  <option *ngFor="let uom of uoms()" [value]="uom.id">
+                    {{ uom.name }}
+                  </option>
+                </select>
+                <select 
+                  formControlName="target_uom_id"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500">
+                  <option value="">A (destino)...</option>
+                  <option *ngFor="let uom of uoms()" [value]="uom.id">
+                    {{ uom.name }}
+                  </option>
+                </select>
+                <input 
+                  type="number" 
+                  formControlName="conversion_factor"
+                  placeholder="Factor"
+                  class="w-24 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
+                />
+                <button 
+                  (click)="createRelationship()"
+                  [disabled]="newRelationshipForm.invalid || creatingRelationship()"
+                  class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 text-sm font-medium whitespace-nowrap">
+                  {{ creatingRelationship() ? 'Creando...' : 'Crear' }}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Relationships List -->
+          <div *ngIf="loadingRelationships()" class="text-center py-4 text-gray-500">
+            <p class="text-sm">Cargando relaciones...</p>
+          </div>
+          <div *ngIf="!loadingRelationships() && relationships().length === 0" class="text-center py-4 text-gray-500">
+            <p class="text-sm">No hay relaciones de conversión</p>
+          </div>
+          <div *ngIf="!loadingRelationships() && relationships().length > 0" class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="border-b bg-gray-50">
+                  <th class="px-2 py-2 text-left font-medium text-gray-700">De</th>
+                  <th class="px-2 py-2 text-left font-medium text-gray-700">A</th>
+                  <th class="px-2 py-2 text-left font-medium text-gray-700">Factor</th>
+                  <th class="px-2 py-2 text-left font-medium text-gray-700">Tipo</th>
+                  <th class="px-2 py-2 text-left font-medium text-gray-700">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let rel of relationships()" class="border-b hover:bg-gray-50">
+                  <td class="px-2 py-2">{{ rel.source_uom?.name || rel.source_uom_id }}</td>
+                  <td class="px-2 py-2">{{ rel.target_uom?.name || rel.target_uom_id }}</td>
+                  <td class="px-2 py-2">{{ rel.conversion_factor }}</td>
+                  <td class="px-2 py-2">
+                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium" 
+                      [class.bg-blue-100]="!rel.is_calculated"
+                      [class.text-blue-800]="!rel.is_calculated"
+                      [class.bg-gray-100]="rel.is_calculated"
+                      [class.text-gray-800]="rel.is_calculated">
+                      {{ rel.is_calculated ? 'Calculada' : 'Explícita' }}
+                    </span>
+                  </td>
+                  <td class="px-2 py-2">
+                    <button 
+                      *ngIf="!rel.is_calculated"
+                      (click)="deleteRelationship(rel.id)"
+                      class="text-red-600 hover:text-red-800 font-medium">
+                      Eliminar
+                    </button>
+                    <span *ngIf="rel.is_calculated" class="text-gray-400">-</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog__footer">
+    <button
+      (click)="close()"
+      class="px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium"
+    >
+      Cancelar
+    </button>
+    <button
+      (click)="save()"
+      [disabled]="form.invalid || saving()"
+      class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
+    >
+      {{ saving() ? 'Guardando...' : 'Guardar' }}
+    </button>
+  </div>
+</div>

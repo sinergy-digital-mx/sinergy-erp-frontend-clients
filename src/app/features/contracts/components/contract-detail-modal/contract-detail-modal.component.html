@@ -1,7 +1,7 @@
 <div class="dialog" [class.dialog--wide]="activeTab() === 'payments'">
   <div class="dialog__header">
-    <div>
-      <div class="flex items-center gap-2">
+    <div class="flex-1">
+      <div class="flex items-center gap-2 mb-2">
         <h2>Contrato {{ data.contract.contract_number }}</h2>
         <span 
           class="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
@@ -13,13 +13,55 @@
           }">
           {{ data.contract.status | titlecase }}
         </span>
-      </div>
-      <div class="mt-1" *ngIf="data.contract.customer">
+        <span *ngIf="data.contract.customer" class="text-gray-400">•</span>
         <span 
+          *ngIf="data.contract.customer"
           (click)="navigateToCustomer()"
           class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors">
           {{ getCustomerName() }}
         </span>
+      </div>
+      
+      <!-- Stats inline -->
+      <div class="grid grid-cols-7 gap-3 text-xs pb-3 border-b border-gray-200">
+        <div>
+          <span class="block text-gray-500 font-medium">Fecha Contrato</span>
+          <span class="text-gray-900 font-semibold">{{ data.contract.contract_date | localDate:'mediumDate' }}</span>
+        </div>
+        <div>
+          <span class="block text-gray-500 font-medium">Precio Total</span>
+          <span class="text-gray-900 font-semibold">{{ data.contract.total_price | currency:data.contract.currency }}</span>
+        </div>
+        <div>
+          <span class="block text-gray-500 font-medium">Enganche</span>
+          <span class="text-gray-900 font-semibold">{{ data.contract.down_payment | currency:data.contract.currency }}</span>
+        </div>
+        <div>
+          <span class="block text-gray-500 font-medium">Total Pagado</span>
+          <span class="text-green-600 font-semibold">{{ (data.contract.total_price - data.contract.remaining_balance) | currency:data.contract.currency }}</span>
+        </div>
+        <div>
+          <span class="flex items-center gap-1 text-gray-500 font-medium">
+            Saldo Pendiente
+            <span 
+              *ngIf="paymentStats()"
+              class="cursor-help text-gray-400 hover:text-gray-600"
+              [matTooltip]="getPendingBreakdown()"
+              matTooltipPosition="above"
+              matTooltipShowDelay="100">
+              ⓘ
+            </span>
+          </span>
+          <span class="text-red-600 font-semibold">{{ data.contract.remaining_balance | currency:data.contract.currency }}</span>
+        </div>
+        <div>
+          <span class="block text-gray-500 font-medium">Meses de Pago</span>
+          <span class="text-gray-900 font-semibold">{{ data.contract.payment_months }} meses</span>
+        </div>
+        <div>
+          <span class="block text-gray-500 font-medium">Pago Mensual</span>
+          <span class="text-gray-900 font-semibold">{{ data.contract.monthly_payment | currency:data.contract.currency }}</span>
+        </div>
       </div>
     </div>
     <lucide-icon
@@ -30,7 +72,7 @@
   </div>
 
   <!-- Tabs -->
-  <div class="tabs px-6 pt-4">
+  <div class="tabs px-6 pt-2">
     <button 
       class="tab"
       [class.active]="activeTab() === 'edit'"
@@ -49,50 +91,6 @@
       (click)="setActiveTab('documents')">
       Documentos
     </button>
-  </div>
-
-  <!-- Contract Summary - Always Visible -->
-  <div class="contract-summary px-6 py-3 bg-gray-50 border-b border-gray-200">
-    <div class="grid grid-cols-7 gap-3 text-xs">
-      <div>
-        <span class="block text-gray-500 font-medium mb-0.5">Fecha Contrato</span>
-        <span class="text-gray-900 font-semibold">{{ data.contract.contract_date | localDate:'mediumDate' }}</span>
-      </div>
-      <div>
-        <span class="block text-gray-500 font-medium mb-0.5">Precio Total</span>
-        <span class="text-gray-900 font-semibold">{{ data.contract.total_price | currency:data.contract.currency }}</span>
-      </div>
-      <div>
-        <span class="block text-gray-500 font-medium mb-0.5">Enganche</span>
-        <span class="text-gray-900 font-semibold">{{ data.contract.down_payment | currency:data.contract.currency }}</span>
-      </div>
-      <div>
-        <span class="block text-gray-500 font-medium mb-0.5">Total Pagado</span>
-        <span class="text-green-600 font-semibold">{{ (data.contract.total_price - data.contract.remaining_balance) | currency:data.contract.currency }}</span>
-      </div>
-      <div>
-        <span class="flex items-center gap-1 text-gray-500 font-medium mb-0.5">
-          Saldo Pendiente
-          <span 
-            *ngIf="paymentStats()"
-            class="cursor-help text-gray-400 hover:text-gray-600"
-            [matTooltip]="getPendingBreakdown()"
-            matTooltipPosition="above"
-            matTooltipShowDelay="100">
-            ⓘ
-          </span>
-        </span>
-        <span class="text-red-600 font-semibold">{{ data.contract.remaining_balance | currency:data.contract.currency }}</span>
-      </div>
-      <div>
-        <span class="block text-gray-500 font-medium mb-0.5">Meses de Pago</span>
-        <span class="text-gray-900 font-semibold">{{ data.contract.payment_months }} meses</span>
-      </div>
-      <div>
-        <span class="block text-gray-500 font-medium mb-0.5">Pago Mensual</span>
-        <span class="text-gray-900 font-semibold">{{ data.contract.monthly_payment | currency:data.contract.currency }}</span>
-      </div>
-    </div>
   </div>
 
   <div class="dialog__body">
@@ -138,6 +136,7 @@
           <!-- Fecha del Contrato -->
           <app-input
             label="Fecha del Contrato"
+            type="date"
             [form_control]="form.controls['contract_date']">
           </app-input>
 
@@ -185,6 +184,7 @@
           <!-- Fecha Primer Pago -->
           <app-input
             label="Fecha Primer Pago"
+            type="date"
             [form_control]="form.controls['first_payment_date']">
           </app-input>
         </div>

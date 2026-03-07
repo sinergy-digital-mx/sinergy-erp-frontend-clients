@@ -23,42 +23,31 @@ interface SettingsSection {
     <div class="bg-gray-50 min-h-screen">
       <div class="p-6">
         <!-- Header -->
-        <div class="mb-8 max-w-2xl">
+        <div class="mb-8">
           <h1 class="text-3xl font-bold text-gray-900 mb-2">Configuración</h1>
           <p class="text-gray-600">Gestiona usuarios, roles y permisos de tu tenant</p>
         </div>
 
         <!-- Settings Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div *ngFor="let section of sections" 
                (click)="navigateTo(section.route)"
-               class="group relative bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden">
-            
-            <!-- Background gradient on hover -->
-            <div class="absolute inset-0 bg-linear-to-br from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+               class="bg-white rounded-lg p-6 hover:shadow-md transition-shadow duration-300 cursor-pointer border border-gray-200">
             
             <!-- Content -->
-            <div class="relative z-10">
-              <div class="flex items-start justify-between mb-3">
-                <div class="text-4xl">{{ section.icon }}</div>
-                <svg class="w-5 h-5 text-indigo-600 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-              </div>
+            <div class="flex flex-col h-full">
+              <div class="text-4xl mb-4">{{ section.icon }}</div>
               
-              <h2 class="text-xl font-bold text-gray-900 mb-2">{{ section.title }}</h2>
-              <p class="text-gray-600 text-sm leading-relaxed mb-4">{{ section.description }}</p>
+              <h2 class="text-lg font-semibold text-gray-900 mb-2">{{ section.title }}</h2>
+              <p class="text-gray-600 text-sm mb-4 grow">{{ section.description }}</p>
               
-              <div class="inline-flex items-center text-indigo-600 font-semibold text-sm group-hover:text-indigo-700 transition-colors">
+              <div class="inline-flex items-center text-indigo-600 font-medium text-sm hover:text-indigo-700 transition-colors">
                 Ir a {{ section.title }}
-                <svg class="ml-2 w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
               </div>
             </div>
-            
-            <!-- Border gradient on hover -->
-            <div class="absolute inset-0 rounded-xl border border-indigo-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
           </div>
         </div>
       </div>
@@ -86,6 +75,34 @@ export class SettingsComponent {
       description: 'Crea y gestiona roles personalizados, define permisos granulares y organiza el control de acceso',
       icon: '🔐',
       route: 'roles'
+    },
+    {
+      id: 'vendors',
+      title: 'Proveedores',
+      description: 'Gestiona proveedores, información de contacto, RFC y datos fiscales de tus proveedores',
+      icon: '🏢',
+      route: 'vendors'
+    },
+    {
+      id: 'warehouses',
+      title: 'Almacenes',
+      description: 'Gestiona almacenes, ubicaciones, información fiscal y datos de contacto de tus almacenes',
+      icon: '🏭',
+      route: 'warehouses'
+    },
+    {
+      id: 'fiscal-configurations',
+      title: 'Configuración Fiscal',
+      description: 'Gestiona la información fiscal de tus almacenes, RFC, régimen fiscal y certificados digitales',
+      icon: '📋',
+      route: 'fiscal-configurations'
+    },
+    {
+      id: 'products',
+      title: 'Productos',
+      description: 'Gestiona el catálogo de productos, SKU, nombres y descripciones de tus productos',
+      icon: '📦',
+      route: 'products'
     }
   ];
 

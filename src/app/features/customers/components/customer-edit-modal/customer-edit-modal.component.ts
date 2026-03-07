@@ -1,8 +1,7 @@
-import { Component, Inject, signal } from '@angular/core';
+import { Component, Inject, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { InputComponent } from '../../../../core/components/input/input.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { PhoneCountrySelectComponent } from '../../../../core/components/phone-country-select/phone-country-select.component';
 import { PhoneCodeSelectComponent } from '../../../../core/components/phone-code-select/phone-code-select.component';
@@ -19,7 +18,6 @@ import { Customer } from '../../models/customer-group.model';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    InputComponent,
     ButtonComponent,
     LucideAngularModule,
     CustomerGroupDropdownComponent,
@@ -28,7 +26,8 @@ import { Customer } from '../../models/customer-group.model';
     PhoneDigitsDirective
   ],
   templateUrl: './customer-edit-modal.html',
-  styleUrls: ['./customer-edit-modal.scss']
+  styleUrls: ['./customer-edit-modal.scss'],
+  encapsulation: ViewEncapsulation.None
 })
 export class CustomerEditModalComponent {
   loading = signal(false);

@@ -1,6 +1,7 @@
 import { Component, Input, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { PaymentService } from '../../services/payment.service';
 import { Payment, PaymentStats } from '../../models/payment.model';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
@@ -17,7 +18,8 @@ import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
     CommonModule,
     ButtonComponent,
     LucideAngularModule,
-    LocalDatePipe
+    LocalDatePipe,
+    MatTooltipModule
   ],
   providers: [DatePipe],
   templateUrl: './contract-payments.component.html',

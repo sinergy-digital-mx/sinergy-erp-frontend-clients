@@ -13,43 +13,52 @@
 .dialog {
   background: #fff;
   width: 100vw;
-  max-width: 466px;
-  padding: 28px 32px;
+  max-width: 90vw;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
-  row-gap: 24px;
-  max-height: 100dvh;
+  overflow: hidden;
+
   &__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    h2 {
-      color: #272d37;
-      font-size: 20px;
-    }
-    .close {
-      cursor: pointer;
-      font-size: 24px;
-    }
-  }
-  &__body {
-    display: flex;
-    flex-direction: column;
-    row-gap: 16px;
-    overflow: auto;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
 
-    h4 {
+    h2 {
       margin: 0;
-      padding-bottom: 8px;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .close {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      color: #6b7280;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #1f2937;
+      }
     }
   }
+
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+  }
+
   &__footer {
-    width: 100%;
     display: flex;
-    column-gap: 16px;
-    & > * {
-      flex: 1;
-    }
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    background-color: #f9fafb;
   }
 }
 
@@ -123,18 +132,29 @@
 
 /* Material Tooltip Styles */
 .mat-mdc-tooltip {
-  background-color: rgba(97, 97, 97, 0.95) !important;
+  background-color: #1f2937 !important;
   color: white !important;
   font-size: 12px !important;
-  padding: 8px 12px !important;
-  border-radius: 4px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-  max-width: 400px !important;
-  white-space: normal !important;
-  word-wrap: break-word !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  max-width: 300px !important;
+  white-space: nowrap !important;
+  font-weight: 500 !important;
 }
 
 .mat-mdc-tooltip .mdc-tooltip__surface {
-  background-color: rgba(97, 97, 97, 0.95) !important;
+  background-color: transparent !important;
   color: white !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.mdc-tooltip__surface-animation {
+  background-color: transparent !important;
+}
+
+/* Material Dialog Backdrop - Fix for all modals */
+.cdk-overlay-backdrop {
+  background-color: rgba(0, 0, 0, 0.5) !important;
 }

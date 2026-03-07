@@ -1,0 +1,112 @@
+<div class="fiscal-modal">
+  <div class="fiscal-modal__header">
+    <h2>{{ isNew ? 'Nueva Configuración Fiscal' : 'Editar Configuración Fiscal' }}</h2>
+    <lucide-icon
+      [img]="X"
+      class="close cursor-pointer"
+      (click)="close()">
+    </lucide-icon>
+  </div>
+
+  <div class="fiscal-modal__body">
+    <form [formGroup]="form">
+      <!-- Razón Social -->
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Razón Social *</label>
+        <input
+          type="text"
+          formControlName="razon_social"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          placeholder="Razón social de la empresa">
+        <p *ngIf="form.get('razon_social')?.invalid && form.get('razon_social')?.touched" class="text-xs text-red-600 mt-1">
+          Razón social requerida (mín. 2 caracteres)
+        </p>
+      </div>
+
+      <!-- RFC -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">RFC *</label>
+        <input
+          type="text"
+          formControlName="rfc"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 uppercase"
+          placeholder="Ej: GMM140115PIA">
+        <p *ngIf="form.get('rfc')?.invalid && form.get('rfc')?.touched" class="text-xs text-red-600 mt-1">
+          RFC inválido (formato: 3-4 letras + 6 dígitos + 3 alfanuméricos)
+        </p>
+      </div>
+
+      <!-- Tipo de Persona -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Persona *</label>
+        <app-select
+          [config]="personaTypeSelectConfig"
+          (changeOption)="onPersonaTypeChange($event)">
+        </app-select>
+      </div>
+
+      <!-- Régimen Fiscal -->
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Régimen Fiscal</label>
+        <app-select
+          [config]="fiscalRegimeSelectConfig"
+          (changeOption)="onFiscalRegimeChange($event)">
+        </app-select>
+      </div>
+
+      <!-- Sello Digital -->
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Sello Digital</label>
+        <textarea
+          formControlName="digital_seal"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+          placeholder="Certificado digital (PEM format)"
+          rows="3"></textarea>
+      </div>
+
+      <!-- Contraseña del Sello -->
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña del Sello Digital</label>
+        <input
+          type="password"
+          formControlName="digital_seal_password"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          placeholder="Contraseña del certificado">
+      </div>
+
+      <!-- Llave Privada -->
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Llave Privada</label>
+        <textarea
+          formControlName="private_key"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+          placeholder="Llave privada (PEM format)"
+          rows="3"></textarea>
+      </div>
+
+      <!-- Status -->
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+        <app-select
+          [config]="statusSelectConfig"
+          (changeOption)="onStatusChange($event)">
+        </app-select>
+      </div>
+    </form>
+  </div>
+
+  <div class="fiscal-modal__footer">
+    <app-button
+      text="Cancelar"
+      custom_class="btn_secondary"
+      (clicked)="close()">
+    </app-button>
+    <app-button
+      [text]="isNew ? 'Crear Configuración' : 'Guardar Cambios'"
+      custom_class="btn_primary"
+      [loading]="saving()"
+      [disabled]="form.invalid || saving()"
+      (clicked)="save()">
+    </app-button>
+  </div>
+</div>

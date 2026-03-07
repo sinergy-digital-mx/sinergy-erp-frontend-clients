@@ -8,8 +8,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { CustomerService } from '../../../../core/services/customer.service';
+import { PropertyService } from '../../../properties/services/property.service';
 import { CustomerEditModalComponent } from '../../components/customer-edit-modal/customer-edit-modal.component';
 import { CustomerDocumentsComponent } from '../../components/customer-documents/customer-documents.component';
+import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
+import { ContractDetailModalComponent } from '../../../contracts/components/contract-detail-modal/contract-detail-modal.component';
 import { Customer } from '../../models/customer-group.model';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -42,6 +45,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private customerService: CustomerService,
+    private propertyService: PropertyService,
     private dialog: MatDialog
   ) {}
 
@@ -112,6 +116,31 @@ export class CustomerDetail implements OnInit, OnDestroy {
    */
   navigateToProperty(propertyId: string) {
     this.router.navigate(['/properties/detail', propertyId]);
+  }
+
+  /**
+   * Open property modal
+   */
+  openPropertyModal(propertyId: string) {
+    this.propertyService.getProperty(propertyId).subscribe({
+      next: (property) => {
+        this.dialog.open(PropertyEditModalComponent, {
+          data: { property }
+        });
+      },
+      error: (error) => {
+        console.error('Error loading property:', error);
+      }
+    });
+  }
+
+  /**
+   * Open contract modal
+   */
+  openContractModal(contract: any) {
+    this.dialog.open(ContractDetailModalComponent, {
+      data: { contract }
+    });
   }
 
   getSeverity(s: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | null {

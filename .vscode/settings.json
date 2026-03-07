@@ -11,5 +11,6 @@
         "titleBar.activeForeground": "#ffffff",
         "titleBar.inactiveBackground": "#004219",
         "titleBar.inactiveForeground": "#ffffff90"
-    }
+    },
+    "html.autoClosingTags": false
 }

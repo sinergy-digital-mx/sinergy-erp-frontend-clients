@@ -1,0 +1,91 @@
+<div class="dialog">
+  <div class="dialog__header">
+    <h2>Gestionar Unidades de Medida</h2>
+    <button (click)="close()" class="close">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
+
+  <div class="dialog__body">
+    <!-- Create Button -->
+    <div *ngIf="!isCreating()" class="mb-4">
+      <button (click)="startCreating()" class="w-full px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium">
+        Crear Nueva
+      </button>
+    </div>
+
+    <!-- Create Form -->
+    <form *ngIf="isCreating()" [formGroup]="form" class="mb-4 p-3 border border-purple-200 rounded-md bg-purple-50">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+        <input type="text" formControlName="name" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="ej: Pieza, Caja, Pallet" />
+      </div>
+      <div class="mt-3">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+        <textarea formControlName="description" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" rows="2" placeholder="Descripción opcional"></textarea>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button (click)="cancelCreating()" type="button" class="flex-1 px-3 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm font-medium">
+          Cancelar
+        </button>
+        <button (click)="saveUOM()" [disabled]="form.invalid || saving()" class="flex-1 px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 text-sm font-medium">
+          {{ saving() ? 'Guardando...' : 'Guardar' }}
+        </button>
+      </div>
+    </form>
+
+    <!-- UOMs List -->
+    <div *ngIf="!isCreating()" class="space-y-2 max-h-96 overflow-y-auto">
+      <div *ngIf="uoms().length === 0" class="text-center py-8 text-gray-500">
+        <p>No hay unidades de medida en el catálogo</p>
+      </div>
+
+      <div *ngFor="let uom of uoms()" class="p-3 border border-gray-200 rounded-md">
+        <!-- View Mode -->
+        <div *ngIf="editingUomId() !== uom.id" class="flex items-start justify-between">
+          <div class="flex-1">
+            <p class="font-medium text-gray-900">{{ uom.name }}</p>
+            <p class="text-xs text-gray-600">{{ uom.description }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ uom.created_at | date: 'MMMM d' }}</p>
+          </div>
+          <div class="flex gap-2 ml-3">
+            <button (click)="startEditing(uom)" class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+              Editar
+            </button>
+            <button (click)="deleteUOM(uom)" [disabled]="saving()" class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:bg-gray-200 disabled:text-gray-500">
+              Eliminar
+            </button>
+          </div>
+        </div>
+
+        <!-- Edit Mode -->
+        <div *ngIf="editingUomId() === uom.id" class="space-y-2">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+            <input type="text" [(ngModel)]="editingUomForm[uom.id].name" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Descripción</label>
+            <textarea [(ngModel)]="editingUomForm[uom.id].description" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" rows="2"></textarea>
+          </div>
+          <div class="flex gap-2">
+            <button (click)="cancelEditing()" type="button" class="flex-1 px-2 py-1 bg-gray-200 text-gray-800 rounded text-xs font-medium hover:bg-gray-300">
+              Cancelar
+            </button>
+            <button (click)="saveEdit(uom)" [disabled]="saving()" class="flex-1 px-2 py-1 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700 disabled:bg-gray-400">
+              {{ saving() ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog__footer">
+    <button (click)="close()" class="px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium">
+      Cerrar
+    </button>
+  </div>
+</div>

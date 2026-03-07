@@ -1,7 +1,6 @@
 <div class="payments-container">
   <!-- Header -->
-  <div class="flex items-center justify-between mb-4">
-    <h4 class="text-base font-semibold text-gray-800">Pagos del Contrato</h4>
+  <div class="flex items-center justify-end mb-1">
     <div class="flex gap-2">
       <app-button
         *ngIf="payments().length === 0"
@@ -16,7 +15,7 @@
   </div>
 
   <!-- Stats Cards -->
-  <div *ngIf="stats()" class="grid grid-cols-6 gap-3 mb-4">
+  <div *ngIf="stats()" class="grid grid-cols-6 gap-3 mb-2">
     <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
       <p class="text-xs text-blue-600 font-medium">Total Pagos</p>
       <p class="text-lg font-bold text-blue-900">{{ stats()!.total_payments }} <span class="text-sm font-normal">meses</span></p>
@@ -112,33 +111,37 @@
           <td class="px-3 py-2 text-sm text-gray-600">{{ payment.payment_method || '—' }}</td>
           <td class="px-3 py-2 text-sm text-gray-600">{{ payment.reference_number || '—' }}</td>
           <td class="px-3 py-2">
-            <div class="flex gap-1">
+            <div class="flex gap-1.5">
               <button
                 *ngIf="canRegisterPayment(payment)"
                 (click)="registerPayment(payment)"
-                class="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                title="Registrar Pago">
+                class="p-1.5 text-blue-600 hover:text-white hover:bg-blue-600 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                [matTooltip]="'Registrar Pago'"
+                matTooltipPosition="above">
                 <lucide-icon [img]="DollarSign" [size]="16"></lucide-icon>
               </button>
               <button
                 *ngIf="canEdit(payment)"
                 (click)="editPayment(payment)"
-                class="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                title="Editar">
+                class="p-1.5 text-gray-600 hover:text-white hover:bg-gray-600 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                [matTooltip]="'Editar Pago'"
+                matTooltipPosition="above">
                 <lucide-icon [img]="Edit" [size]="16"></lucide-icon>
               </button>
               <button
                 *ngIf="canCancel(payment)"
                 (click)="cancelPayment(payment)"
-                class="p-1 text-orange-600 hover:bg-orange-50 rounded transition-colors"
-                title="Cancelar">
+                class="p-1.5 text-orange-600 hover:text-white hover:bg-orange-600 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                [matTooltip]="'Cancelar Pago'"
+                matTooltipPosition="above">
                 <lucide-icon [img]="X" [size]="16"></lucide-icon>
               </button>
               <button
                 *ngIf="canDelete(payment)"
                 (click)="deletePayment(payment)"
-                class="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="Eliminar">
+                class="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                [matTooltip]="'Eliminar Pago'"
+                matTooltipPosition="above">
                 <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
               </button>
             </div>
