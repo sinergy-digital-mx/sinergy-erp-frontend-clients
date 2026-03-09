@@ -1,0 +1,92 @@
+<div class="payments-list-container">
+  <!-- Header with Add Payment Button -->
+  <div class="payments-list-header">
+    <h3 class="payments-list-title">Pagos Registrados</h3>
+    <button
+      *ngIf="canAddPayment"
+      type="button"
+      class="btn-add-payment"
+      (click)="onAddPayment()"
+      aria-label="Registrar nuevo pago"
+    >
+      <span class="btn-icon">+</span>
+      <span class="btn-text">Registrar Pago</span>
+    </button>
+  </div>
+
+  <!-- Desktop/Tablet Table View -->
+  <div class="table-view" role="region" aria-label="Tabla de pagos">
+    <table *ngIf="payments.length > 0" class="payments-table" role="table">
+      <thead>
+        <tr role="row">
+          <th role="columnheader" scope="col">FECHA</th>
+          <th role="columnheader" scope="col" class="text-right">MONTO</th>
+          <th role="columnheader" scope="col">MÉTODO</th>
+          <th role="columnheader" scope="col">REFERENCIA</th>
+          <th role="columnheader" scope="col">NOTAS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let payment of payments; trackBy: trackByPayment"
+          role="row"
+          class="payment-row"
+        >
+          <td role="cell" data-label="FECHA">{{ formatDate(payment.payment_date) }}</td>
+          <td role="cell" data-label="MONTO" class="text-right font-weight-bold">{{ formatCurrency(payment.amount) }}</td>
+          <td role="cell" data-label="MÉTODO">{{ payment.payment_method }}</td>
+          <td role="cell" data-label="REFERENCIA">{{ payment.reference || 'N/A' }}</td>
+          <td role="cell" data-label="NOTAS">{{ payment.notes || '-' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Empty State -->
+    <div *ngIf="payments.length === 0" class="empty-state" role="status">
+      <div class="empty-icon">💳</div>
+      <p class="empty-message">No hay pagos registrados</p>
+      <p class="empty-hint" *ngIf="canAddPayment">Haz clic en "Registrar Pago" para agregar el primer pago</p>
+    </div>
+  </div>
+
+  <!-- Mobile Card View -->
+  <div class="card-view" role="list" aria-label="Lista de pagos">
+    <div
+      *ngFor="let payment of payments; trackBy: trackByPayment"
+      class="payment-card"
+      role="listitem"
+    >
+      <div class="payment-card__header">
+        <div class="payment-card__date">
+          <span class="label">FECHA:</span>
+          <span class="value">{{ formatDate(payment.payment_date) }}</span>
+        </div>
+        <div class="payment-card__amount">
+          {{ formatCurrency(payment.amount) }}
+        </div>
+      </div>
+      
+      <div class="payment-card__body">
+        <div class="payment-card__row">
+          <span class="label">MÉTODO:</span>
+          <span class="value">{{ payment.payment_method }}</span>
+        </div>
+        <div class="payment-card__row">
+          <span class="label">REFERENCIA:</span>
+          <span class="value">{{ payment.reference || 'N/A' }}</span>
+        </div>
+        <div class="payment-card__row" *ngIf="payment.notes">
+          <span class="label">NOTAS:</span>
+          <span class="value">{{ payment.notes }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Empty State -->
+    <div *ngIf="payments.length === 0" class="empty-state" role="status">
+      <div class="empty-icon">💳</div>
+      <p class="empty-message">No hay pagos registrados</p>
+      <p class="empty-hint" *ngIf="canAddPayment">Haz clic en "Registrar Pago" para agregar el primer pago</p>
+    </div>
+  </div>
+</div>

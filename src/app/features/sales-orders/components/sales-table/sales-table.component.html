@@ -1,0 +1,78 @@
+<div class="table-container">
+  <table class="sales-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Cliente</th>
+        <th>Almacén</th>
+        <th>Estado</th>
+        <th>Fecha Entrega</th>
+        <th>Subtotal</th>
+        <th>IVA</th>
+        <th>IEPS</th>
+        <th>Total</th>
+        <th>Fecha Creación</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (order of orders; track order.id) {
+        <tr class="table-row" (click)="onRowClick(order.id)">
+          <td class="id-cell">
+            <span class="order-id">{{ order.id.substring(0, 8) }}...</span>
+          </td>
+          <td>{{ order.customer?.name || 'Sin cliente' }}</td>
+          <td>{{ order.warehouse?.name || '-' }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(order.status)">
+              {{ getStatusLabel(order.status) }}
+            </span>
+          </td>
+          <td>{{ order.delivery_date ? (order.delivery_date | date:'short') : '-' }}</td>
+          <td class="amount-cell">{{ formatCurrency(order.total_subtotal) }}</td>
+          <td class="amount-cell">{{ formatCurrency(order.total_iva) }}</td>
+          <td class="amount-cell">{{ formatCurrency(order.total_ieps) }}</td>
+          <td class="amount-cell total">{{ formatCurrency(order.grand_total) }}</td>
+          <td>{{ order.created_at | date:'short' }}</td>
+          <td class="actions-cell" (click)="$event.stopPropagation()">
+            <select 
+              class="status-select"
+              [value]="order.status"
+              (change)="onStatusChange(order, $event)"
+            >
+              @for (status of statuses; track status.value) {
+                <option [value]="status.value">{{ status.label }}</option>
+              }
+            </select>
+            <button 
+              class="btn-delete" 
+              (click)="onDeleteClick($event, order.id)"
+              title="Eliminar"
+            >
+              🗑️
+            </button>
+          </td>
+        </tr>
+      }
+
+      @if (orders.length === 0 && !loading) {
+        <tr>
+          <td colspan="11" class="empty-state">
+            <div class="empty-content">
+              <p>No se encontraron órdenes de venta</p>
+            </div>
+          </td>
+        </tr>
+      }
+
+      @if (loading) {
+        <tr>
+          <td colspan="11" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Cargando...</p>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

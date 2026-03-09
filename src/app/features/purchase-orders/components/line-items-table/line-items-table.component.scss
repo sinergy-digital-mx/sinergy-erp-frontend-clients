@@ -1,0 +1,339 @@
+.line-items-table-container {
+  position: relative;
+  width: 100%;
+}
+
+// Desktop/Tablet Table View
+.table-view {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+// Virtual Scroll Wrapper
+.virtual-scroll-wrapper {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.line-items-viewport {
+  height: 400px;
+  width: 100%;
+}
+
+// Line Items Table
+.line-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  thead {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      color: #495057;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+
+      &.text-right {
+        text-align: right;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #e9ecef;
+
+      &:hover {
+        background-color: #f8f9fa;
+      }
+    }
+
+    td {
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #212529;
+      white-space: nowrap;
+
+      &.text-right {
+        text-align: right;
+      }
+
+      &.font-weight-bold {
+        font-weight: 600;
+      }
+    }
+  }
+
+  tfoot {
+    background: #f8f9fa;
+    border-top: 2px solid #dee2e6;
+
+    .totals-row {
+      td {
+        padding: 16px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #212529;
+
+        &.total-grand {
+          font-size: 16px;
+          color: #007bff;
+        }
+      }
+    }
+  }
+}
+
+// Totals Summary (for virtual scroll)
+.totals-summary {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-top: 2px solid #007bff;
+  border-radius: 0 0 8px 8px;
+  padding: 16px;
+  margin-top: -1px;
+}
+
+.totals-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.totals-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .totals-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .totals-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #212529;
+  }
+
+  &--grand {
+    .totals-label {
+      color: #007bff;
+    }
+
+    .totals-value {
+      font-size: 18px;
+      color: #007bff;
+    }
+  }
+}
+
+// Mobile Card View
+.card-view {
+  display: none;
+
+  @media (max-width: 767px) {
+    display: block;
+  }
+}
+
+.line-item-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+  padding: 16px;
+
+  &__header {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  &__product {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #212529;
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+
+    .label {
+      font-weight: 600;
+      color: #6c757d;
+      font-size: 12px;
+    }
+
+    .value {
+      color: #212529;
+      text-align: right;
+    }
+
+    &--total {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #e9ecef;
+
+      .label {
+        font-size: 14px;
+        color: #007bff;
+      }
+
+      .value {
+        font-size: 16px;
+        font-weight: 600;
+        color: #007bff;
+      }
+    }
+  }
+}
+
+// Mobile Totals Summary
+.mobile-totals-summary {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-totals-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+
+  .label {
+    font-weight: 600;
+    color: #6c757d;
+  }
+
+  .value {
+    font-weight: 600;
+    color: #212529;
+  }
+
+  &--grand {
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 2px solid #dee2e6;
+
+    .label {
+      font-size: 16px;
+      color: #007bff;
+    }
+
+    .value {
+      font-size: 18px;
+      color: #007bff;
+    }
+  }
+}
+
+// Empty State
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #6c757d;
+
+  .empty-message {
+    p {
+      margin: 0;
+      font-size: 16px;
+    }
+  }
+}
+
+// Utility Classes
+.text-right {
+  text-align: right;
+}
+
+.font-weight-bold {
+  font-weight: 600;
+}
+
+// Accessibility: Ensure keyboard focus is visible
+*:focus {
+  outline-offset: 2px;
+}
+
+// Responsive adjustments for tablet
+@media (max-width: 1024px) {
+  .line-items-table {
+    thead th,
+    tbody td {
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .line-items-table-container {
+    .card-view {
+      display: none;
+    }
+
+    .table-view {
+      display: block;
+    }
+
+    .line-items-table {
+      box-shadow: none;
+      border: 1px solid #dee2e6;
+    }
+  }
+}

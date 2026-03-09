@@ -71,7 +71,7 @@ describe('ProductListComponent - Sorting Logic', () => {
 
     const sortedRows = [...productsWithUoM];
     const prop = 'base_uom_id';
-    const direction = 'asc';
+    const direction: 'asc' | 'desc' = 'asc';
 
     sortedRows.sort((a: any, b: any) => {
       const aValue = a[prop];
@@ -125,7 +125,7 @@ describe('ProductListComponent - Sorting Logic', () => {
 
     const sortedRows = [...productsWithUoM];
     const prop = 'base_uom_id';
-    const direction = 'desc';
+    const direction: 'asc' | 'desc' = 'desc';
 
     sortedRows.sort((a: any, b: any) => {
       const aValue = a[prop];
@@ -179,7 +179,7 @@ describe('ProductListComponent - Sorting Logic', () => {
 
     const sortedRows = [...productsWithUoM];
     const prop = 'base_uom_id';
-    const direction = 'asc';
+    const direction: 'asc' | 'desc' = 'asc';
 
     sortedRows.sort((a: any, b: any) => {
       const aValue = a[prop];
@@ -233,7 +233,7 @@ describe('ProductListComponent - Sorting Logic', () => {
 
     const sortedRows = [...productsWithUoM];
     const prop = 'base_uom_id';
-    const direction = 'desc';
+    const direction: 'asc' | 'desc' = 'desc';
 
     sortedRows.sort((a: any, b: any) => {
       const aValue = a[prop];
@@ -297,7 +297,7 @@ describe('ProductListComponent - Sorting Logic', () => {
 
     const sortedRows = [...productsWithUoM];
     const prop = 'base_uom_id';
-    const direction = 'asc';
+    const direction: 'asc' | 'desc' = 'asc';
 
     sortedRows.sort((a: any, b: any) => {
       const aValue = a[prop];
@@ -421,7 +421,7 @@ describe('ProductListComponent - Search Filtering', () => {
   });
 
   it('should maintain search filter across pagination', () => {
-    const searchTerm = 'Caja';
+    const searchTerm: string = 'Caja';
     const params: any = {};
     if (searchTerm && searchTerm.trim()) {
       params.search = searchTerm;
@@ -431,7 +431,7 @@ describe('ProductListComponent - Search Filtering', () => {
   });
 
   it('should pass search parameter to backend API', () => {
-    const searchTerm = 'Pieza';
+    const searchTerm: string = 'Pieza';
     const params: any = {};
     if (searchTerm && searchTerm.trim()) {
       params.search = searchTerm;
@@ -441,7 +441,7 @@ describe('ProductListComponent - Search Filtering', () => {
   });
 
   it('should not pass empty search parameter to backend API', () => {
-    const searchTerm = '';
+    const searchTerm: string = '';
     const params: any = {};
     if (searchTerm && searchTerm.trim()) {
       params.search = searchTerm;
@@ -451,7 +451,7 @@ describe('ProductListComponent - Search Filtering', () => {
   });
 
   it('should not pass whitespace-only search parameter to backend API', () => {
-    const searchTerm = '   ';
+    const searchTerm: string = '   ';
     const params: any = {};
     if (searchTerm && searchTerm.trim()) {
       params.search = searchTerm;

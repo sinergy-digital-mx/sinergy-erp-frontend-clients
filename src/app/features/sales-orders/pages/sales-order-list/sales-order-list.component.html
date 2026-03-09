@@ -1,0 +1,22 @@
+<div class="sales-order-list">
+  <div class="header">
+    <h1>Órdenes de Venta</h1>
+    <button class="btn-create" (click)="navigateToCreate()">
+      Crear Orden
+    </button>
+  </div>
+
+  <!-- Filter Bar -->
+  <app-sales-filter-bar 
+    (filtersChange)="applyFilters($event)">
+  </app-sales-filter-bar>
+
+  <!-- Sales Table -->
+  <app-sales-table
+    [orders]="filteredOrders()"
+    [loading]="loading()"
+    (orderClick)="navigateToDetail($event)"
+    (statusChange)="handleStatusChange($event)"
+    (deleteOrder)="handleDeleteOrder($event)">
+  </app-sales-table>
+</div>

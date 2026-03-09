@@ -1,0 +1,221 @@
+.line-item-form {
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-color);
+
+      &.required::after {
+        content: ' *';
+        color: var(--red-500);
+      }
+    }
+
+    select,
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--border-radius);
+      font-size: 0.875rem;
+      color: var(--text-color);
+      background: var(--surface-ground);
+      transition: border-color 0.2s, box-shadow 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem var(--primary-color-alpha);
+      }
+
+      &::placeholder {
+        color: var(--text-color-secondary);
+      }
+
+      &[aria-invalid="true"] {
+        border-color: var(--red-500);
+      }
+
+      &:disabled {
+        background-color: var(--surface-100);
+        color: var(--text-color-secondary);
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2.5rem;
+
+      &:disabled {
+        cursor: not-allowed;
+      }
+    }
+
+    input[type="number"] {
+      text-align: right;
+    }
+
+    .error {
+      font-size: 0.75rem;
+      color: var(--red-500);
+      margin-top: 0.25rem;
+      display: block;
+    }
+  }
+
+  // Calculations Section
+  .calculations-section {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--surface-50);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--surface-border);
+
+    h4 {
+      margin: 0 0 1rem 0;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .calculations-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .calc-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      .calc-label {
+        font-size: 0.75rem;
+        color: var(--text-color-secondary);
+        font-weight: 500;
+      }
+
+      .calc-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-color);
+      }
+
+      &.total {
+        .calc-label {
+          color: var(--primary-color);
+        }
+
+        .calc-value {
+          color: var(--primary-color);
+          font-size: 1.125rem;
+        }
+      }
+    }
+  }
+}
+
+// Tablet layout (768px-1024px)
+@media (max-width: 1024px) {
+  .line-item-form {
+    .form-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .calculations-section {
+      .calculations-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  }
+}
+
+// Mobile layout (<768px)
+@media (max-width: 768px) {
+  .line-item-form {
+    .form-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .form-field {
+      select,
+      input {
+        padding: 0.625rem;
+        font-size: 1rem; // Larger for mobile
+      }
+
+      // Touch-friendly targets
+      select,
+      input[type="number"] {
+        min-height: 44px;
+      }
+
+      // Mobile-specific input modes
+      input[type="number"] {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+    }
+
+    .calculations-section {
+      padding: 0.75rem;
+
+      h4 {
+        font-size: 0.8125rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .calculations-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+
+      .calc-item {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        background: var(--surface-ground);
+        border-radius: calc(var(--border-radius) / 2);
+
+        .calc-label {
+          font-size: 0.875rem;
+        }
+
+        .calc-value {
+          font-size: 0.875rem;
+        }
+
+        &.total {
+          background: var(--primary-50);
+          border: 1px solid var(--primary-200);
+
+          .calc-value {
+            font-size: 1rem;
+          }
+        }
+      }
+    }
+  }
+}

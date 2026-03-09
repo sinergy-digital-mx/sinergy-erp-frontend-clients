@@ -1,0 +1,72 @@
+<div class="filter-bar" role="search" aria-label="Filtros de órdenes de compra">
+  <div class="filter-bar__container">
+    <!-- Search Input -->
+    <div class="filter-bar__field">
+      <label for="search" class="filter-bar__label">Buscar</label>
+      <input
+        type="text"
+        id="search"
+        [formControl]="searchControl"
+        placeholder="Buscar por folio, proveedor o propósito..."
+        class="filter-bar__input"
+        aria-label="Buscar órdenes por folio, proveedor o propósito"
+      />
+    </div>
+
+    <!-- Date From -->
+    <div class="filter-bar__field">
+      <label for="dateFrom" class="filter-bar__label">Fecha desde</label>
+      <input
+        type="date"
+        id="dateFrom"
+        [formControl]="dateFromControl"
+        class="filter-bar__input"
+        aria-label="Filtrar desde fecha"
+      />
+    </div>
+
+    <!-- Date To -->
+    <div class="filter-bar__field">
+      <label for="dateTo" class="filter-bar__label">Fecha hasta</label>
+      <input
+        type="date"
+        id="dateTo"
+        [formControl]="dateToControl"
+        class="filter-bar__input"
+        aria-label="Filtrar hasta fecha"
+      />
+    </div>
+
+    <!-- Status Dropdown -->
+    <div class="filter-bar__field">
+      <label for="status" class="filter-bar__label">Estado</label>
+      <select
+        id="status"
+        [formControl]="statusControl"
+        class="filter-bar__select"
+        aria-label="Filtrar por estado de orden"
+      >
+        <option [value]="null">Todos los estados</option>
+        <option *ngFor="let option of statusOptions" [value]="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Warehouse Dropdown -->
+    <div class="filter-bar__field">
+      <label for="warehouse" class="filter-bar__label">Almacén</label>
+      <select
+        id="warehouse"
+        [formControl]="warehouseControl"
+        class="filter-bar__select"
+        aria-label="Filtrar por almacén"
+      >
+        <option [value]="null">Todos los almacenes</option>
+        <option *ngFor="let warehouse of warehouses" [value]="warehouse.id">
+          {{ warehouse.name }}
+        </option>
+      </select>
+    </div>
+  </div>
+</div>

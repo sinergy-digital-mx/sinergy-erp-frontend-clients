@@ -1,0 +1,182 @@
+<div class="line-items-table-container">
+  <!-- Desktop/Tablet Table View -->
+  <div class="table-view" role="region" aria-label="Tabla de líneas de productos">
+    <!-- Virtual Scrolling for > 50 items -->
+    <div *ngIf="useVirtualScroll" class="virtual-scroll-wrapper">
+      <cdk-virtual-scroll-viewport itemSize="50" class="line-items-viewport">
+        <table class="line-items-table" role="table">
+          <thead>
+            <tr role="row">
+              <th role="columnheader" scope="col">PRODUCTO</th>
+              <th role="columnheader" scope="col">UOM</th>
+              <th role="columnheader" scope="col" class="text-right">CANTIDAD</th>
+              <th role="columnheader" scope="col" class="text-right">PRECIO</th>
+              <th role="columnheader" scope="col" class="text-right">SUBTOTAL</th>
+              <th role="columnheader" scope="col" class="text-right">IVA</th>
+              <th role="columnheader" scope="col" class="text-right">IEPS</th>
+              <th role="columnheader" scope="col" class="text-right">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *cdkVirtualFor="let item of lineItems; trackBy: trackByLineItem"
+              role="row"
+              class="line-item-row"
+            >
+              <td role="cell" data-label="PRODUCTO">{{ item.product?.name || 'N/A' }}</td>
+              <td role="cell" data-label="UOM">{{ item.uom?.code || item.uom?.name || 'N/A' }}</td>
+              <td role="cell" data-label="CANTIDAD" class="text-right">{{ item.quantity }}</td>
+              <td role="cell" data-label="PRECIO" class="text-right">{{ formatCurrency(item.unit_price) }}</td>
+              <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
+              <td role="cell" data-label="IVA" class="text-right">{{ formatCurrency(item.iva_amount) }}</td>
+              <td role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
+              <td role="cell" data-label="TOTAL" class="text-right font-weight-bold">{{ formatCurrency(item.line_total) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </cdk-virtual-scroll-viewport>
+    </div>
+
+    <!-- Regular Table for <= 50 items -->
+    <table *ngIf="!useVirtualScroll" class="line-items-table" role="table">
+      <thead>
+        <tr role="row">
+          <th role="columnheader" scope="col">PRODUCTO</th>
+          <th role="columnheader" scope="col">UOM</th>
+          <th role="columnheader" scope="col" class="text-right">CANTIDAD</th>
+          <th role="columnheader" scope="col" class="text-right">PRECIO</th>
+          <th role="columnheader" scope="col" class="text-right">SUBTOTAL</th>
+          <th role="columnheader" scope="col" class="text-right">IVA</th>
+          <th role="columnheader" scope="col" class="text-right">IEPS</th>
+          <th role="columnheader" scope="col" class="text-right">TOTAL</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let item of lineItems; trackBy: trackByLineItem"
+          role="row"
+          class="line-item-row"
+        >
+          <td role="cell" data-label="PRODUCTO">{{ item.product?.name || 'N/A' }}</td>
+          <td role="cell" data-label="UOM">{{ item.uom?.code || item.uom?.name || 'N/A' }}</td>
+          <td role="cell" data-label="CANTIDAD" class="text-right">{{ item.quantity }}</td>
+          <td role="cell" data-label="PRECIO" class="text-right">{{ formatCurrency(item.unit_price) }}</td>
+          <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
+          <td role="cell" data-label="IVA" class="text-right">{{ formatCurrency(item.iva_amount) }}</td>
+          <td role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
+          <td role="cell" data-label="TOTAL" class="text-right font-weight-bold">{{ formatCurrency(item.line_total) }}</td>
+        </tr>
+        <tr *ngIf="lineItems.length === 0" role="row">
+          <td colspan="8" class="empty-state" role="cell">
+            <div class="empty-message">
+              <p>No hay líneas de productos</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+      <!-- Totals Row -->
+      <tfoot *ngIf="lineItems.length > 0">
+        <tr role="row" class="totals-row">
+          <td colspan="4" class="text-right font-weight-bold">TOTALES:</td>
+          <td class="text-right font-weight-bold">{{ formatCurrency(totals.total_subtotal) }}</td>
+          <td class="text-right font-weight-bold">{{ formatCurrency(totals.total_iva) }}</td>
+          <td class="text-right font-weight-bold">{{ formatCurrency(totals.total_ieps) }}</td>
+          <td class="text-right font-weight-bold total-grand">{{ formatCurrency(totals.grand_total) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- Totals Row for Virtual Scroll (outside viewport) -->
+    <div *ngIf="useVirtualScroll && lineItems.length > 0" class="totals-summary">
+      <div class="totals-grid">
+        <div class="totals-item">
+          <span class="totals-label">SUBTOTAL:</span>
+          <span class="totals-value">{{ formatCurrency(totals.total_subtotal) }}</span>
+        </div>
+        <div class="totals-item">
+          <span class="totals-label">IVA:</span>
+          <span class="totals-value">{{ formatCurrency(totals.total_iva) }}</span>
+        </div>
+        <div class="totals-item">
+          <span class="totals-label">IEPS:</span>
+          <span class="totals-value">{{ formatCurrency(totals.total_ieps) }}</span>
+        </div>
+        <div class="totals-item totals-item--grand">
+          <span class="totals-label">TOTAL:</span>
+          <span class="totals-value">{{ formatCurrency(totals.grand_total) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Card View -->
+  <div class="card-view" role="list" aria-label="Lista de líneas de productos">
+    <div
+      *ngFor="let item of lineItems; trackBy: trackByLineItem"
+      class="line-item-card"
+      role="listitem"
+    >
+      <div class="line-item-card__header">
+        <div class="line-item-card__product">
+          <span class="label">PRODUCTO:</span>
+          <span class="value">{{ item.product?.name || 'N/A' }}</span>
+        </div>
+      </div>
+      
+      <div class="line-item-card__body">
+        <div class="line-item-card__row">
+          <span class="label">UOM:</span>
+          <span class="value">{{ item.uom?.code || item.uom?.name || 'N/A' }}</span>
+        </div>
+        <div class="line-item-card__row">
+          <span class="label">CANTIDAD:</span>
+          <span class="value">{{ item.quantity }}</span>
+        </div>
+        <div class="line-item-card__row">
+          <span class="label">PRECIO:</span>
+          <span class="value">{{ formatCurrency(item.unit_price) }}</span>
+        </div>
+        <div class="line-item-card__row">
+          <span class="label">SUBTOTAL:</span>
+          <span class="value">{{ formatCurrency(item.subtotal) }}</span>
+        </div>
+        <div class="line-item-card__row">
+          <span class="label">IVA:</span>
+          <span class="value">{{ formatCurrency(item.iva_amount) }}</span>
+        </div>
+        <div class="line-item-card__row">
+          <span class="label">IEPS:</span>
+          <span class="value">{{ formatCurrency(item.ieps_amount) }}</span>
+        </div>
+        <div class="line-item-card__row line-item-card__row--total">
+          <span class="label">TOTAL:</span>
+          <span class="value">{{ formatCurrency(item.line_total) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="lineItems.length === 0" class="empty-state" role="status">
+      <p>No hay líneas de productos</p>
+    </div>
+
+    <!-- Mobile Totals Summary -->
+    <div *ngIf="lineItems.length > 0" class="mobile-totals-summary">
+      <div class="mobile-totals-row">
+        <span class="label">SUBTOTAL:</span>
+        <span class="value">{{ formatCurrency(totals.total_subtotal) }}</span>
+      </div>
+      <div class="mobile-totals-row">
+        <span class="label">IVA:</span>
+        <span class="value">{{ formatCurrency(totals.total_iva) }}</span>
+      </div>
+      <div class="mobile-totals-row">
+        <span class="label">IEPS:</span>
+        <span class="value">{{ formatCurrency(totals.total_ieps) }}</span>
+      </div>
+      <div class="mobile-totals-row mobile-totals-row--grand">
+        <span class="label">TOTAL:</span>
+        <span class="value">{{ formatCurrency(totals.grand_total) }}</span>
+      </div>
+    </div>
+  </div>
+</div>

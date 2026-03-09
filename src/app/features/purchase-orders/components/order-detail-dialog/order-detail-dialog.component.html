@@ -1,0 +1,171 @@
+<div class="order-detail-dialog">
+  @if (loading()) {
+    <div class="loading-state">
+      <p>Cargando orden...</p>
+    </div>
+  }
+
+  @if (order() && !loading()) {
+    <!-- Dialog Header -->
+    <div class="dialog-header">
+      <div class="header-content">
+        <span class="header-label">PRESUPUESTO</span>
+        <span class="order-id">#REQ-{{ order()!.id.substring(0, 4) }}</span>
+      </div>
+      <div class="header-actions">
+        <button class="status-button" [ngClass]="getStatusClass(order()!.status)">{{ order()!.status }}</button>
+        <button mat-icon-button (click)="close()" class="close-button">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="dialog-body">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="info-card">
+          <div class="card-icon-wrapper cyan">
+            <mat-icon>store</mat-icon>
+          </div>
+          <div class="card-content">
+            <span class="card-label">PROVEEDOR</span>
+            <span class="card-value">{{ order()!.vendor?.name || 'N/A' }}</span>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="card-icon-wrapper orange">
+            <mat-icon>warehouse</mat-icon>
+          </div>
+          <div class="card-content">
+            <span class="card-label">PLAN ALMACÉN</span>
+            <span class="card-value">{{ order()!.warehouse?.name || 'N/A' }}</span>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="card-icon-wrapper purple">
+            <mat-icon>receipt</mat-icon>
+          </div>
+          <div class="card-content">
+            <span class="card-label">CONFIGURACIÓN FISCAL</span>
+            <span class="card-value">{{ order()!.warehouse?.fiscal_configuration_id ? 'Configurada' : '-' }}</span>
+          </div>
+        </div>
+
+        <!-- Fechas Section -->
+        <div class="dates-section">
+          <h3 class="section-title">FECHAS</h3>
+          <div class="date-item">
+            <span class="date-label">Fecha recepción</span>
+            <span class="date-value">{{ order()!.tentative_receipt_date || '-' }}</span>
+          </div>
+          <div class="date-item">
+            <span class="date-label">Estado de pago</span>
+            <span class="date-value payment-status">{{ order()!.payment_status }}</span>
+          </div>
+        </div>
+
+        <!-- Totales Section -->
+        <div class="totals-section">
+          <h3 class="section-title">TOTALES</h3>
+          <div class="totals-row">
+            <span class="totals-label">Subtotal</span>
+            <span class="totals-value">{{ formatCurrency(order()!.total_subtotal) }}</span>
+          </div>
+          <div class="totals-row">
+            <span class="totals-label">IVA</span>
+            <span class="totals-value">{{ formatCurrency(order()!.total_iva) }}</span>
+          </div>
+          <div class="totals-row">
+            <span class="totals-label">IEPS</span>
+            <span class="totals-value">{{ formatCurrency(order()!.total_ieps) }}</span>
+          </div>
+          <div class="totals-row totals-row-grand">
+            <span class="totals-label">Total</span>
+            <span class="totals-value">{{ formatCurrency(order()!.grand_total) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Content Area -->
+      <div class="content-area">
+        <!-- Tabs -->
+        <mat-tab-group [selectedIndex]="selectedTab()" (selectedIndexChange)="selectedTab.set($event)" class="order-tabs">
+          <!-- Productos Tab -->
+          <mat-tab label="Productos">
+            <div class="tab-content">
+              <div class="products-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>PRODUCTO</th>
+                      <th>U. MEDIDA</th>
+                      <th>TOTAL</th>
+                      <th>UNIDAD/ALMACÉN</th>
+                      <th>SOLICITADAS</th>
+                      <th>RECIBIDAS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of order()!.line_items; track item.id) {
+                      <tr>
+                        <td>
+                          <div class="product-cell">
+                            <span class="product-name">{{ item.product?.name || 'N/A' }}</span>
+                            <span class="product-type">Servicio</span>
+                          </div>
+                        </td>
+                        <td>{{ item.uom?.code || item.uom?.name || 'N/A' }}</td>
+                        <td>{{ formatCurrency(item.line_total) }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>0</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Documentos Tab -->
+          <mat-tab label="Documentos">
+            <div class="tab-content">
+              <div class="empty-state">
+                <mat-icon>description</mat-icon>
+                <p>No hay documentos adjuntos</p>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Lotes Tab -->
+          <mat-tab label="Lotes">
+            <div class="tab-content">
+              <div class="empty-state">
+                <mat-icon>inventory_2</mat-icon>
+                <p>No hay lotes registrados</p>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Pagos Tab -->
+          <mat-tab label="Pagos">
+            <div class="tab-content">
+              <app-payments-list
+                [payments]="order()!.payments || []"
+                [canAddPayment]="false"
+              ></app-payments-list>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+
+        <!-- Footer Note -->
+        <div class="footer-note">
+          <span>Recibido en de prueba 1</span>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,96 @@
+<div class="order-header" role="region" aria-label="Encabezado de orden de compra">
+  <!-- Order Information Section -->
+  <div class="order-header__info">
+    <div class="order-header__row">
+      <div class="order-header__field">
+        <span class="label">FOLIO:</span>
+        <span class="value">{{ order.id }}</span>
+      </div>
+      <div class="order-header__field">
+        <span class="label">ESTADO:</span>
+        <span [ngClass]="getStatusClass(order.status)" role="status">
+          {{ order.status }}
+        </span>
+      </div>
+    </div>
+
+    <div class="order-header__row">
+      <div class="order-header__field">
+        <span class="label">PROVEEDOR:</span>
+        <span class="value">{{ order.vendor?.name || 'N/A' }}</span>
+      </div>
+      <div class="order-header__field">
+        <span class="label">ALMACÉN:</span>
+        <span class="value">{{ order.warehouse?.name || 'N/A' }}</span>
+      </div>
+    </div>
+
+    <div class="order-header__row">
+      <div class="order-header__field">
+        <span class="label">FECHA TENTATIVA DE RECEPCIÓN:</span>
+        <span class="value">{{ order.tentative_receipt_date | date: 'dd/MM/yyyy' }}</span>
+      </div>
+      <div class="order-header__field">
+        <span class="label">FECHA DE CREACIÓN:</span>
+        <span class="value">{{ order.created_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+    </div>
+
+    <div class="order-header__row">
+      <div class="order-header__field order-header__field--full">
+        <span class="label">PROPÓSITO:</span>
+        <span class="value">{{ order.purpose }}</span>
+      </div>
+    </div>
+
+    <div *ngIf="order.cancellation_reason" class="order-header__row">
+      <div class="order-header__field order-header__field--full">
+        <span class="label">RAZÓN DE CANCELACIÓN:</span>
+        <span class="value value--warning">{{ order.cancellation_reason }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons Section -->
+  <div class="order-header__actions" role="group" aria-label="Acciones de orden">
+    <button
+      *ngIf="shouldShowEditButton()"
+      type="button"
+      class="btn btn--primary"
+      (click)="onEdit()"
+      aria-label="Editar orden de compra"
+    >
+      Editar
+    </button>
+
+    <button
+      *ngIf="shouldShowChangeStatusButton()"
+      type="button"
+      class="btn btn--success"
+      (click)="onChangeStatus()"
+      aria-label="Cambiar estado de orden"
+    >
+      Cambiar Estado
+    </button>
+
+    <button
+      *ngIf="shouldShowCancelButton()"
+      type="button"
+      class="btn btn--warning"
+      (click)="onCancel()"
+      aria-label="Cancelar orden de compra"
+    >
+      Cancelar
+    </button>
+
+    <button
+      *ngIf="shouldShowDeleteButton()"
+      type="button"
+      class="btn btn--danger"
+      (click)="onDelete()"
+      aria-label="Eliminar orden de compra"
+    >
+      Eliminar
+    </button>
+  </div>
+</div>

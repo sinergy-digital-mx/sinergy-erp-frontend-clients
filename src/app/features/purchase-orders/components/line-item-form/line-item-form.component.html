@@ -1,0 +1,193 @@
+<div class="line-item-form" [formGroup]="formGroup">
+  <div class="form-grid">
+    <!-- Product Field -->
+    <div class="form-field">
+      <label for="product" class="required">
+        Producto *
+      </label>
+      <select 
+        id="product" 
+        formControlName="product_id"
+        aria-required="true"
+        [attr.aria-invalid]="formGroup.get('product_id')?.invalid && formGroup.get('product_id')?.touched"
+        [attr.aria-describedby]="formGroup.get('product_id')?.invalid && formGroup.get('product_id')?.touched ? 'product-error' : null"
+      >
+        <option value="">Selecciona un producto</option>
+        <option *ngFor="let product of products" [value]="product.id">
+          {{ product.name }} ({{ product.sku }})
+        </option>
+      </select>
+      <span 
+        *ngIf="getFieldError('product_id')" 
+        class="error"
+        id="product-error"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ getFieldError('product_id') }}
+      </span>
+    </div>
+
+    <!-- UOM Field -->
+    <div class="form-field">
+      <label for="uom" class="required">
+        Unidad de Medida *
+      </label>
+      <select 
+        id="uom" 
+        formControlName="uom_id"
+        aria-required="true"
+        [attr.aria-invalid]="formGroup.get('uom_id')?.invalid && formGroup.get('uom_id')?.touched"
+        [attr.aria-describedby]="formGroup.get('uom_id')?.invalid && formGroup.get('uom_id')?.touched ? 'uom-error' : null"
+        [disabled]="!selectedProduct()"
+      >
+        <option value="">Selecciona UOM</option>
+        <option *ngFor="let uom of availableUoms()" [value]="uom.id">
+          {{ uom.name }} ({{ uom.abbreviation }})
+        </option>
+      </select>
+      <span 
+        *ngIf="getFieldError('uom_id')" 
+        class="error"
+        id="uom-error"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ getFieldError('uom_id') }}
+      </span>
+    </div>
+
+    <!-- Quantity Field -->
+    <div class="form-field">
+      <label for="quantity" class="required">
+        Cantidad *
+      </label>
+      <input 
+        type="number" 
+        id="quantity" 
+        formControlName="quantity"
+        min="0.01"
+        step="0.01"
+        placeholder="0.00"
+        aria-required="true"
+        [attr.aria-invalid]="formGroup.get('quantity')?.invalid && formGroup.get('quantity')?.touched"
+        [attr.aria-describedby]="formGroup.get('quantity')?.invalid && formGroup.get('quantity')?.touched ? 'quantity-error' : null"
+      />
+      <span 
+        *ngIf="getFieldError('quantity')" 
+        class="error"
+        id="quantity-error"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ getFieldError('quantity') }}
+      </span>
+    </div>
+
+    <!-- Unit Price Field -->
+    <div class="form-field">
+      <label for="unit-price" class="required">
+        Precio Unitario *
+      </label>
+      <input 
+        type="number" 
+        id="unit-price" 
+        formControlName="unit_price"
+        min="0"
+        step="0.01"
+        placeholder="0.00"
+        aria-required="true"
+        [attr.aria-invalid]="formGroup.get('unit_price')?.invalid && formGroup.get('unit_price')?.touched"
+        [attr.aria-describedby]="formGroup.get('unit_price')?.invalid && formGroup.get('unit_price')?.touched ? 'unit-price-error' : null"
+      />
+      <span 
+        *ngIf="getFieldError('unit_price')" 
+        class="error"
+        id="unit-price-error"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ getFieldError('unit_price') }}
+      </span>
+    </div>
+
+    <!-- IVA Percentage Field -->
+    <div class="form-field">
+      <label for="iva-percentage" class="required">
+        IVA % *
+      </label>
+      <input 
+        type="number" 
+        id="iva-percentage" 
+        formControlName="iva_percentage"
+        min="0"
+        max="100"
+        step="0.01"
+        placeholder="16.00"
+        aria-required="true"
+        [attr.aria-invalid]="formGroup.get('iva_percentage')?.invalid && formGroup.get('iva_percentage')?.touched"
+        [attr.aria-describedby]="formGroup.get('iva_percentage')?.invalid && formGroup.get('iva_percentage')?.touched ? 'iva-error' : null"
+      />
+      <span 
+        *ngIf="getFieldError('iva_percentage')" 
+        class="error"
+        id="iva-error"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ getFieldError('iva_percentage') }}
+      </span>
+    </div>
+
+    <!-- IEPS Percentage Field -->
+    <div class="form-field">
+      <label for="ieps-percentage" class="required">
+        IEPS % *
+      </label>
+      <input 
+        type="number" 
+        id="ieps-percentage" 
+        formControlName="ieps_percentage"
+        min="0"
+        max="100"
+        step="0.01"
+        placeholder="0.00"
+        aria-required="true"
+        [attr.aria-invalid]="formGroup.get('ieps_percentage')?.invalid && formGroup.get('ieps_percentage')?.touched"
+        [attr.aria-describedby]="formGroup.get('ieps_percentage')?.invalid && formGroup.get('ieps_percentage')?.touched ? 'ieps-error' : null"
+      />
+      <span 
+        *ngIf="getFieldError('ieps_percentage')" 
+        class="error"
+        id="ieps-error"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ getFieldError('ieps_percentage') }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Calculated Values (Read-only) -->
+  <div class="calculations-section">
+    <h4>Cálculos</h4>
+    <div class="calculations-grid">
+      <div class="calc-item">
+        <span class="calc-label">Subtotal:</span>
+        <span class="calc-value">{{ formatCurrency(lineCalculations().subtotal) }}</span>
+      </div>
+      <div class="calc-item">
+        <span class="calc-label">IVA:</span>
+        <span class="calc-value">{{ formatCurrency(lineCalculations().iva_amount) }}</span>
+      </div>
+      <div class="calc-item">
+        <span class="calc-label">IEPS:</span>
+        <span class="calc-value">{{ formatCurrency(lineCalculations().ieps_amount) }}</span>
+      </div>
+      <div class="calc-item total">
+        <span class="calc-label">Total Línea:</span>
+        <span class="calc-value">{{ formatCurrency(lineCalculations().line_total) }}</span>
+      </div>
+    </div>
+  </div>
+</div>

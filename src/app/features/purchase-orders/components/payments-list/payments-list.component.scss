@@ -1,0 +1,299 @@
+.payments-list-container {
+  position: relative;
+  width: 100%;
+}
+
+// Header with Title and Button
+.payments-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 16px;
+
+  @media (max-width: 767px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.payments-list-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #212529;
+
+  @media (max-width: 767px) {
+    font-size: 16px;
+  }
+}
+
+// Add Payment Button
+.btn-add-payment {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+  }
+
+  .btn-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  @media (max-width: 767px) {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 20px;
+  }
+}
+
+// Desktop/Tablet Table View
+.table-view {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+// Payments Table
+.payments-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  thead {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      color: #495057;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+
+      &.text-right {
+        text-align: right;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #e9ecef;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background-color: #f8f9fa;
+      }
+    }
+
+    td {
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #212529;
+
+      &.text-right {
+        text-align: right;
+      }
+
+      &.font-weight-bold {
+        font-weight: 600;
+        color: #007bff;
+      }
+    }
+  }
+}
+
+// Mobile Card View
+.card-view {
+  display: none;
+
+  @media (max-width: 767px) {
+    display: block;
+  }
+}
+
+.payment-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+  padding: 16px;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e9ecef;
+    gap: 12px;
+  }
+
+  &__date {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+
+    .label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #212529;
+    }
+  }
+
+  &__amount {
+    font-size: 18px;
+    font-weight: 600;
+    color: #007bff;
+    white-space: nowrap;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 14px;
+    gap: 12px;
+
+    .label {
+      font-weight: 600;
+      color: #6c757d;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .value {
+      color: #212529;
+      text-align: right;
+      word-break: break-word;
+    }
+  }
+}
+
+// Empty State
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .empty-message {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #6c757d;
+  }
+
+  .empty-hint {
+    margin: 0;
+    font-size: 14px;
+    color: #adb5bd;
+  }
+}
+
+// Utility Classes
+.text-right {
+  text-align: right;
+}
+
+.font-weight-bold {
+  font-weight: 600;
+}
+
+// Accessibility: Ensure keyboard focus is visible
+*:focus {
+  outline-offset: 2px;
+}
+
+// Responsive adjustments for tablet
+@media (max-width: 1024px) {
+  .payments-table {
+    thead th,
+    tbody td {
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .payments-list-container {
+    .card-view {
+      display: none;
+    }
+
+    .table-view {
+      display: block;
+    }
+
+    .payments-table {
+      box-shadow: none;
+      border: 1px solid #dee2e6;
+    }
+
+    .btn-add-payment {
+      display: none;
+    }
+  }
+}

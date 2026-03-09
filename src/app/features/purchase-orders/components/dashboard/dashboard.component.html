@@ -1,0 +1,45 @@
+<div class="dashboard" role="region" aria-label="Métricas de órdenes de compra">
+  <div class="dashboard-grid">
+    <!-- Status Distribution Chart -->
+    <div class="chart-container">
+      <h3 id="status-chart-title" class="chart-title">Por Estado</h3>
+      <div class="chart-wrapper">
+        <p-chart 
+          *ngIf="orders.length > 0"
+          type="pie" 
+          [data]="statusChartData"
+          [options]="chartOptions"
+          [attr.aria-labelledby]="'status-chart-title'"
+          [attr.aria-describedby]="'status-chart-desc'"
+        ></p-chart>
+        <div *ngIf="orders.length === 0" class="empty-state" role="status">
+          <p>No hay datos para mostrar</p>
+        </div>
+      </div>
+      <p id="status-chart-desc" class="sr-only">
+        Gráfico circular mostrando la distribución de órdenes por estado
+      </p>
+    </div>
+
+    <!-- Payment Status Distribution Chart -->
+    <div class="chart-container">
+      <h3 id="payment-chart-title" class="chart-title">Estado de Pago</h3>
+      <div class="chart-wrapper">
+        <p-chart 
+          *ngIf="orders.length > 0"
+          type="pie" 
+          [data]="paymentStatusChartData"
+          [options]="chartOptions"
+          [attr.aria-labelledby]="'payment-chart-title'"
+          [attr.aria-describedby]="'payment-chart-desc'"
+        ></p-chart>
+        <div *ngIf="orders.length === 0" class="empty-state" role="status">
+          <p>No hay datos para mostrar</p>
+        </div>
+      </div>
+      <p id="payment-chart-desc" class="sr-only">
+        Gráfico circular mostrando la distribución de órdenes por estado de pago
+      </p>
+    </div>
+  </div>
+</div>

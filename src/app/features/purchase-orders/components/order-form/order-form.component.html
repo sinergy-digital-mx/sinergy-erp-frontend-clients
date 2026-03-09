@@ -1,0 +1,108 @@
+<div class="order-form" [formGroup]="formGroup">
+  <div class="form-grid">
+    <!-- Vendor Field -->
+    <div class="form-field">
+      <label for="vendor" class="required">
+        Proveedor *
+      </label>
+      <select 
+        id="vendor" 
+        formControlName="vendor_id"
+        aria-required="true"
+        [attr.aria-invalid]="formGroup.get('vendor_id')?.invalid && formGroup.get('vendor_id')?.touched"
+        [attr.aria-describedby]="formGroup.get('vendor_id')?.invalid && formGroup.get('vendor_id')?.touched ? 'vendor-error' : null"
+      >
+        <option value="">Selecciona un proveedor</option>
+        <option *ngFor="let vendor of vendors" [value]="vendor.id">
+          {{ vendor.name }}
+        </option>
+      </select>
+      <span 
+        *ngIf="getFieldError('vendor_id')" 
+        class="error"
+        id="vendor-error"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ getFieldError('vendor_id') }}
+      </span>
+    </div>
+
+    <!-- Warehouse Field -->
+    <div class="form-field">
+      <label for="warehouse" class="required">
+        Almacén *
+      </label>
+      <select 
+        id="warehouse" 
+        formControlName="warehouse_id"
+        aria-required="true"
+        [attr.aria-invalid]="formGroup.get('warehouse_id')?.invalid && formGroup.get('warehouse_id')?.touched"
+        [attr.aria-describedby]="formGroup.get('warehouse_id')?.invalid && formGroup.get('warehouse_id')?.touched ? 'warehouse-error' : null"
+      >
+        <option value="">Selecciona un almacén</option>
+        <option *ngFor="let warehouse of warehouses" [value]="warehouse.id">
+          {{ warehouse.name }}
+        </option>
+      </select>
+      <span 
+        *ngIf="getFieldError('warehouse_id')" 
+        class="error"
+        id="warehouse-error"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ getFieldError('warehouse_id') }}
+      </span>
+    </div>
+
+    <!-- Purpose Field -->
+    <div class="form-field full-width">
+      <label for="purpose" class="required">
+        Propósito *
+      </label>
+      <textarea 
+        id="purpose" 
+        formControlName="purpose" 
+        rows="3"
+        placeholder="Describe el propósito de esta orden de compra"
+        aria-required="true"
+        [attr.aria-invalid]="formGroup.get('purpose')?.invalid && formGroup.get('purpose')?.touched"
+        [attr.aria-describedby]="formGroup.get('purpose')?.invalid && formGroup.get('purpose')?.touched ? 'purpose-error' : null"
+      ></textarea>
+      <span 
+        *ngIf="getFieldError('purpose')" 
+        class="error"
+        id="purpose-error"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ getFieldError('purpose') }}
+      </span>
+    </div>
+
+    <!-- Tentative Receipt Date Field -->
+    <div class="form-field">
+      <label for="tentative-date" class="required">
+        Fecha Estimada de Recepción *
+      </label>
+      <input 
+        type="date" 
+        id="tentative-date" 
+        formControlName="tentative_receipt_date"
+        aria-required="true"
+        [attr.aria-invalid]="formGroup.get('tentative_receipt_date')?.invalid && formGroup.get('tentative_receipt_date')?.touched"
+        [attr.aria-describedby]="formGroup.get('tentative_receipt_date')?.invalid && formGroup.get('tentative_receipt_date')?.touched ? 'date-error' : null"
+      />
+      <span 
+        *ngIf="getFieldError('tentative_receipt_date')" 
+        class="error"
+        id="date-error"
+        role="alert"
+        aria-live="polite"
+      >
+        {{ getFieldError('tentative_receipt_date') }}
+      </span>
+    </div>
+  </div>
+</div>
