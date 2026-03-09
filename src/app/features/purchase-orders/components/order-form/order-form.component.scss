@@ -1,0 +1,125 @@
+.order-form {
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    &.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-color);
+
+      &.required::after {
+        content: ' *';
+        color: var(--red-500);
+      }
+    }
+
+    select,
+    input,
+    textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--border-radius);
+      font-size: 0.875rem;
+      color: var(--text-color);
+      background: var(--surface-ground);
+      transition: border-color 0.2s, box-shadow 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem var(--primary-color-alpha);
+      }
+
+      &::placeholder {
+        color: var(--text-color-secondary);
+      }
+
+      &[aria-invalid="true"] {
+        border-color: var(--red-500);
+      }
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2.5rem;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      font-family: inherit;
+    }
+
+    input[type="date"] {
+      cursor: pointer;
+    }
+
+    .error {
+      font-size: 0.75rem;
+      color: var(--red-500);
+      margin-top: 0.25rem;
+      display: block;
+    }
+  }
+}
+
+// Responsive layout
+@media (max-width: 1024px) {
+  .order-form {
+    .form-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .form-field {
+      &.full-width {
+        grid-column: 1;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .order-form {
+    .form-grid {
+      gap: 1rem;
+    }
+
+    .form-field {
+      select,
+      input,
+      textarea {
+        padding: 0.625rem;
+        font-size: 1rem; // Larger for mobile
+      }
+
+      // Touch-friendly targets
+      select,
+      input[type="date"] {
+        min-height: 44px;
+      }
+
+      textarea {
+        min-height: 100px;
+      }
+    }
+  }
+}

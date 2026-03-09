@@ -1,0 +1,137 @@
+<div class="take-order-container">
+  <!-- Left Panel: Products -->
+  <div class="products-panel">
+    <div class="panel-header">
+      <h2>Productos</h2>
+      <input 
+        type="text" 
+        class="search-input"
+        placeholder="Buscar producto..."
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchChange()"
+      />
+    </div>
+
+    <div class="products-grid">
+      @for (product of filteredProducts(); track product.id) {
+        <div class="product-card" (click)="addProductToCart(product)">
+          <div class="product-info">
+            <h3>{{ product.name }}</h3>
+            <p class="product-sku">{{ product.sku }}</p>
+            <p class="product-price">{{ formatCurrency(product.cost || 0) }}</p>
+          </div>
+        </div>
+      }
+
+      @if (filteredProducts().length === 0 && !loading()) {
+        <div class="empty-products">
+          <p>No se encontraron productos</p>
+        </div>
+      }
+
+      @if (loading()) {
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Cargando productos...</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Right Panel: Cart -->
+  <div class="cart-panel">
+    <div class="panel-header">
+      <h2>Orden Actual</h2>
+      <select 
+        class="warehouse-select"
+        [(ngModel)]="selectedWarehouse"
+      >
+        <option value="">Selecciona almacén</option>
+        @for (warehouse of warehouses(); track warehouse.id) {
+          <option [value]="warehouse.id">{{ warehouse.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="cart-items">
+      @for (item of posService.cart().items; track $index; let i = $index) {
+        <div class="cart-item">
+          <div class="item-info">
+            <h4>{{ item.product_name }}</h4>
+            <p class="item-sku">{{ item.product_sku }}</p>
+            <p class="item-price">{{ formatCurrency(item.unit_price) }} / {{ item.uom_name }}</p>
+          </div>
+          <div class="item-controls">
+            <div class="quantity-control">
+              <button (click)="updateQuantity(i, item.quantity - 1)">-</button>
+              <input 
+                type="number" 
+                [value]="item.quantity"
+                (change)="updateQuantity(i, +$any($event.target).value)"
+                min="1"
+              />
+              <button (click)="updateQuantity(i, item.quantity + 1)">+</button>
+            </div>
+            <div class="item-total">
+              {{ formatCurrency(item.line_total) }}
+            </div>
+            <button class="btn-remove" (click)="removeItem(i)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (posService.cart().items.length === 0) {
+        <div class="empty-cart">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <p>Carrito vacío</p>
+          <span>Selecciona productos para agregar</span>
+        </div>
+      }
+    </div>
+
+    <div class="cart-summary">
+      <div class="summary-row">
+        <span>Subtotal:</span>
+        <strong>{{ formatCurrency(posService.cart().total_subtotal) }}</strong>
+      </div>
+      <div class="summary-row">
+        <span>IVA:</span>
+        <strong>{{ formatCurrency(posService.cart().total_iva) }}</strong>
+      </div>
+      <div class="summary-row">
+        <span>IEPS:</span>
+        <strong>{{ formatCurrency(posService.cart().total_ieps) }}</strong>
+      </div>
+      <div class="summary-row total">
+        <span>Total:</span>
+        <strong>{{ formatCurrency(posService.cart().grand_total) }}</strong>
+      </div>
+    </div>
+
+    <div class="cart-actions">
+      <button 
+        class="btn-cancel" 
+        (click)="cancel()"
+        [disabled]="saving()"
+      >
+        Cancelar
+      </button>
+      <button 
+        class="btn-save" 
+        (click)="saveOrder()"
+        [disabled]="saving() || posService.cart().items.length === 0"
+      >
+        {{ saving() ? 'Guardando...' : 'Guardar Orden' }}
+      </button>
+    </div>
+  </div>
+</div>

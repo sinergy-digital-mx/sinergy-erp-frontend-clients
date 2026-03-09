@@ -1,0 +1,73 @@
+<div class="dialog-overlay" (click)="closeDialog()">
+  <div class="dialog-container" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="dialog-title" aria-modal="true">
+    <!-- Header -->
+    <div class="dialog-header">
+      <h2 id="dialog-title">Cancelar Orden de Compra</h2>
+      <button 
+        type="button" 
+        class="close-button" 
+        (click)="closeDialog()"
+        [disabled]="loading()"
+        aria-label="Cerrar diálogo"
+      >
+        <lucide-icon [img]="X" [size]="20"></lucide-icon>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="dialog-body">
+      <!-- Warning Message -->
+      <div class="warning-info" role="status" aria-live="polite">
+        <p>Esta acción no se puede deshacer. Por favor, proporciona una razón para la cancelación.</p>
+      </div>
+
+      <!-- Cancellation Form -->
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <!-- Cancellation Reason -->
+        <div class="form-field">
+          <label for="cancellation_reason">Razón de Cancelación *</label>
+          <textarea
+            #reasonTextarea
+            id="cancellation_reason"
+            class="form-textarea"
+            formControlName="cancellation_reason"
+            placeholder="Describe la razón por la cual se cancela esta orden"
+            rows="4"
+            [attr.aria-required]="true"
+            [attr.aria-invalid]="form.get('cancellation_reason')?.invalid && form.get('cancellation_reason')?.touched"
+            [attr.aria-describedby]="form.get('cancellation_reason')?.invalid && form.get('cancellation_reason')?.touched ? 'reason-error' : null"
+          ></textarea>
+          <span 
+            id="reason-error"
+            class="error-message" 
+            role="alert"
+            *ngIf="form.get('cancellation_reason')?.invalid && form.get('cancellation_reason')?.touched"
+          >
+            {{ getReasonError() }}
+          </span>
+        </div>
+      </form>
+    </div>
+
+    <!-- Footer -->
+    <div class="dialog-footer">
+      <app-button
+        type="button"
+        variant="secondary"
+        (click)="closeDialog()"
+        [disabled]="loading()"
+      >
+        Cancelar
+      </app-button>
+      <app-button
+        type="button"
+        variant="danger"
+        (click)="submit()"
+        [disabled]="form.invalid || loading()"
+        [loading]="loading()"
+      >
+        Confirmar Cancelación
+      </app-button>
+    </div>
+  </div>
+</div>

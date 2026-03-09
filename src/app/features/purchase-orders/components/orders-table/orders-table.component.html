@@ -1,0 +1,121 @@
+<div class="orders-table-container">
+  <!-- Desktop/Tablet Table View -->
+  <div class="table-view" role="region" aria-label="Tabla de órdenes de compra">
+    <table class="orders-table" role="table">
+      <thead>
+        <tr role="row">
+          <th role="columnheader" scope="col">FOLIO</th>
+          <th role="columnheader" scope="col" class="hide-on-tablet">TIPO</th>
+          <th role="columnheader" scope="col">PROVEEDOR</th>
+          <th role="columnheader" scope="col" class="hide-on-tablet">CEDIS</th>
+          <th role="columnheader" scope="col">ESTADO</th>
+          <th role="columnheader" scope="col">TOTAL</th>
+          <th role="columnheader" scope="col">PAGO</th>
+          <th role="columnheader" scope="col" class="hide-on-tablet">FECHA CREACIÓN</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let order of orders"
+          role="row"
+          class="order-row"
+          tabindex="0"
+          (click)="onOrderClick(order.id)"
+          (keydown)="onKeyDown($event, order.id)"
+          [attr.aria-label]="'Orden ' + order.id"
+        >
+          <td role="cell" data-label="FOLIO">{{ order.id }}</td>
+          <td role="cell" data-label="TIPO" class="hide-on-tablet">{{ order.purpose }}</td>
+          <td role="cell" data-label="PROVEEDOR">{{ order.vendor?.name || 'N/A' }}</td>
+          <td role="cell" data-label="CEDIS" class="hide-on-tablet">{{ order.warehouse?.name || 'N/A' }}</td>
+          <td role="cell" data-label="ESTADO">
+            <span [ngClass]="getStatusClass(order.status)" role="status">
+              {{ order.status }}
+            </span>
+          </td>
+          <td role="cell" data-label="TOTAL">{{ formatCurrency(order.grand_total) }}</td>
+          <td role="cell" data-label="PAGO">
+            <span [ngClass]="getPaymentStatusClass(order.payment_status)" role="status">
+              {{ order.payment_status }}
+            </span>
+          </td>
+          <td role="cell" data-label="FECHA CREACIÓN" class="hide-on-tablet">
+            {{ order.created_at | date: 'dd/MM/yyyy' }}
+          </td>
+        </tr>
+        <tr *ngIf="orders.length === 0 && !loading" role="row">
+          <td colspan="8" class="empty-state" role="cell">
+            <div class="empty-message">
+              <p>No se encontraron órdenes de compra</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile Card View -->
+  <div class="card-view" role="list" aria-label="Lista de órdenes de compra">
+    <div
+      *ngFor="let order of orders"
+      class="order-card"
+      role="listitem"
+      tabindex="0"
+      (click)="onOrderClick(order.id)"
+      (keydown)="onKeyDown($event, order.id)"
+      [attr.aria-label]="'Orden ' + order.id"
+    >
+      <div class="order-card__header">
+        <div class="order-card__folio">
+          <span class="label">FOLIO:</span>
+          <span class="value">{{ order.id }}</span>
+        </div>
+        <span [ngClass]="getStatusClass(order.status)" role="status">
+          {{ order.status }}
+        </span>
+      </div>
+      
+      <div class="order-card__body">
+        <div class="order-card__row">
+          <span class="label">PROVEEDOR:</span>
+          <span class="value">{{ order.vendor?.name || 'N/A' }}</span>
+        </div>
+        <div class="order-card__row">
+          <span class="label">CEDIS:</span>
+          <span class="value">{{ order.warehouse?.name || 'N/A' }}</span>
+        </div>
+        <div class="order-card__row">
+          <span class="label">TIPO:</span>
+          <span class="value">{{ order.purpose }}</span>
+        </div>
+        <div class="order-card__row">
+          <span class="label">TOTAL:</span>
+          <span class="value">{{ formatCurrency(order.grand_total) }}</span>
+        </div>
+        <div class="order-card__row">
+          <span class="label">PAGO:</span>
+          <span [ngClass]="getPaymentStatusClass(order.payment_status)" role="status">
+            {{ order.payment_status }}
+          </span>
+        </div>
+        <div class="order-card__row">
+          <span class="label">FECHA:</span>
+          <span class="value">{{ order.created_at | date: 'dd/MM/yyyy' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="orders.length === 0 && !loading" class="empty-state" role="status">
+      <p>No se encontraron órdenes de compra</p>
+    </div>
+  </div>
+
+  <!-- Loading Indicator -->
+  <div *ngIf="loading" class="loading-indicator" role="status" aria-live="polite">
+    <div class="spinner"></div>
+    <p>Cargando órdenes...</p>
+  </div>
+
+  <!-- Scroll Sentinel for Infinite Scroll -->
+  <div #scrollSentinel class="scroll-sentinel" aria-hidden="true"></div>
+</div>

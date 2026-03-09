@@ -16,6 +16,9 @@ import {
   Megaphone,
   LandPlot,
   ShoppingCart,
+  Package,
+  ShoppingBag,
+  Monitor,
 } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
 import { IsAdminDirective } from '../../directives/is-admin.directive';
@@ -67,6 +70,24 @@ export class Sidebar {
       id: 'menu-purchase-orders'
     },
     {
+      label: 'Órdenes de Venta',
+      route: '/sales-orders',
+      icon: ShoppingBag,
+      id: 'menu-sales-orders'
+    },
+    {
+      label: 'Inventario',
+      route: '/inventory',
+      icon: Package,
+      id: 'menu-inventory'
+    },
+    {
+      label: 'Punto de Venta',
+      route: '/pos',
+      icon: Monitor,
+      id: 'menu-pos'
+    },
+    {
       label: 'Marketing',
       route: '/marketing',
       icon: Megaphone,
@@ -76,7 +97,7 @@ export class Sidebar {
 
   private menuIdCounter = 0;
 
-  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart };
+  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor };
 
   constructor(public auth_service:AuthService){
 

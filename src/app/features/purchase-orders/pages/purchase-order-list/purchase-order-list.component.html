@@ -1,0 +1,25 @@
+<div class="purchase-order-list">
+  <div class="header">
+    <h1>Órdenes de Compra</h1>
+    <button class="btn-create" (click)="navigateToCreate()">
+      Crear
+    </button>
+  </div>
+
+  <!-- Dashboard -->
+  <app-dashboard [orders]="filteredOrders()"></app-dashboard>
+
+  <!-- Filter Bar -->
+  <app-filter-bar 
+    [warehouses]="warehouses()"
+    (filtersChange)="applyFilters($event)">
+  </app-filter-bar>
+
+  <!-- Orders Table -->
+  <app-orders-table
+    [orders]="filteredOrders()"
+    [loading]="loading()"
+    (orderClick)="navigateToDetail($event)"
+    (loadMore)="loadMore()">
+  </app-orders-table>
+</div>

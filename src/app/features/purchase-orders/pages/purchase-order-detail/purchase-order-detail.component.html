@@ -1,0 +1,57 @@
+<div class="purchase-order-detail">
+  <!-- Loading state -->
+  @if (loading()) {
+    <div class="loading">
+      <p>Cargando orden...</p>
+    </div>
+  }
+
+  <!-- Error state -->
+  @if (error()) {
+    <div class="error">
+      <p>{{ error() }}</p>
+      <button (click)="goBack()">Volver</button>
+    </div>
+  }
+
+  <!-- Order detail -->
+  @if (order() && !loading()) {
+    <div class="order-content">
+      <!-- Back button -->
+      <div class="header">
+        <button class="btn-back" (click)="goBack()">← Volver</button>
+        <h1>Orden de Compra #{{ order()!.id }}</h1>
+      </div>
+
+      <!-- Order Header Component -->
+      <app-order-header
+        [order]="order()!"
+        [canEdit]="canEdit()"
+        [canDelete]="canDelete()"
+        [canChangeStatus]="canChangeStatus()"
+        (edit)="editOrder()"
+        (changeStatus)="changeStatus()"
+        (cancel)="cancelOrder()"
+        (delete)="deleteOrder()"
+      ></app-order-header>
+
+      <!-- Line items -->
+      <div class="section">
+        <h2>Líneas de Productos</h2>
+        <app-line-items-table
+          [lineItems]="order()!.line_items"
+          [editable]="false"
+        ></app-line-items-table>
+      </div>
+
+      <!-- Payments -->
+      <div class="section">
+        <app-payments-list
+          [payments]="order()!.payments || []"
+          [canAddPayment]="canAddPayment()"
+          (addPayment)="registerPayment()"
+        ></app-payments-list>
+      </div>
+    </div>
+  }
+</div>

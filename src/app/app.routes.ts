@@ -14,6 +14,30 @@ export const routes: Routes = [
         .then(m => m.Login),
   },
 
+  // POS - Tomar Orden y Cobrar Orden (pantalla completa, sin layout)
+  {
+    path: 'pos/take-order',
+    canActivate: [AuthGuard],
+    loadComponent: () =>
+      import('./features/pos/pages/take-order/take-order.component')
+        .then(m => m.TakeOrderComponent),
+    data: { 
+      permission: 'pos:Create',
+      title: 'Tomar Orden'
+    }
+  },
+  {
+    path: 'pos/payment',
+    canActivate: [AuthGuard],
+    loadComponent: () =>
+      import('./features/pos/pages/payment/payment.component')
+        .then(m => m.PaymentComponent),
+    data: { 
+      permission: 'pos:Update',
+      title: 'Cobrar Orden'
+    }
+  },
+
   // APP PROTEGIDA
   {
     path: '',
@@ -56,6 +80,34 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/marketing/marketing.routes')
             .then(m => m.MARKETING_ROUTES),
+      },
+      {
+        path: 'purchase-orders',
+        loadChildren: () =>
+          import('./features/purchase-orders/purchase-orders.routes')
+            .then(m => m.PURCHASE_ORDERS_ROUTES),
+      },
+      {
+        path: 'inventory',
+        loadChildren: () =>
+          import('./features/inventory/inventory.routes')
+            .then(m => m.INVENTORY_ROUTES),
+      },
+      {
+        path: 'sales-orders',
+        loadChildren: () =>
+          import('./features/sales-orders/sales-orders.routes')
+            .then(m => m.SALES_ORDERS_ROUTES),
+      },
+      {
+        path: 'pos',
+        loadComponent: () =>
+          import('./features/pos/pages/pos-home/pos-home.component')
+            .then(m => m.POSHomeComponent),
+        data: { 
+          permission: 'pos:Read',
+          title: 'Punto de Venta'
+        }
       },
       {
         path: '',

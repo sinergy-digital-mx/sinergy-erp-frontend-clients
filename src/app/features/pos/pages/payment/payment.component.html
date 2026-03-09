@@ -1,0 +1,190 @@
+<div class="payment-container">
+  <!-- Left Panel: Orders List -->
+  <div class="orders-panel">
+    <div class="panel-header">
+      <h2>Órdenes Pendientes</h2>
+      <input 
+        type="text" 
+        class="search-input"
+        placeholder="Buscar orden..."
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchChange()"
+      />
+    </div>
+
+    <div class="orders-list">
+      @for (order of filteredOrders(); track order.id) {
+        <div 
+          class="order-card"
+          [class.selected]="selectedOrder()?.id === order.id"
+          (click)="selectOrder(order)"
+        >
+          <div class="order-header">
+            <span class="order-id">{{ order.id.substring(0, 8) }}...</span>
+            <span class="order-total">{{ formatCurrency(order.grand_total) }}</span>
+          </div>
+          <div class="order-details">
+            <p class="order-customer">{{ order.customer?.name || 'Sin cliente' }}</p>
+            <p class="order-warehouse">{{ order.warehouse?.name }}</p>
+            <p class="order-items">{{ order.lines?.length || 0 }} productos</p>
+          </div>
+        </div>
+      }
+
+      @if (filteredOrders().length === 0 && !loading()) {
+        <div class="empty-orders">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <p>No hay órdenes pendientes</p>
+        </div>
+      }
+
+      @if (loading()) {
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Cargando órdenes...</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Right Panel: Payment -->
+  <div class="payment-panel">
+    @if (selectedOrder()) {
+      <div class="panel-header">
+        <h2>Procesar Pago</h2>
+        <button class="btn-back" (click)="cancel()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          Volver
+        </button>
+      </div>
+
+      <div class="payment-content">
+        <!-- Order Summary -->
+        <div class="order-summary">
+          <h3>Resumen de Orden</h3>
+          <div class="summary-details">
+            <div class="detail-row">
+              <span>ID:</span>
+              <strong>{{ selectedOrder()!.id.substring(0, 8) }}...</strong>
+            </div>
+            <div class="detail-row">
+              <span>Cliente:</span>
+              <strong>{{ selectedOrder()!.customer?.name || 'Sin cliente' }}</strong>
+            </div>
+            <div class="detail-row">
+              <span>Almacén:</span>
+              <strong>{{ selectedOrder()!.warehouse?.name }}</strong>
+            </div>
+            <div class="detail-row">
+              <span>Productos:</span>
+              <strong>{{ selectedOrder()!.lines?.length || 0 }}</strong>
+            </div>
+          </div>
+
+          <div class="summary-totals">
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <strong>{{ formatCurrency(selectedOrder()!.total_subtotal) }}</strong>
+            </div>
+            <div class="total-row">
+              <span>IVA:</span>
+              <strong>{{ formatCurrency(selectedOrder()!.total_iva) }}</strong>
+            </div>
+            <div class="total-row">
+              <span>IEPS:</span>
+              <strong>{{ formatCurrency(selectedOrder()!.total_ieps) }}</strong>
+            </div>
+            <div class="total-row grand">
+              <span>Total a Pagar:</span>
+              <strong>{{ formatCurrency(selectedOrder()!.grand_total) }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="payment-method">
+          <h3>Método de Pago</h3>
+          <div class="method-options">
+            @for (method of paymentMethods; track method.value) {
+              <div 
+                class="method-option"
+                [class.selected]="paymentMethod() === method.value"
+                (click)="paymentMethod.set(method.value)"
+              >
+                <span class="method-icon">{{ method.icon }}</span>
+                <span class="method-label">{{ method.label }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Payment Amount -->
+        <div class="payment-amount">
+          <h3>Monto Recibido</h3>
+          <div class="amount-input-wrapper">
+            <span class="currency-symbol">$</span>
+            <input 
+              type="number" 
+              class="amount-input"
+              [(ngModel)]="paymentAmount"
+              min="0"
+              step="0.01"
+            />
+          </div>
+
+          @if (paymentMethod() !== 'cash') {
+            <div class="reference-input">
+              <label>Referencia / Autorización</label>
+              <input 
+                type="text" 
+                [(ngModel)]="paymentReference"
+                placeholder="Número de referencia"
+              />
+            </div>
+          }
+        </div>
+
+        <!-- Change -->
+        @if (paymentMethod() === 'cash' && calculateChange() > 0) {
+          <div class="change-display">
+            <span>Cambio:</span>
+            <strong>{{ formatCurrency(calculateChange()) }}</strong>
+          </div>
+        }
+
+        <!-- Actions -->
+        <div class="payment-actions">
+          <button 
+            class="btn-cancel" 
+            (click)="cancel()"
+            [disabled]="processing()"
+          >
+            Cancelar
+          </button>
+          <button 
+            class="btn-process" 
+            (click)="processPayment()"
+            [disabled]="processing() || paymentAmount() <= 0"
+          >
+            {{ processing() ? 'Procesando...' : 'Procesar Pago' }}
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="no-selection">
+        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+        <h3>Selecciona una orden</h3>
+        <p>Elige una orden de la lista para procesar el pago</p>
+      </div>
+    }
+  </div>
+</div>

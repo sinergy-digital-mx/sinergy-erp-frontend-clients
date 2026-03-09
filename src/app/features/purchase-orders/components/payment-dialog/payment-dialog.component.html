@@ -1,0 +1,138 @@
+<div class="dialog-overlay" (click)="closeDialog()">
+  <div class="dialog-container" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="dialog-title" aria-modal="true">
+    <!-- Header -->
+    <div class="dialog-header">
+      <h2 id="dialog-title">Registrar Pago</h2>
+      <button 
+        type="button" 
+        class="close-button" 
+        (click)="closeDialog()"
+        [disabled]="loading()"
+        aria-label="Cerrar diálogo"
+      >
+        <lucide-icon [img]="X" [size]="20"></lucide-icon>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="dialog-body">
+      <!-- Remaining Amount Display -->
+      <div class="remaining-amount-info" role="status" aria-live="polite">
+        <span class="label">Saldo pendiente:</span>
+        <span class="amount">{{ formatCurrency(remainingAmount) }}</span>
+      </div>
+
+      <!-- Payment Form -->
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <!-- Amount -->
+        <div class="form-field">
+          <label for="amount">Monto *</label>
+          <app-input
+            id="amount"
+            type="number"
+            formControlName="amount"
+            placeholder="0.00"
+            [attr.aria-required]="true"
+            [attr.aria-invalid]="form.get('amount')?.invalid && form.get('amount')?.touched"
+            [attr.aria-describedby]="form.get('amount')?.invalid && form.get('amount')?.touched ? 'amount-error' : null"
+          ></app-input>
+          <span 
+            id="amount-error"
+            class="error-message" 
+            role="alert"
+            *ngIf="form.get('amount')?.invalid && form.get('amount')?.touched"
+          >
+            {{ getAmountError() }}
+          </span>
+        </div>
+
+        <!-- Payment Date -->
+        <div class="form-field">
+          <label for="payment_date">Fecha de Pago *</label>
+          <app-input
+            id="payment_date"
+            type="date"
+            formControlName="payment_date"
+            [attr.aria-required]="true"
+            [attr.aria-invalid]="form.get('payment_date')?.invalid && form.get('payment_date')?.touched"
+          ></app-input>
+          <span 
+            class="error-message" 
+            role="alert"
+            *ngIf="form.get('payment_date')?.invalid && form.get('payment_date')?.touched"
+          >
+            La fecha de pago es requerida
+          </span>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="form-field">
+          <label for="payment_method">Método de Pago *</label>
+          <select 
+            id="payment_method"
+            class="form-select"
+            formControlName="payment_method"
+            [attr.aria-required]="true"
+            [attr.aria-invalid]="form.get('payment_method')?.invalid && form.get('payment_method')?.touched"
+          >
+            <option value="Transferencia">Transferencia</option>
+            <option value="Efectivo">Efectivo</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Tarjeta">Tarjeta</option>
+          </select>
+          <span 
+            class="error-message" 
+            role="alert"
+            *ngIf="form.get('payment_method')?.invalid && form.get('payment_method')?.touched"
+          >
+            El método de pago es requerido
+          </span>
+        </div>
+
+        <!-- Reference -->
+        <div class="form-field">
+          <label for="reference">Referencia</label>
+          <app-input
+            id="reference"
+            type="text"
+            formControlName="reference"
+            placeholder="Número de referencia o folio"
+          ></app-input>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-field">
+          <label for="notes">Notas</label>
+          <textarea
+            id="notes"
+            class="form-textarea"
+            formControlName="notes"
+            placeholder="Notas adicionales sobre el pago"
+            rows="3"
+          ></textarea>
+        </div>
+      </form>
+    </div>
+
+    <!-- Footer -->
+    <div class="dialog-footer">
+      <app-button
+        type="button"
+        variant="secondary"
+        (click)="closeDialog()"
+        [disabled]="loading()"
+      >
+        Cancelar
+      </app-button>
+      <app-button
+        type="button"
+        variant="primary"
+        (click)="submit()"
+        [disabled]="form.invalid || loading()"
+        [loading]="loading()"
+      >
+        Registrar Pago
+      </app-button>
+    </div>
+  </div>
+</div>
