@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -8,23 +8,55 @@ import { WarehouseService } from '../../../purchase-orders/services/warehouse.se
 import { InventoryItem, InventoryFilters, PaginationParams } from '../../models/inventory-item.model';
 import { Warehouse } from '../../../purchase-orders/models/warehouse.model';
 import { InventoryFilterBarComponent } from '../../components/inventory-filter-bar/inventory-filter-bar.component';
-import { InventoryTableComponent } from '../../components/inventory-table/inventory-table.component';
+import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
+import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { AdjustmentDialogComponent, AdjustmentFormData } from '../../components/adjustment-dialog/adjustment-dialog.component';
 
 @Component({
   selector: 'app-inventory-list',
   standalone: true,
-  imports: [CommonModule, InventoryFilterBarComponent, InventoryTableComponent],
+  imports: [CommonModule, InventoryFilterBarComponent, DatatableWrapperComponent],
   templateUrl: './inventory-list.component.html',
   styleUrls: ['./inventory-list.component.scss']
 })
 export class InventoryListComponent implements OnInit {
+  @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
+
+  readonly Math = Math;
+
   // State signals
   private itemsData = signal<InventoryItem[]>([]);
   private filtersState = signal<InventoryFilters>({});
-  private paginationState = signal<PaginationParams>({ page: 1, limit: 50 });
+  private paginationState = signal<PaginationParams>({ page: 1, limit: 15 });
   private loadingState = signal<boolean>(false);
+  private totalResultsState = signal<number>(0);
   private hasMoreState = signal<boolean>(true);
+  
+  // Table configuration
+  table_config = signal<IDatatableConfig>({
+    rows: [],
+    columns: [
+      { name: 'Producto', prop: 'product', sortable: true, canAutoResize: false, width: 120 },
+      { name: 'SKU', prop: 'sku', sortable: true, canAutoResize: false, width: 80 },
+      { name: 'Almacén', prop: 'warehouse', sortable: false, canAutoResize: false, width: 100 },
+      { name: 'En Mano', prop: 'quantity_on_hand', sortable: true, canAutoResize: false, width: 90 },
+      { name: 'Reservado', prop: 'quantity_reserved', sortable: false, canAutoResize: false, width: 90 },
+      { name: 'Disponible', prop: 'quantity_available', sortable: true, canAutoResize: false, width: 90 },
+      { name: 'Ubicación', prop: 'location', sortable: false, canAutoResize: false, width: 100 },
+      { name: 'Costo Unit.', prop: 'unit_cost', sortable: true, canAutoResize: false, width: 100 },
+      { name: 'Valor Total', prop: 'total_value', sortable: true, canAutoResize: false, width: 100 },
+      { name: '', prop: 'actions', sortable: false, canAutoResize: false, width: 45 },
+    ],
+    externalPaging: true,
+    externalSorting: true,
+    page: 1,
+    limit: 15,
+    totalResults: 0,
+    loading: false,
+    emptyState: { title: 'Sin resultados', subtitle: 'No se encontraron artículos de inventario' },
+    columnMode: 'force',
+    reorderable: false,
+  });
   
   // Public readonly signals
   items = this.itemsData.asReadonly();
@@ -35,47 +67,17 @@ export class InventoryListComponent implements OnInit {
   // Warehouses for filters
   warehouses = signal<Warehouse[]>([]);
   
-  // Computed: filtered items (client-side filtering for demo)
-  filteredItems = computed(() => {
-    const items = this.itemsData();
-    const filters = this.filtersState();
-    
-    if (!filters.search && !filters.warehouse_id && !filters.low_stock) {
-      return items;
-    }
-    
-    return items.filter(item => {
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const matchesSearch = 
-          item.product?.name?.toLowerCase().includes(searchLower) ||
-          item.product?.sku?.toLowerCase().includes(searchLower);
-        if (!matchesSearch) return false;
-      }
-      
-      if (filters.warehouse_id && item.warehouse_id !== filters.warehouse_id) {
-        return false;
-      }
-      
-      if (filters.low_stock && item.quantity_available >= 10) {
-        return false;
-      }
-      
-      return true;
-    });
-  });
-
   // Computed: summary statistics
   totalValue = computed(() => {
-    return this.filteredItems().reduce((sum, item) => sum + (item.total_value || 0), 0);
+    return this.itemsData().reduce((sum, item) => sum + (item.total_value || 0), 0);
   });
 
   totalItems = computed(() => {
-    return this.filteredItems().reduce((sum, item) => sum + (item.quantity_on_hand || 0), 0);
+    return this.itemsData().reduce((sum, item) => sum + (item.quantity_on_hand || 0), 0);
   });
 
   lowStockCount = computed(() => {
-    return this.filteredItems().filter(item => item.quantity_available < 10).length;
+    return this.itemsData().filter(item => item.quantity_available < 10).length;
   });
 
   constructor(
@@ -96,29 +98,47 @@ export class InventoryListComponent implements OnInit {
    */
   loadItems(): void {
     this.loadingState.set(true);
+    this.table_config.update(c => ({ ...c, loading: true }));
     
     this.inventoryService
       .getItems(this.filtersState(), this.paginationState())
       .subscribe({
         next: (response) => {
           console.log('Inventory items response:', response);
-          // Handle both paginated and non-paginated responses
+          let items: InventoryItem[] = [];
+          let total = 0;
+          let hasNext = false;
+
           if (Array.isArray(response)) {
-            this.itemsData.set(response as any);
-            this.hasMoreState.set(false);
+            items = response as any;
+            total = items.length;
+            hasNext = false;
           } else if (response.data) {
-            this.itemsData.set(response.data);
-            this.hasMoreState.set(response.page < response.totalPages);
+            items = response.data;
+            total = response.total || response.data.length;
+            hasNext = response.page < response.totalPages;
           } else {
             console.error('Unknown response format:', response);
-            this.itemsData.set([]);
-            this.hasMoreState.set(false);
           }
+
+          this.itemsData.set(items);
+          this.totalResultsState.set(total);
+          this.hasMoreState.set(hasNext);
+          
+          this.table_config.update(c => ({
+            ...c,
+            rows: items,
+            totalResults: total,
+            hasNext: hasNext,
+            loading: false,
+          }));
+          
           this.loadingState.set(false);
         },
         error: (error) => {
           console.error('Error loading inventory items:', error);
           this.loadingState.set(false);
+          this.table_config.update(c => ({ ...c, loading: false }));
         }
       });
   }
@@ -144,49 +164,58 @@ export class InventoryListComponent implements OnInit {
    */
   applyFilters(filters: InventoryFilters): void {
     this.filtersState.set(filters);
-    this.paginationState.set({ page: 1, limit: 50 });
+    this.paginationState.set({ page: 1, limit: 15 });
     this.loadItems();
   }
 
   /**
-   * Load more items (infinite scroll)
+   * Handle pagination change
    */
-  loadMore(): void {
-    if (!this.hasMoreState() || this.loadingState()) {
-      return;
-    }
-    
-    const currentPagination = this.paginationState();
-    this.paginationState.set({
-      ...currentPagination,
-      page: currentPagination.page + 1
-    });
-    
+  onPageChange(event: IPaginationEvent): void {
+    this.paginationState.set({ page: event.page, limit: event.limit });
     this.loadItems();
   }
 
   /**
-   * Navigate to item detail
+   * Handle sort change
    */
-  navigateToDetail(id: string): void {
-    this.router.navigate(['/inventory', id]);
+  onSortChange(event: ISortEvent): void {
+    console.log('Sort changed:', event);
   }
 
   /**
    * Format currency
    */
-  formatCurrency(value: number): string {
+  formatCurrency(value: number | string | undefined): string {
+    if (value === undefined || value === null) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) return '$0.00';
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN'
-    }).format(value);
+    }).format(numValue);
   }
 
   /**
    * Format number
    */
-  formatNumber(value: number): string {
+  formatNumber(value: number | undefined): string {
+    if (value === undefined || value === null) return '0';
     return new Intl.NumberFormat('es-MX').format(value);
+  }
+
+  /**
+   * Check if item has low stock
+   */
+  isLowStock(item: InventoryItem): boolean {
+    return item.quantity_available < 10;
+  }
+
+  /**
+   * Navigate to item detail
+   */
+  navigateToDetail(item: InventoryItem): void {
+    this.router.navigate(['/inventory', item.id]);
   }
 
   /**
@@ -220,7 +249,6 @@ export class InventoryListComponent implements OnInit {
           horizontalPosition: 'end',
           verticalPosition: 'top'
         });
-        // Reload items to reflect the adjustment
         this.loadItems();
       },
       error: (error) => {
@@ -237,5 +265,22 @@ export class InventoryListComponent implements OnInit {
         this.loadingState.set(false);
       }
     });
+  }
+
+  /**
+   * Load more items (infinite scroll)
+   */
+  loadMore(): void {
+    if (!this.hasMoreState() || this.loadingState()) {
+      return;
+    }
+    
+    const currentPagination = this.paginationState();
+    this.paginationState.set({
+      ...currentPagination,
+      page: currentPagination.page + 1
+    });
+    
+    this.loadItems();
   }
 }

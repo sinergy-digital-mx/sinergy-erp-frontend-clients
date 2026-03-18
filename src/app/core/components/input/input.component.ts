@@ -14,6 +14,7 @@ export class InputComponent {
   @Input() label: string = ''
   @Input() placeholder: string = ''
   @Input() disabled: string = ''
+  @Input() readonly: boolean = false
   @Input() form_control: any
   @Input() type: 'text' | 'number' | 'time' | 'date' | 'textarea' = 'text'
   @Input() has_error: boolean = false

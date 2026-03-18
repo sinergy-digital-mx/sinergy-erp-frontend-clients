@@ -17,6 +17,10 @@ export class PaymentService {
     return this.http.post<Payment[]>(`${this.api}/tenant/contracts/${contractId}/payments/generate`, {});
   }
 
+  regeneratePayments(contractId: string): Observable<Payment[]> {
+    return this.http.post<Payment[]>(`${this.api}/tenant/contracts/${contractId}/payments/regenerate`, {});
+  }
+
   getPayments(contractId: string): Observable<Payment[]> {
     return this.http.get<Payment[]>(`${this.api}/tenant/contracts/${contractId}/payments`);
   }
@@ -47,6 +51,10 @@ export class PaymentService {
 
   registerPartialPayment(contractId: string, paymentId: string, data: RegisterPartialPaymentDto): Observable<Payment> {
     return this.http.post<Payment>(`${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/pay`, data);
+  }
+
+  resetPayment(contractId: string, paymentId: string): Observable<Payment> {
+    return this.http.post<Payment>(`${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/reset`, {});
   }
 
   uploadDocument(contractId: string, paymentId: string, file: File, document_type: string, notes?: string): Observable<PaymentDocument> {

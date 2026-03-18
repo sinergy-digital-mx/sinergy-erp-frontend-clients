@@ -49,7 +49,7 @@ export type ContractStatus = 'activo' | 'completado' | 'cancelado' | 'suspendido
 export interface CreateContractDto {
   customer_id: number;
   property_id: string;
-  contract_number: string;
+  contract_number?: string;
   contract_date: string;
   total_price: number;
   down_payment: number;

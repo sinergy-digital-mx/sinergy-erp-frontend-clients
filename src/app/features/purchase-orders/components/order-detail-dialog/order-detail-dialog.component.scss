@@ -1,62 +1,49 @@
-.order-detail-dialog {
+.dialog {
+  height: 700px;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  max-height: 90vh;
-  background-color: #f5f5f5;
 }
 
-.loading-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-}
-
-// Header
-.dialog-header {
+.dialog__header {
+  padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+  border-bottom: 1px solid #e5e7eb;
+
+  h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .close {
+    cursor: pointer;
+    color: #6b7280;
+    transition: color 0.2s;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      color: #111827;
+    }
+  }
 }
 
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.header-label {
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
   font-size: 0.75rem;
-  color: #666;
-  font-weight: 500;
-}
-
-.order-id {
-  font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.status-button {
-  padding: 0.5rem 1rem;
-  background-color: #fff9e6;
-  color: #856404;
-  border: none;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 0.25rem;
 
   &.status-en-proceso {
     background-color: #fef3c7;
@@ -74,61 +61,126 @@
   }
 }
 
-.close-button {
-  color: #6b7280;
+// Custom PrimeNG TabView Styling
+::ng-deep .custom-tabs {
+  .p-tabview {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .p-tabview-nav {
+    border-bottom: 2px solid #e5e7eb !important;
+    padding: 0 1rem;
+    background: transparent !important;
+  }
+
+  .p-tabview-nav-content {
+    gap: 0.25rem;
+  }
+
+  .p-tabview-nav-link {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: #6b7280 !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    margin-bottom: -2px !important;
+    transition: all 0.2s !important;
+
+    &:hover {
+      color: #111827 !important;
+    }
+
+    &.p-tabview-nav-link-active {
+      color: #7c3aed !important;
+      border-bottom-color: #7c3aed !important;
+    }
+  }
+
+  .p-tabview-panels {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    min-height: 0;
+  }
+
+  .p-tabview-panel {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    min-height: 0;
+    padding: 0 !important;
+  }
 }
 
-// Main Body Layout
-.dialog-body {
-  display: flex;
+.dialog__body {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  min-height: 0;
 }
 
 // Sidebar
 .sidebar {
-  width: 240px;
-  background-color: #ffffff;
-  border-right: 1px solid #e0e0e0;
+  width: 280px;
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
   padding: 1.5rem 1rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+  flex-shrink: 0;
 }
 
+// Info Cards
 .info-card {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
 }
 
 .card-icon-wrapper {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.5rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 
-  mat-icon {
-    font-size: 1.5rem;
+  svg {
     width: 1.5rem;
     height: 1.5rem;
     color: #ffffff;
   }
 
   &.cyan {
-    background-color: #00bcd4;
+    background-color: #06b6d4;
+  }
+
+  &.green {
+    background-color: #10b981;
   }
 
   &.orange {
-    background-color: #ff9800;
+    background-color: #f59e0b;
   }
 
   &.purple {
-    background-color: #9c27b0;
+    background-color: #a855f7;
   }
 }
 
@@ -140,30 +192,32 @@
 }
 
 .card-label {
-  font-size: 0.625rem;
-  color: #999;
+  font-size: 0.7rem;
+  color: #9ca3af;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .card-value {
-  font-size: 0.875rem;
-  color: #333;
-  font-weight: 500;
+  font-size: 0.95rem;
+  color: #111827;
+  font-weight: 600;
   word-break: break-word;
 }
 
 // Dates Section
 .dates-section {
-  padding-top: 1rem;
-  border-top: 1px solid #e0e0e0;
+  padding: 1rem;
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
 }
 
 .section-title {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: #666;
+  color: #6b7280;
   margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -174,27 +228,39 @@
   flex-direction: column;
   gap: 0.25rem;
   margin-bottom: 0.75rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .date-label {
   font-size: 0.75rem;
-  color: #999;
+  color: #9ca3af;
 }
 
 .date-value {
   font-size: 0.875rem;
-  color: #333;
+  color: #111827;
   font-weight: 500;
 
   &.payment-status {
-    color: #4caf50;
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: #d1fae5;
+    color: #065f46;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
   }
 }
 
 // Totals Section
 .totals-section {
-  padding-top: 1rem;
-  border-top: 1px solid #e0e0e0;
+  padding: 1rem;
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
 }
 
 .totals-row {
@@ -204,25 +270,27 @@
   font-size: 0.875rem;
 
   &:not(:last-child) {
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f3f4f6;
   }
 }
 
 .totals-row-grand {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1rem;
   color: #2563eb;
   padding-top: 0.75rem;
-  border-top: 2px solid #e0e0e0 !important;
+  border-top: 2px solid #e5e7eb !important;
 }
 
 .totals-label {
-  color: #666;
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 .totals-value {
-  color: #333;
-  font-weight: 500;
+  color: #111827;
+  font-weight: 600;
+  text-align: right;
 }
 
 // Content Area
@@ -232,55 +300,37 @@
   flex-direction: column;
   overflow: hidden;
   background-color: #ffffff;
-}
-
-// Tabs
-.order-tabs {
-  flex: 1;
-  overflow: hidden;
-
-  ::ng-deep {
-    .mat-mdc-tab-labels {
-      background-color: #ffffff;
-      border-bottom: 1px solid #e0e0e0;
-    }
-
-    .mat-mdc-tab {
-      min-width: 120px;
-    }
-
-    .mat-mdc-tab-body-wrapper {
-      flex: 1;
-      overflow: auto;
-    }
-  }
-}
-
-.tab-content {
-  padding: 1.5rem;
-  height: 100%;
+  padding: 1rem;
+  min-width: 0;
 }
 
 // Products Table
 .products-table {
   width: 100%;
-  overflow-x: auto;
+  height: 100%;
+  overflow: auto;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 
   table {
     width: 100%;
     border-collapse: collapse;
     background-color: #ffffff;
+    table-layout: fixed;
 
     thead {
       tr {
-        border-bottom: 2px solid #e0e0e0;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
 
         th {
-          padding: 0.75rem 1rem;
+          padding: 0.75rem;
           text-align: left;
           font-size: 0.75rem;
           font-weight: 600;
-          color: #666;
+          color: #374151;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -289,16 +339,18 @@
 
     tbody {
       tr {
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid #f3f4f6;
+        transition: background 0.2s;
 
         &:hover {
-          background-color: #fafafa;
+          background: #f9fafb;
         }
 
         td {
-          padding: 1rem;
+          padding: 0.75rem;
+          color: #374151;
           font-size: 0.875rem;
-          color: #333;
+          word-break: break-word;
         }
       }
     }
@@ -316,11 +368,6 @@
   color: #111827;
 }
 
-.product-type {
-  font-size: 0.75rem;
-  color: #999;
-}
-
 // Empty State
 .empty-state {
   display: flex;
@@ -329,9 +376,9 @@
   justify-content: center;
   padding: 3rem 1rem;
   color: #9ca3af;
+  width: 100%;
 
-  mat-icon {
-    font-size: 3rem;
+  svg {
     width: 3rem;
     height: 3rem;
     margin-bottom: 0.5rem;
@@ -342,25 +389,52 @@
   }
 }
 
-// Footer Note
-.footer-note {
-  padding: 0.75rem 1.5rem;
-  background-color: #f9fafb;
-  border-top: 1px solid #e0e0e0;
-  font-size: 0.875rem;
-  color: #666;
+.dialog__footer {
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+
+  button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
 }
 
 // Responsive
 @media (max-width: 768px) {
-  .dialog-body {
+  .dialog {
+    width: 90vw;
+    height: 80vh;
+  }
+
+  .dialog__body {
     flex-direction: column;
   }
 
   .sidebar {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e5e7eb;
   }
 
   .products-table {
@@ -373,7 +447,7 @@
         tr {
           display: block;
           margin-bottom: 1rem;
-          border: 1px solid #e0e0e0;
+          border: 1px solid #e5e7eb;
           border-radius: 0.5rem;
 
           td {
@@ -385,7 +459,7 @@
               content: attr(data-label);
               float: left;
               font-weight: 600;
-              color: #666;
+              color: #6b7280;
             }
           }
         }

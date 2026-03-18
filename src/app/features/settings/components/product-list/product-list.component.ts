@@ -152,15 +152,7 @@ export class ProductListComponent implements OnDestroy {
     }));
   }
 
-  getBaseUoMDisplay(product: Product): string {
-    if (product.base_uom && product.base_uom.abbreviation) {
-      return product.base_uom.abbreviation;
-    }
-    if (product.base_uom && product.base_uom.name) {
-      return product.base_uom.name;
-    }
-    return product.base_uom_id ? product.base_uom_id : '—';
-  }
+
 
   openCreateProductModal() {
     const dialogRef = this.dialog.open(ProductDetailModalComponent, {

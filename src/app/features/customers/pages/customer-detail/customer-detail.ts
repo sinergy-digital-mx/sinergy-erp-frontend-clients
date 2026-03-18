@@ -1,7 +1,6 @@
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, NO_ERRORS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { MatCardModule } from '@angular/material/card';
@@ -21,9 +20,9 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
 @Component({
   selector: 'app-customer-detail',
   standalone: true,
+  schemas: [NO_ERRORS_SCHEMA],
   imports: [
     CommonModule,
-    TableModule,
     TagModule,
     ButtonModule,
     MatCardModule,

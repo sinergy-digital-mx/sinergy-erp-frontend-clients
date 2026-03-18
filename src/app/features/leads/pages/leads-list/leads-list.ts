@@ -1,7 +1,6 @@
 import { Component, effect, TemplateRef, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -29,7 +28,6 @@ import { GroupFetchService } from '../../services/group-fetch.service';
   imports: [
     CommonModule,
     FormsModule,
-    TableModule,
     TagModule,
     ButtonModule,
     DatatableWrapperComponent,

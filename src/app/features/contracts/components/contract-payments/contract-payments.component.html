@@ -11,50 +11,119 @@
         [loading]="generating()"
         (clicked)="generatePayments()">
       </app-button>
+      
+      <app-button
+        *ngIf="payments().length > 0"
+        text="Regenerar Pagos"
+        custom_class="btn_danger"
+        size="sm"
+        [icon]="RefreshCw"
+        [loading]="regenerating()"
+        (clicked)="regeneratePayments()"
+        matTooltip="⚠️ Elimina todos los pagos existentes y los regenera. Acción irreversible.">
+      </app-button>
     </div>
   </div>
 
   <!-- Stats Cards -->
-  <div *ngIf="stats()" class="grid grid-cols-6 gap-3 mb-2">
-    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-      <p class="text-xs text-blue-600 font-medium">Total Pagos</p>
-      <p class="text-lg font-bold text-blue-900">{{ stats()!.total_payments }} <span class="text-sm font-normal">meses</span></p>
+  <div *ngIf="stats()" class="grid grid-cols-5 gap-4 mb-6 w-full">
+    <!-- Total Pagos -->
+    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-medium text-gray-600">Total Pagos</p>
+        <div class="w-6 h-6 bg-gray-100 rounded flex items-center justify-center">
+          <span class="text-gray-600 text-xs font-bold">#</span>
+        </div>
+      </div>
+      <p class="text-2xl font-bold text-gray-900 mb-1">{{ stats()!.total_payments }}</p>
+      <p class="text-xs text-gray-500 mb-2">meses</p>
+      <p class="text-sm font-medium text-gray-700">{{ (stats()!.financed_amount || 0) | currency:currency }}</p>
     </div>
-    <div class="bg-green-50 p-3 rounded-lg border border-green-200">
-      <p class="text-xs text-green-600 font-medium">Pagados</p>
-      <p class="text-lg font-bold text-green-900">{{ stats()!.paid_count }} <span class="text-sm font-normal">meses</span></p>
-      <p class="text-xs text-green-700">{{ (stats()!.total_paid || 0) | currency:currency }}</p>
-    </div>
-    <div *ngIf="stats()!.paid_months !== undefined" class="bg-green-50 p-3 rounded-lg border border-green-200">
-      <p class="text-xs text-green-600 font-medium">Meses Pagados</p>
-      <p class="text-lg font-bold text-green-900">{{ stats()!.paid_months }} <span class="text-sm font-normal">meses</span></p>
-    </div>
-    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-      <p class="text-xs text-blue-600 font-medium">Parciales</p>
-      <p class="text-lg font-bold text-blue-900">{{ stats()!.partial_count }}</p>
-      <div *ngIf="stats()!.partial_payment" class="mt-1 space-y-0.5">
-        <p class="text-xs text-blue-700">Pago #{{ stats()!.partial_payment!.installment_number }}</p>
-        <p class="text-xs text-blue-700">Abonado: {{ stats()!.partial_payment!.amount_paid | currency:currency }}</p>
-        <p class="text-xs text-orange-600 font-medium">Faltante: {{ stats()!.partial_payment!.remaining_amount | currency:currency }}</p>
+
+    <!-- Pagados -->
+    <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-medium text-green-700">Pagados</p>
+        <div class="w-6 h-6 bg-green-100 rounded flex items-center justify-center">
+          <span class="text-green-600 text-xs font-bold">✓</span>
+        </div>
+      </div>
+      <p class="text-2xl font-bold text-green-800 mb-1">{{ stats()!.paid_count }}</p>
+      <p class="text-xs text-green-600 mb-2">completos</p>
+      
+      <div class="mt-3 space-y-1">
+        <p class="text-xs text-green-600">{{ stats()!.paid_count }} × {{ (stats()!.paid_amount_complete / stats()!.paid_count) | currency:currency }}</p>
+        <p class="text-sm font-medium text-green-700">{{ (stats()!.paid_amount_complete || 0) | currency:currency }}</p>
+        
+        <div *ngIf="stats()!.paid_amount_partial > 0" class="pt-1 border-t border-green-200">
+          <p class="text-xs text-blue-600">+ Parcial: {{ stats()!.paid_amount_partial | currency:currency }}</p>
+          <p class="text-sm font-bold text-green-800 mt-1">Total: {{ (stats()!.total_paid_from_payments || 0) | currency:currency }}</p>
+        </div>
       </div>
     </div>
-    <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-      <p class="text-xs text-yellow-600 font-medium">Pendientes</p>
+
+    <!-- Parciales -->
+    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-medium text-blue-700">Parciales</p>
+        <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+          <span class="text-blue-600 text-xs font-bold">◐</span>
+        </div>
+      </div>
+      <p class="text-2xl font-bold text-blue-800 mb-1">{{ (stats()!.partial_count || 0) + (stats()!.partial_overdue_count || 0) }}</p>
+      
+      <div *ngIf="stats()!.partial_payment" class="mt-3 space-y-1">
+        <div class="flex items-center gap-1">
+          <p class="text-xs font-medium text-blue-700">Pago #{{ stats()!.partial_payment!.installment_number }}</p>
+          <span *ngIf="stats()!.partial_payment!.is_overdue" class="text-red-500 text-xs">!</span>
+        </div>
+        <p class="text-xs text-blue-600">Abonado: {{ (stats()!.partial_payment!.amount_paid || 0) | currency:currency }}</p>
+        <p class="text-xs font-medium text-orange-600">Faltante: {{ stats()!.partial_payment!.remaining_amount | currency:currency }}</p>
+      </div>
+      
+      <div *ngIf="stats()!.partial_overdue_count > 0" class="mt-2">
+        <span class="inline-block px-2 py-1 bg-red-100 rounded text-xs font-medium text-red-600">{{ stats()!.partial_overdue_count }} vencidos</span>
+      </div>
+    </div>
+
+    <!-- Pendientes -->
+    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-medium text-yellow-700">Pendientes</p>
+        <div class="w-6 h-6 bg-yellow-100 rounded flex items-center justify-center">
+          <span class="text-yellow-600 text-xs font-bold">⏳</span>
+        </div>
+      </div>
+      <p class="text-2xl font-bold text-yellow-800 mb-1">{{ (stats()!.pending_count || 0) + (stats()!.pending_overdue_count || 0) }}</p>
+      <p class="text-xs text-yellow-600 mb-2">meses</p>
+      
       <div class="space-y-1">
-        <p class="text-lg font-bold text-yellow-900">
-          {{ stats()!.pending_full_payments || 0 }} <span class="text-sm font-normal">meses</span>
-        </p>
         <p *ngIf="stats()!.partial_payment" class="text-xs text-orange-600">
           + 1 pago con saldo de {{ stats()!.partial_payment!.remaining_amount | currency:currency }}
         </p>
-        <p class="text-xs text-yellow-700 font-medium mt-1">
-          Total: {{ (stats()!.total_pending_amount || 0) | currency:currency }}
-        </p>
+        <p class="text-sm font-medium text-yellow-700">{{ (stats()!.total_pending || 0) | currency:currency }}</p>
+      </div>
+      
+      <div *ngIf="stats()!.pending_overdue_count > 0" class="mt-2">
+        <span class="inline-block px-2 py-1 bg-red-100 rounded text-xs font-medium text-red-600">{{ stats()!.pending_overdue_count }} vencidos</span>
       </div>
     </div>
-    <div class="bg-red-50 p-3 rounded-lg border border-red-200">
-      <p class="text-xs text-red-600 font-medium">Vencidos</p>
-      <p class="text-lg font-bold text-red-900">{{ stats()!.overdue_count }} <span class="text-sm font-normal">meses</span></p>
+
+    <!-- Vencidos -->
+    <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-medium text-red-700">Vencidos</p>
+        <div class="w-6 h-6 bg-red-100 rounded flex items-center justify-center">
+          <span class="text-red-600 text-xs font-bold">!</span>
+        </div>
+      </div>
+      <p class="text-2xl font-bold text-red-800 mb-1">{{ stats()!.overdue_count || 0 }}</p>
+      <p class="text-xs text-red-600 mb-2">meses</p>
+      
+      <div *ngIf="(stats()!.partial_overdue_count || 0) > 0 || (stats()!.pending_overdue_count || 0) > 0" class="space-y-1">
+        <p *ngIf="stats()!.pending_overdue_count > 0" class="text-xs text-red-600">{{ stats()!.pending_overdue_count }} pendientes</p>
+        <p *ngIf="stats()!.partial_overdue_count > 0" class="text-xs text-red-600">{{ stats()!.partial_overdue_count }} parciales</p>
+      </div>
     </div>
   </div>
 
@@ -104,9 +173,12 @@
             <div *ngIf="!payment.paid_date && !payment.first_partial_payment_date">—</div>
           </td>
           <td class="px-3 py-2">
-            <span [class]="getStatusClass(payment.status)">
-              {{ getStatusLabel(payment.status) }}
-            </span>
+            <div class="flex items-center gap-2">
+              <span [class]="getStatusClass(payment.status, payment.is_overdue)">
+                {{ getStatusLabel(payment.status, payment.is_overdue) }}
+              </span>
+              <span *ngIf="payment.is_overdue" class="text-red-500 text-xs" title="Vencido">⚠️</span>
+            </div>
           </td>
           <td class="px-3 py-2 text-sm text-gray-600">{{ payment.payment_method || '—' }}</td>
           <td class="px-3 py-2 text-sm text-gray-600">{{ payment.reference_number || '—' }}</td>
@@ -129,20 +201,12 @@
                 <lucide-icon [img]="Edit" [size]="16"></lucide-icon>
               </button>
               <button
-                *ngIf="canCancel(payment)"
-                (click)="cancelPayment(payment)"
-                class="p-1.5 text-orange-600 hover:text-white hover:bg-orange-600 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                [matTooltip]="'Cancelar Pago'"
+                *ngIf="canResetPayment(payment)"
+                (click)="resetPayment(payment)"
+                class="p-1.5 text-purple-600 hover:text-white hover:bg-purple-600 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                [matTooltip]="'Resetear Pago'"
                 matTooltipPosition="above">
-                <lucide-icon [img]="X" [size]="16"></lucide-icon>
-              </button>
-              <button
-                *ngIf="canDelete(payment)"
-                (click)="deletePayment(payment)"
-                class="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                [matTooltip]="'Eliminar Pago'"
-                matTooltipPosition="above">
-                <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
+                <lucide-icon [img]="RotateCcw" [size]="16"></lucide-icon>
               </button>
             </div>
           </td>

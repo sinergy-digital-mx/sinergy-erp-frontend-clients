@@ -12,6 +12,7 @@ export interface Payment {
   paid_date: string | null;
   first_partial_payment_date: string | null;
   status: PaymentStatus;
+  is_overdue: boolean;
   payment_method: string | null;
   reference_number: string | null;
   notes: string | null;
@@ -20,9 +21,9 @@ export interface Payment {
 }
 
 /**
- * Payment Status
+ * Payment Status (clean states)
  */
-export type PaymentStatus = 'pendiente' | 'pagado' | 'parcial' | 'vencido' | 'cancelado';
+export type PaymentStatus = 'pendiente' | 'pagado' | 'parcial' | 'cancelado';
 
 /**
  * Payment Statistics
@@ -33,18 +34,28 @@ export interface PaymentStats {
   pending_count: number;
   partial_count: number;
   overdue_count: number;
-  cancelled_count: number;
+  partial_overdue_count: number;
+  pending_overdue_count: number;
+  cancelled_count?: number;
   total_paid: number;
-  total_partial: number;
+  total_paid_from_payments: number;
+  paid_amount_complete: number;
+  paid_amount_partial: number;
+  total_partial?: number;
   total_pending: number;
-  total_pending_amount: number;
-  pending_full_payments: number;
+  total_pending_amount?: number;
+  pending_full_payments?: number;
+  total_expected: number;
+  financed_amount: number;
+  total_price: number;
+  down_payment: number;
   paid_months?: number;
   partial_payment?: {
     installment_number: number;
     amount_paid: number;
     remaining_amount: number;
     status: string;
+    is_overdue: boolean;
   };
   next_payment: {
     payment_number: number;

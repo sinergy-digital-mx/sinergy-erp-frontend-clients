@@ -46,7 +46,8 @@ export class PropertyGroupDropdownComponent implements OnInit {
       form_control: null,
       loading: this.loading(),
       all: true,
-      all_message: 'Todos los proyectos'
+      all_message: 'Todos los proyectos',
+      value_default: this.selectedGroupId
     };
   }
 

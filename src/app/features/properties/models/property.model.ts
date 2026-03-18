@@ -5,6 +5,7 @@ export interface Property {
   id: string;
   code: string;
   block?: string;
+  lot_number?: string;
   name: string;
   description?: string;
   location?: string;
@@ -49,6 +50,7 @@ export type PropertyStatus = 'disponible' | 'vendido' | 'reservado' | 'cancelado
 export interface CreatePropertyDto {
   code: string;
   block?: string;
+  lot_number?: string;
   name: string;
   description?: string;
   location?: string;

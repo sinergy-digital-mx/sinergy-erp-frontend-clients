@@ -43,6 +43,7 @@ export class ContractDetailModalComponent implements OnInit {
 
   form: FormGroup;
   saving = signal(false);
+  deleting = signal(false);
   activeTab = signal<'edit' | 'payments' | 'documents'>('edit');
   paymentStats = signal<PaymentStats | null>(null);
 
@@ -206,5 +207,36 @@ export class ContractDetailModalComponent implements OnInit {
   getCustomerName(): string {
     if (!this.data.contract.customer) return '—';
     return `${this.data.contract.customer.name} ${this.data.contract.customer.lastname}`;
+  }
+
+  deleteContract() {
+    const contractNumber = this.data.contract.contract_number;
+    const customerName = this.getCustomerName();
+    
+    const confirmMessage = `¿Estás seguro de que deseas eliminar el contrato ${contractNumber}${customerName !== '—' ? ` de ${customerName}` : ''}?\n\nEsta acción no se puede deshacer y eliminará:\n• El contrato y todos sus datos\n• Todos los pagos asociados\n• Todos los documentos asociados`;
+    
+    if (!confirm(confirmMessage)) return;
+
+    this.deleting.set(true);
+
+    this.contractService.deleteContract(this.data.contract.id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.interceptorService.openSnackbar({
+          type: 'success',
+          title: 'Éxito',
+          message: 'Contrato eliminado correctamente'
+        });
+        this.dialog_ref.close('deleted');
+      },
+      error: (error) => {
+        this.deleting.set(false);
+        this.interceptorService.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: error.error?.message || 'Error al eliminar el contrato'
+        });
+      }
+    });
   }
 }

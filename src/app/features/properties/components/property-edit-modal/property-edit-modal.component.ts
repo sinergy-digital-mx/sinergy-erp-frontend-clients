@@ -89,8 +89,9 @@ export class PropertyEditModalComponent implements OnInit {
     private router: Router
   ) {
     this.form = this.fb.group({
-      code: ['', [Validators.required]],
-      block: [''],
+      code: [{ value: '', disabled: true }], // Auto-generado, solo lectura
+      block: ['', [Validators.required]],
+      lot_number: ['', [Validators.required]],
       name: ['', [Validators.required]],
       description: [''],
       location: [''],
@@ -112,6 +113,7 @@ export class PropertyEditModalComponent implements OnInit {
       this.form.patchValue({
         code: this.data.property.code,
         block: this.data.property.block || '',
+        lot_number: this.data.property.lot_number || '',
         name: this.data.property.name,
         description: this.data.property.description || '',
         location: this.data.property.location || '',
@@ -123,11 +125,32 @@ export class PropertyEditModalComponent implements OnInit {
         status: this.data.property.status
       });
     }
+
+    // Suscribirse a cambios en manzana y número de lote para generar código automáticamente
+    this.form.get('block')?.valueChanges.subscribe(() => {
+      this.generateCode();
+    });
+
+    this.form.get('lot_number')?.valueChanges.subscribe(() => {
+      this.generateCode();
+    });
   }
 
   ngOnInit() {
     this.loadMeasurementUnits();
     this.loadPropertyGroups();
+  }
+
+  generateCode(): void {
+    const block = this.form.get('block')?.value;
+    const lotNumber = this.form.get('lot_number')?.value;
+    
+    if (block && lotNumber) {
+      const code = `LOT-${block}-${lotNumber.toString().padStart(2, '0')}`;
+      this.form.get('code')?.setValue(code);
+    } else {
+      this.form.get('code')?.setValue('');
+    }
   }
 
   loadPropertyGroups() {
@@ -224,9 +247,15 @@ export class PropertyEditModalComponent implements OnInit {
 
     this.loading.set(true);
 
+    // Habilitar temporalmente el campo code para enviarlo
+    this.form.get('code')?.enable();
+
     const payload = {
       ...this.form.value
     };
+
+    // Deshabilitar nuevamente el campo code
+    this.form.get('code')?.disable();
 
     this.propertyService.createProperty(payload).subscribe({
       next: () => {
@@ -261,9 +290,15 @@ export class PropertyEditModalComponent implements OnInit {
 
     this.loading.set(true);
 
+    // Habilitar temporalmente el campo code para enviarlo
+    this.form.get('code')?.enable();
+
     const payload = {
       ...this.form.value
     };
+
+    // Deshabilitar nuevamente el campo code
+    this.form.get('code')?.disable();
 
     this.propertyService.updateProperty(this.data.property!.id, payload).subscribe({
       next: () => {

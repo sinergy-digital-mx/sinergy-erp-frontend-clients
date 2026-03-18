@@ -12,7 +12,7 @@
 
 .dialog {
   background: #fff;
-  width: 100vw;
+  width: auto;
   max-width: 90vw;
   max-height: 100dvh;
   display: flex;
@@ -48,8 +48,8 @@
 
   &__body {
     flex: 1;
-    overflow-y: auto;
-    padding: 1.5rem;
+    overflow: hidden;
+    padding: 0;
   }
 
   &__footer {

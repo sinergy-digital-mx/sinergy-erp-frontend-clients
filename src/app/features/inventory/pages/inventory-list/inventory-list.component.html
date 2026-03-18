@@ -1,66 +1,168 @@
-<div class="inventory-list">
-  <div class="header">
-    <h1>Inventario</h1>
-    <button class="btn-create" (click)="openAdjustmentDialog()">
-      Ajuste de Inventario
-    </button>
+<div class="inventory-list-container">
+  <div class="inventory-content">
+    <div class="px-4">
+      <!-- Header -->
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+        <h2 class="text-2xl font-semibold text-gray-800">Inventario</h2>
+        <button 
+          class="btn_primary"
+          (click)="openAdjustmentDialog()">
+          Ajuste de Inventario
+        </button>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="mb-4">
+        <app-inventory-filter-bar 
+          [warehouses]="warehouses()"
+          (filtersChange)="applyFilters($event)">
+        </app-inventory-filter-bar>
+      </div>
+
+      <!-- Stats Dashboard -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+              <i class="pi pi-box text-blue-600"></i>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Total Artículos</p>
+              <p class="text-2xl font-semibold text-gray-900">{{ formatNumber(totalItems()) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+              <i class="pi pi-dollar text-green-600"></i>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Valor Total</p>
+              <p class="text-2xl font-semibold text-gray-900">{{ formatCurrency(totalValue()) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
+              <i class="pi pi-exclamation-triangle text-orange-600"></i>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Stock Bajo</p>
+              <p class="text-2xl font-semibold text-gray-900">{{ lowStockCount() }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop Table -->
+      <div class="hidden md:block">
+        <app-datatable-wrapper
+          [config]="table_config()"
+          [rowTemplate]="tableTemplate"
+          (pageChange)="onPageChange($event)"
+          (sortChange)="onSortChange($event)"
+          (rowClick)="navigateToDetail($event.data)">
+        </app-datatable-wrapper>
+      </div>
+
+      <!-- Mobile Cards -->
+      <div class="block md:hidden">
+        <div class="space-y-3">
+          @for (item of table_config().rows; track item.id) {
+            <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm" (click)="navigateToDetail(item)">
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="font-semibold text-gray-900 truncate flex-1 mr-2">{{ item.product?.name || 'N/A' }}</h3>
+                @if (isLowStock(item)) {
+                  <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                    Stock Bajo
+                  </span>
+                }
+              </div>
+              
+              <div class="space-y-2">
+                <div class="text-sm text-gray-600">
+                  <div><strong>SKU:</strong> {{ item.product?.sku || 'N/A' }}</div>
+                  <div><strong>Almacén:</strong> {{ item.warehouse?.name || 'N/A' }}</div>
+                  <div><strong>En Mano:</strong> {{ formatNumber(item.quantity_on_hand) }}</div>
+                  <div><strong>Disponible:</strong> {{ formatNumber(item.quantity_available) }}</div>
+                  <div><strong>Ubicación:</strong> {{ item.location || '-' }}</div>
+                  <div class="mt-2"><strong>Valor Total:</strong> {{ formatCurrency(item.total_value) }}</div>
+                  <div class="text-xs text-gray-500 mt-1">Costo: {{ formatCurrency(item.unit_cost) }}</div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Mobile Pagination -->
+        @if (table_config().totalResults > table_config().limit) {
+          <div class="mt-4 flex justify-center">
+            <div class="flex items-center gap-2">
+              <button 
+                [disabled]="table_config().page === 1"
+                (click)="onPageChange({page: table_config().page - 1, limit: table_config().limit})"
+                class="px-3 py-1 text-sm border rounded disabled:opacity-50">
+                Anterior
+              </button>
+              <span class="text-sm text-gray-600">
+                Página {{ table_config().page }} de {{ Math.ceil(table_config().totalResults / table_config().limit) }}
+              </span>
+              <button 
+                [disabled]="!table_config().hasNext"
+                (click)="onPageChange({page: table_config().page + 1, limit: table_config().limit})"
+                class="px-3 py-1 text-sm border rounded disabled:opacity-50">
+                Siguiente
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
   </div>
-
-  <!-- Summary Cards -->
-  <div class="summary-cards">
-    <div class="summary-card">
-      <div class="card-icon" style="background: rgba(102, 126, 234, 0.1);">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-          <line x1="12" y1="22.08" x2="12" y2="12"></line>
-        </svg>
-      </div>
-      <div class="card-content">
-        <div class="card-label">Total Artículos</div>
-        <div class="card-value">{{ formatNumber(totalItems()) }}</div>
-      </div>
-    </div>
-
-    <div class="summary-card">
-      <div class="card-icon" style="background: rgba(16, 185, 129, 0.1);">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="1" x2="12" y2="23"></line>
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-        </svg>
-      </div>
-      <div class="card-content">
-        <div class="card-label">Valor Total</div>
-        <div class="card-value">{{ formatCurrency(totalValue()) }}</div>
-      </div>
-    </div>
-
-    <div class="summary-card">
-      <div class="card-icon" style="background: rgba(245, 158, 11, 0.1);">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-          <line x1="12" y1="9" x2="12" y2="13"></line>
-          <line x1="12" y1="17" x2="12.01" y2="17"></line>
-        </svg>
-      </div>
-      <div class="card-content">
-        <div class="card-label">Stock Bajo</div>
-        <div class="card-value">{{ lowStockCount() }}</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Filter Bar -->
-  <app-inventory-filter-bar 
-    [warehouses]="warehouses()"
-    (filtersChange)="applyFilters($event)">
-  </app-inventory-filter-bar>
-
-  <!-- Inventory Table -->
-  <app-inventory-table
-    [items]="filteredItems()"
-    [loading]="loading()"
-    (itemClick)="navigateToDetail($event)"
-    (loadMore)="loadMore()">
-  </app-inventory-table>
 </div>
+
+<ng-template #tableTemplate let-item="$implicit" let-rowIndex="rowIndex">
+  <td class="px-2 py-2 w-[120px]">
+    <p class="truncate text-sm font-medium m-0">{{ item.product?.name || 'N/A' }}</p>
+  </td>
+  <td class="px-2 py-2 w-[80px]">
+    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 whitespace-nowrap">
+      {{ item.product?.sku || 'N/A' }}
+    </span>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
+    <p class="truncate text-sm m-0">{{ item.warehouse?.name || 'N/A' }}</p>
+  </td>
+  <td class="px-2 py-2 w-[90px]">
+    <p class="text-sm m-0">{{ formatNumber(item.quantity_on_hand) }}</p>
+  </td>
+  <td class="px-2 py-2 w-[90px]">
+    <p class="text-sm m-0">{{ formatNumber(item.quantity_reserved) }}</p>
+  </td>
+  <td class="px-2 py-2 w-[90px]">
+    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium" [ngClass]="isLowStock(item) ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'">
+      {{ formatNumber(item.quantity_available) }}
+    </span>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
+    <p class="text-sm m-0">{{ item.location || '-' }}</p>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
+    <p class="text-sm m-0">{{ formatCurrency(item.unit_cost) }}</p>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
+    <p class="text-sm font-medium m-0">{{ formatCurrency(item.total_value) }}</p>
+  </td>
+  <td class="px-2 py-2 w-[45px]">
+    <button
+      class="text-blue-600 hover:text-blue-800 text-sm p-1"
+      (click)="navigateToDetail(item); $event.stopPropagation()"
+      title="Ver">
+      <i class="pi pi-arrow-right w-4 h-4"></i>
+    </button>
+  </td>
+</ng-template>

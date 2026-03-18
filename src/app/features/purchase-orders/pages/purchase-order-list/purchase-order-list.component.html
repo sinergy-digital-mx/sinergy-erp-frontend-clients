@@ -1,25 +1,163 @@
-<div class="purchase-order-list">
-  <div class="header">
-    <h1>Órdenes de Compra</h1>
-    <button class="btn-create" (click)="navigateToCreate()">
-      Crear
-    </button>
+<div class="purchase-order-list-container">
+  <div class="purchase-content">
+    <div class="px-4">
+      <!-- Header -->
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+        <h2 class="text-2xl font-semibold text-gray-800">Órdenes de Compra</h2>
+        <button 
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
+          (click)="navigateToCreate()">
+          Crear
+        </button>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="mb-4">
+        <app-filter-bar 
+          [warehouses]="warehouses()"
+          (filtersChange)="applyFilters($event)">
+        </app-filter-bar>
+      </div>
+
+      <!-- Stats Dashboard -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+              <i class="pi pi-shopping-bag text-blue-600"></i>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Total Órdenes</p>
+              <p class="text-2xl font-semibold text-gray-900">{{ totalOrders() }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+              <i class="pi pi-dollar text-green-600"></i>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Monto Total</p>
+              <p class="text-2xl font-semibold text-gray-900">{{ formatCurrency(totalAmount()) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+              <i class="pi pi-check-circle text-purple-600"></i>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Pagado</p>
+              <p class="text-2xl font-semibold text-gray-900">{{ formatCurrency(paidAmount()) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop Table -->
+      <div class="hidden md:block">
+        <app-datatable-wrapper
+          [config]="table_config()"
+          [rowTemplate]="tableTemplate"
+          (pageChange)="onPageChange($event)"
+          (sortChange)="onSortChange($event)"
+          (rowClick)="navigateToDetail($event.data)">
+        </app-datatable-wrapper>
+      </div>
+
+      <!-- Mobile Cards -->
+      <div class="block md:hidden">
+        <div class="space-y-3">
+          @for (order of table_config().rows; track order.id) {
+            <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm" (click)="navigateToDetail(order)">
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="font-semibold text-gray-900 truncate flex-1 mr-2">{{ order.id }}</h3>
+                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium" [ngClass]="getStatusClass(order.status)">
+                  {{ order.status }}
+                </span>
+              </div>
+              
+              <div class="space-y-2">
+                <div class="text-sm text-gray-600">
+                  <div><strong>Proveedor:</strong> {{ order.vendor?.name || 'N/A' }}</div>
+                  <div><strong>Cedis:</strong> {{ order.warehouse?.name || 'N/A' }}</div>
+                  <div><strong>Tipo:</strong> {{ order.purpose }}</div>
+                  <div class="mt-2"><strong>Total:</strong> {{ formatCurrency(order.grand_total) }}</div>
+                  <div><strong>Pago:</strong> 
+                    <span [ngClass]="getPaymentStatusClass(order.payment_status)">
+                      {{ order.payment_status }}
+                    </span>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-1">{{ order.created_at | date:'shortDate' }}</div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Mobile Pagination -->
+        @if (table_config().totalResults > table_config().limit) {
+          <div class="mt-4 flex justify-center">
+            <div class="flex items-center gap-2">
+              <button 
+                [disabled]="table_config().page === 1"
+                (click)="onPageChange({page: table_config().page - 1, limit: table_config().limit})"
+                class="px-3 py-1 text-sm border rounded disabled:opacity-50">
+                Anterior
+              </button>
+              <span class="text-sm text-gray-600">
+                Página {{ table_config().page }} de {{ Math.ceil(table_config().totalResults / table_config().limit) }}
+              </span>
+              <button 
+                [disabled]="!table_config().hasNext"
+                (click)="onPageChange({page: table_config().page + 1, limit: table_config().limit})"
+                class="px-3 py-1 text-sm border rounded disabled:opacity-50">
+                Siguiente
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
   </div>
-
-  <!-- Dashboard -->
-  <app-dashboard [orders]="filteredOrders()"></app-dashboard>
-
-  <!-- Filter Bar -->
-  <app-filter-bar 
-    [warehouses]="warehouses()"
-    (filtersChange)="applyFilters($event)">
-  </app-filter-bar>
-
-  <!-- Orders Table -->
-  <app-orders-table
-    [orders]="filteredOrders()"
-    [loading]="loading()"
-    (orderClick)="navigateToDetail($event)"
-    (loadMore)="loadMore()">
-  </app-orders-table>
 </div>
+
+<ng-template #tableTemplate let-item="$implicit" let-rowIndex="rowIndex">
+  <td class="px-2 py-2 w-[80px]">
+    <p class="truncate text-sm m-0">{{ item.purpose }}</p>
+  </td>
+  <td class="px-2 py-2 w-[120px]">
+    <p class="truncate text-sm m-0">{{ item.vendor?.name || 'N/A' }}</p>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
+    <p class="truncate text-sm m-0">{{ item.warehouse?.name || 'N/A' }}</p>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
+    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium" [ngClass]="getStatusClass(item.status)">
+      {{ item.status }}
+    </span>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
+    <p class="text-sm font-medium m-0">{{ formatCurrency(item.grand_total) }}</p>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
+    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium" [ngClass]="getPaymentStatusClass(item.payment_status)">
+      {{ item.payment_status }}
+    </span>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
+    <p class="text-xs m-0">{{ item.created_at | date:'M/d/yy' }}</p>
+  </td>
+  <td class="px-2 py-2 w-[45px]">
+    <button
+      class="text-blue-600 hover:text-blue-800 text-sm p-1"
+      (click)="navigateToDetail(item); $event.stopPropagation()"
+      title="Ver">
+      <i class="pi pi-arrow-right w-4 h-4"></i>
+    </button>
+  </td>
+</ng-template>

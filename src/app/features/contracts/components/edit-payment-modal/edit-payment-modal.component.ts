@@ -6,6 +6,7 @@ import { Payment } from '../../models/payment.model';
 import { PaymentService } from '../../services/payment.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InputComponent } from '../../../../core/components/input/input.component';
+import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { LucideAngularModule, X } from 'lucide-angular';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
@@ -19,6 +20,7 @@ import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
     MatDialogModule,
     ButtonComponent,
     InputComponent,
+    SelectComponent,
     LucideAngularModule,
     LocalDatePipe
   ],
@@ -31,6 +33,19 @@ export class EditPaymentModalComponent {
   form: FormGroup;
   saving = signal(false);
 
+  paymentMethodSelectConfig: ISelect = {
+    placeholder: 'Selecciona un método',
+    data: [
+      { value: 'transferencia', label: 'Transferencia' },
+      { value: 'efectivo', label: 'Efectivo' },
+      { value: 'tarjeta', label: 'Tarjeta' },
+      { value: 'cheque', label: 'Cheque' }
+    ],
+    value: 'value',
+    option: 'label',
+    form_control: null
+  };
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { payment: Payment; contractId: string; currency: string },
     private dialogRef: MatDialogRef<EditPaymentModalComponent>,
@@ -38,11 +53,19 @@ export class EditPaymentModalComponent {
     private paymentService: PaymentService,
     private interceptorService: InterceptorService
   ) {
+    // Only require payment_method and paid_date if payment is already paid
+    const isPaid = this.data.payment.status === 'pagado';
+    
     this.form = this.fb.group({
-      amount: [this.data.payment.amount, [Validators.required, Validators.min(0.01)]],
+      amount_paid: [this.data.payment.amount_paid || this.data.payment.amount, [Validators.required, Validators.min(0.01)]],
       due_date: [this.data.payment.due_date, Validators.required],
+      paid_date: [this.data.payment.paid_date || '', isPaid ? Validators.required : []],
+      payment_method: [this.data.payment.payment_method || '', isPaid ? Validators.required : []],
+      reference_number: [this.data.payment.reference_number || ''],
       notes: [this.data.payment.notes || '']
     });
+
+    this.paymentMethodSelectConfig.form_control = this.form.get('payment_method');
   }
 
   save() {

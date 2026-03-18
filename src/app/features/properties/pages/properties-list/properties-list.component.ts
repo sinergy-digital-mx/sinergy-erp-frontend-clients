@@ -4,13 +4,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { PropertyService } from '../../services/property.service';
-import { Property } from '../../models/property.model';
+import { Property, PropertyStatus } from '../../models/property.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { PropertyEditModalComponent } from '../../components/property-edit-modal/property-edit-modal.component';
 import { PropertyGroupDropdownComponent } from '../../components/property-group-dropdown/property-group-dropdown.component';
+import { PropertyStatusDropdownComponent } from '../../components/property-status-dropdown/property-status-dropdown.component';
 import { ArrowRight } from 'lucide-angular';
 
 @Component({
@@ -21,7 +22,8 @@ import { ArrowRight } from 'lucide-angular';
     DatatableWrapperComponent,
     SearchComponent,
     ButtonComponent,
-    PropertyGroupDropdownComponent
+    PropertyGroupDropdownComponent,
+    PropertyStatusDropdownComponent
   ],
   templateUrl: './properties-list.component.html',
   styleUrl: './properties-list.component.scss'
@@ -57,6 +59,7 @@ export class PropertiesListComponent implements OnDestroy {
   search = '';
   selectedGroupId: string | null = null;
   selectedGroupName: string | null = null;
+  selectedStatus: PropertyStatus | null = null;
   currentSort: ISortEvent | null = null;
   private destroy$ = new Subject<void>();
   private lastQueryParams: string = '';
@@ -77,6 +80,7 @@ export class PropertiesListComponent implements OnDestroy {
 
       this.search = query?.search ?? '';
       this.selectedGroupId = query?.groupId ?? null;
+      this.selectedStatus = query?.status ?? null;
       const page = query?.page ? Number(query.page) : 1;
       const limit = query?.limit ? Number(query.limit) : 20;
 
@@ -104,6 +108,7 @@ export class PropertiesListComponent implements OnDestroy {
       limit: config.limit,
       ...(this.search && { search: this.search }),
       ...(this.selectedGroupId && { groupId: this.selectedGroupId }),
+      ...(this.selectedStatus && { status: this.selectedStatus }),
       ...(this.currentSort && this.currentSort.direction && { 
         sort: this.currentSort.column.prop, 
         order: this.currentSort.direction 
@@ -132,7 +137,8 @@ export class PropertiesListComponent implements OnDestroy {
         page: event.page,
         limit: event.limit,
         search: this.search || undefined,
-        groupId: this.selectedGroupId || undefined
+        groupId: this.selectedGroupId || undefined,
+        status: this.selectedStatus || undefined
       },
       queryParamsHandling: 'merge'
     });
@@ -146,7 +152,8 @@ export class PropertiesListComponent implements OnDestroy {
       queryParams: {
         page: 1,
         search: this.search || undefined,
-        groupId: this.selectedGroupId || undefined
+        groupId: this.selectedGroupId || undefined,
+        status: this.selectedStatus || undefined
       },
       queryParamsHandling: 'merge'
     });
@@ -163,7 +170,8 @@ export class PropertiesListComponent implements OnDestroy {
       queryParams: {
         page: 1,
         search: searchTerm || undefined,
-        groupId: this.selectedGroupId || undefined
+        groupId: this.selectedGroupId || undefined,
+        status: this.selectedStatus || undefined
       },
       queryParamsHandling: 'merge'
     });
@@ -177,7 +185,22 @@ export class PropertiesListComponent implements OnDestroy {
       queryParams: {
         page: 1,
         groupId: event.groupId || undefined,
-        search: this.search || undefined
+        search: this.search || undefined,
+        status: this.selectedStatus || undefined
+      },
+      queryParamsHandling: 'merge'
+    });
+  }
+
+  onStatusSelect(event: { status: PropertyStatus | null }) {
+    this.selectedStatus = event.status;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: 1,
+        status: event.status || undefined,
+        search: this.search || undefined,
+        groupId: this.selectedGroupId || undefined
       },
       queryParamsHandling: 'merge'
     });
@@ -211,7 +234,7 @@ export class PropertiesListComponent implements OnDestroy {
     const statusMap: Record<string, string> = {
       'disponible': 'bg-green-100 text-green-800',
       'vendido': 'bg-blue-100 text-blue-800',
-      'reservado': 'bg-yellow-100 text-yellow-800',
+      'reservado': 'bg-orange-100 text-orange-800',
       'cancelado': 'bg-red-100 text-red-800'
     };
     return `inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusMap[status] || 'bg-gray-100 text-gray-800'}`;

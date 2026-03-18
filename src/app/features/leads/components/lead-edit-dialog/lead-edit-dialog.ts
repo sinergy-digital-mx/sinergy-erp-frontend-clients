@@ -1,6 +1,5 @@
 import { Component, Inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -20,7 +19,7 @@ import { AuthService } from '../../../../core/services/auth.service';
   selector: 'app-lead-edit-dialog',
   standalone: true,
   styleUrls: ['./lead-edit-dialog.scss'],
-  imports: [CommonModule, TableModule, TagModule, ButtonModule, ButtonComponent, LucideAngularModule, InputComponent, ReactiveFormsModule, GroupSelectComponent, PhoneCountrySelectComponent, PhoneCodeSelectComponent, PhoneDigitsDirective],
+  imports: [CommonModule, TagModule, ButtonModule, ButtonComponent, LucideAngularModule, InputComponent, ReactiveFormsModule, GroupSelectComponent, PhoneCountrySelectComponent, PhoneCodeSelectComponent, PhoneDigitsDirective],
   templateUrl: 'lead-edit-dialog.html',
 })
 export class LeadEditDialog {

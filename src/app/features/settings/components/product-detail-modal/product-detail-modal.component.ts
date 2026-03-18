@@ -4,7 +4,9 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractContro
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProductService } from '../../services/product.service';
-import { Product, CreateProductDto, Category, SubCategory, ProductPhoto, ProductPrice, PriceList } from '../../models/product.model';
+import { Product, CreateProductDto, Category, SubCategory, ProductPhoto, ProductPrice, PriceList, VendorProductPrice } from '../../models/product.model';
+import { VendorService } from '../../../purchase-orders/services/vendor.service';
+import { Vendor } from '../../../purchase-orders/models/vendor.model';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { Observable, of } from 'rxjs';
 import { map, catchError, debounceTime, first, switchMap } from 'rxjs/operators';
@@ -57,9 +59,20 @@ export class ProductDetailModalComponent implements OnInit {
   editingPriceId = signal<string | null>(null);
   editPriceValue = signal<number>(0);
 
+  // Vendor Prices
+  vendors = signal<Vendor[]>([]);
+  vendorPrices = signal<VendorProductPrice[]>([]);
+  loadingVendors = signal(false);
+  loadingVendorPrices = signal(false);
+  savingVendorPrice = signal(false);
+  vendorPriceForm: FormGroup;
+  editingVendorPriceId = signal<string | null>(null);
+  editVendorPriceValue = signal<number>(0);
+
   constructor(
     private fb: FormBuilder,
     private productService: ProductService,
+    private vendorService: VendorService,
     private snackBar: MatSnackBar,
     public dialogRef: MatDialogRef<ProductDetailModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { product: Product | null }
@@ -74,6 +87,12 @@ export class ProductDetailModalComponent implements OnInit {
 
     this.priceForm = this.fb.group({
       price_list_id: ['', Validators.required],
+      uom_id: ['', Validators.required],
+      price: ['', [Validators.required, Validators.min(0.01)]]
+    });
+
+    this.vendorPriceForm = this.fb.group({
+      vendor_id: ['', Validators.required],
       uom_id: ['', Validators.required],
       price: ['', [Validators.required, Validators.min(0.01)]]
     });
@@ -124,6 +143,8 @@ export class ProductDetailModalComponent implements OnInit {
           this.loadPhotos(fullProduct.id);
           this.loadPriceLists();
           this.loadProductPrices(fullProduct.id);
+          this.loadVendors();
+          this.loadVendorPrices(fullProduct.id);
           if (fullProduct.base_uom_id) {
             this.form.patchValue({ base_uom_id: fullProduct.base_uom_id }, { emitEvent: false });
           }
@@ -138,6 +159,8 @@ export class ProductDetailModalComponent implements OnInit {
           this.loadPhotos(this.data.product!.id);
           this.loadPriceLists();
           this.loadProductPrices(this.data.product!.id);
+          this.loadVendors();
+          this.loadVendorPrices(this.data.product!.id);
           if (this.data.product!.base_uom_id) {
             this.form.patchValue({ base_uom_id: this.data.product!.base_uom_id }, { emitEvent: false });
           }
@@ -866,6 +889,125 @@ export class ProductDetailModalComponent implements OnInit {
   getUoMName(uomId: string): string {
     const uom = this.assignedUoMs().find(u => u.id === uomId);
     return uom ? (uom.abbreviation || uom.name || uomId) : uomId;
+  }
+
+  // ─── Vendor Prices Tab ──────────────────────────────────────
+
+  loadVendors(): void {
+    this.loadingVendors.set(true);
+    this.vendorService.getVendors().subscribe({
+      next: (vendors) => {
+        this.vendors.set(vendors);
+        this.loadingVendors.set(false);
+      },
+      error: () => {
+        this.loadingVendors.set(false);
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: 'Error al cargar proveedores', type: 'error' },
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  loadVendorPrices(productId: string): void {
+    this.loadingVendorPrices.set(true);
+    this.productService.getVendorPricesByProduct(productId).subscribe({
+      next: (prices) => {
+        this.vendorPrices.set(prices);
+        this.loadingVendorPrices.set(false);
+      },
+      error: () => {
+        this.loadingVendorPrices.set(false);
+      }
+    });
+  }
+
+  addVendorPrice(): void {
+    if (this.vendorPriceForm.invalid || !this.data.product) return;
+
+    this.savingVendorPrice.set(true);
+    const formValue = this.vendorPriceForm.value;
+
+    this.productService.createVendorPrice({
+      vendor_id: formValue.vendor_id,
+      product_id: this.data.product.id,
+      uom_id: formValue.uom_id,
+      price: formValue.price
+    }).subscribe({
+      next: () => {
+        this.vendorPriceForm.reset();
+        this.loadVendorPrices(this.data.product!.id);
+        this.savingVendorPrice.set(false);
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: 'Costo de proveedor agregado exitosamente', type: 'success' },
+          duration: 3000
+        });
+      },
+      error: (error) => {
+        this.savingVendorPrice.set(false);
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: error.error?.message || 'Error al agregar costo de proveedor', type: 'error' },
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  startEditVendorPrice(vendorPrice: VendorProductPrice): void {
+    this.editingVendorPriceId.set(vendorPrice.id);
+    this.editVendorPriceValue.set(vendorPrice.price);
+  }
+
+  cancelEditVendorPrice(): void {
+    this.editingVendorPriceId.set(null);
+  }
+
+  saveEditVendorPrice(vendorPriceId: string): void {
+    this.savingVendorPrice.set(true);
+    this.productService.updateVendorPrice(vendorPriceId, { price: this.editVendorPriceValue() }).subscribe({
+      next: () => {
+        this.editingVendorPriceId.set(null);
+        this.loadVendorPrices(this.data.product!.id);
+        this.savingVendorPrice.set(false);
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: 'Costo de proveedor actualizado', type: 'success' },
+          duration: 3000
+        });
+      },
+      error: () => {
+        this.savingVendorPrice.set(false);
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: 'Error al actualizar costo de proveedor', type: 'error' },
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  deleteVendorPrice(vendorPriceId: string): void {
+    if (!confirm('¿Eliminar este costo de proveedor?')) return;
+
+    this.productService.deleteVendorPrice(vendorPriceId).subscribe({
+      next: () => {
+        this.loadVendorPrices(this.data.product!.id);
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: 'Costo de proveedor eliminado', type: 'success' },
+          duration: 3000
+        });
+      },
+      error: () => {
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: 'Error al eliminar costo de proveedor', type: 'error' },
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  getVendorName(vendorId: string): string {
+    const vendor = this.vendors().find(v => v.id === vendorId);
+    return vendor ? vendor.name : vendorId;
   }
 
   // ─── Form Validation ───────────────────────────────────────

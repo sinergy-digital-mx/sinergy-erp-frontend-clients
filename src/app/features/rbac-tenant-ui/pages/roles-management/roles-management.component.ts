@@ -27,24 +27,24 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
   imports: [CommonModule, BackButtonComponent, RolePermissionsManagerComponent, RoleEditFormComponent, RoleCreateDialogComponent, ButtonComponent],
   template: `
     <!-- Roles Management Container with Two-Column Layout -->
-    <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="h-screen flex flex-col overflow-hidden">
       <!-- Header with Back Button -->
-      <div class="flex items-center gap-3 mb-6">
+      <div class="flex items-center gap-3 mb-6 flex-shrink-0 pt-6 px-6">
         <app-back-button (clicked)="goBackToSettings()"></app-back-button>
         <h1 class="text-2xl font-semibold text-gray-900">Gestión de Roles y Permisos</h1>
       </div>
 
       <!-- Main Content -->
-      <div class="flex gap-6 h-[calc(100vh-200px)] items-center justify-center">
+      <div class="flex gap-6 flex-1 min-h-0 px-6 pb-6">
         <!-- Left Panel: Role List -->
-        <div class="w-1/3 bg-gray-50 rounded-lg border border-gray-200 flex flex-col overflow-hidden h-full">
+        <div class="w-1/3 bg-gray-50 border border-gray-200 flex flex-col h-full">
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-gray-200 bg-white">
+          <div class="px-6 py-4 border-b border-gray-200 bg-white flex-shrink-0">
             <h2 class="text-lg font-semibold text-gray-900">Roles</h2>
           </div>
 
           <!-- Search and Create Button Section -->
-          <div class="px-6 py-4 border-b border-gray-200 bg-white space-y-3">
+          <div class="px-6 py-4 border-b border-gray-200 bg-white space-y-3 flex-shrink-0">
             <!-- Search and Create Row -->
             <div class="flex gap-3 flex-wrap">
               <!-- Search Input -->
@@ -65,7 +65,7 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
           </div>
 
           <!-- Role List -->
-          <div class="flex-1 overflow-y-auto bg-white">
+          <div class="flex-1 overflow-y-auto bg-white min-h-0">
             @if (filteredRoles$ | async; as roles) {
               @if (roles.length === 0) {
                 <div class="p-4 text-center text-gray-500">
@@ -103,11 +103,11 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
         </div>
 
         <!-- Right Panel: Role Details -->
-        <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 flex flex-col overflow-hidden h-full">
+        <div class="flex-1 bg-gray-50 border border-gray-200 flex flex-col h-full">
           @if (selectedRole$ | async; as role) {
-            <div class="flex flex-col h-full bg-white">
+            <div class="flex flex-col bg-white h-full">
               <!-- Role Details Header -->
-              <div class="px-6 py-4 border-b border-gray-200">
+              <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
                 <app-role-edit-form
                   [role]="role"
                   (roleUpdated)="onRoleUpdated($event)"
@@ -137,7 +137,7 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
               </div>
 
               <!-- Role Details Content -->
-              <div class="flex-1 overflow-y-auto p-6">
+              <div class="flex-1 overflow-y-auto p-6 min-h-0">
                 <app-role-permissions-manager
                   [role]="role"
                   (permissionsUpdated)="onPermissionsUpdated($event)">
@@ -145,7 +145,7 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
               </div>
             </div>
           } @else {
-            <div class="flex items-center justify-center h-full bg-white">
+            <div class="flex items-center justify-center bg-white h-full">
               <div class="text-center">
                 <p class="text-gray-500 text-lg">Selecciona un rol para ver detalles</p>
               </div>
@@ -167,6 +167,7 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
     :host {
       display: block;
       height: 100%;
+      overflow: hidden;
     }
 
     .w-1-3 {

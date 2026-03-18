@@ -61,6 +61,9 @@ export class PartialPaymentModalComponent {
     });
 
     this.paymentMethodSelectConfig.form_control = this.form.get('payment_method');
+
+    // Pre-llenar con el monto completo por defecto
+    this.form.get('amount')?.setValue(this.data.payment.amount_pending);
   }
 
   private getLocalDateString(date: Date): string {
@@ -85,7 +88,9 @@ export class PartialPaymentModalComponent {
 
   get isFullPayment(): boolean {
     const amount = parseFloat(this.form.get('amount')?.value || 0);
-    return amount === this.amountPending;
+    const pending = this.amountPending;
+    // Usar tolerancia para comparación de números decimales
+    return Math.abs(amount - pending) < 0.01;
   }
 
   get paymentTypeMessage(): string {

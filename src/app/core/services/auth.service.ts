@@ -29,8 +29,14 @@
         this.user_info = jwtDecode(localStorage.getItem(this.name_token) || '{}');
         // console.log(this.user_info);
         this.token = localStorage.getItem(this.name_token) || '';
+        
+        // Extract and set permissions from stored token
+        const permissions = this.decodeJWT(this.token);
+        this.setPermissions(permissions);
       } else {
         localStorage.removeItem(this.name_token);
+        // Clear permissions if no token
+        this.permissions$.next(new Set());
       }
     }
 
@@ -38,6 +44,8 @@
       this.token = '';
       this.user_info = null as any;
       localStorage.removeItem(this.name_token);
+      // Clear permissions on logout
+      this.permissions$.next(new Set());
       this.router.navigate(['/login']);
     }
 
@@ -47,24 +55,32 @@
       return new Observable(observer => {
         this.http.post(`${this.api}/auth/login`, data).subscribe(
           (response: any) => {
+            console.log('=== AUTH SERVICE - LOGIN ===');
+            console.log('Response completo:', response);
+            
             // After successful login, extract token and decode permissions
-            if (response && response.token) {
-              const token = response.token;
+            // Backend sends 'access_token', not 'token'
+            const token = response.token || response.access_token;
+            
+            if (token) {
               // Store token in localStorage
               localStorage.setItem(this.name_token, token);
               this.token = token;
               
               // Decode JWT and extract permissions
               const permissions = this.decodeJWT(token);
-              // Call setPermissions with extracted permissions array
-              console.log(permissions);
               
+              // Call setPermissions with extracted permissions array
               this.setPermissions(permissions);
+            } else {
+              console.warn('No se encontró token en la respuesta');
             }
+            
             observer.next(response);
             observer.complete();
           },
           (error) => {
+            console.error('Error en login:', error);
             observer.error(error);
           }
         );
@@ -101,8 +117,9 @@
 
     /**
      * Normalize a permission string to lowercase entity:PascalCase action format.
+     * Also converts underscores to camelCase (e.g., View_Menu -> ViewMenu)
      * 
-     * @param permission - Permission string in format "entity:Action"
+     * @param permission - Permission string in format "entity:Action" or "entity:Action_Name"
      * @returns Normalized permission string
      */
     private normalizePermission(permission: string): string {
@@ -116,7 +133,17 @@
       }
       
       const entity = parts[0].toLowerCase();
-      const action = parts[1];
+      let action = parts[1];
+      
+      // Convert underscores to camelCase: View_Menu -> ViewMenu
+      if (action.includes('_')) {
+        action = action.split('_').map((word, index) => {
+          if (index === 0) {
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+          }
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        }).join('');
+      }
       
       return `${entity}:${action}`;
     }

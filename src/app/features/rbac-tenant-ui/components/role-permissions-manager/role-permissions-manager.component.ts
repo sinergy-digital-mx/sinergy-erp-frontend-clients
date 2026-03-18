@@ -19,6 +19,7 @@ interface ModulePermissions {
   module_id: string;
   module_name: string;
   permissions: PermissionItem[];
+  isExpanded?: boolean;
 }
 
 @Component({
@@ -54,10 +55,11 @@ interface ModulePermissions {
               <!-- Module Header -->
               <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
                 <div class="flex items-center justify-between">
-                  <div class="flex items-center">
-                    <span class="text-lg mr-2">📦</span>
+                  <button
+                    (click)="toggleModule(module)"
+                    class="flex items-center flex-1 text-left hover:opacity-80 transition-opacity">
                     <h3 class="text-lg font-medium text-gray-900">{{ module.module_name }}</h3>
-                  </div>
+                  </button>
                   <div class="flex items-center gap-3">
                     <span class="text-sm text-gray-600">
                       {{ getModuleAssignedCount(module) }}/{{ module.permissions.length }} permisos
@@ -67,35 +69,38 @@ interface ModulePermissions {
                       class="text-sm text-blue-600 hover:text-blue-800 font-medium">
                       {{ isModuleFullyAssigned(module) ? 'Desmarcar Todo' : 'Marcar Todo' }}
                     </button>
+                    <button
+                      (click)="toggleModule(module)"
+                      class="ml-2 text-gray-500 hover:text-gray-700 transition-all duration-200"
+                      [class.rotate-90]="module.isExpanded">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
 
-              <!-- Permissions List -->
-              <div class="p-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  @for (permission of module.permissions; track $index) {
-                    <label class="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
-                      <input
-                        type="checkbox"
-                        [checked]="permission.isAssigned"
-                        (change)="togglePermission(permission)"
-                        class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center">
-                          <span 
-                            [class]="permission.isAssigned ? 'text-green-600' : 'text-gray-400'"
-                            class="mr-2">
-                            {{ permission.isAssigned ? '☑️' : '☐' }}
-                          </span>
+              <!-- Permissions List (Collapsible) -->
+              @if (module.isExpanded) {
+                <div class="p-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @for (permission of module.permissions; track $index) {
+                      <label class="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          [checked]="permission.isAssigned"
+                          (change)="togglePermission(permission)"
+                          class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <div class="flex-1 min-w-0">
                           <p class="text-sm font-medium text-gray-900">{{ permission.name }}</p>
+                          <p class="text-xs text-gray-500 mt-1">{{ permission.description }}</p>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">{{ permission.description }}</p>
-                      </div>
-                    </label>
-                  }
+                      </label>
+                    }
+                  </div>
                 </div>
-              </div>
+              }
             </div>
           }
         </div>
@@ -129,6 +134,10 @@ interface ModulePermissions {
 
     .role-permissions-manager::-webkit-scrollbar-thumb:hover {
       background: #9ca3af;
+    }
+
+    .rotate-90 {
+      transform: rotate(90deg);
     }
   `]
 })
@@ -217,10 +226,15 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
         name: permission.action,
         description: permission.description,
         isAssigned: permission.assigned || false
-      }))
+      })),
+      isExpanded: false // Start all modules collapsed
     }));
     
     console.log('Processed modules:', this.modulePermissions);
+  }
+
+  toggleModule(module: ModulePermissions) {
+    module.isExpanded = !module.isExpanded;
   }
 
   togglePermission(permission: PermissionItem) {

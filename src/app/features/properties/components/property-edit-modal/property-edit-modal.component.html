@@ -10,17 +10,26 @@
 
   <div class="dialog__body">
     <div class="container grid grid-cols-1 md:grid-cols-2 gap-4" [formGroup]="form">
-      <!-- Código del Lote -->
-      <app-input
-        label="Código del Lote"
-        [form_control]="form.controls['code']">
-      </app-input>
-
       <!-- Manzana -->
       <app-input
         label="Manzana"
         [form_control]="form.controls['block']">
       </app-input>
+
+      <!-- Número de Lote -->
+      <app-input
+        label="Número de Lote"
+        [form_control]="form.controls['lot_number']">
+      </app-input>
+
+      <!-- Código del Lote (Auto-generado) -->
+      <div class="md:col-span-2">
+        <app-input
+          label="Código del Lote (Auto-generado)"
+          [form_control]="form.controls['code']"
+          [readonly]="true">
+        </app-input>
+      </div>
 
       <!-- Nombre -->
       <div class="md:col-span-2">

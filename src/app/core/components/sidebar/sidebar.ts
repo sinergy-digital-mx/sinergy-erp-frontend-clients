@@ -28,6 +28,7 @@ interface MenuItem {
   icon?: any;
   route: string;
   id?: string;
+  permission?: string;
 }
 
 @Component({
@@ -43,55 +44,64 @@ export class Sidebar {
       label: 'Leads',
       route: '/leads',
       icon: Users,
-      id: 'menu-leads'
+      id: 'menu-leads',
+      permission: 'leads:ViewMenu'
     },
     {
       label: 'Clientes',
       route: '/customers',
       icon: CreditCard,
-      id: 'menu-customers'
+      id: 'menu-customers',
+      permission: 'customers:ViewMenu'
     },
     {
       label: 'Lotes',
       route: '/properties',
       icon: LandPlot,
-      id: 'menu-properties'
+      id: 'menu-properties',
+      permission: 'properties:ViewMenu'
     },
     {
       label: 'Contratos',
       route: '/contracts',
       icon: FileCheck,
-      id: 'menu-contracts'
+      id: 'menu-contracts',
+      permission: 'contracts:ViewMenu'
     },
     {
       label: 'Órdenes de Compra',
       route: '/purchase-orders',
       icon: ShoppingCart,
-      id: 'menu-purchase-orders'
+      id: 'menu-purchase-orders',
+      permission: 'purchaseorders:ViewMenu'
     },
     {
       label: 'Órdenes de Venta',
       route: '/sales-orders',
       icon: ShoppingBag,
-      id: 'menu-sales-orders'
+      id: 'menu-sales-orders',
+      permission: 'salesorders:ViewMenu'
     },
     {
       label: 'Inventario',
       route: '/inventory',
       icon: Package,
-      id: 'menu-inventory'
+      id: 'menu-inventory',
+      permission: 'inventory:ViewMenu'
     },
     {
       label: 'Punto de Venta',
       route: '/pos',
       icon: Monitor,
-      id: 'menu-pos'
+      id: 'menu-pos',
+      permission: 'pos:ViewMenu'
     },
     {
       label: 'Marketing',
       route: '/marketing',
       icon: Megaphone,
-      id: 'menu-marketing'
+      id: 'menu-marketing',
+      permission: 'marketing:ViewMenu'
     }
   ];
 
@@ -101,6 +111,22 @@ export class Sidebar {
 
   constructor(public auth_service:AuthService){
 
+  }
+
+  get visibleMenuItems(): MenuItem[] {
+    const currentPermissions = Array.from(this.auth_service.permissions$.getValue());
+    
+    const filtered = this.menu.filter(item => {
+      // If no permission is specified, show the item
+      if (!item.permission) {
+        return true;
+      }
+      // Check if user has the required permission
+      const hasPermission = this.auth_service.hasPermission(item.permission);
+      return hasPermission;
+    });
+    
+    return filtered;
   }
 
   getUserName(): string {

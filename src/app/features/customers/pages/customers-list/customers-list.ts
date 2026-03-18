@@ -1,7 +1,6 @@
 import { Component, signal, TemplateRef, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -27,7 +26,6 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
   imports: [
     CommonModule,
     FormsModule,
-    TableModule,
     TagModule,
     ButtonModule,
     SearchComponent,

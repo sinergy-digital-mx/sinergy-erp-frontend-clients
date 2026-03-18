@@ -209,8 +209,15 @@ export class ContractsListComponent implements OnDestroy {
   }
 
   viewDetail(contract: Contract) {
-    this.dialog.open(ContractDetailModalComponent, {
+    const dialogRef = this.dialog.open(ContractDetailModalComponent, {
       data: { contract }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'deleted' || result === true) {
+        this.getContracts();
+        this.loadStats(); // También recargar estadísticas
+      }
     });
   }
 

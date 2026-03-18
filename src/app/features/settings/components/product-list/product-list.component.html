@@ -53,7 +53,7 @@
     <span class="text-gray-700 text-sm">{{ item.subcategory?.name || '—' }}</span>
   </td>
   <td class="text-center">
-    <span class="text-gray-600">{{ getBaseUoMDisplay(item) }}</span>
+    <span class="text-gray-600">{{ item.base_uom?.name || item.base_uom?.code || '—' }}</span>
   </td>
   <td (click)="$event.stopPropagation()">
     <div class="flex gap-2">

@@ -44,8 +44,18 @@ export class Login{
   
     this.authService.login(this.form.value).subscribe({
       next: (res: any) => {
+        console.log('=== LOGIN RESPONSE ===');
+        console.log('Full response:', res);
+        console.log('Token:', res.access_token);
+        
         localStorage.setItem(this.authService.name_token, res.access_token);
-        this.authService.BuildTokensToInit()
+        this.authService.BuildTokensToInit();
+        
+        // Log permissions after they've been set
+        console.log('=== PERMISOS DEL USUARIO ===');
+        console.log('Permisos extraídos:', Array.from(this.authService.permissions$.getValue()));
+        console.log('Total de permisos:', this.authService.permissions$.getValue().size);
+        
         this.router.navigate(['/']);
       },
       error: () => {

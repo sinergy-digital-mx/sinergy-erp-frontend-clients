@@ -1,6 +1,5 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, NO_ERRORS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -15,7 +14,8 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
 @Component({
   selector: 'app-lead-detail',
   standalone: true,
-  imports: [CommonModule, TableModule, TagModule, ButtonModule, EmailThreadsSection, PhoneComponent],
+  schemas: [NO_ERRORS_SCHEMA],
+  imports: [CommonModule, TagModule, ButtonModule, EmailThreadsSection, PhoneComponent],
   templateUrl: 'lead-detail.html',
 })
 export class LeadDetail {

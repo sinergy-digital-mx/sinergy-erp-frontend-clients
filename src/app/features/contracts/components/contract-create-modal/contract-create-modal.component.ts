@@ -95,7 +95,6 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       property_id: ['', Validators.required],
 
       // Datos del contrato
-      contract_number: ['', Validators.required],
       contract_date: [this.getTodayDate(), Validators.required],
       total_price: [0, [Validators.required, Validators.min(0)]],
       down_payment: [0, [Validators.required, Validators.min(0)]],
@@ -362,8 +361,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   }
 
   calculateRemainingBalance(): void {
-    const totalPrice = this.form.get('total_price')!.value || 0;
-    const downPayment = this.form.get('down_payment')!.value || 0;
+    const totalPrice = Number(this.form.get('total_price')!.value) || 0;
+    const downPayment = Number(this.form.get('down_payment')!.value) || 0;
     const remainingBalance = totalPrice - downPayment;
     
     this.form.get('remaining_balance')!.setValue(remainingBalance, { emitEvent: true });
@@ -371,8 +370,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   }
 
   calculateMonthlyPayment(): void {
-    const remainingBalance = this.form.get('remaining_balance')!.value || 0;
-    const paymentMonths = this.form.get('payment_months')!.value || 1;
+    const remainingBalance = Number(this.form.get('remaining_balance')!.value) || 0;
+    const paymentMonths = Number(this.form.get('payment_months')!.value) || 1;
     
     // Validar payment_months > 0 para evitar división por cero
     const monthlyPayment = paymentMonths > 0 ? remainingBalance / paymentMonths : 0;
@@ -414,8 +413,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     }
 
     // Validar que down_payment <= total_price
-    const totalPrice = this.form.get('total_price')!.value;
-    const downPayment = this.form.get('down_payment')!.value;
+    const totalPrice = Number(this.form.get('total_price')!.value) || 0;
+    const downPayment = Number(this.form.get('down_payment')!.value) || 0;
 
     if (downPayment > totalPrice) {
       this.interceptorService.openSnackbar({
@@ -430,7 +429,6 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     const payload: CreateContractDto = {
       customer_id: this.form.get('customer_id')!.value,
       property_id: this.form.get('property_id')!.value,
-      contract_number: this.form.get('contract_number')!.value,
       contract_date: this.form.get('contract_date')!.value,
       total_price: this.form.get('total_price')!.value,
       down_payment: this.form.get('down_payment')!.value,

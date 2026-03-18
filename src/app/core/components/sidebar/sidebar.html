@@ -15,7 +15,7 @@
             <h2 class="text-base font-semibold mb-6 opacity-80 tracking-tight text-white/70"></h2>
 
         <nav class="flex flex-col gap-1.5">
-          @for(item of menu; track item.id) {
+          @for(item of visibleMenuItems; track item.id) {
             <a [routerLink]="item.route" 
                routerLinkActive="router-link-active"
                [routerLinkActiveOptions]="{ exact: true }"
