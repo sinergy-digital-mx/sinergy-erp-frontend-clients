@@ -6,7 +6,7 @@ import { PaymentService } from '../../services/payment.service';
 import { Payment, PaymentStats } from '../../models/payment.model';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { LucideAngularModule, Plus, RefreshCw, Edit, Trash2, X, DollarSign, RotateCcw } from 'lucide-angular';
+import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw } from 'lucide-angular';
 import { PartialPaymentModalComponent } from '../partial-payment-modal/partial-payment-modal.component';
 import { EditPaymentModalComponent } from '../edit-payment-modal/edit-payment-modal.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
@@ -33,10 +33,8 @@ export class ContractPaymentsComponent implements OnInit {
   stats = signal<PaymentStats | null>(null);
   loading = signal(false);
   generating = signal(false);
-  regenerating = signal(false);
 
   readonly Plus = Plus;
-  readonly RefreshCw = RefreshCw;
   readonly Edit = Edit;
   readonly Trash2 = Trash2;
   readonly X = X;
@@ -105,45 +103,6 @@ export class ContractPaymentsComponent implements OnInit {
           type: 'error',
           title: 'Error',
           message: err.error?.message || 'Error al generar pagos'
-        });
-      }
-    });
-  }
-
-  regeneratePayments() {
-    const confirmMessage = `⚠️ ADVERTENCIA: Regenerar Pagos
-
-Esta acción:
-• Eliminará TODOS los pagos existentes del contrato
-• Creará nuevos pagos basados en la configuración actual del contrato
-• Se perderán todos los registros de pagos realizados
-• Esta acción NO se puede deshacer
-
-¿Estás seguro de que deseas continuar?`;
-
-    if (!confirm(confirmMessage)) return;
-
-    // Segunda confirmación para mayor seguridad
-    if (!confirm('¿Confirmas que deseas ELIMINAR todos los pagos existentes y regenerarlos? Esta acción es IRREVERSIBLE.')) return;
-
-    this.regenerating.set(true);
-    this.paymentService.regeneratePayments(this.contractId).subscribe({
-      next: () => {
-        this.regenerating.set(false);
-        this.loadPayments();
-        this.loadStats();
-        this.interceptorService.openSnackbar({
-          type: 'success',
-          title: 'Éxito',
-          message: 'Pagos regenerados correctamente'
-        });
-      },
-      error: (err) => {
-        this.regenerating.set(false);
-        this.interceptorService.openSnackbar({
-          type: 'error',
-          title: 'Error',
-          message: err.error?.message || 'Error al regenerar pagos'
         });
       }
     });

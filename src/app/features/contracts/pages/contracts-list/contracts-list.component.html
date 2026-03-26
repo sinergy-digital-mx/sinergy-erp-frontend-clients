@@ -18,6 +18,13 @@
     </div>
   </div>
 
+  <!-- Filter Indicator -->
+  <app-contract-filter-indicator
+    [activeSearchTerm]="search"
+    [activeStatusFilter]="getActiveStatusFilter()"
+    (filterClear)="onFilterClear($event)">
+  </app-contract-filter-indicator>
+
   <!-- Stats Cards -->
   <div *ngIf="stats()" class="grid grid-cols-4 gap-4 mb-6">
     <!-- Total -->
@@ -82,9 +89,13 @@
         <p class="text-xs text-red-600 font-semibold uppercase tracking-wide mb-0.5">Vencidos</p>
         <p class="text-[10px] text-red-500">Con pagos atrasados</p>
       </div>
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between mb-2">
         <p class="text-xl font-bold text-red-900">{{ stats()!.overdue.value | currency:'USD':'symbol':'1.0-0' }}</p>
-        <span class="text-2xl font-bold text-red-900">{{ stats()!.overdue.count }}</span>
+        <span class="text-2xl font-bold text-red-900">{{ stats()!.overdue.contracts_count }}</span>
+      </div>
+      <div class="flex gap-2 text-xs">
+        <span class="text-red-700">Contratos: <strong>{{ stats()!.overdue.contracts_count }}</strong></span>
+        <span class="text-red-700">Pagos: <strong>{{ stats()!.overdue.payments_count }}</strong></span>
       </div>
     </div>
   </div>
@@ -126,7 +137,17 @@
   <td>{{ item.contract_date | date:'mediumDate' }}</td>
   <td>{{ item.total_price | currency:item.currency }}</td>
   <td>{{ item.remaining_balance | currency:item.currency }}</td>
-  <td>{{ item.next_payment_date | date:'mediumDate' }}</td>
+  <td>
+    <div class="flex items-center gap-2">
+      <span>{{ item.next_payment_date | date:'mediumDate' }}</span>
+      <div *ngIf="item.has_overdue" class="flex items-center gap-1" [title]="item.overdue_payments_count + ' pagos vencidos'">
+        <lucide-icon [img]="AlertTriangle" class="w-5 h-5 text-red-500"></lucide-icon>
+        <span *ngIf="item.overdue_payments_count > 1" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">
+          {{ item.overdue_payments_count }}
+        </span>
+      </div>
+    </div>
+  </td>
   <td>
     <span [class]="getStatusClass(item.status)">
       {{ getStatusLabel(item.status) }}

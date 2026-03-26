@@ -11,17 +11,6 @@
         [loading]="generating()"
         (clicked)="generatePayments()">
       </app-button>
-      
-      <app-button
-        *ngIf="payments().length > 0"
-        text="Regenerar Pagos"
-        custom_class="btn_danger"
-        size="sm"
-        [icon]="RefreshCw"
-        [loading]="regenerating()"
-        (clicked)="regeneratePayments()"
-        matTooltip="⚠️ Elimina todos los pagos existentes y los regenera. Acción irreversible.">
-      </app-button>
     </div>
   </div>
 

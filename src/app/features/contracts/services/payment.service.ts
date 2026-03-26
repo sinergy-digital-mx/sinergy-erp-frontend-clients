@@ -17,10 +17,6 @@ export class PaymentService {
     return this.http.post<Payment[]>(`${this.api}/tenant/contracts/${contractId}/payments/generate`, {});
   }
 
-  regeneratePayments(contractId: string): Observable<Payment[]> {
-    return this.http.post<Payment[]>(`${this.api}/tenant/contracts/${contractId}/payments/regenerate`, {});
-  }
-
   getPayments(contractId: string): Observable<Payment[]> {
     return this.http.get<Payment[]>(`${this.api}/tenant/contracts/${contractId}/payments`);
   }

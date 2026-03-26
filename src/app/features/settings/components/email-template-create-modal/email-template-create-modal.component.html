@@ -1,0 +1,146 @@
+<div class="modal-container">
+  <div class="modal-header">
+    <h2>{{ isEdit ? 'Editar Template' : 'Crear Template de Correo' }}</h2>
+    <button (click)="close()" class="close-button" type="button">
+      <span class="text-2xl">&times;</span>
+    </button>
+  </div>
+
+  <div class="modal-body">
+    <!-- Tabs -->
+    <div class="flex gap-4 mb-6 border-b border-gray-200">
+      <button
+        (click)="activeTab = 'editor'"
+        [class.tab-active]="activeTab === 'editor'"
+        class="px-4 py-2 font-medium text-sm border-b-2 transition-colors"
+        [class.border-indigo-600]="activeTab === 'editor'"
+        [class.border-transparent]="activeTab !== 'editor'"
+        [class.text-indigo-600]="activeTab === 'editor'"
+        [class.text-gray-600]="activeTab !== 'editor'">
+        Editor
+      </button>
+      <button
+        (click)="activeTab = 'preview'"
+        [class.tab-active]="activeTab === 'preview'"
+        class="px-4 py-2 font-medium text-sm border-b-2 transition-colors"
+        [class.border-indigo-600]="activeTab === 'preview'"
+        [class.border-transparent]="activeTab !== 'preview'"
+        [class.text-indigo-600]="activeTab === 'preview'"
+        [class.text-gray-600]="activeTab !== 'preview'">
+        Preview
+      </button>
+    </div>
+
+    <!-- Editor Tab -->
+    <div *ngIf="activeTab === 'editor'" class="space-y-4">
+      <form [formGroup]="form" class="space-y-4">
+        <!-- Nombre -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Template</label>
+          <input
+            type="text"
+            formControlName="name"
+            placeholder="Ej: Confirmación de Pago"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            [class.border-red-500]="form.get('name')?.invalid && form.get('name')?.touched">
+          <p *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="text-xs text-red-500 mt-1">
+            El nombre es requerido (mínimo 3 caracteres)
+          </p>
+        </div>
+
+        <!-- Asunto -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Asunto del Correo</label>
+          <input
+            type="text"
+            formControlName="subject"
+            placeholder="Ej: Tu pago ha sido confirmado"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            [class.border-red-500]="form.get('subject')?.invalid && form.get('subject')?.touched">
+          <p *ngIf="form.get('subject')?.invalid && form.get('subject')?.touched" class="text-xs text-red-500 mt-1">
+            El asunto es requerido (mínimo 5 caracteres)
+          </p>
+        </div>
+
+        <!-- Descripción -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Descripción (Opcional)</label>
+          <input
+            type="text"
+            formControlName="description"
+            placeholder="Descripción breve del template"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Cuerpo del Correo -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Cuerpo del Correo (HTML)</label>
+          <textarea
+            formControlName="body"
+            [placeholder]="'<h1>Hola {{' + '{' + '{customer_name' + '}' + '}' + '}}</h1><p>Tu pago de {{' + '{' + '{payment_amount' + '}' + '}' + '}} ha sido confirmado.</p>'"
+            rows="12"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
+            [class.border-red-500]="form.get('body')?.invalid && form.get('body')?.touched"></textarea>
+          <p *ngIf="form.get('body')?.invalid && form.get('body')?.touched" class="text-xs text-red-500 mt-1">
+            El cuerpo es requerido (mínimo 10 caracteres)
+          </p>
+          <p class="text-xs text-gray-500 mt-2">
+            💡 Tip: Escribe HTML válido. Usa {{'{{'}}variable_name{{'}}'}} para insertar variables dinámicas. Ej: {{'{{'}}customer_name{{'}}'}}, {{'{{'}}payment_amount{{'}}'}}
+          </p>
+        </div>
+
+        <!-- Variables -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Variables Disponibles (Opcional)</label>
+          <input
+            type="text"
+            formControlName="variables"
+            placeholder="Ej: customer_name, payment_amount, contract_number (separadas por comas)"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+          <p class="text-xs text-gray-500 mt-1">Separa las variables con comas. Estas son referencias para el usuario.</p>
+        </div>
+
+        <!-- Activo -->
+        <div class="flex items-center">
+          <input
+            type="checkbox"
+            formControlName="is_active"
+            id="is_active"
+            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+          <label for="is_active" class="ml-2 block text-sm text-gray-700">
+            Template activo
+          </label>
+        </div>
+      </form>
+    </div>
+
+    <!-- Preview Tab -->
+    <div *ngIf="activeTab === 'preview'" class="space-y-4">
+      <div class="bg-white p-4 rounded border border-gray-200 min-h-64 max-h-96 overflow-y-auto">
+        <div [innerHTML]="getPreviewHTML()" class="text-sm text-gray-700 prose prose-sm max-w-none"></div>
+      </div>
+
+      <div class="bg-blue-50 p-3 rounded border border-blue-200">
+        <p class="text-xs text-blue-700">
+          <strong>Nota:</strong> Las variables como {{'{{'}}customer_name{{'}}'}} se reemplazarán con datos reales cuando se envíe el correo.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button
+      (click)="close()"
+      type="button"
+      class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors">
+      Cancelar
+    </button>
+    <button
+      (click)="submit()"
+      [disabled]="loading || form.invalid"
+      type="button"
+      class="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+      {{ loading ? 'Guardando...' : (isEdit ? 'Actualizar' : 'Crear') }}
+    </button>
+  </div>
+</div>

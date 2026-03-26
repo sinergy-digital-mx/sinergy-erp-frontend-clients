@@ -1,0 +1,1 @@
+import"./chunk-7CGTOI24.js";var o=[{path:"",loadComponent:()=>import("./chunk-GLPNUB46.js").then(t=>t.InventoryListComponent),data:{permission:"inventory:Read",title:"Inventario"}}];export{o as INVENTORY_ROUTES};

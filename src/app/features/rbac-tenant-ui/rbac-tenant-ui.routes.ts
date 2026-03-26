@@ -7,6 +7,7 @@ import { VendorListComponent } from '../settings/components/vendor-list/vendor-l
 import { WarehouseListComponent } from '../settings/components/warehouse-list/warehouse-list.component';
 import { FiscalConfigurationListComponent } from '../settings/components/fiscal-configuration-list/fiscal-configuration-list.component';
 import { ProductListComponent } from '../settings/components/product-list/product-list.component';
+import { EmailTemplatesListComponent } from '../settings/pages/email-templates-list/email-templates-list.component';
 
 export const RBAC_TENANT_UI_ROUTES: Routes = [
   {
@@ -41,6 +42,10 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
       {
         path: 'products',
         component: ProductListComponent
+      },
+      {
+        path: 'email-templates',
+        component: EmailTemplatesListComponent
       }
     ]
   }

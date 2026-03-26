@@ -103,6 +103,13 @@ export class SettingsComponent {
       description: 'Gestiona el catálogo de productos, SKU, nombres y descripciones de tus productos',
       icon: '📦',
       route: 'products'
+    },
+    {
+      id: 'email-templates',
+      title: 'Templates de correo',
+      description: 'Crea y gestiona plantillas de correo personalizadas para notificaciones y comunicaciones',
+      icon: '📧',
+      route: 'email-templates'
     }
   ];
 

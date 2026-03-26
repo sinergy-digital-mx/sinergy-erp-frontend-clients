@@ -266,7 +266,12 @@ export class DatatableWrapperComponent implements OnInit, OnChanges {
    */
   onNextPage(): void {
     if (this.config?.hasNext) {
-      this.onPageChange({ pageIndex: (this.config.page || 1), pageSize: this.config.limit });
+      const nextPage = (this.config.page || 1) + 1;
+      const paginationEvent: IPaginationEvent = {
+        page: nextPage,
+        limit: this.config.limit,
+      };
+      this.pageChange.emit(paginationEvent);
     }
   }
 
@@ -275,7 +280,12 @@ export class DatatableWrapperComponent implements OnInit, OnChanges {
    */
   onPrevPage(): void {
     if ((this.config?.page || 1) > 1) {
-      this.onPageChange({ pageIndex: (this.config.page || 1) - 2, pageSize: this.config.limit });
+      const prevPage = (this.config.page || 1) - 1;
+      const paginationEvent: IPaginationEvent = {
+        page: prevPage,
+        limit: this.config.limit,
+      };
+      this.pageChange.emit(paginationEvent);
     }
   }
 }

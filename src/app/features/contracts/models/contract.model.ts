@@ -78,7 +78,8 @@ export interface ContractStats {
     remaining: number;
   };
   overdue: {
-    count: number;
+    contracts_count: number;
+    payments_count: number;
     value: number;
   };
 }
