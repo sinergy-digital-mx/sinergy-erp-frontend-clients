@@ -16,17 +16,6 @@ export const routes: Routes = [
 
   // POS - Tomar Orden y Cobrar Orden (pantalla completa, sin layout)
   {
-    path: 'pos/take-order',
-    canActivate: [AuthGuard],
-    loadComponent: () =>
-      import('./features/pos/pages/take-order/take-order.component')
-        .then(m => m.TakeOrderComponent),
-    data: { 
-      permission: 'pos:Create',
-      title: 'Tomar Orden'
-    }
-  },
-  {
     path: 'pos/pending-orders',
     canActivate: [AuthGuard],
     loadComponent: () =>
@@ -113,10 +102,10 @@ export const routes: Routes = [
       {
         path: 'pos',
         loadComponent: () =>
-          import('./features/pos/pages/pos-home/pos-home.component')
-            .then(m => m.POSHomeComponent),
+          import('./features/pos/pages/take-order/take-order.component')
+            .then(m => m.TakeOrderComponent),
         data: { 
-          permission: 'pos:Read',
+          permission: 'pos:Create',
           title: 'Punto de Venta'
         }
       },

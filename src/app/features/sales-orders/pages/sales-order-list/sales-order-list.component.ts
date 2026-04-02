@@ -1,17 +1,16 @@
-import { Component, OnInit, signal, computed, ViewChild, TemplateRef } from '@angular/core';
+import { Component, OnInit, signal, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { SalesOrder, SalesOrderFilters, PaginationParams } from '../../models/sales-order.model';
-import { SalesFilterBarComponent } from '../../components/sales-filter-bar/sales-filter-bar.component';
+import { SalesOrder, PaginationParams } from '../../models/sales-order.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 
 @Component({
   selector: 'app-sales-order-list',
   standalone: true,
-  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent],
+  imports: [CommonModule, DatatableWrapperComponent],
   templateUrl: './sales-order-list.component.html',
   styleUrls: ['./sales-order-list.component.scss']
 })
@@ -22,7 +21,6 @@ export class SalesOrderListComponent implements OnInit {
 
   // State signals
   private ordersData = signal<SalesOrder[]>([]);
-  private filtersState = signal<SalesOrderFilters>({});
   private paginationState = signal<PaginationParams>({ page: 1, limit: 15 });
   private loadingState = signal<boolean>(false);
   private totalResultsState = signal<number>(0);
@@ -54,15 +52,8 @@ export class SalesOrderListComponent implements OnInit {
   
   // Public readonly signals
   orders = this.ordersData.asReadonly();
-  filters = this.filtersState.asReadonly();
   loading = this.loadingState.asReadonly();
   hasMore = this.hasMoreState.asReadonly();
-  
-  // Computed: stats
-  totalOrders = computed(() => this.totalResultsState());
-  totalAmount = computed(() => {
-    return this.ordersData().reduce((sum, order) => sum + (order.grand_total || 0), 0);
-  });
   
   statuses = [
     { value: 'draft', label: 'Borrador' },
@@ -90,7 +81,7 @@ export class SalesOrderListComponent implements OnInit {
     this.table_config.update(c => ({ ...c, loading: true }));
     
     this.salesOrderService
-      .getOrders(this.filtersState(), this.paginationState())
+      .getOrders({}, this.paginationState())
       .subscribe({
         next: (response) => {
           console.log('Sales orders response:', response);
@@ -135,15 +126,6 @@ export class SalesOrderListComponent implements OnInit {
           this.table_config.update(c => ({ ...c, loading: false }));
         }
       });
-  }
-
-  /**
-   * Apply filters
-   */
-  applyFilters(filters: SalesOrderFilters): void {
-    this.filtersState.set(filters);
-    this.paginationState.set({ page: 1, limit: 15 });
-    this.loadOrders();
   }
 
   /**

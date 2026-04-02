@@ -28,37 +28,73 @@
     <!-- Categories Tab -->
     <div class="tab-content" [class.active]="activeTab() === 'categories'">
       <!-- Create Button -->
-      <div *ngIf="!isCreating()" class="mb-4">
-        <button (click)="startCreating()" class="w-full px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium">
-          Crear Nueva
+      <div *ngIf="!isCreating()" class="header-actions">
+        <button (click)="startCreating()" class="create-btn">
+          + Crear Nueva
         </button>
       </div>
 
       <!-- Create Form -->
-      <form *ngIf="isCreating()" [formGroup]="form" class="mb-4 p-3 border border-purple-200 rounded-md bg-purple-50">
+      <form *ngIf="isCreating()" [formGroup]="form" class="create-form">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-          <input type="text" formControlName="name" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
+          <label class="form-label">Nombre</label>
+          <input type="text" formControlName="name" class="form-input" placeholder="Nombre de la categoría" />
         </div>
-        <div class="mt-3">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-          <textarea formControlName="description" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" rows="2"></textarea>
+        <div>
+          <label class="form-label">Descripción</label>
+          <textarea formControlName="description" class="form-input" rows="2" placeholder="Descripción opcional"></textarea>
         </div>
-        <div class="flex gap-2 mt-3">
-          <button (click)="cancelCreating()" type="button" class="flex-1 px-3 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm font-medium">
+        <div class="form-actions">
+          <button (click)="cancelCreating()" type="button" class="btn btn--secondary">
             Cancelar
           </button>
-          <button (click)="saveCategory()" [disabled]="form.invalid || saving()" class="flex-1 px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 text-sm font-medium">
+          <button (click)="saveCategory()" [disabled]="form.invalid || saving()" class="btn btn--primary">
             {{ saving() ? 'Guardando...' : 'Guardar' }}
           </button>
         </div>
       </form>
 
       <!-- Categories List -->
-      <div *ngIf="!isCreating()" class="space-y-2">
-        <div *ngFor="let cat of categories()" (click)="selectCategory(cat.id)" class="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50">
-          <p class="font-medium text-gray-900">{{ cat.name }}</p>
-          <p class="text-xs text-gray-600">{{ cat.description }}</p>
+      <div *ngIf="!isCreating()" class="items-list">
+        <div *ngIf="categories().length === 0" class="empty-state">
+          <p>No hay categorías</p>
+        </div>
+
+        <div *ngFor="let cat of categories()" class="item-card">
+          <div *ngIf="editingCategoryId() !== cat.id" class="item-view">
+            <div class="item-info" (click)="selectCategory(cat.id)">
+              <p class="item-name">{{ cat.name }}</p>
+              <p class="item-description">{{ cat.description }}</p>
+            </div>
+            <div class="item-actions">
+              <button (click)="startEditingCategory(cat)" class="icon-btn" title="Editar">
+                <i class="fi fi-rr-pencil"></i>
+              </button>
+              <button (click)="deleteCategory(cat)" [disabled]="saving()" class="icon-btn icon-btn--danger" title="Eliminar">
+                <i class="fi fi-rr-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Edit Mode -->
+          <div *ngIf="editingCategoryId() === cat.id" class="item-edit">
+            <div>
+              <label class="form-label">Nombre</label>
+              <input type="text" [(ngModel)]="editingCategoryForm[cat.id].name" class="form-input form-input--sm" />
+            </div>
+            <div>
+              <label class="form-label">Descripción</label>
+              <textarea [(ngModel)]="editingCategoryForm[cat.id].description" class="form-input form-input--sm" rows="2"></textarea>
+            </div>
+            <div class="form-actions">
+              <button (click)="cancelEditingCategory()" type="button" class="btn btn--sm btn--secondary">
+                Cancelar
+              </button>
+              <button (click)="saveEditCategory(cat)" [disabled]="saving()" class="btn btn--sm btn--primary">
+                {{ saving() ? 'Guardando...' : 'Guardar' }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -66,41 +102,72 @@
     <!-- Subcategories Tab -->
     <div class="tab-content" [class.active]="activeTab() === 'subcategories'">
       <!-- Create Button -->
-      <div *ngIf="!isCreatingSubcategory()" class="mb-4">
-        <button (click)="startCreatingSubcategory()" class="w-full px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium">
-          Crear Nueva
+      <div *ngIf="!isCreatingSubcategory()" class="header-actions">
+        <button (click)="startCreatingSubcategory()" class="create-btn">
+          + Crear Nueva
         </button>
       </div>
 
       <!-- Create Form -->
-      <form *ngIf="isCreatingSubcategory()" [formGroup]="form" class="mb-4 p-3 border border-purple-200 rounded-md bg-purple-50">
+      <form *ngIf="isCreatingSubcategory()" [formGroup]="form" class="create-form">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-          <input type="text" formControlName="name" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
+          <label class="form-label">Nombre</label>
+          <input type="text" formControlName="name" class="form-input" placeholder="Nombre de la subcategoría" />
         </div>
-        <div class="mt-3">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-          <textarea formControlName="description" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" rows="2"></textarea>
+        <div>
+          <label class="form-label">Descripción</label>
+          <textarea formControlName="description" class="form-input" rows="2" placeholder="Descripción opcional"></textarea>
         </div>
-        <div class="flex gap-2 mt-3">
-          <button (click)="cancelCreatingSubcategory()" type="button" class="flex-1 px-3 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm font-medium">
+        <div class="form-actions">
+          <button (click)="cancelCreatingSubcategory()" type="button" class="btn btn--secondary">
             Cancelar
           </button>
-          <button (click)="saveSubcategory()" [disabled]="form.invalid || saving()" class="flex-1 px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 text-sm font-medium">
+          <button (click)="saveSubcategory()" [disabled]="form.invalid || saving()" class="btn btn--primary">
             {{ saving() ? 'Guardando...' : 'Guardar' }}
           </button>
         </div>
       </form>
 
       <!-- Subcategories List -->
-      <div *ngIf="!isCreatingSubcategory()">
-        <div *ngIf="subcategories().length === 0" class="text-center py-8 text-gray-500">
+      <div *ngIf="!isCreatingSubcategory()" class="items-list">
+        <div *ngIf="subcategories().length === 0" class="empty-state">
           <p>No hay subcategorías</p>
         </div>
-        <div *ngIf="subcategories().length > 0" class="space-y-2">
-          <div *ngFor="let subcat of subcategories()" class="p-3 border border-gray-200 rounded-md">
-            <p class="font-medium text-gray-900">{{ subcat.name }}</p>
-            <p class="text-xs text-gray-600">{{ subcat.description }}</p>
+
+        <div *ngFor="let subcat of subcategories()" class="item-card">
+          <div *ngIf="editingSubcategoryId() !== subcat.id" class="item-view">
+            <div class="item-info">
+              <p class="item-name">{{ subcat.name }}</p>
+              <p class="item-description">{{ subcat.description }}</p>
+            </div>
+            <div class="item-actions">
+              <button (click)="startEditingSubcategory(subcat)" class="icon-btn" title="Editar">
+                <i class="fi fi-rr-pencil"></i>
+              </button>
+              <button (click)="deleteSubcategory(subcat)" [disabled]="saving()" class="icon-btn icon-btn--danger" title="Eliminar">
+                <i class="fi fi-rr-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Edit Mode -->
+          <div *ngIf="editingSubcategoryId() === subcat.id" class="item-edit">
+            <div>
+              <label class="form-label">Nombre</label>
+              <input type="text" [(ngModel)]="editingSubcategoryForm[subcat.id].name" class="form-input form-input--sm" />
+            </div>
+            <div>
+              <label class="form-label">Descripción</label>
+              <textarea [(ngModel)]="editingSubcategoryForm[subcat.id].description" class="form-input form-input--sm" rows="2"></textarea>
+            </div>
+            <div class="form-actions">
+              <button (click)="cancelEditingSubcategory()" type="button" class="btn btn--sm btn--secondary">
+                Cancelar
+              </button>
+              <button (click)="saveEditSubcategory(subcat)" [disabled]="saving()" class="btn btn--sm btn--primary">
+                {{ saving() ? 'Guardando...' : 'Guardar' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -108,7 +175,7 @@
   </div>
 
   <div class="dialog__footer">
-    <button (click)="close()" class="px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium">
+    <button (click)="close()" class="btn btn--secondary">
       Cerrar
     </button>
   </div>

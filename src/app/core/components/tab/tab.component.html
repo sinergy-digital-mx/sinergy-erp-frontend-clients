@@ -1,0 +1,14 @@
+<div class="tab-container">
+  <div class="tab-list" role="tablist">
+    <button
+      *ngFor="let tab of tabs"
+      class="tab-button"
+      [class.active]="tab.id === activeTabId"
+      role="tab"
+      [attr.aria-selected]="tab.id === activeTabId"
+      (click)="selectTab(tab.id)"
+      type="button">
+      {{ tab.title }}
+    </button>
+  </div>
+</div>

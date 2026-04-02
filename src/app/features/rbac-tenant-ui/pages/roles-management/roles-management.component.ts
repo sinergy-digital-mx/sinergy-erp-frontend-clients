@@ -29,35 +29,36 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
     <!-- Roles Management Container with Two-Column Layout -->
     <div class="h-screen flex flex-col overflow-hidden">
       <!-- Header with Back Button -->
-      <div class="flex items-center gap-3 mb-6 flex-shrink-0 pt-6 px-6">
+      <div class="flex items-center gap-3 px-3 py-3 shrink-0 border-b border-gray-200">
         <app-back-button (clicked)="goBackToSettings()"></app-back-button>
-        <h1 class="text-2xl font-semibold text-gray-900">Gestión de Roles y Permisos</h1>
+        <h1 class="text-2xl font-bold text-gray-900">Gestión de Roles y Permisos</h1>
       </div>
 
       <!-- Main Content -->
-      <div class="flex gap-6 flex-1 min-h-0 px-6 pb-6">
+      <div class="flex gap-2 flex-1 min-h-0 px-2 py-2">
         <!-- Left Panel: Role List -->
-        <div class="w-1/3 bg-gray-50 border border-gray-200 flex flex-col h-full">
+        <div class="w-1/3 bg-white border border-gray-200 rounded-lg flex flex-col h-full shadow-sm">
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-gray-200 bg-white flex-shrink-0">
-            <h2 class="text-lg font-semibold text-gray-900">Roles</h2>
+          <div class="px-3 py-2 border-b border-gray-200 shrink-0">
+            <h2 class="text-base font-semibold text-gray-900">Roles</h2>
           </div>
 
           <!-- Search and Create Button Section -->
-          <div class="px-6 py-4 border-b border-gray-200 bg-white space-y-3 flex-shrink-0">
+          <div class="px-3 py-2 border-b border-gray-200 space-y-2 shrink-0">
             <!-- Search and Create Row -->
-            <div class="flex gap-3 flex-wrap">
+            <div class="flex gap-2 flex-wrap">
               <!-- Search Input -->
               <input
                 type="text"
                 placeholder="Buscar roles..."
                 (input)="onRoleSearchChange($event)"
-                class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                class="flex-1 min-w-[150px] px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
               
               <!-- Create New Role Button -->
               <app-button
                 text="Nuevo Rol"
+                size="sm"
                 custom_class="btn_primary"
                 (clicked)="onCreateRoleClicked()">
               </app-button>
@@ -65,10 +66,10 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
           </div>
 
           <!-- Role List -->
-          <div class="flex-1 overflow-y-auto bg-white min-h-0">
+          <div class="flex-1 overflow-y-auto min-h-0">
             @if (filteredRoles$ | async; as roles) {
               @if (roles.length === 0) {
-                <div class="p-4 text-center text-gray-500">
+                <div class="p-3 text-center text-gray-500 text-sm">
                   <p>No se encontraron roles</p>
                 </div>
               } @else {
@@ -77,12 +78,12 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
                     <button
                       (click)="onRoleSelected(role.id)"
                       [class.bg-blue-50]="(selectedRoleId$ | async) === role.id"
-                      class="w-full text-left px-6 py-4 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                      class="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                     >
                       <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
                           <p class="text-sm font-medium text-gray-900 truncate">{{ role.name }}</p>
-                          <div class="flex items-center gap-2 mt-1">
+                          <div class="flex items-center gap-2 mt-0.5">
                             <span class="text-xs text-gray-500">
                               {{ getPermissionCount(role) }} permiso{{ getPermissionCount(role) !== 1 ? 's' : '' }}
                             </span>
@@ -103,49 +104,47 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
         </div>
 
         <!-- Right Panel: Role Details -->
-        <div class="flex-1 bg-gray-50 border border-gray-200 flex flex-col h-full">
+        <div class="flex-1 bg-white border border-gray-200 rounded-lg flex flex-col h-full shadow-sm">
           @if (selectedRole$ | async; as role) {
-            <div class="flex flex-col bg-white h-full">
-              <!-- Role Details Header -->
-              <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-                <app-role-edit-form
-                  [role]="role"
-                  (roleUpdated)="onRoleUpdated($event)"
-                  (roleDeleted)="onRoleDeleted($event)">
-                </app-role-edit-form>
+            <!-- Role Details Header -->
+            <div class="px-3 py-2 border-b border-gray-200 shrink-0">
+              <app-role-edit-form
+                [role]="role"
+                (roleUpdated)="onRoleUpdated($event)"
+                (roleDeleted)="onRoleDeleted($event)">
+              </app-role-edit-form>
+              
+              <!-- Role Stats -->
+              <div class="flex items-center gap-3 mt-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-500">Permisos:</span>
+                  <span 
+                    [class]="getPermissionBadgeClass(role)"
+                    class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium">
+                    {{ getPermissionCount(role) }}
+                  </span>
+                </div>
                 
-                <!-- Role Stats -->
-                <div class="flex items-center gap-4 mt-4">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-500">Permisos:</span>
-                    <span 
-                      [class]="getPermissionBadgeClass(role)"
-                      class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium">
-                      {{ getPermissionCount(role) }}
-                    </span>
-                  </div>
-                  
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-500">Estado:</span>
-                    <span 
-                      [class]="getPermissionBadgeClass(role)"
-                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium">
-                      {{ getPermissionStatusText(role) }}
-                    </span>
-                  </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-500">Estado:</span>
+                  <span 
+                    [class]="getPermissionBadgeClass(role)"
+                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium">
+                    {{ getPermissionStatusText(role) }}
+                  </span>
                 </div>
               </div>
+            </div>
 
-              <!-- Role Details Content -->
-              <div class="flex-1 overflow-y-auto p-6 min-h-0">
-                <app-role-permissions-manager
-                  [role]="role"
-                  (permissionsUpdated)="onPermissionsUpdated($event)">
-                </app-role-permissions-manager>
-              </div>
+            <!-- Role Details Content -->
+            <div class="flex-1 overflow-y-auto p-3 min-h-0">
+              <app-role-permissions-manager
+                [role]="role"
+                (permissionsUpdated)="onPermissionsUpdated($event)">
+              </app-role-permissions-manager>
             </div>
           } @else {
-            <div class="flex items-center justify-center bg-white h-full">
+            <div class="flex items-center justify-center h-full">
               <div class="text-center">
                 <p class="text-gray-500 text-lg">Selecciona un rol para ver detalles</p>
               </div>

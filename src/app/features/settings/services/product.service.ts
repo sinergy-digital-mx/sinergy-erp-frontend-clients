@@ -46,15 +46,26 @@ export class ProductService {
   }
 
   getProductBySku(sku: string): Observable<Product> {
-    return this.http.get<Product>(`${this.api}/tenant/products/sku/${sku}`);
+    return this.http.get<Product>(`${this.api}/tenant/products?sku=${sku}`).pipe(
+      map((response: any) => {
+        if (response.data && response.data.length > 0) {
+          return response.data[0];
+        }
+        throw new Error('Product not found');
+      })
+    );
   }
 
   getProductsByCategory(categoryId: string): Observable<Product[]> {
-    return this.http.get<Product[]>(`${this.api}/tenant/products/category/${categoryId}`);
+    return this.http.get<any>(`${this.api}/tenant/products?category_id=${categoryId}`).pipe(
+      map(response => response.data || response)
+    );
   }
 
   getProductsBySubcategory(subcategoryId: string): Observable<Product[]> {
-    return this.http.get<Product[]>(`${this.api}/tenant/products/subcategory/${subcategoryId}`);
+    return this.http.get<any>(`${this.api}/tenant/products?subcategory_id=${subcategoryId}`).pipe(
+      map(response => response.data || response)
+    );
   }
 
   createProduct(data: CreateProductDto): Observable<Product> {
@@ -65,12 +76,12 @@ export class ProductService {
     return this.http.patch<Product>(`${this.api}/tenant/products/${id}`, data);
   }
 
-  deleteProduct(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/tenant/products/${id}`);
+  updateProductStatus(id: string, isActive: boolean): Observable<Product> {
+    return this.http.patch<Product>(`${this.api}/tenant/products/${id}/status`, { is_active: isActive });
   }
 
-  duplicateProduct(productId: string): Observable<Product> {
-    return this.http.post<Product>(`${this.api}/tenant/products/${productId}/duplicate`, {});
+  deleteProduct(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/tenant/products/${id}`);
   }
 
   // ─── Categories ─────────────────────────────────────────────
@@ -124,7 +135,19 @@ export class ProductService {
   // ─── UoM Catalog ────────────────────────────────────────────
 
   getUOMCatalog(): Observable<UoMCatalog[]> {
-    return this.http.get<UoMCatalog[]>(`${this.api}/uom-catalog`);
+    return this.http.get<any>(`${this.api}/uom-catalog`).pipe(
+      map(response => {
+        // Handle paginated response with data property
+        if (response && response.data && Array.isArray(response.data)) {
+          return response.data;
+        }
+        // Handle direct array response
+        if (Array.isArray(response)) {
+          return response;
+        }
+        return [];
+      })
+    );
   }
 
   createUOMCatalogItem(data: any): Observable<any> {
@@ -149,8 +172,12 @@ export class ProductService {
     return this.http.get<UoMCatalog[]>(`${this.api}/tenant/products/${productId}/uoms/catalog`);
   }
 
-  createUOM(productId: string, data: { uom_catalog_id: string; name?: string }): Observable<any> {
+  createUOM(productId: string, data: { uom_catalog_id: string; factor?: number; is_base?: boolean; parent_uom_id?: string | null }): Observable<any> {
     return this.http.post<any>(`${this.api}/tenant/products/${productId}/uoms`, data);
+  }
+
+  updateUOM(productId: string, uomId: string, data: { factor?: number; is_base?: boolean; parent_uom_id?: string | null }): Observable<any> {
+    return this.http.patch<any>(`${this.api}/tenant/products/${productId}/uoms/${uomId}`, data);
   }
 
   deleteUOM(productId: string, uomId: string): Observable<void> {
@@ -236,30 +263,39 @@ export class ProductService {
     return this.http.post<PriceList>(`${this.api}/tenant/price-lists`, data);
   }
 
+  updatePriceList(id: string, data: Partial<CreatePriceListDto>): Observable<PriceList> {
+    return this.http.patch<PriceList>(`${this.api}/tenant/price-lists/${id}`, data);
+  }
+
+  deletePriceList(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/tenant/price-lists/${id}`);
+  }
+
   // ─── Product Prices (Price Lists) ──────────────────────────
 
   getProductPrices(productId: string): Observable<ProductPrice[]> {
-    return this.http.get<ProductPrice[]>(`${this.api}/tenant/price-lists/products/${productId}/prices`);
+    return this.http.get<ProductPrice[]>(`${this.api}/tenant/products/${productId}/prices`);
   }
 
-  getSpecificProductPrice(priceListId: string, productId: string): Observable<ProductPrice> {
-    return this.http.get<ProductPrice>(`${this.api}/tenant/price-lists/${priceListId}/products/${productId}/price`);
+  getSpecificProductPrice(productId: string, priceId: string): Observable<ProductPrice> {
+    return this.http.get<ProductPrice>(`${this.api}/tenant/products/${productId}/prices/${priceId}`);
   }
 
-  addProductPrice(data: CreateProductPriceDto): Observable<ProductPrice> {
-    return this.http.post<ProductPrice>(`${this.api}/tenant/price-lists/product-prices`, data);
+  createProductPrice(productId: string, data: { price_list_id: string; product_uom_id: string; price: number; iva_percentage?: number; ieps_percentage?: number }): Observable<ProductPrice> {
+    return this.http.post<ProductPrice>(`${this.api}/tenant/products/${productId}/prices`, data);
   }
 
-  updateProductPrice(id: string, data: { price: number }): Observable<ProductPrice> {
-    return this.http.put<ProductPrice>(`${this.api}/tenant/price-lists/product-prices/${id}`, data);
+  updateProductPrice(productId: string, priceId: string, data: { price?: number; iva_percentage?: number; ieps_percentage?: number }): Observable<ProductPrice> {
+    return this.http.patch<ProductPrice>(`${this.api}/tenant/products/${productId}/prices/${priceId}`, data);
   }
 
-  deleteProductPrice(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/tenant/price-lists/product-prices/${id}`);
+  deleteProductPrice(productId: string, priceId: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/tenant/products/${productId}/prices/${priceId}`);
   }
 
   // ─── Vendor Product Prices ──────────────────────────────────
 
+  // Métodos antiguos (deprecated)
   createVendorPrice(data: CreateVendorPriceDto): Observable<VendorProductPrice> {
     return this.http.post<VendorProductPrice>(`${this.api}/tenant/vendor-product-prices`, data);
   }
@@ -282,6 +318,46 @@ export class ProductService {
 
   deleteVendorPrice(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/vendor-product-prices/${id}`);
+  }
+
+  // ─── Vendor Costs (New) ─────────────────────────────────────
+
+  getVendorCosts(productId: string): Observable<VendorProductPrice[]> {
+    return this.http.get<VendorProductPrice[]>(`${this.api}/tenant/products/${productId}/vendor-costs`);
+  }
+
+  getVendorCost(productId: string, costId: string): Observable<VendorProductPrice> {
+    return this.http.get<VendorProductPrice>(`${this.api}/tenant/products/${productId}/vendor-costs/${costId}`);
+  }
+
+  createVendorCost(productId: string, data: { vendor_id: string; product_uom_id: string; cost: number; iva_percentage?: number; ieps_percentage?: number }): Observable<VendorProductPrice> {
+    return this.http.post<VendorProductPrice>(`${this.api}/tenant/products/${productId}/vendor-costs`, data);
+  }
+
+  updateVendorCost(productId: string, costId: string, data: { cost?: number; iva_percentage?: number; ieps_percentage?: number }): Observable<VendorProductPrice> {
+    return this.http.patch<VendorProductPrice>(`${this.api}/tenant/products/${productId}/vendor-costs/${costId}`, data);
+  }
+
+  deleteVendorCost(productId: string, costId: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/tenant/products/${productId}/vendor-costs/${costId}`);
+  }
+
+  // ─── Vendors ────────────────────────────────────────────────
+
+  getVendors(params?: { is_active?: boolean }): Observable<any> {
+    return this.http.get<any>(`${this.api}/tenant/vendors`, { params: params as any }).pipe(
+      map(response => {
+        // Handle paginated response with data property
+        if (response && response.data && Array.isArray(response.data)) {
+          return response.data;
+        }
+        // Handle direct array response
+        if (Array.isArray(response)) {
+          return response;
+        }
+        return [];
+      })
+    );
   }
 
   // ─── Inventory ──────────────────────────────────────────────

@@ -10,6 +10,7 @@ export interface POSCartItem {
   uom_id: string;
   uom_name: string;
   quantity: number;
+  weight?: number; // Optional weight in kg
   unit_price: number;
   iva_percentage: number;
   ieps_percentage: number;

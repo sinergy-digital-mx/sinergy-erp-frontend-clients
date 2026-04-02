@@ -5,6 +5,16 @@
   position: relative;
   width: 100%;
 
+  ::ng-deep {
+    .input_container {
+      input {
+        padding-left: 12px !important;
+        height: 36px !important;
+        font-size: 14px !important;
+      }
+    }
+  }
+
   .clear-icon {
     display: flex;
     cursor: pointer;

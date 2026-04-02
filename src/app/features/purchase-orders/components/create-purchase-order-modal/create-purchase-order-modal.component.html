@@ -1,0 +1,140 @@
+<div class="modal-container">
+  <!-- Header -->
+  <div class="modal-header">
+    <h2>Crear Orden de Compra</h2>
+    <button class="close-btn" (click)="cancel()" type="button">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="modal-content">
+    <form [formGroup]="form">
+      <!-- Form Grid -->
+      <div class="form-grid">
+        <!-- Fiscal Configuration -->
+        <div class="form-field form-field--full">
+          <label class="form-label">CONFIGURACIÓN FISCAL *</label>
+          <select class="form-select" formControlName="fiscal_configuration_id">
+            <option value="">Selecciona una configuración fiscal</option>
+            <option *ngFor="let config of fiscalConfigurations" [value]="config.id">
+              {{ config.razon_social || config.rfc || config.id }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Warehouse -->
+        <div class="form-field">
+          <label class="form-label">ALMACÉN *</label>
+          <select class="form-select" formControlName="warehouse_id">
+            <option value="">Selecciona un almacén</option>
+            <option *ngFor="let warehouse of warehouses" [value]="warehouse.id">
+              {{ warehouse.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Vendor -->
+        <div class="form-field">
+          <label class="form-label">PROVEEDOR *</label>
+          <select class="form-select" formControlName="vendor_id" (change)="onVendorChange()">
+            <option value="">Selecciona un proveedor</option>
+            <option *ngFor="let vendor of vendors" [value]="vendor.id">
+              {{ vendor.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Expected Delivery Date -->
+        <div class="form-field">
+          <label class="form-label">FECHA ESPERADA DE ENTREGA *</label>
+          <input type="date" class="form-input" formControlName="expected_delivery_date">
+        </div>
+
+        <!-- Notes -->
+        <div class="form-field form-field--full">
+          <label class="form-label">NOTAS</label>
+          <textarea class="form-textarea" formControlName="notes" placeholder="Notas opcionales" rows="3"></textarea>
+        </div>
+      </div>
+
+      <!-- Line Items Section -->
+      <div class="line-items-section">
+        <div class="section-header">
+          <h3>Productos</h3>
+          <button type="button" class="btn btn--sm btn--primary" (click)="addLineItem()" [disabled]="!form.get('vendor_id')?.value">
+            + Agregar Producto
+          </button>
+        </div>
+
+        <div *ngIf="lineItems.length === 0" class="empty-state">
+          <p>No hay productos agregados. Selecciona un proveedor y agrega productos.</p>
+        </div>
+
+        <div *ngIf="lineItems.length > 0" class="line-items-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>UOM</th>
+                <th>Cantidad</th>
+                <th>Precio Unitario</th>
+                <th>IVA %</th>
+                <th>IEPS %</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of lineItems; let i = index">
+                <td>
+                  <select class="form-select form-select--inline" [(ngModel)]="item.product_id" [ngModelOptions]="{standalone: true}" (change)="onProductChange(i)">
+                    <option value="">Seleccionar...</option>
+                    <option *ngFor="let product of vendorProducts" [value]="product.product_id">
+                      {{ product.product_name }}
+                    </option>
+                  </select>
+                </td>
+                <td>
+                  <select class="form-select form-select--inline" [(ngModel)]="item.uom_id" [ngModelOptions]="{standalone: true}" (change)="onUomChange(i)">
+                    <option value="">Seleccionar...</option>
+                    <option *ngFor="let uom of getProductUoms(i)" [value]="uom.uom_id">
+                      {{ uom.uom_name }}
+                    </option>
+                  </select>
+                </td>
+                <td>
+                  <input type="number" class="form-input form-input--inline" [(ngModel)]="item.quantity" [ngModelOptions]="{standalone: true}" min="0.01" step="0.01">
+                </td>
+                <td>
+                  <input type="number" class="form-input form-input--inline" [(ngModel)]="item.unit_total" [ngModelOptions]="{standalone: true}" (change)="calculateTotals(item)" min="0" step="0.01">
+                </td>
+                <td>
+                  <input type="number" class="form-input form-input--inline" [(ngModel)]="item.iva_percentage" [ngModelOptions]="{standalone: true}" min="0" max="100" step="0.01" (change)="calculateTotals(item)">
+                </td>
+                <td>
+                  <input type="number" class="form-input form-input--inline" [(ngModel)]="item.ieps_percentage" [ngModelOptions]="{standalone: true}" min="0" max="100" step="0.01" (change)="calculateTotals(item)">
+                </td>
+                <td>
+                  <button type="button" class="btn-icon btn-icon--danger" (click)="removeLineItem(i)" title="Eliminar">
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Footer -->
+  <div class="modal-footer">
+    <button class="btn btn--secondary" (click)="cancel()" type="button">Cancelar</button>
+    <button class="btn btn--primary" (click)="save()" [disabled]="saving" type="button">
+      <span *ngIf="!saving">Crear Orden</span>
+      <span *ngIf="saving">Creando...</span>
+    </button>
+  </div>
+</div>

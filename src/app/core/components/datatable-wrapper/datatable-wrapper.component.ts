@@ -200,7 +200,8 @@ export class DatatableWrapperComponent implements OnInit, OnChanges {
     if (event.target && this.isInteractiveElement(event.target)) {
       return;
     }
-    this.rowClick.emit(event.data);
+    console.log('Row clicked:', event);
+    this.rowClick.emit(event);
   }
 
   /**

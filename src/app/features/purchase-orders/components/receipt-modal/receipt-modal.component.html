@@ -1,0 +1,79 @@
+<div class="receipt-modal">
+  <div class="modal-header">
+    <h2>Recibo de Orden de Compra</h2>
+    @if (purchaseOrder?.folio) {
+      <p class="folio">{{ purchaseOrder.folio }}</p>
+    }
+  </div>
+
+  @if (purchaseOrder) {
+    <form (ngSubmit)="onSubmit()">
+      <div class="modal-content">
+        <div class="section">
+          <h3>Productos Ordenados</h3>
+          
+          <div class="items-list">
+            @for (lineItem of purchaseOrder.line_items; track lineItem.id; let i = $index) {
+              <div class="item-row">
+                <div class="item-info">
+                  <div class="product-details">
+                    <h4>{{ getProductName(lineItem) }}</h4>
+                    <p class="sku">SKU: {{ getProductSku(lineItem) }}</p>
+                    <p class="ordered">Ordenado: {{ getOrderedQuantity(lineItem) }}</p>
+                  </div>
+                </div>
+
+                <div class="item-inputs-row">
+                  <div class="input-group">
+                    <label>Cantidad Recibida</label>
+                    <input 
+                      type="number" 
+                      [(ngModel)]="receivedQuantities[lineItem.id]"
+                      [ngModelOptions]="{standalone: true}"
+                      placeholder="0"
+                      min="0"
+                      step="0.001"
+                      class="quantity-input"
+                    />
+                  </div>
+
+                  <div class="input-group">
+                    <label>Fecha Vencimiento</label>
+                    <input 
+                      type="date" 
+                      [(ngModel)]="receivedDates[lineItem.id]"
+                      [ngModelOptions]="{standalone: true}"
+                      class="date-input"
+                    />
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button 
+          type="button"
+          class="btn-cancel"
+          (click)="onCancel()"
+          [disabled]="isLoading"
+        >
+          Cancelar
+        </button>
+        <button 
+          type="submit"
+          class="btn-confirm"
+          [disabled]="isLoading"
+        >
+          {{ isLoading ? 'Procesando...' : 'Confirmar Recibo' }}
+        </button>
+      </div>
+    </form>
+  } @else {
+    <div class="modal-content">
+      <p class="error-message">Error: No se pudo cargar la orden de compra</p>
+    </div>
+  }
+</div>

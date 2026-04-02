@@ -30,10 +30,16 @@ export interface UoM {
   id: string;
   product_id?: string;
   uom_catalog_id?: string;
+  factor?: number;
+  is_base?: boolean;
+  parent_uom_id?: string | null;
   name?: string;
   abbreviation?: string;
   created_at?: string;
-  uom_catalog?: UoMCatalog;
+  updated_at?: string;
+  uom?: UoMCatalog; // Relación con el catálogo
+  uom_catalog?: UoMCatalog; // Alias por compatibilidad
+  parent_uom?: UoM | null;
 }
 
 export interface UoMRelationship {
@@ -52,8 +58,28 @@ export interface VendorProductPrice {
   id: string;
   vendor_id: string;
   product_id: string;
-  uom_id: string;
-  price: number;
+  product_uom_id: string;
+  cost: number;
+  iva_percentage?: number;
+  ieps_percentage?: number;
+  subtotal?: number;
+  iva_unit_total?: number;
+  ieps_unit_total?: number;
+  vendor?: {
+    id: string;
+    name: string;
+    rfc?: string;
+  };
+  product_uom?: {
+    id: string;
+    factor: number;
+    is_base: boolean;
+    uom: {
+      id: string;
+      name: string;
+      description?: string;
+    };
+  };
   created_at?: string;
   updated_at?: string;
 }
@@ -91,16 +117,31 @@ export interface ProductPrice {
   id: string;
   price_list_id: string;
   product_id: string;
-  uom_id: string;
+  product_uom_id: string;
   price: number;
+  iva_percentage?: number;
+  ieps_percentage?: number;
+  subtotal?: number;
+  iva_unit_total?: number;
+  ieps_unit_total?: number;
   price_list?: PriceList;
+  product_uom?: {
+    id: string;
+    factor: number;
+    is_base: boolean;
+    uom: {
+      id: string;
+      name: string;
+      description?: string;
+    };
+  };
   created_at?: string;
   updated_at?: string;
 }
 
 export interface Product {
   id: string;
-  tenant_id: string;
+  tenant_id?: string;
   sku: string;
   name: string;
   description?: string | null;
@@ -117,6 +158,7 @@ export interface Product {
   uoms?: UoM[];
   uom_relationships?: UoMRelationship[];
   vendor_prices?: VendorProductPrice[];
+  vendor_costs?: VendorProductPrice[];
   photos?: ProductPhoto[];
   prices?: ProductPrice[];
 }

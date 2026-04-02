@@ -36,6 +36,13 @@ export class TakeOrderComponent implements OnInit {
   // Photo loading state per product
   photoLoadingStates = signal<Map<string, boolean>>(new Map());
   photoErrorStates = signal<Map<string, boolean>>(new Map());
+  
+  // Payment method signals
+  paymentMethod = signal<'cash' | 'card' | 'credit'>('cash');
+  amountPaid = signal<number>(0);
+  
+  // Terminal badge
+  terminalId = signal<string>('Terminal-001');
 
   constructor(
     public posService: POSService,
@@ -56,28 +63,17 @@ export class TakeOrderComponent implements OnInit {
     this.productService.getProducts().subscribe({
       next: (products) => {
         const productArray = Array.isArray(products) ? products : (products as any).data || [];
-        this.products.set(productArray);
-        this.filteredProducts.set(productArray);
+        
+        // Add random prices to products for demo (33.5 to 41.60)
+        const productsWithPrices = productArray.map((p: Product) => ({
+          ...p,
+          cost: Math.round((Math.random() * (41.60 - 33.5) + 33.5) * 100) / 100,
+          has_price: true
+        }));
+        
+        this.products.set(productsWithPrices);
+        this.filteredProducts.set(productsWithPrices);
         this.loading.set(false);
-        
-        // Check if any products lack prices
-        const productsWithoutPrice = productArray.filter((p: Product) => !p.has_price);
-        if (productsWithoutPrice.length > 0) {
-          console.warn(
-            `${productsWithoutPrice.length} products without prices`,
-            productsWithoutPrice.map((p: Product) => p.sku)
-          );
-        }
-        
-        // Check if ALL products lack prices (indicates no price list)
-        if (productArray.length > 0 && productsWithoutPrice.length === productArray.length) {
-          this.priceListError.set(true);
-          this.snackBar.open(
-            'Error al cargar precios. Modo solo lectura.',
-            'Cerrar',
-            { duration: 5000 }
-          );
-        }
       },
       error: (error) => {
         console.error('Error loading products:', error);
@@ -91,6 +87,7 @@ export class TakeOrderComponent implements OnInit {
         const warehouseArray = Array.isArray(warehouses) ? warehouses : (warehouses as any).data || [];
         this.warehouses.set(warehouseArray);
         if (warehouseArray.length > 0) {
+          // Auto-select first warehouse for demo
           this.selectedWarehouse.set(warehouseArray[0].id);
         }
       },
@@ -121,20 +118,20 @@ export class TakeOrderComponent implements OnInit {
       this.snackBar.open('Este producto no tiene precio configurado', 'Cerrar', { duration: 3000 });
       return;
     }
-    
-    if (!product.uoms || product.uoms.length === 0) {
-      this.snackBar.open('Producto sin unidades de medida', 'Cerrar', { duration: 3000 });
-      return;
-    }
 
-    const baseUom = product.uoms.find(u => u.id === product.base_uom_id) || product.uoms[0];
+    // For demo: allow products without UOM, default to 'Pieza'
+    let baseUom: any = { id: 'default-uom', name: 'Pieza' };
+    
+    if (product.uoms && product.uoms.length > 0) {
+      baseUom = product.uoms.find(u => u.id === product.base_uom_id) || product.uoms[0];
+    }
 
     const cartItem: POSCartItem = {
       product_id: product.id,
       product_name: product.name,
       product_sku: product.sku,
       uom_id: baseUom.id,
-      uom_name: baseUom.name,
+      uom_name: baseUom.name || 'Pieza',
       quantity: 1,
       unit_price: product.cost || 0,
       iva_percentage: 16,
@@ -283,5 +280,24 @@ export class TakeOrderComponent implements OnInit {
       return 'Producto sin precio configurado';
     }
     return '';
+  }
+
+  /**
+   * Calculate change for cash payment
+   */
+  calculateChange(): number {
+    const total = this.posService.cart().grand_total;
+    const paid = this.amountPaid();
+    return paid > total ? paid - total : 0;
+  }
+
+  /**
+   * Check if payment is valid
+   */
+  isPaymentValid(): boolean {
+    if (this.paymentMethod() === 'cash') {
+      return this.amountPaid() >= this.posService.cart().grand_total;
+    }
+    return true;
   }
 }

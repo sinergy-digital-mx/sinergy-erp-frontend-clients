@@ -6,33 +6,49 @@
         type="text"
         id="search"
         [formControl]="searchControl"
-        placeholder="Buscar por folio, proveedor o propósito..."
+        placeholder="Buscar..."
         class="filter-bar__input"
         aria-label="Buscar órdenes por folio, proveedor o propósito"
       />
     </div>
 
-    <!-- Date From -->
+    <!-- Date Range Dropdown -->
     <div class="filter-bar__field">
-      <input
-        type="date"
-        id="dateFrom"
-        [formControl]="dateFromControl"
-        class="filter-bar__input"
-        aria-label="Filtrar desde fecha"
-      />
+      <select
+        id="dateRange"
+        [formControl]="dateRangeControl"
+        class="filter-bar__select"
+        aria-label="Filtrar por rango de fecha"
+      >
+        <option value="">Fecha</option>
+        @for (option of dateRangeOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
     </div>
 
-    <!-- Date To -->
-    <div class="filter-bar__field">
-      <input
-        type="date"
-        id="dateTo"
-        [formControl]="dateToControl"
-        class="filter-bar__input"
-        aria-label="Filtrar hasta fecha"
-      />
-    </div>
+    <!-- Custom Date Range (shown when "Rango" is selected) -->
+    @if (showCustomDateRange) {
+      <div class="filter-bar__field">
+        <input
+          type="date"
+          id="dateFrom"
+          [formControl]="dateFromControl"
+          class="filter-bar__input"
+          aria-label="Filtrar desde fecha"
+        />
+      </div>
+
+      <div class="filter-bar__field">
+        <input
+          type="date"
+          id="dateTo"
+          [formControl]="dateToControl"
+          class="filter-bar__input"
+          aria-label="Filtrar hasta fecha"
+        />
+      </div>
+    }
 
     <!-- Status Dropdown -->
     <div class="filter-bar__field">
@@ -43,9 +59,9 @@
         aria-label="Filtrar por estado de orden"
       >
         <option [value]="null">Todos los estados</option>
-        <option *ngFor="let option of statusOptions" [value]="option.value">
-          {{ option.label }}
-        </option>
+        @for (option of statusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
       </select>
     </div>
 
@@ -58,9 +74,9 @@
         aria-label="Filtrar por almacén"
       >
         <option [value]="null">Todos los almacenes</option>
-        <option *ngFor="let warehouse of warehouses" [value]="warehouse.id">
-          {{ warehouse.name }}
-        </option>
+        @for (warehouse of warehouses; track warehouse.id) {
+          <option [value]="warehouse.id">{{ warehouse.name }}</option>
+        }
       </select>
     </div>
   </div>

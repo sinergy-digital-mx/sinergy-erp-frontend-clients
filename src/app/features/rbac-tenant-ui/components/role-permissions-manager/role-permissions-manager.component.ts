@@ -49,29 +49,29 @@ interface ModulePermissions {
         </div>
 
         <!-- Modules and Permissions -->
-        <div class="space-y-6">
+        <div class="space-y-3">
           @for (module of modulePermissions; track module.module_id) {
-            <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <div class="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-sm transition-shadow">
               <!-- Module Header -->
-              <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+              <div class="bg-white px-4 py-3 border-b border-gray-100">
                 <div class="flex items-center justify-between">
                   <button
                     (click)="toggleModule(module)"
                     class="flex items-center flex-1 text-left hover:opacity-80 transition-opacity">
-                    <h3 class="text-lg font-medium text-gray-900">{{ module.module_name }}</h3>
+                    <h3 class="text-base font-semibold text-gray-900">{{ module.module_name }}</h3>
                   </button>
-                  <div class="flex items-center gap-3">
-                    <span class="text-sm text-gray-600">
-                      {{ getModuleAssignedCount(module) }}/{{ module.permissions.length }} permisos
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">
+                      {{ getModuleAssignedCount(module) }}/{{ module.permissions.length }}
                     </span>
                     <button
                       (click)="toggleAllModulePermissions(module)"
-                      class="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                      {{ isModuleFullyAssigned(module) ? 'Desmarcar Todo' : 'Marcar Todo' }}
+                      class="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50">
+                      {{ isModuleFullyAssigned(module) ? 'Desmarcar' : 'Marcar' }}
                     </button>
                     <button
                       (click)="toggleModule(module)"
-                      class="ml-2 text-gray-500 hover:text-gray-700 transition-all duration-200"
+                      class="text-gray-400 hover:text-gray-600 transition-all duration-200 p-1"
                       [class.rotate-90]="module.isExpanded">
                       <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
@@ -83,18 +83,18 @@ interface ModulePermissions {
 
               <!-- Permissions List (Collapsible) -->
               @if (module.isExpanded) {
-                <div class="p-4">
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="p-3 bg-gray-50">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     @for (permission of module.permissions; track $index) {
-                      <label class="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
+                      <label class="flex items-start space-x-2 p-2 rounded border border-gray-200 bg-white hover:bg-blue-50 cursor-pointer transition-colors">
                         <input
                           type="checkbox"
                           [checked]="permission.isAssigned"
                           (change)="togglePermission(permission)"
-                          class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                          class="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                         <div class="flex-1 min-w-0">
-                          <p class="text-sm font-medium text-gray-900">{{ permission.name }}</p>
-                          <p class="text-xs text-gray-500 mt-1">{{ permission.description }}</p>
+                          <p class="text-xs font-medium text-gray-900">{{ permission.name }}</p>
+                          <p class="text-xs text-gray-500 mt-0.5">{{ permission.description }}</p>
                         </div>
                       </label>
                     }
@@ -115,8 +115,11 @@ interface ModulePermissions {
   `,
   styles: [`
     .role-permissions-manager {
-      max-height: calc(100vh - 300px);
+      display: flex;
+      flex-direction: column;
+      flex: 1;
       overflow-y: auto;
+      min-height: 0;
     }
 
     .role-permissions-manager::-webkit-scrollbar {

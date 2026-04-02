@@ -1,13 +1,12 @@
 .dialog {
-  width: 400px;
-  height: auto;
-  max-height: 90vh;
+  width: 600px;
+  height: 600px;
   display: flex;
   flex-direction: column;
 }
 
 .dialog__header {
-  padding: 1rem;
+  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -16,7 +15,7 @@
 
   h2 {
     margin: 0;
-    font-size: 1.125rem;
+    font-size: 18px;
     font-weight: 600;
     color: #111827;
   }
@@ -31,9 +30,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
 
     &:hover {
-      color: #111827;
+      background: #f3f4f6;
+      color: #374151;
     }
   }
 }
@@ -41,47 +44,260 @@
 .dialog__body {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 16px 20px;
   min-height: 0;
+}
 
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+.dialog__footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
-    > div {
-      display: flex;
-      flex-direction: column;
-    }
+// Header Actions
+.header-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
 
-    label {
-      margin-bottom: 0.25rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #374151;
-    }
+// Create Button
+.create-btn {
+  padding: 8px 16px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
 
-    input {
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #d1d5db;
-      border-radius: 0.375rem;
-      font-size: 0.875rem;
-      transition: all 0.2s;
+  &:hover {
+    background: #4338ca;
+  }
+}
 
-      &:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-      }
+// Create Form
+.create-form {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  margin-bottom: 16px;
+
+  > div {
+    margin-bottom: 12px;
+
+    &:last-of-type {
+      margin-bottom: 0;
     }
   }
 }
 
-.dialog__footer {
-  padding: 1rem;
-  border-top: 1px solid #e5e7eb;
+// Form Elements
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+
+  &:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+
+  &--sm {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+// Buttons
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  flex: 1;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &--primary {
+    background: #4f46e5;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: #4338ca;
+    }
+  }
+
+  &--secondary {
+    background: #f3f4f6;
+    color: #374151;
+
+    &:hover:not(:disabled) {
+      background: #e5e7eb;
+    }
+  }
+
+  &--sm {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+// UOMs List
+.uoms-list {
+  // No max-height here, let the parent handle scroll
+}
+
+.uom-card {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.uom-view {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.uom-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.uom-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.uom-description {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+}
+
+.uom-date {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.uom-actions {
+  display: flex;
+  gap: 4px;
   flex-shrink: 0;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: #6b7280;
+  transition: all 0.15s;
+  font-size: 14px;
+
+  i {
+    line-height: 1;
+  }
+
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &--danger:hover:not(:disabled) {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+}
+
+.uom-edit {
+  > div {
+    margin-bottom: 10px;
+
+    &:last-of-type {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// Empty State
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+
+  p {
+    font-size: 14px;
+    margin: 0;
+  }
 }

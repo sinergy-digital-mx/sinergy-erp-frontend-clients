@@ -5,20 +5,39 @@ import { Product } from './product.model';
  */
 export interface LineItem {
   id: string;
-  purchase_order_id: string;
+  purchase_order_batch_id?: string;
+  purchase_order_id?: string;
   product_id: string;
   uom_id: string;
-  quantity: number;
-  unit_price: number;
-  subtotal: number;
+  quantity: number | string;
+  unit_price?: number;
+  unit_total?: number;
+  subtotal?: number;
   iva_percentage: number;
-  iva_amount: number;
+  iva_unit?: number;
+  iva_amount?: number;
   ieps_percentage: number;
-  ieps_amount: number;
-  line_total: number;
+  ieps_unit?: number;
+  ieps_amount?: number;
+  line_total?: number;
+  received_product?: Product;
+  received_original_product_id?: string;
+  received_uom?: UnitOfMeasure;
+  received_original_uom_id?: string;
+  received_original_quantity?: number | string;
+  received_original_unit_total?: number;
+  received_original_iva_percentage?: number;
+  received_original_iva_unit?: number;
+  received_original_ieps_percentage?: number;
+  received_original_ieps_unit?: number;
+  received_converted_uom?: UnitOfMeasure;
+  received_converted_uom_id?: string;
+  received_converted_quantity?: number | string;
   product?: Product;
   uom?: UnitOfMeasure;
+  created_by?: string;
   created_at: string;
+  updated_by?: string;
   updated_at: string;
 }
 
@@ -29,9 +48,10 @@ export interface UnitOfMeasure {
   id: string;
   product_id?: string;
   uom_catalog_id?: string | null;
-  code: string;
+  code?: string;
   name: string;
   abbreviation?: string;
+  description?: string;
   created_at?: string;
   updated_at?: string;
 }

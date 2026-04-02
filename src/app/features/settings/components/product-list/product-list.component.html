@@ -1,33 +1,43 @@
-<div class="px-2">
-  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-    <div>
-      <h2 class="text-2xl font-semibold text-gray-800">Productos</h2>
-    </div>
-
-    <div class="flex items-center gap-3">
+<div class="px-2 py-2">
+  <div class="flex items-start justify-between mb-3">
+    <h2 class="text-2xl font-semibold text-gray-800">Productos</h2>
+    
+    <div class="flex flex-col items-end gap-3">
       <app-search
         class="w-64"
         [param_activate]="false"
         (searchChange)="onSearchChange($event)">
       </app-search>
 
-      <app-button
-        text="Categorías"
-        custom_class="btn_secondary"
-        (clicked)="openCategoriesDialog()">
-      </app-button>
+      <div class="flex items-center gap-3">
+        <app-button
+          text="Categorías"
+          size="sm"
+          custom_class="btn_secondary"
+          (clicked)="openCategoriesDialog()">
+        </app-button>
 
-      <app-button
-        text="Unidades"
-        custom_class="btn_secondary"
-        (clicked)="openUOMsDialog()">
-      </app-button>
+        <app-button
+          text="Unidades"
+          size="sm"
+          custom_class="btn_secondary"
+          (clicked)="openUOMsDialog()">
+        </app-button>
 
-      <app-button
-        text="Nuevo Producto"
-        custom_class="btn_primary"
-        (clicked)="openCreateProductModal()">
-      </app-button>
+        <app-button
+          text="Listas de Precios"
+          size="sm"
+          custom_class="btn_secondary"
+          (clicked)="openPriceListsDialog()">
+        </app-button>
+
+        <app-button
+          text="Nuevo Producto"
+          size="sm"
+          custom_class="btn_primary"
+          (clicked)="openCreateProductModal()">
+        </app-button>
+      </div>
     </div>
   </div>
 
@@ -51,27 +61,5 @@
   </td>
   <td>
     <span class="text-gray-700 text-sm">{{ item.subcategory?.name || '—' }}</span>
-  </td>
-  <td class="text-center">
-    <span class="text-gray-600">{{ item.base_uom?.name || item.base_uom?.code || '—' }}</span>
-  </td>
-  <td (click)="$event.stopPropagation()">
-    <div class="flex gap-2">
-      <app-button
-        text="Duplicar"
-        size="sm"
-        [fullWidth]="false"
-        custom_class="btn_secondary"
-        (clicked)="duplicateProduct(item)">
-      </app-button>
-      <app-button
-        text="Detalle"
-        size="sm"
-        [fullWidth]="false"
-        custom_class="btn_primary"
-        (clicked)="viewDetail(item)"
-        [icon]="ArrowRight">
-      </app-button>
-    </div>
   </td>
 </ng-template>

@@ -13,6 +13,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { ProductDetailModalComponent } from '../product-detail-modal/product-detail-modal.component';
 import { CategoriesDialogComponent } from '../categories-dialog/categories-dialog.component';
 import { UomsDialogComponent } from '../uoms-dialog/uoms-dialog.component';
+import { PriceListsDialogComponent } from '../price-lists-dialog/price-lists-dialog';
 import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { ArrowRight } from 'lucide-angular';
@@ -38,8 +39,6 @@ export class ProductListComponent implements OnDestroy {
       { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true, width: 180 },
       { name: 'Categoría', prop: 'category', sortable: false, canAutoResize: true, width: 130 },
       { name: 'Subcategoría', prop: 'subcategory', sortable: false, canAutoResize: true, width: 130 },
-      { name: 'Base UoM', prop: 'base_uom_id', sortable: true, canAutoResize: true, width: 100 },
-      { name: 'Detalle', prop: 'detail', sortable: false, canAutoResize: true, width: 100 },
     ],
     externalPaging: false,
     externalSorting: false,
@@ -157,9 +156,9 @@ export class ProductListComponent implements OnDestroy {
   openCreateProductModal() {
     const dialogRef = this.dialog.open(ProductDetailModalComponent, {
       width: '600px',
-      height: '650px',
+      maxHeight: '90vh',
       disableClose: false,
-      data: { product: null }
+      data: { product: null, isNew: true }
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -169,10 +168,11 @@ export class ProductListComponent implements OnDestroy {
     });
   }
 
-  viewDetail(product: Product) {
+  viewDetail(event: any) {
+    const product = event.data || event;
     const dialogRef = this.dialog.open(ProductDetailModalComponent, {
-      width: '600px',
-      height: '650px',
+      width: '850px',
+      maxHeight: '90vh',
       disableClose: false,
       data: { product }
     });
@@ -221,7 +221,7 @@ export class ProductListComponent implements OnDestroy {
 
   openCategoriesDialog() {
     this.dialog.open(CategoriesDialogComponent, {
-      width: '500px',
+      width: '600px',
       height: '600px',
       disableClose: false
     });
@@ -229,27 +229,18 @@ export class ProductListComponent implements OnDestroy {
 
   openUOMsDialog() {
     this.dialog.open(UomsDialogComponent, {
-      width: '400px',
+      width: '600px',
+      height: '600px',
       disableClose: false
     });
   }
 
-  duplicateProduct(product: Product) {
-    this.productService.duplicateProduct(product.id).subscribe({
-      next: (duplicatedProduct) => {
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Producto duplicado correctamente', type: 'success' },
-          duration: 3000
-        });
-        this.loadProducts();
-      },
-      error: (error) => {
-        const errorMessage = error.error?.message || 'Error al duplicar producto';
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: errorMessage, type: 'error' },
-          duration: 5000
-        });
-      }
+  openPriceListsDialog() {
+    this.dialog.open(PriceListsDialogComponent, {
+      width: '600px',
+      height: '600px',
+      disableClose: false
     });
   }
+
 }

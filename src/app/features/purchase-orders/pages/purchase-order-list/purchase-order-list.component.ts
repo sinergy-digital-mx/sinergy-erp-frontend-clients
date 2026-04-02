@@ -3,14 +3,15 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
-import { WarehouseService } from '../../services/warehouse.service';
+import { WarehouseService } from '../../../../features/settings/services/warehouse.service';
 import { PurchaseOrder, OrderStatus, PaymentStatus } from '../../models/purchase-order.model';
 import { OrderFilters, PaginationParams } from '../../models/filters.model';
-import { Warehouse } from '../../models/warehouse.model';
+import { Warehouse } from '../../../../features/settings/models/warehouse.model';
 import { FilterBarComponent } from '../../components/filter-bar/filter-bar.component';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { OrderDetailDialogComponent } from '../../components/order-detail-dialog/order-detail-dialog.component';
+import { CreatePurchaseOrderModalComponent } from '../../components/create-purchase-order-modal/create-purchase-order-modal.component';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 
 @Component({
@@ -37,14 +38,13 @@ export class PurchaseOrderListComponent implements OnInit {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Tipo', prop: 'purpose', sortable: false, canAutoResize: false, width: 80 },
-      { name: 'Proveedor', prop: 'vendor', sortable: true, canAutoResize: false, width: 120 },
-      { name: 'Cedis', prop: 'warehouse', sortable: false, canAutoResize: false, width: 100 },
-      { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 100 },
-      { name: 'Total', prop: 'grand_total', sortable: true, canAutoResize: false, width: 100 },
-      { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 100 },
-      { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 100 },
-      { name: '', prop: 'actions', sortable: false, canAutoResize: false, width: 45 },
+      { name: 'Folio', prop: 'folio', sortable: true, canAutoResize: false, width: 120 },
+      { name: 'Proveedor', prop: 'vendor', sortable: true, canAutoResize: false, width: 150 },
+      { name: 'Cedis', prop: 'warehouse', sortable: false, canAutoResize: false, width: 150 },
+      { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 120 },
+      { name: 'Total', prop: 'requested_total', sortable: true, canAutoResize: false, width: 120 },
+      { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
     ],
     externalPaging: true,
     externalSorting: true,
@@ -69,12 +69,76 @@ export class PurchaseOrderListComponent implements OnInit {
   // Computed: stats
   totalOrders = computed(() => this.totalResultsState());
   totalAmount = computed(() => {
-    return this.ordersData().reduce((sum, order) => sum + (order.grand_total || 0), 0);
+    return this.ordersData().reduce((sum, order) => sum + this.getOrderTotal(order), 0);
   });
-  paidAmount = computed(() => {
-    return this.ordersData()
-      .filter(order => order.payment_status === 'Pagada')
-      .reduce((sum, order) => sum + (order.grand_total || 0), 0);
+  
+  // Status stats
+  creadasCount = computed(() => this.ordersData().filter(o => o.general_status === 'Creada').length);
+  recibidasCount = computed(() => this.ordersData().filter(o => o.general_status === 'Recibida').length);
+  canceladasCount = computed(() => this.ordersData().filter(o => o.general_status === 'Cancelada').length);
+  
+  creadasAmount = computed(() => 
+    this.ordersData()
+      .filter(o => o.general_status === 'Creada')
+      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
+  );
+  recibidasAmount = computed(() => 
+    this.ordersData()
+      .filter(o => o.general_status === 'Recibida')
+      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
+  );
+  canceladasAmount = computed(() => 
+    this.ordersData()
+      .filter(o => o.general_status === 'Cancelada')
+      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
+  );
+  
+  // Payment stats
+  pagadasCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pagada').length);
+  parcialesCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Parcial').length);
+  pendientesCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pendiente').length);
+  
+  pagadasAmount = computed(() => 
+    this.ordersData()
+      .filter(o => o.payment_status === 'Pagada')
+      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
+  );
+  parcialesAmount = computed(() => 
+    this.ordersData()
+      .filter(o => o.payment_status === 'Parcial')
+      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
+  );
+  pendientesAmount = computed(() => 
+    this.ordersData()
+      .filter(o => o.payment_status === 'Pendiente')
+      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
+  );
+  
+  // Percentages for progress bars
+  creadasPercent = computed(() => {
+    const total = this.totalOrders();
+    return total > 0 ? (this.creadasCount() / total) * 100 : 0;
+  });
+  recibidasPercent = computed(() => {
+    const total = this.totalOrders();
+    return total > 0 ? (this.recibidasCount() / total) * 100 : 0;
+  });
+  canceladasPercent = computed(() => {
+    const total = this.totalOrders();
+    return total > 0 ? (this.canceladasCount() / total) * 100 : 0;
+  });
+  
+  pagadasPercent = computed(() => {
+    const total = this.totalOrders();
+    return total > 0 ? (this.pagadasCount() / total) * 100 : 0;
+  });
+  parcialesPercent = computed(() => {
+    const total = this.totalOrders();
+    return total > 0 ? (this.parcialesCount() / total) * 100 : 0;
+  });
+  pendientesPercent = computed(() => {
+    const total = this.totalOrders();
+    return total > 0 ? (this.pendientesCount() / total) * 100 : 0;
   });
 
   constructor(
@@ -185,14 +249,14 @@ export class PurchaseOrderListComponent implements OnInit {
    */
   getStatusClass(status: OrderStatus): string {
     switch (status) {
-      case 'En Proceso':
-        return 'status-badge status-badge--en-proceso';
+      case 'Creada':
+        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700';
       case 'Recibida':
-        return 'status-badge status-badge--recibida';
+        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-700';
       case 'Cancelada':
-        return 'status-badge status-badge--cancelada';
+        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-red-100 text-red-700';
       default:
-        return 'status-badge';
+        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700';
     }
   }
 
@@ -202,13 +266,13 @@ export class PurchaseOrderListComponent implements OnInit {
   getPaymentStatusClass(paymentStatus: PaymentStatus): string {
     switch (paymentStatus) {
       case 'Pagada':
-        return 'payment-badge payment-badge--pagada';
+        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-700';
       case 'Parcial':
-        return 'payment-badge payment-badge--parcial';
-      case 'No pagado':
-        return 'payment-badge payment-badge--no-pagado';
+        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-700';
+      case 'Pendiente':
+        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-red-100 text-red-700';
       default:
-        return 'payment-badge';
+        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700';
     }
   }
 
@@ -220,13 +284,36 @@ export class PurchaseOrderListComponent implements OnInit {
   }
 
   /**
+   * Format date to human readable format (e.g., "Marzo 20 3:33 PM")
+   */
+  formatDateHuman(date: string | Date): string {
+    if (!date) return '';
+    const d = new Date(date);
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const month = months[d.getMonth()];
+    const day = d.getDate();
+    const hours = d.getHours() % 12 || 12;
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
+    return `${month} ${day} ${hours}:${minutes} ${ampm}`;
+  }
+
+  /**
+   * Get total amount from order
+   */
+  getOrderTotal(order: PurchaseOrder): number {
+    return parseFloat(order.requested_total || '0') || 0;
+  }
+
+  /**
    * Navigate to order detail
    */
   navigateToDetail(order: PurchaseOrder): void {
     this.dialog.open(OrderDetailDialogComponent, {
       data: { orderId: order.id },
-      width: '1200px',
+      width: '1400px',
       maxWidth: '95vw',
+      height: '90vh',
       maxHeight: '90vh',
       panelClass: 'order-detail-dialog-container'
     });
@@ -236,7 +323,16 @@ export class PurchaseOrderListComponent implements OnInit {
    * Navigate to create order
    */
   navigateToCreate(): void {
-    this.router.navigate(['/purchase-orders/create']);
+    this.dialog.open(CreatePurchaseOrderModalComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'create-purchase-order-modal'
+    }).afterClosed().subscribe(result => {
+      if (result) {
+        this.loadOrders();
+      }
+    });
   }
 
   /**

@@ -21,3 +21,9 @@ export * from './models/product.model';
 export * from './services/product.service';
 export * from './components/product-list/product-list.component';
 export * from './components/product-detail-modal/product-detail-modal.component';
+
+// POS Equipment exports
+export * from './models/pos-equipment.model';
+export * from './services/pos-equipment.service';
+export * from './components/pos-equipment-list/pos-equipment-list.component';
+export * from './components/pos-equipment-detail-modal/pos-equipment-detail-modal.component';

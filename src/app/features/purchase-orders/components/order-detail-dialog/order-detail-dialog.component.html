@@ -1,179 +1,332 @@
-<div class="dialog">
+<div class="order-detail-dialog">
   @if (loading()) {
-    <div class="loading-state">
-      <p>Cargando orden...</p>
+    <div class="loading-container">
+      <p class="text-gray-500">Cargando orden...</p>
     </div>
   }
 
   @if (order() && !loading()) {
-    <!-- Dialog Header -->
-    <div class="dialog__header">
-      <div>
-        <h2>#REQ-{{ order()!.id.substring(0, 4) }}</h2>
-        <span class="status-badge" [ngClass]="getStatusClass(order()!.status)">{{ order()!.status }}</span>
+    <!-- Header -->
+    <div class="dialog-header">
+      <div class="flex items-center gap-3">
+        <h2 class="text-xl font-bold text-gray-900">#{{ order()!.folio || order()!.id.substring(0, 6) }}</h2>
+        <span class="px-3 py-1 rounded text-xs font-semibold" 
+              [ngClass]="order()!.general_status === 'Creada' ? 'bg-yellow-100 text-yellow-700' : 
+                         order()!.general_status === 'Recibida' ? 'bg-green-100 text-green-700' : 
+                         'bg-gray-100 text-gray-700'">
+          {{ order()!.general_status || order()!.status }}
+        </span>
       </div>
-      <button (click)="close()" class="close">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
+      <button (click)="close()" class="close-btn">
+        <i class="fi fi-rr-cross-small"></i>
       </button>
     </div>
 
-    <!-- Tabs -->
-    <p-tabView [activeIndex]="activeIndex()" (activeIndexChange)="onTabChange($event)" class="custom-tabs">
-      <p-tabPanel header="Productos">
-        <div class="dialog__body">
-        <!-- Sidebar -->
-        <div class="sidebar">
-          <!-- Info Cards -->
+    <!-- Sidebar and Content Layout -->
+    <div class="dialog-content">
+      <!-- Left Sidebar -->
+      <div class="sidebar">
+        <!-- Info Cards -->
+        <!-- Info Cards Container -->
+        <div class="info-cards-group">
           <div class="info-card">
-            <div class="card-icon-wrapper cyan">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-              </svg>
+            <div class="card-icon bg-blue-100 text-blue-600">
+              <i class="fi fi-rr-user"></i>
             </div>
-            <div class="card-content">
+            <div class="card-text">
               <span class="card-label">CREADO POR</span>
-              <span class="card-value">AI ERP</span>
+              <span class="card-value">{{ order()!.creator?.first_name }} {{ order()!.creator?.last_name || 'N/A' }}</span>
             </div>
           </div>
 
           <div class="info-card">
-            <div class="card-icon-wrapper green">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-              </svg>
+            <div class="card-icon bg-green-100 text-green-600">
+              <i class="fi fi-rr-truck-side"></i>
             </div>
-            <div class="card-content">
+            <div class="card-text">
               <span class="card-label">PROVEEDOR</span>
               <span class="card-value">{{ order()!.vendor?.name || 'N/A' }}</span>
             </div>
           </div>
 
           <div class="info-card">
-            <div class="card-icon-wrapper orange">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20 2H4c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H4V4h16v16zm-5.04-6.71l-2.75 3.54-2.96-3.83c-.3-.39-.92-.39-1.22 0l-1.97 2.54V6.5c0-.41.34-.75.75-.75s.75.34.75.75v2.69L12 2.5l8.5 11.04v5.96h-1.5v-4.99z"/>
-              </svg>
+            <div class="card-icon bg-orange-100 text-orange-600">
+              <i class="fi fi-rr-box"></i>
             </div>
-            <div class="card-content">
+            <div class="card-text">
               <span class="card-label">PARA ALMACÉN</span>
               <span class="card-value">{{ order()!.warehouse?.name || 'N/A' }}</span>
             </div>
           </div>
 
           <div class="info-card">
-            <div class="card-icon-wrapper purple">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-              </svg>
+            <div class="card-icon bg-purple-100 text-purple-600">
+              <i class="fi fi-rr-document"></i>
             </div>
-            <div class="card-content">
+            <div class="card-text">
               <span class="card-label">FOLIO FISCAL</span>
-              <span class="card-value">{{ order()!.warehouse?.fiscal_configuration_id ? 'Configurada' : '-' }}</span>
+              <span class="card-value">{{ order()!.fiscal_configuration?.razon_social || 'N/A' }}</span>
             </div>
           </div>
+        </div>
 
-          <!-- Fechas Section -->
-          <div class="dates-section">
-            <h3 class="section-title">FECHAS</h3>
-            <div class="date-item">
-              <span class="date-label">Fecha recepción</span>
-              <span class="date-value">{{ order()!.tentative_receipt_date || '-' }}</span>
-            </div>
-            <div class="date-item">
-              <span class="date-label">Estado de pago</span>
-              <span class="date-value payment-status">{{ order()!.payment_status }}</span>
-            </div>
+        <!-- Fechas -->
+        <div class="section">
+          <h3 class="section-title">FECHAS</h3>
+          <div class="section-item">
+            <span class="section-label">Fecha recepción</span>
+            <span class="section-value">{{ order()!.expected_delivery_date || '-' }}</span>
           </div>
+          <div class="section-item">
+            <span class="section-label">Estado de pago</span>
+            <span class="px-2 py-1 rounded text-xs font-semibold" 
+                  [ngClass]="order()!.payment_status === 'Pendiente' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'">
+              {{ order()!.payment_status }}
+            </span>
+          </div>
+        </div>
 
-          <!-- Totales Section -->
-          <div class="totals-section">
+        <!-- Totales with Toggle -->
+        <div class="section">
+          <div class="section-header">
             <h3 class="section-title">TOTALES</h3>
+            <!-- Toggle -->
+            <div class="toggle-container">
+              <button 
+                class="toggle-btn"
+                [class.active]="!showReceivedTotals()"
+                (click)="toggleTotals(false)">
+                Solicitados
+              </button>
+              <button 
+                class="toggle-btn"
+                [class.active]="showReceivedTotals()"
+                (click)="toggleTotals(true)">
+                Recibidos
+              </button>
+            </div>
+          </div>
+
+          <!-- Totals Card -->
+          <div class="totals-card">
             <div class="totals-row">
               <span class="totals-label">Subtotal</span>
-              <span class="totals-value">{{ formatCurrency(order()!.total_subtotal) }}</span>
+              <span class="totals-value">{{ getSubtotal() }}</span>
             </div>
             <div class="totals-row">
               <span class="totals-label">IVA</span>
-              <span class="totals-value">{{ formatCurrency(order()!.total_iva) }}</span>
+              <span class="totals-value">{{ getIVA() }}</span>
             </div>
             <div class="totals-row">
               <span class="totals-label">IEPS</span>
-              <span class="totals-value">{{ formatCurrency(order()!.total_ieps) }}</span>
+              <span class="totals-value">{{ getIEPS() }}</span>
             </div>
-            <div class="totals-row totals-row-grand">
-              <span class="totals-label">Total</span>
-              <span class="totals-value">{{ formatCurrency(order()!.grand_total) }}</span>
+            <div class="totals-divider"></div>
+            <div class="totals-row totals-row-total">
+              <span class="totals-label-total">Total</span>
+              <span class="totals-value-total" [ngClass]="getTotalColor()">{{ getTotal() }}</span>
             </div>
           </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="content-area">
-          <div class="products-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>PRODUCTO</th>
-                  <th>U. MEDIDA</th>
-                  <th>SOLICITADAS</th>
-                  <th>RECIBIDAS</th>
-                  <th>TOTAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of order()!.line_items; track item.id) {
+        <!-- Notes -->
+        <div class="section">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="section-title">NOTAS</h3>
+            <button class="text-gray-400 hover:text-gray-600">
+              <i class="fi fi-rr-pencil text-sm"></i>
+            </button>
+          </div>
+          <p class="text-sm text-gray-600">{{ order()!.notes || 'Sin notas' }}</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          @if (canReceive()) {
+            <button class="btn-receive" (click)="initiateReceipt()">
+              <i class="fi fi-rr-gift"></i>
+              Iniciar Recibo
+            </button>
+          }
+          @if (canCancel()) {
+            <button class="btn-cancel" (click)="cancelOrder()">
+              <i class="fi fi-rr-cross-circle"></i>
+              Cancelar requisición
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Main Content Area with Tabs -->
+      <div class="main-content">
+        <!-- Tab Navigation -->
+        <div class="tabs-header">
+          <button 
+            class="tab-button"
+            [class.active]="activeTabIndex() === 0"
+            (click)="activeTabIndex.set(0)">
+            Productos
+          </button>
+          <button 
+            class="tab-button"
+            [class.active]="activeTabIndex() === 1"
+            (click)="activeTabIndex.set(1)">
+            Documentos
+          </button>
+          <button 
+            class="tab-button"
+            [class.active]="activeTabIndex() === 2"
+            (click)="activeTabIndex.set(2)">
+            Lotes
+          </button>
+          <button 
+            class="tab-button"
+            [class.active]="activeTabIndex() === 3"
+            (click)="activeTabIndex.set(3)">
+            Pagos
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tabs-content">
+          <!-- Productos Tab -->
+          @if (activeTabIndex() === 0) {
+            <div class="tab-content-wrapper">
+              <table class="products-table">
+                <thead>
                   <tr>
-                    <td>
-                      <div class="product-cell">
-                        <span class="product-name">{{ item.product?.name || 'N/A' }}</span>
-                      </div>
-                    </td>
-                    <td>{{ item.uom?.code || item.uom?.name || 'N/A' }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>0</td>
-                    <td>{{ formatCurrency(item.line_total) }}</td>
+                    <th>PRODUCTO</th>
+                    <th>TOTAL</th>
+                    <th>SOLICITADAS</th>
+                    <th>RECIBIDAS</th>
                   </tr>
+                </thead>
+                <tbody>
+                  @if (order()!.line_items && order()!.line_items.length > 0) {
+                    @for (item of order()!.line_items; track item.id) {
+                      <tr>
+                        <td>
+                          <div class="product-info">
+                            <strong>{{ item.product?.name || 'N/A' }}</strong>
+                            <small>{{ item.product?.sku || '' }}</small>
+                          </div>
+                        </td>
+                        <td>{{ formatCurrency((item.unit_total || 0) * parseNumber(item.quantity)) }}</td>
+                        <td>{{ item.quantity }} {{ item.uom?.name || 'Unidad' }}</td>
+                        <td>{{ item.received_original_quantity || '0' }} {{ item.received_uom?.name || '-' }}</td>
+                      </tr>
+                    }
+                  } @else {
+                    <tr>
+                      <td colspan="4" class="text-center">
+                        <div class="empty-state">
+                          <i class="fi fi-rr-box"></i>
+                          <p>No hay productos</p>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <!-- Documentos Tab -->
+          @if (activeTabIndex() === 1) {
+            <div class="tab-content-wrapper">
+              <div class="tab-header">
+                <button class="btn-secondary" (click)="regeneratePDF()" [disabled]="regeneratingPDF()">
+                  @if (regeneratingPDF()) {
+                    <i class="fi fi-rr-spinner animate-spin"></i>
+                  } @else {
+                    <i class="fi fi-rr-refresh"></i>
+                  }
+                  Regenerar PDF Original
+                </button>
+                @if (order()!.general_status === 'Recibida') {
+                  <button class="btn-secondary" (click)="regenerateReceivingPDF()" [disabled]="regeneratingReceipt()">
+                    @if (regeneratingReceipt()) {
+                      <i class="fi fi-rr-spinner animate-spin"></i>
+                    } @else {
+                      <i class="fi fi-rr-refresh"></i>
+                    }
+                    Regenerar PDF Recibo
+                  </button>
                 }
-              </tbody>
-            </table>
-          </div>
-        </div>
-        </div>
-      </p-tabPanel>
+                <button class="btn-primary" (click)="uploadDocument()">
+                  <i class="fi fi-rr-upload"></i>
+                  Subir Documento
+                </button>
+              </div>
 
-      <p-tabPanel header="Documentos">
-        <div class="empty-state">
-          <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-          </svg>
-          <p>No hay documentos adjuntos</p>
+              @if (hasDocuments()) {
+                <table class="documents-table">
+                  <thead>
+                    <tr>
+                      <th>TIPO</th>
+                      <th>NOMBRE DE ARCHIVO</th>
+                      <th>FECHA DE CARGA</th>
+                      <th>ACCIONES</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (doc of order()!.documents; track doc.id) {
+                      <tr>
+                        <td>
+                          <span class="document-badge" [ngClass]="getDocumentBadgeClass(doc.document_type_name)">
+                            {{ doc.document_type_name }}
+                          </span>
+                        </td>
+                        <td>
+                          <span class="document-name">{{ doc.document_name }}</span>
+                        </td>
+                        <td>
+                          <span class="document-date">{{ formatDocumentDate(doc.uploaded_at) }}</span>
+                        </td>
+                        <td>
+                          <div class="document-actions">
+                            <button class="action-btn download-btn" (click)="downloadDocument(doc)" title="Descargar">
+                              <i class="fi fi-rr-download"></i>
+                            </button>
+                            <button class="action-btn delete-btn" (click)="deleteDocument(doc)" title="Eliminar">
+                              <i class="fi fi-rr-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <div class="empty-state">
+                  <i class="fi fi-rr-document"></i>
+                  <p>No hay documentos adjuntos</p>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Lotes Tab -->
+          @if (activeTabIndex() === 2) {
+            <div class="tab-content-wrapper">
+              <div class="empty-state">
+                <i class="fi fi-rr-layers"></i>
+                <p>No hay lotes registrados</p>
+              </div>
+            </div>
+          }
+
+          <!-- Pagos Tab -->
+          @if (activeTabIndex() === 3) {
+            <div class="tab-content-wrapper">
+              <div class="empty-state">
+                <i class="fi fi-rr-credit-card"></i>
+                <p>No hay pagos registrados</p>
+              </div>
+            </div>
+          }
         </div>
-      </p-tabPanel>
-
-      <p-tabPanel header="Lotes">
-        <div class="empty-state">
-          <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-          </svg>
-          <p>No hay lotes registrados</p>
-        </div>
-      </p-tabPanel>
-
-      <p-tabPanel header="Pagos">
-        <app-payments-list
-          [payments]="order()!.payments || []"
-          [canAddPayment]="false"
-        ></app-payments-list>
-      </p-tabPanel>
-    </p-tabView>
-
-    <div class="dialog__footer">
-      <button (click)="close()"
-        class="px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium">
-        Cerrar
-      </button>
+      </div>
     </div>
   }
 </div>

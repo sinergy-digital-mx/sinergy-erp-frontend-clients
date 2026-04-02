@@ -22,10 +22,21 @@ export class FilterBarComponent implements OnInit, OnDestroy {
 
   // Form controls
   searchControl = new FormControl<string>('', { nonNullable: true });
+  dateRangeControl = new FormControl<string>('', { nonNullable: true });
   dateFromControl = new FormControl<string>('', { nonNullable: true });
   dateToControl = new FormControl<string>('', { nonNullable: true });
   statusControl = new FormControl<OrderStatus | null>(null);
   warehouseControl = new FormControl<string | null>(null);
+
+  // Date range options
+  dateRangeOptions = [
+    { label: 'Hoy', value: 'today' },
+    { label: 'Semana', value: 'week' },
+    { label: 'Mes', value: 'month' },
+    { label: 'Rango', value: 'range' }
+  ];
+
+  showCustomDateRange = false;
 
   // Status options
   statusOptions: { label: string; value: OrderStatus }[] = [
@@ -46,6 +57,11 @@ export class FilterBarComponent implements OnInit, OnDestroy {
       )
       .subscribe(() => this.emitFilters());
 
+    // Date range preset changes
+    this.dateRangeControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((value) => this.onDateRangeChange(value));
+
     // Date range changes
     this.dateFromControl.valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -64,6 +80,63 @@ export class FilterBarComponent implements OnInit, OnDestroy {
     this.warehouseControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.emitFilters());
+  }
+
+  onDateRangeChange(value: string): void {
+    const today = new Date();
+    let dateFrom: Date | null = null;
+    let dateTo: Date | null = null;
+
+    switch (value) {
+      case 'today':
+        dateFrom = new Date(today.setHours(0, 0, 0, 0));
+        dateTo = new Date(today.setHours(23, 59, 59, 999));
+        this.showCustomDateRange = false;
+        break;
+      case 'week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+        dateFrom = weekStart;
+        dateTo = new Date();
+        this.showCustomDateRange = false;
+        break;
+      case 'month':
+        dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+        dateTo = new Date();
+        this.showCustomDateRange = false;
+        break;
+      case 'range':
+        this.showCustomDateRange = true;
+        return;
+      default:
+        this.showCustomDateRange = false;
+        break;
+    }
+
+    if (dateFrom && dateTo && !this.showCustomDateRange) {
+      this.dateFromControl.setValue(this.formatDateForInput(dateFrom), { emitEvent: false });
+      this.dateToControl.setValue(this.formatDateForInput(dateTo), { emitEvent: false });
+      this.emitFilters();
+    }
+  }
+
+  formatDateForInput(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  clearFilters(): void {
+    this.searchControl.setValue('', { emitEvent: false });
+    this.dateRangeControl.setValue('', { emitEvent: false });
+    this.dateFromControl.setValue('', { emitEvent: false });
+    this.dateToControl.setValue('', { emitEvent: false });
+    this.statusControl.setValue(null, { emitEvent: false });
+    this.warehouseControl.setValue(null, { emitEvent: false });
+    this.showCustomDateRange = false;
+    this.emitFilters();
   }
 
   ngOnDestroy(): void {

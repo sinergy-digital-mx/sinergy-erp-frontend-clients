@@ -1,592 +1,390 @@
-<div class="dialog">
-  <div class="dialog__header">
-    <h2>{{ isNew ? 'Nuevo Producto' : 'Editar Producto' }}</h2>
-    <button (click)="close()" class="close">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+<!-- Modal Principal -->
+<div class="modal-container">
+  <!-- Header -->
+  <div class="modal-header">
+    <h2>{{ data?.isNew ? 'Crear Producto' : 'Editar Producto' }}</h2>
+    <button class="close-btn" (click)="hide()" type="button">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
       </svg>
     </button>
   </div>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab" [class.active]="selectedTabIndex() === 0" (click)="selectedTabIndex.set(0)">
-      General
-    </button>
-    <button class="tab" [class.active]="selectedTabIndex() === 1" (click)="selectedTabIndex.set(1)" *ngIf="!isNew">
-      Asignar Unidades
-    </button>
-    <button class="tab" [class.active]="selectedTabIndex() === 2" (click)="selectedTabIndex.set(2)" *ngIf="!isNew">
-      Fotos
-    </button>
-    <button class="tab" [class.active]="selectedTabIndex() === 3" (click)="selectedTabIndex.set(3)" *ngIf="!isNew">
-      Precios
-    </button>
-    <button class="tab" [class.active]="selectedTabIndex() === 4" (click)="selectedTabIndex.set(4)" *ngIf="!isNew">
-      Costos de Proveedor
-    </button>
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Cargando producto...</p>
   </div>
 
-  <div class="dialog__body">
-    <!-- Tab: General -->
-    <div class="tab-content" [class.active]="selectedTabIndex() === 0">
-      <form [formGroup]="form">
-        <!-- SKU Field -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            SKU <span class="text-red-500">*</span>
-          </label>
-          <input type="text" formControlName="sku"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            placeholder="SKU" [class.border-red-500]="form.get('sku')?.invalid && form.get('sku')?.touched" />
-          <p class="text-red-500 text-xs mt-1" *ngIf="getErrorMessage('sku')">
-            {{ getErrorMessage('sku') }}
-          </p>
-        </div>
+  <!-- Content -->
+  <div *ngIf="!loading && product" class="modal-content">
+      <!-- Tabs -->
+      <app-tab [tabs]="tabs" [activeTabId]="activeTab" (tabChange)="activeTab = $event"></app-tab>
 
-        <!-- Name Field -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Nombre <span class="text-red-500">*</span>
-          </label>
-          <input type="text" formControlName="name"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            placeholder="Nombre" [class.border-red-500]="form.get('name')?.invalid && form.get('name')?.touched" />
-          <p class="text-red-500 text-xs mt-1" *ngIf="getErrorMessage('name')">
-            {{ getErrorMessage('name') }}
-          </p>
-        </div>
+      <!-- Tab Content -->
+      <div class="tab-content">
+        <!-- Tab: Detalles -->
+        <div *ngIf="activeTab === 'detalles'" class="tab-pane">
+          <div class="form-grid">
+            <div class="form-field form-field--full">
+              <label class="form-label">NOMBRE *</label>
+              <input type="text" class="form-input" [(ngModel)]="product.name" placeholder="Nombre del producto">
+            </div>
 
-        <!-- Category Field -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Categoría
-          </label>
-          <select formControlName="category_id" (change)="onCategoryChange(form.get('category_id')?.value)"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            [disabled]="loadingCategories()">
-            <option value="">Selecciona una categoría</option>
-            <option *ngFor="let cat of categories()" [value]="cat.id">
-              {{ cat.name }}
-            </option>
-          </select>
-        </div>
+            <div class="form-field">
+              <label class="form-label">SKU *</label>
+              <input type="text" class="form-input" [(ngModel)]="product.sku" placeholder="SKU">
+            </div>
 
-        <!-- SubCategory Field -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Subcategoría
-          </label>
-          <select formControlName="subcategory_id"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            [disabled]="loadingSubcategories() || subcategories().length === 0">
-            <option value="">Selecciona una subcategoría</option>
-            <option *ngFor="let subcat of subcategories()" [value]="subcat.id">
-              {{ subcat.name }}
-            </option>
-          </select>
-        </div>
+            <div class="form-field">
+              <label class="form-label">CÓDIGO SAT</label>
+              <input type="text" class="form-input" [(ngModel)]="product.description" placeholder="Código SAT">
+            </div>
 
-        <!-- Description Field -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Descripción
-          </label>
-          <textarea formControlName="description"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            placeholder="Descripción (opcional)" rows="3"></textarea>
-        </div>
+            <div class="form-field form-field--full">
+              <label class="form-label">DESCRIPCIÓN</label>
+              <textarea class="form-textarea" [(ngModel)]="product.description" placeholder="Descripción del producto" rows="3"></textarea>
+            </div>
 
-        <!-- Base UoM Field -->
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <label for="base_uom_id" class="block text-sm font-medium text-gray-700">
-              UoM Base
-              <span class="text-red-500" *ngIf="assignedUoMs().length > 0" aria-label="requerido">*</span>
-            </label>
-            <div class="group relative inline-block">
-              <button type="button"
-                class="w-4 h-4 text-gray-600 cursor-help hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
-                aria-label="Información sobre UoM Base" aria-describedby="base_uom_help_tooltip" tabindex="0">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clip-rule="evenodd" />
-                </svg>
-              </button>
-              <div id="base_uom_help_tooltip"
-                class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block group-focus-within:block bg-gray-900 text-white text-xs rounded py-2 px-3 whitespace-nowrap z-10 pointer-events-none"
-                role="tooltip">
-                La UoM base se usa como referencia para calcular inventarios y conversiones
-                <div
-                  class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900">
-                </div>
-              </div>
+            <div class="form-field">
+              <label class="form-label">CATEGORÍA</label>
+              <select class="form-select" [(ngModel)]="product.category_id" (ngModelChange)="onCategoryChange($event)">
+                <option [ngValue]="null">Selecciona una categoría</option>
+                <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.name }}</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">SUBCATEGORÍA</label>
+              <select class="form-select" [(ngModel)]="product.subcategory_id" [disabled]="!product.category_id">
+                <option [ngValue]="null">Selecciona una subcategoría</option>
+                <option *ngFor="let sub of subcategories" [ngValue]="sub.id">{{ sub.name }}</option>
+              </select>
             </div>
           </div>
 
-          <!-- Inventory Movement Warning -->
-          <div *ngIf="hasInventoryMovements()"
-            class="mb-3 p-3 bg-yellow-50 border-2 border-yellow-400 rounded-md flex gap-2" role="alert"
-            aria-live="polite" aria-atomic="true">
-            <svg class="w-5 h-5 text-yellow-700 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"
-              aria-hidden="true">
-              <path fill-rule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clip-rule="evenodd" />
-            </svg>
-            <div>
-              <p class="text-sm font-medium text-yellow-900">No se puede cambiar la UoM base si el producto tiene
-                movimientos de inventario</p>
-              <p class="text-xs text-yellow-800 mt-1">Para cambiar la UoM base, primero debe resolver los movimientos de
-                inventario existentes</p>
-            </div>
-          </div>
-
-          <select id="base_uom_id" formControlName="base_uom_id"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            [class.border-red-500]="form.get('base_uom_id')?.invalid && form.get('base_uom_id')?.touched"
-            [class.bg-gray-100]="hasInventoryMovements()" [disabled]="loadingAssignedUoMs() || hasInventoryMovements()"
-            [attr.aria-label]="'Seleccionar UoM Base' + (assignedUoMs().length > 0 ? ' (requerido)' : '')"
-            [attr.aria-describedby]="(form.get('base_uom_id')?.invalid && form.get('base_uom_id')?.touched) ? 'base_uom_error' : 'base_uom_help'"
-            [attr.aria-invalid]="form.get('base_uom_id')?.invalid && form.get('base_uom_id')?.touched"
-            (keydown.escape)="form.get('base_uom_id')?.reset()">
-            <option value="">Seleccionar UoM base</option>
-            <option *ngFor="let uom of assignedUoMs()" [value]="uom.id">
-              {{ uom.name || uom.abbreviation }}
-            </option>
-          </select>
-          <p id="base_uom_help" class="text-gray-600 text-xs mt-2 leading-relaxed">
-            La UoM base se usa para calcular inventarios
-          </p>
-          <p id="base_uom_error" class="text-red-700 text-xs mt-1 font-medium" *ngIf="getErrorMessage('base_uom_id')"
-            role="alert" aria-live="polite" aria-atomic="true">
-            {{ getErrorMessage('base_uom_id') }}
-          </p>
-
-          <!-- Conversion Preview Section -->
-          <div *ngIf="conversionPreview().length > 0" class="mt-3 p-3 bg-gray-50 border border-gray-300 rounded-md"
-            role="region" aria-label="Vista previa de conversiones" aria-live="polite">
-            <p class="text-xs font-semibold text-gray-900 mb-2">Vista previa de conversiones</p>
-            <div class="space-y-1">
-              <p *ngFor="let preview of conversionPreview()" class="text-xs text-gray-700">
-                {{ preview.text }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Simplified Preview for Single UoM -->
-          <div *ngIf="assignedUoMs().length === 1 && form.get('base_uom_id')?.value"
-            class="mt-3 p-3 bg-blue-50 border border-blue-300 rounded-md" role="region"
-            aria-label="Base UoM seleccionada">
-            <p class="text-xs text-blue-900">
-              <span class="font-semibold">Base UoM seleccionada:</span> {{ assignedUoMs()[0].name ||
-              assignedUoMs()[0].abbreviation }}
-            </p>
+          <div class="form-actions">
+            <button class="btn btn--primary" (click)="save()" [disabled]="saving" type="button">
+              <span *ngIf="!saving">Guardar cambios</span>
+              <span *ngIf="saving">Guardando...</span>
+            </button>
           </div>
         </div>
-      </form>
+
+        <!-- Tab: UOMs -->
+        <div *ngIf="activeTab === 'uoms'" class="tab-pane">
+          <div class="tab-header">
+            <button class="btn btn--sm btn--primary" (click)="addUom()" type="button">+ Agregar UOM</button>
+          </div>
+
+          <div *ngIf="!product.uoms || product.uoms.length === 0" class="empty-state">
+            <p>No hay UOMs configuradas</p>
+          </div>
+
+          <table *ngIf="product.uoms && product.uoms.length > 0" class="data-table uom-table">
+            <thead>
+              <tr>
+                <th>UNIDAD</th>
+                <th>FACTOR</th>
+                <th>BASE</th>
+                <th>UOM PADRE</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let uom of product.uoms; let i = index">
+                <td>
+                  <select class="form-select form-select--inline" [(ngModel)]="uom.uom_catalog_id" (ngModelChange)="onUomCatalogChange(uom, $event)">
+                    <option value="">Seleccionar...</option>
+                    <option *ngFor="let catalog of uomCatalog" [value]="catalog.id">{{ catalog.name }}</option>
+                  </select>
+                </td>
+                <td>
+                  <input type="number" class="form-input form-input--inline" [(ngModel)]="uom.factor" placeholder="1" step="1" min="1">
+                </td>
+                <td>
+                  <div class="checkbox-wrapper">
+                    <input type="checkbox" [id]="'is-base-' + i" [(ngModel)]="uom.is_base" (change)="onBaseChange(i)">
+                    <label [for]="'is-base-' + i">{{ uom.is_base ? 'Sí' : 'No' }}</label>
+                  </div>
+                </td>
+                <td>
+                  <select class="form-select form-select--inline" [(ngModel)]="uom.parent_uom_id" [disabled]="uom.is_base">
+                    <option [value]="null">— Ninguno —</option>
+                    <option *ngFor="let parentUom of getAvailableParentUoms(i)" [value]="parentUom.id">{{ parentUom.uom?.name || parentUom.name || 'Sin nombre' }}</option>
+                  </select>
+                </td>
+                <td>
+                  <button class="btn-icon btn-icon--danger" (click)="removeUom(i)" type="button" title="Eliminar">
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="form-actions" *ngIf="product.uoms && product.uoms.length > 0">
+            <button class="btn btn--primary" (click)="saveUoms()" [disabled]="saving" type="button">
+              <span *ngIf="!saving">Guardar UOMs</span>
+              <span *ngIf="saving">Guardando...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab: Precios -->
+        <div *ngIf="activeTab === 'precios'" class="tab-pane">
+          <div class="tab-header">
+            <button class="btn btn--sm btn--primary" (click)="openPriceModal()" type="button">+ Agregar Precio</button>
+          </div>
+
+          <div *ngIf="!product.prices || product.prices.length === 0" class="empty-state">
+            <p>No hay precios configurados</p>
+          </div>
+
+          <table *ngIf="product.prices && product.prices.length > 0" class="data-table">
+            <thead>
+              <tr>
+                <th>UOM</th>
+                <th>LISTA DE PRECIOS</th>
+                <th>PRECIO</th>
+                <th>IVA %</th>
+                <th>IEPS %</th>
+                <th>TOTAL</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let price of product.prices">
+                <td>{{ price.product_uom?.uom?.name || '—' }}</td>
+                <td>{{ price.price_list?.name || '—' }}</td>
+                <td>${{ price.price | number:'1.2-2' }}</td>
+                <td>{{ price.iva_percentage || 0 }}%</td>
+                <td>{{ price.ieps_percentage || 0 }}%</td>
+                <td [title]="'Precio: $' + (price.price | number:'1.2-2') + '\nIVA: $' + ((price.iva_unit_total || 0) | number:'1.2-2') + '\nIEPS: $' + ((price.ieps_unit_total || 0) | number:'1.2-2') + '\nTotal: $' + ((Number(price.price) + Number(price.iva_unit_total || 0) + Number(price.ieps_unit_total || 0)) | number:'1.2-2')" style="cursor: help;">
+                  ${{ (Number(price.price) + Number(price.iva_unit_total || 0) + Number(price.ieps_unit_total || 0)) | number:'1.2-2' }}
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn-icon" (click)="openPriceModal(price)" type="button" title="Editar">
+                      <i class="fi fi-rr-pencil"></i>
+                    </button>
+                    <button class="btn-icon btn-icon--danger" (click)="deletePrice(price.id)" type="button" title="Eliminar">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tab: Costos -->
+        <div *ngIf="activeTab === 'costos'" class="tab-pane">
+          <div class="tab-header">
+            <button class="btn btn--sm btn--primary" (click)="openCostModal()" type="button">+ Agregar Costo</button>
+          </div>
+
+          <div *ngIf="!product.vendor_costs || product.vendor_costs.length === 0" class="empty-state">
+            <p>No hay costos de proveedor configurados</p>
+          </div>
+
+          <table *ngIf="product.vendor_costs && product.vendor_costs.length > 0" class="data-table">
+            <thead>
+              <tr>
+                <th>UOM</th>
+                <th>PROVEEDOR</th>
+                <th>COSTO</th>
+                <th>IVA %</th>
+                <th>IEPS %</th>
+                <th>TOTAL</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let cost of product.vendor_costs">
+                <td>{{ cost.product_uom?.uom?.name || '—' }}</td>
+                <td>{{ cost.vendor?.name || '—' }}</td>
+                <td>${{ cost.cost | number:'1.2-2' }}</td>
+                <td>{{ cost.iva_percentage || 0 }}%</td>
+                <td>{{ cost.ieps_percentage || 0 }}%</td>
+                <td [title]="'Costo: $' + (cost.cost | number:'1.2-2') + '\nIVA: $' + ((cost.iva_unit_total || 0) | number:'1.2-2') + '\nIEPS: $' + ((cost.ieps_unit_total || 0) | number:'1.2-2') + '\nTotal: $' + ((Number(cost.cost) + Number(cost.iva_unit_total || 0) + Number(cost.ieps_unit_total || 0)) | number:'1.2-2')" style="cursor: help;">
+                  ${{ (Number(cost.cost) + Number(cost.iva_unit_total || 0) + Number(cost.ieps_unit_total || 0)) | number:'1.2-2' }}
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn-icon" (click)="openCostModal(cost)" type="button" title="Editar">
+                      <i class="fi fi-rr-pencil"></i>
+                    </button>
+                    <button class="btn-icon btn-icon--danger" (click)="deleteCost(cost.id)" type="button" title="Eliminar">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tab: Fotos -->
+        <div *ngIf="activeTab === 'fotos'" class="tab-pane">
+          <div *ngIf="!product.photos || product.photos.length === 0" class="empty-state">
+            <p>Sin imágenes</p>
+          </div>
+
+          <div *ngIf="product.photos && product.photos.length > 0" class="photos-grid">
+            <div *ngFor="let photo of product.photos" class="photo-card">
+              <img [src]="photo.signed_url || photo.s3_key" [alt]="photo.alt_text || 'Foto del producto'" loading="lazy">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- Modal Secundario: Precio -->
+<div class="modal-overlay" *ngIf="priceModalVisible" (click)="priceModalVisible = false">
+  <div class="modal-container modal-container--sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ priceForm.id ? 'Editar Precio' : 'Nuevo Precio' }}</h2>
+      <button class="close-btn" (click)="priceModalVisible = false" type="button">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- Tab: UOMs -->
-    <div class="tab-content" [class.active]="selectedTabIndex() === 1">
-      <div class="space-y-4">
-        <!-- Asignar Nueva Unidad -->
-        <div class="border border-gray-200 rounded-md p-4">
-          <h3 class="font-semibold text-gray-900 mb-3">Asignar Nueva Unidad</h3>
-          <div class="flex gap-2">
-            <select [(ngModel)]="selectedCatalogUomId"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
-              [disabled]="loadingCatalog() || saving()">
-              <option value="">Seleccionar unidad...</option>
-              <option *ngFor="let uom of catalogUoms()" [value]="uom.id">
-                {{ uom.name }} ({{ uom.abbreviation }})
-              </option>
+    <div class="modal-content modal-content--compact">
+      <div class="form-grid">
+        <div class="form-field form-field--full">
+          <label class="form-label">LISTA DE PRECIOS *</label>
+          <div class="input-with-button">
+            <select class="form-select" [(ngModel)]="priceForm.price_list_id">
+              <option value="">Seleccionar...</option>
+              <option *ngFor="let list of priceLists" [value]="list.id">{{ list.name }}</option>
             </select>
-            <button (click)="assignSingleUoM()" [disabled]="!selectedCatalogUomId() || saving()"
-              class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 text-sm font-medium whitespace-nowrap">
-              {{ saving() ? 'Asignando...' : 'Asignar' }}
+            <button class="btn-icon-add" (click)="openPriceListModal()" type="button" title="Crear lista de precios">
+              <i class="fi fi-rr-plus"></i>
             </button>
           </div>
         </div>
 
-        <!-- Unidades Asignadas -->
-        <div class="border border-gray-200 rounded-md p-4">
-          <h3 class="font-semibold text-gray-900 mb-3">Unidades Asignadas</h3>
-          <div *ngIf="uoms().length === 0" class="text-center py-4 text-gray-500">
-            <p class="text-sm">No hay unidades asignadas</p>
-          </div>
-          <div *ngIf="uoms().length > 0" class="space-y-2">
-            <div *ngFor="let uom of uoms()"
-              class="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100">
-              <p class="font-medium text-gray-900">✓ {{ uom.name }} <span class="text-gray-500 text-xs"
-                  *ngIf="uom.abbreviation">({{ uom.abbreviation }})</span></p>
-              <button (click)="deleteUOM(uom)"
-                class="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium">
-                Eliminar
-              </button>
-            </div>
-          </div>
+        <div class="form-field form-field--full">
+          <label class="form-label">UOM *</label>
+          <select class="form-select" [(ngModel)]="priceForm.product_uom_id">
+            <option value="">Seleccionar...</option>
+            <option *ngFor="let uom of product?.uoms" [value]="uom.id">
+              {{ uom.uom?.name || uom.name || 'Sin nombre' }}
+            </option>
+          </select>
         </div>
 
-        <!-- Relaciones de Conversión -->
-        <div class="border border-gray-200 rounded-md p-4">
-          <h3 class="font-semibold text-gray-900 mb-4">Relaciones de Conversión</h3>
+        <div class="form-field">
+          <label class="form-label">PRECIO *</label>
+          <input type="number" class="form-input" [(ngModel)]="priceForm.price" placeholder="0.00" step="0.01" min="0">
+        </div>
 
-          <!-- Create Form -->
-          <div class="mb-6 p-4 bg-linear-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
-            <div class="space-y-3">
-              <div class="grid grid-cols-3 gap-3 items-end">
-                <div>
-                  <label class="block text-xs font-semibold text-gray-700 mb-1">De</label>
-                  <select formControlName="source_uom_id" [formGroup]="newRelationshipForm"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                    <option value="">Seleccionar...</option>
-                    <option *ngFor="let uom of uoms()" [value]="uom.id">
-                      {{ uom.name }}
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-gray-700 mb-1">A</label>
-                  <select formControlName="target_uom_id" [formGroup]="newRelationshipForm"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                    <option value="">Seleccionar...</option>
-                    <option *ngFor="let uom of uoms()" [value]="uom.id">
-                      {{ uom.name }}
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-gray-700 mb-1">Factor</label>
-                  <input type="number" formControlName="conversion_factor" [formGroup]="newRelationshipForm"
-                    step="0.001"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
-                </div>
-              </div>
-              <button (click)="createRelationship()" [disabled]="newRelationshipForm.invalid || creatingRelationship()"
-                class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 text-sm font-semibold transition">
-                {{ creatingRelationship() ? 'Creando...' : 'Crear Relación' }}
-              </button>
-            </div>
-          </div>
+        <div class="form-field">
+          <label class="form-label">IVA %</label>
+          <input type="number" class="form-input" [(ngModel)]="priceForm.iva_percentage" placeholder="0" step="0.01" min="0" max="100">
+        </div>
 
-          <!-- Relationships List -->
-          <div *ngIf="loadingRelationships()" class="text-center py-6 text-gray-500">
-            <p class="text-sm">Cargando relaciones...</p>
-          </div>
-          <div *ngIf="!loadingRelationships() && relationships().length === 0" class="text-center py-6 text-gray-400">
-            <p class="text-sm">Sin relaciones aún</p>
-          </div>
-          <div *ngIf="!loadingRelationships() && relationships().length > 0" class="space-y-2">
-            <div *ngFor="let rel of relationships()"
-              class="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:border-purple-300 hover:bg-purple-50 transition">
-              <div class="flex items-center gap-2 flex-1">
-                <span class="font-semibold text-gray-900">{{ rel.source_uom?.name || rel.source_uom_id }}</span>
-                <span class="text-purple-600 font-bold">→</span>
-                <span class="font-semibold text-gray-900">{{ rel.target_uom?.name || rel.target_uom_id }}</span>
-                <span class="text-gray-600 ml-2">(×{{ rel.conversion_factor }})</span>
-                <span *ngIf="rel.is_calculated"
-                  class="ml-auto text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-medium">Calculada</span>
-                <span *ngIf="!rel.is_calculated"
-                  class="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">Explícita</span>
-              </div>
-              <button *ngIf="!rel.is_calculated" (click)="deleteRelationship(rel.id)"
-                class="ml-3 px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium transition">
-                Eliminar
-              </button>
-            </div>
-          </div>
+        <div class="form-field form-field--full">
+          <label class="form-label">IEPS %</label>
+          <input type="number" class="form-input" [(ngModel)]="priceForm.ieps_percentage" placeholder="0" step="0.01" min="0" max="100">
         </div>
       </div>
-    </div>
 
-    <!-- Tab: Photos -->
-    <div class="tab-content" [class.active]="selectedTabIndex() === 2">
-      <div class="space-y-4">
-        <!-- Upload Section -->
-        <div class="border border-gray-200 rounded-md p-4">
-          <h3 class="font-semibold text-gray-900 mb-3">Subir Foto</h3>
-          <div class="flex items-center gap-3">
-            <label
-              class="flex-1 flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition">
-              <div class="text-center">
-                <svg class="mx-auto w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p class="text-sm text-gray-600 mt-1">{{ uploadingPhoto() ? 'Subiendo...' : 'Seleccionar imagen' }}</p>
-              </div>
-              <input type="file" accept="image/*" class="hidden" (change)="onPhotoSelected($event)"
-                [disabled]="uploadingPhoto()" />
-            </label>
-          </div>
-        </div>
-
-        <!-- Photo Gallery -->
-        <div class="border border-gray-200 rounded-md p-4">
-          <h3 class="font-semibold text-gray-900 mb-3">Galería</h3>
-          <div *ngIf="loadingPhotos()" class="text-center py-6 text-gray-500">
-            <p class="text-sm">Cargando fotos...</p>
-          </div>
-          <div *ngIf="!loadingPhotos() && photos().length === 0" class="text-center py-6 text-gray-400">
-            <p class="text-sm">No hay fotos</p>
-          </div>
-          <div *ngIf="!loadingPhotos() && photos().length > 0" class="photo-grid">
-            <div *ngFor="let photo of photos()" class="photo-card" [class.primary]="photo.is_primary">
-              <div class="photo-img-wrapper">
-                <img *ngIf="photo.signed_url" [src]="photo.signed_url" [alt]="photo.alt_text || photo.file_name"
-                  class="photo-img" />
-                <div *ngIf="!photo.signed_url" class="photo-placeholder">
-                  <svg class="w-8 h-8 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd"
-                      d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                      clip-rule="evenodd" />
-                  </svg>
-                </div>
-                <span *ngIf="photo.is_primary" class="photo-badge">Principal</span>
-              </div>
-              <div class="photo-actions">
-                <button *ngIf="!photo.is_primary" (click)="setPrimaryPhoto(photo.id)"
-                  class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium">
-                  Principal
-                </button>
-                <button (click)="deletePhoto(photo.id)"
-                  class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium">
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab: Prices -->
-    <div class="tab-content" [class.active]="selectedTabIndex() === 3">>
-      <div class="space-y-4">
-        
-        <!-- Empty State: No Price Lists -->
-        <div *ngIf="!loadingPriceLists() && priceLists().length === 0" 
-          class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-          <svg class="mx-auto w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">No hay listas de precios</h3>
-          <p class="text-sm text-gray-600 mb-4">
-            Necesitas crear al menos una lista de precios antes de poder agregar precios a los productos.
-          </p>
-          <button (click)="openCreatePriceListDialog()" 
-            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-semibold">
-            Crear Lista de Precios
-          </button>
-        </div>
-
-        <!-- Add Price Form -->
-        <div *ngIf="priceLists().length > 0" class="border border-gray-200 rounded-md p-4">
-          <h3 class="font-semibold text-gray-900 mb-3">Agregar Precio</h3>
-          <div class="space-y-3" [formGroup]="priceForm">
-            <div class="grid grid-cols-3 gap-3">
-              <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1">Lista de Precios</label>
-                <select formControlName="price_list_id"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
-                  [disabled]="loadingPriceLists()">
-                  <option value="">Seleccionar...</option>
-                  <option *ngFor="let list of priceLists()" [value]="list.id">
-                    {{ list.name }}{{ list.is_default ? ' (Por defecto)' : '' }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1">UoM</label>
-                <select formControlName="uom_id"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500">
-                  <option value="">Seleccionar...</option>
-                  <option *ngFor="let uom of assignedUoMs()" [value]="uom.id">
-                    {{ uom.name || uom.abbreviation }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1">Precio</label>
-                <input type="number" formControlName="price" step="0.01" min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
-                  placeholder="0.00" />
-              </div>
-            </div>
-            <button (click)="addPrice()" [disabled]="priceForm.invalid || savingPrice()"
-              class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 text-sm font-semibold transition">
-              {{ savingPrice() ? 'Guardando...' : 'Agregar Precio' }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Prices List -->
-        <div class="border border-gray-200 rounded-md p-4">
-          <h3 class="font-semibold text-gray-900 mb-3">Precios Asignados</h3>
-          <div *ngIf="loadingPrices()" class="text-center py-6 text-gray-500">
-            <p class="text-sm">Cargando precios...</p>
-          </div>
-          <div *ngIf="!loadingPrices() && productPrices().length === 0" class="text-center py-6 text-gray-400">
-            <p class="text-sm">No hay precios asignados</p>
-          </div>
-          <div *ngIf="!loadingPrices() && productPrices().length > 0" class="space-y-2">
-            <div *ngFor="let price of productPrices()"
-              class="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100 transition">
-              <div class="flex-1">
-                <div class="flex items-center gap-3">
-                  <span
-                    class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                    {{ price.price_list?.name || 'Lista' }}
-                  </span>
-                  <span class="text-sm text-gray-600">{{ getUoMName(price.uom_id) }}</span>
-                  <span *ngIf="editingPriceId() !== price.id" class="font-semibold text-gray-900">
-                    ${{ price.price | number:'1.2-2' }}
-                  </span>
-                  <input *ngIf="editingPriceId() === price.id" type="number" [value]="editPriceValue()"
-                    (input)="editPriceValue.set($any($event.target).value)" step="0.01"
-                    class="w-24 px-2 py-1 border border-gray-300 rounded text-sm" />
-                </div>
-              </div>
-              <div class="flex gap-1">
-                <ng-container *ngIf="editingPriceId() !== price.id">
-                  <button (click)="startEditPrice(price)"
-                    class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium">
-                    Editar
-                  </button>
-                  <button (click)="deletePrice(price.id)"
-                    class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium">
-                    Eliminar
-                  </button>
-                </ng-container>
-                <ng-container *ngIf="editingPriceId() === price.id">
-                  <button (click)="saveEditPrice(price.id)" [disabled]="savingPrice()"
-                    class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 font-medium">
-                    Guardar
-                  </button>
-                  <button (click)="cancelEditPrice()"
-                    class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 font-medium">
-                    Cancelar
-                  </button>
-                </ng-container>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab: Vendor Costs -->
-    <div class="tab-content" [class.active]="selectedTabIndex() === 4">
-      <div class="space-y-4">
-        
-        <!-- Add Vendor Cost Form -->
-        <div class="border border-gray-200 rounded-md p-4">
-          <h3 class="font-semibold text-gray-900 mb-3">Agregar Costo de Proveedor</h3>
-          <div class="space-y-3" [formGroup]="vendorPriceForm">
-            <div class="grid grid-cols-3 gap-3">
-              <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1">Proveedor</label>
-                <select formControlName="vendor_id"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
-                  [disabled]="loadingVendors()">
-                  <option value="">Seleccionar...</option>
-                  <option *ngFor="let vendor of vendors()" [value]="vendor.id">
-                    {{ vendor.name }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1">UoM</label>
-                <select formControlName="uom_id"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500">
-                  <option value="">Seleccionar...</option>
-                  <option *ngFor="let uom of assignedUoMs()" [value]="uom.id">
-                    {{ uom.name || uom.abbreviation }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1">Costo</label>
-                <input type="number" formControlName="price" step="0.01" min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500"
-                  placeholder="0.00" />
-              </div>
-            </div>
-            <button (click)="addVendorPrice()" [disabled]="vendorPriceForm.invalid || savingVendorPrice()"
-              class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 text-sm font-semibold transition">
-              {{ savingVendorPrice() ? 'Guardando...' : 'Agregar Costo' }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Vendor Costs List -->
-        <div class="border border-gray-200 rounded-md p-4">
-          <h3 class="font-semibold text-gray-900 mb-3">Costos Asignados</h3>
-          <div *ngIf="loadingVendorPrices()" class="text-center py-6 text-gray-500">
-            <p class="text-sm">Cargando costos...</p>
-          </div>
-          <div *ngIf="!loadingVendorPrices() && vendorPrices().length === 0" class="text-center py-6 text-gray-400">
-            <p class="text-sm">No hay costos de proveedor asignados</p>
-          </div>
-          <div *ngIf="!loadingVendorPrices() && vendorPrices().length > 0" class="space-y-2">
-            <div *ngFor="let vendorPrice of vendorPrices()"
-              class="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100 transition">
-              <div class="flex-1">
-                <div class="flex items-center gap-3">
-                  <span
-                    class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                    {{ getVendorName(vendorPrice.vendor_id) }}
-                  </span>
-                  <span class="text-sm text-gray-600">{{ getUoMName(vendorPrice.uom_id) }}</span>
-                  <span *ngIf="editingVendorPriceId() !== vendorPrice.id" class="font-semibold text-gray-900">
-                    ${{ vendorPrice.price | number:'1.2-2' }}
-                  </span>
-                  <input *ngIf="editingVendorPriceId() === vendorPrice.id" type="number" [value]="editVendorPriceValue()"
-                    (input)="editVendorPriceValue.set($any($event.target).value)" step="0.01"
-                    class="w-24 px-2 py-1 border border-gray-300 rounded text-sm" />
-                </div>
-              </div>
-              <div class="flex gap-1">
-                <ng-container *ngIf="editingVendorPriceId() !== vendorPrice.id">
-                  <button (click)="startEditVendorPrice(vendorPrice)"
-                    class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium">
-                    Editar
-                  </button>
-                  <button (click)="deleteVendorPrice(vendorPrice.id)"
-                    class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium">
-                    Eliminar
-                  </button>
-                </ng-container>
-                <ng-container *ngIf="editingVendorPriceId() === vendorPrice.id">
-                  <button (click)="saveEditVendorPrice(vendorPrice.id)" [disabled]="savingVendorPrice()"
-                    class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 font-medium">
-                    Guardar
-                  </button>
-                  <button (click)="cancelEditVendorPrice()"
-                    class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 font-medium">
-                    Cancelar
-                  </button>
-                </ng-container>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="form-actions">
+        <button class="btn btn--secondary" (click)="priceModalVisible = false" type="button">Cancelar</button>
+        <button class="btn btn--primary" (click)="savePrice()" type="button">Guardar</button>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="dialog__footer">
-    <button (click)="close()"
-      class="px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium">
-      Cancelar
-    </button>
-    <button (click)="save()" [disabled]="form.invalid || saving()"
-      class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
-      [title]="form.invalid && !saving() ? 'Por favor completa todos los campos requeridos' : ''">
-      {{ saving() ? 'Guardando...' : 'Guardar' }}
-    </button>
+<!-- Modal Terciario: Crear Lista de Precios -->
+<div class="modal-overlay" *ngIf="priceListModalVisible" (click)="priceListModalVisible = false">
+  <div class="modal-container modal-container--xs" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Nueva Lista de Precios</h2>
+      <button class="close-btn" (click)="priceListModalVisible = false" type="button">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-content modal-content--compact">
+      <div class="form-grid">
+        <div class="form-field form-field--full">
+          <label class="form-label">NOMBRE *</label>
+          <input type="text" class="form-input" [(ngModel)]="priceListForm.name" placeholder="Ej: Precio Comercial">
+        </div>
+
+        <div class="form-field form-field--full">
+          <label class="form-label">DESCRIPCIÓN</label>
+          <textarea class="form-textarea" [(ngModel)]="priceListForm.description" placeholder="Descripción opcional" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn--secondary" (click)="priceListModalVisible = false" type="button">Cancelar</button>
+        <button class="btn btn--primary" (click)="savePriceList()" type="button">Crear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Secundario: Costo -->
+<div class="modal-overlay" *ngIf="costModalVisible" (click)="costModalVisible = false">
+  <div class="modal-container modal-container--sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ costForm.id ? 'Editar Costo' : 'Nuevo Costo' }}</h2>
+      <button class="close-btn" (click)="costModalVisible = false" type="button">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-content">
+      <div class="form-grid">
+        <div class="form-field form-field--full">
+          <label class="form-label">PROVEEDOR *</label>
+          <select class="form-select" [(ngModel)]="costForm.vendor_id">
+            <option value="">Seleccionar...</option>
+            <option *ngFor="let vendor of vendors" [value]="vendor.id">{{ vendor.name }}</option>
+          </select>
+        </div>
+
+        <div class="form-field form-field--full">
+          <label class="form-label">UOM *</label>
+          <select class="form-select" [(ngModel)]="costForm.product_uom_id">
+            <option value="">Seleccionar...</option>
+            <option *ngFor="let uom of product?.uoms" [value]="uom.id">{{ uom.uom?.name }}</option>
+          </select>
+        </div>
+
+        <div class="form-field form-field--full">
+          <label class="form-label">COSTO *</label>
+          <input type="number" class="form-input" [(ngModel)]="costForm.cost" placeholder="0.00" step="0.01" min="0">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">IVA %</label>
+          <input type="number" class="form-input" [(ngModel)]="costForm.iva_percentage" placeholder="0" step="0.01" min="0">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">IEPS %</label>
+          <input type="number" class="form-input" [(ngModel)]="costForm.ieps_percentage" placeholder="0" step="0.01" min="0">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn--secondary" (click)="costModalVisible = false" type="button">Cancelar</button>
+        <button class="btn btn--primary" (click)="saveCost()" type="button">Guardar</button>
+      </div>
+    </div>
   </div>
 </div>

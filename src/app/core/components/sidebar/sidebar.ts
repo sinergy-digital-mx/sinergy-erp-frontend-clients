@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import {
   LucideAngularModule,
@@ -19,8 +19,11 @@ import {
   Package,
   ShoppingBag,
   Monitor,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
+import { SidebarService } from '../../services/sidebar.service';
 import { IsAdminDirective } from '../../directives/is-admin.directive';
 
 interface MenuItem {
@@ -38,6 +41,7 @@ interface MenuItem {
   styleUrl: './sidebar.scss',
 })
 export class Sidebar {
+  isCollapsed = signal(false);
 
   menu: MenuItem[] = [
     {
@@ -73,28 +77,25 @@ export class Sidebar {
       route: '/purchase-orders',
       icon: ShoppingCart,
       id: 'menu-purchase-orders',
-      permission: 'purchaseorders:ViewMenu'
+      permission: 'purchase_orders:ViewMenu'
     },
     {
       label: 'Órdenes de Venta',
       route: '/sales-orders',
       icon: ShoppingBag,
-      id: 'menu-sales-orders',
-      permission: 'salesorders:ViewMenu'
+      id: 'menu-sales-orders'
     },
     {
       label: 'Inventario',
       route: '/inventory',
       icon: Package,
-      id: 'menu-inventory',
-      permission: 'inventory:ViewMenu'
+      id: 'menu-inventory'
     },
     {
       label: 'Punto de Venta',
       route: '/pos',
       icon: Monitor,
-      id: 'menu-pos',
-      permission: 'pos:ViewMenu'
+      id: 'menu-pos'
     },
     {
       label: 'Marketing',
@@ -107,10 +108,15 @@ export class Sidebar {
 
   private menuIdCounter = 0;
 
-  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor };
+  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight };
 
-  constructor(public auth_service:AuthService){
+  constructor(public auth_service: AuthService, private sidebarService: SidebarService) {
+    // Subscribe to sidebar service changes
+    this.isCollapsed = this.sidebarService.isCollapsed;
+  }
 
+  toggleSidebar() {
+    this.sidebarService.toggleSidebar();
   }
 
   get visibleMenuItems(): MenuItem[] {

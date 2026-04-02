@@ -3,26 +3,49 @@ import { Payment } from './payment.model';
 import { Warehouse } from './warehouse.model';
 import { Vendor } from './vendor.model';
 
+// Re-export LineItem for convenience
+export type { LineItem } from './line-item.model';
+
 /**
  * Order status enum
  */
-export type OrderStatus = 'En Proceso' | 'Recibida' | 'Cancelada';
+export type OrderStatus = 'Creada' | 'En Proceso' | 'Recibida' | 'Cancelada';
 
 /**
  * Payment status enum
  */
-export type PaymentStatus = 'Pagada' | 'Parcial' | 'No pagado';
+export type PaymentStatus = 'Pagada' | 'Parcial' | 'Pendiente' | 'No pagado';
 
 /**
  * Document entity
  */
 export interface Document {
   id: string;
-  name: string;
-  url: string;
-  type: string;
-  size: number;
+  purchase_order_id: string;
+  document_type_id: number;
+  document_name: string;
+  document_type_name: string;
+  file_path: string;
+  file_key: string;
+  uploaded_by: string;
+  uploaded_by_name: string;
   uploaded_at: string;
+  key: string;
+  path: string;
+  name?: string;
+  url?: string;
+  type?: string;
+  size?: number;
+}
+
+/**
+ * User entity
+ */
+export interface User {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
 }
 
 /**
@@ -35,8 +58,11 @@ export interface PurchaseOrder {
   creator_id: string;
   purpose: string;
   warehouse_id: string;
+  folio?: string;
   tentative_receipt_date: string; // ISO 8601 date string
+  expected_delivery_date?: string;
   status: OrderStatus;
+  general_status?: OrderStatus;
   cancellation_date?: string;
   cancellation_reason?: string;
   payment_status: PaymentStatus;
@@ -48,11 +74,22 @@ export interface PurchaseOrder {
   total_iva: number;
   total_ieps: number;
   grand_total: number;
+  requested_subtotal?: string;
+  requested_iva_total?: string;
+  requested_ieps_total?: string;
+  requested_total?: string;
+  received_subtotal?: string;
+  received_iva_total?: string;
+  received_ieps_total?: string;
+  received_total?: string;
+  notes?: string;
   line_items: LineItem[];
   payments: Payment[];
   documents?: Document[];
   warehouse?: Warehouse;
   vendor?: Vendor;
+  fiscal_configuration?: any;
+  creator?: User;
   created_at: string;
   updated_at: string;
 }

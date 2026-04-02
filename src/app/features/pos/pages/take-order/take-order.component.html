@@ -1,12 +1,11 @@
 <div class="take-order-container">
   <!-- Left Panel: Products -->
   <div class="products-panel">
-    <div class="panel-header">
-      <h2>Productos</h2>
+    <div class="panel-header-products">
       <input 
         type="text" 
         class="search-input"
-        placeholder="Buscar producto..."
+        placeholder="🔍 Buscar..."
         [(ngModel)]="searchTerm"
         (ngModelChange)="onSearchChange()"
       />
@@ -83,17 +82,13 @@
 
   <!-- Right Panel: Cart -->
   <div class="cart-panel">
+    <!-- Terminal Badge -->
+    <div class="terminal-badge">
+      <span>🖥️ {{ terminalId() }}</span>
+    </div>
+
     <div class="panel-header">
       <h2>Orden Actual</h2>
-      <select 
-        class="warehouse-select"
-        [(ngModel)]="selectedWarehouse"
-      >
-        <option value="">Selecciona almacén</option>
-        @for (warehouse of warehouses(); track warehouse.id) {
-          <option [value]="warehouse.id">{{ warehouse.name }}</option>
-        }
-      </select>
     </div>
 
     <div class="cart-items">
@@ -124,6 +119,18 @@
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
               </svg>
             </button>
+          </div>
+          <!-- Weight Input for bulk items -->
+          <div class="weight-input-group">
+            <label>Peso (kg):</label>
+            <input 
+              type="number" 
+              [(ngModel)]="item.weight"
+              placeholder="Ej: 1.5"
+              class="weight-input"
+              min="0"
+              step="0.1"
+            />
           </div>
         </div>
       }
@@ -160,6 +167,67 @@
       </div>
     </div>
 
+    <!-- Payment Method Selection -->
+    <div class="payment-section">
+      <h3>Método de Pago</h3>
+      <div class="payment-toggles">
+        <button 
+          class="payment-toggle"
+          [class.active]="paymentMethod() === 'cash'"
+          (click)="paymentMethod.set('cash')"
+        >
+          💵 Efectivo
+        </button>
+        <button 
+          class="payment-toggle"
+          [class.active]="paymentMethod() === 'card'"
+          (click)="paymentMethod.set('card')"
+        >
+          💳 Tarjeta
+        </button>
+        <button 
+          class="payment-toggle"
+          [class.active]="paymentMethod() === 'credit'"
+          (click)="paymentMethod.set('credit')"
+        >
+          📋 Crédito
+        </button>
+      </div>
+
+      <!-- Cash Payment Details -->
+      @if (paymentMethod() === 'cash') {
+        <div class="cash-payment">
+          <div class="cash-payment-row">
+            <div class="cash-input-group">
+              <label>Cantidad Pagada:</label>
+              <input 
+                type="number" 
+                [(ngModel)]="amountPaid"
+                placeholder="0.00"
+                class="cash-input"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div class="change-display">
+              <label>Cambio:</label>
+              <input 
+                type="text" 
+                [value]="formatCurrency(calculateChange())"
+                readonly
+                class="change-input"
+              />
+            </div>
+          </div>
+          @if (!isPaymentValid()) {
+            <div class="payment-warning">
+              ⚠️ Cantidad insuficiente
+            </div>
+          }
+        </div>
+      }
+    </div>
+
     <div class="cart-actions">
       <button 
         class="btn-cancel" 
@@ -171,7 +239,7 @@
       <button 
         class="btn-save" 
         (click)="saveOrder()"
-        [disabled]="saving() || posService.cart().items.length === 0"
+        [disabled]="saving() || posService.cart().items.length === 0 || !isPaymentValid()"
       >
         {{ saving() ? 'Guardando...' : 'Guardar Orden' }}
       </button>

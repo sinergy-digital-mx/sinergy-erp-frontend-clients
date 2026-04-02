@@ -1,0 +1,93 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2>Gestionar Listas de Precios</h2>
+    <button class="close-btn" (click)="close()" type="button">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="dialog-content">
+    <div class="dialog-actions">
+      <button class="btn btn--sm btn--primary" (click)="addNew()" type="button">+ Crear Nueva</button>
+    </div>
+
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando listas...</p>
+    </div>
+
+    <div *ngIf="!loading && priceLists.length === 0" class="empty-state">
+      <p>No hay listas de precios</p>
+    </div>
+
+    <table *ngIf="!loading && priceLists.length > 0" class="data-table">
+      <thead>
+        <tr>
+          <th>NOMBRE</th>
+          <th>DESCRIPCIÓN</th>
+          <th>ACCIONES</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let list of priceLists; let i = index">
+          <td>
+            <input 
+              *ngIf="list.editing" 
+              type="text" 
+              class="form-input form-input--inline" 
+              [(ngModel)]="list.name"
+              placeholder="Nombre">
+            <span *ngIf="!list.editing">{{ list.name }}</span>
+          </td>
+          <td>
+            <input 
+              *ngIf="list.editing" 
+              type="text" 
+              class="form-input form-input--inline" 
+              [(ngModel)]="list.description"
+              placeholder="Descripción">
+            <span *ngIf="!list.editing">{{ list.description || '—' }}</span>
+          </td>
+          <td>
+            <div class="row-actions">
+              <button 
+                *ngIf="!list.editing" 
+                class="btn-icon" 
+                (click)="edit(i)" 
+                type="button" 
+                title="Editar">
+                <i class="fi fi-rr-pencil"></i>
+              </button>
+              <button 
+                *ngIf="list.editing" 
+                class="btn-icon btn-icon--success" 
+                (click)="save(i)" 
+                type="button" 
+                title="Guardar">
+                <i class="fi fi-rr-check"></i>
+              </button>
+              <button 
+                *ngIf="list.editing" 
+                class="btn-icon" 
+                (click)="cancel(i)" 
+                type="button" 
+                title="Cancelar">
+                <i class="fi fi-rr-cross"></i>
+              </button>
+              <button 
+                *ngIf="!list.editing" 
+                class="btn-icon btn-icon--danger" 
+                (click)="delete(i)" 
+                type="button" 
+                title="Eliminar">
+                <i class="fi fi-rr-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

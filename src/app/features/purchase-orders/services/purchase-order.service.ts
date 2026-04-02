@@ -72,7 +72,7 @@ export class PurchaseOrderService {
   /**
    * Create new purchase order
    */
-  createOrder(data: PurchaseOrderFormData): Observable<PurchaseOrder> {
+  createOrder(data: any): Observable<PurchaseOrder> {
     console.log('[PurchaseOrder] Creating order', {
       vendor: data.vendor_id,
       warehouse: data.warehouse_id,
@@ -88,6 +88,26 @@ export class PurchaseOrderService {
           console.error('[PurchaseOrder] Failed to create order', error);
           return this.handleError(error);
         })
+      );
+  }
+
+  /**
+   * Get vendor products
+   */
+  getVendorProducts(vendorId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.api}/tenant/vendors/${vendorId}/products`)
+      .pipe(
+        catchError(error => this.handleError(error))
+      );
+  }
+
+  /**
+   * Receive purchase order
+   */
+  receiveOrder(id: string, data: any): Observable<PurchaseOrder> {
+    return this.http.post<PurchaseOrder>(`${this.baseUrl}/${id}/receive`, data)
+      .pipe(
+        catchError(error => this.handleError(error))
       );
   }
 
@@ -138,6 +158,38 @@ export class PurchaseOrderService {
     return this.http.post<Payment>(`${this.baseUrl}/${orderId}/payments`, payment)
       .pipe(
         catchError(error => this.handleError(error))
+      );
+  }
+
+  /**
+   * Regenerate original purchase order PDF
+   */
+  regenerateOriginalPDF(orderId: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/${orderId}/regenerate-documento-original`, {})
+      .pipe(
+        tap(() => {
+          console.log('[PurchaseOrder] Original PDF regenerated successfully', { id: orderId });
+        }),
+        catchError(error => {
+          console.error('[PurchaseOrder] Failed to regenerate original PDF', error);
+          return this.handleError(error);
+        })
+      );
+  }
+
+  /**
+   * Regenerate purchase order receipt PDF (only if status is "Recibida")
+   */
+  regenerateReceiptPDF(orderId: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/${orderId}/regenerate-recepcion`, {})
+      .pipe(
+        tap(() => {
+          console.log('[PurchaseOrder] Receipt PDF regenerated successfully', { id: orderId });
+        }),
+        catchError(error => {
+          console.error('[PurchaseOrder] Failed to regenerate receipt PDF', error);
+          return this.handleError(error);
+        })
       );
   }
 
