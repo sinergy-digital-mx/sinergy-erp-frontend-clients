@@ -109,6 +109,23 @@ export class PropertyEditModalComponent implements OnInit {
     this.currencySelectConfig.form_control = this.form.get('currency');
     this.groupSelectConfig.form_control = this.form.get('group_id');
 
+    // Suscribirse a cambios en manzana y número de lote para generar código automáticamente
+    this.form.get('block')?.valueChanges.subscribe(() => {
+      this.generateCode();
+    });
+
+    this.form.get('lot_number')?.valueChanges.subscribe(() => {
+      this.generateCode();
+    });
+  }
+
+  ngOnInit() {
+    this.loadMeasurementUnits();
+    this.loadPropertyGroups();
+    this.populateFormData();
+  }
+
+  private populateFormData() {
     if (this.data?.property) {
       this.form.patchValue({
         code: this.data.property.code,
@@ -125,20 +142,6 @@ export class PropertyEditModalComponent implements OnInit {
         status: this.data.property.status
       });
     }
-
-    // Suscribirse a cambios en manzana y número de lote para generar código automáticamente
-    this.form.get('block')?.valueChanges.subscribe(() => {
-      this.generateCode();
-    });
-
-    this.form.get('lot_number')?.valueChanges.subscribe(() => {
-      this.generateCode();
-    });
-  }
-
-  ngOnInit() {
-    this.loadMeasurementUnits();
-    this.loadPropertyGroups();
   }
 
   generateCode(): void {

@@ -7,6 +7,27 @@ import { Vendor } from './vendor.model';
 export type { LineItem } from './line-item.model';
 
 /**
+ * Batch entity for inventory tracking
+ */
+export interface Batch {
+  id: string;
+  batch_number: string;
+  warehouse_id: string;
+  warehouse_name?: string;
+  product_id: string;
+  product_name?: string;
+  product_sku?: string;
+  uom_id: string;
+  uom_name?: string;
+  quantity: number | string;
+  purchase_order_batch_id: string;
+  purchase_order_id?: string;
+  purchase_order_detail_id: string;
+  created_by: string;
+  created_at: string;
+}
+
+/**
  * Order status enum
  */
 export type OrderStatus = 'Creada' | 'En Proceso' | 'Recibida' | 'Cancelada';
@@ -84,6 +105,7 @@ export interface PurchaseOrder {
   received_total?: string;
   notes?: string;
   line_items: LineItem[];
+  batches?: Batch[];
   payments: Payment[];
   documents?: Document[];
   warehouse?: Warehouse;

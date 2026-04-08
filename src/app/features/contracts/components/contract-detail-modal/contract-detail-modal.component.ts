@@ -44,7 +44,7 @@ export class ContractDetailModalComponent implements OnInit {
   form: FormGroup;
   saving = signal(false);
   deleting = signal(false);
-  activeTab = signal<'edit' | 'payments' | 'documents'>('edit');
+  activeTab = signal<'edit' | 'payments' | 'down_payments' | 'hoa' | 'documents'>('edit');
   paymentStats = signal<PaymentStats | null>(null);
 
   statusSelectConfig: ISelect = {
@@ -89,6 +89,8 @@ export class ContractDetailModalComponent implements OnInit {
   }
 
   ngOnInit() {
+    console.log('🔍 Contract Detail Modal - Contract ID:', this.data.contract.id);
+    console.log('🔍 Full contract object:', this.data.contract);
     this.loadPaymentStats();
   }
 
@@ -124,7 +126,7 @@ export class ContractDetailModalComponent implements OnInit {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: currency }).format(amount);
   }
 
-  setActiveTab(tab: 'edit' | 'payments' | 'documents') {
+  setActiveTab(tab: 'edit' | 'payments' | 'down_payments' | 'hoa' | 'documents') {
     this.activeTab.set(tab);
   }
 

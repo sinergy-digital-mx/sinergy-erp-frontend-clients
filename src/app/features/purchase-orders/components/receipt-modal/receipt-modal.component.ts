@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -38,6 +38,7 @@ export class ReceiptModalComponent implements OnInit {
     private fb: FormBuilder,
     private receiptService: ReceiptService,
     private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<ReceiptModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { purchaseOrder: PurchaseOrder }
   ) {
@@ -72,7 +73,7 @@ export class ReceiptModalComponent implements OnInit {
    * Obtener cantidad ordenada
    */
   getOrderedQuantity(lineItem: LineItem): string {
-    return `${lineItem.quantity} ${lineItem.uom?.name || ''}`;
+    return `${lineItem.quantity} ${lineItem.product_uom?.uom?.name || 'Unidad'}`;
   }
 
   /**
@@ -104,7 +105,7 @@ export class ReceiptModalComponent implements OnInit {
         receivedItems.push({
           line_item_id: lineItem.id,
           product_id: lineItem.product_id,
-          uom_id: lineItem.uom_id,
+          product_uom_id: lineItem.product_uom?.id || lineItem.product_uom_id,
           quantity: quantity,
           unit_total: lineItem.unit_total || 0,
           iva_percentage: lineItem.iva_percentage || 0,
@@ -135,6 +136,8 @@ export class ReceiptModalComponent implements OnInit {
     this.receiptService.receiveItems(this.purchaseOrder.id, request).subscribe({
       next: (response) => {
         console.log('Success response:', response);
+        this.isLoading = false;
+        this.cdr.detectChanges();
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
           data: { message: 'Recibo registrado exitosamente', type: 'success' },
           duration: 3000
@@ -144,9 +147,12 @@ export class ReceiptModalComponent implements OnInit {
       error: (error) => {
         console.error('Error response:', error);
         this.isLoading = false;
+        this.cdr.detectChanges();
+        const errorMessage = error.error?.message || 
+                            (Array.isArray(error.error?.message) ? error.error.message.join(', ') : 'Error al registrar recibo');
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
           data: { 
-            message: error.error?.message || 'Error al registrar recibo', 
+            message: errorMessage, 
             type: 'error' 
           },
           duration: 5000

@@ -1,6 +1,21 @@
 import { Product } from './product.model';
 
 /**
+ * Product UOM entity
+ */
+export interface ProductUOM {
+  id: string;
+  product_id: string;
+  uom_catalog_id: string;
+  factor: number;
+  is_base: boolean;
+  parent_uom_id?: string | null;
+  uom?: UnitOfMeasure;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
  * Line item entity
  */
 export interface LineItem {
@@ -8,6 +23,8 @@ export interface LineItem {
   purchase_order_batch_id?: string;
   purchase_order_id?: string;
   product_id: string;
+  product_uom_id?: string;
+  product_uom?: ProductUOM;
   uom_id: string;
   quantity: number | string;
   unit_price?: number;
@@ -52,6 +69,7 @@ export interface UnitOfMeasure {
   name: string;
   abbreviation?: string;
   description?: string;
+  tenant_id?: string;
   created_at?: string;
   updated_at?: string;
 }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ContractService } from '../../services/contract.service';
 import { Contract, ContractStats } from '../../models/contract.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -14,7 +15,8 @@ import { PropertyEditModalComponent } from '../../../properties/components/prope
 import { ContractDetailModalComponent } from '../../components/contract-detail-modal/contract-detail-modal.component';
 import { ContractCreateModalComponent } from '../../components/contract-create-modal/contract-create-modal.component';
 import { ContractFilterIndicatorComponent } from '../../components/contract-filter-indicator/contract-filter-indicator.component';
-import { ArrowRight, AlertTriangle } from 'lucide-angular';
+import { InterceptorService } from '../../../../core/services/interceptor.service';
+import { ArrowRight, AlertTriangle, Download } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
@@ -26,7 +28,8 @@ import { LucideAngularModule } from 'lucide-angular';
     SearchComponent,
     ButtonComponent,
     ContractFilterIndicatorComponent,
-    LucideAngularModule
+    LucideAngularModule,
+    MatTooltipModule
   ],
   templateUrl: './contracts-list.component.html',
   styleUrl: './contracts-list.component.scss'
@@ -60,6 +63,7 @@ export class ContractsListComponent implements OnDestroy {
 
   ArrowRight = ArrowRight;
   AlertTriangle = AlertTriangle;
+  Download = Download;
   search = '';
   currentSort: ISortEvent | null = null;
   stats = signal<ContractStats | null>(null);
@@ -72,7 +76,8 @@ export class ContractsListComponent implements OnDestroy {
     private route: ActivatedRoute,
     private contractService: ContractService,
     private propertyService: PropertyService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private interceptorService: InterceptorService
   ) {
     this.loadStats();
     
@@ -270,8 +275,12 @@ export class ContractsListComponent implements OnDestroy {
     });
   }
 
-  onRowClick(row: Contract) {
-    this.viewDetail(row);
+  onRowClick(row: any) {
+    // Extract the actual contract from the row object
+    const contract = row?.data || row;
+    console.log('📋 Row clicked:', contract);
+    console.log('📋 Row ID:', contract?.id);
+    this.viewDetail(contract);
   }
 
   onSearchChange(searchTerm: string) {
@@ -346,6 +355,16 @@ export class ContractsListComponent implements OnDestroy {
   }
 
   viewDetail(contract: Contract) {
+    if (!contract || !contract.id) {
+      console.error('❌ Contract or contract.id is missing:', contract);
+      this.interceptorService.openSnackbar({
+        type: 'error',
+        title: 'Error',
+        message: 'No se pudo cargar el contrato. ID no disponible.'
+      });
+      return;
+    }
+
     const dialogRef = this.dialog.open(ContractDetailModalComponent, {
       data: { contract }
     });
@@ -399,5 +418,10 @@ export class ContractsListComponent implements OnDestroy {
   getCustomerName(contract: Contract): string {
     if (!contract.customer) return '—';
     return `${contract.customer.name} ${contract.customer.lastname}`;
+  }
+
+  downloadGeneralReport(): void {
+    // TODO: Implement general report download
+    console.log('Downloading general report...');
   }
 }

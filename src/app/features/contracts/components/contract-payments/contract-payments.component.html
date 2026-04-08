@@ -109,9 +109,13 @@
       <p class="text-2xl font-bold text-red-800 mb-1">{{ stats()!.overdue_count || 0 }}</p>
       <p class="text-xs text-red-600 mb-2">meses</p>
       
-      <div *ngIf="(stats()!.partial_overdue_count || 0) > 0 || (stats()!.pending_overdue_count || 0) > 0" class="space-y-1">
-        <p *ngIf="stats()!.pending_overdue_count > 0" class="text-xs text-red-600">{{ stats()!.pending_overdue_count }} pendientes</p>
-        <p *ngIf="stats()!.partial_overdue_count > 0" class="text-xs text-red-600">{{ stats()!.partial_overdue_count }} parciales</p>
+      <div class="space-y-1">
+        <p class="text-sm font-medium text-red-700">{{ (stats()!.overdue_amount || 0) | currency:currency }}</p>
+        
+        <div *ngIf="(stats()!.partial_overdue_count || 0) > 0 || (stats()!.pending_overdue_count || 0) > 0" class="pt-1 border-t border-red-200 space-y-1">
+          <p *ngIf="stats()!.pending_overdue_count > 0" class="text-xs text-red-600">{{ stats()!.pending_overdue_count }} pendientes</p>
+          <p *ngIf="stats()!.partial_overdue_count > 0" class="text-xs text-red-600">{{ stats()!.partial_overdue_count }} parciales</p>
+        </div>
       </div>
     </div>
   </div>
@@ -196,6 +200,13 @@
                 [matTooltip]="'Resetear Pago'"
                 matTooltipPosition="above">
                 <lucide-icon [img]="RotateCcw" [size]="16"></lucide-icon>
+              </button>
+              <button
+                (click)="sendPaymentEmail(payment)"
+                class="p-1.5 text-indigo-600 hover:text-white hover:bg-indigo-600 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                [matTooltip]="'Enviar por Correo'"
+                matTooltipPosition="above">
+                <lucide-icon [img]="Mail" [size]="16"></lucide-icon>
               </button>
             </div>
           </td>

@@ -83,19 +83,22 @@ export class Sidebar {
       label: 'Órdenes de Venta',
       route: '/sales-orders',
       icon: ShoppingBag,
-      id: 'menu-sales-orders'
+      id: 'menu-sales-orders',
+      permission: 'sales_orders:ViewMenu'
     },
     {
       label: 'Inventario',
       route: '/inventory',
       icon: Package,
-      id: 'menu-inventory'
+      id: 'menu-inventory',
+      permission: 'inventory:ViewMenu'
     },
     {
       label: 'Punto de Venta',
       route: '/pos',
       icon: Monitor,
-      id: 'menu-pos'
+      id: 'menu-pos',
+      permission: 'pos:ViewMenu'
     },
     {
       label: 'Marketing',

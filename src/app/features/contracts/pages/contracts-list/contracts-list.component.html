@@ -15,6 +15,15 @@
         custom_class="btn_primary"
         (clicked)="openCreateContractModal()">
       </app-button>
+
+      <app-button
+        custom_class="btn_primary"
+        [icon]="Download"
+        size="md"
+        (clicked)="downloadGeneralReport()"
+        matTooltip="Reporte general"
+        matTooltipPosition="above">
+      </app-button>
     </div>
   </div>
 

@@ -6,6 +6,7 @@ import { PurchaseOrder } from '../../models/purchase-order.model';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 import { ReceiptModalComponent } from '../receipt-modal/receipt-modal.component';
+import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 
 @Component({
   selector: 'app-order-detail-dialog',
@@ -13,7 +14,8 @@ import { ReceiptModalComponent } from '../receipt-modal/receipt-modal.component'
   imports: [
     CommonModule,
     MatDialogModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    RemoveTrailingZerosPipe
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './order-detail-dialog.component.html',

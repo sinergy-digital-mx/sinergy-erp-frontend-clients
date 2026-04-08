@@ -4,7 +4,7 @@
 export interface ReceivedItem {
   line_item_id: string;
   product_id: string;
-  uom_id: string;
+  product_uom_id: string;
   quantity: number;
   unit_total: number;
   iva_percentage: number;

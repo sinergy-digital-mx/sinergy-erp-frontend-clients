@@ -50,6 +50,7 @@ export interface PaymentStats {
   total_price: number;
   down_payment: number;
   paid_months?: number;
+  overdue_amount?: number;
   partial_payment?: {
     installment_number: number;
     amount_paid: number;

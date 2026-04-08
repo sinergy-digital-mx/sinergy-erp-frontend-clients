@@ -87,6 +87,18 @@
     </button>
     <button 
       class="tab"
+      [class.active]="activeTab() === 'down_payments'"
+      (click)="setActiveTab('down_payments')">
+      Enganche en Pagos
+    </button>
+    <button 
+      class="tab"
+      [class.active]="activeTab() === 'hoa'"
+      (click)="setActiveTab('hoa')">
+      HOA
+    </button>
+    <button 
+      class="tab"
       [class.active]="activeTab() === 'documents'"
       (click)="setActiveTab('documents')">
       Documentos
@@ -206,6 +218,20 @@
         [contractId]="data.contract.id"
         [currency]="data.contract.currency">
       </app-contract-payments>
+    </div>
+
+    <!-- Tab: Enganche en Pagos -->
+    <div class="tab-content" [class.active]="activeTab() === 'down_payments'">
+      <div class="p-6 text-center text-gray-500">
+        <p>Contenido de Enganche en Pagos</p>
+      </div>
+    </div>
+
+    <!-- Tab: HOA -->
+    <div class="tab-content" [class.active]="activeTab() === 'hoa'">
+      <div class="p-6 text-center text-gray-500">
+        <p>Contenido de HOA</p>
+      </div>
     </div>
 
     <!-- Tab: Documentos -->

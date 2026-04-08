@@ -184,13 +184,16 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     this.purchaseOrderService.createOrder(formData).subscribe({
       next: (order) => {
         this.saving = false;
+        this.cdr.detectChanges();
         this.snackBar.open('Orden de compra creada exitosamente', 'Cerrar', { duration: 3000 });
         this.dialogRef.close(order);
       },
       error: (error) => {
         this.saving = false;
+        this.cdr.detectChanges();
         console.error('Error creating order:', error);
-        this.snackBar.open('Error al crear la orden de compra', 'Cerrar', { duration: 3000 });
+        const errorMessage = error.error?.message || 'Error al crear la orden de compra';
+        this.snackBar.open(errorMessage, 'Cerrar', { duration: 5000 });
       }
     });
   }

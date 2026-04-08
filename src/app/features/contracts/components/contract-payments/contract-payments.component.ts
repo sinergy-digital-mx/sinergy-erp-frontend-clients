@@ -6,7 +6,7 @@ import { PaymentService } from '../../services/payment.service';
 import { Payment, PaymentStats } from '../../models/payment.model';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw } from 'lucide-angular';
+import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail } from 'lucide-angular';
 import { PartialPaymentModalComponent } from '../partial-payment-modal/partial-payment-modal.component';
 import { EditPaymentModalComponent } from '../edit-payment-modal/edit-payment-modal.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
@@ -40,6 +40,7 @@ export class ContractPaymentsComponent implements OnInit {
   readonly X = X;
   readonly DollarSign = DollarSign;
   readonly RotateCcw = RotateCcw;
+  readonly Mail = Mail;
 
   constructor(
     private paymentService: PaymentService,
@@ -243,6 +244,11 @@ export class ContractPaymentsComponent implements OnInit {
         });
       }
     });
+  }
+
+  sendPaymentEmail(payment: Payment) {
+    // TODO: Implementar envío de correo
+    console.log('Enviar correo para pago:', payment);
   }
 
   registerPayment(payment: Payment) {

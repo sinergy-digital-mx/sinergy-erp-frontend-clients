@@ -212,8 +212,8 @@
                           </div>
                         </td>
                         <td>{{ formatCurrency((item.unit_total || 0) * parseNumber(item.quantity)) }}</td>
-                        <td>{{ item.quantity }} {{ item.uom?.name || 'Unidad' }}</td>
-                        <td>{{ item.received_original_quantity || '0' }} {{ item.received_uom?.name || '-' }}</td>
+                        <td>{{ item.quantity | removeTrailingZeros }} {{ item.product_uom?.uom?.name || 'Unidad' }}</td>
+                        <td>{{ item.received_original_quantity | removeTrailingZeros }} {{ item.received_uom?.name || '-' }}</td>
                       </tr>
                     }
                   } @else {
@@ -309,10 +309,36 @@
           <!-- Lotes Tab -->
           @if (activeTabIndex() === 2) {
             <div class="tab-content-wrapper">
-              <div class="empty-state">
-                <i class="fi fi-rr-layers"></i>
-                <p>No hay lotes registrados</p>
-              </div>
+              @if (order()?.batches && order()!.batches.length > 0) {
+                <table class="products-table">
+                  <thead>
+                    <tr>
+                      <th>LOTE</th>
+                      <th>PRODUCTO</th>
+                      <th>CANTIDAD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (batch of order()!.batches; track batch.id) {
+                      <tr>
+                        <td>{{ batch.batch_number }}</td>
+                        <td>
+                          <div class="product-info">
+                            <strong>{{ batch.product_name || 'N/A' }}</strong>
+                            <small>{{ batch.product_sku || '' }}</small>
+                          </div>
+                        </td>
+                        <td>{{ batch.quantity | removeTrailingZeros }} {{ batch.uom_name || 'Unidad' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <div class="empty-state">
+                  <i class="fi fi-rr-layers"></i>
+                  <p>No hay lotes registrados</p>
+                </div>
+              }
             </div>
           }
 

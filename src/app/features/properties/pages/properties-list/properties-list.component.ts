@@ -23,7 +23,8 @@ import { ArrowRight } from 'lucide-angular';
     SearchComponent,
     ButtonComponent,
     PropertyGroupDropdownComponent,
-    PropertyStatusDropdownComponent
+    PropertyStatusDropdownComponent,
+    PropertyEditModalComponent
   ],
   templateUrl: './properties-list.component.html',
   styleUrl: './properties-list.component.scss'
@@ -159,7 +160,8 @@ export class PropertiesListComponent implements OnDestroy {
     });
   }
 
-  onRowClick(row: Property) {
+  onRowClick(event: any) {
+    const row = event?.data || event;
     this.editProperty(row);
   }
 
@@ -217,8 +219,11 @@ export class PropertiesListComponent implements OnDestroy {
   }
 
   editProperty(property: Property) {
+    console.log('Opening edit modal for property:', property);
     this.dialog.open(PropertyEditModalComponent, {
-      data: { property }
+      data: { property },
+      width: '700px',
+      maxWidth: '90vw'
     }).afterClosed().subscribe((result) => {
       if (result) {
         this.getProperties();

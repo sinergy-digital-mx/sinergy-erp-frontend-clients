@@ -1,71 +1,156 @@
 <div class="inventory-batch-list">
+  <!-- Header -->
   <div class="list-header">
     <h1>Inventario</h1>
-    <button class="btn-clear">Limpiar</button>
   </div>
 
+  <!-- Filters Section -->
   <div class="filters-section">
-    <input 
-      type="text" 
-      placeholder="Buscar..." 
-      [(ngModel)]="searchTerm"
-      class="search-input"
-    />
-    <select class="filter-select">
-      <option>Todos los almacenes</option>
+    <div class="search-bar">
+      <i class="fi fi-rr-search"></i>
+      <input 
+        type="text" 
+        placeholder="Buscar por lote o producto..." 
+        [(ngModel)]="searchTerm"
+        (keyup.enter)="onSearch()"
+        class="search-input"
+      />
+    </div>
+
+    <select 
+      [(ngModel)]="selectedWarehouse"
+      (change)="onWarehouseChange()"
+      class="filter-select">
+      <option value="">Todos los almacenes</option>
+      @for (warehouse of warehouses(); track warehouse.id) {
+        <option [value]="warehouse.id">{{ warehouse.name }}</option>
+      }
     </select>
+
+    <button class="btn-clear" (click)="clearFilters()">
+      <i class="fi fi-rr-cross"></i>
+      Limpiar
+    </button>
   </div>
 
-  @if (loading) {
-    <div class="loading">
-      <p>Cargando lotes...</p>
-    </div>
-  } @else if (batches.length === 0) {
-    <div class="empty-state">
-      <p>No se encontraron lotes de inventario</p>
-    </div>
-  } @else {
-    <div class="table-wrapper">
-      <table class="batches-table">
-        <thead>
-          <tr>
-            <th>Lote</th>
-            <th>Producto</th>
-            <th>Almacén</th>
-            <th>Cantidad</th>
-            <th>Orden de Compra</th>
-            <th>Fecha</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (batch of batches; track batch.id) {
-            <tr class="batch-row">
-              <td class="batch-number">{{ batch.batch_number }}</td>
-              <td class="product-name">{{ batch.product.name }}</td>
-              <td class="warehouse-name">{{ batch.warehouse.name }}</td>
-              <td class="quantity">{{ formatQuantity(batch.quantity, batch.uom.name) }}</td>
-              <td class="purchase-order">
-                @if (batch.purchase_order) {
-                  <span class="po-folio">{{ batch.purchase_order.folio }}</span>
-                } @else {
-                  <span class="po-empty">-</span>
-                }
-              </td>
-              <td class="date">{{ formatDate(batch.created_at) }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+  <!-- Tabs -->
+  <div class="tabs-header">
+    <button 
+      class="tab-button"
+      [class.active]="activeTabIndex() === 0"
+      (click)="activeTabIndex.set(0)">
+      Por Lotes
+    </button>
+    <button 
+      class="tab-button"
+      [class.active]="activeTabIndex() === 1"
+      (click)="activeTabIndex.set(1)">
+      Totalizado
+    </button>
+  </div>
 
-    <div class="pagination-wrapper">
-      <mat-paginator
-        [length]="total"
-        [pageSize]="limit"
-        [pageSizeOptions]="[20, 50, 100]"
-        (page)="onPageChange($event)"
-        showFirstLastButtons
-      ></mat-paginator>
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-container">
+      <p class="text-gray-500">Cargando lotes...</p>
     </div>
+  }
+
+  <!-- Tab Content -->
+  @if (!loading()) {
+    <!-- Por Lotes Tab -->
+    @if (activeTabIndex() === 0) {
+      @if (batches().length === 0) {
+        <div class="empty-state">
+          <i class="fi fi-rr-layers"></i>
+          <p>No se encontraron lotes de inventario</p>
+        </div>
+      } @else {
+        <div class="table-wrapper">
+          <table class="batches-table">
+            <thead>
+              <tr>
+                <th>LOTE</th>
+                <th>PRODUCTO</th>
+                <th>ALMACÉN</th>
+                <th>CANTIDAD</th>
+                <th>ORDEN DE COMPRA</th>
+                <th>FECHA</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (batch of batches(); track batch.id) {
+                <tr class="batch-row">
+                  <td class="batch-number">{{ batch.batch_number }}</td>
+                  <td class="product-name">
+                    <div class="product-info">
+                      <strong>{{ batch.product_name || 'N/A' }}</strong>
+                      <small>{{ batch.product_sku || '' }}</small>
+                    </div>
+                  </td>
+                  <td class="warehouse-name">{{ batch.warehouse_name || 'N/A' }}</td>
+                  <td class="quantity">{{ batch.quantity | removeTrailingZeros }} {{ batch.uom_name || 'Unidad' }}</td>
+                  <td class="purchase-order">
+                    @if (batch.purchase_order_id) {
+                      <span class="po-folio">{{ batch.purchase_order_id | slice:0:6 }}</span>
+                    } @else {
+                      <span class="po-empty">-</span>
+                    }
+                  </td>
+                  <td class="date">{{ formatDate(batch.created_at) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination-wrapper">
+          <mat-paginator
+            [length]="total()"
+            [pageSize]="limit()"
+            [pageSizeOptions]="[20, 50, 100]"
+            (page)="onPageChange($event)"
+            showFirstLastButtons
+          ></mat-paginator>
+        </div>
+      }
+    }
+
+    <!-- Totalizado Tab -->
+    @if (activeTabIndex() === 1) {
+      @if (batches().length === 0) {
+        <div class="empty-state">
+          <i class="fi fi-rr-chart-line"></i>
+          <p>No hay datos para mostrar</p>
+        </div>
+      } @else {
+        <div class="summary-section">
+          <div class="summary-card">
+            <div class="summary-item">
+              <span class="summary-label">Total de Lotes</span>
+              <span class="summary-value">{{ total() }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Cantidad Total</span>
+              <span class="summary-value">{{ totalQuantity() | removeTrailingZeros }}</span>
+            </div>
+          </div>
+
+          <div class="summary-by-warehouse">
+            <h3>Por Almacén</h3>
+            <div class="warehouse-summary">
+              @for (warehouse of warehousesWithData(); track warehouse.id) {
+                <div class="warehouse-item">
+                  <span class="warehouse-label">{{ warehouse.name }}</span>
+                  <span class="warehouse-value">
+                    {{ warehouseTotals()[warehouse.id] | removeTrailingZeros }}
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    }
   }
 </div>
