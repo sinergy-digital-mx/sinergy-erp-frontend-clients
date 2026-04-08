@@ -110,7 +110,7 @@
       <p class="text-xs text-red-600 mb-2">meses</p>
       
       <div class="space-y-1">
-        <p class="text-sm font-medium text-red-700">{{ (stats()!.overdue_amount || 0) | currency:currency }}</p>
+        <p class="text-sm font-medium text-red-700">{{ (stats()!.total_pending || 0) | currency:currency }}</p>
         
         <div *ngIf="(stats()!.partial_overdue_count || 0) > 0 || (stats()!.pending_overdue_count || 0) > 0" class="pt-1 border-t border-red-200 space-y-1">
           <p *ngIf="stats()!.pending_overdue_count > 0" class="text-xs text-red-600">{{ stats()!.pending_overdue_count }} pendientes</p>
