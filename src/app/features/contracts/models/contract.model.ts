@@ -6,6 +6,7 @@ export interface Contract {
   tenant_id: string;
   customer_id: number;
   property_id: string;
+  seller_id?: string;
   contract_number: string;
   contract_date: string;
   total_price: number;
@@ -22,6 +23,14 @@ export interface Contract {
   updated_at: string;
   customer?: ContractCustomer;
   property?: ContractProperty;
+  seller?: ContractSeller;
+}
+
+export interface ContractSeller {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
 }
 
 export interface ContractCustomer {
@@ -49,6 +58,7 @@ export type ContractStatus = 'activo' | 'completado' | 'cancelado' | 'suspendido
 export interface CreateContractDto {
   customer_id: number;
   property_id: string;
+  seller_id?: string;
   contract_number?: string;
   contract_date: string;
   total_price: number;

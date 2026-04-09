@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, signal, Output, EventEmitter } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -28,6 +28,7 @@ import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 export class ContractPaymentsComponent implements OnInit {
   @Input() contractId!: string;
   @Input() currency: string = 'USD';
+  @Output() dataChanged = new EventEmitter<void>();
 
   payments = signal<Payment[]>([]);
   stats = signal<PaymentStats | null>(null);
@@ -92,6 +93,7 @@ export class ContractPaymentsComponent implements OnInit {
         this.generating.set(false);
         this.loadPayments();
         this.loadStats();
+        this.dataChanged.emit();
         this.interceptorService.openSnackbar({
           type: 'success',
           title: 'Éxito',
@@ -116,8 +118,10 @@ export class ContractPaymentsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
+        console.log('✏️ Payment edited, emitting dataChanged event');
         this.loadPayments();
         this.loadStats();
+        this.dataChanged.emit();
       }
     });
   }
@@ -129,6 +133,7 @@ export class ContractPaymentsComponent implements OnInit {
       next: () => {
         this.loadPayments();
         this.loadStats();
+        this.dataChanged.emit();
         this.interceptorService.openSnackbar({
           type: 'success',
           title: 'Éxito',
@@ -152,6 +157,7 @@ export class ContractPaymentsComponent implements OnInit {
       next: () => {
         this.loadPayments();
         this.loadStats();
+        this.dataChanged.emit();
         this.interceptorService.openSnackbar({
           type: 'success',
           title: 'Éxito',
@@ -230,6 +236,7 @@ export class ContractPaymentsComponent implements OnInit {
       next: () => {
         this.loadPayments();
         this.loadStats();
+        this.dataChanged.emit();
         this.interceptorService.openSnackbar({
           type: 'success',
           title: 'Éxito',
@@ -258,8 +265,10 @@ export class ContractPaymentsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
+        console.log('💰 Payment registered, emitting dataChanged event');
         this.loadPayments();
         this.loadStats();
+        this.dataChanged.emit();
       }
     });
   }

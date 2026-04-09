@@ -103,6 +103,12 @@
       (click)="setActiveTab('documents')">
       Documentos
     </button>
+    <button 
+      class="tab"
+      [class.active]="activeTab() === 'statement'"
+      (click)="setActiveTab('statement')">
+      Estado de Cuenta
+    </button>
   </div>
 
   <div class="dialog__body">
@@ -142,6 +148,39 @@
             </span>
             <span *ngIf="!data.contract.property" class="text-gray-900">—</span>
           </div>
+        </div>
+
+        <!-- Vendido Por (Seller Autocomplete) -->
+        <div>
+          <label for="seller-search" class="block text-xs font-semibold text-gray-500 mb-1">Vendido Por</label>
+          <div class="relative">
+            <input
+              #sellerAutocompleteTrigger="matAutocompleteTrigger"
+              id="seller-search"
+              type="text"
+              formControlName="seller_search"
+              [placeholder]="data.contract.seller ? 'Buscar nuevo vendedor...' : 'Buscar por nombre o email'"
+              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              (focus)="onSellerSearchFocus()"
+              (blur)="onSellerSearchBlur()"
+              [matAutocomplete]="autoSeller"
+              aria-label="Buscar vendedor">
+            <button
+              type="button"
+              *ngIf="data.contract.seller && form.get('seller_search')?.value"
+              (click)="clearSeller()"
+              class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-600">
+              ✕
+            </button>
+          </div>
+          <mat-autocomplete #autoSeller="matAutocomplete">
+            <mat-option *ngFor="let seller of filteredVendors()" [value]="seller" (click)="onSellerSelected(seller)">
+              {{ displaySeller(seller) }}
+            </mat-option>
+            <mat-option *ngIf="filteredVendors().length === 0" disabled>
+              <span class="text-sm text-gray-500">No se encontraron vendedores</span>
+            </mat-option>
+          </mat-autocomplete>
         </div>
 
         <div class="grid grid-cols-2 gap-2.5">
@@ -216,7 +255,8 @@
     <div class="tab-content" [class.active]="activeTab() === 'payments'">
       <app-contract-payments 
         [contractId]="data.contract.id"
-        [currency]="data.contract.currency">
+        [currency]="data.contract.currency"
+        (dataChanged)="refreshContractData()">
       </app-contract-payments>
     </div>
 
@@ -229,14 +269,36 @@
 
     <!-- Tab: HOA -->
     <div class="tab-content" [class.active]="activeTab() === 'hoa'">
-      <div class="p-6 text-center text-gray-500">
-        <p>Contenido de HOA</p>
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="text-base font-semibold text-gray-800">Pagos de HOA</h4>
+          <app-button
+            text="Generar Pagos"
+            custom_class="btn_primary"
+            size="sm"
+            (clicked)="openGenerateHOADialog()">
+          </app-button>
+        </div>
       </div>
     </div>
 
     <!-- Tab: Documentos -->
     <div class="tab-content" [class.active]="activeTab() === 'documents'">
       <app-contract-documents [contractId]="data.contract.id"></app-contract-documents>
+    </div>
+
+    <!-- Tab: Estado de Cuenta -->
+    <div class="tab-content" [class.active]="activeTab() === 'statement'">
+      <div class="p-6 text-center">
+        <div class="mb-4">
+          <p class="text-gray-600 mb-4">Descarga el estado de cuenta en formato PDF</p>
+          <button
+            (click)="downloadStatement()"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+            📥 Descargar Estado de Cuenta
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

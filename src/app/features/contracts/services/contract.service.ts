@@ -39,4 +39,16 @@ export class ContractService {
   deleteContract(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/contracts/${id}`);
   }
+
+  exportToExcel(): Observable<Blob> {
+    return this.http.get(`${this.api}/tenant/contracts/export/excel`, {
+      responseType: 'blob'
+    });
+  }
+
+  getContractStatement(id: string): Observable<Blob> {
+    return this.http.get(`${this.api}/tenant/contracts/${id}/pdf`, {
+      responseType: 'blob'
+    });
+  }
 }

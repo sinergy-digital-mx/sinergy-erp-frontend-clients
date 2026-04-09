@@ -103,6 +103,36 @@
         </div>
       </div>
 
+      <!-- Sección: Vendedor -->
+      <div class="section">
+        <h3>Vendedor</h3>
+        <div class="autocomplete-field">
+          <label for="seller-search" class="field-label">
+            Vendido Por
+          </label>
+          <input
+            #sellerAutocompleteTrigger="matAutocompleteTrigger"
+            id="seller-search"
+            type="text"
+            formControlName="seller_search"
+            placeholder="Buscar por nombre o email"
+            class="autocomplete-input"
+            [matAutocomplete]="autoSeller"
+            aria-label="Buscar vendedor"
+            role="combobox"
+            aria-expanded="false"
+            aria-autocomplete="list">
+          <mat-autocomplete #autoSeller="matAutocomplete" [displayWith]="displaySeller.bind(this)">
+            <mat-option *ngFor="let seller of filteredSellers()" [value]="seller" (onSelectionChange)="onSellerSelected(seller)">
+              {{ displaySeller(seller) }}
+            </mat-option>
+            <mat-option *ngIf="filteredSellers().length === 0" disabled>
+              <span class="no-results-text">No se encontraron vendedores</span>
+            </mat-option>
+          </mat-autocomplete>
+        </div>
+      </div>
+
       <!-- Sección: Datos del Contrato -->
       <div class="section">
         <h3>Datos del Contrato</h3>

@@ -140,10 +140,10 @@ export class UserDetailsComponent implements OnInit {
       // Show confirmation dialog
       this.dialog.open(ConfirmDialogComponent, {
         data: {
-          title: 'Assign Role',
-          message: `Are you sure you want to assign this role to ${this.user.email}?`,
-          confirmText: 'Assign',
-          cancelText: 'Cancel'
+          title: 'Asignar Rol',
+          message: `¿Estás seguro de que deseas asignar este rol a ${this.user.email}?`,
+          confirmText: 'Asignar',
+          cancelText: 'Cancelar'
         }
       }).afterClosed().subscribe(result => {
         if (result) {
@@ -189,10 +189,10 @@ export class UserDetailsComponent implements OnInit {
     
     this.dialog.open(ConfirmDialogComponent, {
       data: {
-        title: 'Remove Role',
-        message: `Are you sure you want to remove this role from ${this.user.email}? This action cannot be undone.`,
-        confirmText: 'Remove',
-        cancelText: 'Cancel',
+        title: 'Eliminar Rol',
+        message: `¿Estás seguro de que deseas eliminar este rol de ${this.user.email}? Esta acción no se puede deshacer.`,
+        confirmText: 'Eliminar',
+        cancelText: 'Cancelar',
         isDangerous: true
       }
     }).afterClosed().subscribe(result => {

@@ -421,7 +421,22 @@ export class ContractsListComponent implements OnDestroy {
   }
 
   downloadGeneralReport(): void {
-    // TODO: Implement general report download
-    console.log('Downloading general report...');
+    this.contractService.exportToExcel().subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'contratos.xlsx';
+        link.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.interceptorService.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: err.error?.message || 'Error al descargar el reporte'
+        });
+      }
+    });
   }
 }

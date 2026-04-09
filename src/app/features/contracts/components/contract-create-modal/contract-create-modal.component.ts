@@ -11,6 +11,7 @@ import { SelectComponent, ISelect } from '../../../../core/components/select/sel
 import { ContractService } from '../../services/contract.service';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { PropertyService } from '../../../properties/services/property.service';
+import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { CreateContractDto } from '../../models/contract.model';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
@@ -36,6 +37,7 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
 
   @ViewChild('customerAutocompleteTrigger', { read: MatAutocompleteTrigger }) customerAutocompleteTrigger: MatAutocompleteTrigger;
   @ViewChild('propertyAutocompleteTrigger', { read: MatAutocompleteTrigger }) propertyAutocompleteTrigger: MatAutocompleteTrigger;
+  @ViewChild('sellerAutocompleteTrigger', { read: MatAutocompleteTrigger }) sellerAutocompleteTrigger: MatAutocompleteTrigger;
   @ViewChild('modalBody') modalBody: ElementRef;
 
   // Signals para estado reactivo
@@ -44,6 +46,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   filteredCustomers = signal<any[]>([]);
   properties = signal<any[]>([]);
   filteredProperties = signal<any[]>([]);
+  sellers = signal<any[]>([]);
+  filteredSellers = signal<any[]>([]);
   
   // Signals para valores formateados
   formattedRemainingBalance = signal<string>('0.00');
@@ -84,6 +88,7 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     private contractService: ContractService,
     private customerService: CustomerService,
     private propertyService: PropertyService,
+    private userService: UserService,
     private interceptorService: InterceptorService,
     private dialog: MatDialog
   ) {
@@ -93,6 +98,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       customer_id: [null, Validators.required],
       property_search: [''],
       property_id: ['', Validators.required],
+      seller_search: [''],
+      seller_id: [null],
 
       // Datos del contrato
       contract_date: [this.getTodayDate(), Validators.required],
@@ -162,6 +169,16 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       .subscribe(searchTerm => {
         this.filterProperties(searchTerm || '');
       });
+
+    // Configurar debouncing para búsqueda de vendedores
+    this.form.get('seller_search')!.valueChanges
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged()
+      )
+      .subscribe(searchTerm => {
+        this.filterSellers(searchTerm || '');
+      });
   }
 
   setupCalculations(): void {
@@ -187,9 +204,10 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     // Usar limit máximo permitido por el API
     forkJoin({
       customers: this.customerService.getCustomers({ limit: 100 }),
-      properties: this.propertyService.getProperties({ status: 'disponible', limit: 100 })
+      properties: this.propertyService.getProperties({ status: 'disponible', limit: 100 }),
+      sellers: this.userService.getUsers()
     }).subscribe({
-      next: ({ customers, properties }) => {
+      next: ({ customers, properties, sellers }) => {
         // Procesar clientes - manejar tanto respuestas paginadas como arrays directos
         let customerData = [];
         if (customers.data) {
@@ -215,6 +233,15 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
         
         this.properties.set(propertyData);
         this.filteredProperties.set(propertyData);
+
+        // Procesar vendedores
+        let sellerData = [];
+        if (sellers && Array.isArray(sellers)) {
+          sellerData = sellers;
+        }
+        
+        this.sellers.set(sellerData);
+        this.filteredSellers.set(sellerData);
       },
       error: (err) => {
         // Manejar errores globales
@@ -333,6 +360,23 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     this.filteredProperties.set(filtered);
   }
 
+  filterSellers(searchTerm: string): void {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      this.filteredSellers.set(this.sellers());
+      return;
+    }
+
+    // Filtrar localmente por nombre o email
+    const term = searchTerm.toLowerCase();
+    const filtered = this.sellers().filter(seller =>
+      (seller.first_name?.toLowerCase().includes(term) || '') ||
+      (seller.last_name?.toLowerCase().includes(term) || '') ||
+      (seller.email?.toLowerCase().includes(term) || '')
+    );
+
+    this.filteredSellers.set(filtered);
+  }
+
   onCustomerSelected(customer: any): void {
     this.form.patchValue({
       customer_id: customer.id
@@ -344,6 +388,16 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       property_id: property.id,
       total_price: property.total_price
     });
+  }
+
+  onSellerSelected(seller: any): void {
+    this.form.patchValue({
+      seller_id: seller.id
+    });
+  }
+
+  displaySeller(seller: any): string {
+    return seller ? `${seller.first_name} ${seller.last_name} (${seller.email})` : '';
   }
 
   openCreateCustomerModal(): void {
@@ -429,6 +483,7 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     const payload: CreateContractDto = {
       customer_id: this.form.get('customer_id')!.value,
       property_id: this.form.get('property_id')!.value,
+      seller_id: this.form.get('seller_id')!.value || undefined,
       contract_date: this.form.get('contract_date')!.value,
       total_price: this.form.get('total_price')!.value,
       down_payment: this.form.get('down_payment')!.value,

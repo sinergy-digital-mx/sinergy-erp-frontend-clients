@@ -2,9 +2,6 @@ import { Component, Inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { InputComponent } from '../../../../core/components/input/input.component';
-import { ButtonComponent } from '../../../../core/components/button/button.component';
-import { CloseButtonComponent } from '../../../../core/components/close-button/close-button.component';
 import { UserService } from '../../services/user.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
@@ -18,13 +15,15 @@ import { AuthService } from '../../../../core/services/auth.service';
 @Component({
   selector: 'app-user-creation-dialog',
   standalone: true,
-  imports: [CommonModule, InputComponent, ButtonComponent, CloseButtonComponent, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './user-creation-dialog.component.html',
   styleUrl: './user-creation-dialog.component.scss'
 })
 export class UserCreationDialogComponent {
   loading = signal(false);
   created = signal(false);
+  showPassword = signal(false);
+  showConfirmPassword = signal(false);
   form: FormGroup;
 
   constructor(
@@ -39,7 +38,9 @@ export class UserCreationDialogComponent {
       first_name: ['', [Validators.required]],
       last_name: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
-      phone: ['']
+      phone: [''],
+      password: ['', [Validators.required]],
+      confirm_password: ['', [Validators.required]]
     });
   }
 
@@ -49,9 +50,28 @@ export class UserCreationDialogComponent {
     }
   }
 
+  togglePasswordVisibility(): void {
+    this.showPassword.set(!this.showPassword());
+  }
+
+  toggleConfirmPasswordVisibility(): void {
+    this.showConfirmPassword.set(!this.showConfirmPassword());
+  }
+
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      return;
+    }
+
+    const password = this.form.get('password')?.value;
+    const confirmPassword = this.form.get('confirm_password')?.value;
+
+    if (password !== confirmPassword) {
+      this.snackBar.openFromComponent(CustomSnackbarComponent, {
+        data: { message: 'Las contraseñas no coinciden', type: 'error' },
+        duration: 3000
+      });
       return;
     }
 
@@ -59,7 +79,12 @@ export class UserCreationDialogComponent {
 
     const payload = {
       tenant_id: this.authService.user_info.tenant_id,
-      ...this.form.value
+      first_name: this.form.get('first_name')?.value,
+      last_name: this.form.get('last_name')?.value,
+      email: this.form.get('email')?.value,
+      phone: this.form.get('phone')?.value,
+      password: password,
+      status_id: 1
     };
 
     this.userService.createUser(payload).subscribe({
@@ -68,7 +93,7 @@ export class UserCreationDialogComponent {
         this.loading.set(false);
 
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'User created successfully', type: 'success' },
+          data: { message: 'Usuario creado exitosamente', type: 'success' },
           duration: 3000
         });
 
@@ -78,7 +103,7 @@ export class UserCreationDialogComponent {
         this.loading.set(false);
 
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: error.error?.message || 'Failed to create user', type: 'error' },
+          data: { message: error.error?.message || 'Error al crear el usuario', type: 'error' },
           duration: 5000
         });
       }
