@@ -41,8 +41,6 @@ export class VendorListComponent implements OnDestroy {
       { name: 'País', prop: 'country', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Tipo', prop: 'persona_type', sortable: true, canAutoResize: true, width: 120 },
       { name: 'Status', prop: 'status', sortable: true, canAutoResize: true, width: 100 },
-      { name: 'Detalle', prop: 'detail', sortable: false, canAutoResize: true, width: 100 },
-      { name: 'Eliminar', prop: 'delete', sortable: false, canAutoResize: true, width: 80 },
     ],
     externalPaging: false,
     externalSorting: false,

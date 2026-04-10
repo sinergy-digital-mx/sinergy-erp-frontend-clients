@@ -2,34 +2,73 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { PosEquipment, CreatePosEquipmentDto, UpdatePosEquipmentDto, PosEquipmentListResponse, PosEquipmentQueryParams } from '../models/pos-equipment.model';
+import {
+  PosConfiguration,
+  CreatePosConfigurationDto,
+  UpdatePosConfigurationDto,
+  PosConfigurationListResponse,
+  PosConfigurationQueryParams,
+} from '../models/pos-equipment.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PosEquipmentService {
-
-  private api = environment.api;
+  private readonly baseUrl = `${environment.api}/tenant/pos-configurations`;
 
   constructor(private http: HttpClient) {}
 
-  getPosEquipments(params?: PosEquipmentQueryParams): Observable<PosEquipmentListResponse> {
-    return this.http.get<PosEquipmentListResponse>(`${this.api}/tenant/pos-equipments`, { params: params as any });
+  getPosConfigurations(
+    params?: PosConfigurationQueryParams
+  ): Observable<PosConfigurationListResponse> {
+    return this.http.get<PosConfigurationListResponse>(this.baseUrl, {
+      params: params as any,
+    });
   }
 
-  getPosEquipment(id: string): Observable<PosEquipment> {
-    return this.http.get<PosEquipment>(`${this.api}/tenant/pos-equipments/${id}`);
+  getPosConfiguration(id: string): Observable<PosConfiguration> {
+    return this.http.get<PosConfiguration>(`${this.baseUrl}/${id}`);
   }
 
-  createPosEquipment(data: CreatePosEquipmentDto): Observable<PosEquipment> {
-    return this.http.post<PosEquipment>(`${this.api}/tenant/pos-equipments`, data);
+  createPosConfiguration(
+    data: CreatePosConfigurationDto
+  ): Observable<PosConfiguration> {
+    return this.http.post<PosConfiguration>(this.baseUrl, data);
   }
 
-  updatePosEquipment(id: string, data: UpdatePosEquipmentDto): Observable<PosEquipment> {
-    return this.http.put<PosEquipment>(`${this.api}/tenant/pos-equipments/${id}`, data);
+  updatePosConfiguration(
+    id: string,
+    data: UpdatePosConfigurationDto
+  ): Observable<PosConfiguration> {
+    return this.http.put<PosConfiguration>(`${this.baseUrl}/${id}`, data);
   }
 
-  deletePosEquipment(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/tenant/pos-equipments/${id}`);
+  deletePosConfiguration(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  /** @deprecated use getPosConfigurations */
+  getPosEquipments(params?: PosConfigurationQueryParams) {
+    return this.getPosConfigurations(params);
+  }
+
+  /** @deprecated use getPosConfiguration */
+  getPosEquipment(id: string) {
+    return this.getPosConfiguration(id);
+  }
+
+  /** @deprecated use createPosConfiguration */
+  createPosEquipment(data: CreatePosConfigurationDto) {
+    return this.createPosConfiguration(data);
+  }
+
+  /** @deprecated use updatePosConfiguration */
+  updatePosEquipment(id: string, data: UpdatePosConfigurationDto) {
+    return this.updatePosConfiguration(id, data);
+  }
+
+  /** @deprecated use deletePosConfiguration */
+  deletePosEquipment(id: string) {
+    return this.deletePosConfiguration(id);
   }
 }

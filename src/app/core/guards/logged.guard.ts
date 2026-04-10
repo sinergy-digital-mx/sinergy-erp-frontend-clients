@@ -10,7 +10,14 @@ export class LoggedGuard implements CanActivate {
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
     let token = this.auth_service.token  
     if (token) {
-      this.router.navigate(['/leads']);
+      // User is logged in, redirect to first accessible route
+      const firstRoute = this.auth_service.getFirstAccessibleRoute();
+      if (firstRoute) {
+        this.router.navigate([firstRoute]);
+      } else {
+        // No accessible routes, stay on login and show error
+        console.error('User has no accessible routes');
+      }
       return false;
     }
 

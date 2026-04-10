@@ -12,6 +12,8 @@ export interface Vendor {
   rfc: string;
   persona_type: 'Persona Física' | 'Persona Moral';
   status: 'active' | 'inactive';
+  credit_days?: number;
+  credit_limit?: string | number;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +30,8 @@ export interface CreateVendorDto {
   rfc: string;
   persona_type: 'Persona Física' | 'Persona Moral';
   status?: 'active' | 'inactive';
+  credit_days?: number;
+  credit_limit?: number;
 }
 
 export interface UpdateVendorDto extends Partial<CreateVendorDto> {}

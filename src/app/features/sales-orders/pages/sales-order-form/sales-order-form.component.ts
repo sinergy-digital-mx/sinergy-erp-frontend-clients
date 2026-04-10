@@ -73,8 +73,8 @@ export class SalesOrderFormComponent implements OnInit {
       line_items: this.fb.array([], Validators.minLength(1))
     });
     
-    if (order?.lines) {
-      order.lines.forEach(item => {
+    if (order?.line_items) {
+      order.line_items.forEach(item => {
         this.addLineItem(item);
       });
     }

@@ -1,102 +1,105 @@
-import { SalesOrderLine } from './sales-order-line.model';
+export type SalesOrderStatus = 'Creada' | 'Surtida' | 'Cancelada';
+export type SalesPaymentStatus = 'Pagada' | 'Parcial' | 'Pendiente';
 
-/**
- * Sales Order status enum
- */
-export type SalesOrderStatus = 
-  | 'draft' 
-  | 'confirmed' 
-  | 'processing' 
-  | 'completed' 
-  | 'cancelled';
-
-/**
- * Customer entity (simplified)
- */
 export interface Customer {
-  id: string;
+  id: number | string;
   name: string;
+  lastname?: string;
+  company_name?: string;
   email?: string;
   phone?: string;
 }
 
-/**
- * Warehouse entity (simplified)
- */
-export interface Warehouse {
-  id: string;
-  name: string;
-  code?: string;
+export interface SalesOrderLineItem {
+  id?: string;
+  sales_order_id?: string;
+  product_id: string;
+  product_uom_id: string;
+  quantity: string | number;
+  quantity_base_uom?: string;
+  base_uom_id?: string;
+  unit_price: string | number;
+  iva_percentage?: string | number;
+  iva_unit?: string | number;
+  ieps_percentage?: string | number;
+  ieps_unit?: string | number;
+  product?: { id: string; name: string; sku: string };
+  product_uom?: { id: string; factor: number };
+  batch_allocations?: any[];
+  created_at?: string;
 }
 
-/**
- * Sales Order entity
- */
 export interface SalesOrder {
   id: string;
-  tenant_id: string;
-  customer_id?: number;
+  tenant_id?: string;
+  folio?: string;
+  fiscal_configuration_id?: string;
+  customer_id: number | string;
   warehouse_id: string;
   delivery_date?: string;
-  status: SalesOrderStatus;
-  total_subtotal: number;
-  total_iva: number;
-  total_ieps: number;
-  grand_total: number;
-  lines: SalesOrderLine[];
+  expected_delivery_date?: string;
+  status?: SalesOrderStatus;
+  general_status?: SalesOrderStatus;
+  payment_status: SalesPaymentStatus;
+  subtotal?: string | number;
+  iva_total?: string | number;
+  ieps_total?: string | number;
+  total?: string | number;
+  // legacy compat
+  grand_total?: number;
+  requested_total?: string;
+  notes?: string;
+  line_items?: SalesOrderLineItem[];
+  // legacy compat
+  lines?: SalesOrderLineItem[];
   customer?: Customer;
-  warehouse?: Warehouse;
-  metadata?: Record<string, any>;
+  warehouse?: { id: string; name: string };
+  fiscal_configuration?: any;
+  created_by?: string;
   created_at: string;
   updated_at: string;
 }
 
-/**
- * Sales Order filters
- */
 export interface SalesOrderFilters {
   search?: string;
   status?: SalesOrderStatus;
-  customer_id?: number;
+  general_status?: SalesOrderStatus;
+  payment_status?: SalesPaymentStatus;
+  customer_id?: string | number;
   warehouse_id?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
-/**
- * Pagination parameters
- */
 export interface PaginationParams {
   page: number;
   limit: number;
 }
 
-/**
- * Paginated response
- */
 export interface PaginatedResponse<T> {
   data: T[];
   page: number;
   limit: number;
   total: number;
   totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+  hasNext?: boolean;
+  hasPrev?: boolean;
 }
 
-/**
- * Sales Order form data
- */
 export interface SalesOrderFormData {
-  customer_id?: number;
+  fiscal_configuration_id?: string;
+  customer_id: number | string;
   warehouse_id: string;
+  expected_delivery_date?: string;
   delivery_date?: string;
-  status?: SalesOrderStatus;
+  payment_status?: string;
+  notes?: string;
   line_items: Array<{
     product_id: string;
-    uom_id: string;
+    product_uom_id: string;
     quantity: number;
     unit_price: number;
     iva_percentage: number;
     ieps_percentage: number;
   }>;
-  metadata?: Record<string, any>;
 }

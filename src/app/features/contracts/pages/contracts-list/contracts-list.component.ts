@@ -16,7 +16,7 @@ import { ContractDetailModalComponent } from '../../components/contract-detail-m
 import { ContractCreateModalComponent } from '../../components/contract-create-modal/contract-create-modal.component';
 import { ContractFilterIndicatorComponent } from '../../components/contract-filter-indicator/contract-filter-indicator.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { ArrowRight, AlertTriangle, Download } from 'lucide-angular';
+import { ArrowRight, AlertCircle, Download } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
@@ -62,7 +62,7 @@ export class ContractsListComponent implements OnDestroy {
   });
 
   ArrowRight = ArrowRight;
-  AlertTriangle = AlertTriangle;
+  AlertCircle = AlertCircle;
   Download = Download;
   search = '';
   currentSort: ISortEvent | null = null;

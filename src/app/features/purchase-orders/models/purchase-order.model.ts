@@ -14,12 +14,27 @@ export interface Batch {
   batch_number: string;
   warehouse_id: string;
   warehouse_name?: string;
+  warehouse?: {
+    id: string;
+    name: string;
+  };
   product_id: string;
   product_name?: string;
   product_sku?: string;
+  product?: {
+    id: string;
+    name: string;
+    sku: string;
+  };
   uom_id: string;
   uom_name?: string;
-  quantity: number | string;
+  uom?: {
+    id: string;
+    name: string;
+  };
+  quantity?: number | string;
+  initial_quantity?: number | string;
+  available_quantity?: number | string;
   purchase_order_batch_id: string;
   purchase_order_id?: string;
   purchase_order_detail_id: string;

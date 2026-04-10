@@ -29,14 +29,14 @@
           <h2 class="text-3xl font-bold text-gray-900">{{ customer()!.name }}</h2>
           <p class="text-sm text-gray-500">{{ customer()!.email }}</p>
         </div>
-        <button
-          (click)="editCustomer()"
-          pButton
-          label="Editar cliente"
-          icon="pi pi-pencil"
-          class="p-button-rounded p-button-solid text-sm"
-          size="small">
-        </button>
+        <app-button
+          text="Editar cliente"
+          variant="primary"
+          size="sm"
+          [fullWidth]="false"
+          [icon]="PencilIcon"
+          (clicked)="editCustomer()">
+        </app-button>
       </div>
 
       <!-- CUSTOMER INFORMATION -->
@@ -112,7 +112,7 @@
       </div>
 
       <!-- CONTRACTS AND PROPERTIES SECTION -->
-      <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+      <div *hasPermission="'contracts:read'" class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800">
             Propiedades y Contratos
@@ -175,20 +175,21 @@
       </div>
 
       <!-- CUSTOMER DOCUMENTS SECTION -->
-      <app-customer-documents [customerId]="customer()!.id"></app-customer-documents>
+      <app-customer-documents *hasPermission="'customers:read'" [customerId]="customer()!.id"></app-customer-documents>
 
       <!-- ADDRESSES SECTION -->
-      <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+      <div *hasPermission="'customers:read'" class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800">
             Direcciones
           </h3>
-          <button
-            pButton
-            icon="pi pi-plus"
-            label="Agregar dirección"
-            class="p-button-sm p-button-outlined">
-          </button>
+          <app-button
+            text="Agregar dirección"
+            variant="primary"
+            size="sm"
+            [fullWidth]="false"
+            [icon]="MapPinIcon">
+          </app-button>
         </div>
 
         @if (customer()!.addresses && customer()!.addresses.length > 0) {
@@ -225,17 +226,18 @@
       </div>
 
       <!-- ACTIVITIES SECTION -->
-      <div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+      <div *hasPermission="'customers:read'" class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800">
             Actividades
           </h3>
-          <button
-            pButton
-            icon="pi pi-plus"
-            label="Agregar actividad"
-            class="p-button-sm p-button-outlined">
-          </button>
+          <app-button
+            text="Agregar actividad"
+            variant="primary"
+            size="sm"
+            [fullWidth]="false"
+            [icon]="ActivityIcon">
+          </app-button>
         </div>
 
         @if (customer()!.activities && customer()!.activities.length > 0) {

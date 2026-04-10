@@ -1,13 +1,16 @@
 import { Routes } from '@angular/router';
+import { permissionGuard } from '../../core/guards/permission.guard';
+import { INVENTORY_PERMISSIONS } from './config/permissions.config';
 
 export const INVENTORY_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./pages/inventory-batch-list/inventory-batch-list.component')
+      import('./components/inventory-batch-list/inventory-batch-list.component')
         .then(m => m.InventoryBatchListComponent),
+    canActivate: [permissionGuard],
     data: { 
-      permission: 'inventory:Read',
+      permissions: [INVENTORY_PERMISSIONS.viewList],
       title: 'Inventario'
     }
   }

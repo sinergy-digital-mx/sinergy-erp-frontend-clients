@@ -46,6 +46,11 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
       },
       {
         path: 'point-of-sale',
+        redirectTo: 'pos-configuration',
+        pathMatch: 'full'
+      },
+      {
+        path: 'pos-configuration',
         component: PosEquipmentListComponent
       },
       {

@@ -56,6 +56,7 @@ export class Login{
         console.log('Permisos extraídos:', Array.from(this.authService.permissions$.getValue()));
         console.log('Total de permisos:', this.authService.permissions$.getValue().size);
         
+        // Just navigate to root, let the router and guards handle the rest
         this.router.navigate(['/']);
       },
       error: () => {

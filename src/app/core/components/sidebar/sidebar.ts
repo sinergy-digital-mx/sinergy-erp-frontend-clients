@@ -24,7 +24,7 @@ import {
 } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
 import { SidebarService } from '../../services/sidebar.service';
-import { IsAdminDirective } from '../../directives/is-admin.directive';
+import { PERMISSIONS } from '../../config/permissions.config';
 
 interface MenuItem {
   label: string;
@@ -36,7 +36,7 @@ interface MenuItem {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule, RouterModule, LucideAngularModule, IsAdminDirective],
+  imports: [CommonModule, RouterModule, LucideAngularModule],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
 })
@@ -49,63 +49,70 @@ export class Sidebar {
       route: '/leads',
       icon: Users,
       id: 'menu-leads',
-      permission: 'leads:ViewMenu'
+      permission: PERMISSIONS.leads.viewMenu
     },
     {
       label: 'Clientes',
       route: '/customers',
       icon: CreditCard,
       id: 'menu-customers',
-      permission: 'customers:ViewMenu'
+      permission: PERMISSIONS.customers.viewMenu
     },
     {
       label: 'Lotes',
       route: '/properties',
       icon: LandPlot,
       id: 'menu-properties',
-      permission: 'properties:ViewMenu'
+      permission: PERMISSIONS.properties.viewMenu
     },
     {
       label: 'Contratos',
       route: '/contracts',
       icon: FileCheck,
       id: 'menu-contracts',
-      permission: 'contracts:ViewMenu'
+      permission: PERMISSIONS.contracts.viewMenu
     },
     {
       label: 'Órdenes de Compra',
       route: '/purchase-orders',
       icon: ShoppingCart,
       id: 'menu-purchase-orders',
-      permission: 'purchase_orders:ViewMenu'
+      permission: PERMISSIONS.purchaseOrders.viewMenu
     },
     {
       label: 'Órdenes de Venta',
       route: '/sales-orders',
       icon: ShoppingBag,
       id: 'menu-sales-orders',
-      permission: 'sales_orders:ViewMenu'
+      permission: PERMISSIONS.salesOrders.viewMenu
     },
     {
       label: 'Inventario',
       route: '/inventory',
       icon: Package,
       id: 'menu-inventory',
-      permission: 'inventory:ViewMenu'
+      permission: PERMISSIONS.inventory.viewMenu
     },
     {
       label: 'Punto de Venta',
       route: '/pos',
       icon: Monitor,
       id: 'menu-pos',
-      permission: 'pos:ViewMenu'
+      permission: PERMISSIONS.pos.viewMenu
     },
     {
       label: 'Marketing',
       route: '/marketing',
       icon: Megaphone,
       id: 'menu-marketing',
-      permission: 'marketing:ViewMenu'
+      permission: PERMISSIONS.marketing.viewMenu
+    },
+    {
+      label: 'Reporte de Ventas',
+      route: '/zona-norte-reports',
+      icon: FileText,
+      id: 'menu-zona-norte',
+      permission: 'zona_norte_custom_report:ViewMenu'
     }
   ];
 
@@ -123,19 +130,14 @@ export class Sidebar {
   }
 
   get visibleMenuItems(): MenuItem[] {
-    const currentPermissions = Array.from(this.auth_service.permissions$.getValue());
-    
-    const filtered = this.menu.filter(item => {
+    return this.menu.filter(item => {
       // If no permission is specified, show the item
       if (!item.permission) {
         return true;
       }
       // Check if user has the required permission
-      const hasPermission = this.auth_service.hasPermission(item.permission);
-      return hasPermission;
+      return this.auth_service.hasPermission(item.permission);
     });
-    
-    return filtered;
   }
 
   getUserName(): string {

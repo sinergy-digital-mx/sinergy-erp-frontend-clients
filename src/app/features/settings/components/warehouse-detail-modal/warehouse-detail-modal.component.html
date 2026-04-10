@@ -99,12 +99,12 @@
           placeholder="Código postal">
       </div>
 
-      <!-- Configuración Fiscal -->
+      <!-- Sucursal -->
       <div class="col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Configuración Fiscal</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
         <app-select
-          [config]="fiscalConfigSelectConfig"
-          (changeOption)="onFiscalConfigChange($event)">
+          [config]="branchSelectConfig"
+          (changeOption)="onBranchChange($event)">
         </app-select>
       </div>
     </form>

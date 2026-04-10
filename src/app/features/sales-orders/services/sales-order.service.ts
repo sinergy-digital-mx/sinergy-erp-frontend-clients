@@ -37,14 +37,23 @@ export class SalesOrderService {
     if (filters.search) {
       params = params.set('search', filters.search);
     }
-    if (filters.status) {
-      params = params.set('status', filters.status);
+    if (filters.status || filters.general_status) {
+      params = params.set('general_status', (filters.general_status || filters.status)!);
+    }
+    if (filters.payment_status) {
+      params = params.set('payment_status', filters.payment_status);
     }
     if (filters.customer_id) {
       params = params.set('customer_id', filters.customer_id.toString());
     }
     if (filters.warehouse_id) {
       params = params.set('warehouse_id', filters.warehouse_id);
+    }
+    if (filters.dateFrom) {
+      params = params.set('created_from', filters.dateFrom);
+    }
+    if (filters.dateTo) {
+      params = params.set('created_to', filters.dateTo);
     }
 
     return this.http.get<PaginatedResponse<SalesOrder>>(this.baseUrl, { params })
@@ -92,7 +101,17 @@ export class SalesOrderService {
   }
 
   /**
-   * Delete order
+   * Fulfill (surtir) sales order - triggers FIFO allocation
+   */
+  fulfillOrder(id: string): Observable<SalesOrder> {
+    return this.http.post<SalesOrder>(`${this.baseUrl}/${id}/fulfill`, {})
+      .pipe(
+        catchError(error => this.handleError(error))
+      );
+  }
+
+  /**
+   * Delete order (cancels and releases inventory)
    */
   deleteOrder(id: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.baseUrl}/${id}`)

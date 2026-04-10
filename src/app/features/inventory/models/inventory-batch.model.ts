@@ -1,3 +1,15 @@
+export interface InventoryBatchMovementSummary {
+  total_movements: number;
+  total_out: number;
+  total_in: number;
+  by_type: {
+    orders: number;
+    transfers_out: number;
+    transfers_in: number;
+    adjustments: number;
+  };
+}
+
 export interface InventoryBatch {
   id: string;
   batch_number: string;
@@ -9,9 +21,18 @@ export interface InventoryBatch {
   uom_id: string;
   uom_name: string;
   quantity: number | string;
-  purchase_order_batch_id: string;
-  purchase_order_id: string;
-  purchase_order_detail_id: string;
+  // Detail-only fields
+  initial_quantity?: string;
+  available_quantity?: string;
+  quantity_consumed?: string;
+  availability_percentage?: number;
+  movement_summary?: InventoryBatchMovementSummary;
+  // Optional legacy
+  quantity_available?: number | string;
+  purchase_order_batch_id: string | null;
+  purchase_order_id: string | null;
+  purchase_order_detail_id: string | null;
+  purchase_order_folio: string | null;
   created_by: string;
   created_at: string;
 }

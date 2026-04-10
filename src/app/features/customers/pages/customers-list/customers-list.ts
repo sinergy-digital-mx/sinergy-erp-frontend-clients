@@ -183,8 +183,8 @@ export class CustomersList implements OnDestroy {
     });
   }
 
-  onRowClick(row: any) {
-    this.viewDetail(row);
+  onRowClick(event: any) {
+    this.viewDetail(event.data);
   }
 
   onGroupSelect(event: { groupId: string | null; groupName: string | null }) {

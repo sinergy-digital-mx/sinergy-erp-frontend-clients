@@ -288,14 +288,24 @@ export class ProductDetailModalComponent implements OnInit {
   save(): void {
     if (!this.product) return;
 
+    // Validar campos requeridos
+    if (!this.product.sku || !this.product.sku.trim()) {
+      this.showNotification('El SKU es requerido', 'error');
+      return;
+    }
+    if (!this.product.name || !this.product.name.trim()) {
+      this.showNotification('El nombre es requerido', 'error');
+      return;
+    }
+
     console.log('Starting save, setting saving = true');
     this.saving = true;
     this.cdr.detectChanges();
     
     const body: any = {
-      sku: this.product.sku,
-      name: this.product.name,
-      description: this.product.description,
+      sku: this.product.sku.trim(),
+      name: this.product.name.trim(),
+      description: this.product.description?.trim() || '',
       category_id: this.product.category_id || undefined,
       subcategory_id: this.product.subcategory_id || undefined,
       base_uom_id: this.product.base_uom_id || undefined
@@ -303,23 +313,47 @@ export class ProductDetailModalComponent implements OnInit {
 
     console.log('Saving product with body:', body);
 
-    this.productService.updateProduct(this.product.id, body).subscribe({
-      next: () => {
-        console.log('Product saved successfully, setting saving = false');
-        this.saving = false;
-        this.cdr.detectChanges();
-        this.showNotification('Producto actualizado correctamente', 'success');
-        this.productUpdated.emit();
-        this.reloadCurrentTab();
-      },
-      error: (error) => {
-        console.error('Error updating product:', error);
-        console.log('Error occurred, setting saving = false');
-        this.saving = false;
-        this.cdr.detectChanges();
-        this.showNotification('Error al actualizar el producto', 'error');
-      }
-    });
+    // Determinar si es creación o actualización
+    const isNew = !this.product.id || this.data?.isNew;
+
+    if (isNew) {
+      // Crear nuevo producto
+      this.productService.createProduct(body).subscribe({
+        next: (newProduct) => {
+          console.log('Product created successfully:', newProduct);
+          this.saving = false;
+          this.cdr.detectChanges();
+          this.showNotification('Producto creado correctamente', 'success');
+          this.dialogRef.close(newProduct);
+        },
+        error: (error) => {
+          console.error('Error creating product:', error);
+          this.saving = false;
+          this.cdr.detectChanges();
+          const errorMessage = error.error?.message || 'Error al crear el producto';
+          this.showNotification(errorMessage, 'error');
+        }
+      });
+    } else {
+      // Actualizar producto existente
+      this.productService.updateProduct(this.product.id, body).subscribe({
+        next: () => {
+          console.log('Product saved successfully, setting saving = false');
+          this.saving = false;
+          this.cdr.detectChanges();
+          this.showNotification('Producto actualizado correctamente', 'success');
+          this.productUpdated.emit();
+          this.reloadCurrentTab();
+        },
+        error: (error) => {
+          console.error('Error updating product:', error);
+          console.log('Error occurred, setting saving = false');
+          this.saving = false;
+          this.cdr.detectChanges();
+          this.showNotification('Error al actualizar el producto', 'error');
+        }
+      });
+    }
   }
 
   reloadCurrentTab(): void {

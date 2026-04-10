@@ -82,7 +82,9 @@ export class VendorDetailModalComponent {
       razon_social: [''],
       rfc: ['', [Validators.pattern(/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/)]],
       persona_type: ['Persona Moral'],
-      status: ['active']
+      status: ['active'],
+      credit_days: [0, [Validators.min(0)]],
+      credit_limit: [0, [Validators.min(0)]]
     });
   }
 

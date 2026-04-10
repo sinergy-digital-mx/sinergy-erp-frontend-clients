@@ -274,13 +274,29 @@ export class POSService {
   }
   
   /**
-   * List cash shifts
+   * List cash shifts (sesiones / turnos de caja)
    */
-  getCashShifts(params?: { page?: number; limit?: number }): Observable<any> {
+  getCashShifts(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    /** UUID sucursal (billing branch), mismo criterio que pos-configurations */
+    sucursal?: string;
+  }): Observable<any> {
     let httpParams = new HttpParams();
-    if (params?.page) httpParams = httpParams.set('page', params.page.toString());
-    if (params?.limit) httpParams = httpParams.set('limit', params.limit.toString());
-    
+    if (params?.page != null) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+    if (params?.limit != null) {
+      httpParams = httpParams.set('limit', String(params.limit));
+    }
+    if (params?.search?.trim()) {
+      httpParams = httpParams.set('search', params.search.trim());
+    }
+    if (params?.sucursal?.trim()) {
+      httpParams = httpParams.set('sucursal', params.sucursal.trim());
+    }
+
     return this.http.get(`${this.API_URL}/cash-shifts`, { params: httpParams });
   }
   

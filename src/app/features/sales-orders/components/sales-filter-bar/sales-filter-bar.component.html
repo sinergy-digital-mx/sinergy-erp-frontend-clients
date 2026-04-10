@@ -1,33 +1,43 @@
-<div class="filter-bar">
-  <div class="filter-group">
-    <input
-      type="text"
-      class="filter-input"
-      placeholder="Buscar por nombre..."
-      [value]="search()"
-      (input)="search.set($any($event.target).value)"
-      (keyup.enter)="applyFilters()"
-    />
-  </div>
+<div class="filter-bar" role="search" aria-label="Filtros de órdenes de venta">
+  <div class="filter-bar__container">
+    <div class="filter-bar__field">
+      <input type="text" [formControl]="searchControl" placeholder="Buscar..." class="filter-bar__input" />
+    </div>
 
-  <div class="filter-group">
-    <select
-      class="filter-select"
-      [value]="status()"
-      (change)="status.set($any($event.target).value); applyFilters()"
-    >
-      @for (statusOption of statuses; track statusOption.value) {
-        <option [value]="statusOption.value">{{ statusOption.label }}</option>
-      }
-    </select>
-  </div>
+    <div class="filter-bar__field">
+      <select [formControl]="dateRangeControl" class="filter-bar__select">
+        <option value="">Fecha</option>
+        @for (option of dateRangeOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
 
-  <div class="filter-actions">
-    <button class="btn-clear" (click)="clearFilters()">
-      Limpiar
-    </button>
-    <button class="btn-apply" (click)="applyFilters()">
-      Aplicar
-    </button>
+    @if (showCustomDateRange) {
+      <div class="filter-bar__field">
+        <input type="date" [formControl]="dateFromControl" class="filter-bar__input" />
+      </div>
+      <div class="filter-bar__field">
+        <input type="date" [formControl]="dateToControl" class="filter-bar__input" />
+      </div>
+    }
+
+    <div class="filter-bar__field">
+      <select [formControl]="statusControl" class="filter-bar__select">
+        <option [value]="null">Todos los estados</option>
+        @for (option of statusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-bar__field">
+      <select [formControl]="warehouseControl" class="filter-bar__select">
+        <option [value]="null">Todos los almacenes</option>
+        @for (warehouse of warehouses; track warehouse.id) {
+          <option [value]="warehouse.id">{{ warehouse.name }}</option>
+        }
+      </select>
+    </div>
   </div>
 </div>

@@ -1,0 +1,188 @@
+<div class="batch-detail">
+  <!-- Header -->
+  <div class="batch-detail__header">
+    <h2 class="batch-detail__title">{{ batch()?.batch_number || '...' }}</h2>
+    <button class="batch-detail__close" (click)="close()">
+      <lucide-icon [img]="X" class="w-5 h-5"></lucide-icon>
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="batch-detail__tabs">
+    @for (tab of tabs; track tab.id) {
+      <button
+        class="batch-detail__tab"
+        [class.active]="activeTab === tab.id"
+        (click)="activeTab = tab.id">
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="batch-detail__loading">
+      <p>Cargando...</p>
+    </div>
+  }
+
+  @if (!loading() && batch()) {
+    <!-- Tab: General -->
+    @if (activeTab === 'general') {
+      <div class="batch-detail__body">
+
+        <!-- Info Cards Row -->
+        <div class="info-cards">
+          <!-- Producto -->
+          <div class="info-card info-card--blue clickable" (click)="openProductDetail()">
+            <div class="info-card__icon">
+              <lucide-icon [img]="Package" class="w-5 h-5"></lucide-icon>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">PRODUCTO</span>
+              <span class="info-card__value">{{ batch()?.product_name || 'N/A' }}</span>
+              <span class="info-card__sub">SKU: {{ batch()?.product_sku || '-' }}</span>
+            </div>
+            <lucide-icon [img]="ArrowRight" class="info-card__arrow w-4 h-4"></lucide-icon>
+          </div>
+
+          <!-- ALMACÉN -->
+          <div class="info-card info-card--yellow clickable" (click)="openWarehouseDetail()">
+            <div class="info-card__icon">
+              <lucide-icon [img]="MapPin" class="w-5 h-5"></lucide-icon>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">ALMACÉN</span>
+              <span class="info-card__value">{{ batch()?.warehouse_name || 'N/A' }}</span>
+            </div>
+            <lucide-icon [img]="ArrowRight" class="info-card__arrow w-4 h-4"></lucide-icon>
+          </div>
+
+          <!-- Requisición -->
+          <div class="info-card info-card--purple" [class.clickable]="batch()?.purchase_order_id" (click)="openPurchaseOrder()">
+            <div class="info-card__icon">
+              <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">REQUISICIÓN</span>
+              <span class="info-card__value">{{ batch()?.purchase_order_folio || '-' }}</span>
+            </div>
+            @if (batch()?.purchase_order_id) {
+              <lucide-icon [img]="ArrowRight" class="info-card__arrow w-4 h-4"></lucide-icon>
+            }
+          </div>
+        </div>
+
+        <!-- Fecha -->
+        <div class="info-card info-card--red info-card--full">
+          <div class="info-card__icon">
+            <lucide-icon [img]="Calendar" class="w-5 h-5"></lucide-icon>
+          </div>
+          <div class="info-card__content">
+            <span class="info-card__label">FECHA DE ENTRADA</span>
+            <span class="info-card__value">{{ formatDate(batch()?.created_at || '') }}</span>
+          </div>
+        </div>
+
+        <!-- Inventario -->
+        <div class="inventory-section">
+          <div class="inventory-section__header">
+            <span class="inventory-section__title">Inventario</span>
+            <span class="inventory-section__percent" [class.green]="availablePercent > 50" [class.orange]="availablePercent <= 50 && availablePercent > 20" [class.red]="availablePercent <= 20">
+              {{ availablePercent }}%
+            </span>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="progress-bar">
+            <div class="progress-bar__fill"
+              [class.green]="availablePercent > 50"
+              [class.orange]="availablePercent <= 50 && availablePercent > 20"
+              [class.red]="availablePercent <= 20"
+              [style.width.%]="availablePercent">
+            </div>
+          </div>
+
+          <!-- Quantities -->
+          <div class="quantities">
+            <div class="quantity-item">
+              <span class="quantity-item__label">Cantidad Inicial</span>
+              <span class="quantity-item__value">{{ batch()?.initial_quantity | removeTrailingZeros }} {{ batch()?.uom_name }}</span>
+            </div>
+            <div class="quantity-item">
+              <span class="quantity-item__label">Disponible</span>
+              <span class="quantity-item__value green">{{ batch()?.available_quantity | removeTrailingZeros }} {{ batch()?.uom_name }}</span>
+            </div>
+            <div class="quantity-item">
+              <span class="quantity-item__label">Consumido</span>
+              <span class="quantity-item__value">{{ batch()?.quantity_consumed | removeTrailingZeros }} {{ batch()?.uom_name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen de Movimientos -->
+        <div class="movements-summary">
+          <h3 class="movements-summary__title">Resumen de Movimientos</h3>
+          <div class="movements-cards">
+            <div class="movement-card movement-card--blue">
+              <div class="movement-card__icon-wrap">
+                <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
+              </div>
+              <span class="movement-card__label">Total Movimientos</span>
+              <span class="movement-card__value">{{ batch()?.movement_summary?.total_movements ?? 0 }}</span>
+            </div>
+            <div class="movement-card movement-card--green">
+              <div class="movement-card__icon-wrap">
+                <lucide-icon [img]="ShoppingCart" class="w-5 h-5"></lucide-icon>
+              </div>
+              <span class="movement-card__label">Órdenes</span>
+              <span class="movement-card__value">{{ batch()?.movement_summary?.by_type?.orders ?? 0 }}</span>
+            </div>
+            <div class="movement-card movement-card--orange">
+              <div class="movement-card__icon-wrap">
+                <lucide-icon [img]="ArrowRight" class="w-5 h-5"></lucide-icon>
+              </div>
+              <span class="movement-card__label">Transferencias</span>
+              <span class="movement-card__value">{{ (batch()?.movement_summary?.by_type?.transfers_out ?? 0) + (batch()?.movement_summary?.by_type?.transfers_in ?? 0) }}</span>
+            </div>
+            <div class="movement-card movement-card--purple">
+              <div class="movement-card__icon-wrap">
+                <lucide-icon [img]="Edit" class="w-5 h-5"></lucide-icon>
+              </div>
+              <span class="movement-card__label">Ajustes</span>
+              <span class="movement-card__value">{{ batch()?.movement_summary?.by_type?.adjustments ?? 0 }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    }
+
+    <!-- Tab: Movimientos -->
+    @if (activeTab === 'movimientos') {
+      <div class="batch-detail__body">
+        <div class="empty-tab">
+          <p>Sin movimientos registrados</p>
+        </div>
+      </div>
+    }
+
+    <!-- Tab: Auditorías -->
+    @if (activeTab === 'auditorias') {
+      <div class="batch-detail__body">
+        <div class="empty-tab">
+          <p>Sin auditorías registradas</p>
+        </div>
+      </div>
+    }
+
+    <!-- Tab: Etiqueta -->
+    @if (activeTab === 'etiqueta') {
+      <div class="batch-detail__body">
+        <div class="empty-tab">
+          <p>Sin etiqueta configurada</p>
+        </div>
+      </div>
+    }
+  }
+</div>

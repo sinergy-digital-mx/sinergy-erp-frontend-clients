@@ -1,0 +1,127 @@
+<div class="inventory-container">
+  <div class="inventory-header">
+    <div class="header-content">
+      <h1>Inventario</h1>
+      <div class="header-actions">
+        <input 
+          type="text" 
+          placeholder="Buscar..." 
+          class="search-input"
+          (input)="onSearchChange($event)"
+        />
+        
+        <select 
+          class="warehouse-select"
+          [value]="selectedWarehouse()"
+          (change)="onWarehouseChange($any($event.target).value)"
+        >
+          <option value="">Todos los almacenes</option>
+          @for (warehouse of warehouses(); track warehouse.id) {
+            <option [value]="warehouse.id">{{ warehouse.name }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="inventory-content">
+    <div class="table-container">
+      @if (loading()) {
+        <div class="loading-state">
+          <p>Cargando inventario...</p>
+        </div>
+      } @else if (items().length === 0) {
+        <div class="empty-state">
+          <p>No se encontraron productos en inventario</p>
+        </div>
+      } @else {
+        <table class="inventory-table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>SKU</th>
+              <th>Almacén</th>
+              <th>UOM</th>
+              <th class="text-right">Disponible</th>
+              <th class="text-right">Inicial</th>
+              <th class="text-center">Lotes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of items(); track item.product_id + item.warehouse_id) {
+              <tr class="product-row">
+                <td>{{ item.product_name }}</td>
+                <td>{{ item.product_sku }}</td>
+                <td>{{ item.warehouse_name }}</td>
+                <td>{{ item.uom_name }}</td>
+                <td class="text-right">{{ formatNumber(item.total_available_quantity) }}</td>
+                <td class="text-right">{{ formatNumber(item.total_initial_quantity) }}</td>
+                <td class="text-center">{{ item.total_batches }}</td>
+                <td>
+                  <button 
+                    class="btn-expand"
+                    (click)="toggleBatches(item)"
+                    [attr.aria-expanded]="isExpanded(item)"
+                  >
+                    {{ isExpanded(item) ? '▼' : '▶' }}
+                  </button>
+                </td>
+              </tr>
+              @if (isExpanded(item)) {
+                <tr class="batches-row">
+                  <td colspan="8">
+                    <div class="batches-container">
+                      <table class="batches-table">
+                        <thead>
+                          <tr>
+                            <th>Lote</th>
+                            <th>Folio PO</th>
+                            <th class="text-right">Disponible</th>
+                            <th class="text-right">Inicial</th>
+                            <th>Fecha</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (batch of item.batches; track batch.batch_id) {
+                            <tr>
+                              <td>{{ batch.batch_number }}</td>
+                              <td>{{ batch.purchase_order_folio }}</td>
+                              <td class="text-right">{{ formatNumber(batch.available_quantity) }}</td>
+                              <td class="text-right">{{ formatNumber(batch.initial_quantity) }}</td>
+                              <td>{{ batch.created_at | date: 'dd/MM/yyyy' }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+
+        <div class="pagination">
+          <button 
+            class="btn-page"
+            [disabled]="table_config().page === 1"
+            (click)="onPageChange({ page: table_config().page - 1, limit: table_config().limit })"
+          >
+            Anterior
+          </button>
+          <span class="page-info">
+            Página {{ table_config().page }} de {{ Math.ceil(table_config().totalResults / table_config().limit) }}
+          </span>
+          <button 
+            class="btn-page"
+            [disabled]="!hasMore()"
+            (click)="onPageChange({ page: table_config().page + 1, limit: table_config().limit })"
+          >
+            Siguiente
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</div>

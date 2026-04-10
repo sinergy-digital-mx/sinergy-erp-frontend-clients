@@ -5,12 +5,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { FiscalConfigurationService } from '../../services/fiscal-configuration.service';
 import { FiscalConfiguration } from '../../models/fiscal-configuration.model';
 import { FiscalConfigurationModalComponent } from '../fiscal-configuration-modal/fiscal-configuration-modal.component';
-import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
-import { Edit2, Trash2 } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
@@ -23,9 +21,6 @@ import { LucideAngularModule } from 'lucide-angular';
 export class FiscalConfigurationListComponent implements OnInit {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
 
-  Edit2 = Edit2;
-  Trash2 = Trash2;
-
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
@@ -33,7 +28,6 @@ export class FiscalConfigurationListComponent implements OnInit {
       { name: 'RFC', prop: 'rfc', sortable: false, canAutoResize: true, width: 120 },
       { name: 'Tipo de Persona', prop: 'persona_type', sortable: true, canAutoResize: true, width: 150 },
       { name: 'Status', prop: 'status', sortable: true, canAutoResize: true, width: 100 },
-      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 100 },
     ],
     externalPaging: true,
     externalSorting: false,
@@ -118,42 +112,6 @@ export class FiscalConfigurationListComponent implements OnInit {
     });
   }
 
-  openDeleteDialog(config: FiscalConfiguration): void {
-    const dialogRef = this.dialog.open(AlertDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Eliminar Configuración Fiscal',
-        message: `¿Estás seguro de que deseas eliminar la configuración fiscal para ${config.razon_social}?`,
-        confirmText: 'Eliminar',
-        cancelText: 'Cancelar'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.deleteFiscalConfiguration(config.id);
-      }
-    });
-  }
-
-  private deleteFiscalConfiguration(id: string): void {
-    this.fiscalConfigService.deleteFiscalConfiguration(id).subscribe({
-      next: () => {
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Configuración fiscal eliminada correctamente', type: 'success' },
-          duration: 3000
-        });
-        this.loadFiscalConfigurations();
-      },
-      error: (error) => {
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: error.error?.message || 'Error al eliminar configuración fiscal', type: 'error' },
-          duration: 5000
-        });
-      }
-    });
-  }
-
   getStatusClass(status: string): string {
     return status === 'active' 
       ? 'bg-green-100 text-green-800' 
@@ -162,10 +120,5 @@ export class FiscalConfigurationListComponent implements OnInit {
 
   getStatusLabel(status: string): string {
     return status === 'active' ? 'Activo' : 'Inactivo';
-  }
-
-  deleteConfig(config: FiscalConfiguration, event: Event): void {
-    event.stopPropagation();
-    this.openDeleteDialog(config);
   }
 }

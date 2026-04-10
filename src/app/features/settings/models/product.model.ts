@@ -191,6 +191,7 @@ export interface ProductQueryParams {
   limit?: number;
   search?: string;
   sort?: string;
+  status?: string;
 }
 
 export interface CategoryQueryParams {

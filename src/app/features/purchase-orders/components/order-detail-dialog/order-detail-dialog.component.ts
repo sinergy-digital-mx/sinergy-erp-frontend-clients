@@ -7,6 +7,7 @@ import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 import { ReceiptModalComponent } from '../receipt-modal/receipt-modal.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { BatchDetailDialogComponent } from '../../../inventory/components/batch-detail-dialog/batch-detail-dialog.component';
 
 @Component({
   selector: 'app-order-detail-dialog',
@@ -61,9 +62,16 @@ export class OrderDetailDialogComponent {
         // Handle new structure: { data: { header, documents, products, batches, payments } }
         if (response.data?.header) {
           const orderData = response.data.header;
-          // Merge documents from the data level
+          // Merge documents, batches, and other data from the data level
           if (response.data.documents) {
             orderData.documents = response.data.documents;
+          }
+          // Only override batches if there are batches at the data level
+          if (response.data.batches && response.data.batches.length > 0) {
+            orderData.batches = response.data.batches;
+          }
+          if (response.data.payments) {
+            orderData.payments = response.data.payments;
           }
           this.order.set(orderData);
         } else {
@@ -247,5 +255,14 @@ export class OrderDetailDialogComponent {
   hasDocuments(): boolean {
     const order = this.order();
     return order && order.documents && order.documents.length > 0;
+  }
+
+  openBatchDetail(batch: any): void {
+    this.dialog.open(BatchDetailDialogComponent, {
+      data: { batchId: batch.id },
+      width: '920px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+    });
   }
 }

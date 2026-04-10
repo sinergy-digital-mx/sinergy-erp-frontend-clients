@@ -16,6 +16,9 @@ import { Customer } from '../../models/customer-group.model';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { PhoneComponent } from '../../../../core/components/phone/phone.component';
+import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
+import { Pencil, MapPin, Activity } from 'lucide-angular';
 
 @Component({
   selector: 'app-customer-detail',
@@ -28,7 +31,9 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
     MatCardModule,
     MatProgressSpinnerModule,
     PhoneComponent,
-    CustomerDocumentsComponent
+    CustomerDocumentsComponent,
+    ButtonComponent,
+    HasPermissionDirective
   ],
   templateUrl: 'customer-detail.html',
   styleUrl: 'customer-detail.scss'
@@ -39,6 +44,10 @@ export class CustomerDetail implements OnInit, OnDestroy {
   error = signal<any>(null);
   customerId: number | null = null;
   private destroy$ = new Subject<void>();
+
+  readonly PencilIcon = Pencil;
+  readonly MapPinIcon = MapPin;
+  readonly ActivityIcon = Activity;
 
   constructor(
     private route: ActivatedRoute,

@@ -11,9 +11,7 @@ import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { WarehouseDetailModalComponent } from '../warehouse-detail-modal/warehouse-detail-modal.component';
-import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
-import { ArrowRight } from 'lucide-angular';
 
 @Component({
   selector: 'app-warehouse-list',
@@ -38,8 +36,6 @@ export class WarehouseListComponent implements OnDestroy {
       { name: 'País', prop: 'country', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Estado', prop: 'state', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Status', prop: 'status', sortable: true, canAutoResize: true, width: 100 },
-      { name: 'Detalle', prop: 'detail', sortable: false, canAutoResize: true, width: 100 },
-      { name: 'Eliminar', prop: 'delete', sortable: false, canAutoResize: true, width: 80 },
     ],
     externalPaging: false,
     externalSorting: false,
@@ -52,7 +48,6 @@ export class WarehouseListComponent implements OnDestroy {
     reorderable: false,
   });
 
-  ArrowRight = ArrowRight;
   search = '';
   private destroy$ = new Subject<void>();
 
@@ -136,40 +131,5 @@ export class WarehouseListComponent implements OnDestroy {
 
   getStatusLabel(status: string): string {
     return status === 'active' ? 'Activo' : 'Inactivo';
-  }
-
-  deleteWarehouse(warehouse: Warehouse, event: Event) {
-    event.stopPropagation();
-    
-    const dialogRef = this.dialog.open(AlertDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Eliminar Almacén',
-        message: `¿Estás seguro de que deseas eliminar el almacén "${warehouse.name}"? Esta acción no se puede deshacer.`,
-        confirmText: 'Eliminar',
-        cancelText: 'Cancelar',
-        type: 'danger'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.warehouseService.deleteWarehouse(warehouse.id).subscribe({
-          next: () => {
-            this.snackBar.openFromComponent(CustomSnackbarComponent, {
-              data: { message: 'Almacén eliminado correctamente', type: 'success' },
-              duration: 3000
-            });
-            this.loadWarehouses();
-          },
-          error: (error) => {
-            this.snackBar.openFromComponent(CustomSnackbarComponent, {
-              data: { message: error.error?.message || 'Error al eliminar almacén', type: 'error' },
-              duration: 5000
-            });
-          }
-        });
-      }
-    });
   }
 }

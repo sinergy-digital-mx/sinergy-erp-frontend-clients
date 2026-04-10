@@ -55,3 +55,44 @@ export interface PaginatedResponse<T> {
   total: number;
   totalPages: number;
 }
+
+/**
+ * Inventory Summary Batch
+ */
+export interface InventorySummaryBatch {
+  batch_id: string;
+  batch_number: string;
+  available_quantity: string;
+  initial_quantity: string;
+  purchase_order_folio: string;
+  created_at: string;
+}
+
+/**
+ * Inventory Summary Item
+ */
+export interface InventorySummaryItem {
+  product_id: string;
+  product_name: string;
+  product_sku: string;
+  warehouse_id: string;
+  warehouse_name: string;
+  uom_id: string;
+  uom_name: string;
+  total_available_quantity: string;
+  total_initial_quantity: string;
+  total_batches: number;
+  batches: InventorySummaryBatch[];
+}
+
+/**
+ * Inventory Summary Filters
+ */
+export interface InventorySummaryFilters {
+  search?: string;
+  warehouse_id?: string;
+  product_id?: string;
+  only_available?: boolean;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
+}

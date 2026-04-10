@@ -15,7 +15,8 @@
   <app-datatable-wrapper
     [config]="table_config()"
     [rowTemplate]="tableTemplate"
-    (pageChange)="onPageChange($event)">
+    (pageChange)="onPageChange($event)"
+    (rowClick)="openEditDialog($event.data)">
   </app-datatable-wrapper>
 </div>
 
@@ -27,21 +28,5 @@
     <span [class]="'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ' + getStatusClass(item.status)">
       {{ getStatusLabel(item.status) }}
     </span>
-  </td>
-  <td (click)="$event.stopPropagation()">
-    <div class="flex gap-2">
-      <button
-        (click)="openEditDialog(item)"
-        class="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-        title="Editar">
-        <lucide-icon [img]="Edit2" class="w-4 h-4"></lucide-icon>
-      </button>
-      <button
-        (click)="deleteConfig(item, $event)"
-        class="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-        title="Eliminar">
-        <lucide-icon [img]="Trash2" class="w-4 h-4"></lucide-icon>
-      </button>
-    </div>
   </td>
 </ng-template>

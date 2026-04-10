@@ -154,6 +154,49 @@ export class InventoryService {
   }
 
   /**
+   * Get inventory summary (totalized by product and warehouse)
+   */
+  getSummary(
+    filters: any,
+    pagination: PaginationParams
+  ): Observable<PaginatedResponse<any>> {
+    let params = new HttpParams()
+      .set('page', pagination.page.toString())
+      .set('limit', pagination.limit.toString());
+
+    if (filters.search) {
+      params = params.set('search', filters.search);
+    }
+    if (filters.warehouse_id) {
+      params = params.set('warehouse_id', filters.warehouse_id);
+    }
+    if (filters.product_id) {
+      params = params.set('product_id', filters.product_id);
+    }
+    if (filters.only_available !== undefined) {
+      params = params.set('only_available', filters.only_available.toString());
+    }
+    if (filters.sort_by) {
+      params = params.set('sort_by', filters.sort_by);
+    }
+    if (filters.sort_order) {
+      params = params.set('sort_order', filters.sort_order);
+    }
+
+    const url = `${this.baseUrl}/summary`;
+    console.log('[InventoryService] Calling getSummary:', { url, params: params.toString() });
+
+    return this.http.get<PaginatedResponse<any>>(url, { params })
+      .pipe(
+        tap(response => console.log('[InventoryService] getSummary response:', response)),
+        catchError(error => {
+          console.error('[InventoryService] getSummary error:', error);
+          return this.handleError(error);
+        })
+      );
+  }
+
+  /**
    * Handle HTTP errors
    */
   private handleError(error: HttpErrorResponse): Observable<never> {

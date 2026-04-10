@@ -33,6 +33,11 @@
         // Extract and set permissions from stored token
         const permissions = this.decodeJWT(this.token);
         this.setPermissions(permissions);
+        
+        // Log permissions_version from token
+        console.log('=== TOKEN INFO ===');
+        console.log('permissions_version:', this.user_info.permissions_version);
+        console.log('Total permissions:', permissions.length);
       } else {
         localStorage.removeItem(this.name_token);
         // Clear permissions if no token
@@ -47,6 +52,57 @@
       // Clear permissions on logout
       this.permissions$.next(new Set());
       this.router.navigate(['/login']);
+    }
+
+    /**
+     * Refresh the authentication token when permissions have changed.
+     * Calls POST /auth/refresh with current token to get a new token with updated permissions.
+     * 
+     * @returns Observable with the refresh response containing new access_token and user info
+     */
+    refresh(): Observable<any> {
+      return new Observable(observer => {
+        this.http.post(`${this.api}/auth/refresh`, {}).subscribe(
+          (response: any) => {
+            console.log('=== AUTH SERVICE - REFRESH ===');
+            console.log('Token refreshed due to permission changes');
+            
+            const token = response.access_token;
+            
+            if (token) {
+              // Store new token
+              this.setToken(token);
+            }
+            
+            observer.next(response);
+            observer.complete();
+          },
+          (error) => {
+            console.error('Error refreshing token:', error);
+            observer.error(error);
+          }
+        );
+      });
+    }
+
+    /**
+     * Set a new authentication token and update permissions.
+     * 
+     * @param token - The new JWT token to store
+     */
+    setToken(token: string): void {
+      localStorage.setItem(this.name_token, token);
+      this.token = token;
+      this.user_info = jwtDecode(token);
+      
+      // Decode and set new permissions
+      const permissions = this.decodeJWT(token);
+      this.setPermissions(permissions);
+      
+      // Log new permissions_version
+      console.log('=== TOKEN UPDATED ===');
+      console.log('New permissions_version:', this.user_info.permissions_version);
+      console.log('New total permissions:', permissions.length);
     }
 
     login(data: any): Observable<any> {
@@ -290,6 +346,33 @@
       }
     }
 
+    /**
+     * Get the first accessible route based on user permissions.
+     * Returns the path to navigate to, or null if no routes are accessible.
+     */
+    getFirstAccessibleRoute(): string | null {
+      const routes = [
+        { path: '/customers', permissions: ['customers:Read', 'customers:ViewMenu', 'customers:Leer'] },
+        { path: '/leads', permissions: ['leads:Read', 'leads:ViewMenu'] },
+        { path: '/properties', permissions: ['properties:Read', 'properties:ViewMenu'] },
+        { path: '/contracts', permissions: ['contracts:Read', 'contracts:ViewMenu'] },
+        { path: '/purchase-orders', permissions: ['purchaseOrders:Read', 'purchase_orders:read', 'purchase_orders:ViewMenu'] },
+        { path: '/inventory', permissions: ['inventory:Read', 'inventory:ViewMenu'] },
+        { path: '/sales-orders', permissions: ['salesOrders:Read', 'sales_orders:read', 'sales_orders:ViewMenu'] },
+        { path: '/marketing', permissions: ['marketing:ViewDashboard', 'marketing:ViewMenu'] },
+        { path: '/pos', permissions: ['pos:Create', 'pos:ViewMenu'] },
+      ];
+
+      for (const route of routes) {
+        const hasPermission = route.permissions.some(p => this.hasPermission(p));
+        if (hasPermission) {
+          return route.path;
+        }
+      }
+
+      return null;
+    }
+
   }
 
   export interface UserInfoI {
@@ -299,6 +382,7 @@
     iat: number;
     permissionCount: number;
     permissions: Record<string, PermissionObject[]> | string[];
+    permissions_version: number;
     roles: Role[] | string[];
     status: string;
     sub: string;        // user id (uuid)

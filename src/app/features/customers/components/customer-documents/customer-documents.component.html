@@ -3,7 +3,9 @@
     <h3 class="text-lg font-semibold text-gray-800">Documentos</h3>
     <app-button
       text="Subir Documento"
-      custom_class="btn_primary"
+      variant="primary"
+      size="sm"
+      [fullWidth]="false"
       [icon]="Plus"
       (clicked)="openUploadModal()">
     </app-button>

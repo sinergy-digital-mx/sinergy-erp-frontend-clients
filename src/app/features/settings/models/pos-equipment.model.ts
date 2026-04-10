@@ -1,25 +1,35 @@
-export interface PosEquipment {
+/** POS configuration (tenant/pos-configurations). */
+
+export interface PosConfigurationBranch {
+  id?: string;
+  display_name?: string;
+  code?: string;
+  [key: string]: unknown;
+}
+
+export interface PosConfiguration {
   id: string;
   tenant_id: string;
-  name: string;
-  warehouse_id: string;
-  status: 'active' | 'inactive';
-  metadata?: Record<string, any>;
+  code: string;
+  sucursal: string;
+  modelo: string;
+  status: number;
+  branch?: PosConfigurationBranch | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface CreatePosEquipmentDto {
-  name: string;
-  warehouse_id: string;
-  status?: 'active' | 'inactive';
-  metadata?: Record<string, any>;
+export interface CreatePosConfigurationDto {
+  code: string;
+  sucursal: string;
+  modelo: string;
+  status: number;
 }
 
-export interface UpdatePosEquipmentDto extends Partial<CreatePosEquipmentDto> {}
+export type UpdatePosConfigurationDto = Partial<CreatePosConfigurationDto>;
 
-export interface PosEquipmentListResponse {
-  data: PosEquipment[];
+export interface PosConfigurationListResponse {
+  data: PosConfiguration[];
   total: number;
   page: number;
   limit: number;
@@ -28,10 +38,25 @@ export interface PosEquipmentListResponse {
   hasPrev: boolean;
 }
 
-export interface PosEquipmentQueryParams {
+export interface PosConfigurationQueryParams {
   page?: number;
   limit?: number;
   search?: string;
-  status?: 'active' | 'inactive';
-  warehouse_id?: string;
+  status?: number;
+  sucursal?: string;
 }
+
+/** @deprecated use PosConfiguration */
+export type PosEquipment = PosConfiguration;
+
+/** @deprecated use CreatePosConfigurationDto */
+export type CreatePosEquipmentDto = CreatePosConfigurationDto;
+
+/** @deprecated use UpdatePosConfigurationDto */
+export type UpdatePosEquipmentDto = UpdatePosConfigurationDto;
+
+/** @deprecated use PosConfigurationListResponse */
+export type PosEquipmentListResponse = PosConfigurationListResponse;
+
+/** @deprecated use PosConfigurationQueryParams */
+export type PosEquipmentQueryParams = PosConfigurationQueryParams;

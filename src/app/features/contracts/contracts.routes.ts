@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { permissionGuard } from '../../core/guards/permission.guard';
+import { CONTRACT_PERMISSIONS } from './config/permissions.config';
 
 export const CONTRACTS_ROUTES: Routes = [
   {
@@ -7,5 +9,9 @@ export const CONTRACTS_ROUTES: Routes = [
       import('./pages/contracts-list/contracts-list.component').then(
         (m) => m.ContractsListComponent
       ),
+    canActivate: [permissionGuard],
+    data: {
+      permissions: [CONTRACT_PERMISSIONS.viewList]
+    }
   },
 ];

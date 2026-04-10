@@ -4,9 +4,9 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { WarehouseService } from '../../services/warehouse.service';
-import { FiscalConfigurationService } from '../../services/fiscal-configuration.service';
+import { BranchService } from '../../services/branch.service';
 import { Warehouse, CreateWarehouseDto } from '../../models/warehouse.model';
-import { FiscalConfiguration } from '../../models/fiscal-configuration.model';
+import { Branch } from '../../models/branch.model';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SelectComponent } from '../../../../core/components/select/select.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
@@ -25,8 +25,8 @@ export class WarehouseDetailModalComponent implements OnInit {
   form: FormGroup;
   saving = signal(false);
   isNew = true;
-  fiscalConfigurations = signal<FiscalConfiguration[]>([]);
-  loadingFiscalConfigs = signal(false);
+  branches = signal<Branch[]>([]);
+  loadingBranches = signal(false);
 
   statusOptions = [
     { id: 'active', name: 'Activo' },
@@ -58,12 +58,12 @@ export class WarehouseDetailModalComponent implements OnInit {
   // Select configurations
   statusSelectConfig: any;
   countrySelectConfig: any;
-  fiscalConfigSelectConfig: any;
+  branchSelectConfig: any;
 
   constructor(
     private fb: FormBuilder,
     private warehouseService: WarehouseService,
-    private fiscalConfigService: FiscalConfigurationService,
+    private branchService: BranchService,
     private snackBar: MatSnackBar,
     public dialogRef: MatDialogRef<WarehouseDetailModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { warehouse: Warehouse | null }
@@ -73,11 +73,8 @@ export class WarehouseDetailModalComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadFiscalConfigurations();
     this.initializeSelectConfigs();
-    if (this.data.warehouse) {
-      this.form.patchValue(this.data.warehouse);
-    }
+    this.loadBranches();
   }
 
   private initializeSelectConfigs(): void {
@@ -99,40 +96,47 @@ export class WarehouseDetailModalComponent implements OnInit {
       name_select: 'country'
     };
 
-    this.fiscalConfigSelectConfig = {
-      placeholder: 'Selecciona una configuración fiscal (opcional)',
-      data: this.fiscalConfigurations(),
+    this.branchSelectConfig = {
+      placeholder: 'Selecciona una sucursal (opcional)',
+      data: this.branches(),
       value: 'id',
-      option: 'razon_social',
-      form_control: this.form.get('fiscal_configuration_id'),
-      name_select: 'fiscal_configuration_id'
+      option: 'display_name',
+      form_control: this.form.get('billing_branch_id'),
+      name_select: 'billing_branch_id'
     };
   }
 
-  private loadFiscalConfigurations(): void {
-    this.loadingFiscalConfigs.set(true);
-    this.fiscalConfigService.listFiscalConfigurations({ limit: 100, status: 'active' }).subscribe({
-      next: (response) => {
-        this.fiscalConfigurations.set(response.data);
-        this.loadingFiscalConfigs.set(false);
-        // Update select config with new data
-        this.fiscalConfigSelectConfig = {
-          ...this.fiscalConfigSelectConfig,
-          data: response.data
+  private loadBranches(): void {
+    this.loadingBranches.set(true);
+    this.branchService.getAllBranches().subscribe({
+      next: (branches) => {
+        this.branches.set(branches);
+        this.loadingBranches.set(false);
+        this.branchSelectConfig = {
+          ...this.branchSelectConfig,
+          data: branches
         };
+        // patchValue DESPUÉS de que el select tenga los datos
+        if (this.data.warehouse) {
+          this.form.patchValue(this.data.warehouse);
+        }
       },
       error: () => {
-        this.loadingFiscalConfigs.set(false);
+        this.loadingBranches.set(false);
+        // patch igual aunque fallen las sucursales
+        if (this.data.warehouse) {
+          this.form.patchValue(this.data.warehouse);
+        }
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Error al cargar configuraciones fiscales', type: 'error' },
+          data: { message: 'Error al cargar sucursales', type: 'error' },
           duration: 3000
         });
       }
     });
   }
 
-  getFiscalConfigLabel(config: FiscalConfiguration): string {
-    return `${config.razon_social} - ${config.rfc}`;
+  getBranchLabel(branch: Branch): string {
+    return `${branch.code} - ${branch.city}, ${branch.state}`;
   }
 
   private createForm(): FormGroup {
@@ -145,7 +149,7 @@ export class WarehouseDetailModalComponent implements OnInit {
       state: [''],
       zip_code: [''],
       country: [''],
-      fiscal_configuration_id: [''],
+      billing_branch_id: [''],
       status: ['active']
     });
   }
@@ -207,7 +211,7 @@ export class WarehouseDetailModalComponent implements OnInit {
     this.form.get('country')?.setValue(event.value, { emitEvent: false });
   }
 
-  onFiscalConfigChange(event: any): void {
-    this.form.get('fiscal_configuration_id')?.setValue(event.value, { emitEvent: false });
+  onBranchChange(event: any): void {
+    this.form.get('billing_branch_id')?.setValue(event.value, { emitEvent: false });
   }
 }

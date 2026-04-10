@@ -10,6 +10,7 @@ export interface Warehouse {
   zip_code?: string;
   country?: string;
   fiscal_configuration_id?: string;
+  billing_branch_id?: string;
   status: 'active' | 'inactive';
   metadata?: Record<string, any>;
   created_at: string;
@@ -25,7 +26,7 @@ export interface CreateWarehouseDto {
   state?: string;
   zip_code?: string;
   country?: string;
-  fiscal_configuration_id?: string;
+  billing_branch_id?: string;
   status?: 'active' | 'inactive';
   metadata?: Record<string, any>;
 }

@@ -150,7 +150,7 @@
     <div class="flex items-center gap-2">
       <span>{{ item.next_payment_date | date:'mediumDate' }}</span>
       <div *ngIf="item.has_overdue" class="flex items-center gap-1" [title]="item.overdue_payments_count + ' pagos vencidos'">
-        <lucide-icon [img]="AlertTriangle" class="w-5 h-5 text-red-500"></lucide-icon>
+        <lucide-icon [img]="AlertCircle" class="w-5 h-5 text-red-500"></lucide-icon>
         <span *ngIf="item.overdue_payments_count > 1" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">
           {{ item.overdue_payments_count }}
         </span>

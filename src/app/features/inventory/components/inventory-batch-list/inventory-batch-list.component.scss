@@ -1,0 +1,106 @@
+.filter-bar {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 1rem;
+  box-shadow: none;
+  border: none;
+  transition: none;
+
+  &:hover {
+    box-shadow: none;
+  }
+
+  &__container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  &__input,
+  &__select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: #2d3748;
+    background: #ffffff;
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: #667eea;
+      background: #ffffff;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+      transform: none;
+    }
+
+    &:hover {
+      border-color: #cbd5e0;
+    }
+
+    &::placeholder {
+      color: #a0aec0;
+    }
+  }
+
+  &__select {
+    cursor: pointer;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-color: #ffffff !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 16px !important;
+    padding-right: 2.5rem !important;
+
+    &:focus {
+      background-color: #ffffff !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    }
+
+    &::-ms-expand {
+      display: none;
+    }
+
+    &:-moz-focusring {
+      color: transparent;
+      text-shadow: 0 0 0 #2d3748;
+    }
+  }
+}
+
+// Responsive layout
+@media (max-width: 1024px) {
+  .filter-bar {
+    &__container {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-bar {
+    padding: 0;
+    border-radius: 0;
+
+    &__container {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+
+    &__field {
+      width: 100%;
+    }
+  }
+}

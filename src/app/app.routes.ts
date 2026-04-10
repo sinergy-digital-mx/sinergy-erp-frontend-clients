@@ -3,6 +3,7 @@ import { MainLayout } from './layout/main-layout/main-layout';
 import { AuthGuard } from './core/guards/auth.guard';
 import { LoggedGuard } from './core/guards/logged.guard';
 import { AdminGuard } from './core/guards/admin.guard';
+import { defaultRouteGuard } from './core/guards/default-route.guard';
 
 export const routes: Routes = [
   // LOGIN (público)
@@ -70,7 +71,6 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        canActivate: [AdminGuard],
         loadChildren: () =>
           import('./features/rbac-tenant-ui/rbac-tenant-ui.routes')
             .then(m => m.RBAC_TENANT_UI_ROUTES),
@@ -110,9 +110,15 @@ export const routes: Routes = [
         }
       },
       {
+        path: 'zona-norte-reports',
+        loadChildren: () =>
+          import('./features/zona-norte-reports/zona-norte-reports.routes')
+            .then(m => m.ZONA_NORTE_REPORTS_ROUTES),
+      },
+      {
         path: '',
-        redirectTo: 'leads',
-        pathMatch: 'full',
+        canActivate: [defaultRouteGuard],
+        children: []
       },
     ],
   },

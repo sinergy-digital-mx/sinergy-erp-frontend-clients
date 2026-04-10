@@ -2,12 +2,13 @@ import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
+import { LucideAngularModule, AtSign, Send, CheckSquare } from 'lucide-angular';
 import { Lead, CommunicationStatus, StatusBadgeData } from '../../models/lead-group.model';
 
 @Component({
   selector: 'app-status-badge',
   standalone: true,
-  imports: [CommonModule, TooltipModule, TagModule],
+  imports: [CommonModule, TooltipModule, TagModule, LucideAngularModule],
   template: `@if (badgeData) {
   <div 
     class="status-badge"
@@ -18,7 +19,7 @@ import { Lead, CommunicationStatus, StatusBadgeData } from '../../models/lead-gr
     tooltipPosition="top"
     (click)="onBadgeClick()"
     [ngClass]="{ 'active-filter': isFilterActive }">
-    <i [class]="'pi ' + badgeData.icon" [style.color]="badgeData.color"></i>
+    <lucide-icon [img]="getIcon()" [size]="12" [style.color]="badgeData.color"></lucide-icon>
     <span [style.color]="badgeData.color">{{ badgeData.label }}</span>
   </div>
 }`,
@@ -37,8 +38,7 @@ import { Lead, CommunicationStatus, StatusBadgeData } from '../../models/lead-gr
   white-space: nowrap;
 }
 
-.status-badge i {
-  font-size: 0.75rem;
+.status-badge lucide-icon {
   flex-shrink: 0;
 }
 
@@ -64,17 +64,22 @@ export class StatusBadgeComponent implements OnInit {
   badgeData: StatusBadgeData | null = null;
   CommunicationStatus = CommunicationStatus;
 
+  // Lucide icons
+  readonly AtSign = AtSign;
+  readonly Send = Send;
+  readonly CheckSquare = CheckSquare;
+
   private statusConfig = {
     [CommunicationStatus.NOT_CONTACTED]: {
       label: 'No Contactado',
-      icon: 'pi-envelope-open',
+      icon: this.AtSign,
       color: '#9CA3AF',
       bgColor: '#F3F4F6',
       tooltip: 'Sin contactar'
     },
     [CommunicationStatus.CONTACTED]: {
       label: 'Contactado',
-      icon: 'pi-envelope',
+      icon: this.Send,
       color: '#3B82F6',
       bgColor: '#EFF6FF',
       tooltip: (date: string | null) => {
@@ -84,7 +89,7 @@ export class StatusBadgeComponent implements OnInit {
     },
     [CommunicationStatus.RESPONDED]: {
       label: 'Respondido',
-      icon: 'pi-check',
+      icon: this.CheckSquare,
       color: '#10B981',
       bgColor: '#ECFDF5',
       tooltip: (date: string | null) => {
@@ -197,5 +202,12 @@ export class StatusBadgeComponent implements OnInit {
   getBorderColor(): string {
     if (!this.badgeData) return '#E5E7EB';
     return this.isFilterActive ? this.badgeData.color : '#E5E7EB';
+  }
+
+  /**
+   * Get the icon for the badge
+   */
+  getIcon(): any {
+    return this.badgeData?.icon;
   }
 }

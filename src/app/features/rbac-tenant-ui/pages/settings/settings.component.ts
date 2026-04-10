@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
+import { AuthService } from '../../../../core/services/auth.service';
 
 interface SettingsSection {
   id: string;
@@ -8,6 +9,7 @@ interface SettingsSection {
   description: string;
   icon: string;
   route: string;
+  permissions: string[];
 }
 
 /**
@@ -29,10 +31,10 @@ interface SettingsSection {
         </div>
 
         <!-- Accesos y Permisos -->
-        <div class="mb-8">
+        <div class="mb-8" *ngIf="visibleAccessSections.length > 0">
           <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Accesos y Permisos</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div *ngFor="let section of accessSections" 
+            <div *ngFor="let section of visibleAccessSections" 
                  (click)="navigateTo(section.route)"
                  class="bg-white rounded-lg p-5 hover:shadow-md transition-shadow duration-300 cursor-pointer border border-gray-200">
               
@@ -54,10 +56,10 @@ interface SettingsSection {
         </div>
 
         <!-- Empresa -->
-        <div class="mb-8">
+        <div class="mb-8" *ngIf="visibleCompanySections.length > 0">
           <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Empresa</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div *ngFor="let section of companySections" 
+            <div *ngFor="let section of visibleCompanySections" 
                  (click)="navigateTo(section.route)"
                  class="bg-white rounded-lg p-5 hover:shadow-md transition-shadow duration-300 cursor-pointer border border-gray-200">
               
@@ -79,10 +81,10 @@ interface SettingsSection {
         </div>
 
         <!-- Comunicación -->
-        <div class="mb-8">
+        <div class="mb-8" *ngIf="visibleCommunicationSections.length > 0">
           <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Comunicación</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div *ngFor="let section of communicationSections" 
+            <div *ngFor="let section of visibleCommunicationSections" 
                  (click)="navigateTo(section.route)"
                  class="bg-white rounded-lg p-5 hover:shadow-md transition-shadow duration-300 cursor-pointer border border-gray-200">
               
@@ -119,14 +121,16 @@ export class SettingsComponent {
       title: 'Usuarios',
       description: 'Gestiona usuarios del tenant, asigna roles y controla permisos de acceso de forma centralizada',
       icon: '👥',
-      route: 'users'
+      route: 'users',
+      permissions: ['user:ViewMenu']
     },
     {
       id: 'roles',
       title: 'Roles y Permisos',
       description: 'Crea y gestiona roles personalizados, define permisos granulares y organiza el control de acceso',
       icon: '🔐',
-      route: 'roles'
+      route: 'roles',
+      permissions: ['role:ViewMenu']
     }
   ];
 
@@ -136,35 +140,40 @@ export class SettingsComponent {
       title: 'Almacenes',
       description: 'Gestiona almacenes, ubicaciones, información fiscal y datos de contacto de tus almacenes',
       icon: '🏭',
-      route: 'warehouses'
+      route: 'warehouses',
+      permissions: ['warehouses:ViewMenu']
     },
     {
       id: 'fiscal-configurations',
       title: 'Configuración Fiscal',
       description: 'Gestiona la información fiscal de tus almacenes, RFC, régimen fiscal y certificados digitales',
       icon: '📋',
-      route: 'fiscal-configurations'
+      route: 'fiscal-configurations',
+      permissions: ['billing:ViewMenu']
     },
     {
       id: 'vendors',
       title: 'Proveedores',
       description: 'Gestiona proveedores, información de contacto, RFC y datos fiscales de tus proveedores',
       icon: '🏢',
-      route: 'vendors'
+      route: 'vendors',
+      permissions: ['vendors:ViewMenu']
     },
     {
       id: 'products',
       title: 'Productos',
       description: 'Gestiona el catálogo de productos, SKU, nombres y descripciones de tus productos',
       icon: '📦',
-      route: 'products'
+      route: 'products',
+      permissions: ['products:ViewMenu']
     },
     {
-      id: 'point-of-sale',
+      id: 'pos-configuration',
       title: 'Punto de Venta',
       description: 'Configura y gestiona tu punto de venta, terminales, cajas y configuraciones de ventas',
       icon: '🛒',
-      route: 'point-of-sale'
+      route: 'pos-configuration',
+      permissions: ['pos_configuration:ViewMenu']
     }
   ];
 
@@ -174,7 +183,8 @@ export class SettingsComponent {
       title: 'Plantillas de Correo',
       description: 'Crea y gestiona plantillas de correo personalizadas para notificaciones y comunicaciones',
       icon: '📧',
-      route: 'email-templates'
+      route: 'email-templates',
+      permissions: ['emailtemplates:ViewMenu']
     }
   ];
 
@@ -182,8 +192,35 @@ export class SettingsComponent {
 
   constructor(
     private router: Router,
-    private activatedRoute: ActivatedRoute
+    private activatedRoute: ActivatedRoute,
+    public authService: AuthService
   ) {}
+
+  /**
+   * Check if user has permission to access a section
+   */
+  hasAccess(section: SettingsSection): boolean {
+    if (!section.permissions || section.permissions.length === 0) {
+      return true;
+    }
+    // User needs at least ONE of the permissions
+    return section.permissions.some(permission => this.authService.hasPermission(permission));
+  }
+
+  /**
+   * Get filtered sections based on user permissions
+   */
+  get visibleAccessSections(): SettingsSection[] {
+    return this.accessSections.filter(section => this.hasAccess(section));
+  }
+
+  get visibleCompanySections(): SettingsSection[] {
+    return this.companySections.filter(section => this.hasAccess(section));
+  }
+
+  get visibleCommunicationSections(): SettingsSection[] {
+    return this.communicationSections.filter(section => this.hasAccess(section));
+  }
 
   navigateTo(route: string): void {
     this.router.navigate([route], { relativeTo: this.activatedRoute });

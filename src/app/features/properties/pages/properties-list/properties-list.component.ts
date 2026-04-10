@@ -24,7 +24,6 @@ import { ArrowRight } from 'lucide-angular';
     ButtonComponent,
     PropertyGroupDropdownComponent,
     PropertyStatusDropdownComponent,
-    PropertyEditModalComponent
   ],
   templateUrl: './properties-list.component.html',
   styleUrl: './properties-list.component.scss'

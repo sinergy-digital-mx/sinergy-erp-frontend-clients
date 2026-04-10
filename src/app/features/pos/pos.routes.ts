@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { permissionGuard } from '../../core/guards/permission.guard';
+import { POS_PERMISSIONS } from './config/permissions.config';
 
 export const POS_ROUTES: Routes = [
   {
@@ -6,8 +8,9 @@ export const POS_ROUTES: Routes = [
     loadComponent: () => 
       import('./pages/pos-home/pos-home.component')
         .then(m => m.POSHomeComponent),
+    canActivate: [permissionGuard],
     data: { 
-      permission: 'pos:Read',
+      permissions: [POS_PERMISSIONS.viewDashboard],
       title: 'Punto de Venta'
     }
   },
@@ -16,8 +19,9 @@ export const POS_ROUTES: Routes = [
     loadComponent: () => 
       import('./pages/take-order/take-order.component')
         .then(m => m.TakeOrderComponent),
+    canActivate: [permissionGuard],
     data: { 
-      permission: 'pos:Create',
+      permissions: [POS_PERMISSIONS.createSale],
       title: 'Tomar Orden'
     }
   },
@@ -26,8 +30,9 @@ export const POS_ROUTES: Routes = [
     loadComponent: () => 
       import('./pages/pending-orders/pending-orders.component')
         .then(m => m.PendingOrdersComponent),
+    canActivate: [permissionGuard],
     data: { 
-      permission: 'pos:Read',
+      permissions: [POS_PERMISSIONS.viewSales],
       title: 'Órdenes Pendientes'
     }
   },
@@ -36,8 +41,9 @@ export const POS_ROUTES: Routes = [
     loadComponent: () => 
       import('./pages/payment/payment.component')
         .then(m => m.PaymentComponent),
+    canActivate: [permissionGuard],
     data: { 
-      permission: 'pos:Update',
+      permissions: [POS_PERMISSIONS.createSale],
       title: 'Cobrar Orden'
     }
   }

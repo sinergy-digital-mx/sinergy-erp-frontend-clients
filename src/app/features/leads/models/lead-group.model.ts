@@ -67,7 +67,7 @@ export interface LeadsStats {
 export interface StatusBadgeData {
   status: CommunicationStatus;
   label: string;
-  icon: string;
+  icon: any; // LucideIconData
   color: string;
   tooltip: string;
 }
