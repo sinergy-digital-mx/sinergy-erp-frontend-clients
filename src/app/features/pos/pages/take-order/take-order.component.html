@@ -7,18 +7,6 @@
           <lucide-icon [img]="Monitor" class="pos-session-bar__title-icon" />
           <span>Punto de Venta</span>
         </div>
-        <div class="pos-session-bar__warehouse">
-          <lucide-icon [img]="Store" class="pos-ic" />
-          <select
-            class="pos-session-bar__select"
-            [ngModel]="selectedWarehouse()"
-            (ngModelChange)="onWarehouseSelect($event)"
-            [disabled]="checkingSession()">
-            @for (w of warehouses(); track w.id) {
-              <option [value]="w.id">{{ w.name }}</option>
-            }
-          </select>
-        </div>
       </div>
 
       <div class="pos-session-bar__center">
@@ -44,18 +32,18 @@
       <div class="pos-session-bar__right">
         <div class="pos-terminal-chip">
           <lucide-icon [img]="Monitor" class="pos-ic pos-ic--sm" />
-          {{ terminalId() }}
+          <span class="pos-terminal-chip__label">{{ terminalId() || '—' }}</span>
         </div>
         @if (!checkingSession() && activePosSession()) {
           <button type="button" class="pos-btn pos-btn--ghost" (click)="closePosSession()">
             <lucide-icon [img]="LogOut" class="pos-ic pos-ic--btn" />
-            Cerrar sesión
+            <span>Cerrar sesión</span>
           </button>
         }
         @if (!checkingSession() && !activePosSession()) {
           <button type="button" class="pos-btn pos-btn--primary" (click)="openPosSession()">
             <lucide-icon [img]="LogIn" class="pos-ic pos-ic--btn" />
-            Iniciar sesión
+            <span>Iniciar sesión</span>
           </button>
         }
       </div>
@@ -70,7 +58,7 @@
           <h3>Sesión POS requerida</h3>
           <p>Inicia sesión en la barra superior para cargar el carrito y registrar ventas.</p>
           <button type="button" class="pos-btn pos-btn--primary pos-btn--lg" (click)="openPosSession()">
-            Iniciar sesión
+            <span>Iniciar sesión</span>
           </button>
         </div>
       </div>

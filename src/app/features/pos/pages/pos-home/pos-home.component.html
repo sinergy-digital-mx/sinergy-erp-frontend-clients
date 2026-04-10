@@ -15,7 +15,7 @@
         } @else if (activeCashShift()) {
           <div class="pos-hub__pill pos-hub__pill--ok">
             <lucide-icon [img]="CircleCheck" class="pos-hub__ic-sm" />
-            Sesión POS activa
+            <span>Sesión POS activa</span>
           </div>
           <span class="pos-hub__meta">
             Efectivo inicial: {{ formatCurrency(parseFloat(activeCashShift().initial_cash) || 0) }}
@@ -26,12 +26,12 @@
             (click)="closeCashShift()"
             [disabled]="checkingShift()">
             <lucide-icon [img]="LogOut" class="pos-hub__ic-sm" />
-            Cerrar sesión
+            <span>Cerrar sesión</span>
           </button>
         } @else {
           <div class="pos-hub__pill pos-hub__pill--off">
             <lucide-icon [img]="CircleAlert" class="pos-hub__ic-sm" />
-            Sin sesión POS
+            <span>Sin sesión POS</span>
           </div>
           <button
             type="button"
@@ -39,7 +39,7 @@
             (click)="openCashShift()"
             [disabled]="checkingShift()">
             <lucide-icon [img]="LogIn" class="pos-hub__ic-sm" />
-            {{ checkingShift() ? '…' : 'Iniciar sesión' }}
+            <span>{{ checkingShift() ? '…' : 'Iniciar sesión' }}</span>
           </button>
         }
       </div>

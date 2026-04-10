@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/customers/customers.routes.ts"],
+  "sourcesContent": ["import { Routes } from '@angular/router';\r\nimport { permissionGuard } from '../../core/guards/permission.guard';\r\nimport { CUSTOMER_PERMISSIONS } from './config/permissions.config';\r\n\r\nexport const CUSTOMERS_ROUTES: Routes = [\r\n  {\r\n    path: '',\r\n    loadComponent: () =>\r\n      import('./pages/customers-list/customers-list')\r\n        .then(m => m.CustomersList),\r\n    canActivate: [permissionGuard],\r\n    data: {\r\n      permissions: [CUSTOMER_PERMISSIONS.viewList]\r\n    }\r\n  },\r\n  {\r\n    path: 'detail/:id',\r\n    loadComponent: () =>\r\n      import('./pages/customer-detail/customer-detail')\r\n        .then(m => m.CustomerDetail),\r\n    canActivate: [permissionGuard],\r\n    data: {\r\n      permissions: [CUSTOMER_PERMISSIONS.viewDetail]\r\n    }\r\n  },\r\n];\r\n"],
+  "mappings": ";;;;;;;;;;;;AAIO,IAAM,mBAA2B;EACtC;IACE,MAAM;IACN,eAAe,MACb,OAAO,qBAAuC,EAC3C,KAAK,OAAK,EAAE,aAAa;IAC9B,aAAa,CAAC,eAAe;IAC7B,MAAM;MACJ,aAAa,CAAC,qBAAqB,QAAQ;;;EAG/C;IACE,MAAM;IACN,eAAe,MACb,OAAO,qBAAyC,EAC7C,KAAK,OAAK,EAAE,cAAc;IAC/B,aAAa,CAAC,eAAe;IAC7B,MAAM;MACJ,aAAa,CAAC,qBAAqB,UAAU;;;;",
+  "names": []
+}

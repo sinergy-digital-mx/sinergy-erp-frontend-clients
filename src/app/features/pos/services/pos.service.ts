@@ -252,6 +252,8 @@ export class POSService {
     warehouse_id: string;
     cashier_id: string;
     opening_balance: number;
+    notes?: string;
+    pos_configuration_id?: string;
   }): Observable<any> {
     return this.openCashShift(shiftData);
   }
@@ -273,6 +275,8 @@ export class POSService {
     warehouse_id: string;
     cashier_id: string;
     opening_balance: number;
+    notes?: string;
+    pos_configuration_id?: string;
   }): Observable<any> {
     return this.http.post(`${this.API_URL}/cash-shifts/open`, shiftData);
   }

@@ -1,86 +1,106 @@
-<div class="dialog-container">
-  <h2 mat-dialog-title>Abrir Turno de Caja</h2>
-  
-  <mat-dialog-content>
-    <div class="form-content">
-      <!-- Warehouse Selection -->
+<div class="open-pos-dialog">
+  <h2 mat-dialog-title class="open-pos-dialog__title">Iniciar sesión POS</h2>
+
+  <mat-dialog-content class="open-pos-dialog__body">
+    <div class="open-pos-dialog__fields">
+      @if (loading()) {
+        <div class="hint">Cargando sucursales y almacenes…</div>
+      }
+
       <div class="form-field">
-        <label for="warehouse">Almacén *</label>
-        @if (loading()) {
-          <div class="loading-message">Cargando almacenes...</div>
-        }
-        <select 
-          id="warehouse"
-          [ngModel]="selectedWarehouseId()"
-          (ngModelChange)="selectedWarehouseId.set($event)"
-          [disabled]="loading()"
-          required
-        >
-          <option value="">Selecciona un almacén</option>
-          @for (warehouse of warehouses(); track warehouse.id) {
-            <option [value]="warehouse.id">{{ warehouse.name }}</option>
-          }
-        </select>
-        @if (!loading() && warehouses().length === 0) {
-          <div class="error-message">No se encontraron almacenes</div>
+        <label for="branch">
+          Sucursal
+          <span class="req">*</span>
+        </label>
+        @if (!loading() && branches().length === 0) {
+          <div class="error-inline">No se pudieron cargar sucursales.</div>
+        } @else if (!loading()) {
+          <select
+            id="branch"
+            [ngModel]="selectedBranchId()"
+            (ngModelChange)="onBranchChange($event)"
+            required>
+            <option value="">Selecciona una sucursal</option>
+            @for (b of branches(); track b.id) {
+              <option [value]="b.id">{{ branchLabel(b) }}</option>
+            }
+          </select>
         }
       </div>
 
-      <!-- Opening Balance -->
       <div class="form-field">
-        <label for="balance">Monto Inicial de Efectivo *</label>
+        <label for="equipment">
+          Equipo POS
+          <span class="req">*</span>
+        </label>
+        @if (loading() || loadingEquipments()) {
+          <div class="hint">Cargando equipos…</div>
+        } @else if (!selectedBranchId()) {
+          <div class="hint">Elige primero una sucursal para ver los equipos configurados ahí.</div>
+        } @else if (posConfigurations().length === 0) {
+          <div class="hint hint--warn">
+            No hay equipos POS activos en esta sucursal. Configúralos en Ajustes → Configuración POS.
+          </div>
+        } @else {
+          <select
+            id="equipment"
+            [ngModel]="selectedPosConfigurationId()"
+            (ngModelChange)="selectedPosConfigurationId.set($event)"
+            required>
+            <option value="">Selecciona un equipo</option>
+            @for (c of posConfigurations(); track c.id) {
+              <option [value]="c.id">{{ equipmentLabel(c) }}</option>
+            }
+          </select>
+          @if (selectedPosConfigurationId() && !warehouseResolved()) {
+            <div class="hint hint--warn">
+              Ningún almacén usa esta sucursal de facturación. Asigna la sucursal al almacén en Ajustes.
+            </div>
+          }
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="balance">Efectivo inicial *</label>
         <div class="currency-input">
-          <span class="currency-symbol">$</span>
-          <input 
-            type="number" 
+          <span class="currency-input__sym">$</span>
+          <input
+            type="number"
             id="balance"
             [ngModel]="openingBalance()"
             (ngModelChange)="openingBalance.set($event)"
             min="0"
             step="0.01"
-            required
-          />
+            required />
         </div>
       </div>
 
-      <!-- Notes -->
       <div class="form-field">
-        <label for="notes">Notas (opcional)</label>
-        <textarea 
+        <label for="notes">Notas <span class="optional">(opcional)</span></label>
+        <input
+          type="text"
           id="notes"
           [ngModel]="notes()"
           (ngModelChange)="notes.set($event)"
-          rows="3"
-          placeholder="Ej: Turno matutino, Caja principal, etc."
-        ></textarea>
+          placeholder="Ej. apertura matutina"
+          maxlength="200" />
       </div>
 
-      <div class="info-message">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
-        </svg>
-        <p>El turno se asociará automáticamente a tu usuario. Asegúrate de contar el efectivo inicial antes de abrir el turno.</p>
-      </div>
+      <p class="open-pos-dialog__info">
+        Primero la sucursal, luego el equipo. El almacén se elige solo si coincide con la sucursal del equipo.
+      </p>
     </div>
   </mat-dialog-content>
 
-  <mat-dialog-actions align="end">
-    <button 
-      mat-button 
-      (click)="onCancel()"
-      class="btn-cancel"
-    >
-      Cancelar
-    </button>
-    <button 
-      mat-raised-button 
+  <mat-dialog-actions align="end" class="open-pos-dialog__actions">
+    <button type="button" mat-button (click)="onCancel()" class="btn-cancel">Cancelar</button>
+    <button
+      type="button"
+      mat-raised-button
       (click)="onConfirm()"
       class="btn-confirm"
-      [disabled]="!selectedWarehouseId() || openingBalance() < 0"
-    >
-      Abrir Turno
+      [disabled]="!canSubmit()">
+      Iniciar sesión
     </button>
   </mat-dialog-actions>
 </div>

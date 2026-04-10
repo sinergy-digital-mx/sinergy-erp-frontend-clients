@@ -11,7 +11,6 @@ import {
   ShoppingCart,
   Trash2,
   Minus,
-  Store,
   CreditCard,
   Banknote,
   FileText,
@@ -43,7 +42,6 @@ export class TakeOrderComponent implements OnInit {
   readonly ShoppingCart = ShoppingCart;
   readonly Trash2 = Trash2;
   readonly Minus = Minus;
-  readonly Store = Store;
   readonly CreditCard = CreditCard;
   readonly Banknote = Banknote;
   readonly FileText = FileText;
@@ -73,7 +71,8 @@ export class TakeOrderComponent implements OnInit {
   /** Usa propiedad para ngModel (evita conflicto con signal). */
   amountPaid = 0;
 
-  terminalId = signal<string>('Terminal-001');
+  /** Código del equipo POS (configuración); se guarda al abrir sesión. */
+  terminalId = signal<string>('');
 
   /** Turno de caja = sesión POS en API actual */
   activePosSession = signal<any | null>(null);
@@ -150,29 +149,37 @@ export class TakeOrderComponent implements OnInit {
     });
   }
 
-  onWarehouseSelect(warehouseId: string): void {
-    this.selectedWarehouse.set(warehouseId);
-    if (warehouseId) {
-      localStorage.setItem('pos_warehouse_id', warehouseId);
+  /** Etiqueta del chip de terminal según sesión activa y valores guardados al abrir sesión. */
+  private syncTerminalLabelFromSession(hasActiveSession: boolean): void {
+    if (!hasActiveSession) {
+      localStorage.removeItem('pos_configuration_id');
+      localStorage.removeItem('pos_configuration_code');
+      this.terminalId.set('');
+      return;
     }
-    this.refreshPosSession();
+    const code = localStorage.getItem('pos_configuration_code');
+    this.terminalId.set(code ?? '');
   }
 
   refreshPosSession(): void {
     const wid = this.selectedWarehouse();
     if (!wid) {
       this.activePosSession.set(null);
+      this.syncTerminalLabelFromSession(false);
       this.checkingSession.set(false);
       return;
     }
     this.checkingSession.set(true);
     this.posService.getActivePosSession(wid).subscribe({
       next: (session) => {
-        this.activePosSession.set(session && session.id ? session : null);
+        const active = session && session.id ? session : null;
+        this.activePosSession.set(active);
+        this.syncTerminalLabelFromSession(!!active);
         this.checkingSession.set(false);
       },
       error: () => {
         this.activePosSession.set(null);
+        this.syncTerminalLabelFromSession(false);
         this.checkingSession.set(false);
       },
     });
@@ -180,7 +187,7 @@ export class TakeOrderComponent implements OnInit {
 
   openPosSession(): void {
     const dialogRef = this.dialog.open(OpenShiftDialogComponent, {
-      width: '520px',
+      width: '420px',
       maxWidth: '95vw',
       disableClose: true,
       panelClass: 'pos-dialog-panel',
@@ -190,7 +197,13 @@ export class TakeOrderComponent implements OnInit {
       if (!result) {
         return;
       }
-      const { warehouse_id, opening_balance } = result;
+      const {
+        warehouse_id,
+        opening_balance,
+        notes,
+        pos_configuration_id,
+        pos_configuration_code,
+      } = result;
       this.selectedWarehouse.set(warehouse_id);
       localStorage.setItem('pos_warehouse_id', warehouse_id);
       this.checkingSession.set(true);
@@ -199,10 +212,24 @@ export class TakeOrderComponent implements OnInit {
           warehouse_id,
           cashier_id: '',
           opening_balance,
+          ...(notes?.trim() ? { notes: notes.trim() } : {}),
+          ...(pos_configuration_id ? { pos_configuration_id } : {}),
         })
         .subscribe({
           next: (session) => {
             this.activePosSession.set(session);
+            if (pos_configuration_id) {
+              localStorage.setItem('pos_configuration_id', pos_configuration_id);
+            } else {
+              localStorage.removeItem('pos_configuration_id');
+            }
+            if (pos_configuration_code) {
+              localStorage.setItem('pos_configuration_code', pos_configuration_code);
+              this.terminalId.set(pos_configuration_code);
+            } else {
+              localStorage.removeItem('pos_configuration_code');
+              this.terminalId.set('');
+            }
             this.checkingSession.set(false);
             this.snackBar.open('Sesión POS iniciada', 'Cerrar', { duration: 3000 });
           },
@@ -239,6 +266,9 @@ export class TakeOrderComponent implements OnInit {
       this.posService.closePosSession(session.id, { closing_balance, notes }).subscribe({
         next: () => {
           this.activePosSession.set(null);
+          localStorage.removeItem('pos_configuration_id');
+          localStorage.removeItem('pos_configuration_code');
+          this.terminalId.set('');
           this.checkingSession.set(false);
           this.snackBar.open('Sesión cerrada', 'Cerrar', { duration: 4000 });
         },

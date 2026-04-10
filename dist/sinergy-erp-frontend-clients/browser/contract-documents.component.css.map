@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/contracts/components/contract-documents/contract-documents.component.scss", "src/app/features/contracts/components/contract-documents/contract-documents.component.scss"],
+  "sourcesContent": [".documents-section {\r\n  // Remove top border and padding since it's in a tab\r\n  margin-top: 0;\r\n  padding-top: 0;\r\n  border-top: none;\r\n}\r\n", ".documents-section {\n  margin-top: 0;\n  padding-top: 0;\n  border-top: none;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL0M6L1Byb2plY3RzL1N5bmVyZ3kvc2luZXJneS1lcnAtZnJvbnRlbmQtY2xpZW50cy9zcmMvYXBwL2ZlYXR1cmVzL2NvbnRyYWN0cy9jb21wb25lbnRzL2NvbnRyYWN0LWRvY3VtZW50cy9jb250cmFjdC1kb2N1bWVudHMuY29tcG9uZW50LnNjc3MiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUE7RUFFRTtFQUNBO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZG9jdW1lbnRzLXNlY3Rpb24ge1xyXG4gIC8vIFJlbW92ZSB0b3AgYm9yZGVyIGFuZCBwYWRkaW5nIHNpbmNlIGl0J3MgaW4gYSB0YWJcclxuICBtYXJnaW4tdG9wOiAwO1xyXG4gIHBhZGRpbmctdG9wOiAwO1xyXG4gIGJvcmRlci10b3A6IG5vbmU7XHJcbn1cclxuIl19 */"],
+  "mappings": ";AAAA,CAAA;AAEE,cAAA;AACA,eAAA;AACA,cAAA;ACAF;",
+  "names": []
+}

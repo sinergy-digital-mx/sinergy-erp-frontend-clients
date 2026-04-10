@@ -78,8 +78,10 @@ export class POSHomeComponent implements OnInit {
 
   openCashShift(): void {
     const dialogRef = this.dialog.open(OpenShiftDialogComponent, {
-      width: '600px',
-      disableClose: true
+      width: '420px',
+      maxWidth: '95vw',
+      disableClose: true,
+      panelClass: 'pos-dialog-panel',
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -87,7 +89,13 @@ export class POSHomeComponent implements OnInit {
         return; // User cancelled
       }
 
-      const { warehouse_id, opening_balance, notes } = result;
+      const {
+        warehouse_id,
+        opening_balance,
+        notes,
+        pos_configuration_id,
+        pos_configuration_code,
+      } = result;
 
       // Save warehouse for future use
       this.defaultWarehouseId.set(warehouse_id);
@@ -97,10 +105,22 @@ export class POSHomeComponent implements OnInit {
       this.posService.openPosSession({
         warehouse_id,
         cashier_id: '',
-        opening_balance
+        opening_balance,
+        ...(notes?.trim() ? { notes: notes.trim() } : {}),
+        ...(pos_configuration_id ? { pos_configuration_id } : {}),
       }).subscribe({
         next: (shift) => {
           this.activeCashShift.set(shift);
+          if (pos_configuration_id) {
+            localStorage.setItem('pos_configuration_id', pos_configuration_id);
+          } else {
+            localStorage.removeItem('pos_configuration_id');
+          }
+          if (pos_configuration_code) {
+            localStorage.setItem('pos_configuration_code', pos_configuration_code);
+          } else {
+            localStorage.removeItem('pos_configuration_code');
+          }
           this.checkingShift.set(false);
           this.snackBar.open('Sesión POS iniciada', 'Cerrar', { duration: 3000 });
         },
@@ -140,6 +160,8 @@ export class POSHomeComponent implements OnInit {
       }).subscribe({
         next: (closedShift) => {
           this.activeCashShift.set(null);
+          localStorage.removeItem('pos_configuration_id');
+          localStorage.removeItem('pos_configuration_code');
           this.checkingShift.set(false);
           
           const difference = closedShift.difference || 0;

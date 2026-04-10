@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/leads/components/lead-address-dialog/lead-address-dialog.scss", "src/app/features/leads/components/lead-address-dialog/lead-address-dialog.scss"],
+  "sourcesContent": [".dialog{\r\n    width: 100dvw;\r\n    max-width: 700px;\r\n}", ".dialog {\n  width: 100dvw;\n  max-width: 700px;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL0M6L1Byb2plY3RzL1N5bmVyZ3kvc2luZXJneS1lcnAtZnJvbnRlbmQtY2xpZW50cy9zcmMvYXBwL2ZlYXR1cmVzL2xlYWRzL2NvbXBvbmVudHMvbGVhZC1hZGRyZXNzLWRpYWxvZy9sZWFkLWFkZHJlc3MtZGlhbG9nLnNjc3MiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUE7RUFDSTtFQUNBIiwic291cmNlc0NvbnRlbnQiOlsiLmRpYWxvZ3tcclxuICAgIHdpZHRoOiAxMDBkdnc7XHJcbiAgICBtYXgtd2lkdGg6IDcwMHB4O1xyXG59Il19 */"],
+  "mappings": ";AAAA,CAAA;AACI,SAAA;AACA,aAAA;ACCJ;",
+  "names": []
+}

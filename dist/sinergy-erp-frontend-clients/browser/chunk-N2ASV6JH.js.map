@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/contracts/contracts.routes.ts"],
+  "sourcesContent": ["import { Routes } from '@angular/router';\r\nimport { permissionGuard } from '../../core/guards/permission.guard';\r\nimport { CONTRACT_PERMISSIONS } from './config/permissions.config';\r\n\r\nexport const CONTRACTS_ROUTES: Routes = [\r\n  {\r\n    path: '',\r\n    loadComponent: () =>\r\n      import('./pages/contracts-list/contracts-list.component').then(\r\n        (m) => m.ContractsListComponent\r\n      ),\r\n    canActivate: [permissionGuard],\r\n    data: {\r\n      permissions: [CONTRACT_PERMISSIONS.viewList]\r\n    }\r\n  },\r\n];\r\n"],
+  "mappings": ";;;;;;;;;;;;AAIO,IAAM,mBAA2B;EACtC;IACE,MAAM;IACN,eAAe,MACb,OAAO,qBAAiD,EAAE,KACxD,CAAC,MAAM,EAAE,sBAAsB;IAEnC,aAAa,CAAC,eAAe;IAC7B,MAAM;MACJ,aAAa,CAAC,qBAAqB,QAAQ;;;;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/properties/properties.routes.ts"],
+  "sourcesContent": ["import { Routes } from '@angular/router';\r\nimport { permissionGuard } from '../../core/guards/permission.guard';\r\nimport { PROPERTY_PERMISSIONS } from './config/permissions.config';\r\n\r\nexport const PROPERTIES_ROUTES: Routes = [\r\n  {\r\n    path: '',\r\n    loadComponent: () => import('./pages/properties-list/properties-list.component').then(m => m.PropertiesListComponent),\r\n    canActivate: [permissionGuard],\r\n    data: {\r\n      permissions: [PROPERTY_PERMISSIONS.viewList]\r\n    }\r\n  }\r\n];\r\n"],
+  "mappings": ";;;;;;;;;;;;AAIO,IAAM,oBAA4B;EACvC;IACE,MAAM;IACN,eAAe,MAAM,OAAO,qBAAmD,EAAE,KAAK,OAAK,EAAE,uBAAuB;IACpH,aAAa,CAAC,eAAe;IAC7B,MAAM;MACJ,aAAa,CAAC,qBAAqB,QAAQ;;;;",
+  "names": []
+}

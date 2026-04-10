@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/contracts/components/contract-payments/contract-payments.component.scss", "src/app/features/contracts/components/contract-payments/contract-payments.component.scss"],
+  "sourcesContent": [".payments-container {\r\n  // Container styles\r\n}\r\n\r\ntable {\r\n  font-size: 0.875rem;\r\n}\r\n", "table {\n  font-size: 0.875rem;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL0M6L1Byb2plY3RzL1N5bmVyZ3kvc2luZXJneS1lcnAtZnJvbnRlbmQtY2xpZW50cy9zcmMvYXBwL2ZlYXR1cmVzL2NvbnRyYWN0cy9jb21wb25lbnRzL2NvbnRyYWN0LXBheW1lbnRzL2NvbnRyYWN0LXBheW1lbnRzLmNvbXBvbmVudC5zY3NzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUlBO0VBQ0UiLCJzb3VyY2VzQ29udGVudCI6WyIucGF5bWVudHMtY29udGFpbmVyIHtcclxuICAvLyBDb250YWluZXIgc3R5bGVzXHJcbn1cclxuXHJcbnRhYmxlIHtcclxuICBmb250LXNpemU6IDAuODc1cmVtO1xyXG59XHJcbiJdfQ== */"],
+  "mappings": ";AAIA;AACE,aAAA;ACHF;",
+  "names": []
+}

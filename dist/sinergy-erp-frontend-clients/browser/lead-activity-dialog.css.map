@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/leads/components/lead-activity-dialog/lead-activity-dialog.scss", "src/app/features/leads/components/lead-activity-dialog/lead-activity-dialog.scss"],
+  "sourcesContent": [".dialog{\r\n    width: 100dvw;\r\n    max-width: 700px;\r\n}", ".dialog {\n  width: 100dvw;\n  max-width: 700px;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL0M6L1Byb2plY3RzL1N5bmVyZ3kvc2luZXJneS1lcnAtZnJvbnRlbmQtY2xpZW50cy9zcmMvYXBwL2ZlYXR1cmVzL2xlYWRzL2NvbXBvbmVudHMvbGVhZC1hY3Rpdml0eS1kaWFsb2cvbGVhZC1hY3Rpdml0eS1kaWFsb2cuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNJO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyIuZGlhbG9ne1xyXG4gICAgd2lkdGg6IDEwMGR2dztcclxuICAgIG1heC13aWR0aDogNzAwcHg7XHJcbn0iXX0= */"],
+  "mappings": ";AAAA,CAAA;AACI,SAAA;AACA,aAAA;ACCJ;",
+  "names": []
+}
