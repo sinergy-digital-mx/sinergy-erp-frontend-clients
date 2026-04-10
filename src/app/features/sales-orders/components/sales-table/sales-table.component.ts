@@ -63,10 +63,12 @@ export class SalesTableComponent {
   /**
    * Format currency
    */
-  formatCurrency(amount: number): string {
+  formatCurrency(amount: string | number | undefined): string {
+    if (amount === undefined || amount === null) return '$0.00';
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN'
-    }).format(amount);
+    }).format(numAmount);
   }
 }

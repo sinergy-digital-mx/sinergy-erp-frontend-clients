@@ -29,9 +29,9 @@
             </span>
           </td>
           <td>{{ order.delivery_date ? (order.delivery_date | date:'short') : '-' }}</td>
-          <td class="amount-cell">{{ formatCurrency(order.total_subtotal) }}</td>
-          <td class="amount-cell">{{ formatCurrency(order.total_iva) }}</td>
-          <td class="amount-cell">{{ formatCurrency(order.total_ieps) }}</td>
+          <td class="amount-cell">{{ formatCurrency(order.subtotal) }}</td>
+          <td class="amount-cell">{{ formatCurrency(order.iva_total) }}</td>
+          <td class="amount-cell">{{ formatCurrency(order.ieps_total) }}</td>
           <td class="amount-cell total">{{ formatCurrency(order.grand_total) }}</td>
           <td>{{ order.created_at | date:'short' }}</td>
           <td class="actions-cell" (click)="$event.stopPropagation()">

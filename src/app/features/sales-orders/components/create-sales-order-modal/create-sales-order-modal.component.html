@@ -83,7 +83,7 @@
                   </select>
                 </td>
                 <td>
-                  <select class="form-select form-select--inline" [(ngModel)]="item.uom_id" [ngModelOptions]="{standalone: true}">
+                  <select class="form-select form-select--inline" [(ngModel)]="item.product_uom_id" [ngModelOptions]="{standalone: true}">
                     <option value="">Seleccionar...</option>
                     <option *ngFor="let uom of getProductUoms(i)" [value]="uom.id || uom.uom_id">{{ uom.name || uom.uom_name }}</option>
                   </select>
