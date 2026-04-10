@@ -145,6 +145,9 @@ export interface Product {
   sku: string;
   name: string;
   description?: string | null;
+  /** Clave de producto/servicio SAT (CFDI); el API puede usar `codigo_sat` */
+  sat_code?: string | null;
+  codigo_sat?: string | null;
   category_id?: string | null;
   subcategory_id?: string | null;
   base_uom_id?: string | null;
@@ -167,6 +170,7 @@ export interface CreateProductDto {
   sku: string;
   name: string;
   description?: string;
+  sat_code?: string;
   category_id?: string;
   subcategory_id?: string;
   base_uom_id?: string;

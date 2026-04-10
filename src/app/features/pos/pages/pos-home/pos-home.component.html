@@ -1,59 +1,76 @@
-<div class="pos-home">
-  <div class="pos-header">
-    <h1>Punto de Venta</h1>
-    
-    <!-- Cash Shift Status Bar -->
-    <div class="shift-status-bar">
-      @if (activeCashShift()) {
-        <div class="shift-info">
-          <div class="shift-badge active">
-            <i class="pi pi-check-circle"></i>
-            <span>Turno Activo</span>
-          </div>
-          <span class="text-sm">Apertura: {{ formatCurrency(parseFloat(activeCashShift().initial_cash) || 0) }}</span>
+<div class="pos-hub">
+  <header class="pos-hub__session">
+    <div class="pos-hub__session-inner">
+      <div class="pos-hub__session-left">
+        <lucide-icon [img]="LayoutGrid" class="pos-hub__ic" />
+        <div>
+          <p class="pos-hub__eyebrow">Punto de venta</p>
+          <h1 class="pos-hub__title">Panel principal</h1>
         </div>
-        <button class="btn-close-shift" (click)="closeCashShift()" [disabled]="checkingShift()">
-          <i class="pi pi-times"></i>
-          Cerrar Turno
-        </button>
-      } @else {
-        <div class="shift-info">
-          <div class="shift-badge inactive">
-            <i class="pi pi-circle"></i>
-            <span>Sin Turno Activo</span>
+      </div>
+
+      <div class="pos-hub__session-status">
+        @if (checkingShift()) {
+          <span class="pos-hub__checking">Verificando sesión…</span>
+        } @else if (activeCashShift()) {
+          <div class="pos-hub__pill pos-hub__pill--ok">
+            <lucide-icon [img]="CircleCheck" class="pos-hub__ic-sm" />
+            Sesión POS activa
           </div>
-        </div>
-        <button class="btn-open-shift" (click)="openCashShift()" [disabled]="checkingShift()">
-          <i class="pi pi-play"></i>
-          {{ checkingShift() ? 'Verificando...' : 'Abrir Turno' }}
-        </button>
-      }
-    </div>
-  </div>
-
-  <div class="pos-options">
-    <div class="pos-option" (click)="navigateToTakeOrder()">
-      <div class="option-icon">
-        <i class="pi pi-shopping-cart"></i>
+          <span class="pos-hub__meta">
+            Efectivo inicial: {{ formatCurrency(parseFloat(activeCashShift().initial_cash) || 0) }}
+          </span>
+          <button
+            type="button"
+            class="pos-hub__btn pos-hub__btn--danger"
+            (click)="closeCashShift()"
+            [disabled]="checkingShift()">
+            <lucide-icon [img]="LogOut" class="pos-hub__ic-sm" />
+            Cerrar sesión
+          </button>
+        } @else {
+          <div class="pos-hub__pill pos-hub__pill--off">
+            <lucide-icon [img]="CircleAlert" class="pos-hub__ic-sm" />
+            Sin sesión POS
+          </div>
+          <button
+            type="button"
+            class="pos-hub__btn pos-hub__btn--primary"
+            (click)="openCashShift()"
+            [disabled]="checkingShift()">
+            <lucide-icon [img]="LogIn" class="pos-hub__ic-sm" />
+            {{ checkingShift() ? '…' : 'Iniciar sesión' }}
+          </button>
+        }
       </div>
-      <h3>Tomar Orden</h3>
-      <p>Crear nueva orden de venta</p>
     </div>
+  </header>
 
-    <div class="pos-option" (click)="navigateToPendingOrders()">
-      <div class="option-icon">
-        <i class="pi pi-list"></i>
-      </div>
-      <h3>Ver Órdenes</h3>
-      <p>Consultar todas las órdenes</p>
-    </div>
+  <p class="pos-hub__lead">Elige una acción. Para vender, abre <strong>Tomar orden</strong> (requiere sesión activa).</p>
 
-    <div class="pos-option" (click)="navigateToPayment()">
-      <div class="option-icon">
-        <i class="pi pi-credit-card"></i>
+  <div class="pos-hub__grid">
+    <button type="button" class="pos-tile" (click)="navigateToTakeOrder()">
+      <div class="pos-tile__icon">
+        <lucide-icon [img]="ShoppingCart" class="pos-tile__lucide" />
       </div>
-      <h3>Cobrar Orden</h3>
-      <p>Procesar pago de orden existente</p>
-    </div>
+      <h3>Tomar orden</h3>
+      <p>Nueva venta y carrito</p>
+    </button>
+
+    <button type="button" class="pos-tile" (click)="navigateToPendingOrders()">
+      <div class="pos-tile__icon pos-tile__icon--violet">
+        <lucide-icon [img]="Receipt" class="pos-tile__lucide" />
+      </div>
+      <h3>Órdenes</h3>
+      <p>Listado y seguimiento</p>
+    </button>
+
+    <button type="button" class="pos-tile" (click)="navigateToPayment()">
+      <div class="pos-tile__icon pos-tile__icon--amber">
+        <lucide-icon [img]="CreditCard" class="pos-tile__lucide" />
+      </div>
+      <h3>Cobrar</h3>
+      <p>Pago de orden existente</p>
+    </button>
   </div>
 </div>

@@ -1,248 +1,304 @@
-<div class="take-order-container">
-  <!-- Left Panel: Products -->
-  <div class="products-panel">
-    <div class="panel-header-products">
-      <input 
-        type="text" 
-        class="search-input"
-        placeholder="🔍 Buscar..."
-        [(ngModel)]="searchTerm"
-        (ngModelChange)="onSearchChange()"
-      />
-    </div>
+<div class="pos-take-root">
+  <!-- Barra sesión POS full width -->
+  <header class="pos-session-bar">
+    <div class="pos-session-bar__content">
+      <div class="pos-session-bar__left">
+        <div class="pos-session-bar__title">
+          <lucide-icon [img]="Monitor" class="pos-session-bar__title-icon" />
+          <span>Punto de Venta</span>
+        </div>
+        <div class="pos-session-bar__warehouse">
+          <lucide-icon [img]="Store" class="pos-ic" />
+          <select
+            class="pos-session-bar__select"
+            [ngModel]="selectedWarehouse()"
+            (ngModelChange)="onWarehouseSelect($event)"
+            [disabled]="checkingSession()">
+            @for (w of warehouses(); track w.id) {
+              <option [value]="w.id">{{ w.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
 
-    <div class="products-grid">
-      @for (product of filteredProducts(); track product.id) {
-        <div 
-          class="product-card" 
-          [class.disabled]="!canAddToCart(product)"
-          [title]="getDisabledTooltip(product)"
-          (click)="canAddToCart(product) && addProductToCart(product)"
-        >
-          <!-- Product Photo -->
-          <div class="product-photo">
-            <img
-              [src]="getProductPhotoUrl(product)"
-              [alt]="product.name"
-              (error)="onPhotoError(product.id)"
-              (load)="onPhotoLoad(product.id)"
-              class="photo-img"
-            />
-            @if (isPhotoLoading(product.id)) {
-              <div class="photo-loading">
-                <div class="spinner-small"></div>
-              </div>
-            }
+      <div class="pos-session-bar__center">
+        @if (checkingSession()) {
+          <span class="pos-session-bar__checking">Comprobando sesión…</span>
+        } @else if (activePosSession()) {
+          <div class="pos-pill pos-pill--ok">
+            <lucide-icon [img]="Package" class="pos-ic pos-ic--sm" />
+            <span>Sesión activa</span>
           </div>
-          
-          <!-- Product Info -->
-          <div class="product-info">
-            <h3>{{ product.name }}</h3>
-            <p class="product-sku">SKU: {{ product.sku }}</p>
-            
-            <!-- Price Display -->
-            <div class="product-price">
-              @if (product.has_price) {
-                <span class="price">{{ formatCurrency(product.cost || 0) }}</span>
-              } @else {
-                <span class="no-price">Sin precio</span>
-              }
-            </div>
+          <span class="pos-session-meta">{{ selectedWarehouseName() }}</span>
+          @if (sessionOpenedLabel()) {
+            <span class="pos-session-meta">· {{ sessionOpenedLabel() }}</span>
+          }
+        } @else {
+          <div class="pos-pill pos-pill--warn">
+            <lucide-icon [img]="AlertCircle" class="pos-ic pos-ic--sm" />
+            <span>Sin sesión POS — inicia sesión para cobrar</span>
           </div>
-          
-          <!-- Add Button -->
-          <button
-            class="btn-add"
-            (click)="addProductToCart(product); $event.stopPropagation()"
-            [disabled]="!canAddToCart(product)"
-          >
-            @if (canAddToCart(product)) {
-              <span>+</span>
-            } @else {
-              <span>⚠</span>
-            }
+        }
+      </div>
+
+      <div class="pos-session-bar__right">
+        <div class="pos-terminal-chip">
+          <lucide-icon [img]="Monitor" class="pos-ic pos-ic--sm" />
+          {{ terminalId() }}
+        </div>
+        @if (!checkingSession() && activePosSession()) {
+          <button type="button" class="pos-btn pos-btn--ghost" (click)="closePosSession()">
+            <lucide-icon [img]="LogOut" class="pos-ic pos-ic--btn" />
+            Cerrar sesión
+          </button>
+        }
+        @if (!checkingSession() && !activePosSession()) {
+          <button type="button" class="pos-btn pos-btn--primary" (click)="openPosSession()">
+            <lucide-icon [img]="LogIn" class="pos-ic pos-ic--btn" />
+            Iniciar sesión
+          </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  <div class="pos-take-body" [class.pos-take-body--locked]="!sessionOk()">
+    @if (!sessionOk()) {
+      <div class="pos-lock-overlay" aria-hidden="true">
+        <div class="pos-lock-card">
+          <lucide-icon [img]="LogIn" class="pos-lock-card__icon" />
+          <h3>Sesión POS requerida</h3>
+          <p>Inicia sesión en la barra superior para cargar el carrito y registrar ventas.</p>
+          <button type="button" class="pos-btn pos-btn--primary pos-btn--lg" (click)="openPosSession()">
+            Iniciar sesión
           </button>
         </div>
-      }
+      </div>
+    }
 
-      @if (filteredProducts().length === 0 && !loading()) {
-        <div class="empty-products">
-          <p>No se encontraron productos</p>
+    <section class="pos-catalog">
+      <div class="pos-catalog__toolbar">
+        <div class="pos-search">
+          <lucide-icon [img]="Search" class="pos-search__icon" />
+          <input
+            type="search"
+            class="pos-search__input"
+            placeholder="Buscar por nombre o SKU…"
+            [ngModel]="searchTerm()"
+            (ngModelChange)="searchTerm.set($event); onSearchChange()"
+            autocomplete="off"
+          />
         </div>
-      }
+        <p class="pos-catalog__hint">{{ filteredProducts().length }} productos</p>
+      </div>
 
-      @if (loading()) {
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Cargando productos...</p>
-        </div>
-      }
-    </div>
-  </div>
-
-  <!-- Right Panel: Cart -->
-  <div class="cart-panel">
-    <!-- Terminal Badge -->
-    <div class="terminal-badge">
-      <span>🖥️ {{ terminalId() }}</span>
-    </div>
-
-    <div class="panel-header">
-      <h2>Orden Actual</h2>
-    </div>
-
-    <div class="cart-items">
-      @for (item of posService.cart().items; track $index; let i = $index) {
-        <div class="cart-item">
-          <div class="item-info">
-            <h4>{{ item.product_name }}</h4>
-            <p class="item-sku">{{ item.product_sku }}</p>
-            <p class="item-price">{{ formatCurrency(item.unit_price) }} / {{ item.uom_name }}</p>
-          </div>
-          <div class="item-controls">
-            <div class="quantity-control">
-              <button (click)="updateQuantity(i, item.quantity - 1)">-</button>
-              <input 
-                type="number" 
-                [value]="item.quantity"
-                (change)="updateQuantity(i, +$any($event.target).value)"
-                min="1"
+      <div class="pos-product-grid">
+        @for (product of filteredProducts(); track product.id) {
+          <article
+            class="pos-card"
+            [class.pos-card--disabled]="!canAddToCart(product)"
+            [attr.title]="getDisabledTooltip(product)"
+            (click)="canAddToCart(product) && addProductToCart(product)">
+            <div class="pos-card__media">
+              <img
+                [src]="getProductPhotoUrl(product)"
+                [alt]="product.name"
+                (error)="onPhotoError(product.id)"
+                (load)="onPhotoLoad(product.id)"
+                loading="lazy"
               />
-              <button (click)="updateQuantity(i, item.quantity + 1)">+</button>
+              @if (isPhotoLoading(product.id)) {
+                <div class="pos-card__media-loading"></div>
+              }
             </div>
-            <div class="item-total">
-              {{ formatCurrency(item.line_total) }}
+            <div class="pos-card__body">
+              <h3 class="pos-card__name">{{ product.name }}</h3>
+              <p class="pos-card__sku">{{ product.sku }}</p>
+              <div class="pos-card__price-row">
+                @if (product.has_price) {
+                  <span class="pos-card__price">{{ formatCurrency(product.cost || 0) }}</span>
+                } @else {
+                  <span class="pos-card__no-price">Sin precio</span>
+                }
+              </div>
             </div>
-            <button class="btn-remove" (click)="removeItem(i)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
+            <button
+              type="button"
+              class="pos-card__add"
+              (click)="addProductToCart(product); $event.stopPropagation()"
+              [disabled]="!canAddToCart(product)">
+              <lucide-icon [img]="Plus" class="pos-ic" />
+              <span>Agregar</span>
             </button>
+          </article>
+        }
+
+        @if (filteredProducts().length === 0 && !loading()) {
+          <div class="pos-empty-grid">
+            <lucide-icon [img]="Package" class="pos-empty-grid__icon" />
+            <p>No hay productos que coincidan</p>
           </div>
-          <!-- Weight Input for bulk items -->
-          <div class="weight-input-group">
-            <label>Peso (kg):</label>
-            <input 
-              type="number" 
-              [(ngModel)]="item.weight"
-              placeholder="Ej: 1.5"
-              class="weight-input"
-              min="0"
-              step="0.1"
-            />
+        }
+
+        @if (loading()) {
+          <div class="pos-loading-grid">
+            <div class="pos-spinner"></div>
+            <p>Cargando catálogo…</p>
           </div>
+        }
+      </div>
+    </section>
+
+    <aside class="pos-cart">
+      <div class="pos-cart__head">
+        <div class="pos-cart__head-title">
+          <lucide-icon [img]="ShoppingCart" class="pos-ic" />
+          <h2>Orden actual</h2>
         </div>
-      }
+      </div>
 
-      @if (posService.cart().items.length === 0) {
-        <div class="empty-cart">
-          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="9" cy="21" r="1"></circle>
-            <circle cx="20" cy="21" r="1"></circle>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-          </svg>
-          <p>Carrito vacío</p>
-          <span>Selecciona productos para agregar</span>
+      <div class="pos-cart__lines">
+        @for (item of posService.cart().items; track $index; let i = $index) {
+          <div class="pos-line">
+            <div class="pos-line__main">
+              <div class="pos-line__info">
+                <h4>{{ item.product_name }}</h4>
+                <p class="pos-line__sku">{{ item.product_sku }}</p>
+                <p class="pos-line__unit">
+                  {{ formatCurrency(item.unit_price) }} · {{ item.uom_name }}
+                </p>
+              </div>
+              <button type="button" class="pos-line__remove" (click)="removeItem(i)" title="Quitar">
+                <lucide-icon [img]="Trash2" class="pos-ic pos-ic--sm" />
+              </button>
+            </div>
+            <div class="pos-line__controls">
+              <div class="pos-qty">
+                <button type="button" (click)="updateQuantity(i, item.quantity - 1)">
+                  <lucide-icon [img]="Minus" class="pos-ic pos-ic--xs" />
+                </button>
+                <input
+                  type="number"
+                  [value]="item.quantity"
+                  (change)="updateQuantity(i, +$any($event.target).value)"
+                  min="1"
+                />
+                <button type="button" (click)="updateQuantity(i, item.quantity + 1)">
+                  <lucide-icon [img]="Plus" class="pos-ic pos-ic--xs" />
+                </button>
+              </div>
+              <span class="pos-line__total">{{ formatCurrency(item.line_total) }}</span>
+            </div>
+            <div class="pos-line__weight">
+              <label>Peso (kg)</label>
+              <input
+                type="number"
+                [(ngModel)]="item.weight"
+                placeholder="—"
+                min="0"
+                step="0.1"
+              />
+            </div>
+          </div>
+        }
+
+        @if (posService.cart().items.length === 0) {
+          <div class="pos-cart-empty">
+            <lucide-icon [img]="ShoppingCart" class="pos-cart-empty__icon" />
+            <p>Carrito vacío</p>
+            <span>Elige productos del catálogo</span>
+          </div>
+        }
+      </div>
+
+      <div class="pos-cart__summary">
+        <div class="pos-sum-row">
+          <span>Subtotal</span>
+          <strong>{{ formatCurrency(posService.cart().total_subtotal) }}</strong>
         </div>
-      }
-    </div>
-
-    <div class="cart-summary">
-      <div class="summary-row">
-        <span>Subtotal:</span>
-        <strong>{{ formatCurrency(posService.cart().total_subtotal) }}</strong>
-      </div>
-      <div class="summary-row">
-        <span>IVA:</span>
-        <strong>{{ formatCurrency(posService.cart().total_iva) }}</strong>
-      </div>
-      <div class="summary-row">
-        <span>IEPS:</span>
-        <strong>{{ formatCurrency(posService.cart().total_ieps) }}</strong>
-      </div>
-      <div class="summary-row total">
-        <span>Total:</span>
-        <strong>{{ formatCurrency(posService.cart().grand_total) }}</strong>
-      </div>
-    </div>
-
-    <!-- Payment Method Selection -->
-    <div class="payment-section">
-      <h3>Método de Pago</h3>
-      <div class="payment-toggles">
-        <button 
-          class="payment-toggle"
-          [class.active]="paymentMethod() === 'cash'"
-          (click)="paymentMethod.set('cash')"
-        >
-          💵 Efectivo
-        </button>
-        <button 
-          class="payment-toggle"
-          [class.active]="paymentMethod() === 'card'"
-          (click)="paymentMethod.set('card')"
-        >
-          💳 Tarjeta
-        </button>
-        <button 
-          class="payment-toggle"
-          [class.active]="paymentMethod() === 'credit'"
-          (click)="paymentMethod.set('credit')"
-        >
-          📋 Crédito
-        </button>
+        <div class="pos-sum-row">
+          <span>IVA</span>
+          <strong>{{ formatCurrency(posService.cart().total_iva) }}</strong>
+        </div>
+        <div class="pos-sum-row">
+          <span>IEPS</span>
+          <strong>{{ formatCurrency(posService.cart().total_ieps) }}</strong>
+        </div>
+        <div class="pos-sum-row pos-sum-row--total">
+          <span>Total</span>
+          <strong>{{ formatCurrency(posService.cart().grand_total) }}</strong>
+        </div>
       </div>
 
-      <!-- Cash Payment Details -->
-      @if (paymentMethod() === 'cash') {
-        <div class="cash-payment">
-          <div class="cash-payment-row">
-            <div class="cash-input-group">
-              <label>Cantidad Pagada:</label>
-              <input 
-                type="number" 
-                [(ngModel)]="amountPaid"
-                placeholder="0.00"
-                class="cash-input"
+      <div class="pos-pay">
+        <h3 class="pos-pay__title">Método de pago</h3>
+        <div class="pos-pay__methods">
+          <button
+            type="button"
+            class="pos-pay__method"
+            [class.pos-pay__method--on]="paymentMethod() === 'cash'"
+            (click)="paymentMethod.set('cash')">
+            <lucide-icon [img]="Banknote" class="pos-ic" />
+            Efectivo
+          </button>
+          <button
+            type="button"
+            class="pos-pay__method"
+            [class.pos-pay__method--on]="paymentMethod() === 'card'"
+            (click)="paymentMethod.set('card')">
+            <lucide-icon [img]="CreditCard" class="pos-ic" />
+            Tarjeta
+          </button>
+          <button
+            type="button"
+            class="pos-pay__method"
+            [class.pos-pay__method--on]="paymentMethod() === 'credit'"
+            (click)="paymentMethod.set('credit')">
+            <lucide-icon [img]="FileText" class="pos-ic" />
+            Crédito
+          </button>
+        </div>
+
+        @if (paymentMethod() === 'cash') {
+          <div class="pos-cash">
+            <label class="pos-cash__field">
+              <span>Cantidad recibida</span>
+              <input
+                type="number"
+                [ngModel]="amountPaid"
+                (ngModelChange)="onAmountPaidChange($event)"
                 min="0"
                 step="0.01"
               />
+            </label>
+            <div class="pos-cash__change">
+              <span>Cambio</span>
+              <output>{{ formatCurrency(calculateChange()) }}</output>
             </div>
-            <div class="change-display">
-              <label>Cambio:</label>
-              <input 
-                type="text" 
-                [value]="formatCurrency(calculateChange())"
-                readonly
-                class="change-input"
-              />
-            </div>
+            @if (!isPaymentValid() && posService.cart().grand_total > 0) {
+              <p class="pos-cash__warn">Monto insuficiente para el total</p>
+            }
           </div>
-          @if (!isPaymentValid()) {
-            <div class="payment-warning">
-              ⚠️ Cantidad insuficiente
-            </div>
-          }
-        </div>
-      }
-    </div>
+        }
+      </div>
 
-    <div class="cart-actions">
-      <button 
-        class="btn-cancel" 
-        (click)="cancel()"
-        [disabled]="saving()"
-      >
-        Cancelar
-      </button>
-      <button 
-        class="btn-save" 
-        (click)="saveOrder()"
-        [disabled]="saving() || posService.cart().items.length === 0 || !isPaymentValid()"
-      >
-        {{ saving() ? 'Guardando...' : 'Guardar Orden' }}
-      </button>
-    </div>
+      <div class="pos-cart__actions">
+        <button type="button" class="pos-btn pos-btn--muted" (click)="cancel()" [disabled]="saving()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="pos-btn pos-btn--accent"
+          (click)="saveOrder()"
+          [disabled]="
+            saving() ||
+            !sessionOk() ||
+            posService.cart().items.length === 0 ||
+            !isPaymentValid()
+          ">
+          {{ saving() ? 'Guardando…' : 'Guardar orden' }}
+        </button>
+      </div>
+    </aside>
   </div>
 </div>

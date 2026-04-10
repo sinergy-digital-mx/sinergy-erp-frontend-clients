@@ -3,6 +3,17 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
+import {
+  LucideAngularModule,
+  LayoutGrid,
+  ShoppingCart,
+  Receipt,
+  CreditCard,
+  LogIn,
+  LogOut,
+  CircleCheck,
+  CircleAlert,
+} from 'lucide-angular';
 import { POSService } from '../../services/pos.service';
 import { OpenShiftDialogComponent } from '../../components/open-shift-dialog/open-shift-dialog.component';
 import { CloseShiftDialogComponent } from '../../components/close-shift-dialog/close-shift-dialog.component';
@@ -10,11 +21,20 @@ import { CloseShiftDialogComponent } from '../../components/close-shift-dialog/c
 @Component({
   selector: 'app-pos-home',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './pos-home.component.html',
-  styleUrls: ['./pos-home.component.scss']
+  styleUrls: ['./pos-home.component.scss'],
 })
 export class POSHomeComponent implements OnInit {
+  readonly LayoutGrid = LayoutGrid;
+  readonly ShoppingCart = ShoppingCart;
+  readonly Receipt = Receipt;
+  readonly CreditCard = CreditCard;
+  readonly LogIn = LogIn;
+  readonly LogOut = LogOut;
+  readonly CircleCheck = CircleCheck;
+  readonly CircleAlert = CircleAlert;
+
   activeCashShift = signal<any | null>(null);
   checkingShift = signal<boolean>(false);
   defaultWarehouseId = signal<string>('');
@@ -44,7 +64,7 @@ export class POSHomeComponent implements OnInit {
     }
     
     this.checkingShift.set(true);
-    this.posService.getActiveCashShift(warehouseId).subscribe({
+    this.posService.getActivePosSession(warehouseId).subscribe({
       next: (shift) => {
         this.activeCashShift.set(shift);
         this.checkingShift.set(false);
@@ -74,7 +94,7 @@ export class POSHomeComponent implements OnInit {
       localStorage.setItem('pos_warehouse_id', warehouse_id);
 
       this.checkingShift.set(true);
-      this.posService.openCashShift({
+      this.posService.openPosSession({
         warehouse_id,
         cashier_id: '',
         opening_balance
@@ -82,11 +102,11 @@ export class POSHomeComponent implements OnInit {
         next: (shift) => {
           this.activeCashShift.set(shift);
           this.checkingShift.set(false);
-          this.snackBar.open('Turno de caja abierto exitosamente', 'Cerrar', { duration: 3000 });
+          this.snackBar.open('Sesión POS iniciada', 'Cerrar', { duration: 3000 });
         },
         error: (error) => {
           this.checkingShift.set(false);
-          this.snackBar.open(error.error?.message || 'Error al abrir turno de caja', 'Cerrar', { duration: 5000 });
+          this.snackBar.open(error.error?.message || 'Error al iniciar sesión POS', 'Cerrar', { duration: 5000 });
         }
       });
     });
@@ -96,7 +116,7 @@ export class POSHomeComponent implements OnInit {
     const shift = this.activeCashShift();
     
     if (!shift) {
-      this.snackBar.open('No hay turno activo para cerrar', 'Cerrar', { duration: 3000 });
+      this.snackBar.open('No hay sesión activa para cerrar', 'Cerrar', { duration: 3000 });
       return;
     }
 
@@ -114,7 +134,7 @@ export class POSHomeComponent implements OnInit {
       const { closing_balance, notes } = result;
 
       this.checkingShift.set(true);
-      this.posService.closeCashShift(shift.id, {
+      this.posService.closePosSession(shift.id, {
         closing_balance,
         notes
       }).subscribe({
@@ -129,11 +149,11 @@ export class POSHomeComponent implements OnInit {
               ? `Sobrante: ${this.formatCurrency(difference)}`
               : `Faltante: ${this.formatCurrency(Math.abs(difference))}`;
           
-          this.snackBar.open(`Turno cerrado. ${diffText}`, 'Cerrar', { duration: 5000 });
+          this.snackBar.open(`Sesión cerrada. ${diffText}`, 'Cerrar', { duration: 5000 });
         },
         error: (error) => {
           this.checkingShift.set(false);
-          this.snackBar.open(error.error?.message || 'Error al cerrar turno de caja', 'Cerrar', { duration: 5000 });
+          this.snackBar.open(error.error?.message || 'Error al cerrar la sesión POS', 'Cerrar', { duration: 5000 });
         }
       });
     });

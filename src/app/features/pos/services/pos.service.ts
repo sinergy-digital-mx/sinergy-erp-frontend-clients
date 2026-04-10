@@ -235,8 +235,37 @@ export class POSService {
     return this.http.post(`${this.API_URL}/orders/${orderId}/split-payment`, paymentData);
   }
   
-  // ========== CASH SHIFTS ==========
-  
+  // ========== CASH SHIFTS / SESIÓN POS ==========
+  // La UI usa el término "sesión POS"; el API actual es `cash-shifts`.
+
+  /**
+   * Sesión POS activa (mismo recurso que turno de caja).
+   */
+  getActivePosSession(warehouseId: string): Observable<any> {
+    return this.getActiveCashShift(warehouseId);
+  }
+
+  /**
+   * Abrir sesión POS (abre turno de caja).
+   */
+  openPosSession(shiftData: {
+    warehouse_id: string;
+    cashier_id: string;
+    opening_balance: number;
+  }): Observable<any> {
+    return this.openCashShift(shiftData);
+  }
+
+  /**
+   * Cerrar sesión POS.
+   */
+  closePosSession(
+    shiftId: string,
+    data: { closing_balance: number; notes?: string }
+  ): Observable<any> {
+    return this.closeCashShift(shiftId, data);
+  }
+
   /**
    * Open cash shift
    */

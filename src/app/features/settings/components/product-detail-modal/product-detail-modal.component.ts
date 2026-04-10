@@ -94,6 +94,7 @@ export class ProductDetailModalComponent implements OnInit {
         sku: '',
         name: '',
         description: '',
+        sat_code: '',
         category_id: '',
         subcategory_id: '',
         base_uom_id: '',
@@ -125,7 +126,7 @@ export class ProductDetailModalComponent implements OnInit {
     this.productService.getProduct(productId).subscribe({
       next: (product) => {
         console.log('Full product loaded:', product);
-        this.product = product;
+        this.product = this.normalizeProductSatFields(product);
         console.log('Product category_id:', this.product.category_id);
         console.log('Product subcategory_id:', this.product.subcategory_id);
         this.loading = false;
@@ -275,6 +276,15 @@ export class ProductDetailModalComponent implements OnInit {
     });
   }
 
+  /** Unifica SAT del API (`sat_code` / `codigo_sat`) en `sat_code` para el formulario. */
+  private normalizeProductSatFields(product: Product): Product {
+    const p = product as Product & { codigo_sat?: string | null };
+    if ((p.sat_code == null || p.sat_code === '') && p.codigo_sat) {
+      p.sat_code = p.codigo_sat;
+    }
+    return p;
+  }
+
   onCategoryChange(categoryId: string): void {
     if (!this.product) return;
     this.product.subcategory_id = null;
@@ -306,6 +316,7 @@ export class ProductDetailModalComponent implements OnInit {
       sku: this.product.sku.trim(),
       name: this.product.name.trim(),
       description: this.product.description?.trim() || '',
+      sat_code: this.product.sat_code?.trim() || '',
       category_id: this.product.category_id || undefined,
       subcategory_id: this.product.subcategory_id || undefined,
       base_uom_id: this.product.base_uom_id || undefined
