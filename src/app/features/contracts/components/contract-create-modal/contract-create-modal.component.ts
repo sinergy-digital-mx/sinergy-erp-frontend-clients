@@ -1,6 +1,13 @@
 import { Component, OnInit, signal, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators
+} from '@angular/forms';
 import { MatDialogRef, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { LucideAngularModule, X } from 'lucide-angular';
@@ -15,6 +22,43 @@ import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { CreateContractDto } from '../../models/contract.model';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
+
+/**
+ * Convierte montos del formulario a número.
+ * Evita parseFloat('36,000') === 36; acepta miles con coma (36,000), decimal (36000,50), EU (1.234,56).
+ */
+function parseContractAmount(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const raw = String(value).trim().replace(/\s/g, '').replace(/\u00a0/g, '');
+  if (!raw) return 0;
+
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(raw)) {
+    return parseFloat(raw.replace(/,/g, '')) || 0;
+  }
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(raw)) {
+    const withoutThousands = raw.replace(/\./g, '');
+    return parseFloat(withoutThousands.replace(',', '.')) || 0;
+  }
+  if (/^\d+,\d{1,2}$/.test(raw)) {
+    return parseFloat(raw.replace(',', '.')) || 0;
+  }
+  const fallback = raw.replace(/,/g, '');
+  const n = parseFloat(fallback);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function contractMoneyValidator(control: AbstractControl): ValidationErrors | null {
+  const raw = control.value;
+  if (raw === null || raw === undefined || (typeof raw === 'string' && raw.trim() === '')) {
+    return { required: true };
+  }
+  const n = parseContractAmount(raw);
+  if (!Number.isFinite(n) || n < 0) {
+    return { min: true };
+  }
+  return null;
+}
 
 @Component({
   selector: 'app-contract-create-modal',
@@ -103,8 +147,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
 
       // Datos del contrato
       contract_date: [this.getTodayDate(), Validators.required],
-      total_price: [0, [Validators.required, Validators.min(0)]],
-      down_payment: [0, [Validators.required, Validators.min(0)]],
+      total_price: [0, [contractMoneyValidator]],
+      down_payment: [0, [contractMoneyValidator]],
       payment_months: [1, [Validators.required, Validators.min(1)]],
       first_payment_date: ['', Validators.required],
       currency: ['MXN', Validators.required],
@@ -415,8 +459,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   }
 
   calculateRemainingBalance(): void {
-    const totalPrice = Number(this.form.get('total_price')!.value) || 0;
-    const downPayment = Number(this.form.get('down_payment')!.value) || 0;
+    const totalPrice = parseContractAmount(this.form.get('total_price')!.value);
+    const downPayment = parseContractAmount(this.form.get('down_payment')!.value);
     const remainingBalance = totalPrice - downPayment;
     
     this.form.get('remaining_balance')!.setValue(remainingBalance, { emitEvent: true });
@@ -424,8 +468,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   }
 
   calculateMonthlyPayment(): void {
-    const remainingBalance = Number(this.form.get('remaining_balance')!.value) || 0;
-    const paymentMonths = Number(this.form.get('payment_months')!.value) || 1;
+    const remainingBalance = parseContractAmount(this.form.get('remaining_balance')!.value);
+    const paymentMonths = Math.max(1, Math.round(parseContractAmount(this.form.get('payment_months')!.value) || 1));
     
     // Validar payment_months > 0 para evitar división por cero
     const monthlyPayment = paymentMonths > 0 ? remainingBalance / paymentMonths : 0;
@@ -467,8 +511,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     }
 
     // Validar que down_payment <= total_price
-    const totalPrice = Number(this.form.get('total_price')!.value) || 0;
-    const downPayment = Number(this.form.get('down_payment')!.value) || 0;
+    const totalPrice = parseContractAmount(this.form.get('total_price')!.value);
+    const downPayment = parseContractAmount(this.form.get('down_payment')!.value);
 
     if (downPayment > totalPrice) {
       this.interceptorService.openSnackbar({
@@ -485,9 +529,9 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       property_id: this.form.get('property_id')!.value,
       seller_id: this.form.get('seller_id')!.value || undefined,
       contract_date: this.form.get('contract_date')!.value,
-      total_price: this.form.get('total_price')!.value,
-      down_payment: this.form.get('down_payment')!.value,
-      payment_months: this.form.get('payment_months')!.value,
+      total_price: parseContractAmount(this.form.get('total_price')!.value),
+      down_payment: parseContractAmount(this.form.get('down_payment')!.value),
+      payment_months: Math.max(1, Math.round(parseContractAmount(this.form.get('payment_months')!.value) || 1)),
       first_payment_date: this.form.get('first_payment_date')!.value,
       currency: this.form.get('currency')!.value,
       status: this.form.get('status')!.value,

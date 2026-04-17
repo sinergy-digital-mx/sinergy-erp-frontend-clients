@@ -37,12 +37,20 @@ export interface Customer {
   lastname?: string;
   email: string;
   phone?: string;
+  /** ISO país (titular); el API puede devolver `country` y/o `phone_country`. */
+  country?: string;
   phone_country?: string;
   phone_code?: string;
   company_name?: string;
   group?: CustomerGroup | null;
   group_id?: string | null;
   status_id?: string;
+  additional_name?: string;
+  additional_lastname?: string;
+  additional_email?: string;
+  additional_phone?: string;
+  additional_phone_country?: string;
+  additional_phone_code?: string;
   status?: {
     id: string;
     name: string;
@@ -52,6 +60,28 @@ export interface Customer {
   activities?: CustomerActivity[];
   created_at?: string;
   updated_at?: string;
+}
+
+/**
+ * Cuerpo admitido por el DTO de actualización (PUT); todos los campos son opcionales en el contrato,
+ * pero el formulario envía los que edita el usuario.
+ */
+export interface UpdateCustomerDto {
+  status_id?: string;
+  name?: string;
+  lastname?: string;
+  email?: string;
+  phone?: string;
+  phone_code?: string;
+  country?: string;
+  company_name?: string;
+  group_id?: string | null;
+  additional_name?: string;
+  additional_lastname?: string;
+  additional_email?: string;
+  additional_phone?: string;
+  additional_phone_country?: string;
+  additional_phone_code?: string;
 }
 
 /**

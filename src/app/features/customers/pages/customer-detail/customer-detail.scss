@@ -1,0 +1,37 @@
+/* Mismo patrón visual que el toggle del modal Crear/Editar cliente */
+.customer-detail__expand-additional {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.75rem;
+  padding: 0.375rem 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 0.375rem;
+
+  &:hover .customer-detail__expand-additional-action {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+}
+
+.customer-detail__expand-additional-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.customer-detail__expand-additional-action {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4f46e5;
+}

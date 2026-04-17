@@ -265,7 +265,11 @@ export class CustomersList implements OnDestroy {
   createCustomer() {
     this.dialog.open(CustomerEditModalComponent, {
       data: { customer: null },
-      width: '500px'
+      width: '700px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'customer-edit-dialog',
+      autoFocus: 'first-tabbable'
     }).afterClosed().subscribe((result) => {
       if (result) {
         this.getCustomers();

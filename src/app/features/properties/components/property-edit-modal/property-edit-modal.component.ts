@@ -1,5 +1,6 @@
 import { Component, Inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Router } from '@angular/router';
@@ -219,6 +220,14 @@ export class PropertyEditModalComponent implements OnInit {
     }
   }
 
+  private resolveApiErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse && error.error?.message != null) {
+      const msg = error.error.message;
+      return Array.isArray(msg) ? msg.join(', ') : String(msg);
+    }
+    return fallback;
+  }
+
   getOwnerName(): string | null {
     const owner = this.data?.property?.contracts?.[0]?.customer;
     if (!owner) return null;
@@ -273,13 +282,16 @@ export class PropertyEditModalComponent implements OnInit {
 
         this.closeDialog();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loading.set(false);
 
         this.interceptor_service.openSnackbar({
           type: 'error',
           title: 'Error',
-          message: 'No pudimos crear el lote. Por favor intenta de nuevo.'
+          message: this.resolveApiErrorMessage(
+            err,
+            'No pudimos crear el lote. Por favor intenta de nuevo.'
+          )
         });
       }
     });
@@ -316,13 +328,16 @@ export class PropertyEditModalComponent implements OnInit {
 
         this.closeDialog();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loading.set(false);
 
         this.interceptor_service.openSnackbar({
           type: 'error',
           title: 'Error',
-          message: 'No pudimos actualizar el lote. Por favor intenta de nuevo.'
+          message: this.resolveApiErrorMessage(
+            err,
+            'No pudimos actualizar el lote. Por favor intenta de nuevo.'
+          )
         });
       }
     });

@@ -10,7 +10,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { InputComponent } from '../../../../core/components/input/input.component';
 import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
 import { LucideAngularModule, X } from 'lucide-angular';
-import { Contract } from '../../models/contract.model';
+import { Contract, ContractStatus, UpdateContractDto } from '../../models/contract.model';
 import { ContractService } from '../../services/contract.service';
 import { PaymentService } from '../../services/payment.service';
 import { PaymentStats } from '../../models/payment.model';
@@ -51,6 +51,8 @@ export class ContractDetailModalComponent implements OnInit {
   form: FormGroup;
   saving = signal(false);
   deleting = signal(false);
+  /** Si hubo guardado exitoso, al cerrar se notifica a la lista para recargar. */
+  private contractListNeedsRefresh = false;
   activeTab = signal<'edit' | 'payments' | 'down_payments' | 'hoa' | 'documents' | 'statement'>('edit');
   paymentStats = signal<PaymentStats | null>(null);
 
@@ -93,7 +95,7 @@ export class ContractDetailModalComponent implements OnInit {
       monthly_payment: [{value: this.data.contract.monthly_payment, disabled: true}, [Validators.required, Validators.min(0)]],
       first_payment_date: [this.data.contract.first_payment_date, Validators.required],
       currency: [this.data.contract.currency || 'USD', Validators.required],
-      status: [this.data.contract.status, Validators.required],
+      status: [this.normalizeStatus(this.data.contract.status), Validators.required],
       notes: [this.data.contract.notes || ''],
       seller_search: [''],
       seller_id: [this.data.contract.seller_id || null]
@@ -116,8 +118,9 @@ export class ContractDetailModalComponent implements OnInit {
         console.log('📋 Contract loaded:', contract);
         console.log('🧑 Seller data:', contract.seller);
         
-        // Actualizar data del contrato
-        this.data.contract = contract;
+        // Actualizar data del contrato (estado siempre en minúsculas para UI y PUT)
+        const normalizedStatus = this.normalizeStatus(contract.status as unknown);
+        this.data.contract = { ...contract, status: normalizedStatus };
         
         // Si hay un vendedor asignado, agregarlo a la lista de vendedores
         if (contract.seller) {
@@ -143,7 +146,7 @@ export class ContractDetailModalComponent implements OnInit {
           monthly_payment: contract.monthly_payment,
           first_payment_date: contract.first_payment_date,
           currency: contract.currency || 'USD',
-          status: contract.status,
+          status: normalizedStatus,
           notes: contract.notes || '',
           seller_id: contract.seller_id || null,
           seller_search: contract.seller ? this.displaySeller(contract.seller) : ''
@@ -178,6 +181,7 @@ export class ContractDetailModalComponent implements OnInit {
 
   refreshContractData(): void {
     console.log('🔄 Refreshing contract data...');
+    this.contractListNeedsRefresh = true;
     this.loadContractDetails();
   }
 
@@ -307,6 +311,37 @@ export class ContractDetailModalComponent implements OnInit {
     this.activeTab.set(tab);
   }
 
+  /** Estado normalizado para badge del encabezado y comparaciones en plantilla. */
+  get badgeStatus(): ContractStatus {
+    return this.normalizeStatus(this.data?.contract?.status);
+  }
+
+  /**
+   * Alinea el estado con el contrato del API y el PUT (minúsculas: activo | completado | cancelado | suspendido).
+   */
+  normalizeStatus(raw: unknown): ContractStatus {
+    if (raw == null || raw === '') return 'activo';
+    let s: string;
+    if (typeof raw === 'object' && raw !== null && 'code' in (raw as Record<string, unknown>)) {
+      s = String((raw as { code: string }).code);
+    } else {
+      s = String(raw);
+    }
+    const key = s.trim().toLowerCase();
+    const direct: ContractStatus[] = ['activo', 'completado', 'cancelado', 'suspendido'];
+    if (direct.includes(key as ContractStatus)) {
+      return key as ContractStatus;
+    }
+    const map: Record<string, ContractStatus> = {
+      active: 'activo',
+      completed: 'completado',
+      cancelled: 'cancelado',
+      canceled: 'cancelado',
+      suspended: 'suspendido'
+    };
+    return map[key] ?? 'activo';
+  }
+
   downloadStatement(): void {
     this.contractService.getContractStatement(this.data.contract.id).subscribe({
       next: (blob: Blob) => {
@@ -364,14 +399,14 @@ export class ContractDetailModalComponent implements OnInit {
 
     this.saving.set(true);
 
-    const payload = {
+    const payload: UpdateContractDto = {
       contract_date: this.form.get('contract_date')?.value,
       total_price: this.form.get('total_price')?.value,
       down_payment: this.form.get('down_payment')?.value,
       payment_months: this.form.get('payment_months')?.value,
       first_payment_date: this.form.get('first_payment_date')?.value,
       currency: this.form.get('currency')?.value,
-      status: this.form.get('status')?.value,
+      status: this.normalizeStatus(this.form.get('status')?.value),
       notes: this.form.get('notes')?.value,
       seller_id: this.form.get('seller_id')?.value || null
     };
@@ -379,6 +414,7 @@ export class ContractDetailModalComponent implements OnInit {
     this.contractService.updateContract(this.data.contract.id, payload).subscribe({
       next: () => {
         this.saving.set(false);
+        this.contractListNeedsRefresh = true;
         this.interceptorService.openSnackbar({
           type: 'success',
           title: 'Éxito',
@@ -399,12 +435,12 @@ export class ContractDetailModalComponent implements OnInit {
   }
 
   closeDialog() {
-    this.dialog_ref.close();
+    this.dialog_ref.close(this.contractListNeedsRefresh ? true : undefined);
   }
 
   navigateToCustomer() {
     if (this.data.contract.customer) {
-      this.dialog_ref.close();
+      this.dialog_ref.close(this.contractListNeedsRefresh ? true : undefined);
       this.router.navigate(['/customers/detail', this.data.contract.customer.id]);
     }
   }

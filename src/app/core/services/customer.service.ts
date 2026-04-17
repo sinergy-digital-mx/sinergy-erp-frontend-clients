@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
+import { UpdateCustomerDto } from '../../features/customers/models/customer-group.model';
 
 
 @Injectable({
@@ -38,7 +39,7 @@ export class CustomerService {
     });
   }
 
-  updateCustomer(id: string, data: any): Observable<any> {
+  updateCustomer(id: string, data: UpdateCustomerDto): Observable<any> {
     return this.http.put(`${this.api}/tenant/customers/${id}`, data);
   }
 

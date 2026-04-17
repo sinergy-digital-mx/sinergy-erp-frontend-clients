@@ -48,7 +48,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Users
-} from "./chunk-XYBC4MWB.js";
+} from "./chunk-FK5OXRXK.js";
 import "./chunk-KNFYVOET.js";
 import "./chunk-OO2OLRGJ.js";
 import {
@@ -1678,13 +1678,13 @@ var routes = [
   {
     path: "login",
     canActivate: [LoggedGuard],
-    loadComponent: () => import("./chunk-FTSPKVJ7.js").then((m5) => m5.Login)
+    loadComponent: () => import("./chunk-IJBNDN5X.js").then((m5) => m5.Login)
   },
   // POS - Tomar Orden y Cobrar Orden (pantalla completa, sin layout)
   {
     path: "pos/pending-orders",
     canActivate: [AuthGuard],
-    loadComponent: () => import("./chunk-BHDJ4AYC.js").then((m5) => m5.PendingOrdersComponent),
+    loadComponent: () => import("./chunk-O66KYYH7.js").then((m5) => m5.PendingOrdersComponent),
     data: {
       permission: "pos:Read",
       title: "\xD3rdenes Pendientes"
@@ -1693,7 +1693,7 @@ var routes = [
   {
     path: "pos/payment",
     canActivate: [AuthGuard],
-    loadComponent: () => import("./chunk-MBUU2LKH.js").then((m5) => m5.PaymentComponent),
+    loadComponent: () => import("./chunk-BSQX5ZY2.js").then((m5) => m5.PaymentComponent),
     data: {
       permission: "pos:Update",
       title: "Cobrar Orden"
@@ -1707,23 +1707,23 @@ var routes = [
     children: [
       {
         path: "leads",
-        loadChildren: () => import("./chunk-ZGZQQPXL.js").then((m5) => m5.LEADS_ROUTES)
+        loadChildren: () => import("./chunk-EFFASVN7.js").then((m5) => m5.LEADS_ROUTES)
       },
       {
         path: "customers",
-        loadChildren: () => import("./chunk-X5FZMV2K.js").then((m5) => m5.CUSTOMERS_ROUTES)
+        loadChildren: () => import("./chunk-TLOTHDK3.js").then((m5) => m5.CUSTOMERS_ROUTES)
       },
       {
         path: "properties",
-        loadChildren: () => import("./chunk-YRDZEDAS.js").then((m5) => m5.PROPERTIES_ROUTES)
+        loadChildren: () => import("./chunk-OJSY7UFC.js").then((m5) => m5.PROPERTIES_ROUTES)
       },
       {
         path: "contracts",
-        loadChildren: () => import("./chunk-N2ASV6JH.js").then((m5) => m5.CONTRACTS_ROUTES)
+        loadChildren: () => import("./chunk-KWFWTZFC.js").then((m5) => m5.CONTRACTS_ROUTES)
       },
       {
         path: "settings",
-        loadChildren: () => import("./chunk-YSPMUGQL.js").then((m5) => m5.RBAC_TENANT_UI_ROUTES)
+        loadChildren: () => import("./chunk-YWGPHASE.js").then((m5) => m5.RBAC_TENANT_UI_ROUTES)
       },
       {
         path: "marketing",
@@ -1731,19 +1731,19 @@ var routes = [
       },
       {
         path: "purchase-orders",
-        loadChildren: () => import("./chunk-QONF354G.js").then((m5) => m5.PURCHASE_ORDERS_ROUTES)
+        loadChildren: () => import("./chunk-U6OTW54O.js").then((m5) => m5.PURCHASE_ORDERS_ROUTES)
       },
       {
         path: "inventory",
-        loadChildren: () => import("./chunk-PCFF3AY2.js").then((m5) => m5.INVENTORY_ROUTES)
+        loadChildren: () => import("./chunk-HDF6D3NV.js").then((m5) => m5.INVENTORY_ROUTES)
       },
       {
         path: "sales-orders",
-        loadChildren: () => import("./chunk-K5HAURCS.js").then((m5) => m5.SALES_ORDERS_ROUTES)
+        loadChildren: () => import("./chunk-PPGPFVAZ.js").then((m5) => m5.SALES_ORDERS_ROUTES)
       },
       {
         path: "pos",
-        loadComponent: () => import("./chunk-NVG4OZS3.js").then((m5) => m5.TakeOrderComponent),
+        loadComponent: () => import("./chunk-N7FEWWBU.js").then((m5) => m5.TakeOrderComponent),
         data: {
           permission: "pos:Create",
           title: "Punto de Venta"

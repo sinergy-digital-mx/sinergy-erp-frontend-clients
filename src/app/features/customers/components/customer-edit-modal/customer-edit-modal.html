@@ -12,32 +12,29 @@
     <form [formGroup]="form">
       <!-- Nombre -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-        <input
-          type="text"
-          formControlName="name"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="Nombre">
+        <app-input
+          label="Nombre"
+          placeholder="Nombre"
+          [form_control]="form.controls['name']">
+        </app-input>
       </div>
 
       <!-- Apellido -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
-        <input
-          type="text"
-          formControlName="lastname"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="Apellido">
+        <app-input
+          label="Apellido"
+          placeholder="Apellido"
+          [form_control]="form.controls['lastname']">
+        </app-input>
       </div>
 
       <!-- Email -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-        <input
-          type="email"
-          formControlName="email"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="Email">
+        <app-input
+          label="Email"
+          placeholder="Email"
+          [form_control]="form.controls['email']">
+        </app-input>
       </div>
 
       <!-- Teléfono -->
@@ -47,8 +44,14 @@
           type="text"
           formControlName="phone"
           appPhoneDigits
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 border"
+          [ngClass]="controlShowError('phone')
+            ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
+            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'"
           placeholder="Teléfono">
+        @if (controlShowError('phone') && controlErrorMessage('phone')) {
+          <p class="mt-1 text-sm text-red-600" role="alert">{{ controlErrorMessage('phone') }}</p>
+        }
       </div>
 
       <!-- Código Teléfono -->
@@ -67,12 +70,11 @@
 
       <!-- Empresa (full width) -->
       <div class="col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
-        <input
-          type="text"
-          formControlName="company_name"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="Empresa">
+        <app-input
+          label="Empresa"
+          placeholder="Empresa"
+          [form_control]="form.controls['company_name']">
+        </app-input>
       </div>
 
       <!-- Grupo (full width) -->
@@ -84,6 +86,73 @@
           (groupSelect)="onGroupSelected($event)">
         </app-customer-group-dropdown>
       </div>
+
+      <!-- Persona adicional (opcional): colapsable -->
+      <div class="col-span-2 pt-2 border-t border-gray-200">
+        <button
+          type="button"
+          class="customer-modal__expand-additional"
+          (click)="toggleAdditionalPerson()">
+          <span class="customer-modal__expand-additional-label">Persona adicional (opcional)</span>
+          <span class="customer-modal__expand-additional-action">
+            {{ additionalPersonExpanded() ? 'Ocultar' : 'Agregar' }}
+          </span>
+        </button>
+      </div>
+
+      <ng-container *ngIf="additionalPersonExpanded()">
+        <div>
+          <app-input
+            label="Nombre adicional"
+            placeholder="Nombre"
+            [form_control]="form.controls['additional_name']">
+          </app-input>
+        </div>
+
+        <div>
+          <app-input
+            label="Apellido adicional"
+            placeholder="Apellido"
+            [form_control]="form.controls['additional_lastname']">
+          </app-input>
+        </div>
+
+        <div class="col-span-2">
+          <app-input
+            label="Email adicional"
+            placeholder="Email"
+            [form_control]="form.controls['additional_email']">
+          </app-input>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono adicional</label>
+          <input
+            type="text"
+            formControlName="additional_phone"
+            appPhoneDigits
+            class="w-full px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 border"
+            [ngClass]="controlShowError('additional_phone')
+              ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'"
+            placeholder="Teléfono">
+          @if (controlShowError('additional_phone') && controlErrorMessage('additional_phone')) {
+            <p class="mt-1 text-sm text-red-600" role="alert">{{ controlErrorMessage('additional_phone') }}</p>
+          }
+        </div>
+
+        <div>
+          <app-phone-code-select
+            [control]="getAdditionalPhoneCodeControl()">
+          </app-phone-code-select>
+        </div>
+
+        <div class="col-span-2">
+          <app-phone-country-select
+            [control]="getAdditionalPhoneCountryControl()">
+          </app-phone-country-select>
+        </div>
+      </ng-container>
     </form>
   </div>
 

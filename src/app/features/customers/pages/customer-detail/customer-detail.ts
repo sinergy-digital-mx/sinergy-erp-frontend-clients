@@ -42,6 +42,8 @@ export class CustomerDetail implements OnInit, OnDestroy {
   customer = signal<Customer | null>(null);
   isLoading = signal(true);
   error = signal<any>(null);
+  /** Persona adicional en detalle: colapsable (mismo criterio que el modal). */
+  additionalPersonExpanded = signal(false);
   customerId: number | null = null;
   private destroy$ = new Subject<void>();
 
@@ -85,6 +87,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
       .subscribe({
         next: (customer) => {
           this.customer.set(customer);
+          this.additionalPersonExpanded.set(false);
           this.isLoading.set(false);
         },
         error: (error) => {
@@ -101,7 +104,11 @@ export class CustomerDetail implements OnInit, OnDestroy {
     if (!this.customer()) return;
 
     const dialogRef = this.dialog.open(CustomerEditModalComponent, {
-      width: '500px',
+      width: '700px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'customer-edit-dialog',
+      autoFocus: 'first-tabbable',
       data: { customer: this.customer() }
     });
 
@@ -146,9 +153,31 @@ export class CustomerDetail implements OnInit, OnDestroy {
    * Open contract modal
    */
   openContractModal(contract: any) {
-    this.dialog.open(ContractDetailModalComponent, {
-      data: { contract }
-    });
+    this.dialog
+      .open(ContractDetailModalComponent, {
+        data: { contract }
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (result === true || result === 'deleted') {
+          this.loadCustomer();
+        }
+      });
+  }
+
+  toggleAdditionalPerson(): void {
+    this.additionalPersonExpanded.update((v) => !v);
+  }
+
+  /** True si el API devolvió algún dato de contacto adicional. */
+  hasAdditionalContact(c: Customer): boolean {
+    const t = (s: string | null | undefined) => (s ?? '').trim();
+    return !!(
+      t(c.additional_name) ||
+      t(c.additional_lastname) ||
+      t(c.additional_email) ||
+      t(c.additional_phone)
+    );
   }
 
   getSeverity(s: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | null {
