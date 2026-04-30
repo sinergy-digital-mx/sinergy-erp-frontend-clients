@@ -9,7 +9,7 @@ import {
   ProductPhoto, ProductPrice, PriceList, CreatePriceListDto, CreateProductPriceDto,
   VendorProductPrice, CreateVendorPriceDto,
   ConvertUoMRequest, ConvertUoMResponse,
-  UoMCatalog
+  UoMCatalog, ProductAttribute, ProductAttributeQueryParams, ProductAttributeValue
 } from '../models/product.model';
 
 @Injectable({
@@ -82,6 +82,44 @@ export class ProductService {
 
   deleteProduct(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/products/${id}`);
+  }
+
+  // ─── Product Attributes (Tenant) ────────────────────────────
+
+  getProductAttributes(params?: ProductAttributeQueryParams): Observable<any> {
+    return this.http.get<any>(`${this.api}/tenant/products/attributes`, { params: params as any });
+  }
+
+  getProductAttributeById(attributeId: string): Observable<ProductAttribute> {
+    return this.http.get<ProductAttribute>(`${this.api}/tenant/products/attributes/${attributeId}`);
+  }
+
+  createProductAttribute(data: { name: string; description?: string; is_active?: boolean }): Observable<ProductAttribute> {
+    return this.http.post<ProductAttribute>(`${this.api}/tenant/products/attributes`, data);
+  }
+
+  updateProductAttribute(attributeId: string, data: Partial<{ name: string; description: string; is_active: boolean }>): Observable<ProductAttribute> {
+    return this.http.patch<ProductAttribute>(`${this.api}/tenant/products/attributes/${attributeId}`, data);
+  }
+
+  deleteProductAttribute(attributeId: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/tenant/products/attributes/${attributeId}`);
+  }
+
+  createProductAttributeValue(attributeId: string, data: { value: string; is_active?: boolean }): Observable<ProductAttributeValue> {
+    return this.http.post<ProductAttributeValue>(`${this.api}/tenant/products/attributes/${attributeId}/values`, data);
+  }
+
+  getProductAttributeValues(attributeId: string): Observable<any> {
+    return this.http.get<any>(`${this.api}/tenant/products/attributes/${attributeId}/values`);
+  }
+
+  updateProductAttributeValue(attributeId: string, valueId: string, data: Partial<{ value: string; is_active: boolean }>): Observable<ProductAttributeValue> {
+    return this.http.patch<ProductAttributeValue>(`${this.api}/tenant/products/attributes/${attributeId}/values/${valueId}`, data);
+  }
+
+  deleteProductAttributeValue(attributeId: string, valueId: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/tenant/products/attributes/${attributeId}/values/${valueId}`);
   }
 
   // ─── Categories ─────────────────────────────────────────────
@@ -169,14 +207,28 @@ export class ProductService {
   }
 
   getUOMCatalogForProduct(productId: string): Observable<UoMCatalog[]> {
-    return this.http.get<UoMCatalog[]>(`${this.api}/tenant/products/${productId}/uoms/catalog`);
+    return this.http.get<any>(`${this.api}/tenant/products/${productId}/uoms/catalog`).pipe(
+      map((response) => {
+        if (response && response.data && Array.isArray(response.data)) {
+          return response.data;
+        }
+        if (Array.isArray(response)) {
+          return response;
+        }
+        return [];
+      })
+    );
   }
 
   createUOM(productId: string, data: { uom_catalog_id: string; factor?: number; is_base?: boolean; parent_uom_id?: string | null }): Observable<any> {
     return this.http.post<any>(`${this.api}/tenant/products/${productId}/uoms`, data);
   }
 
-  updateUOM(productId: string, uomId: string, data: { factor?: number; is_base?: boolean; parent_uom_id?: string | null }): Observable<any> {
+  updateUOM(
+    productId: string,
+    uomId: string,
+    data: { uom_catalog_id?: string; factor?: number; is_base?: boolean; parent_uom_id?: string | null }
+  ): Observable<any> {
     return this.http.patch<any>(`${this.api}/tenant/products/${productId}/uoms/${uomId}`, data);
   }
 
@@ -219,6 +271,17 @@ export class ProductService {
       formData.append('alt_text', altText);
     }
     return this.http.post<ProductPhoto>(`${this.api}/products/${productId}/photos`, formData);
+  }
+
+  uploadProductPhoto(productId: string, file: File): Observable<Product> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<any>(`${this.api}/tenant/products/${productId}/photo`, formData).pipe(
+      map((response) => {
+        if (response?.data) return response.data as Product;
+        return response as Product;
+      })
+    );
   }
 
   getPhotoSignedUrl(productId: string, photoId: string): Observable<{ signed_url: string }> {

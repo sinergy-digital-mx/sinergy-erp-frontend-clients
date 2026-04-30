@@ -28,62 +28,80 @@ import { Contract } from '../../models/contract.model';
             </p>
 
             <div class="space-y-4">
-              <!-- Fecha de Inicio -->
+              <!-- Fecha inicial -->
               <div>
-                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha de Inicio
+                <label for="first_payment_date" class="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha inicial
                 </label>
                 <input
-                  id="start_date"
+                  id="first_payment_date"
                   type="date"
-                  formControlName="start_date"
+                  formControlName="first_payment_date"
                   class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                  [class.border-red-500]="form.get('start_date')?.invalid && form.get('start_date')?.touched">
-                <p *ngIf="form.get('start_date')?.invalid && form.get('start_date')?.touched" 
+                  [class.border-red-500]="form.get('first_payment_date')?.invalid && form.get('first_payment_date')?.touched">
+                <p *ngIf="form.get('first_payment_date')?.invalid && form.get('first_payment_date')?.touched"
                    class="mt-1 text-xs text-red-600">
-                  La fecha de inicio es requerida
+                  La fecha inicial es requerida
                 </p>
               </div>
 
-              <!-- Fecha de Fin -->
+              <!-- Cantidad de pagos -->
               <div>
-                <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha de Fin
+                <label for="payments_count" class="block text-sm font-medium text-gray-700 mb-1">
+                  Cantidad de pagos
                 </label>
                 <input
-                  id="end_date"
-                  type="date"
-                  formControlName="end_date"
+                  id="payments_count"
+                  type="number"
+                  min="1"
+                  step="1"
+                  formControlName="payments_count"
                   class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                  [class.border-red-500]="form.get('end_date')?.invalid && form.get('end_date')?.touched">
-                <p *ngIf="form.get('end_date')?.invalid && form.get('end_date')?.touched" 
+                  [class.border-red-500]="form.get('payments_count')?.invalid && form.get('payments_count')?.touched">
+                <p *ngIf="form.get('payments_count')?.invalid && form.get('payments_count')?.touched"
                    class="mt-1 text-xs text-red-600">
-                  La fecha de fin es requerida
-                </p>
-                <p *ngIf="form.hasError('endDateBeforeStart')" 
-                   class="mt-1 text-xs text-red-600">
-                  La fecha de fin debe ser posterior a la fecha de inicio
+                  La cantidad debe ser mayor a 0
                 </p>
               </div>
 
-              <!-- Monto -->
+              <!-- Día de pago mensual -->
               <div>
-                <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="payment_day" class="block text-sm font-medium text-gray-700 mb-1">
+                  Día de pago mensual
+                </label>
+                <input
+                  id="payment_day"
+                  type="number"
+                  min="1"
+                  max="31"
+                  step="1"
+                  formControlName="payment_day"
+                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  [class.border-red-500]="form.get('payment_day')?.invalid && form.get('payment_day')?.touched">
+                <p *ngIf="form.get('payment_day')?.invalid && form.get('payment_day')?.touched"
+                   class="mt-1 text-xs text-red-600">
+                  El día debe estar entre 1 y 31
+                </p>
+              </div>
+
+              <!-- Monto mensual -->
+              <div>
+                <label for="monthly_amount" class="block text-sm font-medium text-gray-700 mb-1">
                   Monto Mensual
                 </label>
                 <div class="relative">
                   <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
                   <input
-                    id="amount"
+                    id="monthly_amount"
                     type="number"
                     step="0.01"
                     min="0"
-                    formControlName="amount"
+                    formControlName="monthly_amount"
                     placeholder="0.00"
                     class="w-full rounded-lg border border-gray-300 pl-7 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                    [class.border-red-500]="form.get('amount')?.invalid && form.get('amount')?.touched">
+                    [class.border-red-500]="form.get('monthly_amount')?.invalid && form.get('monthly_amount')?.touched">
                 </div>
-                <p *ngIf="form.get('amount')?.invalid && form.get('amount')?.touched" 
+                <p *ngIf="form.get('monthly_amount')?.invalid && form.get('monthly_amount')?.touched"
                    class="mt-1 text-xs text-red-600">
                   El monto es requerido y debe ser mayor a 0
                 </p>
@@ -162,20 +180,11 @@ export class GenerateHoaDialogComponent {
     private fb: FormBuilder
   ) {
     this.form = this.fb.group({
-      start_date: [this.data.contract.contract_date, Validators.required],
-      end_date: ['', Validators.required],
-      amount: ['', [Validators.required, Validators.min(0.01)]]
-    }, { validators: this.dateRangeValidator });
-  }
-
-  dateRangeValidator(group: FormGroup) {
-    const startDate = group.get('start_date')?.value;
-    const endDate = group.get('end_date')?.value;
-    
-    if (startDate && endDate && new Date(endDate) <= new Date(startDate)) {
-      return { endDateBeforeStart: true };
-    }
-    return null;
+      first_payment_date: [this.data.contract.first_payment_date || this.data.contract.contract_date, Validators.required],
+      payments_count: [12, [Validators.required, Validators.min(1)]],
+      payment_day: [5, [Validators.required, Validators.min(1), Validators.max(31)]],
+      monthly_amount: ['', [Validators.required, Validators.min(0.01)]]
+    });
   }
 
   onSubmit() {

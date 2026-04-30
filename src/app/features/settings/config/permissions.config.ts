@@ -76,6 +76,13 @@ export const SETTINGS_PERMISSIONS = {
     create: 'customer_groups:Create',
     update: 'customer_groups:Update',
     delete: 'customer_groups:Delete'
+  },
+
+  // Exchange Rate sub-module
+  exchangeRate: {
+    viewMenu: 'exchangerate:ViewMenu',
+    view: 'exchangerate:Read',
+    update: 'exchangerate:Update'
   }
 } as const;
 

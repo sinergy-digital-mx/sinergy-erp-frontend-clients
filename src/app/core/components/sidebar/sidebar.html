@@ -37,7 +37,6 @@
           }
         </nav>
 
-
         <div class="mt-6 mb-4 border-t border-white/20"></div>
 
         <nav class="flex flex-col gap-1.5">
@@ -62,6 +61,24 @@
     </div>
 
     <div [class]="'user-section py-5 transition-all duration-300 ' + (isCollapsed() ? 'px-2' : 'px-6')">
+        @if (todayUsdMxnRate() !== null) {
+            <a
+                routerLink="/settings/exchange-rates"
+                [class]="'mb-3 block rounded-md border border-white/15 bg-white/10 text-white hover:bg-white/15 transition-colors ' + (isCollapsed() ? 'px-1.5 py-1.5 text-center' : 'px-2 py-1.5')">
+                @if (isCollapsed()) {
+                    <div class="text-[11px]" title="Tipo de cambio USD/MXN">
+                        🇺🇸🇲🇽
+                    </div>
+                } @else {
+                    <div class="text-[9px] text-white/65 uppercase tracking-wide leading-none">Tipo de cambio</div>
+                    <div class="flex items-center justify-between mt-1 leading-none">
+                        <span class="text-[11px]">USD/MXN</span>
+                        <span class="font-semibold text-[13px]">{{ todayUsdMxnRate() | number:'1.2-4' }}</span>
+                    </div>
+                }
+            </a>
+        }
+
         @if (isCollapsed()) {
             <div class="flex flex-col items-center gap-3">
                 <div class="user-avatar w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold">

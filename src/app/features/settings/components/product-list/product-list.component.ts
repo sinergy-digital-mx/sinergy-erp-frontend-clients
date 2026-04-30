@@ -35,8 +35,8 @@ export class ProductListComponent implements OnDestroy {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'SKU', prop: 'sku', sortable: true, canAutoResize: true, width: 110 },
-      { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true, width: 180 },
+      { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true, width: 200 },
+      { name: 'SKU', prop: 'sku', sortable: true, canAutoResize: true, width: 120 },
       { name: 'Categoría', prop: 'category', sortable: false, canAutoResize: true, width: 130 },
       { name: 'Subcategoría', prop: 'subcategory', sortable: false, canAutoResize: true, width: 130 },
     ],
@@ -76,8 +76,17 @@ export class ProductListComponent implements OnDestroy {
     this.table_config.update(c => ({ ...c, loading: true }));
 
     const params: any = {};
-    if (this.search && this.search.trim()) {
-      params.search = this.search;
+    const normalizedSearch = this.search?.trim();
+    if (normalizedSearch) {
+      // ext:ERP-123 => filtra por external_sku exacto
+      if (normalizedSearch.toLowerCase().startsWith('ext:')) {
+        const externalSku = normalizedSearch.slice(4).trim();
+        if (externalSku) {
+          params.external_sku = externalSku;
+        }
+      } else {
+        params.search = normalizedSearch;
+      }
     }
 
     this.productService.getProducts(params).pipe(

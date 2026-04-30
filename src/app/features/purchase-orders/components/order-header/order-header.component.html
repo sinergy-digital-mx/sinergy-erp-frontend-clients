@@ -8,8 +8,8 @@
       </div>
       <div class="order-header__field">
         <span class="label">ESTADO:</span>
-        <span [ngClass]="getStatusClass(order.status)" role="status">
-          {{ order.status }}
+        <span [ngClass]="getStatusClass(displayStatus())" role="status">
+          {{ displayStatus() }}
         </span>
       </div>
     </div>

@@ -18,6 +18,15 @@ export interface POSCartItem {
   iva_amount: number;
   ieps_amount: number;
   line_total: number;
+  pricing_options?: Array<{
+    price_list_id: string;
+    price_list_name: string;
+    price: string | number;
+    iva_percentage: string | number;
+    ieps_percentage: string | number;
+    total?: string | number;
+  }>;
+  selected_price_list_id?: string;
 }
 
 /**

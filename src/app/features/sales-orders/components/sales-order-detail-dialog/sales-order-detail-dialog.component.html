@@ -1,0 +1,196 @@
+<div class="order-detail-dialog">
+  @if (loading()) {
+    <div class="loading-container">
+      <p class="text-gray-500">Cargando orden...</p>
+    </div>
+  }
+
+  @if (order() && !loading()) {
+    <div class="dialog-header">
+      <div class="dialog-header-main">
+        <h2 class="text-xl font-bold text-gray-900">#{{ order()!.folio || order()!.id.substring(0, 8) }}</h2>
+        <span class="px-3 py-1 rounded text-xs font-semibold" [ngClass]="getStatusClass(order()!.general_status)">
+          {{ order()!.general_status || '-' }}
+        </span>
+      </div>
+      <div class="dialog-header-actions">
+        @if (canEditOrder()) {
+          <button type="button" class="edit-order-btn" (click)="goToEditForm()">Editar orden</button>
+        }
+        <button type="button" class="close-btn" (click)="close()">
+          <i class="fi fi-rr-cross-small"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="dialog-content">
+      <div class="sidebar">
+        <div class="info-cards-group">
+          <div class="info-card">
+            <div class="card-icon bg-blue-100 text-blue-600">
+              <i class="fi fi-rr-user"></i>
+            </div>
+            <div class="card-text">
+              <span class="card-label">CLIENTE</span>
+              <span class="card-value">{{ getCustomerDisplayName() }}</span>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="card-icon bg-orange-100 text-orange-600">
+              <i class="fi fi-rr-box"></i>
+            </div>
+            <div class="card-text">
+              <span class="card-label">ALMACÉN</span>
+              <span class="card-value">{{ order()!.warehouse?.name || 'N/A' }}</span>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="card-icon bg-purple-100 text-purple-600">
+              <i class="fi fi-rr-document"></i>
+            </div>
+            <div class="card-text">
+              <span class="card-label">FISCAL</span>
+              <span class="card-value">{{ getFiscalDisplayName() }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">FECHAS Y TIPO</h3>
+          <div class="section-item">
+            <span class="section-label">Fecha entrega</span>
+            <span class="section-value">{{ order()!.expected_delivery_date || '-' }}</span>
+          </div>
+          <div class="section-item">
+            <span class="section-label">Tipo</span>
+            <span class="section-value">{{ order()!.sales_order_type || 'MANUAL' }}</span>
+          </div>
+          <div class="section-item">
+            <span class="section-label">Estado de pago</span>
+            <span class="px-2 py-1 rounded text-xs font-semibold" [ngClass]="getPaymentStatusClass(order()!.payment_status)">
+              {{ order()!.payment_status || '-' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">TOTALES</h3>
+          <div class="totals-card">
+            <div class="totals-row">
+              <span class="totals-label">Subtotal</span>
+              <span class="totals-value">{{ formatCurrency(order()!.subtotal) }}</span>
+            </div>
+            <div class="totals-row">
+              <span class="totals-label">Descuento</span>
+              <span class="totals-value">{{ formatCurrency(order()!.discount_total) }}</span>
+            </div>
+            <div class="totals-row">
+              <span class="totals-label">IVA</span>
+              <span class="totals-value">{{ formatCurrency(order()!.iva_total) }}</span>
+            </div>
+            <div class="totals-row">
+              <span class="totals-label">IEPS</span>
+              <span class="totals-value">{{ formatCurrency(order()!.ieps_total) }}</span>
+            </div>
+            <div class="totals-divider"></div>
+            <div class="totals-row totals-row-total">
+              <span class="totals-label-total">Total</span>
+              <span class="totals-value-total text-blue-600">{{ formatCurrency(order()!.total || order()!.grand_total) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">NOTAS</h3>
+          <p class="text-sm text-gray-600">{{ order()!.notes || 'Sin notas' }}</p>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="tabs-header">
+          <button class="tab-button" [class.active]="activeTabIndex() === 0" (click)="activeTabIndex.set(0)">Productos</button>
+          <button class="tab-button" [class.active]="activeTabIndex() === 1" (click)="activeTabIndex.set(1)">Lotes</button>
+        </div>
+
+        <div class="tabs-content">
+          @if (activeTabIndex() === 0) {
+            <div class="tab-content-wrapper">
+              <table class="products-table">
+                <thead>
+                  <tr>
+                    <th>PRODUCTO</th>
+                    <th>UOM</th>
+                    <th>CANTIDAD</th>
+                    <th>PRECIO UNIT.</th>
+                    <th>TOTAL LÍNEA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of lineItems(); track item.id || $index) {
+                    <tr>
+                      <td>
+                        <div class="product-info">
+                          <strong>{{ item.product?.name || item.product_id }}</strong>
+                          <small>{{ item.product?.sku || '-' }}</small>
+                        </div>
+                      </td>
+                      <td>{{ getLineUom(item) }}</td>
+                      <td>{{ item.quantity | removeTrailingZeros }}</td>
+                      <td>{{ formatCurrency(item.unit_price) }}</td>
+                      <td>{{ formatCurrency(getLineTotal(item)) }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5" class="text-center">
+                        <div class="empty-state">
+                          <i class="fi fi-rr-box"></i>
+                          <p>No hay líneas</p>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          @if (activeTabIndex() === 1) {
+            <div class="tab-content-wrapper">
+              <table class="products-table">
+                <thead>
+                  <tr>
+                    <th>PRODUCTO</th>
+                    <th>LOTE</th>
+                    <th>CANTIDAD ASIGNADA</th>
+                    <th>CREADO</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of getBatchAllocationsRows(); track row.allocation?.id || $index) {
+                    <tr>
+                      <td>{{ row.item.product?.name || row.item.product_id }}</td>
+                      <td>{{ row.allocation?.inventory_batch?.batch_number || row.allocation?.inventory_batch_id || '-' }}</td>
+                      <td>{{ row.allocation?.quantity_allocated | removeTrailingZeros }}</td>
+                      <td>{{ row.allocation?.created_at | date:'short' }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="4" class="text-center">
+                        <div class="empty-state">
+                          <i class="fi fi-rr-layers"></i>
+                          <p>Sin asignaciones de lotes</p>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -1,7 +1,8 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { OrderFilters } from '../../models/filters.model';
 import { OrderStatus } from '../../models/purchase-order.model';
 import { Warehouse } from '../../models/warehouse.model';
@@ -11,13 +12,16 @@ import { Warehouse } from '../../models/warehouse.model';
   standalone: true,
   imports: [
     CommonModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    MatTooltipModule
   ],
   templateUrl: './filter-bar.component.html',
   styleUrl: './filter-bar.component.scss'
 })
-export class FilterBarComponent implements OnInit, OnDestroy {
+export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() warehouses: Warehouse[] = [];
+  /** Sincroniza el campo búsqueda con la URL o el listado (p. ej. ?search=uuid tras editar). */
+  @Input() initialSearch: string | null = null;
   @Output() filtersChange = new EventEmitter<OrderFilters>();
 
   // Form controls
@@ -46,6 +50,27 @@ export class FilterBarComponent implements OnInit, OnDestroy {
   ];
 
   private destroy$ = new Subject<void>();
+
+  get hasActiveFilters(): boolean {
+    return Boolean(
+      this.searchControl.value.trim() ||
+      this.dateRangeControl.value ||
+      this.dateFromControl.value ||
+      this.dateToControl.value ||
+      this.statusControl.value ||
+      this.warehouseControl.value
+    );
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!changes['initialSearch']) {
+      return;
+    }
+    const v = (this.initialSearch ?? '').trim();
+    if (this.searchControl.value !== v) {
+      this.searchControl.setValue(v, { emitEvent: false });
+    }
+  }
 
   ngOnInit(): void {
     // Search with debounce

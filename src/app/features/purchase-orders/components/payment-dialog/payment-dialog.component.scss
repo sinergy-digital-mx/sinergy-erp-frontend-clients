@@ -14,9 +14,9 @@
 
 .dialog-container {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-width: 500px;
+  border-radius: 10px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+  max-width: 660px;
   width: 100%;
   max-height: 90vh;
   display: flex;
@@ -28,14 +28,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
 
   h2 {
     margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #212121;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1f2937;
   }
 
   .close-button {
@@ -68,72 +68,91 @@
 }
 
 .dialog-body {
-  padding: 1.5rem;
+  padding: 1rem 1.25rem 0.5rem;
   overflow-y: auto;
   flex: 1;
 
-  .remaining-amount-info {
-    background-color: #e3f2fd;
-    border: 1px solid #90caf9;
-    border-radius: 4px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  .summary-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f9fafb;
+    padding: 0.75rem;
+    margin-bottom: 0.95rem;
 
-    .label {
-      font-weight: 500;
-      color: #1976d2;
-    }
+    .summary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-bottom: 0.35rem;
 
-    .amount {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #1565c0;
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      strong {
+        font-weight: 700;
+        color: #374151;
+        font-size: 0.95rem;
+      }
+
+      .pending {
+        color: #2584e7;
+        font-size: 1.1rem;
+        line-height: 1;
+      }
     }
   }
 
   .form-field {
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.9rem;
 
     label {
       display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: #424242;
-      font-size: 0.875rem;
+      margin-bottom: 0.35rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #4b5563;
+
+      span {
+        color: #ef4444;
+      }
     }
 
+    .form-input,
     .form-select,
     .form-textarea {
       width: 100%;
-      padding: 0.625rem;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      font-size: 0.875rem;
-      transition: border-color 0.2s;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 0.62rem 0.72rem;
+      font-size: 0.86rem;
+      color: #1f2937;
+      background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s;
 
       &:focus {
         outline: none;
-        border-color: #1976d2;
-        box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
       }
 
       &[aria-invalid="true"] {
-        border-color: #d32f2f;
+        border-color: #ef4444;
       }
     }
 
     .form-textarea {
       resize: vertical;
+      min-height: 80px;
       font-family: inherit;
     }
 
     .error-message {
       display: block;
       margin-top: 0.25rem;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: #d32f2f;
     }
   }
@@ -142,9 +161,34 @@
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-top: 1px solid #e0e0e0;
+  gap: 0.8rem;
+  padding: 0.9rem 1.25rem 1.2rem;
+  border-top: 1px solid #e5e7eb;
+
+  .btn-cancel,
+  .btn-submit {
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 0.65rem 1.15rem;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .btn-cancel {
+    background: transparent;
+    color: #2563eb;
+  }
+
+  .btn-submit {
+    background: #6fd9a0;
+    color: #fff;
+  }
 }
 
 // Responsive adjustments
@@ -161,8 +205,8 @@
 
   .dialog-footer {
     flex-direction: column-reverse;
-
-    app-button {
+    .btn-cancel,
+    .btn-submit {
       width: 100%;
     }
   }

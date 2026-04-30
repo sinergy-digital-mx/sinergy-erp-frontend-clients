@@ -139,10 +139,31 @@ export interface ProductPrice {
   updated_at?: string;
 }
 
+export interface ProductAttributeValue {
+  id: string;
+  attribute_id: string;
+  value: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductAttribute {
+  id: string;
+  tenant_id?: string;
+  name: string;
+  description?: string | null;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  values?: ProductAttributeValue[];
+}
+
 export interface Product {
   id: string;
   tenant_id?: string;
   sku: string;
+  external_sku?: string | null;
   name: string;
   description?: string | null;
   /** Clave de producto/servicio SAT (CFDI); el API puede usar `codigo_sat` */
@@ -162,12 +183,14 @@ export interface Product {
   uom_relationships?: UoMRelationship[];
   vendor_prices?: VendorProductPrice[];
   vendor_costs?: VendorProductPrice[];
+  photo?: string | null;
   photos?: ProductPhoto[];
   prices?: ProductPrice[];
 }
 
 export interface CreateProductDto {
   sku: string;
+  external_sku?: string;
   name: string;
   description?: string;
   sat_code?: string;
@@ -194,8 +217,17 @@ export interface ProductQueryParams {
   page?: number;
   limit?: number;
   search?: string;
+  external_sku?: string;
   sort?: string;
   status?: string;
+}
+
+export interface ProductAttributeQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  is_active?: boolean;
+  include_values?: boolean;
 }
 
 export interface CategoryQueryParams {

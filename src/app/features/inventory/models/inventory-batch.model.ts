@@ -13,6 +13,10 @@ export interface InventoryBatchMovementSummary {
 export interface InventoryBatch {
   id: string;
   batch_number: string;
+  photo?: string | null;
+  photo_url?: string | null;
+  photo_signed_url?: string | null;
+  source_tag_identifier?: string | null;
   warehouse_id: string;
   warehouse_name: string;
   product_id: string;

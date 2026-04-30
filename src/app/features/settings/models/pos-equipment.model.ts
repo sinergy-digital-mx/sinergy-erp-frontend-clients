@@ -11,6 +11,7 @@ export interface PosConfiguration {
   id: string;
   tenant_id: string;
   code: string;
+  type: 'VENTAS' | 'COBRANZA';
   sucursal: string;
   modelo: string;
   status: number;
@@ -21,6 +22,7 @@ export interface PosConfiguration {
 
 export interface CreatePosConfigurationDto {
   code: string;
+  type: 'VENTAS' | 'COBRANZA';
   sucursal: string;
   modelo: string;
   status: number;
@@ -44,6 +46,7 @@ export interface PosConfigurationQueryParams {
   search?: string;
   status?: number;
   sucursal?: string;
+  type?: 'VENTAS' | 'COBRANZA';
 }
 
 /** @deprecated use PosConfiguration */

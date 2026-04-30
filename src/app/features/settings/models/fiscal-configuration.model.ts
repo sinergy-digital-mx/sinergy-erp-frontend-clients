@@ -9,6 +9,7 @@ export interface FiscalConfiguration {
   digital_seal?: string;
   digital_seal_password?: string;
   private_key?: string;
+  logo?: string;
   status: 'active' | 'inactive';
   metadata?: Record<string, any>;
   created_at: string;

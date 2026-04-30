@@ -157,7 +157,13 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
 
       // Campos calculados (readonly en UI)
       remaining_balance: [{ value: 0, disabled: true }],
-      monthly_payment: [{ value: 0, disabled: true }]
+      monthly_payment: [{ value: 0, disabled: true }],
+
+      // Enganche financiado (cuotas separadas; no enviar down_payment_monthly_amount)
+      down_payment_financed: [false],
+      down_payment_months: [null as number | null],
+      down_payment_first_payment_date: [''],
+      down_payment_payment_day: [null as number | null]
     });
 
     // Vincular form controls a las configuraciones de select
@@ -168,7 +174,46 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.initializeForm();
     this.setupCalculations();
+    this.setupDownPaymentFinancing();
     this.loadInitialData();
+  }
+
+  /** Activa validadores y UX al marcar “financiar enganche”. */
+  private setupDownPaymentFinancing(): void {
+    const financed = this.form.get('down_payment_financed')!;
+    const months = this.form.get('down_payment_months')!;
+    const firstDate = this.form.get('down_payment_first_payment_date')!;
+    const day = this.form.get('down_payment_payment_day')!;
+
+    const apply = (isFinanced: boolean) => {
+      if (isFinanced) {
+        months.setValidators([Validators.required, Validators.min(1)]);
+        firstDate.setValidators([Validators.required]);
+        day.setValidators([Validators.required, Validators.min(1), Validators.max(31)]);
+        if (!firstDate.value && this.form.get('first_payment_date')?.value) {
+          firstDate.setValue(this.form.get('first_payment_date')!.value, { emitEvent: false });
+        }
+        if (day.value == null && this.form.get('first_payment_date')?.value) {
+          const d = new Date(this.form.get('first_payment_date')!.value as string);
+          if (!Number.isNaN(d.getTime())) {
+            day.setValue(d.getDate(), { emitEvent: false });
+          }
+        }
+        if (months.value == null || months.value === '') {
+          months.setValue(10, { emitEvent: false });
+        }
+      } else {
+        months.clearValidators();
+        firstDate.clearValidators();
+        day.clearValidators();
+      }
+      months.updateValueAndValidity({ emitEvent: false });
+      firstDate.updateValueAndValidity({ emitEvent: false });
+      day.updateValueAndValidity({ emitEvent: false });
+    };
+
+    apply(!!financed.value);
+    financed.valueChanges.subscribe((v) => apply(!!v));
   }
 
   ngAfterViewInit(): void {
@@ -523,6 +568,16 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       return;
     }
 
+    const downPaymentFinanced = !!this.form.get('down_payment_financed')!.value;
+    if (downPaymentFinanced && downPayment <= 0) {
+      this.interceptorService.openSnackbar({
+        type: 'error',
+        title: 'Error',
+        message: 'Para financiar el enganche, el enganche debe ser mayor a 0'
+      });
+      return;
+    }
+
     // Construir payload CreateContractDto con valores del formulario
     const payload: CreateContractDto = {
       customer_id: this.form.get('customer_id')!.value,
@@ -537,6 +592,16 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       status: this.form.get('status')!.value,
       notes: this.form.get('notes')!.value || undefined
     };
+
+    if (downPaymentFinanced) {
+      payload.down_payment_financed = true;
+      payload.down_payment_months = Math.max(
+        1,
+        Math.round(Number(this.form.get('down_payment_months')!.value))
+      );
+      payload.down_payment_first_payment_date = this.form.get('down_payment_first_payment_date')!.value;
+      payload.down_payment_payment_day = Math.round(Number(this.form.get('down_payment_payment_day')!.value));
+    }
 
     // Establecer loading signal en true
     this.loading.set(true);

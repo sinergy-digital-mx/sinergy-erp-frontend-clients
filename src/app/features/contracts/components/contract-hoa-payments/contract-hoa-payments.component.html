@@ -1,0 +1,147 @@
+<div class="payments-container">
+  <div class="flex items-center justify-end mb-2 gap-2">
+    <app-button
+      *ngIf="showGeneratePaymentsButton"
+      text="Generar Pagos HOA"
+      custom_class="btn_primary"
+      size="sm"
+      [icon]="Plus"
+      [loading]="generating()"
+      (clicked)="generatePayments()">
+    </app-button>
+
+    <app-button
+      *ngIf="payments().length > 0"
+      text="Marcar Vencidos"
+      custom_class="btn_secondary"
+      size="sm"
+      (clicked)="markOverdue()">
+    </app-button>
+  </div>
+
+  <div *ngIf="stats() && payments().length > 0" class="grid grid-cols-5 gap-4 mb-6 w-full">
+    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <p class="text-sm font-medium text-gray-600">Total HOA</p>
+      <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats()!.total_payments }}</p>
+      <p class="text-sm font-medium text-gray-700 mt-2">{{ (stats()!.total_expected || 0) | currency:currency }}</p>
+    </div>
+    <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+      <p class="text-sm font-medium text-green-700">Pagados</p>
+      <p class="text-2xl font-bold text-green-800 mt-1">{{ stats()!.paid_count }}</p>
+      <p class="text-sm font-medium text-green-700 mt-2">{{ (stats()!.total_paid || 0) | currency:currency }}</p>
+    </div>
+    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+      <p class="text-sm font-medium text-blue-700">Parciales</p>
+      <p class="text-2xl font-bold text-blue-800 mt-1">{{ stats()!.partial_count || 0 }}</p>
+      <p *ngIf="stats()!.partial_payment" class="text-xs text-blue-700 mt-2">
+        #{{ stats()!.partial_payment!.payment_number }} pendiente {{ stats()!.partial_payment!.amount_pending | currency:currency }}
+      </p>
+    </div>
+    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+      <p class="text-sm font-medium text-yellow-700">Pendientes</p>
+      <p class="text-2xl font-bold text-yellow-800 mt-1">{{ stats()!.pending_count || 0 }}</p>
+      <p class="text-sm font-medium text-yellow-700 mt-2">{{ (stats()!.total_pending || 0) | currency:currency }}</p>
+    </div>
+    <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+      <p class="text-sm font-medium text-red-700">Vencidos</p>
+      <p class="text-2xl font-bold text-red-800 mt-1">{{ stats()!.overdue_count || 0 }}</p>
+      <p class="text-xs text-red-700 mt-2">Cancelados: {{ stats()!.cancelled_count || 0 }}</p>
+    </div>
+  </div>
+
+  <div *ngIf="loading()" class="text-center py-8">
+    <p class="text-sm text-gray-500">Cargando pagos HOA...</p>
+  </div>
+
+  <div *ngIf="!loading() && payments().length === 0" class="empty-state">
+    <div class="empty-state__icon">HOA</div>
+    <p class="empty-state__title">
+      {{ isContractCompleted ? 'Sin pagos HOA pendientes' : 'No hay pagos HOA generados' }}
+    </p>
+    <p class="empty-state__subtitle">
+      {{ isContractCompleted ? 'Este contrato ya fue completado. Si ocupas historial, aparecerá aquí cuando existan movimientos.' : 'Genera los pagos HOA para comenzar a registrar y controlar los cobros mensuales.' }}
+    </p>
+  </div>
+
+  <div *ngIf="!loading() && payments().length > 0" class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pagado</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pendiente</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Vencimiento</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha Pago</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Método</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        <tr *ngFor="let payment of paginatedPayments" class="hover:bg-gray-50">
+          <td class="px-3 py-2 text-sm font-medium text-gray-900">{{ payment.payment_number }}</td>
+          <td class="px-3 py-2 text-sm text-gray-900">{{ payment.amount | currency:currency }}</td>
+          <td class="px-3 py-2 text-sm text-gray-900">{{ payment.amount_paid | currency:currency }}</td>
+          <td class="px-3 py-2 text-sm text-gray-900">{{ payment.amount_pending | currency:currency }}</td>
+          <td class="px-3 py-2 text-sm text-gray-600">{{ payment.due_date | localDate:'mediumDate' }}</td>
+          <td class="px-3 py-2 text-sm text-gray-600">{{ payment.paid_date ? (payment.paid_date | localDate:'mediumDate') : '—' }}</td>
+          <td class="px-3 py-2">
+            <span [class]="getStatusClass(payment.status, payment.is_overdue)">
+              {{ getStatusLabel(payment.status, payment.is_overdue) }}
+            </span>
+          </td>
+          <td class="px-3 py-2 text-sm text-gray-600">{{ payment.payment_method || '—' }}</td>
+          <td class="px-3 py-2">
+            <div class="flex gap-1.5">
+              <button
+                *ngIf="canRegisterPayment(payment)"
+                (click)="registerPayment(payment)"
+                class="action-btn action-btn--blue"
+                [matTooltip]="'Registrar Pago HOA'">
+                <lucide-icon [img]="DollarSign" [size]="16"></lucide-icon>
+              </button>
+              <button
+                *ngIf="canEdit(payment)"
+                (click)="editPayment(payment)"
+                class="action-btn action-btn--gray"
+                [matTooltip]="'Editar Pago HOA'">
+                <lucide-icon [img]="Edit" [size]="16"></lucide-icon>
+              </button>
+              <button
+                *ngIf="canResetPayment(payment)"
+                (click)="resetPayment(payment)"
+                class="action-btn action-btn--purple"
+                [matTooltip]="'Resetear Pago HOA'">
+                <lucide-icon [img]="RotateCcw" [size]="16"></lucide-icon>
+              </button>
+              <button
+                (click)="cancelPayment(payment)"
+                class="action-btn action-btn--amber"
+                [matTooltip]="'Cancelar Pago HOA'">
+                <lucide-icon [img]="RotateCcw" [size]="16"></lucide-icon>
+              </button>
+              <button
+                (click)="deletePayment(payment)"
+                class="action-btn action-btn--red"
+                [matTooltip]="'Eliminar Pago HOA'">
+                <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading() && payments().length > pageSize" class="payments-pagination">
+    <div class="text-xs text-gray-500">
+      Mostrando {{ (currentPage() - 1) * pageSize + 1 }} - {{ Math.min(currentPage() * pageSize, payments().length) }} de {{ payments().length }} pagos HOA
+    </div>
+    <div class="flex items-center gap-1">
+      <button type="button" class="pagination-btn" [disabled]="currentPage() === 1" (click)="setPage(currentPage() - 1)">Anterior</button>
+      <span class="pagination-page">Página {{ currentPage() }} / {{ totalPages }}</span>
+      <button type="button" class="pagination-btn" [disabled]="currentPage() === totalPages" (click)="setPage(currentPage() + 1)">Siguiente</button>
+    </div>
+  </div>
+</div>

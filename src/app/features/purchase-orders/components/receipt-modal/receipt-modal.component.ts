@@ -1,25 +1,12 @@
 import { Component, Inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReceiptService } from '../../services/receipt.service';
 import { PurchaseOrder, LineItem } from '../../models/purchase-order.model';
-import { ReceivedItem, ReceiptRequest } from '../../models/receipt.model';
+import { LotMode, ReceivedItem, ReceivedLot, ReceiptRequest } from '../../models/receipt.model';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
-
-interface ItemInput {
-  line_item_id: string;
-  product_id: string;
-  uom_id: string;
-  quantity: number;
-  unit_total: number;
-  iva_percentage: number;
-  iva_unit: number;
-  ieps_percentage: number;
-  ieps_unit: number;
-  expiration_date: string;
-}
 
 @Component({
   selector: 'app-receipt-modal',
@@ -32,10 +19,10 @@ export class ReceiptModalComponent implements OnInit {
   isLoading = false;
   purchaseOrder: PurchaseOrder;
   receivedQuantities: { [key: string]: number } = {};
-  receivedDates: { [key: string]: string } = {};
+  lotModes: Record<string, LotMode> = {};
+  multipleLotsByLine: Record<string, ReceivedLot[]> = {};
 
   constructor(
-    private fb: FormBuilder,
     private receiptService: ReceiptService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
@@ -50,7 +37,8 @@ export class ReceiptModalComponent implements OnInit {
       // Initialize quantities and dates objects
       this.purchaseOrder.line_items.forEach((item) => {
         this.receivedQuantities[item.id] = 0;
-        this.receivedDates[item.id] = '';
+        this.lotModes[item.id] = 'single';
+        this.multipleLotsByLine[item.id] = [];
       });
     }
   }
@@ -74,6 +62,80 @@ export class ReceiptModalComponent implements OnInit {
    */
   getOrderedQuantity(lineItem: LineItem): string {
     return `${lineItem.quantity} ${lineItem.product_uom?.uom?.name || 'Unidad'}`;
+  }
+
+  getLotMode(lineItemId: string): LotMode {
+    return this.lotModes[lineItemId] || 'single';
+  }
+
+  onLotModeChange(lineItemId: string, mode: LotMode): void {
+    this.lotModes[lineItemId] = mode;
+    if (mode === 'single') {
+      this.multipleLotsByLine[lineItemId] = [];
+    } else if (!this.multipleLotsByLine[lineItemId] || this.multipleLotsByLine[lineItemId].length === 0) {
+      this.addLot(lineItemId);
+    }
+  }
+
+  addLot(lineItemId: string): void {
+    const lineItem = this.getLineItemById(lineItemId);
+    if (!lineItem) {
+      return;
+    }
+    const productUomId = lineItem.product_uom?.id || lineItem.product_uom_id || '';
+    this.multipleLotsByLine[lineItemId] = [
+      ...(this.multipleLotsByLine[lineItemId] || []),
+      { tag_identifier: '', quantity: 0, product_uom_id: productUomId }
+    ];
+  }
+
+  removeLot(lineItemId: string, lotIndex: number): void {
+    const current = [...(this.multipleLotsByLine[lineItemId] || [])];
+    current.splice(lotIndex, 1);
+    this.multipleLotsByLine[lineItemId] = current;
+  }
+
+  getLots(lineItemId: string): ReceivedLot[] {
+    return this.multipleLotsByLine[lineItemId] || [];
+  }
+
+  getLotsTotal(lineItemId: string): number {
+    return this.getLots(lineItemId).reduce((sum, lot) => sum + (Number(lot.quantity) || 0), 0);
+  }
+
+  private getLineItemById(lineItemId: string): LineItem | undefined {
+    return this.purchaseOrder?.line_items?.find((item) => item.id === lineItemId);
+  }
+
+  private getLineUomId(lineItem: LineItem): string {
+    return lineItem.product_uom?.id || lineItem.product_uom_id || '';
+  }
+
+  private validateMultipleLots(lineItem: LineItem, lots: ReceivedLot[]): string | null {
+    if (lots.length === 0) {
+      return `Debes agregar al menos un lote para ${this.getProductName(lineItem)}`;
+    }
+
+    const lineUomId = this.getLineUomId(lineItem);
+    for (let index = 0; index < lots.length; index++) {
+      const lot = lots[index];
+      const lotNumber = index + 1;
+      const tag = (lot.tag_identifier || '').trim();
+      if (!tag) {
+        return `El lote ${lotNumber} en ${this.getProductName(lineItem)} requiere identificador`;
+      }
+
+      const quantity = Number(lot.quantity || 0);
+      if (quantity <= 0) {
+        return `El lote ${lotNumber} en ${this.getProductName(lineItem)} requiere cantidad mayor a 0`;
+      }
+
+      if (lineUomId && lot.product_uom_id !== lineUomId) {
+        return `El UOM del lote ${lotNumber} en ${this.getProductName(lineItem)} debe coincidir con la línea`;
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -100,19 +162,59 @@ export class ReceiptModalComponent implements OnInit {
       const quantity = Number(this.receivedQuantities[lineItem.id] || 0);
       console.log(`Item ${lineItem.id}: quantity=${quantity}`);
       
-      if (quantity > 0) {
+      const lotMode = this.getLotMode(lineItem.id);
+      const lineUomId = this.getLineUomId(lineItem);
+      if (lotMode === 'single' && quantity > 0) {
         hasValidItems = true;
         receivedItems.push({
           line_item_id: lineItem.id,
           product_id: lineItem.product_id,
-          product_uom_id: lineItem.product_uom?.id || lineItem.product_uom_id,
+          product_uom_id: lineUomId,
           quantity: quantity,
           unit_total: lineItem.unit_total || 0,
           iva_percentage: lineItem.iva_percentage || 0,
           iva_unit: lineItem.iva_unit || 0,
           ieps_percentage: lineItem.ieps_percentage || 0,
           ieps_unit: lineItem.ieps_unit || 0,
-          expiration_date: this.receivedDates[lineItem.id] || ''
+          expiration_date: null,
+          lot_mode: 'single'
+        });
+      } else if (lotMode === 'multiple') {
+        const lots = this.getLots(lineItem.id)
+          .map((lot) => ({
+            tag_identifier: (lot.tag_identifier || '').trim(),
+            quantity: Number(lot.quantity || 0),
+            product_uom_id: lot.product_uom_id || lineUomId
+          }))
+          .filter((lot) => lot.tag_identifier || lot.quantity > 0);
+
+        if (lots.length === 0) {
+          continue;
+        }
+
+        const validationError = this.validateMultipleLots(lineItem, lots);
+        if (validationError) {
+          this.snackBar.openFromComponent(CustomSnackbarComponent, {
+            data: { message: validationError, type: 'error' },
+            duration: 4000
+          });
+          return;
+        }
+
+        hasValidItems = true;
+        receivedItems.push({
+          line_item_id: lineItem.id,
+          product_id: lineItem.product_id,
+          product_uom_id: lineUomId,
+          quantity: lots.reduce((sum, lot) => sum + lot.quantity, 0),
+          unit_total: lineItem.unit_total || 0,
+          iva_percentage: lineItem.iva_percentage || 0,
+          iva_unit: lineItem.iva_unit || 0,
+          ieps_percentage: lineItem.ieps_percentage || 0,
+          ieps_unit: lineItem.ieps_unit || 0,
+          expiration_date: null,
+          lot_mode: 'multiple',
+          lots
         });
       }
     }

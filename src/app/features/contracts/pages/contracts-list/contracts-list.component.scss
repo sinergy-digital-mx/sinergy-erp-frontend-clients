@@ -1,1 +1,116 @@
-// Contracts list styles
+.stats-v2-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.9rem;
+  background: #ffffff;
+  padding: 1rem 1.1rem;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.stats-v2-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.stats-v2-card--active {
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5);
+  border-color: #818cf8;
+}
+
+.stats-v2-card__top {
+  margin-bottom: 0.8rem;
+}
+
+.stats-v2-card__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.stats-v2-card__subtitle {
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.stats-v2-card__bottom {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.stats-v2-card__amount {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stats-v2-card__count {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.stats-v2-card__meta {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+}
+
+.stats-v2-card--total .stats-v2-card__title,
+.stats-v2-card--total .stats-v2-card__amount,
+.stats-v2-card--total .stats-v2-card__count {
+  color: #111827;
+}
+
+.stats-v2-card--completed {
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+  border-color: #bfdbfe;
+}
+
+.stats-v2-card--completed .stats-v2-card__title,
+.stats-v2-card--completed .stats-v2-card__amount,
+.stats-v2-card--completed .stats-v2-card__count {
+  color: #1d4ed8;
+}
+
+.stats-v2-card--pending {
+  background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
+  border-color: #bbf7d0;
+}
+
+.stats-v2-card--pending .stats-v2-card__title,
+.stats-v2-card--pending .stats-v2-card__amount,
+.stats-v2-card--pending .stats-v2-card__count {
+  color: #047857;
+}
+
+.stats-v2-card--pending .stats-v2-card__meta {
+  color: #0f766e;
+}
+
+.stats-v2-card--pending .stats-v2-card__meta-paid {
+  color: #047857;
+}
+
+.stats-v2-card--pending .stats-v2-card__meta-debt {
+  color: #b45309;
+}
+
+.stats-v2-card--overdue {
+  background: linear-gradient(180deg, #fef2f2 0%, #ffffff 100%);
+  border-color: #fecaca;
+}
+
+.stats-v2-card--overdue .stats-v2-card__title,
+.stats-v2-card--overdue .stats-v2-card__amount,
+.stats-v2-card--overdue .stats-v2-card__count {
+  color: #b91c1c;
+}
+
+.stats-v2-card--overdue .stats-v2-card__meta {
+  color: #b91c1c;
+}

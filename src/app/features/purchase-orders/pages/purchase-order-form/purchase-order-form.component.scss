@@ -3,6 +3,18 @@
   max-width: 1200px;
   margin: 0 auto;
 
+  .load-error,
+  .loading-state {
+    p {
+      margin: 0 0 1rem 0;
+      color: #4b5563;
+    }
+  }
+
+  .load-error p {
+    color: #b91c1c;
+  }
+
   .header {
     margin-bottom: 1.5rem;
 
@@ -32,9 +44,19 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
 
       h2 {
         margin: 0;
+      }
+
+      .hint-patch-lines {
+        flex: 1 1 100%;
+        margin: 0;
+        font-size: 0.875rem;
+        color: #4b5563;
+        line-height: 1.45;
       }
 
       .btn-add {
@@ -214,11 +236,14 @@
 
     .totals-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      max-width: 420px;
+      margin-left: auto;
 
       @media (max-width: 768px) {
         grid-template-columns: 1fr;
+        max-width: 100%;
       }
 
       .total-item {
@@ -241,7 +266,6 @@
         }
 
         &.grand-total {
-          grid-column: 1 / -1;
           background-color: #6366f1;
           color: white;
 

@@ -1,34 +1,41 @@
 import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { InventoryBatchService } from '../../services/inventory-batch.service';
 import { InventoryBatch } from '../../models/inventory-batch.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { OrderDetailDialogComponent } from '../../../purchase-orders/components/order-detail-dialog/order-detail-dialog.component';
 import { WarehouseDetailModalComponent } from '../../../settings/components/warehouse-detail-modal/warehouse-detail-modal.component';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
-import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit } from 'lucide-angular';
+import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-batch-detail-dialog',
   standalone: true,
-  imports: [CommonModule, RemoveTrailingZerosPipe, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RemoveTrailingZerosPipe, LucideAngularModule, MatSnackBarModule],
   templateUrl: './batch-detail-dialog.component.html',
   styleUrl: './batch-detail-dialog.component.scss'
 })
 export class BatchDetailDialogComponent implements OnInit {
   X = X; Package = Package; MapPin = MapPin; FileText = FileText;
   Calendar = Calendar; ShoppingCart = ShoppingCart; ArrowRight = ArrowRight; Edit = Edit;
+  ImageUp = ImageUp;
 
   batch = signal<InventoryBatch | null>(null);
   loading = signal(true);
+  uploadingPhoto = signal(false);
+  showTagModal = signal(false);
+  tagDraft = signal('');
 
   activeTab = 'general';
   tabs = [
     { id: 'general', label: 'General' },
     { id: 'movimientos', label: 'Movimientos' },
     { id: 'auditorias', label: 'Auditorías' },
+    { id: 'foto', label: 'Foto' },
     { id: 'etiqueta', label: 'Etiqueta' },
   ];
 
@@ -36,7 +43,8 @@ export class BatchDetailDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: { batchId: string },
     public dialogRef: MatDialogRef<BatchDetailDialogComponent>,
     private batchService: InventoryBatchService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -94,6 +102,94 @@ export class BatchDetailDialogComponent implements OnInit {
 
   close(): void {
     this.dialogRef.close();
+  }
+
+  get sourceTag(): string | null {
+    return this.batch()?.source_tag_identifier ?? null;
+  }
+
+  openTagModal(): void {
+    this.tagDraft.set(this.sourceTag ?? '');
+    this.showTagModal.set(true);
+  }
+
+  closeTagModal(): void {
+    this.showTagModal.set(false);
+  }
+
+  updateTagDraft(value: string): void {
+    this.tagDraft.set(value);
+  }
+
+  saveTagLocally(): void {
+    const current = this.batch();
+    if (!current) return;
+
+    const normalized = this.tagDraft().trim();
+    this.batch.set({
+      ...current,
+      source_tag_identifier: normalized.length ? normalized : null
+    });
+    this.showTagModal.set(false);
+    this.snackBar.open('TAG actualizado localmente (pendiente endpoint)', 'Cerrar', {
+      duration: 2800,
+      horizontalPosition: 'end',
+      verticalPosition: 'top'
+    });
+  }
+
+  get batchPhotoUrl(): string | null {
+    const batch = this.batch();
+    if (!batch) return null;
+    return batch.photo_signed_url ?? batch.photo_url ?? batch.photo ?? null;
+  }
+
+  openPhotoPicker(input: HTMLInputElement): void {
+    if (this.uploadingPhoto()) return;
+    input.click();
+  }
+
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const currentBatch = this.batch();
+    if (!currentBatch?.id) return;
+
+    this.uploadingPhoto.set(true);
+    this.batchService.uploadBatchPhoto(currentBatch.id, file).subscribe({
+      next: (resp) => {
+        const payload = resp?.data ?? {};
+        const photoUrl = typeof payload['photo_url'] === 'string'
+          ? payload['photo_url']
+          : typeof payload['photo_signed_url'] === 'string'
+            ? payload['photo_signed_url']
+            : null;
+        const photo = typeof payload['photo'] === 'string' ? payload['photo'] : null;
+        this.batch.set({
+          ...currentBatch,
+          photo,
+          photo_url: photoUrl,
+          photo_signed_url: photoUrl
+        });
+        this.uploadingPhoto.set(false);
+        this.snackBar.open('Foto del lote actualizada', 'Cerrar', {
+          duration: 2800,
+          horizontalPosition: 'end',
+          verticalPosition: 'top'
+        });
+      },
+      error: (error) => {
+        this.uploadingPhoto.set(false);
+        this.snackBar.open(error?.message || 'No se pudo subir la foto del lote', 'Cerrar', {
+          duration: 3200,
+          horizontalPosition: 'end',
+          verticalPosition: 'top',
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
+    input.value = '';
   }
 
   formatDate(dateString: string): string {

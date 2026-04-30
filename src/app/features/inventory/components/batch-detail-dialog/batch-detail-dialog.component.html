@@ -73,14 +73,30 @@
           </div>
         </div>
 
-        <!-- Fecha -->
-        <div class="info-card info-card--red info-card--full">
-          <div class="info-card__icon">
-            <lucide-icon [img]="Calendar" class="w-5 h-5"></lucide-icon>
+        <div class="meta-cards">
+          <!-- Fecha -->
+          <div class="info-card info-card--mint">
+            <div class="info-card__icon">
+              <lucide-icon [img]="Calendar" class="w-5 h-5"></lucide-icon>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">FECHA DE ENTRADA</span>
+              <span class="info-card__value">{{ formatDate(batch()?.created_at || '') }}</span>
+            </div>
           </div>
-          <div class="info-card__content">
-            <span class="info-card__label">FECHA DE ENTRADA</span>
-            <span class="info-card__value">{{ formatDate(batch()?.created_at || '') }}</span>
+
+          <!-- TAG -->
+          <div class="info-card info-card--gray">
+            <div class="info-card__icon">
+              <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">TAG</span>
+              <span class="info-card__value">{{ sourceTag || '-' }}</span>
+            </div>
+            <button type="button" class="tag-edit-btn" (click)="openTagModal()" title="Editar TAG">
+              <lucide-icon [img]="Edit" class="w-4 h-4"></lucide-icon>
+            </button>
           </div>
         </div>
 
@@ -176,6 +192,47 @@
       </div>
     }
 
+    <!-- Tab: Foto -->
+    @if (activeTab === 'foto') {
+      <div class="batch-detail__body">
+        <div class="photo-tab">
+          <div class="photo-tab__preview">
+            @if (batchPhotoUrl; as photoUrl) {
+              <a [href]="photoUrl" target="_blank" rel="noopener noreferrer">
+                <img [src]="photoUrl" [alt]="'Foto del lote ' + (batch()?.batch_number || '')" />
+              </a>
+            } @else {
+              <div class="photo-tab__empty">
+                <p>Este lote no tiene foto aún.</p>
+              </div>
+            }
+          </div>
+
+          <input
+            #batchPhotoInput
+            type="file"
+            class="hidden-file-input"
+            accept="image/*"
+            (change)="onPhotoSelected($event)"
+          />
+
+          <button
+            type="button"
+            class="photo-tab__upload-btn"
+            (click)="openPhotoPicker(batchPhotoInput)"
+            [disabled]="uploadingPhoto()"
+          >
+            @if (uploadingPhoto()) {
+              <span>Subiendo...</span>
+            } @else {
+              <lucide-icon [img]="ImageUp" class="w-4 h-4"></lucide-icon>
+              <span>{{ batchPhotoUrl ? 'Reemplazar foto' : 'Subir foto' }}</span>
+            }
+          </button>
+        </div>
+      </div>
+    }
+
     <!-- Tab: Etiqueta -->
     @if (activeTab === 'etiqueta') {
       <div class="batch-detail__body">
@@ -186,3 +243,32 @@
     }
   }
 </div>
+
+@if (showTagModal()) {
+  <div class="tag-modal-overlay" (click)="closeTagModal()">
+    <div class="tag-modal" (click)="$event.stopPropagation()">
+      <div class="tag-modal__header">
+        <h3>Editar TAG</h3>
+        <button type="button" class="tag-modal__close" (click)="closeTagModal()">
+          <lucide-icon [img]="X" class="w-4 h-4"></lucide-icon>
+        </button>
+      </div>
+      <div class="tag-modal__body">
+        <label for="sourceTagInput">TAG</label>
+        <input
+          id="sourceTagInput"
+          type="text"
+          class="tag-modal__input"
+          [ngModel]="tagDraft()"
+          (ngModelChange)="updateTagDraft($event)"
+          placeholder="Ej. 12312313123"
+        />
+        <small>Guardado local temporal hasta que exista endpoint.</small>
+      </div>
+      <div class="tag-modal__footer">
+        <button type="button" class="btn-cancel" (click)="closeTagModal()">Cancelar</button>
+        <button type="button" class="btn-save" (click)="saveTagLocally()">Guardar</button>
+      </div>
+    </div>
+  </div>
+}

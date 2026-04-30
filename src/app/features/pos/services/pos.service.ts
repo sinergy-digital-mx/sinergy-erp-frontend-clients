@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { POSCart, POSCartItem } from '../models/pos.model';
 import { environment } from '../../../../environments/environment';
 
@@ -9,6 +10,8 @@ import { environment } from '../../../../environments/environment';
 })
 export class POSService {
   private readonly API_URL = `${environment.api}/tenant/pos`;
+  private readonly POS_SESSIONS_URL = `${environment.api}/tenant/pos-sessions`;
+  private readonly INVENTORY_URL = `${environment.api}/tenant/inventory`;
   
   private cartState = signal<POSCart>({
     items: [],
@@ -62,6 +65,29 @@ export class POSService {
       return item;
     });
 
+    this.updateCart(updatedItems);
+  }
+
+  /**
+   * Update item price/taxes (pricing option override)
+   */
+  updateItemPricing(
+    index: number,
+    pricing: { unit_price: number; iva_percentage: number; ieps_percentage: number; selected_price_list_id?: string }
+  ): void {
+    const currentCart = this.cartState();
+    const updatedItems = currentCart.items.map((item, i) => {
+      if (i === index) {
+        return this.recalculateItem({
+          ...item,
+          unit_price: pricing.unit_price,
+          iva_percentage: pricing.iva_percentage,
+          ieps_percentage: pricing.ieps_percentage,
+          selected_price_list_id: pricing.selected_price_list_id ?? item.selected_price_list_id,
+        });
+      }
+      return item;
+    });
     this.updateCart(updatedItems);
   }
 
@@ -241,8 +267,8 @@ export class POSService {
   /**
    * Sesión POS activa (mismo recurso que turno de caja).
    */
-  getActivePosSession(warehouseId: string): Observable<any> {
-    return this.getActiveCashShift(warehouseId);
+  getActivePosSession(posConfigId: string): Observable<any> {
+    return this.getCurrentPosSession(posConfigId);
   }
 
   /**
@@ -278,15 +304,30 @@ export class POSService {
     notes?: string;
     pos_configuration_id?: string;
   }): Observable<any> {
-    return this.http.post(`${this.API_URL}/cash-shifts/open`, shiftData);
+    const payload = {
+      pos_configuration_id: shiftData.pos_configuration_id,
+      opening_cash: Number(shiftData.opening_balance || 0),
+      ...(shiftData.notes?.trim() ? { notes: shiftData.notes.trim() } : {}),
+    };
+    return this.http.post(`${this.POS_SESSIONS_URL}/open`, payload).pipe(
+      map((res: any) => this.extractPayload(res))
+    );
   }
   
   /**
    * Get active cash shift
    */
-  getActiveCashShift(warehouseId: string): Observable<any> {
-    const params = new HttpParams().set('warehouse_id', warehouseId);
-    return this.http.get(`${this.API_URL}/cash-shifts/current`, { params });
+  getActiveCashShift(posConfigId: string): Observable<any> {
+    return this.getCurrentPosSession(posConfigId);
+  }
+
+  /**
+   * Get current session by POS configuration
+   */
+  getCurrentPosSession(posConfigId: string): Observable<any> {
+    return this.http.get(`${this.POS_SESSIONS_URL}/current/${posConfigId}`).pipe(
+      map((res: any) => this.extractPayload(res))
+    );
   }
   
   /**
@@ -303,7 +344,13 @@ export class POSService {
     closing_balance: number;
     notes?: string;
   }): Observable<any> {
-    return this.http.post(`${this.API_URL}/cash-shifts/${shiftId}/close`, closeData);
+    const payload = {
+      closing_cash: Number(closeData.closing_balance || 0),
+      ...(closeData.notes?.trim() ? { notes: closeData.notes.trim() } : {}),
+    };
+    return this.http.patch(`${this.POS_SESSIONS_URL}/${shiftId}/close`, payload).pipe(
+      map((res: any) => this.extractPayload(res))
+    );
   }
   
   /**
@@ -330,7 +377,30 @@ export class POSService {
       httpParams = httpParams.set('sucursal', params.sucursal.trim());
     }
 
-    return this.http.get(`${this.API_URL}/cash-shifts`, { params: httpParams });
+    return this.http.get(`${this.POS_SESSIONS_URL}`, { params: httpParams }).pipe(
+      map((res: any) => this.extractPayload(res, true))
+    );
+  }
+
+  /**
+   * Inventory summary for POS session (stock + suggested prices)
+   */
+  getPosSessionInventorySummary(sessionId: string): Observable<any[]> {
+    return this.http.get<any>(`${this.INVENTORY_URL}/pos-sessions/${sessionId}/summary`).pipe(
+      map((res: any) => {
+        const payload = this.extractPayload(res);
+        if (Array.isArray(payload)) return payload;
+        if (Array.isArray(payload?.data)) return payload.data;
+        return [];
+      })
+    );
+  }
+
+  private extractPayload(response: any, keepListEnvelope = false): any {
+    if (response && typeof response === 'object' && 'data' in response) {
+      return keepListEnvelope ? response : response.data;
+    }
+    return response;
   }
   
   // ========== TABLES ==========

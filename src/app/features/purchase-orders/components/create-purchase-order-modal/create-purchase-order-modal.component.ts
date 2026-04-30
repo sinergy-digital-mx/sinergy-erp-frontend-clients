@@ -3,13 +3,18 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
+import { WritePurchaseOrderDto } from '../../models/filters.model';
 import { FiscalConfigurationService } from '../../../../features/settings/services/fiscal-configuration.service';
 import { WarehouseService } from '../../../../features/settings/services/warehouse.service';
 import { VendorService } from '../../../../features/settings/services/vendor.service';
+import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 
 interface LineItem {
   product_id: string;
+  product_name?: string;
+  product_sku?: string;
   uom_id: string;
   quantity: number;
   unit_total: number;
@@ -22,7 +27,7 @@ interface LineItem {
 @Component({
   selector: 'app-create-purchase-order-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatAutocompleteModule, TabComponent],
   templateUrl: './create-purchase-order-modal.component.html',
   styleUrls: ['./create-purchase-order-modal.component.scss']
 })
@@ -38,6 +43,20 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
   fiscalConfigurations: any[] = [];
   warehouses: any[] = [];
   vendors: any[] = [];
+  filteredVendors: any[] = [];
+  tabs: TabItem[] = [
+    { id: 'info', title: 'Información' },
+    { id: 'products', title: 'Productos' }
+  ];
+  activeTab = 'info';
+  addProductModalOpen = false;
+  productSearchTerm = '';
+  selectedProduct: any = null;
+  selectedUomId = '';
+  selectedQuantity = 1;
+  selectedUnitTotal = 0;
+  selectedIva = 16;
+  selectedIeps = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -53,6 +72,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     this.form = this.fb.group({
       fiscal_configuration_id: ['', Validators.required],
       warehouse_id: ['', Validators.required],
+      vendor_search: [''],
       vendor_id: ['', Validators.required],
       expected_delivery_date: ['', Validators.required],
       payment_status: ['Pendiente', Validators.required],
@@ -62,6 +82,13 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDropdownData();
+    this.form.get('vendor_search')?.valueChanges.subscribe((value) => {
+      this.filterVendors(value ?? '');
+    });
+  }
+
+  onTabChange(tabId: string): void {
+    this.activeTab = tabId;
   }
 
   loadDropdownData(): void {
@@ -76,7 +103,12 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
       // Handle different response formats - all endpoints return paginated responses with data property
       this.fiscalConfigurations = fiscalConfigs?.data || [];
       this.warehouses = warehouses?.data || [];
-      this.vendors = vendors?.data || [];
+      const vendorRows = vendors?.data || [];
+      this.vendors = vendorRows.map((vendor: any) => ({
+        ...vendor,
+        display_name: this.formatVendorLabel(vendor)
+      }));
+      this.filteredVendors = [...this.vendors];
       this.loading = false;
       this.cdr.detectChanges();
     }).catch((error) => {
@@ -91,6 +123,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     const vendorId = this.form.get('vendor_id')?.value;
     if (!vendorId) {
       this.vendorProducts = [];
+      this.lineItems = [];
+      this.resetAddProductForm();
       return;
     }
 
@@ -98,6 +132,14 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     this.purchaseOrderService.getVendorProducts(vendorId).subscribe({
       next: (products) => {
         this.vendorProducts = products;
+        this.lineItems = this.lineItems.map((item) => ({
+          ...item,
+          product_id: '',
+          product_name: '',
+          product_sku: '',
+          uom_id: ''
+        }));
+        this.resetAddProductForm();
         this.loadingProducts = false;
       },
       error: (error) => {
@@ -108,18 +150,151 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     });
   }
 
-  addLineItem(): void {
+  onVendorSelected(vendor: any): void {
+    if (!vendor) return;
+    this.form.patchValue({
+      vendor_id: vendor.id,
+      vendor_search: vendor.display_name
+    }, { emitEvent: false });
+    this.onVendorChange();
+  }
+
+  displayVendor(vendor: any): string {
+    if (!vendor) return '';
+    if (typeof vendor === 'string') return vendor;
+    return vendor?.display_name || this.formatVendorLabel(vendor) || '';
+  }
+
+  private filterVendors(search: string): void {
+    const raw =
+      typeof search === 'string'
+        ? search
+        : (search as any)?.display_name || this.formatVendorLabel(search);
+    const term = String(raw || '').toLowerCase().trim();
+    if (!term) {
+      this.filteredVendors = [...this.vendors];
+      return;
+    }
+    this.filteredVendors = this.vendors.filter((vendor) =>
+      String(vendor.display_name || '').toLowerCase().includes(term)
+    );
+  }
+
+  get filteredProductsForModal(): any[] {
+    const raw =
+      typeof this.productSearchTerm === 'string'
+        ? this.productSearchTerm
+        : this.getProductOptionLabel(this.productSearchTerm);
+    const term = String(raw || '').toLowerCase().trim();
+    if (!term) return this.vendorProducts;
+    return this.vendorProducts.filter((product) => {
+      const haystack = `${product.product_name || ''} ${product.product_sku || product.sku || ''}`.toLowerCase();
+      return haystack.includes(term);
+    });
+  }
+
+  get selectedProductUoms(): any[] {
+    if (!this.selectedProduct) return [];
+    return this.selectedProduct?.uoms || [];
+  }
+
+  private formatVendorLabel(vendor: any): string {
+    if (!vendor) return '';
+    const name = (vendor.name || '').trim();
+    const rfc = (vendor.rfc || '').trim();
+    return rfc ? `${name} (${rfc})` : name;
+  }
+
+  openAddProductModal(): void {
+    if (!this.form.get('vendor_id')?.value) {
+      this.snackBar.open('Selecciona un proveedor antes de agregar productos', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    this.addProductModalOpen = true;
+    this.resetAddProductForm();
+  }
+
+  closeAddProductModal(): void {
+    this.addProductModalOpen = false;
+  }
+
+  onProductSelectedForModal(product: any): void {
+    this.selectedProduct = product;
+    this.productSearchTerm = product;
+    const firstUom = (product?.uoms || [])[0];
+    this.selectedUomId = firstUom?.uom_id || '';
+    this.selectedUnitTotal = Number(firstUom?.cost || 0);
+    this.selectedIva = Number(firstUom?.iva_percentage || 0);
+    this.selectedIeps = Number(firstUom?.ieps_percentage || 0);
+  }
+
+  onSelectedUomChange(): void {
+    const uom = this.selectedProductUoms.find((row) => row.uom_id === this.selectedUomId);
+    if (!uom) return;
+    this.selectedUnitTotal = Number(uom.cost || 0);
+    this.selectedIva = Number(uom.iva_percentage || 0);
+    this.selectedIeps = Number(uom.ieps_percentage || 0);
+  }
+
+  confirmAddProduct(): void {
+    if (!this.selectedProduct || !this.selectedUomId) {
+      this.snackBar.open('Selecciona producto y UOM', 'Cerrar', { duration: 2500 });
+      return;
+    }
+    const quantity = Number(this.selectedQuantity || 0);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      this.snackBar.open('Cantidad inválida', 'Cerrar', { duration: 2500 });
+      return;
+    }
+
     const newItem: LineItem = {
-      product_id: '',
-      uom_id: '',
-      quantity: 1,
-      unit_total: 0,
-      iva_percentage: 16,
+      product_id: this.selectedProduct.product_id,
+      product_name: this.selectedProduct.product_name,
+      product_sku: this.selectedProduct.product_sku || this.selectedProduct.sku || '',
+      uom_id: this.selectedUomId,
+      quantity,
+      unit_total: Number(this.selectedUnitTotal || 0),
+      iva_percentage: Number(this.selectedIva || 0),
       iva_unit: 0,
-      ieps_percentage: 0,
+      ieps_percentage: Number(this.selectedIeps || 0),
       ieps_unit: 0
     };
+    this.calculateTotals(newItem);
     this.lineItems.push(newItem);
+    this.closeAddProductModal();
+  }
+
+  private resetAddProductForm(): void {
+    this.productSearchTerm = '';
+    this.selectedProduct = null;
+    this.selectedUomId = '';
+    this.selectedQuantity = 1;
+    this.selectedUnitTotal = 0;
+    this.selectedIva = 16;
+    this.selectedIeps = 0;
+  }
+
+  getAvailableQty(product: any): number {
+    const raw = product?.available_quantity ?? product?.available_qty ?? product?.stock ?? product?.on_hand ?? product?.inventory_qty ?? 0;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  getProductOptionLabel(product: any): string {
+    const name = product?.product_name || 'Producto';
+    const productSku = product?.product_sku || product?.sku || '';
+    const sku = productSku ? ` | SKU: ${productSku}` : '';
+    return `${name}${sku}`;
+  }
+
+  displayProductSearch(): string {
+    return this.selectedProduct ? this.getProductOptionLabel(this.selectedProduct) : '';
+  }
+
+  displayProduct(value: any): string {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    return this.getProductOptionLabel(value);
   }
 
   removeLineItem(index: number): void {
@@ -176,12 +351,34 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     }
 
     this.saving = true;
-    const formData = {
-      ...this.form.value,
-      line_items: this.lineItems
+    const fv = this.form.value;
+    const line_items = this.lineItems.map((li) => ({
+      product_id: li.product_id,
+      uom_id: li.uom_id,
+      quantity: Number(li.quantity),
+      unit_total: Number(li.unit_total),
+      iva_percentage: Number(li.iva_percentage),
+      ieps_percentage: Number(li.ieps_percentage)
+    }));
+
+    const payload: WritePurchaseOrderDto = {
+      fiscal_configuration_id: fv.fiscal_configuration_id,
+      warehouse_id: fv.warehouse_id,
+      vendor_id: fv.vendor_id,
+      expected_delivery_date: fv.expected_delivery_date,
+      line_items
     };
 
-    this.purchaseOrderService.createOrder(formData).subscribe({
+    const ps = (fv.payment_status || '').trim();
+    if (ps) {
+      payload.payment_status = ps === 'Pagada' ? 'Pagado' : ps;
+    }
+    const notes = (fv.notes || '').trim();
+    if (notes) {
+      payload.notes = notes;
+    }
+
+    this.purchaseOrderService.createOrder(payload).subscribe({
       next: (order) => {
         this.saving = false;
         this.cdr.detectChanges();

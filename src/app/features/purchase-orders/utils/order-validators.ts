@@ -31,7 +31,7 @@ export function validatePrice(): ValidatorFn {
     }
     
     if (value < 0) {
-      return { invalidPrice: { message: 'El precio debe ser mayor o igual a cero' } };
+      return { invalidPrice: { message: 'El costo debe ser mayor o igual a cero' } };
     }
     
     return null;
@@ -154,13 +154,14 @@ export function getErrorMessage(control: AbstractControl | null, fieldName: stri
 function getRequiredErrorMessage(fieldName: string): string {
   const messages: Record<string, string> = {
     'vendor_id': 'Proveedor es requerido',
+    'fiscal_configuration_id': 'Configuración fiscal es requerida',
     'warehouse_id': 'Almacén es requerido',
     'tentative_receipt_date': 'Fecha tentativa de recepción es requerida',
     'purpose': 'Propósito es requerido',
     'product_id': 'Producto es requerido',
     'uom_id': 'Unidad de medida es requerida',
     'quantity': 'Cantidad es requerida',
-    'unit_price': 'Precio unitario es requerido',
+    'unit_price': 'Costo unitario es requerido',
     'amount': 'Monto es requerido',
     'payment_date': 'Fecha de pago es requerida',
     'payment_method': 'Método de pago es requerido',

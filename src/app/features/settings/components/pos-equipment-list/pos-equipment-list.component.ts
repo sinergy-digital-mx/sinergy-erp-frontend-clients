@@ -38,6 +38,7 @@ export class PosEquipmentListComponent {
   search = '';
   sessionsSearch = '';
   selectedSucursalId = '';
+  selectedType = '';
   branches = signal<Branch[]>([]);
   private branchesLoaded = false;
 
@@ -45,6 +46,7 @@ export class PosEquipmentListComponent {
     rows: [],
     columns: [
       { name: 'Código', prop: 'code', sortable: true, canAutoResize: true, width: 160 },
+      { name: 'Tipo', prop: 'type', sortable: true, canAutoResize: true, width: 120 },
       { name: 'Modelo', prop: 'modelo', sortable: true, canAutoResize: true, width: 200 },
       { name: 'Sucursal', prop: 'sucursal', sortable: true, canAutoResize: true, width: 180 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: true, width: 100 },
@@ -138,6 +140,9 @@ export class PosEquipmentListComponent {
     }
     if (this.selectedSucursalId?.trim()) {
       params['sucursal'] = this.selectedSucursalId.trim();
+    }
+    if (this.selectedType?.trim()) {
+      params['type'] = this.selectedType.trim();
     }
 
     this.posEquipmentService.getPosConfigurations(params).subscribe({

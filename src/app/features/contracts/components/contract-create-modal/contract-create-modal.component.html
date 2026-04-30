@@ -157,6 +157,37 @@
             [type]="'text'">
           </app-input>
 
+          <div class="col-span-2 downpayment-financing">
+            <label class="financing-checkbox-label">
+              <input type="checkbox" formControlName="down_payment_financed" class="financing-checkbox" />
+              <span>Financiar enganche en pagos</span>
+            </label>
+            <p class="financing-hint">
+              El enganche se divide en cuotas separadas del plan normal. No enviamos el monto mensual de enganche: lo calcula el backend al guardar.
+            </p>
+            @if (form.get('down_payment_financed')?.value) {
+              <div class="grid grid-cols-2 gap-4 mt-4">
+                <app-input
+                  [label]="'Meses de enganche *'"
+                  [placeholder]="'Ej. 10'"
+                  [form_control]="form.get('down_payment_months')"
+                  [type]="'number'">
+                </app-input>
+                <app-input
+                  [label]="'Día de pago mensual (enganche) *'"
+                  [placeholder]="'1–31'"
+                  [form_control]="form.get('down_payment_payment_day')"
+                  [type]="'number'">
+                </app-input>
+                <app-input
+                  [label]="'Fecha primer pago de enganche *'"
+                  [form_control]="form.get('down_payment_first_payment_date')"
+                  [type]="'date'">
+                </app-input>
+              </div>
+            }
+          </div>
+
           <div class="w-full p-1">
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Saldo Pendiente

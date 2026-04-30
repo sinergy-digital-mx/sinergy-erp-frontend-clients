@@ -1,11 +1,22 @@
-import { Component, EventEmitter, Output, Inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, EventEmitter, Output, Inject, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
+import { forkJoin, of } from 'rxjs';
+import { finalize, catchError } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ProductService } from '../../services/product.service';
-import { Product, UoM, ProductPrice, VendorProductPrice } from '../../models/product.model';
+import {
+  Product,
+  UoM,
+  UoMCatalog,
+  ProductPrice,
+  VendorProductPrice,
+  ProductAttribute,
+  ProductAttributeValue
+} from '../../models/product.model';
+import { CategoriesDialogComponent } from '../categories-dialog/categories-dialog.component';
 
 @Component({
   selector: 'app-product-detail-modal',
@@ -20,6 +31,7 @@ export class ProductDetailModalComponent implements OnInit {
   visible = true;
   loading = false;
   saving = false;
+  uploadingPhoto = false;
   product: Product | null = null;
 
   // Exponer Number para el template
@@ -34,6 +46,26 @@ export class ProductDetailModalComponent implements OnInit {
   ];
   activeTab = 'detalles';
 
+  onTabChange(tabId: string): void {
+    this.activeTab = tabId;
+    if (tabId === 'uoms') {
+      if (this.product?.id) {
+        this.loadUomCatalog(() => this.loadProductUoms());
+      } else {
+        this.loadUomCatalog();
+      }
+    }
+  }
+
+  get productPhotoUrl(): string | null {
+    if (!this.product) return null;
+    if (typeof this.product.photo === 'string' && this.product.photo.trim().length > 0) {
+      return this.product.photo;
+    }
+    const firstPhoto = this.product.photos?.[0];
+    return firstPhoto?.signed_url || firstPhoto?.s3_key || null;
+  }
+
   // Catálogos
   categories: any[] = [];
   subcategories: any[] = [];
@@ -45,18 +77,26 @@ export class ProductDetailModalComponent implements OnInit {
   priceModalVisible = false;
   costModalVisible = false;
   priceListModalVisible = false;
+  attributeModalVisible = false;
+  attributeValueModalVisible = false;
 
   // Formularios de modales secundarios
   priceForm: any = this.getEmptyPriceForm();
   costForm: any = this.getEmptyCostForm();
   priceListForm: any = { name: '', description: '' };
+  attributeForm: any = this.getEmptyAttributeForm();
+  attributeValueForm: any = this.getEmptyAttributeValueForm();
+
+  productAttributes: ProductAttribute[] = [];
 
   constructor(
     private productService: ProductService,
     @Inject(MAT_DIALOG_DATA) public data: { product?: Product; isNew?: boolean },
     private dialogRef: MatDialogRef<ProductDetailModalComponent>,
+    private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {
     console.log('ProductDetailModal constructor - data:', data);
     
@@ -92,6 +132,7 @@ export class ProductDetailModalComponent implements OnInit {
       this.product = {
         id: '',
         sku: '',
+        external_sku: '',
         name: '',
         description: '',
         sat_code: '',
@@ -114,6 +155,7 @@ export class ProductDetailModalComponent implements OnInit {
       // Cargar catálogos en background
       setTimeout(() => {
         this.loadCatalogs();
+        this.loadUomCatalog();
       }, 100);
     }
   }
@@ -133,11 +175,11 @@ export class ProductDetailModalComponent implements OnInit {
         this.cdr.detectChanges();
         console.log('Loading set to false and change detected');
         
-        // Cargar catálogos
+        // Cargar catálogos (sin UOM duplicado; UOM se encadena abajo)
         this.loadCatalogs();
-        
-        // Cargar UOMs del producto
-        this.loadProductUoms();
+
+        // Catálogo UOM (merge) y luego filas asignadas — evita que el <select> no tenga la opción del UUID guardado
+        this.loadUomCatalog(() => this.loadProductUoms());
         
         // Cargar precios del producto
         this.loadProductPrices();
@@ -212,13 +254,19 @@ export class ProductDetailModalComponent implements OnInit {
     });
   }
 
-  loadProductUoms(): void {
+  /**
+   * @param catalogSnapshot Tras guardar: ids de fila UOM → `uom_catalog_id` elegido en UI; si el GET viene
+   * desfasado (sigue Pieza), se reaplica lo que el usuario guardó y se sincroniza `uom` con el catálogo.
+   */
+  loadProductUoms(catalogSnapshot?: Map<string, string>): void {
     if (!this.product) return;
-    
+
     this.productService.getAssignedUoMs(this.product.id).subscribe({
       next: (uoms) => {
         console.log('Product UOMs loaded:', uoms);
-        this.product!.uoms = uoms;
+        this.product!.uoms = this.mapAssignedUomsResponse(uoms);
+        this.reconcileUomsAfterLoad(catalogSnapshot);
+        this.mergeAssignedUomIdsIntoCatalog();
         this.cdr.detectChanges();
       },
       error: (error) => {
@@ -237,9 +285,9 @@ export class ProductDetailModalComponent implements OnInit {
 
   loadCatalogs(): void {
     // Cargar categorías
-    this.productService.getCategories({ status: 'active' }).subscribe({
+    this.productService.getCategories().subscribe({
       next: (response) => {
-        this.categories = response.data || [];
+        this.categories = [...(response.data || [])];
         this.cdr.detectChanges();
         console.log('Categories loaded:', this.categories.length);
       },
@@ -248,25 +296,153 @@ export class ProductDetailModalComponent implements OnInit {
       }
     });
 
-    // Cargar UOMs
-    this.productService.getUOMCatalog().subscribe({
-      next: (uoms) => {
-        this.uomCatalog = uoms;
+    // No cargar price lists aquí, se cargarán solo cuando se abra el tab de precios
+    this.loadProductAttributes();
+  }
+
+  /**
+   * Catálogo del <select>: mezcla catálogo global + catálogo por producto para que aparezcan
+   * todas las unidades asignables (p. ej. FBM) y coincidan los UUID con `uom_catalog_id`.
+   */
+  private loadUomCatalog(onComplete?: () => void): void {
+    const productId = this.product?.id;
+
+    if (!productId) {
+      this.productService.getUOMCatalog().subscribe({
+        next: (raw: any) => {
+          this.uomCatalog = this.normalizeUomCatalogList(raw);
+          this.cdr.detectChanges();
+          onComplete?.();
+        },
+        error: () => {
+          this.uomCatalog = [];
+          onComplete?.();
+        }
+      });
+      return;
+    }
+
+    forkJoin({
+      global: this.productService.getUOMCatalog(),
+      forProduct: this.productService
+        .getUOMCatalogForProduct(productId)
+        .pipe(catchError(() => of([] as UoMCatalog[])))
+    }).subscribe({
+      next: ({ global, forProduct }) => {
+        const g = Array.isArray(global) ? global : [];
+        const p = Array.isArray(forProduct) ? forProduct : [];
+        this.uomCatalog = this.mergeUomCatalogLists(g, p);
+        this.mergeAssignedUomIdsIntoCatalog();
         this.cdr.detectChanges();
-        console.log('UOM catalog loaded:', this.uomCatalog.length);
+        console.log('UOM catalog merged:', this.uomCatalog.length);
+        onComplete?.();
       },
-      error: (error) => {
-        console.error('Error loading UOMs:', error);
+      error: () => {
+        this.productService.getUOMCatalog().subscribe({
+          next: (raw: any) => {
+            this.uomCatalog = this.normalizeUomCatalogList(raw);
+            this.mergeAssignedUomIdsIntoCatalog();
+            this.cdr.detectChanges();
+            onComplete?.();
+          },
+          error: () => {
+            this.uomCatalog = [];
+            onComplete?.();
+          }
+        });
       }
     });
+  }
 
-    // No cargar price lists aquí, se cargarán solo cuando se abra el tab de precios
+  private normalizeUomCatalogList(raw: any): any[] {
+    if (Array.isArray(raw)) return raw;
+    if (raw?.data && Array.isArray(raw.data)) return raw.data;
+    return [];
+  }
+
+  /** Une dos listas de catálogo UOM sin duplicar por id. */
+  private mergeUomCatalogLists(global: any[], forProduct: any[]): any[] {
+    const map = new Map<string, any>();
+    for (const c of global || []) {
+      const row = this.normalizeCatalogOption(c);
+      if (row?.id) map.set(row.id, row);
+    }
+    for (const c of forProduct || []) {
+      const row = this.normalizeCatalogOption(c);
+      if (row?.id && !map.has(row.id)) map.set(row.id, row);
+    }
+    return Array.from(map.values());
+  }
+
+  /** Algunos APIs usan otra clave para el id del catálogo. */
+  private normalizeCatalogOption(c: any): { id: string; name: string } | null {
+    if (!c) return null;
+    const id = c.id ?? c.uom_catalog_id ?? c.catalog_id;
+    if (id == null || id === '') return null;
+    const name = c.name ?? c.uom_name ?? c.description ?? String(id);
+    return { ...c, id: String(id), name: String(name) };
+  }
+
+  /** Si el producto ya tiene un `uom_catalog_id` que no está en el catálogo, agrega opción para que el <select> no “rebote”. */
+  private mergeAssignedUomIdsIntoCatalog(): void {
+    if (!this.product?.uoms?.length) return;
+    const byId = new Map<string, any>(this.uomCatalog.map((c: any) => [String(c.id), c]));
+    for (const u of this.product.uoms) {
+      const cid = String(u.uom_catalog_id || u.uom?.id || '').trim();
+      if (!cid || byId.has(cid)) continue;
+      const name = u.uom?.name || u.uom_catalog?.name || 'Unidad';
+      const row = { id: cid, name: `${name} (${cid.slice(0, 8)}…)` };
+      byId.set(cid, row);
+    }
+    this.uomCatalog = Array.from(byId.values());
+  }
+
+  private mapAssignedUomsResponse(uoms: any[] | null | undefined): any[] {
+    return (uoms || []).map((u: any) => {
+      if (!u) return u;
+      let cid = u.uom_catalog_id;
+      if (cid == null || cid === '') {
+        cid = u.uom?.id;
+      }
+      return { ...u, uom_catalog_id: cid != null && cid !== '' ? String(cid) : '' };
+    });
+  }
+
+  /**
+   * Corrige filas donde el API devuelve `uom_catalog_id` y `uom` desalineados, y opcionalmente reaplica
+   * lo que el usuario acaba de guardar si el GET aún trae el catálogo anterior (típico al editar Pieza → FBM).
+   */
+  private reconcileUomsAfterLoad(catalogSnapshot?: Map<string, string>): void {
+    if (!this.product?.uoms?.length) return;
+
+    for (const u of this.product.uoms) {
+      if (!u?.id) continue;
+      const rowId = String(u.id);
+      const wanted = catalogSnapshot?.get(rowId);
+      const flat = String(u.uom_catalog_id || '');
+      const nested = String(u.uom?.id || '');
+
+      if (wanted && flat !== wanted) {
+        u.uom_catalog_id = wanted;
+        this.onUomCatalogChange(u, wanted);
+        continue;
+      }
+
+      if (flat && nested && flat !== nested) {
+        this.onUomCatalogChange(u, flat);
+      }
+    }
+  }
+
+  /** Evita que Angular reutilice mal la fila al cambiar el modelo de UOM. */
+  trackByUomRow(_index: number, uom: any): string {
+    return uom?.id || uom?._clientRowId || `row-${_index}`;
   }
 
   loadSubcategories(categoryId: string): void {
-    this.productService.getSubCategories(categoryId, { status: 'active' }).subscribe({
+    this.productService.getSubCategories(categoryId).subscribe({
       next: (response) => {
-        this.subcategories = response.data || [];
+        this.subcategories = [...(response.data || [])];
         this.cdr.detectChanges();
         console.log('Subcategories loaded:', this.subcategories.length);
       },
@@ -295,6 +471,262 @@ export class ProductDetailModalComponent implements OnInit {
     }
   }
 
+  openCategoriesDialog(): void {
+    const dialogRef = this.dialog.open(CategoriesDialogComponent, {
+      width: '600px',
+      height: '600px',
+      disableClose: false
+    });
+
+    dialogRef.afterClosed().subscribe(() => {
+      this.loadCatalogs();
+
+      if (this.product?.category_id) {
+        this.loadSubcategories(this.product.category_id);
+      } else {
+        this.subcategories = [];
+      }
+    });
+  }
+
+  loadProductAttributes(): void {
+    this.productService
+      .getProductAttributes({
+        limit: 200,
+        include_values: true
+      })
+      .pipe(
+        finalize(() => {
+          this.ngZone.run(() => this.cdr.detectChanges());
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          const list = this.parseProductAttributesResponse(response);
+          // Nueva referencia para que *ngFor detecte cambios tras guardar
+          this.ngZone.run(() => {
+            this.productAttributes = [...list];
+          });
+        },
+        error: (error) => {
+          console.error('Error loading product attributes:', error);
+          this.showNotification(
+            error.error?.message || 'Error al cargar atributos del catálogo',
+            'error'
+          );
+        }
+      });
+  }
+
+  /** Cierra modal de atributo y sincroniza lista desde API (MatDialog + overlay). */
+  dismissAttributeModal(): void {
+    this.attributeModalVisible = false;
+    this.refreshAttributesAfterModalClose();
+  }
+
+  /** Cierra modal de valor y sincroniza lista desde API. */
+  dismissAttributeValueModal(): void {
+    this.attributeValueModalVisible = false;
+    this.refreshAttributesAfterModalClose();
+  }
+
+  /** Soporta varias formas de respuesta del listado de atributos. */
+  private parseProductAttributesResponse(res: any): ProductAttribute[] {
+    const rawList = this.extractAttributesArray(res);
+    return rawList.map((a) => this.normalizeAttributeRow(a));
+  }
+
+  private extractAttributesArray(res: any): any[] {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.items)) return res.items;
+    if (Array.isArray(res.attributes)) return res.attributes;
+    if (res.data && Array.isArray(res.data.data)) return res.data.data;
+    if (res.data && Array.isArray(res.data.items)) return res.data.items;
+    return [];
+  }
+
+  /** Normaliza `values` según distintas formas del API. */
+  private normalizeAttributeRow(raw: any): ProductAttribute {
+    const a = raw as ProductAttribute;
+    return {
+      ...a,
+      values: this.parseAttributeValuesList(raw)
+    };
+  }
+
+  private parseAttributeValuesList(attr: any): ProductAttributeValue[] {
+    if (!attr) return [];
+    if (Array.isArray(attr.values)) return attr.values;
+    if (Array.isArray(attr.attribute_values)) return attr.attribute_values;
+    if (Array.isArray(attr.product_attribute_values)) return attr.product_attribute_values;
+    if (attr.data && Array.isArray(attr.data.values)) return attr.data.values;
+    return [];
+  }
+
+  /** Tras cerrar modales overlay, forzar recarga en el siguiente tick para que la vista se actualice. */
+  private refreshAttributesAfterModalClose(): void {
+    setTimeout(() => {
+      this.ngZone.run(() => this.loadProductAttributes());
+    }, 0);
+  }
+
+  /** Recarga categorías, subcategorías y atributos del tenant en la pestaña Detalles. */
+  private refreshDetallesSection(): void {
+    this.loadCatalogs();
+    if (this.product?.category_id) {
+      this.loadSubcategories(this.product.category_id);
+    } else {
+      this.subcategories = [];
+      this.cdr.detectChanges();
+    }
+  }
+
+  openAttributeModal(attribute?: ProductAttribute): void {
+    if (attribute) {
+      this.attributeForm = {
+        id: attribute.id,
+        name: attribute.name,
+        is_active: attribute.is_active ?? true
+      };
+    } else {
+      this.attributeForm = this.getEmptyAttributeForm();
+    }
+    this.attributeModalVisible = true;
+  }
+
+  saveAttribute(): void {
+    if (!this.attributeForm.name || !this.attributeForm.name.trim()) {
+      this.showNotification('El nombre del atributo es requerido', 'error');
+      return;
+    }
+
+    const body = {
+      name: this.attributeForm.name.trim(),
+      description: '',
+      is_active: this.attributeForm.is_active ?? true
+    };
+
+    if (this.attributeForm.id) {
+      this.productService.updateProductAttribute(this.attributeForm.id, body).subscribe({
+        next: () => {
+          this.showNotification('Atributo actualizado correctamente', 'success');
+          this.dismissAttributeModal();
+        },
+        error: (error) => {
+          console.error('Error updating attribute:', error);
+          this.showNotification(error.error?.message || 'Error al actualizar atributo', 'error');
+        }
+      });
+      return;
+    }
+
+    this.productService.createProductAttribute(body).subscribe({
+      next: () => {
+        this.showNotification('Atributo creado correctamente', 'success');
+        this.dismissAttributeModal();
+      },
+      error: (error) => {
+        console.error('Error creating attribute:', error);
+        this.showNotification(error.error?.message || 'Error al crear atributo', 'error');
+      }
+    });
+  }
+
+  deleteAttribute(attribute: ProductAttribute): void {
+    if (!confirm(`¿Eliminar atributo "${attribute.name}"?`)) return;
+
+    this.productService.deleteProductAttribute(attribute.id).subscribe({
+      next: () => {
+        this.showNotification('Atributo eliminado correctamente', 'success');
+        this.refreshAttributesAfterModalClose();
+      },
+      error: (error) => {
+        console.error('Error deleting attribute:', error);
+        this.showNotification(error.error?.message || 'Error al eliminar atributo', 'error');
+      }
+    });
+  }
+
+  openAttributeValueModal(attributeId: string, value?: ProductAttributeValue): void {
+    if (value) {
+      this.attributeValueForm = {
+        id: value.id,
+        attribute_id: attributeId,
+        value: value.value,
+        is_active: value.is_active ?? true
+      };
+    } else {
+      this.attributeValueForm = this.getEmptyAttributeValueForm();
+      this.attributeValueForm.attribute_id = attributeId;
+    }
+    this.attributeValueModalVisible = true;
+  }
+
+  saveAttributeValue(): void {
+    if (!this.attributeValueForm.attribute_id) {
+      this.showNotification('Selecciona un atributo', 'error');
+      return;
+    }
+    if (!this.attributeValueForm.value || !this.attributeValueForm.value.trim()) {
+      this.showNotification('El valor es requerido', 'error');
+      return;
+    }
+
+    const body = {
+      value: this.attributeValueForm.value.trim(),
+      is_active: this.attributeValueForm.is_active ?? true
+    };
+
+    if (this.attributeValueForm.id) {
+      this.productService.updateProductAttributeValue(
+        this.attributeValueForm.attribute_id,
+        this.attributeValueForm.id,
+        body
+      ).subscribe({
+        next: () => {
+          this.showNotification('Valor actualizado correctamente', 'success');
+          this.dismissAttributeValueModal();
+        },
+        error: (error) => {
+          console.error('Error updating attribute value:', error);
+          this.showNotification(error.error?.message || 'Error al actualizar valor', 'error');
+        }
+      });
+      return;
+    }
+
+    this.productService.createProductAttributeValue(
+      this.attributeValueForm.attribute_id,
+      body
+    ).subscribe({
+      next: () => {
+        this.showNotification('Valor agregado correctamente', 'success');
+        this.dismissAttributeValueModal();
+      },
+      error: (error) => {
+        console.error('Error creating attribute value:', error);
+        this.showNotification(error.error?.message || 'Error al agregar valor', 'error');
+      }
+    });
+  }
+
+  deleteAttributeValue(attributeId: string, value: ProductAttributeValue): void {
+    if (!confirm(`¿Eliminar valor "${value.value}"?`)) return;
+
+    this.productService.deleteProductAttributeValue(attributeId, value.id).subscribe({
+      next: () => {
+        this.showNotification('Valor eliminado correctamente', 'success');
+        this.refreshAttributesAfterModalClose();
+      },
+      error: (error) => {
+        console.error('Error deleting attribute value:', error);
+        this.showNotification(error.error?.message || 'Error al eliminar valor', 'error');
+      }
+    });
+  }
+
   save(): void {
     if (!this.product) return;
 
@@ -314,6 +746,7 @@ export class ProductDetailModalComponent implements OnInit {
     
     const body: any = {
       sku: this.product.sku.trim(),
+      external_sku: this.product.external_sku?.trim() || undefined,
       name: this.product.name.trim(),
       description: this.product.description?.trim() || '',
       sat_code: this.product.sat_code?.trim() || '',
@@ -361,7 +794,8 @@ export class ProductDetailModalComponent implements OnInit {
           console.log('Error occurred, setting saving = false');
           this.saving = false;
           this.cdr.detectChanges();
-          this.showNotification('Error al actualizar el producto', 'error');
+          const errorMessage = error.error?.message || 'Error al actualizar el producto';
+          this.showNotification(errorMessage, 'error');
         }
       });
     }
@@ -371,6 +805,9 @@ export class ProductDetailModalComponent implements OnInit {
     if (!this.product) return;
     
     switch (this.activeTab) {
+      case 'detalles':
+        this.refreshDetallesSection();
+        break;
       case 'uoms':
         this.loadProductUoms();
         break;
@@ -380,10 +817,46 @@ export class ProductDetailModalComponent implements OnInit {
       case 'costos':
         this.loadVendorCosts();
         break;
+      case 'fotos':
+        this.loadProduct(this.product.id);
+        break;
       default:
-        // For detalles tab, no need to reload
         break;
     }
+  }
+
+  openPhotoPicker(input: HTMLInputElement): void {
+    if (this.uploadingPhoto || !this.product?.id) return;
+    input.click();
+  }
+
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || !this.product?.id) return;
+
+    const currentProduct = this.product;
+    this.uploadingPhoto = true;
+
+    this.productService.uploadProductPhoto(currentProduct.id, file).subscribe({
+      next: (updatedProduct) => {
+        this.product = {
+          ...currentProduct,
+          ...updatedProduct
+        };
+        this.uploadingPhoto = false;
+        this.cdr.detectChanges();
+        this.showNotification('Foto del producto actualizada', 'success');
+      },
+      error: (error) => {
+        this.uploadingPhoto = false;
+        this.cdr.detectChanges();
+        const errorMessage = error?.error?.message || 'No se pudo subir la foto del producto';
+        this.showNotification(errorMessage, 'error');
+      }
+    });
+
+    input.value = '';
   }
 
   // ─── UOMs ───────────────────────────────────────────────────
@@ -395,6 +868,7 @@ export class ProductDetailModalComponent implements OnInit {
     // Crear nueva UOM vacía (temporal, sin ID hasta que se guarde)
     const newUom: any = {
       id: '', // Vacío hasta que se guarde
+      _clientRowId: `new-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       product_id: this.product.id,
       uom_catalog_id: '',
       factor: 1,
@@ -431,9 +905,18 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   onUomCatalogChange(uom: any, catalogId: string): void {
-    const catalog = this.uomCatalog.find(c => c.id === catalogId);
+    if (!catalogId) {
+      uom.uom_catalog_id = '';
+      uom.uom_catalog = null;
+      uom.uom = null;
+      return;
+    }
+    const id = String(catalogId);
+    uom.uom_catalog_id = id;
+    const catalog = this.uomCatalog.find((c) => String(c.id) === id);
     if (catalog) {
       uom.uom_catalog = catalog;
+      uom.uom = catalog;
     }
   }
 
@@ -512,14 +995,21 @@ export class ProductDetailModalComponent implements OnInit {
       if (completed === total) {
         this.saving = false;
         this.showNotification('UOMs guardadas correctamente', 'success');
-        this.loadProductUoms(); // Recargar UOMs
+        // Lo que había en pantalla al guardar (evita que un GET desfasado vuelva a “Pieza” al editar una fila existente)
+        const catalogSnapshot = new Map<string, string>();
+        for (const u of this.product!.uoms) {
+          if (u.id && u.uom_catalog_id) {
+            catalogSnapshot.set(String(u.id), String(u.uom_catalog_id));
+          }
+        }
+        this.loadUomCatalog(() => this.loadProductUoms(catalogSnapshot));
       }
     };
     
     // Crear nuevas UOMs
     newUoms.forEach(uom => {
       const data = {
-        uom_catalog_id: uom.uom_catalog_id,
+        uom_catalog_id: String(uom.uom_catalog_id),
         factor: uom.factor || 1,
         is_base: uom.is_base || false,
         parent_uom_id: uom.parent_uom_id || null
@@ -535,14 +1025,15 @@ export class ProductDetailModalComponent implements OnInit {
       });
     });
     
-    // Actualizar UOMs existentes
+    // Actualizar UOMs existentes (incl. cambio de unidad del catálogo)
     existingUoms.forEach(uom => {
       const data = {
+        uom_catalog_id: String(uom.uom_catalog_id),
         factor: uom.factor || 1,
         is_base: uom.is_base || false,
         parent_uom_id: uom.parent_uom_id || null
       };
-      
+
       this.productService.updateUOM(this.product!.id, uom.id, data).subscribe({
         next: () => checkComplete(),
         error: (error) => {
@@ -846,6 +1337,23 @@ export class ProductDetailModalComponent implements OnInit {
       cost: 0,
       iva_percentage: 0,
       ieps_percentage: 0
+    };
+  }
+
+  getEmptyAttributeForm(): any {
+    return {
+      id: '',
+      name: '',
+      is_active: true
+    };
+  }
+
+  getEmptyAttributeValueForm(): any {
+    return {
+      id: '',
+      attribute_id: '',
+      value: '',
+      is_active: true
     };
   }
 

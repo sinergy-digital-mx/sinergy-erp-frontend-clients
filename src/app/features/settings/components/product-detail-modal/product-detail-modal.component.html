@@ -19,7 +19,7 @@
   <!-- Content -->
   <div *ngIf="!loading && product" class="modal-content">
       <!-- Tabs -->
-      <app-tab [tabs]="tabs" [activeTabId]="activeTab" (tabChange)="activeTab = $event"></app-tab>
+      <app-tab [tabs]="tabs" [activeTabId]="activeTab" (tabChange)="onTabChange($event)"></app-tab>
 
       <!-- Tab Content -->
       <div class="tab-content">
@@ -37,6 +37,16 @@
             </div>
 
             <div class="form-field">
+              <label class="form-label">SKU EXTERNO</label>
+              <input
+                type="text"
+                class="form-input"
+                [(ngModel)]="product.external_sku"
+                maxlength="255"
+                placeholder="SKU en sistema externo (opcional)">
+            </div>
+
+            <div class="form-field">
               <label class="form-label">CÓDIGO SAT</label>
               <input type="text" class="form-input" [(ngModel)]="product.sat_code" placeholder="Ej. 01010101">
             </div>
@@ -47,7 +57,12 @@
             </div>
 
             <div class="form-field">
-              <label class="form-label">CATEGORÍA</label>
+              <div class="form-label-row">
+                <label class="form-label">CATEGORÍA</label>
+                <button class="form-label-action" (click)="openCategoriesDialog()" type="button">
+                  Editar
+                </button>
+              </div>
               <select class="form-select" [(ngModel)]="product.category_id" (ngModelChange)="onCategoryChange($event)">
                 <option [ngValue]="null">Selecciona una categoría</option>
                 <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.name }}</option>
@@ -60,6 +75,54 @@
                 <option [ngValue]="null">Selecciona una subcategoría</option>
                 <option *ngFor="let sub of subcategories" [ngValue]="sub.id">{{ sub.name }}</option>
               </select>
+            </div>
+
+            <div class="form-field form-field--full">
+              <div class="form-label-row">
+                <label class="form-label">ATRIBUTOS PERSONALIZADOS</label>
+                <button class="form-label-action" (click)="openAttributeModal()" type="button">
+                  + Agregar atributo
+                </button>
+              </div>
+
+              <div class="attributes-panel" *ngIf="productAttributes.length > 0; else emptyAttributes">
+                <div class="attribute-row" *ngFor="let attr of productAttributes">
+                  <div class="attribute-row__header">
+                    <span class="attribute-row__name">{{ attr.name }}</span>
+                    <div class="attribute-row__actions">
+                      <button class="btn-icon btn-icon--compact" (click)="openAttributeValueModal(attr.id)" type="button" title="Agregar valor">
+                        <i class="fi fi-rr-plus"></i>
+                      </button>
+                      <button class="btn-icon btn-icon--compact" (click)="openAttributeModal(attr)" type="button" title="Editar atributo">
+                        <i class="fi fi-rr-pencil"></i>
+                      </button>
+                      <button class="btn-icon btn-icon--compact btn-icon--danger" (click)="deleteAttribute(attr)" type="button" title="Eliminar atributo">
+                        <i class="fi fi-rr-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="attribute-values" *ngIf="attr.values?.length; else emptyValues">
+                    <span class="attribute-chip" *ngFor="let value of attr.values">
+                      <span class="attribute-chip__text">{{ value.value }}</span>
+                      <button class="attribute-chip__btn" (click)="openAttributeValueModal(attr.id, value)" type="button" title="Editar valor">
+                        <i class="fi fi-rr-pencil"></i>
+                      </button>
+                      <button class="attribute-chip__btn attribute-chip__btn--danger" (click)="deleteAttributeValue(attr.id, value)" type="button" title="Eliminar valor">
+                        <i class="fi fi-rr-trash"></i>
+                      </button>
+                    </span>
+                  </div>
+
+                  <ng-template #emptyValues>
+                    <div class="attribute-empty-values">Sin valores</div>
+                  </ng-template>
+                </div>
+              </div>
+
+              <ng-template #emptyAttributes>
+                <div class="attribute-empty">No hay atributos configurados</div>
+              </ng-template>
             </div>
           </div>
 
@@ -92,7 +155,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let uom of product.uoms; let i = index">
+              <tr *ngFor="let uom of product.uoms; let i = index; trackBy: trackByUomRow">
                 <td>
                   <select class="form-select form-select--inline" [(ngModel)]="uom.uom_catalog_id" (ngModelChange)="onUomCatalogChange(uom, $event)">
                     <option value="">Seleccionar...</option>
@@ -227,18 +290,97 @@
 
         <!-- Tab: Fotos -->
         <div *ngIf="activeTab === 'fotos'" class="tab-pane">
-          <div *ngIf="!product.photos || product.photos.length === 0" class="empty-state">
-            <p>Sin imágenes</p>
-          </div>
-
-          <div *ngIf="product.photos && product.photos.length > 0" class="photos-grid">
-            <div *ngFor="let photo of product.photos" class="photo-card">
-              <img [src]="photo.signed_url || photo.s3_key" [alt]="photo.alt_text || 'Foto del producto'" loading="lazy">
+          <div class="photo-tab">
+            <div class="photo-tab__preview">
+              <ng-container *ngIf="productPhotoUrl as photoUrl; else emptyPhoto">
+                <a [href]="photoUrl" target="_blank" rel="noopener noreferrer">
+                  <img [src]="photoUrl" [alt]="'Foto de ' + (product.name || 'producto')" loading="lazy">
+                </a>
+              </ng-container>
+              <ng-template #emptyPhoto>
+                <div class="photo-tab__empty">
+                  <p>Sin imágenes</p>
+                </div>
+              </ng-template>
             </div>
+
+            <input
+              #productPhotoInput
+              type="file"
+              class="hidden-file-input"
+              accept="image/*"
+              (change)="onPhotoSelected($event)"
+            >
+
+            <button
+              class="btn btn--primary photo-tab__upload-btn"
+              type="button"
+              (click)="openPhotoPicker(productPhotoInput)"
+              [disabled]="uploadingPhoto || !product.id"
+            >
+              <span *ngIf="uploadingPhoto">Subiendo...</span>
+              <span *ngIf="!uploadingPhoto">{{ productPhotoUrl ? 'Reemplazar foto' : 'Subir foto' }}</span>
+            </button>
           </div>
         </div>
       </div>
     </div>
+</div>
+
+<!-- Modal Secundario: Atributo -->
+<div class="modal-overlay" *ngIf="attributeModalVisible" (click)="dismissAttributeModal()">
+  <div class="modal-container modal-container--xs" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ attributeForm.id ? 'Editar Atributo' : 'Nuevo Atributo' }}</h2>
+      <button class="close-btn" (click)="dismissAttributeModal()" type="button">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-content modal-content--compact">
+      <div class="form-grid">
+        <div class="form-field form-field--full">
+          <label class="form-label">NOMBRE *</label>
+          <input type="text" class="form-input" [(ngModel)]="attributeForm.name" placeholder="Ej. Color">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn--secondary" (click)="dismissAttributeModal()" type="button">Cancelar</button>
+        <button class="btn btn--primary" (click)="saveAttribute()" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Secundario: Valor de Atributo -->
+<div class="modal-overlay" *ngIf="attributeValueModalVisible" (click)="dismissAttributeValueModal()">
+  <div class="modal-container modal-container--xs" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ attributeValueForm.id ? 'Editar Valor' : 'Nuevo Valor' }}</h2>
+      <button class="close-btn" (click)="dismissAttributeValueModal()" type="button">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-content modal-content--compact">
+      <div class="form-grid">
+        <div class="form-field form-field--full">
+          <label class="form-label">VALOR *</label>
+          <input type="text" class="form-input" [(ngModel)]="attributeValueForm.value" placeholder="Ej. Rojo">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn--secondary" (click)="dismissAttributeValueModal()" type="button">Cancelar</button>
+        <button class="btn btn--primary" (click)="saveAttributeValue()" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Modal Secundario: Precio -->

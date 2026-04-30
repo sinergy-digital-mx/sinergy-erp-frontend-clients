@@ -1,0 +1,10 @@
+.exchange-rate-page {
+  :is(input, textarea) {
+    outline: none;
+  }
+
+  :is(input, textarea):focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+}

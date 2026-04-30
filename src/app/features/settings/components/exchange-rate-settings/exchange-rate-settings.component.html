@@ -1,0 +1,131 @@
+<div class="px-4 exchange-rate-page">
+  <div class="mb-5">
+    <h2 class="text-2xl font-semibold text-gray-800">Tipo de cambio</h2>
+    <p class="text-sm text-gray-600 mt-1">
+      Registra el valor diario del USD para operaciones y auditoria por tenant.
+    </p>
+  </div>
+
+  @if (!canRead) {
+    <div class="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800">
+      No tienes permisos para consultar este modulo.
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <section class="bg-white rounded-lg border border-gray-200 p-4 lg:col-span-2">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Captura diaria</h3>
+
+        <form [formGroup]="form" (ngSubmit)="saveDailyRate()">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+              <input
+                type="date"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm disabled:bg-gray-100"
+                formControlName="rate_date"
+                [disabled]="!canUpdate || saving"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de cambio (USD -> MXN)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.0001"
+                placeholder="17.0000"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm disabled:bg-gray-100"
+                formControlName="exchange_rate"
+                [disabled]="!canUpdate || saving"
+              />
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notas (opcional)</label>
+            <textarea
+              rows="3"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm disabled:bg-gray-100"
+              formControlName="notes"
+              [disabled]="!canUpdate || saving"
+              placeholder="Fuente o comentario del ajuste"
+            ></textarea>
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            @if (canUpdate) {
+              <button
+                type="submit"
+                class="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-60"
+                [disabled]="saving || form.invalid"
+              >
+                {{ saving ? 'Guardando...' : 'Guardar tipo de cambio' }}
+              </button>
+            }
+
+            @if (statusMessage) {
+              <span class="text-sm text-green-700">{{ statusMessage }}</span>
+            }
+
+            @if (errorMessage) {
+              <span class="text-sm text-red-700">{{ errorMessage }}</span>
+            }
+          </div>
+        </form>
+      </section>
+
+      <section class="bg-white rounded-lg border border-gray-200 p-4">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Hoy</h3>
+
+        @if (loadingCurrent) {
+          <p class="text-sm text-gray-500">Consultando valor de hoy...</p>
+        } @else if (todayLoadError) {
+          <p class="text-sm text-red-600">{{ todayLoadError }}</p>
+        } @else if (todaysRate) {
+          <div class="rounded-md bg-blue-50 border border-blue-200 p-3">
+            <p class="text-xs uppercase text-blue-700 tracking-wide">USD/MXN</p>
+            <p class="text-2xl font-bold text-blue-900">{{ todaysRate.exchange_rate | number:'1.4-4' }}</p>
+            <p class="text-xs text-blue-700 mt-1">Fecha: {{ todaysRate.rate_date }}</p>
+          </div>
+        } @else {
+          <p class="text-sm text-gray-500">
+            Aun no existe un tipo de cambio cargado para hoy.
+          </p>
+        }
+      </section>
+    </div>
+
+    <section class="bg-white rounded-lg border border-gray-200 p-4 mt-5">
+      <h3 class="text-lg font-semibold text-gray-800 mb-3">Historial reciente</h3>
+
+      @if (loadingHistory) {
+        <p class="text-sm text-gray-500">Cargando historial...</p>
+      } @else if (historyLoadError) {
+        <p class="text-sm text-red-600">{{ historyLoadError }}</p>
+      } @else if (history.length === 0) {
+        <p class="text-sm text-gray-500">No hay registros de tipo de cambio.</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left text-gray-600 border-b border-gray-200">
+                <th class="py-2 pr-4">Fecha</th>
+                <th class="py-2 pr-4">Tipo de cambio</th>
+                <th class="py-2 pr-4">Notas</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of history; track trackByRateDate($index, item)) {
+                <tr class="border-b border-gray-100">
+                  <td class="py-2 pr-4 text-gray-700">{{ item.rate_date }}</td>
+                  <td class="py-2 pr-4 font-medium text-gray-900">{{ item.exchange_rate | number:'1.4-4' }}</td>
+                  <td class="py-2 pr-4 text-gray-600">{{ item.notes || '-' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</div>

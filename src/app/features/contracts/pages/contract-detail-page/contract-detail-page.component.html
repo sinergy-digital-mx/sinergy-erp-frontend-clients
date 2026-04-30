@@ -1,0 +1,265 @@
+<div class="contract-detail-page" *ngIf="contract() as current">
+  <div class="page-shell" [class.page-shell--wide]="activeTab() === 'payments'">
+    <div class="page-header">
+      <div class="flex-1">
+        <div class="page-header-top flex items-center gap-2 mb-2">
+          <app-button
+            [icon]="ArrowLeft"
+            [fullWidth]="false"
+            size="sm"
+            [customClass]="'btn-outline-back'"
+            (clicked)="navigateBack()">
+          </app-button>
+          <h2>Contrato {{ current.contract_number }}</h2>
+          <span
+            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
+            [ngClass]="{
+              'bg-green-100 text-green-800': badgeStatus === 'activo',
+              'bg-blue-100 text-blue-800': badgeStatus === 'completado',
+              'bg-red-100 text-red-800': badgeStatus === 'cancelado',
+              'bg-yellow-100 text-yellow-800': badgeStatus === 'suspendido'
+            }">
+            {{ badgeStatus | titlecase }}
+          </span>
+          <span *ngIf="current.customer" class="text-gray-400">•</span>
+          <span
+            *ngIf="current.customer"
+            (click)="navigateToCustomer()"
+            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors">
+            {{ getCustomerName() }}
+          </span>
+          <span
+            *ngIf="current.down_payment_financed"
+            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800">
+            Enganche financiado activo
+          </span>
+        </div>
+        <div class="flex items-center gap-2 mb-3 text-xs contract-meta-badges">
+          <span class="inline-flex items-center px-2.5 py-1.5 rounded bg-gray-100 text-gray-700">
+            <span class="font-semibold text-gray-900 mr-1">Creado:</span>
+            {{ current.created_at | date:'medium' }}
+          </span>
+          <span class="inline-flex items-center px-2.5 py-1.5 rounded bg-gray-100 text-gray-700">
+            <span class="font-semibold text-gray-900 mr-1">Actualizado:</span>
+            {{ current.updated_at | date:'medium' }}
+          </span>
+        </div>
+
+        <div class="page-header-stats grid grid-cols-7 gap-3 text-xs pb-1">
+          <div>
+            <span class="block text-gray-500 font-medium">Fecha Contrato</span>
+            <span class="text-gray-900 font-semibold">{{ current.contract_date | localDate:'mediumDate' }}</span>
+          </div>
+          <div>
+            <span class="block text-gray-500 font-medium">Precio Total</span>
+            <span class="text-gray-900 font-semibold">{{ current.total_price | currency:current.currency }}</span>
+          </div>
+          <div>
+            <span class="block text-gray-500 font-medium">Enganche</span>
+            <span class="text-gray-900 font-semibold">{{ current.down_payment | currency:current.currency }}</span>
+          </div>
+          <div>
+            <span class="block text-gray-500 font-medium">Total Pagado</span>
+            <span class="text-green-600 font-semibold">{{ (current.total_price - current.remaining_balance) | currency:current.currency }}</span>
+          </div>
+          <div>
+            <span class="flex items-center gap-1 text-gray-500 font-medium">
+              Saldo Pendiente
+              <span
+                *ngIf="paymentStats()"
+                class="cursor-help text-gray-400 hover:text-gray-600"
+                [matTooltip]="getPendingBreakdown()"
+                matTooltipPosition="above"
+                matTooltipShowDelay="100">
+                <lucide-icon [img]="InfoIcon" [size]="14"></lucide-icon>
+              </span>
+            </span>
+            <span class="text-red-600 font-semibold">{{ current.remaining_balance | currency:current.currency }}</span>
+          </div>
+          <div>
+            <span class="block text-gray-500 font-medium">Meses de Pago</span>
+            <span class="text-gray-900 font-semibold">{{ current.payment_months }} meses</span>
+          </div>
+          <div>
+            <span class="block text-gray-500 font-medium">Pago Mensual</span>
+            <span class="text-gray-900 font-semibold">{{ current.monthly_payment | currency:current.currency }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs px-6 pt-2">
+      <button class="tab" [class.active]="activeTab() === 'edit'" (click)="setActiveTab('edit')">Editar</button>
+      <button class="tab" [class.active]="activeTab() === 'payments'" (click)="setActiveTab('payments')">Pagos</button>
+      <button class="tab" [class.active]="activeTab() === 'down_payments'" (click)="setActiveTab('down_payments')">Enganche en Pagos</button>
+      <button class="tab" [class.active]="activeTab() === 'hoa'" (click)="setActiveTab('hoa')">HOA</button>
+      <button class="tab" [class.active]="activeTab() === 'documents'" (click)="setActiveTab('documents')">Documentos</button>
+      <button class="tab" [class.active]="activeTab() === 'statement'" (click)="setActiveTab('statement')">Estado de Cuenta</button>
+    </div>
+
+    <div class="page-body">
+      <div class="tab-content" [class.active]="activeTab() === 'edit'">
+        <div *ngIf="current.down_payment_financed" class="mb-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
+          <div class="grid grid-cols-4 gap-2 text-xs">
+            <div>
+              <span class="block font-semibold text-amber-700 mb-0.5">Estado enganche</span>
+              <span class="text-amber-900 font-semibold">Activo</span>
+            </div>
+            <div>
+              <span class="block font-semibold text-amber-700 mb-0.5">Meses</span>
+              <span class="text-amber-900 font-semibold">{{ current.down_payment_months || '—' }}</span>
+            </div>
+            <div>
+              <span class="block font-semibold text-amber-700 mb-0.5">Pago mensual</span>
+              <span class="text-amber-900 font-semibold">{{ current.down_payment_monthly_amount | currency:current.currency }}</span>
+            </div>
+            <div>
+              <span class="block font-semibold text-amber-700 mb-0.5">Primer pago / día</span>
+              <span class="text-amber-900 font-semibold">{{ current.down_payment_first_payment_date | localDate:'mediumDate' }} / {{ current.down_payment_payment_day || '—' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2.5" [formGroup]="form">
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Número de Contrato</span>
+              <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                {{ current.contract_number }}
+              </span>
+            </div>
+
+            <div>
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Lote</span>
+              <span
+                *ngIf="current.property"
+                (click)="openPropertyModal()"
+                class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 cursor-pointer hover:bg-green-200 transition-colors">
+                {{ current.property.code }}
+              </span>
+              <span *ngIf="!current.property" class="text-gray-900">—</span>
+            </div>
+          </div>
+
+          <div>
+            <label for="seller-search" class="block text-xs font-semibold text-gray-500 mb-1">Vendido Por</label>
+            <div class="relative">
+              <input
+                #sellerAutocompleteTrigger="matAutocompleteTrigger"
+                id="seller-search"
+                type="text"
+                formControlName="seller_search"
+                [placeholder]="current.seller ? 'Buscar nuevo vendedor...' : 'Buscar por nombre o email'"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                (focus)="onSellerSearchFocus()"
+                (blur)="onSellerSearchBlur()"
+                [matAutocomplete]="autoSeller"
+                aria-label="Buscar vendedor">
+              <button
+                type="button"
+                *ngIf="current.seller && form.get('seller_search')?.value"
+                (click)="clearSeller()"
+                class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-600">
+                ✕
+              </button>
+            </div>
+            <mat-autocomplete #autoSeller="matAutocomplete">
+              <mat-option *ngFor="let seller of filteredVendors()" [value]="seller" (click)="onSellerSelected(seller)">
+                {{ displaySeller(seller) }}
+              </mat-option>
+              <mat-option *ngIf="filteredVendors().length === 0" disabled>
+                <span class="text-sm text-gray-500">No se encontraron vendedores</span>
+              </mat-option>
+            </mat-autocomplete>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <app-input label="Fecha del Contrato" type="date" [form_control]="form.controls['contract_date']"></app-input>
+            <app-select [label]="'Estado *'" [config]="statusSelectConfig"></app-select>
+            <app-input label="Precio Total" type="number" disabled="true" [form_control]="form.controls['total_price']"></app-input>
+            <app-input label="Enganche" type="number" disabled="true" [form_control]="form.controls['down_payment']"></app-input>
+            <app-input label="Saldo Pendiente" type="number" [form_control]="form.controls['remaining_balance']"></app-input>
+            <app-input label="Meses de Pago" type="number" [form_control]="form.controls['payment_months']"></app-input>
+            <app-input label="Pago Mensual" type="number" [form_control]="form.controls['monthly_payment']"></app-input>
+            <app-input label="Fecha Primer Pago" type="date" [form_control]="form.controls['first_payment_date']"></app-input>
+          </div>
+
+          <app-input label="Notas" type="textarea" [form_control]="form.controls['notes']"></app-input>
+        </div>
+      </div>
+
+      <div class="tab-content" [class.active]="activeTab() === 'payments'">
+        <app-contract-payments
+          [contractId]="current.id"
+          [currency]="current.currency"
+          [contractStatus]="current.status"
+          (dataChanged)="refreshContractData()">
+        </app-contract-payments>
+      </div>
+
+      <div class="tab-content" [class.active]="activeTab() === 'down_payments'">
+        <app-contract-downpayment-payments
+          [contractId]="current.id"
+          [currency]="current.currency"
+          [contract]="current"
+          (dataChanged)="refreshContractData()">
+        </app-contract-downpayment-payments>
+      </div>
+
+      <div class="tab-content" [class.active]="activeTab() === 'hoa'">
+        <app-contract-hoa-payments
+          [contractId]="current.id"
+          [currency]="current.currency"
+          [contractStatus]="current.status"
+          [contract]="current"
+          (dataChanged)="refreshContractData()">
+        </app-contract-hoa-payments>
+      </div>
+
+      <div class="tab-content" [class.active]="activeTab() === 'documents'">
+        <app-contract-documents [contractId]="current.id"></app-contract-documents>
+      </div>
+
+      <div class="tab-content" [class.active]="activeTab() === 'statement'">
+        <div class="p-6 text-center">
+          <div class="mb-4">
+            <p class="text-gray-600 mb-4">Descarga el estado de cuenta en formato PDF</p>
+            <button
+              (click)="downloadStatement()"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+              📥 Descargar Estado de Cuenta
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div class="flex justify-between w-full">
+        <app-button
+          text="Eliminar Contrato"
+          variant="danger"
+          [customClass]="'btn-outline-danger'"
+          [fullWidth]="false"
+          size="sm"
+          [loading]="deleting()"
+          (clicked)="deleteContract()">
+        </app-button>
+
+        <div class="flex gap-2">
+          <app-button
+            *ngIf="activeTab() === 'edit'"
+            text="Guardar Cambios"
+            [customClass]="'btn_primary'"
+            [fullWidth]="false"
+            size="sm"
+            [loading]="saving()"
+            (clicked)="saveContract()">
+          </app-button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading()" class="contract-detail-page py-10 text-center text-gray-500">Cargando contrato...</div>

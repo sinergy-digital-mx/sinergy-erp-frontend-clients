@@ -27,12 +27,16 @@ export class FiscalConfigurationModalComponent implements OnInit {
   form: FormGroup;
   saving = signal(false);
   loading = signal(false);
+  uploadingLogo = signal(false);
   isNew = true;
+  logoUrl: string | null = null;
+  logoFileName: string | null = null;
 
   // Tabs
   tabs: TabItem[] = [
     { id: 'configuracion', title: 'Configuración' },
-    { id: 'sucursales', title: 'Sucursales' }
+    { id: 'sucursales', title: 'Sucursales' },
+    { id: 'logo', title: 'Logo' }
   ];
   activeTab = 'configuracion';
 
@@ -75,9 +79,61 @@ export class FiscalConfigurationModalComponent implements OnInit {
     this.initializeSelectConfigs();
     if (this.data.fiscalConfig) {
       this.form.patchValue(this.data.fiscalConfig);
+      this.logoUrl = this.data.fiscalConfig.logo || null;
       // Cargar sucursales si no es nuevo
       this.loadBranches();
     }
+  }
+
+  openLogoPicker(input: HTMLInputElement): void {
+    if (this.uploadingLogo() || this.isNew) return;
+    input.click();
+  }
+
+  onLogoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const fiscalConfig = this.data.fiscalConfig;
+
+    if (!file || !fiscalConfig) {
+      return;
+    }
+
+    this.logoFileName = file.name;
+    this.uploadingLogo.set(true);
+    this.fiscalConfigService.uploadFiscalLogo(fiscalConfig.id, file).subscribe({
+      next: () => {
+        this.fiscalConfigService.getFiscalConfiguration(fiscalConfig.id).subscribe({
+          next: (updatedConfig) => {
+            this.data.fiscalConfig = updatedConfig;
+            this.logoUrl = updatedConfig.logo || null;
+            this.uploadingLogo.set(false);
+            input.value = '';
+            this.cdr.detectChanges();
+            this.snackBar.openFromComponent(CustomSnackbarComponent, {
+              data: { message: 'Logo subido correctamente', type: 'success' },
+              duration: 3000
+            });
+          },
+          error: (error) => {
+            this.uploadingLogo.set(false);
+            input.value = '';
+            this.snackBar.openFromComponent(CustomSnackbarComponent, {
+              data: { message: error.error?.message || 'Logo subido, pero no se pudo refrescar la vista', type: 'error' },
+              duration: 4000
+            });
+          }
+        });
+      },
+      error: (error) => {
+        this.uploadingLogo.set(false);
+        input.value = '';
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: error.error?.message || 'Error al subir logo', type: 'error' },
+          duration: 5000
+        });
+      }
+    });
   }
 
   loadBranches(): void {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import {
   LucideAngularModule,
@@ -25,6 +25,7 @@ import {
 import { AuthService } from '../../services/auth.service';
 import { SidebarService } from '../../services/sidebar.service';
 import { PERMISSIONS } from '../../config/permissions.config';
+import { ExchangeRateService } from '../../services/exchange-rate.service';
 
 interface MenuItem {
   label: string;
@@ -40,8 +41,9 @@ interface MenuItem {
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
 })
-export class Sidebar {
+export class Sidebar implements OnInit {
   isCollapsed = signal(false);
+  todayUsdMxnRate = signal<number | null>(null);
 
   menu: MenuItem[] = [
     {
@@ -120,9 +122,31 @@ export class Sidebar {
 
   icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight };
 
-  constructor(public auth_service: AuthService, private sidebarService: SidebarService) {
+  constructor(
+    public auth_service: AuthService,
+    private sidebarService: SidebarService,
+    private exchangeRateService: ExchangeRateService
+  ) {
     // Subscribe to sidebar service changes
     this.isCollapsed = this.sidebarService.isCollapsed;
+  }
+
+  ngOnInit(): void {
+    if (!this.auth_service.hasPermission('exchangerate:Read')) {
+      return;
+    }
+
+    this.exchangeRateService.getDailyExchangeRate().subscribe({
+      next: (rate) => {
+        const value = rate?.exchange_rate;
+        if (value != null && Number.isFinite(value) && value > 0) {
+          this.todayUsdMxnRate.set(value);
+        } else {
+          this.todayUsdMxnRate.set(null);
+        }
+      },
+      error: () => this.todayUsdMxnRate.set(null)
+    });
   }
 
   toggleSidebar() {

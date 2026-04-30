@@ -1,0 +1,1 @@
+import{a as o}from"./chunk-VYBSIZ25.js";import{a as t}from"./chunk-HBV4CUP6.js";import"./chunk-TAWOGDPL.js";import"./chunk-34E4NAHH.js";import"./chunk-TKBFL5AM.js";import"./chunk-33JGCL5T.js";var s=[{path:"",loadComponent:()=>import("./chunk-VRWDLA23.js").then(i=>i.ContractsListComponent),canActivate:[t],data:{permissions:[o.viewList]}}];export{s as CONTRACTS_ROUTES};

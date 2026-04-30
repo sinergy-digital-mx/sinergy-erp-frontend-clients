@@ -174,6 +174,14 @@ export class SettingsComponent {
       icon: '🛒',
       route: 'pos-configuration',
       permissions: ['pos_configuration:ViewMenu']
+    },
+    {
+      id: 'exchange-rates',
+      title: 'Tipo de Cambio',
+      description: 'Registra y consulta el tipo de cambio diario USD/MXN para operaciones financieras',
+      icon: '💱',
+      route: 'exchange-rates',
+      permissions: ['exchangerate:ViewMenu', 'exchangerate:Read', 'exchangerate:Update']
     }
   ];
 

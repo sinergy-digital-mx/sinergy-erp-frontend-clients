@@ -20,6 +20,21 @@
           class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors">
           {{ getCustomerName() }}
         </span>
+        <span
+          *ngIf="data.contract.down_payment_financed"
+          class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800">
+          Enganche financiado activo
+        </span>
+      </div>
+      <div class="flex items-center gap-2 mb-3 text-xs">
+        <span class="inline-flex items-center px-2.5 py-1.5 rounded bg-gray-100 text-gray-700">
+          <span class="font-semibold text-gray-900 mr-1">Creado:</span>
+          {{ data.contract.created_at | date:'medium' }}
+        </span>
+        <span class="inline-flex items-center px-2.5 py-1.5 rounded bg-gray-100 text-gray-700">
+          <span class="font-semibold text-gray-900 mr-1">Actualizado:</span>
+          {{ data.contract.updated_at | date:'medium' }}
+        </span>
       </div>
       
       <!-- Stats inline -->
@@ -114,16 +129,23 @@
   <div class="dialog__body">
     <!-- Tab: Editar -->
     <div class="tab-content" [class.active]="activeTab() === 'edit'">
-      <!-- Fechas de Sistema -->
-      <div class="mb-2 p-1.5 bg-gray-50 rounded-lg border border-gray-200">
-        <div class="grid grid-cols-2 gap-2 text-xs">
+      <div *ngIf="data.contract.down_payment_financed" class="mb-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
+        <div class="grid grid-cols-4 gap-2 text-xs">
           <div>
-            <span class="block font-semibold text-gray-500 mb-0.5">Creado</span>
-            <span class="text-gray-600">{{ data.contract.created_at | date:'medium' }}</span>
+            <span class="block font-semibold text-amber-700 mb-0.5">Estado enganche</span>
+            <span class="text-amber-900 font-semibold">Activo</span>
           </div>
           <div>
-            <span class="block font-semibold text-gray-500 mb-0.5">Actualizado</span>
-            <span class="text-gray-600">{{ data.contract.updated_at | date:'medium' }}</span>
+            <span class="block font-semibold text-amber-700 mb-0.5">Meses</span>
+            <span class="text-amber-900 font-semibold">{{ data.contract.down_payment_months || '—' }}</span>
+          </div>
+          <div>
+            <span class="block font-semibold text-amber-700 mb-0.5">Pago mensual</span>
+            <span class="text-amber-900 font-semibold">{{ data.contract.down_payment_monthly_amount | currency:data.contract.currency }}</span>
+          </div>
+          <div>
+            <span class="block font-semibold text-amber-700 mb-0.5">Primer pago / día</span>
+            <span class="text-amber-900 font-semibold">{{ data.contract.down_payment_first_payment_date | localDate:'mediumDate' }} / {{ data.contract.down_payment_payment_day || '—' }}</span>
           </div>
         </div>
       </div>
@@ -253,30 +275,30 @@
       <app-contract-payments 
         [contractId]="data.contract.id"
         [currency]="data.contract.currency"
+        [contractStatus]="data.contract.status"
         (dataChanged)="refreshContractData()">
       </app-contract-payments>
     </div>
 
     <!-- Tab: Enganche en Pagos -->
     <div class="tab-content" [class.active]="activeTab() === 'down_payments'">
-      <div class="p-6 text-center text-gray-500">
-        <p>Contenido de Enganche en Pagos</p>
-      </div>
+      <app-contract-downpayment-payments
+        [contractId]="data.contract.id"
+        [currency]="data.contract.currency"
+        [contract]="data.contract"
+        (dataChanged)="refreshContractData()">
+      </app-contract-downpayment-payments>
     </div>
 
     <!-- Tab: HOA -->
     <div class="tab-content" [class.active]="activeTab() === 'hoa'">
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h4 class="text-base font-semibold text-gray-800">Pagos de HOA</h4>
-          <app-button
-            text="Generar Pagos"
-            custom_class="btn_primary"
-            size="sm"
-            (clicked)="openGenerateHOADialog()">
-          </app-button>
-        </div>
-      </div>
+      <app-contract-hoa-payments
+        [contractId]="data.contract.id"
+        [currency]="data.contract.currency"
+        [contractStatus]="data.contract.status"
+        [contract]="data.contract"
+        (dataChanged)="refreshContractData()">
+      </app-contract-hoa-payments>
     </div>
 
     <!-- Tab: Documentos -->

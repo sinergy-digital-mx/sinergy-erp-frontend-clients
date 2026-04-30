@@ -18,10 +18,11 @@ import { PropertyEditModalComponent } from '../../../properties/components/prope
 import { PropertyService } from '../../../properties/services/property.service';
 import { ContractDocumentsComponent } from '../contract-documents/contract-documents.component';
 import { ContractPaymentsComponent } from '../contract-payments/contract-payments.component';
+import { ContractHoaPaymentsComponent } from '../contract-hoa-payments/contract-hoa-payments.component';
+import { ContractDownpaymentPaymentsComponent } from '../contract-downpayment-payments/contract-downpayment-payments.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
-import { GenerateHoaDialogComponent } from '../generate-hoa-dialog/generate-hoa-dialog.component';
 
 @Component({
   selector: 'app-contract-detail-modal',
@@ -37,6 +38,8 @@ import { GenerateHoaDialogComponent } from '../generate-hoa-dialog/generate-hoa-
     MatAutocompleteModule,
     ContractDocumentsComponent,
     ContractPaymentsComponent,
+    ContractHoaPaymentsComponent,
+    ContractDownpaymentPaymentsComponent,
     LocalDatePipe
   ],
   providers: [DatePipe],
@@ -363,25 +366,6 @@ export class ContractDetailModalComponent implements OnInit {
           type: 'error',
           title: 'Error',
           message: 'No se pudo descargar el estado de cuenta'
-        });
-      }
-    });
-  }
-
-  openGenerateHOADialog(): void {
-    const dialogRef = this.dialog.open(GenerateHoaDialogComponent, {
-      width: '500px',
-      data: { contract: this.data.contract }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('🏠 Generating HOA payments:', result);
-        // TODO: Call the endpoint with result.start_date and result.end_date
-        this.interceptorService.openSnackbar({
-          type: 'info',
-          title: 'Generando',
-          message: 'Generando pagos de HOA...'
         });
       }
     });

@@ -57,16 +57,16 @@ export class POSHomeComponent implements OnInit {
   }
 
   checkActiveCashShift(): void {
-    const warehouseId = this.defaultWarehouseId();
-    
-    if (!warehouseId) {
+    const posConfigurationId = localStorage.getItem('pos_configuration_id');
+    if (!posConfigurationId) {
+      this.activeCashShift.set(null);
       return;
     }
     
     this.checkingShift.set(true);
-    this.posService.getActivePosSession(warehouseId).subscribe({
+    this.posService.getActivePosSession(posConfigurationId).subscribe({
       next: (shift) => {
-        this.activeCashShift.set(shift);
+        this.activeCashShift.set(shift || null);
         this.checkingShift.set(false);
       },
       error: () => {
@@ -102,31 +102,68 @@ export class POSHomeComponent implements OnInit {
       localStorage.setItem('pos_warehouse_id', warehouse_id);
 
       this.checkingShift.set(true);
-      this.posService.openPosSession({
-        warehouse_id,
-        cashier_id: '',
-        opening_balance,
-        ...(notes?.trim() ? { notes: notes.trim() } : {}),
-        ...(pos_configuration_id ? { pos_configuration_id } : {}),
-      }).subscribe({
-        next: (shift) => {
-          this.activeCashShift.set(shift);
-          if (pos_configuration_id) {
-            localStorage.setItem('pos_configuration_id', pos_configuration_id);
-          } else {
-            localStorage.removeItem('pos_configuration_id');
+      if (!pos_configuration_id) {
+        this.checkingShift.set(false);
+        this.snackBar.open('Selecciona un equipo POS para iniciar sesión', 'Cerrar', { duration: 3500 });
+        return;
+      }
+
+      this.posService.getCurrentPosSession(pos_configuration_id).subscribe({
+        next: (existing) => {
+          if (existing?.id) {
+            this.activeCashShift.set(existing);
+            this.persistPosSelection(pos_configuration_id, pos_configuration_code);
+            this.checkingShift.set(false);
+            this.snackBar.open('Sesión POS reanudada', 'Cerrar', { duration: 3000 });
+            return;
           }
-          if (pos_configuration_code) {
-            localStorage.setItem('pos_configuration_code', pos_configuration_code);
-          } else {
-            localStorage.removeItem('pos_configuration_code');
-          }
-          this.checkingShift.set(false);
-          this.snackBar.open('Sesión POS iniciada', 'Cerrar', { duration: 3000 });
+
+          this.posService.openPosSession({
+            warehouse_id,
+            cashier_id: '',
+            opening_balance,
+            ...(notes?.trim() ? { notes: notes.trim() } : {}),
+            pos_configuration_id,
+          }).subscribe({
+            next: (shift) => {
+              this.activeCashShift.set(shift);
+              this.persistPosSelection(pos_configuration_id, pos_configuration_code);
+              this.checkingShift.set(false);
+              this.snackBar.open('Sesión POS iniciada', 'Cerrar', { duration: 3000 });
+            },
+            error: (error) => {
+              this.checkingShift.set(false);
+              this.snackBar.open(error.error?.message || 'Error al iniciar sesión POS', 'Cerrar', { duration: 5000 });
+            }
+          });
         },
         error: (error) => {
-          this.checkingShift.set(false);
-          this.snackBar.open(error.error?.message || 'Error al iniciar sesión POS', 'Cerrar', { duration: 5000 });
+          const msg = String(error?.error?.message || error?.message || '').toLowerCase();
+          const canOpen = msg.includes('not found') || msg.includes('404') || msg.includes('no existe');
+          if (!canOpen) {
+            this.checkingShift.set(false);
+            this.snackBar.open(error.error?.message || 'Error al validar sesión actual', 'Cerrar', { duration: 5000 });
+            return;
+          }
+
+          this.posService.openPosSession({
+            warehouse_id,
+            cashier_id: '',
+            opening_balance,
+            ...(notes?.trim() ? { notes: notes.trim() } : {}),
+            pos_configuration_id,
+          }).subscribe({
+            next: (shift) => {
+              this.activeCashShift.set(shift);
+              this.persistPosSelection(pos_configuration_id, pos_configuration_code);
+              this.checkingShift.set(false);
+              this.snackBar.open('Sesión POS iniciada', 'Cerrar', { duration: 3000 });
+            },
+            error: (openError) => {
+              this.checkingShift.set(false);
+              this.snackBar.open(openError.error?.message || 'Error al iniciar sesión POS', 'Cerrar', { duration: 5000 });
+            }
+          });
         }
       });
     });
@@ -141,7 +178,7 @@ export class POSHomeComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(CloseShiftDialogComponent, {
-      width: '650px',
+      width: '520px',
       disableClose: true,
       data: { shift }
     });
@@ -198,5 +235,18 @@ export class POSHomeComponent implements OnInit {
       style: 'currency',
       currency: 'MXN'
     }).format(amount);
+  }
+
+  private persistPosSelection(posConfigurationId?: string, posConfigurationCode?: string): void {
+    if (posConfigurationId) {
+      localStorage.setItem('pos_configuration_id', posConfigurationId);
+    } else {
+      localStorage.removeItem('pos_configuration_id');
+    }
+    if (posConfigurationCode) {
+      localStorage.setItem('pos_configuration_code', posConfigurationCode);
+    } else {
+      localStorage.removeItem('pos_configuration_code');
+    }
   }
 }

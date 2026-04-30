@@ -12,6 +12,11 @@
   <!-- Content -->
   <div class="modal-content">
     <form [formGroup]="form">
+      <div class="mb-4">
+        <app-tab [tabs]="tabs" [activeTabId]="activeTab" (tabChange)="onTabChange($event)"></app-tab>
+      </div>
+
+      @if (activeTab === 'info') {
       <!-- Form Grid -->
       <div class="form-grid">
         <!-- Fiscal Configuration -->
@@ -39,12 +44,20 @@
         <!-- Vendor -->
         <div class="form-field">
           <label class="form-label">PROVEEDOR *</label>
-          <select class="form-select" formControlName="vendor_id" (change)="onVendorChange()">
-            <option value="">Selecciona un proveedor</option>
-            <option *ngFor="let vendor of vendors" [value]="vendor.id">
-              {{ vendor.name }}
-            </option>
-          </select>
+          <input
+            type="text"
+            class="form-input"
+            formControlName="vendor_search"
+            placeholder="Buscar proveedor..."
+            [matAutocomplete]="autoVendor">
+          <mat-autocomplete
+            #autoVendor="matAutocomplete"
+            [displayWith]="displayVendor.bind(this)"
+            (optionSelected)="onVendorSelected($event.option.value)">
+            <mat-option *ngFor="let vendor of filteredVendors" [value]="vendor">
+              {{ vendor.display_name }}
+            </mat-option>
+          </mat-autocomplete>
         </div>
 
         <!-- Expected Delivery Date -->
@@ -59,12 +72,14 @@
           <textarea class="form-textarea" formControlName="notes" placeholder="Notas opcionales" rows="3"></textarea>
         </div>
       </div>
+      }
 
+      @if (activeTab === 'products') {
       <!-- Line Items Section -->
       <div class="line-items-section">
         <div class="section-header">
           <h3>Productos</h3>
-          <button type="button" class="btn btn--sm btn--primary" (click)="addLineItem()" [disabled]="!form.get('vendor_id')?.value">
+          <button type="button" class="btn btn--sm btn--primary" (click)="openAddProductModal()" [disabled]="!form.get('vendor_id')?.value">
             + Agregar Producto
           </button>
         </div>
@@ -80,7 +95,7 @@
                 <th>Producto</th>
                 <th>UOM</th>
                 <th>Cantidad</th>
-                <th>Precio Unitario</th>
+                <th>Costo unitario</th>
                 <th>IVA %</th>
                 <th>IEPS %</th>
                 <th>Acciones</th>
@@ -89,12 +104,12 @@
             <tbody>
               <tr *ngFor="let item of lineItems; let i = index">
                 <td>
-                  <select class="form-select form-select--inline" [(ngModel)]="item.product_id" [ngModelOptions]="{standalone: true}" (change)="onProductChange(i)">
-                    <option value="">Seleccionar...</option>
-                    <option *ngFor="let product of vendorProducts" [value]="product.product_id">
-                      {{ product.product_name }}
-                    </option>
-                  </select>
+                  <div class="product-cell">
+                    <div class="product-cell__name">{{ item.product_name || '—' }}</div>
+                    <div class="product-cell__meta">
+                      <span>SKU: {{ item.product_sku || 'N/A' }}</span>
+                    </div>
+                  </div>
                 </td>
                 <td>
                   <select class="form-select form-select--inline" [(ngModel)]="item.uom_id" [ngModelOptions]="{standalone: true}" (change)="onUomChange(i)">
@@ -126,6 +141,7 @@
           </table>
         </div>
       </div>
+      }
     </form>
   </div>
 
@@ -138,3 +154,69 @@
     </button>
   </div>
 </div>
+
+@if (addProductModalOpen) {
+  <div class="add-product-overlay" (click)="closeAddProductModal()">
+    <div class="add-product-modal" (click)="$event.stopPropagation()">
+      <div class="add-product-modal__header">
+        <h3>Agregar producto</h3>
+      </div>
+      <div class="add-product-modal__body">
+        <div class="form-field form-field--full">
+          <label class="form-label">PRODUCTO *</label>
+          <input
+            type="text"
+            class="form-input"
+            [(ngModel)]="productSearchTerm"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Buscar por nombre o SKU..."
+            [matAutocomplete]="autoProductPicker">
+          <mat-autocomplete
+            #autoProductPicker="matAutocomplete"
+            [displayWith]="displayProduct.bind(this)"
+            (optionSelected)="onProductSelectedForModal($event.option.value)">
+            <mat-option *ngFor="let product of filteredProductsForModal" [value]="product">
+              {{ getProductOptionLabel(product) }}
+            </mat-option>
+          </mat-autocomplete>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label class="form-label">UOM *</label>
+            <select class="form-select" [(ngModel)]="selectedUomId" [ngModelOptions]="{ standalone: true }" (change)="onSelectedUomChange()">
+              <option value="">Seleccionar...</option>
+              <option *ngFor="let uom of selectedProductUoms" [value]="uom.uom_id">
+                {{ uom.uom_name }}
+              </option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">SKU</label>
+            <input type="text" class="form-input" [value]="selectedProduct?.product_sku || selectedProduct?.sku || 'N/A'" readonly>
+          </div>
+          <div class="form-field">
+            <label class="form-label">CANTIDAD *</label>
+            <input type="number" class="form-input" [(ngModel)]="selectedQuantity" [ngModelOptions]="{ standalone: true }" min="0.01" step="0.01">
+          </div>
+          <div class="form-field">
+            <label class="form-label">COSTO UNITARIO</label>
+            <input type="number" class="form-input" [(ngModel)]="selectedUnitTotal" [ngModelOptions]="{ standalone: true }" min="0" step="0.01">
+          </div>
+          <div class="form-field">
+            <label class="form-label">IVA %</label>
+            <input type="number" class="form-input" [(ngModel)]="selectedIva" [ngModelOptions]="{ standalone: true }" min="0" max="100" step="0.01">
+          </div>
+          <div class="form-field">
+            <label class="form-label">IEPS %</label>
+            <input type="number" class="form-input" [(ngModel)]="selectedIeps" [ngModelOptions]="{ standalone: true }" min="0" max="100" step="0.01">
+          </div>
+        </div>
+      </div>
+      <div class="add-product-modal__footer">
+        <button type="button" class="btn btn--secondary" (click)="closeAddProductModal()">Cancelar</button>
+        <button type="button" class="btn btn--primary" (click)="confirmAddProduct()">Agregar</button>
+      </div>
+    </div>
+  </div>
+}

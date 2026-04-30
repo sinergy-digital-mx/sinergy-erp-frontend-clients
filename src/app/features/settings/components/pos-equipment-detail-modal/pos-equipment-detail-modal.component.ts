@@ -16,10 +16,6 @@ import {
 } from '../../models/pos-equipment.model';
 import { Branch } from '../../models/branch.model';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
-import {
-  SelectComponent,
-  ISelect,
-} from '../../../../core/components/select/select.component';
 import { LucideAngularModule } from 'lucide-angular';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 
@@ -30,7 +26,6 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
     CommonModule,
     ReactiveFormsModule,
     ButtonComponent,
-    SelectComponent,
     LucideAngularModule,
   ],
   templateUrl: './pos-equipment-detail-modal.component.html',
@@ -46,9 +41,10 @@ export class PosEquipmentDetailModalComponent implements OnInit {
     { id: 1, name: 'Activo' },
     { id: 0, name: 'Inactivo' },
   ];
-
-  branchSelectConfig: ISelect;
-  statusSelectConfig: ISelect;
+  typeOptions = [
+    { id: 'VENTAS', name: 'VENTAS' },
+    { id: 'COBRANZA', name: 'COBRANZA' },
+  ];
 
   constructor(
     private fb: FormBuilder,
@@ -61,13 +57,12 @@ export class PosEquipmentDetailModalComponent implements OnInit {
   ) {
     this.form = this.fb.group({
       code: ['', [Validators.required, Validators.minLength(2)]],
+      type: ['VENTAS', Validators.required],
       sucursal: ['', Validators.required],
       modelo: ['', [Validators.required, Validators.minLength(1)]],
       status: [1, Validators.required],
     });
 
-    this.branchSelectConfig = this.buildBranchSelectConfig([]);
-    this.statusSelectConfig = this.buildStatusSelectConfig();
   }
 
   ngOnInit(): void {
@@ -75,33 +70,10 @@ export class PosEquipmentDetailModalComponent implements OnInit {
     this.loadBranches();
   }
 
-  private buildBranchSelectConfig(branches: Branch[]): ISelect {
-    return {
-      placeholder: 'Selecciona una sucursal',
-      data: branches,
-      value: 'id',
-      option: 'display_name',
-      form_control: this.form.get('sucursal'),
-      name_select: 'sucursal',
-    };
-  }
-
-  private buildStatusSelectConfig(): ISelect {
-    return {
-      placeholder: 'Selecciona un estado',
-      data: this.statusOptions,
-      value: 'id',
-      option: 'name',
-      form_control: this.form.get('status'),
-      name_select: 'status',
-    };
-  }
-
   loadBranches(): void {
     this.branchService.getAllBranches().subscribe({
       next: (branches) => {
         this.branches.set(branches);
-        this.branchSelectConfig = this.buildBranchSelectConfig(branches);
         if (this.data.configuration) {
           this.populateForm(this.data.configuration);
         }
@@ -119,9 +91,13 @@ export class PosEquipmentDetailModalComponent implements OnInit {
   }
 
   populateForm(configuration: PosConfiguration): void {
+    const selectedBranchId =
+      configuration.branch?.id ?? configuration.sucursal;
+
     this.form.patchValue({
       code: configuration.code,
-      sucursal: configuration.sucursal,
+      type: (configuration.type || 'VENTAS').toUpperCase(),
+      sucursal: selectedBranchId,
       modelo: configuration.modelo,
       status: configuration.status,
     });
@@ -139,10 +115,16 @@ export class PosEquipmentDetailModalComponent implements OnInit {
       return;
     }
 
-    this.isLoading = true;
+    // Defer state flip to next microtask to avoid NG0100
+    // when the click output and disabled binding are checked
+    // in the same change detection cycle.
+    queueMicrotask(() => {
+      this.isLoading = true;
+    });
     const v = this.form.value;
     const dto: CreatePosConfigurationDto = {
       code: v.code,
+      type: String(v.type || '').toUpperCase() as 'VENTAS' | 'COBRANZA',
       sucursal: v.sucursal,
       modelo: v.modelo,
       status: Number(v.status),

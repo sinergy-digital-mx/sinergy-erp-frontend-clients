@@ -3,7 +3,7 @@
   <div class="flex items-center justify-end mb-1">
     <div class="flex gap-2">
       <app-button
-        *ngIf="payments().length === 0"
+        *ngIf="showGeneratePaymentsButton"
         text="Generar Pagos"
         custom_class="btn_primary"
         size="sm"
@@ -15,7 +15,7 @@
   </div>
 
   <!-- Stats Cards -->
-  <div *ngIf="stats()" class="grid grid-cols-5 gap-4 mb-6 w-full">
+  <div *ngIf="stats() && payments().length > 0" class="grid grid-cols-5 gap-4 mb-6 w-full">
     <!-- Total Pagos -->
     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
       <div class="flex items-center justify-between mb-3">
@@ -126,8 +126,16 @@
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="!loading() && payments().length === 0" class="text-center py-8 text-gray-500">
-    <p class="text-sm">No hay pagos generados</p>
+  <div *ngIf="!loading() && payments().length === 0" class="payments-empty-state">
+    <div class="payments-empty-state__icon">
+      <lucide-icon [img]="Check" [size]="28"></lucide-icon>
+    </div>
+    <p class="payments-empty-state__title">
+      {{ isContractCompleted ? 'Contrato pagado' : 'Sin pagos generados' }}
+    </p>
+    <p class="payments-empty-state__subtitle">
+      {{ isContractCompleted ? 'Este contrato ya esta completado y no requiere generar pagos.' : 'Genera los pagos para empezar a registrar cobros del contrato.' }}
+    </p>
   </div>
 
   <!-- Payments Table -->
@@ -148,7 +156,7 @@
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
-        <tr *ngFor="let payment of payments()" class="hover:bg-gray-50">
+        <tr *ngFor="let payment of paginatedPayments" class="hover:bg-gray-50">
           <td class="px-3 py-2 text-sm font-medium text-gray-900">{{ payment.payment_number }}</td>
           <td class="px-3 py-2 text-sm text-gray-900">{{ payment.amount | currency:currency }}</td>
           <td class="px-3 py-2 text-sm" [class.text-blue-600]="payment.status === 'parcial'" [class.font-medium]="payment.status === 'parcial'">
@@ -213,5 +221,35 @@
         </tr>
       </tbody>
     </table>
+  </div>
+
+  <div *ngIf="!loading() && payments().length > pageSize" class="payments-pagination">
+    <div class="text-xs text-gray-500">
+      Mostrando {{ (currentPage() - 1) * pageSize + 1 }} -
+      {{ Math.min(currentPage() * pageSize, payments().length) }}
+      de {{ payments().length }} pagos
+    </div>
+
+    <div class="flex items-center gap-1">
+      <button
+        type="button"
+        class="pagination-btn"
+        [disabled]="currentPage() === 1"
+        (click)="setPage(currentPage() - 1)">
+        Anterior
+      </button>
+
+      <span class="pagination-page">
+        Página {{ currentPage() }} / {{ totalPages }}
+      </span>
+
+      <button
+        type="button"
+        class="pagination-btn"
+        [disabled]="currentPage() === totalPages"
+        (click)="setPage(currentPage() + 1)">
+        Siguiente
+      </button>
+    </div>
   </div>
 </div>

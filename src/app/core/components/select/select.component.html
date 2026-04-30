@@ -14,6 +14,7 @@
     [formControl]="config.form_control ? config.form_control : select"
     [style.min-height]="config.height ? config.height + 'px' : '100%'"
     [disabled]="config.loading"
+    (blur)="handleBlur()"
     [attr.aria-describedby]="showError ? errorId : null"
     [attr.aria-invalid]="showError"
     >

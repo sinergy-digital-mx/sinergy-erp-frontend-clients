@@ -1,6 +1,21 @@
-import { Component, EventEmitter, Input, OnInit, Output, OnChanges, SimpleChanges } from '@angular/core';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { pairwise, startWith, Subscription } from 'rxjs';
+import {
+  Component,
+  EventEmitter,
+  forwardRef,
+  Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  Output,
+  SimpleChanges,
+} from '@angular/core';
+import {
+  ControlValueAccessor,
+  FormControl,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+} from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -8,9 +23,18 @@ import { CommonModule } from '@angular/common';
   templateUrl: './select.component.html',
   styleUrls: ['./select.component.scss'],
   standalone: true,
-  imports:[ReactiveFormsModule, CommonModule]
+  imports: [ReactiveFormsModule, CommonModule],
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => SelectComponent),
+      multi: true,
+    },
+  ],
 })
-export class SelectComponent implements OnInit, OnChanges {
+export class SelectComponent
+  implements OnInit, OnChanges, OnDestroy, ControlValueAccessor
+{
   @Input() config = <ISelect>{
     placeholder: 'Select an option',
     value_default: null,
@@ -28,35 +52,39 @@ export class SelectComponent implements OnInit, OnChanges {
 
   @Output() changeOption = new EventEmitter();
   @Output() refresh = new EventEmitter();
-  @Input() has_error: boolean = false
-  @Input() label: string
+  @Input() has_error: boolean = false;
+  @Input() label: string;
 
   select = new FormControl(null);
   disabled: boolean = false;
-  subscription: Subscription;
+  subscription?: Subscription;
+  private onTouched: () => void = () => {};
+  private onChange: (value: unknown) => void = () => {};
   
   // Generate unique ID for aria-describedby
-  private static idCounter = 0
-  selectId: string
-  errorId: string
+  private static idCounter = 0;
+  selectId: string;
+  errorId: string;
 
   constructor() { }
 
   ngOnInit(): void {
     // Generate unique IDs for accessibility
-    SelectComponent.idCounter++
-    this.selectId = `select-${SelectComponent.idCounter}`
-    this.errorId = `error-${SelectComponent.idCounter}`
+    SelectComponent.idCounter++;
+    this.selectId = `select-${SelectComponent.idCounter}`;
+    this.errorId = `error-${SelectComponent.idCounter}`;
     
     if (this.config.form_control) {
       this.subscription = this.config.form_control.valueChanges.subscribe((value) => {
         const data = this.config.data.find((option) => option[this.config.value] === value);
         this.changeOption.emit({ value, name: this.config.name_select, data });
+        this.onChange(value);
       });
     } else {
       this.subscription = this.select.valueChanges.subscribe((value) => {
         const data = this.config.data.find((option) => option[this.config.value] === value);
         this.changeOption.emit({ value, name: this.config.name_select, data });
+        this.onChange(value);
       });
     }
   }
@@ -70,7 +98,7 @@ export class SelectComponent implements OnInit, OnChanges {
   }
 
   ngOnDestroy() {
-    this.subscription.unsubscribe();
+    this.subscription?.unsubscribe();
   }
 
   getRefresh() {
@@ -79,21 +107,43 @@ export class SelectComponent implements OnInit, OnChanges {
   }
   
   get showError(): boolean {
-    return this.has_error || (this.config?.form_control?.invalid && this.config?.form_control?.touched)
+    return (
+      !!this.has_error ||
+      !!(this.config?.form_control?.invalid && this.config?.form_control?.touched)
+    );
   }
   
   get errorMessage(): string {
     if (!this.showError || !this.config?.form_control?.errors) {
-      return ''
+      return '';
     }
     
     const errors = this.config.form_control.errors
     if (errors['required']) {
-      return 'Este campo es obligatorio'
+      return 'Este campo es obligatorio';
     }
-    return 'Este campo tiene un error'
+    return 'Este campo tiene un error';
   }
 
+  writeValue(value: unknown): void {
+    this.select.setValue(value, { emitEvent: false });
+  }
+
+  registerOnChange(fn: (value: unknown) => void): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: () => void): void {
+    this.onTouched = fn;
+  }
+
+  setDisabledState(isDisabled: boolean): void {
+    this.disable = isDisabled;
+  }
+
+  handleBlur(): void {
+    this.onTouched();
+  }
 }
 
 export interface ISelect {

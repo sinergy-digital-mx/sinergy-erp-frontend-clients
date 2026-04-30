@@ -45,6 +45,15 @@
           Información del Cliente
         </h3>
 
+        <div class="mb-4">
+          <app-tab
+            [tabs]="infoTabs"
+            [activeTabId]="activeInfoTab()"
+            (tabChange)="setActiveInfoTab($event)">
+          </app-tab>
+        </div>
+
+        @if (activeInfoTab() === 'customer') {
         <div class="grid grid-cols-2 gap-4 text-sm">
 
           <div>
@@ -109,8 +118,59 @@
           </div>
 
         </div>
+        }
 
-        @if (hasAdditionalContact(customer()!)) {
+        @if (activeInfoTab() === 'credit') {
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div class="col-span-2">
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Almacén</span>
+              <span class="text-gray-900">{{ customer()!.warehouse?.name || customer()!.warehouse_id || '—' }}</span>
+            </div>
+            <div>
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Días de crédito</span>
+              <span class="text-gray-900">{{ customer()!.credit_days ?? '—' }}</span>
+            </div>
+            <div>
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Monto de crédito</span>
+              <span class="text-gray-900">{{ customer()!.credit_amount != null ? (customer()!.credit_amount | number:'1.2-2') : '—' }}</span>
+            </div>
+          </div>
+        }
+
+        @if (activeInfoTab() === 'fiscal') {
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="block text-xs font-semibold text-gray-500 mb-1">RFC</span>
+              <span class="text-gray-900">{{ customer()!.fiscal_rfc || '—' }}</span>
+            </div>
+            <div>
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Régimen fiscal</span>
+              <span class="text-gray-900">{{ getFiscalRegimenLabel(customer()!.fiscal_person_type) }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Razón social</span>
+              <span class="text-gray-900">{{ customer()!.fiscal_razon_social || '—' }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Dirección fiscal</span>
+              <span class="text-gray-900">{{ customer()!.fiscal_address || '—' }}</span>
+            </div>
+            <div>
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Ciudad</span>
+              <span class="text-gray-900">{{ customer()!.fiscal_city || '—' }}</span>
+            </div>
+            <div>
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Estado</span>
+              <span class="text-gray-900">{{ customer()!.fiscal_state || '—' }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="block text-xs font-semibold text-gray-500 mb-1">Código postal</span>
+              <span class="text-gray-900">{{ customer()!.fiscal_postal_code || '—' }}</span>
+            </div>
+          </div>
+        }
+
+        @if (activeInfoTab() === 'customer' && hasAdditionalContact(customer()!)) {
           <div class="mt-6 pt-6 border-t border-gray-100">
             <button
               type="button"

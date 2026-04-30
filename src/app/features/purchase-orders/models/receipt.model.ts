@@ -11,7 +11,17 @@ export interface ReceivedItem {
   iva_unit: number;
   ieps_percentage: number;
   ieps_unit: number;
-  expiration_date?: string;
+  expiration_date?: string | null;
+  lot_mode?: LotMode;
+  lots?: ReceivedLot[];
+}
+
+export type LotMode = 'single' | 'multiple';
+
+export interface ReceivedLot {
+  tag_identifier: string;
+  quantity: number;
+  product_uom_id: string;
 }
 
 /**

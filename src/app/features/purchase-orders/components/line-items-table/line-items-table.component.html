@@ -10,7 +10,7 @@
               <th role="columnheader" scope="col">PRODUCTO</th>
               <th role="columnheader" scope="col">UOM</th>
               <th role="columnheader" scope="col" class="text-right">CANTIDAD</th>
-              <th role="columnheader" scope="col" class="text-right">PRECIO</th>
+              <th role="columnheader" scope="col" class="text-right">COSTO UNIT.</th>
               <th role="columnheader" scope="col" class="text-right">SUBTOTAL</th>
               <th role="columnheader" scope="col" class="text-right">IVA</th>
               <th role="columnheader" scope="col" class="text-right">IEPS</th>
@@ -26,7 +26,7 @@
               <td role="cell" data-label="PRODUCTO">{{ item.product?.name || 'N/A' }}</td>
               <td role="cell" data-label="UOM">{{ item.uom?.code || item.uom?.name || 'N/A' }}</td>
               <td role="cell" data-label="CANTIDAD" class="text-right">{{ item.quantity }}</td>
-              <td role="cell" data-label="PRECIO" class="text-right">{{ formatCurrency(item.unit_price) }}</td>
+              <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatCurrency(item.unit_price ?? item.unit_total ?? 0) }}</td>
               <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
               <td role="cell" data-label="IVA" class="text-right">{{ formatCurrency(item.iva_amount) }}</td>
               <td role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
@@ -44,7 +44,7 @@
           <th role="columnheader" scope="col">PRODUCTO</th>
           <th role="columnheader" scope="col">UOM</th>
           <th role="columnheader" scope="col" class="text-right">CANTIDAD</th>
-          <th role="columnheader" scope="col" class="text-right">PRECIO</th>
+          <th role="columnheader" scope="col" class="text-right">COSTO UNIT.</th>
           <th role="columnheader" scope="col" class="text-right">SUBTOTAL</th>
           <th role="columnheader" scope="col" class="text-right">IVA</th>
           <th role="columnheader" scope="col" class="text-right">IEPS</th>
@@ -60,7 +60,7 @@
           <td role="cell" data-label="PRODUCTO">{{ item.product?.name || 'N/A' }}</td>
           <td role="cell" data-label="UOM">{{ item.uom?.code || item.uom?.name || 'N/A' }}</td>
           <td role="cell" data-label="CANTIDAD" class="text-right">{{ item.quantity }}</td>
-          <td role="cell" data-label="PRECIO" class="text-right">{{ formatCurrency(item.unit_price) }}</td>
+          <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatCurrency(item.unit_price ?? item.unit_total ?? 0) }}</td>
           <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
           <td role="cell" data-label="IVA" class="text-right">{{ formatCurrency(item.iva_amount) }}</td>
           <td role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
@@ -133,8 +133,8 @@
           <span class="value">{{ item.quantity }}</span>
         </div>
         <div class="line-item-card__row">
-          <span class="label">PRECIO:</span>
-          <span class="value">{{ formatCurrency(item.unit_price) }}</span>
+          <span class="label">COSTO UNIT.:</span>
+          <span class="value">{{ formatCurrency(item.unit_price ?? item.unit_total ?? 0) }}</span>
         </div>
         <div class="line-item-card__row">
           <span class="label">SUBTOTAL:</span>

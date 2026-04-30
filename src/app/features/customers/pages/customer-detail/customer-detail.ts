@@ -19,6 +19,7 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { Pencil, MapPin, Activity } from 'lucide-angular';
+import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 
 @Component({
   selector: 'app-customer-detail',
@@ -33,7 +34,8 @@ import { Pencil, MapPin, Activity } from 'lucide-angular';
     PhoneComponent,
     CustomerDocumentsComponent,
     ButtonComponent,
-    HasPermissionDirective
+    HasPermissionDirective,
+    TabComponent
   ],
   templateUrl: 'customer-detail.html',
   styleUrl: 'customer-detail.scss'
@@ -44,6 +46,40 @@ export class CustomerDetail implements OnInit, OnDestroy {
   error = signal<any>(null);
   /** Persona adicional en detalle: colapsable (mismo criterio que el modal). */
   additionalPersonExpanded = signal(false);
+  activeInfoTab = signal<'customer' | 'credit' | 'fiscal'>('customer');
+  infoTabs: TabItem[] = [
+    { id: 'customer', title: 'Información del Cliente' },
+    { id: 'credit', title: 'Credito' },
+    { id: 'fiscal', title: 'Información Fiscal' }
+  ];
+  private readonly fiscalRegimenLabels: Record<string, string> = {
+    '601': 'REGIMEN GENERAL DE LEY PERSONAS MORALES',
+    '602': 'REGIMEN SIMPLIFICADO DE LEY PERSONAS MORALES',
+    '603': 'PERSONAS MORALES CON FINES NO LUCRATIVOS',
+    '604': 'REGIMEN DE PEQUENOS CONTRIBUYENTES',
+    '605': 'REGIMEN DE SUELDOS Y SALARIOS E INGRESOS ASIMILADOS A SALARIOS',
+    '606': 'REGIMEN DE ARRENDAMIENTO',
+    '607': 'REGIMEN DE ENAJENACION O ADQUISICION DE BIENES',
+    '608': 'REGIMEN DE LOS DEMAS INGRESOS',
+    '609': 'REGIMEN DE CONSOLIDACION',
+    '610': 'REGIMEN RESIDENTES EN EL EXTRANJERO SIN ESTABLECIMIENTO PERMANENTE EN MEXICO',
+    '611': 'REGIMEN DE INGRESOS POR DIVIDENDOS (SOCIOS Y ACCIONISTAS)',
+    '612': 'REGIMEN DE LAS PERSONAS FISICAS CON ACTIVIDADES EMPRESARIALES Y PROFESIONALES',
+    '613': 'REGIMEN INTERMEDIO DE LAS PERSONAS FISICAS CON ACTIVIDADES EMPRESARIALES',
+    '614': 'REGIMEN DE LOS INGRESOS POR INTERESES',
+    '615': 'REGIMEN DE LOS INGRESOS POR OBTENCION DE PREMIOS',
+    '616': 'SIN OBLIGACIONES FISCALES',
+    '617': 'PEMEX',
+    '618': 'REGIMEN SIMPLIFICADO DE LEY PERSONAS FISICAS',
+    '619': 'INGRESOS POR LA OBTENCION DE PRESTAMOS',
+    '620': 'SOCIEDADES COOPERATIVAS DE PRODUCCION QUE OPTAN POR DIFERIR SUS INGRESOS',
+    '621': 'REGIMEN DE INCORPORACION FISCAL',
+    '622': 'REGIMEN DE ACTIVIDADES AGRICOLAS, GANADERAS, SILVICOLAS Y PESQUERAS PM',
+    '623': 'REGIMEN DE OPCIONAL PARA GRUPOS DE SOCIEDADES',
+    '624': 'REGIMEN DE LOS COORDINADOS',
+    '625': 'REGIMEN DE LAS ACTIVIDADES EMPRESARIALES CON INGRESOS A TRAVES DE PLATAFORMAS TECNOLOGICAS',
+    '626': 'REGIMEN SIMPLIFICADO DE CONFIANZA'
+  };
   customerId: number | null = null;
   private destroy$ = new Subject<void>();
 
@@ -169,6 +205,12 @@ export class CustomerDetail implements OnInit, OnDestroy {
     this.additionalPersonExpanded.update((v) => !v);
   }
 
+  setActiveInfoTab(tab: string): void {
+    if (tab === 'customer' || tab === 'credit' || tab === 'fiscal') {
+      this.activeInfoTab.set(tab);
+    }
+  }
+
   /** True si el API devolvió algún dato de contacto adicional. */
   hasAdditionalContact(c: Customer): boolean {
     const t = (s: string | null | undefined) => (s ?? '').trim();
@@ -191,5 +233,12 @@ export class CustomerDetail implements OnInit, OnDestroy {
       'inactive': 'danger'
     };
     return map[s] ?? 'secondary';
+  }
+
+  getFiscalRegimenLabel(value: string | null | undefined): string {
+    const code = (value ?? '').trim();
+    if (!code) return '—';
+    const label = this.fiscalRegimenLabels[code];
+    return label ? `${code} - ${label}` : code;
   }
 }

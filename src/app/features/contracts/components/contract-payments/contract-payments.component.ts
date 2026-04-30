@@ -6,7 +6,7 @@ import { PaymentService } from '../../services/payment.service';
 import { Payment, PaymentStats } from '../../models/payment.model';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail } from 'lucide-angular';
+import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail, Check } from 'lucide-angular';
 import { PartialPaymentModalComponent } from '../partial-payment-modal/partial-payment-modal.component';
 import { EditPaymentModalComponent } from '../edit-payment-modal/edit-payment-modal.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
@@ -28,12 +28,15 @@ import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 export class ContractPaymentsComponent implements OnInit {
   @Input() contractId!: string;
   @Input() currency: string = 'USD';
+  @Input() contractStatus: string | null = null;
   @Output() dataChanged = new EventEmitter<void>();
 
   payments = signal<Payment[]>([]);
   stats = signal<PaymentStats | null>(null);
   loading = signal(false);
   generating = signal(false);
+  currentPage = signal(1);
+  readonly pageSize = 20;
 
   readonly Plus = Plus;
   readonly Edit = Edit;
@@ -42,6 +45,8 @@ export class ContractPaymentsComponent implements OnInit {
   readonly DollarSign = DollarSign;
   readonly RotateCcw = RotateCcw;
   readonly Mail = Mail;
+  readonly Math = Math;
+  readonly Check = Check;
 
   constructor(
     private paymentService: PaymentService,
@@ -59,6 +64,7 @@ export class ContractPaymentsComponent implements OnInit {
     this.paymentService.getPayments(this.contractId).subscribe({
       next: (payments) => {
         this.payments.set(payments);
+        this.autoSelectProgressPage(payments);
         this.loading.set(false);
       },
       error: () => {
@@ -256,6 +262,50 @@ export class ContractPaymentsComponent implements OnInit {
   sendPaymentEmail(payment: Payment) {
     // TODO: Implementar envío de correo
     console.log('Enviar correo para pago:', payment);
+  }
+
+  get isContractCompleted(): boolean {
+    const status = (this.contractStatus || '').toLowerCase().trim();
+    return status === 'completado' || status === 'completed';
+  }
+
+  get showGeneratePaymentsButton(): boolean {
+    return this.payments().length === 0 && !this.isContractCompleted;
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.payments().length / this.pageSize));
+  }
+
+  get paginatedPayments(): Payment[] {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.payments().slice(start, start + this.pageSize);
+  }
+
+  setPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage.set(page);
+  }
+
+  private autoSelectProgressPage(payments: Payment[]): void {
+    if (!payments.length) {
+      this.currentPage.set(1);
+      return;
+    }
+
+    let lastPaidIndex = -1;
+    for (let i = payments.length - 1; i >= 0; i--) {
+      const payment = payments[i];
+      const hasAnyPayment = (payment.amount_paid || 0) > 0 || payment.status === 'pagado' || payment.status === 'parcial';
+      if (hasAnyPayment) {
+        lastPaidIndex = i;
+        break;
+      }
+    }
+
+    const targetIndex = lastPaidIndex >= 0 ? lastPaidIndex : 0;
+    const targetPage = Math.floor(targetIndex / this.pageSize) + 1;
+    this.currentPage.set(targetPage);
   }
 
   registerPayment(payment: Payment) {

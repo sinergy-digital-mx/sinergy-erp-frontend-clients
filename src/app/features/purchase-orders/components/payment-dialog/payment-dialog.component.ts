@@ -1,20 +1,21 @@
 import { Component, Inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, X } from 'lucide-angular';
-import { InputComponent } from '../../../../core/components/input/input.component';
-import { ButtonComponent } from '../../../../core/components/button/button.component';
 
 export interface PaymentDialogData {
   remainingAmount: number;
+  totalAmount?: number;
+  currency?: 'MXN' | 'USD';
 }
 
 export interface PaymentFormData {
   amount: number;
   payment_date: string;
   payment_method: string;
-  reference?: string;
+  currency: 'MXN' | 'USD';
+  reference_number?: string;
   notes?: string;
 }
 
@@ -24,9 +25,7 @@ export interface PaymentFormData {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    LucideAngularModule,
-    InputComponent,
-    ButtonComponent
+    LucideAngularModule
   ],
   templateUrl: './payment-dialog.component.html',
   styleUrls: ['./payment-dialog.component.scss']
@@ -37,6 +36,8 @@ export class PaymentDialogComponent {
   
   form: FormGroup;
   remainingAmount: number;
+  totalAmount: number;
+  selectedCurrency: 'MXN' | 'USD';
 
   constructor(
     private fb: FormBuilder,
@@ -44,15 +45,17 @@ export class PaymentDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: PaymentDialogData
   ) {
     this.remainingAmount = data.remainingAmount;
+    this.totalAmount = data.totalAmount ?? data.remainingAmount;
+    this.selectedCurrency = data.currency ?? 'MXN';
     
     // Initialize form with validation
     this.form = this.fb.group({
       amount: [
-        '',
+        this.remainingAmount > 0 ? this.remainingAmount.toFixed(2) : '',
         [
           Validators.required,
-          Validators.min(0.01),
-          Validators.max(this.remainingAmount)
+          this.amountFormatValidator(),
+          this.amountRangeValidator(0.01, this.remainingAmount)
         ]
       ],
       payment_date: [
@@ -63,7 +66,8 @@ export class PaymentDialogComponent {
         'Transferencia',
         [Validators.required]
       ],
-      reference: [''],
+      currency: [this.selectedCurrency, [Validators.required]],
+      reference_number: [''],
       notes: ['']
     });
   }
@@ -88,10 +92,11 @@ export class PaymentDialogComponent {
 
     const formValue = this.form.value;
     const paymentData: PaymentFormData = {
-      amount: parseFloat(formValue.amount),
+      amount: this.parseLocalizedAmount(formValue.amount),
       payment_date: formValue.payment_date,
       payment_method: formValue.payment_method,
-      reference: formValue.reference || undefined,
+      currency: formValue.currency,
+      reference_number: formValue.reference_number || undefined,
       notes: formValue.notes || undefined
     };
 
@@ -112,11 +117,15 @@ export class PaymentDialogComponent {
       return 'El monto es requerido';
     }
 
-    if (control.errors['min']) {
+    if (control.errors['invalidAmount']) {
+      return 'Ingresa un monto valido (ej: 1250.50 o 1250,50)';
+    }
+
+    if (control.errors['amountMin']) {
       return 'El monto debe ser mayor a cero';
     }
 
-    if (control.errors['max']) {
+    if (control.errors['amountMax']) {
       return `El monto no puede exceder el saldo pendiente (${this.formatCurrency(this.remainingAmount)})`;
     }
 
@@ -129,7 +138,42 @@ export class PaymentDialogComponent {
   formatCurrency(amount: number): string {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
-      currency: 'MXN'
+      currency: this.form.get('currency')?.value || this.selectedCurrency
     }).format(amount);
+  }
+
+  private parseLocalizedAmount(value: unknown): number {
+    if (value === null || value === undefined) return NaN;
+    const normalized = String(value).trim().replace(/\s+/g, '').replace(',', '.');
+    const amount = parseFloat(normalized);
+    return Number.isFinite(amount) ? amount : NaN;
+  }
+
+  private amountFormatValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const raw = control.value;
+      if (raw === null || raw === undefined || raw === '') return null;
+      const normalized = String(raw).trim();
+      const validPattern = /^\d+([.,]\d{1,2})?$/;
+      return validPattern.test(normalized) ? null : { invalidAmount: true };
+    };
+  }
+
+  private amountRangeValidator(min: number, max: number): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const raw = control.value;
+      if (raw === null || raw === undefined || raw === '') return null;
+      const amount = this.parseLocalizedAmount(raw);
+      if (!Number.isFinite(amount)) {
+        return { invalidAmount: true };
+      }
+      if (amount < min) {
+        return { amountMin: true };
+      }
+      if (amount > max) {
+        return { amountMax: true };
+      }
+      return null;
+    };
   }
 }

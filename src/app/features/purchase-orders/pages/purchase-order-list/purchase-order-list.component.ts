@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed, ViewChild, TemplateRef } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal, computed, ViewChild, TemplateRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { WarehouseService } from '../../../../features/settings/services/warehouse.service';
@@ -23,6 +24,8 @@ import { TaxCalculatorService } from '../../services/tax-calculator.service';
 })
 export class PurchaseOrderListComponent implements OnInit {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
+
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly Math = Math;
 
@@ -144,14 +147,30 @@ export class PurchaseOrderListComponent implements OnInit {
   constructor(
     private purchaseOrderService: PurchaseOrderService,
     private warehouseService: WarehouseService,
+    private route: ActivatedRoute,
     private router: Router,
     private dialog: MatDialog,
     private taxCalculator: TaxCalculatorService
   ) {}
 
   ngOnInit(): void {
-    this.loadOrders();
     this.loadWarehouses();
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const search = params.get('search')?.trim() || undefined;
+        this.filtersState.update((prev) => {
+          const next: OrderFilters = { ...prev };
+          if (search) {
+            next.search = search;
+          } else {
+            delete next.search;
+          }
+          return next;
+        });
+        this.paginationState.set({ page: 1, limit: 15 });
+        this.loadOrders();
+      });
   }
 
   /**
@@ -226,6 +245,19 @@ export class PurchaseOrderListComponent implements OnInit {
   applyFilters(filters: OrderFilters): void {
     this.filtersState.set(filters);
     this.paginationState.set({ page: 1, limit: 15 });
+    const currentSearch = this.route.snapshot.queryParamMap.get('search')?.trim() || undefined;
+    const nextSearch = filters.search?.trim() || undefined;
+
+    if (currentSearch !== nextSearch) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { search: nextSearch ?? null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true
+      });
+      return;
+    }
+
     this.loadOrders();
   }
 

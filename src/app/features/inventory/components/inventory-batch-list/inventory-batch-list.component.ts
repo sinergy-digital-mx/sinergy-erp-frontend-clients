@@ -57,6 +57,7 @@ export class InventoryBatchListComponent implements OnInit {
       { name: 'Almacén', prop: 'warehouse_name', sortable: false, canAutoResize: false, width: 130 },
       { name: 'Cantidad', prop: 'quantity', sortable: true, canAutoResize: false, width: 100 },
       { name: 'Orden de Compra', prop: 'purchase_order_id', sortable: false, canAutoResize: false, width: 140 },
+      { name: 'TAG', prop: 'source_tag_identifier', sortable: false, canAutoResize: false, width: 160 },
       { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
     ],
     externalPaging: true,

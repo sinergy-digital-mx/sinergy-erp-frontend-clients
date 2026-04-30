@@ -1,7 +1,6 @@
 import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Payment } from '../../models/payment.model';
-import { TaxCalculatorService } from '../../services/tax-calculator.service';
 
 /**
  * Payments list component
@@ -20,15 +19,17 @@ import { TaxCalculatorService } from '../../services/tax-calculator.service';
 export class PaymentsListComponent {
   @Input() payments: Payment[] = [];
   @Input() canAddPayment: boolean = false;
+  @Input() defaultCurrency: 'MXN' | 'USD' = 'MXN';
   @Output() addPayment = new EventEmitter<void>();
-
-  constructor(private taxCalculator: TaxCalculatorService) {}
 
   /**
    * Format currency amount
    */
-  formatCurrency(amount: number): string {
-    return this.taxCalculator.formatCurrency(amount);
+  formatCurrency(amount: number, currency?: 'MXN' | 'USD'): string {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: currency ?? this.defaultCurrency
+    }).format(amount ?? 0);
   }
 
   /**

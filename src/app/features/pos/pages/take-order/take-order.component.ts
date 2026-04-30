@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -14,6 +14,8 @@ import {
   CreditCard,
   Banknote,
   FileText,
+  Maximize2,
+  Minimize2,
   LogIn,
   LogOut,
   Monitor,
@@ -21,9 +23,8 @@ import {
   AlertCircle,
 } from 'lucide-angular';
 import { POSService } from '../../services/pos.service';
-import { ProductService } from '../../../purchase-orders/services/product.service';
 import { WarehouseService } from '../../../purchase-orders/services/warehouse.service';
-import { Product } from '../../../purchase-orders/models/product.model';
+import { CustomerService } from '../../../../core/services/customer.service';
 import { Warehouse } from '../../../purchase-orders/models/warehouse.model';
 import { POSCartItem } from '../../models/pos.model';
 import { OpenShiftDialogComponent } from '../../components/open-shift-dialog/open-shift-dialog.component';
@@ -36,7 +37,8 @@ import { CloseShiftDialogComponent } from '../../components/close-shift-dialog/c
   templateUrl: './take-order.component.html',
   styleUrls: ['./take-order.component.scss'],
 })
-export class TakeOrderComponent implements OnInit {
+export class TakeOrderComponent implements OnInit, OnDestroy {
+  @ViewChild('posRoot') posRootRef?: ElementRef<HTMLElement>;
   readonly Search = Search;
   readonly Plus = Plus;
   readonly ShoppingCart = ShoppingCart;
@@ -45,15 +47,17 @@ export class TakeOrderComponent implements OnInit {
   readonly CreditCard = CreditCard;
   readonly Banknote = Banknote;
   readonly FileText = FileText;
+  readonly Maximize2 = Maximize2;
+  readonly Minimize2 = Minimize2;
   readonly LogIn = LogIn;
   readonly LogOut = LogOut;
   readonly Monitor = Monitor;
   readonly Package = Package;
   readonly AlertCircle = AlertCircle;
 
-  products = signal<Product[]>([]);
+  products = signal<any[]>([]);
   warehouses = signal<Warehouse[]>([]);
-  filteredProducts = signal<Product[]>([]);
+  filteredProducts = signal<any[]>([]);
 
   selectedWarehouse = signal<string>('');
   searchTerm = signal<string>('');
@@ -63,11 +67,14 @@ export class TakeOrderComponent implements OnInit {
   loadingPhotos = signal<boolean>(false);
   loadingPrices = signal<boolean>(false);
   priceListError = signal<boolean>(false);
+  isFullscreen = signal<boolean>(false);
 
   photoLoadingStates = signal<Map<string, boolean>>(new Map());
   photoErrorStates = signal<Map<string, boolean>>(new Map());
 
   paymentMethod = signal<'cash' | 'card' | 'credit'>('cash');
+  customers = signal<any[]>([]);
+  selectedCustomerId = signal<string>('');
   /** Usa propiedad para ngModel (evita conflicto con signal). */
   amountPaid = 0;
 
@@ -80,8 +87,8 @@ export class TakeOrderComponent implements OnInit {
 
   constructor(
     public posService: POSService,
-    private productService: ProductService,
     private warehouseService: WarehouseService,
+    private customerService: CustomerService,
     private router: Router,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
@@ -89,8 +96,34 @@ export class TakeOrderComponent implements OnInit {
 
   readonly sessionOk = computed(() => !!this.activePosSession());
 
+  private notifyError(message: string, duration = 4500): void {
+    this.snackBar.open(message, 'Cerrar', {
+      duration,
+      panelClass: ['snackbar-error'],
+    });
+  }
+
+  private notifySuccess(message: string, duration = 3000): void {
+    this.snackBar.open(message, 'Cerrar', {
+      duration,
+      panelClass: ['snackbar-success'],
+    });
+  }
+
+  private notifyInfo(message: string, duration = 3500): void {
+    this.snackBar.open(message, 'Cerrar', {
+      duration,
+      panelClass: ['snackbar-info'],
+    });
+  }
+
   ngOnInit(): void {
     this.loadData();
+    document.addEventListener('fullscreenchange', this.onFullscreenChange);
+  }
+
+  ngOnDestroy(): void {
+    document.removeEventListener('fullscreenchange', this.onFullscreenChange);
   }
 
   selectedWarehouseName(): string {
@@ -102,28 +135,8 @@ export class TakeOrderComponent implements OnInit {
   loadData(): void {
     this.loading.set(true);
     this.priceListError.set(false);
-
-    this.productService.getProducts().subscribe({
-      next: (products) => {
-        const productArray = Array.isArray(products)
-          ? products
-          : (products as any).data || [];
-
-        const productsWithPrices = productArray.map((p: Product) => ({
-          ...p,
-          cost: Math.round((Math.random() * (41.6 - 33.5) + 33.5) * 100) / 100,
-          has_price: true,
-        }));
-
-        this.products.set(productsWithPrices);
-        this.filteredProducts.set(productsWithPrices);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.snackBar.open('Error al cargar productos', 'Cerrar', { duration: 5000 });
-      },
-    });
+    this.products.set([]);
+    this.filteredProducts.set([]);
 
     this.warehouseService.getWarehouses().subscribe({
       next: (warehouses) => {
@@ -142,10 +155,22 @@ export class TakeOrderComponent implements OnInit {
           localStorage.setItem('pos_warehouse_id', pick);
           this.refreshPosSession();
         }
+        this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Error al cargar almacenes', 'Cerrar', { duration: 5000 });
+        this.loading.set(false);
+        this.notifyError('Error al cargar almacenes', 5000);
       },
+    });
+
+    this.customerService.getCustomers({ limit: 100 }).subscribe({
+      next: (customers) => {
+        const list = Array.isArray(customers) ? customers : (customers as any)?.data || [];
+        this.customers.set(list);
+      },
+      error: () => {
+        this.customers.set([]);
+      }
     });
   }
 
@@ -162,30 +187,34 @@ export class TakeOrderComponent implements OnInit {
   }
 
   refreshPosSession(): void {
-    const wid = this.selectedWarehouse();
-    if (!wid) {
+    const posConfigId = localStorage.getItem('pos_configuration_id');
+    if (!posConfigId) {
       this.activePosSession.set(null);
       this.syncTerminalLabelFromSession(false);
       this.checkingSession.set(false);
       return;
     }
     this.checkingSession.set(true);
-    this.posService.getActivePosSession(wid).subscribe({
+    this.posService.getActivePosSession(posConfigId).subscribe({
       next: (session) => {
         const active = session && session.id ? session : null;
         this.activePosSession.set(active);
         this.syncTerminalLabelFromSession(!!active);
+        this.loadProductsForActiveSession();
         this.checkingSession.set(false);
       },
       error: () => {
         this.activePosSession.set(null);
         this.syncTerminalLabelFromSession(false);
+        this.products.set([]);
+        this.filteredProducts.set([]);
         this.checkingSession.set(false);
       },
     });
   }
 
-  openPosSession(): void {
+  async openPosSession(): Promise<void> {
+    await this.exitFullscreenForDialog();
     const dialogRef = this.dialog.open(OpenShiftDialogComponent, {
       width: '420px',
       maxWidth: '95vw',
@@ -231,27 +260,25 @@ export class TakeOrderComponent implements OnInit {
               this.terminalId.set('');
             }
             this.checkingSession.set(false);
-            this.snackBar.open('Sesión POS iniciada', 'Cerrar', { duration: 3000 });
+            this.loadProductsForActiveSession();
+            this.notifySuccess('Sesión POS iniciada', 3000);
           },
           error: (error) => {
             this.checkingSession.set(false);
-            this.snackBar.open(
-              error.error?.message || 'No se pudo iniciar la sesión',
-              'Cerrar',
-              { duration: 5000 }
-            );
+            this.notifyError(error.error?.message || 'No se pudo iniciar la sesión', 5000);
           },
         });
     });
   }
 
-  closePosSession(): void {
+  async closePosSession(): Promise<void> {
+    await this.exitFullscreenForDialog();
     const session = this.activePosSession();
     if (!session?.id) {
       return;
     }
     const dialogRef = this.dialog.open(CloseShiftDialogComponent, {
-      width: '640px',
+      width: '520px',
       maxWidth: '95vw',
       disableClose: true,
       data: { shift: session },
@@ -269,16 +296,14 @@ export class TakeOrderComponent implements OnInit {
           localStorage.removeItem('pos_configuration_id');
           localStorage.removeItem('pos_configuration_code');
           this.terminalId.set('');
+          this.products.set([]);
+          this.filteredProducts.set([]);
           this.checkingSession.set(false);
-          this.snackBar.open('Sesión cerrada', 'Cerrar', { duration: 4000 });
+          this.notifySuccess('Sesión cerrada', 4000);
         },
         error: (error) => {
           this.checkingSession.set(false);
-          this.snackBar.open(
-            error.error?.message || 'Error al cerrar la sesión',
-            'Cerrar',
-            { duration: 5000 }
-          );
+          this.notifyError(error.error?.message || 'Error al cerrar la sesión', 5000);
         },
       });
     });
@@ -313,41 +338,32 @@ export class TakeOrderComponent implements OnInit {
     this.filteredProducts.set(filtered);
   }
 
-  addProductToCart(product: Product): void {
+  addProductToCart(product: any): void {
     if (!this.sessionOk()) {
-      this.snackBar.open('Inicia sesión POS para agregar productos', 'Cerrar', {
-        duration: 4000,
-      });
+      this.notifyInfo('Inicia sesión POS para agregar productos', 4000);
       return;
     }
     if (!product.has_price) {
-      this.snackBar.open('Este producto no tiene precio configurado', 'Cerrar', {
-        duration: 3000,
-      });
+      this.notifyError('Este producto no tiene precio configurado', 3000);
       return;
     }
 
-    let baseUom: any = { id: 'default-uom', name: 'Pieza' };
-
-    if (product.uoms && product.uoms.length > 0) {
-      baseUom =
-        product.uoms.find((u) => u.id === product.base_uom_id) || product.uoms[0];
-    }
-
     const cartItem: POSCartItem = {
-      product_id: product.id,
-      product_name: product.name,
-      product_sku: product.sku,
-      uom_id: baseUom.id,
-      uom_name: baseUom.name || 'Pieza',
+      product_id: product.product_id || product.id,
+      product_name: product.product_name || product.name,
+      product_sku: product.product_sku || product.sku || '',
+      uom_id: product.uom_id || 'default-uom',
+      uom_name: product.uom_name || 'Pieza',
       quantity: 1,
-      unit_price: product.cost || 0,
-      iva_percentage: 16,
-      ieps_percentage: 0,
+      unit_price: Number(product.suggested_unit_price ?? product.cost ?? 0),
+      iva_percentage: Number(product.suggested_iva_percentage ?? 16),
+      ieps_percentage: Number(product.suggested_ieps_percentage ?? 0),
       subtotal: 0,
       iva_amount: 0,
       ieps_amount: 0,
       line_total: 0,
+      pricing_options: Array.isArray(product.pricing_options) ? product.pricing_options : [],
+      selected_price_list_id: '',
     };
 
     const subtotal = cartItem.quantity * cartItem.unit_price;
@@ -359,7 +375,7 @@ export class TakeOrderComponent implements OnInit {
     cartItem.line_total = subtotal + iva_amount + ieps_amount;
 
     this.posService.addItem(cartItem);
-    this.snackBar.open(`${product.name} agregado`, 'Cerrar', { duration: 2000 });
+    this.notifySuccess(`${product.product_name || product.name} agregado`, 2000);
   }
 
   updateQuantity(index: number, quantity: number): void {
@@ -374,21 +390,40 @@ export class TakeOrderComponent implements OnInit {
     this.posService.removeItem(index);
   }
 
+  onPricingOptionChange(index: number, optionId: string): void {
+    const item = this.posService.cart().items[index];
+    if (!item) return;
+
+    const options = Array.isArray(item.pricing_options) ? item.pricing_options : [];
+    const selected = options.find((opt) => String(opt.price_list_id) === String(optionId));
+    if (!selected) return;
+
+    this.posService.updateItemPricing(index, {
+      unit_price: Number(selected.price ?? item.unit_price ?? 0),
+      iva_percentage: Number(selected.iva_percentage ?? item.iva_percentage ?? 0),
+      ieps_percentage: Number(selected.ieps_percentage ?? item.ieps_percentage ?? 0),
+      selected_price_list_id: optionId,
+    });
+  }
+
   saveOrder(): void {
     if (!this.sessionOk()) {
-      this.snackBar.open('Debes tener una sesión POS activa', 'Cerrar', {
-        duration: 4000,
-      });
+      this.notifyError('Debes tener una sesión POS activa', 4000);
       return;
     }
     if (!this.selectedWarehouse()) {
-      this.snackBar.open('Selecciona un almacén', 'Cerrar', { duration: 3000 });
+      this.notifyInfo('Selecciona un almacén', 3000);
       return;
     }
 
     const cart = this.posService.cart();
     if (cart.items.length === 0) {
-      this.snackBar.open('Agrega productos a la orden', 'Cerrar', { duration: 3000 });
+      this.notifyInfo('Agrega productos a la orden', 3000);
+      return;
+    }
+
+    if (this.paymentMethod() === 'credit' && !this.selectedCustomerId()) {
+      this.notifyInfo('Selecciona un cliente para venta a crédito', 3500);
       return;
     }
 
@@ -396,6 +431,7 @@ export class TakeOrderComponent implements OnInit {
 
     const orderData = {
       warehouse_id: this.selectedWarehouse(),
+      ...(this.paymentMethod() === 'credit' ? { customer_id: Number(this.selectedCustomerId()) || this.selectedCustomerId() } : {}),
       line_items: cart.items.map((item) => ({
         product_id: item.product_id,
         uom_id: item.uom_id,
@@ -406,15 +442,13 @@ export class TakeOrderComponent implements OnInit {
 
     this.posService.createOrder(orderData).subscribe({
       next: () => {
-        this.snackBar.open('Orden creada exitosamente', 'Cerrar', { duration: 3000 });
+        this.notifySuccess('Orden creada exitosamente', 3000);
         this.posService.clearCart();
         this.amountPaid = 0;
         this.router.navigate(['/pos']);
       },
       error: (error) => {
-        this.snackBar.open(error.message || 'Error al crear orden', 'Cerrar', {
-          duration: 5000,
-        });
+        this.notifyError(error.message || 'Error al crear orden', 5000);
         this.saving.set(false);
       },
     });
@@ -435,11 +469,15 @@ export class TakeOrderComponent implements OnInit {
     }).format(amount);
   }
 
-  getProductPhotoUrl(product: Product): string {
+  getProductPhotoUrl(product: any): string {
     if (product.primary_photo_url) {
       return product.primary_photo_url;
     }
-    return '/images/product-placeholder.svg';
+    return '';
+  }
+
+  hasProductPhoto(product: any): boolean {
+    return !!product.primary_photo_url && !this.hasPhotoError(product.id);
   }
 
   isPhotoLoading(productId: string): boolean {
@@ -462,21 +500,26 @@ export class TakeOrderComponent implements OnInit {
     this.photoLoadingStates.set(loadingStates);
   }
 
-  canAddToCart(product: Product): boolean {
+  canAddToCart(product: any): boolean {
     if (!this.sessionOk()) {
       return false;
     }
     if (this.priceListError()) {
       return false;
     }
-    return product.has_price === true;
+    const stock = Number(product.total_available_quantity ?? 0);
+    const hasPrice = product.suggested_unit_price != null || product.cost != null;
+    return stock > 0 && hasPrice;
   }
 
-  getDisabledTooltip(product: Product): string {
+  getDisabledTooltip(product: any): string {
     if (!this.sessionOk()) {
       return 'Inicia sesión POS para vender';
     }
-    if (!product.has_price) {
+    if (Number(product.total_available_quantity ?? 0) <= 0) {
+      return 'Sin stock disponible';
+    }
+    if (product.suggested_unit_price == null && product.cost == null) {
       return 'Producto sin precio configurado';
     }
     return '';
@@ -498,5 +541,70 @@ export class TakeOrderComponent implements OnInit {
   onAmountPaidChange(value: number | string): void {
     const n = typeof value === 'string' ? parseFloat(value) : value;
     this.amountPaid = Number.isFinite(n) ? n : 0;
+  }
+
+  async toggleFullscreen(): Promise<void> {
+    const root = this.posRootRef?.nativeElement;
+    if (!root) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await root.requestFullscreen();
+      }
+    } catch {
+      this.notifyError('No se pudo cambiar a pantalla completa', 2500);
+    }
+  }
+
+  private onFullscreenChange = (): void => {
+    this.isFullscreen.set(!!document.fullscreenElement);
+  };
+
+  private async exitFullscreenForDialog(): Promise<void> {
+    if (!document.fullscreenElement) return;
+    try {
+      await document.exitFullscreen();
+      this.isFullscreen.set(false);
+    } catch {
+      // Ignore; dialog can still attempt to open.
+    }
+  }
+
+  private loadProductsForActiveSession(): void {
+    const sessionId = this.activePosSession()?.id;
+    if (!sessionId) {
+      this.products.set([]);
+      this.filteredProducts.set([]);
+      return;
+    }
+
+    this.loading.set(true);
+    this.posService.getPosSessionInventorySummary(sessionId).subscribe({
+      next: (rows) => {
+        const normalized = (rows || []).map((row: any) => ({
+          ...row,
+          id: row.product_id || row.id,
+          name: row.product_name || row.name || 'Producto',
+          sku: row.product_sku || row.sku || '',
+          primary_photo_url: row.product_photo || row.primary_photo_url || null,
+          cost: Number(row.suggested_unit_price ?? row.cost ?? 0),
+          has_price: row.suggested_unit_price != null || row.cost != null,
+          total_available_quantity: Number(row.total_available_quantity ?? 0),
+          pricing_options: Array.isArray(row.pricing_options) ? row.pricing_options : [],
+        }));
+        this.products.set(normalized);
+        this.filteredProducts.set(normalized);
+        this.priceListError.set(false);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.products.set([]);
+        this.filteredProducts.set([]);
+        this.priceListError.set(true);
+        this.loading.set(false);
+        this.notifyError('No se pudo cargar inventario POS de la sesión', 4000);
+      }
+    });
   }
 }

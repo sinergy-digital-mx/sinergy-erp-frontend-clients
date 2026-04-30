@@ -32,7 +32,9 @@ export class PurchaseOrderDetailComponent implements OnInit {
   // Computed: permission flags (simplified - would check actual permissions)
   canEdit = computed(() => {
     const order = this.orderData();
-    return order?.status === 'En Proceso';
+    if (!order) return false;
+    const st = order.general_status ?? order.status;
+    return st === 'Creada' || st === 'En Proceso';
   });
   
   canDelete = computed(() => {
@@ -55,7 +57,10 @@ export class PurchaseOrderDetailComponent implements OnInit {
   
   canAddPayment = computed(() => {
     const order = this.orderData();
-    return order && order.remaining_amount > 0 && order.status !== 'Cancelada';
+    if (!order) return false;
+    const pending = Number(order.payments_summary?.amount_pending ?? order.remaining_amount ?? 0);
+    const paymentStatus = order.payments_summary?.payment_status ?? order.payment_status;
+    return pending > 0 && order.status !== 'Cancelada' && paymentStatus !== 'Pagado';
   });
   
   canCancel = computed(() => {
@@ -207,9 +212,15 @@ export class PurchaseOrderDetailComponent implements OnInit {
     if (!order) return;
     
     const dialogRef = this.dialog.open(PaymentDialogComponent, {
-      width: '500px',
+      width: '660px',
       data: {
-        remainingAmount: order.remaining_amount
+        totalAmount: Number(
+          order.payments_summary
+            ? Number(order.payments_summary.amount_paid ?? 0) + Number(order.payments_summary.amount_pending ?? 0)
+            : order.grand_total ?? 0
+        ),
+        remainingAmount: Number(order.payments_summary?.amount_pending ?? order.remaining_amount ?? 0),
+        currency: order.payments_summary?.currency ?? order.payment_currency ?? 'MXN'
       },
       disableClose: false
     });

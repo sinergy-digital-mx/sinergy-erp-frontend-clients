@@ -19,6 +19,12 @@ export interface Contract {
   status: ContractStatus;
   notes?: string;
   metadata?: any;
+  /** Enganche financiado en cuotas separadas de contract_payments */
+  down_payment_financed?: boolean;
+  down_payment_months?: number;
+  down_payment_monthly_amount?: number;
+  down_payment_first_payment_date?: string;
+  down_payment_payment_day?: number;
   created_at: string;
   updated_at: string;
   customer?: ContractCustomer;
@@ -68,6 +74,11 @@ export interface CreateContractDto {
   currency: string;
   status?: ContractStatus;
   notes?: string;
+  /** Si true, enviar meses, fecha primer pago enganche y día mensual (no enviar down_payment_monthly_amount). */
+  down_payment_financed?: boolean;
+  down_payment_months?: number;
+  down_payment_first_payment_date?: string;
+  down_payment_payment_day?: number;
 }
 
 export interface UpdateContractDto extends Partial<CreateContractDto> {}

@@ -44,10 +44,15 @@ export class TaxCalculatorService {
    * - grand_total = Σ(line_items.line_total)
    */
   calculateOrderTotals(lineItems: LineItem[]): TotalCalculations {
-    const total_subtotal = lineItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const total_iva = lineItems.reduce((sum, item) => sum + item.iva_amount, 0);
-    const total_ieps = lineItems.reduce((sum, item) => sum + item.ieps_amount, 0);
-    const grand_total = lineItems.reduce((sum, item) => sum + item.line_total, 0);
+    const num = (v: number | string | undefined | null): number => {
+      if (v === undefined || v === null || v === '') return 0;
+      const n = typeof v === 'number' ? v : parseFloat(String(v));
+      return Number.isFinite(n) ? n : 0;
+    };
+    const total_subtotal = lineItems.reduce((sum, item) => sum + num(item.subtotal), 0);
+    const total_iva = lineItems.reduce((sum, item) => sum + num(item.iva_amount), 0);
+    const total_ieps = lineItems.reduce((sum, item) => sum + num(item.ieps_amount), 0);
+    const grand_total = lineItems.reduce((sum, item) => sum + num(item.line_total), 0);
 
     return {
       total_subtotal: this.roundToTwoDecimals(total_subtotal),

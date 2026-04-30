@@ -49,6 +49,7 @@
         <app-payments-list
           [payments]="order()!.payments || []"
           [canAddPayment]="canAddPayment()"
+          [defaultCurrency]="order()!.payments_summary?.currency || order()!.payment_currency || 'MXN'"
           (addPayment)="registerPayment()"
         ></app-payments-list>
       </div>

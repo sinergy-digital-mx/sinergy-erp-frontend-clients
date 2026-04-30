@@ -75,6 +75,11 @@
   text-align: center;
   white-space: nowrap;
 
+  &--creada {
+    background-color: #e3f2fd;
+    color: #1565c0;
+  }
+
   &--en-proceso {
     background-color: #fff3e0;
     color: #e65100;

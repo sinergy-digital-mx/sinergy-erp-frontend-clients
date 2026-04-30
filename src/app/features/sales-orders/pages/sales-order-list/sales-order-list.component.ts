@@ -8,6 +8,7 @@ import { SalesOrder, SalesOrderFilters, PaginationParams } from '../../models/sa
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { SalesFilterBarComponent } from '../../components/sales-filter-bar/sales-filter-bar.component';
 import { CreateSalesOrderModalComponent } from '../../components/create-sales-order-modal/create-sales-order-modal.component';
+import { SalesOrderDetailDialogComponent } from '../../components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
@@ -71,9 +72,9 @@ export class SalesOrderListComponent implements OnInit {
   creadasAmount = computed(() => this.ordersData().filter(o => o.status === 'Creada').reduce((s, o) => s + this.getOrderTotal(o), 0));
   surtidasAmount = computed(() => this.ordersData().filter(o => o.status === 'Surtida').reduce((s, o) => s + this.getOrderTotal(o), 0));
 
-  pagadasCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pagada').length);
+  pagadasCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pagado').length);
   pendientesCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pendiente').length);
-  pagadasAmount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pagada').reduce((s, o) => s + this.getOrderTotal(o), 0));
+  pagadasAmount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pagado').reduce((s, o) => s + this.getOrderTotal(o), 0));
   pendientesAmount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pendiente').reduce((s, o) => s + this.getOrderTotal(o), 0));
 
   creadasPercent = computed(() => this.totalOrders() > 0 ? (this.creadasCount() / this.totalOrders()) * 100 : 0);
@@ -160,8 +161,16 @@ export class SalesOrderListComponent implements OnInit {
   }
 
   navigateToDetail(order: SalesOrder): void {
-    // TODO: open detail dialog
-    console.log('Open detail for:', order.id);
+    this.dialog.open(SalesOrderDetailDialogComponent, {
+      data: { orderId: order.id },
+      width: '1400px',
+      maxWidth: '95vw',
+      height: '90vh',
+      maxHeight: '90vh',
+      panelClass: 'order-detail-dialog-container'
+    }).afterClosed().subscribe((updated) => {
+      if (updated) this.loadOrders();
+    });
   }
 
   getStatusClass(status: string): string {
@@ -175,7 +184,7 @@ export class SalesOrderListComponent implements OnInit {
 
   getPaymentStatusClass(status: string): string {
     switch (status) {
-      case 'Pagada': return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-700';
+      case 'Pagado': return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-700';
       case 'Parcial': return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-700';
       case 'Pendiente': return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-red-100 text-red-700';
       default: return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700';

@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ButtonModule } from 'primeng/button';
+import { LucideAngularModule, Filter, Search, X } from 'lucide-angular';
 
 interface ActiveFilter {
   type: 'search' | 'status';
@@ -11,20 +11,20 @@ interface ActiveFilter {
 @Component({
   selector: 'app-contract-filter-indicator',
   standalone: true,
-  imports: [CommonModule, ButtonModule],
+  imports: [CommonModule, LucideAngularModule],
   template: `<div *ngIf="hasActiveFilters()" class="filter-indicator">
   <div class="filters-container">
     <span class="filters-label">Filtros activos:</span>
     <div class="filter-chips">
       <div *ngFor="let filter of activeFilters" class="filter-chip">
-        <i [class]="'pi ' + getFilterIcon(filter.type)"></i>
+        <lucide-icon [img]="getFilterIcon(filter.type)" [size]="14"></lucide-icon>
         <span>{{ filter.label }}</span>
         <button 
           type="button"
           class="remove-btn"
           (click)="clearFilter(filter.type)"
           title="Limpiar filtro">
-          <i class="pi pi-times"></i>
+          <lucide-icon [img]="X" [size]="12"></lucide-icon>
         </button>
       </div>
     </div>
@@ -32,9 +32,8 @@ interface ActiveFilter {
       type="button"
       class="clear-all-btn"
       (click)="clearAllFilters()"
-      pButton
-      label="Limpiar todos"
-      class="p-button-sm p-button-text">
+      aria-label="Limpiar todos los filtros">
+      Limpiar todos
     </button>
   </div>
 </div>`,
@@ -101,6 +100,18 @@ interface ActiveFilter {
 
 .filter-indicator .filters-container .clear-all-btn {
   margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #1d4ed8;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.filter-indicator .filters-container .clear-all-btn:hover {
+  background: #dbeafe;
 }
 
 @media (max-width: 767px) {
@@ -124,6 +135,10 @@ interface ActiveFilter {
   `],
 })
 export class ContractFilterIndicatorComponent {
+  readonly Filter = Filter;
+  readonly Search = Search;
+  readonly X = X;
+
   @Input() activeSearchTerm: string | null = null;
   @Input() activeStatusFilter: string | null = null;
   @Output() filterClear = new EventEmitter<'search' | 'status' | 'all'>();
@@ -167,14 +182,14 @@ export class ContractFilterIndicatorComponent {
     this.filterClear.emit('all');
   }
 
-  getFilterIcon(filterType: 'search' | 'status'): string {
+  getFilterIcon(filterType: 'search' | 'status') {
     switch (filterType) {
       case 'status':
-        return 'pi-filter';
+        return this.Filter;
       case 'search':
-        return 'pi-search';
+        return this.Search;
       default:
-        return 'pi-filter';
+        return this.Filter;
     }
   }
 

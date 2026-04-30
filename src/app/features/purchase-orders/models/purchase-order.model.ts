@@ -51,6 +51,14 @@ export type OrderStatus = 'Creada' | 'En Proceso' | 'Recibida' | 'Cancelada';
  * Payment status enum
  */
 export type PaymentStatus = 'Pagada' | 'Parcial' | 'Pendiente' | 'No pagado';
+export type PaymentCurrency = 'MXN' | 'USD';
+
+export interface PaymentsSummary {
+  amount_paid: number | string;
+  amount_pending: number | string;
+  payment_status: PaymentStatus | 'Pagado';
+  currency: PaymentCurrency;
+}
 
 /**
  * Document entity
@@ -74,6 +82,12 @@ export interface Document {
   size?: number;
 }
 
+export interface DocumentType {
+  id: number;
+  name: string;
+  description?: string;
+}
+
 /**
  * User entity
  */
@@ -94,6 +108,7 @@ export interface PurchaseOrder {
   creator_id: string;
   purpose: string;
   warehouse_id: string;
+  fiscal_configuration_id?: string;
   folio?: string;
   tentative_receipt_date: string; // ISO 8601 date string
   expected_delivery_date?: string;
@@ -102,10 +117,12 @@ export interface PurchaseOrder {
   cancellation_date?: string;
   cancellation_reason?: string;
   payment_status: PaymentStatus;
+  payment_currency?: PaymentCurrency;
   payment_date?: string;
   payment_amount?: number;
   payment_method?: string;
   remaining_amount: number;
+  payments_summary?: PaymentsSummary;
   total_subtotal: number;
   total_iva: number;
   total_ieps: number;

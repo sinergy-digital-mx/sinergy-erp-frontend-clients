@@ -42,6 +42,21 @@ export interface Customer {
   phone_country?: string;
   phone_code?: string;
   company_name?: string;
+  warehouse_id?: string | null;
+  warehouse?: {
+    id: string;
+    name: string;
+    code?: string;
+  } | null;
+  credit_days?: number | null;
+  credit_amount?: number | null;
+  fiscal_rfc?: string;
+  fiscal_razon_social?: string;
+  fiscal_person_type?: string;
+  fiscal_address?: string;
+  fiscal_city?: string;
+  fiscal_state?: string;
+  fiscal_postal_code?: string;
   group?: CustomerGroup | null;
   group_id?: string | null;
   status_id?: string;
@@ -75,6 +90,16 @@ export interface UpdateCustomerDto {
   phone_code?: string;
   country?: string;
   company_name?: string;
+  warehouse_id?: string | null;
+  credit_days?: number | null;
+  credit_amount?: number | null;
+  fiscal_rfc?: string;
+  fiscal_razon_social?: string;
+  fiscal_person_type?: string;
+  fiscal_address?: string;
+  fiscal_city?: string;
+  fiscal_state?: string;
+  fiscal_postal_code?: string;
   group_id?: string | null;
   additional_name?: string;
   additional_lastname?: string;

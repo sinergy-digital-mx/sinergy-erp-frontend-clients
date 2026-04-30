@@ -47,6 +47,12 @@ export class FiscalConfigurationService {
     return this.http.put<FiscalConfiguration>(`${this.api}/tenant/fiscal-configurations/${id}`, dto);
   }
 
+  uploadFiscalLogo(id: string, file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post(`${this.api}/tenant/fiscal-configurations/${id}/logo`, formData);
+  }
+
   deleteFiscalConfiguration(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/fiscal-configurations/${id}`);
   }

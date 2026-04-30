@@ -43,11 +43,14 @@ export class CloseShiftDialogComponent implements OnInit {
     console.log('Close Shift Dialog - initial_cash:', data.shift?.initial_cash);
     console.log('Close Shift Dialog - initial_cash type:', typeof data.shift?.initial_cash);
     
-    // Set initial closing balance to initial_cash as a starting point
-    if (data.shift?.initial_cash) {
-      const parsedValue = parseFloat(data.shift.initial_cash);
-      console.log('Close Shift Dialog - Parsed initial_cash:', parsedValue);
-      this.closingBalance.set(parsedValue);
+    // Set initial closing balance from expected/opening cash when available
+    const baseCash = this.getShiftCashValue(
+      data.shift,
+      ['expected_cash', 'opening_cash', 'initial_cash', 'opening_balance'],
+      0
+    );
+    if (baseCash > 0) {
+      this.closingBalance.set(baseCash);
     }
   }
   
@@ -91,12 +94,13 @@ export class CloseShiftDialogComponent implements OnInit {
     if (report?.cash_summary?.expected_cash) {
       return parseFloat(report.cash_summary.expected_cash);
     }
-    
-    // Fallback to shift data
-    if (this.shift?.expected_cash) {
-      return parseFloat(this.shift.expected_cash);
-    }
-    return this.shift?.initial_cash ? parseFloat(this.shift.initial_cash) : 0;
+
+    // Fallback to shift data with API alias support
+    return this.getShiftCashValue(
+      this.shift,
+      ['expected_cash', 'opening_cash', 'initial_cash', 'opening_balance'],
+      0
+    );
   }
 
   get difference(): number {
@@ -140,5 +144,24 @@ export class CloseShiftDialogComponent implements OnInit {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  get openingCash(): number {
+    return this.getShiftCashValue(
+      this.shift,
+      ['opening_cash', 'initial_cash', 'opening_balance', 'expected_cash'],
+      0
+    );
+  }
+
+  private getShiftCashValue(source: any, keys: string[], fallback: number): number {
+    if (!source || typeof source !== 'object') return fallback;
+    for (const key of keys) {
+      const raw = source[key];
+      if (raw === null || raw === undefined || raw === '') continue;
+      const parsed = typeof raw === 'number' ? raw : parseFloat(String(raw));
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return fallback;
   }
 }

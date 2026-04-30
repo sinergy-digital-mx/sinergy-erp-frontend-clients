@@ -10,6 +10,15 @@
 
   <div class="customer-modal__body">
     <form [formGroup]="form">
+      <div class="col-span-2">
+        <app-tab
+          [tabs]="tabs"
+          [activeTabId]="activeTab()"
+          (tabChange)="setActiveTab($event)">
+        </app-tab>
+      </div>
+
+      @if (activeTab() === 'customer') {
       <!-- Nombre -->
       <div>
         <app-input
@@ -153,6 +162,106 @@
           </app-phone-country-select>
         </div>
       </ng-container>
+      }
+
+      @if (activeTab() === 'credit') {
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Almacén</label>
+          <select
+            formControlName="warehouse_id"
+            class="w-full px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 border border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Sin almacén</option>
+            @for (warehouse of warehouses(); track warehouse.id) {
+              <option [value]="warehouse.id">
+                {{ warehouse.name }} ({{ warehouse.code }})
+              </option>
+            }
+          </select>
+          @if (warehousesLoading()) {
+            <p class="mt-1 text-xs text-gray-500">Cargando almacenes...</p>
+          }
+        </div>
+
+        <div>
+          <app-input
+            label="Días de crédito"
+            placeholder="0"
+            type="number"
+            [form_control]="form.controls['credit_days']">
+          </app-input>
+        </div>
+
+        <div>
+          <app-input
+            label="Monto de crédito"
+            placeholder="0.00"
+            type="number"
+            [form_control]="form.controls['credit_amount']">
+          </app-input>
+        </div>
+      }
+
+      @if (activeTab() === 'fiscal') {
+        <div>
+          <app-input
+            label="RFC"
+            placeholder="RFC"
+            [form_control]="form.controls['fiscal_rfc']">
+          </app-input>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Régimen fiscal</label>
+          <select
+            formControlName="fiscal_person_type"
+            class="w-full px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 border border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Selecciona un régimen fiscal</option>
+            @for (regimen of fiscalRegimenOptions; track regimen.code) {
+              <option [value]="regimen.code">{{ regimen.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="col-span-2">
+          <app-input
+            label="Razón social"
+            placeholder="Razón social"
+            [form_control]="form.controls['fiscal_razon_social']">
+          </app-input>
+        </div>
+
+        <div class="col-span-2">
+          <app-input
+            label="Dirección fiscal"
+            placeholder="Dirección fiscal"
+            [form_control]="form.controls['fiscal_address']">
+          </app-input>
+        </div>
+
+        <div>
+          <app-input
+            label="Ciudad"
+            placeholder="Ciudad"
+            [form_control]="form.controls['fiscal_city']">
+          </app-input>
+        </div>
+
+        <div>
+          <app-input
+            label="Estado"
+            placeholder="Estado"
+            [form_control]="form.controls['fiscal_state']">
+          </app-input>
+        </div>
+
+        <div class="col-span-2">
+          <app-input
+            label="Código postal"
+            placeholder="Código postal"
+            [form_control]="form.controls['fiscal_postal_code']">
+          </app-input>
+        </div>
+      }
     </form>
   </div>
 

@@ -1,14 +1,16 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { 
   SalesOrder, 
   SalesOrderFilters, 
   PaginationParams, 
   PaginatedResponse,
-  SalesOrderFormData
+  SalesOrderFormData,
+  SalesOrderDetailPayload,
+  SalesOrderDetailResponse
 } from '../models/sales-order.model';
 import { environment } from '../../../../environments/environment';
 
@@ -43,6 +45,9 @@ export class SalesOrderService {
     if (filters.payment_status) {
       params = params.set('payment_status', filters.payment_status);
     }
+    if (filters.sales_order_type) {
+      params = params.set('sales_order_type', filters.sales_order_type);
+    }
     if (filters.customer_id) {
       params = params.set('customer_id', filters.customer_id.toString());
     }
@@ -72,6 +77,14 @@ export class SalesOrderService {
       );
   }
 
+  getOrderDetailById(id: string): Observable<SalesOrderDetailPayload> {
+    return this.http.get<SalesOrderDetailResponse>(`${this.baseUrl}/${id}`)
+      .pipe(
+        map((response) => response.data),
+        catchError(error => this.handleError(error))
+      );
+  }
+
   /**
    * Create new sales order
    */
@@ -87,6 +100,16 @@ export class SalesOrderService {
           console.error('[SalesOrder] Failed to create order', error);
           return this.handleError(error);
         })
+      );
+  }
+
+  /**
+   * Get products summary by warehouse for sales order creation
+   */
+  getWarehouseProductsSummary(warehouseId: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/warehouse/${warehouseId}/products-summary`)
+      .pipe(
+        catchError(error => this.handleError(error))
       );
   }
 

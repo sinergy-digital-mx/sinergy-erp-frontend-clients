@@ -145,6 +145,43 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Tab: Logo -->
+      <div *ngIf="activeTab === 'logo'" class="tab-pane">
+        <div *ngIf="isNew" class="empty-state">
+          <p>Guarda la configuración fiscal antes de subir un logo.</p>
+        </div>
+
+        <div *ngIf="!isNew" class="logo-tab">
+          <div class="logo-preview">
+            <img *ngIf="logoUrl; else emptyLogo" [src]="logoUrl" alt="Logo fiscal" />
+            <ng-template #emptyLogo>
+              <div class="logo-placeholder">Sin logo</div>
+            </ng-template>
+          </div>
+
+          <input
+            #logoFileInput
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/webp"
+            class="hidden-file-input"
+            (change)="onLogoSelected($event)"
+          />
+
+          <div class="logo-actions">
+            <button
+              type="button"
+              class="logo-upload-btn"
+              (click)="openLogoPicker(logoFileInput)"
+              [disabled]="uploadingLogo()"
+            >
+              {{ uploadingLogo() ? 'Subiendo...' : 'Subir logo' }}
+            </button>
+            <p *ngIf="logoFileName" class="logo-file-name">{{ logoFileName }}</p>
+            <small class="logo-help">Formatos recomendados: PNG o JPG. Si el logo expira, vuelve a abrir esta configuración.</small>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

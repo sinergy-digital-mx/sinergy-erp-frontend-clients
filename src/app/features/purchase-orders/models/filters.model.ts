@@ -71,14 +71,40 @@ export interface PaymentStatusDistribution {
 }
 
 /**
- * Purchase Order form data
+ * Purchase Order form data (valores internos del formulario antes de mapear a API).
  */
 export interface PurchaseOrderFormData {
+  fiscal_configuration_id: string;
   vendor_id: string;
   purpose: string;
   warehouse_id: string;
   tentative_receipt_date: string;
+  payment_status: string;
   line_items: LineItemFormData[];
+}
+
+/**
+ * Cuerpo API para crear o editar OC (CreatePurchaseOrderDto / mismo esquema en PUT).
+ * Mapeo UI: purpose → notes, tentative_receipt_date → expected_delivery_date, unit_price → unit_total.
+ */
+export interface WritePurchaseOrderDto {
+  fiscal_configuration_id: string;
+  warehouse_id: string;
+  vendor_id: string;
+  expected_delivery_date: string;
+  payment_currency?: 'MXN' | 'USD';
+  payment_status?: string;
+  notes?: string;
+  line_items: PurchaseOrderApiLineItem[];
+}
+
+export interface PurchaseOrderApiLineItem {
+  product_id: string;
+  uom_id: string;
+  quantity: number;
+  unit_total: number;
+  iva_percentage?: number;
+  ieps_percentage?: number;
 }
 
 /**
@@ -94,13 +120,36 @@ export interface LineItemFormData {
 }
 
 /**
+ * PATCH body for `/tenant/purchase-orders/:orderId/line-items/:lineItemId`.
+ * Do not send iva_unit / ieps_unit; backend derives them from subtotal and percentages.
+ */
+export interface UpdateLineItemDto {
+  quantity?: number;
+  uom_id?: string;
+  unit_total?: number;
+  iva_percentage?: number;
+  ieps_percentage?: number;
+}
+
+/** POST body para agregar una línea a una OC existente (misma forma que en alta). */
+export interface CreatePurchaseOrderLineItemDto {
+  product_id: string;
+  uom_id: string;
+  quantity: number;
+  unit_total: number;
+  iva_percentage: number;
+  ieps_percentage: number;
+}
+
+/**
  * Payment form data
  */
 export interface PaymentFormData {
   amount: number;
   payment_date: string;
   payment_method: string;
-  reference?: string;
+  currency: 'MXN' | 'USD';
+  reference_number?: string;
   notes?: string;
 }
 

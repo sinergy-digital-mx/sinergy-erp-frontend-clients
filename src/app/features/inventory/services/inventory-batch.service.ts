@@ -62,4 +62,13 @@ export class InventoryBatchService {
   getBatchById(id: string): Observable<InventoryBatch> {
     return this.http.get<InventoryBatch>(`${this.apiUrl}/${id}`);
   }
+
+  uploadBatchPhoto(batchId: string, file: File): Observable<{ message: string; data: Record<string, unknown> }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ message: string; data: Record<string, unknown> }>(
+      `${environment.api}/tenant/inventory-batches/${batchId}/photo`,
+      formData
+    );
+  }
 }

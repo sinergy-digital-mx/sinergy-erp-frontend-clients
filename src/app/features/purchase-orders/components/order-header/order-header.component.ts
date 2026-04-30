@@ -16,6 +16,10 @@ import { PurchaseOrder, OrderStatus } from '../../models/purchase-order.model';
 export class OrderHeaderComponent {
   @Input() order!: PurchaseOrder;
   @Input() canEdit: boolean = false;
+
+  displayStatus(): OrderStatus {
+    return (this.order.general_status ?? this.order.status) as OrderStatus;
+  }
   @Input() canDelete: boolean = false;
   @Input() canChangeStatus: boolean = false;
 
@@ -29,6 +33,8 @@ export class OrderHeaderComponent {
    */
   getStatusClass(status: OrderStatus): string {
     switch (status) {
+      case 'Creada':
+        return 'status-badge status-badge--creada';
       case 'En Proceso':
         return 'status-badge status-badge--en-proceso';
       case 'Recibida':

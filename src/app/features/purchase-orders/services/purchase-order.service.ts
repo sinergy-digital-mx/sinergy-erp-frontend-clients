@@ -1,14 +1,18 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { PurchaseOrder } from '../models/purchase-order.model';
+import { Document, DocumentType, PurchaseOrder } from '../models/purchase-order.model';
+import { LineItem } from '../models/line-item.model';
+import { TaxCalculatorService } from './tax-calculator.service';
 import { 
   OrderFilters, 
   PaginationParams, 
   PaginatedResponse,
-  PurchaseOrderFormData,
+  WritePurchaseOrderDto,
+  UpdateLineItemDto,
+  CreatePurchaseOrderLineItemDto,
   CancelOrderData,
   PaymentFormData
 } from '../models/filters.model';
@@ -23,7 +27,8 @@ export class PurchaseOrderService {
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private taxCalculator: TaxCalculatorService
   ) {}
 
   /**
@@ -63,16 +68,115 @@ export class PurchaseOrderService {
    * Get single purchase order by ID
    */
   getOrderById(id: string): Observable<PurchaseOrder> {
-    return this.http.get<PurchaseOrder>(`${this.baseUrl}/${id}`)
+    return this.http.get<PurchaseOrder | { data: Record<string, unknown> }>(`${this.baseUrl}/${id}`)
       .pipe(
+        map((raw) => this.normalizePurchaseOrderResponse(raw)),
         catchError(error => this.handleError(error))
       );
   }
 
   /**
+   * Unwraps `{ data: { header, documents, ... } }` and maps API line fields
+   * (`unit_total`, nested `product_uom.uom`) into what the UI expects (`unit_price`, `uom`, row totals).
+   */
+  private normalizePurchaseOrderResponse(raw: unknown): PurchaseOrder {
+    const body = raw as Record<string, unknown>;
+    let order: Record<string, unknown>;
+
+    if (body?.data && typeof body.data === 'object' && (body.data as Record<string, unknown>).header) {
+      const data = body.data as Record<string, unknown>;
+      order = { ...(data.header as Record<string, unknown>) };
+      if (Array.isArray(data.documents)) {
+        order.documents = data.documents;
+      }
+      if (Array.isArray(data.batches) && data.batches.length > 0) {
+        order.batches = data.batches;
+      }
+      if (Array.isArray(data.payments)) {
+        order.payments = data.payments;
+      }
+      if (data.payments_summary && typeof data.payments_summary === 'object') {
+        order.payments_summary = data.payments_summary;
+      }
+    } else {
+      order = { ...body };
+    }
+
+    if (Array.isArray(order.line_items)) {
+      order.line_items = (order.line_items as unknown[]).map((li) =>
+        this.normalizeLineItemFromApi(li as Record<string, unknown>)
+      );
+    }
+
+    return order as unknown as PurchaseOrder;
+  }
+
+  private parseAmount(value: unknown): number {
+    if (value === null || value === undefined || value === '') {
+      return 0;
+    }
+    const n = typeof value === 'number' ? value : parseFloat(String(value));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  private normalizeLineItemFromApi(item: Record<string, unknown>): LineItem {
+    const qty = this.parseAmount(item.quantity);
+    const unitCost = this.parseAmount(item.unit_price ?? item.unit_total);
+    const ivaPct = this.parseAmount(item.iva_percentage);
+    const iepsPct = this.parseAmount(item.ieps_percentage);
+
+    const hasRowTotals =
+      item.subtotal != null &&
+      item.iva_amount != null &&
+      item.ieps_amount != null &&
+      item.line_total != null;
+
+    let subtotal: number;
+    let iva_amount: number;
+    let ieps_amount: number;
+    let line_total: number;
+
+    if (hasRowTotals) {
+      subtotal = this.parseAmount(item.subtotal);
+      iva_amount = this.parseAmount(item.iva_amount);
+      ieps_amount = this.parseAmount(item.ieps_amount);
+      line_total = this.parseAmount(item.line_total);
+    } else {
+      const calc = this.taxCalculator.calculateLineItem(qty, unitCost, ivaPct, iepsPct);
+      subtotal = calc.subtotal;
+      iva_amount = calc.iva_amount;
+      ieps_amount = calc.ieps_amount;
+      line_total = calc.line_total;
+    }
+
+    const productUom = item.product_uom as Record<string, unknown> | undefined;
+    const nestedUom = productUom?.uom as LineItem['uom'] | undefined;
+    const uom = (item.uom as LineItem['uom']) ?? nestedUom;
+
+    const uomId =
+      (item.uom_id as string | undefined) ??
+      (nestedUom?.id as string | undefined) ??
+      (item.product_uom_id as string | undefined) ??
+      '';
+
+    return {
+      ...(item as unknown as LineItem),
+      quantity: qty,
+      unit_price: unitCost,
+      unit_total: unitCost,
+      uom,
+      uom_id: uomId,
+      subtotal,
+      iva_amount,
+      ieps_amount,
+      line_total
+    };
+  }
+
+  /**
    * Create new purchase order
    */
-  createOrder(data: any): Observable<PurchaseOrder> {
+  createOrder(data: WritePurchaseOrderDto): Observable<PurchaseOrder> {
     console.log('[PurchaseOrder] Creating order', {
       vendor: data.vendor_id,
       warehouse: data.warehouse_id,
@@ -114,11 +218,38 @@ export class PurchaseOrderService {
   /**
    * Update existing purchase order
    */
-  updateOrder(id: string, data: Partial<PurchaseOrderFormData>): Observable<PurchaseOrder> {
+  updateOrder(id: string, data: WritePurchaseOrderDto): Observable<PurchaseOrder> {
     return this.http.put<PurchaseOrder>(`${this.baseUrl}/${id}`, data)
       .pipe(
         catchError(error => this.handleError(error))
       );
+  }
+
+  /**
+   * Update a single line item (OC en Creada; totales del encabezado se recalculan en backend).
+   */
+  patchLineItem(orderId: string, lineItemId: string, body: UpdateLineItemDto): Observable<unknown> {
+    return this.http
+      .patch<unknown>(`${this.baseUrl}/${orderId}/line-items/${lineItemId}`, body)
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  /**
+   * Delete a line item and recalculate header totals (OC en Creada).
+   */
+  deleteLineItem(orderId: string, lineItemId: string): Observable<{ success: boolean; id: string }> {
+    return this.http
+      .delete<{ success: boolean; id: string }>(`${this.baseUrl}/${orderId}/line-items/${lineItemId}`)
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  /**
+   * Agrega una línea a una OC (p. ej. en estado Creada). Si el backend usa otra ruta, ajustar aquí.
+   */
+  createLineItem(orderId: string, body: CreatePurchaseOrderLineItemDto): Observable<unknown> {
+    return this.http
+      .post<unknown>(`${this.baseUrl}/${orderId}/line-items`, body)
+      .pipe(catchError((error) => this.handleError(error)));
   }
 
   /**
@@ -155,10 +286,41 @@ export class PurchaseOrderService {
    * Register payment
    */
   registerPayment(orderId: string, payment: PaymentFormData): Observable<Payment> {
-    return this.http.post<Payment>(`${this.baseUrl}/${orderId}/payments`, payment)
+    const payload = {
+      amount: payment.amount,
+      payment_date: payment.payment_date,
+      payment_method: payment.payment_method,
+      currency: payment.currency,
+      reference_number: payment.reference_number,
+      notes: payment.notes
+    };
+    return this.http.post<Payment>(`${this.baseUrl}/${orderId}/payments`, payload)
       .pipe(
         catchError(error => this.handleError(error))
       );
+  }
+
+  getOrderDocuments(orderId: string): Observable<{ data: Document[]; total: number }> {
+    return this.http.get<{ data: Document[]; total: number }>(`${this.baseUrl}/${orderId}/documents`)
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
+  uploadOrderDocument(orderId: string, file: File, documentTypeId: number): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('document_type_id', String(documentTypeId));
+    return this.http.post<any>(`${this.baseUrl}/${orderId}/documents`, formData)
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
+  deleteOrderDocument(documentId: string): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.baseUrl}/documents/${documentId}`)
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
+  getOrderDocumentTypes(): Observable<{ data: DocumentType[]; total: number }> {
+    return this.http.get<{ data: DocumentType[]; total: number }>(`${this.baseUrl}/document-types/list`)
+      .pipe(catchError(error => this.handleError(error)));
   }
 
   /**
