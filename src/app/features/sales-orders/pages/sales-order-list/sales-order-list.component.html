@@ -107,7 +107,7 @@
                 <span [ngClass]="getStatusClass(order.status)">{{ order.status }}</span>
               </div>
               <div class="text-sm text-gray-600 space-y-1">
-                <div><strong>Cliente:</strong> {{ order.customer?.name || 'N/A' }}</div>
+                <div><strong>Cliente:</strong> {{ getCustomerDisplayName(order.customer) }}</div>
                 <div><strong>Almacén:</strong> {{ order.warehouse?.name || 'N/A' }}</div>
                 <div><strong>Total:</strong> {{ formatCurrency(getOrderTotal(order)) }}</div>
                 <div class="text-xs text-gray-500">{{ formatDateHuman(order.created_at) }}</div>
@@ -127,7 +127,7 @@
     </span>
   </td>
   <td class="px-2 py-2 w-[150px]">
-    <p class="truncate text-sm m-0">{{ item.customer?.name || 'N/A' }}</p>
+    <p class="truncate text-sm m-0">{{ getCustomerDisplayName(item.customer) }}</p>
   </td>
   <td class="px-2 py-2 w-[150px]">
     <p class="truncate text-sm m-0">{{ item.warehouse?.name || 'N/A' }}</p>

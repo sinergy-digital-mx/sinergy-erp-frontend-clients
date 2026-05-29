@@ -46,8 +46,7 @@ export class UserService {
    */
   getUserRoles(userId: string): Observable<Role[]> {
     return this.http.get<any>(`${this.api}/tenant/users/${userId}/roles`).pipe(
-      map(backendRoles => this.dataMapper.mapRoles(backendRoles)),
-      shareReplay(1)
+      map(backendRoles => this.dataMapper.mapRoles(backendRoles))
     );
   }
 

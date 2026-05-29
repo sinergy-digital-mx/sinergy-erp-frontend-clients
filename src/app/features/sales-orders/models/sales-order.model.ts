@@ -35,6 +35,15 @@ export interface SalesOrderLineItem {
   created_at?: string;
 }
 
+export interface SalesOrderInvoice {
+  id?: string;
+  folio?: string;
+  uuid?: string;
+  issued_at?: string;
+  total?: string | number;
+  status?: string;
+}
+
 export interface SalesOrder {
   id: string;
   tenant_id?: string;
@@ -54,16 +63,34 @@ export interface SalesOrder {
   iva_total?: string | number;
   ieps_total?: string | number;
   total?: string | number;
+  requested_subtotal?: string | number;
+  requested_discount_total?: string | number;
+  requested_iva_total?: string | number;
+  requested_ieps_total?: string | number;
+  requested_total?: string | number;
+  delivered_subtotal?: string | number;
+  delivered_discount_total?: string | number;
+  delivered_iva_total?: string | number;
+  delivered_ieps_total?: string | number;
+  delivered_total?: string | number;
   // legacy compat
   grand_total?: number;
-  requested_total?: string;
   notes?: string;
   line_items?: SalesOrderLineItem[];
   // legacy compat
   lines?: SalesOrderLineItem[];
   customer?: Customer;
   warehouse?: { id: string; name: string };
-  fiscal_configuration?: any;
+  fiscal_configuration?: {
+    id?: string;
+    razon_social?: string;
+    business_name?: string;
+    rfc?: string;
+    persona_type?: string;
+    fiscal_regime?: string;
+    status?: string;
+  };
+  invoices?: SalesOrderInvoice[];
   created_by?: string;
   updated_by?: string;
   created_at: string;

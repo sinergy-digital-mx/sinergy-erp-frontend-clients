@@ -155,6 +155,18 @@ grand_total = total_subtotal + total_iva + total_ieps
 - `/sales-orders/create` - Crear nueva orden
 - `/sales-orders/:id/edit` - Editar orden existente
 
+## Integración con clientes
+
+En el detalle del cliente (`/customers/:id`), la sección **Órdenes de Venta** reutiliza este módulo:
+
+- **Listado:** `getOrders({ customer_id: id }, pagination)` → `GET /tenant/sales-orders?customer_id=...`
+- **Detalle:** modal `SalesOrderDetailDialogComponent` al hacer clic en una fila
+- **Crear:** modal `CreateSalesOrderModalComponent` con `customerId` en `MAT_DIALOG_DATA`
+
+No hace falta un endpoint `/customers/:id/orders`; el filtro `customer_id` del listado de OV es suficiente.
+
+Ver también: `src/app/features/customers/README.md`
+
 ## Estilos
 
 El módulo sigue el mismo patrón de diseño que Purchase Orders:

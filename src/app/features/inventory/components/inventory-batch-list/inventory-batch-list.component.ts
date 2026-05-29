@@ -11,6 +11,7 @@ import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { OrderDetailDialogComponent } from '../../../purchase-orders/components/order-detail-dialog/order-detail-dialog.component';
+import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
 import { ChevronRight, ChevronDown } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
@@ -196,12 +197,8 @@ export class InventoryBatchListComponent implements OnInit {
     event.stopPropagation();
     if (!batch.purchase_order_id) return;
     this.dialog.open(OrderDetailDialogComponent, {
-      data: { orderId: batch.purchase_order_id },
-      width: '1400px',
-      maxWidth: '95vw',
-      height: '90vh',
-      maxHeight: '90vh',
-      panelClass: 'order-detail-dialog-container'
+      ...ORDER_DETAIL_DIALOG_OPTIONS,
+      data: { orderId: batch.purchase_order_id }
     });
   }
 

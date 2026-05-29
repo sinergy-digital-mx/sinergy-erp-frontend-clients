@@ -1,11 +1,19 @@
 import { Component, Inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { SalesOrder, SalesOrderLineItem } from '../../models/sales-order.model';
+import { SalesOrder, SalesOrderInvoice, SalesOrderLineItem } from '../../models/sales-order.model';
+import { getCustomerDisplayName as getCustomerDisplayNameUtil } from '../../utils/customer-display.util';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
+import { WarehouseDetailModalComponent } from '../../../settings/components/warehouse-detail-modal/warehouse-detail-modal.component';
+import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
+import { WarehouseService } from '../../../settings/services/warehouse.service';
+import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
+import { Warehouse } from '../../../settings/models/warehouse.model';
 
 @Component({
   selector: 'app-sales-order-detail-dialog',
@@ -22,13 +30,17 @@ export class SalesOrderDetailDialogComponent {
   lineItems = signal<SalesOrderLineItem[]>([]);
   loading = signal(true);
   activeTabIndex = signal(0);
+  showDeliveredTotals = signal(false);
 
   canEditOrder = computed(() => this.order()?.general_status === 'Creada');
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { orderId: string },
     private dialogRef: MatDialogRef<SalesOrderDetailDialogComponent>,
+    private dialog: MatDialog,
     private salesOrderService: SalesOrderService,
+    private warehouseService: WarehouseService,
+    private fiscalConfigService: FiscalConfigurationService,
     private router: Router,
     private taxCalculator: TaxCalculatorService
   ) {
@@ -70,6 +82,166 @@ export class SalesOrderDetailDialogComponent {
     return this.taxCalculator.formatCurrency(this.parseNumber(value));
   }
 
+  formatLongDate(value?: string | null): string {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  formatShortDate(value?: string | null): string {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+  }
+
+  hasVisibleDiscount(): boolean {
+    return this.getTotalsSnapshot().discount > 0.009;
+  }
+
+  hasVisibleTaxes(): boolean {
+    const { iva, ieps } = this.getTotalsSnapshot();
+    return iva + ieps > 0.009;
+  }
+
+  getDisplayedTaxes(): string {
+    const { iva, ieps } = this.getTotalsSnapshot();
+    return this.formatCurrency(iva + ieps);
+  }
+
+  toggleTotals(showDelivered: boolean): void {
+    this.showDeliveredTotals.set(showDelivered);
+  }
+
+  getTotalColor(): string {
+    return this.showDeliveredTotals() ? 'text-green-600' : 'text-blue-600';
+  }
+
+  getDisplayedSubtotal(): string {
+    return this.formatCurrency(this.getTotalsSnapshot().subtotal);
+  }
+
+  getDisplayedDiscount(): string {
+    return this.formatCurrency(this.getTotalsSnapshot().discount);
+  }
+
+  getDisplayedIva(): string {
+    return this.formatCurrency(this.getTotalsSnapshot().iva);
+  }
+
+  getDisplayedIeps(): string {
+    return this.formatCurrency(this.getTotalsSnapshot().ieps);
+  }
+
+  getDisplayedTotal(): string {
+    return this.formatCurrency(this.getTotalsSnapshot().total);
+  }
+
+  getRequestedQuantity(item: SalesOrderLineItem): number {
+    return this.parseNumber(item.quantity);
+  }
+
+  getDeliveredQuantity(item: SalesOrderLineItem): number {
+    const allocations = Array.isArray(item.batch_allocations) ? item.batch_allocations : [];
+    if (allocations.length > 0) {
+      return allocations.reduce(
+        (sum, allocation) => sum + this.parseNumber(allocation?.quantity_allocated),
+        0
+      );
+    }
+    if (this.order()?.general_status === 'Surtida') {
+      return this.getRequestedQuantity(item);
+    }
+    return 0;
+  }
+
+  private getTotalsSnapshot(): {
+    subtotal: number;
+    discount: number;
+    iva: number;
+    ieps: number;
+    total: number;
+  } {
+    const order = this.order();
+    if (!order) {
+      return { subtotal: 0, discount: 0, iva: 0, ieps: 0, total: 0 };
+    }
+
+    if (!this.showDeliveredTotals()) {
+      return {
+        subtotal: this.parseNumber(order.requested_subtotal ?? order.subtotal),
+        discount: this.parseNumber(order.requested_discount_total ?? order.discount_total),
+        iva: this.parseNumber(order.requested_iva_total ?? order.iva_total),
+        ieps: this.parseNumber(order.requested_ieps_total ?? order.ieps_total),
+        total: this.parseNumber(order.requested_total ?? order.total ?? order.grand_total)
+      };
+    }
+
+    const hasDeliveredHeader =
+      order.delivered_subtotal != null ||
+      order.delivered_total != null ||
+      order.delivered_iva_total != null;
+
+    if (hasDeliveredHeader) {
+      return {
+        subtotal: this.parseNumber(order.delivered_subtotal ?? order.subtotal),
+        discount: this.parseNumber(order.delivered_discount_total ?? order.discount_total),
+        iva: this.parseNumber(order.delivered_iva_total ?? order.iva_total),
+        ieps: this.parseNumber(order.delivered_ieps_total ?? order.ieps_total),
+        total: this.parseNumber(order.delivered_total ?? order.total ?? order.grand_total)
+      };
+    }
+
+    return this.computeDeliveredTotalsFromLines();
+  }
+
+  private computeDeliveredTotalsFromLines(): {
+    subtotal: number;
+    discount: number;
+    iva: number;
+    ieps: number;
+    total: number;
+  } {
+    let subtotal = 0;
+    let discount = 0;
+    let iva = 0;
+    let ieps = 0;
+
+    for (const item of this.lineItems()) {
+      const ratio = this.getLineDeliveryRatio(item);
+      if (ratio <= 0) continue;
+
+      const qty = this.getRequestedQuantity(item);
+      const unit = this.parseNumber(item.unit_price);
+      const gross = unit * qty * ratio;
+      const discountPct = this.parseNumber(item.discount_percentage);
+      const lineDiscount = gross * (discountPct / 100);
+      const discounted = Math.max(gross - lineDiscount, 0);
+      const lineIva = discounted * (this.parseNumber(item.iva_percentage) / 100);
+      const lineIeps = discounted * (this.parseNumber(item.ieps_percentage) / 100);
+
+      subtotal += discounted;
+      discount += lineDiscount;
+      iva += lineIva;
+      ieps += lineIeps;
+    }
+
+    return {
+      subtotal,
+      discount,
+      iva,
+      ieps,
+      total: subtotal + iva + ieps
+    };
+  }
+
+  private getLineDeliveryRatio(item: SalesOrderLineItem): number {
+    const requested = this.getRequestedQuantity(item);
+    if (requested <= 0) return 0;
+    return Math.min(this.getDeliveredQuantity(item) / requested, 1);
+  }
+
   getStatusClass(status?: string): string {
     if (status === 'Creada') return 'bg-blue-100 text-blue-700';
     if (status === 'Surtida') return 'bg-green-100 text-green-700';
@@ -84,10 +256,7 @@ export class SalesOrderDetailDialogComponent {
   }
 
   getCustomerDisplayName(): string {
-    const customer = this.order()?.customer;
-    if (!customer) return 'N/A';
-    const fullName = `${customer.name || ''} ${customer.lastname || ''}`.trim();
-    return fullName || customer.company_name || 'N/A';
+    return getCustomerDisplayNameUtil(this.order()?.customer);
   }
 
   getFiscalDisplayName(): string {
@@ -126,5 +295,106 @@ export class SalesOrderDetailDialogComponent {
       }
     }
     return rows;
+  }
+
+  getInvoices(): SalesOrderInvoice[] {
+    const invoices = this.order()?.invoices;
+    return Array.isArray(invoices) ? invoices : [];
+  }
+
+  canOpenCustomer(): boolean {
+    return !!(this.order()?.customer_id || this.order()?.customer?.id);
+  }
+
+  canOpenWarehouse(): boolean {
+    return !!(this.order()?.warehouse_id || this.order()?.warehouse?.id);
+  }
+
+  canOpenFiscal(): boolean {
+    return !!(this.order()?.fiscal_configuration_id || this.order()?.fiscal_configuration?.id);
+  }
+
+  openCustomerInNewTab(): void {
+    const customerId = this.order()?.customer?.id ?? this.order()?.customer_id;
+    if (!customerId) return;
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/customers/detail', customerId])
+    );
+    window.open(url, '_blank');
+  }
+
+  openWarehouseDialog(): void {
+    const warehouseId = this.order()?.warehouse?.id ?? this.order()?.warehouse_id;
+    if (!warehouseId) return;
+
+    const openModal = (warehouse: Warehouse) => {
+      this.dialog.open(WarehouseDetailModalComponent, {
+        data: { warehouse },
+        width: '80vw',
+        maxWidth: '1000px',
+      });
+    };
+
+    const embedded = this.order()?.warehouse;
+    if (embedded && 'code' in embedded) {
+      openModal(embedded as Warehouse);
+      return;
+    }
+
+    this.warehouseService.getWarehouse(warehouseId).subscribe({
+      next: (warehouse) => openModal(warehouse),
+      error: () => {
+        openModal({ id: warehouseId, name: embedded?.name || '' } as Warehouse);
+      },
+    });
+  }
+
+  openFiscalDialog(): void {
+    const fiscalId = this.order()?.fiscal_configuration?.id ?? this.order()?.fiscal_configuration_id;
+    if (!fiscalId) return;
+
+    const openModal = (fiscalConfig: FiscalConfiguration) => {
+      this.dialog.open(FiscalConfigurationModalComponent, {
+        data: { fiscalConfig },
+        width: '80vw',
+        maxWidth: '1000px',
+      });
+    };
+
+    const embedded = this.order()?.fiscal_configuration;
+    if (embedded?.rfc && embedded?.razon_social) {
+      openModal(embedded as FiscalConfiguration);
+      return;
+    }
+
+    this.fiscalConfigService.getFiscalConfiguration(fiscalId).subscribe({
+      next: (fiscalConfig) => openModal(fiscalConfig),
+      error: () => {
+        if (embedded) {
+          openModal({ ...embedded, id: fiscalId } as FiscalConfiguration);
+        }
+      },
+    });
+  }
+
+  openProductDetail(item: SalesOrderLineItem): void {
+    const productId = item.product?.id ?? item.product_id;
+    if (!productId) return;
+    this.dialog.open(ProductDetailModalComponent, {
+      data: {
+        product: {
+          id: productId,
+          name: item.product?.name,
+          sku: item.product?.sku,
+        },
+        isNew: false,
+      },
+      width: '850px',
+      maxHeight: '90vh',
+    });
+  }
+
+  canOpenProduct(item: SalesOrderLineItem): boolean {
+    return !!(item.product?.id || item.product_id);
   }
 }

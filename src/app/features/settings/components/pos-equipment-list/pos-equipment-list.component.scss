@@ -1,3 +1,5 @@
+@use '../../styles/settings-list-table';
+
 .filter-bar {
   background: transparent;
   border-radius: 0;
@@ -16,7 +18,7 @@
     }
 
     &--sesiones {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1.2fr) minmax(180px, 1fr) minmax(140px, 160px) minmax(130px, 150px) minmax(130px, 150px);
     }
   }
 
@@ -76,5 +78,65 @@
   .filter-bar__container--equipos,
   .filter-bar__container--sesiones {
     grid-template-columns: 1fr;
+  }
+}
+
+.session-turn {
+  font-weight: 700;
+  color: #1e40af;
+  font-size: 0.8125rem;
+}
+
+.session-equipment {
+  font-size: 0.8125rem;
+  color: #334155;
+}
+
+.session-money {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.session-actions-cell {
+  text-align: right;
+  vertical-align: middle;
+}
+
+.session-actions-empty {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+}
+
+.session-close-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff 0%, #fef2f2 100%);
+  color: #b91c1c;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: #fef2f2;
+    border-color: #f87171;
+    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.12);
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 }

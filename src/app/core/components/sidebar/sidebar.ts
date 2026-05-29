@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import {
   LucideAngularModule,
@@ -26,6 +26,7 @@ import { AuthService } from '../../services/auth.service';
 import { SidebarService } from '../../services/sidebar.service';
 import { PERMISSIONS } from '../../config/permissions.config';
 import { ExchangeRateService } from '../../services/exchange-rate.service';
+import { Subscription } from 'rxjs';
 
 interface MenuItem {
   label: string;
@@ -41,9 +42,12 @@ interface MenuItem {
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
 })
-export class Sidebar implements OnInit {
+export class Sidebar implements OnInit, OnDestroy {
   isCollapsed = signal(false);
   todayUsdMxnRate = signal<number | null>(null);
+  visibleMenuItems = signal<MenuItem[]>([]);
+
+  private permissionsSubscription?: Subscription;
 
   menu: MenuItem[] = [
     {
@@ -132,6 +136,10 @@ export class Sidebar implements OnInit {
   }
 
   ngOnInit(): void {
+    this.permissionsSubscription = this.auth_service.permissions$.subscribe(() => {
+      this.updateVisibleMenuItems();
+    });
+
     if (!this.auth_service.hasPermission('exchangerate:Read')) {
       return;
     }
@@ -149,19 +157,23 @@ export class Sidebar implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.permissionsSubscription?.unsubscribe();
+  }
+
   toggleSidebar() {
     this.sidebarService.toggleSidebar();
   }
 
-  get visibleMenuItems(): MenuItem[] {
-    return this.menu.filter(item => {
-      // If no permission is specified, show the item
-      if (!item.permission) {
-        return true;
-      }
-      // Check if user has the required permission
-      return this.auth_service.hasPermission(item.permission);
-    });
+  private updateVisibleMenuItems(): void {
+    this.visibleMenuItems.set(
+      this.menu.filter(item => {
+        if (!item.permission) {
+          return true;
+        }
+        return this.auth_service.hasPermission(item.permission);
+      })
+    );
   }
 
   getUserName(): string {

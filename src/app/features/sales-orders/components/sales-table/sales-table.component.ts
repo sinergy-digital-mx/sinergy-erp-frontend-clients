@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SalesOrder } from '../../models/sales-order.model';
+import { Customer, SalesOrder } from '../../models/sales-order.model';
+import { getCustomerDisplayName } from '../../utils/customer-display.util';
 
 @Component({
   selector: 'app-sales-table',
@@ -63,6 +64,10 @@ export class SalesTableComponent {
   /**
    * Format currency
    */
+  getCustomerDisplayName(customer?: Customer | null): string {
+    return getCustomerDisplayName(customer, 'Sin cliente');
+  }
+
   formatCurrency(amount: string | number | undefined): string {
     if (amount === undefined || amount === null) return '$0.00';
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;

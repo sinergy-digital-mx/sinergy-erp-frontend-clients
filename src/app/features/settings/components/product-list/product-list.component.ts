@@ -7,7 +7,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProductService } from '../../services/product.service';
 import { Product } from '../../models/product.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
-import { IDatatableConfig, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { ProductDetailModalComponent } from '../product-detail-modal/product-detail-modal.component';
@@ -40,7 +40,7 @@ export class ProductListComponent implements OnDestroy {
       { name: 'Categoría', prop: 'category', sortable: false, canAutoResize: true, width: 130 },
       { name: 'Subcategoría', prop: 'subcategory', sortable: false, canAutoResize: true, width: 130 },
     ],
-    externalPaging: false,
+    externalPaging: true,
     externalSorting: false,
     page: 1,
     limit: 20,
@@ -56,6 +56,7 @@ export class ProductListComponent implements OnDestroy {
   search = '';
   currentSort: ISortEvent | null = null;
   private destroy$ = new Subject<void>();
+  private lastQueryParams = '';
 
   constructor(
     private router: Router,
@@ -64,7 +65,26 @@ export class ProductListComponent implements OnDestroy {
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {
-    this.loadProducts();
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((query) => {
+      const queryString = JSON.stringify(query);
+      if (queryString === this.lastQueryParams) {
+        return;
+      }
+      this.lastQueryParams = queryString;
+
+      this.search = query?.['search'] ?? '';
+
+      const page = query?.['page'] ? Number(query['page']) : 1;
+      const limit = query?.['limit'] ? Number(query['limit']) : 20;
+
+      this.table_config.update(c => ({
+        ...c,
+        page: Number.isNaN(page) ? 1 : page,
+        limit: Number.isNaN(limit) ? 20 : limit,
+      }));
+
+      this.loadProducts();
+    });
   }
 
   ngOnDestroy() {
@@ -74,8 +94,11 @@ export class ProductListComponent implements OnDestroy {
 
   loadProducts() {
     this.table_config.update(c => ({ ...c, loading: true }));
+    const config = this.table_config();
+    const page = Number.isNaN(config.page) ? 1 : config.page;
+    const limit = Number.isNaN(config.limit) ? 20 : config.limit;
 
-    const params: any = {};
+    const params: any = { page, limit };
     const normalizedSearch = this.search?.trim();
     if (normalizedSearch) {
       // ext:ERP-123 => filtra por external_sku exacto
@@ -97,6 +120,7 @@ export class ProductListComponent implements OnDestroy {
           ...c,
           rows: res.data,
           totalResults: res.total,
+          hasNext: res.hasNext ?? false,
           loading: false,
         }));
       },
@@ -111,9 +135,28 @@ export class ProductListComponent implements OnDestroy {
     });
   }
 
+  onPageChange(event: IPaginationEvent) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: event.page,
+        limit: event.limit,
+        search: this.search || undefined,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   onSearchChange(searchTerm: string) {
     this.search = searchTerm;
-    this.loadProducts();
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: 1,
+        search: searchTerm || undefined,
+      },
+      queryParamsHandling: 'merge',
+    });
   }
 
   onSortChange(event: ISortEvent) {

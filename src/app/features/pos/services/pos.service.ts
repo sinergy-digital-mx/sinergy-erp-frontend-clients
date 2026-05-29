@@ -3,7 +3,16 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { POSCart, POSCartItem } from '../models/pos.model';
+import { SalesOrder, SalesOrderFormData } from '../../sales-orders/models/sales-order.model';
 import { environment } from '../../../../environments/environment';
+
+export interface PosSessionInventoryParams {
+  search?: string;
+  warehouse_id?: string;
+  only_available?: boolean;
+  page?: number;
+  limit?: number;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +21,7 @@ export class POSService {
   private readonly API_URL = `${environment.api}/tenant/pos`;
   private readonly POS_SESSIONS_URL = `${environment.api}/tenant/pos-sessions`;
   private readonly INVENTORY_URL = `${environment.api}/tenant/inventory`;
+  private readonly SALES_ORDERS_URL = `${environment.api}/tenant/sales-orders`;
   
   private cartState = signal<POSCart>({
     items: [],
@@ -150,29 +160,17 @@ export class POSService {
   }
 
   /**
-   * Get cart for order creation
+   * Crear orden de venta POS (POST /tenant/sales-orders, tipo POS → surtida automática).
    */
-  getCartForOrder(warehouse_id: string, customer_id?: number) {
-    const cart = this.cartState();
-    return {
-      warehouse_id,
-      customer_id,
-      line_items: cart.items.map(item => ({
-        product_id: item.product_id,
-        uom_id: item.uom_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        iva_percentage: item.iva_percentage,
-        ieps_percentage: item.ieps_percentage
-      }))
-    };
+  createPosSalesOrder(orderData: SalesOrderFormData): Observable<SalesOrder> {
+    return this.http.post<SalesOrder | { data: SalesOrder }>(this.SALES_ORDERS_URL, orderData).pipe(
+      map((res) => this.extractPayload(res) as SalesOrder)
+    );
   }
-  
-  /**
-   * Create POS order
-   */
-  createOrder(orderData: any): Observable<any> {
-    return this.http.post(`${this.API_URL}/orders`, orderData);
+
+  /** @deprecated Usar createPosSalesOrder */
+  createOrder(orderData: SalesOrderFormData): Observable<SalesOrder> {
+    return this.createPosSalesOrder(orderData);
   }
   
   /**
@@ -362,6 +360,10 @@ export class POSService {
     search?: string;
     /** UUID sucursal (billing branch), mismo criterio que pos-configurations */
     sucursal?: string;
+    status?: 'open' | 'closed';
+    opened_from?: string;
+    opened_to?: string;
+    pos_configuration_id?: string;
   }): Observable<any> {
     let httpParams = new HttpParams();
     if (params?.page != null) {
@@ -376,6 +378,18 @@ export class POSService {
     if (params?.sucursal?.trim()) {
       httpParams = httpParams.set('sucursal', params.sucursal.trim());
     }
+    if (params?.status) {
+      httpParams = httpParams.set('status', params.status);
+    }
+    if (params?.opened_from?.trim()) {
+      httpParams = httpParams.set('opened_from', params.opened_from.trim());
+    }
+    if (params?.opened_to?.trim()) {
+      httpParams = httpParams.set('opened_to', params.opened_to.trim());
+    }
+    if (params?.pos_configuration_id?.trim()) {
+      httpParams = httpParams.set('pos_configuration_id', params.pos_configuration_id.trim());
+    }
 
     return this.http.get(`${this.POS_SESSIONS_URL}`, { params: httpParams }).pipe(
       map((res: any) => this.extractPayload(res, true))
@@ -385,15 +399,37 @@ export class POSService {
   /**
    * Inventory summary for POS session (stock + suggested prices)
    */
-  getPosSessionInventorySummary(sessionId: string): Observable<any[]> {
-    return this.http.get<any>(`${this.INVENTORY_URL}/pos-sessions/${sessionId}/summary`).pipe(
-      map((res: any) => {
-        const payload = this.extractPayload(res);
-        if (Array.isArray(payload)) return payload;
-        if (Array.isArray(payload?.data)) return payload.data;
-        return [];
-      })
-    );
+  getPosSessionInventorySummary(
+    sessionId: string,
+    params?: PosSessionInventoryParams
+  ): Observable<any[]> {
+    let httpParams = new HttpParams();
+    if (params?.search?.trim()) {
+      httpParams = httpParams.set('search', params.search.trim());
+    }
+    if (params?.warehouse_id?.trim()) {
+      httpParams = httpParams.set('warehouse_id', params.warehouse_id.trim());
+    }
+    if (params?.only_available === true) {
+      httpParams = httpParams.set('only_available', 'true');
+    }
+    if (params?.page != null) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+    if (params?.limit != null) {
+      httpParams = httpParams.set('limit', String(params.limit));
+    }
+
+    return this.http
+      .get<any>(`${this.INVENTORY_URL}/pos-sessions/${sessionId}/summary`, { params: httpParams })
+      .pipe(
+        map((res: any) => {
+          const payload = this.extractPayload(res);
+          if (Array.isArray(payload)) return payload;
+          if (Array.isArray(payload?.data)) return payload.data;
+          return [];
+        })
+      );
   }
 
   private extractPayload(response: any, keepListEnvelope = false): any {

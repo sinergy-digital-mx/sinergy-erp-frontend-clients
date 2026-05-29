@@ -45,7 +45,7 @@
           <select
             id="equipment"
             [ngModel]="selectedPosConfigurationId()"
-            (ngModelChange)="selectedPosConfigurationId.set($event)"
+            (ngModelChange)="onEquipmentChange($event)"
             required>
             <option value="">Selecciona un equipo</option>
             @for (c of posConfigurations(); track c.id) {
@@ -60,47 +60,102 @@
         }
       </div>
 
-      <div class="form-field">
-        <label for="balance">Efectivo inicial *</label>
-        <div class="currency-input">
-          <span class="currency-input__sym">$</span>
-          <input
-            type="number"
-            id="balance"
-            [ngModel]="openingBalance()"
-            (ngModelChange)="openingBalance.set($event)"
-            min="0"
-            step="0.01"
-            required />
+      @if (selectedPosConfigurationId() && checkingActiveSession()) {
+        <div class="hint">Verificando sesión activa…</div>
+      }
+
+      @if (sessionCheckError()) {
+        <div class="error-inline">{{ sessionCheckError() }}</div>
+      }
+
+      @if (activeSession(); as session) {
+        <div class="active-session-card">
+          <p class="active-session-card__title">
+            Sesión activa #{{ session.session_number ?? '—' }}
+          </p>
+          <dl class="active-session-card__meta">
+            <div>
+              <dt>Abierta por</dt>
+              <dd>{{ sessionUserLabel(session) }}</dd>
+            </div>
+            <div>
+              <dt>Desde</dt>
+              <dd>{{ formatOpenedAt(session.opened_at) }}</dd>
+            </div>
+            <div>
+              <dt>Equipo</dt>
+              <dd>{{ sessionEquipmentLabel(session) }}</dd>
+            </div>
+          </dl>
+          <p class="active-session-card__hint">
+            Este equipo ya tiene una sesión abierta. Continúa con ella o ciérrala para abrir otra.
+          </p>
         </div>
-      </div>
+      } @else if (selectedPosConfigurationId() && !checkingActiveSession() && warehouseResolved()) {
+        <div class="form-field">
+          <label for="balance">Efectivo inicial *</label>
+          <div class="currency-input">
+            <span class="currency-input__sym">$</span>
+            <input
+              type="number"
+              id="balance"
+              [ngModel]="openingBalance()"
+              (ngModelChange)="openingBalance.set($event)"
+              min="0"
+              step="0.01"
+              required />
+          </div>
+        </div>
 
-      <div class="form-field">
-        <label for="notes">Notas <span class="optional">(opcional)</span></label>
-        <input
-          type="text"
-          id="notes"
-          [ngModel]="notes()"
-          (ngModelChange)="notes.set($event)"
-          placeholder="Ej. apertura matutina"
-          maxlength="200" />
-      </div>
+        <div class="form-field">
+          <label for="notes">Notas <span class="optional">(opcional)</span></label>
+          <input
+            type="text"
+            id="notes"
+            [ngModel]="notes()"
+            (ngModelChange)="notes.set($event)"
+            placeholder="Ej. apertura matutina"
+            maxlength="200" />
+        </div>
+      }
 
-      <p class="open-pos-dialog__info">
-        Primero la sucursal, luego el equipo. El almacén se elige solo si coincide con la sucursal del equipo.
-      </p>
+      @if (!activeSession()) {
+        <p class="open-pos-dialog__info">
+          Primero la sucursal, luego el equipo. El almacén se elige solo si coincide con la sucursal del equipo.
+        </p>
+      }
     </div>
   </mat-dialog-content>
 
   <mat-dialog-actions align="end" class="open-pos-dialog__actions">
     <button type="button" mat-button (click)="onCancel()" class="btn-cancel">Cancelar</button>
-    <button
-      type="button"
-      mat-raised-button
-      (click)="onConfirm()"
-      class="btn-confirm"
-      [disabled]="!canSubmit()">
-      Iniciar sesión
-    </button>
+
+    @if (activeSession()) {
+      <button
+        type="button"
+        mat-button
+        class="btn-close-session"
+        (click)="onCloseExistingSession()"
+        [disabled]="closingSession() || checkingActiveSession()">
+        {{ closingSession() ? 'Cerrando…' : 'Cerrar sesión' }}
+      </button>
+      <button
+        type="button"
+        mat-raised-button
+        class="btn-confirm"
+        (click)="onContinueSession()"
+        [disabled]="!canContinueSession()">
+        Continuar con esta sesión
+      </button>
+    } @else {
+      <button
+        type="button"
+        mat-raised-button
+        (click)="onConfirmOpen()"
+        class="btn-confirm"
+        [disabled]="!canSubmitOpen()">
+        Iniciar sesión
+      </button>
+    }
   </mat-dialog-actions>
 </div>

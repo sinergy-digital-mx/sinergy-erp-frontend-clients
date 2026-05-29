@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { ToastService } from '../../../../core/services/toast.service';
 import { Document, DocumentType, PurchaseOrder } from '../../models/purchase-order.model';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
@@ -11,6 +11,15 @@ import { ReceiptModalComponent } from '../receipt-modal/receipt-modal.component'
 import { PaymentDialogComponent, PaymentFormData } from '../payment-dialog/payment-dialog.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { BatchDetailDialogComponent } from '../../../inventory/components/batch-detail-dialog/batch-detail-dialog.component';
+import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
+import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
+import { VendorDetailModalComponent } from '../../../settings/components/vendor-detail-modal/vendor-detail-modal.component';
+import { VendorService } from '../../../settings/services/vendor.service';
+import { Vendor } from '../../../settings/models/vendor.model';
+import { WarehouseDetailModalComponent } from '../../../settings/components/warehouse-detail-modal/warehouse-detail-modal.component';
+import { WarehouseService } from '../../../settings/services/warehouse.service';
+import { Warehouse } from '../../../settings/models/warehouse.model';
 
 @Component({
   selector: 'app-order-detail-dialog',
@@ -19,7 +28,6 @@ import { BatchDetailDialogComponent } from '../../../inventory/components/batch-
     CommonModule,
     FormsModule,
     MatDialogModule,
-    MatSnackBarModule,
     RemoveTrailingZerosPipe
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -58,8 +66,8 @@ export class OrderDetailDialogComponent {
     const order = this.order();
     if (!order) return false;
     const status = order.general_status ?? order.status;
-    const paymentStatus = order.payments_summary?.payment_status ?? order.payment_status;
-    return this.getRemainingAmount() > 0 && status !== 'Cancelada' && paymentStatus !== 'Pagado';
+    if (status === 'Cancelada') return false;
+    return this.getRemainingAmount() >= 0.01;
   });
 
   /** Abrir formulario de edición (cantidades, líneas, etc.). */
@@ -76,9 +84,12 @@ export class OrderDetailDialogComponent {
     private router: Router,
     private purchaseOrderService: PurchaseOrderService,
     public taxCalculator: TaxCalculatorService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private fiscalConfigService: FiscalConfigurationService,
+    private vendorService: VendorService,
+    private warehouseService: WarehouseService
   ) {
     this.loadDocumentTypes();
     this.loadOrder();
@@ -151,6 +162,20 @@ export class OrderDetailDialogComponent {
     return isNaN(numValue) ? '$0.00' : this.taxCalculator.formatCurrency(numValue);
   }
 
+  formatLongDate(value?: string | null): string {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  formatShortDate(value?: string | null): string {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+  }
+
   getOrderTotalForPayments(): number {
     const order = this.order();
     if (!order) return 0;
@@ -196,8 +221,10 @@ export class OrderDetailDialogComponent {
     return Math.min((this.getPaidAmount() / total) * 100, 100);
   }
 
-  parseNumber(value: number | string): number {
-    return typeof value === 'string' ? parseFloat(value) : value;
+  parseNumber(value: number | string | null | undefined): number {
+    if (value === null || value === undefined) return 0;
+    const parsed = typeof value === 'string' ? parseFloat(value) : value;
+    return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
   }
 
   getPaymentCurrency(): 'MXN' | 'USD' {
@@ -262,6 +289,7 @@ export class OrderDetailDialogComponent {
     const dialogRef = this.dialog.open(PaymentDialogComponent, {
       width: '660px',
       maxWidth: '95vw',
+      panelClass: 'payment-dialog-panel',
       data: {
         remainingAmount,
         totalAmount: this.getOrderTotalForPayments(),
@@ -274,20 +302,11 @@ export class OrderDetailDialogComponent {
       if (!paymentData) return;
       this.purchaseOrderService.registerPayment(order.id, paymentData).subscribe({
         next: () => {
-          this.snackBar.open('Pago registrado exitosamente', 'Cerrar', {
-            duration: 3000,
-            horizontalPosition: 'end',
-            verticalPosition: 'top'
-          });
+          this.toast.success('Pago registrado exitosamente');
           this.loadOrder();
         },
         error: (error) => {
-          this.snackBar.open(error?.message || 'Error al registrar pago', 'Cerrar', {
-            duration: 3500,
-            horizontalPosition: 'end',
-            verticalPosition: 'top',
-            panelClass: ['error-snackbar']
-          });
+          this.toast.error(error?.message || 'Error al registrar pago');
         }
       });
     });
@@ -302,23 +321,14 @@ export class OrderDetailDialogComponent {
       next: () => {
         this.regeneratingPDF.set(false);
         this.cdr.detectChanges();
-        this.snackBar.open('PDF original regenerado exitosamente', 'Cerrar', {
-          duration: 3000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top'
-        });
+        this.toast.success('PDF original regenerado exitosamente');
         // Reload order data to show new document
         this.loadOrder();
       },
       error: (error) => {
         this.regeneratingPDF.set(false);
         this.cdr.detectChanges();
-        this.snackBar.open('Error al regenerar PDF original', 'Cerrar', {
-          duration: 3000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error('Error al regenerar PDF original');
         console.error('Error regenerating original PDF:', error);
       }
     });
@@ -333,23 +343,14 @@ export class OrderDetailDialogComponent {
       next: () => {
         this.regeneratingReceipt.set(false);
         this.cdr.detectChanges();
-        this.snackBar.open('PDF de recepción regenerado exitosamente', 'Cerrar', {
-          duration: 3000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top'
-        });
+        this.toast.success('PDF de recepción regenerado exitosamente');
         // Reload order data to show new document
         this.loadOrder();
       },
       error: (error) => {
         this.regeneratingReceipt.set(false);
         this.cdr.detectChanges();
-        this.snackBar.open('Error al regenerar PDF de recepción', 'Cerrar', {
-          duration: 3000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error('Error al regenerar PDF de recepción');
         console.error('Error regenerating receipt PDF:', error);
       }
     });
@@ -390,11 +391,7 @@ export class OrderDetailDialogComponent {
     if (!order || !file) return;
 
     if (!documentTypeId) {
-      this.snackBar.open('Selecciona un tipo de documento', 'Cerrar', {
-        duration: 2800,
-        horizontalPosition: 'end',
-        verticalPosition: 'top'
-      });
+      this.toast.warning('Selecciona un tipo de documento');
       return;
     }
 
@@ -406,21 +403,12 @@ export class OrderDetailDialogComponent {
         this.selectedUploadFile = null;
         this.selectedUploadFileName = '';
         this.uploadDocumentNotes = '';
-        this.snackBar.open('Documento subido correctamente', 'Cerrar', {
-          duration: 2800,
-          horizontalPosition: 'end',
-          verticalPosition: 'top'
-        });
+        this.toast.success('Documento subido correctamente');
         this.loadDocuments(order.id);
       },
       error: (error) => {
         this.uploadingDocument.set(false);
-        this.snackBar.open(error?.message || 'Error al subir documento', 'Cerrar', {
-          duration: 3200,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error(error?.message || 'Error al subir documento');
       }
     });
   }
@@ -453,20 +441,11 @@ export class OrderDetailDialogComponent {
     if (!order) return;
     this.purchaseOrderService.deleteOrderDocument(doc.id).subscribe({
       next: () => {
-        this.snackBar.open('Documento eliminado', 'Cerrar', {
-          duration: 2500,
-          horizontalPosition: 'end',
-          verticalPosition: 'top'
-        });
+        this.toast.success('Documento eliminado');
         this.loadDocuments(order.id);
       },
       error: (error) => {
-        this.snackBar.open(error?.message || 'No se pudo eliminar el documento', 'Cerrar', {
-          duration: 3200,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error(error?.message || 'No se pudo eliminar el documento');
       }
     });
   }
@@ -513,6 +492,122 @@ export class OrderDetailDialogComponent {
       width: '920px',
       maxWidth: '95vw',
       maxHeight: '90vh',
+    });
+  }
+
+  getLineItemsCount(): number {
+    return this.order()?.line_items?.length ?? 0;
+  }
+
+  getDocumentsCount(): number {
+    return this.order()?.documents?.length ?? 0;
+  }
+
+  getBatchesCount(): number {
+    return this.order()?.batches?.length ?? 0;
+  }
+
+  getPaymentsCount(): number {
+    return this.order()?.payments?.length ?? 0;
+  }
+
+  getStatusBadgeClass(): string {
+    const status = (this.order()?.general_status ?? this.order()?.status ?? '').toString();
+    if (status === 'Recibida') return 'status-badge--success';
+    if (status === 'En Proceso') return 'status-badge--warning';
+    if (status === 'Creada') return 'status-badge--info';
+    if (status === 'Cancelada') return 'status-badge--danger';
+    return 'status-badge--neutral';
+  }
+
+  getFiscalDisplayName(): string {
+    const fiscal = this.order()?.fiscal_configuration;
+    return fiscal?.razon_social || fiscal?.business_name || 'N/A';
+  }
+
+  canOpenVendor(): boolean {
+    return !!(this.order()?.vendor_id || this.order()?.vendor?.id);
+  }
+
+  canOpenWarehouse(): boolean {
+    return !!(this.order()?.warehouse_id || this.order()?.warehouse?.id);
+  }
+
+  canOpenFiscal(): boolean {
+    return !!(this.order()?.fiscal_configuration_id || this.order()?.fiscal_configuration?.id);
+  }
+
+  openVendorDialog(): void {
+    const vendorId = this.order()?.vendor?.id ?? this.order()?.vendor_id;
+    if (!vendorId) return;
+
+    const openModal = (vendor: Vendor) => {
+      this.dialog.open(VendorDetailModalComponent, {
+        data: { vendor },
+        width: '80vw',
+        maxWidth: '1000px',
+      });
+    };
+
+    const embedded = this.order()?.vendor;
+    this.vendorService.getVendor(String(vendorId)).subscribe({
+      next: (vendor) => openModal(vendor),
+      error: () => {
+        if (embedded) {
+          openModal({ ...embedded, id: String(vendorId) } as unknown as Vendor);
+        }
+      },
+    });
+  }
+
+  openWarehouseDialog(): void {
+    const warehouseId = this.order()?.warehouse?.id ?? this.order()?.warehouse_id;
+    if (!warehouseId) return;
+
+    const openModal = (warehouse: Warehouse) => {
+      this.dialog.open(WarehouseDetailModalComponent, {
+        data: { warehouse },
+        width: '80vw',
+        maxWidth: '1000px',
+      });
+    };
+
+    const embedded = this.order()?.warehouse;
+    this.warehouseService.getWarehouse(warehouseId).subscribe({
+      next: (warehouse) => openModal(warehouse),
+      error: () => {
+        if (embedded) {
+          openModal({ id: warehouseId, name: embedded.name } as Warehouse);
+        }
+      },
+    });
+  }
+
+  openFiscalDialog(): void {
+    const fiscalId = this.order()?.fiscal_configuration?.id ?? this.order()?.fiscal_configuration_id;
+    if (!fiscalId) return;
+
+    const openModal = (fiscalConfig: FiscalConfiguration) => {
+      this.dialog.open(FiscalConfigurationModalComponent, {
+        data: { fiscalConfig },
+        width: '80vw',
+        maxWidth: '1000px',
+      });
+    };
+
+    const embedded = this.order()?.fiscal_configuration;
+    if (embedded?.rfc && embedded?.razon_social) {
+      openModal(embedded as FiscalConfiguration);
+      return;
+    }
+
+    this.fiscalConfigService.getFiscalConfiguration(fiscalId).subscribe({
+      next: (fiscalConfig) => openModal(fiscalConfig),
+      error: () => {
+        if (embedded) {
+          openModal({ ...embedded, id: fiscalId } as FiscalConfiguration);
+        }
+      },
     });
   }
 }

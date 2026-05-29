@@ -1,0 +1,110 @@
+<div class="pos-session-close">
+  <header class="pos-session-close__header">
+    <div class="pos-session-close__header-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 5a2 2 0 00-3.48 0L3.33 16a2 2 0 001.74 3z" />
+      </svg>
+    </div>
+    <div>
+      <h2 class="pos-session-close__title">Cerrar sesión</h2>
+      <p class="pos-session-close__subtitle">
+        {{ turnLabel(session) }} · {{ equipmentLabel(session) }}
+      </p>
+    </div>
+  </header>
+
+  <mat-dialog-content>
+    <div class="pos-session-close__context">
+      <div class="pos-session-close__context-item">
+        <span class="pos-session-close__context-label">Sucursal</span>
+        <span class="pos-session-close__context-value">{{ branchLabel() }}</span>
+      </div>
+      <div class="pos-session-close__context-item">
+        <span class="pos-session-close__context-label">Abierta por</span>
+        <span class="pos-session-close__context-value">
+          {{ userLabel(session) }} · {{ formatDate(session.opened_at) }}
+        </span>
+      </div>
+    </div>
+
+    <div class="pos-session-close__summary">
+      <div class="pos-session-close__summary-row">
+        <span>Efectivo de apertura</span>
+        <strong>{{ formatMoney(openingCash()) }}</strong>
+      </div>
+      <div class="pos-session-close__summary-row">
+        <span>Total ventas</span>
+        <strong class="pos-session-close__summary-sales">{{ formatMoney(totalSales()) }}</strong>
+      </div>
+      <div class="pos-session-close__summary-row pos-session-close__summary-row--total">
+        <span>Efectivo esperado</span>
+        <strong>{{ formatMoney(expectedCash()) }}</strong>
+      </div>
+    </div>
+
+    <div class="pos-session-close__field">
+      <label for="closing-cash">Efectivo contado al cierre</label>
+      <div class="pos-session-close__currency">
+        <span aria-hidden="true">$</span>
+        <input
+          id="closing-cash"
+          type="number"
+          min="0"
+          step="0.01"
+          [ngModel]="closingCash()"
+          (ngModelChange)="closingCash.set($event)"
+          required />
+      </div>
+    </div>
+
+    @if (closingCash() >= 0) {
+      <div class="pos-session-close__diff" [class]="'pos-session-close__diff--' + differenceType()">
+        @if (differenceType() === 'exact') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Cuadre exacto
+        } @else if (differenceType() === 'surplus') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+          </svg>
+          Sobrante: {{ formatMoney(difference()) }}
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" d="M5 12h14" />
+          </svg>
+          Faltante: {{ formatMoney(Math.abs(difference())) }}
+        }
+      </div>
+    }
+
+    <div class="pos-session-close__field">
+      <label for="close-notes">
+        Notas
+        <span class="pos-session-close__optional">opcional</span>
+      </label>
+      <textarea
+        id="close-notes"
+        rows="2"
+        placeholder="Ej. cierre administrativo, observaciones de caja..."
+        [ngModel]="notes()"
+        (ngModelChange)="notes.set($event)"></textarea>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button type="button" class="pos-session-close__btn pos-session-close__btn--ghost" (click)="onCancel()">
+      Cancelar
+    </button>
+    <button
+      type="button"
+      class="pos-session-close__btn pos-session-close__btn--confirm"
+      [disabled]="closingCash() < 0"
+      (click)="onConfirm()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+      Confirmar cierre
+    </button>
+  </mat-dialog-actions>
+</div>

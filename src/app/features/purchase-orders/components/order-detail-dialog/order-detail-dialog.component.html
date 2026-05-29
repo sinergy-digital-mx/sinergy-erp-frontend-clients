@@ -6,28 +6,22 @@
   }
 
   @if (order() && !loading()) {
-    <!-- Header -->
     <div class="dialog-header">
       <div class="dialog-header-main">
-        <h2 class="text-xl font-bold text-gray-900">#{{ order()!.folio || order()!.id.substring(0, 6) }}</h2>
-        <span class="px-3 py-1 rounded text-xs font-semibold" 
-              [ngClass]="order()!.general_status === 'Creada' ? 'bg-yellow-100 text-yellow-700' : 
-                         order()!.general_status === 'Recibida' ? 'bg-green-100 text-green-700' : 
-                         'bg-gray-100 text-gray-700'">
-          {{ order()!.general_status || order()!.status }}
-        </span>
-      </div>
-      <div class="dialog-header-actions">
+        <span class="order-type-badge">COMPRA</span>
+        <h2 class="dialog-header__folio">#{{ order()!.folio || order()!.id.substring(0, 6) }}</h2>
         @if (canEditOrder()) {
-          <button
-            type="button"
-            class="edit-order-btn"
-            (click)="goToEditForm()"
-          >
-            Editar orden
+          <button type="button" class="edit-header-btn" (click)="goToEditForm()">
+            <i class="fi fi-rr-pencil"></i>
+            Editar encabezado
           </button>
         }
-        <button (click)="close()" class="close-btn">
+      </div>
+      <div class="dialog-header-actions">
+        <span class="status-badge" [ngClass]="getStatusBadgeClass()">
+          {{ order()!.general_status || order()!.status }}
+        </span>
+        <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">
           <i class="fi fi-rr-cross-small"></i>
         </button>
       </div>
@@ -40,76 +34,104 @@
         <!-- Info Cards -->
         <!-- Info Cards Container -->
         <div class="info-cards-group">
-          <div class="info-card">
-            <div class="card-icon bg-blue-100 text-blue-600">
+          <div class="info-card info-card--blue">
+            <div class="info-card__icon">
               <i class="fi fi-rr-user"></i>
             </div>
-            <div class="card-text">
-              <span class="card-label">CREADO POR</span>
-              <span class="card-value">{{ order()!.creator?.first_name }} {{ order()!.creator?.last_name || 'N/A' }}</span>
+            <div class="info-card__content">
+              <span class="info-card__label">CREADO POR</span>
+              <span class="info-card__value">{{ order()!.creator?.first_name }} {{ order()!.creator?.last_name || 'N/A' }}</span>
             </div>
           </div>
 
-          <div class="info-card">
-            <div class="card-icon bg-green-100 text-green-600">
+          <div
+            class="info-card info-card--green"
+            [class.info-card--clickable]="canOpenVendor()"
+            role="button"
+            [attr.tabindex]="canOpenVendor() ? 0 : null"
+            (click)="canOpenVendor() && openVendorDialog()"
+            (keydown.enter)="canOpenVendor() && openVendorDialog()"
+            (keydown.space)="$event.preventDefault(); canOpenVendor() && openVendorDialog()">
+            <div class="info-card__icon">
               <i class="fi fi-rr-truck-side"></i>
             </div>
-            <div class="card-text">
-              <span class="card-label">PROVEEDOR</span>
-              <span class="card-value">{{ order()!.vendor?.name || 'N/A' }}</span>
+            <div class="info-card__content">
+              <span class="info-card__label">PROVEEDOR</span>
+              <span class="info-card__value">{{ order()!.vendor?.name || 'N/A' }}</span>
             </div>
+            @if (canOpenVendor()) {
+              <i class="fi fi-rr-angle-right info-card__chevron"></i>
+            }
           </div>
 
-          <div class="info-card">
-            <div class="card-icon bg-orange-100 text-orange-600">
+          <div
+            class="info-card info-card--yellow"
+            [class.info-card--clickable]="canOpenWarehouse()"
+            role="button"
+            [attr.tabindex]="canOpenWarehouse() ? 0 : null"
+            (click)="canOpenWarehouse() && openWarehouseDialog()"
+            (keydown.enter)="canOpenWarehouse() && openWarehouseDialog()"
+            (keydown.space)="$event.preventDefault(); canOpenWarehouse() && openWarehouseDialog()">
+            <div class="info-card__icon">
               <i class="fi fi-rr-box"></i>
             </div>
-            <div class="card-text">
-              <span class="card-label">PARA ALMACÉN</span>
-              <span class="card-value">{{ order()!.warehouse?.name || 'N/A' }}</span>
+            <div class="info-card__content">
+              <span class="info-card__label">PARA ALMACÉN</span>
+              <span class="info-card__value">{{ order()!.warehouse?.name || 'N/A' }}</span>
             </div>
+            @if (canOpenWarehouse()) {
+              <i class="fi fi-rr-angle-right info-card__chevron"></i>
+            }
           </div>
 
-          <div class="info-card">
-            <div class="card-icon bg-purple-100 text-purple-600">
+          <div
+            class="info-card info-card--purple"
+            [class.info-card--clickable]="canOpenFiscal()"
+            role="button"
+            [attr.tabindex]="canOpenFiscal() ? 0 : null"
+            (click)="canOpenFiscal() && openFiscalDialog()"
+            (keydown.enter)="canOpenFiscal() && openFiscalDialog()"
+            (keydown.space)="$event.preventDefault(); canOpenFiscal() && openFiscalDialog()">
+            <div class="info-card__icon">
               <i class="fi fi-rr-document"></i>
             </div>
-            <div class="card-text">
-              <span class="card-label">FOLIO FISCAL</span>
-              <span class="card-value">{{ order()!.fiscal_configuration?.razon_social || 'N/A' }}</span>
+            <div class="info-card__content">
+              <span class="info-card__label">RAZÓN SOCIAL</span>
+              <span class="info-card__value">{{ getFiscalDisplayName() }}</span>
             </div>
+            @if (canOpenFiscal()) {
+              <i class="fi fi-rr-angle-right info-card__chevron"></i>
+            }
           </div>
         </div>
 
-        <!-- Fechas -->
-        <div class="section">
+        <div class="section-card">
           <h3 class="section-title">FECHAS</h3>
           <div class="section-item">
-            <span class="section-label">Fecha recepción</span>
-            <span class="section-value">{{ order()!.expected_delivery_date || '-' }}</span>
+            <span class="section-label">Fecha esperada</span>
+            <span class="section-value">{{ formatShortDate(order()!.expected_delivery_date || order()!.tentative_receipt_date) }}</span>
           </div>
           <div class="section-item">
             <span class="section-label">Estado de pago</span>
-            <span class="px-2 py-1 rounded text-xs font-semibold" 
-                  [ngClass]="order()!.payment_status === 'Pendiente' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'">
+            <span class="payment-pill" [class.payment-pill--paid]="order()!.payment_status !== 'Pendiente'">
               {{ order()!.payment_status }}
             </span>
           </div>
         </div>
 
-        <!-- Totales with Toggle -->
-        <div class="section">
+        <div class="section-card section-card--totals">
           <div class="section-header">
             <h3 class="section-title">TOTALES</h3>
-            <!-- Toggle -->
             <div class="toggle-container">
-              <button 
+              <button
+                type="button"
                 class="toggle-btn"
                 [class.active]="!showReceivedTotals()"
                 (click)="toggleTotals(false)">
                 Solicitados
               </button>
-              <button 
+              <button
+                type="button"
                 class="toggle-btn"
                 [class.active]="showReceivedTotals()"
                 (click)="toggleTotals(true)">
@@ -118,7 +140,6 @@
             </div>
           </div>
 
-          <!-- Totals Card -->
           <div class="totals-card">
             <div class="totals-row">
               <span class="totals-label">Subtotal</span>
@@ -140,15 +161,14 @@
           </div>
         </div>
 
-        <!-- Notes -->
-        <div class="section">
-          <div class="flex items-center justify-between mb-2">
+        <div class="section-card section-card--notes">
+          <div class="section-card__head">
             <h3 class="section-title">NOTAS</h3>
-            <button class="text-gray-400 hover:text-gray-600">
-              <i class="fi fi-rr-pencil text-sm"></i>
+            <button type="button" class="notes-edit-btn" title="Editar notas">
+              <i class="fi fi-rr-pencil"></i>
             </button>
           </div>
-          <p class="text-sm text-gray-600">{{ order()!.notes || 'Sin notas' }}</p>
+          <p class="notes-text">{{ order()!.notes || 'Sin notas' }}</p>
         </div>
 
         <!-- Action Buttons -->
@@ -168,37 +188,44 @@
         </div>
       </div>
 
-      <!-- Main Content Area with Tabs -->
       <div class="main-content">
-        <!-- Tab Navigation -->
-        <div class="tabs-header">
-          <button 
-            class="tab-button"
-            [class.active]="activeTabIndex() === 0"
-            (click)="activeTabIndex.set(0)">
-            Productos
-          </button>
-          <button 
-            class="tab-button"
-            [class.active]="activeTabIndex() === 1"
-            (click)="activeTabIndex.set(1)">
-            Documentos
-          </button>
-          <button 
-            class="tab-button"
-            [class.active]="activeTabIndex() === 2"
-            (click)="activeTabIndex.set(2)">
-            Lotes
-          </button>
-          <button 
-            class="tab-button"
-            [class.active]="activeTabIndex() === 3"
-            (click)="activeTabIndex.set(3)">
-            Pagos
-          </button>
+        <div class="main-content__chrome">
+          <nav class="tabs-header" aria-label="Secciones de la orden">
+            <button
+              type="button"
+              class="tab-button"
+              [class.active]="activeTabIndex() === 0"
+              (click)="activeTabIndex.set(0)">
+              Productos
+              <span class="tab-count" [class.active]="activeTabIndex() === 0">{{ getLineItemsCount() }}</span>
+            </button>
+            <button
+              type="button"
+              class="tab-button"
+              [class.active]="activeTabIndex() === 1"
+              (click)="activeTabIndex.set(1)">
+              Documentos
+              <span class="tab-count" [class.active]="activeTabIndex() === 1">{{ getDocumentsCount() }}</span>
+            </button>
+            <button
+              type="button"
+              class="tab-button"
+              [class.active]="activeTabIndex() === 2"
+              (click)="activeTabIndex.set(2)">
+              Lotes
+              <span class="tab-count" [class.active]="activeTabIndex() === 2">{{ getBatchesCount() }}</span>
+            </button>
+            <button
+              type="button"
+              class="tab-button"
+              [class.active]="activeTabIndex() === 3"
+              (click)="activeTabIndex.set(3)">
+              Pagos
+              <span class="tab-count" [class.active]="activeTabIndex() === 3">{{ getPaymentsCount() }}</span>
+            </button>
+          </nav>
         </div>
 
-        <!-- Tab Content -->
         <div class="tabs-content">
           <!-- Productos Tab -->
           @if (activeTabIndex() === 0) {

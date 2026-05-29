@@ -1,4 +1,4 @@
-import { Component, OnInit, TemplateRef, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, TemplateRef, ViewChild, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { Subject, takeUntil } from 'rxjs';
@@ -8,7 +8,7 @@ import { EmailTemplateCreateModalComponent } from '../../components/email-templa
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
-import { IDatatableConfig } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { Edit2, Trash2 } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
@@ -31,28 +31,29 @@ export class EmailTemplatesListComponent implements OnInit, OnDestroy {
   templates: EmailTemplate[] = [];
   loading = false;
   search = '';
+  isActiveFilter: boolean | undefined = undefined;
+  hasPaginated = false;
   private destroy$ = new Subject<void>();
 
-  table_config: IDatatableConfig = {
+  table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
       { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true, width: 150 },
       { name: 'Asunto', prop: 'subject', sortable: true, canAutoResize: true, width: 250 },
-      { name: 'Descripción', prop: 'description', sortable: false, canAutoResize: true, width: 200 },
       { name: 'Estado', prop: 'is_active', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Creado', prop: 'created_at', sortable: true, canAutoResize: true, width: 150 },
       { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 120 },
     ],
-    externalPaging: false,
+    externalPaging: true,
     externalSorting: false,
     page: 1,
-    limit: 20,
+    limit: 10,
     totalResults: 0,
     loading: false,
     emptyState: { title: 'Sin resultados', subtitle: 'No se encontraron templates de correo' },
     columnMode: 'force',
     reorderable: false,
-  };
+  });
 
   readonly Edit2 = Edit2;
   readonly Trash2 = Trash2;
@@ -73,36 +74,57 @@ export class EmailTemplatesListComponent implements OnInit, OnDestroy {
 
   loadTemplates() {
     this.loading = true;
-    const params = this.search ? { search: this.search } : {};
+    this.updateTableConfig({ loading: true });
+    const params = this.buildQueryParams();
 
     this.emailTemplateService.getEmailTemplates(params).subscribe({
-      next: (res: any) => {
-        let templates = [];
-        if (Array.isArray(res)) {
-          templates = res;
-        } else if (res?.data) {
-          templates = res.data;
-        }
+      next: (res) => {
+        const templates = res?.data ?? [];
         this.templates = templates;
-        this.table_config.rows = templates;
-        this.table_config.totalResults = templates.length;
+        this.updateTableConfig({
+          rows: templates,
+          totalResults: res?.total ?? templates.length,
+          page: res?.page ?? this.table_config().page,
+          limit: res?.limit ?? this.table_config().limit,
+          hasNext: (res?.page ?? 1) < (res?.totalPages ?? 1),
+          loading: false
+        });
         this.loading = false;
       },
       error: (err) => {
         console.error('Error loading templates:', err);
         this.loading = false;
+        this.updateTableConfig({ loading: false });
       }
     });
   }
 
   onSearchChange(searchTerm: string) {
     this.search = searchTerm;
+    this.updateTableConfig({ page: 1 });
+    this.hasPaginated = true;
+    this.loadTemplates();
+  }
+
+  onStatusFilterChange(value: string) {
+    this.isActiveFilter = value === '' ? undefined : value === 'true';
+    this.updateTableConfig({ page: 1 });
+    this.hasPaginated = true;
+    this.loadTemplates();
+  }
+
+  onPageChange(event: IPaginationEvent) {
+    this.updateTableConfig({
+      page: event.page,
+      limit: event.limit
+    });
+    this.hasPaginated = true;
     this.loadTemplates();
   }
 
   openCreateModal() {
     const dialogRef = this.dialog.open(EmailTemplateCreateModalComponent, {
-      width: '800px',
+      width: '900px',
       disableClose: false
     });
 
@@ -115,7 +137,7 @@ export class EmailTemplatesListComponent implements OnInit, OnDestroy {
 
   editTemplate(template: EmailTemplate) {
     const dialogRef = this.dialog.open(EmailTemplateCreateModalComponent, {
-      width: '800px',
+      width: '900px',
       disableClose: false,
       data: { template }
     });
@@ -141,12 +163,33 @@ export class EmailTemplatesListComponent implements OnInit, OnDestroy {
   }
 
   getStatusClass(isActive: boolean): string {
-    return isActive
-      ? 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800'
-      : 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800';
+    return isActive ? 'settings-badge--status-active' : 'settings-badge--status-inactive';
   }
 
   getStatusLabel(isActive: boolean): string {
     return isActive ? 'Activo' : 'Inactivo';
+  }
+
+  private buildQueryParams() {
+    const hasSearch = Boolean(this.search?.trim());
+    const hasStatusFilter = this.isActiveFilter !== undefined;
+
+    if (!this.hasPaginated && !hasSearch && !hasStatusFilter) {
+      return undefined;
+    }
+
+    return {
+      page: this.table_config().page,
+      limit: this.table_config().limit,
+      ...(hasSearch && { search: this.search.trim() }),
+      ...(hasStatusFilter && { isActive: this.isActiveFilter })
+    };
+  }
+
+  private updateTableConfig(config: Partial<IDatatableConfig>) {
+    this.table_config.update(current => ({
+      ...current,
+      ...config
+    }));
   }
 }

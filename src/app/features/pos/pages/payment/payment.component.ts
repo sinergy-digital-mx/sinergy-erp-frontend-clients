@@ -3,11 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '../../../../core/services/toast.service';
 import { MatDialog } from '@angular/material/dialog';
 import { POSService } from '../../services/pos.service';
 import { PaymentMethod } from '../../models/pos.model';
 import { OpenShiftDialogComponent } from '../../components/open-shift-dialog/open-shift-dialog.component';
 import { CloseShiftDialogComponent } from '../../components/close-shift-dialog/close-shift-dialog.component';
+import { OpenShiftDialogResult } from '../../models/pos-session.model';
+import { applyOpenShiftDialogResult } from '../../utils/pos-session.util';
 
 @Component({
   selector: 'app-payment',
@@ -43,6 +46,7 @@ export class PaymentComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private snackBar: MatSnackBar,
+    private toast: ToastService,
     private dialog: MatDialog
   ) {}
 
@@ -92,46 +96,24 @@ export class PaymentComponent implements OnInit {
       panelClass: 'pos-dialog-panel',
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe((result: OpenShiftDialogResult | undefined) => {
       if (!result) {
-        return; // User cancelled
+        return;
       }
 
-      const {
-        warehouse_id,
-        opening_balance,
-        notes,
-        pos_configuration_id,
-        pos_configuration_code,
-      } = result;
-
       this.checkingShift.set(true);
-      this.posService.openCashShift({
-        warehouse_id,
-        cashier_id: '',
-        opening_balance,
-        ...(notes?.trim() ? { notes: notes.trim() } : {}),
-        ...(pos_configuration_id ? { pos_configuration_id } : {}),
-      }).subscribe({
+      applyOpenShiftDialogResult(result, this.posService).subscribe({
         next: (shift) => {
           this.activeCashShift.set(shift);
-          if (pos_configuration_id) {
-            localStorage.setItem('pos_configuration_id', pos_configuration_id);
-          } else {
-            localStorage.removeItem('pos_configuration_id');
-          }
-          if (pos_configuration_code) {
-            localStorage.setItem('pos_configuration_code', pos_configuration_code);
-          } else {
-            localStorage.removeItem('pos_configuration_code');
-          }
           this.checkingShift.set(false);
-          this.snackBar.open('Sesión POS iniciada', 'Cerrar', { duration: 3000 });
+          this.toast.success(
+            result.action === 'resume' ? 'Sesión POS reanudada' : 'Sesión POS iniciada'
+          );
         },
         error: (error) => {
           this.checkingShift.set(false);
-          this.snackBar.open(error.error?.message || 'Error al abrir turno de caja', 'Cerrar', { duration: 5000 });
-        }
+          this.toast.error(error.error?.message || 'Error al abrir turno de caja');
+        },
       });
     });
   }
@@ -140,7 +122,7 @@ export class PaymentComponent implements OnInit {
     const shift = this.activeCashShift();
     
     if (!shift) {
-      this.snackBar.open('No hay turno activo para cerrar', 'Cerrar', { duration: 3000 });
+      this.toast.warning('No hay turno activo para cerrar');
       return;
     }
 
@@ -175,11 +157,11 @@ export class PaymentComponent implements OnInit {
               ? `Sobrante: ${this.formatCurrency(difference)}`
               : `Faltante: ${this.formatCurrency(Math.abs(difference))}`;
           
-          this.snackBar.open(`Turno cerrado. ${diffText}`, 'Cerrar', { duration: 5000 });
+          this.toast.success(`Turno cerrado. ${diffText}`);
         },
         error: (error) => {
           this.checkingShift.set(false);
-          this.snackBar.open(error.error?.message || 'Error al cerrar turno de caja', 'Cerrar', { duration: 5000 });
+          this.toast.error(error.error?.message || 'Error al cerrar turno de caja');
         }
       });
     });
@@ -202,7 +184,7 @@ export class PaymentComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading orders:', error);
-        this.snackBar.open('Error al cargar órdenes', 'Cerrar', { duration: 3000 });
+        this.toast.error('Error al cargar órdenes');
         this.loading.set(false);
       }
     });
@@ -219,7 +201,7 @@ export class PaymentComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading order:', error);
-        this.snackBar.open('Error al cargar la orden', 'Cerrar', { duration: 3000 });
+        this.toast.error('Error al cargar la orden');
         this.loading.set(false);
         this.loadOrders(); // Fallback to loading all orders
       }
@@ -248,12 +230,12 @@ export class PaymentComponent implements OnInit {
   processPayment(): void {
     const order = this.selectedOrder();
     if (!order) {
-      this.snackBar.open('Selecciona una orden', 'Cerrar', { duration: 3000 });
+      this.toast.warning('Selecciona una orden');
       return;
     }
 
     if (this.paymentAmount() <= 0) {
-      this.snackBar.open('Ingresa un monto válido', 'Cerrar', { duration: 3000 });
+      this.toast.warning('Ingresa un monto válido');
       return;
     }
     
@@ -278,7 +260,7 @@ export class PaymentComponent implements OnInit {
 
     this.posService.processPayment(order.id, paymentData).subscribe({
       next: () => {
-        this.snackBar.open('Pago procesado exitosamente', 'Cerrar', { duration: 3000 });
+        this.toast.success('Pago procesado exitosamente');
         this.selectedOrder.set(null);
         this.paymentAmount.set(0);
         this.paymentReference.set('');
@@ -298,7 +280,7 @@ export class PaymentComponent implements OnInit {
             this.openCashShift();
           });
         } else {
-          this.snackBar.open(errorMsg, 'Cerrar', { duration: 5000 });
+          this.toast.error(errorMsg);
         }
         
         this.processing.set(false);

@@ -9,6 +9,7 @@ import { FiscalConfigurationListComponent } from '../settings/components/fiscal-
 import { ProductListComponent } from '../settings/components/product-list/product-list.component';
 import { PosEquipmentListComponent } from '../settings/components/pos-equipment-list/pos-equipment-list.component';
 import { EmailTemplatesListComponent } from '../settings/pages/email-templates-list/email-templates-list.component';
+import { MailerConfigurationsListComponent } from '../settings/pages/mailer-configurations-list/mailer-configurations-list.component';
 import { ExchangeRateSettingsComponent } from '../settings/components/exchange-rate-settings/exchange-rate-settings.component';
 
 export const RBAC_TENANT_UI_ROUTES: Routes = [
@@ -57,6 +58,10 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
       {
         path: 'email-templates',
         component: EmailTemplatesListComponent
+      },
+      {
+        path: 'mailer-configurations',
+        component: MailerConfigurationsListComponent
       },
       {
         path: 'exchange-rates',

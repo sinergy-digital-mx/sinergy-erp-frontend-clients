@@ -1,46 +1,69 @@
-<div class="px-4">
-  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-    <h2 class="text-2xl font-semibold text-gray-800">Proveedores</h2>
-
-    <div class="flex items-center gap-3">
-      <app-search
-        class="w-64"
-        [param_activate]="false"
-        (searchChange)="onSearchChange($event)">
-      </app-search>
-
-      <app-button
-        text="Nuevo Proveedor"
-        custom_class="btn_primary"
-        (clicked)="openCreateVendorModal()">
-      </app-button>
-    </div>
-  </div>
-
-  <app-datatable-wrapper
-    [config]="table_config()"
-    [rowTemplate]="tableTemplate"
-    (rowClick)="viewDetail($event)">
-  </app-datatable-wrapper>
-</div>
-
-<ng-template #tableTemplate let-item="$implicit">
-  <td>
-    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
-      {{ item.name }}
-    </span>
-  </td>
-  <td>{{ item.company_name }}</td>
-  <td>{{ item.rfc }}</td>
-  <td>{{ item.city }}</td>
-  <td>{{ item.state }}</td>
-  <td>{{ item.country }}</td>
-  <td>
-    <span class="text-xs text-gray-600">{{ item.persona_type }}</span>
-  </td>
-  <td>
-    <span [class]="'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ' + getStatusClass(item.status)">
-      {{ getStatusLabel(item.status) }}
-    </span>
-  </td>
-</ng-template>
+<div class="settings-list-page px-4 pb-6">
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+    <h2 class="text-2xl font-semibold text-gray-800">Proveedores</h2>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <select
+        class="vendor-type-filter"
+        [value]="vendorTypeFilter"
+        (change)="onVendorTypeFilterChange($any($event.target).value)">
+        <option *ngFor="let opt of vendorTypeFilterOptions" [value]="opt.value">{{ opt.label }}</option>
+      </select>
+
+      <app-search
+        class="w-64"
+        [param_activate]="false"
+        (searchChange)="onSearchChange($event)">
+      </app-search>
+
+      <app-button
+        text="Nuevo Proveedor"
+        custom_class="btn_primary"
+        (clicked)="openCreateVendorModal()">
+      </app-button>
+    </div>
+  </div>
+
+  <app-datatable-wrapper
+    variant="settings"
+    [config]="table_config()"
+    [rowTemplate]="tableTemplate"
+    (pageChange)="onPageChange($event)"
+    (rowClick)="viewDetail($event)">
+  </app-datatable-wrapper>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td>
+    <p class="settings-cell-primary truncate">{{ item.name }}</p>
+  </td>
+  <td>
+    <span [class]="item.company_name ? 'settings-cell-text' : 'settings-cell-empty'">
+      {{ item.company_name || '—' }}
+    </span>
+  </td>
+  <td>
+    <span class="settings-badge" [ngClass]="getVendorTypeBadgeClass(item.vendor_type)">
+      {{ getVendorTypeLabel(item.vendor_type) }}
+    </span>
+  </td>
+  <td>
+    <span [class]="getFiscalId(item) !== '—' ? 'settings-cell-mono' : 'settings-cell-empty'">
+      {{ getFiscalId(item) }}
+    </span>
+  </td>
+  <td>
+    <span [class]="item.city ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.city || '—' }}</span>
+  </td>
+  <td>
+    <span [class]="item.state ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.state || '—' }}</span>
+  </td>
+  <td>
+    <span [class]="item.country ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.country || '—' }}</span>
+  </td>
+  <td>
+    <span class="settings-badge" [ngClass]="getStatusClass(item.status)">
+      {{ getStatusLabel(item.status) }}
+    </span>
+  </td>
+</ng-template>

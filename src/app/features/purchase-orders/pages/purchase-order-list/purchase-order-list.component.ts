@@ -12,6 +12,7 @@ import { FilterBarComponent } from '../../components/filter-bar/filter-bar.compo
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { OrderDetailDialogComponent } from '../../components/order-detail-dialog/order-detail-dialog.component';
+import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { CreatePurchaseOrderModalComponent } from '../../components/create-purchase-order-modal/create-purchase-order-modal.component';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 
@@ -97,13 +98,13 @@ export class PurchaseOrderListComponent implements OnInit {
   );
   
   // Payment stats
-  pagadasCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pagada').length);
+  pagadasCount = computed(() => this.ordersData().filter(o => this.isPaymentPaid(o.payment_status)).length);
   parcialesCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Parcial').length);
   pendientesCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pendiente').length);
   
   pagadasAmount = computed(() => 
     this.ordersData()
-      .filter(o => o.payment_status === 'Pagada')
+      .filter(o => this.isPaymentPaid(o.payment_status))
       .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
   );
   parcialesAmount = computed(() => 
@@ -295,10 +296,11 @@ export class PurchaseOrderListComponent implements OnInit {
   /**
    * Get payment status badge class
    */
-  getPaymentStatusClass(paymentStatus: PaymentStatus): string {
+  getPaymentStatusClass(paymentStatus: PaymentStatus | string): string {
+    if (this.isPaymentPaid(paymentStatus)) {
+      return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-700';
+    }
     switch (paymentStatus) {
-      case 'Pagada':
-        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-700';
       case 'Parcial':
         return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-700';
       case 'Pendiente':
@@ -306,6 +308,11 @@ export class PurchaseOrderListComponent implements OnInit {
       default:
         return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700';
     }
+  }
+
+  private isPaymentPaid(paymentStatus: PaymentStatus | string | undefined): boolean {
+    const normalized = (paymentStatus ?? '').toString().toLowerCase();
+    return normalized === 'pagada' || normalized === 'pagado';
   }
 
   /**
@@ -342,12 +349,8 @@ export class PurchaseOrderListComponent implements OnInit {
    */
   navigateToDetail(order: PurchaseOrder): void {
     this.dialog.open(OrderDetailDialogComponent, {
-      data: { orderId: order.id },
-      width: '1400px',
-      maxWidth: '95vw',
-      height: '90vh',
-      maxHeight: '90vh',
-      panelClass: 'order-detail-dialog-container'
+      ...ORDER_DETAIL_DIALOG_OPTIONS,
+      data: { orderId: order.id }
     });
   }
 

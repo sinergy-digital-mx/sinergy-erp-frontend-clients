@@ -1,1 +1,0 @@
-import{sb as i}from"./chunk-33JGCL5T.js";var s=class n{transform(r){if(r==null)return"";let t=typeof r=="string"?parseFloat(r):r;if(isNaN(t))return"";let e=t.toString();return e.includes(".")?e.replace(/\.?0+$/,""):e}static \u0275fac=function(t){return new(t||n)};static \u0275pipe=i({name:"removeTrailingZeros",type:n,pure:!0})};export{s as a};

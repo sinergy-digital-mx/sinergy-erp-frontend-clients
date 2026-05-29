@@ -1,24 +1,43 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { EmailTemplateService } from '../../services/email-template.service';
-import { EmailTemplate, CreateEmailTemplateDto } from '../../models/email-template.model';
+import {
+  CreateEmailTemplateDto,
+  CustomEmailTemplateVariable,
+  EmailTemplate,
+  EmailTemplateVariable,
+  EmailTemplateVariableGroup
+} from '../../models/email-template.model';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 
 @Component({
   selector: 'app-email-template-create-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './email-template-create-modal.component.html',
   styleUrls: ['./email-template-create-modal.component.scss']
 })
 export class EmailTemplateCreateModalComponent implements OnInit {
+  @ViewChild('subjectInput') subjectInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('bodyHtmlTextarea') bodyHtmlTextarea?: ElementRef<HTMLTextAreaElement>;
+
   form: FormGroup;
   loading = false;
+  previewLoading = false;
+  variablesLoading = false;
   isEdit = false;
   activeTab: 'editor' | 'preview' = 'editor';
+  insertionTarget: 'subject' | 'bodyHtml' = 'bodyHtml';
+  selectedVariableKey = '';
+  subjectPlaceholder = 'Ej: Recordatorio de pago - {{contract.contract_number}}';
+  bodyPlaceholder = '<p>Hola {{customer.name}},</p><p>Tu pago pendiente es {{payment.amount_pending}}</p>';
+  availableVariableGroups: EmailTemplateVariableGroup[] = [];
+  previewSubject = '';
+  previewBodyHtml = '';
+  missingVariables: string[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -31,23 +50,25 @@ export class EmailTemplateCreateModalComponent implements OnInit {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3)]],
       subject: ['', [Validators.required, Validators.minLength(5)]],
-      body: ['', [Validators.required, Validators.minLength(10)]],
-      description: [''],
-      variables: [''],
-      is_active: [true]
+      bodyHtml: ['', [Validators.required, Validators.minLength(10)]],
+      customVariablesJson: [''],
+      isActive: [true]
     });
   }
 
   ngOnInit() {
+    this.loadAvailableVariables();
+
     if (this.data?.template) {
+      const customVariables = this.data.template.custom_variables ?? this.data.template.customVariables ?? [];
+
       this.isEdit = true;
       this.form.patchValue({
         name: this.data.template.name,
         subject: this.data.template.subject,
-        body: this.data.template.body,
-        description: this.data.template.description,
-        variables: this.data.template.variables?.join(', ') || '',
-        is_active: this.data.template.is_active
+        bodyHtml: this.getTemplateBody(this.data.template),
+        customVariablesJson: customVariables.length ? JSON.stringify(customVariables, null, 2) : '',
+        isActive: this.data.template.is_active
       });
     }
   }
@@ -63,19 +84,12 @@ export class EmailTemplateCreateModalComponent implements OnInit {
     }
 
     this.loading = true;
-    const formValue = this.form.value;
-    const variables = formValue.variables
-      ? formValue.variables.split(',').map((v: string) => v.trim()).filter((v: string) => v)
-      : [];
+    const payload = this.buildPayload();
 
-    const payload: CreateEmailTemplateDto = {
-      name: formValue.name,
-      subject: formValue.subject,
-      body: formValue.body,
-      description: formValue.description,
-      variables: variables,
-      is_active: formValue.is_active
-    };
+    if (!payload) {
+      this.loading = false;
+      return;
+    }
 
     if (this.isEdit && this.data?.template) {
       this.emailTemplateService.updateEmailTemplate(this.data.template.id, payload).subscribe({
@@ -124,8 +138,204 @@ export class EmailTemplateCreateModalComponent implements OnInit {
     this.dialogRef.close();
   }
 
+  setActiveTab(tab: 'editor' | 'preview') {
+    this.activeTab = tab;
+
+    if (tab === 'preview') {
+      this.previewTemplate();
+    }
+  }
+
+  loadAvailableVariables() {
+    this.variablesLoading = true;
+
+    this.emailTemplateService.getAvailableVariables().subscribe({
+      next: (groups) => {
+        this.availableVariableGroups = groups ?? [];
+        this.variablesLoading = false;
+      },
+      error: (err) => {
+        console.error('Error loading email template variables:', err);
+        this.variablesLoading = false;
+      }
+    });
+  }
+
+  insertSelectedVariable() {
+    if (!this.selectedVariableKey) {
+      return;
+    }
+
+    this.insertVariable(this.selectedVariableKey);
+  }
+
+  insertVariable(variableKey: string, target: 'subject' | 'bodyHtml' = this.insertionTarget) {
+    const token = `{{${variableKey}}}`;
+    const element = target === 'subject' ? this.subjectInput?.nativeElement : this.bodyHtmlTextarea?.nativeElement;
+    const currentValue = this.form.get(target)?.value ?? '';
+    const start = element?.selectionStart ?? currentValue.length;
+    const end = element?.selectionEnd ?? currentValue.length;
+    const nextValue = `${currentValue.slice(0, start)}${token}${currentValue.slice(end)}`;
+
+    this.form.get(target)?.setValue(nextValue);
+    this.form.get(target)?.markAsDirty();
+    this.form.get(target)?.markAsTouched();
+
+    setTimeout(() => {
+      element?.focus();
+      element?.setSelectionRange(start + token.length, start + token.length);
+    });
+  }
+
+  previewTemplate() {
+    if (!this.form.get('subject')?.value || !this.form.get('bodyHtml')?.value) {
+      return;
+    }
+
+    this.previewLoading = true;
+    this.emailTemplateService.previewEmailTemplate({
+      subject: this.form.get('subject')?.value,
+      bodyHtml: this.form.get('bodyHtml')?.value,
+      variables: this.buildSampleVariables()
+    }).subscribe({
+      next: (preview) => {
+        this.previewSubject = preview.subject;
+        this.previewBodyHtml = preview.bodyHtml;
+        this.missingVariables = preview.missingVariables ?? [];
+        this.previewLoading = false;
+      },
+      error: (err) => {
+        console.error('Error previewing email template:', err);
+        this.previewBodyHtml = this.form.get('bodyHtml')?.value ?? '';
+        this.missingVariables = this.extractVariablesFromContent();
+        this.previewLoading = false;
+        this.interceptorService.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: err.error?.message || 'Error al generar preview'
+        });
+      }
+    });
+  }
+
   getPreviewHTML(): SafeHtml {
-    const bodyValue = this.form.get('body')?.value || '';
+    const bodyValue = this.previewBodyHtml || this.form.get('bodyHtml')?.value || '';
     return this.sanitizer.bypassSecurityTrustHtml(bodyValue);
+  }
+
+  getAllVariables(): EmailTemplateVariable[] {
+    return this.availableVariableGroups.flatMap(group => group.variables);
+  }
+
+  formatVariableToken(variableKey: string): string {
+    return `{{${variableKey}}}`;
+  }
+
+  getExtractedVariables(): string[] {
+    return this.extractVariablesFromContent();
+  }
+
+  private buildPayload(): CreateEmailTemplateDto | null {
+    const formValue = this.form.value;
+    const customVariables = this.parseCustomVariables();
+
+    if (customVariables === null) {
+      return null;
+    }
+
+    return {
+      name: formValue.name,
+      subject: formValue.subject,
+      bodyHtml: formValue.bodyHtml,
+      variables: this.extractVariablesFromContent(),
+      customVariables,
+      isActive: formValue.isActive
+    };
+  }
+
+  private parseCustomVariables(): CustomEmailTemplateVariable[] | null {
+    const rawValue = this.form.get('customVariablesJson')?.value?.trim();
+
+    if (!rawValue) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(rawValue);
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('Custom variables must be an array');
+      }
+
+      return parsed;
+    } catch {
+      this.interceptorService.openSnackbar({
+        type: 'error',
+        title: 'Error',
+        message: 'Las variables personalizadas deben ser un arreglo JSON válido'
+      });
+      return null;
+    }
+  }
+
+  private extractVariablesFromContent(): string[] {
+    const content = `${this.form.get('subject')?.value ?? ''} ${this.form.get('bodyHtml')?.value ?? ''}`;
+    const matches = content.match(/\{\{\s*([\w.]+)\s*\}\}/g) ?? [];
+    const variables = matches.map(match => match.replace(/[{}]/g, '').trim());
+
+    return Array.from(new Set(variables));
+  }
+
+  private buildSampleVariables(): Record<string, unknown> {
+    const sampleVariables: Record<string, unknown> = {};
+    const availableVariables = new Map(this.getAllVariables().map(variable => [variable.key, variable]));
+
+    this.extractVariablesFromContent().forEach((key) => {
+      const variable = availableVariables.get(key);
+      this.assignNestedValue(sampleVariables, key, this.getSampleValue(variable));
+    });
+
+    this.parseCustomVariables()?.forEach((variable) => {
+      this.assignNestedValue(sampleVariables, variable.key, variable.defaultValue || this.getSampleValue(variable));
+    });
+
+    return sampleVariables;
+  }
+
+  private assignNestedValue(target: Record<string, unknown>, key: string, value: unknown) {
+    const parts = key.split('.');
+    let current: Record<string, unknown> = target;
+
+    parts.forEach((part, index) => {
+      if (index === parts.length - 1) {
+        current[part] = value;
+        return;
+      }
+
+      if (!current[part] || typeof current[part] !== 'object') {
+        current[part] = {};
+      }
+
+      current = current[part] as Record<string, unknown>;
+    });
+  }
+
+  private getSampleValue(variable?: Pick<EmailTemplateVariable | CustomEmailTemplateVariable, 'label' | 'type'>): string {
+    switch (variable?.type) {
+      case 'currency':
+        return '$1,250.00';
+      case 'number':
+        return '123';
+      case 'date':
+        return '2026-05-19';
+      case 'boolean':
+        return 'Sí';
+      default:
+        return variable?.label ? `Ejemplo ${variable.label}` : 'Ejemplo';
+    }
+  }
+
+  private getTemplateBody(template: EmailTemplate): string {
+    return template.body_html ?? template.bodyHtml ?? template.body ?? '';
   }
 }

@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
+import { Subscription } from 'rxjs';
 
 interface SettingsSection {
   id: string;
@@ -114,7 +115,7 @@ interface SettingsSection {
     }
   `]
 })
-export class SettingsComponent {
+export class SettingsComponent implements OnInit, OnDestroy {
   accessSections: SettingsSection[] = [
     {
       id: 'users',
@@ -192,17 +193,48 @@ export class SettingsComponent {
       description: 'Crea y gestiona plantillas de correo personalizadas para notificaciones y comunicaciones',
       icon: '📧',
       route: 'email-templates',
-      permissions: ['emailtemplates:ViewMenu']
+      permissions: [
+        'email-templates:ViewMenu',
+        'email-templates:Read',
+        'email-templates:Create',
+        'email-templates:Update',
+        'email-templates:Delete',
+        'emailtemplates:ViewMenu',
+        'email_templates:Read',
+        'email_templates:Create',
+        'email_templates:Update',
+        'email_templates:Delete'
+      ]
+    },
+    {
+      id: 'mailer-configurations',
+      title: 'Configuración de Correo',
+      description: 'Configura el proveedor de envío de correos del tenant, incluyendo Resend y la configuración activa',
+      icon: '✉️',
+      route: 'mailer-configurations',
+      permissions: []
     }
   ];
 
   sections: SettingsSection[] = [];
+  private permissionsSubscription?: Subscription;
 
   constructor(
     private router: Router,
     private activatedRoute: ActivatedRoute,
-    public authService: AuthService
+    public authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) {}
+
+  ngOnInit(): void {
+    this.permissionsSubscription = this.authService.permissions$.subscribe(() => {
+      this.cdr.markForCheck();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.permissionsSubscription?.unsubscribe();
+  }
 
   /**
    * Check if user has permission to access a section

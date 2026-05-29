@@ -10,7 +10,7 @@
     <!-- Tabs -->
     <div class="flex gap-4 mb-6 border-b border-gray-200">
       <button
-        (click)="activeTab = 'editor'"
+        (click)="setActiveTab('editor')"
         [class.tab-active]="activeTab === 'editor'"
         class="px-4 py-2 font-medium text-sm border-b-2 transition-colors"
         [class.border-indigo-600]="activeTab === 'editor'"
@@ -20,7 +20,7 @@
         Editor
       </button>
       <button
-        (click)="activeTab = 'preview'"
+        (click)="setActiveTab('preview')"
         [class.tab-active]="activeTab === 'preview'"
         class="px-4 py-2 font-medium text-sm border-b-2 transition-colors"
         [class.border-indigo-600]="activeTab === 'preview'"
@@ -52,9 +52,11 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Asunto del Correo</label>
           <input
+            #subjectInput
             type="text"
             formControlName="subject"
-            placeholder="Ej: Tu pago ha sido confirmado"
+            [placeholder]="subjectPlaceholder"
+            (focus)="insertionTarget = 'subject'"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             [class.border-red-500]="form.get('subject')?.invalid && form.get('subject')?.touched">
           <p *ngIf="form.get('subject')?.invalid && form.get('subject')?.touched" class="text-xs text-red-500 mt-1">
@@ -62,52 +64,89 @@
           </p>
         </div>
 
-        <!-- Descripción -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Descripción (Opcional)</label>
-          <input
-            type="text"
-            formControlName="description"
-            placeholder="Descripción breve del template"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <!-- Variables disponibles -->
+        <div class="bg-gray-50 p-3 rounded border border-gray-200">
+          <div class="flex flex-col gap-3 md:flex-row md:items-end">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Variables Disponibles</label>
+              <select
+                [(ngModel)]="selectedVariableKey"
+                [ngModelOptions]="{ standalone: true }"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="">{{ variablesLoading ? 'Cargando variables...' : 'Selecciona una variable' }}</option>
+                <optgroup *ngFor="let group of availableVariableGroups" [label]="group.label">
+                  <option *ngFor="let variable of group.variables" [value]="variable.key">
+                    {{ variable.label }} - {{ formatVariableToken(variable.key) }}
+                  </option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div class="flex gap-2">
+              <button
+                type="button"
+                (click)="insertSelectedVariable()"
+                [disabled]="!selectedVariableKey"
+                class="px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-md text-sm transition-colors disabled:opacity-50">
+                Insertar
+              </button>
+              <button
+                type="button"
+                (click)="insertionTarget = insertionTarget === 'subject' ? 'bodyHtml' : 'subject'"
+                class="px-3 py-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-md text-sm transition-colors">
+                Destino: {{ insertionTarget === 'subject' ? 'Asunto' : 'Cuerpo' }}
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="getExtractedVariables().length > 0" class="mt-3">
+            <p class="text-xs font-medium text-gray-600 mb-1">Variables detectadas:</p>
+            <div class="flex flex-wrap gap-2">
+              <span *ngFor="let variable of getExtractedVariables()" class="px-2 py-1 rounded bg-indigo-100 text-indigo-700 text-xs">
+                {{ variable }}
+              </span>
+            </div>
+          </div>
         </div>
 
         <!-- Cuerpo del Correo -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Cuerpo del Correo (HTML)</label>
           <textarea
-            formControlName="body"
-            [placeholder]="'<h1>Hola {{' + '{' + '{customer_name' + '}' + '}' + '}}</h1><p>Tu pago de {{' + '{' + '{payment_amount' + '}' + '}' + '}} ha sido confirmado.</p>'"
+            #bodyHtmlTextarea
+            formControlName="bodyHtml"
+            [placeholder]="bodyPlaceholder"
+            (focus)="insertionTarget = 'bodyHtml'"
             rows="12"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
-            [class.border-red-500]="form.get('body')?.invalid && form.get('body')?.touched"></textarea>
-          <p *ngIf="form.get('body')?.invalid && form.get('body')?.touched" class="text-xs text-red-500 mt-1">
+            [class.border-red-500]="form.get('bodyHtml')?.invalid && form.get('bodyHtml')?.touched"></textarea>
+          <p *ngIf="form.get('bodyHtml')?.invalid && form.get('bodyHtml')?.touched" class="text-xs text-red-500 mt-1">
             El cuerpo es requerido (mínimo 10 caracteres)
           </p>
           <p class="text-xs text-gray-500 mt-2">
-            💡 Tip: Escribe HTML válido. Usa {{'{{'}}variable_name{{'}}'}} para insertar variables dinámicas. Ej: {{'{{'}}customer_name{{'}}'}}, {{'{{'}}payment_amount{{'}}'}}
+            Tip: Escribe HTML válido. Usa variables con punto, por ejemplo {{'{{'}}customer.name{{'}}'}} o {{'{{'}}payment.amount_pending{{'}}'}}.
           </p>
         </div>
 
-        <!-- Variables -->
+        <!-- Variables personalizadas -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Variables Disponibles (Opcional)</label>
-          <input
-            type="text"
-            formControlName="variables"
-            placeholder="Ej: customer_name, payment_amount, contract_number (separadas por comas)"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-          <p class="text-xs text-gray-500 mt-1">Separa las variables con comas. Estas son referencias para el usuario.</p>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Variables Personalizadas (JSON opcional)</label>
+          <textarea
+            formControlName="customVariablesJson"
+            rows="4"
+            placeholder='[{"key":"customMessage","label":"Mensaje personalizado","type":"string","required":false,"defaultValue":"Gracias"}]'
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm"></textarea>
+          <p class="text-xs text-gray-500 mt-1">Úsalas cuando el valor se capture manualmente al enviar el correo.</p>
         </div>
 
         <!-- Activo -->
         <div class="flex items-center">
           <input
             type="checkbox"
-            formControlName="is_active"
-            id="is_active"
+            formControlName="isActive"
+            id="isActive"
             class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-          <label for="is_active" class="ml-2 block text-sm text-gray-700">
+          <label for="isActive" class="ml-2 block text-sm text-gray-700">
             Template activo
           </label>
         </div>
@@ -116,13 +155,33 @@
 
     <!-- Preview Tab -->
     <div *ngIf="activeTab === 'preview'" class="space-y-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="text-sm font-medium text-gray-700">Asunto</p>
+          <p class="text-sm text-gray-900">{{ previewSubject || form.get('subject')?.value }}</p>
+        </div>
+        <button
+          type="button"
+          (click)="previewTemplate()"
+          [disabled]="previewLoading"
+          class="px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-md text-sm transition-colors disabled:opacity-50">
+          {{ previewLoading ? 'Generando...' : 'Actualizar preview' }}
+        </button>
+      </div>
+
       <div class="bg-white p-4 rounded border border-gray-200 min-h-64 max-h-96 overflow-y-auto">
         <div [innerHTML]="getPreviewHTML()" class="text-sm text-gray-700 prose prose-sm max-w-none"></div>
       </div>
 
+      <div *ngIf="missingVariables.length > 0" class="bg-yellow-50 p-3 rounded border border-yellow-200">
+        <p class="text-xs text-yellow-800">
+          <strong>Variables faltantes:</strong> {{ missingVariables.join(', ') }}
+        </p>
+      </div>
+
       <div class="bg-blue-50 p-3 rounded border border-blue-200">
         <p class="text-xs text-blue-700">
-          <strong>Nota:</strong> Las variables como {{'{{'}}customer_name{{'}}'}} se reemplazarán con datos reales cuando se envíe el correo.
+          <strong>Nota:</strong> Este preview usa datos de ejemplo. Al renderizar un template guardado, el backend reemplaza las variables con el contexto real.
         </p>
       </div>
     </div>

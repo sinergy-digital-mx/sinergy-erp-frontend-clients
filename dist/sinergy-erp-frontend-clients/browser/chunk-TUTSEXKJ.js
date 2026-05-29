@@ -1,1 +1,0 @@
-import{a as o}from"./chunk-ZYT5J2MF.js";import{a as t}from"./chunk-HBV4CUP6.js";import"./chunk-TAWOGDPL.js";import"./chunk-34E4NAHH.js";import"./chunk-TKBFL5AM.js";import"./chunk-33JGCL5T.js";var m=[{path:"",loadComponent:()=>import("./chunk-RXRYYMFT.js").then(i=>i.PropertiesListComponent),canActivate:[t],data:{permissions:[o.viewList]}}];export{m as PROPERTIES_ROUTES};

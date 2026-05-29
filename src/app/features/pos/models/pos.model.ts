@@ -27,6 +27,10 @@ export interface POSCartItem {
     total?: string | number;
   }>;
   selected_price_list_id?: string;
+  /** Precios sugeridos del inventario POS (lista “precio sugerido”). */
+  suggested_unit_price?: number;
+  suggested_iva_percentage?: number;
+  suggested_ieps_percentage?: number;
 }
 
 /**

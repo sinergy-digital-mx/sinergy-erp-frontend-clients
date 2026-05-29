@@ -6,7 +6,7 @@ import { RoleService } from '../../services/role.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
-import { forkJoin } from 'rxjs';
+import { PermissionSyncService } from '../../../../core/services/permission-sync.service';
 
 interface PermissionItem {
   id: string;
@@ -157,7 +157,8 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
   constructor(
     private roleService: RoleService,
     private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private permissionSyncService: PermissionSyncService
   ) {}
 
   ngOnInit() {
@@ -309,7 +310,10 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
         this.originalPermissions = new Set(assignedPermissionIds);
         this.hasChanges = false;
         this.saving = false;
-        
+
+        // Refresh JWT so this browser session picks up permission changes
+        this.permissionSyncService.syncAfterRbacChange();
+
         // Emit the updated role
         this.permissionsUpdated.emit(updatedRole);
       },

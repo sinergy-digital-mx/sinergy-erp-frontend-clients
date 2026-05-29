@@ -2,7 +2,7 @@ import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '../../../../core/services/toast.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { WritePurchaseOrderDto } from '../../models/filters.model';
@@ -64,7 +64,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     private fiscalConfigService: FiscalConfigurationService,
     private warehouseService: WarehouseService,
     private vendorService: VendorService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<CreatePurchaseOrderModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
@@ -113,7 +113,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
       this.cdr.detectChanges();
     }).catch((error) => {
       console.error('Error loading dropdown data:', error);
-      this.snackBar.open('Error al cargar datos', 'Cerrar', { duration: 3000 });
+      this.toast.error('Error al cargar datos');
       this.loading = false;
       this.cdr.detectChanges();
     });
@@ -144,7 +144,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading vendor products:', error);
-        this.snackBar.open('Error al cargar productos del proveedor', 'Cerrar', { duration: 3000 });
+        this.toast.error('Error al cargar productos del proveedor');
         this.loadingProducts = false;
       }
     });
@@ -207,7 +207,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
 
   openAddProductModal(): void {
     if (!this.form.get('vendor_id')?.value) {
-      this.snackBar.open('Selecciona un proveedor antes de agregar productos', 'Cerrar', { duration: 3000 });
+      this.toast.warning('Selecciona un proveedor antes de agregar productos');
       return;
     }
     this.addProductModalOpen = true;
@@ -238,12 +238,12 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
 
   confirmAddProduct(): void {
     if (!this.selectedProduct || !this.selectedUomId) {
-      this.snackBar.open('Selecciona producto y UOM', 'Cerrar', { duration: 2500 });
+      this.toast.warning('Selecciona producto y UOM');
       return;
     }
     const quantity = Number(this.selectedQuantity || 0);
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      this.snackBar.open('Cantidad inválida', 'Cerrar', { duration: 2500 });
+      this.toast.warning('Cantidad inválida');
       return;
     }
 
@@ -346,7 +346,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
 
   save(): void {
     if (!this.form.valid || this.lineItems.length === 0) {
-      this.snackBar.open('Por favor completa todos los campos y agrega al menos un producto', 'Cerrar', { duration: 3000 });
+      this.toast.warning('Por favor completa todos los campos y agrega al menos un producto');
       return;
     }
 
@@ -382,7 +382,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
       next: (order) => {
         this.saving = false;
         this.cdr.detectChanges();
-        this.snackBar.open('Orden de compra creada exitosamente', 'Cerrar', { duration: 3000 });
+        this.toast.success('Orden de compra creada exitosamente');
         this.dialogRef.close(order);
       },
       error: (error) => {
@@ -390,7 +390,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
         this.cdr.detectChanges();
         console.error('Error creating order:', error);
         const errorMessage = error.error?.message || 'Error al crear la orden de compra';
-        this.snackBar.open(errorMessage, 'Cerrar', { duration: 5000 });
+        this.toast.error(errorMessage);
       }
     });
   }

@@ -39,7 +39,17 @@
         </div>
 
         <div class="form-field">
-          <label class="form-label">CLIENTE *</label>
+          <div class="form-label-row">
+            <label class="form-label">CLIENTE *</label>
+            <button
+              type="button"
+              class="btn-label-add"
+              (click)="openCreateCustomerModal()"
+              title="Crear cliente"
+              aria-label="Crear cliente">
+              <i class="fi fi-rr-plus"></i>
+            </button>
+          </div>
           <input
             type="text"
             class="form-input"

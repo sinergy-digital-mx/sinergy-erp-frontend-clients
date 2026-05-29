@@ -124,9 +124,9 @@ export class WarehouseListComponent implements OnDestroy {
   }
 
   getStatusClass(status: string): string {
-    return status === 'active' 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-red-100 text-red-800';
+    return status === 'active'
+      ? 'settings-badge--status-active'
+      : 'settings-badge--status-inactive';
   }
 
   getStatusLabel(status: string): string {

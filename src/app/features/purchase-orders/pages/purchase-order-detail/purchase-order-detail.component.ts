@@ -58,9 +58,10 @@ export class PurchaseOrderDetailComponent implements OnInit {
   canAddPayment = computed(() => {
     const order = this.orderData();
     if (!order) return false;
-    const pending = Number(order.payments_summary?.amount_pending ?? order.remaining_amount ?? 0);
-    const paymentStatus = order.payments_summary?.payment_status ?? order.payment_status;
-    return pending > 0 && order.status !== 'Cancelada' && paymentStatus !== 'Pagado';
+    const status = order.general_status ?? order.status;
+    if (status === 'Cancelada') return false;
+    const pending = this.getPendingPaymentAmount(order);
+    return pending >= 0.01;
   });
   
   canCancel = computed(() => {
@@ -204,22 +205,41 @@ export class PurchaseOrderDetailComponent implements OnInit {
     }
   }
 
+  private getPendingPaymentAmount(order: PurchaseOrder): number {
+    if (order.payments_summary?.amount_pending != null) {
+      const pending = Number(order.payments_summary.amount_pending);
+      return Number.isFinite(pending) ? Math.round(pending * 100) / 100 : 0;
+    }
+    const remaining = Number(order.remaining_amount ?? 0);
+    if (Number.isFinite(remaining) && remaining > 0) {
+      return Math.round(remaining * 100) / 100;
+    }
+    const paid = (order.payments ?? []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const total = Number(order.grand_total ?? 0);
+    return Math.max(Math.round((total - paid) * 100) / 100, 0);
+  }
+
   /**
    * Register payment using dialog
    */
   registerPayment(): void {
     const order = this.orderData();
     if (!order) return;
-    
+
+    const remainingAmount = this.getPendingPaymentAmount(order);
+    const totalAmount = order.payments_summary
+      ? Math.round(
+          (Number(order.payments_summary.amount_paid ?? 0) +
+            Number(order.payments_summary.amount_pending ?? 0)) *
+            100
+        ) / 100
+      : Number(order.grand_total ?? 0);
+
     const dialogRef = this.dialog.open(PaymentDialogComponent, {
       width: '660px',
       data: {
-        totalAmount: Number(
-          order.payments_summary
-            ? Number(order.payments_summary.amount_paid ?? 0) + Number(order.payments_summary.amount_pending ?? 0)
-            : order.grand_total ?? 0
-        ),
-        remainingAmount: Number(order.payments_summary?.amount_pending ?? order.remaining_amount ?? 0),
+        totalAmount,
+        remainingAmount,
         currency: order.payments_summary?.currency ?? order.payment_currency ?? 'MXN'
       },
       disableClose: false

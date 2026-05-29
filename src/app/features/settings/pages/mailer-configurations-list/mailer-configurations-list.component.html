@@ -1,0 +1,63 @@
+<div class="settings-list-page px-4 pb-6">
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800">Configuración de Correo</h2>
+      <p class="text-sm text-gray-500">Gestiona la configuración activa para envío de correos.</p>
+    </div>
+
+    <app-button
+      text="Crear Configuración"
+      custom_class="btn_primary"
+      (clicked)="openCreateModal()">
+    </app-button>
+  </div>
+
+  <app-datatable-wrapper
+    variant="settings"
+    [config]="table_config()"
+    [rowTemplate]="tableTemplate">
+  </app-datatable-wrapper>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td>
+    <div class="flex items-center gap-2 min-w-0">
+      <p class="settings-cell-primary truncate">{{ item.name }}</p>
+      <lucide-icon *ngIf="isConfigurationActive(item)" [img]="CheckCircle2" [size]="15" class="text-green-600 shrink-0"></lucide-icon>
+    </div>
+  </td>
+  <td>
+    <span class="settings-cell-text capitalize">{{ item.vendor }}</span>
+  </td>
+  <td>
+    <span class="settings-badge" [ngClass]="getStatusClass(isConfigurationActive(item))">
+      {{ getStatusLabel(isConfigurationActive(item)) }}
+    </span>
+  </td>
+  <td>
+    <span class="settings-cell-text">{{ item.created_at ? (item.created_at | date:'mediumDate') : '—' }}</span>
+  </td>
+  <td>
+    <div class="flex gap-2">
+      <button
+        (click)="activateConfiguration(item); $event.stopPropagation()"
+        [disabled]="isConfigurationActive(item)"
+        class="p-1.5 text-green-600 hover:text-white hover:bg-green-600 rounded-md transition-all duration-200 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-green-600"
+        title="Activar">
+        <lucide-icon [img]="Power" [size]="16"></lucide-icon>
+      </button>
+      <button
+        (click)="editConfiguration(item); $event.stopPropagation()"
+        class="p-1.5 text-gray-600 hover:text-white hover:bg-gray-600 rounded-md transition-all duration-200"
+        title="Editar">
+        <lucide-icon [img]="Edit2" [size]="16"></lucide-icon>
+      </button>
+      <button
+        (click)="deleteConfiguration(item); $event.stopPropagation()"
+        class="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-md transition-all duration-200"
+        title="Eliminar">
+        <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
+      </button>
+    </div>
+  </td>
+</ng-template>

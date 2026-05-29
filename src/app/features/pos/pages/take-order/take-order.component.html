@@ -110,23 +110,26 @@
               }
             </div>
             <div class="pos-card__body">
-              <h3 class="pos-card__name">{{ product.name }}</h3>
-              <p class="pos-card__sku">{{ product.sku }}</p>
-              <p class="pos-card__stock">Stock: {{ product.total_available_quantity || 0 }}</p>
-              <div class="pos-card__price-row">
+              <div class="pos-card__head">
+                <h3 class="pos-card__name">{{ product.name }}</h3>
                 @if (product.has_price) {
                   <span class="pos-card__price">{{ formatCurrency(product.cost || 0) }}</span>
                 } @else {
                   <span class="pos-card__no-price">Sin precio</span>
                 }
               </div>
+              <p class="pos-card__meta">
+                <span>{{ product.sku }}</span>
+                <span class="pos-card__meta-dot" aria-hidden="true">·</span>
+                <span>Stock {{ product.total_available_quantity || 0 }}</span>
+              </p>
             </div>
             <button
               type="button"
               class="pos-card__add"
               (click)="addProductToCart(product); $event.stopPropagation()"
               [disabled]="!canAddToCart(product)">
-              <lucide-icon [img]="Plus" class="pos-ic" />
+              <lucide-icon [img]="Plus" class="pos-ic pos-ic--sm" />
               <span>Agregar</span>
             </button>
           </article>
@@ -156,54 +159,95 @@
         </div>
       </div>
 
+      <div class="pos-cart__tabs" role="tablist" aria-label="Secciones de la orden">
+        <button
+          type="button"
+          class="pos-cart__tab"
+          role="tab"
+          [attr.aria-selected]="cartActiveTab() === 'products'"
+          [class.pos-cart__tab--active]="cartActiveTab() === 'products'"
+          (click)="setCartTab('products')">
+          {{ cartProductsTabLabel() }}
+        </button>
+        <button
+          type="button"
+          class="pos-cart__tab"
+          role="tab"
+          [attr.aria-selected]="cartActiveTab() === 'payment'"
+          [class.pos-cart__tab--active]="cartActiveTab() === 'payment'"
+          (click)="setCartTab('payment')">
+          {{ cartPaymentTabLabel() }}
+        </button>
+      </div>
+
+      <div class="pos-cart__body">
+        @if (cartActiveTab() === 'products') {
+          <div class="pos-cart__panel pos-cart__panel--products">
       <div class="pos-cart__lines" [class.pos-cart__lines--empty]="posService.cart().items.length === 0">
         @for (item of posService.cart().items; track $index; let i = $index) {
-          <div class="pos-line">
-            <div class="pos-line__main">
+          <article class="pos-line">
+            <div class="pos-line__top">
               <div class="pos-line__info">
-                <h4>{{ item.product_name }}</h4>
-                <p class="pos-line__sku">{{ item.product_sku }}</p>
-                <p class="pos-line__unit">
-                  {{ formatCurrency(item.unit_price) }} · {{ item.uom_name }}
+                <h4 class="pos-line__name">{{ item.product_name }}</h4>
+                <p class="pos-line__meta">
+                  <span class="pos-line__sku">{{ item.product_sku }}</span>
+                  <span class="pos-line__meta-sep" aria-hidden="true">·</span>
+                  <span class="pos-line__unit">{{ formatCurrency(item.unit_price) }} · {{ item.uom_name }}</span>
                 </p>
                 @if ((item.pricing_options?.length || 0) > 0) {
-                  <div class="pos-line__pricing">
-                    <label>Lista</label>
-                    <select
-                      [ngModel]="item.selected_price_list_id || ''"
-                      (ngModelChange)="onPricingOptionChange(i, $event)">
-                      <option value="">Precio sugerido</option>
-                      @for (opt of item.pricing_options || []; track opt.price_list_id) {
-                        <option [value]="opt.price_list_id">
-                          {{ opt.price_list_name }} · {{ formatCurrency(+opt.price || 0) }}
-                        </option>
-                      }
-                    </select>
-                  </div>
+                  <select
+                    [id]="'pos-price-list-' + i"
+                    class="pos-line__pricing-select"
+                    [attr.aria-label]="'Lista de precio para ' + item.product_name"
+                    [ngModel]="item.selected_price_list_id || ''"
+                    (ngModelChange)="onPricingOptionChange(i, $event)">
+                    <option value="">Lista: precio sugerido</option>
+                    @for (opt of item.pricing_options || []; track opt.price_list_id) {
+                      <option [value]="opt.price_list_id">
+                        {{ opt.price_list_name }} · {{ formatCurrency(+opt.price || 0) }}
+                      </option>
+                    }
+                  </select>
                 }
               </div>
-              <button type="button" class="pos-line__remove" (click)="removeItem(i)" title="Quitar">
-                <lucide-icon [img]="Trash2" class="pos-ic pos-ic--sm" />
+              <button
+                type="button"
+                class="pos-line__remove"
+                (click)="removeItem(i)"
+                title="Quitar del carrito"
+                aria-label="Quitar del carrito">
+                <lucide-icon [img]="Trash2" class="pos-ic pos-ic--xs" />
               </button>
             </div>
-            <div class="pos-line__controls">
-              <div class="pos-qty">
-                <button type="button" (click)="updateQuantity(i, item.quantity - 1)">
+
+            <div class="pos-line__bottom">
+              <div class="pos-qty" role="group" [attr.aria-label]="'Cantidad de ' + item.product_name">
+                <button
+                  type="button"
+                  class="pos-qty__btn"
+                  (click)="updateQuantity(i, item.quantity - 1)"
+                  aria-label="Disminuir cantidad">
                   <lucide-icon [img]="Minus" class="pos-ic pos-ic--xs" />
                 </button>
                 <input
+                  class="pos-qty__input"
                   type="number"
                   [value]="item.quantity"
                   (change)="updateQuantity(i, +$any($event.target).value)"
                   min="1"
+                  [attr.aria-label]="'Cantidad'"
                 />
-                <button type="button" (click)="updateQuantity(i, item.quantity + 1)">
+                <button
+                  type="button"
+                  class="pos-qty__btn"
+                  (click)="updateQuantity(i, item.quantity + 1)"
+                  aria-label="Aumentar cantidad">
                   <lucide-icon [img]="Plus" class="pos-ic pos-ic--xs" />
                 </button>
               </div>
               <span class="pos-line__total">{{ formatCurrency(item.line_total) }}</span>
             </div>
-          </div>
+          </article>
         }
 
         @if (posService.cart().items.length === 0) {
@@ -233,6 +277,52 @@
           <strong>{{ formatCurrency(posService.cart().grand_total) }}</strong>
         </div>
       </div>
+          </div>
+        } @else {
+          <div class="pos-cart__panel pos-cart__panel--payment">
+            @if (posService.cart().grand_total > 0) {
+              <div class="pos-pay__banner">
+                <span>Total a cobrar</span>
+                <strong>{{ formatCurrency(posService.cart().grand_total) }}</strong>
+              </div>
+            }
+      <div class="pos-customer">
+        <button
+          type="button"
+          class="pos-customer__toggle"
+          [class.pos-customer__toggle--selected]="!!selectedCustomer()"
+          (click)="openCustomerPicker()">
+          <div class="pos-customer__toggle-left">
+            <span class="pos-customer__avatar" [class.pos-customer__avatar--filled]="!!selectedCustomer()">
+              @if (selectedCustomer(); as customer) {
+                {{ customerInitials(customer) }}
+              } @else {
+                <lucide-icon [img]="User" class="pos-ic pos-ic--sm" />
+              }
+            </span>
+            <div class="pos-customer__toggle-text">
+              <span class="pos-customer__label">Cliente existente</span>
+              @if (selectedCustomer(); as customer) {
+                <span class="pos-customer__name">{{ customerDisplayName(customer) }}</span>
+              } @else {
+                <span class="pos-customer__hint">Mostrador · toca para elegir cliente</span>
+              }
+            </div>
+          </div>
+          <div class="pos-customer__toggle-right">
+            @if (selectedCustomer()) {
+              <button
+                type="button"
+                class="pos-customer__clear"
+                (click)="clearCustomer(); $event.stopPropagation()"
+                title="Quitar cliente">
+                <lucide-icon [img]="X" class="pos-ic pos-ic--xs" />
+              </button>
+            }
+            <lucide-icon [img]="ChevronRight" class="pos-ic pos-ic--sm pos-customer__chevron" />
+          </div>
+        </button>
+      </div>
 
       <div class="pos-pay">
         <h3 class="pos-pay__title">Método de pago</h3>
@@ -241,7 +331,7 @@
             type="button"
             class="pos-pay__method"
             [class.pos-pay__method--on]="paymentMethod() === 'cash'"
-            (click)="paymentMethod.set('cash')">
+            (click)="setPaymentMethod('cash')">
             <lucide-icon [img]="Banknote" class="pos-ic" />
             Efectivo
           </button>
@@ -249,7 +339,7 @@
             type="button"
             class="pos-pay__method"
             [class.pos-pay__method--on]="paymentMethod() === 'card'"
-            (click)="paymentMethod.set('card')">
+            (click)="setPaymentMethod('card')">
             <lucide-icon [img]="CreditCard" class="pos-ic" />
             Tarjeta
           </button>
@@ -257,7 +347,7 @@
             type="button"
             class="pos-pay__method"
             [class.pos-pay__method--on]="paymentMethod() === 'credit'"
-            (click)="paymentMethod.set('credit')">
+            (click)="setPaymentMethod('credit')">
             <lucide-icon [img]="FileText" class="pos-ic" />
             Crédito
           </button>
@@ -284,21 +374,10 @@
             }
           </div>
         }
-        @if (paymentMethod() === 'credit') {
-          <div class="pos-credit">
-            <label class="pos-cash__field">
-              <span>Cliente *</span>
-              <select
-                [ngModel]="selectedCustomerId()"
-                (ngModelChange)="selectedCustomerId.set($event)">
-                <option value="">Selecciona cliente…</option>
-                @for (customer of customers(); track customer.id) {
-                  <option [value]="customer.id">
-                    {{ customer.name }} {{ customer.lastname || '' }}{{ customer.company_name ? ' - ' + customer.company_name : '' }}
-                  </option>
-                }
-              </select>
-            </label>
+        @if (paymentMethod() === 'credit' && !selectedCustomerId()) {
+          <p class="pos-cash__warn">Selecciona un cliente existente para venta a crédito</p>
+        }
+      </div>
           </div>
         }
       </div>

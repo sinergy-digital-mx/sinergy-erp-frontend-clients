@@ -17,6 +17,10 @@
     token: string;
     permissions$ = new BehaviorSubject<Set<string>>(new Set());
 
+    /** Skip /auth/refresh briefly after login so refresh doesn't overwrite a fresh token. */
+    private freshLoginUntil = 0;
+    private readonly freshLoginGraceMs = 15_000;
+
 
 
     constructor(private router: Router, public http: HttpClient, public activated_route: ActivatedRoute) {
@@ -46,12 +50,55 @@
     }
 
     logout() {
+      this.clearSession();
+      this.router.navigate(['/login']);
+    }
+
+    /** Clears in-memory session state and removes the stored token. */
+    clearSession(): void {
       this.token = '';
       this.user_info = null as any;
       localStorage.removeItem(this.name_token);
-      // Clear permissions on logout
       this.permissions$.next(new Set());
-      this.router.navigate(['/login']);
+    }
+
+    /** True right after login — avoid calling /auth/refresh over the new token. */
+    isWithinFreshLoginGrace(): boolean {
+      return Date.now() < this.freshLoginUntil;
+    }
+
+    /**
+     * Logs JWT claims for debugging permission sync issues.
+     * If permissions here are stale right after login, the bug is in POST /auth/login (backend).
+     */
+    logTokenDiagnostics(source: string): void {
+      if (!this.token) {
+        console.warn(`[JWT ${source}] No hay token`);
+        return;
+      }
+
+      const decoded = jwtDecode<any>(this.token);
+      const flatPermissions = this.decodeJWT(this.token);
+
+      console.group(`=== JWT DIAGNOSTICS [${source}] ===`);
+      console.log('user:', decoded.email || decoded.sub);
+      console.log('permissions_version:', decoded.permissions_version);
+      console.log('permissionCount (claim):', decoded.permissionCount);
+      console.log('roles:', decoded.roles);
+      console.log('permissions raw type:', Array.isArray(decoded.permissions) ? 'array' : typeof decoded.permissions);
+      console.log('permissions flat count:', flatPermissions.length);
+      console.log('permissions sample:', flatPermissions.slice(0, 15));
+      console.groupEnd();
+    }
+
+    /** Re-reads token from localStorage (e.g. another tab updated it). */
+    reloadFromStorage(): void {
+      const storedToken = localStorage.getItem(this.name_token);
+      if (storedToken) {
+        this.setToken(storedToken);
+      } else {
+        this.clearSession();
+      }
     }
 
     /**
@@ -67,11 +114,13 @@
             console.log('=== AUTH SERVICE - REFRESH ===');
             console.log('Token refreshed due to permission changes');
             
-            const token = response.access_token;
+            const token = response.access_token || response.token;
             
             if (token) {
-              // Store new token
               this.setToken(token);
+              this.logTokenDiagnostics('REFRESH');
+            } else {
+              console.warn('[AuthService] Refresh response did not include a token');
             }
             
             observer.next(response);
@@ -90,11 +139,15 @@
      * 
      * @param token - The new JWT token to store
      */
-    setToken(token: string): void {
+    setToken(token: string, fromLogin = false): void {
       localStorage.setItem(this.name_token, token);
       this.token = token;
       this.user_info = jwtDecode(token);
       
+      if (fromLogin) {
+        this.freshLoginUntil = Date.now() + this.freshLoginGraceMs;
+      }
+
       // Decode and set new permissions
       const permissions = this.decodeJWT(token);
       this.setPermissions(permissions);
@@ -119,15 +172,8 @@
             const token = response.token || response.access_token;
             
             if (token) {
-              // Store token in localStorage
-              localStorage.setItem(this.name_token, token);
-              this.token = token;
-              
-              // Decode JWT and extract permissions
-              const permissions = this.decodeJWT(token);
-              
-              // Call setPermissions with extracted permissions array
-              this.setPermissions(permissions);
+              this.setToken(token, true);
+              this.logTokenDiagnostics('LOGIN');
             } else {
               console.warn('No se encontró token en la respuesta');
             }
@@ -334,12 +380,27 @@
         }
 
         const permissions = decoded.permissions;
-        
-        if (!Array.isArray(permissions)) {
-          return [];
+
+        if (Array.isArray(permissions)) {
+          return permissions;
         }
 
-        return permissions;
+        if (permissions && typeof permissions === 'object') {
+          const flat: string[] = [];
+          for (const [module, actions] of Object.entries(permissions)) {
+            if (Array.isArray(actions)) {
+              actions.forEach((action: { action?: string } | string) => {
+                const actionStr = typeof action === 'string' ? action : action.action;
+                if (actionStr) {
+                  flat.push(`${module}:${actionStr}`);
+                }
+              });
+            }
+          }
+          return flat;
+        }
+
+        return [];
       } catch (error) {
         console.error('Error decoding JWT token:', error);
         return [];

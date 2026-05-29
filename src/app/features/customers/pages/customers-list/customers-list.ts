@@ -23,6 +23,7 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
 
 @Component({
   selector: 'app-customers-list',
+  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

@@ -20,8 +20,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Check if error is 401 with PERMISSIONS_CHANGED
-      if (error.status === 401 && error.error?.error === 'PERMISSIONS_CHANGED') {
+      const permissionsChanged =
+        error.status === 401 &&
+        (error.error?.error === 'PERMISSIONS_CHANGED' ||
+          error.error?.code === 'PERMISSIONS_CHANGED' ||
+          error.error?.message === 'PERMISSIONS_CHANGED');
+
+      if (permissionsChanged) {
         console.log('🔄 Permissions changed detected, refreshing token...');
         
         // Call refresh endpoint to get new token

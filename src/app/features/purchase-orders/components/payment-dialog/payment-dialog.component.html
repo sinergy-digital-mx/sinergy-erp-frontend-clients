@@ -141,7 +141,7 @@
       <button type="button" class="btn-cancel" (click)="closeDialog()" [disabled]="loading()">
         Cancelar
       </button>
-      <button type="button" class="btn-submit" (click)="submit()" [disabled]="form.invalid || loading()">
+      <button type="button" class="btn-submit" (click)="submit()" [disabled]="!canSubmit()">
         Registrar Pago
       </button>
     </div>

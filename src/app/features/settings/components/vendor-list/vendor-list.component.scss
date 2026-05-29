@@ -1,1 +1,17 @@
-// Vendor list component styles
+@use '../../styles/settings-list-table';
+
+.vendor-type-filter {
+  min-width: 11rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  color: #334155;
+  background: #fff;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/inventory/inventory.routes.ts"],
+  "sourcesContent": ["import { Routes } from '@angular/router';\r\nimport { permissionGuard } from '../../core/guards/permission.guard';\r\nimport { INVENTORY_PERMISSIONS } from './config/permissions.config';\r\n\r\nexport const INVENTORY_ROUTES: Routes = [\r\n  {\r\n    path: '',\r\n    loadComponent: () =>\r\n      import('./components/inventory-batch-list/inventory-batch-list.component')\r\n        .then(m => m.InventoryBatchListComponent),\r\n    canActivate: [permissionGuard],\r\n    data: { \r\n      permissions: [INVENTORY_PERMISSIONS.viewList],\r\n      title: 'Inventario'\r\n    }\r\n  }\r\n];\r\n"],
+  "mappings": ";;;;;;;;;;;;AAIO,IAAM,mBAA2B;EACtC;IACE,MAAM;IACN,eAAe,MACb,OAAO,qBAAkE,EACtE,KAAK,OAAK,EAAE,2BAA2B;IAC5C,aAAa,CAAC,eAAe;IAC7B,MAAM;MACJ,aAAa,CAAC,sBAAsB,QAAQ;MAC5C,OAAO;;;;",
+  "names": []
+}

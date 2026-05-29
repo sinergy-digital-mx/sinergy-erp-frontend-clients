@@ -1,4 +1,4 @@
-<div class="datatable-wrapper">
+<div class="datatable-wrapper" [class.datatable-wrapper--settings]="variant === 'settings'">
   <!-- Loading Indicator -->
   <div *ngIf="config?.loading" class="loading-overlay">
     <app-spinner></app-spinner>
@@ -48,27 +48,44 @@
       </tbody>
     </table>
 
-    <!-- Pagination Controls -->
-    <div class="pagination-controls" *ngIf="config?.externalPaging">
-      <div class="pagination-info">
-        <span>
-          Page {{ config?.page }} of {{ (config?.totalResults / config?.limit) | number: '1.0-0' }}
-          ({{ config?.totalResults }} total)
-        </span>
-      </div>
-      <div class="pagination-buttons">
-        <button 
-          class="pagination-btn"
-          [disabled]="config?.page === 1"
-          (click)="onPrevPage()">
-          ← Previous
-        </button>
-        <button 
-          class="pagination-btn"
-          [disabled]="!config?.hasNext"
-          (click)="onNextPage()">
-          Next →
-        </button>
+    <div
+      class="pagination-controls"
+      *ngIf="config?.externalPaging && (config?.totalResults ?? 0) > 0">
+      <span class="pagination-summary">
+        {{ rangeStart }}-{{ rangeEnd }} de {{ config?.totalResults }} resultados
+      </span>
+
+      <div class="pagination-actions">
+        <label class="pagination-per-page" for="datatable-page-size">
+          <span class="pagination-per-page__label">Por página</span>
+          <select
+            id="datatable-page-size"
+            class="pagination-per-page__select"
+            [value]="config?.limit"
+            (change)="onLimitChange($event)">
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+        </label>
+
+        <div class="pagination-nav">
+          <button
+            type="button"
+            class="pagination-nav__btn"
+            aria-label="Página anterior"
+            [disabled]="(config?.page ?? 1) <= 1"
+            (click)="onPrevPage()">
+            ‹
+          </button>
+          <span class="pagination-nav__indicator">{{ config?.page }} / {{ totalPages }}</span>
+          <button
+            type="button"
+            class="pagination-nav__btn"
+            aria-label="Página siguiente"
+            [disabled]="!config?.hasNext"
+            (click)="onNextPage()">
+            ›
+          </button>
+        </div>
       </div>
     </div>
   </div>

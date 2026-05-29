@@ -1,3 +1,5 @@
+export type DatatableVariant = 'default' | 'settings';
+
 /**
  * Configuration interface for the datatable wrapper component
  * Provides a consistent interface for pages using ngx-datatable
@@ -14,6 +16,8 @@ export interface IDatatableConfig {
   limit: number;
   totalResults: number;
   hasNext?: boolean;
+  /** Opciones del selector "registros por página" (por defecto: 10, 20, 50, 100) */
+  pageSizeOptions?: number[];
 
   // UI
   loading: boolean;

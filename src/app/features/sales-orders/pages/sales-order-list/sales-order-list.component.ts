@@ -4,14 +4,16 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SalesOrderService } from '../../services/sales-order.service';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
-import { SalesOrder, SalesOrderFilters, PaginationParams } from '../../models/sales-order.model';
+import { Customer, SalesOrder, SalesOrderFilters, PaginationParams } from '../../models/sales-order.model';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { SalesFilterBarComponent } from '../../components/sales-filter-bar/sales-filter-bar.component';
 import { CreateSalesOrderModalComponent } from '../../components/create-sales-order-modal/create-sales-order-modal.component';
 import { SalesOrderDetailDialogComponent } from '../../components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
+import { getCustomerDisplayName } from '../../utils/customer-display.util';
 
 @Component({
   selector: 'app-sales-order-list',
@@ -162,12 +164,8 @@ export class SalesOrderListComponent implements OnInit {
 
   navigateToDetail(order: SalesOrder): void {
     this.dialog.open(SalesOrderDetailDialogComponent, {
-      data: { orderId: order.id },
-      width: '1400px',
-      maxWidth: '95vw',
-      height: '90vh',
-      maxHeight: '90vh',
-      panelClass: 'order-detail-dialog-container'
+      ...ORDER_DETAIL_DIALOG_OPTIONS,
+      data: { orderId: order.id }
     }).afterClosed().subscribe((updated) => {
       if (updated) this.loadOrders();
     });
@@ -206,6 +204,10 @@ export class SalesOrderListComponent implements OnInit {
   }
 
   getOrderTotal(order: SalesOrder): number {
-    return parseFloat(order.requested_total || '0') || order.grand_total || 0;
+    return Number(order.requested_total ?? 0) || order.grand_total || 0;
+  }
+
+  getCustomerDisplayName(customer?: Customer | null): string {
+    return getCustomerDisplayName(customer);
   }
 }

@@ -1,8 +1,9 @@
 import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
+import { ToastService } from '../../../../core/services/toast.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { SalesOrderService } from '../../services/sales-order.service';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
@@ -66,7 +67,8 @@ export class CreateSalesOrderModalComponent implements OnInit {
     private fiscalConfigService: FiscalConfigurationService,
     private warehouseService: WarehouseService,
     private customerService: CustomerService,
-    private snackBar: MatSnackBar,
+    private dialog: MatDialog,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<CreateSalesOrderModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
@@ -113,11 +115,12 @@ export class CreateSalesOrderModalComponent implements OnInit {
       }));
       this.filteredCustomers = [...this.customers];
       this.warehouses = (warehouses as any)?.data || [];
+      this.prefillCustomerIfProvided();
       this.loading = false;
       this.cdr.detectChanges();
     }).catch((error) => {
       console.error('Error loading dropdown data:', error);
-      this.snackBar.open('Error al cargar datos', 'Cerrar', { duration: 3000 });
+      this.toast.error('Error al cargar datos');
       this.loading = false;
       this.cdr.detectChanges();
     });
@@ -142,6 +145,41 @@ export class CreateSalesOrderModalComponent implements OnInit {
     }, { emitEvent: false });
   }
 
+  openCreateCustomerModal(): void {
+    const dialogRef = this.dialog.open(CustomerEditModalComponent, {
+      width: '700px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'customer-edit-dialog',
+      autoFocus: 'first-tabbable',
+      data: { customer: null }
+    });
+
+    dialogRef.afterClosed().subscribe((created) => {
+      if (created) {
+        this.reloadCustomers();
+      }
+    });
+  }
+
+  private reloadCustomers(): void {
+    this.customerService.getCustomers({ limit: 100 }).subscribe({
+      next: (customers) => {
+        const customerRows = (customers as any)?.data || [];
+        this.customers = customerRows.map((customer: any) => ({
+          ...customer,
+          display_name: this.formatCustomerLabel(customer)
+        }));
+        const search = this.form.get('customer_search')?.value ?? '';
+        this.filterCustomers(search);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.toast.error('No se pudieron actualizar los clientes');
+      }
+    });
+  }
+
   displayCustomer(customer: any): string {
     if (!customer) return '';
     if (typeof customer === 'string') return customer;
@@ -161,6 +199,18 @@ export class CreateSalesOrderModalComponent implements OnInit {
     this.filteredCustomers = this.customers.filter((customer) =>
       String(customer.display_name || '').toLowerCase().includes(term)
     );
+  }
+
+  private prefillCustomerIfProvided(): void {
+    const customerId = this.data?.customerId;
+    if (customerId == null || customerId === '') return;
+
+    const customer = this.customers.find(
+      (c) => String(c.id) === String(customerId)
+    );
+    if (customer) {
+      this.onCustomerSelected(customer);
+    }
   }
 
   private formatCustomerLabel(customer: any): string {
@@ -257,7 +307,7 @@ export class CreateSalesOrderModalComponent implements OnInit {
 
   openAddProductModal(): void {
     if (!this.form.get('warehouse_id')?.value) {
-      this.snackBar.open('Selecciona un almacén antes de agregar productos', 'Cerrar', { duration: 3000 });
+      this.toast.warning('Selecciona un almacén antes de agregar productos');
       return;
     }
     this.addProductModalOpen = true;
@@ -321,12 +371,12 @@ export class CreateSalesOrderModalComponent implements OnInit {
 
   confirmAddProduct(): void {
     if (!this.selectedProduct || !this.selectedUomId) {
-      this.snackBar.open('Selecciona producto y UOM', 'Cerrar', { duration: 2500 });
+      this.toast.warning('Selecciona producto y UOM');
       return;
     }
     const quantity = Number(this.selectedQuantity || 0);
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      this.snackBar.open('Cantidad inválida', 'Cerrar', { duration: 2500 });
+      this.toast.warning('Cantidad inválida');
       return;
     }
     const selectedUom = this.selectedProductUoms.find((row) => (row.id || row.product_uom_id || row.uom_id) === this.selectedUomId);
@@ -433,7 +483,7 @@ export class CreateSalesOrderModalComponent implements OnInit {
 
   save(): void {
     if (!this.form.valid || this.lineItems.length === 0) {
-      this.snackBar.open('Por favor completa todos los campos y agrega al menos un producto', 'Cerrar', { duration: 3000 });
+      this.toast.warning('Por favor completa todos los campos y agrega al menos un producto');
       return;
     }
 
@@ -461,14 +511,14 @@ export class CreateSalesOrderModalComponent implements OnInit {
     this.salesOrderService.createOrder(payload).subscribe({
       next: (order) => {
         this.saving = false;
-        this.snackBar.open('Orden de venta creada exitosamente', 'Cerrar', { duration: 3000 });
+        this.toast.success('Orden de venta creada exitosamente');
         this.dialogRef.close(order);
       },
       error: (error) => {
         this.saving = false;
         this.cdr.detectChanges();
         const msg = error.error?.message || error.message || 'Error al crear la orden de venta';
-        this.snackBar.open(msg, 'Cerrar', { duration: 5000 });
+        this.toast.error(msg);
       }
     });
   }

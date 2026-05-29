@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/properties/config/permissions.config.ts"],
+  "sourcesContent": ["/**\r\n * Properties Module Permissions Catalog\r\n * \r\n * Defines all permissions required for property-related actions.\r\n * Use these constants throughout the module instead of hardcoded strings.\r\n */\r\nexport const PROPERTY_PERMISSIONS = {\r\n  // Module access\r\n  viewMenu: 'properties:ViewMenu',\r\n  \r\n  // Views\r\n  viewList: 'properties:Read',\r\n  viewDetail: 'properties:Read',\r\n  viewStats: 'properties:Read',\r\n  \r\n  // CRUD operations\r\n  create: 'properties:Create',\r\n  update: 'properties:Update',\r\n  delete: 'properties:Delete',\r\n  \r\n  // Special actions\r\n  export: 'properties:Export',\r\n  import: 'properties:Import',\r\n  changeStatus: 'properties:ChangeStatus',\r\n  \r\n  // Bulk operations\r\n  bulkEdit: ['properties:Update', 'properties:Read'],\r\n  bulkDelete: ['properties:Delete', 'properties:Read']\r\n} as const;\r\n\r\n/**\r\n * Helper type for permission values\r\n */\r\nexport type PropertyPermission = typeof PROPERTY_PERMISSIONS[keyof typeof PROPERTY_PERMISSIONS];\r\n"],
+  "mappings": ";AAMO,IAAM,uBAAuB;;EAElC,UAAU;;EAGV,UAAU;EACV,YAAY;EACZ,WAAW;;EAGX,QAAQ;EACR,QAAQ;EACR,QAAQ;;EAGR,QAAQ;EACR,QAAQ;EACR,cAAc;;EAGd,UAAU,CAAC,qBAAqB,iBAAiB;EACjD,YAAY,CAAC,qBAAqB,iBAAiB;;",
+  "names": []
+}

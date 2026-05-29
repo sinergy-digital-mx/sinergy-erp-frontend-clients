@@ -2,11 +2,12 @@ import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { ToastService } from '../../../../core/services/toast.service';
 import { InventoryBatchService } from '../../services/inventory-batch.service';
 import { InventoryBatch } from '../../models/inventory-batch.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { OrderDetailDialogComponent } from '../../../purchase-orders/components/order-detail-dialog/order-detail-dialog.component';
+import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { WarehouseDetailModalComponent } from '../../../settings/components/warehouse-detail-modal/warehouse-detail-modal.component';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp } from 'lucide-angular';
@@ -15,7 +16,7 @@ import { LucideAngularModule } from 'lucide-angular';
 @Component({
   selector: 'app-batch-detail-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, RemoveTrailingZerosPipe, LucideAngularModule, MatSnackBarModule],
+  imports: [CommonModule, FormsModule, RemoveTrailingZerosPipe, LucideAngularModule],
   templateUrl: './batch-detail-dialog.component.html',
   styleUrl: './batch-detail-dialog.component.scss'
 })
@@ -44,7 +45,7 @@ export class BatchDetailDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<BatchDetailDialogComponent>,
     private batchService: InventoryBatchService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -71,12 +72,8 @@ export class BatchDetailDialogComponent implements OnInit {
     const b = this.batch();
     if (!b?.purchase_order_id) return;
     this.dialog.open(OrderDetailDialogComponent, {
-      data: { orderId: b.purchase_order_id },
-      width: '1400px',
-      maxWidth: '95vw',
-      height: '90vh',
-      maxHeight: '90vh',
-      panelClass: 'order-detail-dialog-container'
+      ...ORDER_DETAIL_DIALOG_OPTIONS,
+      data: { orderId: b.purchase_order_id }
     });
   }
 
@@ -131,11 +128,7 @@ export class BatchDetailDialogComponent implements OnInit {
       source_tag_identifier: normalized.length ? normalized : null
     });
     this.showTagModal.set(false);
-    this.snackBar.open('TAG actualizado localmente (pendiente endpoint)', 'Cerrar', {
-      duration: 2800,
-      horizontalPosition: 'end',
-      verticalPosition: 'top'
-    });
+    this.toast.info('TAG actualizado localmente (pendiente endpoint)');
   }
 
   get batchPhotoUrl(): string | null {
@@ -173,20 +166,11 @@ export class BatchDetailDialogComponent implements OnInit {
           photo_signed_url: photoUrl
         });
         this.uploadingPhoto.set(false);
-        this.snackBar.open('Foto del lote actualizada', 'Cerrar', {
-          duration: 2800,
-          horizontalPosition: 'end',
-          verticalPosition: 'top'
-        });
+        this.toast.success('Foto del lote actualizada');
       },
       error: (error) => {
         this.uploadingPhoto.set(false);
-        this.snackBar.open(error?.message || 'No se pudo subir la foto del lote', 'Cerrar', {
-          duration: 3200,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error(error?.message || 'No se pudo subir la foto del lote');
       }
     });
     input.value = '';

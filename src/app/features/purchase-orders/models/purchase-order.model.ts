@@ -50,7 +50,7 @@ export type OrderStatus = 'Creada' | 'En Proceso' | 'Recibida' | 'Cancelada';
 /**
  * Payment status enum
  */
-export type PaymentStatus = 'Pagada' | 'Parcial' | 'Pendiente' | 'No pagado';
+export type PaymentStatus = 'Pagada' | 'Pagado' | 'Parcial' | 'Pendiente' | 'No pagado';
 export type PaymentCurrency = 'MXN' | 'USD';
 
 export interface PaymentsSummary {

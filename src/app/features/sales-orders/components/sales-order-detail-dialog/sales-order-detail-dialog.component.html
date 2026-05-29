@@ -8,16 +8,20 @@
   @if (order() && !loading()) {
     <div class="dialog-header">
       <div class="dialog-header-main">
-        <h2 class="text-xl font-bold text-gray-900">#{{ order()!.folio || order()!.id.substring(0, 8) }}</h2>
-        <span class="px-3 py-1 rounded text-xs font-semibold" [ngClass]="getStatusClass(order()!.general_status)">
-          {{ order()!.general_status || '-' }}
-        </span>
+        <span class="order-type-badge order-type-badge--sale">VENTA</span>
+        <h2 class="dialog-header__folio">#{{ order()!.folio || order()!.id.substring(0, 8) }}</h2>
+        @if (canEditOrder()) {
+          <button type="button" class="edit-header-btn" (click)="goToEditForm()">
+            <i class="fi fi-rr-pencil"></i>
+            Editar orden
+          </button>
+        }
       </div>
       <div class="dialog-header-actions">
-        @if (canEditOrder()) {
-          <button type="button" class="edit-order-btn" (click)="goToEditForm()">Editar orden</button>
-        }
-        <button type="button" class="close-btn" (click)="close()">
+        <span class="status-badge" [ngClass]="getStatusClass(order()!.general_status)">
+          {{ order()!.general_status || '-' }}
+        </span>
+        <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">
           <i class="fi fi-rr-cross-small"></i>
         </button>
       </div>
@@ -26,85 +30,134 @@
     <div class="dialog-content">
       <div class="sidebar">
         <div class="info-cards-group">
-          <div class="info-card">
-            <div class="card-icon bg-blue-100 text-blue-600">
+          <div
+            class="info-card info-card--blue"
+            [class.info-card--clickable]="canOpenCustomer()"
+            role="button"
+            [attr.tabindex]="canOpenCustomer() ? 0 : null"
+            (click)="canOpenCustomer() && openCustomerInNewTab()"
+            (keydown.enter)="canOpenCustomer() && openCustomerInNewTab()"
+            (keydown.space)="$event.preventDefault(); canOpenCustomer() && openCustomerInNewTab()">
+            <div class="info-card__icon">
               <i class="fi fi-rr-user"></i>
             </div>
-            <div class="card-text">
-              <span class="card-label">CLIENTE</span>
-              <span class="card-value">{{ getCustomerDisplayName() }}</span>
+            <div class="info-card__content">
+              <span class="info-card__label">CLIENTE</span>
+              <span class="info-card__value">{{ getCustomerDisplayName() }}</span>
             </div>
+            @if (canOpenCustomer()) {
+              <i class="fi fi-rr-angle-right info-card__chevron"></i>
+            }
           </div>
 
-          <div class="info-card">
-            <div class="card-icon bg-orange-100 text-orange-600">
+          <div
+            class="info-card info-card--yellow"
+            [class.info-card--clickable]="canOpenWarehouse()"
+            role="button"
+            [attr.tabindex]="canOpenWarehouse() ? 0 : null"
+            (click)="canOpenWarehouse() && openWarehouseDialog()"
+            (keydown.enter)="canOpenWarehouse() && openWarehouseDialog()"
+            (keydown.space)="$event.preventDefault(); canOpenWarehouse() && openWarehouseDialog()">
+            <div class="info-card__icon">
               <i class="fi fi-rr-box"></i>
             </div>
-            <div class="card-text">
-              <span class="card-label">ALMACÉN</span>
-              <span class="card-value">{{ order()!.warehouse?.name || 'N/A' }}</span>
+            <div class="info-card__content">
+              <span class="info-card__label">ALMACÉN</span>
+              <span class="info-card__value">{{ order()!.warehouse?.name || 'N/A' }}</span>
             </div>
+            @if (canOpenWarehouse()) {
+              <i class="fi fi-rr-angle-right info-card__chevron"></i>
+            }
           </div>
 
-          <div class="info-card">
-            <div class="card-icon bg-purple-100 text-purple-600">
+          <div
+            class="info-card info-card--purple"
+            [class.info-card--clickable]="canOpenFiscal()"
+            role="button"
+            [attr.tabindex]="canOpenFiscal() ? 0 : null"
+            (click)="canOpenFiscal() && openFiscalDialog()"
+            (keydown.enter)="canOpenFiscal() && openFiscalDialog()"
+            (keydown.space)="$event.preventDefault(); canOpenFiscal() && openFiscalDialog()">
+            <div class="info-card__icon">
               <i class="fi fi-rr-document"></i>
             </div>
-            <div class="card-text">
-              <span class="card-label">FISCAL</span>
-              <span class="card-value">{{ getFiscalDisplayName() }}</span>
+            <div class="info-card__content">
+              <span class="info-card__label">FISCAL</span>
+              <span class="info-card__value">{{ getFiscalDisplayName() }}</span>
             </div>
+            @if (canOpenFiscal()) {
+              <i class="fi fi-rr-angle-right info-card__chevron"></i>
+            }
           </div>
         </div>
 
-        <div class="section">
-          <h3 class="section-title">FECHAS Y TIPO</h3>
+        <div class="section-card">
+          <h3 class="section-title">FECHAS</h3>
           <div class="section-item">
-            <span class="section-label">Fecha entrega</span>
-            <span class="section-value">{{ order()!.expected_delivery_date || '-' }}</span>
+            <span class="section-label">Fecha orden</span>
+            <span class="section-value">{{ formatShortDate(order()!.created_at) }}</span>
           </div>
           <div class="section-item">
-            <span class="section-label">Tipo</span>
-            <span class="section-value">{{ order()!.sales_order_type || 'MANUAL' }}</span>
+            <span class="section-label">Entrega estimada</span>
+            <span class="section-value">{{ formatShortDate(order()!.expected_delivery_date || order()!.delivery_date) }}</span>
           </div>
           <div class="section-item">
             <span class="section-label">Estado de pago</span>
-            <span class="px-2 py-1 rounded text-xs font-semibold" [ngClass]="getPaymentStatusClass(order()!.payment_status)">
-              {{ order()!.payment_status || '-' }}
+            <span class="payment-pill" [class.payment-pill--paid]="order()!.payment_status === 'Pagado'">
+              {{ order()!.payment_status || '—' }}
             </span>
           </div>
         </div>
 
-        <div class="section">
-          <h3 class="section-title">TOTALES</h3>
+        <div class="section-card section-card--totals">
+          <div class="section-header">
+            <h3 class="section-title">TOTALES</h3>
+            <div class="toggle-container">
+              <button
+                type="button"
+                class="toggle-btn"
+                [class.active]="!showDeliveredTotals()"
+                (click)="toggleTotals(false)">
+                Solicitados
+              </button>
+              <button
+                type="button"
+                class="toggle-btn"
+                [class.active]="showDeliveredTotals()"
+                (click)="toggleTotals(true)">
+                Entregados
+              </button>
+            </div>
+          </div>
+
           <div class="totals-card">
             <div class="totals-row">
               <span class="totals-label">Subtotal</span>
-              <span class="totals-value">{{ formatCurrency(order()!.subtotal) }}</span>
+              <span class="totals-value">{{ getDisplayedSubtotal() }}</span>
             </div>
-            <div class="totals-row">
-              <span class="totals-label">Descuento</span>
-              <span class="totals-value">{{ formatCurrency(order()!.discount_total) }}</span>
-            </div>
-            <div class="totals-row">
-              <span class="totals-label">IVA</span>
-              <span class="totals-value">{{ formatCurrency(order()!.iva_total) }}</span>
-            </div>
-            <div class="totals-row">
-              <span class="totals-label">IEPS</span>
-              <span class="totals-value">{{ formatCurrency(order()!.ieps_total) }}</span>
-            </div>
+            @if (hasVisibleDiscount()) {
+              <div class="totals-row">
+                <span class="totals-label">Descuento</span>
+                <span class="totals-value">{{ getDisplayedDiscount() }}</span>
+              </div>
+            }
+            @if (hasVisibleTaxes()) {
+              <div class="totals-row">
+                <span class="totals-label">Impuestos</span>
+                <span class="totals-value">{{ getDisplayedTaxes() }}</span>
+              </div>
+            }
             <div class="totals-divider"></div>
             <div class="totals-row totals-row-total">
               <span class="totals-label-total">Total</span>
-              <span class="totals-value-total text-blue-600">{{ formatCurrency(order()!.total || order()!.grand_total) }}</span>
+              <span class="totals-value-total" [ngClass]="getTotalColor()">{{ getDisplayedTotal() }}</span>
             </div>
           </div>
         </div>
 
-        <div class="section">
+        <div class="section-card section-card--notes">
           <h3 class="section-title">NOTAS</h3>
-          <p class="text-sm text-gray-600">{{ order()!.notes || 'Sin notas' }}</p>
+          <p class="notes-text">{{ order()!.notes || 'Sin notas' }}</p>
         </div>
       </div>
 
@@ -112,6 +165,7 @@
         <div class="tabs-header">
           <button class="tab-button" [class.active]="activeTabIndex() === 0" (click)="activeTabIndex.set(0)">Productos</button>
           <button class="tab-button" [class.active]="activeTabIndex() === 1" (click)="activeTabIndex.set(1)">Lotes</button>
+          <button class="tab-button" [class.active]="activeTabIndex() === 2" (click)="activeTabIndex.set(2)">Facturación</button>
         </div>
 
         <div class="tabs-content">
@@ -121,25 +175,38 @@
                 <thead>
                   <tr>
                     <th>PRODUCTO</th>
-                    <th>UOM</th>
-                    <th>CANTIDAD</th>
                     <th>PRECIO UNIT.</th>
                     <th>TOTAL LÍNEA</th>
+                    <th>SOLICITADAS</th>
+                    <th>ENTREGADAS</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (item of lineItems(); track item.id || $index) {
-                    <tr>
+                    <tr [class.row-clickable]="canOpenProduct(item)">
                       <td>
-                        <div class="product-info">
+                        <div
+                          class="product-info"
+                          [class.product-info--clickable]="canOpenProduct(item)"
+                          role="button"
+                          [attr.tabindex]="canOpenProduct(item) ? 0 : null"
+                          (click)="canOpenProduct(item) && openProductDetail(item)"
+                          (keydown.enter)="canOpenProduct(item) && openProductDetail(item)"
+                          (keydown.space)="$event.preventDefault(); canOpenProduct(item) && openProductDetail(item)">
                           <strong>{{ item.product?.name || item.product_id }}</strong>
                           <small>{{ item.product?.sku || '-' }}</small>
                         </div>
                       </td>
-                      <td>{{ getLineUom(item) }}</td>
-                      <td>{{ item.quantity | removeTrailingZeros }}</td>
                       <td>{{ formatCurrency(item.unit_price) }}</td>
                       <td>{{ formatCurrency(getLineTotal(item)) }}</td>
+                      <td>
+                        <span class="qty-pill">{{ getRequestedQuantity(item) | removeTrailingZeros }} {{ getLineUom(item) }}</span>
+                      </td>
+                      <td>
+                        <span class="qty-pill" [class.qty-pill--muted]="getDeliveredQuantity(item) === 0">
+                          {{ getDeliveredQuantity(item) | removeTrailingZeros }} {{ getLineUom(item) }}
+                        </span>
+                      </td>
                     </tr>
                   } @empty {
                     <tr>
@@ -156,6 +223,65 @@
             </div>
           }
 
+          @if (activeTabIndex() === 2) {
+            <div class="tab-content-wrapper billing-tab">
+              <div class="billing-summary">
+                <h3 class="billing-section-title">Datos fiscales de la orden</h3>
+                <div class="billing-grid">
+                  <div class="billing-field">
+                    <span class="billing-label">Razón social</span>
+                    <span class="billing-value">{{ getFiscalDisplayName() }}</span>
+                  </div>
+                  <div class="billing-field">
+                    <span class="billing-label">RFC</span>
+                    <span class="billing-value">{{ order()!.fiscal_configuration?.rfc || '—' }}</span>
+                  </div>
+                  <div class="billing-field">
+                    <span class="billing-label">Tipo de persona</span>
+                    <span class="billing-value">{{ order()!.fiscal_configuration?.persona_type || '—' }}</span>
+                  </div>
+                  <div class="billing-field">
+                    <span class="billing-label">Régimen fiscal</span>
+                    <span class="billing-value">{{ order()!.fiscal_configuration?.fiscal_regime || '—' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="billing-invoices">
+                <h3 class="billing-section-title">CFDI / Facturas</h3>
+                @if (getInvoices().length > 0) {
+                  <table class="products-table">
+                    <thead>
+                      <tr>
+                        <th>FOLIO</th>
+                        <th>UUID</th>
+                        <th>FECHA</th>
+                        <th>MONTO</th>
+                        <th>ESTADO</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (invoice of getInvoices(); track invoice.id || invoice.uuid || $index) {
+                        <tr>
+                          <td>{{ invoice.folio || '—' }}</td>
+                          <td class="uuid-cell">{{ invoice.uuid || '—' }}</td>
+                          <td>{{ invoice.issued_at ? (invoice.issued_at | date:'short') : '—' }}</td>
+                          <td>{{ formatCurrency(invoice.total) }}</td>
+                          <td>{{ invoice.status || '—' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                } @else {
+                  <div class="empty-state">
+                    <i class="fi fi-rr-receipt"></i>
+                    <p>Sin facturas emitidas para esta orden</p>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
           @if (activeTabIndex() === 1) {
             <div class="tab-content-wrapper">
               <table class="products-table">
@@ -169,8 +295,19 @@
                 </thead>
                 <tbody>
                   @for (row of getBatchAllocationsRows(); track row.allocation?.id || $index) {
-                    <tr>
-                      <td>{{ row.item.product?.name || row.item.product_id }}</td>
+                    <tr [class.row-clickable]="canOpenProduct(row.item)">
+                      <td>
+                        <div
+                          class="product-info product-info--inline"
+                          [class.product-info--clickable]="canOpenProduct(row.item)"
+                          role="button"
+                          [attr.tabindex]="canOpenProduct(row.item) ? 0 : null"
+                          (click)="canOpenProduct(row.item) && openProductDetail(row.item)"
+                          (keydown.enter)="canOpenProduct(row.item) && openProductDetail(row.item)"
+                          (keydown.space)="$event.preventDefault(); canOpenProduct(row.item) && openProductDetail(row.item)">
+                          <strong>{{ row.item.product?.name || row.item.product_id }}</strong>
+                        </div>
+                      </td>
                       <td>{{ row.allocation?.inventory_batch?.batch_number || row.allocation?.inventory_batch_id || '-' }}</td>
                       <td>{{ row.allocation?.quantity_allocated | removeTrailingZeros }}</td>
                       <td>{{ row.allocation?.created_at | date:'short' }}</td>

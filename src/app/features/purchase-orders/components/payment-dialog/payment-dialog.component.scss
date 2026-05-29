@@ -186,8 +186,18 @@
   }
 
   .btn-submit {
-    background: #6fd9a0;
+    background: #16a34a;
     color: #fff;
+    box-shadow: 0 1px 2px rgba(22, 163, 74, 0.35);
+
+    &:hover:not(:disabled) {
+      background: #15803d;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #16a34a;
+      outline-offset: 2px;
+    }
   }
 }
 

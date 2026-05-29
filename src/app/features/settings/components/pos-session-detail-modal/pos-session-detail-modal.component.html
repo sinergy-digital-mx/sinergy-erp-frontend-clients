@@ -1,0 +1,91 @@
+<div class="pos-session-detail">
+  <header class="pos-session-detail__header">
+    <div class="pos-session-detail__header-main">
+      <p class="pos-session-detail__eyebrow">Sesión POS</p>
+      <div class="pos-session-detail__title-row">
+        <h2 class="pos-session-detail__title">{{ turnLabel(session) }}</h2>
+        <span
+          class="pos-session-detail__badge"
+          [class.pos-session-detail__badge--open]="isOpen(session)"
+          [class.pos-session-detail__badge--closed]="!isOpen(session)">
+          {{ isOpen(session) ? 'Abierta' : 'Cerrada' }}
+        </span>
+      </div>
+      <p class="pos-session-detail__subtitle">
+        {{ equipmentLabel(session) }} · {{ branchLabel() }}
+      </p>
+    </div>
+    <button
+      type="button"
+      class="pos-session-detail__dismiss"
+      (click)="onClose()"
+      aria-label="Cerrar ventana">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </button>
+  </header>
+
+  <mat-dialog-content>
+    <div class="pos-session-detail__cards">
+      <div class="pos-session-detail__card">
+        <span class="pos-session-detail__card-label">Abierta por</span>
+        <span class="pos-session-detail__card-value">{{ userLabel(session) }}</span>
+      </div>
+      <div class="pos-session-detail__card">
+        <span class="pos-session-detail__card-label">Apertura</span>
+        <span class="pos-session-detail__card-value">{{ formatDate(session.opened_at) }}</span>
+      </div>
+      @if (!isOpen(session)) {
+        <div class="pos-session-detail__card">
+          <span class="pos-session-detail__card-label">Cierre</span>
+          <span class="pos-session-detail__card-value">{{ formatDate(session.closed_at) }}</span>
+        </div>
+        <div class="pos-session-detail__card">
+          <span class="pos-session-detail__card-label">Cerrada por</span>
+          <span class="pos-session-detail__card-value">{{ closedByLabel() }}</span>
+        </div>
+      }
+    </div>
+
+    <section class="pos-session-detail__finance">
+      <h3 class="pos-session-detail__finance-title">Efectivo y ventas</h3>
+      <div class="pos-session-detail__metrics">
+        <div class="pos-session-detail__metric">
+          <span class="pos-session-detail__metric-label">Apertura</span>
+          <span class="pos-session-detail__metric-value">{{ formatMoney(openingCash()) }}</span>
+        </div>
+        <div class="pos-session-detail__metric">
+          <span class="pos-session-detail__metric-label">Ventas</span>
+          <span class="pos-session-detail__metric-value pos-session-detail__metric-value--sales">
+            {{ formatMoney(totalSales()) }}
+          </span>
+        </div>
+        <div class="pos-session-detail__metric pos-session-detail__metric--highlight">
+          <span class="pos-session-detail__metric-label">Efectivo esperado</span>
+          <span class="pos-session-detail__metric-value">{{ formatMoney(expectedCash()) }}</span>
+        </div>
+        @if (!isOpen(session)) {
+          <div class="pos-session-detail__metric">
+            <span class="pos-session-detail__metric-label">Contado al cierre</span>
+            <span class="pos-session-detail__metric-value">{{ formatMoney(closingCash()) }}</span>
+          </div>
+          <div
+            class="pos-session-detail__metric"
+            [class.pos-session-detail__metric--ok]="cashDifference() === 0"
+            [class.pos-session-detail__metric--warn]="cashDifference() > 0"
+            [class.pos-session-detail__metric--err]="cashDifference() < 0">
+            <span class="pos-session-detail__metric-label">Diferencia</span>
+            <span class="pos-session-detail__metric-value" [class]="differenceClass()">
+              {{ formatMoney(cashDifference()) }}
+            </span>
+          </div>
+        }
+      </div>
+    </section>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button type="button" class="pos-session-detail__btn" (click)="onClose()">Entendido</button>
+  </mat-dialog-actions>
+</div>

@@ -59,6 +59,7 @@ export interface Customer {
   fiscal_postal_code?: string;
   group?: CustomerGroup | null;
   group_id?: string | null;
+  legacy_customer_id?: number | null;
   status_id?: string;
   additional_name?: string;
   additional_lastname?: string;

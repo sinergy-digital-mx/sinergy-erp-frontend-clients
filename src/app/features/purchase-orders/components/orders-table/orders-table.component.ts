@@ -98,10 +98,12 @@ export class OrdersTableComponent implements OnInit, OnDestroy {
   /**
    * Get payment status badge class
    */
-  getPaymentStatusClass(paymentStatus: PaymentStatus): string {
+  getPaymentStatusClass(paymentStatus: PaymentStatus | string): string {
+    const normalized = (paymentStatus ?? '').toString().toLowerCase();
+    if (normalized === 'pagada' || normalized === 'pagado') {
+      return 'payment-badge payment-badge--pagada';
+    }
     switch (paymentStatus) {
-      case 'Pagada':
-        return 'payment-badge payment-badge--pagada';
       case 'Parcial':
         return 'payment-badge payment-badge--parcial';
       case 'No pagado':

@@ -1,22 +1,23 @@
 <div class="batch-detail">
-  <!-- Header -->
-  <div class="batch-detail__header">
-    <h2 class="batch-detail__title">{{ batch()?.batch_number || '...' }}</h2>
-    <button class="batch-detail__close" (click)="close()">
-      <lucide-icon [img]="X" class="w-5 h-5"></lucide-icon>
-    </button>
-  </div>
-
-  <!-- Tabs -->
-  <div class="batch-detail__tabs">
-    @for (tab of tabs; track tab.id) {
-      <button
-        class="batch-detail__tab"
-        [class.active]="activeTab === tab.id"
-        (click)="activeTab = tab.id">
-        {{ tab.label }}
+  <div class="batch-detail__chrome">
+    <div class="batch-detail__header">
+      <h2 class="batch-detail__title">{{ batch()?.batch_number || '...' }}</h2>
+      <button type="button" class="batch-detail__close" (click)="close()" aria-label="Cerrar">
+        <lucide-icon [img]="X" class="w-5 h-5"></lucide-icon>
       </button>
-    }
+    </div>
+
+    <nav class="batch-detail__tabs" aria-label="Secciones del lote">
+      @for (tab of tabs; track tab.id) {
+        <button
+          type="button"
+          class="batch-detail__tab"
+          [class.active]="activeTab === tab.id"
+          (click)="activeTab = tab.id">
+          {{ tab.label }}
+        </button>
+      }
+    </nav>
   </div>
 
   <!-- Loading -->

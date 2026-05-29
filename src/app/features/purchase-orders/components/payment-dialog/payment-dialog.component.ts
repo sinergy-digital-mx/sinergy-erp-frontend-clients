@@ -44,14 +44,16 @@ export class PaymentDialogComponent {
     public dialogRef: MatDialogRef<PaymentDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PaymentDialogData
   ) {
-    this.remainingAmount = data.remainingAmount;
-    this.totalAmount = data.totalAmount ?? data.remainingAmount;
+    this.remainingAmount = this.roundMoney(Number(data.remainingAmount) || 0);
+    this.totalAmount = this.roundMoney(Number(data.totalAmount ?? data.remainingAmount) || 0);
     this.selectedCurrency = data.currency ?? 'MXN';
-    
-    // Initialize form with validation
+
+    const defaultAmount =
+      this.remainingAmount > 0 ? this.remainingAmount.toFixed(2) : '';
+
     this.form = this.fb.group({
       amount: [
-        this.remainingAmount > 0 ? this.remainingAmount.toFixed(2) : '',
+        defaultAmount,
         [
           Validators.required,
           this.amountFormatValidator(),
@@ -81,18 +83,38 @@ export class PaymentDialogComponent {
     }
   }
 
+  /** Habilita el botón solo cuando los campos requeridos son válidos (evita falsos negativos por redondeo). */
+  canSubmit(): boolean {
+    if (this.loading()) return false;
+
+    const amountControl = this.form.get('amount');
+    const raw = String(amountControl?.value ?? '').trim();
+    if (!raw) return false;
+    if (!/^\d+([.,]\d{1,2})?$/.test(raw)) return false;
+
+    const amount = this.parseLocalizedAmount(raw);
+    if (!Number.isFinite(amount) || amount < 0.01) return false;
+    if (this.toCents(amount) > this.toCents(this.remainingAmount)) return false;
+
+    return (
+      !this.form.get('payment_date')?.invalid &&
+      !this.form.get('payment_method')?.invalid &&
+      !this.form.get('currency')?.invalid
+    );
+  }
+
   /**
    * Submit payment form
    */
   submit(): void {
-    if (this.form.invalid) {
+    if (!this.canSubmit()) {
       this.form.markAllAsTouched();
       return;
     }
 
     const formValue = this.form.value;
     const paymentData: PaymentFormData = {
-      amount: this.parseLocalizedAmount(formValue.amount),
+      amount: this.roundMoney(this.parseLocalizedAmount(formValue.amount)),
       payment_date: formValue.payment_date,
       payment_method: formValue.payment_method,
       currency: formValue.currency,
@@ -149,6 +171,15 @@ export class PaymentDialogComponent {
     return Number.isFinite(amount) ? amount : NaN;
   }
 
+  private roundMoney(value: number): number {
+    if (!Number.isFinite(value)) return 0;
+    return Math.round(value * 100) / 100;
+  }
+
+  private toCents(value: number): number {
+    return Math.round(this.roundMoney(value) * 100);
+  }
+
   private amountFormatValidator(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       const raw = control.value;
@@ -167,10 +198,10 @@ export class PaymentDialogComponent {
       if (!Number.isFinite(amount)) {
         return { invalidAmount: true };
       }
-      if (amount < min) {
+      if (this.toCents(amount) < this.toCents(min)) {
         return { amountMin: true };
       }
-      if (amount > max) {
+      if (this.toCents(amount) > this.toCents(max)) {
         return { amountMax: true };
       }
       return null;

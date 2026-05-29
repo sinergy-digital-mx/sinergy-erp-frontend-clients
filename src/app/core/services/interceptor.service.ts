@@ -10,7 +10,8 @@ import {
 import { Observable, catchError, tap, throwError } from "rxjs";
 
 import { AuthService } from "./auth.service";
-import { CustomSnackbarComponent } from "../components/custom-snackbar/custom-snackbar.component";
+import { ToastService } from "./toast.service";
+import { ToastType } from "../models/toast.model";
 import { AlertDialogComponent } from "../components/alert-dialog/alert-dialog.component";
 
 
@@ -20,7 +21,7 @@ export class InterceptorService implements HttpInterceptor {
     private router: Router,
     private auth_service: AuthService,
     public dialog: MatDialog,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     public route: ActivatedRoute
   ) {}
 
@@ -67,16 +68,18 @@ export class InterceptorService implements HttpInterceptor {
   }
 
   openSnackbar(options: Snackbar) {
-    this.snackBar.openFromComponent(CustomSnackbarComponent, {
-      duration: options.duration ?? 3000,
-      verticalPosition: options.vertical_position ?? "top",
-      horizontalPosition: options.horizontal_position ?? "right",
-      data: {
-        title: options.title,
-        message: options.message,
-        type: options.type,
-      },
+    const type = this.mapSnackbarType(options.type);
+    this.toast.show(options.message, type, {
+      title: options.title,
+      duration: options.duration,
     });
+  }
+
+  private mapSnackbarType(type: string): ToastType {
+    if (type === 'success' || type === 'error' || type === 'warning' || type === 'info' || type === 'highlight') {
+      return type;
+    }
+    return 'info';
   }
 }
 

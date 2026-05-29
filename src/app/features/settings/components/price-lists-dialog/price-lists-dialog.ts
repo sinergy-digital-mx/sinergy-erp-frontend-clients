@@ -2,7 +2,8 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ToastType } from '../../../../core/models/toast.model';
 import { ProductService } from '../../services/product.service';
 import { PriceList } from '../../models/product.model';
 
@@ -21,7 +22,7 @@ export class PriceListsDialogComponent implements OnInit {
   constructor(
     private productService: ProductService,
     private dialogRef: MatDialogRef<PriceListsDialogComponent>,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -142,12 +143,8 @@ export class PriceListsDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  showNotification(message: string, type: 'success' | 'error' | 'info' = 'success'): void {
-    this.snackBar.open(message, 'Cerrar', {
-      duration: 3000,
-      horizontalPosition: 'end',
-      verticalPosition: 'top',
-      panelClass: [`snackbar-${type}`]
-    });
+  showNotification(message: string, type: ToastType | 'info' = 'success'): void {
+    const toastType: ToastType = type === 'info' ? 'info' : type;
+    this.toast.show(message, toastType);
   }
 }

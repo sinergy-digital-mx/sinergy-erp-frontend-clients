@@ -14,6 +14,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { MatDialog } from '@angular/material/dialog';
 import { UserCreationDialogComponent } from '../../components/user-creation-dialog/user-creation-dialog.component';
+import { PermissionSyncService } from '../../../../core/services/permission-sync.service';
 
 /**
  * UsersManagementComponent
@@ -51,7 +52,8 @@ export class UsersManagementComponent implements OnInit {
     private snackBar: MatSnackBar,
     private router: Router,
     private activatedRoute: ActivatedRoute,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private permissionSyncService: PermissionSyncService
   ) {
     // Initialize observables from state service
     this.users$ = this.stateService.users$;
@@ -145,15 +147,14 @@ export class UsersManagementComponent implements OnInit {
   onRoleAssigned(event: { userId: string; roleId: string }): void {
     this.userService.assignRoleToUser(event.userId, event.roleId).subscribe({
       next: () => {
-        // Success: Trigger refresh of user roles
         this.refreshUserRoles$.next(this.refreshUserRoles$.value + 1);
+        this.permissionSyncService.syncAfterRbacChange();
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
           data: { message: 'Rol asignado correctamente', type: 'success' },
           duration: 3000
         });
       },
       error: (error) => {
-        // Error: Display error message
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
           data: { message: error.error?.message || 'No pudimos asignar el rol', type: 'error' },
           duration: 5000
@@ -169,8 +170,8 @@ export class UsersManagementComponent implements OnInit {
   onRoleReplaced(event: { userId: string; oldRoleId: string; newRoleId: string }): void {
     this.userService.replaceUserRole(event.userId, event.oldRoleId, event.newRoleId).subscribe({
       next: () => {
-        // Success: Trigger refresh of user roles
         this.refreshUserRoles$.next(this.refreshUserRoles$.value + 1);
+        this.permissionSyncService.syncAfterRbacChange();
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
           data: { message: 'Rol reemplazado correctamente', type: 'success' },
           duration: 3000
@@ -193,8 +194,8 @@ export class UsersManagementComponent implements OnInit {
   onRoleDeleted(event: { userId: string; roleId: string }): void {
     this.userService.deleteRoleFromUser(event.userId, event.roleId).subscribe({
       next: () => {
-        // Success: Trigger refresh of user roles
         this.refreshUserRoles$.next(this.refreshUserRoles$.value + 1);
+        this.permissionSyncService.syncAfterRbacChange();
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
           data: { message: 'Rol eliminado correctamente', type: 'success' },
           duration: 3000

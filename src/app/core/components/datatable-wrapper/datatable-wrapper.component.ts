@@ -17,6 +17,7 @@ import {
   IColumn,
   IPaginationEvent,
   ISortEvent,
+  DatatableVariant,
 } from './datatable-wrapper.interface';
 
 @Component({
@@ -29,6 +30,8 @@ import {
 export class DatatableWrapperComponent implements OnInit, OnChanges {
   @Input() config: IDatatableConfig;
   @Input() rowTemplate: TemplateRef<any>;
+  /** Tema visual: `settings` alinea con listados tipo órdenes de venta */
+  @Input() variant: DatatableVariant = 'default';
 
   @Output() pageChange = new EventEmitter<IPaginationEvent>();
   @Output() sortChange = new EventEmitter<ISortEvent>();
@@ -41,6 +44,7 @@ export class DatatableWrapperComponent implements OnInit, OnChanges {
   sortCycleState: Map<string, number> = new Map(); // Track sort cycle state per column
   private lastEmittedPage: number = 0;
   private lastEmittedLimit: number = 0;
+  readonly defaultPageSizeOptions = [10, 20, 50, 100];
 
   // Default configuration
   private defaultConfig: Partial<IDatatableConfig> = {
@@ -260,6 +264,42 @@ export class DatatableWrapperComponent implements OnInit, OnChanges {
    */
   trackByIndex(index: number): number {
     return index;
+  }
+
+  get pageSizeOptions(): number[] {
+    const options = this.config?.pageSizeOptions;
+    return options?.length ? options : this.defaultPageSizeOptions;
+  }
+
+  get totalPages(): number {
+    const limit = this.config?.limit || 20;
+    const total = this.config?.totalResults ?? 0;
+    if (total <= 0) return 1;
+    return Math.ceil(total / limit);
+  }
+
+  get rangeStart(): number {
+    const total = this.config?.totalResults ?? 0;
+    if (total <= 0) return 0;
+    const page = this.config?.page || 1;
+    const limit = this.config?.limit || 20;
+    return (page - 1) * limit + 1;
+  }
+
+  get rangeEnd(): number {
+    const total = this.config?.totalResults ?? 0;
+    if (total <= 0) return 0;
+    const page = this.config?.page || 1;
+    const limit = this.config?.limit || 20;
+    return Math.min(page * limit, total);
+  }
+
+  onLimitChange(event: Event): void {
+    const limit = Number((event.target as HTMLSelectElement).value);
+    if (!limit || limit === this.config?.limit) {
+      return;
+    }
+    this.pageChange.emit({ page: 1, limit });
   }
 
   /**

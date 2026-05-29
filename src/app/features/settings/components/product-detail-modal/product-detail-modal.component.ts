@@ -4,7 +4,8 @@ import { finalize, catchError } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ToastType } from '../../../../core/models/toast.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ProductService } from '../../services/product.service';
 import {
@@ -94,7 +95,7 @@ export class ProductDetailModalComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: { product?: Product; isNew?: boolean },
     private dialogRef: MatDialogRef<ProductDetailModalComponent>,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {
@@ -110,13 +111,9 @@ export class ProductDetailModalComponent implements OnInit {
     }, 10000); // 10 segundos
   }
 
-  showNotification(message: string, type: 'success' | 'error' | 'info' = 'success'): void {
-    this.snackBar.open(message, 'Cerrar', {
-      duration: 3000,
-      horizontalPosition: 'end',
-      verticalPosition: 'top',
-      panelClass: [`snackbar-${type}`]
-    });
+  showNotification(message: string, type: ToastType | 'info' = 'success'): void {
+    const toastType: ToastType = type === 'info' ? 'info' : type;
+    this.toast.show(message, toastType);
   }
 
   ngOnInit(): void {

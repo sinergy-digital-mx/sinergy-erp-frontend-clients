@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '../../../../core/services/toast.service';
 import { MatDialog } from '@angular/material/dialog';
 import {
   LucideAngularModule,
@@ -17,6 +17,8 @@ import {
 import { POSService } from '../../services/pos.service';
 import { OpenShiftDialogComponent } from '../../components/open-shift-dialog/open-shift-dialog.component';
 import { CloseShiftDialogComponent } from '../../components/close-shift-dialog/close-shift-dialog.component';
+import { OpenShiftDialogResult } from '../../models/pos-session.model';
+import { applyOpenShiftDialogResult } from '../../utils/pos-session.util';
 
 @Component({
   selector: 'app-pos-home',
@@ -43,7 +45,7 @@ export class POSHomeComponent implements OnInit {
   constructor(
     private router: Router,
     private posService: POSService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
     private dialog: MatDialog
   ) {}
 
@@ -84,87 +86,26 @@ export class POSHomeComponent implements OnInit {
       panelClass: 'pos-dialog-panel',
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe((result: OpenShiftDialogResult | undefined) => {
       if (!result) {
-        return; // User cancelled
-      }
-
-      const {
-        warehouse_id,
-        opening_balance,
-        notes,
-        pos_configuration_id,
-        pos_configuration_code,
-      } = result;
-
-      // Save warehouse for future use
-      this.defaultWarehouseId.set(warehouse_id);
-      localStorage.setItem('pos_warehouse_id', warehouse_id);
-
-      this.checkingShift.set(true);
-      if (!pos_configuration_id) {
-        this.checkingShift.set(false);
-        this.snackBar.open('Selecciona un equipo POS para iniciar sesión', 'Cerrar', { duration: 3500 });
         return;
       }
 
-      this.posService.getCurrentPosSession(pos_configuration_id).subscribe({
-        next: (existing) => {
-          if (existing?.id) {
-            this.activeCashShift.set(existing);
-            this.persistPosSelection(pos_configuration_id, pos_configuration_code);
-            this.checkingShift.set(false);
-            this.snackBar.open('Sesión POS reanudada', 'Cerrar', { duration: 3000 });
-            return;
-          }
+      this.defaultWarehouseId.set(result.warehouse_id);
+      this.checkingShift.set(true);
 
-          this.posService.openPosSession({
-            warehouse_id,
-            cashier_id: '',
-            opening_balance,
-            ...(notes?.trim() ? { notes: notes.trim() } : {}),
-            pos_configuration_id,
-          }).subscribe({
-            next: (shift) => {
-              this.activeCashShift.set(shift);
-              this.persistPosSelection(pos_configuration_id, pos_configuration_code);
-              this.checkingShift.set(false);
-              this.snackBar.open('Sesión POS iniciada', 'Cerrar', { duration: 3000 });
-            },
-            error: (error) => {
-              this.checkingShift.set(false);
-              this.snackBar.open(error.error?.message || 'Error al iniciar sesión POS', 'Cerrar', { duration: 5000 });
-            }
-          });
+      applyOpenShiftDialogResult(result, this.posService).subscribe({
+        next: (shift) => {
+          this.activeCashShift.set(shift);
+          this.checkingShift.set(false);
+          this.toast.success(
+            result.action === 'resume' ? 'Sesión POS reanudada' : 'Sesión POS iniciada'
+          );
         },
         error: (error) => {
-          const msg = String(error?.error?.message || error?.message || '').toLowerCase();
-          const canOpen = msg.includes('not found') || msg.includes('404') || msg.includes('no existe');
-          if (!canOpen) {
-            this.checkingShift.set(false);
-            this.snackBar.open(error.error?.message || 'Error al validar sesión actual', 'Cerrar', { duration: 5000 });
-            return;
-          }
-
-          this.posService.openPosSession({
-            warehouse_id,
-            cashier_id: '',
-            opening_balance,
-            ...(notes?.trim() ? { notes: notes.trim() } : {}),
-            pos_configuration_id,
-          }).subscribe({
-            next: (shift) => {
-              this.activeCashShift.set(shift);
-              this.persistPosSelection(pos_configuration_id, pos_configuration_code);
-              this.checkingShift.set(false);
-              this.snackBar.open('Sesión POS iniciada', 'Cerrar', { duration: 3000 });
-            },
-            error: (openError) => {
-              this.checkingShift.set(false);
-              this.snackBar.open(openError.error?.message || 'Error al iniciar sesión POS', 'Cerrar', { duration: 5000 });
-            }
-          });
-        }
+          this.checkingShift.set(false);
+          this.toast.error(error.error?.message || 'Error al iniciar sesión POS');
+        },
       });
     });
   }
@@ -173,7 +114,7 @@ export class POSHomeComponent implements OnInit {
     const shift = this.activeCashShift();
     
     if (!shift) {
-      this.snackBar.open('No hay sesión activa para cerrar', 'Cerrar', { duration: 3000 });
+      this.toast.warning('No hay sesión activa para cerrar');
       return;
     }
 
@@ -208,11 +149,11 @@ export class POSHomeComponent implements OnInit {
               ? `Sobrante: ${this.formatCurrency(difference)}`
               : `Faltante: ${this.formatCurrency(Math.abs(difference))}`;
           
-          this.snackBar.open(`Sesión cerrada. ${diffText}`, 'Cerrar', { duration: 5000 });
+          this.toast.success(`Sesión cerrada. ${diffText}`);
         },
         error: (error) => {
           this.checkingShift.set(false);
-          this.snackBar.open(error.error?.message || 'Error al cerrar la sesión POS', 'Cerrar', { duration: 5000 });
+          this.toast.error(error.error?.message || 'Error al cerrar la sesión POS');
         }
       });
     });
@@ -235,18 +176,5 @@ export class POSHomeComponent implements OnInit {
       style: 'currency',
       currency: 'MXN'
     }).format(amount);
-  }
-
-  private persistPosSelection(posConfigurationId?: string, posConfigurationCode?: string): void {
-    if (posConfigurationId) {
-      localStorage.setItem('pos_configuration_id', posConfigurationId);
-    } else {
-      localStorage.removeItem('pos_configuration_id');
-    }
-    if (posConfigurationCode) {
-      localStorage.setItem('pos_configuration_code', posConfigurationCode);
-    } else {
-      localStorage.removeItem('pos_configuration_code');
-    }
   }
 }

@@ -10,6 +10,7 @@ import { CustomerService } from '../../../../core/services/customer.service';
 import { PropertyService } from '../../../properties/services/property.service';
 import { CustomerEditModalComponent } from '../../components/customer-edit-modal/customer-edit-modal.component';
 import { CustomerDocumentsComponent } from '../../components/customer-documents/customer-documents.component';
+import { CustomerSalesOrdersComponent } from '../../components/customer-sales-orders/customer-sales-orders.component';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
 import { ContractDetailModalComponent } from '../../../contracts/components/contract-detail-modal/contract-detail-modal.component';
 import { Customer } from '../../models/customer-group.model';
@@ -33,6 +34,7 @@ import { TabComponent, TabItem } from '../../../../core/components/tab/tab.compo
     MatProgressSpinnerModule,
     PhoneComponent,
     CustomerDocumentsComponent,
+    CustomerSalesOrdersComponent,
     ButtonComponent,
     HasPermissionDirective,
     TabComponent

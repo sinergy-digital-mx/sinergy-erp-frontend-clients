@@ -21,7 +21,7 @@
           <td class="id-cell">
             <span class="order-id">{{ order.id.substring(0, 8) }}...</span>
           </td>
-          <td>{{ order.customer?.name || 'Sin cliente' }}</td>
+          <td>{{ getCustomerDisplayName(order.customer) }}</td>
           <td>{{ order.warehouse?.name || '-' }}</td>
           <td>
             <span class="status-badge" [ngClass]="getStatusClass(order.status)">
