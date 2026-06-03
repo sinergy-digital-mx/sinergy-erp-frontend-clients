@@ -93,11 +93,11 @@ import { Contract } from '../../models/contract.model';
                   <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
                   <input
                     id="monthly_amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    formControlName="monthly_amount"
-                    placeholder="0.00"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  formControlName="monthly_amount"
+                  placeholder="Ej. 1500.00"
                     class="w-full rounded-lg border border-gray-300 pl-7 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                     [class.border-red-500]="form.get('monthly_amount')?.invalid && form.get('monthly_amount')?.touched">
                 </div>

@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/core/components/back-button/back-button.component.ts", "back-button.component.ts"],
-  "sourcesContent": ["\n    :host {\n      display: inline-block;\n    }\n\n    button {\n      cursor: pointer;\n      transition: all 0.2s ease;\n    }\n\n    button:active {\n      transform: scale(0.95);\n    }\n  ", ":host {\n  display: inline-block;\n}\n\nbutton {\n  cursor: pointer;\n  transition: all 0.2s ease;\n}\n\nbutton:active {\n  transform: scale(0.95);\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL0M6L1Byb2plY3RzL1N5bmVyZ3kvc2luZXJneS1lcnAtZnJvbnRlbmQtY2xpZW50cy9zcmMvYXBwL2NvcmUvY29tcG9uZW50cy9iYWNrLWJ1dHRvbi9iYWNrLWJ1dHRvbi5jb21wb25lbnQudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQ0k7RUFDRTs7O0FBR0Y7RUFDRTtFQUNBOzs7QUFHRjtFQUNFIiwic291cmNlc0NvbnRlbnQiOlsiXG4gICAgOmhvc3Qge1xuICAgICAgZGlzcGxheTogaW5saW5lLWJsb2NrO1xuICAgIH1cblxuICAgIGJ1dHRvbiB7XG4gICAgICBjdXJzb3I6IHBvaW50ZXI7XG4gICAgICB0cmFuc2l0aW9uOiBhbGwgMC4ycyBlYXNlO1xuICAgIH1cblxuICAgIGJ1dHRvbjphY3RpdmUge1xuICAgICAgdHJhbnNmb3JtOiBzY2FsZSgwLjk1KTtcbiAgICB9XG4gICJdfQ== */"],
-  "mappings": ";AACI;AACE,WAAA;ACAN;ADGI;AACE,UAAA;AACA,cAAA,IAAA,KAAA;ACAN;ADGI,MAAA;AACE,aAAA,MAAA;ACAN;",
-  "names": []
-}

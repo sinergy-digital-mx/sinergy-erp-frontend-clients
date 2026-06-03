@@ -110,7 +110,7 @@
       <p class="text-xs text-red-600 mb-2">meses</p>
       
       <div class="space-y-1">
-        <p class="text-sm font-medium text-red-700">{{ (stats()!.total_pending || 0) | currency:currency }}</p>
+        <p class="text-sm font-medium text-red-700">{{ overdueAmount | currency:currency }}</p>
         
         <div *ngIf="(stats()!.partial_overdue_count || 0) > 0 || (stats()!.pending_overdue_count || 0) > 0" class="pt-1 border-t border-red-200 space-y-1">
           <p *ngIf="stats()!.pending_overdue_count > 0" class="text-xs text-red-600">{{ stats()!.pending_overdue_count }} pendientes</p>
@@ -131,10 +131,16 @@
       <lucide-icon [img]="Check" [size]="28"></lucide-icon>
     </div>
     <p class="payments-empty-state__title">
-      {{ isContractCompleted ? 'Contrato pagado' : 'Sin pagos generados' }}
+      {{ isContractCompleted ? 'Contrato pagado' : (isDownpaymentFinancingBlocking ? 'Enganche pendiente' : 'Sin pagos generados') }}
     </p>
     <p class="payments-empty-state__subtitle">
-      {{ isContractCompleted ? 'Este contrato ya esta completado y no requiere generar pagos.' : 'Genera los pagos para empezar a registrar cobros del contrato.' }}
+      {{
+        isContractCompleted
+          ? 'Este contrato ya esta completado y no requiere generar pagos.'
+          : (isDownpaymentFinancingBlocking
+              ? downpaymentBlockingMessage
+              : 'Genera los pagos para empezar a registrar cobros del contrato.')
+      }}
     </p>
   </div>
 

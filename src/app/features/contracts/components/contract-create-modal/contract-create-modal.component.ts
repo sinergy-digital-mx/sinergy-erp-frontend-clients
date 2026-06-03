@@ -60,6 +60,19 @@ function contractMoneyValidator(control: AbstractControl): ValidationErrors | nu
   return null;
 }
 
+/** Permite vacío o 0 (meta de enganche desconocida al crear). */
+function contractMoneyOptionalValidator(control: AbstractControl): ValidationErrors | null {
+  const raw = control.value;
+  if (raw === null || raw === undefined || (typeof raw === 'string' && raw.trim() === '')) {
+    return null;
+  }
+  const n = parseContractAmount(raw);
+  if (!Number.isFinite(n) || n < 0) {
+    return { min: true };
+  }
+  return null;
+}
+
 @Component({
   selector: 'app-contract-create-modal',
   standalone: true,
@@ -159,11 +172,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       remaining_balance: [{ value: 0, disabled: true }],
       monthly_payment: [{ value: 0, disabled: true }],
 
-      // Enganche financiado (cuotas separadas; no enviar down_payment_monthly_amount)
-      down_payment_financed: [false],
-      down_payment_months: [null as number | null],
-      down_payment_first_payment_date: [''],
-      down_payment_payment_day: [null as number | null]
+      // Enganche financiado: solo habilita la pestaña; cuotas se generan en detalle
+      down_payment_financed: [false]
     });
 
     // Vincular form controls a las configuraciones de select
@@ -174,42 +184,22 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.initializeForm();
     this.setupCalculations();
-    this.setupDownPaymentFinancing();
+    this.setupDownPaymentFinancingRules();
     this.loadInitialData();
   }
 
-  /** Activa validadores y UX al marcar “financiar enganche”. */
-  private setupDownPaymentFinancing(): void {
+  /** Al financiar enganche: meta opcional (puede ser 0); sin meses/fechas en el alta. */
+  private setupDownPaymentFinancingRules(): void {
     const financed = this.form.get('down_payment_financed')!;
-    const months = this.form.get('down_payment_months')!;
-    const firstDate = this.form.get('down_payment_first_payment_date')!;
-    const day = this.form.get('down_payment_payment_day')!;
+    const downPayment = this.form.get('down_payment')!;
 
     const apply = (isFinanced: boolean) => {
       if (isFinanced) {
-        months.setValidators([Validators.required, Validators.min(1)]);
-        firstDate.setValidators([Validators.required]);
-        day.setValidators([Validators.required, Validators.min(1), Validators.max(31)]);
-        if (!firstDate.value && this.form.get('first_payment_date')?.value) {
-          firstDate.setValue(this.form.get('first_payment_date')!.value, { emitEvent: false });
-        }
-        if (day.value == null && this.form.get('first_payment_date')?.value) {
-          const d = new Date(this.form.get('first_payment_date')!.value as string);
-          if (!Number.isNaN(d.getTime())) {
-            day.setValue(d.getDate(), { emitEvent: false });
-          }
-        }
-        if (months.value == null || months.value === '') {
-          months.setValue(10, { emitEvent: false });
-        }
+        downPayment.setValidators([contractMoneyOptionalValidator]);
       } else {
-        months.clearValidators();
-        firstDate.clearValidators();
-        day.clearValidators();
+        downPayment.setValidators([contractMoneyValidator]);
       }
-      months.updateValueAndValidity({ emitEvent: false });
-      firstDate.updateValueAndValidity({ emitEvent: false });
-      day.updateValueAndValidity({ emitEvent: false });
+      downPayment.updateValueAndValidity({ emitEvent: false });
     };
 
     apply(!!financed.value);
@@ -271,10 +261,10 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   }
 
   setupCalculations(): void {
-    // Recalcular saldo pendiente cuando cambia precio total o enganche
     combineLatest([
       this.form.get('total_price')!.valueChanges.pipe(startWith(this.form.get('total_price')!.value)),
-      this.form.get('down_payment')!.valueChanges.pipe(startWith(this.form.get('down_payment')!.value))
+      this.form.get('down_payment')!.valueChanges.pipe(startWith(this.form.get('down_payment')!.value)),
+      this.form.get('down_payment_financed')!.valueChanges.pipe(startWith(this.form.get('down_payment_financed')!.value))
     ]).subscribe(() => {
       this.calculateRemainingBalance();
     });
@@ -506,10 +496,17 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   calculateRemainingBalance(): void {
     const totalPrice = parseContractAmount(this.form.get('total_price')!.value);
     const downPayment = parseContractAmount(this.form.get('down_payment')!.value);
-    const remainingBalance = totalPrice - downPayment;
+    const isFinanced = !!this.form.get('down_payment_financed')!.value;
+    const remainingBalance = isFinanced
+      ? (downPayment > 0 ? totalPrice - downPayment : totalPrice)
+      : totalPrice - downPayment;
     
     this.form.get('remaining_balance')!.setValue(remainingBalance, { emitEvent: true });
     this.formattedRemainingBalance.set(this.formatNumber(remainingBalance));
+  }
+
+  get isDownPaymentFinanced(): boolean {
+    return !!this.form.get('down_payment_financed')?.value;
   }
 
   calculateMonthlyPayment(): void {
@@ -569,23 +566,14 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     }
 
     const downPaymentFinanced = !!this.form.get('down_payment_financed')!.value;
-    if (downPaymentFinanced && downPayment <= 0) {
-      this.interceptorService.openSnackbar({
-        type: 'error',
-        title: 'Error',
-        message: 'Para financiar el enganche, el enganche debe ser mayor a 0'
-      });
-      return;
-    }
 
-    // Construir payload CreateContractDto con valores del formulario
     const payload: CreateContractDto = {
       customer_id: this.form.get('customer_id')!.value,
       property_id: this.form.get('property_id')!.value,
       seller_id: this.form.get('seller_id')!.value || undefined,
       contract_date: this.form.get('contract_date')!.value,
       total_price: parseContractAmount(this.form.get('total_price')!.value),
-      down_payment: parseContractAmount(this.form.get('down_payment')!.value),
+      down_payment: downPaymentFinanced ? 0 : parseContractAmount(this.form.get('down_payment')!.value),
       payment_months: Math.max(1, Math.round(parseContractAmount(this.form.get('payment_months')!.value) || 1)),
       first_payment_date: this.form.get('first_payment_date')!.value,
       currency: this.form.get('currency')!.value,
@@ -595,12 +583,10 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
 
     if (downPaymentFinanced) {
       payload.down_payment_financed = true;
-      payload.down_payment_months = Math.max(
-        1,
-        Math.round(Number(this.form.get('down_payment_months')!.value))
-      );
-      payload.down_payment_first_payment_date = this.form.get('down_payment_first_payment_date')!.value;
-      payload.down_payment_payment_day = Math.round(Number(this.form.get('down_payment_payment_day')!.value));
+      const target = parseContractAmount(this.form.get('down_payment')!.value);
+      if (target > 0) {
+        payload.down_payment_target = target;
+      }
     }
 
     // Establecer loading signal en true

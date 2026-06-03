@@ -150,51 +150,48 @@
             [type]="'text'">
           </app-input>
 
-          <app-input
-            [label]="'Enganche *'"
-            [placeholder]="'Ej. 0 o 36,000'"
-            [form_control]="form.get('down_payment')"
-            [type]="'text'">
-          </app-input>
-
           <div class="col-span-2 downpayment-financing">
             <label class="financing-checkbox-label">
               <input type="checkbox" formControlName="down_payment_financed" class="financing-checkbox" />
               <span>Financiar enganche en pagos</span>
             </label>
             <p class="financing-hint">
-              El enganche se divide en cuotas separadas del plan normal. No enviamos el monto mensual de enganche: lo calcula el backend al guardar.
+              @if (isDownPaymentFinanced) {
+                Habilita la pestaña de enganche en el detalle. Puedes registrar abonos y generar cuotas después; no hace falta definir meses ni fechas aquí.
+              } @else {
+                El enganche se descuenta del precio total al crear el contrato.
+              }
             </p>
-            @if (form.get('down_payment_financed')?.value) {
-              <div class="grid grid-cols-2 gap-4 mt-4">
-                <app-input
-                  [label]="'Meses de enganche *'"
-                  [placeholder]="'Ej. 10'"
-                  [form_control]="form.get('down_payment_months')"
-                  [type]="'number'">
-                </app-input>
-                <app-input
-                  [label]="'Día de pago mensual (enganche) *'"
-                  [placeholder]="'1–31'"
-                  [form_control]="form.get('down_payment_payment_day')"
-                  [type]="'number'">
-                </app-input>
-                <app-input
-                  [label]="'Fecha primer pago de enganche *'"
-                  [form_control]="form.get('down_payment_first_payment_date')"
-                  [type]="'date'">
-                </app-input>
-              </div>
-            }
           </div>
+
+          @if (!isDownPaymentFinanced) {
+            <app-input
+              [label]="'Enganche *'"
+              [placeholder]="'Ej. 0 o 36,000'"
+              [form_control]="form.get('down_payment')"
+              [type]="'text'">
+            </app-input>
+          } @else {
+            <app-input
+              [label]="'Meta de enganche (opcional)'"
+              [placeholder]="'Dejar en 0 si aún no la conocen'"
+              [form_control]="form.get('down_payment')"
+              [type]="'text'">
+            </app-input>
+          }
 
           <div class="w-full p-1">
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Saldo Pendiente
+              {{ isDownPaymentFinanced ? 'Saldo para pagos normales' : 'Saldo Pendiente' }}
             </label>
             <div class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">
               {{ formattedRemainingBalance() }}
             </div>
+            @if (isDownPaymentFinanced) {
+              <p class="mt-1 text-xs text-gray-500">
+                Diferencia del lote después de liquidar el enganche. Si la meta es 0, equivale al precio total.
+              </p>
+            }
           </div>
 
           <app-input

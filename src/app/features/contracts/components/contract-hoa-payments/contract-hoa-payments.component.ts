@@ -51,13 +51,13 @@ export class ContractHoaPaymentsComponent implements OnInit {
     this.loadStats();
   }
 
-  get isContractCompleted(): boolean {
+  get isContractCancelled(): boolean {
     const status = (this.contractStatus || '').toLowerCase().trim();
-    return status === 'completado' || status === 'completed';
+    return status === 'cancelado' || status === 'cancelled' || status === 'canceled';
   }
 
   get showGeneratePaymentsButton(): boolean {
-    return this.payments().length === 0 && !this.isContractCompleted;
+    return this.payments().length === 0 && !this.isContractCancelled;
   }
 
   get totalPages(): number {
@@ -109,12 +109,23 @@ export class ContractHoaPaymentsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (!result) return;
+
+      const monthlyAmount = Number(result.monthly_amount);
+      if (!monthlyAmount || monthlyAmount <= 0) {
+        this.interceptorService.openSnackbar({
+          type: 'warning',
+          title: 'Advertencia',
+          message: 'El monto mensual debe ser mayor a 0'
+        });
+        return;
+      }
+
       this.generating.set(true);
       this.hoaPaymentService.generatePayments(this.contractId, {
         first_payment_date: result.first_payment_date,
         payments_count: Number(result.payments_count),
-        payment_day: Number(result.payment_day),
-        monthly_amount: Number(result.monthly_amount)
+        payment_day: Number(result.payment_day) || 5,
+        monthly_amount: monthlyAmount
       }).subscribe({
         next: () => {
           this.generating.set(false);

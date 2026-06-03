@@ -38,9 +38,13 @@ export interface HoaPaymentStats {
 }
 
 export interface GenerateHoaPaymentsDto {
-  first_payment_date: string;
-  payments_count: number;
-  payment_day: number;
+  /** Formato nuevo (preferido) */
+  first_payment_date?: string;
+  payments_count?: number;
+  payment_day?: number;
+  /** Formato legacy (UI alternativa) */
+  start_date?: string;
+  end_date?: string;
   monthly_amount: number;
 }
 

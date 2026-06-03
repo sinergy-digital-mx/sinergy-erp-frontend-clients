@@ -102,20 +102,25 @@
         <div *ngIf="current.down_payment_financed" class="mb-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
           <div class="grid grid-cols-4 gap-2 text-xs">
             <div>
-              <span class="block font-semibold text-amber-700 mb-0.5">Estado enganche</span>
-              <span class="text-amber-900 font-semibold">Activo</span>
+              <span class="block font-semibold text-amber-700 mb-0.5">Meta enganche</span>
+              <span class="text-amber-900 font-semibold">
+                {{ current.down_payment_target != null ? (current.down_payment_target | currency:current.currency) : 'Sin definir' }}
+              </span>
             </div>
             <div>
-              <span class="block font-semibold text-amber-700 mb-0.5">Meses</span>
+              <span class="block font-semibold text-amber-700 mb-0.5">Abonado</span>
+              <span class="text-amber-900 font-semibold">{{ current.down_payment | currency:current.currency }}</span>
+            </div>
+            <div>
+              <span class="block font-semibold text-amber-700 mb-0.5">Meses cuotas</span>
               <span class="text-amber-900 font-semibold">{{ current.down_payment_months || '—' }}</span>
             </div>
             <div>
-              <span class="block font-semibold text-amber-700 mb-0.5">Pago mensual</span>
-              <span class="text-amber-900 font-semibold">{{ current.down_payment_monthly_amount | currency:current.currency }}</span>
-            </div>
-            <div>
               <span class="block font-semibold text-amber-700 mb-0.5">Primer pago / día</span>
-              <span class="text-amber-900 font-semibold">{{ current.down_payment_first_payment_date | localDate:'mediumDate' }} / {{ current.down_payment_payment_day || '—' }}</span>
+              <span class="text-amber-900 font-semibold">
+                {{ current.down_payment_first_payment_date ? (current.down_payment_first_payment_date | localDate:'mediumDate') : '—' }}
+                / {{ current.down_payment_payment_day || '—' }}
+              </span>
             </div>
           </div>
         </div>
@@ -193,6 +198,7 @@
           [contractId]="current.id"
           [currency]="current.currency"
           [contractStatus]="current.status"
+          [contract]="current"
           (dataChanged)="refreshContractData()">
         </app-contract-payments>
       </div>

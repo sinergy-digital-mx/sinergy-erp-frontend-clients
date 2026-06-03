@@ -1,9 +1,12 @@
-import { Component, Input, OnInit, signal, Output, EventEmitter } from '@angular/core';
+import { Component, Input, OnChanges, OnInit, SimpleChanges, signal, Output, EventEmitter } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PaymentService } from '../../services/payment.service';
 import { Payment, PaymentStats } from '../../models/payment.model';
+import { Contract } from '../../models/contract.model';
+import { DownPaymentStats } from '../../models/downpayment-payment.model';
+import { DownpaymentPaymentService } from '../../services/downpayment-payment.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail, Check } from 'lucide-angular';
@@ -26,14 +29,16 @@ import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
   templateUrl: './contract-payments.component.html',
   styleUrls: ['./contract-payments.component.scss']
 })
-export class ContractPaymentsComponent implements OnInit {
+export class ContractPaymentsComponent implements OnInit, OnChanges {
   @Input() contractId!: string;
   @Input() currency: string = 'USD';
   @Input() contractStatus: string | null = null;
+  @Input() contract: Contract | null = null;
   @Output() dataChanged = new EventEmitter<void>();
 
   payments = signal<Payment[]>([]);
   stats = signal<PaymentStats | null>(null);
+  downpaymentStats = signal<DownPaymentStats | null>(null);
   loading = signal(false);
   generating = signal(false);
   currentPage = signal(1);
@@ -51,6 +56,7 @@ export class ContractPaymentsComponent implements OnInit {
 
   constructor(
     private paymentService: PaymentService,
+    private downpaymentService: DownpaymentPaymentService,
     private interceptorService: InterceptorService,
     private dialog: MatDialog
   ) {}
@@ -58,6 +64,21 @@ export class ContractPaymentsComponent implements OnInit {
   ngOnInit() {
     this.loadPayments();
     this.loadStats();
+    this.refreshDownpaymentStats();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['contract'] && !changes['contract'].firstChange) {
+      this.refreshDownpaymentStats();
+    }
+  }
+
+  private refreshDownpaymentStats(): void {
+    if (this.contract?.down_payment_financed) {
+      this.loadDownpaymentStats();
+    } else {
+      this.downpaymentStats.set(null);
+    }
   }
 
   loadPayments() {
@@ -82,12 +103,16 @@ export class ContractPaymentsComponent implements OnInit {
   loadStats() {
     this.paymentService.getPaymentStats(this.contractId).subscribe({
       next: (stats) => {
-        console.log('Payment stats received:', stats);
         this.stats.set(stats);
       },
-      error: () => {
-        // Stats are optional, don't show error
-      }
+      error: () => {}
+    });
+  }
+
+  loadDownpaymentStats(): void {
+    this.downpaymentService.getStats(this.contractId).subscribe({
+      next: (stats) => this.downpaymentStats.set(stats),
+      error: () => {}
     });
   }
 
@@ -279,8 +304,41 @@ export class ContractPaymentsComponent implements OnInit {
     return status === 'completado' || status === 'completed';
   }
 
+  get isDownpaymentFinancingBlocking(): boolean {
+    if (!this.contract?.down_payment_financed) return false;
+    const stats = this.downpaymentStats();
+    if (!stats) return true;
+    return !stats.downpayment_financing_complete;
+  }
+
+  get downpaymentBlockingMessage(): string {
+    const stats = this.downpaymentStats();
+    if (!stats?.down_payment_target_defined) {
+      return 'Define y liquida el enganche financiado antes de generar los pagos del contrato.';
+    }
+    return 'Completa todos los pagos de enganche antes de generar los pagos del contrato.';
+  }
+
+  /** Monto pendiente solo de pagos vencidos (no todo total_pending). */
+  get overdueAmount(): number {
+    const stats = this.stats();
+    if (!stats) return 0;
+
+    if (stats.overdue_amount != null && stats.overdue_amount >= 0) {
+      return stats.overdue_amount;
+    }
+
+    // Fallback si el backend aún no envía overdue_amount
+
+    return this.payments()
+      .filter((p) => p.is_overdue && (p.status === 'pendiente' || p.status === 'parcial'))
+      .reduce((sum, p) => sum + (p.amount_pending || 0), 0);
+  }
+
   get showGeneratePaymentsButton(): boolean {
-    return this.payments().length === 0 && !this.isContractCompleted;
+    return this.payments().length === 0
+      && !this.isContractCompleted
+      && !this.isDownpaymentFinancingBlocking;
   }
 
   get totalPages(): number {

@@ -10,7 +10,10 @@ export interface Contract {
   contract_number: string;
   contract_date: string;
   total_price: number;
+  /** Monto ya pagado de enganche (se actualiza con abonos). */
   down_payment: number;
+  /** Total pactado de enganche; null hasta definir meta. */
+  down_payment_target?: number | null;
   remaining_balance: number;
   payment_months: number;
   monthly_payment: number;
@@ -74,8 +77,10 @@ export interface CreateContractDto {
   currency: string;
   status?: ContractStatus;
   notes?: string;
-  /** Si true, enviar meses, fecha primer pago enganche y día mensual (no enviar down_payment_monthly_amount). */
+  /** Si true, solo habilita la pestaña de enganche; meses/fechas se definen al generar cuotas. */
   down_payment_financed?: boolean;
+  /** Meta de enganche al crear (opcional). */
+  down_payment_target?: number;
   down_payment_months?: number;
   down_payment_first_payment_date?: string;
   down_payment_payment_day?: number;

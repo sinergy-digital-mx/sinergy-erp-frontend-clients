@@ -45,12 +45,13 @@ export interface PaymentStats {
   total_pending: number;
   total_pending_amount?: number;
   pending_full_payments?: number;
+  /** Suma de amount_pending en pagos con is_overdue === true (pendiente/parcial vencidos). */
+  overdue_amount?: number;
   total_expected: number;
   financed_amount: number;
   total_price: number;
   down_payment: number;
   paid_months?: number;
-  overdue_amount?: number;
   partial_payment?: {
     installment_number: number;
     amount_paid: number;

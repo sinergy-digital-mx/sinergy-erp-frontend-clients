@@ -2,7 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { DownPaymentPayment, DownPaymentStats } from '../models/downpayment-payment.model';
+import {
+  CreateManualDownPaymentDto,
+  DownPaymentPayment,
+  DownPaymentStats,
+  GenerateDownPaymentInstallmentsDto
+} from '../models/downpayment-payment.model';
 
 @Injectable({
   providedIn: 'root'
@@ -12,8 +17,12 @@ export class DownpaymentPaymentService {
 
   constructor(private http: HttpClient) {}
 
-  generate(contractId: string): Observable<DownPaymentPayment[]> {
-    return this.http.post<DownPaymentPayment[]>(`${this.api}/tenant/contracts/${contractId}/downpayment-payments/generate`, {});
+  createManualPayment(contractId: string, data: CreateManualDownPaymentDto): Observable<DownPaymentPayment> {
+    return this.http.post<DownPaymentPayment>(`${this.api}/tenant/contracts/${contractId}/downpayment-payments`, data);
+  }
+
+  generate(contractId: string, data: GenerateDownPaymentInstallmentsDto): Observable<DownPaymentPayment[]> {
+    return this.http.post<DownPaymentPayment[]>(`${this.api}/tenant/contracts/${contractId}/downpayment-payments/generate`, data);
   }
 
   getPayments(contractId: string): Observable<DownPaymentPayment[]> {

@@ -1,24 +1,58 @@
 <div class="downpayments-container">
   <div class="flex items-center justify-end mb-2 gap-2">
     <app-button
-      text="Generar pagos de enganche"
+      *ngIf="isFinanced"
+      text="Agregar abono manual"
+      custom_class="btn_secondary"
+      size="sm"
+      [icon]="Plus"
+      (clicked)="addManualPayment()">
+    </app-button>
+
+    <app-button
+      *ngIf="showGenerateInstallmentsButton"
+      text="Generar cuotas del saldo"
       custom_class="btn_primary"
       size="sm"
       [loading]="generating()"
-      [disabled]="!contract?.down_payment_financed || payments().length > 0"
-      (clicked)="generatePayments()">
+      (clicked)="generateInstallments()">
     </app-button>
   </div>
 
-  <div *ngIf="!contract?.down_payment_financed" class="empty-state empty-state--neutral">
+  <div *ngIf="!isFinanced" class="empty-state empty-state--neutral">
     <div class="empty-state__icon">DP</div>
     <p class="empty-state__title">Enganche no financiado</p>
     <p class="empty-state__subtitle">
-      Activa el financiamiento de enganche en el contrato para habilitar la generación de pagos en esta sección.
+      Activa el financiamiento de enganche al crear el contrato para registrar abonos y cuotas aquí.
     </p>
   </div>
 
-  <div *ngIf="contract?.down_payment_financed && stats() && payments().length > 0" class="grid grid-cols-5 gap-4 mb-6 w-full">
+  <div *ngIf="isFinanced" class="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="bg-amber-50 p-3 rounded-lg border border-amber-200">
+      <p class="text-xs font-medium text-amber-700">Meta de enganche</p>
+      <p class="text-lg font-bold text-amber-900 mt-1">
+        {{ targetAmount != null ? (targetAmount | currency:currency) : 'Sin definir' }}
+      </p>
+    </div>
+    <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+      <p class="text-xs font-medium text-green-700">Abonado</p>
+      <p class="text-lg font-bold text-green-800 mt-1">{{ appliedAmount | currency:currency }}</p>
+    </div>
+    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+      <p class="text-xs font-medium text-blue-700">Pendiente de meta</p>
+      <p class="text-lg font-bold text-blue-800 mt-1">
+        {{ targetAmount != null ? ((targetAmount - appliedAmount) | currency:currency) : '—' }}
+      </p>
+    </div>
+    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+      <p class="text-xs font-medium text-gray-600">Estado</p>
+      <p class="text-sm font-semibold text-gray-900 mt-1">
+        {{ stats()?.downpayment_financing_complete ? 'Enganche liquidado' : 'En proceso' }}
+      </p>
+    </div>
+  </div>
+
+  <div *ngIf="isFinanced && stats() && payments().length > 0" class="grid grid-cols-5 gap-4 mb-6 w-full">
     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
       <p class="text-sm font-medium text-gray-600">Total pagos</p>
       <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats()!.total_payments }}</p>
@@ -45,11 +79,11 @@
     <p class="text-sm text-gray-500">Cargando pagos de enganche...</p>
   </div>
 
-  <div *ngIf="contract?.down_payment_financed && !loading() && payments().length === 0" class="empty-state">
+  <div *ngIf="isFinanced && !loading() && payments().length === 0" class="empty-state">
     <div class="empty-state__icon">DP</div>
-    <p class="empty-state__title">No hay pagos de enganche generados</p>
+    <p class="empty-state__title">Sin movimientos de enganche</p>
     <p class="empty-state__subtitle">
-      Genera los pagos de enganche para empezar a registrar abonos y dar seguimiento al saldo.
+      Registra abonos manuales mientras acuerdan el monto. Cuando tengan la meta total, genera las cuotas del saldo restante.
     </p>
   </div>
 

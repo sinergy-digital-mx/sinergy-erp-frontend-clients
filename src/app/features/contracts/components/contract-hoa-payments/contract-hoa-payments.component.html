@@ -56,10 +56,14 @@
   <div *ngIf="!loading() && payments().length === 0" class="empty-state">
     <div class="empty-state__icon">HOA</div>
     <p class="empty-state__title">
-      {{ isContractCompleted ? 'Sin pagos HOA pendientes' : 'No hay pagos HOA generados' }}
+      {{ isContractCancelled ? 'Contrato cancelado' : 'No hay pagos HOA generados' }}
     </p>
     <p class="empty-state__subtitle">
-      {{ isContractCompleted ? 'Este contrato ya fue completado. Si ocupas historial, aparecerá aquí cuando existan movimientos.' : 'Genera los pagos HOA para comenzar a registrar y controlar los cobros mensuales.' }}
+      {{
+        isContractCancelled
+          ? 'No se pueden generar pagos HOA en un contrato cancelado.'
+          : 'Genera los pagos HOA para registrar y controlar los cobros mensuales. Disponible en contratos activos y completados.'
+      }}
     </p>
   </div>
 
