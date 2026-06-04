@@ -1,8 +1,10 @@
-export type DashboardFilterMode = 'month' | 'year';
+export type DashboardScope = 'period' | 'all_time';
+export type DashboardFilterMode = 'all_time' | 'month' | 'year';
 export type RevenueSeriesPeriod = 'monthly' | 'quarterly' | 'semiannual' | 'annual';
 
 export interface DashboardFilters {
-  year: number;
+  scope: DashboardScope;
+  year: number | null;
   month: number | null;
   mode: DashboardFilterMode;
 }
@@ -26,9 +28,15 @@ export interface DashboardKpis {
   avg_monthly_payment: number;
 }
 
+/** KPIs por año (solo en summary con scope=all_time). */
+export interface YearlyBreakdownRow extends DashboardKpis {
+  year: number;
+}
+
 export interface DashboardSummaryResponse {
   filters: DashboardFilters;
   kpis: DashboardKpis;
+  yearly_breakdown?: YearlyBreakdownRow[];
 }
 
 export interface SellerRow {
@@ -64,13 +72,15 @@ export interface RevenueSeriesBucket {
 }
 
 export interface DashboardRevenueSeriesResponse {
-  period: RevenueSeriesPeriod;
-  year: number;
+  period: RevenueSeriesPeriod | null;
+  year: number | null;
   month: number | null;
   series: RevenueSeriesBucket[];
 }
 
 export interface DashboardQueryParams {
-  year: number;
+  scope: DashboardScope;
+  year?: number;
   month?: number;
+  period?: RevenueSeriesPeriod;
 }

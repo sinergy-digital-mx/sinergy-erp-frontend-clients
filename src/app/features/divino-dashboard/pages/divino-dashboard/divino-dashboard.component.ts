@@ -25,9 +25,11 @@ import { DivinoDashboardService } from '../../services/divino-dashboard.service'
 import {
   DashboardFilterMode,
   DashboardKpis,
+  DashboardQueryParams,
   LeadOriginRow,
   RevenueSeriesPeriod,
   SellerRow,
+  YearlyBreakdownRow,
 } from '../../models/divino-dashboard.model';
 
 interface KpiCard {
@@ -93,12 +95,17 @@ export class DivinoDashboardComponent implements OnInit {
   loading = signal(false);
   error = signal<string | null>(null);
   kpis = signal<DashboardKpis | null>(null);
+  yearlyBreakdown = signal<YearlyBreakdownRow[]>([]);
   leadOrigins = signal<LeadOriginRow[]>([]);
 
   revenueChartData = signal<any>(null);
+  trendChartData = signal<any>(null);
   originChartData = signal<any>(null);
   chartOptions = signal<any>(null);
+  trendChartOptions = signal<any>(null);
   originChartOptions = signal<any>(null);
+
+  readonly isAllTime = computed(() => this.filterMode() === 'all_time');
 
   tableConfig = signal<IDatatableConfig>({
     rows: [],
@@ -121,12 +128,21 @@ export class DivinoDashboardComponent implements OnInit {
   });
 
   periodLabel = computed(() => {
+    if (this.filterMode() === 'all_time') {
+      return 'Histórico completo';
+    }
     if (this.filterMode() === 'month') {
       const m = this.monthOptions.find((o) => o.value === this.selectedMonth);
       return `${m?.label ?? ''} ${this.selectedYear}`;
     }
     return `Año ${this.selectedYear}`;
   });
+
+  revenueChartSubtitle = computed(() =>
+    this.isAllTime()
+      ? 'Ingresos y lotes por año (histórico)'
+      : 'Ingresos y lotes vendidos por periodo',
+  );
 
   constructor(private dashboardService: DivinoDashboardService) {}
 
@@ -150,7 +166,7 @@ export class DivinoDashboardComponent implements OnInit {
   }
 
   setRevenuePeriod(period: RevenueSeriesPeriod): void {
-    if (this.revenuePeriod() === period) return;
+    if (this.isAllTime() || this.revenuePeriod() === period) return;
     this.revenuePeriod.set(period);
     this.loadRevenueSeries();
   }
@@ -165,25 +181,31 @@ export class DivinoDashboardComponent implements OnInit {
       summary: this.dashboardService.getSummary(params),
       sellers: this.dashboardService.getSellers(params),
       leadOrigins: this.dashboardService.getLeadOrigins(params),
-      revenue: this.dashboardService.getRevenueSeries({ ...params, period: this.revenuePeriod() }),
+      revenue: this.dashboardService.getRevenueSeries(this.buildRevenueParams()),
     }).subscribe({
       next: ({ summary, sellers, leadOrigins, revenue }) => {
         this.kpis.set(summary.kpis);
-        if (summary.filters.mode) {
-          this.filterMode.set(summary.filters.mode);
-        }
+        const breakdown = [...(summary.yearly_breakdown ?? [])].sort((a, b) => a.year - b.year);
+        this.yearlyBreakdown.set(breakdown);
         this.updateSellersTable(sellers.rows);
         this.leadOrigins.set(leadOrigins.rows);
         this.updateOriginChart(leadOrigins.rows);
         this.updateRevenueChart(revenue.series);
+        if (this.isAllTime()) {
+          this.updateTrendChart(breakdown);
+        } else {
+          this.trendChartData.set(null);
+        }
         this.loading.set(false);
       },
       error: (err) => {
         this.loading.set(false);
         this.kpis.set(null);
+        this.yearlyBreakdown.set([]);
         this.leadOrigins.set([]);
         this.updateSellersTable([]);
         this.revenueChartData.set(null);
+        this.trendChartData.set(null);
         this.originChartData.set(null);
         const msg = err.status === 403
           ? 'Divino Dashboard no está habilitado para este tenant.'
@@ -194,21 +216,29 @@ export class DivinoDashboardComponent implements OnInit {
   }
 
   private loadRevenueSeries(): void {
-    const params = this.buildQueryParams();
-    this.dashboardService
-      .getRevenueSeries({ ...params, period: this.revenuePeriod() })
-      .subscribe({
-        next: (res) => this.updateRevenueChart(res.series),
-        error: () => this.revenueChartData.set(null),
-      });
+    this.dashboardService.getRevenueSeries(this.buildRevenueParams()).subscribe({
+      next: (res) => this.updateRevenueChart(res.series),
+      error: () => this.revenueChartData.set(null),
+    });
   }
 
-  private buildQueryParams(): { year: number; month?: number } {
+  private buildQueryParams(): DashboardQueryParams {
+    if (this.filterMode() === 'all_time') {
+      return { scope: 'all_time' };
+    }
     const year = this.selectedYear;
     if (this.filterMode() === 'month') {
-      return { year, month: this.selectedMonth };
+      return { scope: 'period', year, month: this.selectedMonth };
     }
-    return { year };
+    return { scope: 'period', year };
+  }
+
+  private buildRevenueParams(): DashboardQueryParams {
+    const base = this.buildQueryParams();
+    if (base.scope === 'all_time') {
+      return base;
+    }
+    return { ...base, period: this.revenuePeriod() };
   }
 
   private updateSellersTable(rows: SellerRow[]): void {
@@ -254,6 +284,37 @@ export class DivinoDashboardComponent implements OnInit {
           pointRadius: 4,
           pointBackgroundColor: '#10b981',
           tension: 0.35,
+          yAxisID: 'y1',
+        },
+      ],
+    });
+  }
+
+  private updateTrendChart(rows: YearlyBreakdownRow[]): void {
+    if (!rows?.length) {
+      this.trendChartData.set(null);
+      return;
+    }
+
+    this.trendChartData.set({
+      labels: rows.map((r) => String(r.year)),
+      datasets: [
+        {
+          label: 'Total vendido',
+          data: rows.map((r) => r.total_sold_amount),
+          backgroundColor: 'rgba(99, 102, 241, 0.75)',
+          borderRadius: 6,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Lotes',
+          data: rows.map((r) => r.lots_sold),
+          type: 'line',
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.08)',
+          borderWidth: 2.5,
+          pointRadius: 4,
+          tension: 0.3,
           yAxisID: 'y1',
         },
       ],
@@ -354,6 +415,55 @@ export class DivinoDashboardComponent implements OnInit {
               ];
             },
           },
+        },
+      },
+    });
+
+    this.trendChartOptions.set({
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: { usePointStyle: true, padding: 12, font: { size: 11 } },
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.92)',
+          padding: 12,
+          cornerRadius: 10,
+          callbacks: {
+            label: (ctx: any) => {
+              if (ctx.datasetIndex === 0) {
+                return ` Total: ${this.formatCurrency(ctx.parsed.y)}`;
+              }
+              return ` Lotes: ${ctx.parsed.y}`;
+            },
+            afterBody: (items: any[]) => {
+              const row = this.yearlyBreakdown()[items[0]?.dataIndex];
+              if (!row) return [];
+              return [
+                `m²: ${this.formatNumber(row.total_sold_m2)}`,
+                `$/m² prom.: ${this.formatCurrency(row.avg_price_per_m2)}`,
+                `Lista prom.: ${this.formatCurrency(row.avg_list_price)}`,
+                `Cierre prom.: ${this.formatCurrency(row.avg_close_price)}`,
+              ];
+            },
+          },
+        },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#64748b' } },
+        y: {
+          position: 'left',
+          grid: { color: 'rgba(148, 163, 184, 0.12)' },
+          ticks: { color: '#64748b', callback: (v: number) => this.formatCompactCurrency(v) },
+        },
+        y1: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#10b981', stepSize: 1 },
         },
       },
     });

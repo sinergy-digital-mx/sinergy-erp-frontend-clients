@@ -8,7 +8,6 @@ import {
   DashboardRevenueSeriesResponse,
   DashboardSellersResponse,
   DashboardSummaryResponse,
-  RevenueSeriesPeriod,
 } from '../models/divino-dashboard.model';
 
 @Injectable({ providedIn: 'root' })
@@ -35,23 +34,28 @@ export class DivinoDashboardService {
     });
   }
 
-  getRevenueSeries(
-    params: DashboardQueryParams & { period?: RevenueSeriesPeriod },
-  ): Observable<DashboardRevenueSeriesResponse> {
-    let httpParams = this.buildParams(params);
-    if (params.period) {
-      httpParams = httpParams.set('period', params.period);
-    }
+  getRevenueSeries(params: DashboardQueryParams): Observable<DashboardRevenueSeriesResponse> {
     return this.http.get<DashboardRevenueSeriesResponse>(`${this.api}/revenue-series`, {
-      params: httpParams,
+      params: this.buildParams(params),
     });
   }
 
   private buildParams(params: DashboardQueryParams): HttpParams {
-    let httpParams = new HttpParams().set('year', String(params.year));
-    if (params.month != null) {
-      httpParams = httpParams.set('month', String(params.month));
+    let httpParams = new HttpParams().set('scope', params.scope);
+
+    if (params.scope === 'period') {
+      if (params.year != null) {
+        httpParams = httpParams.set('year', String(params.year));
+      }
+      if (params.month != null) {
+        httpParams = httpParams.set('month', String(params.month));
+      }
     }
+
+    if (params.scope === 'period' && params.period) {
+      httpParams = httpParams.set('period', params.period);
+    }
+
     return httpParams;
   }
 }

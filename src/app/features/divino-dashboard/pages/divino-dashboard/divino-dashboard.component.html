@@ -16,6 +16,14 @@
         <button
           type="button"
           class="dd-filter__toggle-btn"
+          [class.dd-filter__toggle-btn--active]="filterMode() === 'all_time'"
+          [attr.aria-pressed]="filterMode() === 'all_time'"
+          (click)="setFilterMode('all_time')">
+          Histórico
+        </button>
+        <button
+          type="button"
+          class="dd-filter__toggle-btn"
           [class.dd-filter__toggle-btn--active]="filterMode() === 'month'"
           [attr.aria-pressed]="filterMode() === 'month'"
           (click)="setFilterMode('month')">
@@ -31,32 +39,34 @@
         </button>
       </div>
 
-      <span class="dd-filter__divider" aria-hidden="true"></span>
+      @if (filterMode() !== 'all_time') {
+        <span class="dd-filter__divider" aria-hidden="true"></span>
 
-      <div class="dd-filter__fields">
-        @if (filterMode() === 'month') {
+        <div class="dd-filter__fields">
+          @if (filterMode() === 'month') {
+            <select
+              id="dd-month"
+              class="dd-filter__select dd-filter__select--month"
+              aria-label="Mes"
+              [(ngModel)]="selectedMonth"
+              (ngModelChange)="onMonthChange()">
+              @for (m of monthOptions; track m.value) {
+                <option [ngValue]="m.value">{{ m.label }}</option>
+              }
+            </select>
+          }
           <select
-            id="dd-month"
-            class="dd-filter__select dd-filter__select--month"
-            aria-label="Mes"
-            [(ngModel)]="selectedMonth"
-            (ngModelChange)="onMonthChange()">
-            @for (m of monthOptions; track m.value) {
-              <option [ngValue]="m.value">{{ m.label }}</option>
+            id="dd-year"
+            class="dd-filter__select dd-filter__select--year"
+            aria-label="Año"
+            [(ngModel)]="selectedYear"
+            (ngModelChange)="onYearChange()">
+            @for (y of yearOptions; track y) {
+              <option [ngValue]="y">{{ y }}</option>
             }
           </select>
-        }
-        <select
-          id="dd-year"
-          class="dd-filter__select dd-filter__select--year"
-          aria-label="Año"
-          [(ngModel)]="selectedYear"
-          (ngModelChange)="onYearChange()">
-          @for (y of yearOptions; track y) {
-            <option [ngValue]="y">{{ y }}</option>
-          }
-        </select>
-      </div>
+        </div>
+      }
     </div>
   </header>
 
@@ -101,26 +111,47 @@
     }
   </section>
 
+  @if (isAllTime()) {
+    <section class="dd-trend-section" [class.dd-trend-section--dimmed]="loading()">
+      <div class="dd-trend-section__header">
+        <lucide-icon [img]="icons.TrendingUp" [size]="20"></lucide-icon>
+        <div>
+          <h2 class="dd-trend-section__title">Tendencia por año</h2>
+          <p class="dd-trend-section__desc">Evolución histórica de ventas, lotes y precios</p>
+        </div>
+      </div>
+      <div class="dd-trend-section__body">
+        @if (trendChartData()) {
+          <p-chart type="bar" [data]="trendChartData()" [options]="trendChartOptions()" height="300px"></p-chart>
+        } @else {
+          <div class="dd-chart-empty">Sin datos de tendencia anual</div>
+        }
+      </div>
+    </section>
+  }
+
   <!-- Charts -->
   <section class="dd-charts" [class.dd-charts--dimmed]="loading()">
     <article class="dd-chart-card dd-chart-card--wide">
       <div class="dd-chart-card__header">
         <div>
           <h2 class="dd-chart-card__title">Revenue</h2>
-          <p class="dd-chart-card__desc">Ingresos y lotes vendidos por periodo</p>
+          <p class="dd-chart-card__desc">{{ revenueChartSubtitle() }}</p>
         </div>
-        <div class="dd-period-tabs" role="group" aria-label="Granularidad del gráfico">
-          @for (tab of periodTabs; track tab.value) {
-            <button
-              type="button"
-              class="dd-period-tabs__btn"
-              [class.dd-period-tabs__btn--active]="revenuePeriod() === tab.value"
-              [attr.aria-pressed]="revenuePeriod() === tab.value"
-              (click)="setRevenuePeriod(tab.value)">
-              {{ tab.label }}
-            </button>
-          }
-        </div>
+        @if (!isAllTime()) {
+          <div class="dd-period-tabs" role="group" aria-label="Granularidad del gráfico">
+            @for (tab of periodTabs; track tab.value) {
+              <button
+                type="button"
+                class="dd-period-tabs__btn"
+                [class.dd-period-tabs__btn--active]="revenuePeriod() === tab.value"
+                [attr.aria-pressed]="revenuePeriod() === tab.value"
+                (click)="setRevenuePeriod(tab.value)">
+                {{ tab.label }}
+              </button>
+            }
+          </div>
+        }
       </div>
       <div class="dd-chart-card__body">
         @if (revenueChartData()) {
