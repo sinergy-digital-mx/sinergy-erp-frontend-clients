@@ -133,6 +133,39 @@
         </div>
       </div>
 
+      <!-- Sección: Origen y Lead -->
+      <div class="section">
+        <h3>Origen de venta</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <app-group-select
+            label="Origen (grupo de lead)"
+            groupType="lead"
+            [control]="form.get('lead_group_id')">
+          </app-group-select>
+
+          <div class="autocomplete-field">
+            <label for="lead-search" class="field-label">Lead vinculado (opcional)</label>
+            <input
+              #leadAutocompleteTrigger="matAutocompleteTrigger"
+              id="lead-search"
+              type="text"
+              formControlName="lead_search"
+              placeholder="Buscar lead por nombre o email"
+              class="autocomplete-input"
+              [matAutocomplete]="autoLead"
+              aria-label="Buscar lead">
+            <mat-autocomplete #autoLead="matAutocomplete" [displayWith]="displayLead.bind(this)">
+              <mat-option *ngFor="let lead of filteredLeads()" [value]="lead" (onSelectionChange)="onLeadSelected(lead)">
+                {{ displayLead(lead) }}
+              </mat-option>
+              <mat-option *ngIf="filteredLeads().length === 0" disabled>
+                <span class="no-results-text">No se encontraron leads</span>
+              </mat-option>
+            </mat-autocomplete>
+          </div>
+        </div>
+      </div>
+
       <!-- Sección: Datos del Contrato -->
       <div class="section">
         <h3>Datos del Contrato</h3>
@@ -147,6 +180,21 @@
             [label]="'Precio Total *'"
             [placeholder]="'Ej. 36000 o 36,000'"
             [form_control]="form.get('total_price')"
+            [type]="'text'">
+          </app-input>
+
+          <div class="w-full p-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Precio lista del lote</label>
+            <div class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+              {{ formattedPropertyListPrice }}
+            </div>
+            <p class="mt-1 text-xs text-gray-500">Desde el lote seleccionado; editable abajo.</p>
+          </div>
+
+          <app-input
+            [label]="'Precio lista (override)'"
+            [placeholder]="'Opcional — sobreescribe precio del lote'"
+            [form_control]="form.get('list_price')"
             [type]="'text'">
           </app-input>
 

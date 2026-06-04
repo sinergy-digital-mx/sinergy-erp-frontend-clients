@@ -23,6 +23,8 @@ import { ContractDownpaymentPaymentsComponent } from '../contract-downpayment-pa
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
+import { GroupSelectComponent } from '../../../../core/components/group-select/group-select.component';
+import { LeadService } from '../../../../core/services/leads.service';
 
 @Component({
   selector: 'app-contract-detail-modal',
@@ -40,7 +42,8 @@ import { UserService } from '../../../rbac-tenant-ui/services/user.service';
     ContractPaymentsComponent,
     ContractHoaPaymentsComponent,
     ContractDownpaymentPaymentsComponent,
-    LocalDatePipe
+    LocalDatePipe,
+    GroupSelectComponent
   ],
   providers: [DatePipe],
   templateUrl: './contract-detail-modal.component.html',
@@ -50,6 +53,7 @@ export class ContractDetailModalComponent implements OnInit {
   readonly X = X;
 
   @ViewChild('vendorAutocompleteTrigger', { read: MatAutocompleteTrigger }) vendorAutocompleteTrigger: MatAutocompleteTrigger;
+  @ViewChild('leadAutocompleteTrigger', { read: MatAutocompleteTrigger }) leadAutocompleteTrigger: MatAutocompleteTrigger;
 
   form: FormGroup;
   saving = signal(false);
@@ -62,6 +66,8 @@ export class ContractDetailModalComponent implements OnInit {
   // Vendor signals
   vendors = signal<any[]>([]);
   filteredVendors = signal<any[]>([]);
+  filteredLeads = signal<any[]>([]);
+  propertyListPrice = signal<number | null>(null);
 
   statusSelectConfig: ISelect = {
     placeholder: 'Selecciona un estado',
@@ -87,7 +93,8 @@ export class ContractDetailModalComponent implements OnInit {
     private userService: UserService,
     private interceptorService: InterceptorService,
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private leadService: LeadService
   ) {
     this.form = this.fb.group({
       contract_date: [this.data.contract.contract_date, Validators.required],
@@ -101,7 +108,11 @@ export class ContractDetailModalComponent implements OnInit {
       status: [this.normalizeStatus(this.data.contract.status), Validators.required],
       notes: [this.data.contract.notes || ''],
       seller_search: [''],
-      seller_id: [this.data.contract.seller_id || null]
+      seller_id: [this.data.contract.seller_id || null],
+      lead_search: [''],
+      lead_id: [this.data.contract.lead_id ?? null],
+      lead_group_id: [this.data.contract.lead_group_id ?? null],
+      list_price: [this.data.contract.list_price ?? null],
     });
 
     // Link form control to select
@@ -112,6 +123,7 @@ export class ContractDetailModalComponent implements OnInit {
     console.log('🔍 Contract Detail Modal - Contract ID:', this.data.contract.id);
     this.loadSellers();
     this.initializeSellerSearch();
+    this.initializeLeadSearch();
     this.loadContractDetails();
   }
 
@@ -140,6 +152,9 @@ export class ContractDetailModalComponent implements OnInit {
         }
         
         // Actualizar form con nuevos valores
+        const propListPrice = contract.property?.list_price ?? contract.property?.total_price ?? null;
+        this.propertyListPrice.set(propListPrice);
+
         this.form.patchValue({
           contract_date: contract.contract_date,
           total_price: contract.total_price,
@@ -152,7 +167,10 @@ export class ContractDetailModalComponent implements OnInit {
           status: normalizedStatus,
           notes: contract.notes || '',
           seller_id: contract.seller_id || null,
-          seller_search: contract.seller ? this.displaySeller(contract.seller) : ''
+          seller_search: contract.seller ? this.displaySeller(contract.seller) : '',
+          lead_id: contract.lead_id ?? null,
+          lead_group_id: contract.lead_group_id ?? null,
+          list_price: contract.list_price ?? propListPrice,
         });
 
         this.loadPaymentStats();
@@ -283,6 +301,45 @@ export class ContractDetailModalComponent implements OnInit {
     }
   }
 
+  initializeLeadSearch(): void {
+    this.form.get('lead_search')!.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe(searchTerm => this.filterLeads(searchTerm || ''));
+  }
+
+  filterLeads(searchTerm: string): void {
+    const params = searchTerm.trim() ? { search: searchTerm.trim(), limit: 50 } : { limit: 50 };
+    this.leadService.getLeads(params).subscribe({
+      next: (response) => {
+        const data = response.data ?? response.results ?? (Array.isArray(response) ? response : []);
+        this.filteredLeads.set(data);
+      },
+      error: () => this.filteredLeads.set([]),
+    });
+  }
+
+  onLeadSelected(lead: any): void {
+    this.form.patchValue({
+      lead_id: lead.id,
+      lead_group_id: lead.group_id ?? this.form.get('lead_group_id')!.value,
+      lead_search: this.displayLead(lead),
+    }, { emitEvent: false });
+    this.leadAutocompleteTrigger?.closePanel();
+  }
+
+  displayLead(lead: any): string {
+    if (!lead) return '';
+    if (typeof lead === 'string') return lead;
+    const name = [lead.name, lead.lastname].filter(Boolean).join(' ');
+    return name ? `${name} (${lead.email})` : lead.email;
+  }
+
+  get formattedPropertyListPrice(): string {
+    const v = this.propertyListPrice();
+    if (v == null) return '—';
+    return new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  }
+
   displaySeller(seller: any): string {
     if (!seller) return '';
     if (typeof seller === 'string') return seller;
@@ -392,7 +449,10 @@ export class ContractDetailModalComponent implements OnInit {
       currency: this.form.get('currency')?.value,
       status: this.normalizeStatus(this.form.get('status')?.value),
       notes: this.form.get('notes')?.value,
-      seller_id: this.form.get('seller_id')?.value || null
+      seller_id: this.form.get('seller_id')?.value || null,
+      lead_id: this.form.get('lead_id')?.value || null,
+      lead_group_id: this.form.get('lead_group_id')?.value || null,
+      list_price: this.form.get('list_price')?.value ?? null,
     };
 
     this.contractService.updateContract(this.data.contract.id, payload).subscribe({

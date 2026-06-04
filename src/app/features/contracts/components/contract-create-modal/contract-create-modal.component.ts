@@ -22,6 +22,8 @@ import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { CreateContractDto } from '../../models/contract.model';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
+import { GroupSelectComponent } from '../../../../core/components/group-select/group-select.component';
+import { LeadService } from '../../../../core/services/leads.service';
 
 /**
  * Convierte montos del formulario a número.
@@ -84,7 +86,8 @@ function contractMoneyOptionalValidator(control: AbstractControl): ValidationErr
     LucideAngularModule,
     ButtonComponent,
     InputComponent,
-    SelectComponent
+    SelectComponent,
+    GroupSelectComponent
   ],
   templateUrl: './contract-create-modal.component.html',
   styleUrls: ['./contract-create-modal.component.scss']
@@ -95,6 +98,7 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   @ViewChild('customerAutocompleteTrigger', { read: MatAutocompleteTrigger }) customerAutocompleteTrigger: MatAutocompleteTrigger;
   @ViewChild('propertyAutocompleteTrigger', { read: MatAutocompleteTrigger }) propertyAutocompleteTrigger: MatAutocompleteTrigger;
   @ViewChild('sellerAutocompleteTrigger', { read: MatAutocompleteTrigger }) sellerAutocompleteTrigger: MatAutocompleteTrigger;
+  @ViewChild('leadAutocompleteTrigger', { read: MatAutocompleteTrigger }) leadAutocompleteTrigger: MatAutocompleteTrigger;
   @ViewChild('modalBody') modalBody: ElementRef;
 
   // Signals para estado reactivo
@@ -105,6 +109,9 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   filteredProperties = signal<any[]>([]);
   sellers = signal<any[]>([]);
   filteredSellers = signal<any[]>([]);
+  leads = signal<any[]>([]);
+  filteredLeads = signal<any[]>([]);
+  propertyListPrice = signal<number | null>(null);
   
   // Signals para valores formateados
   formattedRemainingBalance = signal<string>('0.00');
@@ -147,7 +154,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     private propertyService: PropertyService,
     private userService: UserService,
     private interceptorService: InterceptorService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private leadService: LeadService
   ) {
     this.form = this.fb.group({
       // Búsqueda y selección
@@ -157,6 +165,10 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       property_id: ['', Validators.required],
       seller_search: [''],
       seller_id: [null],
+      lead_search: [''],
+      lead_id: [null],
+      lead_group_id: [null],
+      list_price: [null, [contractMoneyOptionalValidator]],
 
       // Datos del contrato
       contract_date: [this.getTodayDate(), Validators.required],
@@ -257,6 +269,12 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       )
       .subscribe(searchTerm => {
         this.filterSellers(searchTerm || '');
+      });
+
+    this.form.get('lead_search')!.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe(searchTerm => {
+        this.filterLeads(searchTerm || '');
       });
   }
 
@@ -463,10 +481,52 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   }
 
   onPropertySelected(property: any): void {
+    const listPrice = property.list_price ?? property.total_price ?? null;
+    this.propertyListPrice.set(listPrice);
     this.form.patchValue({
       property_id: property.id,
-      total_price: property.total_price
+      total_price: property.total_price,
+      list_price: listPrice,
     });
+  }
+
+  onLeadSelected(lead: any): void {
+    this.form.patchValue({
+      lead_id: lead.id,
+      lead_group_id: lead.group_id ?? this.form.get('lead_group_id')!.value,
+    });
+  }
+
+  displayLead(lead: any): string {
+    if (!lead) return '';
+    const name = [lead.name, lead.lastname].filter(Boolean).join(' ');
+    return name ? `${name} (${lead.email})` : lead.email;
+  }
+
+  filterLeads(searchTerm: string): void {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      this.leadService.getLeads({ limit: 50 }).subscribe({
+        next: (response) => {
+          const data = response.data ?? response.results ?? (Array.isArray(response) ? response : []);
+          this.filteredLeads.set(data);
+        },
+        error: () => this.filteredLeads.set([]),
+      });
+      return;
+    }
+
+    this.leadService.getLeads({ search: searchTerm.trim(), limit: 50 }).subscribe({
+      next: (response) => {
+        const data = response.data ?? response.results ?? (Array.isArray(response) ? response : []);
+        this.filteredLeads.set(data);
+      },
+      error: () => this.filteredLeads.set([]),
+    });
+  }
+
+  get formattedPropertyListPrice(): string {
+    const v = this.propertyListPrice();
+    return v != null ? this.formatNumber(v) : '—';
   }
 
   onSellerSelected(seller: any): void {
@@ -587,6 +647,19 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       if (target > 0) {
         payload.down_payment_target = target;
       }
+    }
+
+    const listPrice = parseContractAmount(this.form.get('list_price')!.value);
+    if (listPrice > 0) {
+      payload.list_price = listPrice;
+    }
+    const leadId = this.form.get('lead_id')!.value;
+    if (leadId) {
+      payload.lead_id = leadId;
+    }
+    const leadGroupId = this.form.get('lead_group_id')!.value;
+    if (leadGroupId) {
+      payload.lead_group_id = leadGroupId;
     }
 
     // Establecer loading signal en true

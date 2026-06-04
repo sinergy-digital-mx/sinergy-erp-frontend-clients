@@ -210,6 +210,46 @@
           </mat-autocomplete>
         </div>
 
+        <!-- Origen y Lead -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <app-group-select
+            label="Origen (grupo de lead)"
+            groupType="lead"
+            [control]="form.get('lead_group_id')">
+          </app-group-select>
+
+          <div>
+            <label for="lead-search-edit" class="block text-xs font-semibold text-gray-500 mb-1">Lead vinculado</label>
+            <input
+              #leadAutocompleteTrigger="matAutocompleteTrigger"
+              id="lead-search-edit"
+              type="text"
+              formControlName="lead_search"
+              placeholder="Buscar lead (opcional)"
+              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              [matAutocomplete]="autoLead">
+            <mat-autocomplete #autoLead="matAutocomplete" [displayWith]="displayLead.bind(this)">
+              <mat-option *ngFor="let lead of filteredLeads()" [value]="lead" (click)="onLeadSelected(lead)">
+                {{ displayLead(lead) }}
+              </mat-option>
+            </mat-autocomplete>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Precio lista del lote</span>
+            <div class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+              {{ formattedPropertyListPrice }}
+            </div>
+          </div>
+          <app-input
+            label="Precio lista (override)"
+            type="number"
+            [form_control]="form.controls['list_price']">
+          </app-input>
+        </div>
+
         <div class="grid grid-cols-2 gap-2.5">
           <!-- Fecha del Contrato -->
           <app-input

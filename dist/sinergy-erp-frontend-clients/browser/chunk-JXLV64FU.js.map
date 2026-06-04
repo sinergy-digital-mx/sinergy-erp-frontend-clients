@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/leads/leads.routes.ts"],
+  "sourcesContent": ["import { Routes } from '@angular/router';\r\nimport { permissionGuard } from '../../core/guards/permission.guard';\r\nimport { LEAD_PERMISSIONS } from './config/permissions.config';\r\n\r\nexport const LEADS_ROUTES: Routes = [\r\n  {\r\n    path: '',\r\n    loadComponent: () =>\r\n      import('./pages/leads-list/leads-list')\r\n        .then(m => m.LeadsList),\r\n    canActivate: [permissionGuard],\r\n    data: {\r\n      permissions: [LEAD_PERMISSIONS.viewList]\r\n    }\r\n  },\r\n  {\r\n    path: 'detail/:id',\r\n    loadComponent: () =>\r\n      import('./pages/lead-detail/lead-detail')\r\n        .then(m => m.LeadDetail),\r\n    canActivate: [permissionGuard],\r\n    data: {\r\n      permissions: [LEAD_PERMISSIONS.viewDetail]\r\n    }\r\n  },\r\n];\r\n"],
+  "mappings": ";;;;;;;;;;;;AAIO,IAAM,eAAuB;EAClC;IACE,MAAM;IACN,eAAe,MACb,OAAO,qBAA+B,EACnC,KAAK,OAAK,EAAE,SAAS;IAC1B,aAAa,CAAC,eAAe;IAC7B,MAAM;MACJ,aAAa,CAAC,iBAAiB,QAAQ;;;EAG3C;IACE,MAAM;IACN,eAAe,MACb,OAAO,qBAAiC,EACrC,KAAK,OAAK,EAAE,UAAU;IAC3B,aAAa,CAAC,eAAe;IAC7B,MAAM;MACJ,aAAa,CAAC,iBAAiB,UAAU;;;;",
+  "names": []
+}

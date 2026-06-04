@@ -21,7 +21,10 @@ import {
   Monitor,
   ChevronLeft,
   ChevronRight,
+  LayoutDashboard,
 } from 'lucide-angular';
+import { DIVINO_DASHBOARD_TENANT_ID } from '../../../features/divino-dashboard/config/divino-dashboard.constants';
+import { DIVINO_DASHBOARD_PERMISSIONS } from '../../../features/divino-dashboard/config/permissions.config';
 import { AuthService } from '../../services/auth.service';
 import { SidebarService } from '../../services/sidebar.service';
 import { PERMISSIONS } from '../../config/permissions.config';
@@ -34,6 +37,8 @@ interface MenuItem {
   route: string;
   id?: string;
   permission?: string;
+  /** Si se define, el ítem solo se muestra para este tenant. */
+  tenantId?: string;
 }
 
 @Component({
@@ -119,6 +124,14 @@ export class Sidebar implements OnInit, OnDestroy {
       icon: FileText,
       id: 'menu-zona-norte',
       permission: 'zona_norte_custom_report:ViewMenu'
+    },
+    {
+      label: 'Divino Dashboard',
+      route: '/divino-dashboard',
+      icon: LayoutDashboard,
+      id: 'menu-divino-dashboard',
+      permission: DIVINO_DASHBOARD_PERMISSIONS.viewMenu,
+      tenantId: DIVINO_DASHBOARD_TENANT_ID,
     }
   ];
 
@@ -166,8 +179,12 @@ export class Sidebar implements OnInit, OnDestroy {
   }
 
   private updateVisibleMenuItems(): void {
+    const tenantId = this.auth_service.user_info?.tenant_id;
     this.visibleMenuItems.set(
       this.menu.filter(item => {
+        if (item.tenantId && tenantId !== item.tenantId) {
+          return false;
+        }
         if (!item.permission) {
           return true;
         }

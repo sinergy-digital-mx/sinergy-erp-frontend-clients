@@ -10,6 +10,12 @@ export interface Contract {
   contract_number: string;
   contract_date: string;
   total_price: number;
+  /** Precio lista al vender; override opcional sobre el lote. */
+  list_price?: number | null;
+  /** Lead vinculado (opcional). */
+  lead_id?: number | null;
+  /** Origen de venta (lead group). */
+  lead_group_id?: string | null;
   /** Monto ya pagado de enganche (se actualiza con abonos). */
   down_payment: number;
   /** Total pactado de enganche; null hasta definir meta. */
@@ -59,6 +65,7 @@ export interface ContractProperty {
   block: string;
   total_area: number;
   total_price: number;
+  list_price?: number | null;
   status: string;
 }
 
@@ -71,6 +78,9 @@ export interface CreateContractDto {
   contract_number?: string;
   contract_date: string;
   total_price: number;
+  list_price?: number | null;
+  lead_id?: number | null;
+  lead_group_id?: string | null;
   down_payment: number;
   payment_months: number;
   first_payment_date: string;

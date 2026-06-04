@@ -20,6 +20,7 @@ export { MARKETING_PERMISSIONS } from '../../features/marketing/config/permissio
 export { POS_PERMISSIONS } from '../../features/pos/config/permissions.config';
 export { PURCHASE_ORDER_PERMISSIONS } from '../../features/purchase-orders/config/permissions.config';
 export { SALES_ORDER_PERMISSIONS } from '../../features/sales-orders/config/permissions.config';
+export { DIVINO_DASHBOARD_PERMISSIONS } from '../../features/divino-dashboard/config/permissions.config';
 
 /**
  * Grouped permissions for easier access
@@ -34,6 +35,7 @@ import { MARKETING_PERMISSIONS } from '../../features/marketing/config/permissio
 import { POS_PERMISSIONS } from '../../features/pos/config/permissions.config';
 import { PURCHASE_ORDER_PERMISSIONS } from '../../features/purchase-orders/config/permissions.config';
 import { SALES_ORDER_PERMISSIONS } from '../../features/sales-orders/config/permissions.config';
+import { DIVINO_DASHBOARD_PERMISSIONS } from '../../features/divino-dashboard/config/permissions.config';
 
 export const PERMISSIONS = {
   contracts: CONTRACT_PERMISSIONS,
@@ -45,5 +47,6 @@ export const PERMISSIONS = {
   marketing: MARKETING_PERMISSIONS,
   pos: POS_PERMISSIONS,
   purchaseOrders: PURCHASE_ORDER_PERMISSIONS,
-  salesOrders: SALES_ORDER_PERMISSIONS
+  salesOrders: SALES_ORDER_PERMISSIONS,
+  divinoDashboard: DIVINO_DASHBOARD_PERMISSIONS,
 } as const;

@@ -116,6 +116,12 @@ export const routes: Routes = [
             .then(m => m.ZONA_NORTE_REPORTS_ROUTES),
       },
       {
+        path: 'divino-dashboard',
+        loadChildren: () =>
+          import('./features/divino-dashboard/divino-dashboard.routes')
+            .then(m => m.DIVINO_DASHBOARD_ROUTES),
+      },
+      {
         path: '',
         canActivate: [defaultRouteGuard],
         children: []
