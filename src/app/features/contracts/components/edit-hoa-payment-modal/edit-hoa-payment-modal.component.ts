@@ -56,12 +56,18 @@ export class EditHoaPaymentModalComponent {
     const isPaid = this.data.payment.status === 'pagado';
     this.form = this.fb.group({
       amount_paid: [this.data.payment.amount_paid || this.data.payment.amount, [Validators.required, Validators.min(0.01)]],
+      due_date: [this.toDateInputValue(this.data.payment.due_date), Validators.required],
       paid_date: [this.data.payment.paid_date || '', isPaid ? Validators.required : []],
       payment_method: [this.data.payment.payment_method || '', isPaid ? Validators.required : []],
       notes: [this.data.payment.notes || '']
     });
 
     this.paymentMethodSelectConfig.form_control = this.form.get('payment_method');
+  }
+
+  private toDateInputValue(value: string | null): string {
+    if (!value) return '';
+    return value.length >= 10 ? value.slice(0, 10) : value;
   }
 
   save(): void {

@@ -1,12 +1,12 @@
-<div class="space-y-10 min-h-screen">
+<div class="space-y-6 sm:space-y-10 min-h-screen">
 
     <!-- HEADER -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-3xl font-bold text-gray-900">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="min-w-0">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
           {{ lead()?.name }} {{ lead()?.lastname }}
         </h2>
-        <p class="text-sm text-gray-500">
+        <p class="text-sm text-gray-500 truncate">
           {{ lead()?.email }}
         </p>
       </div>
@@ -16,18 +16,18 @@
         pButton
         label="Editar lead"
         icon="pi pi-pencil"
-        class="p-button-rounded p-button-solid text-sm"
+        class="p-button-rounded p-button-solid text-sm w-full sm:w-auto"
         size="small">
       </button>
     </div>
   
 <!-- LEAD INFORMATION -->
-<div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+<div class="bg-white shadow-md rounded-xl p-4 sm:p-6 border border-gray-100">
   <h3 class="text-lg font-semibold text-gray-800 mb-4">
     Información del Lead
   </h3>
 
-  <div class="grid grid-cols-2 gap-y-3 gap-x-10 text-sm text-gray-800">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-10 text-sm text-gray-800">
 
     <div>
       <span class="font-semibold text-gray-500">Nombre:</span>
@@ -66,8 +66,7 @@
       {{ lead()?.source }}
     </div>
 
-    <!-- Website ocupa 2 columnas -->
-    <div class="col-span-2">
+    <div class="sm:col-span-2">
       <span class="font-semibold text-gray-500">Sitio web:</span>
 
       <a
@@ -91,7 +90,7 @@
       </p-tag>
     </div>
 
-    <div class="col-span-2">
+    <div class="sm:col-span-2">
       <span class="font-semibold text-gray-500">Creado el:</span>
       <div class="mt-0.5">
         {{ lead()?.created_at | date:'medium' }}
@@ -108,10 +107,9 @@
 ></app-email-threads-section>
 
 <!-- ADDRESSES -->
-<div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+<div class="bg-white shadow-md rounded-xl p-4 sm:p-6 border border-gray-100">
 
-    <!-- Header with action -->
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
       <h3 class="text-lg font-semibold text-gray-800">
         Direcciones
       </h3>
@@ -120,7 +118,7 @@
         pButton
         icon="pi pi-plus"
         label="Agregar dirección"
-        class="p-button-sm p-button-outlined"
+        class="p-button-sm p-button-outlined w-full sm:w-auto"
     >
       </button>
     </div>
@@ -130,7 +128,6 @@
       responsiveLayout="scroll"
       styleClass="p-datatable-sm w-full">
   
-      <!-- HEADER -->
       <ng-template pTemplate="header">
         <tr>
           <th>Tipo</th>
@@ -143,7 +140,6 @@
         </tr>
       </ng-template>
   
-      <!-- BODY -->
       <ng-template pTemplate="body" let-address>
         <tr>
           <td class="capitalize">
@@ -195,10 +191,9 @@
 
 
 <!-- ACTIVITIES -->
-<div class="bg-white shadow-md rounded-xl p-6 border border-gray-100">
+<div class="bg-white shadow-md rounded-xl p-4 sm:p-6 border border-gray-100">
 
-    <!-- Header with action -->
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
       <h3 class="text-lg font-semibold text-gray-800">
         Actividades
       </h3>
@@ -207,7 +202,7 @@
         pButton
         icon="pi pi-plus"
         label="Agregar actividad"
-        class="p-button-sm p-button-outlined"
+        class="p-button-sm p-button-outlined w-full sm:w-auto"
         (click)="createActivity()"
         >
       </button>
@@ -219,7 +214,6 @@
       styleClass="p-datatable-sm w-full"
       >
   
-      <!-- HEADER -->
       <ng-template pTemplate="header">
         <tr>
           <th>Tipo</th>
@@ -231,11 +225,9 @@
         </tr>
       </ng-template>
   
-      <!-- BODY -->
       <ng-template pTemplate="body" let-activity>
         <tr>
   
-          <!-- Type -->
           <td class="capitalize">
             <p-tag
               [value]="activity.type"
@@ -244,7 +236,6 @@
             </p-tag>
           </td>
   
-          <!-- Title + description -->
           <td>
             <div class="font-medium text-gray-800">
               {{ activity.title }}
@@ -254,7 +245,6 @@
             </div>
           </td>
   
-          <!-- Status -->
           <td>
             <p-tag
               [value]="activity.status"
@@ -263,17 +253,14 @@
             </p-tag>
           </td>
   
-          <!-- Activity date -->
           <td>
             {{ activity.activity_date | date:'medium' }}
           </td>
   
-          <!-- Duration -->
           <td>
             {{ activity.duration_minutes }} min
           </td>
   
-          <!-- Outcome -->
           <td class="capitalize">
             {{ activity.outcome?.replace('_', ' ') }}
           </td>

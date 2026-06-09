@@ -18,6 +18,10 @@ export class HoaPaymentService {
 
   constructor(private http: HttpClient) {}
 
+  getPayment(contractId: string, paymentId: string): Observable<HoaPayment> {
+    return this.http.get<HoaPayment>(`${this.api}/tenant/contracts/${contractId}/hoa-payments/${paymentId}`);
+  }
+
   generatePayments(contractId: string, data: GenerateHoaPaymentsDto): Observable<HoaPayment[]> {
     return this.http.post<HoaPayment[]>(`${this.api}/tenant/contracts/${contractId}/hoa-payments/generate`, data);
   }

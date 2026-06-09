@@ -1,25 +1,38 @@
-<aside [class]="'sidebar h-screen flex flex-col justify-between text-white text-[14px] shadow-xl transition-all duration-300 ' + (isCollapsed() ? 'w-20' : 'w-60')">
-    <!-- Toggle Button -->
-    <button (click)="toggleSidebar()" 
-            class="toggle-btn fixed top-6 z-50 w-7 h-7 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
-            [style.left]="isCollapsed() ? '68px' : '228px'">
+<aside
+  [class]="'sidebar h-screen flex flex-col justify-between text-white text-[14px] shadow-xl transition-all duration-300 ' +
+    (isMobileOpen() ? 'sidebar--mobile-open ' : '') +
+    (isCollapsed() ? 'w-20' : 'w-60')">
+    <!-- Desktop collapse toggle -->
+    <button
+      (click)="toggleSidebar()"
+      class="toggle-btn hidden lg:flex fixed top-6 z-50 w-7 h-7 bg-white rounded-full shadow-lg items-center justify-center hover:scale-110 transition-transform"
+      [style.left]="isCollapsed() ? '68px' : '228px'">
         <lucide-icon [img]="isCollapsed() ? icons.ChevronRight : icons.ChevronLeft" class="w-4 h-4 text-purple-600"></lucide-icon>
     </button>
 
-    <div class="flex flex-col">
+    <!-- Mobile close button -->
+    <button
+      type="button"
+      (click)="closeMobileMenu()"
+      class="mobile-close-btn lg:hidden"
+      aria-label="Cerrar menú">
+      <lucide-icon [img]="icons.X" class="w-5 h-5"></lucide-icon>
+    </button>
+
+    <div class="flex flex-col flex-1 overflow-y-auto">
         <!-- Logo Section -->
         <div class="logo-section px-6 py-6 border-b border-white/10">
             <div class="text-center">
-                <h1 [class]="'font-bold text-white tracking-wide transition-all duration-300 ' + (isCollapsed() ? 'text-lg' : 'text-2xl')">
-                    {{ isCollapsed() ? 'S' : 'Sinergy' }}
+                <h1 [class]="'font-bold text-white tracking-wide transition-all duration-300 ' + (isCollapsed() && !isMobileOpen() ? 'text-lg' : 'text-2xl')">
+                    {{ isCollapsed() && !isMobileOpen() ? 'S' : 'Sinergy' }}
                 </h1>
-                @if (!isCollapsed()) {
+                @if (!isCollapsed() || isMobileOpen()) {
                     <p class="text-white/60 text-sm mt-1 font-light">Sistema ERP</p>
                 }
             </div>
         </div>
         
-        <div [class]="'flex flex-col pt-6 transition-all duration-300 ' + (isCollapsed() ? 'px-2' : 'px-4')">
+        <div [class]="'flex flex-col pt-6 transition-all duration-300 ' + (isCollapsed() && !isMobileOpen() ? 'px-2' : 'px-4')">
             <h2 class="text-base font-semibold mb-6 opacity-80 tracking-tight text-white/70"></h2>
 
         <nav class="flex flex-col gap-1.5">
@@ -27,10 +40,11 @@
             <a [routerLink]="item.route" 
                routerLinkActive="router-link-active"
                [routerLinkActiveOptions]="{ exact: true }"
-               [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
-               [title]="isCollapsed() ? item.label : ''">
+               (click)="closeMobileMenu()"
+               [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
+               [title]="isCollapsed() && !isMobileOpen() ? item.label : ''">
               <lucide-icon [img]="item.icon" class="w-4 h-4 shrink-0"></lucide-icon>
-              @if (!isCollapsed()) {
+              @if (!isCollapsed() || isMobileOpen()) {
                 <span class="font-medium whitespace-nowrap">{{item.label}}</span>
               }
             </a>
@@ -41,18 +55,20 @@
 
         <nav class="flex flex-col gap-1.5">
             <a routerLink="/notifications"
-                [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
-                [title]="isCollapsed() ? 'Notificaciones' : ''">
+                (click)="closeMobileMenu()"
+                [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
+                [title]="isCollapsed() && !isMobileOpen() ? 'Notificaciones' : ''">
                 <lucide-icon [img]="icons.Bell" class="w-4 h-4 shrink-0"></lucide-icon>
-                @if (!isCollapsed()) {
+                @if (!isCollapsed() || isMobileOpen()) {
                     <span class="font-medium">Notificaciones</span>
                 }
             </a>
-            <a routerLink="/settings" 
-               [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
-               [title]="isCollapsed() ? 'Configuración' : ''">
+            <a routerLink="/settings"
+               (click)="closeMobileMenu()"
+               [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
+               [title]="isCollapsed() && !isMobileOpen() ? 'Configuración' : ''">
                 <lucide-icon [img]="icons.Settings" class="w-4 h-4 shrink-0"></lucide-icon>
-                @if (!isCollapsed()) {
+                @if (!isCollapsed() || isMobileOpen()) {
                     <span class="font-medium">Configuración</span>
                 }
             </a>
@@ -60,12 +76,13 @@
         </div>
     </div>
 
-    <div [class]="'user-section py-5 transition-all duration-300 ' + (isCollapsed() ? 'px-2' : 'px-6')">
+    <div [class]="'user-section py-5 transition-all duration-300 shrink-0 ' + (isCollapsed() && !isMobileOpen() ? 'px-2' : 'px-6')">
         @if (todayUsdMxnRate() !== null) {
             <a
                 routerLink="/settings/exchange-rates"
-                [class]="'mb-3 block rounded-md border border-white/15 bg-white/10 text-white hover:bg-white/15 transition-colors ' + (isCollapsed() ? 'px-1.5 py-1.5 text-center' : 'px-2 py-1.5')">
-                @if (isCollapsed()) {
+                (click)="closeMobileMenu()"
+                [class]="'mb-3 block rounded-md border border-white/15 bg-white/10 text-white hover:bg-white/15 transition-colors ' + (isCollapsed() && !isMobileOpen() ? 'px-1.5 py-1.5 text-center' : 'px-2 py-1.5')">
+                @if (isCollapsed() && !isMobileOpen()) {
                     <div class="text-[11px]" title="Tipo de cambio USD/MXN">
                         🇺🇸🇲🇽
                     </div>
@@ -79,7 +96,7 @@
             </a>
         }
 
-        @if (isCollapsed()) {
+        @if (isCollapsed() && !isMobileOpen()) {
             <div class="flex flex-col items-center gap-3">
                 <div class="user-avatar w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold">
                     {{ getInitials(auth_service.user_info?.email) }}

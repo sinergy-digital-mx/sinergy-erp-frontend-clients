@@ -3,6 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Contract } from '../../models/contract.model';
+import { HoaPayment } from '../../models/hoa-payment.model';
+
+export interface GenerateHoaDialogData {
+  contract: Contract;
+  existingPayments?: HoaPayment[];
+  suggestedFirstPaymentDate?: string | null;
+  suggestedMonthlyAmount?: number | null;
+}
 
 @Component({
   selector: 'app-generate-hoa-dialog',
@@ -12,7 +20,7 @@ import { Contract } from '../../models/contract.model';
     <div class="dialog-overlay">
       <div class="dialog-container">
         <div class="dialog-header">
-          <h2 class="text-xl font-semibold text-gray-900">Generar Pagos de HOA</h2>
+          <h2 class="text-xl font-semibold text-gray-900">Generar cuotas HOA</h2>
           <button
             type="button"
             (click)="closeDialog()"
@@ -24,14 +32,19 @@ import { Contract } from '../../models/contract.model';
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
           <div class="dialog-body">
             <p class="text-sm text-gray-600 mb-4">
-              Genera pagos mensuales de HOA para el contrato <strong>{{ data.contract.contract_number }}</strong>
+              Genera cuotas mensuales de HOA para el contrato <strong>{{ data.contract.contract_number }}</strong>.
+              Puedes ejecutar esta acción varias veces para agregar más meses.
+            </p>
+            <p *ngIf="data.suggestedFirstPaymentDate" class="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-4">
+              Sugerencia: el mes siguiente al último vencimiento existente es
+              <strong>{{ data.suggestedFirstPaymentDate }}</strong> (puedes cambiarlo).
             </p>
 
             <div class="space-y-4">
               <!-- Fecha inicial -->
               <div>
                 <label for="first_payment_date" class="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha inicial
+                  Fecha del primer mes
                 </label>
                 <input
                   id="first_payment_date"
@@ -48,7 +61,7 @@ import { Contract } from '../../models/contract.model';
               <!-- Cantidad de pagos -->
               <div>
                 <label for="payments_count" class="block text-sm font-medium text-gray-700 mb-1">
-                  Cantidad de pagos
+                  Cantidad de meses
                 </label>
                 <input
                   id="payments_count"
@@ -67,7 +80,7 @@ import { Contract } from '../../models/contract.model';
               <!-- Día de pago mensual -->
               <div>
                 <label for="payment_day" class="block text-sm font-medium text-gray-700 mb-1">
-                  Día de pago mensual
+                  Día de vencimiento (default 5)
                 </label>
                 <input
                   id="payment_day"
@@ -120,7 +133,7 @@ import { Contract } from '../../models/contract.model';
               type="submit"
               [disabled]="form.invalid || generating()"
               class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              {{ generating() ? 'Generando...' : 'Generar Pagos' }}
+              {{ generating() ? 'Generando...' : 'Generar cuotas' }}
             </button>
           </div>
         </form>
@@ -176,14 +189,22 @@ export class GenerateHoaDialogComponent {
 
   constructor(
     public dialogRef: MatDialogRef<GenerateHoaDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { contract: Contract },
+    @Inject(MAT_DIALOG_DATA) public data: GenerateHoaDialogData,
     private fb: FormBuilder
   ) {
+    const defaultFirstDate =
+      this.data.suggestedFirstPaymentDate ||
+      this.data.contract.first_payment_date ||
+      this.data.contract.contract_date;
+
     this.form = this.fb.group({
-      first_payment_date: [this.data.contract.first_payment_date || this.data.contract.contract_date, Validators.required],
+      first_payment_date: [defaultFirstDate, Validators.required],
       payments_count: [12, [Validators.required, Validators.min(1)]],
       payment_day: [5, [Validators.required, Validators.min(1), Validators.max(31)]],
-      monthly_amount: ['', [Validators.required, Validators.min(0.01)]]
+      monthly_amount: [
+        this.data.suggestedMonthlyAmount ?? '',
+        [Validators.required, Validators.min(0.01)]
+      ]
     });
   }
 

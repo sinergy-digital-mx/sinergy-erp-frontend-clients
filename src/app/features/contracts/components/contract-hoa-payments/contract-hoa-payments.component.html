@@ -1,8 +1,8 @@
 <div class="payments-container">
   <div class="flex items-center justify-end mb-2 gap-2">
     <app-button
-      *ngIf="showGeneratePaymentsButton"
-      text="Generar Pagos HOA"
+      *ngIf="canGeneratePayments"
+      text="Generar cuotas HOA"
       custom_class="btn_primary"
       size="sm"
       [icon]="Plus"
@@ -19,7 +19,7 @@
     </app-button>
   </div>
 
-  <div *ngIf="stats() && payments().length > 0" class="grid grid-cols-5 gap-4 mb-6 w-full">
+  <div *ngIf="stats() && !loading()" class="grid grid-cols-5 gap-4 mb-6 w-full">
     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
       <p class="text-sm font-medium text-gray-600">Total HOA</p>
       <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats()!.total_payments }}</p>
@@ -62,9 +62,19 @@
       {{
         isContractCancelled
           ? 'No se pueden generar pagos HOA en un contrato cancelado.'
-          : 'Genera los pagos HOA para registrar y controlar los cobros mensuales. Disponible en contratos activos y completados.'
+          : 'Genera las cuotas HOA para registrar y controlar los cobros mensuales. Disponible en contratos activos y completados.'
       }}
     </p>
+    <div *ngIf="canGeneratePayments" class="mt-4 flex justify-center">
+      <app-button
+        text="Generar cuotas HOA"
+        custom_class="btn_primary"
+        size="sm"
+        [icon]="Plus"
+        [loading]="generating()"
+        (clicked)="generatePayments()">
+      </app-button>
+    </div>
   </div>
 
   <div *ngIf="!loading() && payments().length > 0" class="overflow-x-auto">
@@ -72,11 +82,10 @@
       <thead class="bg-gray-50">
         <tr>
           <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Mes / Vencimiento</th>
           <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
           <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pagado</th>
           <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pendiente</th>
-          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Vencimiento</th>
-          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha Pago</th>
           <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
           <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Método</th>
           <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
@@ -85,15 +94,29 @@
       <tbody class="bg-white divide-y divide-gray-200">
         <tr *ngFor="let payment of paginatedPayments" class="hover:bg-gray-50">
           <td class="px-3 py-2 text-sm font-medium text-gray-900">{{ payment.payment_number }}</td>
+          <td class="px-3 py-2 text-sm text-gray-900">
+            <div class="font-medium capitalize">{{ getPaymentMonthLabel(payment) }}</div>
+            <div class="text-xs text-gray-500">{{ payment.due_date | localDate:'mediumDate' }}</div>
+          </td>
           <td class="px-3 py-2 text-sm text-gray-900">{{ payment.amount | currency:currency }}</td>
-          <td class="px-3 py-2 text-sm text-gray-900">{{ payment.amount_paid | currency:currency }}</td>
-          <td class="px-3 py-2 text-sm text-gray-900">{{ payment.amount_pending | currency:currency }}</td>
-          <td class="px-3 py-2 text-sm text-gray-600">{{ payment.due_date | localDate:'mediumDate' }}</td>
-          <td class="px-3 py-2 text-sm text-gray-600">{{ payment.paid_date ? (payment.paid_date | localDate:'mediumDate') : '—' }}</td>
+          <td class="px-3 py-2 text-sm" [class.text-blue-600]="payment.status === 'parcial'" [class.font-medium]="payment.status === 'parcial'">
+            {{ payment.amount_paid | currency:currency }}
+          </td>
+          <td class="px-3 py-2 text-sm" [class.text-orange-600]="payment.status === 'parcial'" [class.font-medium]="payment.status === 'parcial'">
+            {{ payment.amount_pending | currency:currency }}
+          </td>
           <td class="px-3 py-2">
-            <span [class]="getStatusClass(payment.status, payment.is_overdue)">
-              {{ getStatusLabel(payment.status, payment.is_overdue) }}
-            </span>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span [class]="getStatusClass(payment.status)">
+                {{ getStatusLabel(payment.status) }}
+              </span>
+              <span
+                *ngIf="payment.is_overdue"
+                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200"
+                title="Vencido">
+                Vencido
+              </span>
+            </div>
           </td>
           <td class="px-3 py-2 text-sm text-gray-600">{{ payment.payment_method || '—' }}</td>
           <td class="px-3 py-2">
@@ -102,33 +125,35 @@
                 *ngIf="canRegisterPayment(payment)"
                 (click)="registerPayment(payment)"
                 class="action-btn action-btn--blue"
-                [matTooltip]="'Registrar Pago HOA'">
+                [matTooltip]="'Registrar pago'">
                 <lucide-icon [img]="DollarSign" [size]="16"></lucide-icon>
               </button>
               <button
                 *ngIf="canEdit(payment)"
                 (click)="editPayment(payment)"
                 class="action-btn action-btn--gray"
-                [matTooltip]="'Editar Pago HOA'">
+                [matTooltip]="'Editar'">
                 <lucide-icon [img]="Edit" [size]="16"></lucide-icon>
               </button>
               <button
                 *ngIf="canResetPayment(payment)"
                 (click)="resetPayment(payment)"
                 class="action-btn action-btn--purple"
-                [matTooltip]="'Resetear Pago HOA'">
+                [matTooltip]="'Resetear'">
                 <lucide-icon [img]="RotateCcw" [size]="16"></lucide-icon>
               </button>
               <button
+                *ngIf="canCancelPayment(payment)"
                 (click)="cancelPayment(payment)"
                 class="action-btn action-btn--amber"
-                [matTooltip]="'Cancelar Pago HOA'">
-                <lucide-icon [img]="RotateCcw" [size]="16"></lucide-icon>
+                [matTooltip]="'Cancelar'">
+                <lucide-icon [img]="X" [size]="16"></lucide-icon>
               </button>
               <button
+                *ngIf="canDeletePayment(payment)"
                 (click)="deletePayment(payment)"
                 class="action-btn action-btn--red"
-                [matTooltip]="'Eliminar Pago HOA'">
+                [matTooltip]="'Eliminar'">
                 <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
               </button>
             </div>

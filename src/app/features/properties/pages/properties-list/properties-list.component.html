@@ -1,25 +1,25 @@
-<div class="px-4">
+<div class="px-0 sm:px-4">
   <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-    <h2 class="text-2xl font-semibold text-gray-800">Lotes</h2>
+    <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Lotes</h2>
 
-    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
-      <!-- Filters -->
-      <div class="flex flex-col gap-3 md:flex-row md:items-center">
+    <div class="flex flex-col gap-3 w-full md:w-auto">
+      <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
         <app-property-group-dropdown
+          class="w-full sm:w-auto"
           [selectedGroupId]="selectedGroupId"
           (groupSelect)="onGroupSelect($event)">
         </app-property-group-dropdown>
 
         <app-property-status-dropdown
+          class="w-full sm:w-auto"
           [selectedStatus]="selectedStatus"
           (statusSelect)="onStatusSelect($event)">
         </app-property-status-dropdown>
       </div>
 
-      <!-- Search + Button -->
-      <div class="flex items-center gap-3">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
         <app-search
-          class="w-64"
+          class="w-full sm:w-64"
           [param_activate]="true"
           param_name="search"
           (searchChange)="onSearchChange($event)">
@@ -27,7 +27,7 @@
 
         <app-button
           text="Crear Lote"
-          custom_class="btn_primary"
+          custom_class="btn_primary w-full sm:w-auto"
           (clicked)="createProperty()">
         </app-button>
       </div>
@@ -35,12 +35,107 @@
   </div>
 
   <app-datatable-wrapper
+    class="hidden md:block"
     [config]="table_config()"
     [rowTemplate]="tableTemplate"
     (pageChange)="onPageChange($event)"
     (sortChange)="onSortChange($event)"
     (rowClick)="onRowClick($event)">
   </app-datatable-wrapper>
+
+  <!-- Mobile Cards -->
+  <div class="block md:hidden">
+    @if (table_config().loading) {
+      <div class="py-10 text-center text-gray-500 text-sm">Cargando lotes...</div>
+    } @else if (!table_config().rows?.length) {
+      <div class="py-10 text-center text-gray-500 text-sm">No se encontraron lotes</div>
+    } @else {
+      <div class="space-y-3">
+        @for (item of table_config().rows; track item.id) {
+          <div
+            class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm active:bg-gray-50"
+            (click)="editProperty(item)">
+            <div class="flex justify-between items-start gap-2 mb-3">
+              <div class="min-w-0 flex-1">
+                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                  {{ item.code }}
+                </span>
+                <h3 class="font-semibold text-gray-900 truncate mt-1.5">{{ item.name }}</h3>
+                @if (item.block) {
+                  <p class="text-xs text-gray-500 mt-0.5">Manzana {{ item.block }}</p>
+                }
+              </div>
+              <span [class]="getStatusClass(item.status) + ' shrink-0'">
+                {{ getStatusLabel(item.status) }}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div>
+                <span class="text-xs text-gray-500 block">Proyecto</span>
+                <span class="text-gray-900">{{ item.group?.name || '—' }}</span>
+              </div>
+              <div>
+                <span class="text-xs text-gray-500 block">Cliente</span>
+                @if (hasOwner(item)) {
+                  <span
+                    class="text-blue-700 font-medium"
+                    (click)="navigateToCustomer(item); $event.stopPropagation()">
+                    {{ getOwnerName(item) }}
+                  </span>
+                } @else {
+                  <span class="text-gray-400">—</span>
+                }
+              </div>
+              <div>
+                <span class="text-xs text-gray-500 block">Área</span>
+                <span class="text-gray-900">{{ item.total_area }} {{ item.measurement_unit?.symbol || 'm²' }}</span>
+              </div>
+              <div>
+                <span class="text-xs text-gray-500 block">Precio</span>
+                <span class="text-gray-900 font-medium">{{ item.total_price | currency:item.currency }}</span>
+              </div>
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-gray-100" (click)="$event.stopPropagation()">
+              <app-button
+                text="Ver Detalle"
+                size="sm"
+                [fullWidth]="true"
+                custom_class="btn_primary"
+                (clicked)="editProperty(item)"
+                [icon]="ArrowRight">
+              </app-button>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if ((table_config().totalResults ?? 0) > (table_config().limit ?? 20)) {
+        <div class="mt-4 flex justify-center">
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              [disabled]="table_config().page === 1"
+              (click)="onPageChange({page: (table_config().page ?? 1) - 1, limit: table_config().limit ?? 20})"
+              class="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 bg-white">
+              Anterior
+            </button>
+            <span class="text-sm text-gray-600">
+              {{ table_config().page }} / {{ Math.ceil((table_config().totalResults ?? 0) / (table_config().limit ?? 20)) }}
+            </span>
+            <button
+              type="button"
+              [disabled]="!table_config().hasNext"
+              (click)="onPageChange({page: (table_config().page ?? 1) + 1, limit: table_config().limit ?? 20})"
+              class="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 bg-white">
+              Siguiente
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
 </div>
 
 <ng-template #tableTemplate let-item="$implicit">

@@ -114,3 +114,13 @@
 .stats-v2-card--overdue .stats-v2-card__meta {
   color: #b91c1c;
 }
+
+@media (max-width: 639px) {
+  .stats-v2-card__amount {
+    font-size: 1.25rem;
+  }
+
+  .stats-v2-card__count {
+    font-size: 1.5rem;
+  }
+}

@@ -64,6 +64,7 @@ export class ContractsListComponent implements OnDestroy {
   ArrowRight = ArrowRight;
   AlertCircle = AlertCircle;
   Download = Download;
+  readonly Math = Math;
   search = '';
   currentSort: ISortEvent | null = null;
   stats = signal<ContractStats | null>(null);

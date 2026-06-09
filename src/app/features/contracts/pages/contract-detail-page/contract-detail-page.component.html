@@ -2,7 +2,7 @@
   <div class="page-shell" [class.page-shell--wide]="activeTab() === 'payments'">
     <div class="page-header">
       <div class="flex-1">
-        <div class="page-header-top flex items-center gap-2 mb-2">
+        <div class="page-header-top flex flex-wrap items-center gap-2 mb-2">
           <app-button
             [icon]="ArrowLeft"
             [fullWidth]="false"
@@ -10,7 +10,7 @@
             [customClass]="'btn-outline-back'"
             (clicked)="navigateBack()">
           </app-button>
-          <h2>Contrato {{ current.contract_number }}</h2>
+          <h2 class="text-base sm:text-lg">Contrato {{ current.contract_number }}</h2>
           <span
             class="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
             [ngClass]="{
@@ -34,7 +34,7 @@
             Enganche financiado activo
           </span>
         </div>
-        <div class="flex items-center gap-2 mb-3 text-xs contract-meta-badges">
+        <div class="flex flex-wrap items-center gap-2 mb-3 text-xs contract-meta-badges">
           <span class="inline-flex items-center px-2.5 py-1.5 rounded bg-gray-100 text-gray-700">
             <span class="font-semibold text-gray-900 mr-1">Creado:</span>
             {{ current.created_at | date:'medium' }}
@@ -45,7 +45,7 @@
           </span>
         </div>
 
-        <div class="page-header-stats grid grid-cols-7 gap-3 text-xs pb-1">
+        <div class="page-header-stats grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-2 sm:gap-3 text-xs pb-1">
           <div>
             <span class="block text-gray-500 font-medium">Fecha Contrato</span>
             <span class="text-gray-900 font-semibold">{{ current.contract_date | localDate:'mediumDate' }}</span>
@@ -97,7 +97,7 @@
       </div>
     </div>
 
-    <div class="tabs px-6 pt-2">
+    <div class="tabs px-3 sm:px-6 pt-2 overflow-x-auto">
       <button class="tab" [class.active]="activeTab() === 'edit'" (click)="setActiveTab('edit')">Editar</button>
       <button class="tab" [class.active]="activeTab() === 'payments'" (click)="setActiveTab('payments')">Pagos</button>
       <button class="tab" [class.active]="activeTab() === 'down_payments'" (click)="setActiveTab('down_payments')">Enganche en Pagos</button>
@@ -109,7 +109,7 @@
     <div class="page-body">
       <div class="tab-content" [class.active]="activeTab() === 'edit'">
         <div *ngIf="current.down_payment_financed" class="mb-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
-          <div class="grid grid-cols-4 gap-2 text-xs">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
             <div>
               <span class="block font-semibold text-amber-700 mb-0.5">Meta enganche</span>
               <span class="text-amber-900 font-semibold">
@@ -135,7 +135,7 @@
         </div>
 
         <div class="space-y-2.5" [formGroup]="form">
-          <div class="grid grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <span class="block text-xs font-semibold text-gray-500 mb-1">Número de Contrato</span>
               <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
@@ -187,7 +187,7 @@
             </mat-autocomplete>
           </div>
 
-          <div class="grid grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <app-input label="Fecha del Contrato" type="date" [form_control]="form.controls['contract_date']"></app-input>
             <app-select [label]="'Estado *'" [config]="statusSelectConfig"></app-select>
             <app-input label="Precio Total" type="number" disabled="true" [form_control]="form.controls['total_price']"></app-input>
@@ -250,23 +250,23 @@
     </div>
 
     <div class="page-footer">
-      <div class="flex justify-between w-full">
+      <div class="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 w-full">
         <app-button
           text="Eliminar Contrato"
           variant="danger"
           [customClass]="'btn-outline-danger'"
-          [fullWidth]="false"
+          [fullWidth]="true"
           size="sm"
           [loading]="deleting()"
           (clicked)="deleteContract()">
         </app-button>
 
-        <div class="flex gap-2">
+        <div class="flex gap-2 sm:justify-end">
           <app-button
             *ngIf="activeTab() === 'edit'"
             text="Guardar Cambios"
             [customClass]="'btn_primary'"
-            [fullWidth]="false"
+            [fullWidth]="true"
             size="sm"
             [loading]="saving()"
             (clicked)="saveContract()">

@@ -67,6 +67,7 @@ export class CustomersList implements OnDestroy {
   });
 
   ArrowRight = ArrowRight;
+  readonly Math = Math;
   search = '';
   selectedGroupId: string | null = null;
   selectedGroupName: string | null = null;

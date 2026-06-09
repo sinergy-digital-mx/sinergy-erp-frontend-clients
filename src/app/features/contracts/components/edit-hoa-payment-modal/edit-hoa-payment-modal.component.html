@@ -15,6 +15,8 @@
     <div class="space-y-4">
       <app-input label="Monto Pagado" type="number" [form_control]="form.controls['amount_paid']"></app-input>
 
+      <app-input label="Fecha de Vencimiento" type="date" [form_control]="form.controls['due_date']"></app-input>
+
       <app-input
         [label]="'Fecha de Pago' + (data.payment.status === 'pagado' ? ' *' : '')"
         type="date"

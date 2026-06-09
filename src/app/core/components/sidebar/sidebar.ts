@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import {
   LucideAngularModule,
   Home,
@@ -22,6 +22,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
+  X,
 } from 'lucide-angular';
 import { DIVINO_DASHBOARD_TENANT_ID } from '../../../features/divino-dashboard/config/divino-dashboard.constants';
 import { DIVINO_DASHBOARD_PERMISSIONS } from '../../../features/divino-dashboard/config/permissions.config';
@@ -49,10 +50,12 @@ interface MenuItem {
 })
 export class Sidebar implements OnInit, OnDestroy {
   isCollapsed = signal(false);
+  isMobileOpen = signal(false);
   todayUsdMxnRate = signal<number | null>(null);
   visibleMenuItems = signal<MenuItem[]>([]);
 
   private permissionsSubscription?: Subscription;
+  private routerSubscription?: Subscription;
 
   menu: MenuItem[] = [
     {
@@ -137,20 +140,27 @@ export class Sidebar implements OnInit, OnDestroy {
 
   private menuIdCounter = 0;
 
-  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight };
+  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight, X };
 
   constructor(
     public auth_service: AuthService,
     private sidebarService: SidebarService,
-    private exchangeRateService: ExchangeRateService
+    private exchangeRateService: ExchangeRateService,
+    private router: Router
   ) {
-    // Subscribe to sidebar service changes
     this.isCollapsed = this.sidebarService.isCollapsed;
+    this.isMobileOpen = this.sidebarService.isMobileOpen;
   }
 
   ngOnInit(): void {
     this.permissionsSubscription = this.auth_service.permissions$.subscribe(() => {
       this.updateVisibleMenuItems();
+    });
+
+    this.routerSubscription = this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        this.sidebarService.closeMobile();
+      }
     });
 
     if (!this.auth_service.hasPermission('exchangerate:Read')) {
@@ -172,10 +182,15 @@ export class Sidebar implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.permissionsSubscription?.unsubscribe();
+    this.routerSubscription?.unsubscribe();
   }
 
   toggleSidebar() {
     this.sidebarService.toggleSidebar();
+  }
+
+  closeMobileMenu() {
+    this.sidebarService.closeMobile();
   }
 
   private updateVisibleMenuItems(): void {

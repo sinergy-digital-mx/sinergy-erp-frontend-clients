@@ -2,10 +2,10 @@ import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { LucideAngularModule, Plus, Edit, Trash2, DollarSign, RotateCcw } from 'lucide-angular';
+import { LucideAngularModule, Plus, Edit, Trash2, DollarSign, RotateCcw, X } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { HoaPayment, HoaPaymentStats } from '../../models/hoa-payment.model';
+import { HoaPayment, HoaPaymentStats, getSuggestedHoaFirstPaymentDate, getSuggestedHoaMonthlyAmount } from '../../models/hoa-payment.model';
 import { HoaPaymentService } from '../../services/hoa-payment.service';
 import { GenerateHoaDialogComponent } from '../generate-hoa-dialog/generate-hoa-dialog.component';
 import { EditHoaPaymentModalComponent } from '../edit-hoa-payment-modal/edit-hoa-payment-modal.component';
@@ -38,6 +38,7 @@ export class ContractHoaPaymentsComponent implements OnInit {
   readonly Trash2 = Trash2;
   readonly DollarSign = DollarSign;
   readonly RotateCcw = RotateCcw;
+  readonly X = X;
   readonly Math = Math;
 
   constructor(
@@ -56,8 +57,8 @@ export class ContractHoaPaymentsComponent implements OnInit {
     return status === 'cancelado' || status === 'cancelled' || status === 'canceled';
   }
 
-  get showGeneratePaymentsButton(): boolean {
-    return this.payments().length === 0 && !this.isContractCancelled;
+  get canGeneratePayments(): boolean {
+    return !this.isContractCancelled;
   }
 
   get totalPages(): number {
@@ -101,10 +102,17 @@ export class ContractHoaPaymentsComponent implements OnInit {
   }
 
   generatePayments(): void {
-    if (!this.contract) return;
+    if (!this.contract || !this.canGeneratePayments) return;
+
+    const existingPayments = this.payments();
     const dialogRef = this.dialog.open(GenerateHoaDialogComponent, {
       width: '500px',
-      data: { contract: this.contract }
+      data: {
+        contract: this.contract,
+        existingPayments,
+        suggestedFirstPaymentDate: getSuggestedHoaFirstPaymentDate(existingPayments),
+        suggestedMonthlyAmount: getSuggestedHoaMonthlyAmount(existingPayments)
+      }
     });
 
     dialogRef.afterClosed().subscribe((result) => {
@@ -127,15 +135,18 @@ export class ContractHoaPaymentsComponent implements OnInit {
         payment_day: Number(result.payment_day) || 5,
         monthly_amount: monthlyAmount
       }).subscribe({
-        next: () => {
+        next: (created) => {
           this.generating.set(false);
           this.loadPayments();
           this.loadStats();
           this.dataChanged.emit();
+          const count = created?.length ?? 0;
           this.interceptorService.openSnackbar({
             type: 'success',
             title: 'Éxito',
-            message: 'Pagos HOA generados correctamente'
+            message: count > 0
+              ? `${count} cuota${count === 1 ? '' : 's'} HOA generada${count === 1 ? '' : 's'} correctamente`
+              : 'Pagos HOA generados correctamente'
           });
         },
         error: (err) => {
@@ -240,11 +251,8 @@ export class ContractHoaPaymentsComponent implements OnInit {
     });
   }
 
-  getStatusClass(status: string, isOverdue = false): string {
+  getStatusClass(status: string): string {
     const baseClass = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ';
-    if (isOverdue && (status === 'pendiente' || status === 'parcial')) {
-      return baseClass + 'bg-red-500 text-white shadow-sm';
-    }
     const statusMap: Record<string, string> = {
       pendiente: 'bg-amber-500 text-white shadow-sm',
       pagado: 'bg-emerald-500 text-white shadow-sm',
@@ -254,14 +262,19 @@ export class ContractHoaPaymentsComponent implements OnInit {
     return baseClass + (statusMap[status] || 'bg-gray-500 text-white shadow-sm');
   }
 
-  getStatusLabel(status: string, isOverdue = false): string {
-    if (status === 'parcial' && isOverdue) return 'Parcial Vencido';
-    if (status === 'pendiente' && isOverdue) return 'Pendiente Vencido';
-    if (status === 'parcial') return 'Parcial';
-    if (status === 'pendiente') return 'Pendiente';
-    if (status === 'pagado') return 'Pagado';
-    if (status === 'cancelado') return 'Cancelado';
-    return status;
+  getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      pendiente: 'Pendiente',
+      parcial: 'Parcial',
+      pagado: 'Pagado',
+      cancelado: 'Cancelado'
+    };
+    return labels[status] || status;
+  }
+
+  getPaymentMonthLabel(payment: HoaPayment): string {
+    const date = new Date(payment.due_date);
+    return new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' }).format(date);
   }
 
   canRegisterPayment(payment: HoaPayment): boolean {
@@ -269,7 +282,15 @@ export class ContractHoaPaymentsComponent implements OnInit {
   }
 
   canEdit(payment: HoaPayment): boolean {
-    return payment.status !== 'cancelado';
+    return payment.status === 'pendiente' || payment.status === 'parcial' || payment.status === 'pagado';
+  }
+
+  canCancelPayment(payment: HoaPayment): boolean {
+    return payment.status === 'pendiente' || payment.status === 'parcial' || payment.status === 'pagado';
+  }
+
+  canDeletePayment(payment: HoaPayment): boolean {
+    return payment.status === 'cancelado';
   }
 
   canResetPayment(payment: HoaPayment): boolean {
