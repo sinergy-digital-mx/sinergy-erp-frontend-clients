@@ -14,6 +14,7 @@ import { PropertyService } from '../../../properties/services/property.service';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
 import { ContractDetailModalComponent } from '../../components/contract-detail-modal/contract-detail-modal.component';
 import { ContractCreateModalComponent } from '../../components/contract-create-modal/contract-create-modal.component';
+import { CONTRACT_CREATE_DIALOG_CONFIG, PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { ContractFilterIndicatorComponent } from '../../components/contract-filter-indicator/contract-filter-indicator.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { ArrowRight, AlertCircle, Download } from 'lucide-angular';
@@ -344,7 +345,7 @@ export class ContractsListComponent implements OnDestroy {
 
   openCreateContractModal() {
     const dialogRef = this.dialog.open(ContractCreateModalComponent, {
-      width: '900px',
+      ...CONTRACT_CREATE_DIALOG_CONFIG,
       disableClose: false
     });
 
@@ -377,6 +378,7 @@ export class ContractsListComponent implements OnDestroy {
     this.propertyService.getProperty(propertyId).subscribe({
       next: (property) => {
         this.dialog.open(PropertyEditModalComponent, {
+          ...PROPERTY_FORM_DIALOG_CONFIG,
           data: { property }
         });
       },

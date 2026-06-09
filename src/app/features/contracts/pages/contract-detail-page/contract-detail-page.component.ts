@@ -15,6 +15,7 @@ import { ContractService } from '../../services/contract.service';
 import { PaymentService } from '../../services/payment.service';
 import { PaymentStats } from '../../models/payment.model';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
+import { PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { PropertyService } from '../../../properties/services/property.service';
 import { ContractDocumentsComponent } from '../../components/contract-documents/contract-documents.component';
 import { ContractPaymentsComponent } from '../../components/contract-payments/contract-payments.component';
@@ -382,7 +383,10 @@ export class ContractDetailPageComponent implements OnInit {
     if (!current?.property) return;
     this.propertyService.getProperty(current.property.id).subscribe({
       next: (property) => {
-        this.dialog.open(PropertyEditModalComponent, { data: { property } });
+        this.dialog.open(PropertyEditModalComponent, {
+          ...PROPERTY_FORM_DIALOG_CONFIG,
+          data: { property }
+        });
       }
     });
   }

@@ -22,6 +22,7 @@ import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { CreateContractDto } from '../../models/contract.model';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
+import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { GroupSelectComponent } from '../../../../core/components/group-select/group-select.component';
 import { LeadService } from '../../../../core/services/leads.service';
 
@@ -541,7 +542,7 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
 
   openCreateCustomerModal(): void {
     const dialogRef = this.dialog.open(CustomerEditModalComponent, {
-      width: '600px',
+      ...CUSTOMER_FORM_DIALOG_CONFIG,
       data: { customer: null }
     });
 

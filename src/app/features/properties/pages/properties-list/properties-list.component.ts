@@ -10,6 +10,7 @@ import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { PropertyEditModalComponent } from '../../components/property-edit-modal/property-edit-modal.component';
+import { PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { PropertyGroupDropdownComponent } from '../../components/property-group-dropdown/property-group-dropdown.component';
 import { PropertyStatusDropdownComponent } from '../../components/property-status-dropdown/property-status-dropdown.component';
 import { ArrowRight } from 'lucide-angular';
@@ -210,6 +211,7 @@ export class PropertiesListComponent implements OnDestroy {
 
   createProperty() {
     this.dialog.open(PropertyEditModalComponent, {
+      ...PROPERTY_FORM_DIALOG_CONFIG,
       data: { property: null }
     }).afterClosed().subscribe((result) => {
       if (result) {
@@ -221,9 +223,8 @@ export class PropertiesListComponent implements OnDestroy {
   editProperty(property: Property) {
     console.log('Opening edit modal for property:', property);
     this.dialog.open(PropertyEditModalComponent, {
+      ...PROPERTY_FORM_DIALOG_CONFIG,
       data: { property },
-      width: '700px',
-      maxWidth: '90vw'
     }).afterClosed().subscribe((result) => {
       if (result) {
         this.getProperties();

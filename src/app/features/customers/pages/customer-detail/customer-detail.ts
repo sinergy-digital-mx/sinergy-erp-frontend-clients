@@ -12,6 +12,7 @@ import { CustomerEditModalComponent } from '../../components/customer-edit-modal
 import { CustomerDocumentsComponent } from '../../components/customer-documents/customer-documents.component';
 import { CustomerSalesOrdersComponent } from '../../components/customer-sales-orders/customer-sales-orders.component';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
+import { CUSTOMER_FORM_DIALOG_CONFIG, PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { ContractDetailModalComponent } from '../../../contracts/components/contract-detail-modal/contract-detail-modal.component';
 import { Customer } from '../../models/customer-group.model';
 import { Subject } from 'rxjs';
@@ -142,11 +143,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
     if (!this.customer()) return;
 
     const dialogRef = this.dialog.open(CustomerEditModalComponent, {
-      width: '700px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-      panelClass: 'customer-edit-dialog',
-      autoFocus: 'first-tabbable',
+      ...CUSTOMER_FORM_DIALOG_CONFIG,
       data: { customer: this.customer() }
     });
 
@@ -178,6 +175,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
     this.propertyService.getProperty(propertyId).subscribe({
       next: (property) => {
         this.dialog.open(PropertyEditModalComponent, {
+          ...PROPERTY_FORM_DIALOG_CONFIG,
           data: { property }
         });
       },

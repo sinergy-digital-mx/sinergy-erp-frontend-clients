@@ -17,6 +17,7 @@ import { takeUntil } from 'rxjs/operators';
 import { CustomerGroupDropdownComponent } from '../../components/customer-group-dropdown/customer-group-dropdown.component';
 import { FilterIndicatorComponent } from '../../components/filter-indicator/filter-indicator.component';
 import { CustomerEditModalComponent } from '../../components/customer-edit-modal/customer-edit-modal.component';
+import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { FilterStateService } from '../../services/filter-state.service';
 import { Customer } from '../../models/customer-group.model';
 import { PhoneComponent } from '../../../../core/components/phone/phone.component';
@@ -266,12 +267,8 @@ export class CustomersList implements OnDestroy {
   
   createCustomer() {
     this.dialog.open(CustomerEditModalComponent, {
+      ...CUSTOMER_FORM_DIALOG_CONFIG,
       data: { customer: null },
-      width: '700px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-      panelClass: 'customer-edit-dialog',
-      autoFocus: 'first-tabbable'
     }).afterClosed().subscribe((result) => {
       if (result) {
         this.getCustomers();

@@ -136,7 +136,7 @@
       <!-- Sección: Origen y Lead -->
       <div class="section">
         <h3>Origen de venta</h3>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <app-group-select
             label="Origen (grupo de lead)"
             groupType="lead"
@@ -169,7 +169,7 @@
       <!-- Sección: Datos del Contrato -->
       <div class="section">
         <h3>Datos del Contrato</h3>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <app-input
             [label]="'Fecha de Contrato *'"
             [form_control]="form.get('contract_date')"
@@ -198,7 +198,7 @@
             [type]="'text'">
           </app-input>
 
-          <div class="col-span-2 downpayment-financing">
+          <div class="col-span-1 sm:col-span-2 downpayment-financing">
             <label class="financing-checkbox-label">
               <input type="checkbox" formControlName="down_payment_financed" class="financing-checkbox" />
               <span>Financiar enganche en pagos</span>
