@@ -28,12 +28,20 @@
   </div>
 
   <div *ngIf="isFinanced" class="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-    <div class="bg-amber-50 p-3 rounded-lg border border-amber-200">
-      <p class="text-xs font-medium text-amber-700">Meta de enganche</p>
+    <button
+      type="button"
+      class="stat-card stat-card--editable"
+      (click)="editTarget()"
+      [matTooltip]="'Editar meta de enganche'"
+      matTooltipPosition="above">
+      <div class="stat-card__header">
+        <p class="text-xs font-medium text-amber-700">Meta de enganche</p>
+        <lucide-icon [img]="Pencil" [size]="14" class="stat-card__edit-icon"></lucide-icon>
+      </div>
       <p class="text-lg font-bold text-amber-900 mt-1">
         {{ targetAmount != null ? (targetAmount | currency:currency) : 'Sin definir' }}
       </p>
-    </div>
+    </button>
     <div class="bg-green-50 p-3 rounded-lg border border-green-200">
       <p class="text-xs font-medium text-green-700">Abonado</p>
       <p class="text-lg font-bold text-green-800 mt-1">{{ appliedAmount | currency:currency }}</p>
@@ -41,14 +49,12 @@
     <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
       <p class="text-xs font-medium text-blue-700">Pendiente de meta</p>
       <p class="text-lg font-bold text-blue-800 mt-1">
-        {{ targetAmount != null ? ((targetAmount - appliedAmount) | currency:currency) : '—' }}
+        {{ pendingAmount != null ? (pendingAmount | currency:currency) : '—' }}
       </p>
     </div>
     <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
       <p class="text-xs font-medium text-gray-600">Estado</p>
-      <p class="text-sm font-semibold text-gray-900 mt-1">
-        {{ stats()?.downpayment_financing_complete ? 'Enganche liquidado' : 'En proceso' }}
-      </p>
+      <p class="text-sm font-semibold text-gray-900 mt-1">{{ financingStatusLabel }}</p>
     </div>
   </div>
 
@@ -129,7 +135,7 @@
                 *ngIf="canEdit(payment)"
                 (click)="editPayment(payment)"
                 class="action-btn action-btn--gray"
-                [matTooltip]="'Editar Pago'">
+                [matTooltip]="'Editar cuota'">
                 <lucide-icon [img]="Edit" [size]="16"></lucide-icon>
               </button>
               <button

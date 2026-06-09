@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { LucideAngularModule, DollarSign, Edit, RotateCcw, Trash2, Plus } from 'lucide-angular';
+import { LucideAngularModule, DollarSign, Edit, RotateCcw, Trash2, Plus, Pencil } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { Contract, getDownPaymentTarget } from '../../models/contract.model';
@@ -12,6 +12,7 @@ import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { PartialDownpaymentModalComponent } from '../partial-downpayment-modal/partial-downpayment-modal.component';
 import { EditDownpaymentPaymentModalComponent } from '../edit-downpayment-payment-modal/edit-downpayment-payment-modal.component';
 import { GenerateDownpaymentDialogComponent } from '../generate-downpayment-dialog/generate-downpayment-dialog.component';
+import { EditDownpaymentTargetModalComponent } from '../edit-downpayment-target-modal/edit-downpayment-target-modal.component';
 import { AddManualDownpaymentDialogComponent } from '../add-manual-downpayment-dialog/add-manual-downpayment-dialog.component';
 
 @Component({
@@ -39,6 +40,7 @@ export class ContractDownpaymentPaymentsComponent implements OnInit {
   readonly RotateCcw = RotateCcw;
   readonly Trash2 = Trash2;
   readonly Plus = Plus;
+  readonly Pencil = Pencil;
 
   constructor(
     private downpaymentService: DownpaymentPaymentService,
@@ -63,6 +65,46 @@ export class ContractDownpaymentPaymentsComponent implements OnInit {
     const fromStats = this.stats()?.down_payment_target;
     if (fromStats != null) return fromStats;
     return this.contract ? getDownPaymentTarget(this.contract) : null;
+  }
+
+  get pendingAmount(): number | null {
+    const remaining = this.stats()?.down_payment_remaining;
+    if (remaining != null) return remaining;
+    if (this.targetAmount != null) {
+      return Math.max(0, this.targetAmount - this.appliedAmount);
+    }
+    return null;
+  }
+
+  get financingStatusLabel(): string {
+    if (this.stats()?.downpayment_financing_complete) {
+      return 'Completado';
+    }
+    const target = this.targetAmount;
+    if (target != null && this.appliedAmount >= target) {
+      return 'Completado';
+    }
+    return 'En proceso';
+  }
+
+  editTarget(): void {
+    const dialogRef = this.dialog.open(EditDownpaymentTargetModalComponent, {
+      width: '420px',
+      maxWidth: '95vw',
+      data: {
+        contractId: this.contractId,
+        currency: this.currency,
+        currentTarget: this.targetAmount,
+        appliedAmount: this.appliedAmount
+      }
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (!result) return;
+      this.loadStats();
+      this.loadPayments();
+      this.dataChanged.emit();
+    });
   }
 
   get showGenerateInstallmentsButton(): boolean {

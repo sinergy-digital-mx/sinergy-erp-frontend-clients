@@ -30,6 +30,7 @@ export interface DownPaymentStats {
   total_expected: number;
   down_payment_target?: number | null;
   down_payment_applied?: number;
+  down_payment_remaining?: number;
   down_payment_target_defined?: boolean;
   downpayment_financing_complete?: boolean;
 }
@@ -49,4 +50,26 @@ export interface GenerateDownPaymentInstallmentsDto {
   down_payment_months: number;
   first_payment_date: string;
   payment_day?: number;
+}
+
+export interface UpdateDownPaymentTargetDto {
+  down_payment_target: number;
+}
+
+export interface UpdateDownPaymentTargetResponse {
+  down_payment_target: number;
+  down_payment_applied: number;
+  down_payment_pending: number;
+  monthly_payment: number;
+  remaining_balance: number;
+  scheduled_total: number;
+}
+
+export interface UpdateDownPaymentPaymentDto {
+  amount?: number;
+  due_date?: string;
+  amount_paid?: number;
+  paid_date?: string | null;
+  payment_method?: string | null;
+  notes?: string | null;
 }

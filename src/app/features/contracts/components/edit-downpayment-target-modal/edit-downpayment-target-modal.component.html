@@ -1,0 +1,33 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2 class="dialog-title">Editar meta de enganche</h2>
+    <button type="button" (click)="close()" class="close-button" aria-label="Cerrar">
+      <lucide-icon [img]="X" [size]="20"></lucide-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content" [formGroup]="form">
+    <p class="help-text">
+      Esta meta define el pago mensual del contrato: (precio total − meta) / meses.
+    </p>
+    <p class="applied-text">
+      Abonado hasta ahora: <strong>{{ data.appliedAmount | currency:data.currency }}</strong>
+    </p>
+
+    <app-input
+      label="Meta de enganche *"
+      type="number"
+      [form_control]="form.controls['down_payment_target']">
+    </app-input>
+  </div>
+
+  <div class="dialog-footer">
+    <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="close()"></app-button>
+    <app-button
+      text="Guardar"
+      custom_class="btn_primary"
+      [loading]="saving()"
+      (clicked)="save()">
+    </app-button>
+  </div>
+</div>

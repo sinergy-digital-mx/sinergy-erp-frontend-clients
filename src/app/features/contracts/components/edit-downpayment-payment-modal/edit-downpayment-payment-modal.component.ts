@@ -1,5 +1,5 @@
 import { Component, Inject, signal } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, X } from 'lucide-angular';
@@ -7,8 +7,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { InputComponent } from '../../../../core/components/input/input.component';
 import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
-import { DownPaymentPayment } from '../../models/downpayment-payment.model';
+import { DownPaymentPayment, UpdateDownPaymentPaymentDto } from '../../models/downpayment-payment.model';
 import { DownpaymentPaymentService } from '../../services/downpayment-payment.service';
 
 @Component({
@@ -21,10 +20,8 @@ import { DownpaymentPaymentService } from '../../services/downpayment-payment.se
     ButtonComponent,
     InputComponent,
     SelectComponent,
-    LucideAngularModule,
-    LocalDatePipe
+    LucideAngularModule
   ],
-  providers: [DatePipe],
   templateUrl: './edit-downpayment-payment-modal.component.html',
   styleUrls: ['./edit-downpayment-payment-modal.component.scss']
 })
@@ -53,11 +50,11 @@ export class EditDownpaymentPaymentModalComponent {
     private downpaymentService: DownpaymentPaymentService,
     private interceptorService: InterceptorService
   ) {
-    const isPaid = this.data.payment.status === 'pagado';
     this.form = this.fb.group({
-      amount_paid: [this.data.payment.amount_paid || this.data.payment.amount, [Validators.required, Validators.min(0.01)]],
-      paid_date: [this.data.payment.paid_date || '', isPaid ? Validators.required : []],
-      payment_method: [this.data.payment.payment_method || '', isPaid ? Validators.required : []],
+      amount: [this.data.payment.amount, [Validators.required, Validators.min(0.01)]],
+      due_date: [this.toDateInputValue(this.data.payment.due_date)],
+      amount_paid: [this.data.payment.amount_paid ?? 0, [Validators.min(0)]],
+      payment_method: [this.data.payment.payment_method || ''],
       notes: [this.data.payment.notes || '']
     });
 
@@ -66,22 +63,64 @@ export class EditDownpaymentPaymentModalComponent {
 
   save(): void {
     if (this.form.invalid) {
+      this.form.markAllAsTouched();
       this.interceptorService.openSnackbar({
         type: 'warning',
         title: 'Advertencia',
-        message: 'Completa todos los campos requeridos'
+        message: 'Completa los campos requeridos'
       });
       return;
     }
 
+    const amount = Number(this.form.get('amount')?.value);
+    const amountPaidRaw = this.form.get('amount_paid')?.value;
+    const amountPaid = amountPaidRaw === '' || amountPaidRaw == null ? undefined : Number(amountPaidRaw);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this.interceptorService.openSnackbar({
+        type: 'warning',
+        title: 'Advertencia',
+        message: 'El monto debe ser mayor a 0'
+      });
+      return;
+    }
+
+    if (amountPaid != null && Number.isFinite(amountPaid) && amount < amountPaid) {
+      this.interceptorService.openSnackbar({
+        type: 'warning',
+        title: 'Advertencia',
+        message: 'El monto no puede ser menor a lo ya pagado en esta cuota'
+      });
+      return;
+    }
+
+    const payload: UpdateDownPaymentPaymentDto = { amount };
+
+    const dueDate = this.form.get('due_date')?.value;
+    if (dueDate) {
+      payload.due_date = dueDate;
+    }
+
+    if (amountPaid != null && Number.isFinite(amountPaid)) {
+      payload.amount_paid = amountPaid;
+    }
+
+    const paymentMethod = this.form.get('payment_method')?.value;
+    if (paymentMethod) {
+      payload.payment_method = paymentMethod;
+    }
+
+    const notes = this.form.get('notes')?.value;
+    payload.notes = notes?.trim() ? notes.trim() : null;
+
     this.saving.set(true);
-    this.downpaymentService.updatePayment(this.data.contractId, this.data.payment.id, this.form.value).subscribe({
+    this.downpaymentService.updatePayment(this.data.contractId, this.data.payment.id, payload).subscribe({
       next: () => {
         this.saving.set(false);
         this.interceptorService.openSnackbar({
           type: 'success',
           title: 'Éxito',
-          message: 'Pago de enganche actualizado correctamente'
+          message: 'Cuota de enganche actualizada correctamente'
         });
         this.dialogRef.close(true);
       },
@@ -90,7 +129,7 @@ export class EditDownpaymentPaymentModalComponent {
         this.interceptorService.openSnackbar({
           type: 'error',
           title: 'Error',
-          message: err.error?.message || 'Error al actualizar el pago de enganche'
+          message: err.error?.message || 'Error al actualizar la cuota de enganche'
         });
       }
     });
@@ -98,5 +137,10 @@ export class EditDownpaymentPaymentModalComponent {
 
   close(): void {
     this.dialogRef.close();
+  }
+
+  private toDateInputValue(value: string | null | undefined): string {
+    if (!value) return '';
+    return value.length >= 10 ? value.slice(0, 10) : value;
   }
 }

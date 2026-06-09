@@ -6,7 +6,10 @@ import {
   CreateManualDownPaymentDto,
   DownPaymentPayment,
   DownPaymentStats,
-  GenerateDownPaymentInstallmentsDto
+  GenerateDownPaymentInstallmentsDto,
+  UpdateDownPaymentPaymentDto,
+  UpdateDownPaymentTargetDto,
+  UpdateDownPaymentTargetResponse
 } from '../models/downpayment-payment.model';
 
 @Injectable({
@@ -43,13 +46,15 @@ export class DownpaymentPaymentService {
     return this.http.post<DownPaymentPayment>(`${this.api}/tenant/contracts/${contractId}/downpayment-payments/${paymentId}/pay`, data);
   }
 
-  updatePayment(contractId: string, paymentId: string, data: {
-    amount_paid?: number;
-    paid_date?: string | null;
-    payment_method?: string | null;
-    notes?: string | null;
-  }): Observable<DownPaymentPayment> {
+  updatePayment(contractId: string, paymentId: string, data: UpdateDownPaymentPaymentDto): Observable<DownPaymentPayment> {
     return this.http.put<DownPaymentPayment>(`${this.api}/tenant/contracts/${contractId}/downpayment-payments/${paymentId}`, data);
+  }
+
+  updateTarget(contractId: string, data: UpdateDownPaymentTargetDto): Observable<UpdateDownPaymentTargetResponse> {
+    return this.http.put<UpdateDownPaymentTargetResponse>(
+      `${this.api}/tenant/contracts/${contractId}/downpayment-payments/target`,
+      data
+    );
   }
 
   cancelPayment(contractId: string, paymentId: string): Observable<DownPaymentPayment> {
