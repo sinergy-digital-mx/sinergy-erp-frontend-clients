@@ -10,7 +10,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { InputComponent } from '../../../../core/components/input/input.component';
 import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
 import { LucideAngularModule, X } from 'lucide-angular';
-import { Contract, ContractStatus, UpdateContractDto } from '../../models/contract.model';
+import { Contract, ContractStatus, UpdateContractDto, getDownPaymentTarget } from '../../models/contract.model';
 import { ContractService } from '../../services/contract.service';
 import { PaymentService } from '../../services/payment.service';
 import { PaymentStats } from '../../models/payment.model';
@@ -51,6 +51,7 @@ import { LeadService } from '../../../../core/services/leads.service';
 })
 export class ContractDetailModalComponent implements OnInit {
   readonly X = X;
+  readonly getDownPaymentTarget = getDownPaymentTarget;
 
   @ViewChild('vendorAutocompleteTrigger', { read: MatAutocompleteTrigger }) vendorAutocompleteTrigger: MatAutocompleteTrigger;
   @ViewChild('leadAutocompleteTrigger', { read: MatAutocompleteTrigger }) leadAutocompleteTrigger: MatAutocompleteTrigger;

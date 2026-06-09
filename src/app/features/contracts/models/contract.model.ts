@@ -18,8 +18,8 @@ export interface Contract {
   lead_group_id?: string | null;
   /** Monto ya pagado de enganche (se actualiza con abonos). */
   down_payment: number;
-  /** Total pactado de enganche; null hasta definir meta. */
-  down_payment_target?: number | null;
+  /** Total pactado de enganche; null hasta definir meta. El API puede enviar string. */
+  down_payment_target?: number | string | null;
   remaining_balance: number;
   payment_months: number;
   monthly_payment: number;
@@ -140,4 +140,15 @@ export interface ContractStatsResponse {
   payments_overdue: number;
   total_payments: number;
   up_to_date: number;
+}
+
+/** Parsea down_payment_target (el API puede enviar number o string). */
+export function getDownPaymentTarget(
+  contract: Pick<Contract, 'down_payment_target'>,
+): number | null {
+  const raw = contract.down_payment_target;
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  const n = parseFloat(String(raw));
+  return Number.isFinite(n) ? n : null;
 }

@@ -10,7 +10,7 @@ import { LucideAngularModule, ArrowLeft, Info } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InputComponent } from '../../../../core/components/input/input.component';
 import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
-import { Contract, ContractStatus, UpdateContractDto } from '../../models/contract.model';
+import { Contract, ContractStatus, UpdateContractDto, getDownPaymentTarget } from '../../models/contract.model';
 import { ContractService } from '../../services/contract.service';
 import { PaymentService } from '../../services/payment.service';
 import { PaymentStats } from '../../models/payment.model';
@@ -49,6 +49,7 @@ import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 export class ContractDetailPageComponent implements OnInit {
   readonly ArrowLeft = ArrowLeft;
   readonly InfoIcon = Info;
+  readonly getDownPaymentTarget = getDownPaymentTarget;
   @ViewChild('vendorAutocompleteTrigger', { read: MatAutocompleteTrigger }) vendorAutocompleteTrigger: MatAutocompleteTrigger;
 
   contract = signal<Contract | null>(null);

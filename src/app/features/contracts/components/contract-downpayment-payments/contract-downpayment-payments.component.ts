@@ -5,7 +5,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { LucideAngularModule, DollarSign, Edit, RotateCcw, Trash2, Plus } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { Contract } from '../../models/contract.model';
+import { Contract, getDownPaymentTarget } from '../../models/contract.model';
 import { DownPaymentPayment, DownPaymentStats } from '../../models/downpayment-payment.model';
 import { DownpaymentPaymentService } from '../../services/downpayment-payment.service';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
@@ -62,7 +62,7 @@ export class ContractDownpaymentPaymentsComponent implements OnInit {
   get targetAmount(): number | null {
     const fromStats = this.stats()?.down_payment_target;
     if (fromStats != null) return fromStats;
-    return this.contract?.down_payment_target ?? null;
+    return this.contract ? getDownPaymentTarget(this.contract) : null;
   }
 
   get showGenerateInstallmentsButton(): boolean {

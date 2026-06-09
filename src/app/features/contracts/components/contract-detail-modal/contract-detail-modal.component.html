@@ -49,7 +49,16 @@
         </div>
         <div>
           <span class="block text-gray-500 font-medium">Enganche</span>
-          <span class="text-gray-900 font-semibold">{{ data.contract.down_payment | currency:data.contract.currency }}</span>
+          @if (getDownPaymentTarget(data.contract); as target) {
+            <span class="text-gray-900 font-semibold leading-tight">
+              {{ data.contract.down_payment | currency:data.contract.currency }}
+              <span class="text-gray-400 font-medium mx-0.5">/</span>
+              {{ target | currency:data.contract.currency }}
+            </span>
+            <span class="block text-[10px] text-gray-400 font-medium mt-0.5">abonado / meta</span>
+          } @else {
+            <span class="text-gray-900 font-semibold">{{ data.contract.down_payment | currency:data.contract.currency }}</span>
+          }
         </div>
         <div>
           <span class="block text-gray-500 font-medium">Total Pagado</span>
