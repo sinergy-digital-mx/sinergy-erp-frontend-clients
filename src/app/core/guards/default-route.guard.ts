@@ -15,8 +15,7 @@ export const defaultRouteGuard: CanActivateFn = () => {
   if (firstRoute) {
     router.navigate([firstRoute]);
   } else {
-    console.error('No accessible routes found for user');
-    router.navigate(['/login']);
+    authService.redirectToLoginNoAccess();
   }
   
   return false;

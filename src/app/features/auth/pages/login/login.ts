@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { InputComponent } from "../../../../core/components/input/input.component";
 import { PasswordComponent } from "../../../../core/components/password/password.component";
 import { ButtonComponent } from "../../../../core/components/button/button.component";
@@ -25,12 +25,18 @@ export class Login{
   constructor(
     private fb: FormBuilder,
     private router: Router,
+    private route: ActivatedRoute,
     private authService: AuthService
   ) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(3)]],
     });
+
+    const reason = this.route.snapshot.queryParamMap.get('reason');
+    if (reason === 'no-access') {
+      this.error.set('Tu cuenta no tiene módulos asignados. Contacta al administrador.');
+    }
   }
 
   submit(): void {
@@ -44,12 +50,15 @@ export class Login{
   
     this.authService.login(this.form.value).subscribe({
       next: () => {
-        console.log('=== PERMISOS DEL USUARIO ===');
-        console.log('permissions_version:', this.authService.user_info?.permissions_version);
-        console.log('Permisos extraídos:', Array.from(this.authService.permissions$.getValue()));
-        console.log('Total de permisos:', this.authService.permissions$.getValue().size);
+        const firstRoute = this.authService.getFirstAccessibleRoute();
+        if (!firstRoute) {
+          this.loading.set(false);
+          this.authService.clearSession();
+          this.error.set('Tu cuenta no tiene módulos asignados. Contacta al administrador.');
+          return;
+        }
 
-        this.router.navigate(['/']);
+        this.router.navigate([firstRoute]);
       },
       error: () => {
         this.loading.set(false);

@@ -49,6 +49,15 @@
       }
     }
 
+    /** Clears session and sends user to login when they have no accessible modules. */
+    redirectToLoginNoAccess(): void {
+      this.clearSession();
+      void this.router.navigate(['/login'], {
+        queryParams: { reason: 'no-access' },
+        replaceUrl: true
+      });
+    }
+
     logout() {
       this.clearSession();
       this.router.navigate(['/login']);

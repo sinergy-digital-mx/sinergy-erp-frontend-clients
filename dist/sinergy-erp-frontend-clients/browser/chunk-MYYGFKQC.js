@@ -1,1 +1,0 @@
-import{a as o,b as a}from"./chunk-7XYPYNLF.js";var t={maxWidth:"95vw",maxHeight:"90vh"},i=a(o({},t),{width:"700px",panelClass:"customer-edit-dialog",autoFocus:"first-tabbable"}),l=a(o({},t),{width:"700px",panelClass:"property-edit-dialog"}),e=a(o({},t),{width:"900px",panelClass:"contract-create-dialog"});export{i as a,l as b,e as c};
