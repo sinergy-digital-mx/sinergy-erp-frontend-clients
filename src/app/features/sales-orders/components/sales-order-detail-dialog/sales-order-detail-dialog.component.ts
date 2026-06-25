@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { SalesDocumentLanguage, SalesOrder, SalesOrderDocument, SalesOrderInvoice, SalesOrderLineItem, RegenerateTicketReciboResponse } from '../../models/sales-order.model';
+import { SalesDocumentLanguage, SalesOrder, SalesOrderDocument, SalesOrderInvoice, SalesOrderLineItem, TicketReciboResponse } from '../../models/sales-order.model';
 import { resolveSalesOrderCustomerName, resolveSalesOrderCustomerId } from '../../utils/customer-display.util';
 import {
   PosSaleCollection,
@@ -16,9 +16,6 @@ import { normalizePosSaleReceipt } from '../../../pos/models/pos-receipt.model';
 import { PosReceiptPrintService } from '../../../pos/services/pos-receipt-print.service';
 import { PosPrinterSettingsDialogComponent } from '../../../pos/components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
 import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
-import { POSService } from '../../../pos/services/pos.service';
-import { firstValueFrom, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
@@ -48,6 +45,7 @@ export class SalesOrderDetailDialogComponent {
   activeTabIndex = signal(0);
   showDeliveredTotals = signal(false);
   regeneratingPDF = signal(false);
+  reprintingTicket = signal(false);
   regeneratingTicket = signal(false);
   printingTicket = signal(false);
   showRegenerateLanguageModal = signal(false);
@@ -56,7 +54,7 @@ export class SalesOrderDetailDialogComponent {
 
   canEditOrder = computed(() => this.order()?.general_status === 'Creada');
 
-  canRegenerateTicketRecibo = computed(() => !!this.posCollection());
+  canTicketReciboActions = computed(() => !!this.posCollection());
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { orderId: string },
@@ -69,8 +67,7 @@ export class SalesOrderDetailDialogComponent {
     private taxCalculator: TaxCalculatorService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
-    private receiptPrintService: PosReceiptPrintService,
-    private posService: POSService
+    private receiptPrintService: PosReceiptPrintService
   ) {
     this.loadOrder();
   }
@@ -497,9 +494,33 @@ export class SalesOrderDetailDialogComponent {
     });
   }
 
+  reprintTicketRecibo(): void {
+    const orderId = this.order()?.id;
+    if (!orderId || !this.canTicketReciboActions() || this.reprintingTicket()) {
+      return;
+    }
+
+    this.reprintingTicket.set(true);
+    this.salesOrderService.reprintTicketRecibo(orderId).subscribe({
+      next: (response) => {
+        this.reprintingTicket.set(false);
+        this.cdr.detectChanges();
+        this.toast.success(response?.message || 'Ticket listo para imprimir');
+        const folio = this.order()?.folio || orderId;
+        void this.printTicketReceipt(response.receipt, folio);
+      },
+      error: (error) => {
+        this.reprintingTicket.set(false);
+        this.cdr.detectChanges();
+        this.toast.error(error?.message || 'No hay ticket guardado para reimprimir');
+        console.error('Error reprinting ticket/recibo:', error);
+      },
+    });
+  }
+
   regenerateTicketRecibo(): void {
     const orderId = this.order()?.id;
-    if (!orderId || !this.canRegenerateTicketRecibo() || this.regeneratingTicket()) {
+    if (!orderId || !this.canTicketReciboActions() || this.regeneratingTicket()) {
       return;
     }
 
@@ -507,7 +528,7 @@ export class SalesOrderDetailDialogComponent {
     this.salesOrderService.regenerateTicketRecibo(orderId).subscribe({
       next: (response) => {
         this.regeneratingTicket.set(false);
-        void this.handleRegenerateTicketSuccess(response, orderId);
+        void this.handleTicketReciboRegenerate(response, orderId);
       },
       error: (error) => {
         this.regeneratingTicket.set(false);
@@ -518,8 +539,8 @@ export class SalesOrderDetailDialogComponent {
     });
   }
 
-  private async handleRegenerateTicketSuccess(
-    response: RegenerateTicketReciboResponse,
+  private async handleTicketReciboRegenerate(
+    response: TicketReciboResponse,
     orderId: string
   ): Promise<void> {
     if (Array.isArray(response.documents)) {
@@ -529,27 +550,15 @@ export class SalesOrderDetailDialogComponent {
     this.toast.success(response?.message || 'TICKET / RECIBO regenerado exitosamente');
 
     const folio = this.order()?.folio || orderId;
-    await this.printRegeneratedTicket(response.receipt, orderId, folio);
+    await this.printTicketReceipt(response.receipt, folio);
     this.loadOrder(true);
   }
 
-  private async printRegeneratedTicket(
-    receiptRaw: unknown,
-    orderId: string,
-    folio: string
-  ): Promise<void> {
-    let receipt = normalizePosSaleReceipt(receiptRaw);
+  private async printTicketReceipt(receiptRaw: unknown, folio: string): Promise<void> {
+    const receipt = normalizePosSaleReceipt(receiptRaw);
 
     if (!this.receiptPrintService.hasPrintableReceipt(receipt)) {
-      receipt = await firstValueFrom(
-        this.posService.getSaleReceipt(orderId).pipe(catchError(() => of(null)))
-      );
-    }
-
-    if (!this.receiptPrintService.hasPrintableReceipt(receipt)) {
-      this.toast.info('Ticket regenerado en el servidor. No hay ESC/POS para imprimir aquí.', {
-        duration: 5000,
-      });
+      this.toast.info('El ticket no incluye datos ESC/POS para imprimir.', { duration: 5000 });
       return;
     }
 
@@ -623,7 +632,7 @@ export class SalesOrderDetailDialogComponent {
   openTicketPreview(): void {
     const order = this.order();
     const orderId = order?.id;
-    if (!orderId || !this.canRegenerateTicketRecibo()) {
+    if (!orderId || !this.canTicketReciboActions()) {
       return;
     }
     this.dialog.open(PosReceiptPreviewDialogComponent, {
@@ -633,6 +642,7 @@ export class SalesOrderDetailDialogComponent {
       autoFocus: false,
       data: {
         salesOrderId: orderId,
+        useSalesOrderTicketApi: true,
         title: `Ticket ${order?.folio || orderId}`,
       },
     });

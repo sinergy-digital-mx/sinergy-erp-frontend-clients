@@ -71,16 +71,23 @@ export interface RegenerateSalesDocumentResponse {
   keep_previous?: boolean;
 }
 
-export interface RegenerateTicketReciboResponse {
+export interface TicketReciboResponse {
   success: boolean;
   message: string;
+  regenerated: boolean;
   receipt?: PosSaleReceipt | null;
   documents?: SalesOrderDocument[];
 }
 
-export function normalizeRegenerateTicketReciboResponse(raw: unknown): RegenerateTicketReciboResponse {
+/** @deprecated Use TicketReciboResponse */
+export type RegenerateTicketReciboResponse = TicketReciboResponse;
+
+export function normalizeTicketReciboResponse(
+  raw: unknown,
+  defaultRegenerated = false
+): TicketReciboResponse {
   if (!raw || typeof raw !== 'object') {
-    return { success: false, message: '' };
+    return { success: false, message: '', regenerated: defaultRegenerated };
   }
 
   let source = raw as Record<string, unknown>;
@@ -94,10 +101,16 @@ export function normalizeRegenerateTicketReciboResponse(raw: unknown): Regenerat
   return {
     success: source['success'] === true,
     message: source['message'] != null ? String(source['message']) : '',
+    regenerated:
+      source['regenerated'] === true ||
+      (source['regenerated'] !== false && defaultRegenerated),
     receipt: normalizePosSaleReceipt(receiptRaw),
     documents: Array.isArray(documentsRaw) ? (documentsRaw as SalesOrderDocument[]) : undefined,
   };
 }
+
+/** @deprecated Use normalizeTicketReciboResponse */
+export const normalizeRegenerateTicketReciboResponse = normalizeTicketReciboResponse;
 
 export interface SalesOrder {
   id: string;

@@ -12,8 +12,8 @@ import {
   SalesOrderDetailPayload,
   SalesOrderDetailResponse,
   RegenerateSalesDocumentResponse,
-  RegenerateTicketReciboResponse,
-  normalizeRegenerateTicketReciboResponse,
+  TicketReciboResponse,
+  normalizeTicketReciboResponse,
   SalesDocumentLanguage
 } from '../models/sales-order.model';
 import { environment } from '../../../../environments/environment';
@@ -166,17 +166,37 @@ export class SalesOrderService {
     );
   }
 
-  /** [TEMP] Regenera TICKET / RECIBO ESC/POS para ventas POS ya cobradas. */
-  regenerateTicketRecibo(orderId: string): Observable<RegenerateTicketReciboResponse> {
-    return this.http
-      .post<unknown>(`${this.baseUrl}/${orderId}/regenerate-ticket-recibo`, {})
-      .pipe(
-        map((response) => normalizeRegenerateTicketReciboResponse(response)),
-        catchError(error => {
-          console.error('[SalesOrder] Failed to regenerate ticket/recibo', error);
-          return this.handleError(error);
-        })
-      );
+  /** Lee el TICKET / RECIBO guardado (no regenera). */
+  getTicketRecibo(orderId: string): Observable<TicketReciboResponse> {
+    return this.http.get<unknown>(`${this.baseUrl}/${orderId}/ticket-recibo`).pipe(
+      map((response) => normalizeTicketReciboResponse(response, false)),
+      catchError((error) => {
+        console.error('[SalesOrder] Failed to load ticket/recibo', error);
+        return this.handleError(error);
+      })
+    );
+  }
+
+  /** Reimprime el ticket existente en S3 (no borra ni regenera documentos). */
+  reprintTicketRecibo(orderId: string): Observable<TicketReciboResponse> {
+    return this.http.post<unknown>(`${this.baseUrl}/${orderId}/reprint-ticket-recibo`, {}).pipe(
+      map((response) => normalizeTicketReciboResponse(response, false)),
+      catchError((error) => {
+        console.error('[SalesOrder] Failed to reprint ticket/recibo', error);
+        return this.handleError(error);
+      })
+    );
+  }
+
+  /** [TEMP/admin] Borra el ticket anterior y genera uno nuevo en S3. */
+  regenerateTicketRecibo(orderId: string): Observable<TicketReciboResponse> {
+    return this.http.post<unknown>(`${this.baseUrl}/${orderId}/regenerate-ticket-recibo`, {}).pipe(
+      map((response) => normalizeTicketReciboResponse(response, true)),
+      catchError((error) => {
+        console.error('[SalesOrder] Failed to regenerate ticket/recibo', error);
+        return this.handleError(error);
+      })
+    );
   }
 
   /**

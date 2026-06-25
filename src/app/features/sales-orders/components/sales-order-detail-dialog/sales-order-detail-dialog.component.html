@@ -279,27 +279,40 @@
           @if (activeTabIndex() === 1) {
             <div class="tab-content-wrapper">
               <div class="tab-header">
-                @if (canRegenerateTicketRecibo()) {
+                @if (canTicketReciboActions()) {
                   <button
                     type="button"
                     class="btn-secondary btn-secondary--ticket"
                     (click)="openTicketPreview()"
-                    title="Abrir vista previa del ticket térmico">
+                    title="Vista previa del ticket guardado">
                     <i class="fi fi-rr-eye"></i>
                     Ver ticket
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    (click)="reprintTicketRecibo()"
+                    [disabled]="reprintingTicket() || printingTicket()"
+                    title="Reimprime el ticket existente en S3 (no regenera)">
+                    @if (reprintingTicket() || printingTicket()) {
+                      <i class="fi fi-rr-spinner animate-spin"></i>
+                    } @else {
+                      <i class="fi fi-rr-print"></i>
+                    }
+                    Imprimir ticket
                   </button>
                   <button
                     type="button"
                     class="btn-secondary btn-secondary--ticket"
                     (click)="regenerateTicketRecibo()"
                     [disabled]="regeneratingTicket()"
-                    title="Vuelve a generar el ticket ESC/POS en el servidor e imprime (cada clic = nuevo POST)">
+                    title="[Admin] Borra el ticket anterior y genera uno nuevo">
                     @if (regeneratingTicket()) {
                       <i class="fi fi-rr-spinner animate-spin"></i>
                     } @else {
-                      <i class="fi fi-rr-print"></i>
+                      <i class="fi fi-rr-refresh"></i>
                     }
-                    Regenerar ticket / recibo
+                    Regenerar ticket
                   </button>
                 }
                 <button class="btn-secondary" (click)="regeneratePDF()" [disabled]="regeneratingPDF()">
