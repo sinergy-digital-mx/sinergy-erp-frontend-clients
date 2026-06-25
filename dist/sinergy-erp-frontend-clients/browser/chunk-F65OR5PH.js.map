@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/features/divino-dashboard/config/permissions.config.ts"],
-  "sourcesContent": ["export const DIVINO_DASHBOARD_PERMISSIONS = {\r\n  viewMenu: 'divinodashboard:ViewMenu',\r\n  read: 'divinodashboard:Read',\r\n} as const;\r\n"],
-  "mappings": ";AAAO,IAAM,+BAA+B;EAC1C,UAAU;EACV,MAAM;;",
-  "names": []
-}

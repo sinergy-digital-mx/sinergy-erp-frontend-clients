@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/core/config/form-dialog.config.ts"],
-  "sourcesContent": ["import { MatDialogConfig } from '@angular/material/dialog';\r\n\r\nconst formDialogBase: MatDialogConfig = {\r\n  maxWidth: '95vw',\r\n  maxHeight: '90vh',\r\n};\r\n\r\nexport const CUSTOMER_FORM_DIALOG_CONFIG: MatDialogConfig = {\r\n  ...formDialogBase,\r\n  width: '700px',\r\n  panelClass: 'customer-edit-dialog',\r\n  autoFocus: 'first-tabbable',\r\n};\r\n\r\nexport const PROPERTY_FORM_DIALOG_CONFIG: MatDialogConfig = {\r\n  ...formDialogBase,\r\n  width: '700px',\r\n  panelClass: 'property-edit-dialog',\r\n};\r\n\r\nexport const CONTRACT_CREATE_DIALOG_CONFIG: MatDialogConfig = {\r\n  ...formDialogBase,\r\n  width: '900px',\r\n  panelClass: 'contract-create-dialog',\r\n};\r\n"],
-  "mappings": ";;;;;;AAEA,IAAM,iBAAkC;EACtC,UAAU;EACV,WAAW;;AAGN,IAAM,8BAA+C,iCACvD,iBADuD;EAE1D,OAAO;EACP,YAAY;EACZ,WAAW;;AAGN,IAAM,8BAA+C,iCACvD,iBADuD;EAE1D,OAAO;EACP,YAAY;;AAGP,IAAM,gCAAiD,iCACzD,iBADyD;EAE5D,OAAO;EACP,YAAY;;",
-  "names": []
-}
