@@ -284,9 +284,9 @@
                     type="button"
                     class="btn-secondary btn-secondary--ticket"
                     (click)="regenerateTicketRecibo()"
-                    [disabled]="regeneratingTicket() || printingTicket()"
-                    title="Regenera el ticket ESC/POS y lo imprime (ventas POS cobradas)">
-                    @if (regeneratingTicket() || printingTicket()) {
+                    [disabled]="regeneratingTicket()"
+                    title="Vuelve a generar el ticket ESC/POS en el servidor e imprime (cada clic = nuevo POST)">
+                    @if (regeneratingTicket()) {
                       <i class="fi fi-rr-spinner animate-spin"></i>
                     } @else {
                       <i class="fi fi-rr-print"></i>
@@ -316,7 +316,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @for (doc of documents(); track doc.id) {
+                    @for (doc of documents(); track doc.id + '|' + (doc.uploaded_at || '') + '|' + (doc.document_name || '')) {
                       <tr>
                         <td>
                           <div class="document-type-cell">

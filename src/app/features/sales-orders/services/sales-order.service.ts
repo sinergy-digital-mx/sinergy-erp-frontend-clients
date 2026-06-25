@@ -13,6 +13,7 @@ import {
   SalesOrderDetailResponse,
   RegenerateSalesDocumentResponse,
   RegenerateTicketReciboResponse,
+  normalizeRegenerateTicketReciboResponse,
   SalesDocumentLanguage
 } from '../models/sales-order.model';
 import { environment } from '../../../../environments/environment';
@@ -168,16 +169,9 @@ export class SalesOrderService {
   /** [TEMP] Regenera TICKET / RECIBO ESC/POS para ventas POS ya cobradas. */
   regenerateTicketRecibo(orderId: string): Observable<RegenerateTicketReciboResponse> {
     return this.http
-      .post<RegenerateTicketReciboResponse | { data: RegenerateTicketReciboResponse }>(
-        `${this.baseUrl}/${orderId}/regenerate-ticket-recibo`,
-        {}
-      )
+      .post<unknown>(`${this.baseUrl}/${orderId}/regenerate-ticket-recibo`, {})
       .pipe(
-        map((response) =>
-          response && typeof response === 'object' && 'data' in response && response.data
-            ? response.data
-            : (response as RegenerateTicketReciboResponse)
-        ),
+        map((response) => normalizeRegenerateTicketReciboResponse(response)),
         catchError(error => {
           console.error('[SalesOrder] Failed to regenerate ticket/recibo', error);
           return this.handleError(error);

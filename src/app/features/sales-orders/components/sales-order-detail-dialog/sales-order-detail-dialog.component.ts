@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { SalesDocumentLanguage, SalesOrder, SalesOrderDocument, SalesOrderInvoice, SalesOrderLineItem } from '../../models/sales-order.model';
+import { SalesDocumentLanguage, SalesOrder, SalesOrderDocument, SalesOrderInvoice, SalesOrderLineItem, RegenerateTicketReciboResponse } from '../../models/sales-order.model';
 import { resolveSalesOrderCustomerName, resolveSalesOrderCustomerId } from '../../utils/customer-display.util';
 import {
   PosSaleCollection,
@@ -15,6 +15,9 @@ import {
 import { normalizePosSaleReceipt } from '../../../pos/models/pos-receipt.model';
 import { PosReceiptPrintService } from '../../../pos/services/pos-receipt-print.service';
 import { PosPrinterSettingsDialogComponent } from '../../../pos/components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
+import { POSService } from '../../../pos/services/pos.service';
+import { firstValueFrom, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
@@ -65,23 +68,30 @@ export class SalesOrderDetailDialogComponent {
     private taxCalculator: TaxCalculatorService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
-    private receiptPrintService: PosReceiptPrintService
+    private receiptPrintService: PosReceiptPrintService,
+    private posService: POSService
   ) {
     this.loadOrder();
   }
 
-  loadOrder(): void {
-    this.loading.set(true);
+  loadOrder(silent = false): void {
+    if (!silent) {
+      this.loading.set(true);
+    }
     this.salesOrderService.getOrderDetailById(this.data.orderId).subscribe({
       next: (payload) => {
         this.order.set(payload?.header || null);
         this.lineItems.set(payload?.line_items || payload?.header?.line_items || []);
         this.documents.set(payload?.documents || payload?.header?.documents || []);
         this.posCollection.set(payload?.pos_collection ?? payload?.header?.pos_collection ?? null);
-        this.loading.set(false);
+        if (!silent) {
+          this.loading.set(false);
+        }
       },
       error: () => {
-        this.loading.set(false);
+        if (!silent) {
+          this.loading.set(false);
+        }
       }
     });
   }
@@ -496,12 +506,7 @@ export class SalesOrderDetailDialogComponent {
     this.salesOrderService.regenerateTicketRecibo(orderId).subscribe({
       next: (response) => {
         this.regeneratingTicket.set(false);
-        if (Array.isArray(response.documents)) {
-          this.documents.set(response.documents);
-        }
-        this.cdr.detectChanges();
-        this.toast.success(response?.message || 'TICKET / RECIBO regenerado exitosamente');
-        void this.printRegeneratedTicket(response.receipt, this.order()?.folio || orderId);
+        void this.handleRegenerateTicketSuccess(response, orderId);
       },
       error: (error) => {
         this.regeneratingTicket.set(false);
@@ -512,10 +517,38 @@ export class SalesOrderDetailDialogComponent {
     });
   }
 
-  private async printRegeneratedTicket(receiptRaw: unknown, folio: string): Promise<void> {
-    const receipt = normalizePosSaleReceipt(receiptRaw);
+  private async handleRegenerateTicketSuccess(
+    response: RegenerateTicketReciboResponse,
+    orderId: string
+  ): Promise<void> {
+    if (Array.isArray(response.documents)) {
+      this.documents.set([...response.documents]);
+    }
+    this.cdr.detectChanges();
+    this.toast.success(response?.message || 'TICKET / RECIBO regenerado exitosamente');
+
+    const folio = this.order()?.folio || orderId;
+    await this.printRegeneratedTicket(response.receipt, orderId, folio);
+    this.loadOrder(true);
+  }
+
+  private async printRegeneratedTicket(
+    receiptRaw: unknown,
+    orderId: string,
+    folio: string
+  ): Promise<void> {
+    let receipt = normalizePosSaleReceipt(receiptRaw);
+
     if (!this.receiptPrintService.hasPrintableReceipt(receipt)) {
-      this.toast.info('Ticket regenerado. No incluye datos ESC/POS para imprimir.', { duration: 5000 });
+      receipt = await firstValueFrom(
+        this.posService.getSaleReceipt(orderId).pipe(catchError(() => of(null)))
+      );
+    }
+
+    if (!this.receiptPrintService.hasPrintableReceipt(receipt)) {
+      this.toast.info('Ticket regenerado en el servidor. No hay ESC/POS para imprimir aquí.', {
+        duration: 5000,
+      });
       return;
     }
 

@@ -1,5 +1,5 @@
 import { PosSaleCollection } from '../../pos/models/pos-sale-collection.model';
-import { PosSaleReceipt } from '../../pos/models/pos-receipt.model';
+import { PosSaleReceipt, normalizePosSaleReceipt } from '../../pos/models/pos-receipt.model';
 
 export type SalesOrderStatus = 'Creada' | 'Surtida' | 'Cancelada';
 export type SalesPaymentStatus = 'Pendiente' | 'Pagado';
@@ -76,6 +76,27 @@ export interface RegenerateTicketReciboResponse {
   message: string;
   receipt?: PosSaleReceipt | null;
   documents?: SalesOrderDocument[];
+}
+
+export function normalizeRegenerateTicketReciboResponse(raw: unknown): RegenerateTicketReciboResponse {
+  if (!raw || typeof raw !== 'object') {
+    return { success: false, message: '' };
+  }
+
+  let source = raw as Record<string, unknown>;
+  if (source['data'] && typeof source['data'] === 'object' && !Array.isArray(source['data'])) {
+    source = source['data'] as Record<string, unknown>;
+  }
+
+  const receiptRaw = source['receipt'];
+  const documentsRaw = source['documents'];
+
+  return {
+    success: source['success'] === true,
+    message: source['message'] != null ? String(source['message']) : '',
+    receipt: normalizePosSaleReceipt(receiptRaw),
+    documents: Array.isArray(documentsRaw) ? (documentsRaw as SalesOrderDocument[]) : undefined,
+  };
 }
 
 export interface SalesOrder {
