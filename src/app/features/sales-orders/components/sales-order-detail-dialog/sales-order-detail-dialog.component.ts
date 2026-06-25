@@ -15,6 +15,7 @@ import {
 import { normalizePosSaleReceipt } from '../../../pos/models/pos-receipt.model';
 import { PosReceiptPrintService } from '../../../pos/services/pos-receipt-print.service';
 import { PosPrinterSettingsDialogComponent } from '../../../pos/components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
+import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
 import { POSService } from '../../../pos/services/pos.service';
 import { firstValueFrom, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -612,5 +613,28 @@ export class SalesOrderDetailDialogComponent {
     if (doc.path) {
       window.open(doc.path, '_blank');
     }
+  }
+
+  isTicketDocument(doc: SalesOrderDocument): boolean {
+    const type = (doc.document_type_name || '').toUpperCase();
+    return type.includes('TICKET') || type.includes('RECIBO');
+  }
+
+  openTicketPreview(): void {
+    const order = this.order();
+    const orderId = order?.id;
+    if (!orderId || !this.canRegenerateTicketRecibo()) {
+      return;
+    }
+    this.dialog.open(PosReceiptPreviewDialogComponent, {
+      width: '480px',
+      maxWidth: '95vw',
+      panelClass: 'pos-dialog-panel',
+      autoFocus: false,
+      data: {
+        salesOrderId: orderId,
+        title: `Ticket ${order?.folio || orderId}`,
+      },
+    });
   }
 }

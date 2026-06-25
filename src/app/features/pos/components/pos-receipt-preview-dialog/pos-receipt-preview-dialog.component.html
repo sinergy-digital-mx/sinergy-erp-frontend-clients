@@ -1,0 +1,52 @@
+<div class="modal-container">
+  <div class="modal-header">
+    <div class="modal-header__title">
+      <span class="modal-header__icon" aria-hidden="true">
+        <lucide-icon [img]="Eye" />
+      </span>
+      <h2>{{ title() }}</h2>
+    </div>
+    <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">
+      <lucide-icon [img]="X" />
+    </button>
+  </div>
+
+  <div class="modal-body">
+    @if (loading()) {
+      <p class="status-msg">Cargando ticket…</p>
+    } @else if (error() && previewLines().length === 0) {
+      <p class="status-msg status-msg--error">{{ error() }}</p>
+    } @else {
+      <div class="preview-wrap">
+        <article class="thermal-receipt" aria-label="Vista previa ticket térmico">
+          @for (line of previewLines(); track $index) {
+            <p
+              class="thermal-receipt__line"
+              [class.thermal-receipt__line--center]="line.align === 'center'"
+              [class.thermal-receipt__line--right]="line.align === 'right'"
+              [class.thermal-receipt__line--bold]="line.bold">
+              {{ line.text || ' ' }}
+            </p>
+          }
+        </article>
+      </div>
+      @if (receipt()?.printer_profile) {
+        <p class="meta">Perfil: {{ receipt()!.printer_profile }}</p>
+      }
+    }
+
+    @if (error() && previewLines().length > 0) {
+      <p class="inline-error">{{ error() }}</p>
+    }
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn--ghost" (click)="close()">Cerrar</button>
+    @if (canPrint()) {
+      <button type="button" class="btn btn--primary" (click)="printTicket()" [disabled]="printing()">
+        <lucide-icon [img]="Printer" />
+        {{ printing() ? 'Imprimiendo…' : 'Imprimir' }}
+      </button>
+    }
+  </div>
+</div>

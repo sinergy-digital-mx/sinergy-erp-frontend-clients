@@ -283,6 +283,14 @@
                   <button
                     type="button"
                     class="btn-secondary btn-secondary--ticket"
+                    (click)="openTicketPreview()"
+                    title="Abrir vista previa del ticket térmico">
+                    <i class="fi fi-rr-eye"></i>
+                    Ver ticket
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-secondary btn-secondary--ticket"
                     (click)="regenerateTicketRecibo()"
                     [disabled]="regeneratingTicket()"
                     title="Vuelve a generar el ticket ESC/POS en el servidor e imprime (cada clic = nuevo POST)">
@@ -340,6 +348,15 @@
                         </td>
                         <td>
                           <div class="document-actions">
+                            @if (isTicketDocument(doc)) {
+                              <button
+                                class="action-btn preview-btn"
+                                type="button"
+                                (click)="openTicketPreview()"
+                                title="Ver ticket">
+                                <i class="fi fi-rr-eye"></i>
+                              </button>
+                            }
                             <button class="action-btn download-btn" (click)="downloadDocument(doc)" title="Descargar">
                               <i class="fi fi-rr-download"></i>
                             </button>

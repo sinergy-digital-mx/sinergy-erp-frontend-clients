@@ -30,6 +30,7 @@ import {
   Receipt,
   ChevronLeft,
   Printer,
+  Eye,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -90,6 +91,7 @@ import {
 import { PosSaleReceipt } from '../../models/pos-receipt.model';
 import { PosReceiptPrintService } from '../../services/pos-receipt-print.service';
 import { PosPrinterSettingsDialogComponent } from '../../components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
+import { PosReceiptPreviewDialogComponent } from '../../components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
 
 interface PendingSaleCustomer {
   id?: number;
@@ -137,6 +139,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
   readonly Receipt = Receipt;
   readonly ChevronLeft = ChevronLeft;
   readonly Printer = Printer;
+  readonly Eye = Eye;
 
   pendingSales = signal<PendingSale[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);
@@ -755,6 +758,29 @@ export class PaymentComponent implements OnInit, OnDestroy {
         this.printingReceipt.set(false);
         this.toast.error('No se pudo obtener el ticket para reimpresión');
       },
+    });
+  }
+
+  async previewTicket(item: CollectedSaleItem): Promise<void> {
+    const saleId = item.sales_order?.id;
+    if (!saleId) {
+      return;
+    }
+
+    const wasFullscreen = await this.exitFullscreenForDialog();
+    const dialogRef = this.dialog.open(PosReceiptPreviewDialogComponent, {
+      width: '480px',
+      maxWidth: '95vw',
+      panelClass: 'pos-dialog-panel',
+      autoFocus: false,
+      data: {
+        salesOrderId: saleId,
+        title: `Ticket ${collectedSaleFolio(item)}`,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe(async () => {
+      await this.restoreFullscreenAfterDialog(wasFullscreen);
     });
   }
 

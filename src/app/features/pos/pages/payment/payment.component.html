@@ -618,6 +618,13 @@
               <div class="cobranza-panel__head-actions">
                 <button
                   type="button"
+                  class="cobranza-head-btn"
+                  (click)="previewTicket(item)">
+                  <lucide-icon [img]="Eye" class="pos-ic pos-ic--sm" />
+                  Ver ticket
+                </button>
+                <button
+                  type="button"
                   class="cobranza-head-btn cobranza-head-btn--print"
                   (click)="reprintTicket(item)"
                   [disabled]="printingReceipt()">

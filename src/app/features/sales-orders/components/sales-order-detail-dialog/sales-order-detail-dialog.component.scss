@@ -406,6 +406,15 @@
         background: #bfdbfe;
       }
     }
+
+    &.preview-btn {
+      background: #ecfdf5;
+      color: #047857;
+
+      &:hover {
+        background: #d1fae5;
+      }
+    }
   }
 }
 
