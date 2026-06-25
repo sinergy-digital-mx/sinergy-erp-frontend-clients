@@ -4,12 +4,16 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { WritePurchaseOrderDto } from '../../models/filters.model';
 import { FiscalConfigurationService } from '../../../../features/settings/services/fiscal-configuration.service';
 import { WarehouseService } from '../../../../features/settings/services/warehouse.service';
 import { VendorService } from '../../../../features/settings/services/vendor.service';
+import { VendorQueryParams } from '../../../../features/settings/models/vendor.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
+
+const VENDOR_SEARCH_LIMIT = 100;
 
 interface LineItem {
   product_id: string;
@@ -42,8 +46,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
   // Dropdowns data
   fiscalConfigurations: any[] = [];
   warehouses: any[] = [];
-  vendors: any[] = [];
   filteredVendors: any[] = [];
+  loadingVendors = false;
   tabs: TabItem[] = [
     { id: 'info', title: 'Información' },
     { id: 'products', title: 'Productos' }
@@ -82,9 +86,16 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDropdownData();
-    this.form.get('vendor_search')?.valueChanges.subscribe((value) => {
-      this.filterVendors(value ?? '');
-    });
+    this.form.get('vendor_search')?.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe((value) => {
+        if (typeof value === 'string') {
+          this.form.patchValue({ vendor_id: '' }, { emitEvent: false });
+        } else if (value && typeof value !== 'string') {
+          return;
+        }
+        this.searchVendors(typeof value === 'string' ? value : '');
+      });
   }
 
   onTabChange(tabId: string): void {
@@ -97,19 +108,12 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     // Load all dropdown data in parallel
     Promise.all([
       this.fiscalConfigService.listFiscalConfigurations().toPromise(),
-      this.warehouseService.getWarehouses().toPromise(),
-      this.vendorService.getVendors().toPromise()
-    ]).then(([fiscalConfigs, warehouses, vendors]) => {
-      // Handle different response formats - all endpoints return paginated responses with data property
+      this.warehouseService.getWarehouses().toPromise()
+    ]).then(([fiscalConfigs, warehouses]) => {
       this.fiscalConfigurations = fiscalConfigs?.data || [];
       this.warehouses = warehouses?.data || [];
-      const vendorRows = vendors?.data || [];
-      this.vendors = vendorRows.map((vendor: any) => ({
-        ...vendor,
-        display_name: this.formatVendorLabel(vendor)
-      }));
-      this.filteredVendors = [...this.vendors];
       this.loading = false;
+      this.searchVendors('');
       this.cdr.detectChanges();
     }).catch((error) => {
       console.error('Error loading dropdown data:', error);
@@ -165,19 +169,33 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     return vendor?.display_name || this.formatVendorLabel(vendor) || '';
   }
 
-  private filterVendors(search: string): void {
-    const raw =
-      typeof search === 'string'
-        ? search
-        : (search as any)?.display_name || this.formatVendorLabel(search);
-    const term = String(raw || '').toLowerCase().trim();
-    if (!term) {
-      this.filteredVendors = [...this.vendors];
-      return;
+  private searchVendors(searchTerm: string): void {
+    const term = String(searchTerm || '').trim();
+    const params: VendorQueryParams = {
+      limit: VENDOR_SEARCH_LIMIT,
+      status: 'active'
+    };
+    if (term) {
+      params.search = term;
     }
-    this.filteredVendors = this.vendors.filter((vendor) =>
-      String(vendor.display_name || '').toLowerCase().includes(term)
-    );
+
+    this.loadingVendors = true;
+    this.vendorService.getVendors(params).subscribe({
+      next: (response) => {
+        this.filteredVendors = (response?.data || []).map((vendor: any) => ({
+          ...vendor,
+          display_name: this.formatVendorLabel(vendor)
+        }));
+        this.loadingVendors = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error searching vendors:', error);
+        this.filteredVendors = [];
+        this.loadingVendors = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   get filteredProductsForModal(): any[] {

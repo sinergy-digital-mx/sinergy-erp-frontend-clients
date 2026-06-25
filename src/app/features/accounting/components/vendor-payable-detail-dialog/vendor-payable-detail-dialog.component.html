@@ -1,0 +1,48 @@
+<div class="vendor-detail-dialog">
+  <div class="vendor-detail-dialog__header">
+    <div>
+      <h2>{{ vendorDisplayName() }}</h2>
+      @if (detail) {
+        <p>{{ detail.pending_order_count }} OC pendientes · {{ formatCurrency(detail.amount_pending) }} adeudado</p>
+      }
+    </div>
+    <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="vendor-detail-dialog__body">
+    @if (loading) {
+      <p class="loading-text">Cargando órdenes de compra...</p>
+    } @else if (!detail?.orders?.length) {
+      <p class="loading-text">No hay órdenes de compra pendientes.</p>
+    } @else {
+      <table class="detail-table">
+        <thead>
+          <tr>
+            <th>Folio OC</th>
+            <th>Fecha</th>
+            <th>Entrega esperada</th>
+            <th>Pagado</th>
+            <th>Pendiente</th>
+            <th>Estatus</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of detail!.orders; track row.id) {
+            <tr>
+              <td>
+                <button type="button" class="folio-link" (click)="openPurchaseOrder(row)">
+                  {{ row.folio || row.id.substring(0, 8) }}
+                </button>
+              </td>
+              <td>{{ formatDate(row.created_at) }}</td>
+              <td>{{ formatDate(row.expected_delivery_date) }}</td>
+              <td>{{ formatCurrency(row.amount_paid) }}</td>
+              <td>{{ formatCurrency(row.amount_pending) }}</td>
+              <td>{{ orderStatus(row) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

@@ -1,0 +1,86 @@
+<div class="accounting-page">
+  <div class="accounting-content">
+    <div class="accounting-header">
+      <div>
+        <h2 class="accounting-title">Cobranza / Contabilidad</h2>
+        <p class="accounting-subtitle">Resumen POS, cuentas por pagar y cuentas por cobrar</p>
+      </div>
+
+      @if (showPeriodFilters()) {
+        <app-report-period-selector
+          [period]="period()"
+          [dateFrom]="dateFrom()"
+          [dateTo]="dateTo()"
+          [includeYear]="false"
+          dateFromId="accounting-date-from"
+          dateToId="accounting-date-to"
+          ariaLabel="Periodo contable"
+          (periodChange)="onPeriodChange($event)"
+          (rangeChange)="onRangeChange($event)" />
+      }
+    </div>
+
+    @if (showPeriodFilters()) {
+      <div class="accounting-filters">
+        <div class="accounting-filters__field">
+          <label class="accounting-filters__label" for="accounting-branch">
+            Sucursal
+            @if (branchRequired()) {
+              <span class="accounting-filters__required">*</span>
+            }
+          </label>
+          <select
+            id="accounting-branch"
+            class="accounting-filters__select"
+            [ngModel]="billingBranchId()"
+            (ngModelChange)="billingBranchId.set($event); onBranchChange()"
+            [attr.aria-required]="branchRequired()">
+            @if (branchOptional()) {
+              <option value="">Todas las sucursales</option>
+            } @else {
+              <option value="" disabled>Selecciona sucursal</option>
+            }
+            @for (b of branches; track b.id) {
+              <option [value]="b.id">{{ branchLabel(b) }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    }
+
+    <div class="accounting-tabs" role="tablist" aria-label="Secciones de contabilidad">
+      @for (tab of tabs; track tab.id) {
+        <button
+          type="button"
+          class="accounting-tabs__btn"
+          role="tab"
+          [class.accounting-tabs__btn--active]="activeTab() === tab.id"
+          [attr.aria-selected]="activeTab() === tab.id"
+          (click)="onTabChange(tab.id)">
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+
+    <div class="accounting-tab-panel" role="tabpanel">
+      @if (activeTab() === 'pos') {
+        <app-pos-summary-tab
+          [billingBranchId]="billingBranchId()"
+          [period]="period()"
+          [dateFrom]="dateFrom()"
+          [dateTo]="dateTo()"
+          [reloadToken]="reloadToken()" />
+      }
+
+      @if (activeTab() === 'payable') {
+        <app-accounts-payable-tab [reloadToken]="reloadToken()" />
+      }
+
+      @if (activeTab() === 'receivable') {
+        <app-accounts-receivable-tab
+          [billingBranchId]="billingBranchId() || undefined"
+          [reloadToken]="reloadToken()" />
+      }
+    </div>
+  </div>
+</div>

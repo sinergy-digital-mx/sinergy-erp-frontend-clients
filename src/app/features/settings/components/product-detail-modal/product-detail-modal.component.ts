@@ -6,10 +6,8 @@ import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ToastType } from '../../../../core/models/toast.model';
-import { AuthService } from '../../../../core/services/auth.service';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ProductService } from '../../services/product.service';
-import { SETTINGS_PERMISSIONS } from '../../config/permissions.config';
 import {
   Product,
   UoM,
@@ -82,9 +80,6 @@ export class ProductDetailModalComponent implements OnInit {
   vendors: any[] = [];
   priceLists: any[] = [];
 
-  readonly canUpdateProduct: boolean;
-  readonly canDeleteProduct: boolean;
-
   // Modales secundarios
   priceModalVisible = false;
   costModalVisible = false;
@@ -105,7 +100,6 @@ export class ProductDetailModalComponent implements OnInit {
 
   constructor(
     private productService: ProductService,
-    private authService: AuthService,
     @Inject(MAT_DIALOG_DATA) public data: { product?: Product; isNew?: boolean },
     private dialogRef: MatDialogRef<ProductDetailModalComponent>,
     private dialog: MatDialog,
@@ -113,8 +107,6 @@ export class ProductDetailModalComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {
-    this.canUpdateProduct = this.authService.hasPermission(SETTINGS_PERMISSIONS.products.update);
-    this.canDeleteProduct = this.authService.hasPermission(SETTINGS_PERMISSIONS.products.delete);
     console.log('ProductDetailModal constructor - data:', data);
     
     // Timeout de seguridad para evitar loading infinito

@@ -59,6 +59,7 @@ import {
 } from '../../components/pos-customer-picker-dialog/pos-customer-picker-dialog.component';
 import {
   buildCollectPayload,
+  buildCashBreakdownPayload,
   cashDenomKey,
   CASH_MXN_DENOMINATIONS,
   CASH_USD_DENOMINATIONS,
@@ -685,7 +686,16 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
     const customerId = this.resolveCollectCustomerId();
 
-    const payload = buildCollectPayload(form, total, customerId);
+    const payload = {
+      ...buildCollectPayload(form, total, customerId),
+      ...(form.paymentMethod === 'cash'
+        ? buildCashBreakdownPayload(
+            this.cashBillCounts(),
+            this.cashManualMxn(),
+            this.cashManualUsd()
+          )
+        : {}),
+    };
 
     this.collecting.set(true);
     this.collectError.set(null);

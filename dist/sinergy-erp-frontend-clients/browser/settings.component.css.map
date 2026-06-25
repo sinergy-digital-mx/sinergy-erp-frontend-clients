@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/rbac-tenant-ui/pages/settings/settings.component.ts", "settings.component.ts"],
+  "sourcesContent": ["\n    :host {\n      display: block;\n      height: 100%;\n    }\n  ", ":host {\n  display: block;\n  height: 100%;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL0M6L1Byb2plY3RzL1N5bmVyZ3kvc2luZXJneS1lcnAtZnJvbnRlbmQtY2xpZW50cy9zcmMvYXBwL2ZlYXR1cmVzL3JiYWMtdGVuYW50LXVpL3BhZ2VzL3NldHRpbmdzL3NldHRpbmdzLmNvbXBvbmVudC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFDSTtFQUNFO0VBQ0EiLCJzb3VyY2VzQ29udGVudCI6WyJcbiAgICA6aG9zdCB7XG4gICAgICBkaXNwbGF5OiBibG9jaztcbiAgICAgIGhlaWdodDogMTAwJTtcbiAgICB9XG4gICJdfQ== */"],
+  "mappings": ";AACI;AACE,WAAA;AACA,UAAA;ACAN;",
+  "names": []
+}

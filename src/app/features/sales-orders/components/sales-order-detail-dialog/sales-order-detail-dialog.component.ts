@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angu
 import { ToastService } from '../../../../core/services/toast.service';
 import { SalesOrderService } from '../../services/sales-order.service';
 import { SalesDocumentLanguage, SalesOrder, SalesOrderDocument, SalesOrderInvoice, SalesOrderLineItem, TicketReciboResponse } from '../../models/sales-order.model';
+import { formatPosUser } from '../../utils/pos-user-display.util';
 import { resolveSalesOrderCustomerName, resolveSalesOrderCustomerId } from '../../utils/customer-display.util';
 import {
   PosSaleCollection,
@@ -309,6 +310,14 @@ export class SalesOrderDetailDialogComponent {
       return '—';
     }
     return new Date(value).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
+  isPosOrder(): boolean {
+    return this.order()?.sales_order_type === 'POS';
+  }
+
+  formatPosUserLabel(user: Parameters<typeof formatPosUser>[0]): string {
+    return formatPosUser(user);
   }
 
   getFiscalDisplayName(): string {

@@ -129,6 +129,12 @@ export const routes: Routes = [
             .then(m => m.ZONA_NORTE_REPORTS_ROUTES),
       },
       {
+        path: 'accounting',
+        loadChildren: () =>
+          import('./features/accounting/accounting.routes')
+            .then(m => m.ACCOUNTING_ROUTES),
+      },
+      {
         path: 'divino-dashboard',
         loadChildren: () =>
           import('./features/divino-dashboard/divino-dashboard.routes')

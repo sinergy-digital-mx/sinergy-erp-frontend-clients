@@ -17,6 +17,23 @@ export function todayIsoDate(): string {
   return `${y}-${m}-${day}`;
 }
 
+function mapCartLineToOrderLine(item: POSCartItem): SalesOrderFormData['line_items'][number] {
+  const line: SalesOrderFormData['line_items'][number] = {
+    product_id: item.product_id,
+    product_uom_id: item.product_uom_id || item.uom_id,
+    quantity: item.quantity,
+    unit_price: Number(item.unit_price),
+    iva_percentage: Number(item.iva_percentage ?? 0),
+    ieps_percentage: Number(item.ieps_percentage ?? 0),
+  };
+
+  if (item.product_discount_id) {
+    line.product_discount_id = item.product_discount_id;
+  }
+
+  return line;
+}
+
 export function buildVentasPosOrderPayload(
   cartItems: POSCartItem[],
   ctx: VentasPosOrderContext
@@ -32,15 +49,7 @@ export function buildVentasPosOrderPayload(
     sales_order_type: 'POS',
     seller_user_id: ctx.sellerUserId,
     notes: `POS Ventas - ${terminal}`,
-    line_items: cartItems.map((item) => ({
-      product_id: item.product_id,
-      product_uom_id: item.uom_id,
-      quantity: item.quantity,
-      unit_price: Number(item.unit_price),
-      discount_percentage: 0,
-      iva_percentage: Number(item.iva_percentage ?? 0),
-      ieps_percentage: Number(item.ieps_percentage ?? 0),
-    })),
+    line_items: cartItems.map(mapCartLineToOrderLine),
   } as SalesOrderFormData;
 }
 
@@ -58,15 +67,7 @@ export function buildCobranzaPosOrderPayload(
     seller_user_id: ctx.sellerUserId,
     payment_status: 'Pagado',
     notes: `POS Cobranza - ${terminal}`,
-    line_items: cartItems.map((item) => ({
-      product_id: item.product_id,
-      product_uom_id: item.uom_id,
-      quantity: item.quantity,
-      unit_price: Number(item.unit_price),
-      discount_percentage: 0,
-      iva_percentage: Number(item.iva_percentage ?? 0),
-      ieps_percentage: Number(item.ieps_percentage ?? 0),
-    })),
+    line_items: cartItems.map(mapCartLineToOrderLine),
   };
 }
 

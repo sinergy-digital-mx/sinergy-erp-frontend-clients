@@ -109,6 +109,26 @@
           </div>
         </div>
 
+        @if (isPosOrder()) {
+          <div class="section-card section-card--pos-info">
+            <h3 class="section-title">INFORMACIÓN POS</h3>
+            <div class="section-item">
+              <span class="section-label">Vendedor</span>
+              <span class="section-value">{{ formatPosUserLabel(order()!.seller_user) }}</span>
+            </div>
+            <div class="section-item">
+              <span class="section-label">Terminal</span>
+              <span class="section-value">{{ formatPosUserLabel(order()!.terminal_user) }}</span>
+            </div>
+            @if (order()!.payment_status === 'Pagado') {
+              <div class="section-item">
+                <span class="section-label">Cobró</span>
+                <span class="section-value">{{ formatPosUserLabel(order()!.collected_by_user) }}</span>
+              </div>
+            }
+          </div>
+        }
+
         @if (posCollection(); as pay) {
           <div class="section-card section-card--pos-pay">
               <h3 class="section-title">COBRO POS</h3>

@@ -1,0 +1,43 @@
+<div class="receivable-tab">
+  @if (summary) {
+    <div class="receivable-summary">
+      <div class="receivable-summary__card">
+        <span class="receivable-summary__label">Cuentas con saldo</span>
+        <span class="receivable-summary__value">{{ summary.total_accounts ?? 0 }}</span>
+      </div>
+      <div class="receivable-summary__card">
+        <span class="receivable-summary__label">Total por cobrar</span>
+        <span class="receivable-summary__value">{{ formatCurrency(summary.total_amount_pending ?? 0) }}</span>
+      </div>
+    </div>
+  }
+
+  <div class="receivable-search">
+    <i class="fi fi-rr-search receivable-search__icon" aria-hidden="true"></i>
+    <input
+      type="search"
+      class="receivable-search__input"
+      [formControl]="searchControl"
+      placeholder="Buscar por razón social o RFC"
+      aria-label="Buscar cuentas por cobrar" />
+  </div>
+
+  <div class="receivable-table-wrap">
+    <app-datatable-wrapper
+      [config]="tableConfig"
+      [rowTemplate]="tableTemplate"
+      (pageChange)="onPageChange($event)">
+    </app-datatable-wrapper>
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="px-2 py-2">
+    <button type="button" class="row-link" (click)="openReceivableDetail(item)">
+      {{ item.razon_social }}
+    </button>
+  </td>
+  <td class="px-2 py-2">{{ item.fiscal_rfc || '—' }}</td>
+  <td class="px-2 py-2">{{ item.pending_order_count }}</td>
+  <td class="px-2 py-2">{{ formatCurrency(item.amount_pending) }}</td>
+</ng-template>

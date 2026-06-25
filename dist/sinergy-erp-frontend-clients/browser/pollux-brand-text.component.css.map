@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/core/components/pollux-brand-text/pollux-brand-text.component.ts", "pollux-brand-text.component.ts"],
+  "sourcesContent": ["\n    :host {\n      display: inline-block;\n      line-height: 0;\n    }\n\n    .pollux-brand-text {\n      display: block;\n      height: 2rem;\n      width: auto;\n    }\n\n    .pollux-brand-text--lg {\n      height: 2.35rem;\n    }\n  ", ":host {\n  display: inline-block;\n  line-height: 0;\n}\n\n.pollux-brand-text {\n  display: block;\n  height: 2rem;\n  width: auto;\n}\n\n.pollux-brand-text--lg {\n  height: 2.35rem;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL0M6L1Byb2plY3RzL1N5bmVyZ3kvc2luZXJneS1lcnAtZnJvbnRlbmQtY2xpZW50cy9zcmMvYXBwL2NvcmUvY29tcG9uZW50cy9wb2xsdXgtYnJhbmQtdGV4dC9wb2xsdXgtYnJhbmQtdGV4dC5jb21wb25lbnQudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQ0k7RUFDRTtFQUNBOzs7QUFHRjtFQUNFO0VBQ0E7RUFDQTs7O0FBR0Y7RUFDRSIsInNvdXJjZXNDb250ZW50IjpbIlxuICAgIDpob3N0IHtcbiAgICAgIGRpc3BsYXk6IGlubGluZS1ibG9jaztcbiAgICAgIGxpbmUtaGVpZ2h0OiAwO1xuICAgIH1cblxuICAgIC5wb2xsdXgtYnJhbmQtdGV4dCB7XG4gICAgICBkaXNwbGF5OiBibG9jaztcbiAgICAgIGhlaWdodDogMnJlbTtcbiAgICAgIHdpZHRoOiBhdXRvO1xuICAgIH1cblxuICAgIC5wb2xsdXgtYnJhbmQtdGV4dC0tbGcge1xuICAgICAgaGVpZ2h0OiAyLjM1cmVtO1xuICAgIH1cbiAgIl19 */"],
+  "mappings": ";AACI;AACE,WAAA;AACA,eAAA;ACAN;ADGI,CAAA;AACE,WAAA;AACA,UAAA;AACA,SAAA;ACAN;ADGI,CAAA;AACE,UAAA;ACAN;",
+  "names": []
+}

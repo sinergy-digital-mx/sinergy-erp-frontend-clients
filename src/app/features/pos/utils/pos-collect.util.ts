@@ -34,6 +34,14 @@ export interface CollectSalePayload {
   amount_card_mxn?: number;
   card_reference?: string;
   customer_id?: number;
+  /** Desglose de billetes (para ticket/corte). El total recibido sigue en received_cash_* */
+  cash_denominations?: Array<{
+    currency: 'MXN' | 'USD';
+    denomination: number;
+    bill_count: number;
+  }>;
+  cash_manual_mxn?: number;
+  cash_manual_usd?: number;
 }
 
 export function parseOrderTotal(total: number | string | undefined | null): number {
@@ -165,6 +173,36 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
     return 'El efectivo recibido debe cubrir el monto en efectivo';
   }
   return null;
+}
+
+export function buildCashBreakdownPayload(
+  counts: CashDenominationCounts,
+  manualMxn: number,
+  manualUsd: number
+): Pick<CollectSalePayload, 'cash_denominations' | 'cash_manual_mxn' | 'cash_manual_usd'> {
+  const denominations: NonNullable<CollectSalePayload['cash_denominations']> = [];
+
+  for (const denomination of CASH_MXN_DENOMINATIONS) {
+    const bill_count = Math.max(0, counts[cashDenomKey('MXN', denomination)] ?? 0);
+    if (bill_count > 0) {
+      denominations.push({ currency: 'MXN', denomination, bill_count });
+    }
+  }
+  for (const denomination of CASH_USD_DENOMINATIONS) {
+    const bill_count = Math.max(0, counts[cashDenomKey('USD', denomination)] ?? 0);
+    if (bill_count > 0) {
+      denominations.push({ currency: 'USD', denomination, bill_count });
+    }
+  }
+
+  const cash_manual_mxn = roundMoney(manualMxn);
+  const cash_manual_usd = roundMoney(manualUsd);
+
+  return {
+    ...(denominations.length > 0 ? { cash_denominations: denominations } : {}),
+    ...(cash_manual_mxn > 0 ? { cash_manual_mxn } : {}),
+    ...(cash_manual_usd > 0 ? { cash_manual_usd } : {}),
+  };
 }
 
 export function buildCollectPayload(

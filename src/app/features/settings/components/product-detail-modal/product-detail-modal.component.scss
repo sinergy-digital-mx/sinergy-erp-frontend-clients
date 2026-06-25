@@ -585,8 +585,12 @@
   .empty-state__subtitle {
     font-size: 13px;
     color: #9ca3af;
-    margin: 0 0 8px;
+    margin: 0;
     line-height: 1.4;
+  }
+
+  .btn {
+    margin-top: 12px;
   }
 }
 

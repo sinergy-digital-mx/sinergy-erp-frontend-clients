@@ -139,6 +139,12 @@
                 <span class="pos-card__meta-dot" aria-hidden="true">·</span>
                 <span>Stock {{ product.total_available_quantity || 0 }}</span>
               </p>
+              @if (hasApplicableDiscounts(product)) {
+                <span class="pos-card__discount-badge">
+                  <lucide-icon [img]="Percent" class="pos-ic pos-ic--xs" />
+                  Descuentos
+                </span>
+              }
             </div>
             <button
               type="button"
@@ -208,6 +214,11 @@
                     }
                   </select>
                 }
+                @if (item.selected_discount) {
+                  <p class="pos-line__discount">
+                    {{ item.selected_discount.name }} · -{{ formatCurrency(item.line_discount_amount) }}
+                  </p>
+                }
               </div>
               <button
                 type="button"
@@ -259,10 +270,27 @@
       </div>
 
       <div class="pos-cart__summary">
+        @if (cartAppliedDiscounts().length > 0) {
+          <div class="pos-cart__discounts">
+            <h3 class="pos-cart__discounts-title">Descuentos aplicados</h3>
+            @for (discount of cartAppliedDiscounts(); track $index) {
+              <div class="pos-cart__discount-row">
+                <span>• {{ discount.discountName }} · {{ discount.productName }}</span>
+                <strong>-{{ formatCurrency(discount.amount) }}</strong>
+              </div>
+            }
+          </div>
+        }
         <div class="pos-sum-row">
-          <span>Subtotal</span>
-          <strong>{{ formatCurrency(posService.cart().total_subtotal) }}</strong>
+          <span>{{ cartHasDiscounts() ? 'Subtotal' : 'Subtotal' }}</span>
+          <strong>{{ formatCurrency(cartHasDiscounts() ? posService.cart().total_gross_subtotal : posService.cart().total_subtotal) }}</strong>
         </div>
+        @if (cartHasDiscounts()) {
+          <div class="pos-sum-row pos-sum-row--discount">
+            <span>Descuentos</span>
+            <strong>-{{ formatCurrency(posService.cart().total_discount) }}</strong>
+          </div>
+        }
         <div class="pos-sum-row">
           <span>IVA</span>
           <strong>{{ formatCurrency(posService.cart().total_iva) }}</strong>

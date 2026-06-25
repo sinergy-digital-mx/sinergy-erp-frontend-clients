@@ -4,6 +4,34 @@ export interface PosSummaryWarehouse {
   status?: string;
 }
 
+export type PosApplicableDiscountType = 'percentage' | 'fixed';
+
+export interface PosApplicableDiscount {
+  id: string;
+  name: string;
+  discount_type: PosApplicableDiscountType;
+  value: number;
+  product_uom_id: string | null;
+}
+
+export interface PosSummaryProductRow {
+  product_id: string;
+  product_name: string;
+  product_sku?: string;
+  uom_id?: string;
+  uom_name?: string;
+  product_uom_id: string;
+  suggested_unit_price?: string | number | null;
+  suggested_iva_percentage?: string | number | null;
+  suggested_ieps_percentage?: string | number | null;
+  total_available_quantity?: string | number | null;
+  product_photo?: string | null;
+  pricing_options?: unknown[];
+  has_applicable_discounts?: boolean;
+  applicable_discounts?: PosApplicableDiscount[];
+  [key: string]: unknown;
+}
+
 export interface PosInventorySummaryResponse {
   billing_branch_id: string | null;
   warehouses: PosSummaryWarehouse[];

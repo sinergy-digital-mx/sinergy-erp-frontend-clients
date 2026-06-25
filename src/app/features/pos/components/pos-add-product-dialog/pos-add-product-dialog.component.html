@@ -1,0 +1,70 @@
+<div class="pos-dialog pos-add-product-dialog">
+  <h2 class="pos-dialog__title">{{ data.product_name }}</h2>
+  <p class="pos-dialog__subtitle">
+    {{ formatCurrency(data.unit_price) }} · {{ data.uom_name }}
+  </p>
+
+  <div class="pos-dialog__fields">
+    <label class="pos-dialog__field">
+      Cantidad
+      <input
+        type="number"
+        min="1"
+        step="1"
+        [ngModel]="quantity()"
+        (ngModelChange)="quantity.set(+$event || 1)"
+      />
+    </label>
+
+    @if (data.applicable_discounts.length > 0) {
+      <div class="pos-add-product-dialog__discounts">
+        <span class="pos-add-product-dialog__label">Descuento</span>
+        <label class="pos-add-product-dialog__radio">
+          <input
+            type="radio"
+            name="pos_discount"
+            value=""
+            [ngModel]="selectedDiscountId()"
+            (ngModelChange)="selectedDiscountId.set($event)"
+          />
+          <span>Sin descuento</span>
+        </label>
+        @for (discount of data.applicable_discounts; track discount.id) {
+          <label class="pos-add-product-dialog__radio">
+            <input
+              type="radio"
+              name="pos_discount"
+              [value]="discount.id"
+              [ngModel]="selectedDiscountId()"
+              (ngModelChange)="selectedDiscountId.set($event)"
+            />
+            <span>{{ discountLabel(discount) }}</span>
+          </label>
+        }
+      </div>
+    }
+
+    <div class="pos-add-product-dialog__preview">
+      <p class="pos-add-product-dialog__preview-title">Vista previa</p>
+      <div class="pos-add-product-dialog__preview-row">
+        <span>Subtotal línea</span>
+        <strong>{{ formatCurrency(preview().lineGrossSubtotal) }}</strong>
+      </div>
+      @if (preview().lineDiscount > 0) {
+        <div class="pos-add-product-dialog__preview-row pos-add-product-dialog__preview-row--discount">
+          <span>Descuento</span>
+          <strong>-{{ formatCurrency(preview().lineDiscount) }}</strong>
+        </div>
+      }
+      <div class="pos-add-product-dialog__preview-row pos-add-product-dialog__preview-row--total">
+        <span>Total línea</span>
+        <strong>{{ formatCurrency(preview().lineTotal) }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="pos-dialog__actions">
+    <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="cancel()"></app-button>
+    <app-button text="Agregar" custom_class="btn_primary" (clicked)="confirm()"></app-button>
+  </div>
+</div>

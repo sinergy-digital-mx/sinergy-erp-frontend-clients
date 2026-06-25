@@ -243,7 +243,7 @@
 
         <!-- Tab: Descuentos -->
         <div *ngIf="activeTab === 'descuentos'" class="tab-pane">
-          <div class="tab-header" *ngIf="canUpdateProduct && product.id">
+          <div class="tab-header" *ngIf="product.discounts && product.discounts.length > 0">
             <button class="btn btn--sm btn--primary" (click)="openDiscountModal()" type="button">+ Agregar descuento</button>
           </div>
 
@@ -251,12 +251,7 @@
             <div class="empty-state__content">
               <p class="empty-state__title">Sin descuentos configurados</p>
               <p class="empty-state__subtitle">Los descuentos activos aparecerán disponibles en POS al vender este producto.</p>
-              <button
-                *ngIf="canUpdateProduct && product.id"
-                class="btn btn--sm btn--primary"
-                (click)="openDiscountModal()"
-                type="button"
-              >+ Agregar descuento</button>
+              <button class="btn btn--primary" (click)="openDiscountModal()" type="button">+ Agregar descuento</button>
             </div>
           </div>
 
@@ -290,22 +285,10 @@
                 </td>
                 <td>
                   <div class="row-actions">
-                    <button
-                      *ngIf="canUpdateProduct"
-                      class="btn-icon"
-                      (click)="openDiscountModal(discount)"
-                      type="button"
-                      title="Editar"
-                    >
+                    <button class="btn-icon" (click)="openDiscountModal(discount)" type="button" title="Editar">
                       <i class="fi fi-rr-pencil"></i>
                     </button>
-                    <button
-                      *ngIf="canDeleteProduct"
-                      class="btn-icon btn-icon--danger"
-                      (click)="deleteDiscount(discount)"
-                      type="button"
-                      title="Eliminar"
-                    >
+                    <button class="btn-icon btn-icon--danger" (click)="deleteDiscount(discount)" type="button" title="Eliminar">
                       <i class="fi fi-rr-trash"></i>
                     </button>
                   </div>

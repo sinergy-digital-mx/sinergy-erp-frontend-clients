@@ -1,0 +1,41 @@
+<div class="terminal-sales-dialog">
+  <div class="terminal-sales-dialog__header">
+    <div>
+      <h2>Ventas — {{ data.terminal.terminal_name }}</h2>
+      <p>{{ data.terminal.sales_count }} ventas en el periodo seleccionado</p>
+    </div>
+    <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="terminal-sales-dialog__body">
+    <app-datatable-wrapper
+      [config]="tableConfig"
+      [rowTemplate]="tableTemplate"
+      (pageChange)="onPageChange($event)">
+    </app-datatable-wrapper>
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="px-2 py-2">
+    <button type="button" class="folio-link" (click)="openSalesOrder(item)">
+      {{ item.folio || item.id?.substring(0, 8) }}
+    </button>
+  </td>
+  <td class="px-2 py-2">{{ formatDate(item.created_at) }}</td>
+  <td class="px-2 py-2">
+    <div class="flex items-center gap-2">
+      <span>{{ item.customer_display_name || '—' }}</span>
+      @if (item.is_walk_in) {
+        <span class="walk-in-chip">Mostrador</span>
+      }
+    </div>
+  </td>
+  <td class="px-2 py-2">{{ sellerLabel(item) }}</td>
+  <td class="px-2 py-2">{{ formatCurrency(item.total) }}</td>
+  <td class="px-2 py-2">
+    <span class="payment-pill" [class.payment-pill--paid]="item.payment_status === 'Pagado'">
+      {{ item.payment_status || '—' }}
+    </span>
+  </td>
+</ng-template>

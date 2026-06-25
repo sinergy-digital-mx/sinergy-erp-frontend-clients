@@ -17,6 +17,10 @@
     } @else if (error() && previewLines().length === 0) {
       <p class="status-msg status-msg--error">{{ error() }}</p>
     } @else {
+      <p class="hint">
+        Vista según el contenido ESC/POS que se envía a la impresora (puede diferir del texto plano del API).
+      </p>
+
       <div class="preview-wrap">
         <article class="thermal-receipt" aria-label="Vista previa ticket térmico">
           @for (line of previewLines(); track $index) {

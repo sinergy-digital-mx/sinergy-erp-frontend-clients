@@ -1,0 +1,54 @@
+<div class="receivable-detail-dialog">
+  <div class="receivable-detail-dialog__header">
+    <div>
+      <h2>{{ data.razonSocial }}</h2>
+      <div class="receivable-detail-dialog__meta">
+        @if (data.fiscalRfc) {
+          <span>RFC: {{ data.fiscalRfc }}</span>
+        }
+        @if (detail) {
+          <span>{{ detail.pending_order_count }} órdenes</span>
+          <span>{{ formatCurrency(detail.amount_pending) }} adeudado</span>
+        }
+      </div>
+    </div>
+    <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="receivable-detail-dialog__body">
+    @if (loading) {
+      <p class="loading-text">Cargando órdenes pendientes...</p>
+    } @else if (!detail?.orders?.length) {
+      <p class="loading-text">No hay órdenes pendientes para esta razón social.</p>
+    } @else {
+      <table class="detail-table">
+        <thead>
+          <tr>
+            <th>Folio</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Vendedor</th>
+            <th>Total</th>
+            <th>Entrega</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of detail!.orders; track row.id) {
+            <tr>
+              <td>
+                <button type="button" class="folio-link" (click)="openSalesOrder(row)">
+                  {{ row.folio || row.id.substring(0, 8) }}
+                </button>
+              </td>
+              <td>{{ formatDate(row.created_at) }}</td>
+              <td>{{ row.customer_display_name || '—' }}</td>
+              <td>{{ sellerLabel(row) }}</td>
+              <td>{{ formatCurrency(row.total) }}</td>
+              <td>{{ formatDate(row.expected_delivery_date || row.delivery_date) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

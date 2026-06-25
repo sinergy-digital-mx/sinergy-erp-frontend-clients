@@ -599,6 +599,13 @@
   }
 }
 
+.pos-line__discount {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b45309;
+}
+
 .pos-line__remove {
   border: none;
   background: transparent;
@@ -734,6 +741,49 @@
   background: #fff;
 }
 
+.pos-cart__discounts {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px dashed var(--pos-border);
+}
+
+.pos-cart__discounts-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pos-cart__discount-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: #78350f;
+  margin-bottom: 0.25rem;
+
+  strong {
+    color: #b45309;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+}
+
+.pos-card__discount-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.45rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 .pos-cart__hint {
   margin: 0.65rem 0 0;
   font-size: 0.75rem;
@@ -751,6 +801,10 @@
   strong {
     color: #334155;
     font-weight: 600;
+  }
+
+  &--discount strong {
+    color: #b45309;
   }
 
   &--total {

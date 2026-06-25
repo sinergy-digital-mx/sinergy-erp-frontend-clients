@@ -1,4 +1,5 @@
 import { SalesOrder } from '../../sales-orders/models/sales-order.model';
+import { PosApplicableDiscount } from './pos-inventory-summary.model';
 
 /**
  * POS Cart Item
@@ -7,17 +8,25 @@ export interface POSCartItem {
   product_id: string;
   product_name: string;
   product_sku: string;
+  /** UUID de product_uom (se envía al crear la orden). */
+  product_uom_id: string;
+  /** UOM de catálogo; solo display. */
   uom_id: string;
   uom_name: string;
   quantity: number;
-  weight?: number; // Optional weight in kg
+  weight?: number;
   unit_price: number;
   iva_percentage: number;
   ieps_percentage: number;
+  /** Subtotal neto (después de descuento, antes de impuestos). */
   subtotal: number;
+  line_gross_subtotal: number;
+  line_discount_amount: number;
   iva_amount: number;
   ieps_amount: number;
   line_total: number;
+  product_discount_id?: string | null;
+  selected_discount?: PosApplicableDiscount | null;
   pricing_options?: Array<{
     price_list_id: string;
     price_list_name: string;
@@ -27,7 +36,6 @@ export interface POSCartItem {
     total?: string | number;
   }>;
   selected_price_list_id?: string;
-  /** Precios sugeridos del inventario POS (lista “precio sugerido”). */
   suggested_unit_price?: number;
   suggested_iva_percentage?: number;
   suggested_ieps_percentage?: number;
@@ -38,6 +46,8 @@ export interface POSCartItem {
  */
 export interface POSCart {
   items: POSCartItem[];
+  total_gross_subtotal: number;
+  total_discount: number;
   total_subtotal: number;
   total_iva: number;
   total_ieps: number;

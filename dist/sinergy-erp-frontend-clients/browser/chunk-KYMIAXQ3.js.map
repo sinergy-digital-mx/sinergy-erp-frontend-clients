@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/accounting/config/permissions.config.ts"],
+  "sourcesContent": ["export const ACCOUNTING_PERMISSIONS = {\r\n  viewMenu: 'accounting:ViewMenu',\r\n  read: 'accounting:Read',\r\n} as const;\r\n\r\nexport type AccountingPermission = typeof ACCOUNTING_PERMISSIONS[keyof typeof ACCOUNTING_PERMISSIONS];\r\n"],
+  "mappings": ";AAAO,IAAM,yBAAyB;EACpC,UAAU;EACV,MAAM;;",
+  "names": []
+}

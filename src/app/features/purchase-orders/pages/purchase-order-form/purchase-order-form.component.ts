@@ -6,10 +6,10 @@ import { Subscription } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
-import { VendorService } from '../../services/vendor.service';
+import { VendorService } from '../../../settings/services/vendor.service';
 import { WarehouseService } from '../../services/warehouse.service';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
-import { Vendor } from '../../models/vendor.model';
+import { Vendor } from '../../../settings/models/vendor.model';
 import { Warehouse } from '../../models/warehouse.model';
 import { VendorCatalogProduct, VendorCatalogUom } from '../../models/vendor-catalog.model';
 import { PurchaseOrder } from '../../models/purchase-order.model';
@@ -197,10 +197,9 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
   }
 
   loadDropdownData(): void {
-    this.vendorService.getVendors().subscribe({
-      next: (vendors) => {
-        const vendorArray = Array.isArray(vendors) ? vendors : (vendors as { data?: Vendor[] }).data || [];
-        this.vendors.set(vendorArray);
+    this.vendorService.getVendors({ limit: 200, status: 'active' }).subscribe({
+      next: (response) => {
+        this.vendors.set(response.data || []);
       },
       error: (error) => console.error('Error loading vendors:', error)
     });

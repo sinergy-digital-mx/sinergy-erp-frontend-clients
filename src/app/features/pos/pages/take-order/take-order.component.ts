@@ -18,8 +18,13 @@ import {
   Package,
   AlertCircle,
   User,
+  Percent,
 } from 'lucide-angular';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
+import {
+  PosAddProductDialogComponent,
+  PosAddProductDialogResult,
+} from '../../components/pos-add-product-dialog/pos-add-product-dialog.component';
 import { POSService } from '../../services/pos.service';
 import { PosStateService } from '../../services/pos-state.service';
 import { POSCartItem } from '../../models/pos.model';
@@ -29,6 +34,7 @@ import {
   persistPosWarehouseId,
   PosInventorySummaryResponse,
   PosSummaryWarehouse,
+  PosApplicableDiscount,
   resolvePosWarehouseId,
 } from '../../models/pos-inventory-summary.model';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
@@ -37,6 +43,7 @@ import {
   isPosOrderQueued,
   resolveFiscalConfigurationIdFromBranch,
 } from '../../utils/pos-order.util';
+import { isDiscountApiError } from '../../utils/pos-discount.util';
 import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
 import { dailyShiftIsOpen } from '../../models/pos-daily-shift.model';
 
@@ -60,6 +67,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   readonly Package = Package;
   readonly AlertCircle = AlertCircle;
   readonly User = User;
+  readonly Percent = Percent;
 
   products = signal<any[]>([]);
   warehouses = signal<PosSummaryWarehouse[]>([]);
@@ -72,6 +80,19 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
 
   priceListError = signal<boolean>(false);
   isFullscreen = signal<boolean>(false);
+
+  cartAppliedDiscounts = computed(() =>
+    this.posService
+      .cart()
+      .items.filter((item) => item.line_discount_amount > 0 && item.selected_discount)
+      .map((item) => ({
+        productName: item.product_name,
+        discountName: item.selected_discount!.name,
+        amount: item.line_discount_amount,
+      }))
+  );
+
+  cartHasDiscounts = computed(() => this.posService.cart().total_discount > 0);
 
   private lastInventorySummary = signal<PosInventorySummaryResponse | null>(null);
 
@@ -366,20 +387,86 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const cartItem: POSCartItem = {
+    if (this.hasApplicableDiscounts(product)) {
+      void this.openAddProductDialog(product);
+      return;
+    }
+
+    this.commitProductToCart(product, {
+      quantity: 1,
+      product_discount_id: null,
+      selected_discount: null,
+    });
+  }
+
+  hasApplicableDiscounts(product: any): boolean {
+    return Boolean(product.has_applicable_discounts) ||
+      (Array.isArray(product.applicable_discounts) && product.applicable_discounts.length > 0);
+  }
+
+  private async openAddProductDialog(product: any): Promise<void> {
+    await this.exitFullscreenForDialog();
+
+    const discounts = (product.applicable_discounts ?? []) as PosApplicableDiscount[];
+    const dialogRef = this.dialog.open(PosAddProductDialogComponent, {
+      width: '440px',
+      maxWidth: '95vw',
+      panelClass: 'pos-dialog-panel',
+      data: {
+        product_id: product.product_id || product.id,
+        product_name: product.product_name || product.name,
+        product_sku: product.product_sku || product.sku || '',
+        product_uom_id: product.product_uom_id || product.uom_id || '',
+        uom_id: product.uom_id || '',
+        uom_name: product.uom_name || 'Pieza',
+        unit_price: Number(product.suggested_unit_price ?? product.cost ?? 0),
+        iva_percentage: Number(product.suggested_iva_percentage ?? 16),
+        ieps_percentage: Number(product.suggested_ieps_percentage ?? 0),
+        applicable_discounts: discounts,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result: PosAddProductDialogResult | undefined) => {
+      if (!result) {
+        return;
+      }
+      this.commitProductToCart(product, result);
+    });
+  }
+
+  private commitProductToCart(
+    product: any,
+    selection: Pick<PosAddProductDialogResult, 'quantity' | 'product_discount_id' | 'selected_discount'>
+  ): void {
+    const cartItem = this.buildCartItem(product, selection);
+    this.posService.addItem(cartItem);
+    this.notifySuccess(`${cartItem.product_name} agregado`, 2000);
+  }
+
+  private buildCartItem(
+    product: any,
+    selection: Pick<PosAddProductDialogResult, 'quantity' | 'product_discount_id' | 'selected_discount'>
+  ): POSCartItem {
+    const productUomId = String(product.product_uom_id || product.uom_id || '').trim();
+    const base: POSCartItem = {
       product_id: product.product_id || product.id,
       product_name: product.product_name || product.name,
       product_sku: product.product_sku || product.sku || '',
-      uom_id: product.uom_id || 'default-uom',
+      product_uom_id: productUomId,
+      uom_id: product.uom_id || productUomId,
       uom_name: product.uom_name || 'Pieza',
-      quantity: 1,
+      quantity: Math.max(1, selection.quantity),
       unit_price: Number(product.suggested_unit_price ?? product.cost ?? 0),
       iva_percentage: Number(product.suggested_iva_percentage ?? 16),
       ieps_percentage: Number(product.suggested_ieps_percentage ?? 0),
       subtotal: 0,
+      line_gross_subtotal: 0,
+      line_discount_amount: 0,
       iva_amount: 0,
       ieps_amount: 0,
       line_total: 0,
+      product_discount_id: selection.product_discount_id,
+      selected_discount: selection.selected_discount,
       pricing_options: Array.isArray(product.pricing_options) ? product.pricing_options : [],
       selected_price_list_id: '',
       suggested_unit_price: Number(product.suggested_unit_price ?? product.cost ?? 0),
@@ -387,16 +474,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       suggested_ieps_percentage: Number(product.suggested_ieps_percentage ?? 0),
     };
 
-    const subtotal = cartItem.quantity * cartItem.unit_price;
-    const iva_amount = subtotal * (cartItem.iva_percentage / 100);
-    const ieps_amount = subtotal * (cartItem.ieps_percentage / 100);
-    cartItem.subtotal = subtotal;
-    cartItem.iva_amount = iva_amount;
-    cartItem.ieps_amount = ieps_amount;
-    cartItem.line_total = subtotal + iva_amount + ieps_amount;
-
-    this.posService.addItem(cartItem);
-    this.notifySuccess(`${product.product_name || product.name} agregado`, 2000);
+    return this.posService.recalculateItem(base);
   }
 
   updateQuantity(index: number, quantity: number): void {
@@ -489,8 +567,12 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.saving.set(false);
-          const msg = mapPosApiErrorMessage(error?.error?.message) || 'Error al crear la orden de venta';
+          const backendMessage = error?.error?.message;
+          const msg = mapPosApiErrorMessage(backendMessage) || 'Error al crear la orden de venta';
           this.notifyError(msg, 6000);
+          if (error?.status === 400 && isDiscountApiError(backendMessage)) {
+            this.loadProducts(this.searchTerm());
+          }
         },
       });
     });
@@ -640,6 +722,11 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
             has_price: row.suggested_unit_price != null || row.cost != null,
             total_available_quantity: Number(row.total_available_quantity ?? row.available_quantity ?? 0),
             pricing_options: Array.isArray(row.pricing_options) ? row.pricing_options : [],
+            product_uom_id: row.product_uom_id || row.uom_id || '',
+            applicable_discounts: Array.isArray(row.applicable_discounts) ? row.applicable_discounts : [],
+            has_applicable_discounts:
+              Boolean(row.has_applicable_discounts) ||
+              (Array.isArray(row.applicable_discounts) && row.applicable_discounts.length > 0),
           }));
           this.products.set(normalized);
           this.filteredProducts.set(normalized);

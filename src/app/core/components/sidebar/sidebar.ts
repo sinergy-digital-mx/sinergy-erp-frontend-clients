@@ -23,6 +23,7 @@ import {
   ChevronRight,
   LayoutDashboard,
   X,
+  Landmark,
 } from 'lucide-angular';
 import { DIVINO_DASHBOARD_TENANT_ID } from '../../../features/divino-dashboard/config/divino-dashboard.constants';
 import { DIVINO_DASHBOARD_PERMISSIONS } from '../../../features/divino-dashboard/config/permissions.config';
@@ -64,7 +65,7 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     id: 'operation',
     title: 'Operación',
-    itemIds: ['menu-purchase-orders', 'menu-sales-orders', 'menu-inventory', 'menu-pos'],
+    itemIds: ['menu-purchase-orders', 'menu-sales-orders', 'menu-inventory', 'menu-pos', 'menu-accounting'],
   },
   {
     id: 'marketing-reports',
@@ -151,6 +152,13 @@ export class Sidebar implements OnInit, OnDestroy {
       permission: PERMISSIONS.pos.viewMenu
     },
     {
+      label: 'Cobranza / Contabilidad',
+      route: '/accounting',
+      icon: Landmark,
+      id: 'menu-accounting',
+      permission: PERMISSIONS.accounting.viewMenu
+    },
+    {
       label: 'Marketing',
       route: '/marketing',
       icon: Megaphone,
@@ -186,7 +194,7 @@ export class Sidebar implements OnInit, OnDestroy {
     },
   ];
 
-  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight, X };
+  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight, X, Landmark };
 
   constructor(
     public auth_service: AuthService,

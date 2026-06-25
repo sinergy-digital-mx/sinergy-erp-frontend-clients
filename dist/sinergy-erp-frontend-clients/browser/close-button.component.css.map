@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/core/components/close-button/close-button.component.ts", "close-button.component.ts"],
+  "sourcesContent": ["\n    :host {\n      display: inline-block;\n    }\n\n    button {\n      cursor: pointer;\n      transition: all 0.2s ease;\n    }\n\n    button:active {\n      transform: scale(0.95);\n    }\n  ", ":host {\n  display: inline-block;\n}\n\nbutton {\n  cursor: pointer;\n  transition: all 0.2s ease;\n}\n\nbutton:active {\n  transform: scale(0.95);\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL0M6L1Byb2plY3RzL1N5bmVyZ3kvc2luZXJneS1lcnAtZnJvbnRlbmQtY2xpZW50cy9zcmMvYXBwL2NvcmUvY29tcG9uZW50cy9jbG9zZS1idXR0b24vY2xvc2UtYnV0dG9uLmNvbXBvbmVudC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFDSTtFQUNFOzs7QUFHRjtFQUNFO0VBQ0E7OztBQUdGO0VBQ0UiLCJzb3VyY2VzQ29udGVudCI6WyJcbiAgICA6aG9zdCB7XG4gICAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XG4gICAgfVxuXG4gICAgYnV0dG9uIHtcbiAgICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICAgIHRyYW5zaXRpb246IGFsbCAwLjJzIGVhc2U7XG4gICAgfVxuXG4gICAgYnV0dG9uOmFjdGl2ZSB7XG4gICAgICB0cmFuc2Zvcm06IHNjYWxlKDAuOTUpO1xuICAgIH1cbiAgIl19 */"],
+  "mappings": ";AACI;AACE,WAAA;ACAN;ADGI;AACE,UAAA;AACA,cAAA,IAAA,KAAA;ACAN;ADGI,MAAA;AACE,aAAA,MAAA;ACAN;",
+  "names": []
+}

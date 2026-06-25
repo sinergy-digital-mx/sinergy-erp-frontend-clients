@@ -112,6 +112,14 @@ export function normalizeTicketReciboResponse(
 /** @deprecated Use normalizeTicketReciboResponse */
 export const normalizeRegenerateTicketReciboResponse = normalizeTicketReciboResponse;
 
+export interface PosUserSummary {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  pos_user_code?: number | null;
+  pos_user_type?: string | null;
+}
+
 export interface SalesOrder {
   id: string;
   tenant_id?: string;
@@ -151,6 +159,9 @@ export interface SalesOrder {
   customer_display_name?: string;
   customer_summary?: SalesOrderCustomerSummary;
   pos_collection?: PosSaleCollection;
+  seller_user?: PosUserSummary;
+  terminal_user?: PosUserSummary;
+  collected_by_user?: PosUserSummary;
   warehouse?: { id: string; name: string };
   fiscal_configuration?: {
     id?: string;
@@ -206,12 +217,13 @@ export interface SalesOrderFormData {
   seller_user_id?: string;
   payment_status?: string;
   notes?: string;
-  line_items: Array<{
+    line_items: Array<{
     product_id: string;
     product_uom_id: string;
     quantity: number;
     unit_price: number;
     discount_percentage?: number;
+    product_discount_id?: string;
     iva_percentage: number;
     ieps_percentage: number;
   }>;

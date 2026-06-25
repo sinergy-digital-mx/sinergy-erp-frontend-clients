@@ -1,0 +1,86 @@
+.receivable-detail-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+}
+
+.receivable-detail-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.receivable-detail-dialog__header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.receivable-detail-dialog__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.close-btn {
+  border: none;
+  background: #f1f5f9;
+  color: #475569;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.receivable-detail-dialog__body {
+  padding: 1rem 1.25rem 1.25rem;
+  overflow: auto;
+}
+
+.loading-text {
+  color: #64748b;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.detail-table th {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.folio-link {
+  border: none;
+  background: transparent;
+  color: #4f46e5;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.folio-link:hover {
+  text-decoration: underline;
+}

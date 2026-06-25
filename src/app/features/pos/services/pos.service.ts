@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { POSCart, POSCartItem } from '../models/pos.model';
+import { previewLineDiscount } from '../utils/pos-discount.util';
 import {
   PosDailyShiftDetail,
   OpenDailyShiftResponse,
@@ -48,6 +49,8 @@ export class POSService {
   
   private cartState = signal<POSCart>({
     items: [],
+    total_gross_subtotal: 0,
+    total_discount: 0,
     total_subtotal: 0,
     total_iva: 0,
     total_ieps: 0,
@@ -64,7 +67,10 @@ export class POSService {
   addItem(item: POSCartItem): void {
     const currentCart = this.cartState();
     const existingItemIndex = currentCart.items.findIndex(
-      i => i.product_id === item.product_id && i.uom_id === item.uom_id
+      (i) =>
+        i.product_id === item.product_id &&
+        i.product_uom_id === item.product_uom_id &&
+        (i.product_discount_id ?? null) === (item.product_discount_id ?? null)
     );
 
     let updatedItems: POSCartItem[];
@@ -139,6 +145,8 @@ export class POSService {
   clearCart(): void {
     this.cartState.set({
       items: [],
+      total_gross_subtotal: 0,
+      total_discount: 0,
       total_subtotal: 0,
       total_iva: 0,
       total_ieps: 0,
@@ -147,20 +155,27 @@ export class POSService {
   }
 
   /**
-   * Recalculate item totals
+   * Recalculate item totals (discount before tax).
    */
-  private recalculateItem(item: POSCartItem): POSCartItem {
-    const subtotal = item.quantity * item.unit_price;
-    const iva_amount = subtotal * (item.iva_percentage / 100);
-    const ieps_amount = subtotal * (item.ieps_percentage / 100);
-    const line_total = subtotal + iva_amount + ieps_amount;
+  recalculateItem(item: POSCartItem): POSCartItem {
+    const preview = previewLineDiscount(
+      item.unit_price,
+      item.quantity,
+      item.selected_discount
+    );
+    const iva_amount = preview.lineNetSubtotal * (item.iva_percentage / 100);
+    const ieps_amount = preview.lineNetSubtotal * (item.ieps_percentage / 100);
+    const line_total = preview.lineNetSubtotal + iva_amount + ieps_amount;
 
     return {
       ...item,
-      subtotal,
+      product_uom_id: item.product_uom_id || item.uom_id,
+      line_gross_subtotal: preview.lineGrossSubtotal,
+      line_discount_amount: preview.lineDiscount,
+      subtotal: preview.lineNetSubtotal,
       iva_amount,
       ieps_amount,
-      line_total
+      line_total,
     };
   }
 
@@ -168,13 +183,18 @@ export class POSService {
    * Update cart with new items and recalculate totals
    */
   private updateCart(items: POSCartItem[]): void {
-    const total_subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-    const total_iva = items.reduce((sum, item) => sum + item.iva_amount, 0);
-    const total_ieps = items.reduce((sum, item) => sum + item.ieps_amount, 0);
+    const recalculated = items.map((item) => this.recalculateItem(item));
+    const total_gross_subtotal = recalculated.reduce((sum, item) => sum + item.line_gross_subtotal, 0);
+    const total_discount = recalculated.reduce((sum, item) => sum + item.line_discount_amount, 0);
+    const total_subtotal = recalculated.reduce((sum, item) => sum + item.subtotal, 0);
+    const total_iva = recalculated.reduce((sum, item) => sum + item.iva_amount, 0);
+    const total_ieps = recalculated.reduce((sum, item) => sum + item.ieps_amount, 0);
     const grand_total = total_subtotal + total_iva + total_ieps;
 
     this.cartState.set({
-      items,
+      items: recalculated,
+      total_gross_subtotal,
+      total_discount,
       total_subtotal,
       total_iva,
       total_ieps,

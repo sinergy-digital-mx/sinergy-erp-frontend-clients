@@ -15,6 +15,19 @@ export function buildEscPosPreview(receipt: PosSaleReceipt | null | undefined): 
     return [];
   }
 
+  // Preferir ESC/POS: es lo mismo que manda la impresora (plain_text puede diferir).
+  const base64 = receipt.escpos_base64?.trim();
+  if (base64) {
+    try {
+      const fromEscpos = parseEscPosBytesToLines(decodeEscPosBase64(base64));
+      if (fromEscpos.length > 0) {
+        return fromEscpos;
+      }
+    } catch {
+      // fallback a plain_text abajo
+    }
+  }
+
   if (receipt.plain_text?.trim()) {
     return receipt.plain_text.split(/\r?\n/).map((text) => ({
       text,
@@ -23,16 +36,7 @@ export function buildEscPosPreview(receipt: PosSaleReceipt | null | undefined): 
     }));
   }
 
-  const base64 = receipt.escpos_base64?.trim();
-  if (!base64) {
-    return [];
-  }
-
-  try {
-    return parseEscPosBytesToLines(decodeEscPosBase64(base64));
-  } catch {
-    return [{ text: 'No se pudo decodificar el ticket ESC/POS.', align: 'left', bold: false }];
-  }
+  return [{ text: 'No se pudo decodificar el ticket ESC/POS.', align: 'left', bold: false }];
 }
 
 export function decodeEscPosBase64(base64: string): Uint8Array {

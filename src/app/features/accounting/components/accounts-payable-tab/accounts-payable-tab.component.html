@@ -1,0 +1,53 @@
+<div class="payable-tab">
+  @if (summary) {
+    <div class="payable-summary">
+      <div class="payable-summary__card">
+        <span class="payable-summary__label">Proveedores con saldo</span>
+        <span class="payable-summary__value">{{ summary.total_vendors ?? 0 }}</span>
+      </div>
+      <div class="payable-summary__card">
+        <span class="payable-summary__label">Total adeudado</span>
+        <span class="payable-summary__value">{{ formatCurrency(summary.total_amount_pending ?? 0) }}</span>
+      </div>
+    </div>
+  }
+
+  <div class="payable-search">
+    <i class="fi fi-rr-search payable-search__icon" aria-hidden="true"></i>
+    <input
+      type="search"
+      class="payable-search__input"
+      [formControl]="searchControl"
+      placeholder="Buscar por nombre o razón social"
+      aria-label="Buscar proveedor" />
+  </div>
+
+  <div class="payable-table-wrap">
+    <app-datatable-wrapper
+      [config]="tableConfig"
+      [rowTemplate]="tableTemplate"
+      (pageChange)="onPageChange($event)">
+    </app-datatable-wrapper>
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="px-2 py-2">
+    <button type="button" class="row-link" (click)="openVendorDetail(item)">
+      {{ vendorLabel(item) }}
+    </button>
+  </td>
+  <td class="px-2 py-2">{{ item.pending_order_count }}</td>
+  <td class="px-2 py-2">{{ formatCurrency(item.amount_pending) }}</td>
+  <td class="px-2 py-2">
+    <div class="progress-cell">
+      <div class="progress-bar">
+        <div
+          class="progress-bar__fill progress-bar__fill--{{ progressColor(item.progress_percentage) }}"
+          [style.width.%]="Math.min(item.progress_percentage, 100)">
+        </div>
+      </div>
+      <span class="progress-cell__pct">{{ item.progress_percentage | number:'1.0-0' }}%</span>
+    </div>
+  </td>
+</ng-template>

@@ -1,0 +1,61 @@
+@if (branchMissing) {
+  <div class="accounting-empty">
+    <p>Selecciona una sucursal para ver el resumen de puntos de venta.</p>
+  </div>
+} @else {
+  <div class="pos-summary-layout">
+    <div class="pos-summary-section">
+      <h3 class="pos-summary-section__title">Terminales de venta</h3>
+      <div class="pos-summary-table-wrap">
+        <app-datatable-wrapper
+          [config]="tableConfig"
+          [rowTemplate]="tableTemplate">
+        </app-datatable-wrapper>
+      </div>
+    </div>
+
+    <div class="pos-summary-section pos-summary-section--collection">
+      <h3 class="pos-summary-section__title">Terminal de cobranza</h3>
+      @if (collectionMetrics().terminal_name) {
+        <p class="pos-summary-section__subtitle">{{ collectionMetrics().terminal_name }}</p>
+      }
+      <div class="collection-metrics">
+        <div class="collection-metric">
+          <span class="collection-metric__label">Órdenes cobradas</span>
+          <span class="collection-metric__value">{{ collectionMetrics().orders_collected }}</span>
+        </div>
+        <div class="collection-metric">
+          <span class="collection-metric__label">Total cobrado</span>
+          <span class="collection-metric__value">{{ formatCurrency(collectionMetrics().amount_collected) }}</span>
+        </div>
+        <div class="collection-metric">
+          <span class="collection-metric__label">Público en General</span>
+          <span class="collection-metric__value">{{ collectionMetrics().walk_in_count }}</span>
+        </div>
+        <div class="collection-metric">
+          <span class="collection-metric__label">Facturadas</span>
+          <span class="collection-metric__value">{{ collectionMetrics().invoiced_count }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="px-2 py-2">
+    <p class="text-sm font-medium text-gray-900 m-0">{{ item.terminal_name }}</p>
+  </td>
+  <td class="px-2 py-2">
+    <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-800">
+      {{ item.sales_count }}
+    </span>
+  </td>
+  <td class="px-2 py-2">
+    <p class="text-sm font-semibold text-gray-900 m-0">{{ formatCurrency(item.amount_sold) }}</p>
+  </td>
+  <td class="px-2 py-2">
+    <button type="button" class="detail-link-btn" (click)="openTerminalDetail(item)">
+      Ver detalle
+    </button>
+  </td>
+</ng-template>
