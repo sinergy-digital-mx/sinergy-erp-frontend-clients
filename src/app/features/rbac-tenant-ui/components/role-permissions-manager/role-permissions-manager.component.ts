@@ -107,7 +107,7 @@ interface ModulePermissions {
 
         @if (modulePermissions.length === 0) {
           <div class="text-center py-8">
-            <p class="text-gray-500">No hay módulos disponibles para este tenant.</p>
+            <p class="text-gray-500">No hay módulos disponibles.</p>
           </div>
         }
       }

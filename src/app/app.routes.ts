@@ -4,6 +4,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { LoggedGuard } from './core/guards/logged.guard';
 import { AdminGuard } from './core/guards/admin.guard';
 import { defaultRouteGuard } from './core/guards/default-route.guard';
+import { posCobranzaGuard, posEntryRedirectGuard, posVentasGuard } from './core/guards/pos-user-type.guard';
 
 export const routes: Routes = [
   // LOGIN (público)
@@ -29,14 +30,8 @@ export const routes: Routes = [
   },
   {
     path: 'pos/payment',
-    canActivate: [AuthGuard],
-    loadComponent: () =>
-      import('./features/pos/pages/payment/payment.component')
-        .then(m => m.PaymentComponent),
-    data: { 
-      permission: 'pos:Update',
-      title: 'Cobrar Orden'
-    }
+    redirectTo: 'pos/cobranza',
+    pathMatch: 'full',
   },
 
   // APP PROTEGIDA
@@ -100,14 +95,32 @@ export const routes: Routes = [
             .then(m => m.SALES_ORDERS_ROUTES),
       },
       {
-        path: 'pos',
+        path: 'pos/ventas',
+        canActivate: [posVentasGuard],
         loadComponent: () =>
           import('./features/pos/pages/take-order/take-order.component')
             .then(m => m.TakeOrderComponent),
-        data: { 
+        data: {
           permission: 'pos:Create',
           title: 'Punto de Venta'
         }
+      },
+      {
+        path: 'pos/cobranza',
+        canActivate: [posCobranzaGuard],
+        loadComponent: () =>
+          import('./features/pos/pages/payment/payment.component')
+            .then(m => m.PaymentComponent),
+        data: {
+          permission: 'pos:Update',
+          title: 'Cobranza POS'
+        }
+      },
+      {
+        path: 'pos',
+        pathMatch: 'full',
+        canActivate: [posEntryRedirectGuard],
+        children: [],
       },
       {
         path: 'zona-norte-reports',

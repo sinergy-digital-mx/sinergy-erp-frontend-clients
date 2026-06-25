@@ -10,7 +10,7 @@ export const defaultRouteGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
   
-  const firstRoute = authService.getFirstAccessibleRoute();
+  const firstRoute = authService.resolvePostLoginRoute();
   
   if (firstRoute) {
     router.navigate([firstRoute]);

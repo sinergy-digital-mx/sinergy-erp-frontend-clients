@@ -1,102 +1,48 @@
 <div class="settings-list-page px-4 pb-6">
   <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-    <h2 class="text-2xl font-semibold text-gray-800">Configuración POS</h2>
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800">Configuración POS</h2>
+      <p class="text-sm text-gray-500 mt-1">
+        Consulta los cortes globales por sucursal. Las terminales se configuran en Gestión de Usuarios.
+      </p>
+    </div>
   </div>
 
   <div class="mb-4">
-    <div class="filter-bar" role="search" aria-label="Filtros configuración POS">
-      <div
-        class="filter-bar__container"
-        [class.filter-bar__container--equipos]="activeTabIndex() === 0"
-        [class.filter-bar__container--sesiones]="activeTabIndex() === 1">
-        <div class="filter-bar__field">
-          @if (activeTabIndex() === 0) {
-            <input
-              type="text"
-              [(ngModel)]="search"
-              (keyup.enter)="applyFilters()"
-              placeholder="Buscar..."
-              class="filter-bar__input"
-              aria-label="Buscar equipos"
-            />
-          } @else {
-            <input
-              type="text"
-              [(ngModel)]="sessionsSearch"
-              (keyup.enter)="applyFilters()"
-              placeholder="Buscar equipo o #turno..."
-              class="filter-bar__input"
-              aria-label="Buscar sesiones"
-            />
-          }
-        </div>
+    <div class="filter-bar" role="search" aria-label="Filtros de cortes POS">
+      <div class="filter-bar__container filter-bar__container--cortes">
         <div class="filter-bar__field">
           <select
-            [(ngModel)]="selectedSucursalId"
+            [(ngModel)]="selectedBranchId"
             (change)="applyFilters()"
             class="filter-bar__select"
             aria-label="Filtrar por sucursal">
             <option value="">Todas las sucursales</option>
             @for (b of branches(); track b.id) {
-              <option [value]="b.id">{{ b.display_name }}</option>
+              <option [value]="b.id">{{ b.display_name || b.code }}</option>
             }
           </select>
         </div>
-        @if (activeTabIndex() === 0) {
-          <div class="filter-bar__field">
-            <select
-              [(ngModel)]="selectedType"
-              (change)="applyFilters()"
-              class="filter-bar__select"
-              aria-label="Filtrar por tipo">
-              <option value="">Todos los tipos</option>
-              <option value="VENTAS">VENTAS</option>
-              <option value="COBRANZA">COBRANZA</option>
-            </select>
-          </div>
-        }
-        @if (activeTabIndex() === 1) {
-          <div class="filter-bar__field">
-            <select
-              [(ngModel)]="sessionsStatusFilter"
-              (change)="applyFilters()"
-              class="filter-bar__select"
-              aria-label="Filtrar por estado de sesión">
-              <option value="">Todas</option>
-              <option value="open">Abierta</option>
-              <option value="closed">Cerrada</option>
-            </select>
-          </div>
-          <div class="filter-bar__field">
-            <input
-              type="date"
-              [(ngModel)]="sessionsDateFrom"
-              (change)="applyFilters()"
-              class="filter-bar__input"
-              aria-label="Fecha desde"
-            />
-          </div>
-          <div class="filter-bar__field">
-            <input
-              type="date"
-              [(ngModel)]="sessionsDateTo"
-              (change)="applyFilters()"
-              class="filter-bar__input"
-              aria-label="Fecha hasta"
-            />
-          </div>
-        }
-        @if (activeTabIndex() === 0) {
-          <div class="filter-bar__field filter-bar__field--action">
-            <app-button
-              text="Nuevo Equipo"
-              size="sm"
-              [fullWidth]="false"
-              custom_class="btn_primary"
-              (clicked)="openCreateEquipmentModal()">
-            </app-button>
-          </div>
-        }
+        <div class="filter-bar__field">
+          <input
+            type="date"
+            [(ngModel)]="shiftDate"
+            (change)="applyFilters()"
+            class="filter-bar__input"
+            aria-label="Fecha del corte"
+          />
+        </div>
+        <div class="filter-bar__field">
+          <select
+            [(ngModel)]="statusFilter"
+            (change)="applyFilters()"
+            class="filter-bar__select"
+            aria-label="Filtrar por estado">
+            <option value="">Todos</option>
+            <option value="open">Abierto</option>
+            <option value="closed">Cerrado</option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
@@ -104,112 +50,32 @@
   <div class="mb-4">
     <div class="border-b border-gray-200">
       <nav class="-mb-px flex space-x-8" aria-label="Secciones configuración POS">
-        <button
-          type="button"
-          class="border-b-2 py-4 px-1 text-sm font-medium transition-colors"
-          [class.border-blue-500]="activeTabIndex() === 0"
-          [class.text-blue-600]="activeTabIndex() === 0"
-          [class.border-transparent]="activeTabIndex() !== 0"
-          [class.text-gray-500]="activeTabIndex() !== 0"
-          (click)="onTabChange(0)">
-          Equipos
-        </button>
-        <button
-          type="button"
-          class="border-b-2 py-4 px-1 text-sm font-medium transition-colors"
-          [class.border-blue-500]="activeTabIndex() === 1"
-          [class.text-blue-600]="activeTabIndex() === 1"
-          [class.border-transparent]="activeTabIndex() !== 1"
-          [class.text-gray-500]="activeTabIndex() !== 1"
-          (click)="onTabChange(1)">
-          Sesiones
-        </button>
+        <span class="border-b-2 border-blue-500 py-4 px-1 text-sm font-medium text-blue-600">
+          Cortes
+        </span>
       </nav>
     </div>
   </div>
 
-  @if (activeTabIndex() === 0) {
-    <app-datatable-wrapper
-      variant="settings"
-      [config]="table_config()"
-      [rowTemplate]="equiposTableTemplate"
-      (rowClick)="viewDetail($event.data)">
-    </app-datatable-wrapper>
-  }
-
-  @if (activeTabIndex() === 1) {
-    <app-datatable-wrapper
-      variant="settings"
-      [config]="sessions_table_config()"
-      [rowTemplate]="sessionsTableTemplate"
-      (rowClick)="viewSessionDetail($event.data)"
-      (pageChange)="onSessionsPageChange($event)">
-    </app-datatable-wrapper>
-  }
+  <app-datatable-wrapper
+    variant="settings"
+    [config]="table_config()"
+    [rowTemplate]="shiftsTableTemplate"
+    (rowClick)="viewDetail($event.data)"
+    (pageChange)="onPageChange($event)">
+  </app-datatable-wrapper>
 </div>
 
-<ng-template #equiposTableTemplate let-item="$implicit">
+<ng-template #shiftsTableTemplate let-item="$implicit">
+  <td><span class="settings-cell-text">{{ item.shift_date }}</span></td>
+  <td><span class="settings-cell-text">{{ terminalLabel(item) }}</span></td>
+  <td><span class="settings-cell-text">{{ branchLabel(item) }}</span></td>
   <td>
-    <span class="settings-badge settings-badge--code">{{ item.code }}</span>
-  </td>
-  <td>
-    <span [class]="item.type ? 'settings-badge settings-badge--type-international' : 'settings-cell-empty'">
-      {{ item.type || '—' }}
+    <span class="settings-badge" [ngClass]="isOpen(item) ? 'settings-badge--status-active' : 'settings-badge--status-inactive'">
+      {{ statusLabel(item) }}
     </span>
   </td>
-  <td>
-    <span [class]="item.modelo ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.modelo || '—' }}</span>
-  </td>
-  <td>
-    <span class="settings-cell-text">{{ branchLabel(item) }}</span>
-  </td>
-  <td>
-    <span class="settings-badge" [ngClass]="getStatusClass(item.status)">
-      {{ getStatusLabel(item.status) }}
-    </span>
-  </td>
-</ng-template>
-
-<ng-template #sessionsTableTemplate let-item="$implicit">
-  <td>
-    <p class="settings-cell-primary session-turn">{{ sessionTurnLabel(item) }}</p>
-  </td>
-  <td>
-    <p class="settings-cell-text session-equipment m-0">{{ sessionEquipmentLabel(item) }}</p>
-  </td>
-  <td><span class="settings-cell-text">{{ sessionBranchLabel(item) }}</span></td>
-  <td><span class="settings-cell-text">{{ sessionUserLabel(item) }}</span></td>
-  <td><span class="settings-cell-text">{{ formatSessionDate(item.opened_at) }}</span></td>
-  <td>
-    <span class="settings-cell-text">
-      @if (item.closed_at) {
-        {{ formatSessionDate(item.closed_at) }}
-      } @else {
-        —
-      }
-    </span>
-  </td>
-  <td class="session-money">{{ formatSessionMoney(item.opening_cash ?? item.initial_cash) }}</td>
-  <td class="session-money">{{ formatSessionMoney(item.total_sales) }}</td>
-  <td>
-    <span class="settings-badge" [ngClass]="sessionStatusClass(item)">
-      {{ sessionStatusLabel(item) }}
-    </span>
-  </td>
-  <td class="session-actions-cell" (click)="$event.stopPropagation()">
-    @if (sessionIsOpen(item)) {
-      <button
-        type="button"
-        class="session-close-btn"
-        (click)="closeSession(item, $event)"
-        aria-label="Cerrar sesión {{ sessionTurnLabel(item) }}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-        Cerrar sesión
-      </button>
-    } @else {
-      <span class="session-actions-empty">—</span>
-    }
-  </td>
+  <td class="session-money">{{ salesTotal(item) }}</td>
+  <td><span class="settings-cell-text">{{ partialCount(item) }}</span></td>
+  <td class="session-money">{{ openingCash(item) }}</td>
 </ng-template>

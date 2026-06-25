@@ -1,3 +1,5 @@
+import { PosSaleCollection } from '../../pos/models/pos-sale-collection.model';
+
 export type SalesOrderStatus = 'Creada' | 'Surtida' | 'Cancelada';
 export type SalesPaymentStatus = 'Pendiente' | 'Pagado';
 export type SalesOrderType = 'POS' | 'MANUAL';
@@ -9,6 +11,12 @@ export interface Customer {
   company_name?: string;
   email?: string;
   phone?: string;
+}
+
+export interface SalesOrderCustomerSummary {
+  id?: number;
+  display_name?: string;
+  is_walk_in?: boolean;
 }
 
 export interface SalesOrderLineItem {
@@ -42,6 +50,24 @@ export interface SalesOrderInvoice {
   issued_at?: string;
   total?: string | number;
   status?: string;
+}
+
+export type SalesDocumentLanguage = 'es' | 'en';
+
+export interface SalesOrderDocument {
+  id: string;
+  document_type_name: string;
+  document_language?: SalesDocumentLanguage | null;
+  document_name?: string;
+  path?: string;
+  uploaded_at?: string;
+}
+
+export interface RegenerateSalesDocumentResponse {
+  success: boolean;
+  message: string;
+  document_language: SalesDocumentLanguage;
+  keep_previous?: boolean;
 }
 
 export interface SalesOrder {
@@ -80,6 +106,9 @@ export interface SalesOrder {
   // legacy compat
   lines?: SalesOrderLineItem[];
   customer?: Customer;
+  customer_display_name?: string;
+  customer_summary?: SalesOrderCustomerSummary;
+  pos_collection?: PosSaleCollection;
   warehouse?: { id: string; name: string };
   fiscal_configuration?: {
     id?: string;
@@ -91,6 +120,7 @@ export interface SalesOrder {
     status?: string;
   };
   invoices?: SalesOrderInvoice[];
+  documents?: SalesOrderDocument[];
   created_by?: string;
   updated_by?: string;
   created_at: string;
@@ -131,6 +161,7 @@ export interface SalesOrderFormData {
   expected_delivery_date?: string;
   sales_order_type?: SalesOrderType;
   fiscal_razon_social?: string;
+  seller_user_id?: string;
   payment_status?: string;
   notes?: string;
   line_items: Array<{
@@ -147,6 +178,8 @@ export interface SalesOrderFormData {
 export interface SalesOrderDetailPayload {
   header: SalesOrder;
   line_items: SalesOrderLineItem[];
+  documents?: SalesOrderDocument[];
+  pos_collection?: PosSaleCollection;
 }
 
 export interface SalesOrderDetailResponse {

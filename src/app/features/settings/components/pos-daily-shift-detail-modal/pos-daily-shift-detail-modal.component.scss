@@ -1,0 +1,137 @@
+.shift-detail-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.shift-detail-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+  }
+}
+
+.shift-detail-modal__close {
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.shift-detail-modal__body {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.shift-detail-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+
+  dt {
+    margin: 0 0 2px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 14px;
+    color: #1e293b;
+  }
+}
+
+.shift-badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  background: #f3f4f6;
+
+  &--open {
+    color: #166534;
+    background: #dcfce7;
+  }
+}
+
+.shift-detail-modal__section {
+  margin-top: 16px;
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+  }
+}
+
+.shift-detail-modal__partials {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fafbfc;
+  }
+}
+
+.shift-detail-modal__partial-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.shift-detail-modal__partial-amount {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: #0369a1;
+}
+
+.shift-detail-modal__partial-notes {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.shift-detail-modal__loading {
+  padding: 32px 16px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.shift-detail-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+@media (max-width: 640px) {
+  .shift-detail-modal__grid {
+    grid-template-columns: 1fr;
+  }
+}

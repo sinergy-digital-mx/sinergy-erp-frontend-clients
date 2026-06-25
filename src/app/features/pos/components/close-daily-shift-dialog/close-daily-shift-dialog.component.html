@@ -1,0 +1,14 @@
+<div class="pos-dialog">
+  <h2 class="pos-dialog__title">Cerrar corte del día</h2>
+  <p class="pos-dialog__subtitle">Confirma el cierre del corte global. Después podrás editar tipo y sucursal del usuario cobranza.</p>
+
+  <label class="pos-dialog__field">
+    <span>Notas (opcional)</span>
+    <input type="text" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Cierre turno" />
+  </label>
+
+  <div class="pos-dialog__actions">
+    <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="cancel()"></app-button>
+    <app-button text="Cerrar corte" custom_class="btn_primary" (clicked)="confirm()"></app-button>
+  </div>
+</div>

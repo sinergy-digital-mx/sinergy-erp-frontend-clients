@@ -109,6 +109,58 @@
           </div>
         </div>
 
+        @if (posCollection(); as pay) {
+          <div class="section-card section-card--pos-pay">
+              <h3 class="section-title">COBRO POS</h3>
+              <div class="section-item">
+                <span class="section-label">Método</span>
+                <span class="section-value">{{ posPaymentMethodLabel() }}</span>
+              </div>
+              @if (pay.collected_at) {
+                <div class="section-item">
+                  <span class="section-label">Cobrado</span>
+                  <span class="section-value">{{ formatPosCollectedAt(pay.collected_at) }}</span>
+                </div>
+              }
+              @if (pay.received_cash_mxn != null && +pay.received_cash_mxn > 0) {
+                <div class="section-item">
+                  <span class="section-label">Efectivo recibido</span>
+                  <span class="section-value">{{ posCollectionMoney(pay.received_cash_mxn) }}</span>
+                </div>
+              }
+              @if (pay.received_cash_usd != null && +pay.received_cash_usd > 0) {
+                <div class="section-item">
+                  <span class="section-label">USD recibido</span>
+                  <span class="section-value">{{ posCollectionUsd(pay.received_cash_usd) }}</span>
+                </div>
+              }
+              @if (pay.amount_transfer_mxn != null && +pay.amount_transfer_mxn > 0) {
+                <div class="section-item">
+                  <span class="section-label">Transferencia</span>
+                  <span class="section-value">{{ posCollectionMoney(pay.amount_transfer_mxn) }}</span>
+                </div>
+              }
+              @if (pay.amount_card_mxn != null && +pay.amount_card_mxn > 0) {
+                <div class="section-item">
+                  <span class="section-label">Tarjeta</span>
+                  <span class="section-value">{{ posCollectionMoney(pay.amount_card_mxn) }}</span>
+                </div>
+              }
+              @if (pay.change_cash_mxn != null && +pay.change_cash_mxn > 0) {
+                <div class="section-item section-item--highlight">
+                  <span class="section-label">Cambio MXN</span>
+                  <span class="section-value section-value--change">{{ posCollectionMoney(pay.change_cash_mxn) }}</span>
+                </div>
+              }
+              @if (pay.change_cash_usd != null && +pay.change_cash_usd > 0) {
+                <div class="section-item section-item--highlight">
+                  <span class="section-label">Cambio USD</span>
+                  <span class="section-value section-value--change">{{ posCollectionUsd(pay.change_cash_usd) }}</span>
+                </div>
+              }
+            </div>
+        }
+
         <div class="section-card section-card--totals">
           <div class="section-header">
             <h3 class="section-title">TOTALES</h3>
@@ -164,8 +216,9 @@
       <div class="main-content">
         <div class="tabs-header">
           <button class="tab-button" [class.active]="activeTabIndex() === 0" (click)="activeTabIndex.set(0)">Productos</button>
-          <button class="tab-button" [class.active]="activeTabIndex() === 1" (click)="activeTabIndex.set(1)">Lotes</button>
-          <button class="tab-button" [class.active]="activeTabIndex() === 2" (click)="activeTabIndex.set(2)">Facturación</button>
+          <button class="tab-button" [class.active]="activeTabIndex() === 1" (click)="activeTabIndex.set(1)">Documentos</button>
+          <button class="tab-button" [class.active]="activeTabIndex() === 2" (click)="activeTabIndex.set(2)">Lotes</button>
+          <button class="tab-button" [class.active]="activeTabIndex() === 3" (click)="activeTabIndex.set(3)">Facturación</button>
         </div>
 
         <div class="tabs-content">
@@ -223,7 +276,74 @@
             </div>
           }
 
-          @if (activeTabIndex() === 2) {
+          @if (activeTabIndex() === 1) {
+            <div class="tab-content-wrapper">
+              <div class="tab-header">
+                <button class="btn-secondary" (click)="regeneratePDF()" [disabled]="regeneratingPDF()">
+                  @if (regeneratingPDF()) {
+                    <i class="fi fi-rr-spinner animate-spin"></i>
+                  } @else {
+                    <i class="fi fi-rr-refresh"></i>
+                  }
+                  Regenerar PDF Original
+                </button>
+              </div>
+
+              @if (hasDocuments()) {
+                <table class="documents-table">
+                  <thead>
+                    <tr>
+                      <th>TIPO</th>
+                      <th>IDIOMA</th>
+                      <th>NOMBRE DE ARCHIVO</th>
+                      <th>FECHA DE CARGA</th>
+                      <th>ACCIONES</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (doc of documents(); track doc.id) {
+                      <tr>
+                        <td>
+                          <div class="document-type-cell">
+                            <span class="document-badge" [ngClass]="getDocumentBadgeClass(doc.document_type_name)">
+                              {{ doc.document_type_name }}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          @if (getDocumentLanguageLabel(doc.document_language); as langLabel) {
+                            <span class="document-language-badge">{{ langLabel }}</span>
+                          } @else {
+                            <span class="document-language-empty">—</span>
+                          }
+                        </td>
+                        <td>
+                          <span class="document-name">{{ doc.document_name || '—' }}</span>
+                        </td>
+                        <td>
+                          <span class="document-date">{{ formatDocumentDate(doc.uploaded_at) }}</span>
+                        </td>
+                        <td>
+                          <div class="document-actions">
+                            <button class="action-btn download-btn" (click)="downloadDocument(doc)" title="Descargar">
+                              <i class="fi fi-rr-download"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <div class="empty-state">
+                  <i class="fi fi-rr-document"></i>
+                  <p>No hay documentos adjuntos</p>
+                </div>
+              }
+            </div>
+          }
+
+          @if (activeTabIndex() === 3) {
             <div class="tab-content-wrapper billing-tab">
               <div class="billing-summary">
                 <h3 class="billing-section-title">Datos fiscales de la orden</h3>
@@ -282,7 +402,7 @@
             </div>
           }
 
-          @if (activeTabIndex() === 1) {
+          @if (activeTabIndex() === 2) {
             <div class="tab-content-wrapper">
               <table class="products-table">
                 <thead>
@@ -331,3 +451,83 @@
     </div>
   }
 </div>
+
+@if (showRegenerateLanguageModal()) {
+  <div class="upload-modal-overlay" (click)="closeRegenerateLanguageModal()">
+    <div class="regenerate-modal" (click)="$event.stopPropagation()">
+      <div class="regenerate-modal__header">
+        <h3>Regenerar documento</h3>
+        <button
+          type="button"
+          class="regenerate-modal__close"
+          (click)="closeRegenerateLanguageModal()"
+          [disabled]="regeneratingPDF()"
+        >
+          <i class="fi fi-rr-cross-small"></i>
+        </button>
+      </div>
+
+      <div class="regenerate-modal__body">
+        <p class="regenerate-language-prompt">¿En qué idioma desea generar el documento?</p>
+        <div class="language-options">
+          <label class="language-option" [class.selected]="selectedRegenerateLanguage() === 'es'">
+            <input
+              type="radio"
+              name="regenerateLanguage"
+              value="es"
+              [checked]="selectedRegenerateLanguage() === 'es'"
+              (change)="selectedRegenerateLanguage.set('es')"
+              [disabled]="regeneratingPDF()"
+            />
+            <span>Español (es)</span>
+          </label>
+          <label class="language-option" [class.selected]="selectedRegenerateLanguage() === 'en'">
+            <input
+              type="radio"
+              name="regenerateLanguage"
+              value="en"
+              [checked]="selectedRegenerateLanguage() === 'en'"
+              (change)="selectedRegenerateLanguage.set('en')"
+              [disabled]="regeneratingPDF()"
+            />
+            <span>English (en)</span>
+          </label>
+        </div>
+        <label class="regenerate-keep-previous">
+          <input
+            type="checkbox"
+            [checked]="keepPreviousDocument()"
+            (change)="keepPreviousDocument.set($any($event.target).checked)"
+            [disabled]="regeneratingPDF()"
+          />
+          <span>Mantener documento anterior</span>
+        </label>
+      </div>
+
+      <div class="regenerate-modal__footer">
+        <button
+          type="button"
+          class="regenerate-modal__btn regenerate-modal__btn--cancel"
+          (click)="closeRegenerateLanguageModal()"
+          [disabled]="regeneratingPDF()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="regenerate-modal__btn regenerate-modal__btn--confirm"
+          [class.is-loading]="regeneratingPDF()"
+          (click)="confirmRegenerateDocument()"
+        >
+          @if (regeneratingPDF()) {
+            <i class="fi fi-rr-spinner animate-spin"></i>
+            Regenerando...
+          } @else {
+            <i class="fi fi-rr-refresh"></i>
+            Regenerar
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

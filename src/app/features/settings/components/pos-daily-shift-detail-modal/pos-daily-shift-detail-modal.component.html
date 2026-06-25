@@ -1,0 +1,46 @@
+<div class="shift-detail-modal">
+  <div class="shift-detail-modal__header">
+    <h2>Detalle del corte</h2>
+    <button type="button" class="shift-detail-modal__close" (click)="close()" aria-label="Cerrar">×</button>
+  </div>
+
+  @if (loading()) {
+    <div class="shift-detail-modal__loading">Cargando...</div>
+  } @else if (shift(); as item) {
+    <div class="shift-detail-modal__body">
+      <dl class="shift-detail-modal__grid">
+        <div><dt>Fecha</dt><dd>{{ item.shift_date }}</dd></div>
+        <div><dt>Estado</dt><dd><span class="shift-badge" [class.shift-badge--open]="isOpen(item)">{{ statusLabel(item) }}</span></dd></div>
+        <div><dt>Terminal cobranza</dt><dd>{{ terminalLabel(item) }}</dd></div>
+        <div><dt>Sucursal</dt><dd>{{ branchLabel(item) }}</dd></div>
+        <div><dt>Efectivo inicial MXN</dt><dd>{{ openingMxn(item) }}</dd></div>
+        <div><dt>Efectivo inicial USD</dt><dd>{{ openingUsd(item) }}</dd></div>
+        <div><dt>Ventas totales</dt><dd>{{ salesTotal(item) }}</dd></div>
+        <div><dt>Cortes parciales</dt><dd>{{ partialCount(item) }}</dd></div>
+      </dl>
+
+      @if (item.partial_shifts?.length) {
+        <section class="shift-detail-modal__section">
+          <h3>Historial de parciales</h3>
+          <ul class="shift-detail-modal__partials">
+            @for (partial of item.partial_shifts; track partial.id; let i = $index) {
+              <li>
+                <span class="shift-detail-modal__partial-title">Corte parcial #{{ partial.sequence ?? (i + 1) }}</span>
+                <span class="shift-detail-modal__partial-amount">{{ partialTotal(partial) }}</span>
+                @if (partial.notes) {
+                  <p class="shift-detail-modal__partial-notes">{{ partial.notes }}</p>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
+  } @else {
+    <div class="shift-detail-modal__loading">No se pudo cargar el corte.</div>
+  }
+
+  <div class="shift-detail-modal__footer">
+    <app-button text="Cerrar" custom_class="btn_secondary" (clicked)="close()"></app-button>
+  </div>
+</div>

@@ -1,0 +1,72 @@
+<div class="modal-container">
+  <div class="modal-header">
+    <div class="modal-header__title">
+      <span class="modal-header__icon" aria-hidden="true">
+        <lucide-icon [img]="Printer" />
+      </span>
+      <h2>Impresora térmica</h2>
+    </div>
+    <button type="button" class="close-btn" (click)="cancel()" aria-label="Cerrar">
+      <lucide-icon [img]="X" />
+    </button>
+  </div>
+
+  <div class="modal-body">
+    <p class="hint">
+      Requiere <strong>QZ Tray</strong> en esta PC. El nombre debe coincidir con el de Windows.
+    </p>
+
+    <label class="field">
+      <span class="field__label">Nombre de impresora</span>
+      <input
+        type="text"
+        class="field__input"
+        [(ngModel)]="printerName"
+        placeholder="BIXOLON SRP-330III"
+        autocomplete="off" />
+    </label>
+
+    <button
+      type="button"
+      class="detect-btn"
+      (click)="detectPrinters()"
+      [disabled]="loading()">
+      <lucide-icon [img]="RefreshCw" [class.detect-btn__spin]="loading()" />
+      {{ loading() ? 'Buscando impresoras…' : 'Buscar impresoras' }}
+    </button>
+
+    @if (printers().length > 0) {
+      <div class="printer-list">
+        <span class="printer-list__label">Selecciona una impresora</span>
+        <div class="printer-list__items">
+          @for (name of printers(); track name) {
+            <button
+              type="button"
+              class="printer-chip"
+              [class.printer-chip--selected]="printerName === name"
+              (click)="selectPrinter(name)">
+              {{ name }}
+              @if (printerName === name) {
+                <lucide-icon [img]="Check" class="printer-chip__check" />
+              }
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    @if (error()) {
+      <p class="error-msg">{{ error() }}</p>
+    }
+
+    <label class="auto-print">
+      <input type="checkbox" [(ngModel)]="autoPrint" />
+      <span>Imprimir ticket al confirmar cobro</span>
+    </label>
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn--ghost" (click)="cancel()">Cancelar</button>
+    <button type="button" class="btn btn--primary" (click)="save()">Guardar</button>
+  </div>
+</div>

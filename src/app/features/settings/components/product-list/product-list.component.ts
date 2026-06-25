@@ -1,7 +1,7 @@
 import { Component, signal, TemplateRef, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, switchMap, tap, filter } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProductService } from '../../services/product.service';
@@ -65,25 +65,35 @@ export class ProductListComponent implements OnDestroy {
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {
-    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((query) => {
-      const queryString = JSON.stringify(query);
-      if (queryString === this.lastQueryParams) {
-        return;
-      }
-      this.lastQueryParams = queryString;
+    this.route.queryParams.pipe(
+      takeUntil(this.destroy$),
+      filter((query) => {
+        const queryString = JSON.stringify(query);
+        if (queryString === this.lastQueryParams) {
+          return false;
+        }
+        this.lastQueryParams = queryString;
+        return true;
+      }),
+      tap((query) => {
+        this.search = query?.['search'] ?? '';
 
-      this.search = query?.['search'] ?? '';
+        const page = query?.['page'] ? Number(query['page']) : 1;
+        const limit = query?.['limit'] ? Number(query['limit']) : 20;
 
-      const page = query?.['page'] ? Number(query['page']) : 1;
-      const limit = query?.['limit'] ? Number(query['limit']) : 20;
-
-      this.table_config.update(c => ({
-        ...c,
-        page: Number.isNaN(page) ? 1 : page,
-        limit: Number.isNaN(limit) ? 20 : limit,
-      }));
-
-      this.loadProducts();
+        this.table_config.update(c => ({
+          ...c,
+          page: Number.isNaN(page) ? 1 : page,
+          limit: Number.isNaN(limit) ? 20 : limit,
+        }));
+      }),
+      switchMap(() => {
+        this.table_config.update(c => ({ ...c, loading: true }));
+        return this.productService.getProducts(this.buildQueryParams());
+      })
+    ).subscribe({
+      next: (res) => this.applyProductsResponse(res),
+      error: (error) => this.handleLoadError(error),
     });
   }
 
@@ -94,44 +104,60 @@ export class ProductListComponent implements OnDestroy {
 
   loadProducts() {
     this.table_config.update(c => ({ ...c, loading: true }));
+    this.productService.getProducts(this.buildQueryParams()).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => this.applyProductsResponse(res),
+      error: (error) => this.handleLoadError(error),
+    });
+  }
+
+  private buildQueryParams() {
     const config = this.table_config();
     const page = Number.isNaN(config.page) ? 1 : config.page;
     const limit = Number.isNaN(config.limit) ? 20 : config.limit;
+    const params: Record<string, string | number> = { page, limit };
 
-    const params: any = { page, limit };
     const normalizedSearch = this.search?.trim();
     if (normalizedSearch) {
       // ext:ERP-123 => filtra por external_sku exacto
       if (normalizedSearch.toLowerCase().startsWith('ext:')) {
         const externalSku = normalizedSearch.slice(4).trim();
         if (externalSku) {
-          params.external_sku = externalSku;
+          params['external_sku'] = externalSku;
         }
       } else {
-        params.search = normalizedSearch;
+        params['search'] = normalizedSearch;
       }
     }
 
-    this.productService.getProducts(params).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (res) => {
-        this.table_config.update(c => ({
-          ...c,
-          rows: res.data,
-          totalResults: res.total,
-          hasNext: res.hasNext ?? false,
-          loading: false,
-        }));
-      },
-      error: (error) => {
-        console.error('Error loading products:', error);
-        this.table_config.update(c => ({ ...c, loading: false }));
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Error al cargar productos', type: 'error' },
-          duration: 5000
-        });
-      }
+    return params;
+  }
+
+  private applyProductsResponse(res: { data: Product[]; total: number; page: number; limit: number; totalPages: number; hasNext: boolean }) {
+    this.table_config.update(c => ({
+      ...c,
+      rows: res.data ?? [],
+      totalResults: res.total ?? 0,
+      page: res.page ?? c.page,
+      limit: res.limit ?? c.limit,
+      hasNext: res.hasNext ?? (res.page < res.totalPages),
+      loading: false,
+    }));
+  }
+
+  private handleLoadError(error: unknown) {
+    console.error('Error loading products:', error);
+    this.table_config.update(c => ({
+      ...c,
+      rows: [],
+      totalResults: 0,
+      hasNext: false,
+      loading: false,
+    }));
+    this.snackBar.openFromComponent(CustomSnackbarComponent, {
+      data: { message: 'Error al cargar productos', type: 'error' },
+      duration: 5000
     });
   }
 

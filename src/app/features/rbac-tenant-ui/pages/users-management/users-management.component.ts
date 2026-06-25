@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, combineLatest, map, switchMap, of, BehaviorSubject, startWith } from 'rxjs';
-import { User, Role } from '../../models';
+import { User, Role, getPosUserTypeBadgeLabel } from '../../models';
 import { StateService } from '../../services/state.service';
 import { UserService } from '../../services/user.service';
 import { RoleService } from '../../services/role.service';
@@ -13,7 +13,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { MatDialog } from '@angular/material/dialog';
-import { UserCreationDialogComponent } from '../../components/user-creation-dialog/user-creation-dialog.component';
+import { UserDetailModalComponent } from '../../components/user-detail-modal/user-detail-modal.component';
 import { PermissionSyncService } from '../../../../core/services/permission-sync.service';
 
 /**
@@ -126,17 +126,22 @@ export class UsersManagementComponent implements OnInit {
    * Opens the create user dialog
    */
   openCreateUserDialog(): void {
-    this.dialog.open(UserCreationDialogComponent, {
-      width: '466px',
+    this.dialog.open(UserDetailModalComponent, {
+      width: '620px',
+      maxHeight: '90vh',
       disableClose: false,
-      panelClass: 'custom-dialog-container'
+      panelClass: 'custom-dialog-container',
+      data: { user: null, isNew: true }
     }).afterClosed().subscribe(result => {
       if (result) {
-        // Refresh users list
-        this.userService.getUsers().subscribe(users => {
-          this.stateService.updateUsers(users);
-        });
+        this.refreshUsersList();
       }
+    });
+  }
+
+  private refreshUsersList(): void {
+    this.userService.refreshUsers().subscribe(users => {
+      this.stateService.updateUsers(users);
     });
   }
 
@@ -231,21 +236,13 @@ export class UsersManagementComponent implements OnInit {
    * Refreshes the users list and maintains the selected user
    */
   onUserUpdated(): void {
-    // Clear the user service cache first
-    this.userService.clearCache();
-    
-    // Get current selected user ID before refreshing
     let currentSelectedId: string | null = null;
     this.selectedUserId$.subscribe(id => currentSelectedId = id).unsubscribe();
-    
-    this.userService.getUsers().subscribe(users => {
+
+    this.userService.refreshUsers().subscribe(users => {
       this.stateService.updateUsers(users);
-      // Re-select the user to trigger UI update
       if (currentSelectedId) {
-        // Small delay to ensure state is updated
-        setTimeout(() => {
-          this.stateService.selectUser(currentSelectedId!);
-        }, 50);
+        this.stateService.selectUser(currentSelectedId);
       }
     });
   }
@@ -259,13 +256,38 @@ export class UsersManagementComponent implements OnInit {
     const normalizedStatus = this.getNormalizedStatus(status);
     switch (normalizedStatus) {
       case 'active':
-        return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800';
+        return 'user-card__status user-card__status--active';
       case 'inactive':
-        return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800';
+        return 'user-card__status user-card__status--inactive';
       case 'pending':
-        return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800';
+        return 'user-card__status user-card__status--pending';
       default:
-        return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800';
+        return 'user-card__status user-card__status--inactive';
     }
+  }
+
+  getUserDisplayName(user: User): string {
+    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    return fullName || user.email;
+  }
+
+  getUserInitials(user: User): string {
+    const first = user.first_name?.trim().charAt(0) || '';
+    const last = user.last_name?.trim().charAt(0) || '';
+    const initials = `${first}${last}`.toUpperCase();
+    return initials || user.email?.charAt(0).toUpperCase() || '?';
+  }
+
+  getBillingBranchLabel(user: User): string | null {
+    const branch = user.billing_branch;
+    if (!branch) {
+      return null;
+    }
+    const label = branch.display_name?.trim() || branch.code?.trim();
+    return label || null;
+  }
+
+  getPosTypeBadge(user: User): string | null {
+    return getPosUserTypeBadgeLabel(user.is_pos_user, user.pos_user_type);
   }
 }

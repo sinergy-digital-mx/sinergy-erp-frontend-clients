@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, shareReplay, map } from 'rxjs/operators';
-import { User, Role } from '../models';
+import { User, Role, CreateUserDto, UpdateUserDto } from '../models';
 import { environment } from '../../../../environments/environment';
 import { DataMapperService } from './data-mapper.service';
 
@@ -95,7 +95,7 @@ export class UserService {
    * @param userData - The user data to create
    * @returns Observable<void>
    */
-  createUser(userData: any): Observable<void> {
+  createUser(userData: CreateUserDto): Observable<void> {
     return this.http.post<void>(`${this.api}/tenant/users`, userData).pipe(
       tap(() => this.clearCache()),
       shareReplay(1)
@@ -108,10 +108,37 @@ export class UserService {
    * @param userData - The user data to update
    * @returns Observable<User>
    */
-  updateUser(userId: string, userData: any): Observable<User> {
+  updateUser(userId: string, userData: UpdateUserDto): Observable<User> {
     return this.http.put<any>(`${this.api}/tenant/users/${userId}`, userData).pipe(
       map(backendUser => this.dataMapper.mapUser(backendUser)),
       tap(() => this.clearCache()),
+      shareReplay(1)
+    );
+  }
+
+  getUserBranch(userId: string): Observable<string | null> {
+    return this.http.get<{ billing_branch_id?: string | null }>(`${this.api}/tenant/users/${userId}/branch`).pipe(
+      map((response) => response?.billing_branch_id ?? null)
+    );
+  }
+
+  updateUserBranch(userId: string, billingBranchId: string | null): Observable<void> {
+    return this.http.put<void>(`${this.api}/tenant/users/${userId}/branch`, {
+      billing_branch_id: billingBranchId
+    }).pipe(
+      tap(() => this.clearCache()),
+      shareReplay(1)
+    );
+  }
+
+  /**
+   * Fetches users bypassing cache (always hits API).
+   */
+  refreshUsers(): Observable<User[]> {
+    this.clearCache();
+    return this.http.get<any>(`${this.api}/tenant/users`).pipe(
+      map((backendUsers) => this.dataMapper.mapUsers(backendUsers)),
+      tap((users) => this.usersCache$.next(users)),
       shareReplay(1)
     );
   }

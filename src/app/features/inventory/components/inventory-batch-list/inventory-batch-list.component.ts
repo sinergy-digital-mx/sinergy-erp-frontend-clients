@@ -1,25 +1,30 @@
 import { Component, OnInit, signal, computed, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { InventoryBatchService, BatchFilters } from '../../services/inventory-batch.service';
 import { InventoryService } from '../../services/inventory.service';
 import { InventoryBatch } from '../../models/inventory-batch.model';
+import { InventorySummaryItem } from '../../models/inventory-item.model';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { PERMISSIONS } from '../../../../core/config/permissions.config';
+import { AuthService } from '../../../../core/services/auth.service';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { OrderDetailDialogComponent } from '../../../purchase-orders/components/order-detail-dialog/order-detail-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
-import { ChevronRight, ChevronDown } from 'lucide-angular';
+import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
+import { ChevronRight, ChevronDown, ArrowRightLeft } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-inventory-batch-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RemoveTrailingZerosPipe, DatatableWrapperComponent, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterLink, RemoveTrailingZerosPipe, DatatableWrapperComponent, LucideAngularModule],
   templateUrl: './inventory-batch-list.component.html',
   styleUrl: './inventory-batch-list.component.scss'
 })
@@ -29,6 +34,7 @@ export class InventoryBatchListComponent implements OnInit {
   readonly Math = Math;
   readonly ChevronRight = ChevronRight;
   readonly ChevronDown = ChevronDown;
+  readonly ArrowRightLeft = ArrowRightLeft;
 
   activeTabIndex = signal<number>(0);
 
@@ -60,6 +66,7 @@ export class InventoryBatchListComponent implements OnInit {
       { name: 'Orden de Compra', prop: 'purchase_order_id', sortable: false, canAutoResize: false, width: 140 },
       { name: 'TAG', prop: 'source_tag_identifier', sortable: false, canAutoResize: false, width: 160 },
       { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
+      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: false, width: 110 },
     ],
     externalPaging: true,
     externalSorting: true,
@@ -94,8 +101,17 @@ export class InventoryBatchListComponent implements OnInit {
     private inventoryBatchService: InventoryBatchService,
     private inventoryService: InventoryService,
     private warehouseService: WarehouseService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private authService: AuthService
   ) {}
+
+  get canCreateTransfer(): boolean {
+    return (
+      this.authService.hasPermission(PERMISSIONS.inventory.write) ||
+      this.authService.hasPermission(PERMISSIONS.inventory.transfer) ||
+      this.authService.hasPermission(PERMISSIONS.inventory.create)
+    );
+  }
 
   ngOnInit() {
     this.loadWarehouses();
@@ -191,6 +207,54 @@ export class InventoryBatchListComponent implements OnInit {
       maxWidth: '95vw',
       maxHeight: '90vh',
     });
+  }
+
+  openTransfer(item: InventorySummaryItem, event?: Event): void {
+    event?.stopPropagation();
+    this.dialog.open(CreateTransferDialogComponent, {
+      data: {
+        product_id: item.product_id,
+        warehouse_id: item.warehouse_id,
+      },
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+    }).afterClosed().subscribe((success) => {
+      if (success) {
+        this.loadSummary();
+        if (this.activeTabIndex() === 0) {
+          this.loadBatches();
+        }
+      }
+    });
+  }
+
+  openTransferFromBatch(batch: InventoryBatch, event: Event): void {
+    event.stopPropagation();
+    const qty = typeof batch.quantity === 'string' ? parseFloat(batch.quantity) : batch.quantity;
+    this.dialog.open(CreateTransferDialogComponent, {
+      data: {
+        product_id: batch.product_id,
+        warehouse_id: batch.warehouse_id,
+        preselected_batch_id: batch.id,
+        preselected_quantity: isNaN(qty) ? 0 : qty,
+      },
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+    }).afterClosed().subscribe((success) => {
+      if (success) {
+        this.loadBatches();
+        if (this.activeTabIndex() === 1) {
+          this.loadSummary();
+        }
+      }
+    });
+  }
+
+  batchHasStock(batch: InventoryBatch): boolean {
+    const qty = typeof batch.quantity === 'string' ? parseFloat(batch.quantity) : batch.quantity;
+    return !isNaN(qty) && qty > 0;
   }
 
   openPurchaseOrderDetail(batch: InventoryBatch, event: Event): void {

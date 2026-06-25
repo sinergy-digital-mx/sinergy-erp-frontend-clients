@@ -1,243 +1,735 @@
-<div class="payment-container">
-  <!-- Left Panel: Orders List -->
-  <div class="orders-panel">
-    <div class="panel-header">
-      <h2>Órdenes Pendientes</h2>
-      <input 
-        type="text" 
-        class="search-input"
-        placeholder="Buscar orden..."
-        [(ngModel)]="searchTerm"
-        (ngModelChange)="onSearchChange()"
-      />
-    </div>
-
-    <div class="orders-list">
-      @for (order of filteredOrders(); track order.id) {
-        <div 
-          class="order-card"
-          [class.selected]="selectedOrder()?.id === order.id"
-          (click)="selectOrder(order)"
-        >
-          <div class="order-header">
-            <span class="order-id">{{ order.order_number || order.id.substring(0, 8) }}</span>
-            <span class="order-total">{{ formatCurrency(order.total) }}</span>
-          </div>
-          <div class="order-details">
-            <p class="order-customer">{{ order.customer?.name || 'Sin cliente' }}</p>
-            <p class="order-warehouse">{{ order.warehouse?.name }}</p>
-            <p class="order-items">{{ order.items_count || 0 }} productos</p>
-          </div>
-        </div>
-      }
-
-      @if (filteredOrders().length === 0 && !loading()) {
-        <div class="empty-orders">
-          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          <p>No hay órdenes pendientes</p>
-        </div>
-      }
-
-      @if (loading()) {
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Cargando órdenes...</p>
-        </div>
-      }
-    </div>
-  </div>
-
-  <!-- Right Panel: Payment -->
-  <div class="payment-panel">
-    @if (selectedOrder()) {
-      <div class="panel-header">
-        <h2>Procesar Pago</h2>
-        <div class="header-actions">
-          <!-- Cash Shift Status -->
-          @if (activeCashShift()) {
-            <div class="shift-status-group">
-              <div class="shift-status active">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                Turno Activo
-              </div>
-              <button class="btn-close-shift" (click)="closeCashShift()" [disabled]="checkingShift()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="9" y1="9" x2="15" y2="15"></line>
-                  <line x1="15" y1="9" x2="9" y2="15"></line>
-                </svg>
-                Cerrar Turno
-              </button>
-            </div>
-          } @else {
-            <button class="btn-open-shift" (click)="openCashShift()" [disabled]="checkingShift()">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-              </svg>
-              {{ checkingShift() ? 'Verificando...' : 'Abrir Turno' }}
-            </button>
-          }
-          
-          <button class="btn-back" (click)="cancel()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="19" y1="12" x2="5" y2="12"></line>
-              <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            Volver
-          </button>
+<div #posRoot class="pos-take-root cobranza-root" [class.pos-take-root--fullscreen]="isFullscreen()">
+  <header class="pos-session-bar">
+    <div class="pos-session-bar__content">
+      <div class="pos-session-bar__left">
+        <div class="pos-session-bar__title">
+          <lucide-icon [img]="Wallet" class="pos-session-bar__title-icon" />
+          <span>Cobranza POS</span>
         </div>
       </div>
 
-      <div class="payment-content">
-        <!-- Order Summary -->
-        <div class="order-summary">
-          <h3>Resumen de Orden</h3>
-          <div class="summary-details">
-            <div class="detail-row">
-              <span>Orden:</span>
-              <strong>{{ selectedOrder()!.order_number || selectedOrder()!.id.substring(0, 8) }}</strong>
-            </div>
-            <div class="detail-row">
-              <span>Cliente:</span>
-              <strong>{{ selectedOrder()!.customer?.name || 'Sin cliente' }}</strong>
-            </div>
-            <div class="detail-row">
-              <span>Almacén:</span>
-              <strong>{{ selectedOrder()!.warehouse?.name }}</strong>
-            </div>
-            <div class="detail-row">
-              <span>Productos:</span>
-              <strong>{{ selectedOrder()!.items_count || selectedOrder()!.lines?.length || 0 }}</strong>
-            </div>
+      <div class="pos-session-bar__center">
+        @if (posState.checkingShift()) {
+          <span class="pos-session-bar__checking">Verificando corte…</span>
+        } @else if (shiftOpen() && shift(); as currentShift) {
+          <div class="pos-pill pos-pill--ok">
+            <lucide-icon [img]="Package" class="pos-ic pos-ic--sm" />
+            <span>Corte abierto</span>
           </div>
-
-          <!-- Product Lines -->
-          @if (selectedOrder()!.lines && selectedOrder()!.lines.length > 0) {
-            <div class="order-lines">
-              <h4>Productos</h4>
-              @for (line of selectedOrder()!.lines; track line.id) {
-                <div class="line-item">
-                  <div class="line-info">
-                    <span class="line-product">{{ line.product?.name || 'Producto' }}</span>
-                    <span class="line-quantity">x{{ line.quantity }} {{ line.uom?.abbreviation || line.uom?.name || '' }}</span>
-                  </div>
-                  <span class="line-total">{{ formatCurrency(line.line_total || line.subtotal || 0) }}</span>
-                </div>
-              }
-            </div>
-          }
-
-          <div class="summary-totals">
-            <div class="total-row">
-              <span>Subtotal:</span>
-              <strong>{{ formatCurrency(selectedOrder()!.subtotal || 0) }}</strong>
-            </div>
-            <div class="total-row">
-              <span>Impuestos:</span>
-              <strong>{{ formatCurrency(selectedOrder()!.tax || 0) }}</strong>
-            </div>
-            <div class="total-row">
-              <span>Descuento:</span>
-              <strong>{{ formatCurrency(selectedOrder()!.discount || 0) }}</strong>
-            </div>
-            @if (selectedOrder()!.tip && selectedOrder()!.tip > 0) {
-              <div class="total-row">
-                <span>Propina:</span>
-                <strong>{{ formatCurrency(selectedOrder()!.tip) }}</strong>
-              </div>
-            }
-            <div class="total-row grand">
-              <span>Total a Pagar:</span>
-              <strong>{{ formatCurrency(selectedOrder()!.total) }}</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- Payment Method -->
-        <div class="payment-method">
-          <h3>Método de Pago</h3>
-          <div class="method-options">
-            @for (method of paymentMethods; track method.value) {
-              <div 
-                class="method-option"
-                [class.selected]="paymentMethod() === method.value"
-                (click)="paymentMethod.set(method.value)"
-              >
-                <span class="method-icon">{{ method.icon }}</span>
-                <span class="method-label">{{ method.label }}</span>
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Payment Amount -->
-        <div class="payment-amount">
-          <h3>Monto Recibido</h3>
-          <div class="amount-input-wrapper">
-            <span class="currency-symbol">$</span>
-            <input 
-              type="number" 
-              class="amount-input"
-              [(ngModel)]="paymentAmount"
-              min="0"
-              step="0.01"
-            />
-          </div>
-
-          @if (paymentMethod() !== 'cash') {
-            <div class="reference-input">
-              <label>Referencia / Autorización</label>
-              <input 
-                type="text" 
-                [(ngModel)]="paymentReference"
-                placeholder="Número de referencia"
-              />
-            </div>
-          }
-        </div>
-
-        <!-- Change -->
-        @if (paymentMethod() === 'cash' && calculateChange() > 0) {
-          <div class="change-display">
-            <span>Cambio:</span>
-            <strong>{{ formatCurrency(calculateChange()) }}</strong>
+          <span class="pos-session-meta">{{ branchLabel() }} · Ventas {{ shiftSalesTotal(currentShift) }}</span>
+        } @else {
+          <div class="pos-pill pos-pill--warn">
+            <span>Sin corte abierto</span>
           </div>
         }
+      </div>
 
-        <!-- Actions -->
-        <div class="payment-actions">
-          <button 
-            class="btn-cancel" 
-            (click)="cancel()"
-            [disabled]="processing()"
-          >
-            Cancelar
-          </button>
-          <button 
-            class="btn-process" 
-            (click)="processPayment()"
-            [disabled]="processing() || paymentAmount() <= 0"
-          >
-            {{ processing() ? 'Procesando...' : 'Procesar Pago' }}
-          </button>
+      <div class="pos-session-bar__right">
+        <button type="button" class="pos-btn pos-btn--ghost pos-btn--icon" (click)="openPrinterSettings()" title="Impresora térmica">
+          <lucide-icon [img]="Printer" class="pos-ic pos-ic--btn" />
+        </button>
+        <button type="button" class="pos-btn pos-btn--ghost pos-btn--icon" (click)="toggleFullscreen()">
+          <lucide-icon [img]="isFullscreen() ? Minimize2 : Maximize2" class="pos-ic pos-ic--btn" />
+        </button>
+        <div class="pos-terminal-chip">
+          <lucide-icon [img]="Monitor" class="pos-ic pos-ic--sm" />
+          <span class="pos-terminal-chip__label">{{ terminalLabel() }}</span>
         </div>
       </div>
-    } @else {
-      <div class="no-selection">
-        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-          <line x1="1" y1="10" x2="23" y2="10"></line>
-        </svg>
-        <h3>Selecciona una orden</h3>
-        <p>Elige una orden de la lista para procesar el pago</p>
+    </div>
+  </header>
+
+  @if (!shiftOpen() && !posState.checkingShift()) {
+    <section class="cobranza-open-shift">
+      <div class="cobranza-open-shift__card">
+        <lucide-icon [img]="Wallet" class="cobranza-open-shift__icon" />
+        <h2>Abrir corte del día</h2>
+        <p>Registra el efectivo inicial para comenzar a cobrar ventas pendientes de la sucursal.</p>
+        <button type="button" class="pos-btn pos-btn--primary pos-btn--lg" (click)="openDailyShift()">
+          Abrir corte
+        </button>
       </div>
-    }
-  </div>
+    </section>
+  }
+
+  @if (shiftOpen() && shift(); as currentShift) {
+    <section class="cobranza-toolbar">
+      <div class="cobranza-stat-chip">
+        <span>Efectivo inicial</span>
+        <strong>{{ shiftOpeningMxn(currentShift) }}</strong>
+      </div>
+      <div class="cobranza-stat-chip">
+        <span>Ventas del día</span>
+        <strong>{{ shiftSalesTotal(currentShift) }}</strong>
+      </div>
+      <div class="cobranza-stat-chip">
+        <span>Cortes parciales</span>
+        <strong>{{ shiftPartialCount(currentShift) }}</strong>
+      </div>
+      <div class="cobranza-toolbar__actions">
+        <button type="button" class="pos-btn pos-btn--ghost" (click)="openPartialShift()">Corte parcial</button>
+        <button type="button" class="pos-btn pos-btn--muted" (click)="closeDailyShift()">Cerrar corte</button>
+      </div>
+    </section>
+
+    <nav class="cobranza-dashboard-tabs" aria-label="Secciones de cobranza">
+      <button
+        type="button"
+        class="cobranza-dashboard-tab"
+        [class.cobranza-dashboard-tab--active]="dashboardTab() === 'pending'"
+        (click)="setDashboardTab('pending')">
+        Por cobrar
+        @if (pendingSales().length > 0) {
+          <span class="cobranza-dashboard-tab__badge">{{ pendingSales().length }}</span>
+        }
+      </button>
+      <button
+        type="button"
+        class="cobranza-dashboard-tab"
+        [class.cobranza-dashboard-tab--active]="dashboardTab() === 'collected'"
+        (click)="setDashboardTab('collected')">
+        Órdenes cobradas
+        @if ((collectedSummary()?.count ?? collectedSales().length) > 0) {
+          <span class="cobranza-dashboard-tab__badge cobranza-dashboard-tab__badge--muted">
+            {{ collectedSummary()?.count ?? collectedSales().length }}
+          </span>
+        }
+      </button>
+    </nav>
+
+    <div class="cobranza-body">
+      <aside class="cobranza-panel cobranza-panel--list">
+        @if (dashboardTab() === 'pending') {
+          <div class="cobranza-panel__head">
+            <div class="cobranza-panel__title">
+              <h2>Ventas por cobrar</h2>
+              @if (pendingSales().length > 0) {
+                <span class="cobranza-count">{{ pendingSales().length }}</span>
+              }
+            </div>
+            <button type="button" class="cobranza-refresh-btn" (click)="refreshListPanel()" title="Actualizar">
+              <lucide-icon [img]="RefreshCw" />
+            </button>
+          </div>
+
+          <div class="cobranza-panel__content">
+          <div class="cobranza-search">
+            <lucide-icon [img]="Search" class="cobranza-search__icon" />
+            <input
+              type="search"
+              placeholder="Buscar folio o vendedor…"
+              [ngModel]="searchFolio()"
+              (ngModelChange)="searchFolio.set($event)"
+              autocomplete="off" />
+          </div>
+
+          <div class="cobranza-sales-scroll">
+            @if (loading()) {
+              <p class="cobranza-empty">Cargando ventas…</p>
+            } @else if (filteredPendingSales().length === 0) {
+              <p class="cobranza-empty">No hay ventas pendientes de cobro.</p>
+            } @else {
+              <ul class="cobranza-sales">
+                @for (sale of filteredPendingSales(); track sale.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="cobranza-sale"
+                      [class.cobranza-sale--selected]="selectedSale()?.id === sale.id"
+                      (click)="selectSale(sale)">
+                      <div class="cobranza-sale__row">
+                        <strong>{{ sale.folio || sale.id.substring(0, 8) }}</strong>
+                        <span class="cobranza-sale__total">{{ saleTotal(sale) }}</span>
+                      </div>
+                      <div class="cobranza-sale__row cobranza-sale__row--meta">
+                        <span>{{ formatDate(sale.created_at) }}</span>
+                        <span>{{ sellerLabel(sale) }}</span>
+                      </div>
+                      <div class="cobranza-sale__row cobranza-sale__row--customer">
+                        <span>{{ customerLabel(sale) }}</span>
+                        @if (sale.customer?.is_walk_in) {
+                          <span class="cobranza-chip">Mostrador</span>
+                        }
+                      </div>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+          </div>
+        } @else {
+          <div class="cobranza-panel__head">
+            <div class="cobranza-panel__title">
+              <h2>Órdenes cobradas</h2>
+            </div>
+            <button type="button" class="cobranza-refresh-btn" (click)="refreshListPanel()" title="Actualizar">
+              <lucide-icon [img]="RefreshCw" />
+            </button>
+          </div>
+
+          <div class="cobranza-panel__content">
+          <div class="cobranza-collected-summary">
+            <span class="cobranza-collected-summary__icon-wrap" aria-hidden="true">
+              <lucide-icon [img]="Receipt" class="cobranza-collected-summary__icon" />
+            </span>
+            <div class="cobranza-collected-summary__text">
+              <span class="cobranza-collected-summary__label">Resumen del corte</span>
+              <strong>{{ collectedSummaryLabel() }}</strong>
+            </div>
+          </div>
+
+          <div class="cobranza-search">
+            <lucide-icon [img]="Search" class="cobranza-search__icon" />
+            <input
+              type="search"
+              placeholder="Buscar folio, cliente o pago…"
+              [ngModel]="searchCollectedFolio()"
+              (ngModelChange)="searchCollectedFolio.set($event)"
+              autocomplete="off" />
+          </div>
+
+          <div class="cobranza-sales-scroll">
+            @if (loadingCollected()) {
+              <p class="cobranza-empty">Cargando cobros…</p>
+            } @else if (filteredCollectedSales().length === 0) {
+              <p class="cobranza-empty">No hay ventas cobradas en este corte.</p>
+            } @else {
+              <ul class="cobranza-sales">
+                @for (item of filteredCollectedSales(); track item.collection_id || item.sales_order?.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="cobranza-sale cobranza-sale--collected"
+                      [class.cobranza-sale--selected]="selectedCollectedSale()?.collection_id === item.collection_id || selectedCollectedSale()?.sales_order?.id === item.sales_order?.id"
+                      (click)="selectCollectedSale(item)">
+                      <div class="cobranza-sale__row">
+                        <strong>{{ collectedSaleFolio(item) }}</strong>
+                        <span class="cobranza-sale__total">{{ collectedSaleTotal(item) }}</span>
+                      </div>
+                      <div class="cobranza-sale__row cobranza-sale__row--meta">
+                        <span>{{ formatDate(item.collected_at) }}</span>
+                        <span class="cobranza-pay-chip">{{ paymentMethodLabel(item.payment?.payment_method) }}</span>
+                      </div>
+                      <div class="cobranza-sale__row cobranza-sale__row--customer">
+                        <span>{{ collectedSaleCustomerLabel(item) }}</span>
+                        <lucide-icon [img]="ChevronRight" class="pos-ic pos-ic--xs" />
+                      </div>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+          </div>
+        }
+      </aside>
+
+      @if (dashboardTab() === 'pending') {
+      <main class="cobranza-panel cobranza-panel--collect">
+        @if (selectedSale(); as sale) {
+          <div class="cobranza-collect-scroll">
+            <div class="cobranza-panel__head cobranza-panel__head--collect">
+              <div>
+                <h2>Cobrar venta</h2>
+                <p class="cobranza-panel__sub">{{ sale.folio || sale.id }}</p>
+              </div>
+              <button type="button" class="cobranza-head-btn" (click)="clearSelectedSale()">Cancelar</button>
+            </div>
+
+            <div class="cobranza-collect-body">
+            <section class="cobranza-total-card">
+              <div class="cobranza-total-card__top">
+                <span class="cobranza-total-card__folio">{{ sale.folio || sale.id }}</span>
+                <time class="cobranza-total-card__date">{{ formatDate(sale.created_at) }}</time>
+              </div>
+              <div class="cobranza-total-card__amount">
+                <span>Total a cobrar</span>
+                <strong>{{ saleTotal(sale) }}</strong>
+              </div>
+              <div class="cobranza-total-card__meta">
+                <div>
+                  <span>Vendedor</span>
+                  <strong>{{ sellerLabel(sale) }}</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="cobranza-block">
+              <h3 class="cobranza-block__title">Cliente</h3>
+              <div class="cobranza-customer-options">
+                <label class="cobranza-radio" [class.cobranza-radio--on]="customerMode() === 'walk_in'">
+                  <input
+                    type="radio"
+                    name="customerMode"
+                    [checked]="customerMode() === 'walk_in'"
+                    (change)="setCustomerMode('walk_in')" />
+                  <span class="cobranza-radio__icon">
+                    <lucide-icon [img]="Store" class="pos-ic pos-ic--sm" />
+                  </span>
+                  <span class="cobranza-radio__text">
+                    <strong>Público en General</strong>
+                    <span>Venta mostrador</span>
+                  </span>
+                </label>
+
+                <label class="cobranza-radio" [class.cobranza-radio--on]="customerMode() === 'registered'">
+                  <input
+                    type="radio"
+                    name="customerMode"
+                    [checked]="customerMode() === 'registered'"
+                    (change)="setCustomerMode('registered')" />
+                  <span class="cobranza-radio__icon">
+                    <lucide-icon [img]="User" class="pos-ic pos-ic--sm" />
+                  </span>
+                  <span class="cobranza-radio__text">
+                    <strong>Cliente registrado</strong>
+                    <span>Buscar en catálogo</span>
+                  </span>
+                </label>
+              </div>
+
+              @if (customerMode() === 'registered') {
+                <button type="button" class="cobranza-customer-pick" (click)="openCustomerPicker()">
+                  <span class="cobranza-customer-pick__avatar">
+                    {{ selectedCustomerName().slice(0, 2).toUpperCase() }}
+                  </span>
+                  <span class="cobranza-customer-pick__body">
+                    <span class="cobranza-customer-pick__label">Cliente seleccionado</span>
+                    <span class="cobranza-customer-pick__name">{{ selectedCustomerName() }}</span>
+                  </span>
+                  <lucide-icon [img]="ChevronRight" class="pos-ic pos-ic--sm" />
+                </button>
+              }
+            </section>
+
+            <section class="cobranza-block">
+              <h3 class="cobranza-block__title">Método de pago</h3>
+
+              <div class="cobranza-pay-tabs" role="tablist">
+                <button
+                  type="button"
+                  class="cobranza-pay-tab"
+                  [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'cash'"
+                  (click)="setPaymentMethod('cash')">
+                  Efectivo
+                </button>
+                <button
+                  type="button"
+                  class="cobranza-pay-tab"
+                  [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'transfer'"
+                  (click)="setPaymentMethod('transfer')">
+                  Transferencia
+                </button>
+                <button
+                  type="button"
+                  class="cobranza-pay-tab"
+                  [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'card'"
+                  (click)="setPaymentMethod('card')">
+                  Tarjeta
+                </button>
+                <button
+                  type="button"
+                  class="cobranza-pay-tab"
+                  [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'mixed'"
+                  (click)="setPaymentMethod('mixed')">
+                  Mixto
+                </button>
+              </div>
+
+              <div class="cobranza-pay-form">
+                @if (collectForm().paymentMethod === 'cash') {
+                  <p class="cobranza-cash-hint">
+                    Toca los billetes que entregó el cliente o escribe el monto manual abajo. Puedes combinar pesos y dólares.
+                  </p>
+
+                  <div class="cobranza-cash-currencies">
+                    <section class="cobranza-cash-currency cobranza-cash-currency--mxn">
+                      <h4 class="cobranza-cash-currency__title">Pesos (MXN)</h4>
+
+                      <div class="cobranza-bill-btns">
+                        @for (denom of cashMxnDenominations; track denom) {
+                          <button
+                            type="button"
+                            class="cobranza-bill-btn"
+                            [class.cobranza-bill-btn--on]="getBillCount('MXN', denom) > 0"
+                            (click)="tapBill('MXN', denom)">
+                            ${{ denom }}
+                            @if (getBillCount('MXN', denom) > 0) {
+                              <span class="cobranza-bill-btn__count">×{{ getBillCount('MXN', denom) }}</span>
+                            }
+                          </button>
+                        }
+                      </div>
+
+                      <label class="cobranza-manual-received">
+                        <span>Monto manual recibido</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          class="cobranza-field__input cobranza-field__input--highlight"
+                          placeholder="0.00"
+                          [ngModel]="cashManualMxn()"
+                          (ngModelChange)="setManualCashReceived('MXN', parseMoneyInput($event))" />
+                      </label>
+                      <p class="cobranza-cash-total">Total recibido: <strong>{{ cashReceivedMxnLabel() }}</strong></p>
+                    </section>
+
+                    <section class="cobranza-cash-currency cobranza-cash-currency--usd">
+                      <div class="cobranza-cash-currency__head">
+                        <h4 class="cobranza-cash-currency__title">Dólares (USD)</h4>
+                        @if (exchangeRateFromConfig()) {
+                          <span class="cobranza-tc-badge">{{ exchangeRateBadgeLabel() }}</span>
+                        } @else {
+                          <label class="cobranza-tc-badge cobranza-tc-badge--edit">
+                            TC $
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.0001"
+                              [ngModel]="collectForm().usdExchangeRate"
+                              (ngModelChange)="onUsdExchangeRateChange($event)" />
+                          </label>
+                        }
+                      </div>
+
+                      <div class="cobranza-bill-btns">
+                        @for (denom of cashUsdDenominations; track denom) {
+                          <button
+                            type="button"
+                            class="cobranza-bill-btn cobranza-bill-btn--usd"
+                            [class.cobranza-bill-btn--on]="getBillCount('USD', denom) > 0"
+                            (click)="tapBill('USD', denom)">
+                            USD {{ denom }}
+                            @if (getBillCount('USD', denom) > 0) {
+                              <span class="cobranza-bill-btn__count">×{{ getBillCount('USD', denom) }}</span>
+                            }
+                          </button>
+                        }
+                      </div>
+
+                      <label class="cobranza-manual-received">
+                        <span>Monto manual recibido</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          class="cobranza-field__input cobranza-field__input--highlight"
+                          placeholder="0.00"
+                          [ngModel]="cashManualUsd()"
+                          (ngModelChange)="setManualCashReceived('USD', parseMoneyInput($event))" />
+                      </label>
+                      <p class="cobranza-cash-total">Total recibido: <strong>{{ cashReceivedUsdLabel() }}</strong></p>
+                    </section>
+                  </div>
+
+                  <div
+                    class="cobranza-cash-result"
+                    [class.cobranza-cash-result--change]="changeMxn() > 0 || changeUsd() > 0"
+                    [class.cobranza-cash-result--short]="cashShortfallMxn() > 0">
+                    @if (cashShortfallMxn() > 0) {
+                      <div class="cobranza-cash-result__item cobranza-cash-result__item--warn">
+                        <span>Falta por recibir</span>
+                        <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
+                      </div>
+                    }
+                    <div class="cobranza-cash-result__item">
+                      <span>Cambio a entregar</span>
+                      <div class="cobranza-cash-result__values">
+                        @if (changeMxn() > 0) {
+                          <strong class="cobranza-cash-result__change">{{ formatCurrency(changeMxn()) }}</strong>
+                        }
+                        @if (changeUsd() > 0) {
+                          <strong class="cobranza-cash-result__change">{{ formatCurrencyUsd(changeUsd()) }}</strong>
+                        }
+                        @if (changeMxn() <= 0 && changeUsd() <= 0) {
+                          <strong class="cobranza-cash-result__change">{{ formatCurrency(0) }}</strong>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                @if (collectForm().paymentMethod === 'transfer') {
+                  <label class="cobranza-field">
+                    <span>Monto MXN</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      [ngModel]="collectForm().amountTransferMxn"
+                      (ngModelChange)="patchCollectForm({ amountTransferMxn: +$event })" />
+                  </label>
+                  <label class="cobranza-field">
+                    <span>Referencia SPEI</span>
+                    <input
+                      type="text"
+                      placeholder="SPEI-123456"
+                      [ngModel]="collectForm().transferReference"
+                      (ngModelChange)="patchCollectForm({ transferReference: $event })" />
+                  </label>
+                }
+
+                @if (collectForm().paymentMethod === 'card') {
+                  <label class="cobranza-field">
+                    <span>Monto MXN</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      [ngModel]="collectForm().amountCardMxn"
+                      (ngModelChange)="patchCollectForm({ amountCardMxn: +$event })" />
+                  </label>
+                  <label class="cobranza-field">
+                    <span>Referencia (opcional)</span>
+                    <input
+                      type="text"
+                      placeholder="Últimos 4 dígitos"
+                      [ngModel]="collectForm().cardReference"
+                      (ngModelChange)="patchCollectForm({ cardReference: $event })" />
+                  </label>
+                }
+
+                @if (collectForm().paymentMethod === 'mixed') {
+                  <div class="cobranza-pay-progress">
+                    <div class="cobranza-pay-progress__track">
+                      <div
+                        class="cobranza-pay-progress__fill"
+                        [class.cobranza-pay-progress__fill--ok]="amountsOk()"
+                        [style.width.%]="appliedProgress()"></div>
+                    </div>
+                    <div class="cobranza-pay-progress__labels">
+                      <span>Suma aplicada</span>
+                      <strong [class.cobranza-pay-progress__ok]="amountsOk()">
+                        {{ formatCurrency(appliedTotal()) }}
+                        <em>de {{ saleTotal(sale) }}</em>
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div class="cobranza-field-grid cobranza-field-grid--2">
+                    <label class="cobranza-field">
+                      <span>Efectivo MXN</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        [ngModel]="collectForm().mixedCashMxn"
+                        (ngModelChange)="patchCollectForm({ mixedCashMxn: parseMoneyInput($event) })" />
+                    </label>
+                    <label class="cobranza-field">
+                      <span>Recibió MXN</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="cobranza-field__input--highlight"
+                        [ngModel]="collectForm().mixedReceivedMxn"
+                        (ngModelChange)="patchCollectForm({ mixedReceivedMxn: parseMoneyInput($event) })" />
+                    </label>
+                  </div>
+
+                  <div class="cobranza-quick-btns cobranza-quick-btns--inline">
+                    <button type="button" class="cobranza-quick-btn" (click)="setExactCashReceived()">Exacto</button>
+                    <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(50)">+$50</button>
+                    <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(100)">+$100</button>
+                    <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(200)">+$200</button>
+                    <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(500)">+$500</button>
+                  </div>
+
+                  <label class="cobranza-field">
+                    <span>Transferencia MXN</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      [ngModel]="collectForm().mixedTransferMxn"
+                      (ngModelChange)="patchCollectForm({ mixedTransferMxn: parseMoneyInput($event) })" />
+                  </label>
+                  @if (collectForm().mixedTransferMxn > 0) {
+                    <label class="cobranza-field">
+                      <span>Referencia SPEI</span>
+                      <input
+                        type="text"
+                        placeholder="SPEI-123456"
+                        [ngModel]="collectForm().mixedTransferRef"
+                        (ngModelChange)="patchCollectForm({ mixedTransferRef: $event })" />
+                    </label>
+                  }
+
+                  @if (collectForm().mixedCashMxn > 0) {
+                    <div
+                      class="cobranza-cash-result"
+                      [class.cobranza-cash-result--change]="changeMxn() > 0"
+                      [class.cobranza-cash-result--short]="cashShortfallMxn() > 0">
+                      @if (cashShortfallMxn() > 0) {
+                        <div class="cobranza-cash-result__item cobranza-cash-result__item--warn">
+                          <span>Falta por recibir</span>
+                          <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
+                        </div>
+                      }
+                      <div class="cobranza-cash-result__item">
+                        <span>Cambio a entregar</span>
+                        <strong class="cobranza-cash-result__change">{{ formatCurrency(changeMxn()) }}</strong>
+                      </div>
+                    </div>
+                  }
+                }
+
+                @if (collectError()) {
+                  <p class="cobranza-form-error">{{ collectError() }}</p>
+                }
+              </div>
+            </section>
+            </div>
+
+            <div class="cobranza-collect-actions">
+              <button type="button" class="cobranza-action cobranza-action--ghost" (click)="clearSelectedSale()" [disabled]="collecting()">
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="cobranza-action cobranza-action--primary"
+                (click)="collectSelected()"
+                [disabled]="collecting() || printingReceipt() || !amountsOk()">
+                {{ collecting() || printingReceipt() ? 'Cobrando…' : 'Confirmar cobro' }}
+                <span class="cobranza-action__amount">{{ saleTotal(sale) }}</span>
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="cobranza-empty-state">
+            <lucide-icon [img]="Wallet" class="cobranza-empty-state__icon" />
+            <h3>Selecciona una venta</h3>
+            <p>Elige una orden de la lista para asignar cliente y método de pago.</p>
+          </div>
+        }
+      </main>
+      } @else {
+      <main class="cobranza-panel cobranza-panel--collect">
+        @if (selectedCollectedSale(); as item) {
+          <div class="cobranza-collect-scroll">
+            <div class="cobranza-panel__head cobranza-panel__head--collect">
+              <div>
+                <h2>Detalle del cobro</h2>
+                <p class="cobranza-panel__sub">{{ collectedSaleFolio(item) }}</p>
+              </div>
+              <div class="cobranza-panel__head-actions">
+                <button
+                  type="button"
+                  class="cobranza-head-btn cobranza-head-btn--print"
+                  (click)="reprintTicket(item)"
+                  [disabled]="printingReceipt()">
+                  <lucide-icon [img]="Printer" class="pos-ic pos-ic--sm" />
+                  {{ printingReceipt() ? 'Imprimiendo…' : 'Reimprimir ticket' }}
+                </button>
+                <button type="button" class="cobranza-head-btn" (click)="clearSelectedCollected()">
+                  <lucide-icon [img]="ChevronLeft" class="pos-ic pos-ic--sm" />
+                  Volver
+                </button>
+              </div>
+            </div>
+
+            <div class="cobranza-collect-body">
+            <section class="cobranza-total-card">
+              <div class="cobranza-total-card__top">
+                <span class="cobranza-total-card__folio">{{ collectedSaleFolio(item) }}</span>
+                <time class="cobranza-total-card__date">{{ formatDate(item.collected_at) }}</time>
+              </div>
+              <div class="cobranza-total-card__amount">
+                <span>Total cobrado</span>
+                <strong>{{ collectedSaleTotal(item) }}</strong>
+              </div>
+              <div class="cobranza-total-card__meta">
+                <div>
+                  <span>Método</span>
+                  <strong>{{ paymentMethodLabel(item.payment?.payment_method) }}</strong>
+                </div>
+                <div>
+                  <span>Cliente</span>
+                  <strong>{{ collectedSaleCustomerLabel(item) }}</strong>
+                </div>
+                <div>
+                  <span>Cobró</span>
+                  <strong>{{ collectedByLabel(item) }}</strong>
+                </div>
+                @if (collectedSaleSellerLabel(item) !== '—') {
+                  <div>
+                    <span>Vendedor</span>
+                    <strong>{{ collectedSaleSellerLabel(item) }}</strong>
+                  </div>
+                }
+              </div>
+            </section>
+
+            <section class="cobranza-block">
+              <h3 class="cobranza-block__title">Desglose de pago</h3>
+              @if (loadingCollectionDetail()) {
+                <p class="cobranza-empty cobranza-empty--inline">Cargando detalle…</p>
+              } @else {
+                @if (collectionDetailPayment(); as pay) {
+                  <dl class="cobranza-detail-list">
+                    @if (pay['amount_cash_mxn'] != null && +pay['amount_cash_mxn'] > 0) {
+                      <div><dt>Efectivo MXN</dt><dd>{{ moneyLabel(pay['amount_cash_mxn']) }}</dd></div>
+                    }
+                    @if (pay['amount_cash_usd'] != null && +pay['amount_cash_usd'] > 0) {
+                      <div><dt>Efectivo USD</dt><dd>{{ formatCurrencyUsd(+pay['amount_cash_usd']) }}</dd></div>
+                    }
+                    @if (pay['usd_exchange_rate'] != null && +pay['usd_exchange_rate'] > 0) {
+                      <div><dt>Tipo de cambio</dt><dd>{{ pay['usd_exchange_rate'] }}</dd></div>
+                    }
+                    @if (pay['amount_transfer_mxn'] != null && +pay['amount_transfer_mxn'] > 0) {
+                      <div><dt>Transferencia</dt><dd>{{ moneyLabel(pay['amount_transfer_mxn']) }}</dd></div>
+                    }
+                    @if (pay['transfer_reference']) {
+                      <div><dt>Ref. SPEI</dt><dd>{{ pay['transfer_reference'] }}</dd></div>
+                    }
+                    @if (pay['amount_card_mxn'] != null && +pay['amount_card_mxn'] > 0) {
+                      <div><dt>Tarjeta</dt><dd>{{ moneyLabel(pay['amount_card_mxn']) }}</dd></div>
+                    }
+                    @if (pay['card_reference']) {
+                      <div><dt>Ref. tarjeta</dt><dd>{{ pay['card_reference'] }}</dd></div>
+                    }
+                    @if (pay['received_cash_mxn'] != null && +pay['received_cash_mxn'] > 0) {
+                      <div><dt>Recibió MXN</dt><dd>{{ moneyLabel(pay['received_cash_mxn']) }}</dd></div>
+                    }
+                    @if (pay['change_cash_mxn'] != null && +pay['change_cash_mxn'] > 0) {
+                      <div class="cobranza-detail-list__highlight">
+                        <dt>Cambio MXN</dt><dd>{{ moneyLabel(pay['change_cash_mxn']) }}</dd>
+                      </div>
+                    }
+                    @if (pay['change_cash_usd'] != null && +pay['change_cash_usd'] > 0) {
+                      <div class="cobranza-detail-list__highlight">
+                        <dt>Cambio USD</dt><dd>{{ formatCurrencyUsd(+pay['change_cash_usd']) }}</dd>
+                      </div>
+                    }
+                  </dl>
+                } @else if (item.payment) {
+                  <dl class="cobranza-detail-list">
+                    @if (item.payment.amount_cash_mxn != null && +item.payment.amount_cash_mxn > 0) {
+                      <div><dt>Efectivo MXN</dt><dd>{{ moneyLabel(item.payment.amount_cash_mxn) }}</dd></div>
+                    }
+                    @if (item.payment.change_cash_mxn != null && +item.payment.change_cash_mxn > 0) {
+                      <div class="cobranza-detail-list__highlight">
+                        <dt>Cambio MXN</dt><dd>{{ moneyLabel(item.payment.change_cash_mxn) }}</dd>
+                      </div>
+                    }
+                  </dl>
+                }
+              }
+            </section>
+            </div>
+          </div>
+        } @else {
+          <div class="cobranza-empty-state">
+            <lucide-icon [img]="Receipt" class="cobranza-empty-state__icon" />
+            <h3>Historial del corte</h3>
+            <p>Selecciona una orden cobrada para ver el desglose completo del pago.</p>
+          </div>
+        }
+      </main>
+      }
+    </div>
+  }
 </div>

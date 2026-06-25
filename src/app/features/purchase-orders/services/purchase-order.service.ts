@@ -3,7 +3,7 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Observable, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { Document, DocumentType, PurchaseOrder } from '../models/purchase-order.model';
+import { Document, DocumentType, PurchaseOrder, RegenerateDocumentResponse } from '../models/purchase-order.model';
 import { LineItem } from '../models/line-item.model';
 import { TaxCalculatorService } from './tax-calculator.service';
 import { 
@@ -326,8 +326,11 @@ export class PurchaseOrderService {
   /**
    * Regenerate original purchase order PDF
    */
-  regenerateOriginalPDF(orderId: string): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/${orderId}/regenerate-documento-original`, {})
+  regenerateOriginalPDF(orderId: string, language: 'es' | 'en', keepPrevious = false): Observable<RegenerateDocumentResponse> {
+    return this.http.post<RegenerateDocumentResponse>(
+      `${this.baseUrl}/${orderId}/regenerate-documento-original`,
+      { language, keep_previous: keepPrevious }
+    )
       .pipe(
         tap(() => {
           console.log('[PurchaseOrder] Original PDF regenerated successfully', { id: orderId });
@@ -342,8 +345,11 @@ export class PurchaseOrderService {
   /**
    * Regenerate purchase order receipt PDF (only if status is "Recibida")
    */
-  regenerateReceiptPDF(orderId: string): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/${orderId}/regenerate-recepcion`, {})
+  regenerateReceiptPDF(orderId: string, language: 'es' | 'en', keepPrevious = false): Observable<RegenerateDocumentResponse> {
+    return this.http.post<RegenerateDocumentResponse>(
+      `${this.baseUrl}/${orderId}/regenerate-recepcion`,
+      { language, keep_previous: keepPrevious }
+    )
       .pipe(
         tap(() => {
           console.log('[PurchaseOrder] Receipt PDF regenerated successfully', { id: orderId });

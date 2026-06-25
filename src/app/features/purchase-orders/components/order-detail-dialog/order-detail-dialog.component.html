@@ -307,6 +307,7 @@
                   <thead>
                     <tr>
                       <th>TIPO</th>
+                      <th>IDIOMA</th>
                       <th>NOMBRE DE ARCHIVO</th>
                       <th>FECHA DE CARGA</th>
                       <th>ACCIONES</th>
@@ -316,9 +317,18 @@
                     @for (doc of order()!.documents; track doc.id) {
                       <tr>
                         <td>
-                          <span class="document-badge" [ngClass]="getDocumentBadgeClass(doc.document_type_name)">
-                            {{ doc.document_type_name }}
-                          </span>
+                          <div class="document-type-cell">
+                            <span class="document-badge" [ngClass]="getDocumentBadgeClass(doc.document_type_name)">
+                              {{ doc.document_type_name }}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          @if (getDocumentLanguageLabel(doc.document_language); as langLabel) {
+                            <span class="document-language-badge">{{ langLabel }}</span>
+                          } @else {
+                            <span class="document-language-empty">—</span>
+                          }
                         </td>
                         <td>
                           <span class="document-name">{{ doc.document_name }}</span>
@@ -463,6 +473,86 @@
     </div>
   }
 </div>
+
+@if (showRegenerateLanguageModal()) {
+  <div class="upload-modal-overlay" (click)="closeRegenerateLanguageModal()">
+    <div class="regenerate-modal" (click)="$event.stopPropagation()">
+      <div class="regenerate-modal__header">
+        <h3>Regenerar documento</h3>
+        <button
+          type="button"
+          class="regenerate-modal__close"
+          (click)="closeRegenerateLanguageModal()"
+          [disabled]="isRegeneratingDocument()"
+        >
+          <i class="fi fi-rr-cross-small"></i>
+        </button>
+      </div>
+
+      <div class="regenerate-modal__body">
+        <p class="regenerate-language-prompt">¿En qué idioma desea generar el documento?</p>
+        <div class="language-options">
+          <label class="language-option" [class.selected]="selectedRegenerateLanguage() === 'es'">
+            <input
+              type="radio"
+              name="regenerateLanguage"
+              value="es"
+              [checked]="selectedRegenerateLanguage() === 'es'"
+              (change)="selectedRegenerateLanguage.set('es')"
+              [disabled]="isRegeneratingDocument()"
+            />
+            <span>Español (es)</span>
+          </label>
+          <label class="language-option" [class.selected]="selectedRegenerateLanguage() === 'en'">
+            <input
+              type="radio"
+              name="regenerateLanguage"
+              value="en"
+              [checked]="selectedRegenerateLanguage() === 'en'"
+              (change)="selectedRegenerateLanguage.set('en')"
+              [disabled]="isRegeneratingDocument()"
+            />
+            <span>English (en)</span>
+          </label>
+        </div>
+        <label class="regenerate-keep-previous">
+          <input
+            type="checkbox"
+            [checked]="keepPreviousDocument()"
+            (change)="keepPreviousDocument.set($any($event.target).checked)"
+            [disabled]="isRegeneratingDocument()"
+          />
+          <span>Mantener documento anterior</span>
+        </label>
+      </div>
+
+      <div class="regenerate-modal__footer">
+        <button
+          type="button"
+          class="regenerate-modal__btn regenerate-modal__btn--cancel"
+          (click)="closeRegenerateLanguageModal()"
+          [disabled]="isRegeneratingDocument()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="regenerate-modal__btn regenerate-modal__btn--confirm"
+          [class.is-loading]="isRegeneratingDocument()"
+          (click)="confirmRegenerateDocument()"
+        >
+          @if (isRegeneratingDocument()) {
+            <i class="fi fi-rr-spinner animate-spin"></i>
+            Regenerando...
+          } @else {
+            <i class="fi fi-rr-refresh"></i>
+            Regenerar
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
 
 @if (showUploadDocumentModal()) {
   <div class="upload-modal-overlay" (click)="closeUploadDocumentModal()">

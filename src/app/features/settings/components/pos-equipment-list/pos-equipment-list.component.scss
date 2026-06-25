@@ -20,6 +20,11 @@
     &--sesiones {
       grid-template-columns: minmax(0, 1.2fr) minmax(180px, 1fr) minmax(140px, 160px) minmax(130px, 150px) minmax(130px, 150px);
     }
+
+    &--cortes {
+      grid-template-columns: minmax(0, 1.4fr) minmax(160px, 200px) minmax(140px, 180px);
+      max-width: 42rem;
+    }
   }
 
   &__field {
@@ -76,8 +81,10 @@
 
 @media (max-width: 768px) {
   .filter-bar__container--equipos,
-  .filter-bar__container--sesiones {
+  .filter-bar__container--sesiones,
+  .filter-bar__container--cortes {
     grid-template-columns: 1fr;
+    max-width: 100%;
   }
 }
 

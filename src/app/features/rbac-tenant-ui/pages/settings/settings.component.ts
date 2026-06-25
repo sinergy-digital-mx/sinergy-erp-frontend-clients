@@ -120,7 +120,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     {
       id: 'users',
       title: 'Usuarios',
-      description: 'Gestiona usuarios del tenant, asigna roles y controla permisos de acceso de forma centralizada',
+      description: 'Gestiona usuarios, asigna roles y controla permisos de acceso de forma centralizada',
       icon: '👥',
       route: 'users',
       permissions: ['user:ViewMenu']
@@ -209,7 +209,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     {
       id: 'mailer-configurations',
       title: 'Configuración de Correo',
-      description: 'Configura el proveedor de envío de correos del tenant, incluyendo Resend y la configuración activa',
+      description: 'Configura el proveedor de envío de correos, incluyendo Resend y la configuración activa',
       icon: '✉️',
       route: 'mailer-configurations',
       permissions: []

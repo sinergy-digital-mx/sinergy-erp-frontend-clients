@@ -6,13 +6,17 @@ import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ToastType } from '../../../../core/models/toast.model';
+import { AuthService } from '../../../../core/services/auth.service';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ProductService } from '../../services/product.service';
+import { SETTINGS_PERMISSIONS } from '../../config/permissions.config';
 import {
   Product,
   UoM,
   UoMCatalog,
   ProductPrice,
+  ProductDiscount,
+  ProductDiscountType,
   VendorProductPrice,
   ProductAttribute,
   ProductAttributeValue
@@ -42,6 +46,7 @@ export class ProductDetailModalComponent implements OnInit {
     { id: 'detalles', title: 'Detalles' },
     { id: 'uoms', title: 'UOMs' },
     { id: 'precios', title: 'Precios' },
+    { id: 'descuentos', title: 'Descuentos' },
     { id: 'costos', title: 'Costos de Proveedor' },
     { id: 'fotos', title: 'Fotos' }
   ];
@@ -55,6 +60,9 @@ export class ProductDetailModalComponent implements OnInit {
       } else {
         this.loadUomCatalog();
       }
+    }
+    if (tabId === 'descuentos' && this.product?.id) {
+      this.loadProductDiscounts();
     }
   }
 
@@ -74,9 +82,13 @@ export class ProductDetailModalComponent implements OnInit {
   vendors: any[] = [];
   priceLists: any[] = [];
 
+  readonly canUpdateProduct: boolean;
+  readonly canDeleteProduct: boolean;
+
   // Modales secundarios
   priceModalVisible = false;
   costModalVisible = false;
+  discountModalVisible = false;
   priceListModalVisible = false;
   attributeModalVisible = false;
   attributeValueModalVisible = false;
@@ -84,6 +96,7 @@ export class ProductDetailModalComponent implements OnInit {
   // Formularios de modales secundarios
   priceForm: any = this.getEmptyPriceForm();
   costForm: any = this.getEmptyCostForm();
+  discountForm: any = this.getEmptyDiscountForm();
   priceListForm: any = { name: '', description: '' };
   attributeForm: any = this.getEmptyAttributeForm();
   attributeValueForm: any = this.getEmptyAttributeValueForm();
@@ -92,6 +105,7 @@ export class ProductDetailModalComponent implements OnInit {
 
   constructor(
     private productService: ProductService,
+    private authService: AuthService,
     @Inject(MAT_DIALOG_DATA) public data: { product?: Product; isNew?: boolean },
     private dialogRef: MatDialogRef<ProductDetailModalComponent>,
     private dialog: MatDialog,
@@ -99,6 +113,8 @@ export class ProductDetailModalComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {
+    this.canUpdateProduct = this.authService.hasPermission(SETTINGS_PERMISSIONS.products.update);
+    this.canDeleteProduct = this.authService.hasPermission(SETTINGS_PERMISSIONS.products.delete);
     console.log('ProductDetailModal constructor - data:', data);
     
     // Timeout de seguridad para evitar loading infinito
@@ -141,6 +157,7 @@ export class ProductDetailModalComponent implements OnInit {
         base_uom: null,
         uoms: [],
         prices: [],
+        discounts: [],
         vendor_prices: [],
         photos: [],
         created_at: new Date().toISOString(),
@@ -214,6 +231,23 @@ export class ProductDetailModalComponent implements OnInit {
         // Si falla, inicializar array vacío
         if (this.product) {
           this.product.prices = [];
+        }
+      }
+    });
+  }
+
+  loadProductDiscounts(): void {
+    if (!this.product?.id) return;
+
+    this.productService.getProductDiscounts(this.product.id).subscribe({
+      next: (discounts) => {
+        this.product!.discounts = discounts;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading product discounts:', error);
+        if (this.product) {
+          this.product.discounts = [];
         }
       }
     });
@@ -811,6 +845,9 @@ export class ProductDetailModalComponent implements OnInit {
       case 'precios':
         this.loadProductPrices();
         break;
+      case 'descuentos':
+        this.loadProductDiscounts();
+        break;
       case 'costos':
         this.loadVendorCosts();
         break;
@@ -1311,6 +1348,212 @@ export class ProductDetailModalComponent implements OnInit {
     });
   }
 
+  // ─── Descuentos ─────────────────────────────────────────────
+
+  openDiscountModal(discount?: ProductDiscount): void {
+    if (!this.product?.id) {
+      this.showNotification('Guarda el producto antes de configurar descuentos', 'error');
+      return;
+    }
+
+    if (!this.product.uoms || this.product.uoms.length === 0) {
+      this.loadProductUoms();
+    }
+
+    if (!this.product.prices || this.product.prices.length === 0) {
+      this.loadProductPrices();
+    }
+
+    if (discount) {
+      this.discountForm = {
+        id: discount.id,
+        name: discount.name,
+        discount_type: discount.discount_type,
+        value: discount.value,
+        product_uom_id: discount.product_uom_id,
+        is_active: discount.is_active ?? true,
+        valid_from: this.toDateInputValue(discount.valid_from),
+        valid_to: this.toDateInputValue(discount.valid_to)
+      };
+    } else {
+      this.discountForm = this.getEmptyDiscountForm();
+    }
+
+    this.discountModalVisible = true;
+    this.cdr.detectChanges();
+  }
+
+  saveDiscount(): void {
+    const name = (this.discountForm.name || '').trim();
+    if (!name) {
+      this.showNotification('El nombre es requerido', 'error');
+      return;
+    }
+    if (name.length > 120) {
+      this.showNotification('El nombre no puede exceder 120 caracteres', 'error');
+      return;
+    }
+
+    const value = Number(this.discountForm.value);
+    if (!value || value <= 0) {
+      this.showNotification('Ingresa un valor mayor a 0', 'error');
+      return;
+    }
+    if (this.discountForm.discount_type === 'percentage' && value > 100) {
+      this.showNotification('El porcentaje no puede ser mayor a 100', 'error');
+      return;
+    }
+
+    const validFrom = this.discountForm.valid_from || null;
+    const validTo = this.discountForm.valid_to || null;
+    if (validFrom && validTo && validFrom > validTo) {
+      this.showNotification('La fecha de inicio debe ser anterior o igual a la fecha de fin', 'error');
+      return;
+    }
+
+    const productUomId = this.discountForm.product_uom_id || null;
+    if (productUomId && this.product?.uoms?.length) {
+      const uomExists = this.product.uoms.some(u => u.id === productUomId);
+      if (!uomExists) {
+        this.showNotification('La UOM seleccionada no existe en este producto', 'error');
+        return;
+      }
+    }
+
+    const body = {
+      name,
+      discount_type: this.discountForm.discount_type as ProductDiscountType,
+      value,
+      product_uom_id: productUomId,
+      is_active: this.discountForm.is_active ?? true,
+      valid_from: validFrom,
+      valid_to: validTo
+    };
+
+    const productId = this.product!.id;
+    const request$ = this.discountForm.id
+      ? this.productService.updateProductDiscount(productId, this.discountForm.id, body)
+      : this.productService.createProductDiscount(productId, body);
+
+    request$.subscribe({
+      next: () => {
+        this.discountModalVisible = false;
+        this.showNotification(
+          this.discountForm.id ? 'Descuento actualizado correctamente' : 'Descuento creado correctamente',
+          'success'
+        );
+        this.reloadCurrentTab();
+      },
+      error: (error) => {
+        console.error('Error saving discount:', error);
+        this.showNotification(this.getDiscountApiErrorMessage(error), 'error');
+      }
+    });
+  }
+
+  deleteDiscount(discount: ProductDiscount): void {
+    if (!confirm(`¿Eliminar el descuento «${discount.name}»?`)) return;
+
+    this.productService.deleteProductDiscount(this.product!.id, discount.id).subscribe({
+      next: () => {
+        this.showNotification('Descuento eliminado correctamente', 'success');
+        this.reloadCurrentTab();
+      },
+      error: (error) => {
+        console.error('Error deleting discount:', error);
+        this.showNotification(this.getDiscountApiErrorMessage(error), 'error');
+      }
+    });
+  }
+
+  getDiscountTypeLabel(type: ProductDiscountType): string {
+    return type === 'percentage' ? 'Porcentaje' : 'Monto fijo';
+  }
+
+  formatDiscountValue(discount: ProductDiscount): string {
+    if (discount.discount_type === 'percentage') {
+      return `${discount.value}%`;
+    }
+    return `$${discount.value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  formatDiscountValidity(discount: ProductDiscount): string {
+    if (!discount.valid_from && !discount.valid_to) {
+      return 'Siempre';
+    }
+    const from = discount.valid_from ? this.formatShortDate(discount.valid_from) : '—';
+    const to = discount.valid_to ? this.formatShortDate(discount.valid_to, true) : '—';
+    return `${from} – ${to}`;
+  }
+
+  getDiscountUomLabel(discount: ProductDiscount): string {
+    return discount.product_uom?.uom?.name || 'Todas';
+  }
+
+  getDiscountPreview(): { basePrice: number; discountedPrice: number; savings: number } | null {
+    const basePrice = this.getReferencePriceForDiscount();
+    if (basePrice == null) return null;
+
+    const value = Number(this.discountForm.value);
+    if (!value || value <= 0) return null;
+
+    let discountedPrice: number;
+    if (this.discountForm.discount_type === 'percentage') {
+      discountedPrice = basePrice * (1 - value / 100);
+    } else {
+      discountedPrice = Math.max(0, basePrice - value);
+    }
+
+    return {
+      basePrice,
+      discountedPrice,
+      savings: Math.max(0, basePrice - discountedPrice)
+    };
+  }
+
+  private getReferencePriceForDiscount(): number | null {
+    const prices = this.product?.prices;
+    if (!prices?.length) return null;
+
+    const selectedUomId = this.discountForm.product_uom_id;
+    const matchingPrices = selectedUomId
+      ? prices.filter(p => p.product_uom_id === selectedUomId)
+      : prices;
+
+    if (!matchingPrices.length) return null;
+
+    const defaultListPrice = matchingPrices.find(p => p.price_list?.is_default);
+    const reference = defaultListPrice ?? matchingPrices[0];
+    return Number(reference.price);
+  }
+
+  private getDiscountApiErrorMessage(error: any): string {
+    const status = error?.status;
+    if (status === 404) {
+      return 'Producto o descuento no encontrado';
+    }
+    if (status === 409) {
+      return 'Ya existe un descuento con ese nombre para este producto';
+    }
+    return error?.error?.message || 'Error al procesar el descuento';
+  }
+
+  private toDateInputValue(value?: string | null): string {
+    if (!value) return '';
+    return value.length >= 10 ? value.slice(0, 10) : value;
+  }
+
+  private formatShortDate(value: string, includeYear = false): string {
+    const date = new Date(`${value.slice(0, 10)}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return value;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    if (includeYear) {
+      return `${day}/${month}/${date.getFullYear()}`;
+    }
+    return `${day}/${month}`;
+  }
+
   // ─── Helpers ────────────────────────────────────────────────
 
   getEmptyPriceForm(): any {
@@ -1322,6 +1565,19 @@ export class ProductDetailModalComponent implements OnInit {
       price: 0,
       iva_percentage: 0,
       ieps_percentage: 0
+    };
+  }
+
+  getEmptyDiscountForm(): any {
+    return {
+      id: '',
+      name: '',
+      discount_type: 'percentage' as ProductDiscountType,
+      value: null,
+      product_uom_id: null,
+      is_active: true,
+      valid_from: '',
+      valid_to: ''
     };
   }
 

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { MatDialog } from '@angular/material/dialog';
 import {
   LucideAngularModule,
@@ -11,38 +12,33 @@ import {
   ShoppingCart,
   Trash2,
   Minus,
-  CreditCard,
-  Banknote,
-  FileText,
   Maximize2,
   Minimize2,
-  LogIn,
-  LogOut,
   Monitor,
   Package,
   AlertCircle,
   User,
-  ChevronRight,
-  X,
 } from 'lucide-angular';
-import {
-  PosCustomerPickerDialogComponent,
-  PosCustomerPickerDialogResult,
-} from '../../components/pos-customer-picker-dialog/pos-customer-picker-dialog.component';
+import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
 import { POSService } from '../../services/pos.service';
-import { WarehouseService } from '../../../purchase-orders/services/warehouse.service';
-import { CustomerService } from '../../../../core/services/customer.service';
-import { Warehouse } from '../../../purchase-orders/models/warehouse.model';
+import { PosStateService } from '../../services/pos-state.service';
 import { POSCartItem } from '../../models/pos.model';
-import { OpenShiftDialogComponent } from '../../components/open-shift-dialog/open-shift-dialog.component';
-import { CloseShiftDialogComponent } from '../../components/close-shift-dialog/close-shift-dialog.component';
-import { OpenShiftDialogResult } from '../../models/pos-session.model';
-import { applyOpenShiftDialogResult, isPosSessionNotFoundError } from '../../utils/pos-session.util';
 import {
-  buildPosSalesOrderPayload,
-  isPosOrderFulfilled,
-  resolvePosFiscalConfigurationId,
+  enrichPosInventorySummary,
+  normalizePosInventorySummary,
+  persistPosWarehouseId,
+  PosInventorySummaryResponse,
+  PosSummaryWarehouse,
+  resolvePosWarehouseId,
+} from '../../models/pos-inventory-summary.model';
+import { WarehouseService } from '../../../settings/services/warehouse.service';
+import {
+  buildVentasPosOrderPayload,
+  isPosOrderQueued,
+  resolveFiscalConfigurationIdFromBranch,
 } from '../../utils/pos-order.util';
+import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
+import { dailyShiftIsOpen } from '../../models/pos-daily-shift.model';
 
 @Component({
   selector: 'app-take-order',
@@ -58,22 +54,15 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   readonly ShoppingCart = ShoppingCart;
   readonly Trash2 = Trash2;
   readonly Minus = Minus;
-  readonly CreditCard = CreditCard;
-  readonly Banknote = Banknote;
-  readonly FileText = FileText;
   readonly Maximize2 = Maximize2;
   readonly Minimize2 = Minimize2;
-  readonly LogIn = LogIn;
-  readonly LogOut = LogOut;
   readonly Monitor = Monitor;
   readonly Package = Package;
   readonly AlertCircle = AlertCircle;
   readonly User = User;
-  readonly ChevronRight = ChevronRight;
-  readonly X = X;
 
   products = signal<any[]>([]);
-  warehouses = signal<Warehouse[]>([]);
+  warehouses = signal<PosSummaryWarehouse[]>([]);
   filteredProducts = signal<any[]>([]);
 
   selectedWarehouse = signal<string>('');
@@ -81,59 +70,31 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   loading = signal<boolean>(false);
   saving = signal<boolean>(false);
 
-  loadingPhotos = signal<boolean>(false);
-  loadingPrices = signal<boolean>(false);
   priceListError = signal<boolean>(false);
   isFullscreen = signal<boolean>(false);
+
+  private lastInventorySummary = signal<PosInventorySummaryResponse | null>(null);
 
   photoLoadingStates = signal<Map<string, boolean>>(new Map());
   photoErrorStates = signal<Map<string, boolean>>(new Map());
 
-  cartActiveTab = signal<'products' | 'payment'>('products');
-  paymentMethod = signal<'cash' | 'card' | 'credit'>('cash');
-  customers = signal<any[]>([]);
-  selectedCustomerId = signal<string>('');
-  /** Usa propiedad para ngModel (evita conflicto con signal). */
-  amountPaid = 0;
-  String = String;
-
-  /** Código del equipo POS (configuración); se guarda al abrir sesión. */
-  terminalId = signal<string>('');
-
-  /** Turno de caja = sesión POS en API actual */
-  activePosSession = signal<any | null>(null);
-  checkingSession = signal(false);
+  private sellerDialogOpen = false;
 
   constructor(
     public posService: POSService,
+    public posState: PosStateService,
     private warehouseService: WarehouseService,
-    private customerService: CustomerService,
+    private authService: AuthService,
     private router: Router,
     private toast: ToastService,
     private dialog: MatDialog
   ) {}
 
-  readonly sessionOk = computed(() => !!this.activePosSession());
+  readonly canSell = computed(() => this.posState.canCaptureSales());
 
   readonly cartProductsTabLabel = computed(() => {
     const count = this.posService.cart().items.length;
-    return count > 0 ? `Productos (${count})` : 'Productos';
-  });
-
-  readonly cartPaymentTabLabel = computed(() => {
-    const total = this.posService.cart().grand_total;
-    if (total <= 0) {
-      return 'Pago';
-    }
-    return `Pago · ${this.formatCurrency(total)}`;
-  });
-
-  readonly selectedCustomer = computed(() => {
-    const id = this.selectedCustomerId();
-    if (!id) {
-      return null;
-    }
-    return this.customers().find((c) => String(c.id) === String(id)) ?? null;
+    return count > 0 ? `Carrito (${count})` : 'Carrito';
   });
 
   private notifyError(message: string, duration = 4500): void {
@@ -149,12 +110,30 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadData();
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
+    if (this.authService.isPosCobranzaTerminal()) {
+      void this.router.navigate(['/pos/cobranza'], { replaceUrl: true });
+      return;
+    }
+    this.loadData();
+  }
+
+  isCobranzaTerminal(): boolean {
+    return this.authService.isPosCobranzaTerminal();
   }
 
   ngOnDestroy(): void {
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+  }
+
+  terminalLabel(): string {
+    const email = this.authService.user_info?.email ?? '';
+    return email.split('@')[0] || 'Ventas';
+  }
+
+  branchLabel(): string {
+    const branch = this.posState.dailyShift()?.billing_branch;
+    return branch?.display_name || branch?.code || 'Sucursal';
   }
 
   selectedWarehouseName(): string {
@@ -164,254 +143,203 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   loadData(): void {
-    this.loading.set(true);
-    this.priceListError.set(false);
-    this.products.set([]);
-    this.filteredProducts.set([]);
-
-    this.warehouseService.getWarehouses().subscribe({
-      next: (warehouses) => {
-        const warehouseArray = Array.isArray(warehouses)
-          ? warehouses
-          : (warehouses as any).data || [];
-        this.warehouses.set(warehouseArray);
-
-        const stored = localStorage.getItem('pos_warehouse_id');
-        const pick =
-          stored && warehouseArray.some((w: Warehouse) => w.id === stored)
-            ? stored
-            : warehouseArray[0]?.id ?? '';
-        this.selectedWarehouse.set(pick);
-        if (pick) {
-          localStorage.setItem('pos_warehouse_id', pick);
-          this.refreshPosSession();
-        }
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.notifyError('Error al cargar almacenes', 5000);
-      },
-    });
-
-    this.loadCustomers();
+    this.refreshDailyShift();
   }
 
-  private loadCustomers(search = ''): void {
-    const params: Record<string, string | number> = { limit: 100 };
-    if (search.trim()) {
-      params['search'] = search.trim();
+  private applyInventorySummaryMeta(summary: PosInventorySummaryResponse): void {
+    const enriched = enrichPosInventorySummary(summary);
+    this.lastInventorySummary.set(enriched);
+
+    if (enriched.warehouses.length > 0) {
+      this.warehouses.set(enriched.warehouses);
     }
-    this.customerService.getCustomers(params).subscribe({
-      next: (customers) => {
-        const list = Array.isArray(customers) ? customers : (customers as any)?.data || [];
-        this.customers.set(list);
-      },
-      error: () => {
-        this.customers.set([]);
-      },
-    });
+
+    const warehouseId = resolvePosWarehouseId(enriched);
+    if (warehouseId) {
+      this.selectedWarehouse.set(warehouseId);
+      persistPosWarehouseId(warehouseId);
+    }
   }
 
-  async openCustomerPicker(): Promise<void> {
-    await this.exitFullscreenForDialog();
-    const dialogRef = this.dialog.open(PosCustomerPickerDialogComponent, {
-      width: '520px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-      panelClass: 'pos-dialog-panel',
-      data: { selectedCustomerId: this.selectedCustomerId() },
-    });
+  private resolveBillingBranchId(): string | null {
+    return (
+      this.lastInventorySummary()?.billing_branch_id?.trim() ||
+      this.authService.getBillingBranchId() ||
+      this.posState.dailyShift()?.billing_branch?.id?.trim() ||
+      null
+    );
+  }
 
-    dialogRef.afterClosed().subscribe((result: PosCustomerPickerDialogResult | undefined) => {
-      if (result === undefined) {
-        return;
+  private resolveWarehouseForSaleSync(): string {
+    const current = this.selectedWarehouse()?.trim();
+    if (current) {
+      return current;
+    }
+
+    const summary = this.lastInventorySummary();
+    if (summary) {
+      const fromSummary = resolvePosWarehouseId(summary);
+      if (fromSummary) {
+        this.selectedWarehouse.set(fromSummary);
+        persistPosWarehouseId(fromSummary);
+        return fromSummary;
       }
-      this.selectedCustomerId.set(result.customerId);
-      if (result.customer) {
-        const id = String(result.customer.id);
-        const exists = this.customers().some((c) => String(c.id) === id);
-        if (!exists) {
-          this.customers.update((list) => [...list, result.customer]);
-        }
-      }
-    });
-  }
-
-  clearCustomer(): void {
-    this.selectedCustomerId.set('');
-  }
-
-  setCartTab(tab: 'products' | 'payment'): void {
-    this.cartActiveTab.set(tab);
-  }
-
-  setPaymentMethod(method: 'cash' | 'card' | 'credit'): void {
-    this.paymentMethod.set(method);
-    this.cartActiveTab.set('payment');
-    if (method === 'credit' && !this.selectedCustomerId()) {
-      void this.openCustomerPicker();
     }
+
+    return '';
   }
 
-  customerDisplayName(customer: any): string {
-    if (!customer) {
-      return '';
-    }
-    const parts = [customer.name, customer.lastname].filter(Boolean).join(' ').trim();
-    if (customer.company_name) {
-      return parts ? `${parts} · ${customer.company_name}` : customer.company_name;
-    }
-    return parts || customer.email || 'Cliente';
-  }
-
-  customerInitials(customer: any): string {
-    const name = this.customerDisplayName(customer);
-    const words = name.split(/\s+/).filter(Boolean);
-    if (words.length >= 2) {
-      return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  }
-
-  /** Etiqueta del chip de terminal según sesión activa y valores guardados al abrir sesión. */
-  private syncTerminalLabelFromSession(hasActiveSession: boolean): void {
-    if (!hasActiveSession) {
-      localStorage.removeItem('pos_configuration_id');
-      localStorage.removeItem('pos_configuration_code');
-      this.terminalId.set('');
+  private ensureWarehouseForSale(onReady: (warehouseId: string) => void): void {
+    const resolved = this.resolveWarehouseForSaleSync();
+    if (resolved) {
+      onReady(resolved);
       return;
     }
-    const code = localStorage.getItem('pos_configuration_code');
-    this.terminalId.set(code ?? '');
-  }
 
-  refreshPosSession(): void {
-    const posConfigId = localStorage.getItem('pos_configuration_id');
-    if (!posConfigId) {
-      this.activePosSession.set(null);
-      this.syncTerminalLabelFromSession(false);
-      this.checkingSession.set(false);
+    const branchId = this.resolveBillingBranchId();
+    if (!branchId) {
+      this.notifyError(
+        'Tu usuario POS no tiene sucursal asignada. Pide al administrador que la configure.',
+        6000
+      );
       return;
     }
-    this.checkingSession.set(true);
-    this.posService.getActivePosSession(posConfigId).subscribe({
-      next: (session) => {
-        const active = session && session.id ? session : null;
-        this.activePosSession.set(active);
-        this.syncTerminalLabelFromSession(!!active);
-        this.loadProductsForActiveSession();
-        this.checkingSession.set(false);
+
+    this.warehouseService.getWarehouses({ limit: 100, status: 'active' }).subscribe({
+      next: (response) => {
+        const branchWarehouses = (response.data ?? []).filter(
+          (warehouse) => (warehouse.billing_branch_id || '').trim() === branchId
+        );
+        const pick = branchWarehouses[0];
+        if (!pick?.id) {
+          this.notifyError(
+            'No hay almacén activo para tu sucursal POS. Revisa la configuración en Ajustes.',
+            6000
+          );
+          return;
+        }
+
+        const mapped: PosSummaryWarehouse[] = branchWarehouses.map((warehouse) => ({
+          id: warehouse.id,
+          name: warehouse.name,
+          status: warehouse.status,
+        }));
+        this.warehouses.set(mapped);
+        this.selectedWarehouse.set(pick.id);
+        persistPosWarehouseId(pick.id);
+        onReady(pick.id);
+      },
+      error: () => {
+        this.notifyError(
+          'No se pudo resolver el almacén de tu sucursal POS. Intenta de nuevo.',
+          5000
+        );
+      },
+    });
+  }
+
+  refreshDailyShift(): void {
+    this.posState.checkingShift.set(true);
+    this.posService.getCurrentDailyShift().subscribe({
+      next: ({ daily_shift }) => {
+        if (daily_shift) {
+          this.posState.setDailyShift(daily_shift);
+        }
+        this.posState.checkingShift.set(false);
+        const shift = this.posState.dailyShift();
+        if (dailyShiftIsOpen(shift)) {
+          this.ensureFiscalFromShift(shift!);
+        }
+        if (this.posState.seller()) {
+          this.loadProducts();
+        }
+        this.maybePromptSellerCode();
       },
       error: (error) => {
-        this.activePosSession.set(null);
-        this.syncTerminalLabelFromSession(false);
-        this.products.set([]);
-        this.filteredProducts.set([]);
-        this.checkingSession.set(false);
-        if (!isPosSessionNotFoundError(error)) {
-          this.notifyError('No se pudo verificar la sesión POS', 4000);
+        this.posState.checkingShift.set(false);
+        if (!dailyShiftIsOpen(this.posState.dailyShift())) {
+          this.posState.setDailyShift(null);
+        }
+        if (this.posState.seller()) {
+          this.loadProducts();
+        }
+        this.maybePromptSellerCode();
+        if (error?.status !== 404) {
+          this.notifyError(mapPosApiErrorMessage(error.error?.message), 5000);
         }
       },
     });
   }
 
-  async openPosSession(): Promise<void> {
+  private ensureFiscalFromShift(shift: NonNullable<ReturnType<typeof this.posState.dailyShift>>): void {
+    if (this.posState.fiscalConfigurationId()) {
+      return;
+    }
+    const fiscalId = resolveFiscalConfigurationIdFromBranch(shift.billing_branch);
+    if (fiscalId) {
+      this.posState.fiscalConfigurationId.set(String(fiscalId));
+    }
+  }
+
+  private maybePromptSellerCode(): void {
+    if (this.authService.isPosCobranzaTerminal()) {
+      return;
+    }
+    if (!this.posState.needsSellerCode() || this.sellerDialogOpen) {
+      return;
+    }
+    void this.openSellerCodeDialog();
+  }
+
+  async openSellerCodeDialog(): Promise<void> {
+    if (this.sellerDialogOpen) {
+      return;
+    }
+    this.sellerDialogOpen = true;
     await this.exitFullscreenForDialog();
-    const dialogRef = this.dialog.open(OpenShiftDialogComponent, {
-      width: '420px',
+
+    const dialogRef = this.dialog.open(SellerCodeDialogComponent, {
+      width: '400px',
       maxWidth: '95vw',
       disableClose: true,
       panelClass: 'pos-dialog-panel',
     });
 
-    dialogRef.afterClosed().subscribe((result: OpenShiftDialogResult | undefined) => {
-      if (!result) {
+    dialogRef.afterClosed().subscribe((code: number | undefined) => {
+      this.sellerDialogOpen = false;
+      if (code == null) {
         return;
       }
-
-      this.selectedWarehouse.set(result.warehouse_id);
-      this.checkingSession.set(true);
-
-      applyOpenShiftDialogResult(result, this.posService).subscribe({
-        next: (session) => {
-          this.activePosSession.set(session);
-          if (result.pos_configuration_code) {
-            this.terminalId.set(result.pos_configuration_code);
-          } else {
-            this.terminalId.set('');
+      this.posService.validateSellerCode(code).subscribe({
+        next: (response) => {
+          if (response.daily_shift) {
+            this.posState.setDailyShift(response.daily_shift);
           }
-          this.checkingSession.set(false);
-          this.loadProductsForActiveSession();
-          this.notifySuccess(
-            result.action === 'resume' ? 'Sesión POS reanudada' : 'Sesión POS iniciada',
-            3000
-          );
+          const branch = response.terminal_user?.billing_branch;
+          const fiscalId = resolveFiscalConfigurationIdFromBranch(branch);
+          if (fiscalId) {
+            this.posState.fiscalConfigurationId.set(String(fiscalId));
+          }
+          this.posState.setSeller(response.seller);
+          this.notifySuccess(`Vendedor: ${this.posState.sellerDisplayName()}`, 3000);
+          this.loadProducts();
         },
         error: (error) => {
-          this.checkingSession.set(false);
-          this.notifyError(error.error?.message || 'No se pudo iniciar la sesión', 5000);
+          this.notifyError(mapPosApiErrorMessage(error.error?.message), 5000);
+          void this.openSellerCodeDialog();
         },
       });
     });
   }
 
-  async closePosSession(): Promise<void> {
-    await this.exitFullscreenForDialog();
-    const session = this.activePosSession();
-    if (!session?.id) {
-      return;
-    }
-    const dialogRef = this.dialog.open(CloseShiftDialogComponent, {
-      width: '520px',
-      maxWidth: '95vw',
-      disableClose: true,
-      data: { shift: session },
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (!result) {
-        return;
-      }
-      const { closing_balance, notes } = result;
-      this.checkingSession.set(true);
-      this.posService.closePosSession(session.id, { closing_balance, notes }).subscribe({
-        next: () => {
-          this.activePosSession.set(null);
-          localStorage.removeItem('pos_configuration_id');
-          localStorage.removeItem('pos_configuration_code');
-          this.terminalId.set('');
-          this.products.set([]);
-          this.filteredProducts.set([]);
-          this.checkingSession.set(false);
-          this.notifySuccess('Sesión cerrada', 4000);
-        },
-        error: (error) => {
-          this.checkingSession.set(false);
-          this.notifyError(error.error?.message || 'Error al cerrar la sesión', 5000);
-        },
-      });
-    });
-  }
-
-  sessionOpenedLabel(): string {
-    const s = this.activePosSession();
-    if (!s?.opened_at) {
-      return '';
-    }
-    try {
-      return new Date(s.opened_at).toLocaleString('es-MX', {
-        dateStyle: 'short',
-        timeStyle: 'short',
-      });
-    } catch {
-      return '';
-    }
+  changeSeller(): void {
+    this.posState.clearSeller();
+    void this.openSellerCodeDialog();
   }
 
   onSearchChange(): void {
-    if (this.sessionOk()) {
-      this.loadProductsForActiveSession(this.searchTerm());
+    if (this.canSell()) {
+      this.loadProducts(this.searchTerm());
       return;
     }
 
@@ -429,8 +357,8 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   addProductToCart(product: any): void {
-    if (!this.sessionOk()) {
-      this.notifyInfo('Inicia sesión POS para agregar productos', 4000);
+    if (!this.canSell()) {
+      this.notifyInfo('Ingresa el código del vendedor para agregar productos', 4000);
       return;
     }
     if (!product.has_price) {
@@ -510,25 +438,9 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   saveOrder(): void {
-    if (!this.sessionOk()) {
-      this.notifyError('Debes tener una sesión POS activa', 4000);
-      return;
-    }
-
-    const session = this.activePosSession();
-    const warehouseId = this.selectedWarehouse();
-    if (!warehouseId) {
-      this.notifyInfo('Selecciona un almacén de la sucursal', 3000);
-      return;
-    }
-
-    const fiscalConfigurationId = resolvePosFiscalConfigurationId(session);
-    if (!fiscalConfigurationId) {
-      this.setCartTab('payment');
-      this.notifyError(
-        'No hay configuración fiscal en la sucursal del POS. Revisa la sucursal en Ajustes.',
-        6000
-      );
+    if (!this.canSell()) {
+      this.notifyError('Identifica al vendedor con su código para registrar la venta', 4000);
+      void this.openSellerCodeDialog();
       return;
     }
 
@@ -538,71 +450,56 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const customerId = this.selectedCustomerId();
-    if (!customerId) {
-      this.setCartTab('payment');
-      this.notifyInfo('Selecciona un cliente para registrar la venta', 3500);
+    const seller = this.posState.seller();
+    if (!seller?.id) {
+      void this.openSellerCodeDialog();
       return;
     }
 
-    if (this.paymentMethod() === 'credit' && !customerId) {
-      this.setCartTab('payment');
-      this.notifyInfo('Selecciona un cliente para venta a crédito', 3500);
-      return;
-    }
+    this.ensureWarehouseForSale((warehouseId) => {
+      const fiscalConfigurationId = this.posState.fiscalConfigurationId();
+      if (!fiscalConfigurationId) {
+        this.notifyError(
+          'No hay configuración fiscal en la sucursal del POS. Revisa la sucursal en Ajustes.',
+          6000
+        );
+        return;
+      }
 
-    if (this.paymentMethod() === 'cash' && !this.isPaymentValid()) {
-      this.setCartTab('payment');
-      this.notifyInfo('Cantidad recibida insuficiente para el total', 3500);
-      return;
-    }
+      const payload = buildVentasPosOrderPayload(cart.items, {
+        warehouseId,
+        fiscalConfigurationId,
+        sellerUserId: seller.id,
+        terminalLabel: this.terminalLabel(),
+      });
 
-    const customer = this.selectedCustomer();
-    const payload = buildPosSalesOrderPayload(cart.items, {
-      session: session!,
-      warehouseId,
-      fiscalConfigurationId,
-      customerId: Number(customerId) || customerId,
-      fiscalRazonSocial: customer ? this.customerDisplayName(customer) : undefined,
-      terminalLabel: this.terminalId() || undefined,
-      paymentMethod: this.paymentMethod(),
-    });
+      this.saving.set(true);
 
-    this.saving.set(true);
-
-    this.posService.createPosSalesOrder(payload).subscribe({
-      next: (order) => {
-        this.saving.set(false);
-        if (!isPosOrderFulfilled(order)) {
-          this.notifyError(
-            `Orden ${order.folio || order.id} creada con estado ${order.general_status || order.status || 'desconocido'}`,
-            6000
-          );
-          return;
-        }
-        const folio = order.folio ? ` (${order.folio})` : '';
-        this.notifySuccess(`Venta registrada${folio} — inventario surtido`, 4000);
-        this.posService.clearCart();
-        this.amountPaid = 0;
-        this.selectedCustomerId.set('');
-        this.cartActiveTab.set('products');
-        this.refreshPosSession();
-      },
-      error: (error) => {
-        this.saving.set(false);
-        this.setCartTab('payment');
-        const msg =
-          error?.error?.message || error?.message || 'Error al crear la orden de venta';
-        this.notifyError(msg, 6000);
-      },
+      this.posService.createPosSalesOrder(payload).subscribe({
+        next: (order) => {
+          this.saving.set(false);
+          const folioLabel = order.folio ? order.folio : 'sin folio';
+          const queued = isPosOrderQueued(order) || this.posState.salesQueueMode();
+          const message = queued
+            ? `Venta en cola (${folioLabel}). El cliente debe pasar a cobranza cuando abran el corte del día.`
+            : `Venta registrada (${folioLabel}). El cliente debe pasar a cobranza para pagar.`;
+          this.notifySuccess(message, 6000);
+          this.posService.clearCart();
+          this.loadProducts(this.searchTerm());
+        },
+        error: (error) => {
+          this.saving.set(false);
+          const msg = mapPosApiErrorMessage(error?.error?.message) || 'Error al crear la orden de venta';
+          this.notifyError(msg, 6000);
+        },
+      });
     });
   }
 
   cancel(): void {
     if (confirm('¿Descartar orden actual?')) {
       this.posService.clearCart();
-      this.amountPaid = 0;
-      this.router.navigate(['/pos']);
+      this.router.navigate(['/pos/ventas']);
     }
   }
 
@@ -645,7 +542,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   canAddToCart(product: any): boolean {
-    if (!this.sessionOk()) {
+    if (!this.canSell()) {
       return false;
     }
     if (this.priceListError()) {
@@ -657,8 +554,8 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   getDisabledTooltip(product: any): string {
-    if (!this.sessionOk()) {
-      return 'Inicia sesión POS para vender';
+    if (!this.posState.seller()) {
+      return 'Identifica al vendedor con su código';
     }
     if (Number(product.total_available_quantity ?? 0) <= 0) {
       return 'Sin stock disponible';
@@ -667,24 +564,6 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       return 'Producto sin precio configurado';
     }
     return '';
-  }
-
-  calculateChange(): number {
-    const total = this.posService.cart().grand_total;
-    const paid = this.amountPaid;
-    return paid > total ? paid - total : 0;
-  }
-
-  isPaymentValid(): boolean {
-    if (this.paymentMethod() === 'cash') {
-      return this.amountPaid >= this.posService.cart().grand_total;
-    }
-    return true;
-  }
-
-  onAmountPaidChange(value: number | string): void {
-    const n = typeof value === 'string' ? parseFloat(value) : value;
-    this.amountPaid = Number.isFinite(n) ? n : 0;
   }
 
   async toggleFullscreen(): Promise<void> {
@@ -715,47 +594,80 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     }
   }
 
-  private loadProductsForActiveSession(search = ''): void {
-    const sessionId = this.activePosSession()?.id;
-    if (!sessionId) {
-      this.products.set([]);
-      this.filteredProducts.set([]);
+  cartQueueHint(): string {
+    if (this.posState.shiftOpen()) {
+      return 'Corte activo — la venta irá directo a cobranza pendiente de pago.';
+    }
+    return 'Sin corte abierto — la venta quedará en cola hasta que cobranza abra el día.';
+  }
+
+  catalogEmptyMessage(): string {
+    if (this.priceListError()) {
+      return 'No se pudo cargar el catálogo. Revisa la sucursal y el almacén.';
+    }
+    if (this.searchTerm().trim()) {
+      return 'No hay productos que coincidan con tu búsqueda.';
+    }
+    return 'No hay productos disponibles en este almacén.';
+  }
+
+  retryCatalogLoad(): void {
+    this.loadProducts(this.searchTerm());
+  }
+
+  private loadProducts(search = ''): void {
+    if (!this.posState.seller()) {
       return;
     }
 
     this.loading.set(true);
     this.posService
-      .getPosSessionInventorySummary(sessionId, {
+      .getPosInventorySummary({
         search: search.trim() || undefined,
-        warehouse_id: this.selectedWarehouse() || undefined,
-        only_available: true,
         limit: 200,
       })
       .subscribe({
-      next: (rows) => {
-        const normalized = (rows || []).map((row: any) => ({
-          ...row,
-          id: row.product_id || row.id,
-          name: row.product_name || row.name || 'Producto',
-          sku: row.product_sku || row.sku || '',
-          primary_photo_url: row.product_photo || row.primary_photo_url || null,
-          cost: Number(row.suggested_unit_price ?? row.cost ?? 0),
-          has_price: row.suggested_unit_price != null || row.cost != null,
-          total_available_quantity: Number(row.total_available_quantity ?? 0),
-          pricing_options: Array.isArray(row.pricing_options) ? row.pricing_options : [],
-        }));
-        this.products.set(normalized);
-        this.filteredProducts.set(normalized);
-        this.priceListError.set(false);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.products.set([]);
-        this.filteredProducts.set([]);
-        this.priceListError.set(true);
-        this.loading.set(false);
-        this.notifyError('No se pudo cargar inventario POS de la sesión', 4000);
-      }
-    });
+        next: (summary) => {
+          this.applyInventorySummaryMeta(summary);
+          const rows = summary.data ?? [];
+          const normalized = (rows || []).map((row: any) => ({
+            ...row,
+            id: row.product_id || row.id,
+            name: row.product_name || row.name || 'Producto',
+            sku: row.product_sku || row.sku || '',
+            primary_photo_url: row.product_photo || row.primary_photo_url || null,
+            cost: Number(row.suggested_unit_price ?? row.cost ?? 0),
+            has_price: row.suggested_unit_price != null || row.cost != null,
+            total_available_quantity: Number(row.total_available_quantity ?? row.available_quantity ?? 0),
+            pricing_options: Array.isArray(row.pricing_options) ? row.pricing_options : [],
+          }));
+          this.products.set(normalized);
+          this.filteredProducts.set(normalized);
+          if (!this.selectedWarehouse() && this.lastInventorySummary()) {
+            const warehouseId = resolvePosWarehouseId(this.lastInventorySummary()!);
+            if (warehouseId) {
+              this.selectedWarehouse.set(warehouseId);
+              persistPosWarehouseId(warehouseId);
+            }
+          }
+          this.priceListError.set(false);
+          this.loading.set(false);
+        },
+        error: (error) => {
+          const recovery = normalizePosInventorySummary(error?.error);
+          if (error?.status === 400 && recovery.warehouses.length > 0) {
+            persistPosWarehouseId('');
+            this.applyInventorySummaryMeta(recovery);
+            this.loadProducts(search);
+            return;
+          }
+
+          this.products.set([]);
+          this.filteredProducts.set([]);
+          this.priceListError.set(true);
+          this.loading.set(false);
+          this.notifyError('No se pudo cargar inventario POS', 4000);
+        },
+      });
   }
 }

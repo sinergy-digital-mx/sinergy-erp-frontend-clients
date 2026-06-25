@@ -1,0 +1,21 @@
+@import '../inventory-batch-list/inventory-batch-list.component.scss';
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  color: #6b7280;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+}
+
+.filter-bar__container--wrap {
+  flex-wrap: wrap;
+}

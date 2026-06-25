@@ -1,0 +1,24 @@
+<div class="pos-dialog">
+  <h2 class="pos-dialog__title">Abrir corte del día</h2>
+  <p class="pos-dialog__subtitle">Registra el efectivo inicial en caja (MXN y USD).</p>
+
+  <div class="pos-dialog__fields">
+    <label class="pos-dialog__field">
+      <span>Efectivo inicial MXN</span>
+      <input type="number" min="0" step="0.01" [ngModel]="openingCashMxn()" (ngModelChange)="openingCashMxn.set(+$event || 0)" />
+    </label>
+    <label class="pos-dialog__field">
+      <span>Efectivo inicial USD</span>
+      <input type="number" min="0" step="0.01" [ngModel]="openingCashUsd()" (ngModelChange)="openingCashUsd.set(+$event || 0)" />
+    </label>
+    <label class="pos-dialog__field">
+      <span>Notas (opcional)</span>
+      <input type="text" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Apertura turno matutino" />
+    </label>
+  </div>
+
+  <div class="pos-dialog__actions">
+    <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="cancel()"></app-button>
+    <app-button text="Abrir corte" custom_class="btn_primary" (clicked)="confirm()"></app-button>
+  </div>
+</div>

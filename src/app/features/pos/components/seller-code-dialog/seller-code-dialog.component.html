@@ -1,0 +1,25 @@
+<div class="pos-dialog">
+  <h2 class="pos-dialog__title">Código de vendedor</h2>
+  <p class="pos-dialog__subtitle">Ingresa tu código para registrar ventas en esta terminal.</p>
+
+  <label class="pos-dialog__field">
+    <span>Código</span>
+    <input
+      type="number"
+      min="1"
+      step="1"
+      [ngModel]="code()"
+      (ngModelChange)="code.set($event === '' || $event == null ? null : +$event)"
+      (keyup.enter)="confirm()"
+      autofocus
+      placeholder="Ej. 33456" />
+  </label>
+  @if (error()) {
+    <p class="pos-dialog__error">{{ error() }}</p>
+  }
+
+  <div class="pos-dialog__actions">
+    <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="cancel()"></app-button>
+    <app-button text="Continuar" custom_class="btn_primary" (clicked)="confirm()"></app-button>
+  </div>
+</div>

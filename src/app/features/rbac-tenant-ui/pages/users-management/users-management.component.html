@@ -31,46 +31,63 @@
       </div>
 
       <!-- User List -->
-      <div class="flex-1 overflow-y-auto min-h-0">
+      <div class="flex-1 overflow-y-auto min-h-0 user-cards-panel">
         @if (filteredUsers$ | async; as users) {
           @if (users.length === 0) {
             <div class="p-3 text-center text-gray-500 text-sm">
               <p>No se encontraron usuarios</p>
             </div>
           } @else {
-            @for (user of users; track user.id) {
-              <div class="border-b border-gray-100 last:border-b-0">
+            <div class="user-cards">
+              @for (user of users; track user.id) {
                 <button
+                  type="button"
                   (click)="onUserSelected(user.id)"
-                  [class.bg-blue-50]="(selectedUserId$ | async) === user.id"
-                  class="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                >
-                  <div class="flex items-center justify-between">
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium text-gray-900 truncate">
-                        {{ user.first_name || 'N/A' }} {{ user.last_name || 'N/A' }}
-                      </p>
-                      <p class="text-xs text-gray-600 mt-1 truncate">{{ user.email }}</p>
-                      <p class="text-xs text-gray-500 mt-1">
-                        <span [class]="getStatusClass(user.status)">
-                          {{ getNormalizedStatus(user.status) | titlecase }}
-                        </span>
-                      </p>
+                  class="user-card"
+                  [class.user-card--selected]="(selectedUserId$ | async) === user.id">
+                  <div class="user-card__avatar" aria-hidden="true">
+                    {{ getUserInitials(user) }}
+                  </div>
+                  <div class="user-card__body">
+                    <div class="user-card__top">
+                      <p class="user-card__name">{{ getUserDisplayName(user) }}</p>
+                      <span [class]="getStatusClass(user.status)">
+                        {{ getNormalizedStatus(user.status) | titlecase }}
+                      </span>
                     </div>
+                    <p class="user-card__email">{{ user.email }}</p>
+                    @if (user.is_pos_user || user.pos_user_code || getBillingBranchLabel(user)) {
+                      <div class="user-card__meta">
+                        @if (getPosTypeBadge(user); as posBadge) {
+                          <span
+                            class="user-card__tag user-card__tag--pos"
+                            [class.user-card__tag--pos-cobranza]="user.pos_user_type === 'COBRANZA'">
+                            {{ posBadge }}
+                          </span>
+                        }
+                        @if (!user.is_pos_user && user.pos_user_code) {
+                          <span class="user-card__tag user-card__tag--code">
+                            Código: {{ user.pos_user_code }}
+                          </span>
+                        }
+                        @if (getBillingBranchLabel(user); as branchLabel) {
+                          <span class="user-card__tag user-card__tag--branch">{{ branchLabel }}</span>
+                        }
+                      </div>
+                    }
                   </div>
                 </button>
-              </div>
-            }
+              }
+            </div>
           }
         }
       </div>
     </div>
 
     <!-- Right Panel: User Details -->
-    <div class="flex-1 bg-gray-50 border border-gray-200 flex flex-col h-full">
+    <div class="flex-1 min-h-0 overflow-hidden">
       @if (selectedUser$ | async; as user) {
-        <div class="flex flex-col bg-white h-full">
-          <app-user-details
+        <app-user-details
             [user]="user"
             [userRoles$]="selectedUserRoles$"
             [availableRoles$]="roles$"
@@ -79,10 +96,9 @@
             (roleReplaced)="onRoleReplaced($event)"
             (roleDeleted)="onRoleDeleted($event)"
             (userUpdated)="onUserUpdated()"
-          ></app-user-details>
-        </div>
+        ></app-user-details>
       } @else {
-        <div class="flex items-center justify-center bg-white h-full">
+        <div class="flex items-center justify-center h-full bg-white">
           <div class="text-center">
             <p class="text-gray-500 text-lg">Selecciona un usuario para ver los detalles</p>
           </div>

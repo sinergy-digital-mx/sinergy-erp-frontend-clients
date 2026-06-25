@@ -1,0 +1,132 @@
+<div class="purchase-order-list-container">
+  <div class="purchase-content">
+    <div class="px-4">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <a routerLink="/inventory" class="back-link" title="Volver a inventario">
+            <lucide-icon [img]="ArrowLeft" [size]="18"></lucide-icon>
+          </a>
+          <h2 class="text-2xl font-semibold text-gray-800">Transferencias de inventario</h2>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="filter-bar" role="search" aria-label="Filtros de transferencias">
+          <div class="filter-bar__container filter-bar__container--wrap">
+            <div class="filter-bar__field">
+              <input
+                type="text"
+                [(ngModel)]="searchTerm"
+                (keyup.enter)="onSearch()"
+                placeholder="Buscar folio, producto o SKU..."
+                class="filter-bar__input"
+              />
+            </div>
+            <div class="filter-bar__field">
+              <select
+                [(ngModel)]="sourceBranchId"
+                (change)="onFilterChange()"
+                class="filter-bar__select"
+              >
+                <option value="">Sucursal origen</option>
+                @for (branch of branches(); track branch.id) {
+                  <option [value]="branch.id">{{ branch.code }} — {{ branch.city }}</option>
+                }
+              </select>
+            </div>
+            <div class="filter-bar__field">
+              <select
+                [(ngModel)]="sourceWarehouseId"
+                (change)="onFilterChange()"
+                class="filter-bar__select"
+              >
+                <option value="">Almacén origen</option>
+                @for (wh of warehouses(); track wh.id) {
+                  <option [value]="wh.id">{{ wh.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="filter-bar__field">
+              <select
+                [(ngModel)]="destinationBranchId"
+                (change)="onFilterChange()"
+                class="filter-bar__select"
+              >
+                <option value="">Sucursal destino</option>
+                @for (branch of branches(); track branch.id) {
+                  <option [value]="branch.id">{{ branch.code }} — {{ branch.city }}</option>
+                }
+              </select>
+            </div>
+            <div class="filter-bar__field">
+              <select
+                [(ngModel)]="destinationWarehouseId"
+                (change)="onFilterChange()"
+                class="filter-bar__select"
+              >
+                <option value="">Almacén destino</option>
+                @for (wh of warehouses(); track wh.id) {
+                  <option [value]="wh.id">{{ wh.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="filter-bar__field">
+              <input
+                type="date"
+                [(ngModel)]="createdFrom"
+                (change)="onFilterChange()"
+                class="filter-bar__input"
+                aria-label="Desde"
+              />
+            </div>
+            <div class="filter-bar__field">
+              <input
+                type="date"
+                [(ngModel)]="createdTo"
+                (change)="onFilterChange()"
+                class="filter-bar__input"
+                aria-label="Hasta"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <app-datatable-wrapper
+        [config]="table_config()"
+        [rowTemplate]="tableTemplate"
+        (pageChange)="onPageChange($event)"
+        (rowClick)="openTransferDetail($event.data)">
+      </app-datatable-wrapper>
+    </div>
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="px-2 py-2 w-[120px]">
+    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-indigo-100 text-indigo-700">
+      {{ item.folio }}
+    </span>
+  </td>
+  <td class="px-2 py-2 w-[180px]">
+    <div class="flex flex-col">
+      <span class="text-sm font-medium text-gray-900 truncate">{{ item.product_name }}</span>
+      <span class="text-xs text-gray-500">{{ item.product_sku }}</span>
+    </div>
+  </td>
+  <td class="px-2 py-2 w-[110px]">
+    <span class="text-sm text-gray-700">{{ item.total_quantity | removeTrailingZeros }} {{ item.uom_name }}</span>
+  </td>
+  <td class="px-2 py-2 w-[160px]">
+    <span class="text-sm text-gray-700">{{ warehouseLabel(item.source_warehouse) }}</span>
+  </td>
+  <td class="px-2 py-2 w-[160px]">
+    <span class="text-sm text-gray-700">{{ warehouseLabel(item.destination_warehouse) }}</span>
+  </td>
+  <td class="px-2 py-2 w-[140px]">
+    <span class="text-sm text-gray-700">{{ item.created_by_user?.name || '—' }}</span>
+  </td>
+  <td class="px-2 py-2 w-[140px]">
+    <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>
+  </td>
+</ng-template>

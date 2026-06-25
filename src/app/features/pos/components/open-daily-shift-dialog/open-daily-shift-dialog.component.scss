@@ -1,0 +1,46 @@
+.pos-dialog {
+  padding: 20px;
+  min-width: 320px;
+}
+
+.pos-dialog__title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.pos-dialog__subtitle {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.pos-dialog__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pos-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+
+  input {
+    padding: 8px 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+}
+
+.pos-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}

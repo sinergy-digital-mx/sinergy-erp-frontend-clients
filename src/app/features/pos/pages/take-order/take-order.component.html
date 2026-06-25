@@ -1,5 +1,5 @@
 <div #posRoot class="pos-take-root" [class.pos-take-root--fullscreen]="isFullscreen()">
-  <!-- Barra sesión POS full width -->
+  <!-- Barra corte global POS -->
   <header class="pos-session-bar">
     <div class="pos-session-bar__content">
       <div class="pos-session-bar__left">
@@ -10,22 +10,25 @@
       </div>
 
       <div class="pos-session-bar__center">
-        @if (checkingSession()) {
-          <span class="pos-session-bar__checking">Comprobando sesión…</span>
-        } @else if (activePosSession()) {
+        @if (posState.checkingShift()) {
+          <span class="pos-session-bar__checking">Verificando corte…</span>
+        } @else if (posState.shiftOpen()) {
           <div class="pos-pill pos-pill--ok">
             <lucide-icon [img]="Package" class="pos-ic pos-ic--sm" />
-            <span>Sesión activa</span>
+            <span>Corte abierto</span>
           </div>
-          <span class="pos-session-meta">{{ selectedWarehouseName() }}</span>
-          @if (sessionOpenedLabel()) {
-            <span class="pos-session-meta">· {{ sessionOpenedLabel() }}</span>
+          <span class="pos-session-meta">{{ branchLabel() }} · {{ selectedWarehouseName() }}</span>
+          @if (posState.seller(); as seller) {
+            <span class="pos-session-meta">· Vendedor: {{ posState.sellerDisplayName() }}</span>
           }
         } @else {
           <div class="pos-pill pos-pill--warn">
             <lucide-icon [img]="AlertCircle" class="pos-ic pos-ic--sm" />
-            <span>Sin sesión POS — inicia sesión para cobrar</span>
+            <span>Sin corte — ventas en cola</span>
           </div>
+          @if (posState.seller()) {
+            <span class="pos-session-meta">Vendedor: {{ posState.sellerDisplayName() }}</span>
+          }
         }
       </div>
 
@@ -35,33 +38,46 @@
         </button>
         <div class="pos-terminal-chip">
           <lucide-icon [img]="Monitor" class="pos-ic pos-ic--sm" />
-          <span class="pos-terminal-chip__label">{{ terminalId() || '—' }}</span>
+          <span class="pos-terminal-chip__label">{{ terminalLabel() }}</span>
         </div>
-        @if (!checkingSession() && activePosSession()) {
-          <button type="button" class="pos-btn pos-btn--ghost" (click)="closePosSession()">
-            <lucide-icon [img]="LogOut" class="pos-ic pos-ic--btn" />
-            <span>Cerrar sesión</span>
+        @if (!isCobranzaTerminal() && posState.seller()) {
+          <button type="button" class="pos-btn pos-btn--ghost" (click)="changeSeller()">
+            <lucide-icon [img]="User" class="pos-ic pos-ic--btn" />
+            <span>Cambiar vendedor</span>
           </button>
         }
-        @if (!checkingSession() && !activePosSession()) {
-          <button type="button" class="pos-btn pos-btn--primary" (click)="openPosSession()">
-            <lucide-icon [img]="LogIn" class="pos-ic pos-ic--btn" />
-            <span>Iniciar sesión</span>
+        @if (!isCobranzaTerminal() && posState.needsSellerCode()) {
+          <button type="button" class="pos-btn pos-btn--primary" (click)="openSellerCodeDialog()">
+            <lucide-icon [img]="User" class="pos-ic pos-ic--btn" />
+            <span>Código vendedor</span>
           </button>
         }
       </div>
     </div>
   </header>
 
-  <div class="pos-take-body" [class.pos-take-body--locked]="!sessionOk()">
-    @if (!sessionOk()) {
+  @if (!posState.checkingShift()) {
+    <div
+      class="pos-shift-banner"
+      [class.pos-shift-banner--open]="posState.shiftOpen()"
+      [class.pos-shift-banner--queue]="posState.salesQueueMode()">
+      @if (posState.shiftOpen()) {
+        <span>Corte activo — las ventas van directo a cobranza.</span>
+      } @else {
+        <span>Sin corte abierto — las ventas quedan en cola hasta que cobranza abra el día.</span>
+      }
+    </div>
+  }
+
+  <div class="pos-take-body" [class.pos-take-body--locked]="!isCobranzaTerminal() && !canSell()">
+    @if (!isCobranzaTerminal() && !canSell()) {
       <div class="pos-lock-overlay" aria-hidden="true">
         <div class="pos-lock-card">
-          <lucide-icon [img]="LogIn" class="pos-lock-card__icon" />
-          <h3>Sesión POS requerida</h3>
-          <p>Inicia sesión en la barra superior para cargar el carrito y registrar ventas.</p>
-          <button type="button" class="pos-btn pos-btn--primary pos-btn--lg" (click)="openPosSession()">
-            <span>Iniciar sesión</span>
+          <lucide-icon [img]="User" class="pos-lock-card__icon" />
+          <h3>Identifica al vendedor</h3>
+          <p>Ingresa el código del vendedor POS para cargar el catálogo y registrar ventas.</p>
+          <button type="button" class="pos-btn pos-btn--primary pos-btn--lg" (click)="openSellerCodeDialog()">
+            <span>Ingresar código</span>
           </button>
         </div>
       </div>
@@ -138,7 +154,12 @@
         @if (filteredProducts().length === 0 && !loading()) {
           <div class="pos-empty-grid">
             <lucide-icon [img]="Package" class="pos-empty-grid__icon" />
-            <p>No hay productos que coincidan</p>
+            <p>{{ catalogEmptyMessage() }}</p>
+            @if (priceListError()) {
+              <button type="button" class="pos-btn pos-btn--ghost pos-empty-grid__retry" (click)="retryCatalogLoad()">
+                Reintentar
+              </button>
+            }
           </div>
         }
 
@@ -155,34 +176,12 @@
       <div class="pos-cart__head">
         <div class="pos-cart__head-title">
           <lucide-icon [img]="ShoppingCart" class="pos-ic" />
-          <h2>Orden actual</h2>
+          <h2>{{ cartProductsTabLabel() }}</h2>
         </div>
       </div>
 
-      <div class="pos-cart__tabs" role="tablist" aria-label="Secciones de la orden">
-        <button
-          type="button"
-          class="pos-cart__tab"
-          role="tab"
-          [attr.aria-selected]="cartActiveTab() === 'products'"
-          [class.pos-cart__tab--active]="cartActiveTab() === 'products'"
-          (click)="setCartTab('products')">
-          {{ cartProductsTabLabel() }}
-        </button>
-        <button
-          type="button"
-          class="pos-cart__tab"
-          role="tab"
-          [attr.aria-selected]="cartActiveTab() === 'payment'"
-          [class.pos-cart__tab--active]="cartActiveTab() === 'payment'"
-          (click)="setCartTab('payment')">
-          {{ cartPaymentTabLabel() }}
-        </button>
-      </div>
-
       <div class="pos-cart__body">
-        @if (cartActiveTab() === 'products') {
-          <div class="pos-cart__panel pos-cart__panel--products">
+        <div class="pos-cart__panel pos-cart__panel--products">
       <div class="pos-cart__lines" [class.pos-cart__lines--empty]="posService.cart().items.length === 0">
         @for (item of posService.cart().items; track $index; let i = $index) {
           <article class="pos-line">
@@ -276,110 +275,9 @@
           <span>Total</span>
           <strong>{{ formatCurrency(posService.cart().grand_total) }}</strong>
         </div>
+        <p class="pos-cart__hint">{{ cartQueueHint() }}</p>
       </div>
           </div>
-        } @else {
-          <div class="pos-cart__panel pos-cart__panel--payment">
-            @if (posService.cart().grand_total > 0) {
-              <div class="pos-pay__banner">
-                <span>Total a cobrar</span>
-                <strong>{{ formatCurrency(posService.cart().grand_total) }}</strong>
-              </div>
-            }
-      <div class="pos-customer">
-        <button
-          type="button"
-          class="pos-customer__toggle"
-          [class.pos-customer__toggle--selected]="!!selectedCustomer()"
-          (click)="openCustomerPicker()">
-          <div class="pos-customer__toggle-left">
-            <span class="pos-customer__avatar" [class.pos-customer__avatar--filled]="!!selectedCustomer()">
-              @if (selectedCustomer(); as customer) {
-                {{ customerInitials(customer) }}
-              } @else {
-                <lucide-icon [img]="User" class="pos-ic pos-ic--sm" />
-              }
-            </span>
-            <div class="pos-customer__toggle-text">
-              <span class="pos-customer__label">Cliente existente</span>
-              @if (selectedCustomer(); as customer) {
-                <span class="pos-customer__name">{{ customerDisplayName(customer) }}</span>
-              } @else {
-                <span class="pos-customer__hint">Mostrador · toca para elegir cliente</span>
-              }
-            </div>
-          </div>
-          <div class="pos-customer__toggle-right">
-            @if (selectedCustomer()) {
-              <button
-                type="button"
-                class="pos-customer__clear"
-                (click)="clearCustomer(); $event.stopPropagation()"
-                title="Quitar cliente">
-                <lucide-icon [img]="X" class="pos-ic pos-ic--xs" />
-              </button>
-            }
-            <lucide-icon [img]="ChevronRight" class="pos-ic pos-ic--sm pos-customer__chevron" />
-          </div>
-        </button>
-      </div>
-
-      <div class="pos-pay">
-        <h3 class="pos-pay__title">Método de pago</h3>
-        <div class="pos-pay__methods">
-          <button
-            type="button"
-            class="pos-pay__method"
-            [class.pos-pay__method--on]="paymentMethod() === 'cash'"
-            (click)="setPaymentMethod('cash')">
-            <lucide-icon [img]="Banknote" class="pos-ic" />
-            Efectivo
-          </button>
-          <button
-            type="button"
-            class="pos-pay__method"
-            [class.pos-pay__method--on]="paymentMethod() === 'card'"
-            (click)="setPaymentMethod('card')">
-            <lucide-icon [img]="CreditCard" class="pos-ic" />
-            Tarjeta
-          </button>
-          <button
-            type="button"
-            class="pos-pay__method"
-            [class.pos-pay__method--on]="paymentMethod() === 'credit'"
-            (click)="setPaymentMethod('credit')">
-            <lucide-icon [img]="FileText" class="pos-ic" />
-            Crédito
-          </button>
-        </div>
-
-        @if (paymentMethod() === 'cash') {
-          <div class="pos-cash">
-            <label class="pos-cash__field">
-              <span>Cantidad recibida</span>
-              <input
-                type="number"
-                [ngModel]="amountPaid"
-                (ngModelChange)="onAmountPaidChange($event)"
-                min="0"
-                step="0.01"
-              />
-            </label>
-            <div class="pos-cash__change">
-              <span>Cambio</span>
-              <output>{{ formatCurrency(calculateChange()) }}</output>
-            </div>
-            @if (!isPaymentValid() && posService.cart().grand_total > 0) {
-              <p class="pos-cash__warn">Monto insuficiente para el total</p>
-            }
-          </div>
-        }
-        @if (paymentMethod() === 'credit' && !selectedCustomerId()) {
-          <p class="pos-cash__warn">Selecciona un cliente existente para venta a crédito</p>
-        }
-      </div>
-          </div>
-        }
       </div>
 
       <div class="pos-cart__actions">
@@ -392,12 +290,10 @@
           (click)="saveOrder()"
           [disabled]="
             saving() ||
-            !sessionOk() ||
-            posService.cart().items.length === 0 ||
-            !isPaymentValid() ||
-            (paymentMethod() === 'credit' && !selectedCustomerId())
+            !canSell() ||
+            posService.cart().items.length === 0
           ">
-          {{ saving() ? 'Guardando…' : 'Guardar orden' }}
+          {{ saving() ? 'Guardando…' : 'Registrar venta' }}
         </button>
       </div>
     </aside>

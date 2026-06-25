@@ -8,6 +8,7 @@ import {
   Category, SubCategory, CategoryQueryParams, SubCategoryQueryParams,
   ProductPhoto, ProductPrice, PriceList, CreatePriceListDto, CreateProductPriceDto,
   VendorProductPrice, CreateVendorPriceDto,
+  ProductDiscount, CreateProductDiscountDto, UpdateProductDiscountDto,
   ConvertUoMRequest, ConvertUoMResponse,
   UoMCatalog, ProductAttribute, ProductAttributeQueryParams, ProductAttributeValue
 } from '../models/product.model';
@@ -23,22 +24,54 @@ export class ProductService {
   // ─── Products ───────────────────────────────────────────────
 
   getProducts(params?: ProductQueryParams): Observable<ProductListResponse> {
-    return this.http.get<any>(`${this.api}/tenant/products`, { params: params as any }).pipe(
-      map(response => {
-        if (Array.isArray(response)) {
-          return {
-            data: response,
-            total: response.length,
-            page: 1,
-            limit: 20,
-            totalPages: 1,
-            hasNext: false,
-            hasPrev: false
-          };
+    const httpParams: Record<string, string | number | boolean> = {};
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null && value !== '') {
+          httpParams[key] = value as string | number | boolean;
         }
-        return response;
-      })
+      }
+    }
+
+    return this.http.get<any>(`${this.api}/tenant/products`, { params: httpParams }).pipe(
+      map(response => this.normalizeProductListResponse(response, params))
     );
+  }
+
+  private normalizeProductListResponse(
+    response: any,
+    params?: ProductQueryParams
+  ): ProductListResponse {
+    const defaultLimit = params?.limit ?? 20;
+
+    if (Array.isArray(response)) {
+      return {
+        data: response,
+        total: response.length,
+        page: 1,
+        limit: defaultLimit,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      };
+    }
+
+    const data = response?.data ?? [];
+    const page = Number(response?.page) || params?.page || 1;
+    const limit = Number(response?.limit) || params?.limit || defaultLimit;
+    const total = Number(response?.total) || data.length;
+    const totalPages =
+      Number(response?.totalPages) || (total > 0 ? Math.ceil(total / limit) : 1);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNext: response?.hasNext ?? page < totalPages,
+      hasPrev: response?.hasPrev ?? page > 1,
+    };
   }
 
   getProduct(id: string): Observable<Product> {
@@ -403,6 +436,28 @@ export class ProductService {
 
   deleteVendorCost(productId: string, costId: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/products/${productId}/vendor-costs/${costId}`);
+  }
+
+  // ─── Product Discounts ──────────────────────────────────────
+
+  getProductDiscounts(productId: string): Observable<ProductDiscount[]> {
+    return this.http.get<ProductDiscount[]>(`${this.api}/tenant/products/${productId}/discounts`);
+  }
+
+  getProductDiscount(productId: string, discountId: string): Observable<ProductDiscount> {
+    return this.http.get<ProductDiscount>(`${this.api}/tenant/products/${productId}/discounts/${discountId}`);
+  }
+
+  createProductDiscount(productId: string, data: CreateProductDiscountDto): Observable<ProductDiscount> {
+    return this.http.post<ProductDiscount>(`${this.api}/tenant/products/${productId}/discounts`, data);
+  }
+
+  updateProductDiscount(productId: string, discountId: string, data: UpdateProductDiscountDto): Observable<ProductDiscount> {
+    return this.http.patch<ProductDiscount>(`${this.api}/tenant/products/${productId}/discounts/${discountId}`, data);
+  }
+
+  deleteProductDiscount(productId: string, discountId: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/tenant/products/${productId}/discounts/${discountId}`);
   }
 
   // ─── Vendors ────────────────────────────────────────────────

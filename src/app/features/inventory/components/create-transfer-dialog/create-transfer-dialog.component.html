@@ -1,0 +1,208 @@
+<div class="transfer-dialog">
+  <div class="transfer-dialog__header">
+    <div class="transfer-dialog__title-row">
+      <lucide-icon [img]="ArrowRightLeft" class="transfer-dialog__icon"></lucide-icon>
+      <h2 class="transfer-dialog__title">Transferir inventario</h2>
+    </div>
+    <button type="button" class="transfer-dialog__close" (click)="close()" aria-label="Cerrar">
+      <lucide-icon [img]="X" class="w-5 h-5"></lucide-icon>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="transfer-dialog__loading">
+      <p>Cargando contexto...</p>
+    </div>
+  } @else if (context(); as ctx) {
+    <div class="transfer-dialog__body">
+      <!-- Origen -->
+      <section class="transfer-section">
+        <h3 class="transfer-section__title">Origen</h3>
+        <div class="origin-card">
+          <div class="origin-card__grid">
+            <div>
+              <span class="origin-card__label">Producto</span>
+              <span class="origin-card__value">{{ ctx.product_name }} ({{ ctx.product_sku }})</span>
+            </div>
+            <div>
+              <span class="origin-card__label">UOM</span>
+              <span class="origin-card__value">{{ ctx.uom_name }}</span>
+            </div>
+            <div>
+              <span class="origin-card__label">Almacén</span>
+              <span class="origin-card__value">{{ ctx.source_warehouse.name }}</span>
+            </div>
+            <div>
+              <span class="origin-card__label">Sucursal</span>
+              <span class="origin-card__value">{{ sourceBranchLabel }}</span>
+            </div>
+            <div class="origin-card__full">
+              <span class="origin-card__label">Disponible total</span>
+              <span class="origin-card__value origin-card__value--highlight">
+                {{ formatQty(ctx.total_available_quantity) }} {{ ctx.uom_name }}
+                ({{ ctx.total_batches }} {{ ctx.total_batches === 1 ? 'lote' : 'lotes' }})
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lotes origen -->
+      <section class="transfer-section">
+        <div class="transfer-section__header">
+          <h3 class="transfer-section__title">Lotes origen</h3>
+          <button type="button" class="btn-link" (click)="transferAll()">Transferir todo</button>
+        </div>
+
+        <div class="batch-table-wrap">
+          <table class="batch-table">
+            <thead>
+              <tr>
+                <th class="w-10"></th>
+                <th>Lote</th>
+                <th>OC origen</th>
+                <th>Etiqueta</th>
+                <th class="text-right">Disponible</th>
+                <th class="text-right w-36">A transferir</th>
+                <th class="w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (line of batchLines(); track line.batch.batch_id; let i = $index) {
+                <tr [class.batch-table__row--selected]="line.selected">
+                  <td>
+                    <input
+                      type="checkbox"
+                      [checked]="line.selected"
+                      [disabled]="toNum(line.batch.available_quantity) <= 0"
+                      (change)="toggleBatch(i, $any($event.target).checked)"
+                    />
+                  </td>
+                  <td class="font-medium">{{ line.batch.batch_number }}</td>
+                  <td class="text-blue-600">{{ line.batch.purchase_order_folio || '—' }}</td>
+                  <td>{{ line.batch.source_tag_identifier || '—' }}</td>
+                  <td class="text-right">{{ formatQty(line.batch.available_quantity) }}</td>
+                  <td class="text-right">
+                    @if (line.selected) {
+                      <input
+                        type="number"
+                        class="qty-input"
+                        [ngModel]="line.quantity"
+                        (ngModelChange)="updateQuantity(i, $event)"
+                        min="0"
+                        [max]="toNum(line.batch.available_quantity)"
+                        step="0.001"
+                      />
+                      @if (getLineError(line); as err) {
+                        <span class="qty-error">{{ err }}</span>
+                      }
+                    } @else {
+                      <span class="text-gray-400">—</span>
+                    }
+                  </td>
+                  <td>
+                    @if (toNum(line.batch.available_quantity) > 0) {
+                      <button
+                        type="button"
+                        class="btn-icon"
+                        title="Usar todo el disponible"
+                        (click)="fillBatchAvailable(i)">
+                        Max
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Destino -->
+      <section class="transfer-section">
+        <h3 class="transfer-section__title">Destino</h3>
+        <div class="dest-grid">
+          <div class="form-field">
+            <label for="destBranch">Sucursal destino</label>
+            <select
+              id="destBranch"
+              class="form-select"
+              [ngModel]="selectedBranchId()"
+              (ngModelChange)="onBranchChange($event)">
+              <option value="">Seleccionar sucursal...</option>
+              @for (branch of branches(); track branch.id) {
+                <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="destWarehouse">Almacén destino</label>
+            <select
+              id="destWarehouse"
+              class="form-select"
+              [ngModel]="selectedWarehouseId()"
+              (ngModelChange)="onWarehouseChange($event)"
+              [disabled]="!selectedBranchId()">
+              <option value="">Seleccionar almacén...</option>
+              @for (wh of destinationWarehouses(); track wh.id) {
+                <option [value]="wh.id">{{ wh.name }}</option>
+              }
+            </select>
+            @if (selectedBranchId() && destinationWarehouses().length === 0) {
+              <span class="field-hint field-hint--error">No hay almacenes activos en esta sucursal</span>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- Notas -->
+      <section class="transfer-section">
+        <div class="form-field">
+          <label for="transferNotes">Notas (opcional)</label>
+          <textarea
+            id="transferNotes"
+            class="form-textarea"
+            rows="2"
+            placeholder="Motivo o referencia del traslado..."
+            [ngModel]="notes()"
+            (ngModelChange)="notes.set($event)">
+          </textarea>
+        </div>
+      </section>
+
+      <!-- Resumen -->
+      <section class="summary-box">
+        <div class="summary-box__row">
+          <span>Total a transferir:</span>
+          <strong>{{ formatQty(totalToTransfer()) }} {{ ctx.uom_name }}</strong>
+          <span class="text-gray-500">desde {{ selectedLinesCount() }} {{ selectedLinesCount() === 1 ? 'lote' : 'lotes' }}</span>
+        </div>
+        <div class="summary-box__row summary-box__row--muted">
+          <span>Origen:</span>
+          <span>{{ ctx.source_warehouse.name }} ({{ ctx.source_warehouse.billing_branch.code }})</span>
+        </div>
+        @if (selectedWarehouseId()) {
+          <div class="summary-box__row summary-box__row--muted">
+            <span>Destino:</span>
+            <span>{{ destinationWarehouseName }} ({{ destinationBranchLabel.split(' — ')[0] }})</span>
+          </div>
+        }
+      </section>
+    </div>
+
+    <div class="transfer-dialog__footer">
+      <button type="button" class="btn-cancel" (click)="close()" [disabled]="submitting()">Cancelar</button>
+      <button
+        type="button"
+        class="btn-confirm"
+        (click)="confirm()"
+        [disabled]="!canSubmit()">
+        @if (submitting()) {
+          Confirmando...
+        } @else {
+          Confirmar transferencia
+        }
+      </button>
+    </div>
+  }
+</div>

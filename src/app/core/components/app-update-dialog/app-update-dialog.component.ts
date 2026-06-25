@@ -16,7 +16,7 @@ export interface AppUpdateDialogData {
     <div class="app-update-dialog">
       <h2 class="app-update-dialog__title">Hay una actualización</h2>
       <p class="app-update-dialog__message">
-        Hay una nueva versión de Sinergy ERP disponible.
+        Hay una nueva versión de Pollux disponible.
         @if (data.version) {
           <span class="app-update-dialog__version">Versión {{ data.version }}</span>
         }

@@ -1,6 +1,6 @@
   import { Injectable } from '@angular/core';
   import { HttpClient } from '@angular/common/http';
-  import { Observable, BehaviorSubject } from 'rxjs';
+  import { Observable, BehaviorSubject, of } from 'rxjs';
   import { jwtDecode } from 'jwt-decode';
   import { ActivatedRoute, Router } from '@angular/router';
   import { environment } from '../../../environments/environment';
@@ -14,12 +14,15 @@
 
     user_info: UserInfoI;
     name_token = 'sinergy_erp_token'
+    user_profile_key = 'sinergy_erp_user_profile'
     token: string;
     permissions$ = new BehaviorSubject<Set<string>>(new Set());
 
     /** Skip /auth/refresh briefly after login so refresh doesn't overwrite a fresh token. */
     private freshLoginUntil = 0;
     private readonly freshLoginGraceMs = 15_000;
+
+    private posProfileLoaded = false;
 
 
 
@@ -42,6 +45,7 @@
         console.log('=== TOKEN INFO ===');
         console.log('permissions_version:', this.user_info.permissions_version);
         console.log('Total permissions:', permissions.length);
+        this.restoreSessionUser();
       } else {
         localStorage.removeItem(this.name_token);
         // Clear permissions if no token
@@ -68,7 +72,9 @@
       this.token = '';
       this.user_info = null as any;
       localStorage.removeItem(this.name_token);
+      localStorage.removeItem(this.user_profile_key);
       this.permissions$.next(new Set());
+      this.resetPosProfileCache();
     }
 
     /** True right after login — avoid calling /auth/refresh over the new token. */
@@ -122,14 +128,20 @@
           (response: any) => {
             console.log('=== AUTH SERVICE - REFRESH ===');
             console.log('Token refreshed due to permission changes');
-            
-            const token = response.access_token || response.token;
-            
+
+            const { token, profile } = this.parseAuthResponse(response);
+
             if (token) {
               this.setToken(token);
               this.logTokenDiagnostics('REFRESH');
             } else {
               console.warn('[AuthService] Refresh response did not include a token');
+            }
+
+            if (profile) {
+              this.applySessionUser(profile);
+            } else {
+              this.mergePosClaimsFromUserInfo();
             }
             
             observer.next(response);
@@ -155,11 +167,18 @@
       
       if (fromLogin) {
         this.freshLoginUntil = Date.now() + this.freshLoginGraceMs;
+        localStorage.removeItem(this.user_profile_key);
       }
 
       // Decode and set new permissions
       const permissions = this.decodeJWT(token);
       this.setPermissions(permissions);
+
+      if (!fromLogin) {
+        this.restoreSessionUser();
+      }
+
+      this.mergePosClaimsFromUserInfo();
       
       // Log new permissions_version
       console.log('=== TOKEN UPDATED ===');
@@ -168,21 +187,28 @@
     }
 
     login(data: any): Observable<any> {
-      // Auth endpoint is at /auth/login (root level), not /api/auth/login
-      // const baseUrl = this.api
       return new Observable(observer => {
         this.http.post(`${this.api}/auth/login`, data).subscribe(
           (response: any) => {
             console.log('=== AUTH SERVICE - LOGIN ===');
             console.log('Response completo:', response);
-            
-            // After successful login, extract token and decode permissions
-            // Backend sends 'access_token', not 'token'
-            const token = response.token || response.access_token;
-            
+
+            const { token, profile } = this.parseAuthResponse(response);
+
             if (token) {
               this.setToken(token, true);
+              if (profile) {
+                this.applySessionUser(profile);
+              } else {
+                this.mergePosClaimsFromUserInfo();
+              }
               this.logTokenDiagnostics('LOGIN');
+              console.log('[AuthService] Perfil POS tras login:', {
+                is_pos_user: this.user_info?.is_pos_user,
+                pos_user_type: this.user_info?.pos_user_type,
+                billing_branch_id: this.user_info?.billing_branch_id,
+                route: this.resolvePostLoginRoute(),
+              });
             } else {
               console.warn('No se encontró token en la respuesta');
             }
@@ -421,6 +447,11 @@
      * Returns the path to navigate to, or null if no routes are accessible.
      */
     getFirstAccessibleRoute(): string | null {
+      const posRoute = this.getPosEntryRoute();
+      if (posRoute) {
+        return posRoute;
+      }
+
       const routes = [
         { path: '/customers', permissions: ['customers:Read', 'customers:ViewMenu', 'customers:Leer'] },
         { path: '/leads', permissions: ['leads:Read', 'leads:ViewMenu'] },
@@ -430,7 +461,8 @@
         { path: '/inventory', permissions: ['inventory:Read', 'inventory:ViewMenu'] },
         { path: '/sales-orders', permissions: ['salesOrders:Read', 'sales_orders:read', 'sales_orders:ViewMenu'] },
         { path: '/marketing', permissions: ['marketing:ViewDashboard', 'marketing:ViewMenu'] },
-        { path: '/pos', permissions: ['pos:Create', 'pos:ViewMenu'] },
+        { path: '/pos/ventas', permissions: ['pos:Create', 'pos:ViewMenu'] },
+        { path: '/pos/cobranza', permissions: ['pos:Update', 'pos:Read', 'pos:ViewMenu'] },
       ];
 
       for (const route of routes) {
@@ -443,6 +475,192 @@
       return null;
     }
 
+    /**
+     * Ruta POS según tipo de terminal del usuario logueado.
+     * Solo aplica si is_pos_user es true en la sesión.
+     */
+    getPosEntryRoute(): string | null {
+      if (!this.isPosTerminalUser()) {
+        return null;
+      }
+
+      const type = this.getPosUserType();
+      if (type === 'COBRANZA') {
+        return '/pos/cobranza';
+      }
+      if (type === 'VENTAS') {
+        return '/pos/ventas';
+      }
+
+      return null;
+    }
+
+    /**
+     * Ruta destino tras login según perfil POS o módulos ERP.
+     */
+    resolvePostLoginRoute(): string | null {
+      if (this.isPosTerminalUser()) {
+        return this.getPosEntryRoute();
+      }
+      return this.getFirstAccessibleRoute();
+    }
+
+    isPosTerminalUser(): boolean {
+      if (this.normalizePosFlag(this.user_info?.is_pos_user)) {
+        return true;
+      }
+      return this.getPosUserType() != null;
+    }
+
+    /**
+     * Perfil POS ya viene en login/refresh — no se consulta GET /tenant/users/:id.
+     */
+    ensurePosProfile(): Observable<void> {
+      this.restoreSessionUser();
+      this.posProfileLoaded = true;
+      return of(void 0);
+    }
+
+    getBillingBranchId(): string | null {
+      const id = this.user_info?.billing_branch_id;
+      return id != null && String(id).trim() !== '' ? String(id) : null;
+    }
+
+    applySessionUser(source: Record<string, unknown>): void {
+      if (!source || typeof source !== 'object') {
+        return;
+      }
+
+      const profile: PosSessionProfile = {
+        is_pos_user: this.normalizePosFlag(source['is_pos_user']),
+        pos_user_type: this.normalizePosUserType(source['pos_user_type']),
+        billing_branch_id:
+          source['billing_branch_id'] != null ? String(source['billing_branch_id']) : null,
+      };
+
+      localStorage.setItem(this.user_profile_key, JSON.stringify(profile));
+      this.mergePosProfile(source);
+      this.posProfileLoaded = true;
+    }
+
+    private parseAuthResponse(response: any): {
+      token: string | null;
+      profile: Record<string, unknown> | null;
+    } {
+      const root =
+        response?.data && typeof response.data === 'object' && !Array.isArray(response.data)
+          ? response.data
+          : response;
+
+      const token =
+        root?.access_token ??
+        root?.token ??
+        response?.access_token ??
+        response?.token ??
+        null;
+
+      const profile =
+        this.pickUserProfile(root?.user) ??
+        this.pickUserProfile(response?.user) ??
+        this.pickUserProfile(root) ??
+        null;
+
+      return { token: token ? String(token) : null, profile };
+    }
+
+    private pickUserProfile(candidate: unknown): Record<string, unknown> | null {
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        return null;
+      }
+
+      const obj = candidate as Record<string, unknown>;
+      if (
+        'is_pos_user' in obj ||
+        'pos_user_type' in obj ||
+        'billing_branch_id' in obj
+      ) {
+        return obj;
+      }
+
+      return null;
+    }
+
+    private normalizePosFlag(value: unknown): boolean {
+      return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
+    }
+
+    private normalizePosUserType(value: unknown): 'VENTAS' | 'COBRANZA' | null {
+      if (typeof value !== 'string') {
+        return null;
+      }
+      const normalized = value.trim().toUpperCase();
+      return normalized === 'VENTAS' || normalized === 'COBRANZA' ? normalized : null;
+    }
+
+    private mergePosClaimsFromUserInfo(): void {
+      if (!this.user_info) {
+        return;
+      }
+      this.mergePosProfile(this.user_info as unknown as Record<string, unknown>);
+    }
+
+    private restoreSessionUser(): void {
+      if (!this.user_info) {
+        return;
+      }
+
+      try {
+        const raw = localStorage.getItem(this.user_profile_key);
+        if (!raw) {
+          return;
+        }
+        const profile = JSON.parse(raw) as PosSessionProfile;
+        this.mergePosProfile(profile as unknown as Record<string, unknown>);
+      } catch (error) {
+        console.warn('[AuthService] No se pudo restaurar perfil de sesión', error);
+      }
+    }
+
+    getPosUserType(): 'VENTAS' | 'COBRANZA' | null {
+      return this.normalizePosUserType(this.user_info?.pos_user_type);
+    }
+
+    isPosCobranzaTerminal(): boolean {
+      return this.getPosUserType() === 'COBRANZA';
+    }
+
+    isPosVentasTerminal(): boolean {
+      return this.getPosUserType() === 'VENTAS';
+    }
+
+    mergePosProfile(source: Record<string, unknown>): void {
+      if (!this.user_info || !source) {
+        return;
+      }
+      if (source['is_pos_user'] != null) {
+        this.user_info.is_pos_user = this.normalizePosFlag(source['is_pos_user']);
+      }
+      const type = this.normalizePosUserType(source['pos_user_type']);
+      if (type) {
+        this.user_info.pos_user_type = type;
+      }
+      if (source['billing_branch_id'] !== undefined) {
+        const branchId = source['billing_branch_id'];
+        this.user_info.billing_branch_id =
+          branchId != null && String(branchId).trim() !== '' ? String(branchId) : null;
+      }
+    }
+
+    private resetPosProfileCache(): void {
+      this.posProfileLoaded = false;
+    }
+
+  }
+
+  export interface PosSessionProfile {
+    is_pos_user?: boolean;
+    pos_user_type?: 'VENTAS' | 'COBRANZA' | null;
+    billing_branch_id?: string | null;
   }
 
   export interface UserInfoI {
@@ -457,6 +675,9 @@
     status: string;
     sub: string;        // user id (uuid)
     tenant_id: string;  // tenant id (uuid)
+    is_pos_user?: boolean;
+    pos_user_type?: 'VENTAS' | 'COBRANZA';
+    billing_branch_id?: string | null;
   }
 
   interface PermissionObject {

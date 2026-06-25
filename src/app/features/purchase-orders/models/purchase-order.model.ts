@@ -60,6 +60,15 @@ export interface PaymentsSummary {
   currency: PaymentCurrency;
 }
 
+export type DocumentLanguage = 'es' | 'en';
+
+export interface RegenerateDocumentResponse {
+  success: boolean;
+  message: string;
+  document_language: DocumentLanguage;
+  keep_previous?: boolean;
+}
+
 /**
  * Document entity
  */
@@ -69,6 +78,7 @@ export interface Document {
   document_type_id: number;
   document_name: string;
   document_type_name: string;
+  document_language?: DocumentLanguage | null;
   file_path: string;
   file_key: string;
   uploaded_by: string;

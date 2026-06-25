@@ -23,55 +23,36 @@
         <!-- Logo Section -->
         <div class="logo-section px-6 py-6 border-b border-white/10">
             <div class="text-center">
-                <h1 [class]="'font-bold text-white tracking-wide transition-all duration-300 ' + (isCollapsed() && !isMobileOpen() ? 'text-lg' : 'text-2xl')">
-                    {{ isCollapsed() && !isMobileOpen() ? 'S' : 'Sinergy' }}
-                </h1>
-                @if (!isCollapsed() || isMobileOpen()) {
-                    <p class="text-white/60 text-sm mt-1 font-light">Sistema ERP</p>
-                }
+                <app-pollux-brand-text [compact]="isCollapsed() && !isMobileOpen()" />
             </div>
         </div>
         
         <div [class]="'flex flex-col pt-6 transition-all duration-300 ' + (isCollapsed() && !isMobileOpen() ? 'px-2' : 'px-4')">
-            <h2 class="text-base font-semibold mb-6 opacity-80 tracking-tight text-white/70"></h2>
-
-        <nav class="flex flex-col gap-1.5">
-          @for(item of visibleMenuItems(); track item.id) {
-            <a [routerLink]="item.route" 
-               routerLinkActive="router-link-active"
-               [routerLinkActiveOptions]="{ exact: true }"
-               (click)="closeMobileMenu()"
-               [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
-               [title]="isCollapsed() && !isMobileOpen() ? item.label : ''">
-              <lucide-icon [img]="item.icon" class="w-4 h-4 shrink-0"></lucide-icon>
+        <nav class="flex flex-col">
+          @for (section of visibleMenuSections(); track section.id; let first = $first) {
+            <div class="nav-section" [class.nav-section--first]="first">
               @if (!isCollapsed() || isMobileOpen()) {
-                <span class="font-medium whitespace-nowrap">{{item.label}}</span>
+                <h3 class="nav-section-title">{{ section.title }}</h3>
+              } @else if (!first) {
+                <div class="nav-section-spacer" aria-hidden="true"></div>
               }
-            </a>
+              <div class="nav-section-items flex flex-col gap-1.5">
+                @for (item of section.items; track item.id) {
+                  <a [routerLink]="item.route"
+                     routerLinkActive="router-link-active"
+                     [routerLinkActiveOptions]="{ exact: true }"
+                     (click)="closeMobileMenu()"
+                     [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
+                     [title]="isCollapsed() && !isMobileOpen() ? item.label : ''">
+                    <lucide-icon [img]="item.icon" class="w-4 h-4 shrink-0"></lucide-icon>
+                    @if (!isCollapsed() || isMobileOpen()) {
+                      <span class="font-medium whitespace-nowrap">{{ item.label }}</span>
+                    }
+                  </a>
+                }
+              </div>
+            </div>
           }
-        </nav>
-
-        <div class="mt-6 mb-4 border-t border-white/20"></div>
-
-        <nav class="flex flex-col gap-1.5">
-            <a routerLink="/notifications"
-                (click)="closeMobileMenu()"
-                [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
-                [title]="isCollapsed() && !isMobileOpen() ? 'Notificaciones' : ''">
-                <lucide-icon [img]="icons.Bell" class="w-4 h-4 shrink-0"></lucide-icon>
-                @if (!isCollapsed() || isMobileOpen()) {
-                    <span class="font-medium">Notificaciones</span>
-                }
-            </a>
-            <a routerLink="/settings"
-               (click)="closeMobileMenu()"
-               [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
-               [title]="isCollapsed() && !isMobileOpen() ? 'Configuración' : ''">
-                <lucide-icon [img]="icons.Settings" class="w-4 h-4 shrink-0"></lucide-icon>
-                @if (!isCollapsed() || isMobileOpen()) {
-                    <span class="font-medium">Configuración</span>
-                }
-            </a>
         </nav>
         </div>
     </div>
@@ -81,16 +62,21 @@
             <a
                 routerLink="/settings/exchange-rates"
                 (click)="closeMobileMenu()"
-                [class]="'mb-3 block rounded-md border border-white/15 bg-white/10 text-white hover:bg-white/15 transition-colors ' + (isCollapsed() && !isMobileOpen() ? 'px-1.5 py-1.5 text-center' : 'px-2 py-1.5')">
+                class="fx-card"
+                [class.fx-card--compact]="isCollapsed() && !isMobileOpen()"
+                title="Cambio USD/MXN">
                 @if (isCollapsed() && !isMobileOpen()) {
-                    <div class="text-[11px]" title="Tipo de cambio USD/MXN">
-                        🇺🇸🇲🇽
-                    </div>
+                    <span class="fx-card__compact-code">USD</span>
+                    <span class="fx-card__compact-value">{{ todayUsdMxnRate() | number:'1.2-2' }}</span>
                 } @else {
-                    <div class="text-[9px] text-white/65 uppercase tracking-wide leading-none">Tipo de cambio</div>
-                    <div class="flex items-center justify-between mt-1 leading-none">
-                        <span class="text-[11px]">USD/MXN</span>
-                        <span class="font-semibold text-[13px]">{{ todayUsdMxnRate() | number:'1.2-4' }}</span>
+                    <div class="fx-card__currencies" aria-hidden="true">
+                        <span class="fx-card__badge fx-card__badge--usd">USD</span>
+                        <span class="fx-card__badge-arrow"></span>
+                        <span class="fx-card__badge fx-card__badge--mxn">MXN</span>
+                    </div>
+                    <div class="fx-card__content">
+                        <span class="fx-card__label">Cambio</span>
+                        <span class="fx-card__value">{{ todayUsdMxnRate() | number:'1.2-4' }}</span>
                     </div>
                 }
             </a>

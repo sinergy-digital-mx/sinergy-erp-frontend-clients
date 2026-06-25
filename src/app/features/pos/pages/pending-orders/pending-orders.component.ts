@@ -2,6 +2,18 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { POSService } from '../../services/pos.service';
+import { formatPosMoney } from '../../models/pos-daily-shift.model';
+import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
+import { ToastService } from '../../../../core/services/toast.service';
+
+interface PendingSale {
+  id: string;
+  folio?: string;
+  total?: number | string;
+  created_at?: string;
+  payment_status?: string;
+  seller_user?: { first_name?: string; last_name?: string; pos_user_code?: number | null };
+}
 
 @Component({
   selector: 'app-pending-orders',
@@ -11,12 +23,13 @@ import { POSService } from '../../services/pos.service';
   styleUrls: ['./pending-orders.component.scss']
 })
 export class PendingOrdersComponent implements OnInit {
-  orders = signal<any[]>([]);
+  orders = signal<PendingSale[]>([]);
   loading = signal<boolean>(false);
 
   constructor(
     private posService: POSService,
-    private router: Router
+    private router: Router,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -25,38 +38,34 @@ export class PendingOrdersComponent implements OnInit {
 
   loadOrders(): void {
     this.loading.set(true);
-    this.posService.getOrders().subscribe({
-      next: (response) => {
-        const ordersArray = Array.isArray(response) ? response : response.data || [];
-        console.log('Orders loaded:', ordersArray);
-        console.log('First order items_count:', ordersArray[0]?.items_count);
-        this.orders.set(ordersArray);
+    this.posService.getPendingSales().subscribe({
+      next: ({ pending_sales }) => {
+        this.orders.set((pending_sales ?? []) as PendingSale[]);
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error loading orders:', error);
         this.loading.set(false);
+        this.toast.error(mapPosApiErrorMessage(error.error?.message));
       }
     });
   }
 
   viewOrder(orderId: string): void {
-    // Navigate to order detail or payment
-    this.router.navigate(['/pos/payment'], { queryParams: { orderId } });
+    this.router.navigate(['/pos/cobranza'], { queryParams: { orderId } });
   }
 
   goBack(): void {
-    this.router.navigate(['/pos']);
+    this.router.navigate(['/pos/cobranza']);
   }
 
-  formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(amount);
+  formatCurrency(amount: number | string | undefined): string {
+    return formatPosMoney(amount);
   }
 
-  formatDate(date: string): string {
+  formatDate(date?: string): string {
+    if (!date) {
+      return '—';
+    }
     return new Date(date).toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'short',
@@ -65,14 +74,13 @@ export class PendingOrdersComponent implements OnInit {
       minute: '2-digit'
     });
   }
-  
-  getStatusLabel(status: string): string {
-    const statusMap: { [key: string]: string } = {
-      'pending': 'Pendiente',
-      'completed': 'Completada',
-      'cancelled': 'Cancelada',
-      'in_progress': 'En Proceso'
-    };
-    return statusMap[status] || status;
+
+  sellerLabel(sale: PendingSale): string {
+    const s = sale.seller_user;
+    if (!s) {
+      return '—';
+    }
+    const name = `${s.first_name ?? ''} ${s.last_name ?? ''}`.trim();
+    return name || (s.pos_user_code ? `Código ${s.pos_user_code}` : '—');
   }
 }

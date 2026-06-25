@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/marketing/marketing.component.ts", "marketing.component.ts"],
+  "sourcesContent": ["\n    :host {\n      display: block;\n      height: 100%;\n    }\n  ", ":host {\n  display: block;\n  height: 100%;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL0M6L1Byb2plY3RzL1N5bmVyZ3kvc2luZXJneS1lcnAtZnJvbnRlbmQtY2xpZW50cy9zcmMvYXBwL2ZlYXR1cmVzL21hcmtldGluZy9tYXJrZXRpbmcuY29tcG9uZW50LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUNJO0VBQ0U7RUFDQSIsInNvdXJjZXNDb250ZW50IjpbIlxuICAgIDpob3N0IHtcbiAgICAgIGRpc3BsYXk6IGJsb2NrO1xuICAgICAgaGVpZ2h0OiAxMDAlO1xuICAgIH1cbiAgIl19 */"],
+  "mappings": ";AACI;AACE,WAAA;AACA,UAAA;ACAN;",
+  "names": []
+}

@@ -23,6 +23,7 @@ export const INVENTORY_PERMISSIONS = {
   export: 'inventory:Export',
   import: 'inventory:Import',
   adjustStock: 'inventory:AdjustStock',
+  write: 'inventory:Write',
   transfer: 'inventory:Transfer',
   
   // Batch management

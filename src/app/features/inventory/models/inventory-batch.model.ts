@@ -10,6 +10,8 @@ export interface InventoryBatchMovementSummary {
   };
 }
 
+import { BatchTransferHistoryEntry } from './inventory-transfer.model';
+
 export interface InventoryBatch {
   id: string;
   batch_number: string;
@@ -31,6 +33,9 @@ export interface InventoryBatch {
   quantity_consumed?: string;
   availability_percentage?: number;
   movement_summary?: InventoryBatchMovementSummary;
+  transferred_from_batch_id?: string | null;
+  transferred_from_batch_number?: string | null;
+  transfer_history?: BatchTransferHistoryEntry[];
   // Optional legacy
   quantity_available?: number | string;
   purchase_order_batch_id: string | null;

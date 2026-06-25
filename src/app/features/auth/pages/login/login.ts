@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -6,13 +6,13 @@ import { InputComponent } from "../../../../core/components/input/input.componen
 import { PasswordComponent } from "../../../../core/components/password/password.component";
 import { ButtonComponent } from "../../../../core/components/button/button.component";
 import { AuthService } from '../../../../core/services/auth.service';
-import { signal } from '@angular/core';
+import { PolluxBrandTextComponent } from '../../../../core/components/pollux-brand-text/pollux-brand-text.component';
 // import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, InputComponent, PasswordComponent, ButtonComponent,ButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, InputComponent, PasswordComponent, ButtonComponent, ButtonComponent, PolluxBrandTextComponent],
   templateUrl: './login.html',
   styleUrls: ['./login.scss'],
 })
@@ -50,15 +50,19 @@ export class Login{
   
     this.authService.login(this.form.value).subscribe({
       next: () => {
-        const firstRoute = this.authService.getFirstAccessibleRoute();
-        if (!firstRoute) {
-          this.loading.set(false);
+        const isPosTerminal = this.authService.isPosTerminalUser();
+        const route = this.authService.resolvePostLoginRoute();
+        this.loading.set(false);
+        if (!route) {
           this.authService.clearSession();
-          this.error.set('Tu cuenta no tiene módulos asignados. Contacta al administrador.');
+          if (isPosTerminal) {
+            this.error.set('Tipo de terminal POS no configurado. Contacta al administrador.');
+          } else {
+            this.error.set('Tu cuenta no tiene módulos asignados. Contacta al administrador.');
+          }
           return;
         }
-
-        this.router.navigate([firstRoute]);
+        void this.router.navigateByUrl(route, { replaceUrl: true });
       },
       error: () => {
         this.loading.set(false);

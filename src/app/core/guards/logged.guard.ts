@@ -13,7 +13,7 @@ export class LoggedGuard implements CanActivate {
       return true;
     }
 
-    const firstRoute = this.auth_service.getFirstAccessibleRoute();
+    const firstRoute = this.auth_service.resolvePostLoginRoute();
     if (firstRoute) {
       this.router.navigate([firstRoute]);
       return false;

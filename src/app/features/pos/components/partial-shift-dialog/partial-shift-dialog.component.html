@@ -1,0 +1,41 @@
+<div class="pos-dialog pos-dialog--wide">
+  <h2 class="pos-dialog__title">Corte parcial</h2>
+  <p class="pos-dialog__subtitle">Indica el desglose de billetes que retiras de caja.</p>
+
+  <div class="partial-tabs">
+    <button type="button" [class.partial-tabs__btn--active]="activeTab() === 'MXN'" (click)="activeTab.set('MXN')">Pesos</button>
+    <button type="button" [class.partial-tabs__btn--active]="activeTab() === 'USD'" (click)="activeTab.set('USD')">Dólares</button>
+  </div>
+
+  @if (activeTab() === 'MXN') {
+    <div class="denom-grid">
+      @for (d of mxnDenoms; track d) {
+        <label class="denom-row">
+          <span>${{ d }}</span>
+          <input type="number" min="0" step="1" [ngModel]="getCount('MXN', d)" (ngModelChange)="setCount('MXN', d, +$event || 0)" />
+        </label>
+      }
+    </div>
+    <p class="partial-total">Total MXN: <strong>{{ formatMxn(totalMxn()) }}</strong></p>
+  } @else {
+    <div class="denom-grid">
+      @for (d of usdDenoms; track d) {
+        <label class="denom-row">
+          <span>USD {{ d }}</span>
+          <input type="number" min="0" step="1" [ngModel]="getCount('USD', d)" (ngModelChange)="setCount('USD', d, +$event || 0)" />
+        </label>
+      }
+    </div>
+    <p class="partial-total">Total USD: <strong>{{ totalUsd() | number:'1.2-2' }}</strong></p>
+  }
+
+  <label class="pos-dialog__field">
+    <span>Notas (opcional)</span>
+    <input type="text" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Retiro mediodía" />
+  </label>
+
+  <div class="pos-dialog__actions">
+    <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="cancel()"></app-button>
+    <app-button text="Registrar parcial" custom_class="btn_primary" (clicked)="confirm()"></app-button>
+  </div>
+</div>

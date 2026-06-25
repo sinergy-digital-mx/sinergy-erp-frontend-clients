@@ -26,6 +26,18 @@ export class DataMapperService {
       phone: backendUser.phone || '',
       tenant_id: backendUser.tenant_id || backendUser.tenantId || '',
       last_login_at: backendUser.last_login_at || backendUser.lastLoginAt,
+      is_pos_user: backendUser.is_pos_user ?? backendUser.isPosUser,
+      pos_user_type: backendUser.pos_user_type ?? backendUser.posUserType ?? null,
+      pos_user_code: backendUser.pos_user_code ?? backendUser.posUserCode ?? null,
+      has_open_global_cut:
+        backendUser.has_open_global_cut ??
+        backendUser.has_open_global_corte ??
+        backendUser.hasOpenGlobalCut ??
+        false,
+      billing_branch_id: backendUser.billing_branch_id ?? backendUser.billingBranchId ?? null,
+      billing_branch: backendUser.billing_branch ?? backendUser.billingBranch ?? null,
+      has_all_branches_access:
+        backendUser.has_all_branches_access ?? backendUser.hasAllBranchesAccess,
       ...backendUser // Include any additional fields
     };
   }

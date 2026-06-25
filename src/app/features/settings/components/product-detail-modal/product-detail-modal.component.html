@@ -241,6 +241,80 @@
           </table>
         </div>
 
+        <!-- Tab: Descuentos -->
+        <div *ngIf="activeTab === 'descuentos'" class="tab-pane">
+          <div class="tab-header" *ngIf="canUpdateProduct && product.id">
+            <button class="btn btn--sm btn--primary" (click)="openDiscountModal()" type="button">+ Agregar descuento</button>
+          </div>
+
+          <div *ngIf="!product.discounts || product.discounts.length === 0" class="empty-state empty-state--discounts">
+            <div class="empty-state__content">
+              <p class="empty-state__title">Sin descuentos configurados</p>
+              <p class="empty-state__subtitle">Los descuentos activos aparecerán disponibles en POS al vender este producto.</p>
+              <button
+                *ngIf="canUpdateProduct && product.id"
+                class="btn btn--sm btn--primary"
+                (click)="openDiscountModal()"
+                type="button"
+              >+ Agregar descuento</button>
+            </div>
+          </div>
+
+          <table *ngIf="product.discounts && product.discounts.length > 0" class="data-table">
+            <thead>
+              <tr>
+                <th>NOMBRE</th>
+                <th>TIPO</th>
+                <th>VALOR</th>
+                <th>UOM</th>
+                <th>VIGENCIA</th>
+                <th>ESTADO</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let discount of product.discounts">
+                <td>{{ discount.name }}</td>
+                <td>{{ getDiscountTypeLabel(discount.discount_type) }}</td>
+                <td>{{ formatDiscountValue(discount) }}</td>
+                <td>{{ getDiscountUomLabel(discount) }}</td>
+                <td>{{ formatDiscountValidity(discount) }}</td>
+                <td>
+                  <span
+                    class="discount-badge"
+                    [class.discount-badge--active]="discount.is_active"
+                    [class.discount-badge--inactive]="!discount.is_active"
+                  >
+                    {{ discount.is_active ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button
+                      *ngIf="canUpdateProduct"
+                      class="btn-icon"
+                      (click)="openDiscountModal(discount)"
+                      type="button"
+                      title="Editar"
+                    >
+                      <i class="fi fi-rr-pencil"></i>
+                    </button>
+                    <button
+                      *ngIf="canDeleteProduct"
+                      class="btn-icon btn-icon--danger"
+                      (click)="deleteDiscount(discount)"
+                      type="button"
+                      title="Eliminar"
+                    >
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <!-- Tab: Costos -->
         <div *ngIf="activeTab === 'costos'" class="tab-pane">
           <div class="tab-header">
@@ -378,6 +452,97 @@
       <div class="form-actions">
         <button class="btn btn--secondary" (click)="dismissAttributeValueModal()" type="button">Cancelar</button>
         <button class="btn btn--primary" (click)="saveAttributeValue()" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Secundario: Descuento -->
+<div class="modal-overlay" *ngIf="discountModalVisible" (click)="discountModalVisible = false">
+  <div class="modal-container modal-container--sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ discountForm.id ? 'Editar descuento' : 'Agregar descuento' }}</h2>
+      <button class="close-btn" (click)="discountModalVisible = false" type="button">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-content modal-content--compact">
+      <div class="form-grid">
+        <div class="form-field form-field--full">
+          <label class="form-label">NOMBRE *</label>
+          <input type="text" class="form-input" [(ngModel)]="discountForm.name" placeholder="Promo mostrador" maxlength="120">
+        </div>
+
+        <div class="form-field form-field--full">
+          <label class="form-label">TIPO DE DESCUENTO *</label>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" name="discount_type" value="percentage" [(ngModel)]="discountForm.discount_type">
+              <span>Porcentaje</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="discount_type" value="fixed" [(ngModel)]="discountForm.discount_type">
+              <span>Monto fijo (MXN)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-field form-field--full">
+          <label class="form-label">VALOR *</label>
+          <div class="input-with-suffix">
+            <span class="input-prefix" *ngIf="discountForm.discount_type === 'fixed'">$</span>
+            <input
+              type="number"
+              class="form-input"
+              [(ngModel)]="discountForm.value"
+              [placeholder]="discountForm.discount_type === 'percentage' ? '10' : '50.00'"
+              [step]="discountForm.discount_type === 'percentage' ? '0.01' : '0.01'"
+              [min]="discountForm.discount_type === 'percentage' ? '0.01' : '0.01'"
+              [max]="discountForm.discount_type === 'percentage' ? '100' : null"
+            >
+            <span class="input-suffix" *ngIf="discountForm.discount_type === 'percentage'">%</span>
+          </div>
+          <p class="form-hint discount-preview" *ngIf="getDiscountPreview() as preview">
+            Precio base: ${{ preview.basePrice | number:'1.2-2' }}
+            → Con descuento: ${{ preview.discountedPrice | number:'1.2-2' }}
+            (ahorro ${{ preview.savings | number:'1.2-2' }})
+          </p>
+        </div>
+
+        <div class="form-field form-field--full">
+          <label class="form-label">UOM</label>
+          <select class="form-select" [(ngModel)]="discountForm.product_uom_id">
+            <option [ngValue]="null">Todas las UOMs</option>
+            <option *ngFor="let uom of product?.uoms" [ngValue]="uom.id">
+              {{ uom.uom?.name || uom.name || 'Sin nombre' }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">VIGENCIA DESDE</label>
+          <input type="date" class="form-input" [(ngModel)]="discountForm.valid_from">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">VIGENCIA HASTA</label>
+          <input type="date" class="form-input" [(ngModel)]="discountForm.valid_to">
+        </div>
+
+        <div class="form-field form-field--full">
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="discount-is-active" [(ngModel)]="discountForm.is_active">
+            <label for="discount-is-active">Activo (disponible en ventas)</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn--secondary" (click)="discountModalVisible = false" type="button">Cancelar</button>
+        <button class="btn btn--primary" (click)="saveDiscount()" type="button">Guardar</button>
       </div>
     </div>
   </div>

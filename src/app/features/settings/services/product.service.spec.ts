@@ -70,6 +70,23 @@ describe('ProductService', () => {
       expect(req.request.method).toBe('GET');
       req.flush(mockResponse);
     });
+
+    it('should derive hasNext from totalPages when backend omits it', () => {
+      service.getProducts({ page: 1, limit: 20 }).subscribe(result => {
+        expect(result.hasNext).toBe(true);
+        expect(result.hasPrev).toBe(false);
+        expect(result.totalPages).toBe(8);
+      });
+
+      const req = httpMock.expectOne(`${api}/tenant/products?page=1&limit=20`);
+      req.flush({
+        data: [{ id: '1', sku: 'SKU001', name: 'Product 1' }],
+        total: 150,
+        page: 1,
+        limit: 20,
+        totalPages: 8
+      });
+    });
   });
 
   describe('getProduct', () => {

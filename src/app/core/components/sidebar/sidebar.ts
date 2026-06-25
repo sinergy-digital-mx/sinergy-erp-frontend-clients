@@ -30,21 +30,57 @@ import { AuthService } from '../../services/auth.service';
 import { SidebarService } from '../../services/sidebar.service';
 import { PERMISSIONS } from '../../config/permissions.config';
 import { ExchangeRateService } from '../../services/exchange-rate.service';
+import { PolluxBrandTextComponent } from '../pollux-brand-text/pollux-brand-text.component';
 import { Subscription } from 'rxjs';
 
 interface MenuItem {
   label: string;
   icon?: any;
   route: string;
-  id?: string;
+  id: string;
   permission?: string;
   /** Si se define, el ítem solo se muestra para este tenant. */
   tenantId?: string;
 }
 
+interface MenuSection {
+  id: string;
+  title: string;
+  itemIds: string[];
+}
+
+interface VisibleMenuSection {
+  id: string;
+  title: string;
+  items: MenuItem[];
+}
+
+const MENU_SECTIONS: MenuSection[] = [
+  {
+    id: 'commercial',
+    title: 'Comercial',
+    itemIds: ['menu-leads', 'menu-customers', 'menu-properties', 'menu-contracts'],
+  },
+  {
+    id: 'operation',
+    title: 'Operación',
+    itemIds: ['menu-purchase-orders', 'menu-sales-orders', 'menu-inventory', 'menu-pos'],
+  },
+  {
+    id: 'marketing-reports',
+    title: 'Análisis',
+    itemIds: ['menu-marketing', 'menu-zona-norte', 'menu-divino-dashboard'],
+  },
+  {
+    id: 'system',
+    title: 'Sistema',
+    itemIds: ['menu-notifications', 'menu-settings'],
+  },
+];
+
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule, RouterModule, LucideAngularModule],
+  imports: [CommonModule, RouterModule, LucideAngularModule, PolluxBrandTextComponent],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
 })
@@ -52,7 +88,7 @@ export class Sidebar implements OnInit, OnDestroy {
   isCollapsed = signal(false);
   isMobileOpen = signal(false);
   todayUsdMxnRate = signal<number | null>(null);
-  visibleMenuItems = signal<MenuItem[]>([]);
+  visibleMenuSections = signal<VisibleMenuSection[]>([]);
 
   private permissionsSubscription?: Subscription;
   private routerSubscription?: Subscription;
@@ -135,10 +171,20 @@ export class Sidebar implements OnInit, OnDestroy {
       id: 'menu-divino-dashboard',
       permission: DIVINO_DASHBOARD_PERMISSIONS.viewMenu,
       tenantId: DIVINO_DASHBOARD_TENANT_ID,
-    }
+    },
+    {
+      label: 'Notificaciones',
+      route: '/notifications',
+      icon: Bell,
+      id: 'menu-notifications',
+    },
+    {
+      label: 'Configuración',
+      route: '/settings',
+      icon: Settings,
+      id: 'menu-settings',
+    },
   ];
-
-  private menuIdCounter = 0;
 
   icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight, X };
 
@@ -154,7 +200,11 @@ export class Sidebar implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.permissionsSubscription = this.auth_service.permissions$.subscribe(() => {
-      this.updateVisibleMenuItems();
+      this.updateVisibleMenuSections();
+    });
+
+    this.auth_service.ensurePosProfile().subscribe(() => {
+      this.updateVisibleMenuSections();
     });
 
     this.routerSubscription = this.router.events.subscribe(event => {
@@ -193,18 +243,53 @@ export class Sidebar implements OnInit, OnDestroy {
     this.sidebarService.closeMobile();
   }
 
-  private updateVisibleMenuItems(): void {
+  private getMenuItems(): MenuItem[] {
+    const posType = this.auth_service.getPosUserType();
+    return this.menu.map((item) => {
+      if (item.id !== 'menu-pos') {
+        return item;
+      }
+      if (posType === 'COBRANZA') {
+        return {
+          ...item,
+          label: 'POS Caja',
+          route: '/pos/cobranza',
+        };
+      }
+      return {
+        ...item,
+        label: 'Punto de Venta',
+        route: '/pos/ventas',
+      };
+    });
+  }
+
+  private updateVisibleMenuSections(): void {
     const tenantId = this.auth_service.user_info?.tenant_id;
-    this.visibleMenuItems.set(
-      this.menu.filter(item => {
-        if (item.tenantId && tenantId !== item.tenantId) {
-          return false;
-        }
-        if (!item.permission) {
-          return true;
-        }
-        return this.auth_service.hasPermission(item.permission);
-      })
+    const visibleItems = this.getMenuItems().filter(item => {
+      if (item.tenantId && tenantId !== item.tenantId) {
+        return false;
+      }
+      if (item.id === 'menu-pos' && this.auth_service.getPosUserType() === 'COBRANZA') {
+        return ['pos:Update', 'pos:Read', 'pos:ViewMenu'].some((p) =>
+          this.auth_service.hasPermission(p)
+        );
+      }
+      if (!item.permission) {
+        return true;
+      }
+      return this.auth_service.hasPermission(item.permission);
+    });
+    const itemById = new Map(visibleItems.map(item => [item.id, item]));
+
+    this.visibleMenuSections.set(
+      MENU_SECTIONS.map(section => ({
+        id: section.id,
+        title: section.title,
+        items: section.itemIds
+          .map(id => itemById.get(id))
+          .filter((item): item is MenuItem => item != null),
+      })).filter(section => section.items.length > 0)
     );
   }
 

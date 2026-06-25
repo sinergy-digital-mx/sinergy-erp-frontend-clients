@@ -1,10 +1,17 @@
-import { Component, Inject, signal, computed } from '@angular/core';
+import { Component, Inject, signal, computed, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { ToastService } from '../../../../core/services/toast.service';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { SalesOrder, SalesOrderInvoice, SalesOrderLineItem } from '../../models/sales-order.model';
-import { getCustomerDisplayName as getCustomerDisplayNameUtil } from '../../utils/customer-display.util';
+import { SalesDocumentLanguage, SalesOrder, SalesOrderDocument, SalesOrderInvoice, SalesOrderLineItem } from '../../models/sales-order.model';
+import { resolveSalesOrderCustomerName, resolveSalesOrderCustomerId } from '../../utils/customer-display.util';
+import {
+  PosSaleCollection,
+  posCollectionMethodLabel,
+  posCollectionMoneyLabel,
+  posCollectionUsdLabel,
+} from '../../../pos/models/pos-sale-collection.model';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
@@ -28,9 +35,15 @@ import { Warehouse } from '../../../settings/models/warehouse.model';
 export class SalesOrderDetailDialogComponent {
   order = signal<SalesOrder | null>(null);
   lineItems = signal<SalesOrderLineItem[]>([]);
+  documents = signal<SalesOrderDocument[]>([]);
+  posCollection = signal<PosSaleCollection | null>(null);
   loading = signal(true);
   activeTabIndex = signal(0);
   showDeliveredTotals = signal(false);
+  regeneratingPDF = signal(false);
+  showRegenerateLanguageModal = signal(false);
+  selectedRegenerateLanguage = signal<SalesDocumentLanguage>('es');
+  keepPreviousDocument = signal(false);
 
   canEditOrder = computed(() => this.order()?.general_status === 'Creada');
 
@@ -42,7 +55,9 @@ export class SalesOrderDetailDialogComponent {
     private warehouseService: WarehouseService,
     private fiscalConfigService: FiscalConfigurationService,
     private router: Router,
-    private taxCalculator: TaxCalculatorService
+    private taxCalculator: TaxCalculatorService,
+    private toast: ToastService,
+    private cdr: ChangeDetectorRef
   ) {
     this.loadOrder();
   }
@@ -53,6 +68,8 @@ export class SalesOrderDetailDialogComponent {
       next: (payload) => {
         this.order.set(payload?.header || null);
         this.lineItems.set(payload?.line_items || payload?.header?.line_items || []);
+        this.documents.set(payload?.documents || payload?.header?.documents || []);
+        this.posCollection.set(payload?.pos_collection ?? payload?.header?.pos_collection ?? null);
         this.loading.set(false);
       },
       error: () => {
@@ -256,7 +273,26 @@ export class SalesOrderDetailDialogComponent {
   }
 
   getCustomerDisplayName(): string {
-    return getCustomerDisplayNameUtil(this.order()?.customer);
+    return resolveSalesOrderCustomerName(this.order());
+  }
+
+  posPaymentMethodLabel(): string {
+    return posCollectionMethodLabel(this.posCollection()?.payment_method);
+  }
+
+  posCollectionMoney(value: unknown): string {
+    return posCollectionMoneyLabel(value);
+  }
+
+  posCollectionUsd(value: unknown): string {
+    return posCollectionUsdLabel(value);
+  }
+
+  formatPosCollectedAt(value?: string | null): string {
+    if (!value) {
+      return '—';
+    }
+    return new Date(value).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
   }
 
   getFiscalDisplayName(): string {
@@ -303,7 +339,7 @@ export class SalesOrderDetailDialogComponent {
   }
 
   canOpenCustomer(): boolean {
-    return !!(this.order()?.customer_id || this.order()?.customer?.id);
+    return resolveSalesOrderCustomerId(this.order()) != null;
   }
 
   canOpenWarehouse(): boolean {
@@ -315,8 +351,8 @@ export class SalesOrderDetailDialogComponent {
   }
 
   openCustomerInNewTab(): void {
-    const customerId = this.order()?.customer?.id ?? this.order()?.customer_id;
-    if (!customerId) return;
+    const customerId = resolveSalesOrderCustomerId(this.order());
+    if (customerId == null) return;
     const url = this.router.serializeUrl(
       this.router.createUrlTree(['/customers/detail', customerId])
     );
@@ -396,5 +432,84 @@ export class SalesOrderDetailDialogComponent {
 
   canOpenProduct(item: SalesOrderLineItem): boolean {
     return !!(item.product?.id || item.product_id);
+  }
+
+  hasDocuments(): boolean {
+    return this.documents().length > 0;
+  }
+
+  regeneratePDF(): void {
+    this.openRegenerateLanguageModal();
+  }
+
+  openRegenerateLanguageModal(): void {
+    if (this.regeneratingPDF()) return;
+    this.selectedRegenerateLanguage.set(this.getDefaultDocumentLanguage());
+    this.keepPreviousDocument.set(false);
+    this.showRegenerateLanguageModal.set(true);
+  }
+
+  closeRegenerateLanguageModal(): void {
+    if (this.regeneratingPDF()) return;
+    this.showRegenerateLanguageModal.set(false);
+  }
+
+  confirmRegenerateDocument(): void {
+    const orderId = this.order()?.id;
+    const language = this.selectedRegenerateLanguage();
+    const keepPrevious = this.keepPreviousDocument();
+    if (!orderId || this.regeneratingPDF()) return;
+
+    this.regeneratingPDF.set(true);
+    this.salesOrderService.regenerateOriginalPDF(orderId, language, keepPrevious).subscribe({
+      next: (response) => {
+        this.regeneratingPDF.set(false);
+        this.showRegenerateLanguageModal.set(false);
+        this.cdr.detectChanges();
+        this.toast.success(response?.message || 'PDF original regenerado exitosamente');
+        this.loadOrder();
+      },
+      error: (error) => {
+        this.regeneratingPDF.set(false);
+        this.cdr.detectChanges();
+        this.toast.error(error?.message || 'Error al regenerar PDF original');
+        console.error('Error regenerating original PDF:', error);
+      }
+    });
+  }
+
+  getDefaultDocumentLanguage(): SalesDocumentLanguage {
+    const doc = this.documents().find(d => d.document_type_name === 'DOCUMENTO_ORIGINAL');
+    return doc?.document_language === 'en' ? 'en' : 'es';
+  }
+
+  getDocumentLanguageLabel(language?: SalesDocumentLanguage | string | null): string | null {
+    if (language === 'es') return 'ES';
+    if (language === 'en') return 'EN';
+    return null;
+  }
+
+  getDocumentBadgeClass(documentType: string): string {
+    const typeMap: Record<string, string> = {
+      DOCUMENTO_ORIGINAL: 'badge-blue',
+      DOCUMENTO_RECIBO: 'badge-green',
+      DOCUMENTO_RECEPCION: 'badge-green'
+    };
+    return typeMap[documentType] || 'badge-gray';
+  }
+
+  formatDocumentDate(dateString?: string | null): string {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+    const day = date.getDate();
+    const month = date.toLocaleString('es-ES', { month: 'long' });
+    return `${day} de ${month}`;
+  }
+
+  downloadDocument(doc: SalesOrderDocument): void {
+    if (doc.path) {
+      window.open(doc.path, '_blank');
+    }
   }
 }

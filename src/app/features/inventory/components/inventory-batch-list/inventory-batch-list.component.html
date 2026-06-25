@@ -4,6 +4,12 @@
       <!-- Header -->
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
         <h2 class="text-2xl font-semibold text-gray-800">Inventario</h2>
+        <a
+          routerLink="/inventory/transfers"
+          class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
+          <lucide-icon [img]="ArrowRightLeft" [size]="16"></lucide-icon>
+          Transferencias
+        </a>
       </div>
 
       <!-- Filter Bar -->
@@ -96,7 +102,7 @@
                   <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Disponible</th>
                   <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Inicial</th>
                   <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Lotes</th>
-                  <th class="px-4 py-3"></th>
+                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
@@ -109,20 +115,32 @@
                     <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ formatNumber(item.total_available_quantity) }}</td>
                     <td class="px-4 py-3 text-sm text-gray-500 text-right">{{ formatNumber(item.total_initial_quantity) }}</td>
                     <td class="px-4 py-3 text-sm text-gray-500 text-center">{{ item.total_batches }}</td>
-                    <td class="px-4 py-3 text-right">
-                      <button
-                        class="inline-flex items-center justify-center w-6 h-6 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
-                        (click)="toggleBatches(item)">
-                        <lucide-icon 
-                          [img]="isExpanded(item) ? ChevronDown : ChevronRight" 
-                          [size]="16"
-                        ></lucide-icon>
-                      </button>
+                    <td class="px-4 py-3 text-center">
+                      <div class="inline-flex items-center gap-1">
+                        <button
+                          class="inline-flex items-center justify-center w-6 h-6 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
+                          (click)="toggleBatches(item)"
+                          title="Ver lotes">
+                          <lucide-icon
+                            [img]="isExpanded(item) ? ChevronDown : ChevronRight"
+                            [size]="16"
+                          ></lucide-icon>
+                        </button>
+                        @if (canCreateTransfer) {
+                          <button
+                            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors"
+                            (click)="openTransfer(item, $event)"
+                            title="Transferir stock">
+                            <lucide-icon [img]="ArrowRightLeft" [size]="14"></lucide-icon>
+                            Transferir
+                          </button>
+                        }
+                      </div>
                     </td>
                   </tr>
                   @if (isExpanded(item)) {
                     <tr class="bg-gray-50">
-                      <td colspan="8" class="px-4 py-3">
+                      <td colspan="9" class="px-4 py-3">
                         <div class="ml-8 border-l-2 border-blue-500 pl-4">
                           <table class="min-w-full">
                             <thead class="bg-gray-100">
@@ -243,5 +261,18 @@
   </td>
   <td class="px-2 py-2 w-[160px]">
     <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>
+  </td>
+  <td class="px-2 py-2 w-[110px]">
+    @if (canCreateTransfer) {
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        [disabled]="!batchHasStock(item)"
+        (click)="openTransferFromBatch(item, $event)"
+        title="Transferir este lote">
+        <lucide-icon [img]="ArrowRightLeft" [size]="14"></lucide-icon>
+        Transferir
+      </button>
+    }
   </td>
 </ng-template>

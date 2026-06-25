@@ -10,7 +10,9 @@ import {
   PaginatedResponse,
   SalesOrderFormData,
   SalesOrderDetailPayload,
-  SalesOrderDetailResponse
+  SalesOrderDetailResponse,
+  RegenerateSalesDocumentResponse,
+  SalesDocumentLanguage
 } from '../models/sales-order.model';
 import { environment } from '../../../../environments/environment';
 
@@ -141,6 +143,25 @@ export class SalesOrderService {
       .pipe(
         catchError(error => this.handleError(error))
       );
+  }
+
+  regenerateOriginalPDF(
+    orderId: string,
+    language: SalesDocumentLanguage,
+    keepPrevious = false
+  ): Observable<RegenerateSalesDocumentResponse> {
+    return this.http.post<RegenerateSalesDocumentResponse>(
+      `${this.baseUrl}/${orderId}/regenerate-documento-original`,
+      { language, keep_previous: keepPrevious }
+    ).pipe(
+      tap(() => {
+        console.log('[SalesOrder] Original PDF regenerated successfully', { id: orderId, language });
+      }),
+      catchError(error => {
+        console.error('[SalesOrder] Failed to regenerate original PDF', error);
+        return this.handleError(error);
+      })
+    );
   }
 
   /**

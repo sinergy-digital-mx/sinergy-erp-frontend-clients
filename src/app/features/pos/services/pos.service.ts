@@ -1,10 +1,33 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { POSCart, POSCartItem } from '../models/pos.model';
+import {
+  PosDailyShiftDetail,
+  OpenDailyShiftResponse,
+  PosDailyShiftListItem,
+  PosDailyShiftListResponse,
+  ValidateSellerCodeResponse,
+  normalizeDailyShiftDetail,
+} from '../models/pos-daily-shift.model';
 import { SalesOrder, SalesOrderFormData } from '../../sales-orders/models/sales-order.model';
 import { environment } from '../../../../environments/environment';
+import { CollectSalePayload } from '../utils/pos-collect.util';
+import {
+  CollectedSalesResponse,
+  normalizeCollectedSalesResponse,
+} from '../models/pos-collected-sales.model';
+import {
+  PosInventorySummaryResponse,
+  normalizePosInventorySummary,
+} from '../models/pos-inventory-summary.model';
+import {
+  CollectSaleResponse,
+  PosSaleReceipt,
+  normalizeCollectSaleResponse,
+  normalizePosSaleReceipt,
+} from '../models/pos-receipt.model';
 
 export interface PosSessionInventoryParams {
   search?: string;
@@ -437,6 +460,241 @@ export class POSService {
       return keepListEnvelope ? response : response.data;
     }
     return response;
+  }
+
+  private extractCurrentDailyShift(response: unknown): PosDailyShiftDetail | null {
+    const payload = this.extractPayload(response);
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    const obj = payload as Record<string, unknown>;
+    const candidates = [
+      obj['daily_shift'],
+      obj['current_daily_shift'],
+      obj['current'],
+      obj['shift'],
+      obj,
+    ];
+
+    for (const candidate of candidates) {
+      const normalized = normalizeDailyShiftDetail(candidate);
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    return null;
+  }
+
+  // ========== DAILY SHIFTS (corte global) ==========
+
+  getDailyShifts(params?: {
+    page?: number;
+    limit?: number;
+    terminal_user_id?: string;
+    billing_branch_id?: string;
+    shift_date?: string;
+    status?: 'open' | 'closed';
+  }): Observable<PosDailyShiftListResponse> {
+    let httpParams = new HttpParams();
+    if (params?.page != null) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+    if (params?.limit != null) {
+      httpParams = httpParams.set('limit', String(params.limit));
+    }
+    if (params?.terminal_user_id?.trim()) {
+      httpParams = httpParams.set('terminal_user_id', params.terminal_user_id.trim());
+    }
+    if (params?.billing_branch_id?.trim()) {
+      httpParams = httpParams.set('billing_branch_id', params.billing_branch_id.trim());
+    }
+    if (params?.shift_date?.trim()) {
+      httpParams = httpParams.set('shift_date', params.shift_date.trim());
+    }
+    if (params?.status) {
+      httpParams = httpParams.set('status', params.status);
+    }
+
+    return this.http.get(`${this.API_URL}/daily-shifts`, { params: httpParams }).pipe(
+      map((res: any) => this.normalizeDailyShiftList(res))
+    );
+  }
+
+  getDailyShift(id: string): Observable<PosDailyShiftDetail> {
+    return this.http.get(`${this.API_URL}/daily-shift/${id}`).pipe(
+      map((res: any) => {
+        const payload = this.extractPayload(res);
+        return normalizeDailyShiftDetail(payload?.daily_shift ?? payload) as PosDailyShiftDetail;
+      })
+    );
+  }
+
+  getCurrentDailyShift(): Observable<{ daily_shift: PosDailyShiftDetail | null }> {
+    return this.http.get(`${this.API_URL}/daily-shift/current`).pipe(
+      map((res: any) => ({
+        daily_shift: this.extractCurrentDailyShift(res),
+      })),
+      catchError((error) => {
+        if (error?.status === 404) {
+          return of({ daily_shift: null });
+        }
+        return throwError(() => error);
+      })
+    );
+  }
+
+  openDailyShift(data: {
+    opening_cash_mxn: number;
+    opening_cash_usd?: number;
+    notes?: string;
+  }): Observable<OpenDailyShiftResponse> {
+    return this.http.post(`${this.API_URL}/daily-shift/open`, data).pipe(
+      map((res: any) => {
+        const payload = this.extractPayload(res);
+        const daily_shift = normalizeDailyShiftDetail(payload?.daily_shift ?? payload) as PosDailyShiftDetail;
+        return {
+          message: payload?.message,
+          daily_shift,
+          queued_sales_assigned:
+            typeof payload?.queued_sales_assigned === 'number'
+              ? payload.queued_sales_assigned
+              : undefined,
+        };
+      })
+    );
+  }
+
+  closeDailyShift(id: string, data?: { notes?: string }): Observable<PosDailyShiftDetail> {
+    return this.http.patch(`${this.API_URL}/daily-shift/${id}/close`, data ?? {}).pipe(
+      map((res: any) => {
+        const payload = this.extractPayload(res);
+        return normalizeDailyShiftDetail(payload?.daily_shift ?? payload) as PosDailyShiftDetail;
+      })
+    );
+  }
+
+  createPartialShift(
+    dailyShiftId: string,
+    data: {
+      denominations: Array<{ currency: 'MXN' | 'USD'; denomination: number; bill_count: number }>;
+      notes?: string;
+      performed_by_user_id?: string;
+    }
+  ): Observable<unknown> {
+    return this.http.post(`${this.API_URL}/daily-shift/${dailyShiftId}/partial-shifts`, data).pipe(
+      map((res: any) => this.extractPayload(res))
+    );
+  }
+
+  validateSellerCode(code: number): Observable<ValidateSellerCodeResponse> {
+    return this.http.post(`${this.API_URL}/validate-seller-code`, { code }).pipe(
+      map((res: any) => this.extractPayload(res) as ValidateSellerCodeResponse)
+    );
+  }
+
+  getPendingSales(): Observable<{ pending_sales: unknown[] }> {
+    return this.http.get(`${this.API_URL}/pending-sales`).pipe(
+      map((res: any) => {
+        const payload = this.extractPayload(res);
+        const pending =
+          payload?.pending_sales ??
+          payload?.data ??
+          (Array.isArray(payload) ? payload : []);
+        return { pending_sales: Array.isArray(pending) ? pending : [] };
+      })
+    );
+  }
+
+  collectSale(salesOrderId: string, data?: CollectSalePayload): Observable<CollectSaleResponse> {
+    return this.http.post(`${this.API_URL}/sales/${salesOrderId}/collect`, data ?? {}).pipe(
+      map((res: unknown) => {
+        const payload = this.extractPayload(res) ?? res;
+        return normalizeCollectSaleResponse(payload);
+      })
+    );
+  }
+
+  getSaleReceipt(salesOrderId: string): Observable<PosSaleReceipt | null> {
+    return this.http.get(`${this.API_URL}/sales/${salesOrderId}/receipt`).pipe(
+      map((res: unknown) => normalizePosSaleReceipt(this.extractPayload(res) ?? res))
+    );
+  }
+
+  getCollectedSales(params?: { daily_shift_id?: string }): Observable<CollectedSalesResponse> {
+    let httpParams = new HttpParams();
+    if (params?.daily_shift_id?.trim()) {
+      httpParams = httpParams.set('daily_shift_id', params.daily_shift_id.trim());
+    }
+    return this.http.get(`${this.API_URL}/collected-sales`, { params: httpParams }).pipe(
+      map((res: any) => normalizeCollectedSalesResponse(this.extractPayload(res)))
+    );
+  }
+
+  getSaleCollection(salesOrderId: string): Observable<unknown> {
+    return this.http.get(`${this.API_URL}/sales/${salesOrderId}/collection`).pipe(
+      map((res: any) => this.extractPayload(res))
+    );
+  }
+
+  getPosInventorySummary(params?: {
+    search?: string;
+    product_id?: string;
+    page?: number;
+    limit?: number;
+  }): Observable<PosInventorySummaryResponse> {
+    let httpParams = new HttpParams();
+    if (params?.search?.trim()) {
+      httpParams = httpParams.set('search', params.search.trim());
+    }
+    if (params?.product_id?.trim()) {
+      httpParams = httpParams.set('product_id', params.product_id.trim());
+    }
+    if (params?.page != null) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+    if (params?.limit != null) {
+      httpParams = httpParams.set('limit', String(params.limit));
+    }
+
+    return this.http.get(`${this.INVENTORY_URL}/pos/summary`, { params: httpParams }).pipe(
+      map((res: unknown) => normalizePosInventorySummary(this.unwrapPosSummaryEnvelope(res)))
+    );
+  }
+
+  private unwrapPosSummaryEnvelope(response: unknown): unknown {
+    if (!response || typeof response !== 'object') {
+      return response;
+    }
+    const root = response as Record<string, unknown>;
+    const inner = root['data'];
+    if (inner && typeof inner === 'object') {
+      return inner;
+    }
+    return response;
+  }
+
+  private normalizeDailyShiftList(res: unknown): PosDailyShiftListResponse {
+    if (res == null) {
+      return { data: [], total: 0 };
+    }
+    if (Array.isArray(res)) {
+      return { data: res as PosDailyShiftListItem[], total: res.length };
+    }
+    const obj = res as Record<string, unknown>;
+    const raw =
+      obj['data'] ??
+      obj['daily_shifts'] ??
+      obj['shifts'] ??
+      obj['results'] ??
+      obj['items'];
+    const data = Array.isArray(raw) ? (raw as PosDailyShiftListItem[]) : [];
+    const total =
+      (typeof obj['total'] === 'number' ? obj['total'] : null) ??
+      (typeof obj['count'] === 'number' ? obj['count'] : null) ??
+      data.length;
+    return { data, total };
   }
   
   // ========== TABLES ==========

@@ -28,6 +28,15 @@
   }
 
   @if (!loading() && batch()) {
+    @if (batch()?.transferred_from_batch_number) {
+      <div class="transfer-origin-banner">
+        Este lote proviene de la transferencia del lote
+        <button type="button" class="transfer-origin-banner__link" (click)="openOriginBatch()">
+          {{ batch()?.transferred_from_batch_number }}
+        </button>.
+      </div>
+    }
+
     <!-- Tab: General -->
     @if (activeTab === 'general') {
       <div class="batch-detail__body">
@@ -137,6 +146,20 @@
           </div>
         </div>
 
+        @if (canCreateTransfer) {
+          <div class="transfer-action-bar">
+            <button
+              type="button"
+              class="transfer-action-btn"
+              [disabled]="!canTransfer"
+              (click)="openTransfer()"
+              [title]="canTransfer ? 'Transferir este lote' : 'Sin stock disponible'">
+              <lucide-icon [img]="ArrowRightLeft" class="w-4 h-4"></lucide-icon>
+              Transferir este lote
+            </button>
+          </div>
+        }
+
         <!-- Resumen de Movimientos -->
         <div class="movements-summary">
           <h3 class="movements-summary__title">Resumen de Movimientos</h3>
@@ -178,9 +201,61 @@
     <!-- Tab: Movimientos -->
     @if (activeTab === 'movimientos') {
       <div class="batch-detail__body">
-        <div class="empty-tab">
-          <p>Sin movimientos registrados</p>
-        </div>
+        @if (transferHistory.length === 0) {
+          <div class="empty-tab">
+            <p>Sin movimientos registrados</p>
+          </div>
+        } @else {
+          <table class="transfer-history-table">
+            <thead>
+              <tr>
+                <th>Folio</th>
+                <th>Dirección</th>
+                <th class="text-right">Cantidad</th>
+                <th>Lote relacionado</th>
+                <th>Almacén</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (entry of transferHistory; track entry.transfer_folio + entry.direction + entry.quantity) {
+                <tr>
+                  <td>
+                    @if (entry.transfer_id) {
+                      <button type="button" class="folio-link" (click)="openTransferDetail(entry.transfer_id)">
+                        {{ entry.transfer_folio }}
+                      </button>
+                    } @else {
+                      {{ entry.transfer_folio }}
+                    }
+                  </td>
+                  <td>
+                    <span class="direction-badge" [class.direction-badge--out]="entry.direction === 'out'" [class.direction-badge--in]="entry.direction === 'in'">
+                      @if (entry.direction === 'out') {
+                        <lucide-icon [img]="ArrowUpRight" class="w-3 h-3"></lucide-icon>
+                      } @else {
+                        <lucide-icon [img]="ArrowDownLeft" class="w-3 h-3"></lucide-icon>
+                      }
+                      {{ directionLabel(entry.direction) }}
+                    </span>
+                  </td>
+                  <td class="text-right">{{ entry.quantity | removeTrailingZeros }}</td>
+                  <td>
+                    @if (entry.related_batch_id) {
+                      <button type="button" class="folio-link" (click)="openRelatedBatch(entry.related_batch_id)">
+                        {{ entry.related_batch_number }}
+                      </button>
+                    } @else {
+                      {{ entry.related_batch_number }}
+                    }
+                  </td>
+                  <td>{{ entry.warehouse_name }}</td>
+                  <td>{{ entry.created_at ? formatDate(entry.created_at) : '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
       </div>
     }
 

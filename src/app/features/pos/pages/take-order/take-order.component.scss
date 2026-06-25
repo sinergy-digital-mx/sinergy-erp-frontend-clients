@@ -46,6 +46,27 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.pos-shift-banner {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.4;
+
+  &--queue {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+  }
+
+  &--open {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+  }
+}
+
 .pos-session-bar__content {
   max-width: 1680px;
   margin: 0 auto;
@@ -613,7 +634,12 @@
 .pos-empty-grid,
 .pos-loading-grid {
   grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  min-height: 240px;
   padding: 3rem 1rem;
   color: var(--pos-muted);
 }
@@ -621,8 +647,15 @@
 .pos-empty-grid__icon {
   width: 48px;
   height: 48px;
-  margin-bottom: 0.75rem;
+  margin: 0 0 0.75rem;
   opacity: 0.45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pos-empty-grid__retry {
+  margin-top: 0.75rem;
 }
 
 .pos-spinner {
@@ -982,6 +1015,13 @@
   padding: var(--pos-panel-y) var(--pos-panel-x);
   border-top: 1px solid var(--pos-border);
   background: #fff;
+}
+
+.pos-cart__hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.75rem;
+  color: var(--pos-muted);
+  line-height: 1.35;
 }
 
 .pos-sum-row {

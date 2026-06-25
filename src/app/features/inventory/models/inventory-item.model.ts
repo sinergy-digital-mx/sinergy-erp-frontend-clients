@@ -65,6 +65,7 @@ export interface InventorySummaryBatch {
   available_quantity: string;
   initial_quantity: string;
   purchase_order_folio: string;
+  source_tag_identifier?: string | null;
   created_at: string;
 }
 

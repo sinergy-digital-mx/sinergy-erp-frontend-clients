@@ -9,9 +9,20 @@ export const INVENTORY_ROUTES: Routes = [
       import('./components/inventory-batch-list/inventory-batch-list.component')
         .then(m => m.InventoryBatchListComponent),
     canActivate: [permissionGuard],
-    data: { 
+    data: {
       permissions: [INVENTORY_PERMISSIONS.viewList],
       title: 'Inventario'
+    }
+  },
+  {
+    path: 'transfers',
+    loadComponent: () =>
+      import('./components/transfer-list/transfer-list.component')
+        .then(m => m.TransferListComponent),
+    canActivate: [permissionGuard],
+    data: {
+      permissions: [INVENTORY_PERMISSIONS.viewList],
+      title: 'Transferencias de inventario'
     }
   }
 ];

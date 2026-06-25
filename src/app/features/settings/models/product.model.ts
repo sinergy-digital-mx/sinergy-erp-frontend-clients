@@ -186,6 +186,7 @@ export interface Product {
   photo?: string | null;
   photos?: ProductPhoto[];
   prices?: ProductPrice[];
+  discounts?: ProductDiscount[];
 }
 
 export interface CreateProductDto {
@@ -217,7 +218,12 @@ export interface ProductQueryParams {
   page?: number;
   limit?: number;
   search?: string;
+  name?: string;
+  sku?: string;
   external_sku?: string;
+  category_id?: string;
+  subcategory_id?: string;
+  is_active?: boolean;
   sort?: string;
   status?: string;
 }
@@ -275,3 +281,38 @@ export interface CreateVendorPriceDto {
   uom_id: string;
   price: number;
 }
+
+export type ProductDiscountType = 'percentage' | 'fixed';
+
+export interface ProductDiscount {
+  id: string;
+  product_id: string;
+  name: string;
+  discount_type: ProductDiscountType;
+  value: number;
+  product_uom_id: string | null;
+  product_uom?: {
+    id: string;
+    uom: {
+      id: string;
+      name: string;
+    };
+  } | null;
+  is_active: boolean;
+  valid_from?: string | null;
+  valid_to?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateProductDiscountDto {
+  name: string;
+  discount_type: ProductDiscountType;
+  value: number;
+  product_uom_id?: string | null;
+  is_active?: boolean;
+  valid_from?: string | null;
+  valid_to?: string | null;
+}
+
+export interface UpdateProductDiscountDto extends Partial<CreateProductDiscountDto> {}

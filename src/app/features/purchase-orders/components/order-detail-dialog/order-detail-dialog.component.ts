@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
-import { Document, DocumentType, PurchaseOrder } from '../../models/purchase-order.model';
+import { Document, DocumentLanguage, DocumentType, PurchaseOrder } from '../../models/purchase-order.model';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 import { ReceiptModalComponent } from '../receipt-modal/receipt-modal.component';
@@ -48,6 +48,10 @@ export class OrderDetailDialogComponent {
   documentTypes = signal<DocumentType[]>([]);
   selectedDocumentTypeId = signal<number | null>(null);
   showUploadDocumentModal = signal<boolean>(false);
+  showRegenerateLanguageModal = signal<boolean>(false);
+  regenerateTarget = signal<'original' | 'recepcion' | null>(null);
+  selectedRegenerateLanguage = signal<DocumentLanguage>('es');
+  keepPreviousDocument = signal(false);
   selectedUploadFile: File | null = null;
   selectedUploadFileName = '';
   uploadDocumentNotes = '';
@@ -313,47 +317,92 @@ export class OrderDetailDialogComponent {
   }
 
   regeneratePDF(): void {
-    const orderId = this.order()?.id;
-    if (!orderId) return;
+    this.openRegenerateLanguageModal('original');
+  }
 
-    this.regeneratingPDF.set(true);
-    this.purchaseOrderService.regenerateOriginalPDF(orderId).subscribe({
-      next: () => {
-        this.regeneratingPDF.set(false);
+  regenerateReceivingPDF(): void {
+    this.openRegenerateLanguageModal('recepcion');
+  }
+
+  openRegenerateLanguageModal(target: 'original' | 'recepcion'): void {
+    if (this.regeneratingPDF() || this.regeneratingReceipt()) return;
+    this.regenerateTarget.set(target);
+    this.selectedRegenerateLanguage.set(this.getDefaultDocumentLanguage(target));
+    this.keepPreviousDocument.set(false);
+    this.showRegenerateLanguageModal.set(true);
+  }
+
+  closeRegenerateLanguageModal(): void {
+    if (this.regeneratingPDF() || this.regeneratingReceipt()) return;
+    this.showRegenerateLanguageModal.set(false);
+    this.regenerateTarget.set(null);
+  }
+
+  confirmRegenerateDocument(): void {
+    const orderId = this.order()?.id;
+    const target = this.regenerateTarget();
+    const language = this.selectedRegenerateLanguage();
+    const keepPrevious = this.keepPreviousDocument();
+    if (!orderId || !target || this.isRegeneratingDocument()) return;
+
+    const isOriginal = target === 'original';
+    if (isOriginal) {
+      this.regeneratingPDF.set(true);
+    } else {
+      this.regeneratingReceipt.set(true);
+    }
+
+    const request$ = isOriginal
+      ? this.purchaseOrderService.regenerateOriginalPDF(orderId, language, keepPrevious)
+      : this.purchaseOrderService.regenerateReceiptPDF(orderId, language, keepPrevious);
+
+    request$.subscribe({
+      next: (response) => {
+        if (isOriginal) {
+          this.regeneratingPDF.set(false);
+        } else {
+          this.regeneratingReceipt.set(false);
+        }
+        this.showRegenerateLanguageModal.set(false);
+        this.regenerateTarget.set(null);
         this.cdr.detectChanges();
-        this.toast.success('PDF original regenerado exitosamente');
-        // Reload order data to show new document
+        this.toast.success(response?.message || (
+          isOriginal ? 'PDF original regenerado exitosamente' : 'PDF de recepción regenerado exitosamente'
+        ));
         this.loadOrder();
       },
       error: (error) => {
-        this.regeneratingPDF.set(false);
+        if (isOriginal) {
+          this.regeneratingPDF.set(false);
+        } else {
+          this.regeneratingReceipt.set(false);
+        }
         this.cdr.detectChanges();
-        this.toast.error('Error al regenerar PDF original');
-        console.error('Error regenerating original PDF:', error);
+        this.toast.error(
+          error?.message || (isOriginal ? 'Error al regenerar PDF original' : 'Error al regenerar PDF de recepción')
+        );
+        console.error('Error regenerating document:', error);
       }
     });
   }
 
-  regenerateReceivingPDF(): void {
-    const orderId = this.order()?.id;
-    if (!orderId) return;
+  getDefaultDocumentLanguage(target: 'original' | 'recepcion'): DocumentLanguage {
+    const docs = this.order()?.documents ?? [];
+    const typeNames = target === 'original'
+      ? ['DOCUMENTO_ORIGINAL']
+      : ['DOCUMENTO_RECIBO', 'DOCUMENTO_RECEPCION'];
+    const doc = docs.find(d => typeNames.includes(d.document_type_name));
+    return doc?.document_language === 'en' ? 'en' : 'es';
+  }
 
-    this.regeneratingReceipt.set(true);
-    this.purchaseOrderService.regenerateReceiptPDF(orderId).subscribe({
-      next: () => {
-        this.regeneratingReceipt.set(false);
-        this.cdr.detectChanges();
-        this.toast.success('PDF de recepción regenerado exitosamente');
-        // Reload order data to show new document
-        this.loadOrder();
-      },
-      error: (error) => {
-        this.regeneratingReceipt.set(false);
-        this.cdr.detectChanges();
-        this.toast.error('Error al regenerar PDF de recepción');
-        console.error('Error regenerating receipt PDF:', error);
-      }
-    });
+  getDocumentLanguageLabel(language?: DocumentLanguage | string | null): string | null {
+    if (language === 'es') return 'ES';
+    if (language === 'en') return 'EN';
+    return null;
+  }
+
+  isRegeneratingDocument(): boolean {
+    return this.regeneratingPDF() || this.regeneratingReceipt();
   }
 
   openUploadDocumentModal(): void {

@@ -1,0 +1,99 @@
+<div class="transfer-detail">
+  <div class="transfer-detail__header">
+    <h2 class="transfer-detail__title">{{ transfer()?.folio || 'Transferencia' }}</h2>
+    <button type="button" class="transfer-detail__close" (click)="close()" aria-label="Cerrar">
+      <lucide-icon [img]="X" class="w-5 h-5"></lucide-icon>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="transfer-detail__loading">Cargando...</div>
+  } @else if (transfer(); as t) {
+    <div class="transfer-detail__body">
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-item__label">Producto</span>
+          <span class="info-item__value">{{ t.product_name }} ({{ t.product_sku }})</span>
+        </div>
+        <div class="info-item">
+          <span class="info-item__label">Cantidad total</span>
+          <span class="info-item__value info-item__value--highlight">
+            {{ t.total_quantity | removeTrailingZeros }} {{ t.uom_name }}
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-item__label">Origen</span>
+          <span class="info-item__value">
+            {{ t.source_warehouse.billing_branch_code }} / {{ t.source_warehouse.name }}
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-item__label">Destino</span>
+          <span class="info-item__value">
+            {{ t.destination_warehouse.billing_branch_code }} / {{ t.destination_warehouse.name }}
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-item__label">Creado por</span>
+          <span class="info-item__value">{{ t.created_by_user?.name || '—' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-item__label">Fecha</span>
+          <span class="info-item__value">{{ formatDate(t.created_at) }}</span>
+        </div>
+        @if (t.notes) {
+          <div class="info-item info-item--full">
+            <span class="info-item__label">Notas</span>
+            <span class="info-item__value">{{ t.notes }}</span>
+          </div>
+        }
+      </div>
+
+      @if (t.lines && t.lines.length > 0) {
+        <section class="lines-section">
+          <h3 class="lines-section__title">Líneas de transferencia</h3>
+          <table class="lines-table">
+            <thead>
+              <tr>
+                <th>Lote origen</th>
+                <th class="text-right">Cantidad</th>
+                <th>Lote destino creado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (line of t.lines; track line.source_batch_number + line.destination_batch_number) {
+                <tr>
+                  <td>
+                    @if (line.source_batch_id) {
+                      <button
+                        type="button"
+                        class="batch-link"
+                        (click)="openBatchDetail(line.source_batch_id, $event)">
+                        {{ line.source_batch_number }}
+                      </button>
+                    } @else {
+                      {{ line.source_batch_number }}
+                    }
+                  </td>
+                  <td class="text-right">{{ line.quantity | removeTrailingZeros }}</td>
+                  <td>
+                    @if (line.destination_batch_id) {
+                      <button
+                        type="button"
+                        class="batch-link"
+                        (click)="openBatchDetail(line.destination_batch_id, $event)">
+                        {{ line.destination_batch_number }}
+                      </button>
+                    } @else {
+                      {{ line.destination_batch_number }}
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+    </div>
+  }
+</div>

@@ -1,4 +1,5 @@
 const { execSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
 const rootDir = path.resolve(__dirname, '..');
@@ -10,6 +11,37 @@ function run(command) {
 
 function runOutput(command) {
   return execSync(command, { encoding: 'utf8', cwd: rootDir, shell: true }).trim();
+}
+
+function getSshKeyPath() {
+  return path.resolve(rootDir, '..', '..', '..', 'ssh', 'sinergy');
+}
+
+function ensureGitSshAuth() {
+  const keyPath = getSshKeyPath();
+  if (!fs.existsSync(keyPath)) {
+    console.warn(`SSH key not found at ${keyPath}; git push may fail.`);
+    return;
+  }
+
+  const keyForSsh = keyPath.replace(/\\/g, '/');
+  process.env.GIT_SSH_COMMAND = `ssh -i "${keyForSsh}" -o IdentitiesOnly=yes`;
+
+  if (process.platform === 'win32') {
+    try {
+      run('powershell -NoProfile -Command "Start-Service ssh-agent -ErrorAction SilentlyContinue"');
+      run(`ssh-add "${keyPath}"`);
+    } catch {
+      // GIT_SSH_COMMAND is enough for Git on Windows.
+    }
+  } else {
+    try {
+      run('eval "$(ssh-agent -s)"');
+      run(`ssh-add "${keyPath}"`);
+    } catch {
+      // GIT_SSH_COMMAND still applies for git push.
+    }
+  }
 }
 
 let baseHref = process.argv[2] || '/';
@@ -33,4 +65,5 @@ if (!status) {
 }
 
 run(`git commit -m "Deploying version ${version} (${buildId})"`);
+ensureGitSshAuth();
 run('git push origin main');
