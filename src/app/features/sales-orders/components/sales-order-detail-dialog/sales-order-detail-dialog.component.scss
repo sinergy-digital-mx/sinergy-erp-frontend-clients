@@ -269,6 +269,17 @@
       border-color: #cbd5e1;
     }
   }
+
+  .btn-secondary--ticket {
+    color: #065f46;
+    border-color: #a7f3d0;
+    background: #ecfdf5;
+
+    &:hover:not(:disabled) {
+      background: #d1fae5;
+      border-color: #6ee7b7;
+    }
+  }
 }
 
 .documents-table {

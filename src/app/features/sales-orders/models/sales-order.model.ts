@@ -1,4 +1,5 @@
 import { PosSaleCollection } from '../../pos/models/pos-sale-collection.model';
+import { PosSaleReceipt } from '../../pos/models/pos-receipt.model';
 
 export type SalesOrderStatus = 'Creada' | 'Surtida' | 'Cancelada';
 export type SalesPaymentStatus = 'Pendiente' | 'Pagado';
@@ -68,6 +69,13 @@ export interface RegenerateSalesDocumentResponse {
   message: string;
   document_language: SalesDocumentLanguage;
   keep_previous?: boolean;
+}
+
+export interface RegenerateTicketReciboResponse {
+  success: boolean;
+  message: string;
+  receipt?: PosSaleReceipt | null;
+  documents?: SalesOrderDocument[];
 }
 
 export interface SalesOrder {

@@ -12,6 +12,7 @@ import {
   SalesOrderDetailPayload,
   SalesOrderDetailResponse,
   RegenerateSalesDocumentResponse,
+  RegenerateTicketReciboResponse,
   SalesDocumentLanguage
 } from '../models/sales-order.model';
 import { environment } from '../../../../environments/environment';
@@ -164,6 +165,26 @@ export class SalesOrderService {
     );
   }
 
+  /** [TEMP] Regenera TICKET / RECIBO ESC/POS para ventas POS ya cobradas. */
+  regenerateTicketRecibo(orderId: string): Observable<RegenerateTicketReciboResponse> {
+    return this.http
+      .post<RegenerateTicketReciboResponse | { data: RegenerateTicketReciboResponse }>(
+        `${this.baseUrl}/${orderId}/regenerate-ticket-recibo`,
+        {}
+      )
+      .pipe(
+        map((response) =>
+          response && typeof response === 'object' && 'data' in response && response.data
+            ? response.data
+            : (response as RegenerateTicketReciboResponse)
+        ),
+        catchError(error => {
+          console.error('[SalesOrder] Failed to regenerate ticket/recibo', error);
+          return this.handleError(error);
+        })
+      );
+  }
+
   /**
    * Handle HTTP errors
    */
@@ -181,7 +202,9 @@ export class SalesOrderService {
         break;
 
       case 404:
-        errorMessage = 'Orden de venta no encontrada';
+        errorMessage =
+          (typeof error.error?.message === 'string' && error.error.message.trim()) ||
+          'Orden de venta no encontrada';
         break;
 
       case 409:

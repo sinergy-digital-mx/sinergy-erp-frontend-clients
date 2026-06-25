@@ -279,6 +279,21 @@
           @if (activeTabIndex() === 1) {
             <div class="tab-content-wrapper">
               <div class="tab-header">
+                @if (canRegenerateTicketRecibo()) {
+                  <button
+                    type="button"
+                    class="btn-secondary btn-secondary--ticket"
+                    (click)="regenerateTicketRecibo()"
+                    [disabled]="regeneratingTicket() || printingTicket()"
+                    title="Regenera el ticket ESC/POS y lo imprime (ventas POS cobradas)">
+                    @if (regeneratingTicket() || printingTicket()) {
+                      <i class="fi fi-rr-spinner animate-spin"></i>
+                    } @else {
+                      <i class="fi fi-rr-print"></i>
+                    }
+                    Regenerar ticket / recibo
+                  </button>
+                }
                 <button class="btn-secondary" (click)="regeneratePDF()" [disabled]="regeneratingPDF()">
                   @if (regeneratingPDF()) {
                     <i class="fi fi-rr-spinner animate-spin"></i>

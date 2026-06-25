@@ -297,7 +297,9 @@ export class PaymentComponent implements OnInit, OnDestroy {
     });
   }
 
-  openDailyShift(): void {
+  async openDailyShift(): Promise<void> {
+    const wasFullscreen = await this.exitFullscreenForDialog();
+
     const dialogRef = this.dialog.open(OpenDailyShiftDialogComponent, {
       width: '420px',
       maxWidth: '95vw',
@@ -305,7 +307,9 @@ export class PaymentComponent implements OnInit, OnDestroy {
       panelClass: 'pos-dialog-panel',
     });
 
-    dialogRef.afterClosed().subscribe((result: OpenDailyShiftDialogResult | undefined) => {
+    dialogRef.afterClosed().subscribe(async (result: OpenDailyShiftDialogResult | undefined) => {
+      await this.restoreFullscreenAfterDialog(wasFullscreen);
+
       if (!result) {
         return;
       }
@@ -395,11 +399,13 @@ export class PaymentComponent implements OnInit, OnDestroy {
     this.loadPendingSales();
   }
 
-  openPartialShift(): void {
+  async openPartialShift(): Promise<void> {
     const shift = this.shift();
     if (!shift?.id) {
       return;
     }
+    const wasFullscreen = await this.exitFullscreenForDialog();
+
     const dialogRef = this.dialog.open(PartialShiftDialogComponent, {
       width: '440px',
       maxWidth: '95vw',
@@ -408,7 +414,9 @@ export class PaymentComponent implements OnInit, OnDestroy {
       data: { dailyShiftId: shift.id },
     });
 
-    dialogRef.afterClosed().subscribe((result: PartialShiftDialogResult | undefined) => {
+    dialogRef.afterClosed().subscribe(async (result: PartialShiftDialogResult | undefined) => {
+      await this.restoreFullscreenAfterDialog(wasFullscreen);
+
       if (!result) {
         return;
       }
@@ -422,11 +430,13 @@ export class PaymentComponent implements OnInit, OnDestroy {
     });
   }
 
-  closeDailyShift(): void {
+  async closeDailyShift(): Promise<void> {
     const shift = this.shift();
     if (!shift?.id) {
       return;
     }
+    const wasFullscreen = await this.exitFullscreenForDialog();
+
     const dialogRef = this.dialog.open(CloseDailyShiftDialogComponent, {
       width: '420px',
       maxWidth: '95vw',
@@ -434,7 +444,9 @@ export class PaymentComponent implements OnInit, OnDestroy {
       panelClass: 'pos-dialog-panel',
     });
 
-    dialogRef.afterClosed().subscribe((result: { notes?: string } | undefined) => {
+    dialogRef.afterClosed().subscribe(async (result: { notes?: string } | undefined) => {
+      await this.restoreFullscreenAfterDialog(wasFullscreen);
+
       if (!result) {
         return;
       }
@@ -617,8 +629,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
   }
 
   async openCustomerPicker(): Promise<void> {
-    const wasFullscreen = this.isFullscreen() && !!document.fullscreenElement;
-    const root = this.posRootRef?.nativeElement;
+    const wasFullscreen = await this.exitFullscreenForDialog();
 
     const dialogRef = this.dialog.open(PosCustomerPickerDialogComponent, {
       width: '520px',
@@ -627,24 +638,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
       data: { selectedCustomerId: this.selectedCustomerId() },
     });
 
-    const restoreFullscreenIfNeeded = async (): Promise<void> => {
-      if (!wasFullscreen || !root || document.fullscreenElement) {
-        return;
-      }
-      try {
-        await root.requestFullscreen();
-        this.isFullscreen.set(true);
-      } catch {
-        this.isFullscreen.set(false);
-      }
-    };
-
-    dialogRef.afterOpened().subscribe(() => {
-      void restoreFullscreenIfNeeded();
-    });
-
     dialogRef.afterClosed().subscribe(async (result: PosCustomerPickerDialogResult | undefined) => {
-      await restoreFullscreenIfNeeded();
+      await this.restoreFullscreenAfterDialog(wasFullscreen);
 
       if (!result) {
         return;
@@ -728,12 +723,18 @@ export class PaymentComponent implements OnInit, OnDestroy {
     });
   }
 
-  openPrinterSettings(): void {
-    this.dialog.open(PosPrinterSettingsDialogComponent, {
+  async openPrinterSettings(): Promise<void> {
+    const wasFullscreen = await this.exitFullscreenForDialog();
+
+    const dialogRef = this.dialog.open(PosPrinterSettingsDialogComponent, {
       width: '440px',
       maxWidth: '95vw',
       panelClass: 'pos-dialog-panel',
       autoFocus: false,
+    });
+
+    dialogRef.afterClosed().subscribe(async () => {
+      await this.restoreFullscreenAfterDialog(wasFullscreen);
     });
   }
 
@@ -827,6 +828,37 @@ export class PaymentComponent implements OnInit, OnDestroy {
   private onFullscreenChange = (): void => {
     this.isFullscreen.set(!!document.fullscreenElement);
   };
+
+  /** Sale de pantalla completa para que los modales Material queden encima y sean clicables. */
+  private async exitFullscreenForDialog(): Promise<boolean> {
+    const wasFullscreen = !!document.fullscreenElement;
+    if (!wasFullscreen) {
+      return false;
+    }
+    try {
+      await document.exitFullscreen();
+      this.isFullscreen.set(false);
+    } catch {
+      // El diálogo puede abrirse igual fuera de fullscreen.
+    }
+    return wasFullscreen;
+  }
+
+  private async restoreFullscreenAfterDialog(wasFullscreen: boolean): Promise<void> {
+    if (!wasFullscreen || document.fullscreenElement) {
+      return;
+    }
+    const root = this.posRootRef?.nativeElement;
+    if (!root) {
+      return;
+    }
+    try {
+      await root.requestFullscreen();
+      this.isFullscreen.set(true);
+    } catch {
+      this.isFullscreen.set(false);
+    }
+  }
 
   private initCustomerFromSale(sale: PendingSale): void {
     const customer = sale.customer;

@@ -12,6 +12,9 @@ import {
   posCollectionMoneyLabel,
   posCollectionUsdLabel,
 } from '../../../pos/models/pos-sale-collection.model';
+import { normalizePosSaleReceipt } from '../../../pos/models/pos-receipt.model';
+import { PosReceiptPrintService } from '../../../pos/services/pos-receipt-print.service';
+import { PosPrinterSettingsDialogComponent } from '../../../pos/components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
@@ -41,11 +44,15 @@ export class SalesOrderDetailDialogComponent {
   activeTabIndex = signal(0);
   showDeliveredTotals = signal(false);
   regeneratingPDF = signal(false);
+  regeneratingTicket = signal(false);
+  printingTicket = signal(false);
   showRegenerateLanguageModal = signal(false);
   selectedRegenerateLanguage = signal<SalesDocumentLanguage>('es');
   keepPreviousDocument = signal(false);
 
   canEditOrder = computed(() => this.order()?.general_status === 'Creada');
+
+  canRegenerateTicketRecibo = computed(() => !!this.posCollection());
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { orderId: string },
@@ -57,7 +64,8 @@ export class SalesOrderDetailDialogComponent {
     private router: Router,
     private taxCalculator: TaxCalculatorService,
     private toast: ToastService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private receiptPrintService: PosReceiptPrintService
   ) {
     this.loadOrder();
   }
@@ -478,6 +486,64 @@ export class SalesOrderDetailDialogComponent {
     });
   }
 
+  regenerateTicketRecibo(): void {
+    const orderId = this.order()?.id;
+    if (!orderId || !this.canRegenerateTicketRecibo() || this.regeneratingTicket()) {
+      return;
+    }
+
+    this.regeneratingTicket.set(true);
+    this.salesOrderService.regenerateTicketRecibo(orderId).subscribe({
+      next: (response) => {
+        this.regeneratingTicket.set(false);
+        if (Array.isArray(response.documents)) {
+          this.documents.set(response.documents);
+        }
+        this.cdr.detectChanges();
+        this.toast.success(response?.message || 'TICKET / RECIBO regenerado exitosamente');
+        void this.printRegeneratedTicket(response.receipt, this.order()?.folio || orderId);
+      },
+      error: (error) => {
+        this.regeneratingTicket.set(false);
+        this.cdr.detectChanges();
+        this.toast.error(error?.message || 'No se pudo regenerar el ticket / recibo');
+        console.error('Error regenerating ticket/recibo:', error);
+      },
+    });
+  }
+
+  private async printRegeneratedTicket(receiptRaw: unknown, folio: string): Promise<void> {
+    const receipt = normalizePosSaleReceipt(receiptRaw);
+    if (!this.receiptPrintService.hasPrintableReceipt(receipt)) {
+      this.toast.info('Ticket regenerado. No incluye datos ESC/POS para imprimir.', { duration: 5000 });
+      return;
+    }
+
+    if (!this.receiptPrintService.getPrinterName()) {
+      this.toast.warning('Configura la impresora térmica antes de imprimir', { duration: 5000 });
+      this.dialog.open(PosPrinterSettingsDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        panelClass: 'pos-dialog-panel',
+        autoFocus: false,
+      });
+      return;
+    }
+
+    this.printingTicket.set(true);
+    try {
+      await this.receiptPrintService.printReceipt(receipt!);
+      this.toast.success(`Ticket de ${folio} enviado a la impresora`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'No se pudo imprimir el ticket';
+      this.toast.error(message, { duration: 6000 });
+    } finally {
+      this.printingTicket.set(false);
+      this.cdr.detectChanges();
+    }
+  }
+
   getDefaultDocumentLanguage(): SalesDocumentLanguage {
     const doc = this.documents().find(d => d.document_type_name === 'DOCUMENTO_ORIGINAL');
     return doc?.document_language === 'en' ? 'en' : 'es';
@@ -493,6 +559,8 @@ export class SalesOrderDetailDialogComponent {
     const typeMap: Record<string, string> = {
       DOCUMENTO_ORIGINAL: 'badge-blue',
       DOCUMENTO_RECIBO: 'badge-green',
+      'TICKET / RECIBO': 'badge-green',
+      TICKET_RECIBO: 'badge-green',
       DOCUMENTO_RECEPCION: 'badge-green'
     };
     return typeMap[documentType] || 'badge-gray';
