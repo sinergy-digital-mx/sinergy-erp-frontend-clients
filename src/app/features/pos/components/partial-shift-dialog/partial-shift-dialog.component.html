@@ -7,23 +7,77 @@
     <button type="button" [class.partial-tabs__btn--active]="activeTab() === 'USD'" (click)="activeTab.set('USD')">Dólares</button>
   </div>
 
+  <p class="partial-hint">Toca <strong>+</strong> / <strong>−</strong> o usa <strong>Tab</strong> y flechas <strong>↑↓</strong> en cada billete.</p>
+
   @if (activeTab() === 'MXN') {
     <div class="denom-grid">
       @for (d of mxnDenoms; track d) {
-        <label class="denom-row">
-          <span>${{ d }}</span>
-          <input type="number" min="0" step="1" [ngModel]="getCount('MXN', d)" (ngModelChange)="setCount('MXN', d, +$event || 0)" />
-        </label>
+        <div class="denom-row">
+          <span class="denom-row__label">${{ d }}</span>
+          <div
+            class="denom-stepper"
+            tabindex="0"
+            role="spinbutton"
+            [attr.aria-label]="'Billetes de ' + d + ' pesos'"
+            [attr.aria-valuenow]="getCount('MXN', d)"
+            aria-valuemin="0"
+            (keydown)="onDenomKeydown($event, 'MXN', d)">
+            <button
+              type="button"
+              class="denom-stepper__btn"
+              tabindex="-1"
+              aria-label="Quitar billete de {{ d }} pesos"
+              [disabled]="getCount('MXN', d) <= 0"
+              (click)="adjustCount('MXN', d, -1)">
+              −
+            </button>
+            <span class="denom-stepper__value" aria-hidden="true">{{ getCount('MXN', d) }}</span>
+            <button
+              type="button"
+              class="denom-stepper__btn"
+              tabindex="-1"
+              aria-label="Agregar billete de {{ d }} pesos"
+              (click)="adjustCount('MXN', d, 1)">
+              +
+            </button>
+          </div>
+        </div>
       }
     </div>
     <p class="partial-total">Total MXN: <strong>{{ formatMxn(totalMxn()) }}</strong></p>
   } @else {
     <div class="denom-grid">
       @for (d of usdDenoms; track d) {
-        <label class="denom-row">
-          <span>USD {{ d }}</span>
-          <input type="number" min="0" step="1" [ngModel]="getCount('USD', d)" (ngModelChange)="setCount('USD', d, +$event || 0)" />
-        </label>
+        <div class="denom-row">
+          <span class="denom-row__label">USD {{ d }}</span>
+          <div
+            class="denom-stepper"
+            tabindex="0"
+            role="spinbutton"
+            [attr.aria-label]="'Billetes de ' + d + ' dólares'"
+            [attr.aria-valuenow]="getCount('USD', d)"
+            aria-valuemin="0"
+            (keydown)="onDenomKeydown($event, 'USD', d)">
+            <button
+              type="button"
+              class="denom-stepper__btn"
+              tabindex="-1"
+              aria-label="Quitar billete de {{ d }} dólares"
+              [disabled]="getCount('USD', d) <= 0"
+              (click)="adjustCount('USD', d, -1)">
+              −
+            </button>
+            <span class="denom-stepper__value" aria-hidden="true">{{ getCount('USD', d) }}</span>
+            <button
+              type="button"
+              class="denom-stepper__btn"
+              tabindex="-1"
+              aria-label="Agregar billete de {{ d }} dólares"
+              (click)="adjustCount('USD', d, 1)">
+              +
+            </button>
+          </div>
+        </div>
       }
     </div>
     <p class="partial-total">Total USD: <strong>{{ totalUsd() | number:'1.2-2' }}</strong></p>

@@ -50,7 +50,23 @@ export class PartialShiftDialogComponent {
 
   setCount(currency: 'MXN' | 'USD', denomination: number, value: number): void {
     const k = this.key(currency, denomination);
-    this.counts.update((map) => ({ ...map, [k]: Math.max(0, value || 0) }));
+    this.counts.update((map) => ({ ...map, [k]: Math.max(0, Math.floor(value || 0)) }));
+  }
+
+  adjustCount(currency: 'MXN' | 'USD', denomination: number, delta: number): void {
+    this.setCount(currency, denomination, this.getCount(currency, denomination) + delta);
+  }
+
+  onDenomKeydown(event: KeyboardEvent, currency: 'MXN' | 'USD', denomination: number): void {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowRight' || event.key === '+' || event.key === '=') {
+      event.preventDefault();
+      this.adjustCount(currency, denomination, 1);
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowLeft' || event.key === '-' || event.key === '_') {
+      event.preventDefault();
+      this.adjustCount(currency, denomination, -1);
+    }
   }
 
   private sumCurrency(currency: 'MXN' | 'USD', denoms: number[]): number {

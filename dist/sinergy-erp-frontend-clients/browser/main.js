@@ -3,7 +3,7 @@ import {
 } from "./chunk-ZPMASCV3.js";
 import {
   takeUntilDestroyed
-} from "./chunk-EFHXZWBQ.js";
+} from "./chunk-5OH7JABO.js";
 import {
   PERMISSIONS
 } from "./chunk-XYSQWTGQ.js";
@@ -19,34 +19,34 @@ import "./chunk-3BJZNAHA.js";
 import "./chunk-EUPOEI4B.js";
 import {
   PermissionSyncService
-} from "./chunk-ID65SHHG.js";
+} from "./chunk-FRZCFLMK.js";
 import {
   ExchangeRateService
-} from "./chunk-SG7BIZJK.js";
+} from "./chunk-7BPCF4E6.js";
 import "./chunk-K6DFM2KE.js";
 import {
   PolluxBrandTextComponent
-} from "./chunk-PG2V76SG.js";
+} from "./chunk-XGCMAGVH.js";
 import "./chunk-EQHNMCLE.js";
 import {
   ke,
   providePrimeNG
-} from "./chunk-HRCG3NUH.js";
+} from "./chunk-AE2IM47J.js";
 import {
   InterceptorService
-} from "./chunk-6CHEJEJW.js";
+} from "./chunk-YFLVEXO5.js";
 import {
   MAT_DIALOG_DATA,
   MatDialog,
   MatDialogModule,
   MatDialogRef
-} from "./chunk-X4R6VVPV.js";
+} from "./chunk-AL73GUEM.js";
 import {
   ButtonComponent
-} from "./chunk-QII3XD7X.js";
-import "./chunk-CDP25QD6.js";
-import "./chunk-YTYO4VTK.js";
-import "./chunk-4K6KH37Z.js";
+} from "./chunk-B4R54IPF.js";
+import "./chunk-CYJDZ4ZT.js";
+import "./chunk-IP3VK3BQ.js";
+import "./chunk-BMQ5UVGT.js";
 import {
   Bell,
   ChevronLeft,
@@ -71,10 +71,10 @@ import {
   ShoppingCart,
   Users,
   X
-} from "./chunk-SNZEVNJV.js";
+} from "./chunk-34Z4N5YB.js";
 import {
   AuthService
-} from "./chunk-QU2SCCOO.js";
+} from "./chunk-B7UOHVOJ.js";
 import {
   ActivatedRoute,
   DomRendererFactory2,
@@ -86,7 +86,7 @@ import {
   RouterOutlet,
   bootstrapApplication,
   provideRouter
-} from "./chunk-YUPXBHST.js";
+} from "./chunk-55FJTJJ6.js";
 import {
   CommonModule,
   DecimalPipe,
@@ -95,7 +95,7 @@ import {
   provideHttpClient,
   withInterceptors,
   withInterceptorsFromDi
-} from "./chunk-FGZNYMY3.js";
+} from "./chunk-BMMLV6YT.js";
 import {
   ANIMATION_MODULE_TYPE,
   ChangeDetectionScheduler,
@@ -152,7 +152,7 @@ import {
   ɵɵtext,
   ɵɵtextInterpolate,
   ɵɵtextInterpolate1
-} from "./chunk-XEFUC5ED.js";
+} from "./chunk-57S27ROJ.js";
 
 // node_modules/@angular/platform-browser/fesm2022/animations-async.mjs
 var ANIMATION_PREFIX = "@";
@@ -180,7 +180,7 @@ var AsyncAnimationRendererFactory = class _AsyncAnimationRendererFactory {
     this._engine?.flush();
   }
   loadImpl() {
-    const loadFn = () => this.moduleImpl ?? import("./chunk-ZCXK5S2M.js").then((m5) => m5);
+    const loadFn = () => this.moduleImpl ?? import("./chunk-VQ7GFAUA.js").then((m5) => m5);
     let moduleImplPromise;
     if (this.loadingSchedulerFn) {
       moduleImplPromise = this.loadingSchedulerFn(loadFn);
@@ -1863,13 +1863,13 @@ var routes = [
   {
     path: "login",
     canActivate: [LoggedGuard],
-    loadComponent: () => import("./chunk-CYC66NOO.js").then((m5) => m5.Login)
+    loadComponent: () => import("./chunk-G23W4JV5.js").then((m5) => m5.Login)
   },
   // POS - Tomar Orden y Cobrar Orden (pantalla completa, sin layout)
   {
     path: "pos/pending-orders",
     canActivate: [AuthGuard],
-    loadComponent: () => import("./chunk-4WKEVIBU.js").then((m5) => m5.PendingOrdersComponent),
+    loadComponent: () => import("./chunk-VCXX6G6S.js").then((m5) => m5.PendingOrdersComponent),
     data: {
       permission: "pos:Read",
       title: "\xD3rdenes Pendientes"
@@ -1888,44 +1888,44 @@ var routes = [
     children: [
       {
         path: "leads",
-        loadChildren: () => import("./chunk-HWOVZ3C5.js").then((m5) => m5.LEADS_ROUTES)
+        loadChildren: () => import("./chunk-QLVUYXGB.js").then((m5) => m5.LEADS_ROUTES)
       },
       {
         path: "customers",
-        loadChildren: () => import("./chunk-PNLUZDBC.js").then((m5) => m5.CUSTOMERS_ROUTES)
+        loadChildren: () => import("./chunk-RFA5WX6K.js").then((m5) => m5.CUSTOMERS_ROUTES)
       },
       {
         path: "properties",
-        loadChildren: () => import("./chunk-KARJ6DQN.js").then((m5) => m5.PROPERTIES_ROUTES)
+        loadChildren: () => import("./chunk-NNAF6XEQ.js").then((m5) => m5.PROPERTIES_ROUTES)
       },
       {
         path: "contracts",
-        loadChildren: () => import("./chunk-TW43OBFQ.js").then((m5) => m5.CONTRACTS_ROUTES)
+        loadChildren: () => import("./chunk-LCTGSQHU.js").then((m5) => m5.CONTRACTS_ROUTES)
       },
       {
         path: "settings",
-        loadChildren: () => import("./chunk-6IWGVGNT.js").then((m5) => m5.RBAC_TENANT_UI_ROUTES)
+        loadChildren: () => import("./chunk-CJEMF3BF.js").then((m5) => m5.RBAC_TENANT_UI_ROUTES)
       },
       {
         path: "marketing",
-        loadChildren: () => import("./chunk-VY2ZDQMQ.js").then((m5) => m5.MARKETING_ROUTES)
+        loadChildren: () => import("./chunk-4DUWBLGQ.js").then((m5) => m5.MARKETING_ROUTES)
       },
       {
         path: "purchase-orders",
-        loadChildren: () => import("./chunk-GRQEB4FW.js").then((m5) => m5.PURCHASE_ORDERS_ROUTES)
+        loadChildren: () => import("./chunk-5MJTQX25.js").then((m5) => m5.PURCHASE_ORDERS_ROUTES)
       },
       {
         path: "inventory",
-        loadChildren: () => import("./chunk-3BXH3KPY.js").then((m5) => m5.INVENTORY_ROUTES)
+        loadChildren: () => import("./chunk-A6JCVC4A.js").then((m5) => m5.INVENTORY_ROUTES)
       },
       {
         path: "sales-orders",
-        loadChildren: () => import("./chunk-6DUYMTEO.js").then((m5) => m5.SALES_ORDERS_ROUTES)
+        loadChildren: () => import("./chunk-GZSKXPTG.js").then((m5) => m5.SALES_ORDERS_ROUTES)
       },
       {
         path: "pos/ventas",
         canActivate: [posVentasGuard],
-        loadComponent: () => import("./chunk-27VAFUXX.js").then((m5) => m5.TakeOrderComponent),
+        loadComponent: () => import("./chunk-A3TCVHTN.js").then((m5) => m5.TakeOrderComponent),
         data: {
           permission: "pos:Create",
           title: "Punto de Venta"
@@ -1934,7 +1934,7 @@ var routes = [
       {
         path: "pos/cobranza",
         canActivate: [posCobranzaGuard],
-        loadComponent: () => import("./chunk-ABHD6WWY.js").then((m5) => m5.PaymentComponent),
+        loadComponent: () => import("./chunk-NKH5YR4A.js").then((m5) => m5.PaymentComponent),
         data: {
           permission: "pos:Update",
           title: "Cobranza POS"
@@ -1948,11 +1948,11 @@ var routes = [
       },
       {
         path: "zona-norte-reports",
-        loadChildren: () => import("./chunk-4HN5NNHG.js").then((m5) => m5.ZONA_NORTE_REPORTS_ROUTES)
+        loadChildren: () => import("./chunk-2LJDK4KF.js").then((m5) => m5.ZONA_NORTE_REPORTS_ROUTES)
       },
       {
         path: "divino-dashboard",
-        loadChildren: () => import("./chunk-JJ4IUK7E.js").then((m5) => m5.DIVINO_DASHBOARD_ROUTES)
+        loadChildren: () => import("./chunk-NZL7MOVN.js").then((m5) => m5.DIVINO_DASHBOARD_ROUTES)
       },
       {
         path: "",
