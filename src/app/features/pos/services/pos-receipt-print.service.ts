@@ -37,15 +37,6 @@ export class PosReceiptPrintService {
     localStorage.setItem(LS_AUTO_PRINT, enabled ? 'true' : 'false');
   }
 
-  decodeEscPosBase64(base64: string): Uint8Array {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes;
-  }
-
   hasPrintableReceipt(receipt: PosSaleReceipt | null | undefined): boolean {
     return !!receipt?.escpos_base64?.trim();
   }
@@ -69,14 +60,15 @@ export class PosReceiptPrintService {
 
     const qz = await this.ensureQz();
     await this.connectQz(qz);
-    const bytes = this.decodeEscPosBase64(base64);
     const config = qz.configs.create(printerName);
 
+    // ESC/POS binario: command + base64 (no plain + Array.from, eso imprime "27,64,27…")
     await qz.print(config, [
       {
         type: 'raw',
-        format: 'plain',
-        data: Array.from(bytes),
+        format: 'command',
+        flavor: 'base64',
+        data: base64,
       },
     ]);
   }
