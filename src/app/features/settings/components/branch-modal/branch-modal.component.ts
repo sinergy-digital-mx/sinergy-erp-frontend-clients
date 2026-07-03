@@ -68,6 +68,7 @@ export class BranchModalComponent implements OnInit {
       state: ['', [Validators.required, Validators.minLength(2)]],
       country: ['México', [Validators.required, Validators.minLength(2)]],
       postal_code: ['', [Validators.required, Validators.pattern(/^\d{5}$/)]],
+      phone: ['', [Validators.maxLength(50)]],
       status: [1]
     });
   }
@@ -76,7 +77,9 @@ export class BranchModalComponent implements OnInit {
     if (this.form.invalid || this.saving()) return;
 
     this.saving.set(true);
-    const formValue = this.form.value;
+    const formValue = { ...this.form.value };
+    const phone = formValue.phone?.trim() || null;
+    formValue.phone = phone;
 
     if (this.isNew) {
       this.branchService.createBranch(this.data.fiscalConfigId, formValue).subscribe({

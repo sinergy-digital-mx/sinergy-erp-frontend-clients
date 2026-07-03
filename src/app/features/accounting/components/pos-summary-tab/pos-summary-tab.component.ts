@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, TemplateRef, ViewChild } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -6,10 +6,12 @@ import { IDatatableConfig } from '../../../../core/components/datatable-wrapper/
 import { AccountingService } from '../../services/accounting.service';
 import {
   AccountingPeriod,
+  CollectionCustomerType,
   CollectionTerminalSummary,
   SalesTerminalSummary,
 } from '../../models/accounting.model';
 import { PosTerminalSalesDialogComponent } from '../pos-terminal-sales-dialog/pos-terminal-sales-dialog.component';
+import { PosCollectionsDialogComponent } from '../pos-collections-dialog/pos-collections-dialog.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 
 @Component({
@@ -28,12 +30,10 @@ export class PosSummaryTabComponent implements OnChanges {
   @Input() dateTo = '';
   @Input() reloadToken = 0;
 
-  salesTerminals: SalesTerminalSummary[] = [];
-  collectionTerminal: CollectionTerminalSummary = this.emptyCollectionTerminal();
-  loading = false;
-  branchMissing = false;
+  branchMissing = signal(false);
+  collectionTerminal = signal<CollectionTerminalSummary>(this.emptyCollectionTerminal());
 
-  tableConfig: IDatatableConfig = {
+  tableConfig = signal<IDatatableConfig>({
     rows: [],
     columns: [
       { name: 'Terminal', prop: 'terminal_name', sortable: false, canAutoResize: false, width: 220 },
@@ -50,7 +50,7 @@ export class PosSummaryTabComponent implements OnChanges {
     emptyState: { title: 'Sin terminales', subtitle: 'No hay ventas POS en el periodo seleccionado' },
     columnMode: 'force',
     reorderable: false,
-  };
+  });
 
   constructor(
     private accountingService: AccountingService,
@@ -74,10 +74,6 @@ export class PosSummaryTabComponent implements OnChanges {
     return this.taxCalculator.formatCurrency(value);
   }
 
-  collectionMetrics(): CollectionTerminalSummary {
-    return this.collectionTerminal;
-  }
-
   openTerminalDetail(terminal: SalesTerminalSummary): void {
     this.dialog.open(PosTerminalSalesDialogComponent, {
       width: '92vw',
@@ -93,12 +89,31 @@ export class PosSummaryTabComponent implements OnChanges {
     });
   }
 
+  openCollections(customerType: CollectionCustomerType): void {
+    if (!this.billingBranchId) {
+      return;
+    }
+
+    this.dialog.open(PosCollectionsDialogComponent, {
+      width: '96vw',
+      maxWidth: '1280px',
+      maxHeight: '90vh',
+      data: {
+        collection: this.collectionTerminal(),
+        billingBranchId: this.billingBranchId,
+        period: this.period,
+        dateFrom: this.dateFrom,
+        dateTo: this.dateTo,
+        customerType,
+      },
+    });
+  }
+
   private loadSummary(): void {
     if (!this.billingBranchId) {
-      this.branchMissing = true;
-      this.salesTerminals = [];
-      this.collectionTerminal = this.emptyCollectionTerminal();
-      this.tableConfig = { ...this.tableConfig, rows: [], loading: false, totalResults: 0 };
+      this.branchMissing.set(true);
+      this.collectionTerminal.set(this.emptyCollectionTerminal());
+      this.tableConfig.update((cfg) => ({ ...cfg, rows: [], loading: false, totalResults: 0 }));
       return;
     }
 
@@ -106,9 +121,8 @@ export class PosSummaryTabComponent implements OnChanges {
       return;
     }
 
-    this.branchMissing = false;
-    this.loading = true;
-    this.tableConfig = { ...this.tableConfig, loading: true };
+    this.branchMissing.set(false);
+    this.tableConfig.update((cfg) => ({ ...cfg, loading: true }));
 
     this.accountingService
       .getPosSummary({
@@ -119,21 +133,23 @@ export class PosSummaryTabComponent implements OnChanges {
       })
       .subscribe({
         next: (res) => {
-          this.salesTerminals = res.sales_terminals ?? [];
-          this.collectionTerminal = res.collection_terminal ?? this.emptyCollectionTerminal();
-          this.tableConfig = {
-            ...this.tableConfig,
-            rows: this.salesTerminals,
-            totalResults: this.salesTerminals.length,
+          const salesTerminals = res.sales_terminals ?? [];
+          this.collectionTerminal.set(res.collection_terminal ?? this.emptyCollectionTerminal());
+          this.tableConfig.update((cfg) => ({
+            ...cfg,
+            rows: salesTerminals,
+            totalResults: salesTerminals.length,
             loading: false,
-          };
-          this.loading = false;
+          }));
         },
         error: () => {
-          this.salesTerminals = [];
-          this.collectionTerminal = this.emptyCollectionTerminal();
-          this.tableConfig = { ...this.tableConfig, rows: [], totalResults: 0, loading: false };
-          this.loading = false;
+          this.collectionTerminal.set(this.emptyCollectionTerminal());
+          this.tableConfig.update((cfg) => ({
+            ...cfg,
+            rows: [],
+            totalResults: 0,
+            loading: false,
+          }));
         },
       });
   }

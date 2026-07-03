@@ -183,6 +183,38 @@
       font-size: 0.875rem;
     }
 
+    .branches-table-wrapper {
+      overflow-x: auto;
+      margin: 0 -0.25rem;
+      padding: 0 0.25rem;
+    }
+
+    .branches-table {
+      min-width: 900px;
+      table-layout: auto;
+
+      th,
+      td {
+        white-space: nowrap;
+      }
+
+      th:nth-child(1),
+      td:nth-child(1) {
+        min-width: 120px;
+      }
+
+      th:nth-child(2),
+      td:nth-child(2) {
+        min-width: 160px;
+        white-space: normal;
+      }
+
+      th:nth-child(6),
+      td:nth-child(6) {
+        min-width: 110px;
+      }
+    }
+
     .data-table {
       width: 100%;
       border-collapse: collapse;

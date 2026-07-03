@@ -80,27 +80,11 @@
       </select>
     </div>
 
-    @if (hasActiveFilters) {
-      <div class="filter-bar__field">
-        <button
-          type="button"
-          class="filter-bar__clear-button"
-          (click)="clearFilters()"
-          matTooltip="Limpiar filtros"
-          aria-label="Limpiar filtros"
-        >
-          <svg
-            class="filter-bar__clear-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <path d="M4 6H20L14 13V18L10 20V13L4 6Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-            <path d="M5 19L19 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </div>
-    }
+    <div class="filter-bar__field filter-bar__field--clear">
+      <app-filter-clear-button
+        [active]="hasActiveFilters"
+        (clear)="clearFilters()">
+      </app-filter-clear-button>
+    </div>
   </div>
 </div>

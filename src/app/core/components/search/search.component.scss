@@ -5,6 +5,52 @@
   position: relative;
   width: 100%;
 
+  &--with-icon {
+    .search-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      height: 40px;
+      padding: 0 0.75rem 0 0.625rem;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+      &:hover {
+        border-color: #d1d5db;
+      }
+
+      &:focus-within {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+      }
+    }
+
+    .search-icon {
+      flex-shrink: 0;
+      color: #9ca3af;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      padding: 0;
+      font-size: 0.875rem;
+      color: #111827;
+      background: transparent;
+      border: none;
+      outline: none;
+      box-shadow: none;
+
+      &::placeholder {
+        color: #9ca3af;
+      }
+    }
+  }
+
   ::ng-deep {
     .input_container {
       input {
@@ -22,17 +68,17 @@
     align-items: center;
     justify-content: center;
     border-radius: 50px;
-    background-color: #f2f2f2;
+    background-color: #f3f4f6;
     padding: 4px;
     top: 50%;
-    right: 12px;
+    right: 10px;
     height: 18px;
     width: 18px;
     transform: translateY(-50%);
     z-index: 10;
 
     &:hover {
-      background-color: #e5e5e5;
+      background-color: #e5e7eb;
     }
 
     @include media-query(sm) {

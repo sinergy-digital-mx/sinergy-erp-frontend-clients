@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, TemplateRef, ViewChild } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -25,9 +25,9 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges, OnDest
 
   searchControl = new FormControl('', { nonNullable: true });
   private destroy$ = new Subject<void>();
-  summary: AccountsReceivableListSummary | null = null;
+  summary = signal<AccountsReceivableListSummary | null>(null);
 
-  tableConfig: IDatatableConfig = {
+  tableConfig = signal<IDatatableConfig>({
     rows: [] as AccountsReceivableRow[],
     columns: [
       { name: 'Razón social', prop: 'razon_social', sortable: false, canAutoResize: false, width: 240 },
@@ -44,7 +44,7 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges, OnDest
     emptyState: { title: 'Sin adeudos', subtitle: 'No hay cuentas por cobrar pendientes' },
     columnMode: 'force',
     reorderable: false,
-  };
+  });
 
   constructor(
     private accountingService: AccountingService,
@@ -66,7 +66,7 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges, OnDest
       return;
     }
     if (changes['reloadToken'] && !changes['reloadToken'].firstChange) {
-      this.loadPage(this.tableConfig.page);
+      this.loadPage(this.tableConfig().page ?? 1);
     }
   }
 
@@ -97,24 +97,29 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges, OnDest
   }
 
   private loadPage(page: number): void {
-    this.tableConfig = { ...this.tableConfig, loading: true, page };
+    this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
 
     this.accountingService
-      .getAccountsReceivable(this.billingBranchId, this.searchControl.value, page, this.tableConfig.limit)
+      .getAccountsReceivable(this.billingBranchId, this.searchControl.value, page, this.tableConfig().limit)
       .subscribe({
         next: (res) => {
-          this.summary = res.summary ?? null;
-          this.tableConfig = {
-            ...this.tableConfig,
+          this.summary.set(res.summary ?? null);
+          this.tableConfig.update((cfg) => ({
+            ...cfg,
             rows: res.data,
             page: res.page,
             totalResults: res.total,
             loading: false,
-          };
+          }));
         },
         error: () => {
-          this.summary = null;
-          this.tableConfig = { ...this.tableConfig, rows: [], totalResults: 0, loading: false };
+          this.summary.set(null);
+          this.tableConfig.update((cfg) => ({
+            ...cfg,
+            rows: [],
+            totalResults: 0,
+            loading: false,
+          }));
         },
       });
   }

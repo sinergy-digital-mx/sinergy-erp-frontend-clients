@@ -11,7 +11,7 @@ import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { WarehouseDetailModalComponent } from '../warehouse-detail-modal/warehouse-detail-modal.component';
-import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 
 @Component({
   selector: 'app-warehouse-list',
@@ -20,7 +20,8 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
     CommonModule,
     DatatableWrapperComponent,
     SearchComponent,
-    ButtonComponent
+    ButtonComponent,
+    FilterClearButtonComponent
   ],
   templateUrl: './warehouse-list.component.html',
   styleUrl: './warehouse-list.component.scss'
@@ -93,6 +94,14 @@ export class WarehouseListComponent implements OnDestroy {
   onSearchChange(searchTerm: string) {
     this.search = searchTerm;
     this.loadWarehouses();
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!this.search?.trim();
+  }
+
+  clearFilters(): void {
+    this.onSearchChange('');
   }
 
   openCreateWarehouseModal() {

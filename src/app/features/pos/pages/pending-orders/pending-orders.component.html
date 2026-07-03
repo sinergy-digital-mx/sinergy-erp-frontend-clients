@@ -59,8 +59,8 @@
 
           <div class="order-footer">
             <div class="order-total">
-              <span>Total:</span>
-              <strong>{{ formatCurrency(order.total) }}</strong>
+              <span>Por cobrar:</span>
+              <strong>{{ formatCurrency(amountToCollect(order)) }}</strong>
             </div>
             <button class="btn-view" type="button">
               Cobrar

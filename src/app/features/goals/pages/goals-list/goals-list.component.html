@@ -1,0 +1,165 @@
+<div class="settings-list-page goals-list px-4 pb-6">
+  <div class="goals-list__header">
+    <h2 class="text-2xl font-semibold text-gray-800">Metas</h2>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <ng-container *hasPermission="permissions.create">
+        <app-button
+          text="Nueva meta"
+          custom_class="btn_primary"
+          (clicked)="openCreateModal()">
+        </app-button>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="goals-list__commission">
+    <div class="goals-list__commission-info">
+      <h3 class="goals-list__commission-title">Comisión activa</h3>
+      <p class="goals-list__commission-hint">
+        Se aplica al Reporte de Ventas Zona Norte
+        <span *ngIf="settingsIsDefault()" class="goals-list__commission-default">
+          · valor por defecto (aún no guardado)
+        </span>
+      </p>
+    </div>
+
+    <div class="goals-list__commission-controls">
+      <div class="goals-list__commission-field">
+        <input
+          id="goals-commission-rate"
+          type="number"
+          min="0"
+          max="100"
+          step="0.01"
+          class="goals-list__commission-input"
+          [formControl]="commissionRate"
+          aria-label="Comisión activa"
+          aria-describedby="goals-commission-help" />
+        <span class="goals-list__commission-unit" aria-hidden="true">%</span>
+      </div>
+
+      <ng-container *hasPermission="permissions.update">
+        <app-button
+          text="Guardar"
+          custom_class="btn_primary"
+          [loading]="settingsSaving()"
+          [disabled]="settingsLoading() || settingsSaving() || commissionInvalid || !commissionDirty"
+          (clicked)="saveCommissionSettings()">
+        </app-button>
+      </ng-container>
+    </div>
+
+    <p
+      id="goals-commission-help"
+      *ngIf="commissionInvalid && commissionRate.touched"
+      class="goals-list__commission-error">
+      Ingresa un porcentaje entre 0 y 100
+    </p>
+  </div>
+
+  <div class="filter-bar goals-list__filters" role="search" aria-label="Filtros de metas">
+    <div class="filter-bar__container filter-bar__container--goals">
+      <div class="filter-bar__field">
+        <select
+          class="filter-bar__select"
+          [formControl]="branchFilter"
+          aria-label="Filtrar por sucursal">
+          <option value="">Todas las sucursales</option>
+          <option *ngFor="let branch of branches" [value]="branch.id">
+            {{ branch.display_name || branch.code }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-bar__field">
+        <select
+          class="filter-bar__select"
+          [formControl]="yearFilter"
+          aria-label="Filtrar por año">
+          <option value="">Todos los años</option>
+          <option *ngFor="let year of yearOptions" [value]="year">{{ year }}</option>
+        </select>
+      </div>
+
+      <div class="filter-bar__field">
+        <select
+          class="filter-bar__select"
+          [formControl]="monthFilter"
+          aria-label="Filtrar por mes">
+          <option value="">Todos los meses</option>
+          <option *ngFor="let month of monthOptions" [value]="month.value">
+            {{ month.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-bar__field">
+        <select
+          class="filter-bar__select"
+          [formControl]="activeFilter"
+          aria-label="Filtrar por estado">
+          <option value="">Todas</option>
+          <option value="true">Activas</option>
+          <option value="false">Inactivas</option>
+        </select>
+      </div>
+
+      <div class="filter-bar__field filter-bar__field--clear">
+        <app-filter-clear-button
+          [active]="hasActiveFilters"
+          (clear)="clearFilters()">
+        </app-filter-clear-button>
+      </div>
+    </div>
+  </div>
+
+  <app-datatable-wrapper
+    variant="settings"
+    [config]="table_config()"
+    [rowTemplate]="tableTemplate">
+  </app-datatable-wrapper>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td>
+    <p class="settings-cell-primary truncate">{{ getBranchLabel(item) }}</p>
+  </td>
+  <td>
+    <span class="settings-cell-text">{{ getScopeLabel(item) }}</span>
+  </td>
+  <td>
+    <span class="settings-cell-text">{{ getMetricLabel(item) }}</span>
+  </td>
+  <td>
+    <span class="settings-cell-text">{{ getTargetLabel(item) }}</span>
+  </td>
+  <td>
+    <span class="settings-cell-text">{{ getPeriodLabel(item) }}</span>
+  </td>
+  <td>
+    <span class="settings-badge" [ngClass]="getStatusClass(item)">
+      {{ getStatusLabel(item) }}
+    </span>
+  </td>
+  <td>
+    <div class="flex gap-2">
+      <button
+        *hasPermission="permissions.update"
+        type="button"
+        (click)="openEditModal(item); $event.stopPropagation()"
+        class="p-1.5 text-gray-600 hover:text-white hover:bg-gray-600 rounded-md transition-all duration-200"
+        title="Editar">
+        <lucide-icon [img]="Edit2" [size]="16"></lucide-icon>
+      </button>
+      <button
+        *hasPermission="permissions.delete"
+        type="button"
+        (click)="deleteGoal(item); $event.stopPropagation()"
+        class="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-md transition-all duration-200"
+        title="Eliminar">
+        <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
+      </button>
+    </div>
+  </td>
+</ng-template>

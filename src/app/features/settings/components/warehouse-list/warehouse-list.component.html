@@ -9,6 +9,11 @@
         (searchChange)="onSearchChange($event)">
       </app-search>
 
+      <app-filter-clear-button
+        [active]="hasActiveFilters"
+        (clear)="clearFilters()">
+      </app-filter-clear-button>
+
       <app-button
         text="Nuevo Almacén"
         custom_class="btn_primary"

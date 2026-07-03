@@ -25,6 +25,11 @@
           (searchChange)="onSearchChange($event)">
         </app-search>
 
+        <app-filter-clear-button
+          [active]="hasActiveFilters"
+          (clear)="clearAllFilters()">
+        </app-filter-clear-button>
+
         <app-button
           text="Crear Lote"
           custom_class="btn_primary w-full sm:w-auto"

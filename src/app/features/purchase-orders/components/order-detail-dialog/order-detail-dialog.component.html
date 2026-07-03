@@ -164,9 +164,11 @@
         <div class="section-card section-card--notes">
           <div class="section-card__head">
             <h3 class="section-title">NOTAS</h3>
-            <button type="button" class="notes-edit-btn" title="Editar notas">
-              <i class="fi fi-rr-pencil"></i>
-            </button>
+            @if (canEditNotes()) {
+              <button type="button" class="notes-edit-btn" title="Editar notas" aria-label="Editar notas" (click)="openNotesEditor()">
+                <i class="fi fi-rr-pencil"></i>
+              </button>
+            }
           </div>
           <p class="notes-text">{{ order()!.notes || 'Sin notas' }}</p>
         </div>

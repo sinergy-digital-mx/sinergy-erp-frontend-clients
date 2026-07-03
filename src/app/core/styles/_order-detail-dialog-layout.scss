@@ -96,6 +96,12 @@
     background: #dbeafe;
     color: #1d4ed8;
     border: 1px solid #bfdbfe;
+
+    &--sale {
+      background: #dbeafe;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+    }
   }
 
   .edit-header-btn {
@@ -171,6 +177,7 @@
 
   .tabs-header {
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     flex-shrink: 0;
 

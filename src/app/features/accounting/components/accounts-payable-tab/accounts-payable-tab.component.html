@@ -1,19 +1,18 @@
 <div class="payable-tab">
-  @if (summary) {
+  @if (summary()) {
     <div class="payable-summary">
       <div class="payable-summary__card">
         <span class="payable-summary__label">Proveedores con saldo</span>
-        <span class="payable-summary__value">{{ summary.total_vendors ?? 0 }}</span>
+        <span class="payable-summary__value">{{ summary()!.total_vendors ?? 0 }}</span>
       </div>
       <div class="payable-summary__card">
         <span class="payable-summary__label">Total adeudado</span>
-        <span class="payable-summary__value">{{ formatCurrency(summary.total_amount_pending ?? 0) }}</span>
+        <span class="payable-summary__value">{{ formatCurrency(summary()!.total_amount_pending ?? 0) }}</span>
       </div>
     </div>
   }
 
   <div class="payable-search">
-    <i class="fi fi-rr-search payable-search__icon" aria-hidden="true"></i>
     <input
       type="search"
       class="payable-search__input"
@@ -22,22 +21,33 @@
       aria-label="Buscar proveedor" />
   </div>
 
-  <div class="payable-table-wrap">
-    <app-datatable-wrapper
-      [config]="tableConfig"
-      [rowTemplate]="tableTemplate"
-      (pageChange)="onPageChange($event)">
-    </app-datatable-wrapper>
-  </div>
+  <app-datatable-wrapper
+    [config]="tableConfig()"
+    [rowTemplate]="tableTemplate"
+    (pageChange)="onPageChange($event)"
+    (rowClick)="openVendorPurchaseOrders($event.data)">
+  </app-datatable-wrapper>
 </div>
 
 <ng-template #tableTemplate let-item="$implicit">
   <td class="px-2 py-2">
-    <button type="button" class="row-link" (click)="openVendorDetail(item)">
+    <button
+      type="button"
+      class="row-link"
+      title="Ver órdenes de compra pendientes de pago"
+      (click)="openVendorPurchaseOrders(item); $event.stopPropagation()">
       {{ vendorLabel(item) }}
     </button>
   </td>
-  <td class="px-2 py-2">{{ item.pending_order_count }}</td>
+  <td class="px-2 py-2">
+    <button
+      type="button"
+      class="row-link"
+      title="Ver órdenes de compra pendientes de pago"
+      (click)="openVendorPurchaseOrders(item); $event.stopPropagation()">
+      {{ item.pending_order_count }}
+    </button>
+  </td>
   <td class="px-2 py-2">{{ formatCurrency(item.amount_pending) }}</td>
   <td class="px-2 py-2">
     <div class="progress-cell">

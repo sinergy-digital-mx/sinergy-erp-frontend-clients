@@ -118,7 +118,8 @@
           <p>No hay sucursales configuradas</p>
         </div>
 
-        <table *ngIf="!loadingBranches && branches.length > 0" class="data-table">
+        <div *ngIf="!loadingBranches && branches.length > 0" class="branches-table-wrapper">
+        <table class="data-table branches-table">
           <thead>
             <tr>
               <th>CÓDIGO</th>
@@ -126,6 +127,7 @@
               <th>CIUDAD</th>
               <th>ESTADO</th>
               <th>C.P.</th>
+              <th>TELÉFONO</th>
               <th>STATUS</th>
             </tr>
           </thead>
@@ -136,6 +138,7 @@
               <td>{{ branch.city }}</td>
               <td>{{ branch.state }}</td>
               <td>{{ branch.postal_code }}</td>
+              <td>{{ branch.phone || '—' }}</td>
               <td>
                 <span [class]="'status-badge ' + getStatusClass(branch.status)">
                   {{ getStatusLabel(branch.status) }}
@@ -144,6 +147,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <!-- Tab: Logo -->

@@ -6,9 +6,9 @@
         @if (data.fiscalRfc) {
           <span>RFC: {{ data.fiscalRfc }}</span>
         }
-        @if (detail) {
-          <span>{{ detail.pending_order_count }} órdenes</span>
-          <span>{{ formatCurrency(detail.amount_pending) }} adeudado</span>
+        @if (detail()) {
+          <span>{{ detail()!.pending_order_count }} órdenes</span>
+          <span>{{ formatCurrency(detail()!.amount_pending) }} adeudado</span>
         }
       </div>
     </div>
@@ -16,9 +16,9 @@
   </div>
 
   <div class="receivable-detail-dialog__body">
-    @if (loading) {
+    @if (loading()) {
       <p class="loading-text">Cargando órdenes pendientes...</p>
-    } @else if (!detail?.orders?.length) {
+    } @else if (!detail()?.orders?.length) {
       <p class="loading-text">No hay órdenes pendientes para esta razón social.</p>
     } @else {
       <table class="detail-table">
@@ -33,7 +33,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of detail!.orders; track row.id) {
+          @for (row of detail()!.orders; track row.id) {
             <tr>
               <td>
                 <button type="button" class="folio-link" (click)="openSalesOrder(row)">

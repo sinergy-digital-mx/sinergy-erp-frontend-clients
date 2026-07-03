@@ -2,17 +2,17 @@
   <div class="vendor-detail-dialog__header">
     <div>
       <h2>{{ vendorDisplayName() }}</h2>
-      @if (detail) {
-        <p>{{ detail.pending_order_count }} OC pendientes · {{ formatCurrency(detail.amount_pending) }} adeudado</p>
+      @if (detail()) {
+        <p>{{ detail()!.pending_order_count }} OC pendientes · {{ formatCurrency(detail()!.amount_pending) }} adeudado</p>
       }
     </div>
     <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">×</button>
   </div>
 
   <div class="vendor-detail-dialog__body">
-    @if (loading) {
+    @if (loading()) {
       <p class="loading-text">Cargando órdenes de compra...</p>
-    } @else if (!detail?.orders?.length) {
+    } @else if (!detail()?.orders?.length) {
       <p class="loading-text">No hay órdenes de compra pendientes.</p>
     } @else {
       <table class="detail-table">
@@ -27,7 +27,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of detail!.orders; track row.id) {
+          @for (row of detail()!.orders; track row.id) {
             <tr>
               <td>
                 <button type="button" class="folio-link" (click)="openPurchaseOrder(row)">

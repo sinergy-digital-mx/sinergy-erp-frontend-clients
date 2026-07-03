@@ -1,0 +1,64 @@
+<div class="seller-orders-dialog">
+  <div class="seller-orders-dialog__header">
+    <div>
+      <h2>Ventas — {{ data.sellerDisplayName }}</h2>
+      <p>
+        @if (summary(); as s) {
+          {{ s.total_orders ?? s.total_sales_count ?? tableConfig().totalResults }} ventas
+          @if (s.total_amount != null) {
+            · {{ formatCurrency(s.total_amount) }}
+          }
+        } @else if (data.salesCount != null) {
+          {{ data.salesCount }} ventas en el periodo seleccionado
+        } @else {
+          Órdenes del periodo seleccionado
+        }
+        @if (data.branchName) {
+          · {{ data.branchName }}
+        }
+      </p>
+    </div>
+    <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="seller-orders-dialog__body">
+    <app-datatable-wrapper
+      [config]="tableConfig()"
+      [rowTemplate]="tableTemplate">
+    </app-datatable-wrapper>
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="px-2 py-2">
+    <button type="button" class="folio-link" (click)="openSalesOrder(item)">
+      {{ item.folio || item.id?.substring(0, 8) }}
+    </button>
+  </td>
+  <td class="px-2 py-2">{{ formatDate(orderDate(item)) }}</td>
+  <td class="px-2 py-2">
+    <div class="customer-cell">
+      <div class="customer-cell__names">
+        @if (item.customer_company_name || item.customer_person_name) {
+          @if (item.customer_company_name) {
+            <span class="customer-cell__company">{{ item.customer_company_name }}</span>
+          }
+          @if (item.customer_person_name) {
+            <span class="customer-cell__person">{{ item.customer_person_name }}</span>
+          }
+        } @else {
+          <span class="customer-cell__company">{{ customerLabel(item) }}</span>
+        }
+      </div>
+      @if (item.is_walk_in) {
+        <span class="walk-in-chip">Mostrador</span>
+      }
+    </div>
+  </td>
+  <td class="px-2 py-2">{{ formatCurrency(orderTotal(item)) }}</td>
+  <td class="px-2 py-2">
+    <span class="payment-pill" [class.payment-pill--paid]="isPaid(item.payment_status)">
+      {{ item.payment_status || '—' }}
+    </span>
+  </td>
+</ng-template>

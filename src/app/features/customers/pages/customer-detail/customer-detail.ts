@@ -14,7 +14,7 @@ import { CustomerSalesOrdersComponent } from '../../components/customer-sales-or
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
 import { CUSTOMER_FORM_DIALOG_CONFIG, PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { ContractDetailModalComponent } from '../../../contracts/components/contract-detail-modal/contract-detail-modal.component';
-import { Customer } from '../../models/customer-group.model';
+import { Customer, CustomerStatus } from '../../models/customer-group.model';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { PhoneComponent } from '../../../../core/components/phone/phone.component';
@@ -22,6 +22,12 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { Pencil, MapPin, Activity } from 'lucide-angular';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
+import { AuthService } from '../../../../core/services/auth.service';
+import { InterceptorService } from '../../../../core/services/interceptor.service';
+import {
+  getCustomerStatusLabel,
+  getCustomerStatusPillClass,
+} from '../../utils/customer-status.util';
 
 @Component({
   selector: 'app-customer-detail',
@@ -50,6 +56,8 @@ export class CustomerDetail implements OnInit, OnDestroy {
   /** Persona adicional en detalle: colapsable (mismo criterio que el modal). */
   additionalPersonExpanded = signal(false);
   activeInfoTab = signal<'customer' | 'credit' | 'fiscal'>('customer');
+  statuses = signal<CustomerStatus[]>([]);
+  statusUpdating = signal(false);
   infoTabs: TabItem[] = [
     { id: 'customer', title: 'Información del Cliente' },
     { id: 'credit', title: 'Credito' },
@@ -95,10 +103,13 @@ export class CustomerDetail implements OnInit, OnDestroy {
     private router: Router,
     private customerService: CustomerService,
     private propertyService: PropertyService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private authService: AuthService,
+    private interceptorService: InterceptorService
   ) {}
 
   ngOnInit() {
+    this.loadStatuses();
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
       this.customerId = Number(params['id']);
       if (this.customerId) {
@@ -110,6 +121,70 @@ export class CustomerDetail implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  get canEditStatus(): boolean {
+    return this.authService.hasPermission('customers:Update');
+  }
+
+  loadStatuses(): void {
+    this.customerService.getCustomerStatuses().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (list) => this.statuses.set(list),
+    });
+  }
+
+  getStatusLabel(customer: Customer): string {
+    return getCustomerStatusLabel(customer);
+  }
+
+  getStatusPillClass(customer: Customer): string {
+    return getCustomerStatusPillClass(customer);
+  }
+
+  currentStatusId(customer: Customer): number | null {
+    const raw = customer.status_id ?? customer.status?.id;
+    if (raw == null || raw === '') return null;
+    const id = Number(raw);
+    return Number.isFinite(id) ? id : null;
+  }
+
+  onStatusChange(nextId: number | string): void {
+    const customer = this.customer();
+    if (!customer || !this.canEditStatus) return;
+
+    const statusId = Number(nextId);
+    if (!Number.isFinite(statusId) || statusId === this.currentStatusId(customer)) {
+      return;
+    }
+
+    this.statusUpdating.set(true);
+    this.customerService
+      .updateCustomer(String(customer.id), { status_id: statusId })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          const selected = this.statuses().find((s) => s.id === statusId);
+          this.customer.set({
+            ...customer,
+            status_id: statusId,
+            status: selected ?? customer.status,
+          });
+          this.statusUpdating.set(false);
+          this.interceptorService.openSnackbar({
+            type: 'success',
+            title: 'Éxito',
+            message: 'Estatus actualizado',
+          });
+        },
+        error: () => {
+          this.statusUpdating.set(false);
+          this.interceptorService.openSnackbar({
+            type: 'error',
+            title: 'Error',
+            message: 'No se pudo actualizar el estatus',
+          });
+        },
+      });
   }
 
   /**

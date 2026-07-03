@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/features/accounting/accounting.routes.ts"],
-  "sourcesContent": ["import { Routes } from '@angular/router';\r\nimport { permissionGuard } from '../../core/guards/permission.guard';\r\nimport { ACCOUNTING_PERMISSIONS } from './config/permissions.config';\r\n\r\nexport const ACCOUNTING_ROUTES: Routes = [\r\n  {\r\n    path: '',\r\n    loadComponent: () =>\r\n      import('./pages/accounting-page/accounting-page.component').then((m) => m.AccountingPageComponent),\r\n    canActivate: [permissionGuard],\r\n    data: {\r\n      permissions: [ACCOUNTING_PERMISSIONS.read],\r\n      title: 'Cobranza / Contabilidad',\r\n    },\r\n  },\r\n];\r\n"],
-  "mappings": ";;;;;;;;;;;;AAIO,IAAM,oBAA4B;EACvC;IACE,MAAM;IACN,eAAe,MACb,OAAO,qBAAmD,EAAE,KAAK,CAAC,MAAM,EAAE,uBAAuB;IACnG,aAAa,CAAC,eAAe;IAC7B,MAAM;MACJ,aAAa,CAAC,uBAAuB,IAAI;MACzC,OAAO;;;;",
-  "names": []
-}

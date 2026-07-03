@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, Inject, OnInit, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -31,7 +31,7 @@ export interface PosTerminalSalesDialogData {
 export class PosTerminalSalesDialogComponent implements OnInit {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
 
-  tableConfig: IDatatableConfig = {
+  tableConfig = signal<IDatatableConfig>({
     rows: [] as PosTerminalSaleRow[],
     columns: [
       { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 120 },
@@ -50,7 +50,7 @@ export class PosTerminalSalesDialogComponent implements OnInit {
     emptyState: { title: 'Sin ventas', subtitle: 'No hay órdenes para esta terminal en el periodo' },
     columnMode: 'force',
     reorderable: false,
-  };
+  });
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: PosTerminalSalesDialogData,
@@ -97,7 +97,7 @@ export class PosTerminalSalesDialogComponent implements OnInit {
   }
 
   private loadPage(page: number): void {
-    this.tableConfig = { ...this.tableConfig, loading: true, page };
+    this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
 
     this.accountingService
       .getPosTerminalSales(this.data.terminal.terminal_user_id, {
@@ -105,24 +105,24 @@ export class PosTerminalSalesDialogComponent implements OnInit {
         billing_branch_id: this.data.billingBranchId,
         date_from: this.data.period === 'range' ? this.data.dateFrom : undefined,
         date_to: this.data.period === 'range' ? this.data.dateTo : undefined,
-      }, page, this.tableConfig.limit)
+      }, page, this.tableConfig().limit)
       .subscribe({
         next: (res) => {
-          this.tableConfig = {
-            ...this.tableConfig,
+          this.tableConfig.update((cfg) => ({
+            ...cfg,
             rows: res.data,
             page: res.page,
             totalResults: res.total,
             loading: false,
-          };
+          }));
         },
         error: () => {
-          this.tableConfig = {
-            ...this.tableConfig,
+          this.tableConfig.update((cfg) => ({
+            ...cfg,
             rows: [],
             totalResults: 0,
             loading: false,
-          };
+          }));
         },
       });
   }

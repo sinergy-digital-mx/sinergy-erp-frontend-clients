@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import { SalesOrder, SalesOrderFilters, PaginationParams } from '../../../sales-orders/models/sales-order.model';
+import { getSalesOrderTotal } from '../../../sales-orders/utils/sales-order-display.util';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { CreateSalesOrderModalComponent } from '../../../sales-orders/components/create-sales-order-modal/create-sales-order-modal.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
@@ -155,7 +156,7 @@ export class CustomerSalesOrdersComponent implements OnInit {
   }
 
   getOrderTotal(order: SalesOrder): number {
-    return Number(order.requested_total ?? 0) || order.grand_total || 0;
+    return getSalesOrderTotal(order);
   }
 
   getOrderStatus(order: SalesOrder): string {

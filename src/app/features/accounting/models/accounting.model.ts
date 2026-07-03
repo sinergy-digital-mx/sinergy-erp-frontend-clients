@@ -43,9 +43,29 @@ export interface PosTerminalSaleRow {
   id: string;
   folio?: string;
   created_at: string;
+  customer_company_name?: string | null;
+  customer_person_name?: string | null;
   customer_display_name?: string;
   is_walk_in?: boolean;
   seller_user?: PosUserSummary | null;
+  total?: number | string;
+  payment_status?: string;
+}
+
+export type CollectionCustomerType = 'all' | 'walk_in' | 'invoiced';
+
+export interface PosCollectionRow {
+  id: string;
+  folio?: string;
+  created_at: string;
+  collected_at?: string;
+  customer_company_name?: string | null;
+  customer_person_name?: string | null;
+  customer_display_name?: string;
+  is_walk_in?: boolean;
+  seller_user?: PosUserSummary | null;
+  collected_by_user?: PosUserSummary | null;
+  payment_method?: string | null;
   total?: number | string;
   payment_status?: string;
 }

@@ -1,0 +1,105 @@
+// Pollux — controles de formulario modernos (inputs, selects, textareas)
+$pollux-control-height: 40px;
+$pollux-control-radius: 10px;
+$pollux-control-border: #e5e7eb;
+$pollux-control-border-hover: #d1d5db;
+$pollux-control-focus-border: #6366f1;
+$pollux-control-focus-ring: rgba(99, 102, 241, 0.14);
+$pollux-control-bg: #ffffff;
+$pollux-control-text: #374151;
+$pollux-control-placeholder: #9ca3af;
+$pollux-control-font-size: 0.875rem;
+$pollux-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+
+@mixin pollux-field-base {
+  width: 100%;
+  min-height: $pollux-control-height;
+  padding: 0 0.875rem;
+  border: 1px solid $pollux-control-border;
+  border-radius: $pollux-control-radius;
+  font-size: $pollux-control-font-size;
+  font-weight: 400;
+  line-height: 1.25;
+  color: $pollux-control-text;
+  background: $pollux-control-bg;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &::placeholder {
+    color: $pollux-control-placeholder;
+  }
+
+  &:hover:not(:disabled):not(:read-only) {
+    border-color: $pollux-control-border-hover;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $pollux-control-focus-border;
+    box-shadow: 0 0 0 3px $pollux-control-focus-ring;
+  }
+
+  &:disabled,
+  &:read-only:not(:focus) {
+    background: #f9fafb;
+    cursor: not-allowed;
+  }
+}
+
+@mixin pollux-select-field {
+  @include pollux-field-base;
+  height: $pollux-control-height;
+  min-height: $pollux-control-height;
+  cursor: pointer;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  padding-right: 2.5rem !important;
+  background-color: $pollux-control-bg !important;
+  background-image: $pollux-select-chevron !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 16px !important;
+
+  &:focus,
+  &:active {
+    background-color: $pollux-control-bg !important;
+    background-image: $pollux-select-chevron !important;
+  }
+
+  &::-ms-expand {
+    display: none;
+  }
+
+  &:-moz-focusring {
+    color: transparent;
+    text-shadow: 0 0 0 $pollux-control-text;
+  }
+}
+
+@mixin pollux-clear-button {
+  width: $pollux-control-height;
+  height: $pollux-control-height;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid $pollux-control-border;
+  border-radius: $pollux-control-radius;
+  color: #6b7280;
+  background: $pollux-control-bg;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: $pollux-control-border-hover;
+    background: #f9fafb;
+    color: #374151;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $pollux-control-focus-border;
+    box-shadow: 0 0 0 3px $pollux-control-focus-ring;
+  }
+}

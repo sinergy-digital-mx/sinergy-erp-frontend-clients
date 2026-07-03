@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -19,8 +19,8 @@ export interface VendorPayableDetailDialogData {
   styleUrl: './vendor-payable-detail-dialog.component.scss',
 })
 export class VendorPayableDetailDialogComponent implements OnInit {
-  detail: AccountsPayableVendorDetail | null = null;
-  loading = true;
+  detail = signal<AccountsPayableVendorDetail | null>(null);
+  loading = signal(true);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: VendorPayableDetailDialogData,
@@ -33,24 +33,25 @@ export class VendorPayableDetailDialogComponent implements OnInit {
   ngOnInit(): void {
     this.accountingService.getAccountsPayableVendorDetail(this.data.vendorId).subscribe({
       next: (detail) => {
-        this.detail = detail;
-        this.loading = false;
+        this.detail.set(detail);
+        this.loading.set(false);
       },
       error: () => {
-        this.detail = null;
-        this.loading = false;
+        this.detail.set(null);
+        this.loading.set(false);
       },
     });
   }
 
   vendorDisplayName(): string {
-    if (!this.detail) {
+    const detail = this.detail();
+    if (!detail) {
       return this.data.vendorLabel;
     }
     return (
-      this.detail.razon_social?.trim() ||
-      this.detail.company_name?.trim() ||
-      this.detail.vendor_name?.trim() ||
+      detail.vendor_name?.trim() ||
+      detail.razon_social?.trim() ||
+      detail.company_name?.trim() ||
       this.data.vendorLabel
     );
   }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { Observable, from, throwError } from 'rxjs';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { Document, DocumentType, PurchaseOrder, RegenerateDocumentResponse } from '../models/purchase-order.model';
 import { LineItem } from '../models/line-item.model';
@@ -14,7 +14,9 @@ import {
   UpdateLineItemDto,
   CreatePurchaseOrderLineItemDto,
   CancelOrderData,
-  PaymentFormData
+  PaymentFormData,
+  PurchaseOrderExportFilters,
+  PurchaseOrderExportType,
 } from '../models/filters.model';
 import { Payment } from '../models/payment.model';
 import { environment } from '../../../../environments/environment';
@@ -56,6 +58,15 @@ export class PurchaseOrderService {
     }
     if (filters.warehouseId) {
       params = params.set('warehouse_id', filters.warehouseId);
+    }
+    if (filters.vendorId) {
+      params = params.set('vendor_id', filters.vendorId);
+    }
+    if (filters.unpaid) {
+      // Órdenes con saldo pendiente (Pendiente / Parcial / No pagado).
+      params = params.set('unpaid', 'true');
+    } else if (filters.paymentStatus) {
+      params = params.set('payment_status', filters.paymentStatus);
     }
 
     return this.http.get<PaginatedResponse<PurchaseOrder>>(this.baseUrl, { params })
@@ -359,6 +370,268 @@ export class PurchaseOrderService {
           return this.handleError(error);
         })
       );
+  }
+
+  /**
+   * Download purchase orders Excel report (headers or line details).
+   */
+  downloadExcel(
+    type: PurchaseOrderExportType,
+    filters: PurchaseOrderExportFilters
+  ): Observable<void> {
+    let params: HttpParams;
+    try {
+      params = this.buildExportParams(type, filters);
+    } catch (err) {
+      return throwError(() => err instanceof Error ? err : new Error(String(err)));
+    }
+
+    const path =
+      type === 'headers'
+        ? `${this.baseUrl}/export/excel/headers`
+        : `${this.baseUrl}/export/excel/details`;
+
+    return this.http
+      .get(path, {
+        params,
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        tap((response) => {
+          const filename =
+            this.parseFilenameFromDisposition(response.headers.get('content-disposition')) ??
+            this.fallbackExportFilename(type, filters);
+          this.triggerBrowserDownload(response.body!, filename);
+        }),
+        map(() => undefined),
+        catchError((error) => from(this.handleExportError(error)).pipe(switchMap((err) => throwError(() => err))))
+      );
+  }
+
+  buildExportParams(type: PurchaseOrderExportType, filters: PurchaseOrderExportFilters): HttpParams {
+    if (type === 'details') {
+      if (!filters.created_from || !filters.created_to) {
+        throw new Error('Indica fecha desde y hasta');
+      }
+      if (filters.created_from > filters.created_to) {
+        throw new Error('La fecha inicial debe ser anterior o igual a la final');
+      }
+    }
+
+    let params = new HttpParams();
+    const entries: [keyof PurchaseOrderExportFilters, string | undefined][] = [
+      ['search', filters.search],
+      ['general_status', filters.general_status],
+      ['payment_status', filters.payment_status],
+      ['vendor_id', filters.vendor_id],
+      ['created_from', filters.created_from],
+      ['created_to', filters.created_to],
+    ];
+
+    for (const [key, value] of entries) {
+      if (value !== undefined && value !== null && value !== '') {
+        params = params.set(key, String(value));
+      }
+    }
+
+    return params;
+  }
+
+  /** Maps list filters to export API query params. */
+  mapListFiltersToExport(
+    listFilters: OrderFilters,
+    options?: { created_from?: string; created_to?: string }
+  ): PurchaseOrderExportFilters {
+    const exportFilters: PurchaseOrderExportFilters = {};
+
+    if (listFilters.search) {
+      exportFilters.search = listFilters.search;
+    }
+    if (listFilters.status) {
+      exportFilters.general_status = listFilters.status;
+    }
+    if (listFilters.unpaid) {
+      exportFilters.payment_status = 'Pendiente';
+    } else if (listFilters.paymentStatus) {
+      exportFilters.payment_status = listFilters.paymentStatus;
+    }
+    if (listFilters.vendorId) {
+      exportFilters.vendor_id = listFilters.vendorId;
+    }
+
+    const from = options?.created_from ?? this.toDateOnly(listFilters.dateFrom);
+    const to = options?.created_to ?? this.toDateOnly(listFilters.dateTo);
+    if (from) {
+      exportFilters.created_from = from;
+    }
+    if (to) {
+      exportFilters.created_to = to;
+    }
+
+    return exportFilters;
+  }
+
+  toDateOnly(value?: string | null): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    const dateMatch = /^(\d{4}-\d{2}-\d{2})/.exec(trimmed);
+    if (dateMatch) {
+      return dateMatch[1];
+    }
+    const parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) {
+      return undefined;
+    }
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private parseFilenameFromDisposition(header: string | null): string | null {
+    if (!header) {
+      return null;
+    }
+    const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(header);
+    if (utfMatch?.[1]) {
+      try {
+        return decodeURIComponent(utfMatch[1].trim());
+      } catch {
+        return utfMatch[1].trim();
+      }
+    }
+    const match = /filename="([^"]+)"/i.exec(header) ?? /filename=([^;]+)/i.exec(header);
+    return match?.[1]?.trim().replace(/^["']|["']$/g, '') ?? null;
+  }
+
+  private fallbackExportFilename(
+    type: PurchaseOrderExportType,
+    filters: PurchaseOrderExportFilters
+  ): string {
+    if (type === 'headers') {
+      return `compras-cabeceras-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    }
+    return `compras-detalle-${filters.created_from}_${filters.created_to}.xlsx`;
+  }
+
+  private triggerBrowserDownload(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private async handleExportError(error: HttpErrorResponse): Promise<Error> {
+    if (error.status === 401) {
+      this.router.navigate(['/auth/login']);
+      return new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+    }
+
+    if (error.status === 403) {
+      return new Error('No tienes permiso para exportar');
+    }
+
+    const bodyMessage = await this.readBlobErrorMessage(error);
+
+    if (error.status === 400) {
+      const lower = (bodyMessage ?? '').toLowerCase();
+      if (lower.includes('anterior') || lower.includes('rango') || lower.includes('mayor')) {
+        return new Error(bodyMessage || 'La fecha inicial debe ser anterior o igual a la final');
+      }
+      return new Error(bodyMessage || 'Indica fecha desde y hasta');
+    }
+
+    return new Error(bodyMessage || 'No se pudo generar el reporte');
+  }
+
+  private async readBlobErrorMessage(error: HttpErrorResponse): Promise<string | null> {
+    const payload = error.error;
+    if (!payload) {
+      return null;
+    }
+    if (typeof payload === 'string') {
+      try {
+        const parsed = JSON.parse(payload) as { message?: string };
+        return parsed.message ?? payload;
+      } catch {
+        return payload;
+      }
+    }
+    if (payload instanceof Blob) {
+      try {
+        const text = await payload.text();
+        if (!text) {
+          return null;
+        }
+        try {
+          const parsed = JSON.parse(text) as { message?: string };
+          return parsed.message ?? text;
+        } catch {
+          return text;
+        }
+      } catch {
+        return null;
+      }
+    }
+    if (typeof payload === 'object' && payload !== null && 'message' in payload) {
+      const message = (payload as { message?: unknown }).message;
+      return typeof message === 'string' ? message : null;
+    }
+    return null;
+  }
+
+  /**
+   * Update only order notes (PATCH /purchase-orders/:id/notes).
+   * Allowed when status is Creada or Recibida; blocked when Cancelada.
+   */
+  updateOrderNotes(orderId: string, notes: string | null): Observable<{ notes: string | null }> {
+    return this.http
+      .patch<unknown>(`${this.baseUrl}/${orderId}/notes`, { notes })
+      .pipe(
+        map((response) => this.parseNotesPatchResponse(response, notes)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  private parseNotesPatchResponse(response: unknown, fallbackNotes: string | null): { notes: string | null } {
+    if (!response || typeof response !== 'object') {
+      return { notes: fallbackNotes };
+    }
+
+    const body = response as Record<string, unknown>;
+    const data = body['data'];
+    const header =
+      data && typeof data === 'object' && !Array.isArray(data)
+        ? (data as Record<string, unknown>)['header']
+        : undefined;
+
+    const candidates = [
+      body['notes'],
+      data && typeof data === 'object' && !Array.isArray(data) ? (data as Record<string, unknown>)['notes'] : undefined,
+      header && typeof header === 'object' && !Array.isArray(header)
+        ? (header as Record<string, unknown>)['notes']
+        : undefined,
+    ];
+
+    for (const value of candidates) {
+      if (value === null) {
+        return { notes: null };
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return { notes: trimmed ? trimmed : null };
+      }
+    }
+
+    return { notes: fallbackNotes };
   }
 
   /**

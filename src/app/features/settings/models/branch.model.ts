@@ -7,6 +7,7 @@ export interface Branch {
   state: string;
   country: string;
   postal_code: string;
+  phone: string | null;
   status: number;
   display_name: string;
   created_at: string;
@@ -20,6 +21,7 @@ export interface CreateBranchDto {
   state: string;
   country: string;
   postal_code: string;
+  phone?: string | null;
   status?: number;
 }
 
@@ -30,5 +32,6 @@ export interface UpdateBranchDto {
   state?: string;
   country?: string;
   postal_code?: string;
+  phone?: string | null;
   status?: number;
 }

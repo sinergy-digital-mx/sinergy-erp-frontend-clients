@@ -39,6 +39,12 @@
                 }
               </select>
             </div>
+            <div class="filter-bar__field filter-bar__field--clear">
+              <app-filter-clear-button
+                [active]="hasActiveFilters"
+                (clear)="clearFilters()">
+              </app-filter-clear-button>
+            </div>
           </div>
         </div>
       </div>
@@ -229,12 +235,12 @@
   </td>
   <td class="px-2 py-2 w-[180px]">
     <div class="flex flex-col">
-      <span class="text-sm font-medium text-gray-900 truncate">{{ item.product_name || 'N/A' }}</span>
-      <span class="text-xs text-gray-500">{{ item.product_sku || '' }}</span>
+      <span class="dt-cell-primary truncate">{{ item.product_name || 'N/A' }}</span>
+      <span class="dt-cell-subtle">{{ item.product_sku || '' }}</span>
     </div>
   </td>
   <td class="px-2 py-2 w-[130px]">
-    <span class="text-sm text-gray-700">{{ item.warehouse_name || 'N/A' }}</span>
+    <span class="dt-cell-muted">{{ item.warehouse_name || 'N/A' }}</span>
   </td>
   <td class="px-2 py-2 w-[100px]">
     <span class="text-sm text-gray-700">{{ item.quantity | removeTrailingZeros }} {{ item.uom_name || 'Unidad' }}</span>

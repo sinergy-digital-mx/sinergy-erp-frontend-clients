@@ -1,13 +1,12 @@
-import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, TemplateRef, ViewChild } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { AccountingService } from '../../services/accounting.service';
 import { AccountsPayableListSummary, AccountsPayableVendorRow } from '../../models/accounting.model';
-import { VendorPayableDetailDialogComponent } from '../vendor-payable-detail-dialog/vendor-payable-detail-dialog.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 
 @Component({
@@ -26,9 +25,9 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
 
   searchControl = new FormControl('', { nonNullable: true });
   private destroy$ = new Subject<void>();
-  summary: AccountsPayableListSummary | null = null;
+  summary = signal<AccountsPayableListSummary | null>(null);
 
-  tableConfig: IDatatableConfig = {
+  tableConfig = signal<IDatatableConfig>({
     rows: [] as AccountsPayableVendorRow[],
     columns: [
       { name: 'Proveedor', prop: 'vendor', sortable: false, canAutoResize: false, width: 220 },
@@ -45,11 +44,11 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
     emptyState: { title: 'Sin proveedores', subtitle: 'No hay cuentas por pagar pendientes' },
     columnMode: 'force',
     reorderable: false,
-  };
+  });
 
   constructor(
     private accountingService: AccountingService,
-    private dialog: MatDialog,
+    private router: Router,
     private taxCalculator: TaxCalculatorService
   ) {}
 
@@ -63,7 +62,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['reloadToken'] && !changes['reloadToken'].firstChange) {
-      this.loadPage(this.tableConfig.page);
+      this.loadPage(this.tableConfig().page ?? 1);
     }
   }
 
@@ -73,7 +72,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
   }
 
   vendorLabel(row: AccountsPayableVendorRow): string {
-    return row.razon_social?.trim() || row.company_name?.trim() || row.vendor_name?.trim() || '—';
+    return row.vendor_name?.trim() || row.razon_social?.trim() || row.company_name?.trim() || '—';
   }
 
   formatCurrency(value: number): string {
@@ -90,34 +89,48 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
     this.loadPage(event.page);
   }
 
-  openVendorDetail(row: AccountsPayableVendorRow): void {
-    this.dialog.open(VendorPayableDetailDialogComponent, {
-      width: '92vw',
-      maxWidth: '1100px',
-      maxHeight: '90vh',
-      data: { vendorId: row.vendor_id, vendorLabel: this.vendorLabel(row) },
-    });
+  /** Abre en otra pestaña las OC del proveedor que aún no están pagadas. */
+  openVendorPurchaseOrders(row: AccountsPayableVendorRow): void {
+    if (!row.vendor_id) {
+      return;
+    }
+
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/purchase-orders'], {
+        queryParams: {
+          vendor_id: row.vendor_id,
+          unpaid: '1',
+        },
+      })
+    );
+
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   private loadPage(page: number): void {
-    this.tableConfig = { ...this.tableConfig, loading: true, page };
+    this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
 
     this.accountingService
-      .getAccountsPayable(this.searchControl.value, page, this.tableConfig.limit)
+      .getAccountsPayable(this.searchControl.value, page, this.tableConfig().limit)
       .subscribe({
         next: (res) => {
-          this.summary = res.summary ?? null;
-          this.tableConfig = {
-            ...this.tableConfig,
+          this.summary.set(res.summary ?? null);
+          this.tableConfig.update((cfg) => ({
+            ...cfg,
             rows: res.data,
             page: res.page,
             totalResults: res.total,
             loading: false,
-          };
+          }));
         },
         error: () => {
-          this.summary = null;
-          this.tableConfig = { ...this.tableConfig, rows: [], totalResults: 0, loading: false };
+          this.summary.set(null);
+          this.tableConfig.update((cfg) => ({
+            ...cfg,
+            rows: [],
+            totalResults: 0,
+            loading: false,
+          }));
         },
       });
   }

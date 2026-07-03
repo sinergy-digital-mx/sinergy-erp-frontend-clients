@@ -1,10 +1,22 @@
-<div class="search_container">
-  <app-input
-    [label]="label"
-    [placeholder]="placeholder"
-    [form_control]="search"
-    type="text">
-  </app-input>
+<div class="search_container" [class.search_container--with-icon]="showSearchIcon">
+  @if (showSearchIcon) {
+    <div class="search-input-wrap">
+      <lucide-icon [img]="Search" class="search-icon" [size]="16"></lucide-icon>
+      <input
+        type="text"
+        [formControl]="search"
+        [placeholder]="placeholder"
+        class="search-input"
+        autocomplete="off" />
+    </div>
+  } @else {
+    <app-input
+      [label]="label"
+      [placeholder]="placeholder"
+      [form_control]="search"
+      type="text">
+    </app-input>
+  }
 
   @if (search.value) {
     <i class="fi fi-rr-cross-small clear-icon" (click)="clear()"></i>

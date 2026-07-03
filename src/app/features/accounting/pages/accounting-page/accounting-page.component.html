@@ -40,7 +40,7 @@
             } @else {
               <option value="" disabled>Selecciona sucursal</option>
             }
-            @for (b of branches; track b.id) {
+            @for (b of branches(); track b.id) {
               <option [value]="b.id">{{ branchLabel(b) }}</option>
             }
           </select>

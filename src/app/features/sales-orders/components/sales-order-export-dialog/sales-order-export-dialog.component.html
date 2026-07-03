@@ -1,0 +1,106 @@
+<div class="export-dialog">
+  <div class="export-dialog__header">
+    <h3 class="export-dialog__title">Descargar reporte Excel</h3>
+    <button
+      type="button"
+      class="export-dialog__close"
+      aria-label="Cerrar"
+      [disabled]="exporting()"
+      (click)="cancel()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  <div class="export-dialog__body">
+    <fieldset class="export-dialog__fieldset">
+      <legend class="export-dialog__label">Tipo de reporte</legend>
+
+      <label class="export-dialog__radio">
+        <input
+          type="radio"
+          name="exportType"
+          value="headers"
+          [checked]="exportType() === 'headers'"
+          [disabled]="exporting()"
+          (change)="setExportType('headers')" />
+        <span>
+          <strong>Cabecera</strong>
+          <span class="export-dialog__radio-hint">— una fila por orden</span>
+        </span>
+      </label>
+
+      <label class="export-dialog__radio">
+        <input
+          type="radio"
+          name="exportType"
+          value="details"
+          [checked]="exportType() === 'details'"
+          [disabled]="exporting()"
+          (change)="setExportType('details')" />
+        <span>
+          <strong>Detalle</strong>
+          <span class="export-dialog__radio-hint">— una fila por línea</span>
+        </span>
+      </label>
+    </fieldset>
+
+    @if (exportType() === 'details') {
+      <div class="export-dialog__dates">
+        <div class="export-dialog__date-field">
+          <label class="export-dialog__label" for="export-from">Desde *</label>
+          <input
+            id="export-from"
+            type="date"
+            class="export-dialog__input"
+            [ngModel]="exportFrom()"
+            (ngModelChange)="exportFrom.set($event)"
+            [disabled]="exporting()" />
+        </div>
+        <div class="export-dialog__date-field">
+          <label class="export-dialog__label" for="export-to">Hasta *</label>
+          <input
+            id="export-to"
+            type="date"
+            class="export-dialog__input"
+            [ngModel]="exportTo()"
+            (ngModelChange)="exportTo.set($event)"
+            [disabled]="exporting()" />
+        </div>
+        <p class="export-dialog__hint">
+          El detalle requiere rango de fechas por volumen de registros.
+        </p>
+      </div>
+    }
+
+    <p class="export-dialog__filters-note">
+      Usará los filtros actuales del listado (estado, pago, tipo, almacén, etc.)
+    </p>
+
+    @if (errorMessage()) {
+      <p class="export-dialog__error" role="alert">{{ errorMessage() }}</p>
+    }
+  </div>
+
+  <div class="export-dialog__footer">
+    <button
+      type="button"
+      class="export-dialog__btn export-dialog__btn--cancel"
+      [disabled]="exporting()"
+      (click)="cancel()">
+      Cancelar
+    </button>
+    <button
+      type="button"
+      class="export-dialog__btn export-dialog__btn--download"
+      [disabled]="!canDownload()"
+      (click)="download()">
+      @if (exporting()) {
+        <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+        Descargando...
+      } @else {
+        <i class="fi fi-rr-download" aria-hidden="true"></i>
+        Descargar
+      }
+    </button>
+  </div>
+</div>

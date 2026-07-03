@@ -1,5 +1,9 @@
 import { PosSaleCollection } from '../../pos/models/pos-sale-collection.model';
 import { PosSaleReceipt, normalizePosSaleReceipt } from '../../pos/models/pos-receipt.model';
+import {
+  SalesOrderPayment,
+  SalesOrderPaymentsSummary,
+} from './sales-order-payment.model';
 
 export type SalesOrderStatus = 'Creada' | 'Surtida' | 'Cancelada';
 export type SalesPaymentStatus = 'Pendiente' | 'Pagado';
@@ -174,6 +178,8 @@ export interface SalesOrder {
   };
   invoices?: SalesOrderInvoice[];
   documents?: SalesOrderDocument[];
+  payments?: SalesOrderPayment[];
+  payments_summary?: SalesOrderPaymentsSummary;
   created_by?: string;
   updated_by?: string;
   created_at: string;
@@ -190,6 +196,19 @@ export interface SalesOrderFilters {
   warehouse_id?: string;
   dateFrom?: string;
   dateTo?: string;
+}
+
+export type SalesOrderExportType = 'headers' | 'details';
+
+export interface SalesOrderExportFilters {
+  search?: string;
+  general_status?: string;
+  payment_status?: string;
+  sales_order_type?: SalesOrderType;
+  warehouse_id?: string;
+  customer_id?: number | string;
+  created_from?: string;
+  created_to?: string;
 }
 
 export interface PaginationParams {
@@ -234,6 +253,8 @@ export interface SalesOrderDetailPayload {
   line_items: SalesOrderLineItem[];
   documents?: SalesOrderDocument[];
   pos_collection?: PosSaleCollection;
+  payments?: SalesOrderPayment[];
+  payments_summary?: SalesOrderPaymentsSummary;
 }
 
 export interface SalesOrderDetailResponse {

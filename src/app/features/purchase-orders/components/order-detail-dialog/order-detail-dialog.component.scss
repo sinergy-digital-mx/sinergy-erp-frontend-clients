@@ -114,6 +114,7 @@
   gap: 0.125rem;
   padding: 0 1.25rem;
   overflow-x: auto;
+  overflow-y: hidden;
   @include scrollbar.thin-scrollbar;
 
   &::-webkit-scrollbar {

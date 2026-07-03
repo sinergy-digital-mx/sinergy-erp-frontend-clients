@@ -96,6 +96,27 @@
         </app-customer-group-dropdown>
       </div>
 
+      @if (canEditStatus) {
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="customer-status-id">
+            Estatus <span class="text-red-500">*</span>
+          </label>
+          <select
+            id="customer-status-id"
+            formControlName="status_id"
+            class="w-full h-10 px-3.5 rounded-[10px] border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-indigo-500/15 focus:border-indigo-500"
+            [disabled]="loading() || statusesLoading()">
+            @if (statusesLoading()) {
+              <option [ngValue]="null" disabled>Cargando estatus…</option>
+            } @else {
+              @for (status of statuses(); track status.id) {
+                <option [ngValue]="status.id">{{ status.name }}</option>
+              }
+            }
+          </select>
+        </div>
+      }
+
       <!-- Persona adicional (opcional): colapsable -->
       <div class="col-span-2 pt-2 border-t border-gray-200">
         <button

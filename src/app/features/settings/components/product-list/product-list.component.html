@@ -10,6 +10,11 @@
         (searchChange)="onSearchChange($event)">
       </app-search>
 
+      <app-filter-clear-button
+        [active]="hasActiveFilters"
+        (clear)="clearFilters()">
+      </app-filter-clear-button>
+
       <div class="flex flex-wrap items-center gap-2">
         <app-button
           text="Categorías"

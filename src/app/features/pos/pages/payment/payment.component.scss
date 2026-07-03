@@ -658,13 +658,35 @@
     white-space: nowrap;
   }
 
+  &__breakdown {
+    padding: 0.75rem 1rem 0.35rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.2rem 0;
+    font-size: 0.86rem;
+    color: var(--pos-muted);
+
+    strong {
+      font-weight: 700;
+      color: #334155;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
   &__amount {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
-    padding: 1rem 1rem 0.85rem;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 0.55rem 0 0.35rem;
+    margin-top: 0.25rem;
+    border-top: 1px dashed #e2e8f0;
 
     span {
       font-size: 0.72rem;
@@ -680,6 +702,7 @@
       color: #0f172a;
       letter-spacing: -0.03em;
       line-height: 1;
+      font-variant-numeric: tabular-nums;
     }
   }
 

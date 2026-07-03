@@ -243,9 +243,19 @@
                 <span class="cobranza-total-card__folio">{{ sale.folio || sale.id }}</span>
                 <time class="cobranza-total-card__date">{{ formatDate(sale.created_at) }}</time>
               </div>
-              <div class="cobranza-total-card__amount">
-                <span>Total a cobrar</span>
-                <strong>{{ saleTotal(sale) }}</strong>
+              <div class="cobranza-total-card__breakdown">
+                <div class="cobranza-total-card__row">
+                  <span>Total orden</span>
+                  <strong>{{ saleOrderTotal(sale) }}</strong>
+                </div>
+                <div class="cobranza-total-card__row">
+                  <span>Ya pagado</span>
+                  <strong>{{ saleAmountPaid(sale) }}</strong>
+                </div>
+                <div class="cobranza-total-card__amount">
+                  <span>Por cobrar</span>
+                  <strong>{{ saleTotal(sale) }}</strong>
+                </div>
               </div>
               <div class="cobranza-total-card__meta">
                 <div>

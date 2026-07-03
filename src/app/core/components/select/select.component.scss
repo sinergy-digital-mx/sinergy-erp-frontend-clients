@@ -1,62 +1,34 @@
 @use '../../../../base/variables.scss' as *;
 @use '../../../../base/mixins.scss' as *;
+@use '../../../../base/form-controls' as fc;
 
 .container {
   display: flex;
   flex-direction: column;
+  width: 100%;
 
-  // gap: 8px;
-  &>label {
+  & > label {
     font-size: 14px;
   }
 }
 
 .select_container {
   flex: 1;
-  border-radius: 3px;
+  width: 100%;
   position: relative;
   display: flex;
   column-gap: 8px;
-  align-items: center;
+  align-items: stretch;
 
   .fi-rr-refresh {
     cursor: pointer;
   }
 
   select {
-    width: 100%;
-    height: 37px;
-    padding: 8px;
-    border: none;
-    background-color: #fff;
-    color: #131523;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-weight: 400;
-    font-size: 14px;
-    transition: 0.2s ease all;
-    // text-transform: capitalize;
-    -moz-appearance: none;
-    -webkit-appearance: none;
-    appearance: none;
-    outline: none;
-    cursor: pointer;
-    padding-right: 25px;
-    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGNsYXNzPSJpY29uIGljb24tdGFibGVyIGljb24tdGFibGVyLWNoZXZyb24tZG93biIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiB2aWV3Qm94PSIwIDAgMjQgMjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggc3Ryb2tlPSJub25lIiBkPSJNMCAwaDI0djI0SDB6IiBmaWxsPSJub25lIj48L3BhdGg+PHBvbHlsaW5lIHBvaW50cz0iNiA5IDEyIDE1IDE4IDkiPjwvcG9seWxpbmU+PC9zdmc+');
-    background-repeat: no-repeat;
-    background-position: right 0.7em top 50%, 0 0;
-    background-size: 20px auto, 100%;
+    @include fc.pollux-select-field;
     flex: 1;
-
-    &:hover {
-      border-color: #9ca3af;
-    }
-
-    &:focus {
-      outline: none;
-      border-color: #4f46e5;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    }
+    width: 100%;
+    font-weight: 400;
 
     &.loading {
       color: #9ca3af;
@@ -64,15 +36,15 @@
     }
 
     &:disabled {
-      background-color: #f9fafb;
-      cursor: wait;
+      background-color: #f9fafb !important;
+      cursor: not-allowed;
     }
   }
 
   .disabled {
-    border-color: #d2d4de;
-    background-color: #e6e9f4;
-    color: #7e84a3;
+    border-color: #e5e7eb;
+    background-color: #f9fafb;
+    color: #9ca3af;
     cursor: not-allowed;
   }
 }

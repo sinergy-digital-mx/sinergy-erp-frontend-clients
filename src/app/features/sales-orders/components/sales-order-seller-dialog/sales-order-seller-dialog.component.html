@@ -1,0 +1,58 @@
+<div class="seller-dialog">
+  <div class="seller-dialog__header">
+    <h3 class="seller-dialog__title">{{ dialogTitle }}</h3>
+    <button
+      type="button"
+      class="seller-dialog__close"
+      aria-label="Cerrar"
+      [disabled]="saving()"
+      (click)="cancel()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  <div class="seller-dialog__body">
+    <label class="seller-dialog__label" for="sales-order-seller-select">Vendedor</label>
+
+    @if (loading()) {
+      <p class="seller-dialog__hint">Cargando vendedores...</p>
+    } @else {
+      <select
+        id="sales-order-seller-select"
+        class="seller-dialog__select"
+        [ngModel]="selectedSellerId()"
+        (ngModelChange)="selectedSellerId.set($event)"
+        [disabled]="saving() || sellers().length === 0">
+        <option value="" disabled>Selecciona un vendedor</option>
+        @for (seller of sellers(); track seller.id) {
+          <option [value]="seller.id">{{ sellerLabel(seller) }}</option>
+        }
+      </select>
+      @if (sellers().length === 0) {
+        <p class="seller-dialog__hint">No hay usuarios elegibles como vendedor.</p>
+      }
+    }
+
+    @if (errorMessage()) {
+      <p class="seller-dialog__error" role="alert">{{ errorMessage() }}</p>
+    }
+  </div>
+
+  <div class="seller-dialog__footer">
+    <button type="button" class="seller-dialog__btn seller-dialog__btn--cancel" [disabled]="saving()" (click)="cancel()">
+      Cancelar
+    </button>
+    <button
+      type="button"
+      class="seller-dialog__btn seller-dialog__btn--save"
+      [disabled]="saving() || loading() || !selectedSellerId()"
+      (click)="save()">
+      @if (saving()) {
+        <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+        Guardando...
+      } @else {
+        Guardar
+      }
+    </button>
+  </div>
+</div>

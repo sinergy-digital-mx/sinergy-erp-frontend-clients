@@ -16,6 +16,7 @@ import { UomsDialogComponent } from '../uoms-dialog/uoms-dialog.component';
 import { PriceListsDialogComponent } from '../price-lists-dialog/price-lists-dialog';
 import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { ArrowRight } from 'lucide-angular';
 
 @Component({
@@ -25,7 +26,8 @@ import { ArrowRight } from 'lucide-angular';
     CommonModule,
     DatatableWrapperComponent,
     SearchComponent,
-    ButtonComponent
+    ButtonComponent,
+    FilterClearButtonComponent
   ],
   templateUrl: './product-list.component.html',
   styleUrl: './product-list.component.scss'
@@ -183,6 +185,14 @@ export class ProductListComponent implements OnDestroy {
       },
       queryParamsHandling: 'merge',
     });
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!this.search?.trim();
+  }
+
+  clearFilters(): void {
+    this.onSearchChange('');
   }
 
   onSortChange(event: ISortEvent) {

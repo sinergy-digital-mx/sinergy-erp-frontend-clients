@@ -65,7 +65,12 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     id: 'operation',
     title: 'Operación',
-    itemIds: ['menu-purchase-orders', 'menu-sales-orders', 'menu-inventory', 'menu-pos', 'menu-accounting'],
+    itemIds: ['menu-purchase-orders', 'menu-sales-orders', 'menu-inventory', 'menu-pos'],
+  },
+  {
+    id: 'accounting',
+    title: 'Contabilidad',
+    itemIds: ['menu-accounting'],
   },
   {
     id: 'marketing-reports',
@@ -152,7 +157,7 @@ export class Sidebar implements OnInit, OnDestroy {
       permission: PERMISSIONS.pos.viewMenu
     },
     {
-      label: 'Cobranza / Contabilidad',
+      label: 'Cobranza',
       route: '/accounting',
       icon: Landmark,
       id: 'menu-accounting',

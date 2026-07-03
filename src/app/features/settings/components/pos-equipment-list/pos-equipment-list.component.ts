@@ -23,11 +23,12 @@ import {
 } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { PosDailyShiftDetailModalComponent } from '../pos-daily-shift-detail-modal/pos-daily-shift-detail-modal.component';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 
 @Component({
   selector: 'app-pos-equipment-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatatableWrapperComponent],
+  imports: [CommonModule, FormsModule, DatatableWrapperComponent, FilterClearButtonComponent],
   templateUrl: './pos-equipment-list.component.html',
   styleUrl: './pos-equipment-list.component.scss',
 })
@@ -82,6 +83,17 @@ export class PosEquipmentListComponent implements OnInit {
   applyFilters(): void {
     this.table_config.update((c) => ({ ...c, page: 1 }));
     this.loadDailyShifts();
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(this.selectedBranchId || this.shiftDate || this.statusFilter);
+  }
+
+  clearFilters(): void {
+    this.selectedBranchId = '';
+    this.shiftDate = '';
+    this.statusFilter = '';
+    this.applyFilters();
   }
 
   onPageChange(event: IPaginationEvent): void {

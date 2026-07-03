@@ -1,0 +1,149 @@
+<div class="dialog-overlay" (click)="closeDialog()">
+  <div
+    class="dialog-container"
+    (click)="$event.stopPropagation()"
+    role="dialog"
+    aria-labelledby="sales-payment-dialog-title"
+    aria-modal="true"
+  >
+    <div class="dialog-header">
+      <h2 id="sales-payment-dialog-title">Registrar pago</h2>
+      <button
+        type="button"
+        class="close-button"
+        (click)="closeDialog()"
+        [disabled]="loading()"
+        aria-label="Cerrar diálogo"
+      >
+        <i class="fi fi-rr-cross-small"></i>
+      </button>
+    </div>
+
+    <div class="dialog-body">
+      <div class="summary-card" role="status" aria-live="polite">
+        <div class="summary-row">
+          <span>Total de la orden:</span>
+          <strong>{{ formatCurrency(totalAmount) }}</strong>
+        </div>
+        <div class="summary-row">
+          <span>Ya pagado:</span>
+          <strong>{{ formatCurrency(amountPaid) }}</strong>
+        </div>
+        <div class="summary-row">
+          <span>Saldo pendiente:</span>
+          <strong class="pending">{{ formatCurrency(remainingAmount) }}</strong>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="form-field">
+          <label for="amount">Monto del pago <span>*</span></label>
+          <input
+            id="amount"
+            class="form-input"
+            type="text"
+            formControlName="amount"
+            placeholder="0.00"
+            inputmode="decimal"
+            [attr.aria-required]="true"
+            [attr.aria-invalid]="form.get('amount')?.invalid && form.get('amount')?.touched"
+          />
+          @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
+            <span class="error-message" role="alert">{{ getAmountError() }}</span>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="payment_date">Fecha de pago <span>*</span></label>
+          <input
+            id="payment_date"
+            class="form-input"
+            type="date"
+            formControlName="payment_date"
+            [attr.aria-required]="true"
+          />
+          @if (form.get('payment_date')?.invalid && form.get('payment_date')?.touched) {
+            <span class="error-message" role="alert">La fecha de pago es requerida</span>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="payment_method">Método de pago <span>*</span></label>
+          <select
+            id="payment_method"
+            class="form-select"
+            formControlName="payment_method"
+            [attr.aria-required]="true"
+          >
+            @for (method of paymentMethods; track method.value) {
+              <option [value]="method.value">{{ method.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="reference_number">
+            Referencia
+            @if (isTransfer) {
+              <span>*</span>
+            }
+          </label>
+          <input
+            id="reference_number"
+            class="form-input"
+            type="text"
+            formControlName="reference_number"
+            [placeholder]="isTransfer ? 'SPEI / folio de transferencia' : 'Referencia (opcional)'"
+          />
+          @if (isTransfer && form.get('reference_number')?.invalid && form.get('reference_number')?.touched) {
+            <span class="error-message" role="alert">Indica la referencia de transferencia</span>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="notes">Notas</label>
+          <textarea
+            id="notes"
+            class="form-textarea"
+            formControlName="notes"
+            placeholder="Notas adicionales (opcional)"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div class="form-field">
+          <label for="payment_file">Comprobante (opcional)</label>
+          <input
+            #fileInput
+            id="payment_file"
+            class="form-input form-input--file"
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,application/pdf,image/jpeg,image/png,image/heic,image/heif"
+            (change)="onFileSelected($event)"
+          />
+          @if (selectedFile(); as file) {
+            <div class="file-chip">
+              <span>{{ file.name }}</span>
+              <button type="button" class="file-chip__clear" (click)="clearFile(fileInput)" aria-label="Quitar archivo">
+                <i class="fi fi-rr-cross-small"></i>
+              </button>
+            </div>
+          }
+          @if (fileError()) {
+            <span class="error-message" role="alert">{{ fileError() }}</span>
+          }
+          <span class="field-hint">PDF, JPEG, PNG o HEIC · máx. 10 MB</span>
+        </div>
+      </form>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn-cancel" (click)="closeDialog()" [disabled]="loading()">
+        Cancelar
+      </button>
+      <button type="button" class="btn-submit" (click)="submit()" [disabled]="!canSubmit()">
+        Registrar pago
+      </button>
+    </div>
+  </div>
+</div>

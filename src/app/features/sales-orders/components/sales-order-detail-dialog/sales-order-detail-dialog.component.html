@@ -18,7 +18,12 @@
         }
       </div>
       <div class="dialog-header-actions">
-        <span class="status-badge" [ngClass]="getStatusClass(order()!.general_status)">
+        @if (getPaymentStatus()) {
+          <span class="status-badge" [ngClass]="getPaymentStatusBadgeClass()">
+            {{ getPaymentStatus() }}
+          </span>
+        }
+        <span class="status-badge" [ngClass]="getStatusBadgeClass()">
           {{ order()!.general_status || '-' }}
         </span>
         <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">
@@ -31,7 +36,7 @@
       <div class="sidebar">
         <div class="info-cards-group">
           <div
-            class="info-card info-card--blue"
+            class="info-card info-card--green"
             [class.info-card--clickable]="canOpenCustomer()"
             role="button"
             [attr.tabindex]="canOpenCustomer() ? 0 : null"
@@ -39,7 +44,7 @@
             (keydown.enter)="canOpenCustomer() && openCustomerInNewTab()"
             (keydown.space)="$event.preventDefault(); canOpenCustomer() && openCustomerInNewTab()">
             <div class="info-card__icon">
-              <i class="fi fi-rr-user"></i>
+              <i class="fi fi-rr-shop"></i>
             </div>
             <div class="info-card__content">
               <span class="info-card__label">CLIENTE</span>
@@ -51,7 +56,7 @@
           </div>
 
           <div
-            class="info-card info-card--yellow"
+            class="info-card info-card--orange"
             [class.info-card--clickable]="canOpenWarehouse()"
             role="button"
             [attr.tabindex]="canOpenWarehouse() ? 0 : null"
@@ -103,9 +108,25 @@
           </div>
           <div class="section-item">
             <span class="section-label">Estado de pago</span>
-            <span class="payment-pill" [class.payment-pill--paid]="order()!.payment_status === 'Pagado'">
-              {{ order()!.payment_status || '—' }}
+            <span class="payment-pill" [class.payment-pill--paid]="getPaymentStatus() === 'Pagado'">
+              {{ getPaymentStatus() || '—' }}
             </span>
+          </div>
+          <div class="section-item section-item--seller">
+            <span class="section-label">Vendedor</span>
+            <div class="seller-value-row">
+              <span class="section-value">{{ getSellerDisplayName() }}</span>
+              @if (canEditSeller()) {
+                <button
+                  type="button"
+                  class="seller-change-btn"
+                  (click)="openSellerEditor()"
+                  title="Cambiar vendedor"
+                  aria-label="Cambiar vendedor">
+                  Cambiar
+                </button>
+              }
+            </div>
           </div>
         </div>
 
@@ -113,14 +134,10 @@
           <div class="section-card section-card--pos-info">
             <h3 class="section-title">INFORMACIÓN POS</h3>
             <div class="section-item">
-              <span class="section-label">Vendedor</span>
-              <span class="section-value">{{ formatPosUserLabel(order()!.seller_user) }}</span>
-            </div>
-            <div class="section-item">
               <span class="section-label">Terminal</span>
               <span class="section-value">{{ formatPosUserLabel(order()!.terminal_user) }}</span>
             </div>
-            @if (order()!.payment_status === 'Pagado') {
+            @if (getPaymentStatus() === 'Pagado') {
               <div class="section-item">
                 <span class="section-label">Cobró</span>
                 <span class="section-value">{{ formatPosUserLabel(order()!.collected_by_user) }}</span>
@@ -228,7 +245,14 @@
         </div>
 
         <div class="section-card section-card--notes">
-          <h3 class="section-title">NOTAS</h3>
+          <div class="section-card__head">
+            <h3 class="section-title">NOTAS</h3>
+            @if (canEditNotes()) {
+              <button type="button" class="notes-edit-btn" title="Editar notas" aria-label="Editar notas" (click)="openNotesEditor()">
+                <i class="fi fi-rr-pencil"></i>
+              </button>
+            }
+          </div>
           <p class="notes-text">{{ order()!.notes || 'Sin notas' }}</p>
         </div>
       </div>
@@ -236,9 +260,10 @@
       <div class="main-content">
         <div class="tabs-header">
           <button class="tab-button" [class.active]="activeTabIndex() === 0" (click)="activeTabIndex.set(0)">Productos</button>
-          <button class="tab-button" [class.active]="activeTabIndex() === 1" (click)="activeTabIndex.set(1)">Documentos</button>
-          <button class="tab-button" [class.active]="activeTabIndex() === 2" (click)="activeTabIndex.set(2)">Lotes</button>
-          <button class="tab-button" [class.active]="activeTabIndex() === 3" (click)="activeTabIndex.set(3)">Facturación</button>
+          <button class="tab-button" [class.active]="activeTabIndex() === 1" (click)="activeTabIndex.set(1)">Pagos</button>
+          <button class="tab-button" [class.active]="activeTabIndex() === 2" (click)="activeTabIndex.set(2)">Documentos</button>
+          <button class="tab-button" [class.active]="activeTabIndex() === 3" (click)="activeTabIndex.set(3)">Lotes</button>
+          <button class="tab-button" [class.active]="activeTabIndex() === 4" (click)="activeTabIndex.set(4)">Facturación</button>
         </div>
 
         <div class="tabs-content">
@@ -297,6 +322,145 @@
           }
 
           @if (activeTabIndex() === 1) {
+            <div class="tab-content-wrapper">
+              <div class="tab-header">
+                @if (canAddPayment()) {
+                  <button
+                    type="button"
+                    class="btn-primary"
+                    (click)="registerPayment()"
+                    [disabled]="registeringPayment()"
+                  >
+                    @if (registeringPayment()) {
+                      <i class="fi fi-rr-spinner animate-spin"></i>
+                    } @else {
+                      <i class="fi fi-rr-plus"></i>
+                    }
+                    Registrar pago
+                  </button>
+                }
+              </div>
+
+              <div class="payments-summary-card">
+                <div class="payments-summary-grid">
+                  <div class="payments-summary-row">
+                    <span>Total:</span>
+                    <strong class="payments-summary-value">{{ formatPaymentCurrency(getOrderTotalForPayments()) }}</strong>
+                  </div>
+                  <div class="payments-summary-row">
+                    <span>Pagado:</span>
+                    <strong class="payments-summary-value text-green-600">{{ formatPaymentCurrency(getPaidAmount()) }}</strong>
+                  </div>
+                  <div class="payments-summary-row">
+                    <span>Pendiente:</span>
+                    <strong class="payments-summary-value text-amber-600">{{ formatPaymentCurrency(getRemainingAmount()) }}</strong>
+                  </div>
+                  <div class="payments-summary-row">
+                    <span>Estatus:</span>
+                    <span class="payments-status-badge" [ngClass]="getPaymentStatusClass()">{{ getPaymentStatus() }}</span>
+                  </div>
+                </div>
+                <div class="payments-progress-track">
+                  <div class="payments-progress-fill" [style.width.%]="getPaidPercent()"></div>
+                </div>
+              </div>
+
+              @if (payments().length > 0) {
+                <table class="payments-table">
+                  <thead>
+                    <tr>
+                      <th>FECHA</th>
+                      <th>MÉTODO</th>
+                      <th>MONTO</th>
+                      <th>REFERENCIA</th>
+                      <th>ORIGEN</th>
+                      <th>ACCIONES</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (payment of payments(); track payment.id) {
+                      <tr>
+                        <td>{{ payment.payment_date | date:'dd/MM/yyyy' }}</td>
+                        <td>{{ paymentMethodLabel(payment.payment_method) }}</td>
+                        <td class="font-semibold">{{ formatPaymentCurrency(payment.amount) }}</td>
+                        <td>{{ payment.reference_number || '—' }}</td>
+                        <td>
+                          <span
+                            class="payment-source-chip"
+                            [class.payment-source-chip--pos]="payment.source === 'pos_cobranza'"
+                          >
+                            {{ payment.source === 'pos_cobranza' ? 'Cobranza POS' : 'Manual' }}
+                          </span>
+                        </td>
+                        <td>
+                          <div class="payment-actions">
+                            @for (doc of paymentDocuments(payment); track doc.id) {
+                              <button
+                                type="button"
+                                class="action-btn preview-btn"
+                                (click)="openPaymentDocument(doc)"
+                                [title]="doc.file_name || 'Ver comprobante'"
+                              >
+                                <i class="fi fi-rr-clip"></i>
+                              </button>
+                            }
+                            <label
+                              class="action-btn upload-btn"
+                              [class.is-disabled]="uploadingPaymentDocId() === payment.id"
+                              [title]="uploadingPaymentDocId() === payment.id ? 'Subiendo…' : 'Subir comprobante'"
+                            >
+                              @if (uploadingPaymentDocId() === payment.id) {
+                                <i class="fi fi-rr-spinner animate-spin"></i>
+                              } @else {
+                                <i class="fi fi-rr-upload"></i>
+                              }
+                              <input
+                                type="file"
+                                class="sr-only"
+                                accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,application/pdf,image/jpeg,image/png,image/heic,image/heif"
+                                [disabled]="uploadingPaymentDocId() === payment.id"
+                                (change)="onPaymentDocumentSelected(payment, $event)"
+                              />
+                            </label>
+                            @if (canDeletePayment(payment)) {
+                              <button
+                                type="button"
+                                class="action-btn delete-btn"
+                                (click)="deletePayment(payment)"
+                                [disabled]="deletingPaymentId() === payment.id"
+                                title="Eliminar pago"
+                              >
+                                @if (deletingPaymentId() === payment.id) {
+                                  <i class="fi fi-rr-spinner animate-spin"></i>
+                                } @else {
+                                  <i class="fi fi-rr-trash"></i>
+                                }
+                              </button>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                      @if (payment.notes) {
+                        <tr class="payment-notes-row">
+                          <td colspan="6">
+                            <span class="payment-notes-label">Notas:</span>
+                            {{ payment.notes }}
+                          </td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <div class="empty-state">
+                  <i class="fi fi-rr-credit-card"></i>
+                  <p>No hay pagos registrados</p>
+                </div>
+              }
+            </div>
+          }
+
+          @if (activeTabIndex() === 2) {
             <div class="tab-content-wrapper">
               <div class="tab-header">
                 @if (canTicketReciboActions()) {
@@ -408,7 +572,7 @@
             </div>
           }
 
-          @if (activeTabIndex() === 3) {
+          @if (activeTabIndex() === 4) {
             <div class="tab-content-wrapper billing-tab">
               <div class="billing-summary">
                 <h3 class="billing-section-title">Datos fiscales de la orden</h3>
@@ -467,7 +631,7 @@
             </div>
           }
 
-          @if (activeTabIndex() === 2) {
+          @if (activeTabIndex() === 3) {
             <div class="tab-content-wrapper">
               <table class="products-table">
                 <thead>

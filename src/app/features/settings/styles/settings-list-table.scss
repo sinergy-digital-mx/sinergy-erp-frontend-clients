@@ -4,13 +4,13 @@
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.25rem;
-  color: #111827;
+  color: var(--dt-text-primary, #334155);
 }
 
 .settings-cell-text {
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: #4b5563;
+  color: var(--dt-text-body, #64748b);
 }
 
 .settings-cell-empty {

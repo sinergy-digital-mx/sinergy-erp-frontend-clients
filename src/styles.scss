@@ -8,6 +8,9 @@
 @use '@angular/material' as mat;
 @use "primeicons/primeicons.css" as *;
 @use "tailwindcss" as *;
+@use 'base/form-controls' as fc;
+@use 'base/table-text' as *;
+@use 'base/brand-buttons' as *;
 
 // Import Inter font
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -19,6 +22,55 @@
 
 body {
   font-family: Inter, sans-serif !important;
+}
+
+// Controles nativos globales (formularios, modales, vistas sin wrapper Material/Prime)
+:root {
+  --pollux-control-height: #{fc.$pollux-control-height};
+  --pollux-control-radius: #{fc.$pollux-control-radius};
+  --pollux-control-border: #{fc.$pollux-control-border};
+}
+
+main,
+.mat-mdc-dialog-container,
+.dialog {
+  input[type='text']:not(.mat-mdc-input-element):not(.mdc-text-field__input):not(.p-inputtext):not(.search-input):not(.zn-date-range__input),
+  input[type='search']:not(.mat-mdc-input-element):not(.search-input),
+  input[type='email']:not(.mat-mdc-input-element):not(.p-inputtext),
+  input[type='number']:not(.mat-mdc-input-element):not(.p-inputtext),
+  input[type='password']:not(.mat-mdc-input-element),
+  input[type='date']:not(.mat-mdc-input-element):not(.zn-date-range__input),
+  input[type='time']:not(.mat-mdc-input-element),
+  textarea:not(.mat-mdc-input-element):not(.p-inputtext):not(.notes-dialog__textarea) {
+    @include fc.pollux-field-base;
+  }
+
+  textarea.notes-dialog__textarea {
+    padding: 0.875rem 1rem;
+    min-height: 7.5rem;
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+  }
+
+  select:not(.mat-mdc-select-trigger):not([class*='p-']) {
+    @include fc.pollux-select-field;
+  }
+}
+
+/* Badge de folio (OC, OV — tabla y móvil) */
+.dt-folio-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.3125rem 0.625rem;
+  border-radius: 6px;
+  background-color: #f1f5f9;
+  color: #334155;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
 }
 
 

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { AccountingService } from '../../services/accounting.service';
@@ -22,8 +22,8 @@ export interface ReceivableDetailDialogData {
   styleUrl: './receivable-detail-dialog.component.scss',
 })
 export class ReceivableDetailDialogComponent implements OnInit {
-  detail: AccountsReceivableDetail | null = null;
-  loading = true;
+  detail = signal<AccountsReceivableDetail | null>(null);
+  loading = signal(true);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: ReceivableDetailDialogData,
@@ -38,12 +38,12 @@ export class ReceivableDetailDialogComponent implements OnInit {
       .getAccountsReceivableOrders(this.data.razonSocial, this.data.billingBranchId)
       .subscribe({
         next: (detail) => {
-          this.detail = detail;
-          this.loading = false;
+          this.detail.set(detail);
+          this.loading.set(false);
         },
         error: () => {
-          this.detail = null;
-          this.loading = false;
+          this.detail.set(null);
+          this.loading.set(false);
         },
       });
   }

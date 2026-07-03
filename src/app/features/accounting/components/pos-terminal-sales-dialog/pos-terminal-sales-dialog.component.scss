@@ -57,9 +57,45 @@
   text-decoration: underline;
 }
 
+.customer-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.customer-cell__names {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.customer-cell__company {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-cell__person {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .walk-in-chip {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
   font-size: 0.6875rem;

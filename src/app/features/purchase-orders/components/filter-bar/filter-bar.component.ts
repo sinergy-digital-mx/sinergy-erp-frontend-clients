@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { OrderFilters } from '../../models/filters.model';
 import { OrderStatus } from '../../models/purchase-order.model';
 import { Warehouse } from '../../models/warehouse.model';
@@ -13,7 +14,7 @@ import { Warehouse } from '../../models/warehouse.model';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatTooltipModule
+    FilterClearButtonComponent
   ],
   templateUrl: './filter-bar.component.html',
   styleUrl: './filter-bar.component.scss'

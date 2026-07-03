@@ -10,6 +10,8 @@ interface PendingSale {
   id: string;
   folio?: string;
   total?: number | string;
+  amount_pending?: number | string;
+  amount_paid?: number | string;
   created_at?: string;
   payment_status?: string;
   seller_user?: { first_name?: string; last_name?: string; pos_user_code?: number | null };
@@ -60,6 +62,13 @@ export class PendingOrdersComponent implements OnInit {
 
   formatCurrency(amount: number | string | undefined): string {
     return formatPosMoney(amount);
+  }
+
+  amountToCollect(order: PendingSale): number | string {
+    if (order.amount_pending != null && order.amount_pending !== '') {
+      return order.amount_pending;
+    }
+    return order.total ?? 0;
   }
 
   formatDate(date?: string): string {

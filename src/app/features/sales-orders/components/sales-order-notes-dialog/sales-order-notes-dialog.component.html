@@ -1,0 +1,48 @@
+<div class="notes-dialog">
+  <div class="notes-dialog__header">
+    <h3 class="notes-dialog__title">{{ dialogTitle }}</h3>
+    <button
+      type="button"
+      class="notes-dialog__close"
+      aria-label="Cerrar"
+      [disabled]="saving()"
+      (click)="cancel()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  <div class="notes-dialog__body">
+    <label class="notes-dialog__label" for="sales-order-notes-input">Notas de la orden</label>
+    <textarea
+      id="sales-order-notes-input"
+      class="notes-dialog__textarea"
+      rows="5"
+      placeholder="Agrega instrucciones, observaciones o comentarios..."
+      [ngModel]="notesText()"
+      (ngModelChange)="notesText.set($event)"
+      [disabled]="saving()">
+    </textarea>
+    <p class="notes-dialog__hint">Deja vacío y guarda para borrar las notas.</p>
+    @if (errorMessage()) {
+      <p class="notes-dialog__error" role="alert">{{ errorMessage() }}</p>
+    }
+  </div>
+
+  <div class="notes-dialog__footer">
+    <button type="button" class="notes-dialog__btn notes-dialog__btn--cancel" [disabled]="saving()" (click)="cancel()">
+      Cancelar
+    </button>
+    <button
+      type="button"
+      class="notes-dialog__btn notes-dialog__btn--save"
+      [disabled]="saving()"
+      (click)="save()">
+      @if (saving()) {
+        <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+        Guardando...
+      } @else {
+        Guardar
+      }
+    </button>
+  </div>
+</div>

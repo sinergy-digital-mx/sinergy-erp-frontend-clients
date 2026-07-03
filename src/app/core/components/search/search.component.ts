@@ -5,20 +5,23 @@ import { Subscription } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { InputComponent } from '../input/input.component';
+import { LucideAngularModule, Search } from 'lucide-angular';
 
 @Component({
     selector: 'app-search',
     templateUrl: './search.component.html',
     styleUrls: ['./search.component.scss'],
     standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, InputComponent],
+  imports: [CommonModule, ReactiveFormsModule, InputComponent, LucideAngularModule],
 })
 export class SearchComponent implements OnInit {
   search = new FormControl();
   subscription: Subscription;
+  readonly Search = Search;
   @Input() default_value?: string;
   @Input() placeholder: string = 'Search';
   @Input() label: string = null;
+  @Input() showSearchIcon = false;
   @Input() param_activate: boolean = false;
   @Input() param_name: string = 'search';
   @Output() searchChange = new EventEmitter();

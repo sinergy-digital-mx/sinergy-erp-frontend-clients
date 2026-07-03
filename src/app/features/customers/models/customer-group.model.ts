@@ -28,6 +28,15 @@ export interface CustomerAddress {
 }
 
 /**
+ * Catálogo de estatus de cliente (GET /tenant/customers/statuses).
+ */
+export interface CustomerStatus {
+  id: number;
+  code: string;
+  name: string;
+}
+
+/**
  * Customer Model
  * Represents a customer in the system
  */
@@ -60,17 +69,14 @@ export interface Customer {
   group?: CustomerGroup | null;
   group_id?: string | null;
   legacy_customer_id?: number | null;
-  status_id?: string;
+  status_id?: number | string | null;
   additional_name?: string;
   additional_lastname?: string;
   additional_email?: string;
   additional_phone?: string;
   additional_phone_country?: string;
   additional_phone_code?: string;
-  status?: {
-    id: string;
-    name: string;
-  };
+  status?: CustomerStatus | null;
   contracts?: CustomerContract[];
   addresses?: CustomerAddress[];
   activities?: CustomerActivity[];
@@ -83,7 +89,7 @@ export interface Customer {
  * pero el formulario envía los que edita el usuario.
  */
 export interface UpdateCustomerDto {
-  status_id?: string;
+  status_id?: number | string | null;
   name?: string;
   lastname?: string;
   email?: string;

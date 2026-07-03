@@ -43,6 +43,12 @@
             <option value="closed">Cerrado</option>
           </select>
         </div>
+        <div class="filter-bar__field filter-bar__field--clear">
+          <app-filter-clear-button
+            [active]="hasActiveFilters"
+            (clear)="clearFilters()">
+          </app-filter-clear-button>
+        </div>
       </div>
     </div>
   </div>

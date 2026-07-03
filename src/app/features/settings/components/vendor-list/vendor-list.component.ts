@@ -28,6 +28,7 @@ import { AlertDialogComponent } from '../../../../core/components/alert-dialog/a
 
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { ArrowRight } from 'lucide-angular';
 
 
@@ -46,7 +47,9 @@ import { ArrowRight } from 'lucide-angular';
 
     SearchComponent,
 
-    ButtonComponent
+    ButtonComponent,
+
+    FilterClearButtonComponent
 
   ],
 
@@ -314,6 +317,15 @@ export class VendorListComponent implements OnDestroy {
 
     });
 
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(this.search?.trim() || this.vendorTypeFilter);
+  }
+
+  clearFilters(): void {
+    this.vendorTypeFilter = '';
+    this.onSearchChange('');
   }
 
 

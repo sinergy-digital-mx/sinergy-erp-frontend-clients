@@ -183,6 +183,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
       icon: '💱',
       route: 'exchange-rates',
       permissions: ['exchangerate:ViewMenu', 'exchangerate:Read', 'exchangerate:Update']
+    },
+    {
+      id: 'goals',
+      title: 'Metas',
+      description: 'Define metas de venta por sucursal y periodo, y configura la comisión activa del reporte',
+      icon: '🎯',
+      route: 'goals',
+      permissions: ['goals:ViewMenu', 'goals:Read']
     }
   ];
 

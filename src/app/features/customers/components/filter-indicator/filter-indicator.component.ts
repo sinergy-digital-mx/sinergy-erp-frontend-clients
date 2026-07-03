@@ -125,6 +125,7 @@ interface ActiveFilter {
 })
 export class FilterIndicatorComponent {
   @Input() activeStatusFilter: string | null = null;
+  @Input() activeStatusName: string | null = null;
   @Input() activeGroupId: string | null = null;
   @Input() activeGroupName: string | null = null;
   @Input() activeSearchTerm: string | null = null;
@@ -146,7 +147,7 @@ export class FilterIndicatorComponent {
       this.activeFilters.push({
         type: 'status',
         value: this.activeStatusFilter,
-        label: `Estado: ${this.activeStatusFilter}`
+        label: `Estatus: ${this.activeStatusName || this.activeStatusFilter}`
       });
     }
 

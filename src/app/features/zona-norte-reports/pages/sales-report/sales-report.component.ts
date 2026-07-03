@@ -1,25 +1,34 @@
 import { Component, OnInit, signal, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+import {
+  ReportPeriod,
+  ReportPeriodSelectorComponent,
+} from '../../../../core/components/report-period-selector/report-period-selector.component';
 import { SalesReportService } from '../../services/sales-report.service';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { BranchService } from '../../../settings/services/branch.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { Branch } from '../../../settings/models/branch.model';
 import {
+  SellerOrdersDialogComponent,
+} from '../../components/seller-orders-dialog/seller-orders-dialog.component';
+import {
+  SalesGoalMetricType,
+  SalesReportApiRow,
+  SalesReportGoals,
   SalesReportPeriod,
   SalesReportSummary,
   SellerSalesRow,
 } from '../../models/sales-report.model';
 
-const COMMISSION_RATE = 4.5;
-
 @Component({
   selector: 'app-sales-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatatableWrapperComponent],
+  imports: [CommonModule, FormsModule, DatatableWrapperComponent, ReportPeriodSelectorComponent],
   template: `
     <div class="purchase-order-list-container">
       <div class="purchase-content">
@@ -30,81 +39,16 @@ const COMMISSION_RATE = 4.5;
               <p class="text-sm text-gray-600 mt-1">Desempeño por vendedor y sucursal</p>
             </div>
 
-            <div class="zn-period-bar" role="search" aria-label="Periodo del reporte">
-              <div
-                class="zn-period-panel"
-                [class.zn-period-panel--range]="datePreset === 'range'">
-                <div class="zn-period-toggle" role="group">
-                  @for (opt of periodOptions; track opt.value) {
-                    <button
-                      type="button"
-                      class="zn-period-toggle__btn"
-                      [class.zn-period-toggle__btn--active]="datePreset === opt.value"
-                      [attr.aria-pressed]="datePreset === opt.value"
-                      (click)="selectPeriod(opt.value)">
-                      {{ opt.label }}
-                    </button>
-                  }
-                  <button
-                    type="button"
-                    class="zn-period-toggle__btn zn-period-toggle__btn--range"
-                    [class.zn-period-toggle__btn--active]="datePreset === 'range'"
-                    [attr.aria-pressed]="datePreset === 'range'"
-                    [attr.aria-label]="customRangeAriaLabel()"
-                    (click)="selectPeriod('range')">
-                    <svg
-                      class="zn-period-toggle__icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true">
-                      <rect x="3" y="4" width="18" height="18" rx="2" />
-                      <path d="M16 2v4M8 2v4M3 10h18" />
-                    </svg>
-                    <span>Rango</span>
-                  </button>
-                </div>
-
-                @if (datePreset === 'range') {
-                  <div class="zn-date-range" aria-label="Rango de fechas personalizado">
-                    <div class="zn-date-range__field">
-                      <label class="zn-date-range__label" for="zn-date-from">Inicio</label>
-                      <div class="zn-date-range__control">
-                        <input
-                          id="zn-date-from"
-                          type="date"
-                          class="zn-date-range__input"
-                          [(ngModel)]="customDateFrom"
-                          (change)="onCustomRangeChange()"
-                          [max]="customDateTo || undefined"
-                          aria-label="Fecha de inicio" />
-                      </div>
-                    </div>
-                    <span class="zn-date-range__sep" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path d="M5 12h14M13 6l6 6-6 6" />
-                      </svg>
-                    </span>
-                    <div class="zn-date-range__field">
-                      <label class="zn-date-range__label" for="zn-date-to">Fin</label>
-                      <div class="zn-date-range__control">
-                        <input
-                          id="zn-date-to"
-                          type="date"
-                          class="zn-date-range__input"
-                          [(ngModel)]="customDateTo"
-                          (change)="onCustomRangeChange()"
-                          [min]="customDateFrom || undefined"
-                          aria-label="Fecha de fin" />
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
+            <app-report-period-selector
+              [period]="datePreset"
+              [dateFrom]="customDateFrom"
+              [dateTo]="customDateTo"
+              [includeYear]="true"
+              dateFromId="zn-date-from"
+              dateToId="zn-date-to"
+              ariaLabel="Periodo del reporte"
+              (periodChange)="onPeriodChange($event)"
+              (rangeChange)="onRangeChange($event)" />
           </div>
 
           <div class="zn-filters mb-5">
@@ -140,6 +84,44 @@ const COMMISSION_RATE = 4.5;
             </div>
           </div>
 
+          @if (goals(); as g) {
+            @if (!g.has_active_goals && g.message) {
+              <div class="zn-goals-banner mb-5" role="status">
+                <i class="fi fi-rr-info" aria-hidden="true"></i>
+                <span>{{ g.message }}</span>
+              </div>
+            }
+
+            @if (g.branch_goal; as branchGoal) {
+              <div class="zn-branch-goal mb-5">
+                <div class="zn-branch-goal__header">
+                  <div>
+                    <p class="zn-branch-goal__title">Meta sucursal</p>
+                    <p class="zn-branch-goal__branch">{{ branchGoal.branch_name }}</p>
+                  </div>
+                  <div class="zn-branch-goal__values">
+                    <span class="zn-branch-goal__current">
+                      {{ formatGoalValue(branchGoal.current_value, branchGoal.metric_type) }}
+                    </span>
+                    <span class="zn-branch-goal__sep">/</span>
+                    <span class="zn-branch-goal__target">
+                      {{ formatGoalValue(branchGoal.target_value, branchGoal.metric_type) }}
+                    </span>
+                    <span class="zn-branch-goal__pct">
+                      ({{ formatProgressPct(branchGoal.progress_percentage) }})
+                    </span>
+                  </div>
+                </div>
+                <div class="zn-progress" aria-hidden="true">
+                  <div
+                    class="zn-progress__fill zn-progress__fill--{{ progressColor(branchGoal.progress_percentage) }}"
+                    [style.width.%]="progressWidth(branchGoal.progress_percentage)">
+                  </div>
+                </div>
+              </div>
+            }
+          }
+
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div class="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-4 shadow-sm">
               <p class="text-xs font-medium uppercase tracking-wide text-violet-600">Vendedores</p>
@@ -157,12 +139,10 @@ const COMMISSION_RATE = 4.5;
             </div>
           </div>
 
-          <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <app-datatable-wrapper
-              [config]="table_config()"
-              [rowTemplate]="tableTemplate">
-            </app-datatable-wrapper>
-          </div>
+          <app-datatable-wrapper
+            [config]="table_config()"
+            [rowTemplate]="tableTemplate">
+          </app-datatable-wrapper>
         </div>
       </div>
     </div>
@@ -174,7 +154,12 @@ const COMMISSION_RATE = 4.5;
         </span>
       </td>
       <td class="px-2 py-2">
-        <p class="text-sm font-medium text-gray-900 m-0">{{ item.sellerName }}</p>
+        <button
+          type="button"
+          class="zn-seller-link"
+          (click)="openSellerOrders(item); $event.stopPropagation()">
+          {{ item.sellerDisplayName }}
+        </button>
       </td>
       <td class="px-2 py-2">
         <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-800">
@@ -190,6 +175,34 @@ const COMMISSION_RATE = 4.5;
       <td class="px-2 py-2">
         <p class="text-sm font-semibold text-gray-900 m-0">{{ formatCurrency(item.totalSold) }}</p>
       </td>
+      <td class="px-2 py-2">
+        @if (item.hasGoal && item.goalTargetValue != null) {
+          <div class="zn-row-goal">
+            <div class="zn-row-goal__values">
+              <span class="zn-row-goal__current">
+                {{ formatGoalValue(item.goalCurrentValue ?? 0, item.goalMetricType ?? 'amount') }}
+              </span>
+              <span class="zn-row-goal__sep">/</span>
+              <span class="zn-row-goal__target">
+                {{ formatGoalValue(item.goalTargetValue, item.goalMetricType ?? 'amount') }}
+              </span>
+              @if (item.goalProgressPct != null) {
+                <span class="zn-row-goal__pct">{{ formatProgressPct(item.goalProgressPct, false) }}</span>
+              }
+            </div>
+            @if (item.goalProgressPct != null) {
+              <div class="zn-progress zn-progress--row" aria-hidden="true">
+                <div
+                  class="zn-progress__fill zn-progress__fill--{{ progressColor(item.goalProgressPct) }}"
+                  [style.width.%]="progressWidth(item.goalProgressPct)">
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <span class="text-xs text-gray-400">—</span>
+        }
+      </td>
     </ng-template>
   `,
   styles: [
@@ -204,135 +217,6 @@ const COMMISSION_RATE = 4.5;
         align-items: flex-start;
         justify-content: space-between;
         gap: 1rem 1.5rem;
-      }
-      .zn-period-bar {
-        flex-shrink: 0;
-      }
-      .zn-period-panel {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: stretch;
-        width: fit-content;
-        max-width: 100%;
-        background: #fff;
-        border-radius: 16px;
-        padding: 0.25rem;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 0 0 1px #e2e8f0;
-        transition: padding 0.2s ease, min-width 0.2s ease;
-      }
-      .zn-period-panel--range {
-        padding: 0.25rem 0.35rem 0.65rem;
-        min-width: min(100%, 22rem);
-      }
-      .zn-period-toggle {
-        display: inline-flex;
-        align-items: center;
-        flex-wrap: nowrap;
-        gap: 0.125rem;
-        padding: 0.15rem;
-        width: 100%;
-        flex-shrink: 0;
-      }
-      .zn-period-toggle__btn {
-        border: none;
-        background: transparent;
-        color: #475569;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        padding: 0.4rem 0.75rem;
-        border-radius: 9999px;
-        cursor: pointer;
-        transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-        white-space: nowrap;
-        line-height: 1.25;
-        flex-shrink: 0;
-      }
-      .zn-period-toggle__btn:hover:not(.zn-period-toggle__btn--active) {
-        background: #f8fafc;
-        color: #334155;
-      }
-      .zn-period-toggle__btn--active {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-        color: #fff;
-        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
-      }
-      .zn-period-toggle__btn--range {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-      }
-      .zn-period-toggle__icon {
-        width: 1rem;
-        height: 1rem;
-        flex-shrink: 0;
-      }
-      .zn-date-range {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        align-items: end;
-        gap: 0.5rem 0.4rem;
-        width: 100%;
-        padding: 0.6rem 0.35rem 0.15rem;
-        margin-top: 0.15rem;
-        border-top: 1px solid #f1f5f9;
-      }
-      .zn-date-range__field {
-        min-width: 0;
-      }
-      .zn-date-range__label {
-        display: block;
-        font-size: 0.6875rem;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        color: #64748b;
-        margin-bottom: 0.35rem;
-      }
-      .zn-date-range__control {
-        display: flex;
-        align-items: center;
-        min-height: 2.5rem;
-        padding: 0 0.65rem;
-        background: linear-gradient(180deg, #fafafa 0%, #f4f4f5 100%);
-        border: 1px solid #e4e4e7;
-        border-radius: 10px;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-      }
-      .zn-date-range__control:focus-within {
-        border-color: #a5b4fc;
-        background: #fff;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-      }
-      .zn-date-range__input {
-        width: 100%;
-        min-width: 0;
-        padding: 0.45rem 0;
-        border: none;
-        background: transparent;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #1e293b;
-        cursor: pointer;
-        font-family: Inter, sans-serif !important;
-      }
-      .zn-date-range__input:focus {
-        outline: none;
-      }
-      .zn-date-range__input::-webkit-calendar-picker-indicator {
-        cursor: pointer;
-        opacity: 0.55;
-        margin-left: 0.25rem;
-      }
-      .zn-date-range__sep {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding-bottom: 0.65rem;
-        color: #cbd5e1;
-        flex-shrink: 0;
-      }
-      .zn-date-range__sep svg {
-        width: 1.125rem;
-        height: 1.125rem;
       }
       .zn-filters__panel {
         display: grid;
@@ -377,24 +261,142 @@ const COMMISSION_RATE = 4.5;
         border-color: #a5b4fc;
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
       }
+      .zn-goals-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.65rem;
+        padding: 0.875rem 1rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.875rem;
+        line-height: 1.4;
+      }
+      .zn-goals-banner i {
+        margin-top: 0.1rem;
+        color: #64748b;
+        flex-shrink: 0;
+      }
+      .zn-branch-goal {
+        padding: 1rem 1.125rem;
+        border-radius: 14px;
+        border: 1px solid #ddd6fe;
+        background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 70%);
+      }
+      .zn-branch-goal__header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.75rem 1rem;
+        margin-bottom: 0.75rem;
+      }
+      .zn-branch-goal__title {
+        margin: 0;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #7c3aed;
+      }
+      .zn-branch-goal__branch {
+        margin: 0.2rem 0 0;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1e1b4b;
+      }
+      .zn-branch-goal__values {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.25rem;
+        font-size: 0.875rem;
+        color: #475569;
+      }
+      .zn-branch-goal__current {
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .zn-branch-goal__sep {
+        color: #94a3b8;
+      }
+      .zn-branch-goal__pct {
+        margin-left: 0.15rem;
+        font-weight: 600;
+        color: #7c3aed;
+      }
+      .zn-progress {
+        height: 0.55rem;
+        background: #e2e8f0;
+        border-radius: 9999px;
+        overflow: hidden;
+      }
+      .zn-progress--row {
+        width: 100%;
+        height: 0.45rem;
+        min-width: 0;
+      }
+      .zn-progress__fill {
+        height: 100%;
+        border-radius: 9999px;
+        transition: width 0.2s ease;
+      }
+      .zn-progress__fill--success {
+        background: #22c55e;
+      }
+      .zn-progress__fill--warning {
+        background: #eab308;
+      }
+      .zn-progress__fill--danger {
+        background: #ef4444;
+      }
+      .zn-row-goal {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        min-width: 10rem;
+      }
+      .zn-row-goal__values {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.2rem;
+        font-size: 0.75rem;
+        line-height: 1.2;
+        color: #475569;
+      }
+      .zn-row-goal__current {
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .zn-row-goal__sep {
+        color: #94a3b8;
+      }
+      .zn-row-goal__target {
+        font-weight: 600;
+        color: #334155;
+      }
+      .zn-row-goal__pct {
+        margin-left: 0.15rem;
+        font-weight: 600;
+        color: #7c3aed;
+      }
+      .zn-seller-link {
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4f46e5;
+        cursor: pointer;
+        text-align: left;
+      }
+      .zn-seller-link:hover {
+        text-decoration: underline;
+      }
       @media (max-width: 640px) {
-        .zn-period-toggle__btn {
-          padding: 0.35rem 0.55rem;
-          font-size: 0.75rem;
-        }
-        .zn-period-bar,
-        .zn-period-panel,
-        .zn-period-panel--range {
-          width: 100%;
-          min-width: 0;
-        }
-        .zn-date-range {
-          grid-template-columns: 1fr;
-          gap: 0.5rem;
-        }
-        .zn-date-range__sep {
-          display: none;
-        }
         .zn-filters__panel {
           grid-template-columns: 1fr;
           max-width: 100%;
@@ -416,22 +418,17 @@ export class SalesReportComponent implements OnInit {
   branches: Branch[] = [];
 
   summary = signal<SalesReportSummary | null>(null);
-
-  readonly periodOptions: { label: string; value: Exclude<SalesReportPeriod, 'range'> }[] = [
-    { label: 'Hoy', value: 'today' },
-    { label: 'Semana', value: 'week' },
-    { label: 'Mes', value: 'month' },
-    { label: 'Año', value: 'year' },
-  ];
+  goals = signal<SalesReportGoals | null>(null);
 
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Sucursal', prop: 'branch', sortable: true, canAutoResize: false, width: 180 },
-      { name: 'Vendedor', prop: 'seller', sortable: true, canAutoResize: false, width: 200 },
-      { name: 'Total ventas', prop: 'salesCount', sortable: true, canAutoResize: false, width: 120 },
-      { name: 'Comisión', prop: 'commission', sortable: false, canAutoResize: false, width: 140 },
-      { name: 'Monto vendido', prop: 'totalSold', sortable: true, canAutoResize: false, width: 140 },
+      { name: 'Sucursal', prop: 'branch', sortable: false, canAutoResize: false, width: 140 },
+      { name: 'Vendedor', prop: 'seller', sortable: false, canAutoResize: false, width: 200 },
+      { name: 'Total ventas', prop: 'salesCount', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Comisión', prop: 'commission', sortable: false, canAutoResize: false, width: 130 },
+      { name: 'Monto vendido', prop: 'totalSold', sortable: false, canAutoResize: false, width: 130 },
+      { name: 'Meta', prop: 'goal', sortable: false, canAutoResize: false, width: 200 },
     ],
     externalPaging: false,
     externalSorting: false,
@@ -448,56 +445,83 @@ export class SalesReportComponent implements OnInit {
     private salesReportService: SalesReportService,
     private fiscalConfigService: FiscalConfigurationService,
     private branchService: BranchService,
+    private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
+    this.applyMonthRange(new Date().getMonth());
     this.loadFiscalConfigurations();
     this.loadBranches();
-    this.selectPeriod('month');
+    this.loadReport();
   }
 
-  selectPeriod(preset: SalesReportPeriod): void {
+  onPeriodChange(preset: ReportPeriod): void {
     this.datePreset = preset;
-
     if (preset === 'range') {
-      if (!this.customDateFrom || !this.customDateTo) {
-        const to = this.startOfDay(new Date());
-        const from = new Date(to);
-        from.setDate(from.getDate() - 30);
-        this.customDateFrom = this.toInputDate(from);
-        this.customDateTo = this.toInputDate(to);
-      }
-      this.loadReport();
       return;
     }
-
+    this.customDateFrom = '';
+    this.customDateTo = '';
     this.loadReport();
   }
 
-  onCustomRangeChange(): void {
-    if (this.datePreset !== 'range' || !this.customDateFrom || !this.customDateTo) {
-      return;
-    }
-
-    const from = this.parseInputDate(this.customDateFrom);
-    const to = this.parseInputDate(this.customDateTo);
-    if (!from || !to) {
-      return;
-    }
-
-    if (from > to) {
-      const tmp = this.customDateFrom;
-      this.customDateFrom = this.customDateTo;
-      this.customDateTo = tmp;
-    }
-
+  onRangeChange(range: { dateFrom: string; dateTo: string }): void {
+    this.customDateFrom = range.dateFrom;
+    this.customDateTo = range.dateTo;
+    this.datePreset = 'range';
     this.loadReport();
+  }
+
+  /** Rango calendario del mes (1 → último día o hoy si es el mes en curso). */
+  private applyMonthRange(monthIndex: number): void {
+    const now = new Date();
+    const year = now.getFullYear();
+    const from = new Date(year, monthIndex, 1);
+    const lastDay = new Date(year, monthIndex + 1, 0);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const to = lastDay > today ? today : lastDay;
+    this.datePreset = 'range';
+    this.customDateFrom = this.toInputDate(from);
+    this.customDateTo = this.toInputDate(to);
+  }
+
+  private toInputDate(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
   onFiscalConfigChange(): void {
     this.billingBranchId = '';
     this.loadBranches(this.fiscalConfigurationId || undefined);
     this.loadReport();
+  }
+
+  openSellerOrders(row: SellerSalesRow): void {
+    if (!row.sellerId || !row.billingBranchId) {
+      return;
+    }
+
+    if (this.datePreset === 'range' && (!this.customDateFrom || !this.customDateTo)) {
+      return;
+    }
+
+    this.dialog.open(SellerOrdersDialogComponent, {
+      width: '920px',
+      maxWidth: '95vw',
+      data: {
+        sellerId: row.sellerId,
+        sellerDisplayName: row.sellerDisplayName,
+        billingBranchId: row.billingBranchId,
+        branchName: row.branchName || row.branchCode,
+        period: this.datePreset,
+        fiscalConfigurationId: this.fiscalConfigurationId || undefined,
+        dateFrom: this.datePreset === 'range' ? this.customDateFrom : undefined,
+        dateTo: this.datePreset === 'range' ? this.customDateTo : undefined,
+        salesCount: row.salesCount,
+      },
+    });
   }
 
   loadReport(): void {
@@ -510,7 +534,6 @@ export class SalesReportComponent implements OnInit {
     this.salesReportService
       .getBySeller({
         period: this.datePreset,
-        commission_rate: COMMISSION_RATE,
         fiscal_configuration_id: this.fiscalConfigurationId || undefined,
         billing_branch_id: this.billingBranchId || undefined,
         date_from: this.datePreset === 'range' ? this.customDateFrom : undefined,
@@ -519,9 +542,13 @@ export class SalesReportComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.summary.set(res.summary);
+          this.goals.set(res.goals ?? null);
+          const commissionRate = res.filters_applied?.commission_rate ?? null;
+          // Backend already sorts by competitiveness (progress_percentage DESC).
           const rows = res.rows.map((r) => this.mapRow(r));
           this.table_config.update((c) => ({
             ...c,
+            columns: this.buildColumns(commissionRate),
             rows,
             totalResults: res.summary.total_sellers,
             loading: false,
@@ -529,21 +556,16 @@ export class SalesReportComponent implements OnInit {
         },
         error: () => {
           this.summary.set(null);
+          this.goals.set(null);
           this.table_config.update((c) => ({
             ...c,
+            columns: this.buildColumns(null),
             rows: [],
             totalResults: 0,
             loading: false,
           }));
         },
       });
-  }
-
-  customRangeAriaLabel(): string {
-    if (this.datePreset === 'range' && this.customDateFrom && this.customDateTo) {
-      return `Rango personalizado: ${this.customDateFrom} a ${this.customDateTo}`;
-    }
-    return 'Seleccionar rango de fechas personalizado';
   }
 
   branchLabel(b: Branch): string {
@@ -554,9 +576,37 @@ export class SalesReportComponent implements OnInit {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
+  }
+
+  formatGoalValue(value: number, metricType: SalesGoalMetricType): string {
+    if (metricType === 'sales_count') {
+      return `${new Intl.NumberFormat('es-MX').format(value)} ventas`;
+    }
+    return this.formatCurrency(value);
+  }
+
+  formatProgressPct(value: number, withParens = false): string {
+    const formatted = `${this.roundProgress(value)}%`;
+    return withParens ? `(${formatted})` : formatted;
+  }
+
+  progressWidth(value: number): number {
+    return Math.min(Math.max(this.roundProgress(value), 0), 100);
+  }
+
+  progressColor(pct: number): 'success' | 'warning' | 'danger' {
+    const value = this.roundProgress(pct);
+    if (value >= 70) return 'success';
+    if (value >= 30) return 'warning';
+    return 'danger';
+  }
+
+  private roundProgress(value: number): number {
+    if (!Number.isFinite(value)) return 0;
+    return Math.round(value * 100) / 100;
   }
 
   private loadFiscalConfigurations(): void {
@@ -587,49 +637,50 @@ export class SalesReportComponent implements OnInit {
     });
   }
 
-  private mapRow(r: {
-    billing_branch_id: string;
-    branch_code: string;
-    branch_name: string;
-    seller_id: string;
-    seller_name: string;
-    total_sales_count: number;
-    amount_sold: number;
-    commission_percentage: number;
-    commission_amount: number;
-  }): SellerSalesRow {
+  private buildColumns(commissionRate: number | null) {
+    const commissionLabel =
+      commissionRate != null && Number.isFinite(commissionRate)
+        ? `Comisión (${commissionRate}%)`
+        : 'Comisión';
+
+    return [
+      { name: 'Sucursal', prop: 'branch', sortable: false, canAutoResize: false, width: 140 },
+      { name: 'Vendedor', prop: 'seller', sortable: false, canAutoResize: false, width: 200 },
+      { name: 'Total ventas', prop: 'salesCount', sortable: false, canAutoResize: false, width: 110 },
+      { name: commissionLabel, prop: 'commission', sortable: false, canAutoResize: false, width: 130 },
+      { name: 'Monto vendido', prop: 'totalSold', sortable: false, canAutoResize: false, width: 130 },
+      { name: 'Meta', prop: 'goal', sortable: false, canAutoResize: false, width: 200 },
+    ];
+  }
+
+  private mapRow(r: SalesReportApiRow): SellerSalesRow {
+    const posCode = r.seller_pos_user_code ?? null;
+    const sellerName = r.seller_name?.trim() || 'Sin nombre';
+    const sellerDisplayName =
+      posCode != null && String(posCode).trim() !== ''
+        ? `${sellerName} (${posCode})`
+        : sellerName;
+
+    const goal = r.goal;
+    const hasGoal = !!goal?.has_goal;
+
     return {
       billingBranchId: r.billing_branch_id,
       branchCode: r.branch_code,
       branchName: r.branch_name,
       sellerId: r.seller_id,
-      sellerName: r.seller_name,
+      sellerName,
+      sellerPosUserCode: posCode,
+      sellerDisplayName,
       salesCount: r.total_sales_count,
       commissionRatePct: r.commission_percentage,
       commissionAmount: r.commission_amount,
       totalSold: r.amount_sold,
+      hasGoal,
+      goalMetricType: hasGoal ? (goal?.metric_type ?? null) : null,
+      goalTargetValue: hasGoal ? (goal?.target_value ?? null) : null,
+      goalCurrentValue: hasGoal ? (goal?.current_value ?? null) : null,
+      goalProgressPct: hasGoal ? (goal?.progress_percentage ?? null) : null,
     };
-  }
-
-  private startOfDay(d: Date): Date {
-    const x = new Date(d);
-    x.setHours(0, 0, 0, 0);
-    return x;
-  }
-
-  private toInputDate(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-
-  private parseInputDate(value: string): Date | null {
-    const [y, m, d] = value.split('-').map(Number);
-    if (!y || !m || !d) {
-      return null;
-    }
-    const date = new Date(y, m - 1, d);
-    return Number.isNaN(date.getTime()) ? null : date;
   }
 }

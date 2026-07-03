@@ -19,6 +19,7 @@ import { ContractFilterIndicatorComponent } from '../../components/contract-filt
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { ArrowRight, AlertCircle, Download } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 
 @Component({
   selector: 'app-contracts-list',
@@ -30,7 +31,8 @@ import { LucideAngularModule } from 'lucide-angular';
     ButtonComponent,
     ContractFilterIndicatorComponent,
     LucideAngularModule,
-    MatTooltipModule
+    MatTooltipModule,
+    FilterClearButtonComponent
   ],
   templateUrl: './contracts-list.component.html',
   styleUrl: './contracts-list.component.scss'
@@ -306,6 +308,10 @@ export class ContractsListComponent implements OnDestroy {
       relativeTo: this.route,
       queryParams: {}
     });
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(this.search || this.activeFilter());
   }
 
   onFilterClear(filterType: 'search' | 'status' | 'all') {

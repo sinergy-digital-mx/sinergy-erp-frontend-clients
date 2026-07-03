@@ -20,11 +20,12 @@ import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
 import { ChevronRight, ChevronDown, ArrowRightLeft } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 
 @Component({
   selector: 'app-inventory-batch-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RemoveTrailingZerosPipe, DatatableWrapperComponent, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterLink, RemoveTrailingZerosPipe, DatatableWrapperComponent, LucideAngularModule, FilterClearButtonComponent],
   templateUrl: './inventory-batch-list.component.html',
   styleUrl: './inventory-batch-list.component.scss'
 })
@@ -284,6 +285,16 @@ export class InventoryBatchListComponent implements OnInit {
     } else {
       this.loadSummary();
     }
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(this.searchTerm() || this.selectedWarehouse());
+  }
+
+  clearFilters(): void {
+    this.searchTerm.set('');
+    this.selectedWarehouse.set('');
+    this.onSearch();
   }
 
   onPageChange(event: IPaginationEvent): void {

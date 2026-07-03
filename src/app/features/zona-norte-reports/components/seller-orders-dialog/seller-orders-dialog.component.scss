@@ -1,0 +1,121 @@
+.seller-orders-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  width: min(920px, 95vw);
+}
+
+.seller-orders-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.seller-orders-dialog__header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.seller-orders-dialog__header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.close-btn {
+  border: none;
+  background: #f1f5f9;
+  color: #475569;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.seller-orders-dialog__body {
+  padding: 1rem 1.25rem 1.25rem;
+  overflow: auto;
+}
+
+.folio-link {
+  border: none;
+  background: transparent;
+  color: #4f46e5;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.folio-link:hover {
+  text-decoration: underline;
+}
+
+.customer-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.customer-cell__names {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.customer-cell__company {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-cell__person {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.walk-in-chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.payment-pill {
+  display: inline-flex;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.payment-pill--paid {
+  background: #ecfdf5;
+  color: #059669;
+}

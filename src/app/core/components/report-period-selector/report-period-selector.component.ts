@@ -1,8 +1,13 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 export type ReportPeriod = 'today' | 'week' | 'month' | 'year' | 'range';
+
+const MONTH_LABELS = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
 
 @Component({
   selector: 'app-report-period-selector',
@@ -15,14 +20,56 @@ export type ReportPeriod = 'today' | 'week' | 'month' | 'year' | 'range';
         [class.zn-period-panel--range]="period === 'range'">
         <div class="zn-period-toggle" role="group">
           @for (opt of visibleOptions; track opt.value) {
-            <button
-              type="button"
-              class="zn-period-toggle__btn"
-              [class.zn-period-toggle__btn--active]="period === opt.value"
-              [attr.aria-pressed]="period === opt.value"
-              (click)="onSelectPeriod(opt.value)">
-              {{ opt.label }}
-            </button>
+            @if (opt.value === 'month') {
+              <div class="zn-period-toggle__month-wrap">
+                <button
+                  type="button"
+                  class="zn-period-toggle__btn zn-period-toggle__btn--month"
+                  [class.zn-period-toggle__btn--active]="isMonthActive"
+                  [attr.aria-pressed]="isMonthActive"
+                  [attr.aria-expanded]="monthDropdownOpen"
+                  aria-haspopup="listbox"
+                  (click)="toggleMonthDropdown($event)">
+                  <span>{{ opt.label }}</span>
+                  <svg
+                    class="zn-period-toggle__chevron"
+                    [class.zn-period-toggle__chevron--open]="monthDropdownOpen"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                @if (monthDropdownOpen) {
+                  <div class="zn-period-month-menu" role="listbox" aria-label="Seleccionar mes">
+                    @for (m of monthOptions; track m.index) {
+                      <button
+                        type="button"
+                        class="zn-period-month-menu__item"
+                        role="option"
+                        [class.zn-period-month-menu__item--active]="isMonthOptionSelected(m.index)"
+                        [attr.aria-selected]="isMonthOptionSelected(m.index)"
+                        (click)="onSelectMonth(m.index)">
+                        {{ m.label }}
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            } @else {
+              <button
+                type="button"
+                class="zn-period-toggle__btn"
+                [class.zn-period-toggle__btn--active]="period === opt.value"
+                [attr.aria-pressed]="period === opt.value"
+                (click)="onSelectPeriod(opt.value)">
+                {{ opt.label }}
+              </button>
+            }
           }
           <button
             type="button"
@@ -89,6 +136,7 @@ export type ReportPeriod = 'today' | 'week' | 'month' | 'year' | 'range';
     `
       .zn-period-bar {
         flex-shrink: 0;
+        overflow: visible;
       }
       .zn-period-panel {
         display: inline-flex;
@@ -96,6 +144,7 @@ export type ReportPeriod = 'today' | 'week' | 'month' | 'year' | 'range';
         align-items: stretch;
         width: fit-content;
         max-width: 100%;
+        overflow: visible;
         background: #fff;
         border-radius: 16px;
         padding: 0.25rem;
@@ -138,10 +187,64 @@ export type ReportPeriod = 'today' | 'week' | 'month' | 'year' | 'range';
         color: #fff;
         box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
       }
-      .zn-period-toggle__btn--range {
+      .zn-period-toggle__btn--range,
+      .zn-period-toggle__btn--month {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
+      }
+      .zn-period-toggle__month-wrap {
+        position: relative;
+        flex-shrink: 0;
+      }
+      .zn-period-toggle__chevron {
+        width: 0.75rem;
+        height: 0.75rem;
+        flex-shrink: 0;
+        opacity: 0.7;
+        transition: transform 0.15s ease;
+      }
+      .zn-period-toggle__chevron--open {
+        transform: rotate(180deg);
+      }
+      .zn-period-month-menu {
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        left: 0;
+        z-index: 40;
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+        min-width: 8.5rem;
+        max-height: min(18rem, 70vh);
+        overflow-y: auto;
+        padding: 0.35rem;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+      }
+      .zn-period-month-menu__item {
+        border: none;
+        background: transparent;
+        color: #475569;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        padding: 0.45rem 0.75rem;
+        border-radius: 8px;
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.15s ease, color 0.15s ease;
+        white-space: nowrap;
+        width: 100%;
+      }
+      .zn-period-month-menu__item:hover {
+        background: #f8fafc;
+        color: #334155;
+      }
+      .zn-period-month-menu__item--active {
+        background: #eef2ff;
+        color: #4338ca;
       }
       .zn-period-toggle__icon {
         width: 1rem;
@@ -250,11 +353,17 @@ export class ReportPeriodSelectorComponent {
   @Output() periodChange = new EventEmitter<ReportPeriod>();
   @Output() rangeChange = new EventEmitter<{ dateFrom: string; dateTo: string }>();
 
+  monthDropdownOpen = false;
+
+  readonly monthOptions = MONTH_LABELS.map((label, index) => ({ label, index }));
+
   readonly baseOptions: { label: string; value: Exclude<ReportPeriod, 'range'> }[] = [
     { label: 'Hoy', value: 'today' },
     { label: 'Semana', value: 'week' },
     { label: 'Mes', value: 'month' },
   ];
+
+  constructor(private elementRef: ElementRef<HTMLElement>) {}
 
   get visibleOptions(): { label: string; value: Exclude<ReportPeriod, 'range'> }[] {
     if (this.includeYear) {
@@ -263,7 +372,72 @@ export class ReportPeriodSelectorComponent {
     return this.baseOptions;
   }
 
+  get isMonthActive(): boolean {
+    if (this.period === 'month') {
+      return true;
+    }
+    if (this.period === 'range' && this.dateFrom && this.dateTo) {
+      return this.getMonthIndexFromRange(this.dateFrom, this.dateTo) !== null;
+    }
+    return false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.monthDropdownOpen) {
+      return;
+    }
+    const target = event.target as Node | null;
+    if (target && !this.elementRef.nativeElement.contains(target)) {
+      this.monthDropdownOpen = false;
+    }
+  }
+
+  toggleMonthDropdown(event: MouseEvent): void {
+    event.stopPropagation();
+    this.monthDropdownOpen = !this.monthDropdownOpen;
+  }
+
+  isMonthOptionSelected(monthIndex: number): boolean {
+    if (this.period === 'month') {
+      return monthIndex === new Date().getMonth();
+    }
+    if (this.period === 'range' && this.dateFrom && this.dateTo) {
+      return this.getMonthIndexFromRange(this.dateFrom, this.dateTo) === monthIndex;
+    }
+    return false;
+  }
+
+  onSelectMonth(monthIndex: number): void {
+    this.monthDropdownOpen = false;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const from = new Date(year, monthIndex, 1);
+    const lastDay = new Date(year, monthIndex + 1, 0);
+    const today = this.startOfDay(now);
+    // Mes cerrado: día 1 → último día. Mes actual: día 1 → hoy.
+    const to = lastDay > today ? today : lastDay;
+
+    // Siempre rango explícito (evita que period=month use "mes actual" del servidor
+    // y que metas se resuelvan en otro mes por timezone).
+    const dateFrom = this.toInputDate(from);
+    const dateTo = this.toInputDate(to);
+    this.dateFrom = dateFrom;
+    this.dateTo = dateTo;
+    this.periodChange.emit('range');
+    this.rangeChange.emit({ dateFrom, dateTo });
+  }
+
   onSelectPeriod(preset: ReportPeriod): void {
+    this.monthDropdownOpen = false;
+
+    if (preset === 'month') {
+      // Mes actual como rango explícito (mismo path que elegir el mes en el dropdown).
+      this.onSelectMonth(new Date().getMonth());
+      return;
+    }
+
     if (preset === 'range' && (!this.dateFrom || !this.dateTo)) {
       const to = this.startOfDay(new Date());
       const from = new Date(to);
@@ -272,8 +446,8 @@ export class ReportPeriodSelectorComponent {
       this.dateTo = this.toInputDate(to);
     }
     this.periodChange.emit(preset);
-    if (preset !== 'range' || (this.dateFrom && this.dateTo)) {
-      this.emitRangeIfNeeded();
+    if (preset === 'range' && this.dateFrom && this.dateTo) {
+      this.rangeChange.emit({ dateFrom: this.dateFrom, dateTo: this.dateTo });
     }
   }
 
@@ -294,7 +468,7 @@ export class ReportPeriodSelectorComponent {
       this.dateTo = tmp;
     }
 
-    this.emitRangeIfNeeded();
+    this.rangeChange.emit({ dateFrom: this.dateFrom, dateTo: this.dateTo });
   }
 
   customRangeAriaLabel(): string {
@@ -304,10 +478,30 @@ export class ReportPeriodSelectorComponent {
     return 'Seleccionar rango de fechas personalizado';
   }
 
-  private emitRangeIfNeeded(): void {
-    if (this.period === 'range' && this.dateFrom && this.dateTo) {
-      this.rangeChange.emit({ dateFrom: this.dateFrom, dateTo: this.dateTo });
+  private getMonthIndexFromRange(dateFrom: string, dateTo: string): number | null {
+    const from = this.parseInputDate(dateFrom);
+    const to = this.parseInputDate(dateTo);
+    if (!from || !to || from.getFullYear() !== to.getFullYear() || from.getMonth() !== to.getMonth()) {
+      return null;
     }
+
+    const year = from.getFullYear();
+    const monthIndex = from.getMonth();
+    const monthStart = this.toInputDate(new Date(year, monthIndex, 1));
+    const monthEnd = this.toInputDate(new Date(year, monthIndex + 1, 0));
+    const now = this.startOfDay(new Date());
+    const expectedEnd = this.toInputDate(
+      new Date(year, monthIndex + 1, 0) > now ? now : new Date(year, monthIndex + 1, 0)
+    );
+
+    if (dateFrom !== monthStart) {
+      return null;
+    }
+    if (dateTo !== monthEnd && dateTo !== expectedEnd) {
+      return null;
+    }
+
+    return monthIndex;
   }
 
   private startOfDay(d: Date): Date {

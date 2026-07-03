@@ -87,7 +87,7 @@ export class FiscalConfigurationListComponent implements OnInit {
 
   openCreateDialog(): void {
     const dialogRef = this.dialog.open(FiscalConfigurationModalComponent, {
-      width: '800px',
+      width: '1050px',
       data: { fiscalConfig: null }
     });
 
@@ -101,7 +101,7 @@ export class FiscalConfigurationListComponent implements OnInit {
 
   openEditDialog(config: FiscalConfiguration): void {
     const dialogRef = this.dialog.open(FiscalConfigurationModalComponent, {
-      width: '800px',
+      width: '1050px',
       data: { fiscalConfig: config }
     });
 

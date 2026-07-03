@@ -1,0 +1,113 @@
+@use 'form-controls' as fc;
+
+.filter-bar {
+  background: transparent;
+  padding: 0;
+  margin-bottom: 1rem;
+  border: none;
+  box-shadow: none;
+
+  &__container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+
+    &--clear {
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    &--action {
+      align-items: flex-end;
+      justify-content: end;
+    }
+  }
+
+  &__label {
+    display: none;
+  }
+
+  &__input {
+    @include fc.pollux-field-base;
+  }
+
+  &__select {
+    @include fc.pollux-select-field;
+  }
+
+  &__clear-button {
+    @include fc.pollux-clear-button;
+    margin-left: auto;
+
+    &:disabled,
+    &--inactive {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    &:disabled:hover,
+    &--inactive:hover {
+      border-color: fc.$pollux-control-border;
+      background: fc.$pollux-control-bg;
+      color: #6b7280;
+    }
+  }
+
+  &__clear-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    display: block;
+  }
+
+  &__checkbox {
+    display: flex;
+    align-items: center;
+    min-height: fc.$pollux-control-height;
+  }
+
+  &__checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: fc.$pollux-control-font-size;
+    color: fc.$pollux-control-text;
+    user-select: none;
+
+    span {
+      white-space: nowrap;
+    }
+  }
+
+  &__checkbox-input {
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+    accent-color: fc.$pollux-control-focus-border;
+  }
+}
+
+@media (max-width: 1024px) {
+  .filter-bar__container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-bar__container {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .filter-bar__field {
+    width: 100%;
+  }
+}

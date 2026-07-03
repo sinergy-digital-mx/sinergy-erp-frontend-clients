@@ -1,4 +1,4 @@
-@if (branchMissing) {
+@if (branchMissing()) {
   <div class="accounting-empty">
     <p>Selecciona una sucursal para ver el resumen de puntos de venta.</p>
   </div>
@@ -8,42 +8,76 @@
       <h3 class="pos-summary-section__title">Terminales de venta</h3>
       <div class="pos-summary-table-wrap">
         <app-datatable-wrapper
-          [config]="tableConfig"
+          [config]="tableConfig()"
           [rowTemplate]="tableTemplate">
         </app-datatable-wrapper>
       </div>
     </div>
 
-    <div class="pos-summary-section pos-summary-section--collection">
-      <h3 class="pos-summary-section__title">Terminal de cobranza</h3>
-      @if (collectionMetrics().terminal_name) {
-        <p class="pos-summary-section__subtitle">{{ collectionMetrics().terminal_name }}</p>
-      }
-      <div class="collection-metrics">
-        <div class="collection-metric">
-          <span class="collection-metric__label">Órdenes cobradas</span>
-          <span class="collection-metric__value">{{ collectionMetrics().orders_collected }}</span>
+    <aside class="collection-card">
+      <div class="collection-card__head">
+        <div class="collection-card__icon" aria-hidden="true">
+          <i class="fi fi-rr-credit-card"></i>
         </div>
-        <div class="collection-metric">
-          <span class="collection-metric__label">Total cobrado</span>
-          <span class="collection-metric__value">{{ formatCurrency(collectionMetrics().amount_collected) }}</span>
-        </div>
-        <div class="collection-metric">
-          <span class="collection-metric__label">Público en General</span>
-          <span class="collection-metric__value">{{ collectionMetrics().walk_in_count }}</span>
-        </div>
-        <div class="collection-metric">
-          <span class="collection-metric__label">Facturadas</span>
-          <span class="collection-metric__value">{{ collectionMetrics().invoiced_count }}</span>
+        <div class="collection-card__head-text">
+          <h3 class="collection-card__title">Cobranza</h3>
+          <p class="collection-card__terminal">
+            {{ collectionTerminal().terminal_name || 'Sin terminal asignada' }}
+          </p>
         </div>
       </div>
-    </div>
+
+      <button
+        type="button"
+        class="collection-card__hero"
+        (click)="openCollections('all')"
+        [attr.aria-label]="'Ver ' + collectionTerminal().orders_collected + ' órdenes cobradas'">
+        <span class="collection-card__hero-label">Total cobrado</span>
+        <span class="collection-card__hero-amount">
+          {{ formatCurrency(collectionTerminal().amount_collected) }}
+        </span>
+        <span class="collection-card__hero-meta">
+          {{ collectionTerminal().orders_collected }} órdenes · ver detalle
+          <i class="fi fi-rr-angle-right" aria-hidden="true"></i>
+        </span>
+      </button>
+
+      <div class="collection-card__metrics">
+        <button
+          type="button"
+          class="collection-metric collection-metric--all"
+          (click)="openCollections('all')">
+          <span class="collection-metric__label">Órdenes cobradas</span>
+          <span class="collection-metric__value">{{ collectionTerminal().orders_collected }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="collection-metric collection-metric--walk-in"
+          (click)="openCollections('walk_in')">
+          <span class="collection-metric__label">Público en General</span>
+          <span class="collection-metric__value">{{ collectionTerminal().walk_in_count }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="collection-metric collection-metric--invoiced"
+          (click)="openCollections('invoiced')">
+          <span class="collection-metric__label">Facturadas</span>
+          <span class="collection-metric__value">{{ collectionTerminal().invoiced_count }}</span>
+        </button>
+      </div>
+
+      <p class="collection-card__hint">
+        Por fecha de cobro. Puede diferir del # de ventas del periodo.
+      </p>
+    </aside>
   </div>
 }
 
 <ng-template #tableTemplate let-item="$implicit">
   <td class="px-2 py-2">
-    <p class="text-sm font-medium text-gray-900 m-0">{{ item.terminal_name }}</p>
+    <p class="dt-cell-primary m-0">{{ item.terminal_name }}</p>
   </td>
   <td class="px-2 py-2">
     <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-800">
@@ -51,7 +85,7 @@
     </span>
   </td>
   <td class="px-2 py-2">
-    <p class="text-sm font-semibold text-gray-900 m-0">{{ formatCurrency(item.amount_sold) }}</p>
+    <p class="dt-cell-amount m-0">{{ formatCurrency(item.amount_sold) }}</p>
   </td>
   <td class="px-2 py-2">
     <button type="button" class="detail-link-btn" (click)="openTerminalDetail(item)">

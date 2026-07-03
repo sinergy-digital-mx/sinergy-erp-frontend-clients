@@ -13,7 +13,9 @@ import {
   AccountsReceivableListSummary,
   AccountsReceivableOrderRow,
   AccountsReceivableRow,
+  CollectionCustomerType,
   CollectionTerminalSummary,
+  PosCollectionRow,
   PosSummaryResponse,
   PosTerminalSaleRow,
   SalesTerminalSummary,
@@ -44,6 +46,22 @@ export class AccountingService {
     return this.http
       .get<unknown>(`${this.api}/pos-terminals/${terminalUserId}/sales`, { params })
       .pipe(map((raw) => this.parsePaginated<PosTerminalSaleRow>(raw)));
+  }
+
+  getPosCollections(
+    query: AccountingPeriodQuery,
+    customerType: CollectionCustomerType = 'all',
+    page = 1,
+    limit = 20
+  ): Observable<AccountingPaginatedResponse<PosCollectionRow>> {
+    const params = this.buildPeriodParams(query)
+      .set('customer_type', customerType)
+      .set('page', String(page))
+      .set('limit', String(limit));
+
+    return this.http
+      .get<unknown>(`${this.api}/pos-collections`, { params })
+      .pipe(map((raw) => this.parsePaginated<PosCollectionRow>(raw)));
   }
 
   getAccountsPayable(

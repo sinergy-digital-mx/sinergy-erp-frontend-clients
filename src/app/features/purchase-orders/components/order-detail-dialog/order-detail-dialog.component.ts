@@ -6,6 +6,10 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialog, MatDialogModule } from '@angu
 import { ToastService } from '../../../../core/services/toast.service';
 import { Document, DocumentLanguage, DocumentType, PurchaseOrder } from '../../models/purchase-order.model';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
+import {
+  PurchaseOrderNotesDialogComponent,
+  PurchaseOrderNotesDialogResult,
+} from '../purchase-order-notes-dialog/purchase-order-notes-dialog.component';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 import { ReceiptModalComponent } from '../receipt-modal/receipt-modal.component';
 import { PaymentDialogComponent, PaymentFormData } from '../payment-dialog/payment-dialog.component';
@@ -82,6 +86,11 @@ export class OrderDetailDialogComponent {
     return st === 'Creada' || st === 'En Proceso';
   });
 
+  canEditNotes = computed(() => {
+    const status = this.order()?.general_status ?? this.order()?.status ?? '';
+    return status !== 'Cancelada';
+  });
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { orderId: string },
     private dialogRef: MatDialogRef<OrderDetailDialogComponent>,
@@ -123,6 +132,36 @@ export class OrderDetailDialogComponent {
     if (!id) return;
     this.dialogRef.close();
     void this.router.navigate(['/purchase-orders', id, 'edit']);
+  }
+
+  openNotesEditor(): void {
+    const order = this.order();
+    if (!order || !this.canEditNotes()) {
+      return;
+    }
+
+    this.dialog
+      .open(PurchaseOrderNotesDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: 'textarea',
+        data: {
+          orderId: order.id,
+          notes: order.notes ?? '',
+          folio: order.folio,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: PurchaseOrderNotesDialogResult | undefined) => {
+        if (!result?.saved) {
+          return;
+        }
+
+        this.order.update((current) =>
+          current ? { ...current, notes: result.notes ?? undefined } : current
+        );
+        this.toast.success(result.notes ? 'Notas actualizadas' : 'Notas eliminadas');
+      });
   }
 
   toggleTotals(showReceived: boolean): void {

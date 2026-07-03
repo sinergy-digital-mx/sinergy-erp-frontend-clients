@@ -1,191 +1,195 @@
-<div class="px-0 sm:px-4 pb-6">
-    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-      <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Clientes</h2>
-  
-      <div class="flex flex-col gap-3 w-full md:w-auto">
-        <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <app-customer-group-dropdown
-            class="w-full sm:w-auto"
-            [selectedGroupId]="selectedGroupId"
-            (groupSelect)="onGroupSelect($event)">
-          </app-customer-group-dropdown>
+<div class="customers-page">
+  <div class="customers-page__header">
+    <h1 class="customers-page__title">Clientes</h1>
+    <button type="button" class="customers-page__create-btn" (click)="createCustomer()">
+      <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
+      <span>Crear Cliente</span>
+    </button>
+  </div>
 
-          <app-select
-            class="w-full sm:w-auto"
-            [config]="statusSelectConfig"
-            (changeOption)="onStatusSelect($event)">
-          </app-select>
-        </div>
+  <div class="customers-page__toolbar">
+    <app-search
+      class="customers-page__search"
+      [showSearchIcon]="true"
+      placeholder="Buscar clientes..."
+      [param_activate]="true"
+      param_name="search"
+      (searchChange)="onSearchChange($event)">
+    </app-search>
 
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <app-search
-            class="w-full sm:w-64"
-            [param_activate]="true"
-            param_name="search"
-            (searchChange)="onSearchChange($event)">
-          </app-search>
-    
-          <app-button
-            text="Crear Cliente"
-            custom_class="btn_primary w-full sm:w-auto"
-            (click)="createCustomer()">
-          </app-button>
-        </div>
-      </div>
-    </div>
+    <app-customer-group-dropdown
+      class="customers-page__filter"
+      [selectedGroupId]="selectedGroupId"
+      (groupSelect)="onGroupSelect($event)">
+    </app-customer-group-dropdown>
 
+    <app-select
+      class="customers-page__filter"
+      [config]="statusSelectConfig"
+      (changeOption)="onStatusSelect($event)">
+    </app-select>
+
+    <app-filter-clear-button
+      class="customers-page__clear"
+      [active]="hasActiveFilters"
+      (clear)="onFilterClear('all')">
+    </app-filter-clear-button>
+  </div>
+
+  @if (search || selectedGroupId || selectedStatusId) {
     <app-customer-filter-indicator
+      class="customers-page__filter-indicator"
       [activeGroupId]="selectedGroupId"
       [activeGroupName]="selectedGroupName"
       [activeStatusFilter]="selectedStatusId"
+      [activeStatusName]="selectedStatusName"
       [activeSearchTerm]="search"
       (filterClear)="onFilterClear($event)">
     </app-customer-filter-indicator>
-  
-    <app-datatable-wrapper
-      class="hidden md:block"
-      [config]="table_config()"
-      [rowTemplate]="tableTemplate"
-      (pageChange)="onPageChange($event)"
-      (sortChange)="onSortChange($event)"
-      (rowClick)="onRowClick($event)">
-    </app-datatable-wrapper>
+  }
 
-    <!-- Mobile Cards -->
-    <div class="block md:hidden">
-      @if (table_config().loading) {
-        <div class="py-10 text-center text-gray-500 text-sm">Cargando clientes...</div>
-      } @else if (!table_config().rows?.length) {
-        <div class="py-10 text-center text-gray-500 text-sm">No se encontraron clientes</div>
-      } @else {
-        <div class="space-y-3">
-          @for (item of table_config().rows; track item.id) {
-            <div
-              class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm active:bg-gray-50"
-              (click)="viewDetail(item)">
-              <div class="flex justify-between items-start gap-2 mb-3">
-                <div class="min-w-0 flex-1">
-                  <h3 class="font-semibold text-gray-900 truncate">{{ item.name }} {{ item.lastname }}</h3>
-                  <p class="text-sm text-gray-500 truncate mt-0.5">{{ item.email }}</p>
-                </div>
-                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 shrink-0">
-                  {{ item.status?.name || item.status_id }}
-                </span>
+  <app-datatable-wrapper
+    class="customers-page__table hidden md:block"
+    variant="modern"
+    [config]="table_config()"
+    [rowTemplate]="tableTemplate"
+    (pageChange)="onPageChange($event)"
+    (sortChange)="onSortChange($event)"
+    (rowClick)="onRowClick($event)">
+  </app-datatable-wrapper>
+
+  <!-- Mobile Cards -->
+  <div class="block md:hidden">
+    @if (table_config().loading) {
+      <div class="py-10 text-center text-gray-500 text-sm">Cargando clientes...</div>
+    } @else if (!table_config().rows?.length) {
+      <div class="py-10 text-center text-gray-500 text-sm">No se encontraron clientes</div>
+    } @else {
+      <div class="space-y-3">
+        @for (item of table_config().rows; track item.id) {
+          <div
+            class="customers-mobile-card"
+            (click)="viewDetail(item)">
+            <div class="flex justify-between items-start gap-3 mb-3">
+              <div class="min-w-0 flex-1">
+                <h3 class="customer-cell__name" [title]="getFullCustomerName(item)">
+                  {{ formatCustomerName(item) }}
+                </h3>
+                <p class="customer-cell__email mt-0.5">{{ item.email }}</p>
               </div>
+              <span class="status-pill" [ngClass]="getStatusPillClass(item)">
+                <span class="status-pill__dot"></span>
+                {{ getStatusLabel(item) }}
+              </span>
+            </div>
 
-              <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div class="col-span-2">
-                  <span class="text-xs text-gray-500 block">Teléfono</span>
-                  <app-phone
-                    [phone]="item.phone"
-                    [countryCode]="item.phone_country"
-                    [countryPhoneCode]="item.phone_code">
-                  </app-phone>
-                </div>
-                <div>
-                  <span class="text-xs text-gray-500 block">Grupo</span>
-                  <span class="text-gray-900">{{ item.group?.name || '—' }}</span>
-                </div>
-                <div>
-                  <span class="text-xs text-gray-500 block">Lotes</span>
-                  @if (item.contracts && item.contracts.length > 0) {
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        {{ item.contracts[0].property.code }}
-                      </span>
-                      @if (item.contracts.length > 1) {
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                          +{{ item.contracts.length - 1 }}
-                        </span>
-                      }
-                    </div>
-                  } @else {
-                    <span class="text-gray-400">—</span>
-                  }
-                </div>
-                <div class="col-span-2">
-                  <span class="text-xs text-gray-500 block">Creado</span>
-                  <span class="text-gray-900">{{ item.created_at | date:'mediumDate' }}</span>
-                </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div class="col-span-2">
+                <span class="text-xs text-gray-500 block">Teléfono</span>
+                <app-phone
+                  [phone]="item.phone"
+                  [countryCode]="item.phone_country"
+                  [countryPhoneCode]="item.phone_code">
+                </app-phone>
               </div>
-
-              <div class="mt-3 pt-3 border-t border-gray-100" (click)="$event.stopPropagation()">
-                <app-button
-                  text="Ver Detalle"
-                  size="sm"
-                  [fullWidth]="true"
-                  custom_class="btn_primary"
-                  (clicked)="viewDetail(item)"
-                  [icon]="ArrowRight">
-                </app-button>
+              <div>
+                <span class="text-xs text-gray-500 block">Grupo</span>
+                <span class="text-[#64748b]">{{ item.group?.name || '—' }}</span>
+              </div>
+              <div>
+                <span class="text-xs text-gray-500 block">Lotes</span>
+                @if (item.contracts && item.contracts.length > 0) {
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="lot-badge">{{ item.contracts[0].property.code }}</span>
+                    @if (item.contracts.length > 1) {
+                      <span class="lot-badge lot-badge--more">+{{ item.contracts.length - 1 }}</span>
+                    }
+                  </div>
+                } @else {
+                  <span class="text-gray-400">—</span>
+                }
+              </div>
+              <div class="col-span-2">
+                <span class="text-xs text-gray-500 block">Creado</span>
+                <span class="text-[#94a3b8]">{{ item.created_at | date:'mediumDate' }}</span>
               </div>
             </div>
-          }
-        </div>
 
-        @if ((table_config().totalResults ?? 0) > (table_config().limit ?? 20)) {
-          <div class="mt-4 flex justify-center">
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                [disabled]="table_config().page === 1"
-                (click)="onPageChange({page: (table_config().page ?? 1) - 1, limit: table_config().limit ?? 20})"
-                class="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 bg-white">
-                Anterior
-              </button>
-              <span class="text-sm text-gray-600">
-                {{ table_config().page }} / {{ Math.ceil((table_config().totalResults ?? 0) / (table_config().limit ?? 20)) }}
-              </span>
-              <button
-                type="button"
-                [disabled]="!table_config().hasNext"
-                (click)="onPageChange({page: (table_config().page ?? 1) + 1, limit: table_config().limit ?? 20})"
-                class="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 bg-white">
-                Siguiente
+            <div class="mt-3 pt-3 border-t border-gray-100 flex justify-end" (click)="$event.stopPropagation()">
+              <button type="button" class="customers-action-btn" (click)="viewDetail(item)" aria-label="Ver detalle">
+                <lucide-icon [img]="ArrowRight" [size]="18"></lucide-icon>
               </button>
             </div>
           </div>
         }
+      </div>
+
+      @if ((table_config().totalResults ?? 0) > (table_config().limit ?? 20)) {
+        <div class="mt-4 flex justify-center">
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              [disabled]="table_config().page === 1"
+              (click)="onPageChange({page: (table_config().page ?? 1) - 1, limit: table_config().limit ?? 20})"
+              class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-50 bg-white text-gray-600">
+              Anterior
+            </button>
+            <span class="text-sm text-gray-600">
+              {{ table_config().page }} / {{ Math.ceil((table_config().totalResults ?? 0) / (table_config().limit ?? 20)) }}
+            </span>
+            <button
+              type="button"
+              [disabled]="!table_config().hasNext"
+              (click)="onPageChange({page: (table_config().page ?? 1) + 1, limit: table_config().limit ?? 20})"
+              class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-50 bg-white text-gray-600">
+              Siguiente
+            </button>
+          </div>
+        </div>
       }
-    </div>
+    }
   </div>
-  
-  <ng-template #tableTemplate let-item="$implicit" let-rowIndex="rowIndex">
-    <td><p>{{ item.name }} {{ item.lastname }}</p></td>
-    <td>{{ item.email }}</td>
-    <td>
-      <app-phone 
-        [phone]="item.phone"
-        [countryCode]="item.phone_country"
-        [countryPhoneCode]="item.phone_code">
-      </app-phone>
-    </td>
-    <td>{{ item.group?.name || '—' }}</td>
-    <td>
-      <div *ngIf="item.contracts && item.contracts.length > 0; else noLots" class="flex items-center gap-1.5">
-        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
-          {{ item.contracts[0].property.code }}
-        </span>
-        <span *ngIf="item.contracts.length > 1" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-          +{{ item.contracts.length - 1 }}
-        </span>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit" let-rowIndex="rowIndex">
+  <td class="customers-col-name">
+    <div class="customer-cell">
+      <span class="customer-cell__name dt-cell-primary" [title]="getFullCustomerName(item)">
+        {{ formatCustomerName(item) }}
+      </span>
+      <span class="customer-cell__email">{{ item.email }}</span>
+    </div>
+  </td>
+  <td>
+    <app-phone
+      [phone]="item.phone"
+      [countryCode]="item.phone_country"
+      [countryPhoneCode]="item.phone_code">
+    </app-phone>
+  </td>
+  <td class="text-[#64748b] text-sm">{{ item.group?.name || '—' }}</td>
+  <td>
+    @if (item.contracts && item.contracts.length > 0) {
+      <div class="flex items-center gap-1.5">
+        <span class="lot-badge">{{ item.contracts[0].property.code }}</span>
+        @if (item.contracts.length > 1) {
+          <span class="lot-badge lot-badge--more">+{{ item.contracts.length - 1 }}</span>
+        }
       </div>
-      <ng-template #noLots>
-        <span class="text-sm text-gray-400">—</span>
-      </ng-template>
-    </td>
-    <td>{{ item.status?.name || item.status_id }}</td>
-    <td>{{ item.created_at | date:'mediumDate' }}</td>
-    <td (click)="$event.stopPropagation()">
-      <div class="flex gap-2">
-        <app-button
-          text="Detalle"
-          size="sm"
-          [fullWidth]="false"
-          custom_class="btn_primary"
-          (clicked)="viewDetail(item)"
-          [icon]="ArrowRight">
-        </app-button>
-      </div>
-    </td>
-  </ng-template>
+    } @else {
+      <span class="text-gray-400">—</span>
+    }
+  </td>
+  <td>
+    <span class="status-pill" [ngClass]="getStatusPillClass(item)">
+      <span class="status-pill__dot"></span>
+      {{ getStatusLabel(item) }}
+    </span>
+  </td>
+  <td class="text-[#94a3b8] text-sm">{{ item.created_at | date:'mediumDate' }}</td>
+  <td (click)="$event.stopPropagation()">
+    <button type="button" class="customers-action-btn" (click)="viewDetail(item)" aria-label="Ver detalle">
+      <lucide-icon [img]="ArrowRight" [size]="18"></lucide-icon>
+    </button>
+  </td>
+</ng-template>

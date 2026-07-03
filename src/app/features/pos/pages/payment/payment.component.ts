@@ -104,6 +104,9 @@ interface PendingSale {
   id: string;
   folio?: string;
   total?: number | string;
+  /** Saldo real por cobrar (considera anticipos registrados en detalle OV). */
+  amount_pending?: number | string;
+  amount_paid?: number | string;
   created_at?: string;
   customer?: PendingSaleCustomer;
   seller_user?: { first_name?: string; last_name?: string; pos_user_code?: number | null };
@@ -207,7 +210,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
     return `${count} cobrada${count === 1 ? '' : 's'} · ${total}`;
   });
 
-  readonly orderTotal = computed(() => parseOrderTotal(this.selectedSale()?.total));
+  /** Monto a cobrar en POS (saldo pendiente, no necesariamente el total original). */
+  readonly orderTotal = computed(() => this.amountPending(this.selectedSale()));
 
   readonly appliedTotal = computed(() => collectAppliedTotal(this.collectForm()));
 
@@ -495,7 +499,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
     this.collectionDetail.set(null);
     this.selectedSale.set(sale);
     this.collectError.set(null);
-    const total = parseOrderTotal(sale.total);
+    const total = this.amountPending(sale);
     this.cashBillCounts.set({});
     this.cashManualMxn.set(0);
     this.cashManualUsd.set(0);
@@ -922,7 +926,39 @@ export class PaymentComponent implements OnInit, OnDestroy {
   }
 
   saleTotal(sale: PendingSale): string {
-    return formatPosMoney(sale.total);
+    return formatPosMoney(this.amountPending(sale));
+  }
+
+  saleOrderTotal(sale: PendingSale): string {
+    return formatPosMoney(this.orderGrandTotalAmount(sale));
+  }
+
+  saleAmountPaid(sale: PendingSale): string {
+    return formatPosMoney(this.amountPaid(sale));
+  }
+
+  private orderGrandTotalAmount(sale: PendingSale | null | undefined): number {
+    return parseOrderTotal(sale?.total);
+  }
+
+  private amountPending(sale: PendingSale | null | undefined): number {
+    if (!sale) return 0;
+    if (sale.amount_pending != null && sale.amount_pending !== '') {
+      return parseOrderTotal(sale.amount_pending);
+    }
+    return this.orderGrandTotalAmount(sale);
+  }
+
+  private amountPaid(sale: PendingSale | null | undefined): number {
+    if (!sale) return 0;
+    if (sale.amount_paid != null && sale.amount_paid !== '') {
+      return parseOrderTotal(sale.amount_paid);
+    }
+    return Math.max(0, this.roundMoney(this.orderGrandTotalAmount(sale) - this.amountPending(sale)));
+  }
+
+  private roundMoney(value: number): number {
+    return Math.round(value * 100) / 100;
   }
 
   sellerLabel(sale: PendingSale): string {

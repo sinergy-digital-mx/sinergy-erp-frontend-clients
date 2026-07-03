@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnInit, inject, signal, computed, ViewChild, TemplateRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { WarehouseService } from '../../../../features/settings/services/warehouse.service';
@@ -14,6 +14,7 @@ import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core
 import { OrderDetailDialogComponent } from '../../components/order-detail-dialog/order-detail-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { CreatePurchaseOrderModalComponent } from '../../components/create-purchase-order-modal/create-purchase-order-modal.component';
+import { PurchaseOrderExportDialogComponent } from '../../components/purchase-order-export-dialog/purchase-order-export-dialog.component';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 
 @Component({
@@ -159,19 +160,50 @@ export class PurchaseOrderListComponent implements OnInit {
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
-        const search = params.get('search')?.trim() || undefined;
-        this.filtersState.update((prev) => {
-          const next: OrderFilters = { ...prev };
-          if (search) {
-            next.search = search;
-          } else {
-            delete next.search;
-          }
-          return next;
-        });
+        this.filtersState.update((prev) => this.mergeQueryParamsIntoFilters(prev, params));
         this.paginationState.set({ page: 1, limit: 15 });
         this.loadOrders();
       });
+  }
+
+  private mergeQueryParamsIntoFilters(prev: OrderFilters, params: ParamMap): OrderFilters {
+    const next: OrderFilters = { ...prev };
+
+    const search = params.get('search')?.trim() || undefined;
+    if (search) {
+      next.search = search;
+    } else {
+      delete next.search;
+    }
+
+    const vendorId = params.get('vendor_id')?.trim() || undefined;
+    if (vendorId) {
+      next.vendorId = vendorId;
+    } else {
+      delete next.vendorId;
+    }
+
+    const unpaidParam = params.get('unpaid')?.trim().toLowerCase();
+    const unpaid = unpaidParam === '1' || unpaidParam === 'true';
+    if (unpaid) {
+      next.unpaid = true;
+      delete next.paymentStatus;
+    } else {
+      delete next.unpaid;
+      const paymentStatus = params.get('payment_status')?.trim() || undefined;
+      if (paymentStatus) {
+        next.paymentStatus = paymentStatus;
+      } else {
+        delete next.paymentStatus;
+      }
+    }
+
+    return next;
+  }
+
+  private queryScopedFilters(filters: OrderFilters): OrderFilters {
+    const params = this.route.snapshot.queryParamMap;
+    return this.mergeQueryParamsIntoFilters(filters, params);
   }
 
   /**
@@ -244,7 +276,7 @@ export class PurchaseOrderListComponent implements OnInit {
    * Apply filters
    */
   applyFilters(filters: OrderFilters): void {
-    this.filtersState.set(filters);
+    this.filtersState.set(this.queryScopedFilters(filters));
     this.paginationState.set({ page: 1, limit: 15 });
     const currentSearch = this.route.snapshot.queryParamMap.get('search')?.trim() || undefined;
     const nextSearch = filters.search?.trim() || undefined;
@@ -281,32 +313,31 @@ export class PurchaseOrderListComponent implements OnInit {
    * Get status badge class
    */
   getStatusClass(status: OrderStatus): string {
+    const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
     switch (status) {
       case 'Creada':
-        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700';
+        return `${base} bg-blue-50 text-blue-700`;
       case 'Recibida':
-        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-700';
+        return `${base} bg-emerald-50 text-emerald-700`;
       case 'Cancelada':
-        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-red-100 text-red-700';
+        return `${base} bg-red-50 text-red-700`;
       default:
-        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700';
+        return `${base} bg-gray-100 text-gray-600`;
     }
   }
 
-  /**
-   * Get payment status badge class
-   */
   getPaymentStatusClass(paymentStatus: PaymentStatus | string): string {
+    const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
     if (this.isPaymentPaid(paymentStatus)) {
-      return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-700';
+      return `${base} bg-emerald-50 text-emerald-700`;
     }
     switch (paymentStatus) {
       case 'Parcial':
-        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-700';
+        return `${base} bg-amber-50 text-amber-700`;
       case 'Pendiente':
-        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-red-100 text-red-700';
+        return `${base} bg-red-50 text-red-700`;
       default:
-        return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700';
+        return `${base} bg-gray-100 text-gray-600`;
     }
   }
 
@@ -367,6 +398,15 @@ export class PurchaseOrderListComponent implements OnInit {
       if (result) {
         this.loadOrders();
       }
+    });
+  }
+
+  openExportModal(): void {
+    this.dialog.open(PurchaseOrderExportDialogComponent, {
+      width: '420px',
+      maxWidth: '95vw',
+      autoFocus: false,
+      data: { filters: { ...this.filtersState() } },
     });
   }
 

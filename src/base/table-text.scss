@@ -1,0 +1,62 @@
+// Pollux — tipografía suave para tablas (sin negro puro)
+// Usar en ng-templates de listados; debe ser global (no encapsulado en datatable-wrapper).
+
+:root {
+  --dt-text-primary: #334155;
+  --dt-text-body: #64748b;
+  --dt-text-muted: #94a3b8;
+  --dt-text-subtle: #9ca3af;
+}
+
+.dt-cell-primary {
+  color: var(--dt-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.dt-cell-muted {
+  color: var(--dt-text-body);
+  font-weight: 400;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.dt-cell-subtle {
+  color: var(--dt-text-muted);
+  font-weight: 400;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.dt-cell-amount {
+  color: var(--dt-text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25rem;
+}
+
+// Normaliza utilidades Tailwind "negro" dentro de tablas de datos
+.datatable-wrapper,
+.settings-list-page {
+  .datatable-table tbody tr td {
+    color: var(--dt-text-body);
+  }
+
+  .datatable-table tbody {
+    .text-gray-900,
+    .text-gray-800 {
+      color: var(--dt-text-primary);
+    }
+
+    .text-gray-700,
+    .text-gray-600 {
+      color: var(--dt-text-body);
+    }
+
+    .text-gray-500 {
+      color: var(--dt-text-muted);
+    }
+  }
+}

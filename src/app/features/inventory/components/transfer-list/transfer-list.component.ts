@@ -15,6 +15,7 @@ import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfe
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { ArrowLeft } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 
 @Component({
   selector: 'app-transfer-list',
@@ -26,6 +27,7 @@ import { LucideAngularModule } from 'lucide-angular';
     DatatableWrapperComponent,
     RemoveTrailingZerosPipe,
     LucideAngularModule,
+    FilterClearButtonComponent,
   ],
   templateUrl: './transfer-list.component.html',
   styleUrl: './transfer-list.component.scss',
@@ -139,6 +141,29 @@ export class TransferListComponent implements OnInit {
   onFilterChange(): void {
     this.paginationState.update(p => ({ ...p, page: 1 }));
     this.loadTransfers();
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(
+      this.searchTerm() ||
+      this.sourceWarehouseId() ||
+      this.destinationWarehouseId() ||
+      this.sourceBranchId() ||
+      this.destinationBranchId() ||
+      this.createdFrom() ||
+      this.createdTo()
+    );
+  }
+
+  clearFilters(): void {
+    this.searchTerm.set('');
+    this.sourceWarehouseId.set('');
+    this.destinationWarehouseId.set('');
+    this.sourceBranchId.set('');
+    this.destinationBranchId.set('');
+    this.createdFrom.set('');
+    this.createdTo.set('');
+    this.onFilterChange();
   }
 
   onPageChange(event: IPaginationEvent): void {

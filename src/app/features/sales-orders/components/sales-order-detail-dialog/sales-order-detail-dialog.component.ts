@@ -5,6 +5,13 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angu
 import { ToastService } from '../../../../core/services/toast.service';
 import { SalesOrderService } from '../../services/sales-order.service';
 import { SalesDocumentLanguage, SalesOrder, SalesOrderDocument, SalesOrderInvoice, SalesOrderLineItem, TicketReciboResponse } from '../../models/sales-order.model';
+import {
+  isManualSalesOrderPayment,
+  salesOrderPaymentMethodLabel,
+  SalesOrderPayment,
+  SalesOrderPaymentCurrency,
+  SalesOrderPaymentDocument,
+} from '../../models/sales-order-payment.model';
 import { formatPosUser } from '../../utils/pos-user-display.util';
 import { resolveSalesOrderCustomerName, resolveSalesOrderCustomerId } from '../../utils/customer-display.util';
 import {
@@ -26,6 +33,18 @@ import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { Warehouse } from '../../../settings/models/warehouse.model';
+import {
+  SalesOrderNotesDialogComponent,
+  SalesOrderNotesDialogResult,
+} from '../sales-order-notes-dialog/sales-order-notes-dialog.component';
+import {
+  SalesOrderSellerDialogComponent,
+  SalesOrderSellerDialogResult,
+} from '../sales-order-seller-dialog/sales-order-seller-dialog.component';
+import {
+  SalesOrderPaymentDialogComponent,
+  SalesOrderPaymentDialogResult,
+} from '../sales-order-payment-dialog/sales-order-payment-dialog.component';
 
 @Component({
   selector: 'app-sales-order-detail-dialog',
@@ -55,7 +74,33 @@ export class SalesOrderDetailDialogComponent {
 
   canEditOrder = computed(() => this.order()?.general_status === 'Creada');
 
+  canEditNotes = computed(() => {
+    const status = this.order()?.general_status ?? this.order()?.status ?? '';
+    return status !== 'Cancelada';
+  });
+
+  canEditSeller = computed(() => {
+    const status = this.order()?.general_status ?? this.order()?.status ?? '';
+    return status !== 'Cancelada';
+  });
+
   canTicketReciboActions = computed(() => !!this.posCollection());
+
+  canAddPayment = computed(() => {
+    const order = this.order();
+    if (!order) return false;
+    const status = order.general_status ?? order.status;
+    if (status === 'Cancelada') return false;
+    const paymentStatus = this.getPaymentStatus().trim().toLowerCase();
+    if (paymentStatus === 'pagado') return false;
+    return this.getRemainingAmount() >= 0.01;
+  });
+
+  payments = computed(() => this.order()?.payments ?? []);
+
+  registeringPayment = signal(false);
+  deletingPaymentId = signal<string | null>(null);
+  uploadingPaymentDocId = signal<string | null>(null);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { orderId: string },
@@ -106,6 +151,78 @@ export class SalesOrderDetailDialogComponent {
     void this.router.navigate(['/sales-orders', id, 'edit']);
   }
 
+  openNotesEditor(): void {
+    const order = this.order();
+    if (!order || !this.canEditNotes()) {
+      return;
+    }
+
+    this.dialog
+      .open(SalesOrderNotesDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: 'textarea',
+        data: {
+          orderId: order.id,
+          notes: order.notes ?? '',
+          folio: order.folio,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: SalesOrderNotesDialogResult | undefined) => {
+        if (!result?.saved) {
+          return;
+        }
+
+        this.order.update((current) =>
+          current ? { ...current, notes: result.notes ?? undefined } : current
+        );
+        this.toast.success(result.notes ? 'Notas actualizadas' : 'Notas eliminadas');
+      });
+  }
+
+  openSellerEditor(): void {
+    const order = this.order();
+    if (!order || !this.canEditSeller()) {
+      return;
+    }
+
+    this.dialog
+      .open(SalesOrderSellerDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: 'select',
+        data: {
+          orderId: order.id,
+          folio: order.folio,
+          currentSellerId: order.seller_user?.id ?? null,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: SalesOrderSellerDialogResult | undefined) => {
+        if (!result?.saved) {
+          return;
+        }
+
+        if (result.seller_user) {
+          this.order.update((current) =>
+            current ? { ...current, seller_user: result.seller_user } : current
+          );
+        } else {
+          this.loadOrder(true);
+        }
+        this.toast.success('Vendedor actualizado');
+      });
+  }
+
+  getSellerDisplayName(): string {
+    const seller = this.order()?.seller_user;
+    if (!seller) {
+      return 'Sin vendedor';
+    }
+    return formatPosUser(seller);
+  }
+
   parseNumber(value: number | string | undefined | null): number {
     if (value === null || value === undefined) return 0;
     const n = typeof value === 'number' ? value : Number(value);
@@ -149,7 +266,7 @@ export class SalesOrderDetailDialogComponent {
   }
 
   getTotalColor(): string {
-    return this.showDeliveredTotals() ? 'text-green-600' : 'text-blue-600';
+    return this.showDeliveredTotals() ? 'totals-value-total--delivered' : 'totals-value-total--requested';
   }
 
   getDisplayedSubtotal(): string {
@@ -276,17 +393,189 @@ export class SalesOrderDetailDialogComponent {
     return Math.min(this.getDeliveredQuantity(item) / requested, 1);
   }
 
-  getStatusClass(status?: string): string {
-    if (status === 'Creada') return 'bg-blue-100 text-blue-700';
-    if (status === 'Surtida') return 'bg-green-100 text-green-700';
-    if (status === 'Cancelada') return 'bg-red-100 text-red-700';
-    return 'bg-gray-100 text-gray-700';
+  getStatusBadgeClass(): string {
+    const status = this.order()?.general_status ?? this.order()?.status ?? '';
+    if (status === 'Surtida') return 'status-badge--success';
+    if (status === 'Creada') return 'status-badge--info';
+    if (status === 'Cancelada') return 'status-badge--danger';
+    return 'status-badge--neutral';
   }
 
-  getPaymentStatusClass(status?: string): string {
-    if (status === 'Pendiente') return 'bg-red-50 text-red-600';
-    if (status === 'Pagado') return 'bg-green-50 text-green-600';
-    return 'bg-gray-100 text-gray-600';
+  getPaymentStatusBadgeClass(): string {
+    const status = this.getPaymentStatus();
+    if (status === 'Pagado') return 'status-badge--success';
+    if (status === 'Pendiente') return 'status-badge--danger';
+    return 'status-badge--neutral';
+  }
+
+  getOrderTotalForPayments(): number {
+    const order = this.order();
+    if (!order) return 0;
+    const summary = order.payments_summary;
+    if (summary?.order_total != null) {
+      return this.parseNumber(summary.order_total);
+    }
+    if (summary) {
+      const paid = this.parseNumber(summary.amount_paid);
+      const pending = this.parseNumber(summary.amount_pending);
+      return Math.max(paid + pending, 0);
+    }
+    return this.parseNumber(order.requested_total ?? order.total ?? order.grand_total);
+  }
+
+  getPaidAmount(): number {
+    const order = this.order();
+    if (order?.payments_summary) {
+      return this.parseNumber(order.payments_summary.amount_paid);
+    }
+    return (order?.payments ?? []).reduce((sum, p) => sum + this.parseNumber(p.amount), 0);
+  }
+
+  getRemainingAmount(): number {
+    const order = this.order();
+    if (!order) return 0;
+    if (order.payments_summary) {
+      return Math.max(this.parseNumber(order.payments_summary.amount_pending), 0);
+    }
+    return Math.max(this.getOrderTotalForPayments() - this.getPaidAmount(), 0);
+  }
+
+  getPaidPercent(): number {
+    const total = this.getOrderTotalForPayments();
+    if (total <= 0) return 0;
+    return Math.min((this.getPaidAmount() / total) * 100, 100);
+  }
+
+  getPaymentCurrency(): SalesOrderPaymentCurrency {
+    const currency = this.order()?.payments_summary?.currency;
+    return currency === 'USD' ? 'USD' : 'MXN';
+  }
+
+  getPaymentStatus(): string {
+    const order = this.order();
+    return String(
+      order?.payments_summary?.payment_status ?? order?.payment_status ?? 'Pendiente'
+    );
+  }
+
+  getPaymentStatusClass(): string {
+    const status = this.getPaymentStatus().trim().toLowerCase();
+    if (status === 'pagado') return 'status-paid';
+    if (status === 'parcial') return 'status-partial';
+    return 'status-pending';
+  }
+
+  formatPaymentCurrency(value: number | string | undefined | null): string {
+    const amount = this.parseNumber(value);
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: this.getPaymentCurrency(),
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  }
+
+  paymentMethodLabel(method?: string | null): string {
+    return salesOrderPaymentMethodLabel(method);
+  }
+
+  canDeletePayment(payment: SalesOrderPayment): boolean {
+    return isManualSalesOrderPayment(payment);
+  }
+
+  paymentDocuments(payment: SalesOrderPayment): SalesOrderPaymentDocument[] {
+    return Array.isArray(payment.documents) ? payment.documents : [];
+  }
+
+  registerPayment(): void {
+    const order = this.order();
+    if (!order || !this.canAddPayment() || this.registeringPayment()) return;
+
+    const dialogRef = this.dialog.open(SalesOrderPaymentDialogComponent, {
+      width: '660px',
+      maxWidth: '95vw',
+      panelClass: 'payment-dialog-panel',
+      data: {
+        remainingAmount: this.getRemainingAmount(),
+        totalAmount: this.getOrderTotalForPayments(),
+        amountPaid: this.getPaidAmount(),
+        currency: this.getPaymentCurrency(),
+      },
+      disableClose: false,
+    });
+
+    dialogRef.afterClosed().subscribe((result: SalesOrderPaymentDialogResult | null) => {
+      if (!result?.payload) return;
+      this.registeringPayment.set(true);
+      this.salesOrderService
+        .registerPayment(order.id, result.payload, result.file)
+        .subscribe({
+          next: () => {
+            this.registeringPayment.set(false);
+            this.toast.success('Pago registrado exitosamente');
+            this.loadOrder(true);
+          },
+          error: (error) => {
+            this.registeringPayment.set(false);
+            this.toast.error(error?.message || 'Error al registrar pago');
+          },
+        });
+    });
+  }
+
+  deletePayment(payment: SalesOrderPayment): void {
+    const order = this.order();
+    if (!order || !this.canDeletePayment(payment) || this.deletingPaymentId()) return;
+
+    const confirmed = window.confirm('¿Eliminar este pago manual? Se recalculará el saldo pendiente.');
+    if (!confirmed) return;
+
+    this.deletingPaymentId.set(payment.id);
+    this.salesOrderService.deletePayment(order.id, payment.id).subscribe({
+      next: () => {
+        this.deletingPaymentId.set(null);
+        this.toast.success('Pago eliminado');
+        this.loadOrder(true);
+      },
+      error: (error) => {
+        this.deletingPaymentId.set(null);
+        this.toast.error(error?.message || 'No se pudo eliminar el pago');
+      },
+    });
+  }
+
+  openPaymentDocument(doc: SalesOrderPaymentDocument): void {
+    if (doc.url) {
+      window.open(doc.url, '_blank');
+      return;
+    }
+    this.toast.info('El comprobante no tiene URL disponible');
+  }
+
+  onPaymentDocumentSelected(payment: SalesOrderPayment, event: Event): void {
+    const order = this.order();
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!order || !file || this.uploadingPaymentDocId()) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      this.toast.error('El archivo no puede superar 10 MB');
+      return;
+    }
+
+    this.uploadingPaymentDocId.set(payment.id);
+    this.salesOrderService.uploadPaymentDocument(order.id, payment.id, file).subscribe({
+      next: () => {
+        this.uploadingPaymentDocId.set(null);
+        this.toast.success('Comprobante subido');
+        this.loadOrder(true);
+      },
+      error: (error) => {
+        this.uploadingPaymentDocId.set(null);
+        this.toast.error(error?.message || 'No se pudo subir el comprobante');
+      },
+    });
   }
 
   getCustomerDisplayName(): string {

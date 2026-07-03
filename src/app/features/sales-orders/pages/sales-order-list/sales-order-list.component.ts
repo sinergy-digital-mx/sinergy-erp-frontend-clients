@@ -4,16 +4,22 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SalesOrderService } from '../../services/sales-order.service';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
-import { Customer, SalesOrder, SalesOrderFilters, PaginationParams } from '../../models/sales-order.model';
+import { SalesOrder, SalesOrderFilters, PaginationParams } from '../../models/sales-order.model';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { SalesFilterBarComponent } from '../../components/sales-filter-bar/sales-filter-bar.component';
 import { CreateSalesOrderModalComponent } from '../../components/create-sales-order-modal/create-sales-order-modal.component';
 import { SalesOrderDetailDialogComponent } from '../../components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import {
+  SalesOrderExportDialogComponent,
+  SalesOrderExportDialogResult,
+} from '../../components/sales-order-export-dialog/sales-order-export-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
-import { getCustomerDisplayName } from '../../utils/customer-display.util';
+import { ToastService } from '../../../../core/services/toast.service';
+import { resolveSalesOrderCustomerName } from '../../utils/customer-display.util';
+import { getSalesOrderStatus, getSalesOrderTotal } from '../../utils/sales-order-display.util';
 
 @Component({
   selector: 'app-sales-order-list',
@@ -67,12 +73,12 @@ export class SalesOrderListComponent implements OnInit {
     this.ordersData().reduce((sum, o) => sum + this.getOrderTotal(o), 0)
   );
 
-  creadasCount = computed(() => this.ordersData().filter(o => o.status === 'Creada').length);
-  surtidasCount = computed(() => this.ordersData().filter(o => o.status === 'Surtida').length);
-  canceladasCount = computed(() => this.ordersData().filter(o => o.status === 'Cancelada').length);
+  creadasCount = computed(() => this.ordersData().filter(o => getSalesOrderStatus(o) === 'Creada').length);
+  surtidasCount = computed(() => this.ordersData().filter(o => getSalesOrderStatus(o) === 'Surtida').length);
+  canceladasCount = computed(() => this.ordersData().filter(o => getSalesOrderStatus(o) === 'Cancelada').length);
 
-  creadasAmount = computed(() => this.ordersData().filter(o => o.status === 'Creada').reduce((s, o) => s + this.getOrderTotal(o), 0));
-  surtidasAmount = computed(() => this.ordersData().filter(o => o.status === 'Surtida').reduce((s, o) => s + this.getOrderTotal(o), 0));
+  creadasAmount = computed(() => this.ordersData().filter(o => getSalesOrderStatus(o) === 'Creada').reduce((s, o) => s + this.getOrderTotal(o), 0));
+  surtidasAmount = computed(() => this.ordersData().filter(o => getSalesOrderStatus(o) === 'Surtida').reduce((s, o) => s + this.getOrderTotal(o), 0));
 
   pagadasCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pagado').length);
   pendientesCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pendiente').length);
@@ -89,7 +95,8 @@ export class SalesOrderListComponent implements OnInit {
     private warehouseService: WarehouseService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private taxCalculator: TaxCalculatorService
+    private taxCalculator: TaxCalculatorService,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -162,6 +169,22 @@ export class SalesOrderListComponent implements OnInit {
     });
   }
 
+  openExportModal(): void {
+    this.dialog
+      .open(SalesOrderExportDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: { filters: this.filtersState() },
+      })
+      .afterClosed()
+      .subscribe((result: SalesOrderExportDialogResult | undefined) => {
+        if (result?.downloaded) {
+          this.toast.success('Reporte descargado');
+        }
+      });
+  }
+
   navigateToDetail(order: SalesOrder): void {
     this.dialog.open(SalesOrderDetailDialogComponent, {
       ...ORDER_DETAIL_DIALOG_OPTIONS,
@@ -172,20 +195,22 @@ export class SalesOrderListComponent implements OnInit {
   }
 
   getStatusClass(status: string): string {
+    const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
     switch (status) {
-      case 'Creada': return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700';
-      case 'Surtida': return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-700';
-      case 'Cancelada': return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-red-100 text-red-700';
-      default: return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700';
+      case 'Creada': return `${base} bg-blue-50 text-blue-700`;
+      case 'Surtida': return `${base} bg-emerald-50 text-emerald-700`;
+      case 'Cancelada': return `${base} bg-red-50 text-red-700`;
+      default: return `${base} bg-gray-100 text-gray-600`;
     }
   }
 
   getPaymentStatusClass(status: string): string {
+    const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
     switch (status) {
-      case 'Pagado': return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-green-100 text-green-700';
-      case 'Parcial': return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-700';
-      case 'Pendiente': return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-red-100 text-red-700';
-      default: return 'inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700';
+      case 'Pagado': return `${base} bg-emerald-50 text-emerald-700`;
+      case 'Parcial': return `${base} bg-amber-50 text-amber-700`;
+      case 'Pendiente': return `${base} bg-red-50 text-red-700`;
+      default: return `${base} bg-gray-100 text-gray-600`;
     }
   }
 
@@ -204,10 +229,14 @@ export class SalesOrderListComponent implements OnInit {
   }
 
   getOrderTotal(order: SalesOrder): number {
-    return Number(order.requested_total ?? 0) || order.grand_total || 0;
+    return getSalesOrderTotal(order);
   }
 
-  getCustomerDisplayName(customer?: Customer | null): string {
-    return getCustomerDisplayName(customer);
+  getOrderStatus(order: SalesOrder): string {
+    return String(getSalesOrderStatus(order) || '—');
+  }
+
+  getOrderCustomerName(order: SalesOrder): string {
+    return resolveSalesOrderCustomerName(order);
   }
 }

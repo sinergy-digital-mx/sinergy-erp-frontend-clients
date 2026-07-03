@@ -1,4 +1,4 @@
-export type DatatableVariant = 'default' | 'settings';
+export type DatatableVariant = 'default' | 'settings' | 'modern';
 
 /**
  * Configuration interface for the datatable wrapper component

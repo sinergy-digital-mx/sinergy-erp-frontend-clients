@@ -13,6 +13,7 @@ import { PropertyEditModalComponent } from '../../components/property-edit-modal
 import { PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { PropertyGroupDropdownComponent } from '../../components/property-group-dropdown/property-group-dropdown.component';
 import { PropertyStatusDropdownComponent } from '../../components/property-status-dropdown/property-status-dropdown.component';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { ArrowRight } from 'lucide-angular';
 
 @Component({
@@ -25,6 +26,7 @@ import { ArrowRight } from 'lucide-angular';
     ButtonComponent,
     PropertyGroupDropdownComponent,
     PropertyStatusDropdownComponent,
+    FilterClearButtonComponent,
   ],
   templateUrl: './properties-list.component.html',
   styleUrl: './properties-list.component.scss'
@@ -207,6 +209,16 @@ export class PropertiesListComponent implements OnDestroy {
       },
       queryParamsHandling: 'merge'
     });
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(this.search || this.selectedGroupId || this.selectedStatus);
+  }
+
+  clearAllFilters(): void {
+    this.selectedGroupId = null;
+    this.selectedStatus = null;
+    this.onSearchChange('');
   }
 
   createProperty() {

@@ -36,23 +36,13 @@
 }
 
 .payable-search {
-  position: relative;
   max-width: 28rem;
-}
-
-.payable-search__icon {
-  position: absolute;
-  left: 0.85rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
-  pointer-events: none;
 }
 
 .payable-search__input {
   width: 100%;
   min-height: 2.75rem;
-  padding: 0.65rem 0.85rem 0.65rem 2.35rem;
+  padding: 0.65rem 0.85rem;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   font-size: 0.875rem;
@@ -66,11 +56,13 @@
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
-.payable-table-wrap {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  overflow: hidden;
+:host ::ng-deep .datatable-wrapper {
+  margin-bottom: 0;
+
+  .datatable-body-row,
+  tbody tr {
+    cursor: pointer;
+  }
 }
 
 .row-link {

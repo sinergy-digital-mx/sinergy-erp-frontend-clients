@@ -37,7 +37,7 @@ export class AccountingPageComponent implements OnInit {
   billingBranchId = signal('');
   reloadToken = signal(0);
 
-  branches: Branch[] = [];
+  branches = signal<Branch[]>([]);
 
   readonly tabs: { id: AccountingTab; label: string }[] = [
     { id: 'pos', label: 'Puntos de venta' },
@@ -76,6 +76,10 @@ export class AccountingPageComponent implements OnInit {
     if (preset === 'range') {
       return;
     }
+    if (preset !== 'month') {
+      this.dateFrom.set('');
+      this.dateTo.set('');
+    }
     this.reloadActiveTab();
   }
 
@@ -97,14 +101,14 @@ export class AccountingPageComponent implements OnInit {
   private loadBranches(): void {
     this.branchService.getAllBranches().subscribe({
       next: (branches) => {
-        this.branches = branches ?? [];
-        if (this.branches.length === 1 && !this.billingBranchId()) {
-          this.billingBranchId.set(this.branches[0].id);
+        this.branches.set(branches ?? []);
+        if (this.branches().length === 1 && !this.billingBranchId()) {
+          this.billingBranchId.set(this.branches()[0].id);
           this.reloadActiveTab();
         }
       },
       error: () => {
-        this.branches = [];
+        this.branches.set([]);
       },
     });
   }

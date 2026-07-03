@@ -9,7 +9,7 @@
 
   <div class="terminal-sales-dialog__body">
     <app-datatable-wrapper
-      [config]="tableConfig"
+      [config]="tableConfig()"
       [rowTemplate]="tableTemplate"
       (pageChange)="onPageChange($event)">
     </app-datatable-wrapper>
@@ -24,8 +24,19 @@
   </td>
   <td class="px-2 py-2">{{ formatDate(item.created_at) }}</td>
   <td class="px-2 py-2">
-    <div class="flex items-center gap-2">
-      <span>{{ item.customer_display_name || '—' }}</span>
+    <div class="customer-cell">
+      <div class="customer-cell__names">
+        @if (item.customer_company_name || item.customer_person_name) {
+          @if (item.customer_company_name) {
+            <span class="customer-cell__company">{{ item.customer_company_name }}</span>
+          }
+          @if (item.customer_person_name) {
+            <span class="customer-cell__person">{{ item.customer_person_name }}</span>
+          }
+        } @else {
+          <span class="customer-cell__company">{{ item.customer_display_name || '—' }}</span>
+        }
+      </div>
       @if (item.is_walk_in) {
         <span class="walk-in-chip">Mostrador</span>
       }

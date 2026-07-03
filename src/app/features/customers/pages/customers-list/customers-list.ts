@@ -1,17 +1,17 @@
-import { Component, signal, TemplateRef, ViewChild, OnDestroy } from '@angular/core';
+import { Component, signal, TemplateRef, ViewChild, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TagModule } from 'primeng/tag';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { ArrowRight } from 'lucide-angular';
+import { ArrowRight, Plus, LucideAngularModule } from 'lucide-angular';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { MatDialog } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IColumn, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
-import { SelectComponent } from '../../../../core/components/select/select.component';
+import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { CustomerGroupDropdownComponent } from '../../components/customer-group-dropdown/customer-group-dropdown.component';
@@ -19,8 +19,14 @@ import { FilterIndicatorComponent } from '../../components/filter-indicator/filt
 import { CustomerEditModalComponent } from '../../components/customer-edit-modal/customer-edit-modal.component';
 import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { FilterStateService } from '../../services/filter-state.service';
-import { Customer } from '../../models/customer-group.model';
+import { Customer, CustomerStatus } from '../../models/customer-group.model';
 import { PhoneComponent } from '../../../../core/components/phone/phone.component';
+import {
+  getCustomerFullName,
+  getCustomerStatusLabel,
+  getCustomerStatusPillClass,
+} from '../../utils/customer-status.util';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 
 @Component({
   selector: 'app-customers-list',
@@ -36,25 +42,26 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
     DatatableWrapperComponent,
     CustomerGroupDropdownComponent,
     FilterIndicatorComponent,
-    PhoneComponent
+    PhoneComponent,
+    LucideAngularModule,
+    FilterClearButtonComponent
   ],
   templateUrl: './customers-list.html',
   styleUrl: './customers-list.scss',
 })
-export class CustomersList implements OnDestroy {
+export class CustomersList implements OnInit, OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
 
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true },
-      { name: 'Email', prop: 'email', sortable: true, canAutoResize: true },
+      { name: 'Cliente', prop: 'name', sortable: true, canAutoResize: true },
       { name: 'Teléfono', prop: 'phone', sortable: true, canAutoResize: true },
       { name: 'Grupo', prop: 'group_id', sortable: true, canAutoResize: true },
       { name: 'Lotes', prop: 'contracts', sortable: false, canAutoResize: true },
-      { name: 'Estado', prop: 'status', sortable: true, canAutoResize: true },
+      { name: 'Estatus', prop: 'status', sortable: true, canAutoResize: true },
       { name: 'Creado', prop: 'created_at', sortable: true, canAutoResize: true },
-      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true },
+      { name: '', prop: 'actions', sortable: false, canAutoResize: false, width: 64 },
     ],
     externalPaging: true,
     externalSorting: true,
@@ -68,25 +75,27 @@ export class CustomersList implements OnDestroy {
   });
 
   ArrowRight = ArrowRight;
+  Plus = Plus;
   readonly Math = Math;
   search = '';
   selectedGroupId: string | null = null;
   selectedGroupName: string | null = null;
   selectedStatusId: string | null = null;
+  selectedStatusName: string | null = null;
   currentSort: ISortEvent | null = null;
   private destroy$ = new Subject<void>();
   private lastQueryParams: string = '';
+  private customerStatuses: CustomerStatus[] = [];
 
-  statusSelectConfig = {
-    placeholder: 'Filtrar por estado',
-    data: [
-      { id: 'active', name: 'Activo' },
-      { id: 'inactive', name: 'Inactivo' }
-    ],
-    value: null,
+  statusSelectConfig: ISelect = {
+    placeholder: 'Estatus',
+    name_select: 'customer_status',
+    value: 'id',
     option: 'name',
+    value_default: null,
+    data: [],
     all: true,
-    all_message: 'Ver Todos'
+    all_message: 'Todos',
   };
 
   constructor(
@@ -108,6 +117,7 @@ export class CustomersList implements OnDestroy {
       this.search = query?.search ?? '';
       this.selectedGroupId = query?.group_id ?? null;
       this.selectedStatusId = query?.status_id ?? null;
+      this.selectedStatusName = this.resolveStatusName(this.selectedStatusId);
 
       const page = query?.page ? Number(query.page) : 1;
       const limit = query?.limit ? Number(query.limit) : 20;
@@ -119,6 +129,15 @@ export class CustomersList implements OnDestroy {
       }));
 
       this.getCustomers();
+    });
+  }
+
+  ngOnInit(): void {
+    this.customer_service.getCustomerStatuses().subscribe({
+      next: (statuses) => {
+        this.customerStatuses = statuses;
+        this.syncStatusFilterConfig();
+      },
     });
   }
 
@@ -141,20 +160,35 @@ export class CustomersList implements OnDestroy {
       ...(this.selectedStatusId && { status_id: this.selectedStatusId }),
       ...(this.currentSort && this.currentSort.direction && { sort: this.currentSort.column.prop, order: this.currentSort.direction })
     };
-    this.customer_service.getCustomers(data).subscribe(res => {
-      console.log('Customers with contracts:', res?.data?.map(c => ({ 
-        name: c.name, 
-        contractsCount: c.contracts?.length || 0,
-        contracts: c.contracts 
-      })));
-      this.table_config.update(c => ({
-        ...c,
-        rows: res?.data ?? [],
-        totalResults: res?.total ?? 0,
-        hasNext: res?.hasNext ?? false,
-        loading: false,
-      }));
+    this.customer_service.getCustomers(data).subscribe({
+      next: (res) => {
+        this.table_config.update(c => ({
+          ...c,
+          rows: res?.data ?? [],
+          totalResults: res?.total ?? 0,
+          hasNext: res?.hasNext ?? false,
+          loading: false,
+        }));
+      },
+      error: () => {
+        this.table_config.update(c => ({ ...c, loading: false }));
+      },
     });
+  }
+
+  private syncStatusFilterConfig(): void {
+    this.statusSelectConfig = {
+      ...this.statusSelectConfig,
+      data: this.customerStatuses.map((s) => ({ id: s.id, name: s.name })),
+      value_default: this.selectedStatusId ? Number(this.selectedStatusId) : null,
+    };
+    this.selectedStatusName = this.resolveStatusName(this.selectedStatusId);
+  }
+
+  private resolveStatusName(statusId: string | null): string | null {
+    if (!statusId) return null;
+    const id = Number(statusId);
+    return this.customerStatuses.find((s) => s.id === id)?.name ?? null;
   }
 
   onPageChange(event: IPaginationEvent) {
@@ -205,9 +239,14 @@ export class CustomersList implements OnDestroy {
     });
   }
 
-  onStatusSelect(event: any) {
-    const statusId = event?.value || null;
+  onStatusSelect(event: any): void {
+    const statusId = event?.value != null && event?.value !== '' ? String(event.value) : null;
     this.selectedStatusId = statusId;
+    this.selectedStatusName = this.resolveStatusName(statusId);
+    this.statusSelectConfig = {
+      ...this.statusSelectConfig,
+      value_default: statusId ? Number(statusId) : null,
+    };
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
@@ -220,17 +259,25 @@ export class CustomersList implements OnDestroy {
     });
   }
 
+  get hasActiveFilters(): boolean {
+    return !!(this.search || this.selectedGroupId || this.selectedStatusId);
+  }
+
   onFilterClear(filterType: 'status' | 'group' | 'search' | 'all') {
     if (filterType === 'all') {
       this.selectedGroupId = null;
       this.selectedGroupName = null;
       this.selectedStatusId = null;
+      this.selectedStatusName = null;
+      this.statusSelectConfig = { ...this.statusSelectConfig, value_default: null };
       this.search = '';
     } else if (filterType === 'group') {
       this.selectedGroupId = null;
       this.selectedGroupName = null;
     } else if (filterType === 'status') {
       this.selectedStatusId = null;
+      this.selectedStatusName = null;
+      this.statusSelectConfig = { ...this.statusSelectConfig, value_default: null };
     } else if (filterType === 'search') {
       this.search = '';
     }
@@ -305,5 +352,21 @@ export class CustomersList implements OnDestroy {
 
   hasMultipleLots(customer: Customer): boolean {
     return (customer.contracts?.length || 0) > 1;
+  }
+
+  getStatusPillClass(customer: Customer): string {
+    return getCustomerStatusPillClass(customer);
+  }
+
+  getStatusLabel(customer: Customer): string {
+    return getCustomerStatusLabel(customer);
+  }
+
+  formatCustomerName(customer: Customer): string {
+    return getCustomerFullName(customer);
+  }
+
+  getFullCustomerName(customer: Customer): string {
+    return getCustomerFullName(customer);
   }
 }

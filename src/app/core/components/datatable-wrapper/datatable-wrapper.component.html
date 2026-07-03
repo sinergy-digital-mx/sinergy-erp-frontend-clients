@@ -1,4 +1,7 @@
-<div class="datatable-wrapper" [class.datatable-wrapper--settings]="variant === 'settings'">
+<div
+  class="datatable-wrapper"
+  [class.datatable-wrapper--settings]="variant === 'settings'"
+  [class.datatable-wrapper--modern]="variant === 'modern'">
   <!-- Loading Indicator -->
   <div *ngIf="config?.loading" class="loading-overlay">
     <app-spinner></app-spinner>

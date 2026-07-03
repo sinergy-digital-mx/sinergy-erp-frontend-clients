@@ -4,11 +4,12 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { SalesOrderFilters, SalesOrderStatus } from '../../models/sales-order.model';
 import { Warehouse } from '../../../settings/models/warehouse.model';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 
 @Component({
   selector: 'app-sales-filter-bar',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FilterClearButtonComponent],
   templateUrl: './sales-filter-bar.component.html',
   styleUrl: './sales-filter-bar.component.scss'
 })
@@ -39,6 +40,17 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   ];
 
   private destroy$ = new Subject<void>();
+
+  get hasActiveFilters(): boolean {
+    return Boolean(
+      this.searchControl.value.trim() ||
+      this.dateRangeControl.value ||
+      this.dateFromControl.value ||
+      this.dateToControl.value ||
+      this.statusControl.value ||
+      this.warehouseControl.value
+    );
+  }
 
   ngOnInit(): void {
     this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
@@ -90,6 +102,17 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
 
   fmt(date: Date): string {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  clearFilters(): void {
+    this.searchControl.setValue('', { emitEvent: false });
+    this.dateRangeControl.setValue('', { emitEvent: false });
+    this.dateFromControl.setValue('', { emitEvent: false });
+    this.dateToControl.setValue('', { emitEvent: false });
+    this.statusControl.setValue(null, { emitEvent: false });
+    this.warehouseControl.setValue(null, { emitEvent: false });
+    this.showCustomDateRange = false;
+    this.emitFilters();
   }
 
   ngOnDestroy(): void {

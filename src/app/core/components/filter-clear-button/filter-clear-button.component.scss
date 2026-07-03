@@ -1,0 +1,12 @@
+@use '../../../../base/filter-bar';
+
+.filter-bar__clear-button-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-bar__clear-button--inactive {
+  opacity: 0.45;
+  cursor: default;
+}

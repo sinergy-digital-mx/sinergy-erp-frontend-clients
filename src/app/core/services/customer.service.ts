@@ -1,10 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { jwtDecode } from 'jwt-decode';
+import { Observable, of, tap } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
-import { UpdateCustomerDto } from '../../features/customers/models/customer-group.model';
+import { CustomerStatus, UpdateCustomerDto } from '../../features/customers/models/customer-group.model';
 
 
 @Injectable({
@@ -12,10 +11,22 @@ import { UpdateCustomerDto } from '../../features/customers/models/customer-grou
 })
 export class CustomerService {
   api = environment.api;
+  private statusesCache: CustomerStatus[] | null = null;
 
 
   constructor(private router: Router, public http: HttpClient, public activated_route: ActivatedRoute) {
     
+  }
+
+  getCustomerStatuses(force = false): Observable<CustomerStatus[]> {
+    if (this.statusesCache && !force) {
+      return of(this.statusesCache);
+    }
+    return this.http
+      .get<CustomerStatus[]>(`${this.api}/tenant/customers/statuses`)
+      .pipe(tap((list) => {
+        this.statusesCache = Array.isArray(list) ? list : [];
+      }));
   }
 
 

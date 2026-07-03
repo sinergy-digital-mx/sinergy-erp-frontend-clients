@@ -12,10 +12,11 @@ import { LucideAngularModule, X } from 'lucide-angular';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { CustomerGroupDropdownComponent } from '../customer-group-dropdown/customer-group-dropdown.component';
-import { Customer, UpdateCustomerDto } from '../../models/customer-group.model';
+import { Customer, CustomerStatus, UpdateCustomerDto } from '../../models/customer-group.model';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-customer-edit-modal',
@@ -77,6 +78,8 @@ export class CustomerEditModalComponent {
   ];
   warehouses = signal<Warehouse[]>([]);
   warehousesLoading = signal(false);
+  statuses = signal<CustomerStatus[]>([]);
+  statusesLoading = signal(false);
   /** Sección persona adicional: colapsada por defecto en crear; abierta si ya hay datos al editar. */
   additionalPersonExpanded = signal(false);
 
@@ -90,7 +93,8 @@ export class CustomerEditModalComponent {
     @Inject(MAT_DIALOG_DATA) public data: { customer: Customer | null },
     private customerService: CustomerService,
     private interceptor_service: InterceptorService,
-    private warehouseService: WarehouseService
+    private warehouseService: WarehouseService,
+    private authService: AuthService
   ) {
     this.form = this.fb.group({
       name: ['', [Validators.required]],
@@ -115,7 +119,8 @@ export class CustomerEditModalComponent {
       additional_email: ['', [Validators.email]],
       additional_phone: ['', [Validators.pattern(/^$|^\d{1,10}$/)]],
       additional_phone_code: ['+52'],
-      additional_phone_country: ['MX']
+      additional_phone_country: ['MX'],
+      status_id: [null as number | null],
     });
 
     if (this.data?.customer) {
@@ -149,7 +154,8 @@ export class CustomerEditModalComponent {
         additional_email: this.data.customer.additional_email || '',
         additional_phone: cleanAdditionalPhone,
         additional_phone_code: this.data.customer.additional_phone_code || '+52',
-        additional_phone_country: this.data.customer.additional_phone_country || 'MX'
+        additional_phone_country: this.data.customer.additional_phone_country || 'MX',
+        status_id: this.resolveStatusId(this.data.customer),
       });
       this.selectedGroup.set(
         this.data.customer.group ??
@@ -164,6 +170,35 @@ export class CustomerEditModalComponent {
       this.isCreateMode.set(true);
     }
     this.loadWarehouses();
+    this.loadStatuses();
+  }
+
+  get canEditStatus(): boolean {
+    return this.isCreateMode() || this.authService.hasPermission('customers:Update');
+  }
+
+  private resolveStatusId(customer: Customer): number | null {
+    const raw = customer.status_id ?? customer.status?.id;
+    if (raw == null || raw === '') return null;
+    const id = Number(raw);
+    return Number.isFinite(id) ? id : null;
+  }
+
+  private loadStatuses(): void {
+    this.statusesLoading.set(true);
+    this.customerService.getCustomerStatuses().subscribe({
+      next: (list) => {
+        this.statuses.set(list);
+        this.statusesLoading.set(false);
+        if (this.isCreateMode() && this.form.get('status_id')?.value == null) {
+          const active = list.find((s) => s.code === 'ACTIVE');
+          if (active) {
+            this.form.patchValue({ status_id: active.id });
+          }
+        }
+      },
+      error: () => this.statusesLoading.set(false),
+    });
   }
 
   setActiveTab(tab: string): void {
@@ -354,9 +389,8 @@ export class CustomerEditModalComponent {
       dto.additional_phone_code = v.additional_phone_code;
       dto.additional_phone_country = v.additional_phone_country;
     }
-    const sid = this.data.customer?.status_id;
-    if (sid != null && sid !== '') {
-      dto.status_id = sid;
+    if (this.canEditStatus && v.status_id != null && v.status_id !== '') {
+      dto.status_id = Number(v.status_id);
     }
     return dto;
   }
@@ -405,6 +439,9 @@ export class CustomerEditModalComponent {
     if (trim(v.additional_phone_code)) payload.additional_phone_code = trim(v.additional_phone_code);
     if (trim(v.additional_phone_country)) {
       payload.additional_phone_country = trim(v.additional_phone_country);
+    }
+    if (v.status_id != null && v.status_id !== '') {
+      payload.status_id = Number(v.status_id);
     }
 
     this.customerService.createCustomer(payload).subscribe({

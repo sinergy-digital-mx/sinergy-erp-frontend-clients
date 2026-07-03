@@ -135,6 +135,12 @@ export const routes: Routes = [
             .then(m => m.ACCOUNTING_ROUTES),
       },
       {
+        path: 'goals',
+        redirectTo: 'settings/goals',
+        pathMatch: 'full',
+      },
+
+      {
         path: 'divino-dashboard',
         loadChildren: () =>
           import('./features/divino-dashboard/divino-dashboard.routes')

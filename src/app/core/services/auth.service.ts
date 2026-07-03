@@ -460,7 +460,9 @@
         { path: '/purchase-orders', permissions: ['purchaseOrders:Read', 'purchase_orders:read', 'purchase_orders:ViewMenu'] },
         { path: '/inventory', permissions: ['inventory:Read', 'inventory:ViewMenu'] },
         { path: '/sales-orders', permissions: ['salesOrders:Read', 'sales_orders:read', 'sales_orders:ViewMenu'] },
+        { path: '/settings/goals', permissions: ['goals:Read', 'goals:ViewMenu'] },
         { path: '/accounting', permissions: ['accounting:Read', 'Accounting:Read', 'accounting:ViewMenu', 'Accounting:ViewMenu'] },
+
         { path: '/marketing', permissions: ['marketing:ViewDashboard', 'marketing:ViewMenu'] },
         { path: '/pos/ventas', permissions: ['pos:Create', 'pos:ViewMenu'] },
         { path: '/pos/cobranza', permissions: ['pos:Update', 'pos:Read', 'pos:ViewMenu'] },

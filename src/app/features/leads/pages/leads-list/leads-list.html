@@ -18,6 +18,11 @@
             (searchChange)="search = $event;">
           </app-search>
 
+          <app-filter-clear-button
+            [active]="hasActiveFilters"
+            (clear)="clearToolbarFilters()">
+          </app-filter-clear-button>
+
           <app-button
             text="Crear lead"
             custom_class="btn_primary w-full sm:w-auto"

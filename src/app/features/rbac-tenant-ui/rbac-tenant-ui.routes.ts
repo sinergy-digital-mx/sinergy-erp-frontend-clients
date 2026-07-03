@@ -66,6 +66,11 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
       {
         path: 'exchange-rates',
         component: ExchangeRateSettingsComponent
+      },
+      {
+        path: 'goals',
+        loadChildren: () =>
+          import('../goals/goals.routes').then((m) => m.GOALS_ROUTES),
       }
     ]
   }

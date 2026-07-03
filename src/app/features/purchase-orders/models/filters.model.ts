@@ -9,6 +9,23 @@ export interface OrderFilters {
   dateTo?: string;
   status?: OrderStatus;
   warehouseId?: string;
+  paymentStatus?: PaymentStatus | string;
+  vendorId?: string;
+  /** Órdenes con saldo pendiente (no pagadas / parciales). */
+  unpaid?: boolean;
+}
+
+/** Tipo de reporte Excel de órdenes de compra. */
+export type PurchaseOrderExportType = 'headers' | 'details';
+
+/** Filtros enviados a los endpoints de exportación Excel. */
+export interface PurchaseOrderExportFilters {
+  search?: string;
+  general_status?: string;
+  payment_status?: string;
+  vendor_id?: string;
+  created_from?: string;
+  created_to?: string;
 }
 
 /**

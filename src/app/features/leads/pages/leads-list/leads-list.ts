@@ -21,6 +21,7 @@ import { CommunicationStatus } from '../../models/lead-group.model';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { PhoneComponent } from '../../../../core/components/phone/phone.component';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { GroupFetchService } from '../../services/group-fetch.service';
 
 @Component({
@@ -38,6 +39,7 @@ import { GroupFetchService } from '../../services/group-fetch.service';
     SelectComponent,
     FilterIndicatorComponent,
     PhoneComponent,
+    FilterClearButtonComponent,
   ],
   templateUrl: './leads-list.html',
   styleUrl: './leads-list.scss',
@@ -355,6 +357,9 @@ export class LeadsList implements OnDestroy {
       this.activeGroupId = null;
       this.activeGroupName = null;
     }
+    if (filterType === 'all') {
+      this.search = '';
+    }
     
     this.table_config.update(c => ({ ...c, page: 1 }));
     
@@ -391,6 +396,14 @@ export class LeadsList implements OnDestroy {
       queryParams: params,
       replaceUrl: true
     });
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(this.search || this.activeStatusFilter || this.activeGroupId || this.activeFilter);
+  }
+
+  clearToolbarFilters(): void {
+    this.onFilterClear('all');
   }
 
   /**
