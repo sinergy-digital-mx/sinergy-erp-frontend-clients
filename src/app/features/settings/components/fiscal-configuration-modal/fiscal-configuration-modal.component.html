@@ -1,6 +1,6 @@
 <div class="fiscal-modal">
   <div class="fiscal-modal__header">
-    <h2>{{ isNew ? 'Nueva Configuración Fiscal' : 'Editar Configuración Fiscal' }}</h2>
+    <h2>{{ isNew ? 'Nueva Razón Social' : 'Editar Razón Social' }}</h2>
     <lucide-icon
       [img]="X"
       class="close cursor-pointer"
@@ -126,23 +126,32 @@
               <th>DIRECCIÓN</th>
               <th>CIUDAD</th>
               <th>ESTADO</th>
-              <th>C.P.</th>
-              <th>TELÉFONO</th>
+              <th>ALMACENES</th>
               <th>STATUS</th>
+              <th class="actions-col">ACCIONES</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let branch of branches" (click)="openBranchModal(branch)" class="clickable-row">
+            <tr *ngFor="let branch of branches">
               <td>{{ branch.code }}</td>
               <td>{{ branch.address }}</td>
               <td>{{ branch.city }}</td>
               <td>{{ branch.state }}</td>
-              <td>{{ branch.postal_code }}</td>
-              <td>{{ branch.phone || '—' }}</td>
+              <td class="text-center">{{ getWarehousesCount(branch) }}</td>
               <td>
                 <span [class]="'status-badge ' + getStatusClass(branch.status)">
                   {{ getStatusLabel(branch.status) }}
                 </span>
+              </td>
+              <td class="actions-col">
+                <div class="settings-table-actions">
+                  <button
+                    type="button"
+                    class="settings-table-action"
+                    (click)="openBranchModal(branch)">
+                    Editar
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -197,7 +206,7 @@
     </app-button>
     <app-button
       *ngIf="activeTab === 'configuracion'"
-      [text]="isNew ? 'Crear Configuración' : 'Guardar Cambios'"
+      [text]="isNew ? 'Crear Razón Social' : 'Guardar Cambios'"
       custom_class="btn_primary"
       [loading]="saving()"
       [disabled]="form.invalid || saving()"

@@ -8,13 +8,13 @@ import { Property, PropertyStatus } from '../../models/property.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
-import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { PropertyEditModalComponent } from '../../components/property-edit-modal/property-edit-modal.component';
 import { PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { PropertyGroupDropdownComponent } from '../../components/property-group-dropdown/property-group-dropdown.component';
 import { PropertyStatusDropdownComponent } from '../../components/property-status-dropdown/property-status-dropdown.component';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
-import { ArrowRight } from 'lucide-angular';
+import { PropertyFilterIndicatorComponent } from '../../components/property-filter-indicator/property-filter-indicator.component';
+import { ArrowRight, Plus, LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-properties-list',
@@ -23,10 +23,11 @@ import { ArrowRight } from 'lucide-angular';
     CommonModule,
     DatatableWrapperComponent,
     SearchComponent,
-    ButtonComponent,
     PropertyGroupDropdownComponent,
     PropertyStatusDropdownComponent,
     FilterClearButtonComponent,
+    PropertyFilterIndicatorComponent,
+    LucideAngularModule,
   ],
   templateUrl: './properties-list.component.html',
   styleUrl: './properties-list.component.scss'
@@ -37,15 +38,15 @@ export class PropertiesListComponent implements OnDestroy {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Código', prop: 'code', sortable: true, canAutoResize: true },
-      { name: 'Manzana', prop: 'block', sortable: true, canAutoResize: true },
-      { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true },
-      { name: 'Proyecto', prop: 'group', sortable: false, canAutoResize: true },
-      { name: 'Cliente', prop: 'contracts', sortable: false, canAutoResize: true },
-      { name: 'Área', prop: 'total_area', sortable: true, canAutoResize: true },
-      { name: 'Precio', prop: 'total_price', sortable: true, canAutoResize: true },
-      { name: 'Estado', prop: 'status', sortable: true, canAutoResize: true },
-      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true },
+      { name: 'Código', prop: 'code', sortable: true, canAutoResize: true, width: 110 },
+      { name: 'Manzana', prop: 'block', sortable: true, canAutoResize: true, width: 90 },
+      { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: false, width: 180 },
+      { name: 'Proyecto', prop: 'group', sortable: false, canAutoResize: true, width: 130 },
+      { name: 'Cliente', prop: 'contracts', sortable: false, canAutoResize: true, width: 150 },
+      { name: 'Área', prop: 'total_area', sortable: true, canAutoResize: true, width: 100 },
+      { name: 'Precio', prop: 'total_price', sortable: true, canAutoResize: true, width: 120 },
+      { name: 'Estado', prop: 'status', sortable: true, canAutoResize: true, width: 120 },
+      { name: '', prop: 'actions', sortable: false, canAutoResize: false, width: 64 },
     ],
     externalPaging: true,
     externalSorting: true,
@@ -59,6 +60,7 @@ export class PropertiesListComponent implements OnDestroy {
   });
 
   ArrowRight = ArrowRight;
+  Plus = Plus;
   readonly Math = Math;
   search = '';
   selectedGroupId: string | null = null;
@@ -85,6 +87,9 @@ export class PropertiesListComponent implements OnDestroy {
       this.search = query?.search ?? '';
       this.selectedGroupId = query?.groupId ?? null;
       this.selectedStatus = query?.status ?? null;
+      if (!this.selectedGroupId) {
+        this.selectedGroupName = null;
+      }
       const page = query?.page ? Number(query.page) : 1;
       const limit = query?.limit ? Number(query.limit) : 20;
 
@@ -217,8 +222,27 @@ export class PropertiesListComponent implements OnDestroy {
 
   clearAllFilters(): void {
     this.selectedGroupId = null;
+    this.selectedGroupName = null;
     this.selectedStatus = null;
     this.onSearchChange('');
+  }
+
+  onFilterClear(type: 'status' | 'group' | 'search' | 'all'): void {
+    if (type === 'all') {
+      this.clearAllFilters();
+      return;
+    }
+    if (type === 'search') {
+      this.onSearchChange('');
+      return;
+    }
+    if (type === 'group') {
+      this.onGroupSelect({ groupId: null, groupName: null });
+      return;
+    }
+    if (type === 'status') {
+      this.onStatusSelect({ status: null });
+    }
   }
 
   createProperty() {
@@ -233,7 +257,6 @@ export class PropertiesListComponent implements OnDestroy {
   }
 
   editProperty(property: Property) {
-    console.log('Opening edit modal for property:', property);
     this.dialog.open(PropertyEditModalComponent, {
       ...PROPERTY_FORM_DIALOG_CONFIG,
       data: { property },
@@ -244,26 +267,43 @@ export class PropertiesListComponent implements OnDestroy {
     });
   }
 
+  formatArea(property: Property): string {
+    const unit = property.measurement_unit?.symbol || 'm²';
+    const area = property.total_area ?? '—';
+    return `${area} ${unit}`;
+  }
+
+  formatPrice(property: Property): string {
+    const value = Number(property.total_price ?? 0);
+    const currency = property.currency || 'MXN';
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number.isFinite(value) ? value : 0);
+  }
+
+  getStatusPillClass(status: string): string {
+    const statusMap: Record<string, string> = {
+      disponible: 'status-pill--disponible',
+      vendido: 'status-pill--vendido',
+      reservado: 'status-pill--reservado',
+      cancelado: 'status-pill--cancelado',
+    };
+    return statusMap[status] || 'status-pill--default';
+  }
+
   viewDetail(row: Property) {
     this.router.navigate(['/properties/detail', row.id]);
   }
 
-  getStatusClass(status: string): string {
-    const statusMap: Record<string, string> = {
-      'disponible': 'bg-green-100 text-green-800',
-      'vendido': 'bg-blue-100 text-blue-800',
-      'reservado': 'bg-orange-100 text-orange-800',
-      'cancelado': 'bg-red-100 text-red-800'
-    };
-    return `inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusMap[status] || 'bg-gray-100 text-gray-800'}`;
-  }
-
   getStatusLabel(status: string): string {
     const labels: Record<string, string> = {
-      'disponible': 'Disponible',
-      'vendido': 'Vendido',
-      'reservado': 'Reservado',
-      'cancelado': 'Cancelado'
+      disponible: 'Disponible',
+      vendido: 'Vendido',
+      reservado: 'Reservado',
+      cancelado: 'Cancelado',
     };
     return labels[status] || status;
   }

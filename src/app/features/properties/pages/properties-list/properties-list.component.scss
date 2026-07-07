@@ -1,1 +1,293 @@
-// Properties list styles
+@use '../../../../../base/brand-buttons' as brand;
+@use '../../../../../base/filter-bar';
+@use '../../../../../base/form-controls' as fc;
+
+:host {
+  display: block;
+}
+
+.properties-page {
+  padding: 0 0 1.5rem;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #334155;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  &__create-btn {
+    @include brand.brand-btn-primary;
+    flex-shrink: 0;
+    height: 40px;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__filters {
+    margin-bottom: 1rem;
+
+    .filter-bar__field--search {
+      grid-column: span 2;
+      min-width: 220px;
+    }
+
+    ::ng-deep {
+      app-search,
+      app-property-group-dropdown,
+      app-property-status-dropdown {
+        display: block;
+        width: 100%;
+      }
+
+      .search_container--with-icon .search-input-wrap {
+        @include fc.pollux-field-base;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        height: fc.$pollux-control-height;
+        padding: 0 0.75rem 0 0.625rem;
+      }
+
+      .search_container--with-icon .search-input {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        min-height: 0;
+        height: auto;
+
+        &:focus {
+          box-shadow: none;
+        }
+      }
+
+      .select_container {
+        width: 100%;
+      }
+
+      .select_container select,
+      .filter__control {
+        @include fc.pollux-select-field;
+        width: 100%;
+      }
+    }
+  }
+
+  &__table {
+    margin-top: 0.25rem;
+
+    ::ng-deep {
+      .datatable-table {
+        table-layout: fixed;
+      }
+
+      th:nth-child(3),
+      td.properties-col-name {
+        max-width: 180px;
+        width: 180px;
+        overflow: hidden;
+      }
+
+      .datatable-table tbody tr td {
+        color: var(--dt-text-body);
+      }
+    }
+  }
+}
+
+.property-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+
+  &__name {
+    display: block;
+    font-weight: 600;
+    color: var(--dt-text-primary, #334155);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.code-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #047857;
+  background-color: #ecfdf5;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.customer-link {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4f46e5;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover {
+    color: #4338ca;
+    text-decoration: underline;
+  }
+}
+
+.price-cell {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  white-space: nowrap;
+
+  &__dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+
+  &--disponible {
+    background-color: #ecfdf5;
+    color: #047857;
+
+    .status-pill__dot {
+      background-color: #10b981;
+    }
+  }
+
+  &--vendido {
+    background-color: #eef2ff;
+    color: #4338ca;
+
+    .status-pill__dot {
+      background-color: #6366f1;
+    }
+  }
+
+  &--reservado {
+    background-color: #fff7ed;
+    color: #c2410c;
+
+    .status-pill__dot {
+      background-color: #f97316;
+    }
+  }
+
+  &--cancelado {
+    background-color: #fee2e2;
+    color: #b91c1c;
+
+    .status-pill__dot {
+      background-color: #ef4444;
+    }
+  }
+
+  &--default {
+    background-color: #f3f4f6;
+    color: #6b7280;
+
+    .status-pill__dot {
+      background-color: #9ca3af;
+    }
+  }
+}
+
+.properties-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: #9ca3af;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    color: #6366f1;
+    background-color: #f5f3ff;
+  }
+}
+
+.properties-mobile-card {
+  background: #fff;
+  border: 1px solid #f3f4f6;
+  border-radius: 12px;
+  padding: 1rem;
+  transition: background-color 0.15s ease;
+
+  &:active {
+    background-color: #fafafa;
+  }
+}
+
+@media (max-width: 1024px) {
+  .properties-page__filters .filter-bar__field--search {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 767px) {
+  .properties-page {
+    &__header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__title {
+      font-size: 1.5rem;
+    }
+
+    &__create-btn {
+      justify-content: center;
+      width: 100%;
+    }
+  }
+}

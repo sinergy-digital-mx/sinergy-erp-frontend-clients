@@ -1,6 +1,7 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
+import { FormControl } from '@angular/forms';
+import { SelectComponent } from '../../../../core/components/select/select.component';
 import { PropertyStatus } from '../../models/property.model';
 
 export interface StatusOption {
@@ -14,39 +15,43 @@ export interface StatusOption {
   imports: [CommonModule, SelectComponent],
   template: `
     <app-select
-      [config]="selectConfig()"
+      [config]="selectConfig"
       (changeOption)="onStatusChange($event)">
     </app-select>
   `,
-  styles: []
+  styles: [],
 })
-export class PropertyStatusDropdownComponent {
+export class PropertyStatusDropdownComponent implements OnChanges {
   @Input() selectedStatus: PropertyStatus | null = null;
   @Output() statusSelect = new EventEmitter<{ status: PropertyStatus | null }>();
 
-  private statusOptions: StatusOption[] = [
+  private readonly statusControl = new FormControl<PropertyStatus | null>(null);
+
+  private readonly statusOptions: StatusOption[] = [
     { value: 'disponible', label: 'Disponible' },
     { value: 'vendido', label: 'Vendido' },
     { value: 'reservado', label: 'Reservado' },
-    { value: 'cancelado', label: 'Cancelado' }
+    { value: 'cancelado', label: 'Cancelado' },
   ];
 
-  selectConfig(): ISelect {
-    return {
-      placeholder: 'Filtrar por estado',
-      data: this.statusOptions,
-      value: 'value',
-      option: 'label',
-      form_control: null,
-      loading: false,
-      all: true,
-      all_message: 'Todos los estados',
-      value_default: this.selectedStatus
-    };
+  selectConfig = {
+    placeholder: 'Estado',
+    data: this.statusOptions,
+    value: 'value',
+    option: 'label',
+    form_control: this.statusControl,
+    loading: false,
+    all: true,
+    all_message: 'Todos los estados',
+  };
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['selectedStatus']) {
+      this.statusControl.setValue(this.selectedStatus, { emitEvent: false });
+    }
   }
 
-  onStatusChange(event: any) {
-    const status = event?.value || null;
-    this.statusSelect.emit({ status });
+  onStatusChange(event: { value?: PropertyStatus | null }): void {
+    this.statusSelect.emit({ status: event?.value || null });
   }
 }

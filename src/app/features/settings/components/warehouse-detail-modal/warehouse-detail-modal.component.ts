@@ -6,7 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { WarehouseService } from '../../services/warehouse.service';
 import { BranchService } from '../../services/branch.service';
 import { Warehouse, CreateWarehouseDto } from '../../models/warehouse.model';
-import { Branch } from '../../models/branch.model';
+import { Branch, BranchWarehouse } from '../../models/branch.model';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SelectComponent } from '../../../../core/components/select/select.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
@@ -25,6 +25,7 @@ export class WarehouseDetailModalComponent implements OnInit {
   form: FormGroup;
   saving = signal(false);
   isNew = true;
+  nested = false;
   branches = signal<Branch[]>([]);
   loadingBranches = signal(false);
 
@@ -66,14 +67,21 @@ export class WarehouseDetailModalComponent implements OnInit {
     private branchService: BranchService,
     private snackBar: MatSnackBar,
     public dialogRef: MatDialogRef<WarehouseDetailModalComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { warehouse: Warehouse | null }
+    @Inject(MAT_DIALOG_DATA) public data: { warehouse: Warehouse | BranchWarehouse | null; nested?: boolean }
   ) {
+    this.nested = !!data.nested;
     this.isNew = !data.warehouse;
     this.form = this.createForm();
   }
 
   ngOnInit(): void {
     this.initializeSelectConfigs();
+    if (this.nested) {
+      if (this.data.warehouse) {
+        this.form.patchValue(this.data.warehouse);
+      }
+      return;
+    }
     this.loadBranches();
   }
 
@@ -157,8 +165,17 @@ export class WarehouseDetailModalComponent implements OnInit {
   save() {
     if (this.form.invalid || this.saving()) return;
 
+    const formValue = { ...this.form.value };
+
+    if (this.nested) {
+      const result: BranchWarehouse = this.isNew
+        ? formValue
+        : { ...(this.data.warehouse as BranchWarehouse), ...formValue };
+      this.dialogRef.close(result);
+      return;
+    }
+
     this.saving.set(true);
-    const formValue = this.form.value;
 
     if (this.isNew) {
       this.warehouseService.createWarehouse(formValue).subscribe({

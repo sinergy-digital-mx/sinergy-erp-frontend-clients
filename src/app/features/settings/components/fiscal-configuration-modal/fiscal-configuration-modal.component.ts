@@ -164,10 +164,11 @@ export class FiscalConfigurationModalComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(BranchModalComponent, {
-      width: '600px',
+      width: '92vw',
+      maxWidth: '680px',
       data: {
         fiscalConfigId: this.data.fiscalConfig.id,
-        branch: branch || null
+        branchId: branch?.id || null
       }
     });
 
@@ -176,6 +177,13 @@ export class FiscalConfigurationModalComponent implements OnInit {
         this.loadBranches();
       }
     });
+  }
+
+  getWarehousesCount(branch: Branch): number {
+    if (branch.warehouses_count != null) {
+      return branch.warehouses_count;
+    }
+    return branch.warehouses?.length ?? 0;
   }
 
   getStatusLabel(status: number): string {

@@ -99,8 +99,8 @@
           placeholder="Código postal">
       </div>
 
-      <!-- Sucursal -->
-      <div class="col-span-2">
+      <!-- Sucursal (solo en vista independiente) -->
+      <div *ngIf="!nested" class="col-span-2">
         <label class="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
         <app-select
           [config]="branchSelectConfig"

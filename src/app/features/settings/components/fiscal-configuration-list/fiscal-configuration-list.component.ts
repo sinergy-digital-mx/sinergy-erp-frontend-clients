@@ -35,7 +35,7 @@ export class FiscalConfigurationListComponent implements OnInit {
     limit: 20,
     totalResults: 0,
     loading: false,
-    emptyState: { title: 'Sin resultados', subtitle: 'No se encontraron configuraciones fiscales' },
+    emptyState: { title: 'Sin resultados', subtitle: 'No se encontraron razones sociales' },
     columnMode: 'force',
     reorderable: false,
   });
@@ -68,7 +68,7 @@ export class FiscalConfigurationListComponent implements OnInit {
       },
       error: () => {
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Error al cargar configuraciones fiscales', type: 'error' },
+          data: { message: 'Error al cargar razones sociales', type: 'error' },
           duration: 3000
         });
         this.table_config.update(c => ({ ...c, loading: false }));
@@ -87,7 +87,8 @@ export class FiscalConfigurationListComponent implements OnInit {
 
   openCreateDialog(): void {
     const dialogRef = this.dialog.open(FiscalConfigurationModalComponent, {
-      width: '1050px',
+      width: '92vw',
+      maxWidth: '760px',
       data: { fiscalConfig: null }
     });
 
@@ -101,7 +102,8 @@ export class FiscalConfigurationListComponent implements OnInit {
 
   openEditDialog(config: FiscalConfiguration): void {
     const dialogRef = this.dialog.open(FiscalConfigurationModalComponent, {
-      width: '1050px',
+      width: '92vw',
+      maxWidth: '760px',
       data: { fiscalConfig: config }
     });
 

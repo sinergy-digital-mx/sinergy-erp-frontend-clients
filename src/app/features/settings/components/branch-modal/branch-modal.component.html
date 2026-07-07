@@ -9,110 +9,169 @@
   </div>
 
   <div class="branch-modal__body">
-    <form [formGroup]="form">
-      <!-- Código -->
-      <div class="col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Código *</label>
-        <input
-          type="text"
-          formControlName="code"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="Ej: BRANCH-001">
-        <p *ngIf="form.get('code')?.invalid && form.get('code')?.touched" class="text-xs text-red-600 mt-1">
-          Código requerido (mín. 2 caracteres)
-        </p>
-      </div>
+    <div *ngIf="loading()" class="loading-state">
+      <p>Cargando sucursal...</p>
+    </div>
 
-      <!-- Dirección -->
-      <div class="col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Dirección *</label>
-        <input
-          type="text"
-          formControlName="address"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="Ej: Av. Principal 123">
-        <p *ngIf="form.get('address')?.invalid && form.get('address')?.touched" class="text-xs text-red-600 mt-1">
-          Dirección requerida (mín. 5 caracteres)
-        </p>
-      </div>
+    <ng-container *ngIf="!loading()">
+      <app-tab [tabs]="tabs" [activeTabId]="activeTab" (tabChange)="activeTab = $event"></app-tab>
 
-      <!-- Ciudad -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Ciudad *</label>
-        <input
-          type="text"
-          formControlName="city"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="Ej: Monterrey">
-        <p *ngIf="form.get('city')?.invalid && form.get('city')?.touched" class="text-xs text-red-600 mt-1">
-          Ciudad requerida
-        </p>
-      </div>
+      <div class="tab-content">
+        <!-- Tab: Sucursal -->
+        <div *ngIf="activeTab === 'sucursal'" class="tab-pane">
+          <form [formGroup]="form">
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Código *</label>
+              <input
+                type="text"
+                formControlName="code"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: BRANCH-001">
+              <p *ngIf="form.get('code')?.invalid && form.get('code')?.touched" class="text-xs text-red-600 mt-1">
+                Código requerido (mín. 2 caracteres)
+              </p>
+            </div>
 
-      <!-- Estado -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
-        <input
-          type="text"
-          formControlName="state"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="Ej: Nuevo León">
-        <p *ngIf="form.get('state')?.invalid && form.get('state')?.touched" class="text-xs text-red-600 mt-1">
-          Estado requerido
-        </p>
-      </div>
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Dirección *</label>
+              <input
+                type="text"
+                formControlName="address"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: Av. Principal 123">
+              <p *ngIf="form.get('address')?.invalid && form.get('address')?.touched" class="text-xs text-red-600 mt-1">
+                Dirección requerida (mín. 5 caracteres)
+              </p>
+            </div>
 
-      <!-- País -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">País *</label>
-        <input
-          type="text"
-          formControlName="country"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="México">
-        <p *ngIf="form.get('country')?.invalid && form.get('country')?.touched" class="text-xs text-red-600 mt-1">
-          País requerido
-        </p>
-      </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Ciudad *</label>
+              <input
+                type="text"
+                formControlName="city"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: Monterrey">
+              <p *ngIf="form.get('city')?.invalid && form.get('city')?.touched" class="text-xs text-red-600 mt-1">
+                Ciudad requerida
+              </p>
+            </div>
 
-      <!-- Código Postal -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Código Postal *</label>
-        <input
-          type="text"
-          formControlName="postal_code"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="64000"
-          maxlength="5">
-        <p *ngIf="form.get('postal_code')?.invalid && form.get('postal_code')?.touched" class="text-xs text-red-600 mt-1">
-          Código postal inválido (5 dígitos)
-        </p>
-      </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
+              <input
+                type="text"
+                formControlName="state"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: Nuevo León">
+              <p *ngIf="form.get('state')?.invalid && form.get('state')?.touched" class="text-xs text-red-600 mt-1">
+                Estado requerido
+              </p>
+            </div>
 
-      <!-- Teléfono -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-        <input
-          type="text"
-          formControlName="phone"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          placeholder="6641234567"
-          maxlength="50">
-        <p class="text-xs text-gray-500 mt-1">(opcional)</p>
-        <p *ngIf="form.get('phone')?.invalid && form.get('phone')?.touched" class="text-xs text-red-600 mt-1">
-          Máximo 50 caracteres
-        </p>
-      </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">País *</label>
+              <input
+                type="text"
+                formControlName="country"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="México">
+              <p *ngIf="form.get('country')?.invalid && form.get('country')?.touched" class="text-xs text-red-600 mt-1">
+                País requerido
+              </p>
+            </div>
 
-      <!-- Status -->
-      <div class="col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-        <app-select
-          [config]="statusSelectConfig"
-          (changeOption)="onStatusChange($event)">
-        </app-select>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Código Postal *</label>
+              <input
+                type="text"
+                formControlName="postal_code"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="64000"
+                maxlength="5">
+              <p *ngIf="form.get('postal_code')?.invalid && form.get('postal_code')?.touched" class="text-xs text-red-600 mt-1">
+                Código postal inválido (5 dígitos)
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+              <input
+                type="text"
+                formControlName="phone"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="6641234567"
+                maxlength="50">
+              <p class="text-xs text-gray-500 mt-1">(opcional)</p>
+            </div>
+
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <app-select
+                [config]="statusSelectConfig"
+                (changeOption)="onStatusChange($event)">
+              </app-select>
+            </div>
+          </form>
+        </div>
+
+        <!-- Tab: Almacenes -->
+        <div *ngIf="activeTab === 'almacenes'" class="tab-pane">
+          <div class="tab-header">
+            <button class="btn btn--sm btn--primary" (click)="openWarehouseModal()" type="button">
+              + Agregar Almacén
+            </button>
+          </div>
+
+          <div *ngIf="warehouses.length === 0" class="empty-state">
+            <p>No hay almacenes configurados</p>
+          </div>
+
+          <div *ngIf="warehouses.length > 0" class="warehouses-table-wrapper">
+            <table class="data-table warehouses-table">
+              <thead>
+                <tr>
+                  <th>NOMBRE</th>
+                  <th>CÓDIGO</th>
+                  <th>PAÍS</th>
+                  <th>ESTADO</th>
+                  <th>STATUS</th>
+                  <th class="actions-col">ACCIONES</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let warehouse of warehouses; let i = index">
+                  <td>{{ warehouse.name }}</td>
+                  <td>{{ warehouse.code || '—' }}</td>
+                  <td>{{ warehouse.country || '—' }}</td>
+                  <td>{{ warehouse.state || '—' }}</td>
+                  <td>
+                    <span [class]="'status-badge ' + getWarehouseStatusClass(warehouse.status)">
+                      {{ getWarehouseStatusLabel(warehouse.status) }}
+                    </span>
+                  </td>
+                  <td class="actions-col">
+                    <div class="settings-table-actions">
+                      <button
+                        type="button"
+                        class="settings-table-action"
+                        (click)="openWarehouseModal(warehouse, i)">
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        class="settings-table-action settings-table-action--danger"
+                        (click)="removeWarehouse(i)">
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </form>
+    </ng-container>
   </div>
 
   <div class="branch-modal__footer">
@@ -125,7 +184,7 @@
       [text]="isNew ? 'Crear Sucursal' : 'Guardar Cambios'"
       custom_class="btn_primary"
       [loading]="saving()"
-      [disabled]="form.invalid || saving()"
+      [disabled]="form.invalid || saving() || loading()"
       (clicked)="save()">
     </app-button>
   </div>

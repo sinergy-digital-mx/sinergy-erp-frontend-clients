@@ -137,20 +137,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   companySections: SettingsSection[] = [
     {
-      id: 'warehouses',
-      title: 'Almacenes',
-      description: 'Gestiona almacenes, ubicaciones, información fiscal y datos de contacto de tus almacenes',
-      icon: '🏭',
-      route: 'warehouses',
-      permissions: ['warehouses:ViewMenu']
-    },
-    {
       id: 'fiscal-configurations',
-      title: 'Configuración Fiscal',
-      description: 'Gestiona la información fiscal de tus almacenes, RFC, régimen fiscal y certificados digitales',
+      title: 'Razones Sociales y Sucursales',
+      description: 'Gestiona razones sociales, sucursales, almacenes, RFC, régimen fiscal y certificados digitales',
       icon: '📋',
       route: 'fiscal-configurations',
-      permissions: ['billing:ViewMenu']
+      permissions: ['billing:ViewMenu', 'warehouses:ViewMenu']
     },
     {
       id: 'vendors',
