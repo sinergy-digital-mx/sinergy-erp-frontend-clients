@@ -10,7 +10,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IColumn, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
-import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -37,7 +36,6 @@ import { FilterClearButtonComponent } from '../../../../core/components/filter-c
     TagModule,
     ButtonModule,
     SearchComponent,
-    ButtonComponent,
     SelectComponent,
     DatatableWrapperComponent,
     CustomerGroupDropdownComponent,
