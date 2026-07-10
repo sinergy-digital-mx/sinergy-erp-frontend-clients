@@ -11,6 +11,7 @@ import { PropertyService } from '../../../properties/services/property.service';
 import { CustomerEditModalComponent } from '../../components/customer-edit-modal/customer-edit-modal.component';
 import { CustomerDocumentsComponent } from '../../components/customer-documents/customer-documents.component';
 import { CustomerSalesOrdersComponent } from '../../components/customer-sales-orders/customer-sales-orders.component';
+import { CustomerActivitiesComponent } from '../../components/customer-activities/customer-activities.component';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
 import { CUSTOMER_FORM_DIALOG_CONFIG, PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { ContractDetailModalComponent } from '../../../contracts/components/contract-detail-modal/contract-detail-modal.component';
@@ -20,7 +21,7 @@ import { takeUntil } from 'rxjs/operators';
 import { PhoneComponent } from '../../../../core/components/phone/phone.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
-import { Pencil, MapPin, Activity } from 'lucide-angular';
+import { Pencil, MapPin } from 'lucide-angular';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
@@ -28,6 +29,7 @@ import {
   getCustomerStatusLabel,
   getCustomerStatusPillClass,
 } from '../../utils/customer-status.util';
+import { getFiscalPersonTypeLabel } from '../../utils/fiscal-person-type.util';
 
 @Component({
   selector: 'app-customer-detail',
@@ -42,6 +44,7 @@ import {
     PhoneComponent,
     CustomerDocumentsComponent,
     CustomerSalesOrdersComponent,
+    CustomerActivitiesComponent,
     ButtonComponent,
     HasPermissionDirective,
     TabComponent
@@ -63,40 +66,11 @@ export class CustomerDetail implements OnInit, OnDestroy {
     { id: 'credit', title: 'Credito' },
     { id: 'fiscal', title: 'Información Fiscal' }
   ];
-  private readonly fiscalRegimenLabels: Record<string, string> = {
-    '601': 'REGIMEN GENERAL DE LEY PERSONAS MORALES',
-    '602': 'REGIMEN SIMPLIFICADO DE LEY PERSONAS MORALES',
-    '603': 'PERSONAS MORALES CON FINES NO LUCRATIVOS',
-    '604': 'REGIMEN DE PEQUENOS CONTRIBUYENTES',
-    '605': 'REGIMEN DE SUELDOS Y SALARIOS E INGRESOS ASIMILADOS A SALARIOS',
-    '606': 'REGIMEN DE ARRENDAMIENTO',
-    '607': 'REGIMEN DE ENAJENACION O ADQUISICION DE BIENES',
-    '608': 'REGIMEN DE LOS DEMAS INGRESOS',
-    '609': 'REGIMEN DE CONSOLIDACION',
-    '610': 'REGIMEN RESIDENTES EN EL EXTRANJERO SIN ESTABLECIMIENTO PERMANENTE EN MEXICO',
-    '611': 'REGIMEN DE INGRESOS POR DIVIDENDOS (SOCIOS Y ACCIONISTAS)',
-    '612': 'REGIMEN DE LAS PERSONAS FISICAS CON ACTIVIDADES EMPRESARIALES Y PROFESIONALES',
-    '613': 'REGIMEN INTERMEDIO DE LAS PERSONAS FISICAS CON ACTIVIDADES EMPRESARIALES',
-    '614': 'REGIMEN DE LOS INGRESOS POR INTERESES',
-    '615': 'REGIMEN DE LOS INGRESOS POR OBTENCION DE PREMIOS',
-    '616': 'SIN OBLIGACIONES FISCALES',
-    '617': 'PEMEX',
-    '618': 'REGIMEN SIMPLIFICADO DE LEY PERSONAS FISICAS',
-    '619': 'INGRESOS POR LA OBTENCION DE PRESTAMOS',
-    '620': 'SOCIEDADES COOPERATIVAS DE PRODUCCION QUE OPTAN POR DIFERIR SUS INGRESOS',
-    '621': 'REGIMEN DE INCORPORACION FISCAL',
-    '622': 'REGIMEN DE ACTIVIDADES AGRICOLAS, GANADERAS, SILVICOLAS Y PESQUERAS PM',
-    '623': 'REGIMEN DE OPCIONAL PARA GRUPOS DE SOCIEDADES',
-    '624': 'REGIMEN DE LOS COORDINADOS',
-    '625': 'REGIMEN DE LAS ACTIVIDADES EMPRESARIALES CON INGRESOS A TRAVES DE PLATAFORMAS TECNOLOGICAS',
-    '626': 'REGIMEN SIMPLIFICADO DE CONFIANZA'
-  };
   customerId: number | null = null;
   private destroy$ = new Subject<void>();
 
   readonly PencilIcon = Pencil;
   readonly MapPinIcon = MapPin;
-  readonly ActivityIcon = Activity;
 
   constructor(
     private route: ActivatedRoute,
@@ -310,10 +284,5 @@ export class CustomerDetail implements OnInit, OnDestroy {
     return map[s] ?? 'secondary';
   }
 
-  getFiscalRegimenLabel(value: string | null | undefined): string {
-    const code = (value ?? '').trim();
-    if (!code) return '—';
-    const label = this.fiscalRegimenLabels[code];
-    return label ? `${code} - ${label}` : code;
-  }
+  getFiscalPersonTypeLabel = getFiscalPersonTypeLabel;
 }

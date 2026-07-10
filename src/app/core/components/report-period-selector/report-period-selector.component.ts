@@ -71,30 +71,69 @@ const MONTH_LABELS = [
               </button>
             }
           }
-          <button
-            type="button"
-            class="zn-period-toggle__btn zn-period-toggle__btn--range"
-            [class.zn-period-toggle__btn--active]="period === 'range'"
-            [attr.aria-pressed]="period === 'range'"
-            [attr.aria-label]="customRangeAriaLabel()"
-            (click)="onSelectPeriod('range')">
-            <svg
-              class="zn-period-toggle__icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-            <span>Rango</span>
-          </button>
+          @if (dayOnly) {
+            <button
+              type="button"
+              class="zn-period-toggle__btn zn-period-toggle__btn--range"
+              [class.zn-period-toggle__btn--active]="period === 'range'"
+              [attr.aria-pressed]="period === 'range'"
+              [attr.aria-label]="customDayAriaLabel()"
+              (click)="onSelectPeriod('range')">
+              <svg
+                class="zn-period-toggle__icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              <span>Otro día</span>
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="zn-period-toggle__btn zn-period-toggle__btn--range"
+              [class.zn-period-toggle__btn--active]="period === 'range'"
+              [attr.aria-pressed]="period === 'range'"
+              [attr.aria-label]="customRangeAriaLabel()"
+              (click)="onSelectPeriod('range')">
+              <svg
+                class="zn-period-toggle__icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              <span>Rango</span>
+            </button>
+          }
         </div>
 
-        @if (period === 'range') {
+        @if (period === 'range' && dayOnly) {
+          <div class="zn-date-range zn-date-range--single" aria-label="Seleccionar día">
+            <div class="zn-date-range__field">
+              <label class="zn-date-range__label" [for]="dateFromId">Fecha</label>
+              <div class="zn-date-range__control">
+                <input
+                  [id]="dateFromId"
+                  type="date"
+                  class="zn-date-range__input"
+                  [(ngModel)]="dateFrom"
+                  (change)="onSingleDayInputChange()"
+                  aria-label="Fecha" />
+              </div>
+            </div>
+          </div>
+        } @else if (period === 'range') {
           <div class="zn-date-range" aria-label="Rango de fechas personalizado">
             <div class="zn-date-range__field">
               <label class="zn-date-range__label" [for]="dateFromId">Inicio</label>
@@ -319,6 +358,9 @@ const MONTH_LABELS = [
         width: 1.125rem;
         height: 1.125rem;
       }
+      .zn-date-range--single {
+        grid-template-columns: 1fr;
+      }
       @media (max-width: 640px) {
         .zn-period-toggle__btn {
           padding: 0.35rem 0.55rem;
@@ -346,6 +388,7 @@ export class ReportPeriodSelectorComponent {
   @Input() dateFrom = '';
   @Input() dateTo = '';
   @Input() includeYear = false;
+  @Input() dayOnly = false;
   @Input() ariaLabel = 'Periodo del reporte';
   @Input() dateFromId = 'report-date-from';
   @Input() dateToId = 'report-date-to';
@@ -366,6 +409,9 @@ export class ReportPeriodSelectorComponent {
   constructor(private elementRef: ElementRef<HTMLElement>) {}
 
   get visibleOptions(): { label: string; value: Exclude<ReportPeriod, 'range'> }[] {
+    if (this.dayOnly) {
+      return [{ label: 'Hoy', value: 'today' }];
+    }
     if (this.includeYear) {
       return [...this.baseOptions, { label: 'Año', value: 'year' }];
     }
@@ -438,6 +484,18 @@ export class ReportPeriodSelectorComponent {
       return;
     }
 
+    if (preset === 'range' && this.dayOnly) {
+      if (!this.dateFrom) {
+        const yesterday = this.startOfDay(new Date());
+        yesterday.setDate(yesterday.getDate() - 1);
+        this.dateFrom = this.toInputDate(yesterday);
+      }
+      this.dateTo = this.dateFrom;
+      this.periodChange.emit('range');
+      this.rangeChange.emit({ dateFrom: this.dateFrom, dateTo: this.dateFrom });
+      return;
+    }
+
     if (preset === 'range' && (!this.dateFrom || !this.dateTo)) {
       const to = this.startOfDay(new Date());
       const from = new Date(to);
@@ -449,6 +507,14 @@ export class ReportPeriodSelectorComponent {
     if (preset === 'range' && this.dateFrom && this.dateTo) {
       this.rangeChange.emit({ dateFrom: this.dateFrom, dateTo: this.dateTo });
     }
+  }
+
+  onSingleDayInputChange(): void {
+    if (!this.dateFrom) {
+      return;
+    }
+    this.dateTo = this.dateFrom;
+    this.rangeChange.emit({ dateFrom: this.dateFrom, dateTo: this.dateFrom });
   }
 
   onRangeInputChange(): void {
@@ -476,6 +542,13 @@ export class ReportPeriodSelectorComponent {
       return `Rango personalizado: ${this.dateFrom} a ${this.dateTo}`;
     }
     return 'Seleccionar rango de fechas personalizado';
+  }
+
+  customDayAriaLabel(): string {
+    if (this.period === 'range' && this.dateFrom) {
+      return `Día seleccionado: ${this.dateFrom}`;
+    }
+    return 'Seleccionar otro día';
   }
 
   private getMonthIndexFromRange(dateFrom: string, dateTo: string): number | null {

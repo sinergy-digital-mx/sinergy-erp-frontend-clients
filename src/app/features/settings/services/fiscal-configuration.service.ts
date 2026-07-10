@@ -9,6 +9,7 @@ import {
   FiscalConfigurationListResponse,
   FiscalConfigurationQueryParams
 } from '../models/fiscal-configuration.model';
+import { FinkokStatusResponse, RegisterFinkokDto } from '../models/finkok-configuration.model';
 
 @Injectable({
   providedIn: 'root'
@@ -55,5 +56,20 @@ export class FiscalConfigurationService {
 
   deleteFiscalConfiguration(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/fiscal-configurations/${id}`);
+  }
+
+  getFinkokStatus(id: string, environment: 'demo' | 'production'): Observable<FinkokStatusResponse> {
+    const params = new HttpParams().set('environment', environment);
+    return this.http.get<FinkokStatusResponse>(
+      `${this.api}/tenant/fiscal-configurations/${id}/finkok-status`,
+      { params }
+    );
+  }
+
+  registerFinkok(id: string, payload: RegisterFinkokDto): Observable<FiscalConfiguration> {
+    return this.http.post<FiscalConfiguration>(
+      `${this.api}/tenant/fiscal-configurations/${id}/register-finkok`,
+      payload
+    );
   }
 }

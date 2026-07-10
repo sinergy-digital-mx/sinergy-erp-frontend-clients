@@ -183,6 +183,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
       icon: '🎯',
       route: 'goals',
       permissions: ['goals:ViewMenu', 'goals:Read']
+    },
+    {
+      id: 'global-discounts',
+      title: 'Descuentos globales',
+      description: 'Administra descuentos generales de orden para POS (porcentaje o monto fijo)',
+      icon: '🏷️',
+      route: 'global-discounts',
+      permissions: ['global_discounts:ViewMenu', 'global_discounts:Read', 'globalDiscount:ViewMenu', 'globalDiscount:Read']
     }
   ];
 

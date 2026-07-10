@@ -97,3 +97,23 @@ export interface InventorySummaryFilters {
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
 }
+
+export type InventoryExportType = 'batches' | 'summary';
+
+export interface InventoryBatchExportFilters {
+  search?: string;
+  batch_number?: string;
+  product_id?: string;
+  warehouse_id?: string;
+  purchase_order_batch_id?: string;
+  purchase_order_id?: string;
+  created_from?: string;
+  created_to?: string;
+}
+
+export interface InventorySummaryExportFilters {
+  search?: string;
+  warehouse_id?: string;
+  product_id?: string;
+  only_available?: boolean;
+}

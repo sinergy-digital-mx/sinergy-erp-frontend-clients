@@ -1,6 +1,40 @@
 <div class="pos-dialog">
   <h2 class="pos-dialog__title">Cerrar corte del día</h2>
-  <p class="pos-dialog__subtitle">Confirma el cierre del corte global. Después podrás editar tipo y sucursal del usuario cobranza.</p>
+  <p class="pos-dialog__subtitle">
+    Cierra el corte global de {{ data.branchLabel }} ({{ data.shiftDate }}). Los cortes parciales quedan registrados dentro de este corte.
+  </p>
+
+  @if (data.isHistorical) {
+    <p class="close-shift-summary__warn close-shift-summary__warn--historical">
+      Este corte es de un día anterior. Ciérralo solo si quedó abierto por error.
+    </p>
+  }
+
+  <div class="close-shift-summary">
+    <div class="close-shift-summary__row">
+      <span>Efectivo inicial</span>
+      <strong>{{ data.openingMxn }}</strong>
+    </div>
+    @if (data.openingUsd) {
+      <div class="close-shift-summary__row">
+        <span>Efectivo inicial USD</span>
+        <strong>{{ data.openingUsd }}</strong>
+      </div>
+    }
+    <div class="close-shift-summary__row">
+      <span>Ventas cobradas</span>
+      <strong>{{ data.salesTotal }}</strong>
+    </div>
+    <div class="close-shift-summary__row">
+      <span>Cortes parciales</span>
+      <strong>{{ data.partialCount }} · {{ data.removedTotal }} retirados</strong>
+    </div>
+    @if (data.pendingCount > 0) {
+      <p class="close-shift-summary__warn">
+        Aún hay {{ data.pendingCount }} venta(s) pendiente(s) de cobro. El backend permite cerrar el corte de todas formas.
+      </p>
+    }
+  </div>
 
   <label class="pos-dialog__field">
     <span>Notas (opcional)</span>
@@ -9,6 +43,6 @@
 
   <div class="pos-dialog__actions">
     <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="cancel()"></app-button>
-    <app-button text="Cerrar corte" custom_class="btn_primary" (clicked)="confirm()"></app-button>
+    <app-button text="Cerrar corte del día" custom_class="btn_primary" (clicked)="confirm()"></app-button>
   </div>
 </div>

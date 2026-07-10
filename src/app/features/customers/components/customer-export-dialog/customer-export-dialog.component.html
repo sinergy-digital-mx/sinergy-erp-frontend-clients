@@ -1,0 +1,62 @@
+<div class="export-dialog">
+  <div class="export-dialog__header">
+    <h3 class="export-dialog__title">Descargar reporte Excel</h3>
+    <button
+      type="button"
+      class="export-dialog__close"
+      aria-label="Cerrar"
+      [disabled]="exporting()"
+      (click)="cancel()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  <div class="export-dialog__body">
+    <p class="export-dialog__intro">
+      Se exportarán los clientes que coincidan con los filtros actuales:
+    </p>
+
+    @if (hasActiveFilters()) {
+      <ul class="export-dialog__filter-list">
+        @if (data.search) {
+          <li><span class="export-dialog__filter-label">Búsqueda:</span> "{{ data.search }}"</li>
+        }
+        @if (data.status_id) {
+          <li><span class="export-dialog__filter-label">Estatus:</span> {{ data.status_name || data.status_id }}</li>
+        }
+        @if (data.group_id) {
+          <li><span class="export-dialog__filter-label">Grupo:</span> {{ data.group_name || data.group_id }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="export-dialog__filters-note">No hay filtros activos; se exportarán todos los clientes.</p>
+    }
+
+    @if (errorMessage()) {
+      <p class="export-dialog__error" role="alert">{{ errorMessage() }}</p>
+    }
+  </div>
+
+  <div class="export-dialog__footer">
+    <button
+      type="button"
+      class="export-dialog__btn export-dialog__btn--cancel"
+      [disabled]="exporting()"
+      (click)="cancel()">
+      Cancelar
+    </button>
+    <button
+      type="button"
+      class="export-dialog__btn export-dialog__btn--download"
+      [disabled]="!canDownload()"
+      (click)="download()">
+      @if (exporting()) {
+        <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+        Descargando...
+      } @else {
+        <i class="fi fi-rr-download" aria-hidden="true"></i>
+        Descargar
+      }
+    </button>
+  </div>
+</div>

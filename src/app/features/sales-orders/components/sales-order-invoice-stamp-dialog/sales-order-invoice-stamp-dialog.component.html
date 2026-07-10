@@ -1,0 +1,131 @@
+<div class="dialog-overlay" (click)="close()">
+  <div class="dialog-container dialog-container--wide" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="dialog-header">
+      <h2>Nueva factura CFDI</h2>
+      <button type="button" class="close-button" (click)="close()" aria-label="Cerrar">
+        <i class="fi fi-rr-cross-small"></i>
+      </button>
+    </div>
+
+    <div class="dialog-body">
+      @if (data.finkokConfig?.stamping_environment === 'demo') {
+        <div class="alert alert--warning">
+          Ambiente Finkok: <strong>DEMO</strong>. Los timbrados no son válidos ante el SAT.
+        </div>
+      }
+
+      @if (data.validationIssues.length > 0) {
+        <div class="validation-list">
+          @for (issue of data.validationIssues; track issue.id) {
+            <div class="alert alert--error">{{ issue.message }}</div>
+          }
+        </div>
+      }
+
+      <div class="summary-grid">
+        <section class="summary-card">
+          <h3>Emisor</h3>
+          <p><span>Razón social</span>{{ fiscal?.razon_social || fiscal?.business_name || '—' }}</p>
+          <p><span>RFC</span>{{ fiscal?.rfc || '—' }}</p>
+          <p><span>Régimen</span>{{ fiscal?.fiscal_regime || '—' }}</p>
+          <p><span>Lugar expedición</span>{{ data.order.warehouse?.name || '—' }}</p>
+        </section>
+
+        <section class="summary-card">
+          <h3>Receptor</h3>
+          <p><span>RFC</span>{{ customer?.fiscal_rfc || '—' }}</p>
+          <p><span>Razón social</span>{{ customer?.fiscal_razon_social || customer?.company_name || customer?.name || '—' }}</p>
+          <p><span>Total OV</span>{{ formatCurrency(data.order.total ?? data.order.requested_total) }}</p>
+        </section>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="series">Serie</label>
+            <input id="series" class="form-input" type="text" formControlName="series" />
+          </div>
+          <div class="form-field">
+            <label for="folio">Folio *</label>
+            <input id="folio" class="form-input" type="text" formControlName="folio" />
+          </div>
+          <div class="form-field">
+            <label for="usoCfdi">Uso CFDI *</label>
+            <select id="usoCfdi" class="form-input" formControlName="usoCfdi">
+              @for (opt of usoOptions; track opt.id) {
+                <option [value]="opt.id">{{ opt.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="formaPago">Forma de pago *</label>
+            <select id="formaPago" class="form-input" formControlName="formaPago">
+              @for (opt of formaPagoOptions; track opt.id) {
+                <option [value]="opt.id">{{ opt.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="metodoPago">Método de pago *</label>
+            <select id="metodoPago" class="form-input" formControlName="metodoPago">
+              <option value="PUE">PUE - Pago en una sola exhibición</option>
+              <option value="PPD">PPD - Pago en parcialidades o diferido</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="regimenReceptor">Régimen receptor *</label>
+            <select id="regimenReceptor" class="form-input" formControlName="regimenReceptor">
+              @for (opt of regimenOptions; track opt.id) {
+                <option [value]="opt.id">{{ opt.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field form-field--full">
+            <label for="domicilioFiscalReceptor">Domicilio fiscal receptor (CP)</label>
+            <input id="domicilioFiscalReceptor" class="form-input" type="text" formControlName="domicilioFiscalReceptor" maxlength="5" />
+          </div>
+        </div>
+
+        <div class="concepts-section">
+          <h3>Conceptos (desde la orden)</h3>
+          <table class="concepts-table">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Cant.</th>
+                <th>P. unit.</th>
+                <th>Importe</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of data.lineItems; track item.id || $index) {
+                <tr>
+                  <td>{{ item.product?.name || 'Producto' }}</td>
+                  <td>{{ item.quantity }}</td>
+                  <td>{{ formatCurrency(item.unit_price) }}</td>
+                  <td>{{ formatCurrency(getLineImport(item)) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="xml-section">
+          <button type="button" class="link-btn" (click)="showXml.set(!showXml())">
+            {{ showXml() ? 'Ocultar XML' : 'Ver / editar XML' }}
+          </button>
+          @if (showXml()) {
+            <textarea class="xml-textarea" formControlName="xml" rows="10"></textarea>
+          }
+        </div>
+
+        <div class="dialog-footer">
+          <button type="button" class="btn-secondary" (click)="close()">Cancelar</button>
+          <button type="submit" class="btn-primary" [disabled]="!data.canStamp || form.invalid">
+            Timbrar factura
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

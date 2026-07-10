@@ -17,11 +17,26 @@ export interface AccountingFiltersApplied {
   date_to?: string | null;
 }
 
+export type PosTerminalType = 'VENTAS' | 'COBRANZA';
+
+export interface PosOpenDailyShiftSummary {
+  id: string;
+  shift_date: string;
+  status: string;
+  partial_shifts_count?: number;
+}
+
 export interface SalesTerminalSummary {
   terminal_user_id: string;
   terminal_name: string;
+  terminal_type: PosTerminalType;
   sales_count: number;
   amount_sold: number;
+  orders_collected?: number;
+  amount_collected?: number;
+  daily_shifts_count: number;
+  partial_shifts_count: number;
+  open_daily_shift: PosOpenDailyShiftSummary | null;
 }
 
 export interface CollectionTerminalSummary {
@@ -31,6 +46,9 @@ export interface CollectionTerminalSummary {
   amount_collected: number;
   walk_in_count: number;
   invoiced_count: number;
+  daily_shifts_count: number;
+  partial_shifts_count: number;
+  open_daily_shift: PosOpenDailyShiftSummary | null;
 }
 
 export interface PosSummaryResponse {
@@ -63,6 +81,7 @@ export interface PosCollectionRow {
   customer_person_name?: string | null;
   customer_display_name?: string;
   is_walk_in?: boolean;
+  has_stamped_invoice?: boolean;
   seller_user?: PosUserSummary | null;
   collected_by_user?: PosUserSummary | null;
   payment_method?: string | null;

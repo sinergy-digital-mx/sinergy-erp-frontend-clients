@@ -1,5 +1,5 @@
 <!-- Modal Principal -->
-<div class="modal-container">
+<div class="product-detail-modal">
   <!-- Header -->
   <div class="modal-header">
     <h2>{{ data?.isNew ? 'Crear Producto' : 'Editar Producto' }}</h2>
@@ -441,11 +441,11 @@
 </div>
 
 <!-- Modal Secundario: Descuento -->
-<div class="modal-overlay" *ngIf="discountModalVisible" (click)="discountModalVisible = false">
+<div class="modal-overlay" *ngIf="discountModalVisible" (click)="dismissDiscountModal()">
   <div class="modal-container modal-container--sm" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2>{{ discountForm.id ? 'Editar descuento' : 'Agregar descuento' }}</h2>
-      <button class="close-btn" (click)="discountModalVisible = false" type="button">
+      <button class="close-btn" (click)="dismissDiscountModal()" type="button">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
           <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
         </svg>
@@ -524,7 +524,7 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn btn--secondary" (click)="discountModalVisible = false" type="button">Cancelar</button>
+        <button class="btn btn--secondary" (click)="dismissDiscountModal()" type="button">Cancelar</button>
         <button class="btn btn--primary" (click)="saveDiscount()" type="button">Guardar</button>
       </div>
     </div>
@@ -532,11 +532,11 @@
 </div>
 
 <!-- Modal Secundario: Precio -->
-<div class="modal-overlay" *ngIf="priceModalVisible" (click)="priceModalVisible = false">
+<div class="modal-overlay" *ngIf="priceModalVisible" (click)="dismissPriceModal()">
   <div class="modal-container modal-container--sm" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2>{{ priceForm.id ? 'Editar Precio' : 'Nuevo Precio' }}</h2>
-      <button class="close-btn" (click)="priceModalVisible = false" type="button">
+      <button class="close-btn" (click)="dismissPriceModal()" type="button">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
           <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
         </svg>
@@ -585,7 +585,7 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn btn--secondary" (click)="priceModalVisible = false" type="button">Cancelar</button>
+        <button class="btn btn--secondary" (click)="dismissPriceModal()" type="button">Cancelar</button>
         <button class="btn btn--primary" (click)="savePrice()" type="button">Guardar</button>
       </div>
     </div>
@@ -593,11 +593,11 @@
 </div>
 
 <!-- Modal Terciario: Crear Lista de Precios -->
-<div class="modal-overlay" *ngIf="priceListModalVisible" (click)="priceListModalVisible = false">
+<div class="modal-overlay" *ngIf="priceListModalVisible" (click)="dismissPriceListModal()">
   <div class="modal-container modal-container--xs" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2>Nueva Lista de Precios</h2>
-      <button class="close-btn" (click)="priceListModalVisible = false" type="button">
+      <button class="close-btn" (click)="dismissPriceListModal()" type="button">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
           <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
         </svg>
@@ -618,7 +618,7 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn btn--secondary" (click)="priceListModalVisible = false" type="button">Cancelar</button>
+        <button class="btn btn--secondary" (click)="dismissPriceListModal()" type="button">Cancelar</button>
         <button class="btn btn--primary" (click)="savePriceList()" type="button">Crear</button>
       </div>
     </div>
@@ -626,11 +626,11 @@
 </div>
 
 <!-- Modal Secundario: Costo -->
-<div class="modal-overlay" *ngIf="costModalVisible" (click)="costModalVisible = false">
+<div class="modal-overlay" *ngIf="costModalVisible" (click)="dismissCostModal()">
   <div class="modal-container modal-container--sm" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2>{{ costForm.id ? 'Editar Costo' : 'Nuevo Costo' }}</h2>
-      <button class="close-btn" (click)="costModalVisible = false" type="button">
+      <button class="close-btn" (click)="dismissCostModal()" type="button">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
           <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
         </svg>
@@ -672,7 +672,7 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn btn--secondary" (click)="costModalVisible = false" type="button">Cancelar</button>
+        <button class="btn btn--secondary" (click)="dismissCostModal()" type="button">Cancelar</button>
         <button class="btn btn--primary" (click)="saveCost()" type="button">Guardar</button>
       </div>
     </div>

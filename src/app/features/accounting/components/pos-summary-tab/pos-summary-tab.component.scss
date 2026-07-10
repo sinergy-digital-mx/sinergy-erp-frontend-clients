@@ -176,6 +176,86 @@
   color: #a5b4fc;
 }
 
+.collection-card__shifts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.collection-shift-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.collection-shift-stat--wide {
+  grid-column: 1 / -1;
+}
+
+.collection-shift-stat__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.collection-shift-stat__value {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.collection-shift-stat__value--text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #e0e7ff;
+}
+
+.terminal-type-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.terminal-type-pill--collection {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.shift-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.open-shift-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+  line-height: 1.35;
+  max-width: 10rem;
+}
+
 .collection-card__hint {
   margin: 0;
   font-size: 0.6875rem;

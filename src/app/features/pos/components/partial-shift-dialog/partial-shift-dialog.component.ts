@@ -27,6 +27,7 @@ const USD_DENOMS = [100, 50, 20, 10, 5, 1];
 export class PartialShiftDialogComponent {
   activeTab = signal<'MXN' | 'USD'>('MXN');
   notes = signal('');
+  validationError = signal<string | null>(null);
   counts = signal<Record<string, number>>({});
 
   readonly mxnDenoms = MXN_DENOMS;
@@ -54,6 +55,7 @@ export class PartialShiftDialogComponent {
   }
 
   adjustCount(currency: 'MXN' | 'USD', denomination: number, delta: number): void {
+    this.validationError.set(null);
     this.setCount(currency, denomination, this.getCount(currency, denomination) + delta);
   }
 
@@ -96,6 +98,7 @@ export class PartialShiftDialogComponent {
       }
     }
     if (denominations.length === 0) {
+      this.validationError.set('Indica al menos un billete para registrar el retiro.');
       return;
     }
     this.dialogRef.close({

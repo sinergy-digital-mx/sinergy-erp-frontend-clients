@@ -1,17 +1,40 @@
 @use '../../styles/settings-list-table';
+@use '../../../../../base/form-controls' as fc;
+
+.vendor-list__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.vendor-list__search {
+  flex: 1 1 220px;
+  min-width: 200px;
+  max-width: 320px;
+}
 
 .vendor-type-filter {
-  min-width: 11rem;
-  padding: 0.45rem 0.65rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  font-size: 0.8125rem;
-  color: #334155;
-  background: #fff;
+  @include fc.pollux-select-field;
+  flex: 0 1 200px;
+  min-width: 180px;
+  width: auto;
+}
 
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+@media (max-width: 767px) {
+  .vendor-list__toolbar {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vendor-list__search {
+    max-width: none;
+    width: 100%;
+  }
+
+  .vendor-type-filter {
+    width: 100%;
   }
 }

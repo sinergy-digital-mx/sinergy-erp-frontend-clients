@@ -1,0 +1,82 @@
+<div class="global-discount-form-dialog">
+  <div class="global-discount-form-dialog__header">
+    <h2>{{ isNew ? 'Nuevo descuento global' : 'Editar descuento global' }}</h2>
+    <lucide-icon [img]="X" class="close cursor-pointer" (click)="close()"></lucide-icon>
+  </div>
+
+  <div class="global-discount-form-dialog__body">
+    <form [formGroup]="form">
+      <div class="col-span-2">
+        <label class="field-label">Nombre *</label>
+        <input
+          type="text"
+          formControlName="name"
+          maxlength="120"
+          class="field-input"
+          placeholder="Ej: Descuento de carpintero" />
+        <p *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="field-error">
+          El nombre es obligatorio (máx. 120 caracteres)
+        </p>
+      </div>
+
+      <div class="col-span-2">
+        <label class="field-label">Tipo *</label>
+        <div class="radio-group">
+          <label class="radio-option" *ngFor="let option of discountTypeOptions">
+            <input type="radio" formControlName="discount_type" [value]="option.value" />
+            <span>{{ option.label }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="col-span-2">
+        <label class="field-label">Valor *</label>
+        <input type="number" formControlName="value" min="0.01" step="any" class="field-input" />
+        <p
+          *ngIf="(form.get('value')?.invalid || form.hasError('invalidPercentage') || form.hasError('invalidFixed')) && form.get('value')?.touched"
+          class="field-error">
+          <ng-container *ngIf="form.get('discount_type')?.value === 'percentage'">
+            Ingresa un porcentaje entre 0.01 y 100
+          </ng-container>
+          <ng-container *ngIf="form.get('discount_type')?.value === 'fixed'">
+            Ingresa un monto mayor a 0
+          </ng-container>
+        </p>
+      </div>
+
+      <div>
+        <label class="field-label">Vigencia desde</label>
+        <input type="date" formControlName="valid_from" class="field-input" />
+      </div>
+
+      <div>
+        <label class="field-label">Vigencia hasta</label>
+        <input type="date" formControlName="valid_to" class="field-input" />
+        <p *ngIf="form.hasError('invalidDateRange')" class="field-error">
+          La fecha inicial debe ser anterior o igual a la final
+        </p>
+      </div>
+
+      <div class="col-span-2">
+        <label class="checkbox-option">
+          <input type="checkbox" formControlName="is_active" />
+          <span>Activo</span>
+        </label>
+      </div>
+
+      <div class="col-span-2 preview-box" *ngIf="discountPreview">
+        <strong>Vista previa:</strong> {{ discountPreview }}
+      </div>
+    </form>
+  </div>
+
+  <div class="global-discount-form-dialog__footer">
+    <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="close()"></app-button>
+    <app-button
+      [text]="isNew ? 'Crear' : 'Guardar'"
+      custom_class="btn_primary"
+      [loading]="saving()"
+      (clicked)="save()">
+    </app-button>
+  </div>
+</div>

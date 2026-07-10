@@ -40,6 +40,8 @@ interface MenuItem {
   route: string;
   id: string;
   permission?: string;
+  /** Si se define, basta con tener uno de estos permisos. */
+  permissions?: string[];
   /** Si se define, el ítem solo se muestra para este tenant. */
   tenantId?: string;
 }
@@ -287,6 +289,9 @@ export class Sidebar implements OnInit, OnDestroy {
         return ['pos:Update', 'pos:Read', 'pos:ViewMenu'].some((p) =>
           this.auth_service.hasPermission(p)
         );
+      }
+      if (item.permissions?.length) {
+        return item.permissions.some((permission) => this.auth_service.hasPermission(permission));
       }
       if (!item.permission) {
         return true;

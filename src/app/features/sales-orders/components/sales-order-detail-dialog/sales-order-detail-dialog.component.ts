@@ -27,6 +27,7 @@ import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-re
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
+import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { WarehouseDetailModalComponent } from '../../../settings/components/warehouse-detail-modal/warehouse-detail-modal.component';
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
@@ -45,11 +46,16 @@ import {
   SalesOrderPaymentDialogComponent,
   SalesOrderPaymentDialogResult,
 } from '../sales-order-payment-dialog/sales-order-payment-dialog.component';
+import { AuthService } from '../../../../core/services/auth.service';
+import { ELECTRONIC_INVOICING_PERMISSIONS } from '../../config/electronic-invoicing-permissions.config';
+import { SalesOrderInvoicingTabComponent } from '../sales-order-invoicing-tab/sales-order-invoicing-tab.component';
+import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
+import { countVigenteInvoices } from '../../utils/cfdi-xml-builder.util';
 
 @Component({
   selector: 'app-sales-order-detail-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, RemoveTrailingZerosPipe],
+  imports: [CommonModule, MatDialogModule, RemoveTrailingZerosPipe, SalesOrderInvoicingTabComponent],
   templateUrl: './sales-order-detail-dialog.component.html',
   styleUrl: './sales-order-detail-dialog.component.scss',
   host: {
@@ -101,6 +107,12 @@ export class SalesOrderDetailDialogComponent {
   registeringPayment = signal(false);
   deletingPaymentId = signal<string | null>(null);
   uploadingPaymentDocId = signal<string | null>(null);
+  invoiceSummary = signal<string | null>(null);
+
+  canViewInvoicingTab = computed(() =>
+    this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.viewMenu) &&
+    this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.read)
+  );
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { orderId: string },
@@ -113,7 +125,9 @@ export class SalesOrderDetailDialogComponent {
     private taxCalculator: TaxCalculatorService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
-    private receiptPrintService: PosReceiptPrintService
+    private receiptPrintService: PosReceiptPrintService,
+    private authService: AuthService,
+    private invoiceService: SalesOrderInvoiceService
   ) {
     this.loadOrder();
   }
@@ -131,6 +145,7 @@ export class SalesOrderDetailDialogComponent {
         if (!silent) {
           this.loading.set(false);
         }
+        this.loadInvoiceSummaryIfAllowed();
       },
       error: () => {
         if (!silent) {
@@ -652,6 +667,25 @@ export class SalesOrderDetailDialogComponent {
     return Array.isArray(invoices) ? invoices : [];
   }
 
+  private loadInvoiceSummaryIfAllowed(): void {
+    if (!this.canViewInvoicingTab()) {
+      this.invoiceSummary.set(null);
+      return;
+    }
+
+    this.invoiceService.getInvoices(this.data.orderId).subscribe({
+      next: (invoices) => {
+        const vigentes = countVigenteInvoices(invoices);
+        this.invoiceSummary.set(`Facturas: ${invoices.length} · Vigentes: ${vigentes}`);
+      },
+      error: () => this.invoiceSummary.set(null),
+    });
+  }
+
+  onInvoicingTabChanged(): void {
+    this.loadInvoiceSummaryIfAllowed();
+  }
+
   canOpenCustomer(): boolean {
     return resolveSalesOrderCustomerId(this.order()) != null;
   }
@@ -731,6 +765,7 @@ export class SalesOrderDetailDialogComponent {
     const productId = item.product?.id ?? item.product_id;
     if (!productId) return;
     this.dialog.open(ProductDetailModalComponent, {
+      ...PRODUCT_DETAIL_DIALOG_CONFIG,
       data: {
         product: {
           id: productId,
@@ -739,8 +774,6 @@ export class SalesOrderDetailDialogComponent {
         },
         isNew: false,
       },
-      width: '850px',
-      maxHeight: '90vh',
     });
   }
 

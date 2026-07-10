@@ -57,6 +57,9 @@
       @if (item.is_walk_in) {
         <span class="walk-in-chip">Mostrador</span>
       }
+      @if (item.has_stamped_invoice) {
+        <span class="invoice-chip">CFDI timbrado</span>
+      }
     </div>
   </td>
   <td class="px-2 py-2">{{ sellerLabel(item) }}</td>

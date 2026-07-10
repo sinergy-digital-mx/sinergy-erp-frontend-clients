@@ -1,25 +1,42 @@
 import { Component, OnInit, signal, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FiscalConfigurationService } from '../../services/fiscal-configuration.service';
 import { FiscalConfiguration } from '../../models/fiscal-configuration.model';
 import { FiscalConfigurationModalComponent } from '../fiscal-configuration-modal/fiscal-configuration-modal.component';
+import { FinkokIntegrationPanelComponent } from '../finkok-integration-panel/finkok-integration-panel.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-fiscal-configuration-list',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, LucideAngularModule, DatatableWrapperComponent],
+  imports: [
+    CommonModule,
+    ButtonComponent,
+    LucideAngularModule,
+    DatatableWrapperComponent,
+    TabComponent,
+    FinkokIntegrationPanelComponent,
+  ],
   templateUrl: './fiscal-configuration-list.component.html',
   styleUrl: './fiscal-configuration-list.component.scss'
 })
 export class FiscalConfigurationListComponent implements OnInit {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
+
+  readonly tabs: TabItem[] = [
+    { id: 'razones-sociales', title: 'Razones Sociales' },
+    { id: 'finkok', title: 'Integración Finkok' },
+  ];
+
+  activeTab = 'razones-sociales';
 
   table_config = signal<IDatatableConfig>({
     rows: [],
@@ -43,11 +60,37 @@ export class FiscalConfigurationListComponent implements OnInit {
   constructor(
     private fiscalConfigService: FiscalConfigurationService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab === 'finkok') {
+      this.activeTab = 'finkok';
+    }
+
+    this.route.queryParamMap.subscribe((params) => {
+      const nextTab = params.get('tab');
+      if (nextTab === 'finkok') {
+        this.activeTab = 'finkok';
+      } else if (nextTab === 'razones-sociales') {
+        this.activeTab = 'razones-sociales';
+      }
+    });
+
     this.loadFiscalConfigurations();
+  }
+
+  onTabChange(tabId: string): void {
+    this.activeTab = tabId;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: tabId === 'razones-sociales' ? null : tabId },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   loadFiscalConfigurations(): void {

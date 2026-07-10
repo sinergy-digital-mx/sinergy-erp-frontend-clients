@@ -88,6 +88,10 @@
     <input type="text" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Retiro mediodía" />
   </label>
 
+  @if (validationError()) {
+    <p class="partial-validation-error">{{ validationError() }}</p>
+  }
+
   <div class="pos-dialog__actions">
     <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="cancel()"></app-button>
     <app-button text="Registrar parcial" custom_class="btn_primary" (clicked)="confirm()"></app-button>

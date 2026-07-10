@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Role } from '../../models';
+import { Role, AvailableModule, AvailablePermissionsResponse } from '../../models';
 import { RoleService } from '../../services/role.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -19,6 +19,14 @@ interface ModulePermissions {
   module_id: string;
   module_name: string;
   permissions: PermissionItem[];
+  isExpanded?: boolean;
+}
+
+interface CategoryPermissions {
+  code: string;
+  label: string;
+  sort_order: number;
+  modules: ModulePermissions[];
   isExpanded?: boolean;
 }
 
@@ -48,64 +56,92 @@ interface ModulePermissions {
           </app-button>
         </div>
 
-        <!-- Modules and Permissions -->
-        <div class="space-y-3">
-          @for (module of modulePermissions; track module.module_id) {
-            <div class="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-sm transition-shadow">
-              <!-- Module Header -->
-              <div class="bg-white px-4 py-3 border-b border-gray-100">
-                <div class="flex items-center justify-between">
-                  <button
-                    (click)="toggleModule(module)"
-                    class="flex items-center flex-1 text-left hover:opacity-80 transition-opacity">
-                    <h3 class="text-base font-semibold text-gray-900">{{ module.module_name }}</h3>
-                  </button>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs text-gray-500">
-                      {{ getModuleAssignedCount(module) }}/{{ module.permissions.length }}
-                    </span>
-                    <button
-                      (click)="toggleAllModulePermissions(module)"
-                      class="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50">
-                      {{ isModuleFullyAssigned(module) ? 'Desmarcar' : 'Marcar' }}
-                    </button>
-                    <button
-                      (click)="toggleModule(module)"
-                      class="text-gray-400 hover:text-gray-600 transition-all duration-200 p-1"
-                      [class.rotate-90]="module.isExpanded">
-                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                      </svg>
-                    </button>
-                  </div>
+        <!-- Categories and Modules -->
+        <div class="space-y-4">
+          @for (category of categoryPermissions; track category.code) {
+            <div class="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <!-- Category Header -->
+              <button
+                (click)="toggleCategory(category)"
+                class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
+                <div class="flex items-center gap-2">
+                  <svg
+                    class="w-4 h-4 text-gray-500 transition-transform duration-200"
+                    [class.rotate-90]="category.isExpanded"
+                    fill="currentColor"
+                    viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                  </svg>
+                  <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wide">{{ category.label }}</h2>
                 </div>
-              </div>
+                <span class="text-xs text-gray-500">
+                  {{ getCategoryAssignedCount(category) }}/{{ getCategoryTotalPermissions(category) }}
+                </span>
+              </button>
 
-              <!-- Permissions List (Collapsible) -->
-              @if (module.isExpanded) {
-                <div class="p-3 bg-gray-50">
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    @for (permission of module.permissions; track $index) {
-                      <label class="flex items-start space-x-2 p-2 rounded border border-gray-200 bg-white hover:bg-blue-50 cursor-pointer transition-colors">
-                        <input
-                          type="checkbox"
-                          [checked]="permission.isAssigned"
-                          (change)="togglePermission(permission)"
-                          class="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <div class="flex-1 min-w-0">
-                          <p class="text-xs font-medium text-gray-900">{{ permission.name }}</p>
-                          <p class="text-xs text-gray-500 mt-0.5">{{ permission.description }}</p>
+              <!-- Modules within Category -->
+              @if (category.isExpanded) {
+                <div class="divide-y divide-gray-100">
+                  @for (module of category.modules; track module.module_id) {
+                    <div class="bg-white">
+                      <!-- Module Header -->
+                      <div class="px-4 py-3">
+                        <div class="flex items-center justify-between">
+                          <button
+                            (click)="toggleModule(module)"
+                            class="flex items-center flex-1 text-left hover:opacity-80 transition-opacity">
+                            <h3 class="text-base font-semibold text-gray-900">{{ module.module_name }}</h3>
+                          </button>
+                          <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500">
+                              {{ getModuleAssignedCount(module) }}/{{ module.permissions.length }}
+                            </span>
+                            <button
+                              (click)="toggleAllModulePermissions(module)"
+                              class="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50">
+                              {{ isModuleFullyAssigned(module) ? 'Desmarcar' : 'Marcar' }}
+                            </button>
+                            <button
+                              (click)="toggleModule(module)"
+                              class="text-gray-400 hover:text-gray-600 transition-all duration-200 p-1"
+                              [class.rotate-90]="module.isExpanded">
+                              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                              </svg>
+                            </button>
+                          </div>
                         </div>
-                      </label>
-                    }
-                  </div>
+                      </div>
+
+                      <!-- Permissions List (Collapsible) -->
+                      @if (module.isExpanded) {
+                        <div class="px-4 pb-3 bg-gray-50">
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            @for (permission of module.permissions; track permission.id) {
+                              <label class="flex items-start space-x-2 p-2 rounded border border-gray-200 bg-white hover:bg-blue-50 cursor-pointer transition-colors">
+                                <input
+                                  type="checkbox"
+                                  [checked]="permission.isAssigned"
+                                  (change)="togglePermission(permission)"
+                                  class="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <div class="flex-1 min-w-0">
+                                  <p class="text-xs font-medium text-gray-900">{{ permission.name }}</p>
+                                  <p class="text-xs text-gray-500 mt-0.5">{{ permission.description }}</p>
+                                </div>
+                              </label>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
               }
             </div>
           }
         </div>
 
-        @if (modulePermissions.length === 0) {
+        @if (categoryPermissions.length === 0) {
           <div class="text-center py-8">
             <p class="text-gray-500">No hay módulos disponibles.</p>
           </div>
@@ -148,7 +184,7 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
   @Input() role: Role | null = null;
   @Output() permissionsUpdated = new EventEmitter<Role>();
 
-  modulePermissions: ModulePermissions[] = [];
+  categoryPermissions: CategoryPermissions[] = [];
   loading = false;
   saving = false;
   hasChanges = false;
@@ -180,10 +216,8 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
     this.hasChanges = false;
     this.cdr.markForCheck();
 
-    // Use the new endpoint that returns role with permissions and their assignment status
     this.roleService.getRolePermissionsAvailable(this.role.id).subscribe({
       next: (response) => {
-        console.log('Permissions loaded successfully:', response);
         this.processPermissions(response);
         this.loading = false;
         this.cdr.markForCheck();
@@ -191,9 +225,9 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
       error: (error) => {
         console.error('Error loading permissions:', error);
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { 
-            message: error.error?.message || 'Error al cargar permisos', 
-            type: 'error' 
+          data: {
+            message: error.error?.message || 'Error al cargar permisos',
+            type: 'error'
           },
           duration: 5000
         });
@@ -203,38 +237,106 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
     });
   }
 
-  private processPermissions(response: any) {
-    console.log('Processing permissions response:', response);
-    
-    // Validate response structure
-    if (!response || !response.modules || !Array.isArray(response.modules)) {
-      console.error('Invalid response structure:', response);
-      this.modulePermissions = [];
+  private processPermissions(response: AvailablePermissionsResponse) {
+    if (!response) {
+      this.categoryPermissions = [];
       return;
     }
 
-    // Store original permissions for change detection
-    const assignedPermissions = response.modules
-      .flatMap(module => module.permissions || [])
-      .filter(permission => permission.assigned)
-      .map(permission => permission.id);
-    
-    this.originalPermissions = new Set(assignedPermissions);
+    const modules = this.extractModules(response);
+    if (modules.length === 0) {
+      this.categoryPermissions = [];
+      return;
+    }
 
-    // Process modules and permissions with assignment status
-    this.modulePermissions = response.modules.map(module => ({
+    this.originalPermissions = new Set(
+      modules
+        .flatMap(module => module.permissions || [])
+        .filter(permission => permission.assigned)
+        .map(permission => permission.id)
+    );
+
+    this.categoryPermissions = this.buildCategories(response, modules);
+  }
+
+  private extractModules(response: AvailablePermissionsResponse): AvailableModule[] {
+    if (response.categories?.length) {
+      return response.categories.flatMap(category => category.modules || []);
+    }
+    return response.modules || [];
+  }
+
+  private buildCategories(
+    response: AvailablePermissionsResponse,
+    modules: AvailableModule[]
+  ): CategoryPermissions[] {
+    if (response.categories?.length) {
+      return response.categories
+        .slice()
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map(category => ({
+          code: category.code,
+          label: category.label,
+          sort_order: category.sort_order,
+          modules: (category.modules || []).map(module => this.mapModule(module)),
+          isExpanded: true
+        }));
+    }
+
+    const grouped = new Map<string, { label: string; sort_order: number; modules: AvailableModule[] }>();
+
+    for (const module of modules) {
+      const code = module.category || 'other';
+      const label = module.category_label || 'Otros';
+      const sortOrder = module.sort_order ?? 999;
+
+      if (!grouped.has(code)) {
+        grouped.set(code, { label, sort_order: sortOrder, modules: [] });
+      }
+      grouped.get(code)!.modules.push(module);
+    }
+
+    return Array.from(grouped.entries())
+      .map(([code, group]) => ({
+        code,
+        label: group.label,
+        sort_order: group.sort_order,
+        modules: group.modules
+          .slice()
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .map(module => this.mapModule(module)),
+        isExpanded: true
+      }))
+      .sort((a, b) => a.sort_order - b.sort_order);
+  }
+
+  private mapModule(module: AvailableModule): ModulePermissions {
+    return {
       module_id: module.id,
       module_name: module.name,
       permissions: (module.permissions || []).map(permission => ({
         id: permission.id,
-        name: permission.action,
-        description: permission.description,
+        name: this.formatPermissionLabel(permission),
+        description: permission.description || '',
         isAssigned: permission.assigned || false
       })),
-      isExpanded: false // Start all modules collapsed
-    }));
-    
-    console.log('Processed modules:', this.modulePermissions);
+      isExpanded: false
+    };
+  }
+
+  private formatPermissionLabel(permission: AvailableModule['permissions'][number]): string {
+    if (permission.entity) {
+      return `${permission.entity}:${permission.action}`;
+    }
+    return permission.action;
+  }
+
+  private getAllModules(): ModulePermissions[] {
+    return this.categoryPermissions.flatMap(category => category.modules);
+  }
+
+  toggleCategory(category: CategoryPermissions) {
+    category.isExpanded = !category.isExpanded;
   }
 
   toggleModule(module: ModulePermissions) {
@@ -262,15 +364,27 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
     return module.permissions.filter(p => p.isAssigned).length;
   }
 
+  getCategoryAssignedCount(category: CategoryPermissions): number {
+    return category.modules.reduce(
+      (total, module) => total + this.getModuleAssignedCount(module),
+      0
+    );
+  }
+
+  getCategoryTotalPermissions(category: CategoryPermissions): number {
+    return category.modules.reduce((total, module) => total + module.permissions.length, 0);
+  }
+
   getTotalAssignedPermissions(): number {
-    return this.modulePermissions.reduce((total, module) => 
-      total + this.getModuleAssignedCount(module), 0
+    return this.getAllModules().reduce(
+      (total, module) => total + this.getModuleAssignedCount(module),
+      0
     );
   }
 
   private checkForChanges() {
     const currentPermissions = new Set(
-      this.modulePermissions
+      this.getAllModules()
         .flatMap(module => module.permissions)
         .filter(p => p.isAssigned)
         .map(p => p.id)
@@ -292,7 +406,7 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
 
     this.saving = true;
 
-    const assignedPermissionIds = this.modulePermissions
+    const assignedPermissionIds = this.getAllModules()
       .flatMap(module => module.permissions)
       .filter(p => p.isAssigned)
       .map(p => p.id);
@@ -300,29 +414,26 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
     this.roleService.updateRolePermissions(this.role.id, assignedPermissionIds).subscribe({
       next: (updatedRole) => {
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { 
-            message: 'Permisos actualizados correctamente', 
-            type: 'success' 
+          data: {
+            message: 'Permisos actualizados correctamente',
+            type: 'success'
           },
           duration: 3000
         });
-        
+
         this.originalPermissions = new Set(assignedPermissionIds);
         this.hasChanges = false;
         this.saving = false;
 
-        // Refresh JWT so this browser session picks up permission changes
         this.permissionSyncService.syncAfterRbacChange();
-
-        // Emit the updated role
         this.permissionsUpdated.emit(updatedRole);
       },
       error: (error) => {
         console.error('Error saving permissions:', error);
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { 
-            message: error.error?.message || 'Error al guardar permisos', 
-            type: 'error' 
+          data: {
+            message: error.error?.message || 'Error al guardar permisos',
+            type: 'error'
           },
           duration: 5000
         });

@@ -1,4 +1,63 @@
-// Modal Container (MatDialog ya maneja el overlay)
+// Shell principal — clase propia para no chocar con otros modales
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.product-detail-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 850px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  > .modal-content {
+    flex: 1;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  ::ng-deep .tab-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  ::ng-deep .tab-list {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 999px;
+    }
+  }
+
+  ::ng-deep .tab-button::after {
+    bottom: 0;
+  }
+
+  > .modal-content .tab-content {
+    padding: 1rem 0 0;
+  }
+}
+
+// Modales internos (atributos, precios, costos, etc.)
 .modal-container {
   background: white;
   border-radius: 12px;

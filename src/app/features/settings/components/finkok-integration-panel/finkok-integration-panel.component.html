@@ -1,0 +1,160 @@
+<div class="finkok-panel">
+  <div class="mb-5">
+    <h3 class="text-xl font-semibold text-gray-800">Integración Finkok</h3>
+    <p class="text-sm text-gray-600 mt-1">
+      Credenciales globales del cliente para timbrado electrónico. Configura demo y producción por separado.
+    </p>
+  </div>
+
+  @if (!canRead) {
+    <div class="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800">
+      No tienes permisos para consultar la integración Finkok. Solicita <strong>FiscalConfiguration:Read</strong> en Finanzas → Facturación.
+    </div>
+  } @else if (loading) {
+    <div class="rounded-lg border border-gray-200 bg-white px-4 py-8 text-center text-gray-600">
+      Cargando configuración Finkok...
+    </div>
+  } @else {
+    @if (showDemoBanner) {
+      <div class="demo-banner">
+        Modo pruebas Finkok — los timbrados en demo no son válidos ante el SAT.
+      </div>
+    }
+
+    <div class="stamping-selector">
+      <label class="field-label" for="stamping_environment">Ambiente activo para timbrar</label>
+      <select
+        id="stamping_environment"
+        class="field-input stamping-select"
+        [value]="stampingEnvironment"
+        [disabled]="!canUpdate || savingStampingEnvironment"
+        (change)="onStampingEnvironmentChange($event)">
+        <option value="demo">Demo (pruebas)</option>
+        <option value="production">Producción</option>
+      </select>
+      <p class="field-hint">Define qué credenciales usa el timbrado y cancelación por defecto.</p>
+    </div>
+
+    <app-tab
+      class="env-tabs"
+      [tabs]="environmentTabs"
+      [activeTabId]="activeEnvironmentTab"
+      (tabChange)="onEnvironmentTabChange($event)">
+    </app-tab>
+
+    @if (currentEnvironmentConfig?.last_connection_test_status) {
+      <div class="status-row">
+        <span class="status-label">Última prueba de conexión ({{ activeEnvironmentTab }}):</span>
+        <span
+          class="status-badge"
+          [class.status-badge--connected]="currentEnvironmentConfig?.last_connection_test_status === 'connected'"
+          [class.status-badge--failed]="currentEnvironmentConfig?.last_connection_test_status === 'failed'">
+          {{ connectionStatusLabel }}
+        </span>
+      </div>
+    }
+
+    @if (statusMessage) {
+      <div class="alert alert--success">{{ statusMessage }}</div>
+    }
+
+    @if (testMessage) {
+      <div class="alert alert--info">{{ testMessage }}</div>
+    }
+
+    @if (errorMessage) {
+      <div class="alert alert--error">{{ errorMessage }}</div>
+    }
+
+    <section class="form-card">
+      <form [formGroup]="form" (ngSubmit)="saveConfiguration()">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="field-label" for="finkok_username">Usuario Finkok</label>
+            <input
+              id="finkok_username"
+              type="text"
+              class="field-input"
+              formControlName="finkok_username"
+              placeholder="Usuario de Finkok"
+              [disabled]="!canUpdate || saving"
+            />
+            @if (form.get('finkok_username')?.invalid && form.get('finkok_username')?.touched) {
+              <p class="field-error">El usuario es obligatorio.</p>
+            }
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="field-label" for="finkok_password">Contraseña Finkok</label>
+            <input
+              id="finkok_password"
+              type="password"
+              class="field-input"
+              formControlName="finkok_password"
+              placeholder="Contraseña completa"
+              autocomplete="new-password"
+              [disabled]="!canUpdate || saving"
+            />
+            <p class="field-hint">
+              @if (hasSavedConfigForActiveTab && currentEnvironmentConfig?.has_password) {
+                Ya hay una contraseña guardada. Debes ingresarla completa cada vez que guardes.
+              } @else {
+                La contraseña es obligatoria al guardar y nunca se muestra después.
+              }
+            </p>
+            @if (form.get('finkok_password')?.invalid && form.get('finkok_password')?.touched) {
+              <p class="field-error">La contraseña es obligatoria.</p>
+            }
+          </div>
+
+          <div class="flex items-end">
+            <label class="toggle-row">
+              <input
+                type="checkbox"
+                formControlName="is_active"
+                [disabled]="!canUpdate || saving"
+              />
+              <span>Integración activa</span>
+            </label>
+          </div>
+
+          <div class="flex items-end">
+            <label class="toggle-row">
+              <input
+                type="checkbox"
+                formControlName="is_stamping_default"
+                [disabled]="!canUpdate || saving"
+              />
+              <span>Usar para timbrar</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="actions-row">
+          @if (canUpdate) {
+            <app-button
+              text="Guardar"
+              custom_class="btn_primary"
+              type="submit"
+              [loading]="saving"
+              [disabled]="saving || form.invalid">
+            </app-button>
+
+            <app-button
+              text="Probar conexión"
+              custom_class="btn_secondary"
+              type="button"
+              [loading]="testing"
+              [disabled]="testing || saving || !hasSavedConfigForActiveTab"
+              (clicked)="testConnection()">
+            </app-button>
+          }
+
+          @if (!hasSavedConfigForActiveTab) {
+            <span class="actions-hint">Guarda la configuración de este ambiente antes de probar la conexión.</span>
+          }
+        </div>
+      </form>
+    </section>
+  }
+</div>

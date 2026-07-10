@@ -107,6 +107,14 @@
             [attr.title]="getDisabledTooltip(product)"
             (click)="canAddToCart(product) && addProductToCart(product)">
             <div class="pos-card__media">
+              <button
+                type="button"
+                class="pos-card__detail"
+                title="Ver configuración del producto"
+                aria-label="Ver configuración del producto"
+                (click)="openProductDetail(product, $event)">
+                <lucide-icon [img]="Info" class="pos-ic pos-ic--sm" />
+              </button>
               @if (hasProductPhoto(product)) {
                 <img
                   [src]="getProductPhotoUrl(product)"
@@ -214,10 +222,18 @@
                     }
                   </select>
                 }
-                @if (item.selected_discount) {
-                  <p class="pos-line__discount">
-                    {{ item.selected_discount.name }} · -{{ formatCurrency(item.line_discount_amount) }}
-                  </p>
+                @if ((item.applicable_discounts?.length || 0) > 0) {
+                  <select
+                    [id]="'pos-line-discount-' + i"
+                    class="pos-line__pricing-select pos-line__discount-select"
+                    [attr.aria-label]="'Descuento para ' + item.product_name"
+                    [ngModel]="item.product_discount_id || ''"
+                    (ngModelChange)="onLineDiscountChange(i, $event)">
+                    <option value="">Sin descuento</option>
+                    @for (discount of item.applicable_discounts || []; track discount.id) {
+                      <option [value]="discount.id">{{ formatLineDiscountOption(discount) }}</option>
+                    }
+                  </select>
                 }
               </div>
               <button
@@ -270,9 +286,41 @@
       </div>
 
       <div class="pos-cart__summary">
+        @if (canUseGlobalDiscounts()) {
+          <div class="pos-cart__global-discount">
+            <label class="pos-cart__global-discount-label" for="pos-global-discount">
+              <lucide-icon [img]="Percent" class="pos-ic pos-ic--xs" />
+              Descuento global
+            </label>
+            <select
+              id="pos-global-discount"
+              class="pos-cart__global-discount-select"
+              [disabled]="loadingGlobalDiscounts() || posService.cart().items.length === 0"
+              [value]="selectedGlobalDiscountId()"
+              (change)="onGlobalDiscountChange($any($event.target).value)">
+              @if (loadingGlobalDiscounts()) {
+                <option value="">Cargando descuentos…</option>
+              } @else {
+                <option value="">Sin descuento</option>
+                @if (applicableGlobalDiscounts().length === 0) {
+                  <option value="" disabled>No hay descuentos vigentes</option>
+                }
+                @for (discount of applicableGlobalDiscounts(); track discount.id) {
+                  <option [value]="discount.id">{{ formatGlobalDiscountOption(discount) }}</option>
+                }
+              }
+            </select>
+            @if (!loadingGlobalDiscounts() && applicableGlobalDiscounts().length === 0 && posService.cart().items.length > 0) {
+              <p class="pos-cart__global-discount-hint">
+                Crea descuentos en Configuración → Descuentos globales.
+              </p>
+            }
+          </div>
+        }
+
         @if (cartAppliedDiscounts().length > 0) {
           <div class="pos-cart__discounts">
-            <h3 class="pos-cart__discounts-title">Descuentos aplicados</h3>
+            <h3 class="pos-cart__discounts-title">Desc. por producto</h3>
             @for (discount of cartAppliedDiscounts(); track $index) {
               <div class="pos-cart__discount-row">
                 <span>• {{ discount.discountName }} · {{ discount.productName }}</span>
@@ -282,13 +330,24 @@
           </div>
         }
         <div class="pos-sum-row">
-          <span>{{ cartHasDiscounts() ? 'Subtotal' : 'Subtotal' }}</span>
+          <span>Subtotal</span>
           <strong>{{ formatCurrency(cartHasDiscounts() ? posService.cart().total_gross_subtotal : posService.cart().total_subtotal) }}</strong>
         </div>
-        @if (cartHasDiscounts()) {
+        @if (cartHasItems()) {
           <div class="pos-sum-row pos-sum-row--discount">
-            <span>Descuentos</span>
+            <span>Desc. por producto</span>
             <strong>-{{ formatCurrency(posService.cart().total_discount) }}</strong>
+          </div>
+        }
+        @if (canUseGlobalDiscounts() && cartHasItems()) {
+          <div class="pos-sum-row pos-sum-row--discount">
+            <span>
+              Desc. global
+              @if (posService.cart().selected_global_discount; as globalDiscount) {
+                ({{ globalDiscount.name }})
+              }
+            </span>
+            <strong>-{{ formatCurrency(posService.cart().global_discount_amount) }}</strong>
           </div>
         }
         <div class="pos-sum-row">

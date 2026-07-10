@@ -1,0 +1,1 @@
+var e={viewMenu:"electronic_invoicing:ViewMenu",read:"electronic_invoices:Read",stamp:"electronic_invoices:Stamp",cancel:"electronic_invoices:Cancel",syncSat:"electronic_invoices:SyncSat"};export{e as a};

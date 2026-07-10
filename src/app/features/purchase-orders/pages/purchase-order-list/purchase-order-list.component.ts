@@ -390,7 +390,7 @@ export class PurchaseOrderListComponent implements OnInit {
    */
   navigateToCreate(): void {
     this.dialog.open(CreatePurchaseOrderModalComponent, {
-      width: '900px',
+      width: '1100px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       panelClass: 'create-purchase-order-modal'

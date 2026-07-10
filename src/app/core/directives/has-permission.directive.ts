@@ -25,6 +25,14 @@ import { Subscription } from 'rxjs';
 export class HasPermissionDirective implements OnInit, OnDestroy {
   @Input() hasPermission: string | string[];
   @Input() hasPermissionMode: 'all' | 'any' = 'all';
+
+  /** Alias used in microsyntax: *hasPermission="perms; mode: 'any'" */
+  @Input() set mode(value: 'all' | 'any') {
+    if (value === 'any' || value === 'all') {
+      this.hasPermissionMode = value;
+      this.updateView();
+    }
+  }
   
   private permissionsSubscription?: Subscription;
   private hasView = false;

@@ -1,4 +1,4 @@
-import { POSCartItem } from '../models/pos.model';
+import { POSCartItem, POSCart } from '../models/pos.model';
 import { SalesOrderFormData } from '../../sales-orders/models/sales-order.model';
 
 export interface VentasPosOrderContext {
@@ -35,7 +35,7 @@ function mapCartLineToOrderLine(item: POSCartItem): SalesOrderFormData['line_ite
 }
 
 export function buildVentasPosOrderPayload(
-  cartItems: POSCartItem[],
+  cart: Pick<POSCart, 'items' | 'global_discount_id'>,
   ctx: VentasPosOrderContext
 ): SalesOrderFormData {
   const terminal = ctx.terminalLabel?.trim() || 'POS Ventas';
@@ -49,7 +49,8 @@ export function buildVentasPosOrderPayload(
     sales_order_type: 'POS',
     seller_user_id: ctx.sellerUserId,
     notes: `POS Ventas - ${terminal}`,
-    line_items: cartItems.map(mapCartLineToOrderLine),
+    line_items: cart.items.map(mapCartLineToOrderLine),
+    ...(cart.global_discount_id ? { global_discount_id: cart.global_discount_id } : {}),
   } as SalesOrderFormData;
 }
 

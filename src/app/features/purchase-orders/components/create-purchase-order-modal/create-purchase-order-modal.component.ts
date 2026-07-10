@@ -1,10 +1,12 @@
-import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { LucideAngularModule, ExternalLink } from 'lucide-angular';
+import { Subject, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil, switchMap, catchError, finalize, map } from 'rxjs/operators';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { WritePurchaseOrderDto } from '../../models/filters.model';
 import { FiscalConfigurationService } from '../../../../features/settings/services/fiscal-configuration.service';
@@ -12,8 +14,11 @@ import { WarehouseService } from '../../../../features/settings/services/warehou
 import { VendorService } from '../../../../features/settings/services/vendor.service';
 import { VendorQueryParams } from '../../../../features/settings/models/vendor.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
+import { ProductDetailModalComponent } from '../../../../features/settings/components/product-detail-modal/product-detail-modal.component';
+import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 
 const VENDOR_SEARCH_LIMIT = 100;
+const VENDOR_SEARCH_MIN_CHARS = 2;
 
 interface LineItem {
   product_id: string;
@@ -31,11 +36,11 @@ interface LineItem {
 @Component({
   selector: 'app-create-purchase-order-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatAutocompleteModule, TabComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatAutocompleteModule, TabComponent, LucideAngularModule],
   templateUrl: './create-purchase-order-modal.component.html',
   styleUrls: ['./create-purchase-order-modal.component.scss']
 })
-export class CreatePurchaseOrderModalComponent implements OnInit {
+export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   form: FormGroup;
   loading = false;
   saving = false;
@@ -48,6 +53,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
   warehouses: any[] = [];
   filteredVendors: any[] = [];
   loadingVendors = false;
+  hasSearchedVendors = false;
+  private destroy$ = new Subject<void>();
   tabs: TabItem[] = [
     { id: 'info', title: 'Información' },
     { id: 'products', title: 'Productos' }
@@ -61,6 +68,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
   selectedUnitTotal = 0;
   selectedIva = 16;
   selectedIeps = 0;
+  readonly ExternalLink = ExternalLink;
 
   constructor(
     private fb: FormBuilder,
@@ -70,6 +78,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     private vendorService: VendorService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
+    private dialog: MatDialog,
     public dialogRef: MatDialogRef<CreatePurchaseOrderModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {
@@ -86,16 +95,80 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDropdownData();
+    this.setupVendorSearch();
+  }
+
+  private setupVendorSearch(): void {
     this.form.get('vendor_search')?.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged())
-      .subscribe((value) => {
-        if (typeof value === 'string') {
-          this.form.patchValue({ vendor_id: '' }, { emitEvent: false });
-        } else if (value && typeof value !== 'string') {
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((value) => {
+          if (value && typeof value !== 'string') {
+            return of(null);
+          }
+
+          if (typeof value === 'string') {
+            this.form.patchValue({ vendor_id: '' }, { emitEvent: false });
+          }
+
+          const term = typeof value === 'string' ? value.trim() : '';
+          if (term.length < VENDOR_SEARCH_MIN_CHARS) {
+            this.filteredVendors = [];
+            this.hasSearchedVendors = false;
+            this.loadingVendors = false;
+            return of(null);
+          }
+
+          this.loadingVendors = true;
+          const params: VendorQueryParams = {
+            limit: VENDOR_SEARCH_LIMIT,
+            status: 'active',
+            search: term,
+          };
+
+          return this.vendorService.getVendors(params).pipe(
+            map((response) => ({ term, response })),
+            catchError((error) => {
+              console.error('Error searching vendors:', error);
+              this.toast.error('Error al buscar proveedores');
+              return of({ term, response: { data: [] } });
+            }),
+            finalize(() => {
+              this.loadingVendors = false;
+              this.cdr.detectChanges();
+            })
+          );
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((result) => {
+        if (!result) {
+          this.cdr.detectChanges();
           return;
         }
-        this.searchVendors(typeof value === 'string' ? value : '');
+
+        this.hasSearchedVendors = true;
+        this.filteredVendors = (result.response?.data || []).map((vendor: any) => ({
+          ...vendor,
+          display_name: this.formatVendorLabel(vendor),
+        }));
+        this.cdr.detectChanges();
       });
+  }
+
+  get vendorSearchTooShort(): boolean {
+    const value = this.form.get('vendor_search')?.value;
+    if (value && typeof value !== 'string') {
+      return false;
+    }
+    const term = String(value || '').trim();
+    return term.length > 0 && term.length < VENDOR_SEARCH_MIN_CHARS;
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   onTabChange(tabId: string): void {
@@ -108,12 +181,11 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     // Load all dropdown data in parallel
     Promise.all([
       this.fiscalConfigService.listFiscalConfigurations().toPromise(),
-      this.warehouseService.getWarehouses().toPromise()
+      this.warehouseService.getWarehouses().toPromise(),
     ]).then(([fiscalConfigs, warehouses]) => {
       this.fiscalConfigurations = fiscalConfigs?.data || [];
       this.warehouses = warehouses?.data || [];
       this.loading = false;
-      this.searchVendors('');
       this.cdr.detectChanges();
     }).catch((error) => {
       console.error('Error loading dropdown data:', error);
@@ -169,33 +241,11 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     return vendor?.display_name || this.formatVendorLabel(vendor) || '';
   }
 
-  private searchVendors(searchTerm: string): void {
-    const term = String(searchTerm || '').trim();
-    const params: VendorQueryParams = {
-      limit: VENDOR_SEARCH_LIMIT,
-      status: 'active'
-    };
-    if (term) {
-      params.search = term;
-    }
-
-    this.loadingVendors = true;
-    this.vendorService.getVendors(params).subscribe({
-      next: (response) => {
-        this.filteredVendors = (response?.data || []).map((vendor: any) => ({
-          ...vendor,
-          display_name: this.formatVendorLabel(vendor)
-        }));
-        this.loadingVendors = false;
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error searching vendors:', error);
-        this.filteredVendors = [];
-        this.loadingVendors = false;
-        this.cdr.detectChanges();
-      }
-    });
+  private formatVendorLabel(vendor: any): string {
+    if (!vendor) return '';
+    const name = (vendor.name || '').trim();
+    const rfc = (vendor.rfc || '').trim();
+    return rfc ? `${name} (${rfc})` : name;
   }
 
   get filteredProductsForModal(): any[] {
@@ -214,13 +264,6 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
   get selectedProductUoms(): any[] {
     if (!this.selectedProduct) return [];
     return this.selectedProduct?.uoms || [];
-  }
-
-  private formatVendorLabel(vendor: any): string {
-    if (!vendor) return '';
-    const name = (vendor.name || '').trim();
-    const rfc = (vendor.rfc || '').trim();
-    return rfc ? `${name} (${rfc})` : name;
   }
 
   openAddProductModal(): void {
@@ -244,6 +287,67 @@ export class CreatePurchaseOrderModalComponent implements OnInit {
     this.selectedUnitTotal = Number(firstUom?.cost || 0);
     this.selectedIva = Number(firstUom?.iva_percentage || 0);
     this.selectedIeps = Number(firstUom?.ieps_percentage || 0);
+  }
+
+  openSelectedProductDetail(): void {
+    const productId = this.selectedProduct?.product_id;
+    if (!productId) {
+      this.toast.warning('Selecciona un producto primero');
+      return;
+    }
+
+    const productIdToRefresh = productId;
+    const uomIdToRestore = this.selectedUomId;
+
+    this.dialog.open(ProductDetailModalComponent, {
+      ...PRODUCT_DETAIL_DIALOG_CONFIG,
+      data: {
+        product: {
+          id: productId,
+          name: this.selectedProduct?.product_name,
+          sku: this.selectedProduct?.product_sku || this.selectedProduct?.sku,
+        },
+        isNew: false,
+      },
+    }).afterClosed().subscribe(() => {
+      this.refreshSelectedProductFromVendor(productIdToRefresh, uomIdToRestore);
+    });
+  }
+
+  private refreshSelectedProductFromVendor(productId: string, preferredUomId: string): void {
+    const vendorId = this.form.get('vendor_id')?.value;
+    if (!vendorId) return;
+
+    this.purchaseOrderService.getVendorProducts(vendorId).subscribe({
+      next: (products) => {
+        this.vendorProducts = products;
+        const updated = products.find((product) => product.product_id === productId);
+        if (!updated) {
+          this.cdr.detectChanges();
+          return;
+        }
+
+        this.selectedProduct = updated;
+        this.productSearchTerm = updated;
+
+        const uoms = updated.uoms || [];
+        const uom =
+          uoms.find((row: any) => row.uom_id === preferredUomId) ||
+          uoms[0];
+
+        if (uom) {
+          this.selectedUomId = uom.uom_id;
+          this.selectedUnitTotal = Number(uom.cost || 0);
+          this.selectedIva = Number(uom.iva_percentage || 0);
+          this.selectedIeps = Number(uom.ieps_percentage || 0);
+        }
+
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.toast.error('No se pudo actualizar la información del producto');
+      },
+    });
   }
 
   onSelectedUomChange(): void {

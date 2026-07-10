@@ -1,1 +1,41 @@
 @import '../open-daily-shift-dialog/open-daily-shift-dialog.component.scss';
+
+.close-shift-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.close-shift-summary__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.84rem;
+  color: #475569;
+
+  strong {
+    color: #0f172a;
+    font-weight: 700;
+    text-align: right;
+  }
+}
+
+.close-shift-summary__warn {
+  margin: 0.35rem 0 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 0.78rem;
+  line-height: 1.4;
+
+  &--historical {
+    margin: 0 0 0.75rem;
+  }
+}

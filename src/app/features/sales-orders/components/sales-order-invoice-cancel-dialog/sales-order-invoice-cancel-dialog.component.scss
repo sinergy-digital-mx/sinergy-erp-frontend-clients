@@ -1,0 +1,38 @@
+@use '../sales-order-payment-dialog/sales-order-payment-dialog.component.scss';
+
+.hint {
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin: 0 0 1rem;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-danger {
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: #dc2626;
+  color: #fff;
+}
+
+.btn-secondary {
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}

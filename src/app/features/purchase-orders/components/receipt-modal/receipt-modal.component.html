@@ -20,11 +20,31 @@
           <div class="items-list">
             @for (lineItem of purchaseOrder.line_items; track lineItem.id; let i = $index) {
               <div class="item-row">
-                <div class="item-info">
-                  <div class="product-details">
+                <div class="item-row__header">
+                  <div class="item-row__product">
                     <h4>{{ getProductName(lineItem) }}</h4>
-                    <p class="sku">SKU: {{ getProductSku(lineItem) }}</p>
-                    <p class="ordered">Ordenado: {{ getOrderedQuantity(lineItem) }}</p>
+                  </div>
+                  <div class="item-row__meta">
+                    <span class="meta-chip">
+                      <span class="meta-chip__label">SKU</span>
+                      <span class="meta-chip__value">{{ getProductSku(lineItem) }}</span>
+                    </span>
+                    <span class="meta-chip meta-chip--order">
+                      <span class="meta-chip__label">Ordenado</span>
+                      <span class="meta-chip__value">{{ getOrderedQuantity(lineItem) }}</span>
+                    </span>
+                    @if (getUnitCost(lineItem) !== null) {
+                      <span class="meta-chip">
+                        <span class="meta-chip__label">Costo unit.</span>
+                        <span class="meta-chip__value">{{ formatCurrency(getUnitCost(lineItem)!) }}</span>
+                      </span>
+                    }
+                    @if (getLineTotal(lineItem) !== null) {
+                      <span class="meta-chip meta-chip--total">
+                        <span class="meta-chip__label">Total línea</span>
+                        <span class="meta-chip__value">{{ formatCurrency(getLineTotal(lineItem)!) }}</span>
+                      </span>
+                    }
                   </div>
                 </div>
 

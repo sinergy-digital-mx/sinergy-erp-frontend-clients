@@ -19,12 +19,11 @@ import {
   AlertCircle,
   User,
   Percent,
+  Info,
 } from 'lucide-angular';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
-import {
-  PosAddProductDialogComponent,
-  PosAddProductDialogResult,
-} from '../../components/pos-add-product-dialog/pos-add-product-dialog.component';
+import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
+import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { POSService } from '../../services/pos.service';
 import { PosStateService } from '../../services/pos-state.service';
 import { POSCartItem } from '../../models/pos.model';
@@ -35,7 +34,8 @@ import {
   PosInventorySummaryResponse,
   PosSummaryWarehouse,
   PosApplicableDiscount,
-  resolvePosWarehouseId,
+  resetPosWarehouseForBranch,
+  syncPosWarehouseContext,
 } from '../../models/pos-inventory-summary.model';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import {
@@ -43,7 +43,10 @@ import {
   isPosOrderQueued,
   resolveFiscalConfigurationIdFromBranch,
 } from '../../utils/pos-order.util';
-import { isDiscountApiError } from '../../utils/pos-discount.util';
+import { isDiscountApiError, formatGlobalDiscountLabel, formatApplicableDiscountLabel } from '../../utils/pos-discount.util';
+import { GlobalDiscountService } from '../../../global-discounts/services/global-discount.service';
+import { GlobalDiscount } from '../../../global-discounts/models/global-discount.model';
+import { GLOBAL_DISCOUNT_PERMISSIONS } from '../../../global-discounts/config/permissions.config';
 import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
 import { dailyShiftIsOpen } from '../../models/pos-daily-shift.model';
 
@@ -68,6 +71,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   readonly AlertCircle = AlertCircle;
   readonly User = User;
   readonly Percent = Percent;
+  readonly Info = Info;
 
   products = signal<any[]>([]);
   warehouses = signal<PosSummaryWarehouse[]>([]);
@@ -94,6 +98,19 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
 
   cartHasDiscounts = computed(() => this.posService.cart().total_discount > 0);
 
+  cartHasGlobalDiscount = computed(() => this.posService.cart().global_discount_amount > 0);
+
+  cartHasItems = computed(() => this.posService.cart().items.length > 0);
+
+  canUseGlobalDiscounts = computed(() =>
+    GLOBAL_DISCOUNT_PERMISSIONS.viewList.some((permission) =>
+      this.authService.hasPermission(permission)
+    )
+  );
+
+  applicableGlobalDiscounts = signal<GlobalDiscount[]>([]);
+  loadingGlobalDiscounts = signal(false);
+
   private lastInventorySummary = signal<PosInventorySummaryResponse | null>(null);
 
   photoLoadingStates = signal<Map<string, boolean>>(new Map());
@@ -108,7 +125,8 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private router: Router,
     private toast: ToastService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private globalDiscountService: GlobalDiscountService
   ) {}
 
   readonly canSell = computed(() => this.posState.canCaptureSales());
@@ -136,7 +154,65 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       void this.router.navigate(['/pos/cobranza'], { replaceUrl: true });
       return;
     }
+    resetPosWarehouseForBranch(this.authService.getBillingBranchId());
+    this.selectedWarehouse.set('');
+    if (this.canUseGlobalDiscounts()) {
+      this.loadApplicableGlobalDiscounts();
+    }
     this.loadData();
+  }
+
+  loadApplicableGlobalDiscounts(): void {
+    if (!this.canUseGlobalDiscounts()) {
+      this.applicableGlobalDiscounts.set([]);
+      this.loadingGlobalDiscounts.set(false);
+      return;
+    }
+
+    this.loadingGlobalDiscounts.set(true);
+    this.globalDiscountService.getApplicableGlobalDiscounts().subscribe({
+      next: (discounts) => {
+        this.applicableGlobalDiscounts.set(discounts ?? []);
+        this.loadingGlobalDiscounts.set(false);
+        this.syncSelectedGlobalDiscount(discounts ?? []);
+      },
+      error: () => {
+        this.applicableGlobalDiscounts.set([]);
+        this.loadingGlobalDiscounts.set(false);
+      },
+    });
+  }
+
+  onGlobalDiscountChange(discountId: string): void {
+    if (!this.canUseGlobalDiscounts()) {
+      return;
+    }
+    if (!discountId) {
+      this.posService.setGlobalDiscount(null);
+      return;
+    }
+    const discount = this.applicableGlobalDiscounts().find((item) => item.id === discountId) ?? null;
+    this.posService.setGlobalDiscount(discount);
+  }
+
+  formatGlobalDiscountOption = formatGlobalDiscountLabel;
+  formatLineDiscountOption = formatApplicableDiscountLabel;
+
+  selectedGlobalDiscountId(): string {
+    return this.posService.cart().global_discount_id ?? '';
+  }
+
+  private syncSelectedGlobalDiscount(discounts: GlobalDiscount[]): void {
+    const selectedId = this.posService.cart().global_discount_id;
+    if (!selectedId) {
+      return;
+    }
+    const stillApplicable = discounts.find((item) => item.id === selectedId) ?? null;
+    if (!stillApplicable) {
+      this.posService.setGlobalDiscount(null);
+      return;
+    }
+    this.posService.setGlobalDiscount(stillApplicable);
   }
 
   isCobranzaTerminal(): boolean {
@@ -158,9 +234,18 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   selectedWarehouseName(): string {
-    const id = this.selectedWarehouse();
-    const w = this.warehouses().find((x) => x.id === id);
-    return w?.name ?? 'Almacén';
+    const warehouses = this.warehouses();
+    const id = this.selectedWarehouse()?.trim();
+    if (id) {
+      const match = warehouses.find((x) => x.id === id);
+      if (match?.name) {
+        return match.name;
+      }
+    }
+    if (warehouses.length === 1) {
+      return warehouses[0].name;
+    }
+    return id ? 'Almacén sin nombre' : 'Almacén';
   }
 
   loadData(): void {
@@ -175,10 +260,9 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       this.warehouses.set(enriched.warehouses);
     }
 
-    const warehouseId = resolvePosWarehouseId(enriched);
+    const warehouseId = syncPosWarehouseContext(enriched);
     if (warehouseId) {
       this.selectedWarehouse.set(warehouseId);
-      persistPosWarehouseId(warehouseId);
     }
   }
 
@@ -192,19 +276,19 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   private resolveWarehouseForSaleSync(): string {
-    const current = this.selectedWarehouse()?.trim();
-    if (current) {
-      return current;
-    }
-
     const summary = this.lastInventorySummary();
     if (summary) {
-      const fromSummary = resolvePosWarehouseId(summary);
-      if (fromSummary) {
-        this.selectedWarehouse.set(fromSummary);
-        persistPosWarehouseId(fromSummary);
-        return fromSummary;
+      const warehouseId = syncPosWarehouseContext(enrichPosInventorySummary(summary));
+      if (warehouseId) {
+        this.selectedWarehouse.set(warehouseId);
+        return warehouseId;
       }
+    }
+
+    const current = this.selectedWarehouse()?.trim();
+    const validIds = new Set(this.warehouses().map((w) => w.id));
+    if (current && validIds.has(current)) {
+      return current;
     }
 
     return '';
@@ -343,6 +427,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
           }
           this.posState.setSeller(response.seller);
           this.notifySuccess(`Vendedor: ${this.posState.sellerDisplayName()}`, 3000);
+          this.loadApplicableGlobalDiscounts();
           this.loadProducts();
         },
         error: (error) => {
@@ -377,6 +462,37 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     this.filteredProducts.set(filtered);
   }
 
+  openProductDetail(product: any, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+
+    const productId = product.product_id || product.id;
+    if (!productId) {
+      return;
+    }
+
+    void this.exitFullscreenForDialog().then(() => {
+      this.dialog
+        .open(ProductDetailModalComponent, {
+          ...PRODUCT_DETAIL_DIALOG_CONFIG,
+          data: {
+            product: {
+              id: productId,
+              name: product.name,
+              sku: product.sku,
+            },
+            isNew: false,
+          },
+        })
+        .afterClosed()
+        .subscribe(() => {
+          if (this.canSell()) {
+            this.loadProducts(this.searchTerm());
+          }
+        });
+    });
+  }
+
   addProductToCart(product: any): void {
     if (!this.canSell()) {
       this.notifyInfo('Ingresa el código del vendedor para agregar productos', 4000);
@@ -384,11 +500,6 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     }
     if (!product.has_price) {
       this.notifyError('Este producto no tiene precio configurado', 3000);
-      return;
-    }
-
-    if (this.hasApplicableDiscounts(product)) {
-      void this.openAddProductDialog(product);
       return;
     }
 
@@ -404,39 +515,13 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       (Array.isArray(product.applicable_discounts) && product.applicable_discounts.length > 0);
   }
 
-  private async openAddProductDialog(product: any): Promise<void> {
-    await this.exitFullscreenForDialog();
-
-    const discounts = (product.applicable_discounts ?? []) as PosApplicableDiscount[];
-    const dialogRef = this.dialog.open(PosAddProductDialogComponent, {
-      width: '440px',
-      maxWidth: '95vw',
-      panelClass: 'pos-dialog-panel',
-      data: {
-        product_id: product.product_id || product.id,
-        product_name: product.product_name || product.name,
-        product_sku: product.product_sku || product.sku || '',
-        product_uom_id: product.product_uom_id || product.uom_id || '',
-        uom_id: product.uom_id || '',
-        uom_name: product.uom_name || 'Pieza',
-        unit_price: Number(product.suggested_unit_price ?? product.cost ?? 0),
-        iva_percentage: Number(product.suggested_iva_percentage ?? 16),
-        ieps_percentage: Number(product.suggested_ieps_percentage ?? 0),
-        applicable_discounts: discounts,
-      },
-    });
-
-    dialogRef.afterClosed().subscribe((result: PosAddProductDialogResult | undefined) => {
-      if (!result) {
-        return;
-      }
-      this.commitProductToCart(product, result);
-    });
-  }
-
   private commitProductToCart(
     product: any,
-    selection: Pick<PosAddProductDialogResult, 'quantity' | 'product_discount_id' | 'selected_discount'>
+    selection: {
+      quantity: number;
+      product_discount_id: string | null;
+      selected_discount: PosApplicableDiscount | null;
+    }
   ): void {
     const cartItem = this.buildCartItem(product, selection);
     this.posService.addItem(cartItem);
@@ -445,7 +530,11 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
 
   private buildCartItem(
     product: any,
-    selection: Pick<PosAddProductDialogResult, 'quantity' | 'product_discount_id' | 'selected_discount'>
+    selection: {
+      quantity: number;
+      product_discount_id: string | null;
+      selected_discount: PosApplicableDiscount | null;
+    }
   ): POSCartItem {
     const productUomId = String(product.product_uom_id || product.uom_id || '').trim();
     const base: POSCartItem = {
@@ -472,6 +561,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       suggested_unit_price: Number(product.suggested_unit_price ?? product.cost ?? 0),
       suggested_iva_percentage: Number(product.suggested_iva_percentage ?? 16),
       suggested_ieps_percentage: Number(product.suggested_ieps_percentage ?? 0),
+      applicable_discounts: Array.isArray(product.applicable_discounts) ? product.applicable_discounts : [],
     };
 
     return this.posService.recalculateItem(base);
@@ -487,6 +577,22 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
 
   removeItem(index: number): void {
     this.posService.removeItem(index);
+  }
+
+  onLineDiscountChange(index: number, discountId: string): void {
+    const item = this.posService.cart().items[index];
+    if (!item) {
+      return;
+    }
+
+    if (!discountId) {
+      this.posService.updateItemDiscount(index, null);
+      return;
+    }
+
+    const discounts = Array.isArray(item.applicable_discounts) ? item.applicable_discounts : [];
+    const selected = discounts.find((discount) => discount.id === discountId) ?? null;
+    this.posService.updateItemDiscount(index, selected);
   }
 
   onPricingOptionChange(index: number, optionId: string): void {
@@ -544,7 +650,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
         return;
       }
 
-      const payload = buildVentasPosOrderPayload(cart.items, {
+      const payload = buildVentasPosOrderPayload(cart, {
         warehouseId,
         fiscalConfigurationId,
         sellerUserId: seller.id,
@@ -730,11 +836,10 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
           }));
           this.products.set(normalized);
           this.filteredProducts.set(normalized);
-          if (!this.selectedWarehouse() && this.lastInventorySummary()) {
-            const warehouseId = resolvePosWarehouseId(this.lastInventorySummary()!);
+          if (this.lastInventorySummary()) {
+            const warehouseId = syncPosWarehouseContext(this.lastInventorySummary()!);
             if (warehouseId) {
               this.selectedWarehouse.set(warehouseId);
-              persistPosWarehouseId(warehouseId);
             }
           }
           this.priceListError.set(false);

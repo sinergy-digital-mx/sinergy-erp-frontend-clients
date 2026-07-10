@@ -1,0 +1,105 @@
+<div class="dialog">
+  <div class="dialog__header">
+    <h2>{{ isEdit ? 'Editar actividad' : 'Nueva actividad' }}</h2>
+    <button type="button" class="close" aria-label="Cerrar" (click)="close()">
+      <lucide-icon [img]="X" [size]="20"></lucide-icon>
+    </button>
+  </div>
+
+  <div class="dialog__body">
+    <form [formGroup]="form" class="activity-form">
+      <div class="activity-form__field">
+        <label class="field-label" for="activity-type">Tipo *</label>
+        <select id="activity-type" class="field-select" formControlName="type">
+          @for (type of activityTypes; track type) {
+            <option [value]="type">{{ getTypeLabel(type) }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="activity-form__field">
+        <label class="field-label" for="activity-status">Estado *</label>
+        <select id="activity-status" class="field-select" formControlName="status">
+          @for (status of activityStatuses; track status) {
+            <option [value]="status">{{ getStatusLabel(status) }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="activity-form__field activity-form__field--full">
+        <app-input
+          label="Título *"
+          placeholder="Ej. Cliente pidió cotización"
+          [form_control]="form.controls['title']">
+        </app-input>
+      </div>
+
+      <div class="activity-form__field activity-form__field--full">
+        <app-input
+          label="Descripción"
+          type="textarea"
+          placeholder="Detalle de la actividad"
+          [form_control]="form.controls['description']">
+        </app-input>
+      </div>
+
+      <div class="activity-form__field">
+        <app-input
+          label="Duración (minutos)"
+          type="number"
+          placeholder="15"
+          [form_control]="form.controls['duration_minutes']">
+        </app-input>
+      </div>
+
+      <div class="activity-form__field">
+        <label class="field-label" for="activity-outcome">Resultado</label>
+        <select id="activity-outcome" class="field-select" formControlName="outcome">
+          <option [ngValue]="null">Sin resultado</option>
+          @for (outcome of activityOutcomes; track outcome) {
+            <option [ngValue]="outcome">{{ getOutcomeLabel(outcome) }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="activity-form__field">
+        <label class="field-label" for="activity-follow-up">Fecha de seguimiento</label>
+        <input
+          id="activity-follow-up"
+          type="date"
+          class="field-input"
+          formControlName="follow_up_date" />
+      </div>
+
+      <div class="activity-form__field activity-form__field--full">
+        <app-input
+          label="Notas"
+          type="textarea"
+          placeholder="Notas adicionales"
+          [form_control]="form.controls['notes']">
+        </app-input>
+      </div>
+
+      @if (submitError()) {
+        <div class="activity-form__error activity-form__field--full">
+          {{ submitError() }}
+        </div>
+      }
+    </form>
+  </div>
+
+  <div class="dialog__footer">
+    <app-button
+      text="Cancelar"
+      custom_class="btn_secondary"
+      [disabled]="saving()"
+      (clicked)="close()">
+    </app-button>
+    <app-button
+      [text]="isEdit ? 'Guardar cambios' : 'Guardar actividad'"
+      custom_class="btn_primary"
+      [loading]="saving()"
+      (clicked)="save()">
+    </app-button>
+  </div>
+</div>

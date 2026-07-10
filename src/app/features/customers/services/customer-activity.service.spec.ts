@@ -59,10 +59,11 @@ describe('CustomerActivityService', () => {
   describe('getActivities', () => {
     it('should fetch activities for a customer', (done) => {
       const customerId = 123;
-      const mockResponse = { data: [mockActivity], total: 1 };
+      const mockResponse = { activities: [mockActivity], total: 1, page: 1, totalPages: 1 };
 
       service.getActivities(customerId).subscribe(response => {
-        expect(response.data).toEqual([mockActivity]);
+        expect(response.activities).toEqual([mockActivity]);
+        expect(response.total).toBe(1);
         done();
       });
 
@@ -75,7 +76,7 @@ describe('CustomerActivityService', () => {
 
     it('should handle pagination parameters', (done) => {
       const customerId = 123;
-      const mockResponse = { data: [mockActivity], total: 1 };
+      const mockResponse = { activities: [mockActivity], total: 1, page: 2, totalPages: 1 };
 
       service.getActivities(customerId, 2, 20).subscribe(() => {
         done();

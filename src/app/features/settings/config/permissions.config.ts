@@ -37,12 +37,12 @@ export const SETTINGS_PERMISSIONS = {
     delete: 'warehouses:Delete'
   },
   
-  // Fiscal Configuration sub-module
+  // Fiscal Configuration sub-module (entity: FiscalConfiguration — razones sociales, CSD, Finkok)
   fiscalConfig: {
-    view: 'fiscal_configuration:Read',
-    create: 'fiscal_configuration:Create',
-    update: 'fiscal_configuration:Update',
-    delete: 'fiscal_configuration:Delete'
+    view: 'FiscalConfiguration:Read',
+    create: 'FiscalConfiguration:Create',
+    update: 'FiscalConfiguration:Update',
+    delete: 'FiscalConfiguration:Delete'
   },
   
   // Email Templates sub-module

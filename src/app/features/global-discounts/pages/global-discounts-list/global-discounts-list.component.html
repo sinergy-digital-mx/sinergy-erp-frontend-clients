@@ -1,0 +1,88 @@
+<div class="settings-list-page global-discounts-list px-4 pb-6">
+  <div class="global-discounts-list__header">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800">Descuentos globales</h2>
+      <p class="text-sm text-gray-500 mt-1">
+        Descuentos generales de orden que conviven con los descuentos por producto en POS.
+      </p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <ng-container *hasPermission="createPermissions; mode: 'any'">
+        <app-button
+          text="Agregar descuento global"
+          custom_class="btn_primary"
+          (clicked)="openCreateModal()">
+        </app-button>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="filter-bar global-discounts-list__filters" role="search" aria-label="Filtros de descuentos globales">
+    <div class="filter-bar__container filter-bar__container--global-discounts">
+      <div class="filter-bar__field">
+        <select
+          class="filter-bar__select"
+          [formControl]="activeFilter"
+          aria-label="Filtrar por estado">
+          <option value="">Todos</option>
+          <option value="true">Activos</option>
+          <option value="false">Inactivos</option>
+        </select>
+      </div>
+
+      <div class="filter-bar__field filter-bar__field--clear">
+        <app-filter-clear-button
+          [active]="hasActiveFilters"
+          (clear)="clearFilters()">
+        </app-filter-clear-button>
+      </div>
+    </div>
+  </div>
+
+  <app-datatable-wrapper
+    variant="settings"
+    [config]="table_config()"
+    [rowTemplate]="tableTemplate">
+  </app-datatable-wrapper>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td>
+    <p class="settings-cell-primary truncate">{{ item.name }}</p>
+  </td>
+  <td>
+    <span class="settings-cell-text">{{ getTypeLabel(item.discount_type) }}</span>
+  </td>
+  <td>
+    <span class="settings-cell-text">{{ getValueLabel(item) }}</span>
+  </td>
+  <td>
+    <span class="settings-cell-text">{{ getValidityLabel(item) }}</span>
+  </td>
+  <td>
+    <span class="settings-badge" [ngClass]="getStatusClass(item)">
+      {{ getStatusLabel(item) }}
+    </span>
+  </td>
+  <td>
+    <div class="flex gap-2">
+      <button
+        *hasPermission="updatePermissions; mode: 'any'"
+        type="button"
+        (click)="openEditModal(item); $event.stopPropagation()"
+        class="p-1.5 text-gray-600 hover:text-white hover:bg-gray-600 rounded-md transition-all duration-200"
+        title="Editar">
+        <lucide-icon [img]="Edit2" [size]="16"></lucide-icon>
+      </button>
+      <button
+        *hasPermission="deletePermissions; mode: 'any'"
+        type="button"
+        (click)="deleteDiscount(item); $event.stopPropagation()"
+        class="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-md transition-all duration-200"
+        title="Eliminar">
+        <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
+      </button>
+    </div>
+  </td>
+</ng-template>

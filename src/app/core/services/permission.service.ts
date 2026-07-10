@@ -27,6 +27,11 @@ export class PermissionService {
    * @returns Array of permission strings
    */
   private getFlatPermissions(): string[] {
+    const permissionsFlat = this.authService.user_info?.permissions_flat;
+    if (Array.isArray(permissionsFlat)) {
+      return permissionsFlat;
+    }
+
     const permissions = this.authService.user_info?.permissions;
     
     // If permissions is already an array, return it

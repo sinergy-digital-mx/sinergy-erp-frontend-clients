@@ -72,6 +72,8 @@ export class DataMapperService {
       name: backendRole.name,
       description: backendRole.description || '',
       permissions: backendRole.permissions || [],
+      permission_count: backendRole.permission_count,
+      is_admin: backendRole.is_admin,
       createdAt: backendRole.createdAt,
       updatedAt: backendRole.updatedAt,
       ...backendRole // Include any additional fields

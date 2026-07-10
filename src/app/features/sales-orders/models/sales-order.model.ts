@@ -16,6 +16,9 @@ export interface Customer {
   company_name?: string;
   email?: string;
   phone?: string;
+  fiscal_rfc?: string;
+  fiscal_razon_social?: string;
+  fiscal_zip_code?: string;
 }
 
 export interface SalesOrderCustomerSummary {
@@ -166,7 +169,7 @@ export interface SalesOrder {
   seller_user?: PosUserSummary;
   terminal_user?: PosUserSummary;
   collected_by_user?: PosUserSummary;
-  warehouse?: { id: string; name: string };
+  warehouse?: { id: string; name: string; zip_code?: string };
   fiscal_configuration?: {
     id?: string;
     razon_social?: string;
@@ -175,6 +178,8 @@ export interface SalesOrder {
     persona_type?: string;
     fiscal_regime?: string;
     status?: string;
+    finkok_registration_status?: string;
+    certificate_serial_number?: string;
   };
   invoices?: SalesOrderInvoice[];
   documents?: SalesOrderDocument[];
@@ -236,6 +241,7 @@ export interface SalesOrderFormData {
   seller_user_id?: string;
   payment_status?: string;
   notes?: string;
+  global_discount_id?: string;
     line_items: Array<{
     product_id: string;
     product_uom_id: string;

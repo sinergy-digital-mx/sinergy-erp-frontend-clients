@@ -26,6 +26,11 @@ import {
   getCustomerStatusPillClass,
 } from '../../utils/customer-status.util';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
+import {
+  CustomerExportDialogComponent,
+  CustomerExportDialogResult,
+} from '../../components/customer-export-dialog/customer-export-dialog.component';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-customers-list',
@@ -101,7 +106,8 @@ export class CustomersList implements OnInit, OnDestroy {
     public customer_service: CustomerService,
     public route: ActivatedRoute,
     public dialog: MatDialog,
-    private filterStateService: FilterStateService
+    private filterStateService: FilterStateService,
+    private toast: ToastService
   ) {
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((query) => {
       const queryString = JSON.stringify(query);
@@ -366,5 +372,27 @@ export class CustomersList implements OnInit, OnDestroy {
 
   getFullCustomerName(customer: Customer): string {
     return getCustomerFullName(customer);
+  }
+
+  openExportModal(): void {
+    this.dialog
+      .open(CustomerExportDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: {
+          search: this.search || undefined,
+          status_id: this.selectedStatusId,
+          status_name: this.selectedStatusName,
+          group_id: this.selectedGroupId,
+          group_name: this.selectedGroupName,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: CustomerExportDialogResult | undefined) => {
+        if (result?.downloaded) {
+          this.toast.success('Reporte descargado');
+        }
+      });
   }
 }

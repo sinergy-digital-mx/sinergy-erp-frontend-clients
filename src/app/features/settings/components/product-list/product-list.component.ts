@@ -11,6 +11,7 @@ import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { ProductDetailModalComponent } from '../product-detail-modal/product-detail-modal.component';
+import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { CategoriesDialogComponent } from '../categories-dialog/categories-dialog.component';
 import { UomsDialogComponent } from '../uoms-dialog/uoms-dialog.component';
 import { PriceListsDialogComponent } from '../price-lists-dialog/price-lists-dialog';
@@ -243,9 +244,8 @@ export class ProductListComponent implements OnDestroy {
 
   openCreateProductModal() {
     const dialogRef = this.dialog.open(ProductDetailModalComponent, {
-      width: '600px',
-      maxHeight: '90vh',
-      disableClose: false,
+      ...PRODUCT_DETAIL_DIALOG_CONFIG,
+      disableClose: true,
       data: { product: null, isNew: true }
     });
 
@@ -259,9 +259,8 @@ export class ProductListComponent implements OnDestroy {
   viewDetail(event: any) {
     const product = event.data || event;
     const dialogRef = this.dialog.open(ProductDetailModalComponent, {
-      width: '850px',
-      maxHeight: '90vh',
-      disableClose: false,
+      ...PRODUCT_DETAIL_DIALOG_CONFIG,
+      disableClose: true,
       data: { product }
     });
 

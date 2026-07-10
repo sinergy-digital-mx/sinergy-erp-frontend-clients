@@ -23,6 +23,7 @@ export { SALES_ORDER_PERMISSIONS } from '../../features/sales-orders/config/perm
 export { DIVINO_DASHBOARD_PERMISSIONS } from '../../features/divino-dashboard/config/permissions.config';
 export { ACCOUNTING_PERMISSIONS } from '../../features/accounting/config/permissions.config';
 export { GOAL_PERMISSIONS } from '../../features/goals/config/permissions.config';
+export { GLOBAL_DISCOUNT_PERMISSIONS } from '../../features/global-discounts/config/permissions.config';
 
 /**
  * Grouped permissions for easier access
@@ -40,6 +41,7 @@ import { SALES_ORDER_PERMISSIONS } from '../../features/sales-orders/config/perm
 import { DIVINO_DASHBOARD_PERMISSIONS } from '../../features/divino-dashboard/config/permissions.config';
 import { ACCOUNTING_PERMISSIONS } from '../../features/accounting/config/permissions.config';
 import { GOAL_PERMISSIONS } from '../../features/goals/config/permissions.config';
+import { GLOBAL_DISCOUNT_PERMISSIONS } from '../../features/global-discounts/config/permissions.config';
 
 export const PERMISSIONS = {
   contracts: CONTRACT_PERMISSIONS,
@@ -55,4 +57,5 @@ export const PERMISSIONS = {
   divinoDashboard: DIVINO_DASHBOARD_PERMISSIONS,
   accounting: ACCOUNTING_PERMISSIONS,
   goals: GOAL_PERMISSIONS,
+  globalDiscounts: GLOBAL_DISCOUNT_PERMISSIONS,
 } as const;

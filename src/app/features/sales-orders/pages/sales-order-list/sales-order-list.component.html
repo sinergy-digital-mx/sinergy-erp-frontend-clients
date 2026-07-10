@@ -4,10 +4,10 @@
       <!-- Header -->
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
         <h2 class="text-2xl font-semibold text-gray-800">Órdenes de Venta</h2>
-        <div class="sales-order-list__actions">
+        <div class="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            class="sales-order-list__export-btn"
+            class="page-export-btn"
             (click)="openExportModal()">
             <i class="fi fi-rr-download" aria-hidden="true"></i>
             Descargar Excel
@@ -113,7 +113,7 @@
           @for (order of table_config().rows; track order.id) {
             <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm" (click)="navigateToDetail(order)">
               <div class="flex justify-between items-start mb-2">
-                <span class="dt-folio-badge">{{ order.folio || order.id.substring(0, 8) }}</span>
+                <span class="dt-folio-badge dt-folio-badge--odv">{{ order.folio || order.id.substring(0, 8) }}</span>
                 <span [ngClass]="getStatusClass(getOrderStatus(order))">{{ getOrderStatus(order) }}</span>
               </div>
               <div class="text-sm text-gray-600 space-y-1">
@@ -135,7 +135,7 @@
 
 <ng-template #tableTemplate let-item="$implicit">
   <td class="w-[120px]">
-    <span class="dt-folio-badge">{{ item.folio || item.id.substring(0, 8) }}</span>
+    <span class="dt-folio-badge dt-folio-badge--odv">{{ item.folio || item.id.substring(0, 8) }}</span>
   </td>
   <td class="sales-orders-col-customer">
     <span class="sales-orders-col-customer__name dt-cell-muted" [title]="getOrderCustomerName(item)">

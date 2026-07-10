@@ -1,0 +1,211 @@
+<div class="invoicing-tab">
+  @if (!canViewTab()) {
+    <div class="empty-state">
+      <i class="fi fi-rr-lock"></i>
+      <p>No tienes permisos para ver facturación electrónica en esta orden.</p>
+      <small>Solicita los permisos <strong>electronic_invoicing:ViewMenu</strong> y <strong>electronic_invoices:Read</strong> a tu administrador.</small>
+    </div>
+  } @else if (loading()) {
+    <div class="empty-state">
+      <i class="fi fi-rr-spinner animate-spin"></i>
+      <p>Cargando facturas...</p>
+    </div>
+  } @else {
+    @if (finkokConfig()?.stamping_environment === 'demo') {
+      <div class="demo-banner">Modo pruebas Finkok — los timbrados no son válidos ante el SAT.</div>
+    }
+
+    <div class="invoicing-summary-row">
+      <p class="invoicing-summary">{{ summaryText() }}</p>
+      @if (canStamp()) {
+        <button
+          type="button"
+          class="btn-primary"
+          (click)="openNewInvoice()"
+          [disabled]="!canStampInvoice() || stamping()"
+        >
+          @if (stamping()) {
+            <i class="fi fi-rr-spinner animate-spin"></i>
+          } @else {
+            <i class="fi fi-rr-plus"></i>
+          }
+          Nueva factura
+        </button>
+      }
+    </div>
+
+    @if (validationIssues().length > 0 && canStamp()) {
+      <div class="validation-box">
+        @for (issue of validationIssues(); track issue.id) {
+          <div class="validation-item">
+            <span>{{ issue.message }}</span>
+            @if (issue.action) {
+              <button type="button" class="validation-action" (click)="handleValidationAction(issue)">
+                Ir a corregir
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (activeInvoiceWarning()) {
+      <div class="prod-warning-banner">{{ activeInvoiceWarning() }}</div>
+    }
+
+    @if (invoices().length > 0) {
+      <div class="invoice-cards">
+        @for (invoice of invoices(); track invoice.id; let i = $index) {
+          <article class="invoice-card">
+            <header class="invoice-card__header">
+              <div class="invoice-card__identity">
+                <span class="invoice-card__index">{{ i + 1 }}</span>
+                <i class="fi fi-rr-document invoice-card__icon" aria-hidden="true"></i>
+                <div class="invoice-card__title-block">
+                  <span class="invoice-card__filename" [title]="getInvoiceFileName(invoice)">
+                    {{ getInvoiceFileName(invoice) }}
+                  </span>
+                  <div class="invoice-card__badges">
+                    <span class="invoice-card__type-badge">FACTURA</span>
+                    <span
+                      class="invoice-card__env-badge"
+                      [class.invoice-card__env-badge--demo]="isDemoEnvironment()"
+                    >
+                      {{ getEnvironmentLabel() }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="invoice-card__status-group">
+                <span class="status-pill" [ngClass]="getSystemStatusClass(invoice)">
+                  <span class="status-pill__label">SISTEMA</span>
+                  {{ getSystemStatusLabel(invoice) }}
+                </span>
+                <span
+                  class="status-pill"
+                  [ngClass]="getSatStatusClass(invoice)"
+                  [title]="invoice.stamp_status === 'stamp_error' ? getInvoiceErrorTooltip(invoice) : ''"
+                >
+                  <span class="status-pill__label">SAT</span>
+                  {{ getSatStatusLabel(invoice) }}
+                </span>
+              </div>
+            </header>
+
+            <div class="invoice-card__uuid">
+              <span class="field-label">UUID</span>
+              <div class="invoice-card__uuid-value">{{ invoice.uuid || '—' }}</div>
+            </div>
+
+            <div class="invoice-card__grid">
+              <div class="invoice-card__field">
+                <span class="field-label">Timbrado por</span>
+                <span class="field-value field-value--strong">{{ getStampedBy(invoice) }}</span>
+              </div>
+              <div class="invoice-card__field">
+                <span class="field-label">Fecha timbrado</span>
+                <span class="field-value">{{ formatDate(invoice.stamped_at || invoice.issued_at) }}</span>
+              </div>
+              <div class="invoice-card__field">
+                <span class="field-label">RFC emisor</span>
+                <span class="field-value field-value--strong">{{ getEmisorRfc() }}</span>
+              </div>
+              <div class="invoice-card__field">
+                <span class="field-label">RFC receptor</span>
+                <span class="field-value field-value--strong">{{ getReceptorRfc() }}</span>
+              </div>
+              <div class="invoice-card__field">
+                <span class="field-label">Subtotal</span>
+                <span class="field-value">{{ formatCurrency(getInvoiceSubtotal(invoice)) }}</span>
+              </div>
+              <div class="invoice-card__field">
+                <span class="field-label">Impuestos</span>
+                <span class="field-value">{{ formatCurrency(getInvoiceTaxes(invoice)) }}</span>
+              </div>
+              <div class="invoice-card__field">
+                <span class="field-label">Total</span>
+                <span class="field-value field-value--total">{{ formatCurrency(invoice.total) }}</span>
+              </div>
+              <div class="invoice-card__field">
+                <span class="field-label">Cód. estatus SAT</span>
+                <span class="field-value">{{ getSatStatusCode(invoice) }}</span>
+              </div>
+              <div class="invoice-card__field">
+                <span class="field-label">¿Cancelable SAT?</span>
+                <span class="field-value">{{ invoice.sat_es_cancelable || '—' }}</span>
+              </div>
+              <div class="invoice-card__field">
+                <span class="field-label">Estatus cancel. SAT</span>
+                <span class="field-value">{{ getSatCancelStatus(invoice) }}</span>
+              </div>
+              <div class="invoice-card__field">
+                <span class="field-label">Verificación SAT</span>
+                <span class="field-value">{{ formatDate(invoice.sat_last_sync_at) }}</span>
+              </div>
+            </div>
+
+            <footer class="invoice-card__footer">
+              <span class="invoice-card__footer-note">
+                @if (getStampedBy(invoice) !== '—') {
+                  Timbrado por {{ getStampedBy(invoice) }}
+                } @else {
+                  {{ getSeriesFolio(invoice) }} · {{ formatDate(invoice.stamped_at || invoice.issued_at) }}
+                }
+              </span>
+              <div class="invoice-card__actions">
+                @if (canSyncSat()) {
+                  <button
+                    type="button"
+                    class="action-btn action-btn--sync"
+                    (click)="syncSat(invoice)"
+                    [disabled]="syncingId() === invoice.id"
+                  >
+                    Sincronizar SAT
+                  </button>
+                }
+                @if (invoice.uuid) {
+                  <button type="button" class="action-btn action-btn--sat" (click)="openSatPortal(invoice)">
+                    Ver en SAT
+                  </button>
+                }
+                @if (canShowPdfPreview(invoice)) {
+                  <button
+                    type="button"
+                    class="action-btn action-btn--preview"
+                    (click)="openPdfPreview(invoice)"
+                    [disabled]="previewingPdfId() === invoice.id"
+                  >
+                    {{ previewingPdfId() === invoice.id ? 'Generando…' : 'Vista previa PDF' }}
+                  </button>
+                }
+                @if (invoice.xml_stamped) {
+                  <button type="button" class="action-btn action-btn--neutral" (click)="viewXml(invoice)">
+                    XML
+                  </button>
+                }
+                @if (canShowCancel(invoice)) {
+                  <button
+                    type="button"
+                    class="action-btn action-btn--danger"
+                    (click)="openCancelInvoice(invoice)"
+                    [disabled]="cancellingId() === invoice.id"
+                  >
+                    {{ cancellingId() === invoice.id ? 'Cancelando…' : 'Cancelar en SAT' }}
+                  </button>
+                }
+              </div>
+            </footer>
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <i class="fi fi-rr-receipt"></i>
+        <p>Sin facturas emitidas para esta orden</p>
+        @if (canStamp() && canStampInvoice()) {
+          <button type="button" class="btn-primary" (click)="openNewInvoice()">+ Nueva factura</button>
+        }
+      </div>
+    }
+  }
+</div>

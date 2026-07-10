@@ -265,24 +265,27 @@
       }
       
       const parts = permission.split(':');
-      if (parts.length !== 2) {
+      if (parts.length < 2) {
         return permission;
       }
-      
+
       const entity = parts[0].toLowerCase();
-      let action = parts[1];
-      
-      // Convert underscores to camelCase: View_Menu -> ViewMenu
-      if (action.includes('_')) {
-        action = action.split('_').map((word, index) => {
-          if (index === 0) {
-            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-          }
-          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-        }).join('');
-      }
-      
-      return `${entity}:${action}`;
+      const normalizedParts = parts.slice(1).map((part) => {
+        if (part.includes('_')) {
+          return part
+            .split('_')
+            .map((word, index) => {
+              if (index === 0) {
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+              }
+              return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            })
+            .join('');
+        }
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      });
+
+      return `${entity}:${normalizedParts.join(':')}`;
     }
 
     /**
@@ -306,6 +309,27 @@
       const currentPermissions = this.permissions$.getValue();
       
       return currentPermissions.has(normalizedPermission);
+    }
+
+    /**
+     * Whether the current user has the Admin role (bypasses permission checks in UI).
+     */
+    hasAdminRole(): boolean {
+      return this.user_info?.hasAdminRole === true;
+    }
+
+    /**
+     * Check entity:action permission with case-insensitive entity matching.
+     * Admin users always pass.
+     */
+    hasEntityPermission(entity: string, action: string): boolean {
+      if (!entity || !action) {
+        return false;
+      }
+      if (this.hasAdminRole()) {
+        return true;
+      }
+      return this.hasPermission(`${entity}:${action}`);
     }
 
     /**
@@ -415,6 +439,11 @@
         }
 
         const permissions = decoded.permissions;
+        const permissionsFlat = decoded.permissions_flat;
+
+        if (Array.isArray(permissionsFlat)) {
+          return permissionsFlat;
+        }
 
         if (Array.isArray(permissions)) {
           return permissions;
@@ -461,6 +490,15 @@
         { path: '/inventory', permissions: ['inventory:Read', 'inventory:ViewMenu'] },
         { path: '/sales-orders', permissions: ['salesOrders:Read', 'sales_orders:read', 'sales_orders:ViewMenu'] },
         { path: '/settings/goals', permissions: ['goals:Read', 'goals:ViewMenu'] },
+        {
+          path: '/settings/global-discounts',
+          permissions: [
+            'global_discounts:Read',
+            'global_discounts:ViewMenu',
+            'globalDiscount:Read',
+            'globalDiscount:ViewMenu',
+          ],
+        },
         { path: '/accounting', permissions: ['accounting:Read', 'Accounting:Read', 'accounting:ViewMenu', 'Accounting:ViewMenu'] },
 
         { path: '/marketing', permissions: ['marketing:ViewDashboard', 'marketing:ViewMenu'] },
@@ -673,6 +711,7 @@
     iat: number;
     permissionCount: number;
     permissions: Record<string, PermissionObject[]> | string[];
+    permissions_flat?: string[];
     permissions_version: number;
     roles: Role[] | string[];
     status: string;

@@ -31,6 +31,7 @@ import {
   ChevronLeft,
   Printer,
   Eye,
+  Landmark,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -38,10 +39,18 @@ import { ExchangeRateService } from '../../../../core/services/exchange-rate.ser
 import { POSService } from '../../services/pos.service';
 import { PosStateService } from '../../services/pos-state.service';
 import {
+  dailyShiftIsOpen,
   dailyShiftPartialCount,
+  dailyShiftRemovedTotal,
   dailyShiftSalesTotal,
+  dailyShiftTerminalLabel,
   formatPosMoney,
+  parsePosMoney,
+  partialPerformedByLabel,
+  partialShiftSequence,
+  partialShiftTotalLabel,
   PosDailyShiftDetail,
+  PosDailyShiftPartial,
 } from '../../models/pos-daily-shift.model';
 import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
 import {
@@ -52,13 +61,15 @@ import {
   PartialShiftDialogComponent,
   PartialShiftDialogResult,
 } from '../../components/partial-shift-dialog/partial-shift-dialog.component';
-import { CloseDailyShiftDialogComponent } from '../../components/close-daily-shift-dialog/close-daily-shift-dialog.component';
+import { CloseDailyShiftDialogComponent, CloseDailyShiftDialogData } from '../../components/close-daily-shift-dialog/close-daily-shift-dialog.component';
 import {
   PosCustomerPickerDialogComponent,
   PosCustomerPickerDialogResult,
 } from '../../components/pos-customer-picker-dialog/pos-customer-picker-dialog.component';
 import {
   buildCollectPayload,
+  isValidCollectCustomerId,
+  resolvePosCollectCustomerId,
   buildCashBreakdownPayload,
   cashDenomKey,
   CASH_MXN_DENOMINATIONS,
@@ -114,7 +125,7 @@ interface PendingSale {
 }
 
 type CustomerMode = 'walk_in' | 'registered';
-type DashboardTab = 'pending' | 'collected';
+type DashboardTab = 'pending' | 'collected' | 'shifts';
 
 @Component({
   selector: 'app-payment',
@@ -144,6 +155,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
   readonly ChevronLeft = ChevronLeft;
   readonly Printer = Printer;
   readonly Eye = Eye;
+  readonly Landmark = Landmark;
 
   pendingSales = signal<PendingSale[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);
@@ -153,6 +165,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
   collectionDetail = signal<Record<string, unknown> | null>(null);
   loading = signal(false);
   loadingCollected = signal(false);
+  loadingShiftDetail = signal(false);
   loadingCollectionDetail = signal(false);
   collecting = signal(false);
   printingReceipt = signal(false);
@@ -163,6 +176,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
   collectForm = signal<PosCollectForm>(defaultCollectForm(0));
   customerMode = signal<CustomerMode>('walk_in');
   selectedCustomerId = signal('');
+  /** ID enviado en POST collect (legacy numérico o UUID). */
+  selectedCollectCustomerId = signal<number | string | null>(null);
   selectedCustomerName = signal('Público en General');
   collectError = signal<string | null>(null);
   dailyUsdMxnRate = signal<number | null>(null);
@@ -208,6 +223,21 @@ export class PaymentComponent implements OnInit, OnDestroy {
     const count = summary?.count ?? this.collectedSales().length;
     const total = formatPosMoney(summary?.total_mxn ?? 0);
     return `${count} cobrada${count === 1 ? '' : 's'} · ${total}`;
+  });
+
+  readonly pendingEmptyMessage = computed(() => {
+    const collectedCount = this.collectedSummary()?.count ?? this.collectedSales().length;
+    if (collectedCount > 0) {
+      return `No hay ventas por cobrar. Ya hay ${collectedCount} orden(es) cobrada(s) en este corte — revisa la pestaña Órdenes cobradas.`;
+    }
+
+    const shift = this.shift();
+    const shiftTotal = shift ? dailyShiftSalesTotal(shift) : 0;
+    if (shiftTotal > 0) {
+      return 'El corte muestra ventas registradas, pero ninguna aparece por cobrar. Si vienen de Ventas en cola, se asignan al abrir el corte del día.';
+    }
+
+    return 'No hay ventas pendientes de cobro.';
   });
 
   /** Monto a cobrar en POS (saldo pendiente, no necesariamente el total original). */
@@ -280,13 +310,13 @@ export class PaymentComponent implements OnInit, OnDestroy {
     this.posState.checkingShift.set(true);
     this.posService.getCurrentDailyShift().subscribe({
       next: ({ daily_shift }) => {
-        if (daily_shift) {
-          this.posState.setDailyShift(daily_shift);
-        }
+        const openShift = daily_shift && dailyShiftIsOpen(daily_shift) ? daily_shift : null;
+        this.posState.setDailyShift(openShift);
         this.posState.checkingShift.set(false);
-        if (this.posState.shiftOpen()) {
+        if (openShift) {
           this.loadPendingSales();
           this.loadCollectedSales();
+          this.loadShiftDetail();
         } else {
           this.pendingSales.set([]);
           this.collectedSales.set([]);
@@ -348,9 +378,35 @@ export class PaymentComponent implements OnInit, OnDestroy {
       this.collectionDetail.set(null);
       return;
     }
+    if (tab === 'collected') {
+      this.selectedSale.set(null);
+      this.collectError.set(null);
+      this.loadCollectedSales();
+      return;
+    }
     this.selectedSale.set(null);
+    this.selectedCollectedSale.set(null);
+    this.collectionDetail.set(null);
     this.collectError.set(null);
-    this.loadCollectedSales();
+    this.loadShiftDetail();
+  }
+
+  loadShiftDetail(): void {
+    const shiftId = this.shift()?.id;
+    if (!shiftId || !this.posState.shiftOpen()) {
+      return;
+    }
+    this.loadingShiftDetail.set(true);
+    this.posService.getDailyShift(shiftId).subscribe({
+      next: (detail) => {
+        this.posState.setDailyShift(detail);
+        this.loadingShiftDetail.set(false);
+      },
+      error: (error) => {
+        this.loadingShiftDetail.set(false);
+        this.toast.error(mapPosApiErrorMessage(error.error?.message));
+      },
+    });
   }
 
   loadCollectedSales(): void {
@@ -404,6 +460,10 @@ export class PaymentComponent implements OnInit, OnDestroy {
       this.loadCollectedSales();
       return;
     }
+    if (this.dashboardTab() === 'shifts') {
+      this.loadShiftDetail();
+      return;
+    }
     this.loadPendingSales();
   }
 
@@ -431,7 +491,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
       this.posService.createPartialShift(shift.id, result).subscribe({
         next: () => {
           this.toast.success('Corte parcial registrado');
-          this.refreshDailyShift();
+          this.setDashboardTab('shifts');
         },
         error: (error) => this.toast.error(mapPosApiErrorMessage(error.error?.message)),
       });
@@ -446,10 +506,22 @@ export class PaymentComponent implements OnInit, OnDestroy {
     const wasFullscreen = await this.exitFullscreenForDialog();
 
     const dialogRef = this.dialog.open(CloseDailyShiftDialogComponent, {
-      width: '420px',
+      width: '460px',
       maxWidth: '95vw',
       disableClose: true,
       panelClass: 'pos-dialog-panel',
+      data: {
+        shiftDate: shift.shift_date,
+        branchLabel: this.branchLabel(),
+        openingMxn: this.shiftOpeningMxn(shift),
+        openingUsd: parsePosMoney(shift.opening_cash_usd) > 0
+          ? `USD ${parsePosMoney(shift.opening_cash_usd).toFixed(2)}`
+          : undefined,
+        salesTotal: this.shiftSalesTotal(shift),
+        partialCount: this.shiftPartialCount(shift),
+        removedTotal: formatPosMoney(dailyShiftRemovedTotal(shift)),
+        pendingCount: this.pendingSales().length,
+      } satisfies CloseDailyShiftDialogData,
     });
 
     dialogRef.afterClosed().subscribe(async (result: { notes?: string } | undefined) => {
@@ -572,6 +644,30 @@ export class PaymentComponent implements OnInit, OnDestroy {
     this.syncCashFromBillCounts();
   }
 
+  hasCashInput(currency: 'MXN' | 'USD'): boolean {
+    const denoms = currency === 'MXN' ? CASH_MXN_DENOMINATIONS : CASH_USD_DENOMINATIONS;
+    const hasBills = denoms.some((denom) => this.getBillCount(currency, denom) > 0);
+    const manual = currency === 'MXN' ? this.cashManualMxn() : this.cashManualUsd();
+    return hasBills || manual > 0;
+  }
+
+  clearCashCurrency(currency: 'MXN' | 'USD'): void {
+    const denoms = currency === 'MXN' ? CASH_MXN_DENOMINATIONS : CASH_USD_DENOMINATIONS;
+    this.cashBillCounts.update((counts) => {
+      const next = { ...counts };
+      for (const denom of denoms) {
+        delete next[cashDenomKey(currency, denom)];
+      }
+      return next;
+    });
+    if (currency === 'MXN') {
+      this.cashManualMxn.set(0);
+    } else {
+      this.cashManualUsd.set(0);
+    }
+    this.syncCashFromBillCounts();
+  }
+
   exchangeRateBadgeLabel(): string {
     const rate = this.collectForm().usdExchangeRate;
     if (!rate || rate <= 0) {
@@ -629,6 +725,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
         : 'Público en General';
       this.selectedCustomerName.set(walkInName);
       this.selectedCustomerId.set('');
+      this.selectedCollectCustomerId.set(null);
       return;
     }
     if (!this.selectedCustomerId()) {
@@ -659,6 +756,10 @@ export class PaymentComponent implements OnInit, OnDestroy {
       this.customerMode.set('registered');
       this.selectedCustomerId.set(result.customerId);
       const customer = result.customer;
+      const collectId = customer
+        ? resolvePosCollectCustomerId(customer)
+        : resolvePosCollectCustomerId({ id: result.customerId });
+      this.selectedCollectCustomerId.set(collectId ?? null);
       const name = customer
         ? [customer.name, customer.lastname].filter(Boolean).join(' ').trim() ||
           customer.company_name ||
@@ -683,7 +784,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.customerMode() === 'registered' && !this.selectedCustomerId()) {
+    if (this.customerMode() === 'registered' && !isValidCollectCustomerId(this.selectedCollectCustomerId())) {
       this.collectError.set('Selecciona un cliente registrado');
       return;
     }
@@ -905,11 +1006,15 @@ export class PaymentComponent implements OnInit, OnDestroy {
     if (customer?.is_walk_in || !customer?.id) {
       this.customerMode.set('walk_in');
       this.selectedCustomerId.set('');
+      this.selectedCollectCustomerId.set(null);
       this.selectedCustomerName.set(customer?.name || 'Público en General');
       return;
     }
     this.customerMode.set('registered');
     this.selectedCustomerId.set(String(customer.id));
+    this.selectedCollectCustomerId.set(
+      resolvePosCollectCustomerId(customer) ?? (customer.id != null ? customer.id : null)
+    );
     this.selectedCustomerName.set(customer.name || 'Cliente');
   }
 
@@ -924,6 +1029,28 @@ export class PaymentComponent implements OnInit, OnDestroy {
   shiftPartialCount(shift: PosDailyShiftDetail): number {
     return dailyShiftPartialCount(shift);
   }
+
+  shiftRemovedTotal(shift: PosDailyShiftDetail): string {
+    return formatPosMoney(dailyShiftRemovedTotal(shift));
+  }
+
+  partialShifts(shift: PosDailyShiftDetail): PosDailyShiftPartial[] {
+    return shift.partial_shifts ?? [];
+  }
+
+  partialShiftLabel(partial: PosDailyShiftPartial): string {
+    return partialShiftTotalLabel(partial);
+  }
+
+  shiftOpenedBy(shift: PosDailyShiftDetail): string {
+    return dailyShiftTerminalLabel(shift);
+  }
+
+  partialPerformedBy(partial: PosDailyShiftPartial, shift: PosDailyShiftDetail): string {
+    return partialPerformedByLabel(partial, shift.terminal_user);
+  }
+
+  readonly resolvePartialShiftSequence = partialShiftSequence;
 
   saleTotal(sale: PendingSale): string {
     return formatPosMoney(this.amountPending(sale));
@@ -1048,15 +1175,15 @@ export class PaymentComponent implements OnInit, OnDestroy {
     return defaultCollectForm(total, this.dailyUsdMxnRate() ?? undefined);
   }
 
-  private resolveCollectCustomerId(): number | undefined {
-    if (this.customerMode() !== 'registered' || !this.selectedCustomerId()) {
+  private resolveCollectCustomerId(): number | string | undefined {
+    if (this.customerMode() !== 'registered') {
       return undefined;
     }
-    const customerId = Number(this.selectedCustomerId());
-    if (!Number.isFinite(customerId) || customerId <= 0) {
-      return undefined;
+    const collectId = this.selectedCollectCustomerId();
+    if (isValidCollectCustomerId(collectId)) {
+      return collectId;
     }
-    return Math.floor(customerId);
+    return resolvePosCollectCustomerId({ id: this.selectedCustomerId() });
   }
 
   private syncCashFromBillCounts(): void {

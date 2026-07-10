@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, shareReplay, map } from 'rxjs/operators';
-import { Role, RoleDefinition } from '../models';
+import { Role, RoleDefinition, AvailablePermissionsResponse } from '../models';
 import { environment } from '../../../../environments/environment';
 import { DataMapperService } from './data-mapper.service';
 
@@ -85,8 +85,8 @@ export class RoleService {
    * @returns Observable<Role> - The updated role
    */
   updateRolePermissions(roleId: string, permissionIds: string[]): Observable<Role> {
-    return this.http.put<any>(`${this.api}/tenant/roles/${roleId}`, { 
-      permission_ids: permissionIds 
+    return this.http.put<any>(`${this.api}/tenant/roles/${roleId}/permissions`, {
+      permission_ids: permissionIds
     }).pipe(
       map(backendRole => this.dataMapper.mapRole(backendRole)),
       tap(() => this.clearCache()),
@@ -122,8 +122,8 @@ export class RoleService {
    * @param roleId - The ID of the role
    * @returns Observable with role and modules with permissions and their assignment status
    */
-  getRolePermissionsAvailable(roleId: string): Observable<any> {
-    return this.http.get<any>(`${this.api}/tenant/roles/${roleId}/permissions/available`).pipe(
+  getRolePermissionsAvailable(roleId: string): Observable<AvailablePermissionsResponse> {
+    return this.http.get<AvailablePermissionsResponse>(`${this.api}/tenant/roles/${roleId}/permissions/available`).pipe(
       shareReplay(1)
     );
   }
@@ -132,8 +132,8 @@ export class RoleService {
    * Fetches available permissions organized by modules for the tenant
    * @returns Observable with modules and their available permissions
    */
-  getAvailablePermissions(): Observable<any> {
-    return this.http.get<any>(`${this.api}/tenant/roles/permissions/available`).pipe(
+  getAvailablePermissions(): Observable<AvailablePermissionsResponse> {
+    return this.http.get<AvailablePermissionsResponse>(`${this.api}/tenant/roles/permissions/available`).pipe(
       shareReplay(1)
     );
   }

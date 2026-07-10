@@ -8,8 +8,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CustomerActivityService } from '../../services/customer-activity.service';
 import { CustomerActivity } from '../../models/customer-group.model';
-import { CreateActivityModalComponent } from '../create-activity-modal/create-activity-modal.component';
-import { EditActivityModalComponent } from '../edit-activity-modal/edit-activity-modal.component';
+import { CustomerActivityFormDialogComponent } from '../customer-activity-form-dialog/customer-activity-form-dialog.component';
+import { CUSTOMER_ACTIVITY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -198,7 +198,7 @@ export class CustomerActivitiesListComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          this.activities = response.data || [];
+          this.activities = response.activities || [];
           this.totalResults = response.total || 0;
           this.isLoading = false;
         },
@@ -222,8 +222,8 @@ export class CustomerActivitiesListComponent implements OnInit, OnDestroy {
    * Open create activity modal
    */
   openCreateActivityModal() {
-    const dialogRef = this.dialog.open(CreateActivityModalComponent, {
-      width: '600px',
+    const dialogRef = this.dialog.open(CustomerActivityFormDialogComponent, {
+      ...CUSTOMER_ACTIVITY_FORM_DIALOG_CONFIG,
       data: { customerId: this.customerId }
     });
 
@@ -238,8 +238,8 @@ export class CustomerActivitiesListComponent implements OnInit, OnDestroy {
    * Edit activity
    */
   editActivity(activity: CustomerActivity) {
-    const dialogRef = this.dialog.open(EditActivityModalComponent, {
-      width: '600px',
+    const dialogRef = this.dialog.open(CustomerActivityFormDialogComponent, {
+      ...CUSTOMER_ACTIVITY_FORM_DIALOG_CONFIG,
       data: { customerId: this.customerId, activity }
     });
 

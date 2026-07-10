@@ -16,7 +16,7 @@
             <lucide-icon [img]="Package" class="pos-ic pos-ic--sm" />
             <span>Corte abierto</span>
           </div>
-          <span class="pos-session-meta">{{ branchLabel() }} · Ventas {{ shiftSalesTotal(currentShift) }}</span>
+          <span class="pos-session-meta">{{ branchLabel() }} · Total en corte {{ shiftSalesTotal(currentShift) }}</span>
         } @else {
           <div class="pos-pill pos-pill--warn">
             <span>Sin corte abierto</span>
@@ -59,14 +59,19 @@
         <strong>{{ shiftOpeningMxn(currentShift) }}</strong>
       </div>
       <div class="cobranza-stat-chip">
-        <span>Ventas del día</span>
+        <span>Total en corte</span>
         <strong>{{ shiftSalesTotal(currentShift) }}</strong>
       </div>
       <div class="cobranza-stat-chip">
         <span>Cortes parciales</span>
         <strong>{{ shiftPartialCount(currentShift) }}</strong>
       </div>
+      <div class="cobranza-stat-chip">
+        <span>Retirado en parciales</span>
+        <strong>{{ shiftRemovedTotal(currentShift) }}</strong>
+      </div>
       <div class="cobranza-toolbar__actions">
+        <button type="button" class="pos-btn pos-btn--ghost" (click)="setDashboardTab('shifts')">Ver cortes</button>
         <button type="button" class="pos-btn pos-btn--ghost" (click)="openPartialShift()">Corte parcial</button>
         <button type="button" class="pos-btn pos-btn--muted" (click)="closeDailyShift()">Cerrar corte</button>
       </div>
@@ -95,8 +100,109 @@
           </span>
         }
       </button>
+      <button
+        type="button"
+        class="cobranza-dashboard-tab"
+        [class.cobranza-dashboard-tab--active]="dashboardTab() === 'shifts'"
+        (click)="setDashboardTab('shifts')">
+        Cortes
+        @if (shiftPartialCount(currentShift) > 0) {
+          <span class="cobranza-dashboard-tab__badge cobranza-dashboard-tab__badge--muted">
+            {{ shiftPartialCount(currentShift) }}
+          </span>
+        }
+      </button>
     </nav>
 
+    @if (dashboardTab() === 'shifts') {
+      <section class="cobranza-shifts">
+        <div class="cobranza-shifts__head">
+          <div>
+            <h2>Corte global del día</h2>
+            <p>{{ currentShift.shift_date }} · {{ branchLabel() }}</p>
+            <p class="cobranza-shifts__opened-by">Abierto por {{ shiftOpenedBy(currentShift) }}</p>
+          </div>
+          <button type="button" class="cobranza-refresh-btn" (click)="refreshListPanel()" title="Actualizar">
+            <lucide-icon [img]="RefreshCw" />
+          </button>
+        </div>
+
+        <p class="cobranza-shifts__hint">
+          El <strong>corte global</strong> es uno por sucursal por día. Los <strong>cortes parciales</strong> son retiros de efectivo dentro de ese mismo corte; al cerrar el día se cierra el global con todo su historial.
+        </p>
+
+        <div class="cobranza-shifts__summary">
+          <article class="cobranza-shifts__card">
+            <span>Efectivo inicial</span>
+            <strong>{{ shiftOpeningMxn(currentShift) }}</strong>
+          </article>
+          <article class="cobranza-shifts__card">
+            <span>Total en corte</span>
+            <strong>{{ shiftSalesTotal(currentShift) }}</strong>
+          </article>
+          <article class="cobranza-shifts__card">
+            <span>Parciales registrados</span>
+            <strong>{{ shiftPartialCount(currentShift) }}</strong>
+          </article>
+          <article class="cobranza-shifts__card">
+            <span>Total retirado</span>
+            <strong>{{ shiftRemovedTotal(currentShift) }}</strong>
+          </article>
+        </div>
+
+        <div class="cobranza-shifts__actions">
+          <button type="button" class="pos-btn pos-btn--primary" (click)="openPartialShift()">Registrar corte parcial</button>
+          <button type="button" class="pos-btn pos-btn--muted" (click)="closeDailyShift()">Cerrar corte del día</button>
+        </div>
+
+        <div class="cobranza-shifts__history">
+          <h3>Historial de parciales</h3>
+          @if (loadingShiftDetail()) {
+            <p class="cobranza-empty">Cargando cortes…</p>
+          } @else if (partialShifts(currentShift).length === 0) {
+            <p class="cobranza-empty">Aún no hay cortes parciales en este turno.</p>
+          } @else {
+            <ul class="cobranza-shifts__list">
+              @for (partial of partialShifts(currentShift); track partial.id; let i = $index) {
+                <li class="cobranza-shifts__item">
+                  <div class="cobranza-shifts__item-head">
+                    <div class="cobranza-shifts__item-title">
+                      <strong>Corte parcial #{{ resolvePartialShiftSequence(partial, i) }}</strong>
+                      <div class="cobranza-shifts__item-meta">
+                        @if (partial.created_at) {
+                          <time>{{ formatDate(partial.created_at) }}</time>
+                        }
+                        <span class="cobranza-shifts__performer">
+                          {{ partialPerformedBy(partial, currentShift) }}
+                        </span>
+                      </div>
+                    </div>
+                    <span class="cobranza-shifts__item-amount">{{ partialShiftLabel(partial) }}</span>
+                  </div>
+                  @if (partial.notes) {
+                    <p class="cobranza-shifts__item-notes">{{ partial.notes }}</p>
+                  }
+                  @if (partial.denominations?.length) {
+                    <ul class="cobranza-shifts__denoms">
+                      @for (denom of partial.denominations; track denom.currency + '-' + denom.denomination) {
+                        <li>
+                          {{ denom.bill_count }} ×
+                          @if (denom.currency === 'USD') {
+                            USD {{ denom.denomination }}
+                          } @else {
+                            ${{ denom.denomination }}
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    } @else {
     <div class="cobranza-body">
       <aside class="cobranza-panel cobranza-panel--list">
         @if (dashboardTab() === 'pending') {
@@ -116,6 +222,7 @@
           <div class="cobranza-search">
             <lucide-icon [img]="Search" class="cobranza-search__icon" />
             <input
+              class="cobranza-search__input"
               type="search"
               placeholder="Buscar folio o vendedor…"
               [ngModel]="searchFolio()"
@@ -127,7 +234,7 @@
             @if (loading()) {
               <p class="cobranza-empty">Cargando ventas…</p>
             } @else if (filteredPendingSales().length === 0) {
-              <p class="cobranza-empty">No hay ventas pendientes de cobro.</p>
+              <p class="cobranza-empty">{{ pendingEmptyMessage() }}</p>
             } @else {
               <ul class="cobranza-sales">
                 @for (sale of filteredPendingSales(); track sale.id) {
@@ -158,7 +265,7 @@
             }
           </div>
           </div>
-        } @else {
+        } @else if (dashboardTab() === 'collected') {
           <div class="cobranza-panel__head">
             <div class="cobranza-panel__title">
               <h2>Órdenes cobradas</h2>
@@ -182,6 +289,7 @@
           <div class="cobranza-search">
             <lucide-icon [img]="Search" class="cobranza-search__icon" />
             <input
+              class="cobranza-search__input"
               type="search"
               placeholder="Buscar folio, cliente o pago…"
               [ngModel]="searchCollectedFolio()"
@@ -355,7 +463,14 @@
 
                   <div class="cobranza-cash-currencies">
                     <section class="cobranza-cash-currency cobranza-cash-currency--mxn">
-                      <h4 class="cobranza-cash-currency__title">Pesos (MXN)</h4>
+                      <div class="cobranza-cash-currency__head">
+                        <h4 class="cobranza-cash-currency__title">Pesos (MXN)</h4>
+                        @if (hasCashInput('MXN')) {
+                          <button type="button" class="cobranza-cash-clear" (click)="clearCashCurrency('MXN')">
+                            Limpiar
+                          </button>
+                        }
+                      </div>
 
                       <div class="cobranza-bill-btns">
                         @for (denom of cashMxnDenominations; track denom) {
@@ -389,19 +504,28 @@
                     <section class="cobranza-cash-currency cobranza-cash-currency--usd">
                       <div class="cobranza-cash-currency__head">
                         <h4 class="cobranza-cash-currency__title">Dólares (USD)</h4>
-                        @if (exchangeRateFromConfig()) {
-                          <span class="cobranza-tc-badge">{{ exchangeRateBadgeLabel() }}</span>
-                        } @else {
-                          <label class="cobranza-tc-badge cobranza-tc-badge--edit">
-                            TC $
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.0001"
-                              [ngModel]="collectForm().usdExchangeRate"
-                              (ngModelChange)="onUsdExchangeRateChange($event)" />
-                          </label>
-                        }
+                        <div class="cobranza-cash-currency__head-actions">
+                          @if (hasCashInput('USD')) {
+                            <button type="button" class="cobranza-cash-clear" (click)="clearCashCurrency('USD')">
+                              Limpiar
+                            </button>
+                          }
+                          @if (exchangeRateFromConfig()) {
+                            <span class="cobranza-tc-badge">{{ exchangeRateBadgeLabel() }}</span>
+                          } @else {
+                            <div class="cobranza-tc-field">
+                              <label class="cobranza-tc-field__label" for="cobranza-usd-tc">TC $</label>
+                              <input
+                                id="cobranza-usd-tc"
+                                type="number"
+                                min="0"
+                                step="0.0001"
+                                class="cobranza-tc-field__input"
+                                [ngModel]="collectForm().usdExchangeRate"
+                                (ngModelChange)="onUsdExchangeRateChange($event)" />
+                            </div>
+                          }
+                        </div>
                       </div>
 
                       <div class="cobranza-bill-btns">
@@ -616,7 +740,7 @@
           </div>
         }
       </main>
-      } @else {
+      } @else if (dashboardTab() === 'collected') {
       <main class="cobranza-panel cobranza-panel--collect">
         @if (selectedCollectedSale(); as item) {
           <div class="cobranza-collect-scroll">
@@ -748,5 +872,6 @@
       </main>
       }
     </div>
+    }
   }
 </div>

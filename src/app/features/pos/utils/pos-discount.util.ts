@@ -1,4 +1,5 @@
 import { PosApplicableDiscount } from '../models/pos-inventory-summary.model';
+import { GlobalDiscount } from '../../global-discounts/models/global-discount.model';
 
 export interface LineDiscountPreview {
   discountUnit: number;
@@ -45,6 +46,33 @@ export function formatApplicableDiscountLabel(discount: PosApplicableDiscount): 
   const value = Number(discount.value);
   const formatted = value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${discount.name} (-$${formatted} c/u)`;
+}
+
+export function previewGlobalDiscount(
+  netSubtotalAfterLineDiscounts: number,
+  discount?: GlobalDiscount | null
+): { amount: number } {
+  if (!discount || netSubtotalAfterLineDiscounts <= 0) {
+    return { amount: 0 };
+  }
+
+  let amount = 0;
+  if (discount.discount_type === 'percentage') {
+    amount = netSubtotalAfterLineDiscounts * discount.value / 100;
+  } else {
+    amount = Math.min(discount.value, netSubtotalAfterLineDiscounts);
+  }
+
+  return { amount: Math.max(amount, 0) };
+}
+
+export function formatGlobalDiscountLabel(discount: GlobalDiscount): string {
+  if (discount.discount_type === 'percentage') {
+    return `${discount.name} (-${discount.value}%)`;
+  }
+  const value = Number(discount.value);
+  const formatted = value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${discount.name} (-$${formatted})`;
 }
 
 export function isDiscountApiError(message: unknown): boolean {

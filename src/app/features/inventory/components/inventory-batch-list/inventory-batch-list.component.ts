@@ -21,6 +21,11 @@ import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-
 import { ChevronRight, ChevronDown, ArrowRightLeft } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
+import {
+  InventoryExportDialogComponent,
+  InventoryExportDialogResult,
+} from '../inventory-export-dialog/inventory-export-dialog.component';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-inventory-batch-list',
@@ -103,7 +108,8 @@ export class InventoryBatchListComponent implements OnInit {
     private inventoryService: InventoryService,
     private warehouseService: WarehouseService,
     private dialog: MatDialog,
-    private authService: AuthService
+    private authService: AuthService,
+    private toast: ToastService
   ) {}
 
   get canCreateTransfer(): boolean {
@@ -389,5 +395,28 @@ export class InventoryBatchListComponent implements OnInit {
 
   get summaryTotalPages() {
     return Math.ceil(this.summaryTotal / this.summaryLimit);
+  }
+
+  openExportModal(): void {
+    const defaultType = this.activeTabIndex() === 1 ? 'summary' : 'batches';
+
+    this.dialog
+      .open(InventoryExportDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: {
+          defaultType,
+          search: this.searchTerm() || undefined,
+          warehouse_id: this.selectedWarehouse() || undefined,
+          only_available: defaultType === 'summary' ? true : undefined,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: InventoryExportDialogResult | undefined) => {
+        if (result?.downloaded) {
+          this.toast.success('Reporte descargado');
+        }
+      });
   }
 }

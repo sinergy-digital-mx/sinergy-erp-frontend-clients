@@ -31,7 +31,7 @@ export class AccountingPageComponent implements OnInit {
   @ViewChild(AccountsReceivableTabComponent) receivableTab?: AccountsReceivableTabComponent;
 
   activeTab = signal<AccountingTab>('pos');
-  period = signal<AccountingPeriod>('month');
+  period = signal<AccountingPeriod>('today');
   dateFrom = signal('');
   dateTo = signal('');
   billingBranchId = signal('');
@@ -55,6 +55,10 @@ export class AccountingPageComponent implements OnInit {
     return this.activeTab() !== 'payable';
   }
 
+  posDayOnlyFilters(): boolean {
+    return this.activeTab() === 'pos';
+  }
+
   branchRequired(): boolean {
     return this.activeTab() === 'pos';
   }
@@ -64,6 +68,11 @@ export class AccountingPageComponent implements OnInit {
   }
 
   onTabChange(tab: AccountingTab): void {
+    if (tab === 'pos' && this.period() !== 'today' && this.period() !== 'range') {
+      this.period.set('today');
+      this.dateFrom.set('');
+      this.dateTo.set('');
+    }
     this.activeTab.set(tab);
     this.reloadActiveTab();
   }

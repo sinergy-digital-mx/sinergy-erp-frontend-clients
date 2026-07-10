@@ -1,5 +1,6 @@
 import { SalesOrder } from '../../sales-orders/models/sales-order.model';
 import { PosApplicableDiscount } from './pos-inventory-summary.model';
+import { GlobalDiscount } from '../../global-discounts/models/global-discount.model';
 
 /**
  * POS Cart Item
@@ -39,6 +40,7 @@ export interface POSCartItem {
   suggested_unit_price?: number;
   suggested_iva_percentage?: number;
   suggested_ieps_percentage?: number;
+  applicable_discounts?: PosApplicableDiscount[];
 }
 
 /**
@@ -47,10 +49,14 @@ export interface POSCartItem {
 export interface POSCart {
   items: POSCartItem[];
   total_gross_subtotal: number;
+  /** Suma de descuentos por producto (línea). */
   total_discount: number;
   total_subtotal: number;
   total_iva: number;
   total_ieps: number;
+  global_discount_id?: string | null;
+  selected_global_discount?: GlobalDiscount | null;
+  global_discount_amount: number;
   grand_total: number;
 }
 

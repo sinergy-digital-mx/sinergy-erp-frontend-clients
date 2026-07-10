@@ -2,8 +2,10 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { GlobalDiscount } from '../../global-discounts/models/global-discount.model';
 import { POSCart, POSCartItem } from '../models/pos.model';
-import { previewLineDiscount } from '../utils/pos-discount.util';
+import { PosApplicableDiscount } from '../models/pos-inventory-summary.model';
+import { previewLineDiscount, previewGlobalDiscount } from '../utils/pos-discount.util';
 import {
   PosDailyShiftDetail,
   OpenDailyShiftResponse,
@@ -54,6 +56,9 @@ export class POSService {
     total_subtotal: 0,
     total_iva: 0,
     total_ieps: 0,
+    global_discount_id: null,
+    selected_global_discount: null,
+    global_discount_amount: 0,
     grand_total: 0
   });
 
@@ -108,6 +113,24 @@ export class POSService {
   }
 
   /**
+   * Aplica o quita el descuento por producto en una línea del carrito.
+   */
+  updateItemDiscount(index: number, discount: PosApplicableDiscount | null): void {
+    const currentCart = this.cartState();
+    const updatedItems = currentCart.items.map((item, i) => {
+      if (i !== index) {
+        return item;
+      }
+      return this.recalculateItem({
+        ...item,
+        product_discount_id: discount?.id ?? null,
+        selected_discount: discount,
+      });
+    });
+    this.updateCart(updatedItems);
+  }
+
+  /**
    * Update item price/taxes (pricing option override)
    */
   updateItemPricing(
@@ -150,8 +173,19 @@ export class POSService {
       total_subtotal: 0,
       total_iva: 0,
       total_ieps: 0,
+      global_discount_id: null,
+      selected_global_discount: null,
+      global_discount_amount: 0,
       grand_total: 0
     });
+  }
+
+  /**
+   * Aplica o quita un descuento global de orden.
+   */
+  setGlobalDiscount(discount: GlobalDiscount | null): void {
+    const currentCart = this.cartState();
+    this.updateCart(currentCart.items, discount);
   }
 
   /**
@@ -182,14 +216,19 @@ export class POSService {
   /**
    * Update cart with new items and recalculate totals
    */
-  private updateCart(items: POSCartItem[]): void {
+  private updateCart(items: POSCartItem[], globalDiscount?: GlobalDiscount | null): void {
+    const currentCart = this.cartState();
+    const selectedGlobalDiscount =
+      globalDiscount !== undefined ? globalDiscount : currentCart.selected_global_discount ?? null;
+
     const recalculated = items.map((item) => this.recalculateItem(item));
     const total_gross_subtotal = recalculated.reduce((sum, item) => sum + item.line_gross_subtotal, 0);
     const total_discount = recalculated.reduce((sum, item) => sum + item.line_discount_amount, 0);
     const total_subtotal = recalculated.reduce((sum, item) => sum + item.subtotal, 0);
     const total_iva = recalculated.reduce((sum, item) => sum + item.iva_amount, 0);
     const total_ieps = recalculated.reduce((sum, item) => sum + item.ieps_amount, 0);
-    const grand_total = total_subtotal + total_iva + total_ieps;
+    const global_discount_amount = previewGlobalDiscount(total_subtotal, selectedGlobalDiscount).amount;
+    const grand_total = total_subtotal - global_discount_amount + total_iva + total_ieps;
 
     this.cartState.set({
       items: recalculated,
@@ -198,7 +237,10 @@ export class POSService {
       total_subtotal,
       total_iva,
       total_ieps,
-      grand_total
+      global_discount_id: selectedGlobalDiscount?.id ?? null,
+      selected_global_discount: selectedGlobalDiscount,
+      global_discount_amount,
+      grand_total,
     });
   }
 

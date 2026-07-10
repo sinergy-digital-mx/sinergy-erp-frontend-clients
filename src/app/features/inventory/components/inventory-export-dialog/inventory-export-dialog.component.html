@@ -1,0 +1,78 @@
+<div class="export-dialog">
+  <div class="export-dialog__header">
+    <h3 class="export-dialog__title">Descargar reporte Excel</h3>
+    <button
+      type="button"
+      class="export-dialog__close"
+      aria-label="Cerrar"
+      [disabled]="exporting()"
+      (click)="cancel()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  <div class="export-dialog__body">
+    <fieldset class="export-dialog__fieldset">
+      <legend class="export-dialog__label">Tipo de reporte</legend>
+
+      <label class="export-dialog__radio">
+        <input
+          type="radio"
+          name="exportType"
+          value="batches"
+          [checked]="exportType() === 'batches'"
+          [disabled]="exporting()"
+          (change)="setExportType('batches')" />
+        <span>
+          <strong>Por lote</strong>
+          <span class="export-dialog__radio-hint">— una fila por lote</span>
+        </span>
+      </label>
+
+      <label class="export-dialog__radio">
+        <input
+          type="radio"
+          name="exportType"
+          value="summary"
+          [checked]="exportType() === 'summary'"
+          [disabled]="exporting()"
+          (change)="setExportType('summary')" />
+        <span>
+          <strong>Totalizado</strong>
+          <span class="export-dialog__radio-hint">— por producto/almacén</span>
+        </span>
+      </label>
+    </fieldset>
+
+    <p class="export-dialog__filters-note">
+      Usará los filtros actuales del listado (búsqueda, almacén, producto, fechas).
+    </p>
+
+    @if (errorMessage()) {
+      <p class="export-dialog__error" role="alert">{{ errorMessage() }}</p>
+    }
+  </div>
+
+  <div class="export-dialog__footer">
+    <button
+      type="button"
+      class="export-dialog__btn export-dialog__btn--cancel"
+      [disabled]="exporting()"
+      (click)="cancel()">
+      Cancelar
+    </button>
+    <button
+      type="button"
+      class="export-dialog__btn export-dialog__btn--download"
+      [disabled]="!canDownload()"
+      (click)="download()">
+      @if (exporting()) {
+        <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+        Descargando...
+      } @else {
+        <i class="fi fi-rr-download" aria-hidden="true"></i>
+        Descargar
+      }
+    </button>
+  </div>
+</div>

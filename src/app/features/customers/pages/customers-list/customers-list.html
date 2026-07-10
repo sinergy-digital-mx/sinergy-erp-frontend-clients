@@ -1,10 +1,16 @@
 <div class="customers-page">
   <div class="customers-page__header">
     <h1 class="customers-page__title">Clientes</h1>
-    <button type="button" class="customers-page__create-btn" (click)="createCustomer()">
-      <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
-      <span>Crear Cliente</span>
-    </button>
+    <div class="customers-page__header-actions">
+      <button type="button" class="customers-page__export-btn" (click)="openExportModal()">
+        <i class="fi fi-rr-download" aria-hidden="true"></i>
+        <span>Descargar Excel</span>
+      </button>
+      <button type="button" class="customers-page__create-btn" (click)="createCustomer()">
+        <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
+        <span>Crear Cliente</span>
+      </button>
+    </div>
   </div>
 
   <div class="customers-page__toolbar">

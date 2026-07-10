@@ -1,0 +1,60 @@
+@use '../../../../../base/filter-bar';
+@use '../../../../../base/form-controls' as fc;
+
+.global-discounts-list {
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  &__filters {
+    margin-bottom: 1rem;
+  }
+}
+
+.filter-bar__container--global-discounts {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: auto;
+  max-width: none;
+  grid-template-columns: unset;
+
+  .filter-bar__field {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .filter-bar__select {
+    width: 10.5rem;
+    min-width: 9rem;
+    max-width: 12rem;
+  }
+
+  .filter-bar__field--clear {
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .filter-bar__container--global-discounts {
+    flex-wrap: wrap;
+    max-width: 100%;
+
+    .filter-bar__select {
+      width: min(100%, 12rem);
+    }
+
+    .filter-bar__field--clear {
+      margin-left: 0;
+    }
+  }
+}

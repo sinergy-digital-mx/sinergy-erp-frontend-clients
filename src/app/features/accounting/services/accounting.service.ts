@@ -16,8 +16,10 @@ import {
   CollectionCustomerType,
   CollectionTerminalSummary,
   PosCollectionRow,
+  PosOpenDailyShiftSummary,
   PosSummaryResponse,
   PosTerminalSaleRow,
+  PosTerminalType,
   SalesTerminalSummary,
 } from '../models/accounting.model';
 
@@ -140,12 +142,38 @@ export class AccountingService {
 
     return {
       filters_applied: (source['filters_applied'] ?? {}) as PosSummaryResponse['filters_applied'],
-      sales_terminals: this.asArray<SalesTerminalSummary>(source['sales_terminals']),
+      sales_terminals: this.asArray<unknown>(source['sales_terminals']).map((row) =>
+        this.parseSalesTerminal(row)
+      ),
       collection_terminal: this.parseCollectionTerminal(source['collection_terminal']),
     };
   }
 
-  private parseCollectionTerminal(raw: unknown): CollectionTerminalSummary {
+  private parseSalesTerminal(raw: unknown): SalesTerminalSummary {
+    const row = this.asRecord(raw);
+    const terminalType = this.parseTerminalType(row['terminal_type']);
+
+    return {
+      terminal_user_id: String(row['terminal_user_id'] ?? ''),
+      terminal_name: String(row['terminal_name'] ?? ''),
+      terminal_type: terminalType,
+      sales_count: Number(row['sales_count'] ?? 0),
+      amount_sold: Number(row['amount_sold'] ?? 0),
+      orders_collected:
+        row['orders_collected'] != null ? Number(row['orders_collected']) : undefined,
+      amount_collected:
+        row['amount_collected'] != null ? Number(row['amount_collected']) : undefined,
+      daily_shifts_count: Number(row['daily_shifts_count'] ?? 0),
+      partial_shifts_count: Number(row['partial_shifts_count'] ?? 0),
+      open_daily_shift: this.parseOpenDailyShift(row['open_daily_shift']),
+    };
+  }
+
+  private parseCollectionTerminal(raw: unknown): CollectionTerminalSummary | null {
+    if (!raw || typeof raw !== 'object') {
+      return null;
+    }
+
     const c = this.asRecord(raw);
     return {
       terminal_user_id: (c['terminal_user_id'] as string | null) ?? null,
@@ -154,7 +182,35 @@ export class AccountingService {
       amount_collected: Number(c['amount_collected'] ?? 0),
       walk_in_count: Number(c['walk_in_count'] ?? 0),
       invoiced_count: Number(c['invoiced_count'] ?? 0),
+      daily_shifts_count: Number(c['daily_shifts_count'] ?? 0),
+      partial_shifts_count: Number(c['partial_shifts_count'] ?? 0),
+      open_daily_shift: this.parseOpenDailyShift(c['open_daily_shift']),
     };
+  }
+
+  private parseOpenDailyShift(raw: unknown): PosOpenDailyShiftSummary | null {
+    if (!raw || typeof raw !== 'object') {
+      return null;
+    }
+
+    const shift = this.asRecord(raw);
+    if (!shift['id']) {
+      return null;
+    }
+
+    return {
+      id: String(shift['id']),
+      shift_date: String(shift['shift_date'] ?? ''),
+      status: String(shift['status'] ?? ''),
+      partial_shifts_count:
+        shift['partial_shifts_count'] != null
+          ? Number(shift['partial_shifts_count'])
+          : undefined,
+    };
+  }
+
+  private parseTerminalType(raw: unknown): PosTerminalType {
+    return raw === 'COBRANZA' ? 'COBRANZA' : 'VENTAS';
   }
 
   /** Listas paginadas: data[], total, page, summary en la raíz. */

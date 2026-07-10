@@ -23,6 +23,9 @@
             {{ getPaymentStatus() }}
           </span>
         }
+        @if (invoiceSummary()) {
+          <span class="status-badge status-badge--invoice">{{ invoiceSummary() }}</span>
+        }
         <span class="status-badge" [ngClass]="getStatusBadgeClass()">
           {{ order()!.general_status || '-' }}
         </span>
@@ -572,62 +575,16 @@
             </div>
           }
 
-          @if (activeTabIndex() === 4) {
+          @if (activeTabIndex() === 4 && order()) {
             <div class="tab-content-wrapper billing-tab">
-              <div class="billing-summary">
-                <h3 class="billing-section-title">Datos fiscales de la orden</h3>
-                <div class="billing-grid">
-                  <div class="billing-field">
-                    <span class="billing-label">Razón social</span>
-                    <span class="billing-value">{{ getFiscalDisplayName() }}</span>
-                  </div>
-                  <div class="billing-field">
-                    <span class="billing-label">RFC</span>
-                    <span class="billing-value">{{ order()!.fiscal_configuration?.rfc || '—' }}</span>
-                  </div>
-                  <div class="billing-field">
-                    <span class="billing-label">Tipo de persona</span>
-                    <span class="billing-value">{{ order()!.fiscal_configuration?.persona_type || '—' }}</span>
-                  </div>
-                  <div class="billing-field">
-                    <span class="billing-label">Régimen fiscal</span>
-                    <span class="billing-value">{{ order()!.fiscal_configuration?.fiscal_regime || '—' }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="billing-invoices">
-                <h3 class="billing-section-title">CFDI / Facturas</h3>
-                @if (getInvoices().length > 0) {
-                  <table class="products-table">
-                    <thead>
-                      <tr>
-                        <th>FOLIO</th>
-                        <th>UUID</th>
-                        <th>FECHA</th>
-                        <th>MONTO</th>
-                        <th>ESTADO</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (invoice of getInvoices(); track invoice.id || invoice.uuid || $index) {
-                        <tr>
-                          <td>{{ invoice.folio || '—' }}</td>
-                          <td class="uuid-cell">{{ invoice.uuid || '—' }}</td>
-                          <td>{{ invoice.issued_at ? (invoice.issued_at | date:'short') : '—' }}</td>
-                          <td>{{ formatCurrency(invoice.total) }}</td>
-                          <td>{{ invoice.status || '—' }}</td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                } @else {
-                  <div class="empty-state">
-                    <i class="fi fi-rr-receipt"></i>
-                    <p>Sin facturas emitidas para esta orden</p>
-                  </div>
-                }
-              </div>
+              <app-sales-order-invoicing-tab
+                [orderId]="order()!.id"
+                [order]="order()!"
+                [lineItems]="lineItems()"
+                [onCustomerEdit]="openCustomerInNewTab.bind(this)"
+                [onFiscalEdit]="openFiscalDialog.bind(this)"
+                (invoicesChanged)="onInvoicingTabChanged()"
+              />
             </div>
           }
 

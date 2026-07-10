@@ -12,6 +12,13 @@ export const CUSTOMER_FORM_DIALOG_CONFIG: MatDialogConfig = {
   autoFocus: 'first-tabbable',
 };
 
+export const CUSTOMER_ACTIVITY_FORM_DIALOG_CONFIG: MatDialogConfig = {
+  ...formDialogBase,
+  width: '640px',
+  panelClass: 'customer-edit-dialog',
+  autoFocus: false,
+};
+
 export const PROPERTY_FORM_DIALOG_CONFIG: MatDialogConfig = {
   ...formDialogBase,
   width: '700px',
@@ -22,4 +29,10 @@ export const CONTRACT_CREATE_DIALOG_CONFIG: MatDialogConfig = {
   ...formDialogBase,
   width: '900px',
   panelClass: 'contract-create-dialog',
+};
+
+export const PRODUCT_DETAIL_DIALOG_CONFIG: MatDialogConfig = {
+  ...formDialogBase,
+  width: '850px',
+  panelClass: 'product-detail-modal-panel',
 };

@@ -48,12 +48,21 @@
             type="text"
             class="form-input"
             formControlName="vendor_search"
-            placeholder="Buscar proveedor..."
+            placeholder="Escribe al menos 2 caracteres para buscar..."
             [matAutocomplete]="autoVendor">
           <mat-autocomplete
             #autoVendor="matAutocomplete"
             [displayWith]="displayVendor.bind(this)"
             (optionSelected)="onVendorSelected($event.option.value)">
+            <mat-option *ngIf="loadingVendors" disabled>
+              Buscando proveedores...
+            </mat-option>
+            <mat-option *ngIf="vendorSearchTooShort" disabled>
+              Escribe al menos 2 caracteres
+            </mat-option>
+            <mat-option *ngIf="!loadingVendors && !vendorSearchTooShort && hasSearchedVendors && filteredVendors.length === 0" disabled>
+              No se encontraron proveedores
+            </mat-option>
             <mat-option *ngFor="let vendor of filteredVendors" [value]="vendor">
               {{ vendor.display_name }}
             </mat-option>
@@ -164,21 +173,33 @@
       <div class="add-product-modal__body">
         <div class="form-field form-field--full">
           <label class="form-label">PRODUCTO *</label>
-          <input
-            type="text"
-            class="form-input"
-            [(ngModel)]="productSearchTerm"
-            [ngModelOptions]="{ standalone: true }"
-            placeholder="Buscar por nombre o SKU..."
-            [matAutocomplete]="autoProductPicker">
-          <mat-autocomplete
-            #autoProductPicker="matAutocomplete"
-            [displayWith]="displayProduct.bind(this)"
-            (optionSelected)="onProductSelectedForModal($event.option.value)">
-            <mat-option *ngFor="let product of filteredProductsForModal" [value]="product">
-              {{ getProductOptionLabel(product) }}
-            </mat-option>
-          </mat-autocomplete>
+          <div class="product-picker-row">
+            <div class="product-picker-row__search">
+              <input
+                type="text"
+                class="form-input"
+                [(ngModel)]="productSearchTerm"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Buscar por nombre o SKU..."
+                [matAutocomplete]="autoProductPicker">
+              <mat-autocomplete
+                #autoProductPicker="matAutocomplete"
+                [displayWith]="displayProduct.bind(this)"
+                (optionSelected)="onProductSelectedForModal($event.option.value)">
+                <mat-option *ngFor="let product of filteredProductsForModal" [value]="product">
+                  {{ getProductOptionLabel(product) }}
+                </mat-option>
+              </mat-autocomplete>
+            </div>
+            <button
+              type="button"
+              class="product-detail-btn"
+              [disabled]="!selectedProduct"
+              (click)="openSelectedProductDetail()">
+              <lucide-icon [img]="ExternalLink" [size]="16"></lucide-icon>
+              <span>Ver producto</span>
+            </button>
+          </div>
         </div>
 
         <div class="form-grid">

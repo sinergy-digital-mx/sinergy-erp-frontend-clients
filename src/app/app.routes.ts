@@ -139,6 +139,11 @@ export const routes: Routes = [
         redirectTo: 'settings/goals',
         pathMatch: 'full',
       },
+      {
+        path: 'global-discounts',
+        redirectTo: 'settings/global-discounts',
+        pathMatch: 'full',
+      },
 
       {
         path: 'divino-dashboard',

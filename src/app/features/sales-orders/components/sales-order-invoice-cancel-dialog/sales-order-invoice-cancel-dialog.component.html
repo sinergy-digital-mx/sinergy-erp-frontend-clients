@@ -1,0 +1,35 @@
+<div class="dialog-overlay" (click)="close()">
+  <div class="dialog-container" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="dialog-header">
+      <h2>Cancelar factura</h2>
+      <button type="button" class="close-button" (click)="close()" aria-label="Cerrar">
+        <i class="fi fi-rr-cross-small"></i>
+      </button>
+    </div>
+
+    <form class="dialog-body" [formGroup]="form" (ngSubmit)="submit()">
+      <p class="hint">UUID: <strong>{{ data.invoice.uuid || '—' }}</strong></p>
+
+      <div class="form-field">
+        <label for="motivo">Motivo de cancelación *</label>
+        <select id="motivo" class="form-input" formControlName="motivo">
+          @for (opt of motivoOptions; track opt.id) {
+            <option [value]="opt.id">{{ opt.name }}</option>
+          }
+        </select>
+      </div>
+
+      @if (requiresSubstitution) {
+        <div class="form-field">
+          <label for="folio_sustitucion">UUID sustituto *</label>
+          <input id="folio_sustitucion" class="form-input" type="text" formControlName="folio_sustitucion" />
+        </div>
+      }
+
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" (click)="close()">Cerrar</button>
+        <button type="submit" class="btn-danger">Confirmar cancelación</button>
+      </div>
+    </form>
+  </div>
+</div>

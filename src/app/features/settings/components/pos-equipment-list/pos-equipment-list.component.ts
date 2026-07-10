@@ -137,12 +137,18 @@ export class PosEquipmentListComponent implements OnInit {
   }
 
   viewDetail(shift: PosDailyShiftListItem): void {
-    this.dialog.open(PosDailyShiftDetailModalComponent, {
+    const dialogRef = this.dialog.open(PosDailyShiftDetailModalComponent, {
       width: '560px',
       maxWidth: 'calc(100vw - 24px)',
       autoFocus: false,
       panelClass: 'pos-daily-shift-detail-panel',
       data: { shiftId: shift.id },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.closed) {
+        this.loadDailyShifts();
+      }
     });
   }
 

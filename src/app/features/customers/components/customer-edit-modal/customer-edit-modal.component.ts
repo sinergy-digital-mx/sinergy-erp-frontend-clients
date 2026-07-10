@@ -1,4 +1,5 @@
-import { Component, Inject, signal, ViewEncapsulation } from '@angular/core';
+import { Component, DestroyRef, Inject, inject, signal, ViewEncapsulation } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -17,6 +18,13 @@ import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { AuthService } from '../../../../core/services/auth.service';
+import {
+  FISCAL_PERSON_TYPE_OPTIONS,
+  inferFiscalPersonTypeFromRfc,
+  isValidFiscalPersonType,
+  resolveFiscalPersonType,
+  sanitizeFiscalPersonTypeForApi,
+} from '../../utils/fiscal-person-type.util';
 
 @Component({
   selector: 'app-customer-edit-modal',
@@ -48,34 +56,8 @@ export class CustomerEditModalComponent {
     { id: 'credit', title: 'Credito' },
     { id: 'fiscal', title: 'Información Fiscal' }
   ];
-  readonly fiscalRegimenOptions: Array<{ code: string; label: string }> = [
-    { code: '601', label: '601 - REGIMEN GENERAL DE LEY PERSONAS MORALES' },
-    { code: '602', label: '602 - REGIMEN SIMPLIFICADO DE LEY PERSONAS MORALES' },
-    { code: '603', label: '603 - PERSONAS MORALES CON FINES NO LUCRATIVOS' },
-    { code: '604', label: '604 - REGIMEN DE PEQUENOS CONTRIBUYENTES' },
-    { code: '605', label: '605 - REGIMEN DE SUELDOS Y SALARIOS E INGRESOS ASIMILADOS A SALARIOS' },
-    { code: '606', label: '606 - REGIMEN DE ARRENDAMIENTO' },
-    { code: '607', label: '607 - REGIMEN DE ENAJENACION O ADQUISICION DE BIENES' },
-    { code: '608', label: '608 - REGIMEN DE LOS DEMAS INGRESOS' },
-    { code: '609', label: '609 - REGIMEN DE CONSOLIDACION' },
-    { code: '610', label: '610 - REGIMEN RESIDENTES EN EL EXTRANJERO SIN ESTABLECIMIENTO PERMANENTE EN MEXICO' },
-    { code: '611', label: '611 - REGIMEN DE INGRESOS POR DIVIDENDOS (SOCIOS Y ACCIONISTAS)' },
-    { code: '612', label: '612 - REGIMEN DE LAS PERSONAS FISICAS CON ACTIVIDADES EMPRESARIALES Y PROFESIONALES' },
-    { code: '613', label: '613 - REGIMEN INTERMEDIO DE LAS PERSONAS FISICAS CON ACTIVIDADES EMPRESARIALES' },
-    { code: '614', label: '614 - REGIMEN DE LOS INGRESOS POR INTERESES' },
-    { code: '615', label: '615 - REGIMEN DE LOS INGRESOS POR OBTENCION DE PREMIOS' },
-    { code: '616', label: '616 - SIN OBLIGACIONES FISCALES' },
-    { code: '617', label: '617 - PEMEX' },
-    { code: '618', label: '618 - REGIMEN SIMPLIFICADO DE LEY PERSONAS FISICAS' },
-    { code: '619', label: '619 - INGRESOS POR LA OBTENCION DE PRESTAMOS' },
-    { code: '620', label: '620 - SOCIEDADES COOPERATIVAS DE PRODUCCION QUE OPTAN POR DIFERIR SUS INGRESOS' },
-    { code: '621', label: '621 - REGIMEN DE INCORPORACION FISCAL' },
-    { code: '622', label: '622 - REGIMEN DE ACTIVIDADES AGRICOLAS, GANADERAS, SILVICOLAS Y PESQUERAS PM' },
-    { code: '623', label: '623 - REGIMEN DE OPCIONAL PARA GRUPOS DE SOCIEDADES' },
-    { code: '624', label: '624 - REGIMEN DE LOS COORDINADOS' },
-    { code: '625', label: '625 - REGIMEN DE LAS ACTIVIDADES EMPRESARIALES CON INGRESOS A TRAVES DE PLATAFORMAS TECNOLOGICAS' },
-    { code: '626', label: '626 - REGIMEN SIMPLIFICADO DE CONFIANZA' }
-  ];
+  readonly fiscalPersonTypeOptions = FISCAL_PERSON_TYPE_OPTIONS;
+  private readonly destroyRef = inject(DestroyRef);
   warehouses = signal<Warehouse[]>([]);
   warehousesLoading = signal(false);
   statuses = signal<CustomerStatus[]>([]);
@@ -144,7 +126,10 @@ export class CustomerEditModalComponent {
         credit_amount: this.data.customer.credit_amount ?? '',
         fiscal_rfc: this.data.customer.fiscal_rfc || '',
         fiscal_razon_social: this.data.customer.fiscal_razon_social || '',
-        fiscal_person_type: this.data.customer.fiscal_person_type || '',
+        fiscal_person_type: resolveFiscalPersonType(
+          this.data.customer.fiscal_person_type,
+          this.data.customer.fiscal_rfc
+        ),
         fiscal_address: this.data.customer.fiscal_address || '',
         fiscal_city: this.data.customer.fiscal_city || '',
         fiscal_state: this.data.customer.fiscal_state || '',
@@ -171,6 +156,25 @@ export class CustomerEditModalComponent {
     }
     this.loadWarehouses();
     this.loadStatuses();
+    this.setupFiscalRfcAutoPersonType();
+  }
+
+  private setupFiscalRfcAutoPersonType(): void {
+    this.form
+      .get('fiscal_rfc')
+      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((rfc) => this.applyInferredFiscalPersonType(rfc));
+  }
+
+  private applyInferredFiscalPersonType(rfc: string | null | undefined): void {
+    const inferred = inferFiscalPersonTypeFromRfc(rfc);
+    if (!inferred) return;
+
+    const control = this.form.get('fiscal_person_type');
+    const current = (control?.value ?? '').trim().toLowerCase();
+    if (!current || !isValidFiscalPersonType(current)) {
+      control?.setValue(inferred, { emitEvent: false });
+    }
   }
 
   get canEditStatus(): boolean {
@@ -374,7 +378,7 @@ export class CustomerEditModalComponent {
       credit_amount: this.parseNullableDecimal(v.credit_amount),
       fiscal_rfc: trim(v.fiscal_rfc) || undefined,
       fiscal_razon_social: trim(v.fiscal_razon_social) || undefined,
-      fiscal_person_type: v.fiscal_person_type || undefined,
+      fiscal_person_type: sanitizeFiscalPersonTypeForApi(v.fiscal_person_type),
       fiscal_address: trim(v.fiscal_address) || undefined,
       fiscal_city: trim(v.fiscal_city) || undefined,
       fiscal_state: trim(v.fiscal_state) || undefined,
@@ -425,7 +429,7 @@ export class CustomerEditModalComponent {
       credit_amount: this.parseNullableDecimal(v.credit_amount),
       fiscal_rfc: trim(v.fiscal_rfc) || undefined,
       fiscal_razon_social: trim(v.fiscal_razon_social) || undefined,
-      fiscal_person_type: v.fiscal_person_type || undefined,
+      fiscal_person_type: sanitizeFiscalPersonTypeForApi(v.fiscal_person_type),
       fiscal_address: trim(v.fiscal_address) || undefined,
       fiscal_city: trim(v.fiscal_city) || undefined,
       fiscal_state: trim(v.fiscal_state) || undefined,

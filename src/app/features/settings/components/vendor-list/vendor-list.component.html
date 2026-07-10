@@ -6,54 +6,33 @@
 
 
 
-    <div class="flex flex-wrap items-center gap-3">
-
+    <div class="vendor-list__toolbar">
       <select
-
         class="vendor-type-filter"
-
         [value]="vendorTypeFilter"
-
         (change)="onVendorTypeFilterChange($any($event.target).value)">
-
         <option *ngFor="let opt of vendorTypeFilterOptions" [value]="opt.value">{{ opt.label }}</option>
-
       </select>
 
-
-
       <app-search
-
-        class="w-64"
-
+        class="vendor-list__search"
+        [showSearchIcon]="true"
+        placeholder="Buscar proveedores..."
         [param_activate]="false"
-
+        [default_value]="search"
         (searchChange)="onSearchChange($event)">
-
       </app-search>
 
-
-
       <app-filter-clear-button
-
         [active]="hasActiveFilters"
-
         (clear)="clearFilters()">
-
       </app-filter-clear-button>
 
-
-
       <app-button
-
         text="Nuevo Proveedor"
-
         custom_class="btn_primary"
-
         (clicked)="openCreateVendorModal()">
-
       </app-button>
-
     </div>
 
   </div>

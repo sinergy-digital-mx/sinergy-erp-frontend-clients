@@ -27,6 +27,22 @@ export const CUSTOMER_PERMISSIONS = {
   uploadDocument: 'customers:UploadDocument',
   deleteDocument: 'customers:DeleteDocument',
   downloadDocument: 'customers:Read',
+
+  // Activity management
+  viewActivities: ['customers:Activity:Read', 'customers:ReadActivity', 'customers:Read'],
+  createActivity: [
+    'customers:Activity:Create',
+    'customers:CreateActivity',
+    'customer_activities:Create',
+    'customers:Create',
+    'customers:Update',
+  ],
+  updateActivity: [
+    'customers:Activity:Update',
+    'customers:UpdateActivity',
+    'customer_activities:Update',
+    'customers:Update',
+  ],
   
   // Bulk operations (require multiple permissions)
   bulkEdit: ['customers:Update', 'customers:Read'],

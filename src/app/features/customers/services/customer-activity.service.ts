@@ -1,9 +1,25 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, retry } from 'rxjs/operators';
+import { catchError, map, retry } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { CustomerActivity, ActivitySummary, CreateActivityRequest, UpdateActivityRequest } from '../models/customer-group.model';
+
+export interface ActivitiesListResponse {
+  activities: CustomerActivity[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface ActivitiesListFilters {
+  type?: string;
+  status?: string;
+  from_date?: string;
+  to_date?: string;
+  sort_by?: string;
+  sort_order?: 'ASC' | 'DESC';
+}
 
 /**
  * CustomerActivityService
@@ -20,16 +36,96 @@ export class CustomerActivityService {
   /**
    * Get activities for a customer
    */
-  getActivities(customerId: number, page: number = 1, limit: number = 10): Observable<any> {
+  getActivities(
+    customerId: number,
+    page: number = 1,
+    limit: number = 10,
+    filters: ActivitiesListFilters = {}
+  ): Observable<ActivitiesListResponse> {
+    let params = new HttpParams()
+      .set('page', page)
+      .set('limit', limit);
+
+    if (filters.type) params = params.set('type', filters.type);
+    if (filters.status) params = params.set('status', filters.status);
+    if (filters.from_date) params = params.set('from_date', filters.from_date);
+    if (filters.to_date) params = params.set('to_date', filters.to_date);
+    if (filters.sort_by) params = params.set('sort_by', filters.sort_by);
+    if (filters.sort_order) params = params.set('sort_order', filters.sort_order);
+
     return this.http.get<any>(
       `${this.api}/tenant/customers/${customerId}/activities`,
-      {
-        params: { page, limit }
-      }
+      { params }
     ).pipe(
+      map((response) => this.normalizeActivitiesResponse(response, page, limit)),
       retry(2),
-      catchError(error => this.handleError(error))
+      catchError((error) => {
+        const status = error?.status ?? error?.originalError?.status;
+        if (status === 403 && page === 1 && Object.keys(filters).length === 0) {
+          return this.getActivitiesSimpleList(customerId).pipe(
+            map((activities) => ({
+              activities,
+              total: activities.length,
+              page: 1,
+              totalPages: Math.max(1, Math.ceil(activities.length / limit)),
+            }))
+          );
+        }
+        return this.handleError(error);
+      })
     );
+  }
+
+  /**
+   * Listado simple (sin paginación) — usa permiso customers:Read.
+   */
+  getActivitiesSimpleList(customerId: number): Observable<CustomerActivity[]> {
+    return this.http
+      .get<any>(`${this.api}/tenant/customers/${customerId}/activities`)
+      .pipe(
+        map((response) => this.extractActivitiesArray(response)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  private extractActivitiesArray(response: unknown): CustomerActivity[] {
+    if (Array.isArray(response)) {
+      return response as CustomerActivity[];
+    }
+    if (response && typeof response === 'object') {
+      const obj = response as Record<string, unknown>;
+      const nested = obj['activities'] ?? obj['data'];
+      if (Array.isArray(nested)) {
+        return nested as CustomerActivity[];
+      }
+    }
+    return [];
+  }
+
+  private normalizeActivitiesResponse(
+    response: any,
+    page: number,
+    limit: number
+  ): ActivitiesListResponse {
+    if (Array.isArray(response)) {
+      return {
+        activities: response,
+        total: response.length,
+        page: 1,
+        totalPages: Math.max(1, Math.ceil(response.length / limit)),
+      };
+    }
+
+    const activities: CustomerActivity[] = this.extractActivitiesArray(response);
+    const total = response?.total ?? activities.length;
+    const totalPages = response?.totalPages ?? Math.max(1, Math.ceil(total / limit));
+
+    return {
+      activities,
+      total,
+      page: response?.page ?? page,
+      totalPages,
+    };
   }
 
   /**

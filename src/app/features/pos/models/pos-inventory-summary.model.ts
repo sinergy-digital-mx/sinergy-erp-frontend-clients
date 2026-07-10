@@ -198,23 +198,52 @@ export function resolvePosWarehouseId(summary: PosInventorySummaryResponse): str
   const validIds = new Set(warehouses.map((w) => w.id));
 
   const applied = enriched.applied_warehouse_id?.trim();
-  if (applied && (validIds.size === 0 || validIds.has(applied))) {
+  if (applied && validIds.has(applied)) {
     return applied;
   }
 
-  for (const row of enriched.data) {
-    const rowWarehouseId = extractWarehouseIdFromRow(row);
-    if (rowWarehouseId && (validIds.size === 0 || validIds.has(rowWarehouseId))) {
-      return rowWarehouseId;
+  if (warehouses.length > 0) {
+    const preferred =
+      warehouses.find((w) => String(w.status ?? 'active').toLowerCase() !== 'inactive') ??
+      warehouses[0];
+    return preferred.id;
+  }
+
+  return '';
+}
+
+export function syncPosWarehouseContext(summary: PosInventorySummaryResponse): string {
+  const enriched = enrichPosInventorySummary(summary);
+  const branchId = enriched.billing_branch_id?.trim();
+
+  if (branchId) {
+    const storedBranch = localStorage.getItem('pos_billing_branch_id')?.trim();
+    if (storedBranch && storedBranch !== branchId) {
+      localStorage.removeItem('pos_warehouse_id');
     }
+    localStorage.setItem('pos_billing_branch_id', branchId);
   }
 
-  const stored = localStorage.getItem('pos_warehouse_id')?.trim();
-  if (stored && (validIds.size === 0 || validIds.has(stored))) {
-    return stored;
+  const warehouseId = resolvePosWarehouseId(enriched);
+  if (!warehouseId) {
+    localStorage.removeItem('pos_warehouse_id');
+    return '';
   }
 
-  return warehouses[0]?.id ?? applied ?? '';
+  persistPosWarehouseId(warehouseId);
+  return warehouseId;
+}
+
+export function resetPosWarehouseForBranch(billingBranchId: string | null | undefined): void {
+  const branchId = billingBranchId?.trim();
+  if (!branchId) {
+    return;
+  }
+  const storedBranch = localStorage.getItem('pos_billing_branch_id')?.trim();
+  if (!storedBranch || storedBranch !== branchId) {
+    localStorage.removeItem('pos_warehouse_id');
+    localStorage.setItem('pos_billing_branch_id', branchId);
+  }
 }
 
 export function persistPosWarehouseId(warehouseId: string): void {

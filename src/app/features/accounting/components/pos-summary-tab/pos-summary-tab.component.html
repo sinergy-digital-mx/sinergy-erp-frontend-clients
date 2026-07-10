@@ -5,7 +5,7 @@
 } @else {
   <div class="pos-summary-layout">
     <div class="pos-summary-section">
-      <h3 class="pos-summary-section__title">Terminales de venta</h3>
+      <h3 class="pos-summary-section__title">Terminales POS</h3>
       <div class="pos-summary-table-wrap">
         <app-datatable-wrapper
           [config]="tableConfig()"
@@ -68,6 +68,23 @@
         </button>
       </div>
 
+      <div class="collection-card__shifts">
+        <div class="collection-shift-stat">
+          <span class="collection-shift-stat__label">Cortes globales</span>
+          <span class="collection-shift-stat__value">{{ collectionTerminal().daily_shifts_count }}</span>
+        </div>
+        <div class="collection-shift-stat">
+          <span class="collection-shift-stat__label">Cortes parciales</span>
+          <span class="collection-shift-stat__value">{{ collectionTerminal().partial_shifts_count }}</span>
+        </div>
+        <div class="collection-shift-stat collection-shift-stat--wide">
+          <span class="collection-shift-stat__label">Corte abierto</span>
+          <span class="collection-shift-stat__value collection-shift-stat__value--text">
+            {{ collectionOpenShiftLabel() }}
+          </span>
+        </div>
+      </div>
+
       <p class="collection-card__hint">
         Por fecha de cobro. Puede diferir del # de ventas del periodo.
       </p>
@@ -80,16 +97,32 @@
     <p class="dt-cell-primary m-0">{{ item.terminal_name }}</p>
   </td>
   <td class="px-2 py-2">
-    <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-800">
-      {{ item.sales_count }}
+    <span
+      class="terminal-type-pill"
+      [class.terminal-type-pill--collection]="isCollectionTerminal(item)">
+      {{ terminalTypeLabel(item.terminal_type) }}
     </span>
   </td>
   <td class="px-2 py-2">
-    <p class="dt-cell-amount m-0">{{ formatCurrency(item.amount_sold) }}</p>
+    <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-800">
+      {{ transactionCount(item) }}
+    </span>
   </td>
   <td class="px-2 py-2">
-    <button type="button" class="detail-link-btn" (click)="openTerminalDetail(item)">
-      Ver detalle
+    <p class="dt-cell-amount m-0">{{ formatCurrency(transactionAmount(item)) }}</p>
+  </td>
+  <td class="px-2 py-2">
+    <span class="shift-count">{{ item.daily_shifts_count }}</span>
+  </td>
+  <td class="px-2 py-2">
+    <span class="shift-count">{{ item.partial_shifts_count }}</span>
+  </td>
+  <td class="px-2 py-2">
+    <span class="open-shift-label">{{ openShiftLabel(item.open_daily_shift) }}</span>
+  </td>
+  <td class="px-2 py-2">
+    <button type="button" class="detail-link-btn" (click)="openTerminalAction(item)">
+      {{ isCollectionTerminal(item) ? 'Ver cobros' : 'Ver detalle' }}
     </button>
   </td>
 </ng-template>

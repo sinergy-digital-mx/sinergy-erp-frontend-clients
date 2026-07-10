@@ -150,11 +150,43 @@ export interface Module {
   permissions: Permission[];
 }
 
+export interface AvailablePermission {
+  id: string;
+  entity?: string;
+  action: string;
+  description?: string;
+  assigned?: boolean;
+}
+
+export interface AvailableModule {
+  id: string;
+  name: string;
+  code: string;
+  category?: string;
+  category_label?: string;
+  sort_order?: number;
+  permissions: AvailablePermission[];
+}
+
+export interface PermissionCategory {
+  code: string;
+  label: string;
+  sort_order: number;
+  modules: AvailableModule[];
+}
+
+export interface AvailablePermissionsResponse {
+  modules: AvailableModule[];
+  categories: PermissionCategory[];
+}
+
 export interface Role {
   id: string;
   name: string;
   description?: string;
   permissions: string[];
+  permission_count?: number;
+  is_admin?: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;
   [key: string]: any; // Allow additional fields from backend

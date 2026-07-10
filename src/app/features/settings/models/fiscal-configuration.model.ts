@@ -9,8 +9,14 @@ export interface FiscalConfiguration {
   digital_seal?: string;
   digital_seal_password?: string;
   private_key?: string;
+  has_digital_seal?: boolean | number;
+  has_private_key?: boolean | number;
+  has_digital_seal_password?: boolean | number;
   logo?: string;
   status: 'active' | 'inactive';
+  certificate_serial_number?: string;
+  finkok_registration_status?: 'pending' | 'registered' | 'failed' | string;
+  finkok_registration_error?: string | null;
   metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;

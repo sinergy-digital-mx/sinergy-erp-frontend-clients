@@ -47,7 +47,7 @@ export class ReceiptModalComponent implements OnInit {
    * Obtener nome do produto
    */
   getProductName(lineItem: LineItem): string {
-    return lineItem.product?.name || 'Produto desconhecido';
+    return lineItem.product?.name || 'Producto desconocido';
   }
 
   /**
@@ -61,7 +61,30 @@ export class ReceiptModalComponent implements OnInit {
    * Obtener cantidad ordenada
    */
   getOrderedQuantity(lineItem: LineItem): string {
-    return `${lineItem.quantity} ${lineItem.product_uom?.uom?.name || 'Unidad'}`;
+    return `${lineItem.quantity} ${lineItem.product_uom?.uom?.name || lineItem.uom?.name || 'Unidad'}`;
+  }
+
+  getUnitCost(lineItem: LineItem): number | null {
+    const value = lineItem.unit_total ?? lineItem.unit_price;
+    return value != null && Number.isFinite(Number(value)) ? Number(value) : null;
+  }
+
+  getLineTotal(lineItem: LineItem): number | null {
+    const value = lineItem.line_total ?? lineItem.subtotal;
+    if (value != null && Number.isFinite(Number(value))) {
+      return Number(value);
+    }
+    const unitCost = this.getUnitCost(lineItem);
+    if (unitCost == null) return null;
+    return unitCost * Number(lineItem.quantity || 0);
+  }
+
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 2,
+    }).format(amount);
   }
 
   getLotMode(lineItemId: string): LotMode {
@@ -268,15 +291,5 @@ export class ReceiptModalComponent implements OnInit {
    */
   onCancel(): void {
     this.dialogRef.close();
-  }
-
-  /**
-   * Formatear moneda
-   */
-  formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(amount);
   }
 }

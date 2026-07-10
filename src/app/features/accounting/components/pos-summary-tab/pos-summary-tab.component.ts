@@ -8,8 +8,11 @@ import {
   AccountingPeriod,
   CollectionCustomerType,
   CollectionTerminalSummary,
+  PosOpenDailyShiftSummary,
+  PosTerminalType,
   SalesTerminalSummary,
 } from '../../models/accounting.model';
+import { dailyShiftIsOpen } from '../../../pos/models/pos-daily-shift.model';
 import { PosTerminalSalesDialogComponent } from '../pos-terminal-sales-dialog/pos-terminal-sales-dialog.component';
 import { PosCollectionsDialogComponent } from '../pos-collections-dialog/pos-collections-dialog.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
@@ -25,7 +28,7 @@ export class PosSummaryTabComponent implements OnChanges {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
 
   @Input() billingBranchId = '';
-  @Input() period: AccountingPeriod = 'month';
+  @Input() period: AccountingPeriod = 'today';
   @Input() dateFrom = '';
   @Input() dateTo = '';
   @Input() reloadToken = 0;
@@ -36,10 +39,14 @@ export class PosSummaryTabComponent implements OnChanges {
   tableConfig = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Terminal', prop: 'terminal_name', sortable: false, canAutoResize: false, width: 220 },
-      { name: '# Ventas', prop: 'sales_count', sortable: false, canAutoResize: false, width: 100 },
-      { name: 'Monto vendido', prop: 'amount_sold', sortable: false, canAutoResize: false, width: 140 },
-      { name: 'Acción', prop: 'action', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Terminal', prop: 'terminal_name', sortable: false, canAutoResize: false, width: 180 },
+      { name: 'Tipo', prop: 'terminal_type', sortable: false, canAutoResize: false, width: 90 },
+      { name: '# Ventas/Cobros', prop: 'sales_count', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Monto', prop: 'amount_sold', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Cortes globales', prop: 'daily_shifts_count', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Cortes parciales', prop: 'partial_shifts_count', sortable: false, canAutoResize: false, width: 115 },
+      { name: 'Corte abierto', prop: 'open_daily_shift', sortable: false, canAutoResize: false, width: 140 },
+      { name: 'Acción', prop: 'action', sortable: false, canAutoResize: false, width: 110 },
     ],
     externalPaging: false,
     externalSorting: false,
@@ -72,6 +79,52 @@ export class PosSummaryTabComponent implements OnChanges {
 
   formatCurrency(value: number): string {
     return this.taxCalculator.formatCurrency(value);
+  }
+
+  terminalTypeLabel(type: PosTerminalType): string {
+    return type === 'COBRANZA' ? 'Cobranza' : 'Ventas';
+  }
+
+  isCollectionTerminal(terminal: SalesTerminalSummary): boolean {
+    return terminal.terminal_type === 'COBRANZA';
+  }
+
+  transactionCount(terminal: SalesTerminalSummary): number {
+    if (this.isCollectionTerminal(terminal)) {
+      return terminal.orders_collected ?? terminal.sales_count;
+    }
+    return terminal.sales_count;
+  }
+
+  transactionAmount(terminal: SalesTerminalSummary): number {
+    if (this.isCollectionTerminal(terminal)) {
+      return terminal.amount_collected ?? terminal.amount_sold;
+    }
+    return terminal.amount_sold;
+  }
+
+  openShiftLabel(shift: PosOpenDailyShiftSummary | null | undefined): string {
+    if (!shift) {
+      return '—';
+    }
+
+    const dateLabel = this.formatShiftDate(shift.shift_date);
+    const partials = shift.partial_shifts_count ?? 0;
+    const statusLabel = dailyShiftIsOpen(shift) ? 'Abierto' : 'Cerrado';
+
+    return `${statusLabel} · ${dateLabel} · ${partials} parc.`;
+  }
+
+  collectionOpenShiftLabel(): string {
+    return this.openShiftLabel(this.collectionTerminal().open_daily_shift);
+  }
+
+  openTerminalAction(terminal: SalesTerminalSummary): void {
+    if (this.isCollectionTerminal(terminal)) {
+      this.openCollections('all');
+      return;
+    }
+    this.openTerminalDetail(terminal);
   }
 
   openTerminalDetail(terminal: SalesTerminalSummary): void {
@@ -162,6 +215,16 @@ export class PosSummaryTabComponent implements OnChanges {
       amount_collected: 0,
       walk_in_count: 0,
       invoiced_count: 0,
+      daily_shifts_count: 0,
+      partial_shifts_count: 0,
+      open_daily_shift: null,
     };
+  }
+
+  private formatShiftDate(value: string): string {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
   }
 }

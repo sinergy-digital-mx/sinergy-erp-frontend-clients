@@ -4,12 +4,21 @@
       <!-- Header -->
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
         <h2 class="text-2xl font-semibold text-gray-800">Inventario</h2>
-        <a
-          routerLink="/inventory/transfers"
-          class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
-          <lucide-icon [img]="ArrowRightLeft" [size]="16"></lucide-icon>
-          Transferencias
-        </a>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            class="page-export-btn"
+            (click)="openExportModal()">
+            <i class="fi fi-rr-download" aria-hidden="true"></i>
+            Descargar Excel
+          </button>
+          <a
+            routerLink="/inventory/transfers"
+            class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
+            <lucide-icon [img]="ArrowRightLeft" [size]="16"></lucide-icon>
+            Transferencias
+          </a>
+        </div>
       </div>
 
       <!-- Filter Bar -->

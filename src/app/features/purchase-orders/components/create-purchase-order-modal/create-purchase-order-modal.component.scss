@@ -2,7 +2,7 @@
   background: white;
   border-radius: 12px;
   width: 100%;
-  max-width: 900px;
+  max-width: 1100px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -100,8 +100,19 @@
   }
 
   &--inline {
-    padding: 6px 8px;
-    font-size: 12px;
+    padding: 6px 10px;
+    font-size: 13px;
+    min-width: 0;
+  }
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
   }
 }
 
@@ -118,6 +129,8 @@
 .form-textarea {
   resize: vertical;
   min-height: 80px;
+  padding: 10px 12px !important;
+  line-height: 1.5;
 }
 
 .line-items-section {
@@ -209,6 +222,34 @@
     td:nth-child(2) {
       min-width: 120px;
     }
+
+    // Cantidad y costo unitario
+    th:nth-child(3),
+    td:nth-child(3) {
+      min-width: 96px;
+      width: 96px;
+    }
+
+    th:nth-child(4),
+    td:nth-child(4) {
+      min-width: 120px;
+      width: 120px;
+    }
+
+    // IVA % e IEPS % — más espacio para valores legibles
+    th:nth-child(5),
+    td:nth-child(5),
+    th:nth-child(6),
+    td:nth-child(6) {
+      min-width: 100px;
+      width: 100px;
+    }
+
+    th:nth-child(7),
+    td:nth-child(7) {
+      min-width: 72px;
+      width: 72px;
+    }
   }
 }
 
@@ -282,6 +323,48 @@
 
 .add-product-modal__body > .form-grid {
   margin-bottom: 0;
+}
+
+.product-picker-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.product-picker-row__search {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+  height: auto;
+  min-height: 38px;
+  padding: 0 0.75rem;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #e0e7ff;
+    border-color: #a5b4fc;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 .add-product-modal__footer {

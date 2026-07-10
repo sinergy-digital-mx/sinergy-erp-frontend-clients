@@ -54,21 +54,27 @@ export interface PosDailyShiftListItem {
     sales_total_mxn?: number | string;
   } | null;
   partial_shifts_count?: number;
+  partial_shifts?: PosDailyShiftPartial[];
 }
 
 export interface PosDailyShiftDenomination {
   currency: 'MXN' | 'USD';
   denomination: number;
   bill_count: number;
+  amount?: number | string;
 }
 
 export interface PosDailyShiftPartial {
   id: string;
   sequence?: number;
+  partial_number?: number;
   total_mxn?: number | string;
   total_usd?: number | string;
+  removed_total_mxn?: number | string;
+  removed_total_usd?: number | string;
   notes?: string | null;
   created_at?: string;
+  performed_by_user?: PosDailyShiftUser & { pos_user_code?: number | null };
   denominations?: PosDailyShiftDenomination[];
 }
 
@@ -120,6 +126,34 @@ export function dailyShiftBranchLabel(shift: PosDailyShiftListItem): string {
     return '—';
   }
   return branch.display_name?.trim() || branch.code?.trim() || '—';
+}
+
+export function posUserDisplayLabel(
+  user: (PosDailyShiftUser & { pos_user_code?: number | null }) | null | undefined,
+  fallback = '—'
+): string {
+  if (!user) {
+    return fallback;
+  }
+  const name = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim();
+  const code = user.pos_user_code != null ? ` (${user.pos_user_code})` : '';
+  if (name) {
+    return `${name}${code}`;
+  }
+  return user.email || fallback;
+}
+
+export function partialPerformedByLabel(
+  partial: PosDailyShiftPartial,
+  terminalFallback?: PosDailyShiftUser | null
+): string {
+  if (partial.performed_by_user) {
+    return posUserDisplayLabel(partial.performed_by_user);
+  }
+  if (terminalFallback) {
+    return posUserDisplayLabel(terminalFallback, 'Terminal cobranza');
+  }
+  return 'Terminal cobranza';
 }
 
 export function normalizeDailyShiftStatus(status: unknown): PosDailyShiftStatus | string | null {
@@ -184,5 +218,84 @@ export function dailyShiftSalesTotal(shift: PosDailyShiftListItem): number {
 }
 
 export function dailyShiftPartialCount(shift: PosDailyShiftListItem): number {
+  const fromPartials = shift.partial_shifts?.length;
+  if (typeof fromPartials === 'number' && fromPartials > 0) {
+    return fromPartials;
+  }
   return shift.totals?.partial_shifts_count ?? shift.partial_shifts_count ?? 0;
+}
+
+export function sumPartialDenominations(
+  denominations: PosDailyShiftDenomination[] | undefined,
+  currency: 'MXN' | 'USD'
+): number {
+  if (!denominations?.length) {
+    return 0;
+  }
+  return denominations.reduce((sum, item) => {
+    if (item.currency !== currency) {
+      return sum;
+    }
+    const amount =
+      item.amount != null && item.amount !== ''
+        ? parsePosMoney(item.amount)
+        : parsePosMoney(item.denomination) * parsePosMoney(item.bill_count);
+    return sum + amount;
+  }, 0);
+}
+
+export function partialShiftTotalMxn(partial: PosDailyShiftPartial): number {
+  const fromTotal = parsePosMoney(partial.total_mxn);
+  if (fromTotal > 0) {
+    return fromTotal;
+  }
+  const fromRemoved = parsePosMoney(partial.removed_total_mxn);
+  if (fromRemoved > 0) {
+    return fromRemoved;
+  }
+  return sumPartialDenominations(partial.denominations, 'MXN');
+}
+
+export function partialShiftTotalUsd(partial: PosDailyShiftPartial): number {
+  const fromTotal = parsePosMoney(partial.total_usd);
+  if (fromTotal > 0) {
+    return fromTotal;
+  }
+  const fromRemoved = parsePosMoney(partial.removed_total_usd);
+  if (fromRemoved > 0) {
+    return fromRemoved;
+  }
+  return sumPartialDenominations(partial.denominations, 'USD');
+}
+
+export function partialShiftSequence(partial: PosDailyShiftPartial, index: number): number {
+  return partial.partial_number ?? partial.sequence ?? index + 1;
+}
+
+export function dailyShiftRemovedTotal(shift: PosDailyShiftListItem): number {
+  if (shift.totals?.removed_total_mxn != null) {
+    const fromTotals = parsePosMoney(shift.totals.removed_total_mxn);
+    if (fromTotals > 0) {
+      return fromTotals;
+    }
+  }
+  if (!shift.partial_shifts?.length) {
+    return 0;
+  }
+  return shift.partial_shifts.reduce(
+    (sum, partial) => sum + partialShiftTotalMxn(partial),
+    0
+  );
+}
+
+export function partialShiftTotalLabel(partial: PosDailyShiftPartial): string {
+  const mxn = partialShiftTotalMxn(partial);
+  const usd = partialShiftTotalUsd(partial);
+  if (usd > 0 && mxn > 0) {
+    return `${formatPosMoney(mxn)} + USD ${usd.toFixed(2)}`;
+  }
+  if (usd > 0) {
+    return `USD ${usd.toFixed(2)}`;
+  }
+  return formatPosMoney(mxn);
 }

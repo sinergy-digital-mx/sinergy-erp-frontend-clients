@@ -13,6 +13,7 @@ import { OrderDetailDialogComponent } from '../../../purchase-orders/components/
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { WarehouseDetailModalComponent } from '../../../settings/components/warehouse-detail-modal/warehouse-detail-modal.component';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
+import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
 import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
 import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp, ArrowRightLeft, ArrowUpRight, ArrowDownLeft } from 'lucide-angular';
@@ -106,9 +107,8 @@ export class BatchDetailDialogComponent implements OnInit {
     const b = this.batch();
     if (!b?.product_id) return;
     this.dialog.open(ProductDetailModalComponent, {
+      ...PRODUCT_DETAIL_DIALOG_CONFIG,
       data: { product: { id: b.product_id }, isNew: false },
-      width: '850px',
-      maxHeight: '90vh',
     });
   }
 

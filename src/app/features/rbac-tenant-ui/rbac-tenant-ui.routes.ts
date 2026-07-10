@@ -71,6 +71,11 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
         path: 'goals',
         loadChildren: () =>
           import('../goals/goals.routes').then((m) => m.GOALS_ROUTES),
+      },
+      {
+        path: 'global-discounts',
+        loadChildren: () =>
+          import('../global-discounts/global-discounts.routes').then((m) => m.GLOBAL_DISCOUNTS_ROUTES),
       }
     ]
   }

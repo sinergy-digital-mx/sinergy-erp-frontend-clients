@@ -124,6 +124,55 @@ export class ProductDetailModalComponent implements OnInit {
     this.toast.show(message, toastType);
   }
 
+  private isNestedModalOpen(): boolean {
+    return (
+      this.priceModalVisible ||
+      this.costModalVisible ||
+      this.discountModalVisible ||
+      this.priceListModalVisible ||
+      this.attributeModalVisible ||
+      this.attributeValueModalVisible
+    );
+  }
+
+  /** Evita que un clic al cerrar un modal anidado cierre también el MatDialog principal. */
+  private syncDialogCloseGuard(): void {
+    this.dialogRef.disableClose = this.isNestedModalOpen();
+  }
+
+  /** Cierra un modal anidado sin propagar el clic al backdrop del MatDialog. */
+  private closeNestedModalSafely(closeAction: () => void): void {
+    setTimeout(() => {
+      closeAction();
+      this.syncDialogCloseGuard();
+      this.cdr.detectChanges();
+    }, 150);
+  }
+
+  dismissPriceModal(): void {
+    this.closeNestedModalSafely(() => {
+      this.priceModalVisible = false;
+    });
+  }
+
+  dismissCostModal(): void {
+    this.closeNestedModalSafely(() => {
+      this.costModalVisible = false;
+    });
+  }
+
+  dismissDiscountModal(): void {
+    this.closeNestedModalSafely(() => {
+      this.discountModalVisible = false;
+    });
+  }
+
+  dismissPriceListModal(): void {
+    this.closeNestedModalSafely(() => {
+      this.priceListModalVisible = false;
+    });
+  }
+
   ngOnInit(): void {
     console.log('ProductDetailModal ngOnInit - data:', this.data);
     
@@ -543,14 +592,18 @@ export class ProductDetailModalComponent implements OnInit {
 
   /** Cierra modal de atributo y sincroniza lista desde API (MatDialog + overlay). */
   dismissAttributeModal(): void {
-    this.attributeModalVisible = false;
-    this.refreshAttributesAfterModalClose();
+    this.closeNestedModalSafely(() => {
+      this.attributeModalVisible = false;
+      this.refreshAttributesAfterModalClose();
+    });
   }
 
   /** Cierra modal de valor y sincroniza lista desde API. */
   dismissAttributeValueModal(): void {
-    this.attributeValueModalVisible = false;
-    this.refreshAttributesAfterModalClose();
+    this.closeNestedModalSafely(() => {
+      this.attributeValueModalVisible = false;
+      this.refreshAttributesAfterModalClose();
+    });
   }
 
   /** Soporta varias formas de respuesta del listado de atributos. */
@@ -617,6 +670,7 @@ export class ProductDetailModalComponent implements OnInit {
       this.attributeForm = this.getEmptyAttributeForm();
     }
     this.attributeModalVisible = true;
+    this.syncDialogCloseGuard();
   }
 
   saveAttribute(): void {
@@ -685,6 +739,7 @@ export class ProductDetailModalComponent implements OnInit {
       this.attributeValueForm.attribute_id = attributeId;
     }
     this.attributeValueModalVisible = true;
+    this.syncDialogCloseGuard();
   }
 
   saveAttributeValue(): void {
@@ -1089,6 +1144,7 @@ export class ProductDetailModalComponent implements OnInit {
   openPriceListModal(): void {
     this.priceListForm = { name: '', description: '' };
     this.priceListModalVisible = true;
+    this.syncDialogCloseGuard();
   }
 
   savePriceList(): void {
@@ -1107,7 +1163,9 @@ export class ProductDetailModalComponent implements OnInit {
     this.productService.createPriceList(data).subscribe({
       next: (newList) => {
         console.log('Price list created:', newList);
-        this.priceListModalVisible = false;
+        this.closeNestedModalSafely(() => {
+          this.priceListModalVisible = false;
+        });
         this.showNotification('Lista de precios creada correctamente', 'success');
         // Agregar la nueva lista al array
         this.priceLists.push(newList);
@@ -1152,6 +1210,7 @@ export class ProductDetailModalComponent implements OnInit {
       }
     }
     this.priceModalVisible = true;
+    this.syncDialogCloseGuard();
     this.cdr.detectChanges();
     console.log('Price form set:', this.priceForm);
   }
@@ -1188,9 +1247,9 @@ export class ProductDetailModalComponent implements OnInit {
       
       this.productService.updateProductPrice(this.product!.id, this.priceForm.id, updateData).subscribe({
         next: () => {
-          this.priceModalVisible = false;
           this.showNotification('Precio actualizado correctamente', 'success');
           this.reloadCurrentTab();
+          this.dismissPriceModal();
         },
         error: (error) => {
           console.error('Error updating price:', error);
@@ -1201,9 +1260,9 @@ export class ProductDetailModalComponent implements OnInit {
       // Create new price
       this.productService.createProductPrice(this.product!.id, body).subscribe({
         next: () => {
-          this.priceModalVisible = false;
           this.showNotification('Precio creado correctamente', 'success');
           this.reloadCurrentTab();
+          this.dismissPriceModal();
         },
         error: (error) => {
           console.error('Error saving price:', error);
@@ -1258,6 +1317,7 @@ export class ProductDetailModalComponent implements OnInit {
       }
     }
     this.costModalVisible = true;
+    this.syncDialogCloseGuard();
     this.cdr.detectChanges();
   }
 
@@ -1293,10 +1353,7 @@ export class ProductDetailModalComponent implements OnInit {
         next: () => {
           this.showNotification('Costo actualizado correctamente', 'success');
           this.reloadCurrentTab();
-          setTimeout(() => {
-            this.costModalVisible = false;
-            this.cdr.detectChanges();
-          }, 100);
+          this.dismissCostModal();
         },
         error: (error) => {
           console.error('Error updating cost:', error);
@@ -1310,10 +1367,7 @@ export class ProductDetailModalComponent implements OnInit {
         next: () => {
           this.showNotification('Costo creado correctamente', 'success');
           this.reloadCurrentTab();
-          setTimeout(() => {
-            this.costModalVisible = false;
-            this.cdr.detectChanges();
-          }, 100);
+          this.dismissCostModal();
         },
         error: (error) => {
           console.error('Error saving cost:', error);
@@ -1372,6 +1426,7 @@ export class ProductDetailModalComponent implements OnInit {
     }
 
     this.discountModalVisible = true;
+    this.syncDialogCloseGuard();
     this.cdr.detectChanges();
   }
 
@@ -1429,12 +1484,12 @@ export class ProductDetailModalComponent implements OnInit {
 
     request$.subscribe({
       next: () => {
-        this.discountModalVisible = false;
         this.showNotification(
           this.discountForm.id ? 'Descuento actualizado correctamente' : 'Descuento creado correctamente',
           'success'
         );
         this.reloadCurrentTab();
+        this.dismissDiscountModal();
       },
       error: (error) => {
         console.error('Error saving discount:', error);

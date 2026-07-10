@@ -33,7 +33,7 @@ export interface CollectSalePayload {
   transfer_reference?: string;
   amount_card_mxn?: number;
   card_reference?: string;
-  customer_id?: number;
+  customer_id?: number | string;
   /** Desglose de billetes (para ticket/corte). El total recibido sigue en received_cash_* */
   cash_denominations?: Array<{
     currency: 'MXN' | 'USD';
@@ -205,14 +205,66 @@ export function buildCashBreakdownPayload(
   };
 }
 
+/** ID numérico o UUID que el API de cobro acepta en `customer_id`. */
+export function resolvePosCollectCustomerId(customer: unknown): number | string | undefined {
+  if (!customer || typeof customer !== 'object') {
+    return undefined;
+  }
+  const record = customer as Record<string, unknown>;
+  const legacy = record['legacy_customer_id'];
+  if (legacy != null && legacy !== '') {
+    const legacyNum = Number(legacy);
+    if (Number.isFinite(legacyNum) && legacyNum > 0) {
+      return Math.floor(legacyNum);
+    }
+  }
+  const id = record['id'];
+  if (id == null || id === '') {
+    return undefined;
+  }
+  const idNum = Number(id);
+  if (Number.isFinite(idNum) && idNum > 0) {
+    return Math.floor(idNum);
+  }
+  const idStr = String(id).trim();
+  return idStr || undefined;
+}
+
+export function isValidCollectCustomerId(
+  customerId: number | string | null | undefined
+): customerId is number | string {
+  if (customerId == null || customerId === '') {
+    return false;
+  }
+  if (typeof customerId === 'number') {
+    return Number.isFinite(customerId) && customerId > 0;
+  }
+  const numeric = Number(customerId);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return true;
+  }
+  return String(customerId).trim().length > 0;
+}
+
+function normalizeCollectCustomerId(customerId: number | string): number | string {
+  if (typeof customerId === 'number') {
+    return Math.floor(customerId);
+  }
+  const numeric = Number(customerId);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return Math.floor(numeric);
+  }
+  return String(customerId).trim();
+}
+
 export function buildCollectPayload(
   form: PosCollectForm,
   orderTotal: number,
-  customerId?: number
+  customerId?: number | string
 ): CollectSalePayload {
   const base: CollectSalePayload = { payment_method: form.paymentMethod };
-  if (customerId != null && Number.isFinite(customerId) && customerId > 0) {
-    base.customer_id = Math.floor(customerId);
+  if (isValidCollectCustomerId(customerId)) {
+    base.customer_id = normalizeCollectCustomerId(customerId);
   }
 
   if (form.paymentMethod === 'cash') {
