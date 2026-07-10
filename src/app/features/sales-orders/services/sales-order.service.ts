@@ -16,6 +16,7 @@ import {
   RegenerateSalesDocumentResponse,
   TicketReciboResponse,
   normalizeTicketReciboResponse,
+  normalizeSalesOrderDiscountSummary,
   SalesDocumentLanguage
 } from '../models/sales-order.model';
 import {
@@ -203,10 +204,20 @@ export class SalesOrderService {
     const payments_summary =
       payload.payments_summary ?? payload.header.payments_summary;
 
+    const discount_summary =
+      normalizeSalesOrderDiscountSummary(
+        payload.discount_summary ??
+          payload.header.discount_summary ??
+          this.buildDiscountSummaryFallback(payload)
+      ) ?? undefined;
+
     const header: SalesOrder = {
       ...payload.header,
       payments,
       payments_summary,
+      discount_summary,
+      global_discount_amount:
+        payload.header.global_discount_amount ?? discount_summary?.global_discount_amount,
       payment_status:
         (payments_summary?.payment_status as SalesOrder['payment_status']) ??
         payload.header.payment_status,
@@ -217,6 +228,37 @@ export class SalesOrderService {
       header,
       payments,
       payments_summary,
+      discount_summary,
+    };
+  }
+
+  private buildDiscountSummaryFallback(payload: SalesOrderDetailPayload): Record<string, unknown> | null {
+    const appliedGlobal = payload.applied_global_discount;
+    const appliedLines = payload.applied_line_discounts;
+    const header = payload.header;
+    const globalAmount = header?.global_discount_amount;
+
+    if (!appliedGlobal && !appliedLines?.length && globalAmount == null) {
+      return null;
+    }
+
+    const lineDiscountTotal = (appliedLines ?? []).reduce(
+      (sum, item) =>
+        sum +
+        Number(item.discount_amount ?? item.line_discount_amount ?? 0),
+      0
+    );
+
+    const resolvedGlobalAmount = Number(
+      globalAmount ?? appliedGlobal?.discount_amount ?? 0
+    );
+
+    return {
+      line_discount_total: lineDiscountTotal,
+      global_discount_amount: resolvedGlobalAmount,
+      discount_total: lineDiscountTotal + resolvedGlobalAmount,
+      line_items: appliedLines ?? [],
+      global_discount: appliedGlobal ?? null,
     };
   }
 

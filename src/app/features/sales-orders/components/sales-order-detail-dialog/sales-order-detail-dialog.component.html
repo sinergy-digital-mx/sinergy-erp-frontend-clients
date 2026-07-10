@@ -227,18 +227,26 @@
               <span class="totals-label">Subtotal</span>
               <span class="totals-value">{{ getDisplayedSubtotal() }}</span>
             </div>
-            @if (hasVisibleDiscount()) {
-              <div class="totals-row">
-                <span class="totals-label">Descuento</span>
-                <span class="totals-value">{{ getDisplayedDiscount() }}</span>
+            @if (hasLineDiscount()) {
+              <div class="totals-row totals-row--discount">
+                <span class="totals-label">Desc. por producto</span>
+                <span class="totals-value">{{ getDisplayedLineDiscount() }}</span>
               </div>
             }
-            @if (hasVisibleTaxes()) {
-              <div class="totals-row">
-                <span class="totals-label">Impuestos</span>
-                <span class="totals-value">{{ getDisplayedTaxes() }}</span>
+            @if (hasGlobalDiscount()) {
+              <div class="totals-row totals-row--discount">
+                <span class="totals-label">{{ globalDiscountLabel() }}</span>
+                <span class="totals-value">{{ getDisplayedGlobalDiscount() }}</span>
               </div>
             }
+            <div class="totals-row">
+              <span class="totals-label">IVA</span>
+              <span class="totals-value">{{ getDisplayedIva() }}</span>
+            </div>
+            <div class="totals-row">
+              <span class="totals-label">IEPS</span>
+              <span class="totals-value">{{ getDisplayedIeps() }}</span>
+            </div>
             <div class="totals-divider"></div>
             <div class="totals-row totals-row-total">
               <span class="totals-label-total">Total</span>

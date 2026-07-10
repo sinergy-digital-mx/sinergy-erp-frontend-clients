@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { SalesDocumentLanguage, SalesOrder, SalesOrderDocument, SalesOrderInvoice, SalesOrderLineItem, TicketReciboResponse } from '../../models/sales-order.model';
+import { SalesDocumentLanguage, SalesOrder, SalesOrderDiscountSummary, SalesOrderDocument, SalesOrderInvoice, SalesOrderLineItem, TicketReciboResponse } from '../../models/sales-order.model';
 import {
   isManualSalesOrderPayment,
   salesOrderPaymentMethodLabel,
@@ -65,6 +65,7 @@ import { countVigenteInvoices } from '../../utils/cfdi-xml-builder.util';
 export class SalesOrderDetailDialogComponent {
   order = signal<SalesOrder | null>(null);
   lineItems = signal<SalesOrderLineItem[]>([]);
+  discountSummary = signal<SalesOrderDiscountSummary | null>(null);
   documents = signal<SalesOrderDocument[]>([]);
   posCollection = signal<PosSaleCollection | null>(null);
   loading = signal(true);
@@ -139,6 +140,9 @@ export class SalesOrderDetailDialogComponent {
     this.salesOrderService.getOrderDetailById(this.data.orderId).subscribe({
       next: (payload) => {
         this.order.set(payload?.header || null);
+        this.discountSummary.set(
+          payload?.discount_summary ?? payload?.header?.discount_summary ?? null
+        );
         this.lineItems.set(payload?.line_items || payload?.header?.line_items || []);
         this.documents.set(payload?.documents || payload?.header?.documents || []);
         this.posCollection.set(payload?.pos_collection ?? payload?.header?.pos_collection ?? null);
@@ -262,18 +266,25 @@ export class SalesOrderDetailDialogComponent {
     return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
   }
 
-  hasVisibleDiscount(): boolean {
-    return this.getTotalsSnapshot().discount > 0.009;
+  hasLineDiscount(): boolean {
+    return this.getLineDiscountAmount() > 0.009;
   }
 
-  hasVisibleTaxes(): boolean {
-    const { iva, ieps } = this.getTotalsSnapshot();
-    return iva + ieps > 0.009;
+  hasGlobalDiscount(): boolean {
+    return this.getGlobalDiscountAmount() > 0.009;
   }
 
-  getDisplayedTaxes(): string {
-    const { iva, ieps } = this.getTotalsSnapshot();
-    return this.formatCurrency(iva + ieps);
+  globalDiscountLabel(): string {
+    const name = this.discountSummary()?.global_discount?.discount_name?.trim();
+    return name ? `Desc. global (${name})` : 'Desc. global';
+  }
+
+  getDisplayedLineDiscount(): string {
+    return this.formatCurrency(-this.getLineDiscountAmount());
+  }
+
+  getDisplayedGlobalDiscount(): string {
+    return this.formatCurrency(-this.getGlobalDiscountAmount());
   }
 
   toggleTotals(showDelivered: boolean): void {
@@ -288,8 +299,33 @@ export class SalesOrderDetailDialogComponent {
     return this.formatCurrency(this.getTotalsSnapshot().subtotal);
   }
 
-  getDisplayedDiscount(): string {
-    return this.formatCurrency(this.getTotalsSnapshot().discount);
+  private getLineDiscountAmount(): number {
+    const summary = this.discountSummary();
+    if (summary) {
+      return this.parseNumber(summary.line_discount_total);
+    }
+
+    const order = this.order();
+    if (!order) {
+      return 0;
+    }
+
+    const totalDiscount = this.parseNumber(
+      this.showDeliveredTotals()
+        ? order.delivered_discount_total ?? order.discount_total
+        : order.requested_discount_total ?? order.discount_total
+    );
+    const globalDiscount = this.parseNumber(order.global_discount_amount);
+    return Math.max(totalDiscount - globalDiscount, 0);
+  }
+
+  private getGlobalDiscountAmount(): number {
+    const summary = this.discountSummary();
+    if (summary) {
+      return this.parseNumber(summary.global_discount_amount);
+    }
+
+    return this.parseNumber(this.order()?.global_discount_amount);
   }
 
   getDisplayedIva(): string {

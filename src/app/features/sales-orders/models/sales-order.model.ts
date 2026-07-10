@@ -38,6 +38,8 @@ export interface SalesOrderLineItem {
   unit_price: string | number;
   discount_percentage?: string | number;
   discount_unit?: string | number;
+  line_discount_amount?: string | number;
+  applied_product_discount?: SalesOrderAppliedProductDiscount | null;
   iva_percentage?: string | number;
   iva_unit?: string | number;
   ieps_percentage?: string | number;
@@ -119,6 +121,31 @@ export function normalizeTicketReciboResponse(
 /** @deprecated Use normalizeTicketReciboResponse */
 export const normalizeRegenerateTicketReciboResponse = normalizeTicketReciboResponse;
 
+export interface SalesOrderAppliedProductDiscount {
+  product_name?: string;
+  discount_name?: string;
+  discount_type?: 'percentage' | 'fixed';
+  discount_value?: number | string;
+  discount_amount?: number | string;
+  line_discount_amount?: number | string;
+}
+
+export interface SalesOrderAppliedGlobalDiscount {
+  global_discount_id?: string;
+  discount_name: string;
+  discount_type?: 'percentage' | 'fixed';
+  discount_value?: number | string;
+  discount_amount?: number | string;
+}
+
+export interface SalesOrderDiscountSummary {
+  line_discount_total: number;
+  global_discount_amount: number;
+  discount_total: number;
+  line_items: SalesOrderAppliedProductDiscount[];
+  global_discount: SalesOrderAppliedGlobalDiscount | null;
+}
+
 export interface PosUserSummary {
   id?: string;
   first_name?: string;
@@ -143,6 +170,8 @@ export interface SalesOrder {
   payment_status: SalesPaymentStatus;
   subtotal?: string | number;
   discount_total?: string | number;
+  global_discount_amount?: string | number;
+  discount_summary?: SalesOrderDiscountSummary;
   iva_total?: string | number;
   ieps_total?: string | number;
   total?: string | number;
@@ -261,6 +290,61 @@ export interface SalesOrderDetailPayload {
   pos_collection?: PosSaleCollection;
   payments?: SalesOrderPayment[];
   payments_summary?: SalesOrderPaymentsSummary;
+  discount_summary?: SalesOrderDiscountSummary;
+  applied_line_discounts?: SalesOrderAppliedProductDiscount[];
+  applied_global_discount?: SalesOrderAppliedGlobalDiscount | null;
+}
+
+export function normalizeSalesOrderDiscountSummary(raw: unknown): SalesOrderDiscountSummary | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const source = raw as Record<string, unknown>;
+  const lineItemsRaw = source['line_items'] ?? source['applied_line_discounts'];
+  const lineItems = Array.isArray(lineItemsRaw)
+    ? (lineItemsRaw as SalesOrderAppliedProductDiscount[])
+    : [];
+
+  const globalRaw = source['global_discount'] ?? source['applied_global_discount'];
+  let globalDiscount: SalesOrderAppliedGlobalDiscount | null = null;
+  if (globalRaw && typeof globalRaw === 'object') {
+    const g = globalRaw as Record<string, unknown>;
+    if (g['discount_name'] || g['global_discount_id']) {
+      globalDiscount = {
+        global_discount_id: g['global_discount_id'] as string | undefined,
+        discount_name: String(g['discount_name'] ?? ''),
+        discount_type: g['discount_type'] as SalesOrderAppliedGlobalDiscount['discount_type'],
+        discount_value: g['discount_value'] as number | string | undefined,
+        discount_amount: g['discount_amount'] as number | string | undefined,
+      };
+    }
+  }
+
+  const lineDiscountTotal = Number(source['line_discount_total'] ?? 0);
+  const globalDiscountAmount = Number(
+    source['global_discount_amount'] ?? globalDiscount?.discount_amount ?? 0
+  );
+  const discountTotal = Number(
+    source['discount_total'] ?? lineDiscountTotal + globalDiscountAmount
+  );
+
+  if (
+    lineDiscountTotal <= 0 &&
+    globalDiscountAmount <= 0 &&
+    !globalDiscount &&
+    lineItems.length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    line_discount_total: lineDiscountTotal,
+    global_discount_amount: globalDiscountAmount,
+    discount_total: discountTotal,
+    line_items: lineItems,
+    global_discount: globalDiscount,
+  };
 }
 
 export interface SalesOrderDetailResponse {
