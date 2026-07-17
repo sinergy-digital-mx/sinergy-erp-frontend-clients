@@ -77,6 +77,30 @@ export interface StatusObject {
   name: string;
 }
 
+/**
+ * HR / payroll profile embedded in the user payload when `is_employee` is true.
+ * Mirrors the `employee` object of POST/PUT /tenant/users.
+ */
+export interface UserEmployeeProfile {
+  id?: string;
+  employee_code?: string;
+  rfc?: string;
+  curp?: string;
+  nss?: string;
+  position?: string;
+  department?: string;
+  hire_date?: string;
+  birth_date?: string;
+  monthly_salary?: number;
+  payment_frequency?: 'weekly' | 'biweekly' | 'monthly';
+  bank_name?: string;
+  clabe?: string;
+  bank_account?: string;
+  photo_url?: string | null;
+  vacation?: Record<string, unknown>;
+  payroll?: Record<string, unknown>;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -96,6 +120,8 @@ export interface User {
   pos_user_code?: number | null;
   /** COBRANZA con corte global abierto hoy: bloquea cambios de tipo POS y sucursal. */
   has_open_global_cut?: boolean;
+  is_employee?: boolean;
+  employee?: UserEmployeeProfile | null;
   [key: string]: any;
 }
 
@@ -123,6 +149,8 @@ export interface CreateUserDto {
   pos_user_code?: number | null;
   /** COBRANZA con corte global abierto hoy: bloquea cambios de tipo POS y sucursal. */
   has_open_global_cut?: boolean;
+  is_employee?: boolean;
+  employee?: UserEmployeeProfile | null;
 }
 
 export interface UpdateUserDto {
@@ -136,6 +164,8 @@ export interface UpdateUserDto {
   pos_user_code?: number | null;
   /** COBRANZA con corte global abierto hoy: bloquea cambios de tipo POS y sucursal. */
   has_open_global_cut?: boolean;
+  is_employee?: boolean;
+  employee?: UserEmployeeProfile | null;
 }
 
 export interface Permission {

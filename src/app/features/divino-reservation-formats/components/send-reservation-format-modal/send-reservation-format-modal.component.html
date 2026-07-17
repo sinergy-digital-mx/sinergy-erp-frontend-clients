@@ -1,0 +1,29 @@
+<div class="dialog">
+  <div class="dialog__header">
+    <h2>Enviar por correo</h2>
+    <lucide-icon [img]="X" class="close cursor-pointer" (click)="close()"></lucide-icon>
+  </div>
+
+  <div class="dialog__body">
+    <p class="dialog__hint">
+      Se generará el PDF del formato <strong>{{ data.format.folio }}</strong> y se enviará como adjunto.
+    </p>
+
+    <form [formGroup]="form" class="flex flex-col gap-4">
+      <app-input label="Correo de destino" [form_control]="form.controls['to_email']"></app-input>
+      <app-input label="CC (separados por comas)" [form_control]="form.controls['cc']"></app-input>
+      <app-input label="CCO / BCC (separados por comas)" [form_control]="form.controls['bcc']"></app-input>
+      <app-input label="Asunto" [form_control]="form.controls['subject']"></app-input>
+      <app-input label="Mensaje" type="textarea" [form_control]="form.controls['message']"></app-input>
+    </form>
+  </div>
+
+  <div class="dialog__footer">
+    <app-button
+      text="Enviar"
+      [loading]="sending()"
+      [fullWidth]="false"
+      (clicked)="send()">
+    </app-button>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -6,11 +6,18 @@ import { forkJoin, of } from 'rxjs';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { BranchService } from '../../../settings/services/branch.service';
 import { Branch } from '../../../settings/models/branch.model';
-import { User, POS_USER_TYPE_OPTIONS, PosUserType, isOpenGlobalCutBlockMessage, userHasOpenGlobalCut, POS_OPEN_GLOBAL_CUT_BLOCK_MESSAGE } from '../../models';
+import { User, UserEmployeeProfile, POS_USER_TYPE_OPTIONS, PosUserType, isOpenGlobalCutBlockMessage, userHasOpenGlobalCut, POS_OPEN_GLOBAL_CUT_BLOCK_MESSAGE } from '../../models';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { PAYMENT_FREQUENCY_OPTIONS } from '../../../employees/models/employee.model';
+import { EmployeeService } from '../../../employees/services/employee.service';
+import {
+  calculatePayroll,
+  getEntitledVacationDays,
+  getYearsOfService,
+} from '../../../employees/utils/mexican-labor.util';
 
 @Component({
   selector: 'app-user-detail-modal',
@@ -21,10 +28,12 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 })
 export class UserDetailModalComponent implements OnInit {
   readonly posUserTypeOptions = POS_USER_TYPE_OPTIONS;
+  readonly paymentFrequencyOptions = PAYMENT_FREQUENCY_OPTIONS;
 
   readonly tabs: TabItem[] = [
     { id: 'general', title: 'Información general' },
     { id: 'pos', title: 'POS' },
+    { id: 'employee', title: 'Empleado' },
     { id: 'branches', title: 'Sucursales asignadas' }
   ];
 
@@ -37,6 +46,26 @@ export class UserDetailModalComponent implements OnInit {
   branches = signal<Branch[]>([]);
   showPosTypeChangeWarning = signal(false);
   hasOpenGlobalCut = signal(false);
+
+  // Employee (RH / nómina) preview state
+  employeeId = signal<string | null>(null);
+  photoUrl = signal<string | null>(null);
+  uploadingPhoto = signal(false);
+  private hireDate = signal<string | null>(null);
+  private monthlySalary = signal<number>(0);
+
+  /** Whole years of service derived from the hire date. */
+  yearsOfService = computed(() => getYearsOfService(this.hireDate()));
+
+  /** Entitled vacation days per Mexican LFT ("Vacaciones dignas"). */
+  entitledVacationDays = computed(() =>
+    this.hireDate() ? getEntitledVacationDays(this.yearsOfService()) : 0
+  );
+
+  /** Live payroll breakdown derived from the monthly salary. */
+  payrollPreview = computed(() =>
+    calculatePayroll(this.monthlySalary(), Math.max(1, this.yearsOfService()))
+  );
 
   private originalIsPosUser = false;
   private originalBillingBranchId: string | null = null;
@@ -51,7 +80,8 @@ export class UserDetailModalComponent implements OnInit {
     private userService: UserService,
     private branchService: BranchService,
     private authService: AuthService,
-    private interceptorService: InterceptorService
+    private interceptorService: InterceptorService,
+    private employeeService: EmployeeService
   ) {
     this.isNew = data.isNew ?? !data.user;
     this.form = this.createForm();
@@ -60,6 +90,7 @@ export class UserDetailModalComponent implements OnInit {
   ngOnInit(): void {
     this.setupPosFieldBehavior();
     this.setupBranchFieldBehavior();
+    this.setupEmployeeFieldBehavior();
     this.loadData();
   }
 
@@ -69,6 +100,8 @@ export class UserDetailModalComponent implements OnInit {
     this.originalPosUserType = user?.pos_user_type ?? null;
     this.originalBillingBranchId = user?.billing_branch_id ?? null;
     this.hasOpenGlobalCut.set(!this.isNew && userHasOpenGlobalCut(user));
+
+    const employee = user?.employee ?? null;
 
     return this.fb.group({
       first_name: [user?.first_name || '', Validators.required],
@@ -80,8 +113,62 @@ export class UserDetailModalComponent implements OnInit {
       billing_branch_id: [user?.billing_branch_id ?? ''],
       is_pos_user: [user?.is_pos_user ?? false],
       pos_user_type: [user?.pos_user_type ?? null],
-      pos_user_code: [user?.pos_user_code ?? null]
+      pos_user_code: [user?.pos_user_code ?? null],
+
+      // Employee (RH / nómina)
+      is_employee: [user?.is_employee ?? false],
+      employee: this.fb.group({
+        employee_code: [employee?.employee_code ?? ''],
+        rfc: [employee?.rfc ?? ''],
+        curp: [employee?.curp ?? ''],
+        nss: [employee?.nss ?? ''],
+        position: [employee?.position ?? ''],
+        department: [employee?.department ?? ''],
+        hire_date: [employee?.hire_date ?? ''],
+        birth_date: [employee?.birth_date ?? ''],
+        monthly_salary: [employee?.monthly_salary ?? null],
+        payment_frequency: [employee?.payment_frequency ?? 'biweekly'],
+        bank_name: [employee?.bank_name ?? ''],
+        clabe: [employee?.clabe ?? ''],
+        bank_account: [employee?.bank_account ?? ''],
+      }),
     });
+  }
+
+  private setupEmployeeFieldBehavior(): void {
+    const employeeGroup = this.form.get('employee') as FormGroup;
+
+    const applyEmployeeState = (isEmployee: boolean) => {
+      const positionControl = employeeGroup.get('position');
+      const hireDateControl = employeeGroup.get('hire_date');
+      const salaryControl = employeeGroup.get('monthly_salary');
+
+      if (isEmployee) {
+        positionControl?.setValidators([Validators.required]);
+        hireDateControl?.setValidators([Validators.required]);
+        salaryControl?.setValidators([Validators.required, Validators.min(0)]);
+      } else {
+        positionControl?.clearValidators();
+        hireDateControl?.clearValidators();
+        salaryControl?.clearValidators();
+      }
+      positionControl?.updateValueAndValidity({ emitEvent: false });
+      hireDateControl?.updateValueAndValidity({ emitEvent: false });
+      salaryControl?.updateValueAndValidity({ emitEvent: false });
+    };
+
+    employeeGroup.get('hire_date')?.valueChanges.subscribe((value: string) => {
+      this.hireDate.set(value || null);
+    });
+    employeeGroup.get('monthly_salary')?.valueChanges.subscribe((value) => {
+      this.monthlySalary.set(Number(value) || 0);
+    });
+
+    this.form.get('is_employee')?.valueChanges.subscribe(applyEmployeeState);
+
+    this.hireDate.set((employeeGroup.get('hire_date')?.value as string) || null);
+    this.monthlySalary.set(Number(employeeGroup.get('monthly_salary')?.value) || 0);
+    applyEmployeeState(!!this.form.get('is_employee')?.value);
   }
 
   private setupPosFieldBehavior(): void {
@@ -177,6 +264,7 @@ export class UserDetailModalComponent implements OnInit {
         this.applyBranchValidators(!!this.form.get('is_pos_user')?.value);
         this.originalBillingBranchId = billingBranchId ?? null;
         this.applyOpenCutEditLock();
+        this.loadEmployeeProfile();
         this.loading.set(false);
       },
       error: () => {
@@ -188,6 +276,111 @@ export class UserDetailModalComponent implements OnInit {
         });
       }
     });
+  }
+
+  /**
+   * When editing an existing user, fetch the full record so the employee
+   * profile (is_employee + employee object + photo_url) is preloaded.
+   */
+  private loadEmployeeProfile(): void {
+    if (this.isNew || !this.data.user?.id) {
+      return;
+    }
+
+    // Preload from the row we already have (list may already include it).
+    this.applyEmployeeProfile(this.data.user);
+
+    this.userService.getUserById(this.data.user.id).subscribe({
+      next: (user) => this.applyEmployeeProfile(user),
+      error: () => {
+        /* keep whatever we already have from the list row */
+      },
+    });
+  }
+
+  private applyEmployeeProfile(user: User | null): void {
+    if (!user) {
+      return;
+    }
+
+    if (user.is_employee != null) {
+      this.form.get('is_employee')?.setValue(!!user.is_employee, { emitEvent: true });
+    }
+
+    const employee = user.employee;
+    if (!employee) {
+      return;
+    }
+
+    this.employeeId.set(employee.id ?? null);
+    this.photoUrl.set(employee.photo_url ?? null);
+
+    this.form.get('employee')?.patchValue(
+      {
+        employee_code: employee.employee_code ?? '',
+        rfc: employee.rfc ?? '',
+        curp: employee.curp ?? '',
+        nss: employee.nss ?? '',
+        position: employee.position ?? '',
+        department: employee.department ?? '',
+        hire_date: this.toDateInput(employee.hire_date),
+        birth_date: this.toDateInput(employee.birth_date),
+        monthly_salary: employee.monthly_salary ?? null,
+        payment_frequency: employee.payment_frequency ?? 'biweekly',
+        bank_name: employee.bank_name ?? '',
+        clabe: employee.clabe ?? '',
+        bank_account: employee.bank_account ?? '',
+      },
+      { emitEvent: true }
+    );
+  }
+
+  private toDateInput(value: string | undefined | null): string {
+    if (!value) {
+      return '';
+    }
+    return value.length >= 10 ? value.slice(0, 10) : value;
+  }
+
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const employeeId = this.employeeId();
+    if (!employeeId) {
+      this.interceptorService.openSnackbar({
+        type: 'warning',
+        title: 'Guarda primero',
+        message: 'Guarda el empleado antes de subir una foto.',
+      });
+      input.value = '';
+      return;
+    }
+
+    this.uploadingPhoto.set(true);
+    this.employeeService.uploadPhoto(employeeId, file).subscribe({
+      next: (result) => {
+        this.uploadingPhoto.set(false);
+        this.photoUrl.set(result.photo_url);
+        this.interceptorService.openSnackbar({
+          type: 'success',
+          title: 'Éxito',
+          message: 'Foto actualizada correctamente',
+        });
+      },
+      error: (error) => {
+        this.uploadingPhoto.set(false);
+        this.interceptorService.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: error?.message || 'No se pudo subir la foto',
+        });
+      },
+    });
+    input.value = '';
   }
 
   branchLabel(branch: Branch): string {
@@ -304,6 +497,21 @@ export class UserDetailModalComponent implements OnInit {
       return;
     }
 
+    const isEmployee = !!this.form.get('is_employee')?.value;
+    if (isEmployee) {
+      const employeeGroup = this.form.get('employee') as FormGroup;
+      if (employeeGroup.invalid) {
+        employeeGroup.markAllAsTouched();
+        this.interceptorService.openSnackbar({
+          type: 'warning',
+          title: 'Advertencia',
+          message: 'Completa puesto, fecha de ingreso y salario mensual del empleado',
+        });
+        this.activeTab = 'employee';
+        return;
+      }
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.interceptorService.openSnackbar({
@@ -360,7 +568,12 @@ export class UserDetailModalComponent implements OnInit {
       billing_branch_id: billingBranchId,
       is_pos_user: isPosUser,
       pos_user_type: isPosUser ? posUserType : null,
+      is_employee: isEmployee,
     };
+
+    if (isEmployee) {
+      commonPayload['employee'] = this.buildEmployeePayload();
+    }
 
     if (this.shouldLockPosEditByOpenCut()) {
       delete commonPayload['billing_branch_id'];
@@ -391,6 +604,40 @@ export class UserDetailModalComponent implements OnInit {
       next: () => this.onSaveSuccess('Usuario actualizado correctamente'),
       error: (error) => this.onSaveError(error)
     });
+  }
+
+  /** Cleans the employee sub-form into the `employee` API object. */
+  private buildEmployeePayload(): UserEmployeeProfile {
+    const raw = (this.form.get('employee') as FormGroup).getRawValue();
+    const payload: UserEmployeeProfile = {};
+
+    const stringFields: (keyof UserEmployeeProfile)[] = [
+      'employee_code',
+      'rfc',
+      'curp',
+      'nss',
+      'position',
+      'department',
+      'hire_date',
+      'birth_date',
+      'payment_frequency',
+      'bank_name',
+      'clabe',
+      'bank_account',
+    ];
+
+    for (const field of stringFields) {
+      const value = raw[field];
+      if (value !== null && value !== undefined && String(value).trim() !== '') {
+        (payload as Record<string, unknown>)[field] = String(value).trim();
+      }
+    }
+
+    if (raw.monthly_salary !== null && raw.monthly_salary !== undefined && raw.monthly_salary !== '') {
+      payload.monthly_salary = Number(raw.monthly_salary);
+    }
+
+    return payload;
   }
 
   private showOpenCutBlockMessage(): void {

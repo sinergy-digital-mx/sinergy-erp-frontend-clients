@@ -1,0 +1,51 @@
+<div class="leave-dialog">
+  <div class="leave-dialog__header">
+    <h2>Registrar solicitud</h2>
+    <button class="close-btn" type="button" (click)="close()" aria-label="Cerrar">&times;</button>
+  </div>
+
+  <div class="leave-dialog__body" [formGroup]="form">
+    <p *ngIf="data.employeeName" class="leave-dialog__subtitle">{{ data.employeeName }}</p>
+
+    <div class="form-field">
+      <label class="form-label">Tipo *</label>
+      <select class="form-input" formControlName="type">
+        <option *ngFor="let opt of leaveTypeOptions" [value]="opt.value">{{ opt.label }}</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Desde *</label>
+        <input type="date" class="form-input" formControlName="start_date">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Hasta *</label>
+        <input type="date" class="form-input" formControlName="end_date">
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Motivo</label>
+      <textarea class="form-input" formControlName="reason" rows="2" placeholder="Vacaciones de verano"></textarea>
+    </div>
+
+    <label class="checkbox-row">
+      <input type="checkbox" formControlName="is_paid">
+      <span>Con goce de sueldo</span>
+    </label>
+
+    <div class="days-hint" *ngIf="requestedDays() > 0">
+      <span>{{ requestedDays() }} día(s) solicitados</span>
+      <span *ngIf="data.availableDays != null && form.get('type')?.value === 'vacation'"
+            [class.days-hint--error]="exceedsAvailable()">
+        · {{ data.availableDays }} disponibles
+      </span>
+    </div>
+  </div>
+
+  <div class="leave-dialog__footer">
+    <app-button text="Cancelar" variant="secondary" [fullWidth]="false" [disabled]="saving()" (clicked)="close()"></app-button>
+    <app-button text="Registrar" variant="primary" [fullWidth]="false" [loading]="saving()" (clicked)="submit()"></app-button>
+  </div>
+</div>

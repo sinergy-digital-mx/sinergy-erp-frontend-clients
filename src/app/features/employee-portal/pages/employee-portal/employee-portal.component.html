@@ -1,0 +1,144 @@
+<div class="portal-page">
+  <div class="page-header">
+    <h1>Portal de empleado</h1>
+    <p class="page-subtitle">Consulta tu información, vacaciones y solicita ausencias</p>
+  </div>
+
+  <div *ngIf="loading()" class="state-message">Cargando tu información...</div>
+
+  <ng-container *ngIf="!loading() && employee() as emp">
+    <!-- Profile header -->
+    <div class="profile-card">
+      <div class="avatar avatar--lg">
+        <img *ngIf="emp.photo_url" [src]="emp.photo_url" [alt]="fullName(emp)">
+        <span *ngIf="!emp.photo_url">{{ initials(emp) }}</span>
+      </div>
+      <div class="profile-card__info">
+        <h2>{{ fullName(emp) }}</h2>
+        <p class="profile-card__position">{{ emp.position || 'Sin puesto' }}<span *ngIf="emp.department"> · {{ emp.department }}</span></p>
+        <p class="profile-card__email">{{ emp.email }}</p>
+      </div>
+      <div class="profile-card__vacation">
+        <span class="vacation-number">{{ emp.vacation?.available_days ?? 0 }}</span>
+        <span class="vacation-label">días de vacaciones disponibles</span>
+      </div>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="cards-grid">
+      <div class="info-card">
+        <span class="info-card__label">Antigüedad</span>
+        <span class="info-card__value">{{ emp.vacation?.years_of_service ?? emp.years_of_service ?? 0 }} año(s)</span>
+      </div>
+      <div class="info-card">
+        <span class="info-card__label">Vacaciones por año</span>
+        <span class="info-card__value">{{ emp.vacation?.entitled_days ?? 0 }} días</span>
+      </div>
+      <div class="info-card">
+        <span class="info-card__label">Tomados</span>
+        <span class="info-card__value">{{ emp.vacation?.taken_days ?? 0 }} días</span>
+      </div>
+      <div class="info-card">
+        <span class="info-card__label">Pendientes</span>
+        <span class="info-card__value">{{ emp.vacation?.pending_days ?? 0 }} días</span>
+      </div>
+    </div>
+
+    <div class="portal-columns">
+      <!-- New leave request -->
+      <div class="portal-section">
+        <h3>Solicitar vacaciones o ausencia</h3>
+        <form [formGroup]="leaveForm" (ngSubmit)="submitLeave()">
+          <div class="form-field">
+            <label class="form-label">Tipo *</label>
+            <select class="form-input" formControlName="type">
+              <option *ngFor="let opt of leaveTypeOptions" [value]="opt.value">{{ opt.label }}</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">Desde *</label>
+              <input type="date" class="form-input" formControlName="start_date">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Hasta *</label>
+              <input type="date" class="form-input" formControlName="end_date">
+            </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Motivo</label>
+            <textarea class="form-input" formControlName="reason" rows="2" placeholder="Ej. Vacaciones familiares"></textarea>
+          </div>
+
+          <div class="days-hint" *ngIf="requestedDays() > 0">
+            <span>{{ requestedDays() }} día(s) solicitados</span>
+            <span *ngIf="leaveForm.get('type')?.value === 'vacation'" [class.days-hint--error]="exceedsAvailable()">
+              · {{ availableDays() }} disponibles
+            </span>
+          </div>
+
+          <button type="submit" class="btn btn--primary" [disabled]="submittingLeave()">
+            {{ submittingLeave() ? 'Enviando...' : 'Enviar solicitud' }}
+          </button>
+        </form>
+      </div>
+
+      <!-- My requests -->
+      <div class="portal-section">
+        <h3>Mis solicitudes</h3>
+        <div *ngIf="leaveRequests().length === 0" class="state-message state-message--sm">
+          Aún no has enviado solicitudes.
+        </div>
+        <ul *ngIf="leaveRequests().length > 0" class="request-list">
+          <li *ngFor="let req of leaveRequests()" class="request-item">
+            <div class="request-item__main">
+              <span class="request-item__type">{{ getLeaveTypeLabel(req.type) }}</span>
+              <span class="request-item__dates">{{ req.start_date }} → {{ req.end_date }} · {{ req.days }} día(s)</span>
+            </div>
+            <div class="request-item__side">
+              <span class="status-badge" [ngClass]="'status-badge--' + req.status">{{ getLeaveStatusLabel(req.status) }}</span>
+              <button *ngIf="req.status === 'pending'" class="link-btn" (click)="cancelLeave(req)">Cancelar</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Profile settings -->
+    <div class="portal-section">
+      <h3>Mis datos y contraseña</h3>
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label">Nombre *</label>
+            <input type="text" class="form-input" formControlName="first_name">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Apellido *</label>
+            <input type="text" class="form-input" formControlName="last_name">
+          </div>
+        </div>
+
+        <p class="section-note">Para cambiar tu contraseña, completa los siguientes campos.</p>
+        <div class="form-field">
+          <label class="form-label">Contraseña actual</label>
+          <input type="password" class="form-input" formControlName="current_password" autocomplete="current-password">
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label">Nueva contraseña</label>
+            <input type="password" class="form-input" formControlName="new_password" autocomplete="new-password">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Confirmar contraseña</label>
+            <input type="password" class="form-input" formControlName="confirm_password" autocomplete="new-password">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn--primary" [disabled]="savingProfile()">
+          {{ savingProfile() ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </form>
+    </div>
+  </ng-container>
+</div>

@@ -167,6 +167,149 @@
         </div>
       </div>
 
+      <!-- Empleado (RH / nómina) -->
+      <div *ngIf="activeTab === 'employee'" class="tab-pane">
+        <div class="form-field form-field--full">
+          <label class="toggle-row">
+            <input type="checkbox" class="toggle-checkbox" formControlName="is_employee">
+            <span class="toggle-label">Marcar como empleado</span>
+          </label>
+          <p class="field-hint">
+            Activa esta opción para gestionar datos de RH y nómina. Los días de vacaciones se calculan
+            automáticamente conforme a la Ley Federal del Trabajo (reforma "Vacaciones Dignas").
+          </p>
+        </div>
+
+        <ng-container *ngIf="form.get('is_employee')?.value" formGroupName="employee">
+          <!-- Foto (solo empleados existentes) -->
+          <div class="employee-photo-row">
+            <div class="employee-photo">
+              <img *ngIf="photoUrl()" [src]="photoUrl()" alt="Foto del empleado">
+              <div *ngIf="!photoUrl()" class="employee-photo__placeholder">Sin foto</div>
+            </div>
+            <div class="employee-photo__actions">
+              <label class="photo-upload-btn" [class.photo-upload-btn--disabled]="!employeeId() || uploadingPhoto()">
+                <input type="file" accept="image/*" (change)="onPhotoSelected($event)" [disabled]="!employeeId() || uploadingPhoto()" hidden>
+                {{ uploadingPhoto() ? 'Subiendo...' : (photoUrl() ? 'Cambiar foto' : 'Subir foto') }}
+              </label>
+              <p class="field-hint" *ngIf="!employeeId()">
+                Guarda el empleado para poder subir su foto.
+              </p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">Puesto *</label>
+              <input type="text" class="form-input" formControlName="position" placeholder="Cajero">
+              <p *ngIf="form.get('employee.position')?.invalid && form.get('employee.position')?.touched" class="field-error">
+                Este campo es obligatorio
+              </p>
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">Departamento</label>
+              <input type="text" class="form-input" formControlName="department" placeholder="Ventas">
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">Fecha de ingreso *</label>
+              <input type="date" class="form-input" formControlName="hire_date">
+              <p *ngIf="form.get('employee.hire_date')?.invalid && form.get('employee.hire_date')?.touched" class="field-error">
+                Este campo es obligatorio
+              </p>
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">Fecha de nacimiento</label>
+              <input type="date" class="form-input" formControlName="birth_date">
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">Código de empleado</label>
+              <input type="text" class="form-input" formControlName="employee_code" placeholder="EMP-001">
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">RFC</label>
+              <input type="text" class="form-input" formControlName="rfc" placeholder="PEPJ900101ABC" maxlength="13">
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">CURP</label>
+              <input type="text" class="form-input" formControlName="curp" placeholder="PEPJ900101HDFRRN09" maxlength="18">
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">NSS</label>
+              <input type="text" class="form-input" formControlName="nss" placeholder="12345678901" maxlength="11">
+            </div>
+          </div>
+
+          <h4 class="employee-section-title">Nómina</h4>
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">Salario mensual (MXN) *</label>
+              <input type="number" class="form-input" formControlName="monthly_salary" placeholder="12000" min="0" step="0.01">
+              <p *ngIf="form.get('employee.monthly_salary')?.invalid && form.get('employee.monthly_salary')?.touched" class="field-error">
+                Ingresa el salario mensual
+              </p>
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">Frecuencia de pago</label>
+              <select class="form-input" formControlName="payment_frequency">
+                <option *ngFor="let opt of paymentFrequencyOptions" [value]="opt.value">{{ opt.label }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Preview de cálculos (Ley mexicana) -->
+          <div class="employee-preview">
+            <div class="preview-card">
+              <span class="preview-card__label">Antigüedad</span>
+              <span class="preview-card__value">{{ yearsOfService() }} año(s)</span>
+            </div>
+            <div class="preview-card">
+              <span class="preview-card__label">Vacaciones / año (LFT)</span>
+              <span class="preview-card__value">{{ entitledVacationDays() }} días</span>
+            </div>
+            <div class="preview-card">
+              <span class="preview-card__label">Salario diario</span>
+              <span class="preview-card__value">{{ payrollPreview().daily_salary | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+            </div>
+            <div class="preview-card">
+              <span class="preview-card__label">Pago quincenal</span>
+              <span class="preview-card__value">{{ payrollPreview().biweekly_salary | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+            </div>
+            <div class="preview-card">
+              <span class="preview-card__label">Pago semanal</span>
+              <span class="preview-card__value">{{ payrollPreview().weekly_salary | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+            </div>
+            <div class="preview-card">
+              <span class="preview-card__label">Salario anual</span>
+              <span class="preview-card__value">{{ payrollPreview().annual_salary | currency:'MXN':'symbol-narrow':'1.0-0' }}</span>
+            </div>
+          </div>
+
+          <h4 class="employee-section-title">Datos bancarios</h4>
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">Banco</label>
+              <input type="text" class="form-input" formControlName="bank_name" placeholder="BBVA">
+            </div>
+            <div class="form-field">
+              <label class="form-label">CLABE</label>
+              <input type="text" class="form-input" formControlName="clabe" placeholder="012345678901234567" maxlength="18">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Cuenta bancaria</label>
+              <input type="text" class="form-input" formControlName="bank_account" placeholder="0123456789">
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
       <!-- Sucursales asignadas -->
       <div *ngIf="activeTab === 'branches'" class="tab-pane">
         <p class="field-hint branches-intro">

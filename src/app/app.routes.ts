@@ -95,6 +95,18 @@ export const routes: Routes = [
             .then(m => m.SALES_ORDERS_ROUTES),
       },
       {
+        path: 'employees',
+        loadChildren: () =>
+          import('./features/employees/employees.routes')
+            .then(m => m.EMPLOYEES_ROUTES),
+      },
+      {
+        path: 'employee-portal',
+        loadChildren: () =>
+          import('./features/employee-portal/employee-portal.routes')
+            .then(m => m.EMPLOYEE_PORTAL_ROUTES),
+      },
+      {
         path: 'pos/ventas',
         canActivate: [posVentasGuard],
         loadComponent: () =>
@@ -150,6 +162,12 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/divino-dashboard/divino-dashboard.routes')
             .then(m => m.DIVINO_DASHBOARD_ROUTES),
+      },
+      {
+        path: 'divino-reservation-formats',
+        loadChildren: () =>
+          import('./features/divino-reservation-formats/divino-reservation-formats.routes')
+            .then(m => m.DIVINO_RESERVATION_FORMATS_ROUTES),
       },
       {
         path: '',

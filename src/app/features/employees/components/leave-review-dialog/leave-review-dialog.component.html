@@ -1,0 +1,31 @@
+<div class="review-dialog">
+  <div class="review-dialog__header">
+    <h2>{{ isApproval ? 'Aprobar solicitud' : 'Rechazar solicitud' }}</h2>
+    <button class="close-btn" type="button" (click)="close()" aria-label="Cerrar">&times;</button>
+  </div>
+
+  <div class="review-dialog__body" [formGroup]="form">
+    <p class="review-summary">
+      <strong>{{ typeLabel }}</strong> · {{ data.request.start_date }} → {{ data.request.end_date }}
+      ({{ data.request.days }} día(s))
+    </p>
+    <p *ngIf="data.request.reason" class="review-reason">"{{ data.request.reason }}"</p>
+
+    <label class="form-label">Notas de revisión</label>
+    <textarea
+      class="form-input"
+      formControlName="review_notes"
+      rows="3"
+      [placeholder]="isApproval ? 'Autorizado' : 'Motivo del rechazo'"></textarea>
+  </div>
+
+  <div class="review-dialog__footer">
+    <app-button text="Cancelar" variant="secondary" [fullWidth]="false" [disabled]="saving()" (clicked)="close()"></app-button>
+    <app-button
+      [text]="isApproval ? 'Aprobar' : 'Rechazar'"
+      [variant]="isApproval ? 'success' : 'danger'"
+      [fullWidth]="false"
+      [loading]="saving()"
+      (clicked)="confirm()"></app-button>
+  </div>
+</div>

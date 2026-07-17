@@ -116,6 +116,15 @@ export class UserService {
     );
   }
 
+  /**
+   * Fetches a single user by ID (includes is_employee + employee profile).
+   */
+  getUserById(userId: string): Observable<User> {
+    return this.http.get<any>(`${this.api}/tenant/users/${userId}`).pipe(
+      map(backendUser => this.dataMapper.mapUser(backendUser?.data ?? backendUser))
+    );
+  }
+
   getUserBranch(userId: string): Observable<string | null> {
     return this.http.get<{ billing_branch_id?: string | null }>(`${this.api}/tenant/users/${userId}/branch`).pipe(
       map((response) => response?.billing_branch_id ?? null)

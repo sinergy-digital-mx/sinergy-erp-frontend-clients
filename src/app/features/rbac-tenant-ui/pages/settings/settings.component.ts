@@ -81,6 +81,27 @@ interface SettingsSection {
           </div>
         </div>
 
+        <!-- Mi Portal (empleados) -->
+        <div class="mb-8" *ngIf="showEmployeePortal">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Mi Portal</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div (click)="navigateTo('/employee-portal')"
+                 class="bg-white rounded-lg p-5 hover:shadow-md transition-shadow duration-300 cursor-pointer border border-gray-200">
+              <div class="flex flex-col h-full">
+                <div class="text-4xl mb-3">🧑‍💼</div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Portal de empleado</h3>
+                <p class="text-gray-600 text-sm mb-4 grow">Consulta tu información, tus días de vacaciones y envía solicitudes de ausencia</p>
+                <div class="inline-flex items-center text-indigo-600 font-medium text-sm hover:text-indigo-700 transition-colors">
+                  Ir a mi portal
+                  <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Comunicación -->
         <div class="mb-8" *ngIf="visibleCommunicationSections.length > 0">
           <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Comunicación</h2>
@@ -268,6 +289,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   get visibleCommunicationSections(): SettingsSection[] {
     return this.communicationSections.filter(section => this.hasAccess(section));
+  }
+
+  /** The employee self-service portal is only shown to employee users. */
+  get showEmployeePortal(): boolean {
+    return this.authService.isEmployeeUser();
   }
 
   navigateTo(route: string): void {

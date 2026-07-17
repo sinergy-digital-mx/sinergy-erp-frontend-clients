@@ -1,0 +1,172 @@
+<div class="formats-page">
+  <div class="formats-page__header">
+    <div>
+      <h1 class="formats-page__title">Formatos de Reservación</h1>
+      <p class="formats-page__subtitle">Cotizaciones / apartados de lotes Divino</p>
+    </div>
+    <button
+      *hasPermission="permissions.create"
+      type="button"
+      class="formats-page__create-btn"
+      (click)="createFormat()">
+      <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
+      <span>Nuevo formato</span>
+    </button>
+  </div>
+
+  <div class="formats-page__filters filter-bar">
+    <div class="filter-bar__container">
+      <div class="filter-bar__field filter-bar__field--search">
+        <app-search
+          [showSearchIcon]="true"
+          placeholder="Buscar por folio, comprador, lote..."
+          [param_activate]="true"
+          param_name="search"
+          (searchChange)="onSearchChange($event)">
+        </app-search>
+      </div>
+
+      <div class="filter-bar__field">
+        <select
+          class="formats-page__status-select"
+          [value]="selectedStatus ?? ''"
+          (change)="onStatusChange($any($event.target).value || null)">
+          <option value="">Todos los estatus</option>
+          <option value="draft">Borrador</option>
+          <option value="sent">Enviado</option>
+        </select>
+      </div>
+
+      @if (hasActiveFilters) {
+        <div class="filter-bar__field">
+          <button type="button" class="formats-page__clear-btn" (click)="clearFilters()">
+            Limpiar filtros
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+
+  <app-datatable-wrapper
+    class="formats-page__table hidden md:block"
+    variant="modern"
+    [config]="table_config()"
+    [rowTemplate]="tableTemplate"
+    (pageChange)="onPageChange($event)"
+    (rowClick)="onRowClick($event)">
+  </app-datatable-wrapper>
+
+  <!-- Mobile -->
+  <div class="block md:hidden">
+    @if (table_config().loading) {
+      <div class="py-10 text-center text-gray-500 text-sm">Cargando formatos...</div>
+    } @else if (!table_config().rows?.length) {
+      <div class="py-10 text-center text-gray-500 text-sm">No se encontraron formatos</div>
+    } @else {
+      <div class="space-y-3">
+        @for (item of table_config().rows; track item.id) {
+          <div class="formats-mobile-card">
+            <div class="flex justify-between items-start gap-3 mb-3">
+              <div class="min-w-0 flex-1">
+                <span class="dt-folio-badge dt-folio-badge--res">{{ item.folio }}</span>
+                <h3 class="formats-cell__name mt-1.5">{{ item.buyer_name || 'Sin comprador' }}</h3>
+                <p class="formats-cell__meta">Lote {{ item.property?.code || '—' }}</p>
+              </div>
+              <span class="status-pill" [ngClass]="getStatusPillClass(item.status)">
+                {{ getStatusLabel(item.status) }}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mb-3">
+              <div>
+                <span class="text-xs text-gray-500 block">Creado por</span>
+                <span class="text-[#334155]">{{ getCreatorName(item) }}</span>
+              </div>
+              <div>
+                <span class="text-xs text-gray-500 block">Fecha</span>
+                <span class="text-[#334155]">{{ item.created_at | date: 'dd/MM/yyyy' }}</span>
+              </div>
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-gray-100 flex justify-end gap-1">
+              <button type="button" class="formats-action-btn" (click)="downloadPdf(item)" title="Ver PDF">
+                <lucide-icon [img]="FileText" [size]="18"></lucide-icon>
+              </button>
+              <button *hasPermission="permissions.send" type="button" class="formats-action-btn" (click)="sendFormat(item)" title="Enviar por correo">
+                <lucide-icon [img]="Mail" [size]="18"></lucide-icon>
+              </button>
+              <button *hasPermission="permissions.update" type="button" class="formats-action-btn" (click)="editFormat(item)" title="Editar">
+                <lucide-icon [img]="Pencil" [size]="18"></lucide-icon>
+              </button>
+              <button *hasPermission="permissions.delete" type="button" class="formats-action-btn formats-action-btn--danger" (click)="deleteFormat(item)" title="Eliminar">
+                <lucide-icon [img]="Trash2" [size]="18"></lucide-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if ((table_config().totalResults ?? 0) > (table_config().limit ?? 20)) {
+        <div class="mt-4 flex justify-center">
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              [disabled]="table_config().page === 1"
+              (click)="onPageChange({ page: (table_config().page ?? 1) - 1, limit: table_config().limit ?? 20 })"
+              class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-50 bg-white text-gray-600">
+              Anterior
+            </button>
+            <span class="text-sm text-gray-600">
+              {{ table_config().page }} / {{ Math.ceil((table_config().totalResults ?? 0) / (table_config().limit ?? 20)) }}
+            </span>
+            <button
+              type="button"
+              [disabled]="!table_config().hasNext"
+              (click)="onPageChange({ page: (table_config().page ?? 1) + 1, limit: table_config().limit ?? 20 })"
+              class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-50 bg-white text-gray-600">
+              Siguiente
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td>
+    <span class="dt-folio-badge dt-folio-badge--res">{{ item.folio }}</span>
+  </td>
+  <td class="formats-col-name">
+    <div class="formats-cell">
+      <span class="formats-cell__name dt-cell-primary">{{ item.buyer_name || 'Sin comprador' }}</span>
+      @if (item.buyer_email) {
+        <span class="formats-cell__meta">{{ item.buyer_email }}</span>
+      }
+    </div>
+  </td>
+  <td class="text-[#64748b] text-sm">{{ item.property?.code || '—' }}</td>
+  <td>
+    <span class="status-pill" [ngClass]="getStatusPillClass(item.status)">
+      {{ getStatusLabel(item.status) }}
+    </span>
+  </td>
+  <td class="text-[#64748b] text-sm">{{ getCreatorName(item) }}</td>
+  <td class="text-[#64748b] text-sm">{{ item.created_at | date: 'dd/MM/yyyy' }}</td>
+  <td (click)="$event.stopPropagation()">
+    <div class="flex items-center gap-1">
+      <button type="button" class="formats-action-btn" (click)="downloadPdf(item)" title="Ver PDF">
+        <lucide-icon [img]="FileText" [size]="16"></lucide-icon>
+      </button>
+      <button *hasPermission="permissions.send" type="button" class="formats-action-btn" (click)="sendFormat(item)" title="Enviar por correo">
+        <lucide-icon [img]="Mail" [size]="16"></lucide-icon>
+      </button>
+      <button *hasPermission="permissions.update" type="button" class="formats-action-btn" (click)="editFormat(item)" title="Editar">
+        <lucide-icon [img]="Pencil" [size]="16"></lucide-icon>
+      </button>
+      <button *hasPermission="permissions.delete" type="button" class="formats-action-btn formats-action-btn--danger" (click)="deleteFormat(item)" title="Eliminar">
+        <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
+      </button>
+    </div>
+  </td>
+</ng-template>

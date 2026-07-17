@@ -24,9 +24,11 @@ import {
   LayoutDashboard,
   X,
   Landmark,
+  UserCog,
 } from 'lucide-angular';
 import { DIVINO_DASHBOARD_TENANT_ID } from '../../../features/divino-dashboard/config/divino-dashboard.constants';
 import { DIVINO_DASHBOARD_PERMISSIONS } from '../../../features/divino-dashboard/config/permissions.config';
+import { DIVINO_RESERVATION_FORMAT_PERMISSIONS } from '../../../features/divino-reservation-formats/config/permissions.config';
 import { AuthService } from '../../services/auth.service';
 import { SidebarService } from '../../services/sidebar.service';
 import { PERMISSIONS } from '../../config/permissions.config';
@@ -77,7 +79,12 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     id: 'marketing-reports',
     title: 'Análisis',
-    itemIds: ['menu-marketing', 'menu-zona-norte', 'menu-divino-dashboard'],
+    itemIds: ['menu-marketing', 'menu-zona-norte', 'menu-divino-dashboard', 'menu-divino-reservation-formats'],
+  },
+  {
+    id: 'hr',
+    title: 'Recursos Humanos',
+    itemIds: ['menu-employees'],
   },
   {
     id: 'system',
@@ -188,6 +195,21 @@ export class Sidebar implements OnInit, OnDestroy {
       tenantId: DIVINO_DASHBOARD_TENANT_ID,
     },
     {
+      label: 'Reservaciones',
+      route: '/divino-reservation-formats',
+      icon: FileText,
+      id: 'menu-divino-reservation-formats',
+      permission: DIVINO_RESERVATION_FORMAT_PERMISSIONS.viewMenu,
+      tenantId: DIVINO_DASHBOARD_TENANT_ID,
+    },
+    {
+      label: 'Empleados',
+      route: '/employees',
+      icon: UserCog,
+      id: 'menu-employees',
+      permission: PERMISSIONS.employees.viewMenu
+    },
+    {
       label: 'Notificaciones',
       route: '/notifications',
       icon: Bell,
@@ -201,7 +223,7 @@ export class Sidebar implements OnInit, OnDestroy {
     },
   ];
 
-  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight, X, Landmark };
+  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight, X, Landmark, UserCog };
 
   constructor(
     public auth_service: AuthService,

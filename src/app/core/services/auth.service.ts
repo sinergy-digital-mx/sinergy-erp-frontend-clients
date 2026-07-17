@@ -489,6 +489,7 @@
         { path: '/purchase-orders', permissions: ['purchaseOrders:Read', 'purchase_orders:read', 'purchase_orders:ViewMenu'] },
         { path: '/inventory', permissions: ['inventory:Read', 'inventory:ViewMenu'] },
         { path: '/sales-orders', permissions: ['salesOrders:Read', 'sales_orders:read', 'sales_orders:ViewMenu'] },
+        { path: '/employees', permissions: ['Employee:Read', 'Employee:ViewMenu', 'employee:Read', 'employee:ViewMenu'] },
         { path: '/settings/goals', permissions: ['goals:Read', 'goals:ViewMenu'] },
         {
           path: '/settings/global-discounts',
@@ -543,7 +544,15 @@
       if (this.isPosTerminalUser()) {
         return this.getPosEntryRoute();
       }
-      return this.getFirstAccessibleRoute();
+      const route = this.getFirstAccessibleRoute();
+      if (route) {
+        return route;
+      }
+      // Employee-only users (no ERP modules) land on their self-service portal.
+      if (this.isEmployeeUser()) {
+        return '/employee-portal';
+      }
+      return null;
     }
 
     isPosTerminalUser(): boolean {
@@ -565,6 +574,12 @@
     getBillingBranchId(): string | null {
       const id = this.user_info?.billing_branch_id;
       return id != null && String(id).trim() !== '' ? String(id) : null;
+    }
+
+    /** True when the logged-in user is flagged as an employee (RH portal access). */
+    isEmployeeUser(): boolean {
+      const value = (this.user_info as { is_employee?: unknown })?.is_employee;
+      return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
     }
 
     applySessionUser(source: Record<string, unknown>): void {
@@ -720,6 +735,7 @@
     is_pos_user?: boolean;
     pos_user_type?: 'VENTAS' | 'COBRANZA';
     billing_branch_id?: string | null;
+    is_employee?: boolean;
   }
 
   interface PermissionObject {
