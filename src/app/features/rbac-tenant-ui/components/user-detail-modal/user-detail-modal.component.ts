@@ -142,19 +142,36 @@ export class UserDetailModalComponent implements OnInit {
       const positionControl = employeeGroup.get('position');
       const hireDateControl = employeeGroup.get('hire_date');
       const salaryControl = employeeGroup.get('monthly_salary');
+      const curpControl = employeeGroup.get('curp');
+      const clabeControl = employeeGroup.get('clabe');
+      const nssControl = employeeGroup.get('nss');
+      const rfcControl = employeeGroup.get('rfc');
 
       if (isEmployee) {
         positionControl?.setValidators([Validators.required]);
         hireDateControl?.setValidators([Validators.required]);
         salaryControl?.setValidators([Validators.required, Validators.min(0)]);
+        // Optional fields: if filled, must match Mexican lengths
+        curpControl?.setValidators([Validators.minLength(18), Validators.maxLength(18)]);
+        clabeControl?.setValidators([Validators.minLength(18), Validators.maxLength(18)]);
+        nssControl?.setValidators([Validators.minLength(11), Validators.maxLength(11)]);
+        rfcControl?.setValidators([Validators.minLength(12), Validators.maxLength(13)]);
       } else {
         positionControl?.clearValidators();
         hireDateControl?.clearValidators();
         salaryControl?.clearValidators();
+        curpControl?.clearValidators();
+        clabeControl?.clearValidators();
+        nssControl?.clearValidators();
+        rfcControl?.clearValidators();
       }
       positionControl?.updateValueAndValidity({ emitEvent: false });
       hireDateControl?.updateValueAndValidity({ emitEvent: false });
       salaryControl?.updateValueAndValidity({ emitEvent: false });
+      curpControl?.updateValueAndValidity({ emitEvent: false });
+      clabeControl?.updateValueAndValidity({ emitEvent: false });
+      nssControl?.updateValueAndValidity({ emitEvent: false });
+      rfcControl?.updateValueAndValidity({ emitEvent: false });
     };
 
     employeeGroup.get('hire_date')?.valueChanges.subscribe((value: string) => {
@@ -505,7 +522,7 @@ export class UserDetailModalComponent implements OnInit {
         this.interceptorService.openSnackbar({
           type: 'warning',
           title: 'Advertencia',
-          message: 'Completa puesto, fecha de ingreso y salario mensual del empleado',
+          message: this.getEmployeeFormErrorMessage(employeeGroup),
         });
         this.activeTab = 'employee';
         return;
@@ -611,10 +628,9 @@ export class UserDetailModalComponent implements OnInit {
     const raw = (this.form.get('employee') as FormGroup).getRawValue();
     const payload: UserEmployeeProfile = {};
 
-    const stringFields: (keyof UserEmployeeProfile)[] = [
+    const upperFields: (keyof UserEmployeeProfile)[] = ['rfc', 'curp'];
+    const plainFields: (keyof UserEmployeeProfile)[] = [
       'employee_code',
-      'rfc',
-      'curp',
       'nss',
       'position',
       'department',
@@ -626,7 +642,14 @@ export class UserDetailModalComponent implements OnInit {
       'bank_account',
     ];
 
-    for (const field of stringFields) {
+    for (const field of upperFields) {
+      const value = raw[field];
+      if (value !== null && value !== undefined && String(value).trim() !== '') {
+        (payload as Record<string, unknown>)[field] = String(value).trim().toUpperCase();
+      }
+    }
+
+    for (const field of plainFields) {
       const value = raw[field];
       if (value !== null && value !== undefined && String(value).trim() !== '') {
         (payload as Record<string, unknown>)[field] = String(value).trim();
@@ -638,6 +661,36 @@ export class UserDetailModalComponent implements OnInit {
     }
 
     return payload;
+  }
+
+  private getEmployeeFormErrorMessage(employeeGroup: FormGroup): string {
+    const labels: Record<string, string> = {
+      position: 'puesto',
+      hire_date: 'fecha de ingreso',
+      monthly_salary: 'salario mensual',
+      curp: 'CURP (18 caracteres)',
+      clabe: 'CLABE (18 dígitos)',
+      nss: 'NSS (11 dígitos)',
+      rfc: 'RFC (12 o 13 caracteres)',
+    };
+
+    const issues: string[] = [];
+    for (const [key, label] of Object.entries(labels)) {
+      const control = employeeGroup.get(key);
+      if (!control || control.valid || !control.errors) {
+        continue;
+      }
+      if (control.errors['required']) {
+        issues.push(label);
+      } else if (control.errors['minlength'] || control.errors['maxlength']) {
+        issues.push(label);
+      }
+    }
+
+    if (issues.length === 0) {
+      return 'Completa puesto, fecha de ingreso y salario mensual del empleado';
+    }
+    return `Revisa: ${issues.join(', ')}`;
   }
 
   private showOpenCutBlockMessage(): void {
@@ -659,6 +712,36 @@ export class UserDetailModalComponent implements OnInit {
     this.dialogRef.close(true);
   }
 
+  /** NestJS often returns `message` as string[] for class-validator errors. */
+  private extractBackendMessages(error: any): string[] {
+    const raw = error?.error?.message ?? error?.message;
+    if (Array.isArray(raw)) {
+      return raw.map((m) => String(m)).filter(Boolean);
+    }
+    if (typeof raw === 'string' && raw.trim()) {
+      return [raw];
+    }
+    return [];
+  }
+
+  private translateEmployeeValidationMessage(message: string): string {
+    const map: Array<[RegExp, string]> = [
+      [/employee\.curp.*18/i, 'El CURP debe tener exactamente 18 caracteres'],
+      [/employee\.clabe.*18/i, 'La CLABE debe tener exactamente 18 dígitos'],
+      [/employee\.nss.*11/i, 'El NSS debe tener exactamente 11 dígitos'],
+      [/employee\.rfc/i, 'El RFC debe tener 12 o 13 caracteres'],
+      [/employee\.position/i, 'El puesto es obligatorio'],
+      [/employee\.hire_date/i, 'La fecha de ingreso es obligatoria'],
+      [/employee\.monthly_salary/i, 'El salario mensual es obligatorio'],
+    ];
+    for (const [pattern, label] of map) {
+      if (pattern.test(message)) {
+        return label;
+      }
+    }
+    return message.replace(/^employee\./i, '');
+  }
+
   private onSaveError(error: any): void {
     this.saving.set(false);
 
@@ -672,9 +755,10 @@ export class UserDetailModalComponent implements OnInit {
       return;
     }
 
-    const backendMessage = error.error?.message as string | undefined;
+    const backendMessages = this.extractBackendMessages(error);
+    const joinedForCheck = backendMessages.join(' ');
 
-    if (error?.status === 400 && isOpenGlobalCutBlockMessage(backendMessage)) {
+    if (error?.status === 400 && isOpenGlobalCutBlockMessage(joinedForCheck)) {
       this.hasOpenGlobalCut.set(true);
       this.restoreLockedPosFields();
       this.interceptorService.openSnackbar({
@@ -696,16 +780,29 @@ export class UserDetailModalComponent implements OnInit {
       [POS_OPEN_GLOBAL_CUT_BLOCK_MESSAGE]: POS_OPEN_GLOBAL_CUT_BLOCK_MESSAGE,
     };
 
-    const message =
-      (backendMessage && knownMessages[backendMessage]) ||
-      backendMessage ||
-      'Error al guardar el usuario';
+    const translated = backendMessages.map((msg) => {
+      if (knownMessages[msg]) {
+        return knownMessages[msg];
+      }
+      if (/^employee\./i.test(msg) || /employee\./i.test(msg)) {
+        return this.translateEmployeeValidationMessage(msg);
+      }
+      return msg;
+    });
 
-    if (isOpenGlobalCutBlockMessage(backendMessage)) {
+    const message =
+      translated.length > 0
+        ? translated.join('. ')
+        : 'Error al guardar el usuario';
+
+    if (isOpenGlobalCutBlockMessage(joinedForCheck)) {
       this.activeTab = 'pos';
-    } else if (backendMessage?.includes('sucursal')) {
+    } else if (/employee\./i.test(joinedForCheck)) {
+      this.activeTab = 'employee';
+      (this.form.get('employee') as FormGroup)?.markAllAsTouched();
+    } else if (joinedForCheck.includes('sucursal')) {
       this.activeTab = 'branches';
-    } else if (backendMessage?.includes('pos_user_type')) {
+    } else if (joinedForCheck.includes('pos_user_type')) {
       this.activeTab = 'pos';
     }
 

@@ -233,16 +233,25 @@
             <div class="form-field">
               <label class="form-label">RFC</label>
               <input type="text" class="form-input" formControlName="rfc" placeholder="PEPJ900101ABC" maxlength="13">
+              <p *ngIf="form.get('employee.rfc')?.invalid && form.get('employee.rfc')?.touched" class="field-error">
+                El RFC debe tener 12 o 13 caracteres
+              </p>
             </div>
 
             <div class="form-field">
               <label class="form-label">CURP</label>
               <input type="text" class="form-input" formControlName="curp" placeholder="PEPJ900101HDFRRN09" maxlength="18">
+              <p *ngIf="form.get('employee.curp')?.invalid && form.get('employee.curp')?.touched" class="field-error">
+                El CURP debe tener exactamente 18 caracteres
+              </p>
             </div>
 
             <div class="form-field">
               <label class="form-label">NSS</label>
               <input type="text" class="form-input" formControlName="nss" placeholder="12345678901" maxlength="11">
+              <p *ngIf="form.get('employee.nss')?.invalid && form.get('employee.nss')?.touched" class="field-error">
+                El NSS debe tener exactamente 11 dígitos
+              </p>
             </div>
           </div>
 
@@ -301,6 +310,9 @@
             <div class="form-field">
               <label class="form-label">CLABE</label>
               <input type="text" class="form-input" formControlName="clabe" placeholder="012345678901234567" maxlength="18">
+              <p *ngIf="form.get('employee.clabe')?.invalid && form.get('employee.clabe')?.touched" class="field-error">
+                La CLABE debe tener exactamente 18 dígitos
+              </p>
             </div>
             <div class="form-field">
               <label class="form-label">Cuenta bancaria</label>
