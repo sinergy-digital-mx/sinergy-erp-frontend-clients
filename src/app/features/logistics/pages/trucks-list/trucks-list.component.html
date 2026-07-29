@@ -1,0 +1,95 @@
+<div class="settings-list-page px-4 pb-6">
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+    <h2 class="text-2xl font-semibold text-gray-800">Camiones</h2>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <app-search class="w-64" [param_activate]="false" (searchChange)="onSearchChange($event)">
+      </app-search>
+
+      <button
+        type="button"
+        class="trucks-active-btn"
+        [class.trucks-active-btn--on]="onlyActive"
+        [attr.aria-pressed]="onlyActive"
+        (click)="onOnlyActiveChange(!onlyActive)"
+      >
+        <span class="trucks-active-btn__check" aria-hidden="true">
+          @if (onlyActive) {
+            <svg viewBox="0 0 16 16" fill="none" width="12" height="12">
+              <path
+                d="M3.5 8.5L6.5 11.5L12.5 4.5"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          }
+        </span>
+        Solo activos
+      </button>
+
+      <app-filter-clear-button [active]="hasActiveFilters" (clear)="clearFilters()">
+      </app-filter-clear-button>
+
+      <app-button
+        *hasPermission="permissions.create"
+        text="Nuevo camión"
+        variant="primary"
+        [fullWidth]="false"
+        (clicked)="openCreate()"
+      >
+      </app-button>
+    </div>
+  </div>
+
+  <app-datatable-wrapper
+    variant="settings"
+    [config]="table_config()"
+    [rowTemplate]="tableTemplate"
+    (pageChange)="onPageChange($event)"
+    (rowClick)="openEdit($event.data)"
+  >
+  </app-datatable-wrapper>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td>
+    <p class="settings-cell-primary truncate">{{ item.name }}</p>
+  </td>
+  <td>
+    <span class="settings-badge settings-badge--code">{{ item.placa }}</span>
+  </td>
+  <td>
+    <span [class]="item.anio ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.anio || '—' }}</span>
+  </td>
+  <td>
+    <span class="settings-badge" [ngClass]="getStatusClass(item.status)">
+      {{ getStatusLabel(item.status) }}
+    </span>
+  </td>
+  <td>
+    <div class="flex items-center gap-2" (click)="$event.stopPropagation()">
+      <button
+        *hasPermission="permissions.update"
+        type="button"
+        class="p-1.5 rounded hover:bg-gray-100 text-gray-600"
+        title="Editar"
+        (click)="openEdit(item, $event)"
+      >
+        <lucide-icon [img]="Edit2" class="w-4 h-4"></lucide-icon>
+      </button>
+      @if (item.status === 'active') {
+        <button
+          *hasPermission="permissions.delete"
+          type="button"
+          class="p-1.5 rounded hover:bg-red-50 text-red-600"
+          title="Desactivar"
+          (click)="deactivate(item, $event)"
+        >
+          <lucide-icon [img]="Trash2" class="w-4 h-4"></lucide-icon>
+        </button>
+      }
+    </div>
+  </td>
+</ng-template>

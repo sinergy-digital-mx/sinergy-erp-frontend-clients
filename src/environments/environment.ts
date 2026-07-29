@@ -9,6 +9,7 @@ export const environment = {
   api: 'http://localhost:3001/api',
   // api: 'https://sapi.sinergydigital.mx',
   production: false,
+  googleMapsApiKey: 'AIzaSyB6MRa342zIAjDI1oqv5uwdSAb6nnKK9Bs',
   /** QZ Tray: activar cuando el backend exponga certificado + firma (ver docs QZ Signing). */
   qzTray: {
     ...defaultQzTrayConfig,

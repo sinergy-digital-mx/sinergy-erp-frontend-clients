@@ -171,7 +171,7 @@
                             <tbody class="divide-y divide-gray-200">
                               @for (batch of item.batches; track batch.batch_id) {
                                 <tr>
-                                  <td class="px-3 py-2 text-sm text-gray-700">{{ batch.batch_number }}</td>
+                                  <td class="px-3 py-2 text-sm text-gray-700 whitespace-nowrap">{{ batch.batch_number }}</td>
                                   <td class="px-3 py-2 text-sm text-blue-600">{{ batch.purchase_order_folio }}</td>
                                   <td class="px-3 py-2 text-sm text-gray-700">{{ batch.source_tag_identifier || 'Sin Tag' }}</td>
                                   <td class="px-3 py-2 text-sm text-gray-700 text-right">{{ formatNumber(batch.available_quantity) }}</td>
@@ -237,8 +237,8 @@
 </div>
 
 <ng-template #tableTemplate let-item="$implicit">
-  <td class="px-2 py-2 w-[130px]">
-    <span class="inline-flex items-center px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700">
+  <td class="px-2 py-2 w-[160px]">
+    <span class="batch-folio-badge">
       {{ item.batch_number }}
     </span>
   </td>
@@ -276,18 +276,5 @@
   </td>
   <td class="px-2 py-2 w-[160px]">
     <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>
-  </td>
-  <td class="px-2 py-2 w-[110px]">
-    @if (canCreateTransfer) {
-      <button
-        type="button"
-        class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        [disabled]="!batchHasStock(item)"
-        (click)="openTransferFromBatch(item, $event)"
-        title="Transferir este lote">
-        <lucide-icon [img]="ArrowRightLeft" [size]="14"></lucide-icon>
-        Transferir
-      </button>
-    }
   </td>
 </ng-template>

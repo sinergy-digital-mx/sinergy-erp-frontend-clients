@@ -1,0 +1,241 @@
+<div class="create-shipping" [class.create-shipping--preview]="step() === 'preview'">
+  @if (step() === 'form') {
+    <div class="create-shipping__header">
+      <h2>Nuevo envío</h2>
+      <lucide-icon [img]="X" class="cursor-pointer w-5 h-5 text-gray-500" (click)="close()"></lucide-icon>
+    </div>
+
+    <div class="create-shipping__body">
+      <form [formGroup]="form" class="create-shipping__form">
+        <div>
+          <label>CEDIS origen *</label>
+          <select formControlName="origin_warehouse_id">
+            <option value="">Selecciona CEDIS / almacén</option>
+            @for (w of warehouses(); track w.id) {
+              <option [value]="w.id">{{ w.name }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label>Fecha *</label>
+          <input type="date" formControlName="shipping_date" />
+        </div>
+        <div>
+          <label>Chofer *</label>
+          <select formControlName="driver_id">
+            <option value="">Selecciona chofer</option>
+            @for (u of drivers(); track u.id) {
+              <option [value]="u.id">{{ driverLabel(u) }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label>Camión *</label>
+          <select formControlName="truck_id">
+            <option value="">Selecciona camión</option>
+            @for (t of trucks(); track t.id) {
+              <option [value]="t.id">{{ truckSelectLabel(t) }}</option>
+            }
+          </select>
+        </div>
+        <div class="create-shipping__full">
+          <label>Notas</label>
+          <textarea formControlName="notes" rows="2" placeholder="Ruta matutina…"></textarea>
+        </div>
+      </form>
+
+      <div class="create-shipping__orders">
+        <div class="create-shipping__orders-head">
+          <h3>
+            Órdenes surtidas
+            <span class="create-shipping__orders-meta">
+              {{ selectedOrderIds.size }} seleccionada{{ selectedOrderIds.size === 1 ? '' : 's' }}
+            </span>
+          </h3>
+          <app-search
+            class="w-56"
+            [param_activate]="false"
+            (searchChange)="onOrderSearch($event)"
+          ></app-search>
+        </div>
+        @if (!form.get('origin_warehouse_id')?.value) {
+          <p class="hint">Selecciona un almacén origen para listar órdenes.</p>
+        } @else if (loadingOrders()) {
+          <p class="hint">Cargando…</p>
+        } @else if (!orders().length) {
+          <p class="hint">No hay órdenes Surtida en este almacén.</p>
+        } @else {
+          <div class="order-list">
+            @for (order of orders(); track order.id) {
+              <label class="order-row">
+                <input
+                  type="checkbox"
+                  [checked]="isSelected(order.id)"
+                  (change)="toggleOrder(order.id)"
+                />
+                <span>{{ orderLabel(order) }}</span>
+              </label>
+            }
+          </div>
+          <div class="pager">
+            <button type="button" [disabled]="orderPage <= 1" (click)="prevOrderPage()">
+              Anterior
+            </button>
+            <span>
+              Página {{ orderPage }} de {{ orderTotalPages }}
+              · {{ orderTotal }} orden{{ orderTotal === 1 ? '' : 'es' }}
+            </span>
+            <button
+              type="button"
+              [disabled]="orderPage >= orderTotalPages"
+              (click)="nextOrderPage()"
+            >
+              Siguiente
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="create-shipping__footer">
+      <app-button text="Cancelar" custom_class="btn_secondary" [fullWidth]="false" (clicked)="close()"></app-button>
+      <app-button
+        text="Vista previa"
+        variant="primary"
+        [fullWidth]="false"
+        [disabled]="previewing()"
+        (clicked)="runPreview()"
+      ></app-button>
+    </div>
+  } @else if (preview(); as p) {
+    <div class="create-shipping__header create-shipping__header--preview">
+      <div class="preview-title">
+        <h2>Vista previa del envío</h2>
+        <span class="preview-date">{{ form.get('shipping_date')?.value }}</span>
+        <span class="preview-badge">Borrador</span>
+        <span class="preview-km">
+          {{
+            p.estimated_distance_km != null
+              ? p.estimated_distance_km.toFixed(1) + ' km'
+              : 'Distancia —'
+          }}
+        </span>
+      </div>
+      <lucide-icon [img]="X" class="cursor-pointer w-5 h-5 text-gray-500" (click)="close()"></lucide-icon>
+    </div>
+
+    <div class="preview-meta">
+      <div>
+        <span>CEDIS origen</span>
+        {{ originLabel(p.origin) }}
+      </div>
+      <div>
+        <span>Chofer</span>
+        {{ selectedDriverName() }}
+      </div>
+      <div>
+        <span>Camión</span>
+        {{ selectedTruckName() }}
+      </div>
+    </div>
+
+    @if ((p.missing_location_count ?? 0) > 0 || isOriginMissing()) {
+      <div class="banner-warn">
+        Hay ubicaciones incompletas — completa GPS o crea con distancia parcial.
+      </div>
+    }
+
+    <div class="create-shipping__preview-body">
+      <div class="preview-layout">
+        <aside class="preview-route">
+          <div class="preview-section">
+            <h4>Origen</h4>
+            <div class="stop-card" [class.stop-card--warn]="isOriginMissing()">
+              <div class="stop-card__seq" [class.stop-card__seq--warn]="isOriginMissing()">0</div>
+              <div class="stop-card__body">
+                <strong>{{ originLabel(p.origin) }}</strong>
+                <p class="stop-card__sub">{{ p.origin?.address_summary || 'Punto de salida' }}</p>
+                @if (isOriginMissing()) {
+                  <p class="warn-text">Este CEDIS no tiene ubicación registrada</p>
+                  <button type="button" class="link-btn" (click)="openEditOrigin()">
+                    Agregar / editar ubicación
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-section">
+            <h4>Órdenes de venta ({{ previewOrders().length }})</h4>
+            @for (o of previewOrders(); track o.sales_order_id) {
+              <div
+                class="stop-card"
+                [class.stop-card--warn]="o.location_status === 'without_location'"
+              >
+                <div
+                  class="stop-card__seq"
+                  [class.stop-card__seq--warn]="o.location_status === 'without_location'"
+                >
+                  {{ $index + 1 }}
+                </div>
+                <div class="stop-card__body">
+                  <div class="stop-card__row">
+                    <strong>{{ o.folio || o.order_number || o.sales_order_id.slice(0, 8) }}</strong>
+                    @if (o.location_status !== 'without_location') {
+                      <span class="ok-pill">GPS OK</span>
+                    }
+                  </div>
+                  <p>{{ o.customer_name || 'Cliente' }}</p>
+                  <p class="stop-card__addr">{{ o.address_summary || 'Sin dirección' }}</p>
+                  @if (o.distance_from_previous_km != null) {
+                    <span class="stop-card__leg"
+                      >Desde anterior: {{ formatKm(o.distance_from_previous_km) }}</span
+                    >
+                  }
+                  @if (stopNeedsAddress(o)) {
+                    <p class="warn-text">Sin dirección de entrega</p>
+                    <button type="button" class="link-btn" (click)="openAddCustomerAddress(o)">
+                      Agregar dirección
+                    </button>
+                  } @else if (stopNeedsGps(o)) {
+                    <p class="warn-text">Sin coordenadas GPS</p>
+                    <button type="button" class="link-btn" (click)="openEditCustomerAddress(o)">
+                      Editar dirección
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </aside>
+
+        <div class="preview-map">
+          <app-shipping-map
+            [active]="true"
+            [origin]="p.origin || null"
+            [previewOrders]="previewOrders()"
+            [routePoints]="routePoints()"
+          ></app-shipping-map>
+        </div>
+      </div>
+    </div>
+
+    <div class="create-shipping__footer">
+      <app-button text="Volver" custom_class="btn_secondary" [fullWidth]="false" (clicked)="backToForm()"></app-button>
+      <app-button
+        text="Actualizar preview"
+        custom_class="btn_secondary"
+        [fullWidth]="false"
+        [disabled]="previewing()"
+        (clicked)="refreshPreview()"
+      ></app-button>
+      <app-button
+        text="Crear envío"
+        variant="primary"
+        [fullWidth]="false"
+        [disabled]="creating() || previewing()"
+        (clicked)="create()"
+      ></app-button>
+    </div>
+  }
+</div>

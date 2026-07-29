@@ -51,6 +51,14 @@ export class CustomerService {
     return this.http.get(`${this.api}/tenant/customers/${id}/addresses`);
   }
 
+  createCustomerAddress(customerId: string, data: Partial<any>): Observable<any> {
+    return this.http.post(`${this.api}/tenant/customers/${customerId}/addresses`, data);
+  }
+
+  updateCustomerAddress(customerId: string, addressId: string | number, data: Partial<any>): Observable<any> {
+    return this.http.put(`${this.api}/tenant/customers/${customerId}/addresses/${addressId}`, data);
+  }
+
   getCustomerActivities(id: string, page: number = 1, limit: number = 10): Observable<any> {
     return this.http.get(`${this.api}/tenant/customers/${id}/activities`, {
       params: { page, limit }

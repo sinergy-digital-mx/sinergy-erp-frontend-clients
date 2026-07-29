@@ -1,0 +1,187 @@
+@if (loading()) {
+  <div class="sv__loading" [class.sv--embedded]="embedded">Cargando envío…</div>
+} @else if (errorMessage()) {
+  <div class="sv__empty" [class.sv--embedded]="embedded">{{ errorMessage() }}</div>
+} @else if (shipping(); as s) {
+  <div class="sv" [class.sv--embedded]="embedded">
+    <div class="sv__header">
+      <div class="sv__title">
+        <h2>Envío{{ s.short_id ? ' #' + s.short_id : '' }}</h2>
+        <span class="sv__date">{{ formatDate(s.shipping_date) }}</span>
+        <span
+          class="sv__badge"
+          [style.background]="statusColors(s.status).background"
+          [style.color]="statusColors(s.status).text"
+        >
+          {{ s.status }}
+        </span>
+        <span class="sv__km">{{ distanceLabel() }}</span>
+      </div>
+      <div class="sv__actions">
+        @if (nextStatuses().length) {
+          <select
+            *hasPermission="permissions.update"
+            class="sv__status-select"
+            [disabled]="statusUpdating()"
+            [ngModel]="''"
+            (ngModelChange)="onStatusSelect($event)"
+          >
+            <option value="" disabled>Cambiar estado…</option>
+            @for (st of nextStatuses(); track st) {
+              <option [value]="st">{{ st }}</option>
+            }
+          </select>
+        }
+        <button
+          *hasPermission="permissions.update"
+          type="button"
+          class="sv__icon-btn"
+          title="Recalcular distancia"
+          [disabled]="recalculating()"
+          (click)="recalculate()"
+        >
+          <lucide-icon [img]="RefreshCw" class="w-4 h-4"></lucide-icon>
+        </button>
+        @if (showClose) {
+          <lucide-icon
+            [img]="X"
+            class="cursor-pointer w-5 h-5 text-gray-500"
+            (click)="close()"
+          ></lucide-icon>
+        }
+      </div>
+    </div>
+
+    <div class="sv__meta">
+      <div>
+        <span>CEDIS origen</span>
+        {{ originLabel() }}
+      </div>
+      <div><span>Chofer</span>{{ s.driver_name || '—' }}</div>
+      <div>
+        <span>Camión</span>
+        {{ s.truck_name || '—' }}{{ s.truck_placa ? ' · ' + s.truck_placa : '' }}
+      </div>
+      @if (s.notes) {
+        <div class="sv__notes"><span>Notas</span>{{ s.notes }}</div>
+      }
+    </div>
+
+    @if (gpsSummary(); as gps) {
+      @if (gps.total > 0) {
+        <div class="sv__banner">
+          @if (gps.missingStops > 0 && gps.originMissing) {
+            Hay {{ gps.missingStops }} tienda{{ gps.missingStops === 1 ? '' : 's' }} sin
+            coordenadas y el CEDIS sin GPS — corrige para recalcular la ruta.
+          } @else if (gps.originMissing) {
+            El CEDIS origen no tiene ubicación GPS — agrégala para trazar la ruta.
+          } @else {
+            Hay {{ gps.missingStops }} tienda{{ gps.missingStops === 1 ? '' : 's' }} sin
+            coordenadas — completa GPS para verlas en el mapa.
+          }
+        </div>
+      }
+    }
+
+    <div class="sv__body">
+      <aside class="sv__route">
+        <div class="sv__section">
+          <h4>Origen</h4>
+          <div class="stop" [class.stop--warn]="isOriginMissing()">
+            <div class="stop__seq" [class.stop__seq--warn]="isOriginMissing()">0</div>
+            <div class="stop__body">
+              <div class="stop__row">
+                <strong>{{ originLabel() }}</strong>
+                @if (!isOriginMissing()) {
+                  <span class="ok-pill">GPS OK</span>
+                }
+              </div>
+              <p class="stop__muted">{{ s.origin?.address_summary || 'Punto de salida' }}</p>
+              @if (isOriginMissing()) {
+                <p class="warn-text">Este CEDIS no tiene ubicación registrada</p>
+                <button
+                  type="button"
+                  class="link-btn"
+                  *hasPermission="permissions.update"
+                  (click)="openEditOrigin()"
+                >
+                  Agregar / editar ubicación
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="sv__section">
+          <h4>Órdenes de venta ({{ stops().length }})</h4>
+          @for (stop of stops(); track stop.sales_order_id) {
+            <div
+              class="stop"
+              [class.stop--warn]="!stop.hasCoords"
+              [class.stop--current]="isCurrentStop(stop)"
+            >
+              <div class="stop__seq" [class.stop__seq--warn]="!stop.hasCoords">
+                {{ stop.stop_sequence ?? $index + 1 }}
+              </div>
+              <div class="stop__body">
+                <div class="stop__row">
+                  @if (allowOpenOrderDetail) {
+                    <button type="button" class="link-btn strong" (click)="openOrder(stop)">
+                      {{ stopLabel(stop) }}
+                    </button>
+                  } @else {
+                    <strong>{{ stopLabel(stop) }}</strong>
+                  }
+                  @if (stop.hasCoords) {
+                    <span class="ok-pill">GPS OK</span>
+                  }
+                  @if (isCurrentStop(stop)) {
+                    <span class="chip">Esta OV</span>
+                  }
+                </div>
+                <p>{{ stop.customer_name || 'Cliente' }}</p>
+                <p class="stop__muted">{{ stop.address_summary || 'Sin dirección' }}</p>
+                @if (stop.legDistanceLabel) {
+                  <span class="stop__leg">Desde anterior: {{ stop.legDistanceLabel }}</span>
+                }
+                @if (!stop.hasCoords) {
+                  <p class="warn-text">
+                    {{ stop.needsAddress ? 'Sin dirección de entrega' : 'Sin coordenadas GPS' }}
+                  </p>
+                  <button
+                    type="button"
+                    class="link-btn"
+                    *hasPermission="permissions.update"
+                    (click)="openFixStopGps(stop)"
+                  >
+                    {{ stop.needsAddress ? 'Agregar dirección' : 'Editar / corregir GPS' }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (isCreado()) {
+          <div class="sv__add">
+            <app-button
+              *hasPermission="permissions.create"
+              text="Agregar OV"
+              custom_class="btn_secondary"
+              [fullWidth]="false"
+              (clicked)="openAddStops()"
+            ></app-button>
+          </div>
+        }
+      </aside>
+
+      <div class="sv__map">
+        <app-shipping-map
+          [active]="active"
+          [origin]="s.origin || null"
+          [stops]="stops()"
+        ></app-shipping-map>
+      </div>
+    </div>
+  </div>
+}

@@ -106,8 +106,8 @@ export class WarehouseListComponent implements OnDestroy {
 
   openCreateWarehouseModal() {
     const dialogRef = this.dialog.open(WarehouseDetailModalComponent, {
-      width: '80vw',
-      maxWidth: '1000px',
+      width: '960px',
+      maxWidth: '96vw',
       data: { warehouse: null }
     });
 
@@ -120,8 +120,8 @@ export class WarehouseListComponent implements OnDestroy {
 
   viewDetail(warehouse: Warehouse) {
     const dialogRef = this.dialog.open(WarehouseDetailModalComponent, {
-      width: '80vw',
-      maxWidth: '1000px',
+      width: '960px',
+      maxWidth: '96vw',
       data: { warehouse }
     });
 

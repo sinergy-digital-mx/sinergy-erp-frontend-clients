@@ -295,22 +295,38 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-// Custom scrollbar for the sidebar
-.sidebar::-webkit-scrollbar {
-  width: 5px;
-}
+// Thin, theme-matched scrollbar (Firefox + Chromium/WebKit on Mac & Windows)
+.sidebar__nav-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
 
-.sidebar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-}
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
 
-.sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 8px 0;
+  }
 
-.sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
+  }
+
+  &::-webkit-scrollbar-thumb:active {
+    background-color: rgba(255, 255, 255, 0.4);
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 .mobile-close-btn {

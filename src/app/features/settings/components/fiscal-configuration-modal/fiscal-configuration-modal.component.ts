@@ -230,8 +230,8 @@ export class FiscalConfigurationModalComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(BranchModalComponent, {
-      width: '92vw',
-      maxWidth: '680px',
+      width: '960px',
+      maxWidth: '96vw',
       data: {
         fiscalConfigId: this.data.fiscalConfig.id,
         branchId: branch?.id || null

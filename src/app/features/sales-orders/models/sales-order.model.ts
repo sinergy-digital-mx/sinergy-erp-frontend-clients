@@ -5,7 +5,7 @@ import {
   SalesOrderPaymentsSummary,
 } from './sales-order-payment.model';
 
-export type SalesOrderStatus = 'Creada' | 'Surtida' | 'Cancelada';
+export type SalesOrderStatus = 'Creada' | 'Surtida' | 'En Camino' | 'Cancelada';
 export type SalesPaymentStatus = 'Pendiente' | 'Pagado';
 export type SalesOrderType = 'POS' | 'MANUAL';
 
@@ -214,10 +214,24 @@ export interface SalesOrder {
   documents?: SalesOrderDocument[];
   payments?: SalesOrderPayment[];
   payments_summary?: SalesOrderPaymentsSummary;
+  shipping?: SalesOrderShippingInfo;
   created_by?: string;
   updated_by?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface SalesOrderShippingInfo {
+  has_shipping: boolean;
+  shipping_id?: string;
+  status?: string;
+  driver_name?: string;
+  truck_name?: string;
+  stop_sequence?: number;
+  route_summary?: {
+    distance_km?: number;
+    stops_count?: number;
+  };
 }
 
 export interface SalesOrderFilters {
@@ -293,6 +307,7 @@ export interface SalesOrderDetailPayload {
   discount_summary?: SalesOrderDiscountSummary;
   applied_line_discounts?: SalesOrderAppliedProductDiscount[];
   applied_global_discount?: SalesOrderAppliedGlobalDiscount | null;
+  shipping?: SalesOrderShippingInfo;
 }
 
 export function normalizeSalesOrderDiscountSummary(raw: unknown): SalesOrderDiscountSummary | null {

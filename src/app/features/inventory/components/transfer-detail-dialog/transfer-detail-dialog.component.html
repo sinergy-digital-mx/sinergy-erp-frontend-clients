@@ -1,9 +1,21 @@
 <div class="transfer-detail">
   <div class="transfer-detail__header">
     <h2 class="transfer-detail__title">{{ transfer()?.folio || 'Transferencia' }}</h2>
-    <button type="button" class="transfer-detail__close" (click)="close()" aria-label="Cerrar">
-      <lucide-icon [img]="X" class="w-5 h-5"></lucide-icon>
-    </button>
+    <div class="transfer-detail__actions">
+      @if (transfer()) {
+        <button
+          type="button"
+          class="transfer-detail__pdf-btn"
+          (click)="downloadPdf()"
+          [disabled]="downloadingPdf()">
+          <lucide-icon [img]="Download" class="w-4 h-4"></lucide-icon>
+          {{ downloadingPdf() ? 'Descargando...' : 'Descargar PDF' }}
+        </button>
+      }
+      <button type="button" class="transfer-detail__close" (click)="close()" aria-label="Cerrar">
+        <lucide-icon [img]="X" class="w-5 h-5"></lucide-icon>
+      </button>
+    </div>
   </div>
 
   @if (loading()) {

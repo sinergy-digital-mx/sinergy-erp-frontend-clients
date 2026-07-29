@@ -29,6 +29,11 @@
         <span class="status-badge" [ngClass]="getStatusBadgeClass()">
           {{ order()!.general_status || '-' }}
         </span>
+        @if (shippingInfo()?.has_shipping) {
+          <span class="status-badge status-badge--invoice">
+            En envío{{ shippingInfo()?.status ? ' · ' + shippingInfo()!.status : '' }}
+          </span>
+        }
         <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">
           <i class="fi fi-rr-cross-small"></i>
         </button>
@@ -275,6 +280,9 @@
           <button class="tab-button" [class.active]="activeTabIndex() === 2" (click)="activeTabIndex.set(2)">Documentos</button>
           <button class="tab-button" [class.active]="activeTabIndex() === 3" (click)="activeTabIndex.set(3)">Lotes</button>
           <button class="tab-button" [class.active]="activeTabIndex() === 4" (click)="activeTabIndex.set(4)">Facturación</button>
+          @if (canViewShippingTab()) {
+            <button class="tab-button" [class.active]="activeTabIndex() === 5" (click)="activeTabIndex.set(5)">Envío</button>
+          }
         </div>
 
         <div class="tabs-content">
@@ -638,6 +646,16 @@
                   }
                 </tbody>
               </table>
+            </div>
+          }
+
+          @if (activeTabIndex() === 5 && order()) {
+            <div class="tab-content-wrapper">
+              <app-sales-order-shipping-tab
+                [salesOrderId]="order()!.id"
+                [shipping]="shippingInfo()"
+                [active]="activeTabIndex() === 5"
+              ></app-sales-order-shipping-tab>
             </div>
           }
         </div>

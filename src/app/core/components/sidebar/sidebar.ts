@@ -25,6 +25,8 @@ import {
   X,
   Landmark,
   UserCog,
+  Truck,
+  CalendarDays,
 } from 'lucide-angular';
 import { DIVINO_DASHBOARD_TENANT_ID } from '../../../features/divino-dashboard/config/divino-dashboard.constants';
 import { DIVINO_DASHBOARD_PERMISSIONS } from '../../../features/divino-dashboard/config/permissions.config';
@@ -69,7 +71,14 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     id: 'operation',
     title: 'Operación',
-    itemIds: ['menu-purchase-orders', 'menu-sales-orders', 'menu-inventory', 'menu-pos'],
+    itemIds: [
+      'menu-purchase-orders',
+      'menu-sales-orders',
+      'menu-shippings',
+      'menu-trucks',
+      'menu-inventory',
+      'menu-pos',
+    ],
   },
   {
     id: 'accounting',
@@ -150,6 +159,20 @@ export class Sidebar implements OnInit, OnDestroy {
       icon: ShoppingBag,
       id: 'menu-sales-orders',
       permission: PERMISSIONS.salesOrders.viewMenu
+    },
+    {
+      label: 'Envíos',
+      route: '/logistics/shippings',
+      icon: CalendarDays,
+      id: 'menu-shippings',
+      permissions: [PERMISSIONS.shippings.viewMenu, PERMISSIONS.shippings.viewList],
+    },
+    {
+      label: 'Camiones',
+      route: '/logistics/trucks',
+      icon: Truck,
+      id: 'menu-trucks',
+      permissions: [PERMISSIONS.trucks.viewMenu, PERMISSIONS.trucks.viewList],
     },
     {
       label: 'Inventario',

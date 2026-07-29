@@ -1,0 +1,66 @@
+<div class="loc-map" [formGroup]="formGroup">
+  <div class="loc-map__layout">
+    @if (showAddressFields) {
+      <div class="loc-map__fields">
+        <div class="loc-map__full">
+          <label>{{ streetLabel }}</label>
+          <input type="text" [formControlName]="streetControl" />
+        </div>
+        <div>
+          <label>Ciudad</label>
+          <input type="text" [formControlName]="cityControl" />
+        </div>
+        <div>
+          <label>Estado</label>
+          <input type="text" [formControlName]="stateControl" />
+        </div>
+        <div>
+          <label>{{ postalLabel }}</label>
+          <input type="text" [formControlName]="postalControl" />
+        </div>
+        <div>
+          <label>País</label>
+          <input type="text" [formControlName]="countryControl" />
+        </div>
+        <div>
+          <label>Latitud{{ coordsRequired ? ' *' : ' (GPS)' }}</label>
+          <input type="number" step="any" [formControlName]="latitudeControl" placeholder="32.5149" />
+        </div>
+        <div>
+          <label>Longitud{{ coordsRequired ? ' *' : ' (GPS)' }}</label>
+          <input type="number" step="any" [formControlName]="longitudeControl" placeholder="-117.0382" />
+        </div>
+        <div class="loc-map__actions">
+          <button type="button" class="loc-map__btn" (click)="locateOnMap()" [disabled]="geocoding()">
+            {{ geocoding() ? 'Buscando…' : 'Ubicar en mapa' }}
+          </button>
+          <button type="button" class="loc-map__btn" (click)="useBrowserLocation()">
+            Usar mi ubicación actual
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="loc-map__actions loc-map__actions--solo">
+        <button type="button" class="loc-map__btn" (click)="locateOnMap()" [disabled]="geocoding()">
+          {{ geocoding() ? 'Buscando…' : 'Ubicar en mapa' }}
+        </button>
+        <button type="button" class="loc-map__btn" (click)="useBrowserLocation()">
+          Usar mi ubicación actual
+        </button>
+      </div>
+    }
+
+    <div class="loc-map__panel">
+      <p class="loc-map__hint">Arrastra el pin para confirmar la ubicación</p>
+      @if (mapError()) {
+        <div class="loc-map__fallback">{{ mapError() }}</div>
+      }
+      <div class="loc-map__wrap">
+        @if (mapLoading()) {
+          <div class="loc-map__loading">Cargando mapa…</div>
+        }
+        <div #mapContainer class="loc-map__canvas"></div>
+      </div>
+    </div>
+  </div>
+</div>

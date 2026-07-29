@@ -41,7 +41,7 @@ export class BatchDetailDialogComponent implements OnInit {
   activeTab = 'general';
   tabs = [
     { id: 'general', label: 'General' },
-    { id: 'movimientos', label: 'Movimientos' },
+    { id: 'transferencias', label: 'Transferencias' },
     { id: 'auditorias', label: 'Auditorías' },
     { id: 'foto', label: 'Foto' },
     { id: 'etiqueta', label: 'Etiqueta' },
@@ -134,12 +134,14 @@ export class BatchDetailDialogComponent implements OnInit {
       data: {
         product_id: b.product_id,
         warehouse_id: b.warehouse_id,
+        uom_id: b.uom_id,
         preselected_batch_id: b.id,
         preselected_quantity: this.toNum(b.available_quantity),
       },
-      width: '900px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
+      width: 'min(1180px, 96vw)',
+      maxWidth: '96vw',
+      maxHeight: '92vh',
+      panelClass: 'transfer-dialog-panel',
     }).afterClosed().subscribe((success) => {
       if (success) {
         this.reloadBatch();

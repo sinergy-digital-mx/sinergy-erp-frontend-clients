@@ -65,14 +65,13 @@ export class InventoryBatchListComponent implements OnInit {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Lote', prop: 'batch_number', sortable: true, canAutoResize: false, width: 130 },
+      { name: 'Lote', prop: 'batch_number', sortable: true, canAutoResize: false, width: 160 },
       { name: 'Producto', prop: 'product_name', sortable: true, canAutoResize: false, width: 180 },
       { name: 'Almacén', prop: 'warehouse_name', sortable: false, canAutoResize: false, width: 130 },
       { name: 'Cantidad', prop: 'quantity', sortable: true, canAutoResize: false, width: 100 },
       { name: 'Orden de Compra', prop: 'purchase_order_id', sortable: false, canAutoResize: false, width: 140 },
       { name: 'TAG', prop: 'source_tag_identifier', sortable: false, canAutoResize: false, width: 160 },
       { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
-      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: false, width: 110 },
     ],
     externalPaging: true,
     externalSorting: true,
@@ -222,10 +221,12 @@ export class InventoryBatchListComponent implements OnInit {
       data: {
         product_id: item.product_id,
         warehouse_id: item.warehouse_id,
+        uom_id: item.uom_id,
       },
-      width: '900px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
+      width: 'min(1180px, 96vw)',
+      maxWidth: '96vw',
+      maxHeight: '92vh',
+      panelClass: 'transfer-dialog-panel',
     }).afterClosed().subscribe((success) => {
       if (success) {
         this.loadSummary();
@@ -234,34 +235,6 @@ export class InventoryBatchListComponent implements OnInit {
         }
       }
     });
-  }
-
-  openTransferFromBatch(batch: InventoryBatch, event: Event): void {
-    event.stopPropagation();
-    const qty = typeof batch.quantity === 'string' ? parseFloat(batch.quantity) : batch.quantity;
-    this.dialog.open(CreateTransferDialogComponent, {
-      data: {
-        product_id: batch.product_id,
-        warehouse_id: batch.warehouse_id,
-        preselected_batch_id: batch.id,
-        preselected_quantity: isNaN(qty) ? 0 : qty,
-      },
-      width: '900px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-    }).afterClosed().subscribe((success) => {
-      if (success) {
-        this.loadBatches();
-        if (this.activeTabIndex() === 1) {
-          this.loadSummary();
-        }
-      }
-    });
-  }
-
-  batchHasStock(batch: InventoryBatch): boolean {
-    const qty = typeof batch.quantity === 'string' ? parseFloat(batch.quantity) : batch.quantity;
-    return !isNaN(qty) && qty > 0;
   }
 
   openPurchaseOrderDetail(batch: InventoryBatch, event: Event): void {

@@ -2,13 +2,17 @@ export interface BranchWarehouse {
   id?: string;
   name: string;
   code?: string;
+  prefix?: string;
   description?: string;
   street?: string;
   city?: string;
   state?: string;
   zip_code?: string;
   country?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   status?: 'active' | 'inactive';
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface Branch {
@@ -21,6 +25,8 @@ export interface Branch {
   country: string;
   postal_code: string;
   phone: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status: number;
   display_name: string;
   warehouses_count?: number;
@@ -37,6 +43,8 @@ export interface CreateBranchDto {
   country: string;
   postal_code: string;
   phone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status?: number;
   warehouses?: BranchWarehouse[];
 }
@@ -49,6 +57,8 @@ export interface UpdateBranchDto {
   country?: string;
   postal_code?: string;
   phone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status?: number;
   warehouses?: BranchWarehouse[];
 }

@@ -5,7 +5,8 @@ import { InventoryTransferService } from '../../services/inventory-transfer.serv
 import { InventoryTransfer } from '../../models/inventory-transfer.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
-import { X, ArrowUpRight, ArrowDownLeft } from 'lucide-angular';
+import { ToastService } from '../../../../core/services/toast.service';
+import { X, ArrowUpRight, ArrowDownLeft, Download } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
@@ -19,15 +20,18 @@ export class TransferDetailDialogComponent implements OnInit {
   readonly X = X;
   readonly ArrowUpRight = ArrowUpRight;
   readonly ArrowDownLeft = ArrowDownLeft;
+  readonly Download = Download;
 
   transfer = signal<InventoryTransfer | null>(null);
   loading = signal(true);
+  downloadingPdf = signal(false);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { transferId: string },
     private dialogRef: MatDialogRef<TransferDetailDialogComponent>,
     private transferService: InventoryTransferService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -42,6 +46,28 @@ export class TransferDetailDialogComponent implements OnInit {
 
   close(): void {
     this.dialogRef.close();
+  }
+
+  downloadPdf(): void {
+    const t = this.transfer();
+    if (!t || this.downloadingPdf()) return;
+
+    this.downloadingPdf.set(true);
+    this.transferService.downloadTransferPdf(t.id, t.folio).subscribe({
+      next: ({ blob, filename }) => {
+        this.downloadingPdf.set(false);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.downloadingPdf.set(false);
+        this.toast.error(err?.message || 'No se pudo descargar el PDF');
+      },
+    });
   }
 
   formatDate(dateString: string): string {

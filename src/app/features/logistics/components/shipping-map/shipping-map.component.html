@@ -1,0 +1,18 @@
+<div class="shipping-map">
+  @if (!active) {
+    <div class="shipping-map__empty">Mapa inactivo</div>
+  } @else if (empty) {
+    <div class="shipping-map__empty">
+      Sin coordenadas para mostrar el mapa.
+      <p class="shipping-map__hint">Carga GPS en el CEDIS origen y en las direcciones de entrega.</p>
+    </div>
+  } @else {
+    @if (mapLoading()) {
+      <div class="shipping-map__overlay">Cargando mapa…</div>
+    }
+    @if (mapError(); as err) {
+      <div class="shipping-map__empty">{{ err }}</div>
+    }
+    <div #mapHost class="shipping-map__host" [class.shipping-map__host--hidden]="!!mapError()"></div>
+  }
+</div>

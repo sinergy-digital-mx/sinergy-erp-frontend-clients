@@ -2,8 +2,9 @@ import { Component, Inject, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { LucideAngularModule, X, ArrowRightLeft } from 'lucide-angular';
+import { LucideAngularModule, X, ArrowRightLeft, Search } from 'lucide-angular';
 import { InventoryTransferService } from '../../services/inventory-transfer.service';
+import { InventoryService } from '../../services/inventory.service';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { BranchService } from '../../../settings/services/branch.service';
 import {
@@ -11,6 +12,7 @@ import {
   TransferContext,
   TransferContextBatch,
 } from '../../models/inventory-transfer.model';
+import { InventorySummaryItem } from '../../models/inventory-item.model';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { Branch } from '../../../settings/models/branch.model';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -31,22 +33,45 @@ interface BatchLineState {
 export class CreateTransferDialogComponent implements OnInit {
   readonly X = X;
   readonly ArrowRightLeft = ArrowRightLeft;
+  readonly Search = Search;
+
+  /** false = elegir producto/almacén origen; true = flujo de transferencia */
+  stepReady = signal(false);
 
   context = signal<TransferContext | null>(null);
   batchLines = signal<BatchLineState[]>([]);
-  loading = signal(true);
+  loading = signal(false);
   submitting = signal(false);
+  searchingOrigin = signal(false);
 
   branches = signal<Branch[]>([]);
   warehouses = signal<Warehouse[]>([]);
+  originCandidates = signal<InventorySummaryItem[]>([]);
+
+  originBranchId = signal('');
+  originWarehouseId = signal('');
+  originSearch = signal('');
 
   selectedBranchId = signal('');
   selectedWarehouseId = signal('');
   notes = signal('');
 
+  private productId = '';
+  private warehouseId = '';
+  /** UOM del stock a transferir (lote / totalizado), no el default del producto */
+  private uomId = '';
+
+  originWarehouses = computed(() => {
+    const branchId = this.originBranchId();
+    if (!branchId) return [];
+    return this.warehouses().filter(
+      w => w.billing_branch_id === branchId && w.status === 'active'
+    );
+  });
+
   destinationWarehouses = computed(() => {
     const branchId = this.selectedBranchId();
-    const sourceId = this.context()?.source_warehouse.id;
+    const sourceId = this.context()?.source_warehouse.id ?? this.warehouseId;
     if (!branchId) return [];
 
     return this.warehouses().filter(
@@ -65,7 +90,7 @@ export class CreateTransferDialogComponent implements OnInit {
   );
 
   canSubmit = computed(() => {
-    if (this.submitting() || this.loading()) return false;
+    if (this.submitting() || this.loading() || !this.stepReady()) return false;
     if (!this.selectedWarehouseId()) return false;
     if (this.totalToTransfer() <= 0) return false;
     if (this.selectedLinesCount() === 0) return false;
@@ -79,20 +104,37 @@ export class CreateTransferDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: CreateTransferDialogData,
     private dialogRef: MatDialogRef<CreateTransferDialogComponent>,
     private transferService: InventoryTransferService,
+    private inventoryService: InventoryService,
     private warehouseService: WarehouseService,
     private branchService: BranchService,
     private toast: ToastService
   ) {}
 
   ngOnInit(): void {
-    this.loadContext();
     this.loadBranchesAndWarehouses();
+
+    if (this.data.product_id && this.data.warehouse_id) {
+      this.productId = this.data.product_id;
+      this.warehouseId = this.data.warehouse_id;
+      this.uomId = this.data.uom_id || '';
+      this.stepReady.set(true);
+      this.loadContext();
+    } else {
+      this.stepReady.set(false);
+      this.loading.set(false);
+    }
   }
 
   private loadContext(): void {
     this.loading.set(true);
-    this.transferService.getContext(this.data.product_id, this.data.warehouse_id).subscribe({
+    this.transferService.getContext(this.productId, this.warehouseId, this.uomId || undefined).subscribe({
       next: (ctx) => {
+        // Preferir UOM del lote/origen; el context sin uom_id puede devolver el UOM default del producto
+        if (this.uomId) {
+          ctx = { ...ctx, uom_id: this.uomId };
+        } else if (ctx.uom_id) {
+          this.uomId = ctx.uom_id;
+        }
         this.context.set(ctx);
         this.initBatchLines(ctx);
         this.loading.set(false);
@@ -100,7 +142,11 @@ export class CreateTransferDialogComponent implements OnInit {
       error: (err) => {
         this.loading.set(false);
         this.toast.error(err.message || 'No se pudo cargar el contexto de transferencia');
-        this.dialogRef.close(false);
+        if (this.data.product_id) {
+          this.dialogRef.close(false);
+        } else {
+          this.stepReady.set(false);
+        }
       },
     });
   }
@@ -114,8 +160,10 @@ export class CreateTransferDialogComponent implements OnInit {
       const available = this.toNum(batch.available_quantity);
       return {
         batch,
-        selected: isPreselected,
-        quantity: isPreselected ? (preselectedQty ?? available) : 0,
+        selected: isPreselected || (!preselectedId && available > 0 && ctx.batches.length === 1),
+        quantity: isPreselected
+          ? (preselectedQty ?? available)
+          : (!preselectedId && ctx.batches.length === 1 ? available : 0),
       };
     });
 
@@ -128,7 +176,7 @@ export class CreateTransferDialogComponent implements OnInit {
       error: () => this.toast.error('No se pudieron cargar las sucursales'),
     });
 
-    this.warehouseService.getWarehouses({ limit: 500, status: 'active' }).subscribe({
+    this.warehouseService.getWarehouses({ limit: 100, status: 'active' }).subscribe({
       next: (response) => this.warehouses.set(response.data || []),
       error: () => this.toast.error('No se pudieron cargar los almacenes'),
     });
@@ -149,6 +197,73 @@ export class CreateTransferDialogComponent implements OnInit {
 
   branchLabel(branch: Branch): string {
     return `${branch.code} — ${branch.city}, ${branch.state}`;
+  }
+
+  warehouseOptionLabel(wh: Warehouse): string {
+    return wh.code ? `${wh.code} — ${wh.name}` : wh.name;
+  }
+
+  onOriginBranchChange(branchId: string): void {
+    this.originBranchId.set(branchId);
+    this.originWarehouseId.set('');
+    this.originCandidates.set([]);
+  }
+
+  onOriginWarehouseChange(warehouseId: string): void {
+    this.originWarehouseId.set(warehouseId);
+    this.originCandidates.set([]);
+    if (warehouseId) {
+      this.searchOriginProducts();
+    }
+  }
+
+  searchOriginProducts(): void {
+    const warehouseId = this.originWarehouseId();
+    if (!warehouseId) {
+      this.toast.error('Selecciona el almacén origen');
+      return;
+    }
+
+    this.searchingOrigin.set(true);
+    this.inventoryService
+      .getSummary(
+        {
+          warehouse_id: warehouseId,
+          search: this.originSearch().trim() || undefined,
+          only_available: true,
+        },
+        { page: 1, limit: 50 }
+      )
+      .subscribe({
+        next: (response) => {
+          this.originCandidates.set(response.data || []);
+          this.searchingOrigin.set(false);
+        },
+        error: () => {
+          this.searchingOrigin.set(false);
+          this.toast.error('No se pudo buscar stock en el almacén');
+        },
+      });
+  }
+
+  selectOrigin(item: InventorySummaryItem): void {
+    this.productId = item.product_id;
+    this.warehouseId = item.warehouse_id;
+    this.uomId = item.uom_id;
+    this.stepReady.set(true);
+    this.loadContext();
+  }
+
+  backToOrigin(): void {
+    this.stepReady.set(false);
+    this.context.set(null);
+    this.batchLines.set([]);
+    this.selectedBranchId.set('');
+    this.selectedWarehouseId.set('');
+    this.notes.set('');
+    this.productId = '';
+    this.warehouseId = '';
+    this.uomId = '';
   }
 
   toggleBatch(index: number, selected: boolean): void {
@@ -229,8 +344,13 @@ export class CreateTransferDialogComponent implements OnInit {
 
     this.submitting.set(true);
 
-    this.transferService.getContext(this.data.product_id, this.data.warehouse_id).subscribe({
+    this.transferService.getContext(this.productId, this.warehouseId, this.uomId || undefined).subscribe({
       next: (freshCtx) => {
+        if (this.uomId) {
+          freshCtx = { ...freshCtx, uom_id: this.uomId };
+        } else if (freshCtx.uom_id) {
+          this.uomId = freshCtx.uom_id;
+        }
         this.context.set(freshCtx);
         this.submitTransfer(freshCtx);
       },
@@ -249,9 +369,16 @@ export class CreateTransferDialogComponent implements OnInit {
         quantity: l.quantity,
       }));
 
+    const uomId = this.uomId || ctx.uom_id;
+    if (!uomId) {
+      this.submitting.set(false);
+      this.toast.error('No se pudo determinar la unidad de medida del lote');
+      return;
+    }
+
     const payload = {
       product_id: ctx.product_id,
-      uom_id: ctx.uom_id,
+      uom_id: uomId,
       source_warehouse_id: ctx.source_warehouse.id,
       destination_warehouse_id: this.selectedWarehouseId(),
       notes: this.notes().trim() || undefined,
@@ -286,5 +413,9 @@ export class CreateTransferDialogComponent implements OnInit {
     if (!wh?.billing_branch) return '';
     const bb = wh.billing_branch;
     return `${bb.code} — ${bb.city}, ${bb.state}`;
+  }
+
+  get openedFromList(): boolean {
+    return !this.data.product_id || !this.data.warehouse_id;
   }
 }

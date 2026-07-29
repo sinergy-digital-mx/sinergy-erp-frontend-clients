@@ -95,6 +95,22 @@ export const routes: Routes = [
             .then(m => m.SALES_ORDERS_ROUTES),
       },
       {
+        path: 'logistics',
+        loadChildren: () =>
+          import('./features/logistics/logistics.routes')
+            .then(m => m.LOGISTICS_ROUTES),
+      },
+      {
+        path: 'shippings',
+        redirectTo: 'logistics/shippings',
+        pathMatch: 'full',
+      },
+      {
+        path: 'trucks',
+        redirectTo: 'logistics/trucks',
+        pathMatch: 'full',
+      },
+      {
         path: 'employees',
         loadChildren: () =>
           import('./features/employees/employees.routes')

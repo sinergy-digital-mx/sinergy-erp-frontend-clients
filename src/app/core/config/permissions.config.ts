@@ -26,6 +26,11 @@ export { ACCOUNTING_PERMISSIONS } from '../../features/accounting/config/permiss
 export { GOAL_PERMISSIONS } from '../../features/goals/config/permissions.config';
 export { GLOBAL_DISCOUNT_PERMISSIONS } from '../../features/global-discounts/config/permissions.config';
 export { EMPLOYEE_PERMISSIONS } from '../../features/employees/config/permissions.config';
+export {
+  LOGISTICS_PERMISSIONS,
+  TRUCK_PERMISSIONS,
+  SHIPPING_PERMISSIONS,
+} from '../../features/logistics/config/permissions.config';
 
 /**
  * Grouped permissions for easier access
@@ -46,6 +51,11 @@ import { ACCOUNTING_PERMISSIONS } from '../../features/accounting/config/permiss
 import { GOAL_PERMISSIONS } from '../../features/goals/config/permissions.config';
 import { GLOBAL_DISCOUNT_PERMISSIONS } from '../../features/global-discounts/config/permissions.config';
 import { EMPLOYEE_PERMISSIONS } from '../../features/employees/config/permissions.config';
+import {
+  LOGISTICS_PERMISSIONS,
+  SHIPPING_PERMISSIONS,
+  TRUCK_PERMISSIONS,
+} from '../../features/logistics/config/permissions.config';
 
 export const PERMISSIONS = {
   contracts: CONTRACT_PERMISSIONS,
@@ -64,4 +74,7 @@ export const PERMISSIONS = {
   goals: GOAL_PERMISSIONS,
   globalDiscounts: GLOBAL_DISCOUNT_PERMISSIONS,
   employees: EMPLOYEE_PERMISSIONS,
+  logistics: LOGISTICS_PERMISSIONS,
+  trucks: TRUCK_PERMISSIONS,
+  shippings: SHIPPING_PERMISSIONS,
 } as const;

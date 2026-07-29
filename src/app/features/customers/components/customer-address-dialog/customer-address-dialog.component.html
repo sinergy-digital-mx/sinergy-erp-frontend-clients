@@ -1,0 +1,44 @@
+<div class="addr-dialog">
+  <div class="addr-dialog__header">
+    <h2>{{ isNew ? 'Nueva dirección' : 'Editar dirección' }}</h2>
+    <lucide-icon [img]="X" class="cursor-pointer w-5 h-5 text-gray-500" (click)="close()"></lucide-icon>
+  </div>
+
+  <div class="addr-dialog__body">
+    <form [formGroup]="form" class="addr-dialog__extras">
+      <div>
+        <label>Tipo *</label>
+        <select formControlName="type">
+          <option value="shipping">Entrega</option>
+          <option value="billing">Facturación</option>
+          <option value="other">Otra</option>
+        </select>
+      </div>
+      <div class="addr-dialog__primary">
+        <label class="flex items-center gap-2 text-sm !font-medium !mb-0">
+          <input type="checkbox" formControlName="is_primary" />
+          Dirección principal
+        </label>
+      </div>
+    </form>
+
+    <app-location-map-fields
+      [formGroup]="form"
+      streetControl="street_address"
+      postalControl="postal_code"
+      streetLabel="Calle y número *"
+      [mapActive]="mapActive"
+    ></app-location-map-fields>
+  </div>
+
+  <div class="addr-dialog__footer">
+    <app-button text="Cancelar" custom_class="btn_secondary" [fullWidth]="false" (clicked)="close()"></app-button>
+    <app-button
+      [text]="isNew ? 'Crear' : 'Guardar'"
+      custom_class="btn_primary"
+      [fullWidth]="false"
+      [disabled]="saving()"
+      (clicked)="save()"
+    ></app-button>
+  </div>
+</div>

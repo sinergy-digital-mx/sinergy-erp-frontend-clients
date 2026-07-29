@@ -99,8 +99,10 @@ export interface BatchTransferHistoryEntry {
 }
 
 export interface CreateTransferDialogData {
-  product_id: string;
-  warehouse_id: string;
+  product_id?: string;
+  warehouse_id?: string;
+  /** UOM del lote / fila totalizada — no el UOM default del producto */
+  uom_id?: string;
   preselected_batch_id?: string;
   preselected_quantity?: number;
 }

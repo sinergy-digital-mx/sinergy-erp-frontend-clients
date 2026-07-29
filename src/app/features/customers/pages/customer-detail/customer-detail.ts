@@ -15,9 +15,9 @@ import { CustomerActivitiesComponent } from '../../components/customer-activitie
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
 import { CUSTOMER_FORM_DIALOG_CONFIG, PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { ContractDetailModalComponent } from '../../../contracts/components/contract-detail-modal/contract-detail-modal.component';
-import { Customer, CustomerStatus } from '../../models/customer-group.model';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Customer, CustomerAddress, CustomerStatus } from '../../models/customer-group.model';
+import { forkJoin, of, Subject } from 'rxjs';
+import { catchError, takeUntil } from 'rxjs/operators';
 import { PhoneComponent } from '../../../../core/components/phone/phone.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
@@ -30,6 +30,7 @@ import {
   getCustomerStatusPillClass,
 } from '../../utils/customer-status.util';
 import { getFiscalPersonTypeLabel } from '../../utils/fiscal-person-type.util';
+import { CustomerAddressDialogComponent } from '../../components/customer-address-dialog/customer-address-dialog.component';
 
 @Component({
   selector: 'app-customer-detail',
@@ -47,7 +48,7 @@ import { getFiscalPersonTypeLabel } from '../../utils/fiscal-person-type.util';
     CustomerActivitiesComponent,
     ButtonComponent,
     HasPermissionDirective,
-    TabComponent
+    TabComponent,
   ],
   templateUrl: 'customer-detail.html',
   styleUrl: 'customer-detail.scss'
@@ -162,27 +163,49 @@ export class CustomerDetail implements OnInit, OnDestroy {
   }
 
   /**
-   * Load customer details
+   * Load customer details + addresses (addresses come from a separate endpoint).
    */
   loadCustomer() {
     if (!this.customerId) return;
 
+    const id = String(this.customerId);
     this.isLoading.set(true);
     this.error.set(null);
 
-    this.customerService.getCustomer(String(this.customerId))
+    forkJoin({
+      customer: this.customerService.getCustomer(id),
+      addresses: this.customerService.getCustomerAddresses(id).pipe(
+        catchError(() => of([] as CustomerAddress[]))
+      ),
+    })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (customer) => {
-          this.customer.set(customer);
+        next: ({ customer, addresses }) => {
+          this.customer.set({
+            ...customer,
+            addresses: this.normalizeAddresses(addresses),
+          });
           this.additionalPersonExpanded.set(false);
           this.isLoading.set(false);
         },
         error: (error) => {
           this.error.set(error);
           this.isLoading.set(false);
-        }
+        },
       });
+  }
+
+  private normalizeAddresses(payload: unknown): CustomerAddress[] {
+    if (Array.isArray(payload)) {
+      return payload as CustomerAddress[];
+    }
+    if (payload && typeof payload === 'object') {
+      const data = (payload as { data?: unknown }).data;
+      if (Array.isArray(data)) {
+        return data as CustomerAddress[];
+      }
+    }
+    return [];
   }
 
   /**
@@ -250,6 +273,27 @@ export class CustomerDetail implements OnInit, OnDestroy {
       });
   }
 
+  openAddressDialog(address?: CustomerAddress): void {
+    const customer = this.customer();
+    if (!customer?.id) return;
+
+    this.dialog
+      .open(CustomerAddressDialogComponent, {
+        width: '980px',
+        maxWidth: '95vw',
+        data: {
+          customerId: String(customer.id),
+          address: address ?? null,
+        },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (result) {
+          this.loadCustomer();
+        }
+      });
+  }
+
   toggleAdditionalPerson(): void {
     this.additionalPersonExpanded.update((v) => !v);
   }
@@ -285,4 +329,21 @@ export class CustomerDetail implements OnInit, OnDestroy {
   }
 
   getFiscalPersonTypeLabel = getFiscalPersonTypeLabel;
+
+  getAddressTypeLabel(type: string | null | undefined): string {
+    const map: Record<string, string> = {
+      delivery: 'Entrega',
+      billing: 'Facturación',
+      other: 'Otra',
+    };
+    const key = (type ?? '').toLowerCase();
+    return map[key] ?? (type ? type.charAt(0).toUpperCase() + type.slice(1) : '—');
+  }
+
+  formatAddressLocation(address: CustomerAddress): string {
+    return [address.city, address.state, address.postal_code, address.country]
+      .map((part) => (part ?? '').trim())
+      .filter(Boolean)
+      .join(', ');
+  }
 }

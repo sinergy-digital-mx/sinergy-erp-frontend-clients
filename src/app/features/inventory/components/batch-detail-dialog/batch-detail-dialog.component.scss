@@ -334,7 +334,7 @@
 
 .movements-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
   gap: 0.75rem;
 }
 
@@ -360,6 +360,10 @@
   &--orange {
     lucide-icon { color: #ea580c; }
     .movement-card__icon-wrap { background-color: #fff7ed; }
+  }
+  &--teal {
+    lucide-icon { color: #0d9488; }
+    .movement-card__icon-wrap { background-color: #ccfbf1; }
   }
   &--purple {
     lucide-icon { color: #7c3aed; }

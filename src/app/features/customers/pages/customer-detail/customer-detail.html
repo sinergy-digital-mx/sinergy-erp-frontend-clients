@@ -356,36 +356,42 @@
             variant="primary"
             size="sm"
             [fullWidth]="true"
-            [icon]="MapPinIcon">
+            [icon]="MapPinIcon"
+            (clicked)="openAddressDialog()">
           </app-button>
         </div>
 
         @if (customer()!.addresses && customer()!.addresses.length > 0) {
-          <p-table
-            [value]="customer()!.addresses"
-            responsiveLayout="scroll"
-            styleClass="p-datatable-sm w-full">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Tipo</th>
-                <th>Dirección</th>
-                <th>Ciudad</th>
-                <th>Estado</th>
-                <th>Código postal</th>
-                <th>País</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-address>
-              <tr>
-                <td class="capitalize">{{ address.type }}</td>
-                <td>{{ address.street_address }}</td>
-                <td>{{ address.city }}</td>
-                <td>{{ address.state }}</td>
-                <td>{{ address.postal_code }}</td>
-                <td>{{ address.country }}</td>
-              </tr>
-            </ng-template>
-          </p-table>
+          <div class="space-y-3">
+            @for (address of customer()!.addresses; track address.id) {
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1 flex-wrap">
+                    <span class="text-sm font-medium text-gray-900">{{ address.street_address }}</span>
+                    <span class="address-type-pill">{{ getAddressTypeLabel(address.type) }}</span>
+                    @if (address.is_primary) {
+                      <span class="address-primary-pill">Principal</span>
+                    }
+                  </div>
+                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                    <span>{{ formatAddressLocation(address) }}</span>
+                    <span>•</span>
+                    @if (address.latitude != null && address.longitude != null) {
+                      <span class="text-emerald-700 font-medium">GPS OK</span>
+                    } @else {
+                      <span class="text-red-600 font-medium">Sin GPS</span>
+                    }
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="address-edit-btn"
+                  (click)="openAddressDialog(address)">
+                  Editar
+                </button>
+              </div>
+            }
+          </div>
         } @else {
           <div class="text-center py-8 text-gray-500">
             <p class="text-sm">No hay direcciones agregadas</p>

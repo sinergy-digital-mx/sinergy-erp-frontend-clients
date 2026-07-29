@@ -1,0 +1,56 @@
+.trucks-active-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 40px;
+  padding: 0 0.85rem 0 0.65rem;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: transparent;
+  color: #4b5563;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    border-color: #9ca3af;
+    background: #f9fafb;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(99, 102, 241, 0.4);
+    outline-offset: 2px;
+  }
+}
+
+.trucks-active-btn--on {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+
+  &:hover {
+    background: #e0e7ff;
+    border-color: #a5b4fc;
+  }
+}
+
+.trucks-active-btn__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1.5px solid #9ca3af;
+  background: white;
+  flex-shrink: 0;
+  color: white;
+}
+
+.trucks-active-btn--on .trucks-active-btn__check {
+  border-color: #4f46e5;
+  background: #4f46e5;
+}

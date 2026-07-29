@@ -1,0 +1,81 @@
+<div class="shippings-calendar">
+  <div class="toolbar">
+    <div class="toolbar__left">
+      <h2>Envíos</h2>
+      <div class="month-nav">
+        <button type="button" class="icon-btn" (click)="prevMonth()" aria-label="Mes anterior">
+          <lucide-icon [img]="ChevronLeft" class="w-5 h-5"></lucide-icon>
+        </button>
+        <span class="month-label">{{ monthLabel() }}</span>
+        <button type="button" class="icon-btn" (click)="nextMonth()" aria-label="Mes siguiente">
+          <lucide-icon [img]="ChevronRight" class="w-5 h-5"></lucide-icon>
+        </button>
+      </div>
+    </div>
+
+    <button
+      *hasPermission="permissions.create"
+      type="button"
+      class="page-create-btn"
+      (click)="openCreate()"
+    >
+      Nuevo envío
+    </button>
+  </div>
+
+  <div class="legend-row">
+    <div class="legend">
+      @for (item of legendItems(); track item.key) {
+        <span class="legend__item">
+          <i [style.background]="item.colors.text"></i>
+          {{ item.label }}
+        </span>
+      }
+      @if (loading()) {
+        <span class="text-sm text-gray-500">Cargando…</span>
+      }
+    </div>
+
+    <select
+      class="status-filter"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="onStatusChange($event)"
+    >
+      <option value="">Todos los estados</option>
+      <option value="Creado">Creado</option>
+      <option value="En Ruta">En Ruta</option>
+      <option value="Completado">Completado</option>
+      <option value="Cancelado">Cancelado</option>
+    </select>
+  </div>
+
+  <div class="cal-grid">
+    @for (wd of weekDays; track wd) {
+      <div class="cal-weekday">{{ wd }}</div>
+    }
+    @for (day of days(); track day.iso) {
+      <div
+        class="cal-day"
+        [class.cal-day--muted]="!day.inMonth"
+        [class.cal-day--today]="day.isToday"
+        (click)="onDayClick(day); openCreate(day.iso)"
+      >
+        <div class="cal-day__num">{{ day.date.getDate() }}</div>
+        <div class="cal-day__events">
+          @for (ev of day.events; track ev.id) {
+            <button
+              type="button"
+              class="cal-event"
+              [style.background]="ev.colors.background"
+              [style.color]="ev.colors.text"
+              [title]="ev.title"
+              (click)="openDetail(ev, $event)"
+            >
+              {{ ev.title }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

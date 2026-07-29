@@ -180,10 +180,17 @@
             </div>
             <div class="movement-card movement-card--orange">
               <div class="movement-card__icon-wrap">
-                <lucide-icon [img]="ArrowRight" class="w-5 h-5"></lucide-icon>
+                <lucide-icon [img]="ArrowUpRight" class="w-5 h-5"></lucide-icon>
               </div>
-              <span class="movement-card__label">Transferencias</span>
-              <span class="movement-card__value">{{ (batch()?.movement_summary?.by_type?.transfers_out ?? 0) + (batch()?.movement_summary?.by_type?.transfers_in ?? 0) }}</span>
+              <span class="movement-card__label">Transferencias salida</span>
+              <span class="movement-card__value">{{ batch()?.movement_summary?.by_type?.transfers_out ?? 0 }}</span>
+            </div>
+            <div class="movement-card movement-card--teal">
+              <div class="movement-card__icon-wrap">
+                <lucide-icon [img]="ArrowDownLeft" class="w-5 h-5"></lucide-icon>
+              </div>
+              <span class="movement-card__label">Transferencias entrada</span>
+              <span class="movement-card__value">{{ batch()?.movement_summary?.by_type?.transfers_in ?? 0 }}</span>
             </div>
             <div class="movement-card movement-card--purple">
               <div class="movement-card__icon-wrap">
@@ -198,12 +205,26 @@
       </div>
     }
 
-    <!-- Tab: Movimientos -->
-    @if (activeTab === 'movimientos') {
+    <!-- Tab: Transferencias -->
+    @if (activeTab === 'transferencias') {
       <div class="batch-detail__body">
+        @if (canCreateTransfer) {
+          <div class="transfer-action-bar">
+            <button
+              type="button"
+              class="transfer-action-btn"
+              [disabled]="!canTransfer"
+              (click)="openTransfer()"
+              [title]="canTransfer ? 'Transferir este lote' : 'Sin stock disponible'">
+              <lucide-icon [img]="ArrowRightLeft" class="w-4 h-4"></lucide-icon>
+              Transferir este lote
+            </button>
+          </div>
+        }
+
         @if (transferHistory.length === 0) {
           <div class="empty-tab">
-            <p>Sin movimientos registrados</p>
+            <p>Sin transferencias registradas para este lote</p>
           </div>
         } @else {
           <table class="transfer-history-table">

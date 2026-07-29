@@ -4,7 +4,16 @@ import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { SalesDocumentLanguage, SalesOrder, SalesOrderDiscountSummary, SalesOrderDocument, SalesOrderInvoice, SalesOrderLineItem, TicketReciboResponse } from '../../models/sales-order.model';
+import {
+  SalesDocumentLanguage,
+  SalesOrder,
+  SalesOrderDiscountSummary,
+  SalesOrderDocument,
+  SalesOrderInvoice,
+  SalesOrderLineItem,
+  SalesOrderShippingInfo,
+  TicketReciboResponse,
+} from '../../models/sales-order.model';
 import {
   isManualSalesOrderPayment,
   salesOrderPaymentMethodLabel,
@@ -49,13 +58,21 @@ import {
 import { AuthService } from '../../../../core/services/auth.service';
 import { ELECTRONIC_INVOICING_PERMISSIONS } from '../../config/electronic-invoicing-permissions.config';
 import { SalesOrderInvoicingTabComponent } from '../sales-order-invoicing-tab/sales-order-invoicing-tab.component';
+import { SalesOrderShippingTabComponent } from '../sales-order-shipping-tab/sales-order-shipping-tab.component';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
 import { countVigenteInvoices } from '../../utils/cfdi-xml-builder.util';
+import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
 
 @Component({
   selector: 'app-sales-order-detail-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, RemoveTrailingZerosPipe, SalesOrderInvoicingTabComponent],
+  imports: [
+    CommonModule,
+    MatDialogModule,
+    RemoveTrailingZerosPipe,
+    SalesOrderInvoicingTabComponent,
+    SalesOrderShippingTabComponent,
+  ],
   templateUrl: './sales-order-detail-dialog.component.html',
   styleUrl: './sales-order-detail-dialog.component.scss',
   host: {
@@ -68,6 +85,7 @@ export class SalesOrderDetailDialogComponent {
   discountSummary = signal<SalesOrderDiscountSummary | null>(null);
   documents = signal<SalesOrderDocument[]>([]);
   posCollection = signal<PosSaleCollection | null>(null);
+  shippingInfo = signal<SalesOrderShippingInfo | null>(null);
   loading = signal(true);
   activeTabIndex = signal(0);
   showDeliveredTotals = signal(false);
@@ -115,6 +133,10 @@ export class SalesOrderDetailDialogComponent {
     this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.read)
   );
 
+  canViewShippingTab = computed(() =>
+    this.authService.hasPermission(SHIPPING_PERMISSIONS.viewDetail)
+  );
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { orderId: string },
     private dialogRef: MatDialogRef<SalesOrderDetailDialogComponent>,
@@ -146,6 +168,9 @@ export class SalesOrderDetailDialogComponent {
         this.lineItems.set(payload?.line_items || payload?.header?.line_items || []);
         this.documents.set(payload?.documents || payload?.header?.documents || []);
         this.posCollection.set(payload?.pos_collection ?? payload?.header?.pos_collection ?? null);
+        this.shippingInfo.set(
+          payload?.shipping ?? payload?.header?.shipping ?? null
+        );
         if (!silent) {
           this.loading.set(false);
         }

@@ -23,6 +23,8 @@ export interface CustomerAddress {
   postal_code: string;
   country: string;
   is_primary?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at?: string;
   updated_at?: string;
 }

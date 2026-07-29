@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { InventoryBatch, InventoryBatchResponse } from '../models/inventory-batch.model';
 import { environment } from '../../../../environments/environment';
 
@@ -60,7 +61,9 @@ export class InventoryBatchService {
   }
 
   getBatchById(id: string): Observable<InventoryBatch> {
-    return this.http.get<InventoryBatch>(`${this.apiUrl}/${id}`);
+    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
+      map((res) => (res?.data ?? res) as InventoryBatch)
+    );
   }
 
   uploadBatchPhoto(batchId: string, file: File): Observable<{ message: string; data: Record<string, unknown> }> {

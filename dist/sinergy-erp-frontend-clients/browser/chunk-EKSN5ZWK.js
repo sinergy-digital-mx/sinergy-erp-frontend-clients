@@ -1,0 +1,1 @@
+var e={viewMenu:"truck:ViewMenu",viewList:"truck:Read",viewDetail:"truck:Read",create:"truck:Create",update:"truck:Update",delete:"truck:Delete"},t={viewMenu:"shipping:ViewMenu",viewList:"shipping:Read",viewDetail:"shipping:Read",create:"shipping:Create",update:"shipping:Update",preview:"shipping:Read"},i={trucks:e,shippings:t};export{e as a,t as b,i as c};

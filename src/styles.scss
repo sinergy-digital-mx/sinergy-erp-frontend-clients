@@ -172,6 +172,19 @@ main,
   max-width: 95vw !important;
 }
 
+/* Modal transferencias de inventario */
+.cdk-overlay-pane.transfer-dialog-panel .mat-mdc-dialog-container,
+.mat-mdc-dialog-panel.transfer-dialog-panel .mat-mdc-dialog-container {
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 1rem !important;
+}
+
+.cdk-overlay-pane.transfer-dialog-panel .mat-mdc-dialog-surface,
+.mat-mdc-dialog-panel.transfer-dialog-panel .mat-mdc-dialog-surface {
+  overflow: hidden !important;
+}
+
 /* Modal detalle OV / OC: pantalla amplia + centrado real (evita pegarse a la izquierda) */
 .cdk-global-overlay-wrapper:has(.order-detail-dialog-container) {
   display: flex !important;
