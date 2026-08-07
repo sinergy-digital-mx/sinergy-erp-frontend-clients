@@ -21,6 +21,15 @@
         <span class="status-badge" [ngClass]="getStatusBadgeClass()">
           {{ order()!.general_status || order()!.status }}
         </span>
+        <button
+          type="button"
+          class="refresh-btn"
+          (click)="refreshOrder()"
+          [disabled]="refreshing()"
+          title="Actualizar"
+          aria-label="Actualizar orden">
+          <i class="fi fi-rr-refresh" [class.animate-spin]="refreshing()"></i>
+        </button>
         <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">
           <i class="fi fi-rr-cross-small"></i>
         </button>

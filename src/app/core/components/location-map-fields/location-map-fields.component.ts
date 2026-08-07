@@ -2,10 +2,12 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  EventEmitter,
   Input,
   NgZone,
   OnChanges,
   OnDestroy,
+  Output,
   SimpleChanges,
   ViewChild,
   inject,
@@ -61,8 +63,14 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
    * inicia o refresca el mapa.
    */
   @Input() mapActive = true;
+  /** Etiqueta del botón opcional (ej. “Usar misma dirección que la sucursal”). */
+  @Input() copyFromBranchLabel: string | null = null;
+  @Input() canCopyFromBranch = true;
+
+  @Output() copyFromBranch = new EventEmitter<void>();
 
   @ViewChild('mapContainer') mapContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('mapWrap') mapWrap?: ElementRef<HTMLDivElement>;
 
   mapLoading = signal(true);
   mapError = signal<string | null>(null);
@@ -74,6 +82,9 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
   private marker: GoogleMarker | null = null;
   private geocoder: GoogleGeocoder | null = null;
   private latLngSubBound = false;
+  private resizeObserver: ResizeObserver | null = null;
+  private initScheduled = false;
+  private initializing = false;
 
   private mapsLoader = inject(GoogleMapsLoaderService);
   private ngZone = inject(NgZone);
@@ -81,15 +92,15 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
 
   ngAfterViewInit(): void {
     this.bindLatLngWatch();
+    this.setupResizeObserver();
     if (this.mapActive) {
-      setTimeout(() => void this.initMap(), 80);
-      setTimeout(() => void this.initMap(), 260);
+      this.scheduleInitMap();
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['mapActive'] && this.mapActive) {
-      setTimeout(() => void this.initMap(), 80);
+      this.scheduleInitMap();
     }
     if (changes['formGroup'] && this.formGroup) {
       this.bindLatLngWatch();
@@ -99,12 +110,19 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
     if (this.maps && this.marker) {
       this.maps.event.clearInstanceListeners(this.marker);
     }
     if (this.maps && this.map) {
       this.maps.event.clearInstanceListeners(this.map);
     }
+  }
+
+  onCopyFromBranch(): void {
+    if (!this.canCopyFromBranch) return;
+    this.copyFromBranch.emit();
   }
 
   useBrowserLocation(): void {
@@ -165,6 +183,48 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
   /** Refresco público (p. ej. al cambiar de tab). */
   refreshMap(): void {
     this.refreshMapSize();
+    if (!this.map && this.mapActive) {
+      this.scheduleInitMap();
+    }
+  }
+
+  private setupResizeObserver(): void {
+    const wrap = this.mapWrap?.nativeElement;
+    if (!wrap || typeof ResizeObserver === 'undefined') return;
+
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      if (width < 8 || height < 8) return;
+
+      if (!this.map && this.mapActive && !this.initializing) {
+        void this.initMap();
+        return;
+      }
+      this.refreshMapSize();
+    });
+    this.resizeObserver.observe(wrap);
+  }
+
+  private scheduleInitMap(): void {
+    if (this.initScheduled) return;
+    this.initScheduled = true;
+
+    const tryInit = (attempt: number) => {
+      void this.initMap().finally(() => {
+        if (this.map || attempt >= 6) {
+          this.initScheduled = false;
+          return;
+        }
+        setTimeout(() => tryInit(attempt + 1), 120 * (attempt + 1));
+      });
+    };
+
+    requestAnimationFrame(() => {
+      setTimeout(() => tryInit(0), 40);
+    });
   }
 
   private bindLatLngWatch(): void {
@@ -180,15 +240,20 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
   }
 
   private async initMap(): Promise<void> {
-    if (!this.mapActive) return;
+    if (!this.mapActive || this.initializing) return;
     const el = this.mapContainer?.nativeElement;
     if (!el) return;
+
+    if (el.clientWidth < 8 || el.clientHeight < 8) {
+      return;
+    }
 
     if (this.map) {
       this.refreshMapSize();
       return;
     }
 
+    this.initializing = true;
     this.mapLoading.set(true);
     this.mapError.set(null);
 
@@ -225,8 +290,9 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
       });
 
       this.ngZone.run(() => this.mapLoading.set(false));
-      setTimeout(() => this.refreshMapSize(), 50);
-      setTimeout(() => this.refreshMapSize(), 250);
+      this.refreshMapSize();
+      setTimeout(() => this.refreshMapSize(), 80);
+      setTimeout(() => this.refreshMapSize(), 280);
 
       if (!this.readCoords() && this.buildAddressQuery()) {
         this.locateOnMap();
@@ -236,6 +302,8 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
         this.mapLoading.set(false);
         this.mapError.set(err instanceof Error ? err.message : 'No se pudo cargar el mapa');
       });
+    } finally {
+      this.initializing = false;
     }
   }
 
@@ -244,6 +312,9 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
     const coords = this.readCoords() ?? DEFAULT_CENTER;
     this.maps.event.trigger(this.map, 'resize');
     this.map.setCenter(coords);
+    if (this.marker) {
+      this.marker.setPosition(coords);
+    }
   }
 
   private buildAddressQuery(): string {

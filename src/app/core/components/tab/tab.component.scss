@@ -45,4 +45,15 @@
       background-color: #3b82f6;
     }
   }
+
+  &.disabled,
+  &:disabled {
+    color: #d1d5db;
+    cursor: not-allowed;
+
+    &:hover {
+      color: #d1d5db;
+      background-color: transparent;
+    }
+  }
 }

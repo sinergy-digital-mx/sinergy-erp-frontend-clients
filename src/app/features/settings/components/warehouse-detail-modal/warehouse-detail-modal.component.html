@@ -47,17 +47,27 @@
           streetLabel="Calle"
           postalLabel="C.P."
           [mapActive]="mapActive"
+          copyFromBranchLabel="Usar misma dirección que la sucursal"
+          [canCopyFromBranch]="canCopyBranchAddress"
+          (copyFromBranch)="copyBranchAddress()"
         ></app-location-map-fields>
       </div>
     </form>
   </div>
 
   <div class="warehouse-modal__footer">
-    <app-button text="Cancelar" custom_class="btn_secondary" [fullWidth]="false" (clicked)="close()">
+    <app-button
+      text="Cancelar"
+      variant="secondary"
+      size="sm"
+      [fullWidth]="false"
+      (clicked)="close()">
     </app-button>
     <app-button
       [text]="isNew ? 'Crear Almacén' : 'Guardar Cambios'"
-      custom_class="btn_primary"
+      variant="primary"
+      size="sm"
+      customClass="btn_primary"
       [fullWidth]="false"
       [loading]="saving()"
       [disabled]="form.invalid || saving()"

@@ -15,7 +15,9 @@ import { FilterClearButtonComponent } from '../../../../core/components/filter-c
 })
 export class SalesFilterBarComponent implements OnInit, OnDestroy {
   @Input() warehouses: Warehouse[] = [];
+  @Input() refreshing = false;
   @Output() filtersChange = new EventEmitter<SalesOrderFilters>();
+  @Output() refresh = new EventEmitter<void>();
 
   searchControl = new FormControl<string>('', { nonNullable: true });
   dateRangeControl = new FormControl<string>('', { nonNullable: true });
@@ -35,7 +37,10 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
 
   statusOptions: { label: string; value: SalesOrderStatus }[] = [
     { label: 'Creada', value: 'Creada' },
+    { label: 'En Selección', value: 'En Selección' },
+    { label: 'Lista para entrega', value: 'Lista para entrega' },
     { label: 'Surtida', value: 'Surtida' },
+    { label: 'En Camino', value: 'En Camino' },
     { label: 'Cancelada', value: 'Cancelada' }
   ];
 
@@ -113,6 +118,11 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.warehouseControl.setValue(null, { emitEvent: false });
     this.showCustomDateRange = false;
     this.emitFilters();
+  }
+
+  onRefresh(): void {
+    if (this.refreshing) return;
+    this.refresh.emit();
   }
 
   ngOnDestroy(): void {

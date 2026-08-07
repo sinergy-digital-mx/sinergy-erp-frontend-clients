@@ -4,8 +4,11 @@
       *ngFor="let tab of tabs"
       class="tab-button"
       [class.active]="tab.id === activeTabId"
+      [class.disabled]="tab.disabled"
+      [disabled]="tab.disabled"
       role="tab"
       [attr.aria-selected]="tab.id === activeTabId"
+      [attr.aria-disabled]="tab.disabled || null"
       (click)="selectTab(tab.id)"
       type="button">
       {{ tab.title }}

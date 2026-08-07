@@ -1,12 +1,12 @@
 /**
  * Central Permissions Catalog
- * 
+ *
  * Re-exports all module permission catalogs for easy access.
  * Import from here to access any module's permissions.
- * 
+ *
  * Example:
  * import { PERMISSIONS } from '@core/config/permissions.config';
- * 
+ *
  * canCreate = authService.hasPermission(PERMISSIONS.customers.create);
  */
 
@@ -31,6 +31,7 @@ export {
   TRUCK_PERMISSIONS,
   SHIPPING_PERMISSIONS,
 } from '../../features/logistics/config/permissions.config';
+export { WAREHOUSE_CONTROL_PERMISSIONS } from '../../features/warehouse-control/config/permissions.config';
 
 /**
  * Grouped permissions for easier access
@@ -56,6 +57,7 @@ import {
   SHIPPING_PERMISSIONS,
   TRUCK_PERMISSIONS,
 } from '../../features/logistics/config/permissions.config';
+import { WAREHOUSE_CONTROL_PERMISSIONS } from '../../features/warehouse-control/config/permissions.config';
 
 export const PERMISSIONS = {
   contracts: CONTRACT_PERMISSIONS,
@@ -77,4 +79,5 @@ export const PERMISSIONS = {
   logistics: LOGISTICS_PERMISSIONS,
   trucks: TRUCK_PERMISSIONS,
   shippings: SHIPPING_PERMISSIONS,
+  warehouseControl: WAREHOUSE_CONTROL_PERMISSIONS,
 } as const;

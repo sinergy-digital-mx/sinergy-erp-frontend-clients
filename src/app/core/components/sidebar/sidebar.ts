@@ -27,6 +27,7 @@ import {
   UserCog,
   Truck,
   CalendarDays,
+  ClipboardCheck,
 } from 'lucide-angular';
 import { DIVINO_DASHBOARD_TENANT_ID } from '../../../features/divino-dashboard/config/divino-dashboard.constants';
 import { DIVINO_DASHBOARD_PERMISSIONS } from '../../../features/divino-dashboard/config/permissions.config';
@@ -74,6 +75,7 @@ const MENU_SECTIONS: MenuSection[] = [
     itemIds: [
       'menu-purchase-orders',
       'menu-sales-orders',
+      'menu-warehouse-control',
       'menu-shippings',
       'menu-trucks',
       'menu-inventory',
@@ -161,6 +163,13 @@ export class Sidebar implements OnInit, OnDestroy {
       permission: PERMISSIONS.salesOrders.viewMenu
     },
     {
+      label: 'Control de almacén',
+      route: '/warehouse-control',
+      icon: ClipboardCheck,
+      id: 'menu-warehouse-control',
+      permission: PERMISSIONS.warehouseControl.viewMenu
+    },
+    {
       label: 'Envíos',
       route: '/logistics/shippings',
       icon: CalendarDays,
@@ -246,7 +255,7 @@ export class Sidebar implements OnInit, OnDestroy {
     },
   ];
 
-  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight, X, Landmark, UserCog };
+  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight, X, Landmark, UserCog, ClipboardCheck };
 
   constructor(
     public auth_service: AuthService,

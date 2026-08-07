@@ -14,6 +14,17 @@ import { LocationMapFieldsComponent } from '../../../../core/components/location
 import { X } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
+export interface WarehouseBranchLocationSeed {
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+  zip_code?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 @Component({
   selector: 'app-warehouse-detail-modal',
   standalone: true,
@@ -39,6 +50,7 @@ export class WarehouseDetailModalComponent implements OnInit {
   mapActive = false;
   branches = signal<Branch[]>([]);
   loadingBranches = signal(false);
+  branchLocationSeed: WarehouseBranchLocationSeed | null = null;
 
   statusOptions = [
     { id: 'active', name: 'Activo' },
@@ -55,11 +67,23 @@ export class WarehouseDetailModalComponent implements OnInit {
     private snackBar: MatSnackBar,
     public dialogRef: MatDialogRef<WarehouseDetailModalComponent>,
     @Inject(MAT_DIALOG_DATA)
-    public data: { warehouse: Warehouse | BranchWarehouse | null; nested?: boolean }
+    public data: {
+      warehouse: Warehouse | BranchWarehouse | null;
+      nested?: boolean;
+      branchLocation?: WarehouseBranchLocationSeed | null;
+    }
   ) {
     this.nested = !!data.nested;
     this.isNew = !data.warehouse;
+    this.branchLocationSeed = data.branchLocation ?? null;
     this.form = this.createForm();
+  }
+
+  get canCopyBranchAddress(): boolean {
+    if (this.nested) {
+      return this.hasUsableBranchLocation(this.branchLocationSeed);
+    }
+    return this.hasUsableBranchLocation(this.resolveSelectedBranchLocation());
   }
 
   ngOnInit(): void {
@@ -237,5 +261,67 @@ export class WarehouseDetailModalComponent implements OnInit {
 
   onBranchChange(event: any): void {
     this.form.get('billing_branch_id')?.setValue(event.value, { emitEvent: false });
+  }
+
+  copyBranchAddress(): void {
+    const source = this.nested
+      ? this.branchLocationSeed
+      : this.resolveSelectedBranchLocation();
+
+    if (!this.hasUsableBranchLocation(source)) {
+      this.snackBar.openFromComponent(CustomSnackbarComponent, {
+        data: {
+          message: this.nested
+            ? 'La sucursal aún no tiene dirección capturada'
+            : 'Selecciona una sucursal con dirección',
+          type: 'error',
+        },
+        duration: 4000,
+      });
+      return;
+    }
+
+    this.form.patchValue({
+      street: String(source?.street ?? '').trim(),
+      city: String(source?.city ?? '').trim(),
+      state: String(source?.state ?? '').trim(),
+      zip_code: String(source?.postal_code ?? source?.zip_code ?? '').trim(),
+      country: String(source?.country ?? 'México').trim() || 'México',
+      latitude: this.normalizeCoords(source?.latitude),
+      longitude: this.normalizeCoords(source?.longitude),
+    });
+
+    setTimeout(() => this.locationMap?.refreshMap(), 80);
+
+    this.snackBar.openFromComponent(CustomSnackbarComponent, {
+      data: { message: 'Dirección de la sucursal aplicada', type: 'success' },
+      duration: 2500,
+    });
+  }
+
+  private resolveSelectedBranchLocation(): WarehouseBranchLocationSeed | null {
+    const branchId = String(this.form.get('billing_branch_id')?.value ?? '').trim();
+    if (!branchId) return null;
+    const branch = this.branches().find((item) => item.id === branchId);
+    if (!branch) return null;
+    return {
+      street: branch.address,
+      city: branch.city,
+      state: branch.state,
+      postal_code: branch.postal_code,
+      country: branch.country,
+      latitude: branch.latitude,
+      longitude: branch.longitude,
+    };
+  }
+
+  private hasUsableBranchLocation(source: WarehouseBranchLocationSeed | null | undefined): boolean {
+    if (!source) return false;
+    const street = String(source.street ?? '').trim();
+    const city = String(source.city ?? '').trim();
+    const hasCoords =
+      this.normalizeCoords(source.latitude) != null &&
+      this.normalizeCoords(source.longitude) != null;
+    return !!street || !!city || hasCoords;
   }
 }

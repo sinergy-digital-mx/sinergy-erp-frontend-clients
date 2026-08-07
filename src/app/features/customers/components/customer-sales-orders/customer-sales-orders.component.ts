@@ -131,8 +131,14 @@ export class CustomerSalesOrdersComponent implements OnInit {
     switch (status) {
       case 'Creada':
         return 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800';
+      case 'En Selección':
+        return 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800';
+      case 'Lista para entrega':
+        return 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-teal-100 text-teal-800';
       case 'Surtida':
         return 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800';
+      case 'En Camino':
+        return 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-800';
       case 'Cancelada':
         return 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800';
       default:

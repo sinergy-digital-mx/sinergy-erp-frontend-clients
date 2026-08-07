@@ -379,10 +379,15 @@ export class PurchaseOrderListComponent implements OnInit {
    * Navigate to order detail
    */
   navigateToDetail(order: PurchaseOrder): void {
-    this.dialog.open(OrderDetailDialogComponent, {
-      ...ORDER_DETAIL_DIALOG_OPTIONS,
-      data: { orderId: order.id }
-    });
+    this.dialog
+      .open(OrderDetailDialogComponent, {
+        ...ORDER_DETAIL_DIALOG_OPTIONS,
+        data: { orderId: order.id },
+      })
+      .afterClosed()
+      .subscribe(() => {
+        this.loadOrders();
+      });
   }
 
   /**

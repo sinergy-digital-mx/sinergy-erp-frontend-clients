@@ -25,7 +25,9 @@
       <div class="mb-4">
         <app-sales-filter-bar
           [warehouses]="warehouses()"
-          (filtersChange)="applyFilters($event)">
+          [refreshing]="loading()"
+          (filtersChange)="applyFilters($event)"
+          (refresh)="loadOrders()">
         </app-sales-filter-bar>
       </div>
 
@@ -134,7 +136,7 @@
 </div>
 
 <ng-template #tableTemplate let-item="$implicit">
-  <td class="w-[120px]">
+  <td class="sales-orders-col-folio">
     <span class="dt-folio-badge dt-folio-badge--odv">{{ item.folio || item.id.substring(0, 8) }}</span>
   </td>
   <td class="sales-orders-col-customer">

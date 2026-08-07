@@ -63,7 +63,7 @@
         } @else if (loadingOrders()) {
           <p class="hint">Cargando…</p>
         } @else if (!orders().length) {
-          <p class="hint">No hay órdenes Surtida en este almacén.</p>
+          <p class="hint">No hay órdenes Surtida o Lista para entrega en este almacén.</p>
         } @else {
           <div class="order-list">
             @for (order of orders(); track order.id) {

@@ -26,7 +26,9 @@
         <app-filter-bar 
           [warehouses]="warehouses()"
           [initialSearch]="filters().search ?? null"
-          (filtersChange)="applyFilters($event)">
+          [refreshing]="loading()"
+          (filtersChange)="applyFilters($event)"
+          (refresh)="loadOrders()">
         </app-filter-bar>
       </div>
 

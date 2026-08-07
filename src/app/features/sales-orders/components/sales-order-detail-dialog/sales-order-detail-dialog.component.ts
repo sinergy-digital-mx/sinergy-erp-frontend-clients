@@ -87,6 +87,7 @@ export class SalesOrderDetailDialogComponent {
   posCollection = signal<PosSaleCollection | null>(null);
   shippingInfo = signal<SalesOrderShippingInfo | null>(null);
   loading = signal(true);
+  refreshing = signal(false);
   activeTabIndex = signal(0);
   showDeliveredTotals = signal(false);
   regeneratingPDF = signal(false);
@@ -97,7 +98,10 @@ export class SalesOrderDetailDialogComponent {
   selectedRegenerateLanguage = signal<SalesDocumentLanguage>('es');
   keepPreviousDocument = signal(false);
 
-  canEditOrder = computed(() => this.order()?.general_status === 'Creada');
+  canEditOrder = computed(() => {
+    const status = this.order()?.general_status ?? this.order()?.status ?? '';
+    return status === 'Creada' || status === 'En Selección';
+  });
 
   canEditNotes = computed(() => {
     const status = this.order()?.general_status ?? this.order()?.status ?? '';
@@ -158,6 +162,8 @@ export class SalesOrderDetailDialogComponent {
   loadOrder(silent = false): void {
     if (!silent) {
       this.loading.set(true);
+    } else {
+      this.refreshing.set(true);
     }
     this.salesOrderService.getOrderDetailById(this.data.orderId).subscribe({
       next: (payload) => {
@@ -171,27 +177,30 @@ export class SalesOrderDetailDialogComponent {
         this.shippingInfo.set(
           payload?.shipping ?? payload?.header?.shipping ?? null
         );
-        if (!silent) {
-          this.loading.set(false);
-        }
+        this.loading.set(false);
+        this.refreshing.set(false);
         this.loadInvoiceSummaryIfAllowed();
       },
       error: () => {
-        if (!silent) {
-          this.loading.set(false);
-        }
+        this.loading.set(false);
+        this.refreshing.set(false);
       }
     });
   }
 
+  refreshOrder(): void {
+    if (this.refreshing() || this.loading()) return;
+    this.loadOrder(true);
+  }
+
   close(): void {
-    this.dialogRef.close();
+    this.dialogRef.close(true);
   }
 
   goToEditForm(): void {
     const id = this.order()?.id;
     if (!id) return;
-    this.dialogRef.close();
+    this.dialogRef.close(true);
     void this.router.navigate(['/sales-orders', id, 'edit']);
   }
 
@@ -265,6 +274,13 @@ export class SalesOrderDetailDialogComponent {
       return 'Sin vendedor';
     }
     return formatPosUser(seller);
+  }
+
+  getCorroboratedByLabel(): string {
+    const user = this.order()?.corroborated_by_user;
+    if (!user) return '—';
+    const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+    return name || user.email || '—';
   }
 
   parseNumber(value: number | string | undefined | null): number {
@@ -471,8 +487,9 @@ export class SalesOrderDetailDialogComponent {
 
   getStatusBadgeClass(): string {
     const status = this.order()?.general_status ?? this.order()?.status ?? '';
-    if (status === 'Surtida') return 'status-badge--success';
-    if (status === 'Creada') return 'status-badge--info';
+    if (status === 'Surtida' || status === 'Lista para entrega') return 'status-badge--success';
+    if (status === 'Creada' || status === 'En Selección') return 'status-badge--info';
+    if (status === 'En Camino') return 'status-badge--invoice';
     if (status === 'Cancelada') return 'status-badge--danger';
     return 'status-badge--neutral';
   }

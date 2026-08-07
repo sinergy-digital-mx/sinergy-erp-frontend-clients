@@ -34,6 +34,15 @@
             En envío{{ shippingInfo()?.status ? ' · ' + shippingInfo()!.status : '' }}
           </span>
         }
+        <button
+          type="button"
+          class="refresh-btn"
+          (click)="refreshOrder()"
+          [disabled]="refreshing()"
+          title="Actualizar"
+          aria-label="Actualizar orden">
+          <i class="fi fi-rr-refresh" [class.animate-spin]="refreshing()"></i>
+        </button>
         <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">
           <i class="fi fi-rr-cross-small"></i>
         </button>
@@ -114,6 +123,24 @@
             <span class="section-label">Entrega estimada</span>
             <span class="section-value">{{ formatShortDate(order()!.expected_delivery_date || order()!.delivery_date) }}</span>
           </div>
+          @if (order()!.requires_selection_assembly) {
+            <div class="section-item">
+              <span class="section-label">Selección y armado</span>
+              <span class="section-value">Requerido</span>
+            </div>
+          }
+          @if (order()!.corroborated_at || order()!.corroborated_by_user) {
+            <div class="section-item">
+              <span class="section-label">Corroboró</span>
+              <span class="section-value">{{ getCorroboratedByLabel() }}</span>
+            </div>
+            @if (order()!.corroborated_at) {
+              <div class="section-item">
+                <span class="section-label">Corroborada</span>
+                <span class="section-value">{{ formatShortDate(order()!.corroborated_at) }}</span>
+              </div>
+            }
+          }
           <div class="section-item">
             <span class="section-label">Estado de pago</span>
             <span class="payment-pill" [class.payment-pill--paid]="getPaymentStatus() === 'Pagado'">

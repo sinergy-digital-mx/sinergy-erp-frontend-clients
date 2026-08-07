@@ -137,10 +137,23 @@ export class BranchModalComponent implements OnInit {
   }
 
   openWarehouseModal(warehouse?: BranchWarehouse, index?: number): void {
+    const branchRaw = this.form.getRawValue();
     const dialogRef = this.dialog.open(WarehouseDetailModalComponent, {
       width: '960px',
       maxWidth: '96vw',
-      data: { warehouse: warehouse ? { ...warehouse } : null, nested: true },
+      data: {
+        warehouse: warehouse ? { ...warehouse } : null,
+        nested: true,
+        branchLocation: {
+          street: branchRaw.address,
+          city: branchRaw.city,
+          state: branchRaw.state,
+          postal_code: branchRaw.postal_code,
+          country: branchRaw.country,
+          latitude: branchRaw.latitude,
+          longitude: branchRaw.longitude,
+        },
+      },
     });
 
     dialogRef.afterClosed().subscribe((result) => {

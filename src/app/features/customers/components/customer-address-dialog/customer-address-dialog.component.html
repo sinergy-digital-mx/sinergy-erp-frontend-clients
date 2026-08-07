@@ -32,10 +32,18 @@
   </div>
 
   <div class="addr-dialog__footer">
-    <app-button text="Cancelar" custom_class="btn_secondary" [fullWidth]="false" (clicked)="close()"></app-button>
+    <app-button
+      text="Cancelar"
+      variant="secondary"
+      size="sm"
+      [fullWidth]="false"
+      (clicked)="close()"
+    ></app-button>
     <app-button
       [text]="isNew ? 'Crear' : 'Guardar'"
-      custom_class="btn_primary"
+      variant="primary"
+      size="sm"
+      customClass="btn_primary"
       [fullWidth]="false"
       [disabled]="saving()"
       (clicked)="save()"

@@ -1,0 +1,120 @@
+<div class="wc-panel">
+  <div class="wc-panel__header">
+    <div class="wc-panel__title-block">
+      <span class="wc-panel__badge">En Selección</span>
+      <h2 class="wc-panel__folio">#{{ order()?.folio || data.orderId.slice(0, 8) }}</h2>
+    </div>
+    <button type="button" class="wc-panel__close" (click)="close()" aria-label="Cerrar">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="wc-panel__loading">Cargando detalle…</div>
+  } @else if (order(); as o) {
+    <div class="wc-panel__meta">
+      <div class="wc-panel__meta-item">
+        <span class="wc-panel__meta-label">Cliente</span>
+        <span class="wc-panel__meta-value">{{ customerName() }}</span>
+      </div>
+      <div class="wc-panel__meta-item">
+        <span class="wc-panel__meta-label">CEDIS</span>
+        <span class="wc-panel__meta-value">{{ branchLabel() }}</span>
+      </div>
+      <div class="wc-panel__meta-item">
+        <span class="wc-panel__meta-label">Almacén origen</span>
+        <span class="wc-panel__meta-value">{{ warehouseLabel() }}</span>
+      </div>
+      <div class="wc-panel__meta-item">
+        <span class="wc-panel__meta-label">Fecha entrega</span>
+        <span class="wc-panel__meta-value">{{ formatDate(o.expected_delivery_date) }}</span>
+      </div>
+      <div class="wc-panel__meta-item">
+        <span class="wc-panel__meta-label">Total</span>
+        <span class="wc-panel__meta-value">{{ formatCurrency(o.total) }}</span>
+      </div>
+      @if (o.notes) {
+        <div class="wc-panel__meta-item wc-panel__meta-item--full">
+          <span class="wc-panel__meta-label">Notas</span>
+          <span class="wc-panel__meta-value">{{ o.notes }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="wc-panel__body">
+      <h3 class="wc-panel__section-title">Qué tomar</h3>
+
+      @if (hasInsufficientStock()) {
+        <div class="wc-panel__stock-warning">
+          Hay líneas con stock insuficiente. El servidor rechazará la corroboración hasta resolver el inventario.
+        </div>
+      }
+
+      <div class="wc-panel__table-wrap">
+        <table class="wc-panel__table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Unidad</th>
+              <th>Cantidad</th>
+              <th>Almacén</th>
+              <th>Stock disp.</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of lines(); track line.id || $index) {
+              <tr [class.wc-panel__row--warn]="isInsufficientStock(line)">
+                <td>
+                  <div class="wc-panel__product-name">{{ line.product_name || '—' }}</div>
+                  <div class="wc-panel__product-sku">SKU: {{ line.product_sku || 'N/A' }}</div>
+                  @if (line.quantity_base_uom != null && line.quantity_base_uom !== '') {
+                    <div class="wc-panel__product-sku" title="Cantidad en UOM base">
+                      Base: {{ formatQty(line.quantity_base_uom) }}
+                    </div>
+                  }
+                </td>
+                <td>{{ line.uom_name || '—' }}</td>
+                <td>{{ formatQty(line.quantity) }}</td>
+                <td>{{ line.warehouse_name || warehouseLabel() }}</td>
+                <td>
+                  <span [class.wc-panel__stock--low]="isInsufficientStock(line)">
+                    {{ formatQty(line.available_quantity) }}
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="wc-panel__empty">Sin líneas</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="wc-panel__notes">
+        <label class="wc-panel__notes-label" for="wc-notes">Notas de corroboración (opcional)</label>
+        <textarea
+          id="wc-notes"
+          class="wc-panel__notes-input"
+          rows="2"
+          [(ngModel)]="notes"
+          placeholder="Ej. Armado completo rack 3"></textarea>
+      </div>
+    </div>
+
+    <div class="wc-panel__footer">
+      <button type="button" class="wc-panel__btn wc-panel__btn--ghost" (click)="close()">
+        Cancelar
+      </button>
+      @if (canCorroborate()) {
+        <button
+          type="button"
+          class="wc-panel__btn wc-panel__btn--primary"
+          (click)="corroborate()"
+          [disabled]="confirming()">
+          {{ confirming() ? 'Confirmando…' : 'Confirmar corroboración' }}
+        </button>
+      }
+    </div>
+  }
+</div>

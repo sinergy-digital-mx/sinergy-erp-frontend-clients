@@ -12,6 +12,8 @@ export interface Truck {
   poliza_rc?: string | null;
   subtipo_remolque1?: string | null;
   placa_remolque1?: string | null;
+  /** URL firmada (~15 min); null si no hay foto */
+  photo?: string | null;
   status: TruckStatus;
   created_at?: string;
   updated_at?: string;

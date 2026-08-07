@@ -95,6 +95,12 @@ export const routes: Routes = [
             .then(m => m.SALES_ORDERS_ROUTES),
       },
       {
+        path: 'warehouse-control',
+        loadChildren: () =>
+          import('./features/warehouse-control/warehouse-control.routes')
+            .then(m => m.WAREHOUSE_CONTROL_ROUTES),
+      },
+      {
         path: 'logistics',
         loadChildren: () =>
           import('./features/logistics/logistics.routes')

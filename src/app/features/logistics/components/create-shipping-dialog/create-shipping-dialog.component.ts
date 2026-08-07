@@ -155,7 +155,7 @@ export class CreateShippingDialogComponent implements OnInit {
       .getOrders(
         {
           search: this.orderSearch || undefined,
-          general_status: 'Surtida',
+          general_status: ['Surtida', 'Lista para entrega'],
           warehouse_id: warehouseId,
         },
         { page: this.orderPage, limit: 20 }

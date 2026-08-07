@@ -55,6 +55,15 @@
 
 <ng-template #tableTemplate let-item="$implicit">
   <td>
+    <div class="truck-thumb">
+      @if (item.photo) {
+        <img [src]="item.photo" [alt]="item.name" class="truck-thumb__img" loading="lazy" />
+      } @else {
+        <div class="truck-thumb__placeholder" aria-hidden="true"></div>
+      }
+    </div>
+  </td>
+  <td>
     <p class="settings-cell-primary truncate">{{ item.name }}</p>
   </td>
   <td>

@@ -25,6 +25,13 @@
       justify-content: center;
     }
 
+    &--actions {
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
     &--action {
       align-items: flex-end;
       justify-content: end;
@@ -58,6 +65,38 @@
       border-color: fc.$pollux-control-border;
       background: fc.$pollux-control-bg;
       color: #6b7280;
+    }
+  }
+
+  &__field--actions {
+    .filter-bar__clear-button {
+      margin-left: 0;
+    }
+  }
+
+  &__refresh-button {
+    @include fc.pollux-clear-button;
+    flex-shrink: 0;
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    &:disabled:hover {
+      border-color: fc.$pollux-control-border;
+      background: fc.$pollux-control-bg;
+      color: #6b7280;
+    }
+  }
+
+  &__refresh-icon {
+    width: 1.05rem;
+    height: 1.05rem;
+    display: block;
+
+    &--spin {
+      animation: filter-bar-spin 0.8s linear infinite;
     }
   }
 
@@ -109,5 +148,14 @@
 
   .filter-bar__field {
     width: 100%;
+  }
+}
+
+@keyframes filter-bar-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

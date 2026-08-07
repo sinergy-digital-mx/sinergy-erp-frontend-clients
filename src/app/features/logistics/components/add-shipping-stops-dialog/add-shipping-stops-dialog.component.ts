@@ -54,7 +54,7 @@ export class AddShippingStopsDialogComponent implements OnInit {
       .getOrders(
         {
           search: this.search || undefined,
-          general_status: 'Surtida',
+          general_status: ['Surtida', 'Lista para entrega'],
           warehouse_id: this.data.warehouseId,
         },
         { page: this.page, limit: 20 }

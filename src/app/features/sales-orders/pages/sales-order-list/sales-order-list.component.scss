@@ -37,11 +37,20 @@
       table-layout: fixed;
     }
 
+    td.sales-orders-col-folio {
+      overflow: visible;
+    }
+
     td.sales-orders-col-customer,
     td.sales-orders-col-warehouse {
       max-width: 0;
+      overflow: hidden;
     }
   }
+}
+
+.sales-orders-col-folio .dt-folio-badge {
+  max-width: none;
 }
 
 .sales-orders-col-customer__name,

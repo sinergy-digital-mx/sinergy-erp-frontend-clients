@@ -79,6 +79,7 @@ export class CreateSalesOrderModalComponent implements OnInit {
       customer_id: ['', Validators.required],
       warehouse_id: ['', Validators.required],
       expected_delivery_date: [''],
+      requires_selection_assembly: [false],
       sales_order_type: ['MANUAL'],
       payment_status: ['Pendiente'],
       notes: ['']
@@ -494,6 +495,7 @@ export class CreateSalesOrderModalComponent implements OnInit {
       warehouse_id: fv.warehouse_id,
       customer_id: fv.customer_id,
       expected_delivery_date: fv.expected_delivery_date || undefined,
+      requires_selection_assembly: !!fv.requires_selection_assembly,
       sales_order_type: fv.sales_order_type || 'MANUAL',
       payment_status: fv.payment_status || 'Pendiente',
       notes: (fv.notes || '').trim() || undefined,

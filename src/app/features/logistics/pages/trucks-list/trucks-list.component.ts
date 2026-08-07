@@ -46,6 +46,7 @@ export class TrucksListComponent implements OnDestroy {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
+      { name: '', prop: 'photo', sortable: false, canAutoResize: false, width: 56 },
       { name: 'Nombre', prop: 'name', sortable: false, canAutoResize: true, width: 180 },
       { name: 'Placa', prop: 'placa', sortable: false, canAutoResize: true, width: 120 },
       { name: 'Año', prop: 'anio', sortable: false, canAutoResize: true, width: 80 },
@@ -203,8 +204,9 @@ export class TrucksListComponent implements OnDestroy {
 
   openCreate(): void {
     const ref = this.dialog.open(TruckFormModalComponent, {
-      width: '640px',
+      width: '700px',
       maxWidth: '95vw',
+      disableClose: true,
       data: { truck: null },
     });
     ref.afterClosed().subscribe((result) => {
@@ -215,8 +217,9 @@ export class TrucksListComponent implements OnDestroy {
   openEdit(truck: Truck, event?: Event): void {
     event?.stopPropagation();
     const ref = this.dialog.open(TruckFormModalComponent, {
-      width: '640px',
+      width: '700px',
       maxWidth: '95vw',
+      disableClose: true,
       data: { truck },
     });
     ref.afterClosed().subscribe((result) => {

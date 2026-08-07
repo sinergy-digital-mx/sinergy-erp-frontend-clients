@@ -1,0 +1,104 @@
+<div class="wc-list">
+  <div class="px-4">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+      <div>
+        <h2 class="text-2xl font-semibold text-gray-800 m-0">Control de almacén</h2>
+        <p class="text-sm text-gray-500 mt-1 mb-0">
+          Órdenes en selección pendientes de corroboración
+        </p>
+      </div>
+      <button type="button" class="wc-list__refresh" (click)="loadOrders()" [disabled]="loading()">
+        <i class="fi fi-rr-refresh" [class.animate-spin]="loading()"></i>
+        Actualizar
+      </button>
+    </div>
+
+    <div class="wc-list__filters mb-4">
+      <input
+        type="search"
+        class="wc-list__search"
+        [formControl]="searchControl"
+        placeholder="Buscar folio o cliente…" />
+
+      <select class="wc-list__select" [formControl]="branchControl">
+        <option value="">Todos los CEDIS</option>
+        @for (branch of branches(); track branch.id) {
+          <option [value]="branch.id">{{ branch.display_name || branch.code }}</option>
+        }
+      </select>
+
+      <select class="wc-list__select" [formControl]="warehouseControl">
+        <option value="">Todos los almacenes</option>
+        @for (warehouse of filteredWarehouses(); track warehouse.id) {
+          <option [value]="warehouse.id">{{ warehouse.name }}</option>
+        }
+      </select>
+
+        @if (hasActiveFilters) {
+        <app-filter-clear-button [active]="true" (clear)="clearFilters()"></app-filter-clear-button>
+      }
+    </div>
+
+    <div class="hidden md:block">
+      <app-datatable-wrapper
+        variant="modern"
+        [config]="table_config()"
+        [rowTemplate]="tableTemplate"
+        (pageChange)="onPageChange($event)"
+        (rowClick)="openDetail($event.data)">
+      </app-datatable-wrapper>
+    </div>
+
+    <div class="block md:hidden space-y-3">
+      @for (order of table_config().rows; track order.id) {
+        <div class="wc-list__card" (click)="openDetail(order)">
+          <div class="flex justify-between items-start gap-2 mb-2">
+            <span class="dt-folio-badge dt-folio-badge--odv">{{ order.folio || order.id.slice(0, 8) }}</span>
+            <span [ngClass]="getStatusClass()">En Selección</span>
+          </div>
+          <div class="text-sm text-gray-600 space-y-1">
+            <div><strong>Cliente:</strong> {{ customerName(order) }}</div>
+            <div><strong>CEDIS:</strong> {{ branchLabel(order) }}</div>
+            <div><strong>Almacén:</strong> {{ warehouseLabel(order) }}</div>
+            <div><strong>Total:</strong> {{ formatCurrency(order.total) }}</div>
+            <div class="text-xs text-gray-500">{{ formatDateTime(order.created_at) }}</div>
+          </div>
+        </div>
+      } @empty {
+        @if (!loading()) {
+          <p class="text-sm text-gray-500 py-8 text-center">Sin órdenes en selección</p>
+        }
+      }
+    </div>
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td>
+    <span class="dt-folio-badge dt-folio-badge--odv">{{ item.folio || item.id.slice(0, 8) }}</span>
+  </td>
+  <td>
+    <span class="dt-cell-muted" [title]="customerName(item)">{{ customerName(item) }}</span>
+  </td>
+  <td>
+    <span class="dt-cell-muted" [title]="branchLabel(item)">{{ branchLabel(item) }}</span>
+  </td>
+  <td>
+    <span class="dt-cell-muted" [title]="warehouseLabel(item)">{{ warehouseLabel(item) }}</span>
+  </td>
+  <td>
+    <span class="dt-cell-subtle">{{ formatDate(item.expected_delivery_date) }}</span>
+  </td>
+  <td>
+    <p class="dt-cell-amount m-0">{{ formatCurrency(item.total) }}</p>
+  </td>
+  <td>
+    <span class="dt-cell-muted">{{ item.payment_status || '—' }}</span>
+  </td>
+  <td>
+    <p class="dt-cell-subtle m-0">{{ formatDateTime(item.created_at) }}</p>
+  </td>
+  <td>
+    <span class="dt-cell-muted" [title]="createdByLabel(item)">{{ createdByLabel(item) }}</span>
+  </td>
+</ng-template>

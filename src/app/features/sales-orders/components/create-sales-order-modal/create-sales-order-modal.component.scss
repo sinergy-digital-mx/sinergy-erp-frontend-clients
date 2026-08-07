@@ -75,6 +75,23 @@
   letter-spacing: 0.05em;
 }
 
+.assembly-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: #334155;
+    cursor: pointer;
+  }
+}
+
 .form-label-row {
   display: flex;
   align-items: center;

@@ -37,6 +37,15 @@
           <button type="button" class="loc-map__btn" (click)="useBrowserLocation()">
             Usar mi ubicación actual
           </button>
+          @if (copyFromBranchLabel) {
+            <button
+              type="button"
+              class="loc-map__btn loc-map__btn--accent"
+              (click)="onCopyFromBranch()"
+              [disabled]="!canCopyFromBranch">
+              {{ copyFromBranchLabel }}
+            </button>
+          }
         </div>
       </div>
     } @else {
@@ -47,6 +56,15 @@
         <button type="button" class="loc-map__btn" (click)="useBrowserLocation()">
           Usar mi ubicación actual
         </button>
+        @if (copyFromBranchLabel) {
+          <button
+            type="button"
+            class="loc-map__btn loc-map__btn--accent"
+            (click)="onCopyFromBranch()"
+            [disabled]="!canCopyFromBranch">
+            {{ copyFromBranchLabel }}
+          </button>
+        }
       </div>
     }
 
@@ -55,7 +73,7 @@
       @if (mapError()) {
         <div class="loc-map__fallback">{{ mapError() }}</div>
       }
-      <div class="loc-map__wrap">
+      <div class="loc-map__wrap" #mapWrap>
         @if (mapLoading()) {
           <div class="loc-map__loading">Cargando mapa…</div>
         }

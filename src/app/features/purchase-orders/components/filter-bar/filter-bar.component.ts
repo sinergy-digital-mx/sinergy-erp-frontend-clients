@@ -23,7 +23,9 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() warehouses: Warehouse[] = [];
   /** Sincroniza el campo búsqueda con la URL o el listado (p. ej. ?search=uuid tras editar). */
   @Input() initialSearch: string | null = null;
+  @Input() refreshing = false;
   @Output() filtersChange = new EventEmitter<OrderFilters>();
+  @Output() refresh = new EventEmitter<void>();
 
   // Form controls
   searchControl = new FormControl<string>('', { nonNullable: true });
@@ -163,6 +165,11 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     this.warehouseControl.setValue(null, { emitEvent: false });
     this.showCustomDateRange = false;
     this.emitFilters();
+  }
+
+  onRefresh(): void {
+    if (this.refreshing) return;
+    this.refresh.emit();
   }
 
   ngOnDestroy(): void {

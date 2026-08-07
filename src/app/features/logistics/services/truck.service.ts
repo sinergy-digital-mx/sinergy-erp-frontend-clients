@@ -63,6 +63,15 @@ export class TruckService {
     );
   }
 
+  /** Sube o reemplaza foto. FormData campo `file`. Requiere Truck + Update. */
+  uploadTruckPhoto(id: string, file: File): Observable<Truck> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<any>(`${this.baseUrl}/${id}/photo`, formData).pipe(
+      map((response) => this.unwrap(response))
+    );
+  }
+
   private unwrap(response: ApiEnvelope<Truck> | Truck): Truck {
     if (response && typeof response === 'object' && 'data' in response && response.data) {
       return response.data;

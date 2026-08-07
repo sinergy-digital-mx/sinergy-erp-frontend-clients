@@ -55,7 +55,11 @@ export class SalesOrderService {
       params = params.set('search', filters.search);
     }
     if (filters.status || filters.general_status) {
-      params = params.set('general_status', (filters.general_status || filters.status)!);
+      const status = filters.general_status || filters.status;
+      params = params.set(
+        'general_status',
+        Array.isArray(status) ? status.join(',') : String(status)
+      );
     }
     if (filters.payment_status) {
       params = params.set('payment_status', filters.payment_status);
@@ -345,9 +349,12 @@ export class SalesOrderService {
     }
 
     let params = new HttpParams();
+    const generalStatus = Array.isArray(filters.general_status)
+      ? filters.general_status.join(',')
+      : filters.general_status;
     const entries: [string, string | number | undefined][] = [
       ['search', filters.search],
-      ['general_status', filters.general_status],
+      ['general_status', generalStatus],
       ['payment_status', filters.payment_status],
       ['sales_order_type', filters.sales_order_type],
       ['warehouse_id', filters.warehouse_id],

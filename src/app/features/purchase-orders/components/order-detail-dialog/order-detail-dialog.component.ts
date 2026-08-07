@@ -44,6 +44,7 @@ import { Warehouse } from '../../../settings/models/warehouse.model';
 export class OrderDetailDialogComponent {
   order = signal<PurchaseOrder | null>(null);
   loading = signal<boolean>(true);
+  refreshing = signal(false);
   activeTabIndex = signal<number>(0);
   showReceivedTotals = signal<boolean>(false);
   regeneratingPDF = signal<boolean>(false);
@@ -108,29 +109,40 @@ export class OrderDetailDialogComponent {
     this.loadOrder();
   }
 
-  loadOrder(): void {
-    this.loading.set(true);
+  loadOrder(silent = false): void {
+    if (!silent) {
+      this.loading.set(true);
+    } else {
+      this.refreshing.set(true);
+    }
     this.purchaseOrderService.getOrderById(this.data.orderId).subscribe({
       next: (order) => {
         this.order.set(order);
         this.loadDocuments(order.id);
         this.loading.set(false);
+        this.refreshing.set(false);
       },
       error: (error) => {
         console.error('Error loading order:', error);
         this.loading.set(false);
+        this.refreshing.set(false);
       }
     });
   }
 
+  refreshOrder(): void {
+    if (this.refreshing() || this.loading()) return;
+    this.loadOrder(true);
+  }
+
   close(): void {
-    this.dialogRef.close();
+    this.dialogRef.close(true);
   }
 
   goToEditForm(): void {
     const id = this.order()?.id;
     if (!id) return;
-    this.dialogRef.close();
+    this.dialogRef.close(true);
     void this.router.navigate(['/purchase-orders', id, 'edit']);
   }
 

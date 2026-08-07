@@ -43,7 +43,7 @@ export class SalesOrderListComponent implements OnInit {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Folio', prop: 'folio', sortable: true, canAutoResize: false, width: 120 },
+      { name: 'Folio', prop: 'folio', sortable: true, canAutoResize: false, width: 160 },
       { name: 'Cliente', prop: 'customer', sortable: true, canAutoResize: false, width: 150 },
       { name: 'Almacén', prop: 'warehouse', sortable: false, canAutoResize: false, width: 150 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 120 },
@@ -186,19 +186,25 @@ export class SalesOrderListComponent implements OnInit {
   }
 
   navigateToDetail(order: SalesOrder): void {
-    this.dialog.open(SalesOrderDetailDialogComponent, {
-      ...ORDER_DETAIL_DIALOG_OPTIONS,
-      data: { orderId: order.id }
-    }).afterClosed().subscribe((updated) => {
-      if (updated) this.loadOrders();
-    });
+    this.dialog
+      .open(SalesOrderDetailDialogComponent, {
+        ...ORDER_DETAIL_DIALOG_OPTIONS,
+        data: { orderId: order.id },
+      })
+      .afterClosed()
+      .subscribe(() => {
+        this.loadOrders();
+      });
   }
 
   getStatusClass(status: string): string {
     const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
     switch (status) {
       case 'Creada': return `${base} bg-blue-50 text-blue-700`;
+      case 'En Selección': return `${base} bg-amber-50 text-amber-800`;
+      case 'Lista para entrega': return `${base} bg-teal-50 text-teal-800`;
       case 'Surtida': return `${base} bg-emerald-50 text-emerald-700`;
+      case 'En Camino': return `${base} bg-indigo-50 text-indigo-700`;
       case 'Cancelada': return `${base} bg-red-50 text-red-700`;
       default: return `${base} bg-gray-100 text-gray-600`;
     }

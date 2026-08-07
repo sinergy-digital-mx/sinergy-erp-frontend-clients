@@ -5,9 +5,22 @@ import {
   SalesOrderPaymentsSummary,
 } from './sales-order-payment.model';
 
-export type SalesOrderStatus = 'Creada' | 'Surtida' | 'En Camino' | 'Cancelada';
+export type SalesOrderStatus =
+  | 'Creada'
+  | 'En Selección'
+  | 'Lista para entrega'
+  | 'Surtida'
+  | 'En Camino'
+  | 'Cancelada';
 export type SalesPaymentStatus = 'Pendiente' | 'Pagado';
 export type SalesOrderType = 'POS' | 'MANUAL';
+
+export interface SalesOrderUserSummary {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+}
 
 export interface Customer {
   id: number | string;
@@ -188,6 +201,11 @@ export interface SalesOrder {
   // legacy compat
   grand_total?: number;
   notes?: string;
+  requires_selection_assembly?: boolean;
+  corroborated_at?: string | null;
+  corroborated_by?: string | null;
+  corroborated_by_user?: SalesOrderUserSummary | null;
+  created_by_user?: SalesOrderUserSummary | null;
   line_items?: SalesOrderLineItem[];
   // legacy compat
   lines?: SalesOrderLineItem[];
@@ -199,6 +217,7 @@ export interface SalesOrder {
   terminal_user?: PosUserSummary;
   collected_by_user?: PosUserSummary;
   warehouse?: { id: string; name: string; zip_code?: string };
+  billing_branch?: { id?: string; display_name?: string; code?: string };
   fiscal_configuration?: {
     id?: string;
     razon_social?: string;
@@ -237,7 +256,7 @@ export interface SalesOrderShippingInfo {
 export interface SalesOrderFilters {
   search?: string;
   status?: SalesOrderStatus;
-  general_status?: SalesOrderStatus;
+  general_status?: SalesOrderStatus | SalesOrderStatus[] | string;
   payment_status?: SalesPaymentStatus;
   sales_order_type?: SalesOrderType;
   customer_id?: string | number;
@@ -250,7 +269,7 @@ export type SalesOrderExportType = 'headers' | 'details';
 
 export interface SalesOrderExportFilters {
   search?: string;
-  general_status?: string;
+  general_status?: string | SalesOrderStatus | SalesOrderStatus[];
   payment_status?: string;
   sales_order_type?: SalesOrderType;
   warehouse_id?: string;
@@ -284,6 +303,7 @@ export interface SalesOrderFormData {
   seller_user_id?: string;
   payment_status?: string;
   notes?: string;
+  requires_selection_assembly?: boolean;
   global_discount_id?: string;
     line_items: Array<{
     product_id: string;

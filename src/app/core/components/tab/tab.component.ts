@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 export interface TabItem {
   id: string;
   title: string;
+  disabled?: boolean;
 }
 
 @Component({
@@ -25,6 +26,8 @@ export class TabComponent implements OnInit {
   }
 
   selectTab(tabId: string): void {
+    const tab = this.tabs.find((t) => t.id === tabId);
+    if (tab?.disabled) return;
     this.activeTabId = tabId;
     this.tabChange.emit(tabId);
   }
