@@ -91,22 +91,25 @@
             <div class="stop__seq" [class.stop__seq--warn]="isOriginMissing()">0</div>
             <div class="stop__body">
               <div class="stop__row">
-                <strong>{{ originLabel() }}</strong>
-                @if (!isOriginMissing()) {
-                  <span class="ok-pill">GPS OK</span>
-                }
+                <strong class="stop__title">{{ originLabel() }}</strong>
+                <div class="stop__row-actions">
+                  @if (!isOriginMissing()) {
+                    <span class="ok-pill">GPS OK</span>
+                  }
+                  <button
+                    type="button"
+                    class="loc-edit-btn"
+                    *hasPermission="permissions.update"
+                    title="Editar ubicación"
+                    aria-label="Editar ubicación del origen"
+                    (click)="openEditOrigin()">
+                    <lucide-icon [img]="MapPin" [size]="14" [strokeWidth]="2"></lucide-icon>
+                  </button>
+                </div>
               </div>
               <p class="stop__muted">{{ s.origin?.address_summary || 'Punto de salida' }}</p>
               @if (isOriginMissing()) {
                 <p class="warn-text">Este CEDIS no tiene ubicación registrada</p>
-                <button
-                  type="button"
-                  class="link-btn"
-                  *hasPermission="permissions.update"
-                  (click)="openEditOrigin()"
-                >
-                  Agregar / editar ubicación
-                </button>
               }
             </div>
           </div>
@@ -126,18 +129,29 @@
               <div class="stop__body">
                 <div class="stop__row">
                   @if (allowOpenOrderDetail) {
-                    <button type="button" class="link-btn strong" (click)="openOrder(stop)">
+                    <button type="button" class="link-btn strong stop__title" (click)="openOrder(stop)">
                       {{ stopLabel(stop) }}
                     </button>
                   } @else {
-                    <strong>{{ stopLabel(stop) }}</strong>
+                    <strong class="stop__title">{{ stopLabel(stop) }}</strong>
                   }
-                  @if (stop.hasCoords) {
-                    <span class="ok-pill">GPS OK</span>
-                  }
-                  @if (isCurrentStop(stop)) {
-                    <span class="chip">Esta OV</span>
-                  }
+                  <div class="stop__row-actions">
+                    @if (stop.hasCoords) {
+                      <span class="ok-pill">GPS OK</span>
+                    }
+                    @if (isCurrentStop(stop)) {
+                      <span class="chip">Esta OV</span>
+                    }
+                    <button
+                      type="button"
+                      class="loc-edit-btn"
+                      *hasPermission="permissions.update"
+                      [title]="stop.needsAddress ? 'Agregar dirección' : 'Editar ubicación'"
+                      [attr.aria-label]="stop.needsAddress ? 'Agregar dirección' : 'Editar ubicación de la parada'"
+                      (click)="openFixStopGps(stop)">
+                      <lucide-icon [img]="MapPin" [size]="14" [strokeWidth]="2"></lucide-icon>
+                    </button>
+                  </div>
                 </div>
                 <p>{{ stop.customer_name || 'Cliente' }}</p>
                 <p class="stop__muted">{{ stop.address_summary || 'Sin dirección' }}</p>
@@ -148,14 +162,6 @@
                   <p class="warn-text">
                     {{ stop.needsAddress ? 'Sin dirección de entrega' : 'Sin coordenadas GPS' }}
                   </p>
-                  <button
-                    type="button"
-                    class="link-btn"
-                    *hasPermission="permissions.update"
-                    (click)="openFixStopGps(stop)"
-                  >
-                    {{ stop.needsAddress ? 'Agregar dirección' : 'Editar / corregir GPS' }}
-                  </button>
                 }
               </div>
             </div>
@@ -164,13 +170,14 @@
 
         @if (isCreado()) {
           <div class="sv__add">
-            <app-button
+            <button
+              type="button"
+              class="sv__add-btn"
               *hasPermission="permissions.create"
-              text="Agregar OV"
-              custom_class="btn_secondary"
-              [fullWidth]="false"
-              (clicked)="openAddStops()"
-            ></app-button>
+              (click)="openAddStops()">
+              <lucide-icon [img]="Plus" [size]="16" [strokeWidth]="2.25"></lucide-icon>
+              Agregar orden de venta
+            </button>
           </div>
         }
       </aside>

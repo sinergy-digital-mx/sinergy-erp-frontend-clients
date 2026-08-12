@@ -7,11 +7,12 @@ import { ReceiptService } from '../../services/receipt.service';
 import { PurchaseOrder, LineItem } from '../../models/purchase-order.model';
 import { LotMode, ReceivedItem, ReceivedLot, ReceiptRequest } from '../../models/receipt.model';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
+import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 
 @Component({
   selector: 'app-receipt-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RemoveTrailingZerosPipe],
   templateUrl: './receipt-modal.component.html',
   styleUrl: './receipt-modal.component.scss'
 })
@@ -58,10 +59,10 @@ export class ReceiptModalComponent implements OnInit {
   }
 
   /**
-   * Obtener cantidad ordenada
+   * Nombre de unidad de la línea
    */
-  getOrderedQuantity(lineItem: LineItem): string {
-    return `${lineItem.quantity} ${lineItem.product_uom?.uom?.name || lineItem.uom?.name || 'Unidad'}`;
+  getLineUomName(lineItem: LineItem): string {
+    return lineItem.product_uom?.uom?.name || lineItem.uom?.name || 'Unidad';
   }
 
   getUnitCost(lineItem: LineItem): number | null {

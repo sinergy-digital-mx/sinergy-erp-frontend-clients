@@ -1,7 +1,9 @@
 @use '../../../../core/styles/order-detail-dialog-layout' as layout;
 @use '../../../../core/styles/thin-scrollbar' as scrollbar;
+@use '../../../../core/styles/uom-qty' as uomQty;
 
 @include layout.order-detail-dialog-shell(#f8fafc);
+@include uomQty.uom-qty-badges;
 
 .loading-container {
   display: flex;

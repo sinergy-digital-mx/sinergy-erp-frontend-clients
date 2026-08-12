@@ -31,7 +31,12 @@
                     </span>
                     <span class="meta-chip meta-chip--order">
                       <span class="meta-chip__label">Ordenado</span>
-                      <span class="meta-chip__value">{{ getOrderedQuantity(lineItem) }}</span>
+                      <span class="meta-chip__value">
+                        <span class="qty-cell">
+                          <span class="qty-cell__amount">{{ lineItem.quantity | removeTrailingZeros }}</span>
+                          <span class="uom-badge">{{ getLineUomName(lineItem) }}</span>
+                        </span>
+                      </span>
                     </span>
                     @if (getUnitCost(lineItem) !== null) {
                       <span class="meta-chip">

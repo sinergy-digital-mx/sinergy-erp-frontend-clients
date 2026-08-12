@@ -302,13 +302,31 @@
 
       <div class="main-content">
         <div class="tabs-header">
-          <button class="tab-button" [class.active]="activeTabIndex() === 0" (click)="activeTabIndex.set(0)">Productos</button>
-          <button class="tab-button" [class.active]="activeTabIndex() === 1" (click)="activeTabIndex.set(1)">Pagos</button>
-          <button class="tab-button" [class.active]="activeTabIndex() === 2" (click)="activeTabIndex.set(2)">Documentos</button>
-          <button class="tab-button" [class.active]="activeTabIndex() === 3" (click)="activeTabIndex.set(3)">Lotes</button>
-          <button class="tab-button" [class.active]="activeTabIndex() === 4" (click)="activeTabIndex.set(4)">Facturación</button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 0" (click)="activeTabIndex.set(0)">
+            Productos
+            <span class="tab-count" [class.active]="activeTabIndex() === 0">{{ getLineItemsCount() }}</span>
+          </button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 1" (click)="activeTabIndex.set(1)">
+            Pagos
+            <span class="tab-count" [class.active]="activeTabIndex() === 1">{{ getPaymentsCount() }}</span>
+          </button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 2" (click)="activeTabIndex.set(2)">
+            Documentos
+            <span class="tab-count" [class.active]="activeTabIndex() === 2">{{ getDocumentsCount() }}</span>
+          </button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 3" (click)="activeTabIndex.set(3)">
+            Lotes
+            <span class="tab-count" [class.active]="activeTabIndex() === 3">{{ getBatchesCount() }}</span>
+          </button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 4" (click)="activeTabIndex.set(4)">
+            Facturación
+            <span class="tab-count" [class.active]="activeTabIndex() === 4">{{ getInvoicesCount() }}</span>
+          </button>
           @if (canViewShippingTab()) {
-            <button class="tab-button" [class.active]="activeTabIndex() === 5" (click)="activeTabIndex.set(5)">Envío</button>
+            <button type="button" class="tab-button" [class.active]="activeTabIndex() === 5" (click)="activeTabIndex.set(5)">
+              Envío
+              <span class="tab-count" [class.active]="activeTabIndex() === 5">{{ getShippingCount() }}</span>
+            </button>
           }
         </div>
 
@@ -344,11 +362,17 @@
                       <td>{{ formatCurrency(item.unit_price) }}</td>
                       <td>{{ formatCurrency(getLineTotal(item)) }}</td>
                       <td>
-                        <span class="qty-pill">{{ getRequestedQuantity(item) | removeTrailingZeros }} {{ getLineUom(item) }}</span>
+                        <span class="qty-cell">
+                          <span class="qty-cell__amount">{{ getRequestedQuantity(item) | removeTrailingZeros }}</span>
+                          <span class="uom-badge">{{ getLineUom(item) }}</span>
+                        </span>
                       </td>
                       <td>
-                        <span class="qty-pill" [class.qty-pill--muted]="getDeliveredQuantity(item) === 0">
-                          {{ getDeliveredQuantity(item) | removeTrailingZeros }} {{ getLineUom(item) }}
+                        <span class="qty-cell">
+                          <span class="qty-cell__amount">{{ getDeliveredQuantity(item) | removeTrailingZeros }}</span>
+                          <span class="uom-badge" [class.uom-badge--muted]="getDeliveredQuantity(item) === 0">
+                            {{ getLineUom(item) }}
+                          </span>
                         </span>
                       </td>
                     </tr>
@@ -658,7 +682,12 @@
                         </div>
                       </td>
                       <td>{{ row.allocation?.inventory_batch?.batch_number || row.allocation?.inventory_batch_id || '-' }}</td>
-                      <td>{{ row.allocation?.quantity_allocated | removeTrailingZeros }}</td>
+                      <td>
+                        <span class="qty-cell">
+                          <span class="qty-cell__amount">{{ row.allocation?.quantity_allocated | removeTrailingZeros }}</span>
+                          <span class="uom-badge">{{ getLineUom(row.item) }}</span>
+                        </span>
+                      </td>
                       <td>{{ row.allocation?.created_at | date:'short' }}</td>
                     </tr>
                   } @empty {

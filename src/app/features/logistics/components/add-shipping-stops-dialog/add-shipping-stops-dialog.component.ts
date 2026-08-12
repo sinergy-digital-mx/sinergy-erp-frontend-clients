@@ -7,7 +7,6 @@ import { LucideAngularModule, X } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
-import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import { SalesOrder } from '../../../sales-orders/models/sales-order.model';
 import { Shipping } from '../../models/shipping.model';
 import { ShippingService } from '../../services/shipping.service';
@@ -37,7 +36,6 @@ export class AddShippingStopsDialogComponent implements OnInit {
   totalPages = 1;
 
   constructor(
-    private salesOrderService: SalesOrderService,
     private shippingService: ShippingService,
     private snackBar: MatSnackBar,
     public dialogRef: MatDialogRef<AddShippingStopsDialogComponent>,
@@ -50,21 +48,19 @@ export class AddShippingStopsDialogComponent implements OnInit {
 
   loadOrders(): void {
     this.loading.set(true);
-    this.salesOrderService
-      .getOrders(
-        {
-          search: this.search || undefined,
-          general_status: ['Surtida', 'Lista para entrega'],
-          warehouse_id: this.data.warehouseId,
-        },
-        { page: this.page, limit: 20 }
-      )
+    this.shippingService
+      .getAvailableOrders({
+        origin_warehouse_id: this.data.warehouseId,
+        search: this.search || undefined,
+        page: this.page,
+        limit: 20,
+      })
       .subscribe({
         next: (res) => {
           const assigned = new Set(this.data.assignedOrderIds);
           const rows = (res.data ?? []).filter((o) => !assigned.has(o.id));
           this.orders.set(rows);
-          this.totalPages = res.totalPages || 1;
+          this.totalPages = Math.max(1, res.totalPages || 1);
           this.loading.set(false);
         },
         error: () => {

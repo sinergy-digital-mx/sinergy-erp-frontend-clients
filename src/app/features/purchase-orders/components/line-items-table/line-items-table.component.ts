@@ -71,4 +71,8 @@ export class LineItemsTableComponent {
   trackByLineItem(index: number, item: LineItem): string {
     return item.id;
   }
+
+  getLineUomName(item: LineItem): string {
+    return item.uom?.name || item.uom?.code || item.product_uom?.uom?.name || 'N/A';
+  }
 }

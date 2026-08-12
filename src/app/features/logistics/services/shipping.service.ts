@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
+import { SalesOrder } from '../../sales-orders/models/sales-order.model';
 import {
   CreateShippingDto,
   ResolveOrdersDto,
@@ -27,6 +28,46 @@ export class ShippingService {
         data: (response?.data ?? response) as ShippingPreviewResult,
         message: response?.message,
       }))
+    );
+  }
+
+  /**
+   * Órdenes elegibles para envío: Surtida + Lista para entrega del almacén/CEDIS,
+   * sin envío activo.
+   */
+  getAvailableOrders(params: {
+    origin_warehouse_id: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Observable<{
+    data: SalesOrder[];
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  }> {
+    const httpParams: Record<string, string | number> = {
+      origin_warehouse_id: params.origin_warehouse_id,
+    };
+    if (params.search?.trim()) httpParams['search'] = params.search.trim();
+    if (params.page != null) httpParams['page'] = params.page;
+    if (params.limit != null) httpParams['limit'] = params.limit;
+
+    return this.http.get<any>(`${this.baseUrl}/available-orders`, { params: httpParams }).pipe(
+      map((response) => {
+        const data = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+        const page = Number(response?.page) || params.page || 1;
+        const limit = Number(response?.limit) || params.limit || data.length || 20;
+        const total = Number(response?.total) || data.length;
+        const totalPages =
+          Number(response?.totalPages) || (total > 0 ? Math.ceil(total / limit) : 1);
+        return { data, page, limit, total, totalPages };
+      })
     );
   }
 

@@ -1,16 +1,34 @@
 <div class="payments-container">
-  <!-- Header -->
-  <div class="flex items-center justify-end mb-1">
-    <div class="flex gap-2">
-      <app-button
-        *ngIf="showGeneratePaymentsButton"
-        text="Generar Pagos"
-        custom_class="btn_primary"
-        size="sm"
-        [icon]="Plus"
-        [loading]="generating()"
-        (clicked)="generatePayments()">
-      </app-button>
+  <div class="schedule-toolbar mb-4" *ngIf="(calendarStartDate && calendarEndDate) || showScheduleForm">
+    <div *ngIf="calendarStartDate && calendarEndDate" class="schedule-range">
+      <span class="text-sm text-gray-500">Calendario</span>
+      <span class="text-sm font-semibold text-gray-900">
+        Inicio {{ calendarStartDate | localDate:'mediumDate' }}
+        —
+        Fin {{ calendarEndDate | localDate:'mediumDate' }}
+      </span>
+      <span *ngIf="paymentMonths" class="text-xs text-gray-500">{{ paymentMonths }} meses</span>
+    </div>
+
+    <app-button
+      *ngIf="showScheduleForm"
+      [text]="canRegenerate ? 'Regenerar calendario' : 'Generar pagos'"
+      size="sm"
+      [fullWidth]="false"
+      [icon]="canRegenerate ? RotateCcw : Plus"
+      (clicked)="openScheduleDialog()">
+    </app-button>
+  </div>
+
+  <div *ngIf="showRegenerateBlockedBanner" class="schedule-banner mb-4">
+    <lucide-icon [img]="AlertTriangle" [size]="18" class="schedule-banner__icon"></lucide-icon>
+    <div>
+      <p *ngIf="stats()?.cannot_regenerate_reason" class="text-sm font-medium text-amber-900">
+        {{ stats()!.cannot_regenerate_reason }}
+      </p>
+      <p class="text-sm text-amber-800" [class.mt-1]="!!stats()?.cannot_regenerate_reason">
+        Debes revertir los pagos pagados o parciales antes de regenerar el calendario.
+      </p>
     </div>
   </div>
 
@@ -211,7 +229,7 @@
                 *ngIf="canResetPayment(payment)"
                 (click)="resetPayment(payment)"
                 class="p-1.5 text-purple-600 hover:text-white hover:bg-purple-600 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                [matTooltip]="'Resetear Pago'"
+                [matTooltip]="'Revertir'"
                 matTooltipPosition="above">
                 <lucide-icon [img]="RotateCcw" [size]="16"></lucide-icon>
               </button>

@@ -2,7 +2,16 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { Payment, PaymentStats, MarkPaymentPaidDto, UpdatePaymentDto, RegisterPartialPaymentDto } from '../models/payment.model';
+import {
+  Payment,
+  PaymentStats,
+  MarkPaymentPaidDto,
+  UpdatePaymentDto,
+  RegisterPartialPaymentDto,
+  GeneratePaymentsDto,
+  GeneratePaymentsResponse,
+  PaymentSchedulePreview,
+} from '../models/payment.model';
 import { PaymentDocument } from '../models/payment-document.model';
 
 @Injectable({
@@ -13,8 +22,20 @@ export class PaymentService {
 
   constructor(private http: HttpClient) {}
 
-  generatePayments(contractId: string): Observable<Payment[]> {
-    return this.http.post<Payment[]>(`${this.api}/tenant/contracts/${contractId}/payments/generate`, {});
+  generatePayments(contractId: string, data: GeneratePaymentsDto): Observable<GeneratePaymentsResponse> {
+    return this.http.post<GeneratePaymentsResponse>(`${this.api}/tenant/contracts/${contractId}/payments/generate`, data);
+  }
+
+  regeneratePayments(contractId: string, data: GeneratePaymentsDto): Observable<GeneratePaymentsResponse> {
+    return this.http.post<GeneratePaymentsResponse>(`${this.api}/tenant/contracts/${contractId}/payments/regenerate`, data);
+  }
+
+  getSchedulePreview(contractId: string, startDate?: string): Observable<PaymentSchedulePreview> {
+    const params = startDate ? { start_date: startDate } : undefined;
+    return this.http.get<PaymentSchedulePreview>(
+      `${this.api}/tenant/contracts/${contractId}/payments/schedule-preview`,
+      { params }
+    );
   }
 
   getPayments(contractId: string): Observable<Payment[]> {

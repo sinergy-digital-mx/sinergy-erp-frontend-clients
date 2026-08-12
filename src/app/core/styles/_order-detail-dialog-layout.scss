@@ -1,5 +1,6 @@
 @use 'thin-scrollbar' as scrollbar;
 @use 'order-detail-dialog-sidebar' as sidebar;
+@use 'uom-qty' as uomQty;
 
 /// Shell compartido: detalle OV / OC en modal (responsive + header compacto).
 @mixin order-detail-dialog-shell($bg: #f8fafc) {
@@ -227,4 +228,6 @@
       -webkit-overflow-scrolling: touch;
     }
   }
+
+  @include uomQty.uom-qty-badges;
 }

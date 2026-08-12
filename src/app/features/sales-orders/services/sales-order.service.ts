@@ -56,10 +56,13 @@ export class SalesOrderService {
     }
     if (filters.status || filters.general_status) {
       const status = filters.general_status || filters.status;
-      params = params.set(
-        'general_status',
-        Array.isArray(status) ? status.join(',') : String(status)
-      );
+      if (Array.isArray(status)) {
+        for (const value of status) {
+          if (value) params = params.append('general_status', String(value));
+        }
+      } else if (status) {
+        params = params.set('general_status', String(status));
+      }
     }
     if (filters.payment_status) {
       params = params.set('payment_status', filters.payment_status);

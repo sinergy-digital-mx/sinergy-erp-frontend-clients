@@ -131,6 +131,7 @@ export class SalesOrderDetailDialogComponent {
   deletingPaymentId = signal<string | null>(null);
   uploadingPaymentDocId = signal<string | null>(null);
   invoiceSummary = signal<string | null>(null);
+  invoicesCount = signal(0);
 
   canViewInvoicingTab = computed(() =>
     this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.viewMenu) &&
@@ -748,16 +749,45 @@ export class SalesOrderDetailDialogComponent {
   private loadInvoiceSummaryIfAllowed(): void {
     if (!this.canViewInvoicingTab()) {
       this.invoiceSummary.set(null);
+      this.invoicesCount.set(this.getInvoices().length);
       return;
     }
 
     this.invoiceService.getInvoices(this.data.orderId).subscribe({
       next: (invoices) => {
+        this.invoicesCount.set(invoices.length);
         const vigentes = countVigenteInvoices(invoices);
         this.invoiceSummary.set(`Facturas: ${invoices.length} · Vigentes: ${vigentes}`);
       },
-      error: () => this.invoiceSummary.set(null),
+      error: () => {
+        this.invoicesCount.set(this.getInvoices().length);
+        this.invoiceSummary.set(null);
+      },
     });
+  }
+
+  getLineItemsCount(): number {
+    return this.lineItems().length;
+  }
+
+  getPaymentsCount(): number {
+    return this.payments().length;
+  }
+
+  getDocumentsCount(): number {
+    return this.documents().length;
+  }
+
+  getBatchesCount(): number {
+    return this.getBatchAllocationsRows().length;
+  }
+
+  getInvoicesCount(): number {
+    return this.invoicesCount();
+  }
+
+  getShippingCount(): number {
+    return this.shippingInfo()?.has_shipping ? 1 : 0;
   }
 
   onInvoicingTabChanged(): void {

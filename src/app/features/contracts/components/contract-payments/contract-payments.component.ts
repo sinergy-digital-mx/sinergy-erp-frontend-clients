@@ -9,10 +9,11 @@ import { DownPaymentStats } from '../../models/downpayment-payment.model';
 import { DownpaymentPaymentService } from '../../services/downpayment-payment.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail, Check } from 'lucide-angular';
+import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail, Check, AlertTriangle } from 'lucide-angular';
 import { PartialPaymentModalComponent } from '../partial-payment-modal/partial-payment-modal.component';
 import { EditPaymentModalComponent } from '../edit-payment-modal/edit-payment-modal.component';
 import { SendPaymentEmailModalComponent } from '../send-payment-email-modal/send-payment-email-modal.component';
+import { GeneratePaymentsDialogComponent } from '../generate-payments-dialog/generate-payments-dialog.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 
 @Component({
@@ -40,7 +41,6 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
   stats = signal<PaymentStats | null>(null);
   downpaymentStats = signal<DownPaymentStats | null>(null);
   loading = signal(false);
-  generating = signal(false);
   currentPage = signal(1);
   readonly pageSize = 20;
 
@@ -53,6 +53,7 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
   readonly Mail = Mail;
   readonly Math = Math;
   readonly Check = Check;
+  readonly AlertTriangle = AlertTriangle;
 
   constructor(
     private paymentService: PaymentService,
@@ -68,6 +69,13 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['contractId'] && !changes['contractId'].firstChange) {
+      this.loadPayments();
+      this.loadStats();
+      this.refreshDownpaymentStats();
+      return;
+    }
+
     if (changes['contract'] && !changes['contract'].firstChange) {
       this.refreshDownpaymentStats();
     }
@@ -116,30 +124,27 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
     });
   }
 
-  generatePayments() {
-    if (!confirm('¿Generar todos los pagos del contrato? Esta acción solo se puede realizar una vez.')) return;
+  openScheduleDialog(): void {
+    if (!this.showScheduleForm) return;
 
-    this.generating.set(true);
-    this.paymentService.generatePayments(this.contractId).subscribe({
-      next: () => {
-        this.generating.set(false);
-        this.loadPayments();
-        this.loadStats();
-        this.dataChanged.emit();
-        this.interceptorService.openSnackbar({
-          type: 'success',
-          title: 'Éxito',
-          message: 'Pagos generados correctamente'
-        });
-      },
-      error: (err) => {
-        this.generating.set(false);
-        this.interceptorService.openSnackbar({
-          type: 'error',
-          title: 'Error',
-          message: err.error?.message || 'Error al generar pagos'
-        });
+    const dialogRef = this.dialog.open(GeneratePaymentsDialogComponent, {
+      width: '520px',
+      data: {
+        contractId: this.contractId,
+        contract: this.contract,
+        mode: this.canRegenerate ? 'regenerate' : 'generate',
+        defaultStartDate: this.stats()?.schedule?.start_date || this.contract?.first_payment_date,
+        paymentMonths: this.paymentMonths,
+        paymentsCount: this.stats()?.total_payments || this.payments().length,
+        currency: this.currency
       }
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (!result) return;
+      this.loadPayments();
+      this.loadStats();
+      this.dataChanged.emit();
     });
   }
 
@@ -262,7 +267,7 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
   }
 
   resetPayment(payment: Payment) {
-    if (!confirm(`¿Resetear el pago #${payment.payment_number}? Esto volverá el pago a estado pendiente y eliminará toda la información de pago.`)) return;
+    if (!confirm(`¿Revertir el pago #${payment.payment_number}? Volverá a pendiente y se eliminará la información de cobro.`)) return;
 
     this.paymentService.resetPayment(this.contractId, payment.id).subscribe({
       next: () => {
@@ -272,14 +277,14 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
         this.interceptorService.openSnackbar({
           type: 'success',
           title: 'Éxito',
-          message: 'Pago reseteado correctamente'
+          message: 'Pago revertido correctamente'
         });
       },
       error: (err) => {
         this.interceptorService.openSnackbar({
           type: 'error',
           title: 'Error',
-          message: err.error?.message || 'No se pudo resetear el pago'
+          message: err.error?.message || 'No se pudo revertir el pago'
         });
       }
     });
@@ -335,10 +340,43 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
       .reduce((sum, p) => sum + (p.amount_pending || 0), 0);
   }
 
-  get showGeneratePaymentsButton(): boolean {
-    return this.payments().length === 0
-      && !this.isContractCompleted
-      && !this.isDownpaymentFinancingBlocking;
+  get canGenerate(): boolean {
+    const stats = this.stats();
+    if (stats?.can_generate != null) return stats.can_generate;
+    return this.payments().length === 0;
+  }
+
+  get canRegenerate(): boolean {
+    const stats = this.stats();
+    if (stats?.can_regenerate != null) return stats.can_regenerate;
+    if (!stats) return false;
+    return this.payments().length > 0 && (stats.paid_or_partial_count ?? 0) === 0;
+  }
+
+  get showScheduleForm(): boolean {
+    return !this.isContractCompleted
+      && !this.isDownpaymentFinancingBlocking
+      && (this.canGenerate || this.canRegenerate);
+  }
+
+  get showRegenerateBlockedBanner(): boolean {
+    const stats = this.stats();
+    if (!stats || this.canGenerate || this.canRegenerate) return false;
+    return (stats.paid_or_partial_count ?? 0) > 0 || !!stats.cannot_regenerate_reason;
+  }
+
+  get calendarStartDate(): string | null {
+    return this.stats()?.schedule?.start_date || null;
+  }
+
+  get calendarEndDate(): string | null {
+    return this.stats()?.schedule?.end_date || null;
+  }
+
+  get paymentMonths(): number {
+    return this.stats()?.schedule?.payment_months
+      || this.contract?.payment_months
+      || 0;
   }
 
   get totalPages(): number {

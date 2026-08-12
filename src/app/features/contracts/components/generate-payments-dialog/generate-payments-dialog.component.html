@@ -1,0 +1,75 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2 class="dialog-title">{{ title }}</h2>
+    <button type="button" (click)="close()" class="close-button" [disabled]="submitting()">
+      <lucide-icon [img]="X" [size]="20"></lucide-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content" [formGroup]="form">
+    <p class="text-sm text-gray-600 mb-4">
+      Indica la fecha de <strong>inicio</strong> de las cuotas. El <strong>fin</strong> se calcula solo con los
+      {{ paymentMonths || '—' }} meses del contrato.
+    </p>
+
+    <p class="field-label">Fecha de inicio</p>
+    <div class="date-grid">
+      <label class="field">
+        <span>Día</span>
+        <select formControlName="day">
+          <option *ngFor="let day of days" [ngValue]="day">{{ day }}</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Mes</span>
+        <select formControlName="month">
+          <option *ngFor="let month of months" [ngValue]="month.value">{{ month.label }}</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Año</span>
+        <input type="number" min="2000" max="2100" formControlName="year">
+      </label>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <p class="summary-card__label">Inicio</p>
+        <p class="summary-card__value">{{ startDate ? (startDate | localDate:'mediumDate') : '—' }}</p>
+      </div>
+      <div class="summary-card">
+        <p class="summary-card__label">Fin</p>
+        <p class="summary-card__value">{{ endDate ? (endDate | localDate:'mediumDate') : '—' }}</p>
+      </div>
+      <div class="summary-card">
+        <p class="summary-card__label">Meses</p>
+        <p class="summary-card__value">{{ paymentMonths || '—' }}</p>
+      </div>
+      <div class="summary-card">
+        <p class="summary-card__label">Cuota mensual</p>
+        <p class="summary-card__value">
+          {{ monthlyPayment != null ? (monthlyPayment | currency:data.currency) : '—' }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog-footer">
+    <app-button
+      text="Cancelar"
+      variant="secondary"
+      [fullWidth]="false"
+      [disabled]="submitting()"
+      (clicked)="close()">
+    </app-button>
+    <app-button
+      [text]="submitLabel"
+      [fullWidth]="false"
+      [loading]="submitting()"
+      [disabled]="form.invalid || !startDate"
+      (clicked)="submit()">
+    </app-button>
+  </div>
+</div>

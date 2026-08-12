@@ -26,6 +26,35 @@ export interface Payment {
 export type PaymentStatus = 'pendiente' | 'pagado' | 'parcial' | 'cancelado';
 
 /**
+ * Calendario de cuotas (inicio indicado por el usuario, fin calculado).
+ */
+export interface PaymentSchedule {
+  start_date: string;
+  end_date: string;
+  payment_months: number;
+  payment_day: number;
+}
+
+/**
+ * Preview de calendario antes de generar o regenerar.
+ */
+export interface PaymentSchedulePreview extends PaymentSchedule {
+  payments_count: number;
+  monthly_payment: number;
+}
+
+/**
+ * Respuesta de generate / regenerate. Ya no es un array en la raíz.
+ */
+export interface GeneratePaymentsResponse extends PaymentSchedulePreview {
+  payments: Payment[];
+}
+
+export interface GeneratePaymentsDto {
+  start_date: string;
+}
+
+/**
  * Payment Statistics
  */
 export interface PaymentStats {
@@ -52,6 +81,11 @@ export interface PaymentStats {
   total_price: number;
   down_payment: number;
   paid_months?: number;
+  can_generate?: boolean;
+  can_regenerate?: boolean;
+  paid_or_partial_count?: number;
+  cannot_regenerate_reason?: string | null;
+  schedule?: PaymentSchedule | null;
   partial_payment?: {
     installment_number: number;
     amount_paid: number;

@@ -12,7 +12,6 @@ import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { User } from '../../../rbac-tenant-ui/models';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
-import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import { SalesOrder } from '../../../sales-orders/models/sales-order.model';
 import {
   CustomerAddressDialogComponent,
@@ -80,7 +79,6 @@ export class CreateShippingDialogComponent implements OnInit {
     private warehouseService: WarehouseService,
     private truckService: TruckService,
     private userService: UserService,
-    private salesOrderService: SalesOrderService,
     private shippingService: ShippingService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
@@ -151,15 +149,13 @@ export class CreateShippingDialogComponent implements OnInit {
       return;
     }
     this.loadingOrders.set(true);
-    this.salesOrderService
-      .getOrders(
-        {
-          search: this.orderSearch || undefined,
-          general_status: ['Surtida', 'Lista para entrega'],
-          warehouse_id: warehouseId,
-        },
-        { page: this.orderPage, limit: 20 }
-      )
+    this.shippingService
+      .getAvailableOrders({
+        origin_warehouse_id: warehouseId,
+        search: this.orderSearch || undefined,
+        page: this.orderPage,
+        limit: 20,
+      })
       .subscribe({
         next: (res) => {
           this.orders.set(res.data ?? []);
@@ -250,7 +246,7 @@ export class CreateShippingDialogComponent implements OnInit {
     }
     if (!this.selectedOrderIds.size) {
       this.snackBar.openFromComponent(CustomSnackbarComponent, {
-        data: { message: 'Selecciona al menos una orden surtida', type: 'error' },
+        data: { message: 'Selecciona al menos una orden', type: 'error' },
         duration: 4000,
       });
       return;

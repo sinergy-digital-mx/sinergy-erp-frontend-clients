@@ -58,6 +58,9 @@
 }
 
 .tab-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.875rem 1.125rem;
   border: none;
   background: transparent;
@@ -77,6 +80,25 @@
   &.active {
     color: #2563eb;
     border-bottom-color: #2563eb;
+  }
+}
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #64748b;
+
+  &.active {
+    background: #7c3aed;
+    color: #fff;
   }
 }
 
@@ -180,23 +202,6 @@
 
   tbody tr.row-clickable:hover .product-info--clickable strong {
     color: #2563eb;
-  }
-}
-
-.qty-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.55rem;
-  border-radius: 9999px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
-
-  &--muted {
-    background: #f1f5f9;
-    color: #64748b;
   }
 }
 

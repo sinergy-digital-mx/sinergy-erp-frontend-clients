@@ -263,8 +263,20 @@
                         </td>
                         <td>{{ formatCurrency(parseNumber(item.unit_total ?? item.unit_price ?? 0)) }}</td>
                         <td>{{ formatCurrency(parseNumber(item.unit_total ?? item.unit_price ?? 0) * parseNumber(item.quantity)) }}</td>
-                        <td>{{ item.quantity | removeTrailingZeros }} {{ item.uom?.name || item.product_uom?.uom?.name || 'Unidad' }}</td>
-                        <td>{{ item.received_original_quantity | removeTrailingZeros }} {{ item.received_uom?.name || '-' }}</td>
+                        <td>
+                          <span class="qty-cell">
+                            <span class="qty-cell__amount">{{ item.quantity | removeTrailingZeros }}</span>
+                            <span class="uom-badge">{{ item.uom?.name || item.product_uom?.uom?.name || 'Unidad' }}</span>
+                          </span>
+                        </td>
+                        <td>
+                          <span class="qty-cell">
+                            <span class="qty-cell__amount">{{ item.received_original_quantity | removeTrailingZeros }}</span>
+                            <span class="uom-badge uom-badge--success" [class.uom-badge--muted]="!item.received_uom?.name">
+                              {{ item.received_uom?.name || '—' }}
+                            </span>
+                          </span>
+                        </td>
                       </tr>
                     }
                   } @else {
@@ -398,7 +410,12 @@
                             <small>{{ batch.product?.sku || '' }}</small>
                           </div>
                         </td>
-                        <td>{{ batch.initial_quantity | removeTrailingZeros }} {{ batch.uom?.name || 'Unidad' }}</td>
+                        <td>
+                          <span class="qty-cell">
+                            <span class="qty-cell__amount">{{ batch.initial_quantity | removeTrailingZeros }}</span>
+                            <span class="uom-badge">{{ batch.uom?.name || 'Unidad' }}</span>
+                          </span>
+                        </td>
                       </tr>
                     }
                   </tbody>

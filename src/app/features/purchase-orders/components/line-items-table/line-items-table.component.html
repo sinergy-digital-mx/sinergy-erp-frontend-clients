@@ -24,7 +24,9 @@
               class="line-item-row"
             >
               <td role="cell" data-label="PRODUCTO">{{ item.product?.name || 'N/A' }}</td>
-              <td role="cell" data-label="UOM">{{ item.uom?.code || item.uom?.name || 'N/A' }}</td>
+              <td role="cell" data-label="UOM">
+                <span class="uom-badge">{{ getLineUomName(item) }}</span>
+              </td>
               <td role="cell" data-label="CANTIDAD" class="text-right">{{ item.quantity }}</td>
               <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatCurrency(item.unit_price ?? item.unit_total ?? 0) }}</td>
               <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
@@ -58,7 +60,9 @@
           class="line-item-row"
         >
           <td role="cell" data-label="PRODUCTO">{{ item.product?.name || 'N/A' }}</td>
-          <td role="cell" data-label="UOM">{{ item.uom?.code || item.uom?.name || 'N/A' }}</td>
+          <td role="cell" data-label="UOM">
+            <span class="uom-badge">{{ getLineUomName(item) }}</span>
+          </td>
           <td role="cell" data-label="CANTIDAD" class="text-right">{{ item.quantity }}</td>
           <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatCurrency(item.unit_price ?? item.unit_total ?? 0) }}</td>
           <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
@@ -126,7 +130,7 @@
       <div class="line-item-card__body">
         <div class="line-item-card__row">
           <span class="label">UOM:</span>
-          <span class="value">{{ item.uom?.code || item.uom?.name || 'N/A' }}</span>
+          <span class="value"><span class="uom-badge">{{ getLineUomName(item) }}</span></span>
         </div>
         <div class="line-item-card__row">
           <span class="label">CANTIDAD:</span>

@@ -14,8 +14,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import { LucideAngularModule, MapPin, RefreshCw, X } from 'lucide-angular';
-import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { LucideAngularModule, MapPin, Plus, RefreshCw, X } from 'lucide-angular';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
@@ -44,7 +43,6 @@ import { WarehouseLocationDialogComponent } from '../warehouse-location-dialog/w
   imports: [
     CommonModule,
     FormsModule,
-    ButtonComponent,
     HasPermissionDirective,
     LucideAngularModule,
     ShippingMapComponent,
@@ -64,6 +62,7 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   @Output() closed = new EventEmitter<void>();
 
   readonly MapPin = MapPin;
+  readonly Plus = Plus;
   readonly RefreshCw = RefreshCw;
   readonly X = X;
   readonly permissions = SHIPPING_PERMISSIONS;

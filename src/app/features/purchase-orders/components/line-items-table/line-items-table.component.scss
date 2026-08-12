@@ -1,3 +1,7 @@
+@use '../../../../core/styles/uom-qty' as uomQty;
+
+@include uomQty.uom-qty-badges;
+
 .line-items-table-container {
   position: relative;
   width: 100%;

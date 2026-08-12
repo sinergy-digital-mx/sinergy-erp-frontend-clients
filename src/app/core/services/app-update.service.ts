@@ -89,8 +89,8 @@ export class AppUpdateService {
       disableClose: true,
       panelClass: 'app-update-dialog-panel',
       backdropClass: 'app-update-dialog-backdrop',
-      width: '420px',
-      maxWidth: '95vw'
+      width: '400px',
+      maxWidth: '92vw'
     });
 
     dialogRef.afterClosed().subscribe((reload) => {
