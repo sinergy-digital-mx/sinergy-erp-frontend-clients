@@ -57,7 +57,7 @@ export class GroupSelectComponent implements OnInit {
 
   private loadGroups() {
     this.loading.set(true);
-    const endpoint = this.groupType === 'lead' ? '/lead-groups' : '/customer-groups';
+    const endpoint = this.groupType === 'lead' ? '/lead-groups' : '/tenant/customers/groups';
     
     this.http.get<any>(`${this.api}${endpoint}`).subscribe({
       next: (response) => {

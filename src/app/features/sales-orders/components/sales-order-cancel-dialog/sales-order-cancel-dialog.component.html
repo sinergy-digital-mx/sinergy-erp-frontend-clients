@@ -1,0 +1,46 @@
+<div class="cancel-dialog">
+  <div class="cancel-dialog__header">
+    <h3 class="cancel-dialog__title">Cancelar orden de venta</h3>
+    <button
+      type="button"
+      class="cancel-dialog__close"
+      aria-label="Cerrar"
+      [disabled]="saving()"
+      (click)="close()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  <div class="cancel-dialog__body">
+    <p class="cancel-dialog__text">
+      Se cancelará la orden <strong>#{{ folioLabel }}</strong>.
+      Si hay lotes asignados, se liberan al inventario. Esta acción no se puede deshacer.
+    </p>
+    @if (errorMessage()) {
+      <p class="cancel-dialog__error" role="alert">{{ errorMessage() }}</p>
+    }
+  </div>
+
+  <div class="cancel-dialog__footer">
+    <button
+      type="button"
+      class="cancel-dialog__btn cancel-dialog__btn--back"
+      [disabled]="saving()"
+      (click)="close()">
+      Volver
+    </button>
+    <button
+      type="button"
+      class="cancel-dialog__btn cancel-dialog__btn--danger"
+      [disabled]="saving()"
+      (click)="confirm()">
+      @if (saving()) {
+        <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+        Cancelando...
+      } @else {
+        <i class="fi fi-rr-cross-circle" aria-hidden="true"></i>
+        Cancelar orden
+      }
+    </button>
+  </div>
+</div>

@@ -11,6 +11,54 @@
   color: #64748b;
 }
 
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  background: #f8fafc;
+  z-index: 2;
+}
+
+.btn-cancel-order-wrap {
+  display: block;
+  width: 100%;
+}
+
+.btn-cancel-order {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #dc2626;
+  color: #fff;
+  white-space: nowrap;
+  transition: background 0.15s ease, filter 0.15s ease;
+
+  i {
+    font-size: 1rem;
+  }
+
+  &:hover:not(:disabled) {
+    background: #b91c1c;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
 .status-badge {
   &--success {
     background: #d1fae5;
@@ -213,6 +261,27 @@
   tbody tr.row-clickable:hover .product-info--clickable strong {
     color: #2563eb;
   }
+}
+
+.batch-row-product {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.batch-lot-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .billing-tab {

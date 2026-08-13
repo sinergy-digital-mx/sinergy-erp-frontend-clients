@@ -108,6 +108,20 @@ export interface User {
   email: string;
 }
 
+export interface PurchaseOrderBillingBranch {
+  id: string;
+  code: string;
+  city?: string;
+  state?: string;
+}
+
+export interface PurchaseOrderFiscalConfiguration {
+  id: string;
+  razon_social?: string;
+  rfc?: string;
+  prefix?: string | null;
+}
+
 /**
  * Purchase Order main entity
  */
@@ -119,6 +133,9 @@ export interface PurchaseOrder {
   purpose: string;
   warehouse_id: string;
   fiscal_configuration_id?: string;
+  billing_branch_id?: string;
+  razon_social?: string;
+  sucursal?: string;
   folio?: string;
   tentative_receipt_date: string; // ISO 8601 date string
   expected_delivery_date?: string;
@@ -152,7 +169,8 @@ export interface PurchaseOrder {
   documents?: Document[];
   warehouse?: Warehouse;
   vendor?: Vendor;
-  fiscal_configuration?: any;
+  billing_branch?: PurchaseOrderBillingBranch;
+  fiscal_configuration?: PurchaseOrderFiscalConfiguration;
   creator?: User;
   created_at: string;
   updated_at: string;

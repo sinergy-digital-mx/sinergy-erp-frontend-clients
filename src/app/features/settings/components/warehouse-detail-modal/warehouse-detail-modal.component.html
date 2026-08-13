@@ -16,8 +16,18 @@
         </div>
 
         <div>
-          <label>Código</label>
-          <input type="text" formControlName="code" class="uppercase" placeholder="Ej: ALM-001" />
+          <label>Prefijo</label>
+          <input
+            type="text"
+            formControlName="prefix"
+            class="uppercase"
+            [maxlength]="prefixMaxLength"
+            placeholder="Ej. BDGA"
+            (blur)="onPrefixBlur()" />
+          <p class="hint">Segmento del lote al recibir mercancía (letras y números, máx. 10, sin guiones).</p>
+          <p *ngIf="form.get('prefix')?.invalid && form.get('prefix')?.touched" class="err">
+            {{ prefixErrorMessage }}
+          </p>
         </div>
 
         <div>

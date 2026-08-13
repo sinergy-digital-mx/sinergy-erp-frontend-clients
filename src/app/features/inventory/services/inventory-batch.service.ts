@@ -9,6 +9,8 @@ export interface BatchFilters {
   search?: string;
   batch_number?: string;
   product_id?: string;
+  fiscal_configuration_id?: string;
+  billing_branch_id?: string;
   warehouse_id?: string;
   purchase_order_batch_id?: string;
   purchase_order_id?: string;
@@ -35,6 +37,8 @@ export class InventoryBatchService {
     if (filters.search) params = params.set('search', filters.search);
     if (filters.batch_number) params = params.set('batch_number', filters.batch_number);
     if (filters.product_id) params = params.set('product_id', filters.product_id);
+    if (filters.fiscal_configuration_id) params = params.set('fiscal_configuration_id', filters.fiscal_configuration_id);
+    if (filters.billing_branch_id) params = params.set('billing_branch_id', filters.billing_branch_id);
     if (filters.warehouse_id) params = params.set('warehouse_id', filters.warehouse_id);
     if (filters.purchase_order_batch_id) params = params.set('purchase_order_batch_id', filters.purchase_order_batch_id);
     if (filters.purchase_order_id) params = params.set('purchase_order_id', filters.purchase_order_id);

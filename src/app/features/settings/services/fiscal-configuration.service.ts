@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   FiscalConfiguration,
@@ -24,7 +24,9 @@ export class FiscalConfigurationService {
   }
 
   getFiscalConfiguration(id: string): Observable<FiscalConfiguration> {
-    return this.http.get<FiscalConfiguration>(`${this.api}/tenant/fiscal-configurations/${id}`);
+    return this.http.get<unknown>(`${this.api}/tenant/fiscal-configurations/${id}`).pipe(
+      map((res) => this.unwrapConfig(res))
+    );
   }
 
   getFiscalConfigurationByWarehouse(warehouseId: string): Observable<FiscalConfiguration> {
@@ -71,5 +73,15 @@ export class FiscalConfigurationService {
       `${this.api}/tenant/fiscal-configurations/${id}/register-finkok`,
       payload
     );
+  }
+
+  private unwrapConfig(res: unknown): FiscalConfiguration {
+    if (res && typeof res === 'object' && 'data' in res) {
+      const inner = (res as { data: unknown }).data;
+      if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
+        return inner as FiscalConfiguration;
+      }
+    }
+    return res as FiscalConfiguration;
   }
 }

@@ -11,6 +11,14 @@ import { TabComponent, TabItem } from '../../../../core/components/tab/tab.compo
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { LocationMapFieldsComponent } from '../../../../core/components/location-map-fields/location-map-fields.component';
 import { WarehouseDetailModalComponent } from '../warehouse-detail-modal/warehouse-detail-modal.component';
+import {
+  DOCUMENT_PREFIX_ERROR,
+  DOCUMENT_PREFIX_MAX_LENGTH,
+  documentPrefixValidator,
+  normalizeDocumentPrefix,
+  uppercasePrefixControl,
+} from '../../utils/document-prefix.util';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { X } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
@@ -53,6 +61,8 @@ export class BranchModalComponent implements OnInit {
   ];
 
   statusSelectConfig: any;
+  readonly prefixMaxLength = DOCUMENT_PREFIX_MAX_LENGTH;
+  readonly prefixErrorMessage = DOCUMENT_PREFIX_ERROR;
 
   constructor(
     private fb: FormBuilder,
@@ -94,7 +104,10 @@ export class BranchModalComponent implements OnInit {
     this.loading.set(true);
     this.branchService.getBranch(this.data.fiscalConfigId, this.data.branchId).subscribe({
       next: (branch) => {
-        this.form.patchValue(branch);
+        this.form.patchValue({
+          ...branch,
+          name: branch.name ?? branch.code ?? '',
+        });
         this.warehouses = branch.warehouses ? [...branch.warehouses] : [];
         this.loading.set(false);
         this.cdr.detectChanges();
@@ -123,7 +136,8 @@ export class BranchModalComponent implements OnInit {
 
   private createForm(): FormGroup {
     return this.fb.group({
-      code: ['', [Validators.required, Validators.minLength(2)]],
+      name: ['', [Validators.required, Validators.minLength(2)]],
+      prefix: ['', [documentPrefixValidator()]],
       address: ['', [Validators.required, Validators.minLength(5)]],
       city: ['', [Validators.required, Validators.minLength(2)]],
       state: ['', [Validators.required, Validators.minLength(2)]],
@@ -190,7 +204,7 @@ export class BranchModalComponent implements OnInit {
     return this.warehouses.map((warehouse) => ({
       ...(warehouse.id ? { id: warehouse.id } : {}),
       name: String(warehouse.name || '').trim(),
-      code: warehouse.code?.trim() || undefined,
+      prefix: normalizeDocumentPrefix(warehouse.prefix),
       street: warehouse.street?.trim() || undefined,
       city: warehouse.city?.trim() || undefined,
       state: warehouse.state?.trim() || undefined,
@@ -203,12 +217,16 @@ export class BranchModalComponent implements OnInit {
   }
 
   save() {
-    if (this.form.invalid || this.saving()) return;
+    if (this.form.invalid || this.saving()) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     this.saving.set(true);
     const raw = this.form.getRawValue();
     const body = {
-      code: String(raw.code).trim(),
+      name: String(raw.name).trim(),
+      prefix: normalizeDocumentPrefix(raw.prefix),
       address: String(raw.address).trim(),
       city: String(raw.city).trim(),
       state: String(raw.state).trim(),
@@ -233,7 +251,7 @@ export class BranchModalComponent implements OnInit {
         },
         error: (error) => {
           this.snackBar.openFromComponent(CustomSnackbarComponent, {
-            data: { message: error.error?.message || 'Error al crear sucursal', type: 'error' },
+            data: { message: resolveHttpErrorMessage(error, 'Error al crear sucursal'), type: 'error' },
             duration: 5000,
           });
           this.saving.set(false);
@@ -252,7 +270,7 @@ export class BranchModalComponent implements OnInit {
         error: (error) => {
           this.snackBar.openFromComponent(CustomSnackbarComponent, {
             data: {
-              message: error.error?.message || 'Error al actualizar sucursal',
+              message: resolveHttpErrorMessage(error, 'Error al actualizar sucursal'),
               type: 'error',
             },
             duration: 5000,
@@ -265,6 +283,10 @@ export class BranchModalComponent implements OnInit {
 
   close() {
     this.dialogRef.close();
+  }
+
+  onPrefixBlur(): void {
+    uppercasePrefixControl(this.form.get('prefix'));
   }
 
   onStatusChange(event: any): void {

@@ -14,6 +14,14 @@ import {
 } from '../../models/finkok-configuration.model';
 import { Branch } from '../../models/branch.model';
 import { fileToBase64, isCerFile, isKeyFile } from '../../utils/csd-file.util';
+import {
+  DOCUMENT_PREFIX_ERROR,
+  DOCUMENT_PREFIX_MAX_LENGTH,
+  documentPrefixValidator,
+  normalizeDocumentPrefix,
+  uppercasePrefixControl,
+} from '../../utils/document-prefix.util';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SelectComponent } from '../../../../core/components/select/select.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
@@ -63,6 +71,8 @@ export class FiscalConfigurationModalComponent implements OnInit {
   finkokRegisterMode: 'verify' | 'add' | null = null;
   finkokStatusResult: FinkokStatusResponse | null = null;
   readonly canUpdateFinkok: boolean;
+  readonly prefixMaxLength = DOCUMENT_PREFIX_MAX_LENGTH;
+  readonly prefixErrorMessage = DOCUMENT_PREFIX_ERROR;
 
   personaTypeOptions = [
     { id: 'Persona Física', name: 'Persona Física' },
@@ -97,6 +107,12 @@ export class FiscalConfigurationModalComponent implements OnInit {
     this.canUpdateFinkok = this.authService.hasEntityPermission('FiscalConfiguration', 'Update');
   }
 
+  get editedRazonSocial(): string {
+    const fromForm = String(this.form.get('razon_social')?.value || '').trim();
+    const fromConfig = String(this.data.fiscalConfig?.razon_social || '').trim();
+    return fromForm || fromConfig;
+  }
+
   ngOnInit(): void {
     this.initializeSelectConfigs();
     if (this.data.fiscalConfig) {
@@ -104,7 +120,23 @@ export class FiscalConfigurationModalComponent implements OnInit {
       this.logoUrl = this.data.fiscalConfig.logo || null;
       this.clearStaleFinkokError();
       this.loadBranches();
+      this.refreshFiscalConfigFromApi();
     }
+  }
+
+  private refreshFiscalConfigFromApi(): void {
+    const id = this.data.fiscalConfig?.id;
+    if (!id) return;
+
+    this.fiscalConfigService.getFiscalConfiguration(id).subscribe({
+      next: (config) => {
+        this.data.fiscalConfig = config;
+        this.applyFiscalConfigToForm(config);
+        this.logoUrl = config.logo || null;
+        this.clearStaleFinkokError();
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   private applyFiscalConfigToForm(config: FiscalConfiguration): void {
@@ -117,6 +149,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
     this.form.patchValue({
       razon_social: config.razon_social,
       rfc: config.rfc,
+      prefix: config.prefix ?? '',
       persona_type: config.persona_type,
       fiscal_regime: config.fiscal_regime ?? '',
       status: config.status,
@@ -293,6 +326,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
     return this.fb.group({
       razon_social: ['', [Validators.required, Validators.minLength(2)]],
       rfc: ['', [Validators.required, Validators.pattern(/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/)]],
+      prefix: ['', [documentPrefixValidator()]],
       persona_type: ['Persona Moral', [Validators.required]],
       fiscal_regime: [''],
       digital_seal: [''],
@@ -417,6 +451,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
     const payload: CreateFiscalConfigurationDto = {
       razon_social: String(formValue.razon_social).trim(),
       rfc: String(formValue.rfc).trim().toUpperCase(),
+      prefix: normalizeDocumentPrefix(formValue.prefix),
       persona_type: formValue.persona_type,
       fiscal_regime: formValue.fiscal_regime || undefined,
       status: formValue.status,
@@ -525,7 +560,10 @@ export class FiscalConfigurationModalComponent implements OnInit {
   }
 
   save() {
-    if (this.form.invalid || this.saving()) return;
+    if (this.form.invalid || this.saving()) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     this.saving.set(true);
     const payload = this.buildSavePayload();
@@ -542,7 +580,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
         },
         error: (error) => {
           this.snackBar.openFromComponent(CustomSnackbarComponent, {
-            data: { message: error.error?.message || 'Error al crear configuración fiscal', type: 'error' },
+            data: { message: resolveHttpErrorMessage(error, 'Error al crear configuración fiscal'), type: 'error' },
             duration: 5000
           });
           this.saving.set(false);
@@ -564,7 +602,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
         },
         error: (error) => {
           this.snackBar.openFromComponent(CustomSnackbarComponent, {
-            data: { message: error.error?.message || 'Error al actualizar configuración fiscal', type: 'error' },
+            data: { message: resolveHttpErrorMessage(error, 'Error al actualizar configuración fiscal'), type: 'error' },
             duration: 5000
           });
           this.saving.set(false);
@@ -575,6 +613,10 @@ export class FiscalConfigurationModalComponent implements OnInit {
 
   close() {
     this.dialogRef.close();
+  }
+
+  onPrefixBlur(): void {
+    uppercasePrefixControl(this.form.get('prefix'));
   }
 
   onPersonaTypeChange(event: any): void {

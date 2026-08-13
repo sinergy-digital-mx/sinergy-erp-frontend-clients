@@ -4,7 +4,11 @@ export interface FiscalConfiguration {
   warehouse_id: string;
   razon_social: string;
   rfc: string;
+  prefix?: string | null;
   persona_type: 'Persona Física' | 'Persona Moral';
+  branches_count?: number;
+  branch_count?: number;
+  branches?: unknown[];
   fiscal_regime?: string;
   digital_seal?: string;
   digital_seal_password?: string;
@@ -25,6 +29,7 @@ export interface FiscalConfiguration {
 export interface CreateFiscalConfigurationDto {
   razon_social: string;
   rfc: string;
+  prefix?: string | null;
   persona_type: 'Persona Física' | 'Persona Moral';
   fiscal_regime?: string;
   digital_seal?: string;

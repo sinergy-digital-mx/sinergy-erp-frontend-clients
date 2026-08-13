@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Subscription } from 'rxjs';
+import { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../../madereria-inventory-import/config/permissions.config';
 
 interface SettingsSection {
   id: string;
@@ -166,6 +167,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
       permissions: ['billing:ViewMenu', 'warehouses:ViewMenu']
     },
     {
+      id: 'madereria-inventory-import',
+      title: 'Importación de inventario',
+      description: 'Importa productos, precios, costos y lotes desde el Excel de inventario de Madereria',
+      icon: '📥',
+      route: 'madereria-inventory-import',
+      permissions: [MADERERIA_INVENTORY_IMPORT_PERMISSIONS.viewMenu]
+    },
+    {
       id: 'vendors',
       title: 'Proveedores',
       description: 'Gestiona proveedores, información de contacto, RFC y datos fiscales de tus proveedores',
@@ -212,6 +221,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
       icon: '🏷️',
       route: 'global-discounts',
       permissions: ['global_discounts:ViewMenu', 'global_discounts:Read', 'globalDiscount:ViewMenu', 'globalDiscount:Read']
+    },
+    {
+      id: 'customer-groups',
+      title: 'Grupos de clientes',
+      description: 'Administra el catálogo de grupos de clientes de tu organización',
+      icon: '🗂️',
+      route: 'customer-groups',
+      permissions: ['CustomerGroup:ViewMenu']
     }
   ];
 
@@ -269,10 +286,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
    * Check if user has permission to access a section
    */
   hasAccess(section: SettingsSection): boolean {
+    if (this.authService.hasAdminRole()) {
+      return true;
+    }
     if (!section.permissions || section.permissions.length === 0) {
       return true;
     }
-    // User needs at least ONE of the permissions
     return section.permissions.some(permission => this.authService.hasPermission(permission));
   }
 

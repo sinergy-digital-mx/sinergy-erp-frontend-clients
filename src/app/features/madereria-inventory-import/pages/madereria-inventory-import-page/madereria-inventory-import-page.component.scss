@@ -1,0 +1,82 @@
+.madereria-import {
+  &__select,
+  &__file-row input[type='file'] {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    background: #fff;
+    outline: none;
+  }
+
+  &__select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+
+  &__select:disabled {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  &__file-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__stat {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    background: #f9fafb;
+  }
+
+  &__stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+  }
+
+  &__stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  &__list {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.875rem;
+    color: #374151;
+    max-height: 16rem;
+    overflow: auto;
+  }
+
+  &__list--errors {
+    color: #991b1b;
+  }
+
+  &__progress {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+    background: #f8fafc;
+  }
+
+  &__bar {
+    height: 0.5rem;
+    border-radius: 999px;
+    background: #e5e7eb;
+    overflow: hidden;
+  }
+
+  &__bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #4f46e5;
+    transition: width 0.25s ease;
+  }
+}

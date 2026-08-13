@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { catchError, forkJoin, of } from 'rxjs';
 import { FiscalConfigurationService } from '../../services/fiscal-configuration.service';
+import { BranchService } from '../../services/branch.service';
 import { FiscalConfiguration } from '../../models/fiscal-configuration.model';
 import { FiscalConfigurationModalComponent } from '../fiscal-configuration-modal/fiscal-configuration-modal.component';
 import { FinkokIntegrationPanelComponent } from '../finkok-integration-panel/finkok-integration-panel.component';
@@ -43,7 +45,8 @@ export class FiscalConfigurationListComponent implements OnInit {
     columns: [
       { name: 'Razón Social', prop: 'razon_social', sortable: true, canAutoResize: true, width: 200 },
       { name: 'RFC', prop: 'rfc', sortable: false, canAutoResize: true, width: 120 },
-      { name: 'Tipo de Persona', prop: 'persona_type', sortable: true, canAutoResize: true, width: 150 },
+      { name: 'Prefijo', prop: 'prefix', sortable: false, canAutoResize: true, width: 90 },
+      { name: 'Sucursales', prop: 'branches_count', sortable: false, canAutoResize: true, width: 110 },
       { name: 'Status', prop: 'status', sortable: true, canAutoResize: true, width: 100 },
     ],
     externalPaging: true,
@@ -59,6 +62,7 @@ export class FiscalConfigurationListComponent implements OnInit {
 
   constructor(
     private fiscalConfigService: FiscalConfigurationService,
+    private branchService: BranchService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private route: ActivatedRoute,
@@ -95,18 +99,35 @@ export class FiscalConfigurationListComponent implements OnInit {
 
   loadFiscalConfigurations(): void {
     this.table_config.update(c => ({ ...c, loading: true }));
-    
-    this.fiscalConfigService.listFiscalConfigurations({
-      page: this.table_config().page,
-      limit: this.table_config().limit
+
+    forkJoin({
+      response: this.fiscalConfigService.listFiscalConfigurations({
+        page: this.table_config().page,
+        limit: this.table_config().limit
+      }),
+      branches: this.branchService.getAllBranches().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: (response) => {
+      next: ({ response, branches }) => {
+        const counts = new Map<string, number>();
+        for (const branch of branches) {
+          const fiscalId =
+            branch.fiscal_configuration_id ||
+            (branch as { fiscal_configuration?: { id?: string } }).fiscal_configuration?.id;
+          if (!fiscalId) continue;
+          counts.set(fiscalId, (counts.get(fiscalId) ?? 0) + 1);
+        }
+
+        const rows = (response.data ?? []).map((item) => ({
+          ...item,
+          branches_count: this.resolveBranchCount(item, counts.get(item.id) ?? 0),
+        }));
+
         this.table_config.update(c => ({
           ...c,
-          rows: response.data,
+          rows,
           totalResults: response.total,
           loading: false,
-          hasNext: response.data.length === c.limit
+          hasNext: rows.length === c.limit
         }));
       },
       error: () => {
@@ -117,6 +138,17 @@ export class FiscalConfigurationListComponent implements OnInit {
         this.table_config.update(c => ({ ...c, loading: false }));
       }
     });
+  }
+
+  getBranchCount(item: FiscalConfiguration): number {
+    return this.resolveBranchCount(item, 0);
+  }
+
+  private resolveBranchCount(item: FiscalConfiguration, fallback: number): number {
+    if (item.branches_count != null) return Number(item.branches_count) || 0;
+    if (item.branch_count != null) return Number(item.branch_count) || 0;
+    if (Array.isArray(item.branches)) return item.branches.length;
+    return fallback;
   }
 
   onPageChange(event: IPaginationEvent): void {
@@ -150,10 +182,8 @@ export class FiscalConfigurationListComponent implements OnInit {
       data: { fiscalConfig: config }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.loadFiscalConfigurations();
-      }
+    dialogRef.afterClosed().subscribe(() => {
+      this.loadFiscalConfigurations();
     });
   }
 

@@ -41,6 +41,18 @@
   color: #1d4ed8;
 }
 
+.settings-badge--count {
+  min-width: 1.75rem;
+  justify-content: center;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.settings-badge--count-empty {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
 .settings-badge--status-active {
   background-color: #dcfce7;
   color: #15803d;

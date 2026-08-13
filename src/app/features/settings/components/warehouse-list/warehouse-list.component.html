@@ -35,7 +35,7 @@
     <p class="settings-cell-primary truncate">{{ item.name }}</p>
   </td>
   <td>
-    <span class="settings-badge settings-badge--code">{{ item.code }}</span>
+    <span [class]="item.prefix ? 'settings-badge settings-badge--code' : 'settings-cell-empty'">{{ item.prefix || '—' }}</span>
   </td>
   <td>
     <span [class]="item.country ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.country || '—' }}</span>

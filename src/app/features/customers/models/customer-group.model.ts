@@ -6,6 +6,7 @@ export interface CustomerGroup {
   id: string;
   name: string;
   description?: string;
+  is_system?: boolean;
   customer_count?: number;
 }
 

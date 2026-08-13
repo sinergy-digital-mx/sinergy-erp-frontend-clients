@@ -1,59 +1,41 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, retry, tap, map } from 'rxjs/operators';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError, map, tap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/services/auth.service';
 import { CustomerGroup } from '../models/customer-group.model';
 
 /**
- * CustomerGroupFetchService
- * Handles fetching available customer groups from the API with caching and retry logic
+ * Catálogo de grupos para filtro/select de Clientes.
+ * Usa GET /tenant/customers/groups (customers:Read), no el CRUD de Configuración.
+ * Cache en memoria de la sesión actual; se invalida al cambiar de organización.
  */
 @Injectable({
   providedIn: 'root',
 })
 export class CustomerGroupFetchService {
-  private api = environment.api;
+  private readonly api = environment.api;
   private groupsCache: CustomerGroup[] | null = null;
-  private cacheExpiry: number = 0;
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-  private groupsSubject = new BehaviorSubject<CustomerGroup[]>([]);
-  public groups$ = this.groupsSubject.asObservable();
+  private cacheTenantId: string | null = null;
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
 
-  constructor(private http: HttpClient) {}
-
-  /**
-   * Fetches all available customer groups from the API
-   * Uses caching to avoid repeated requests
-   * @returns Observable<CustomerGroup[]> - Array of available groups
-   * @throws Error if the API request fails
-   */
   fetchGroups(): Observable<CustomerGroup[]> {
-    // Check if cache is still valid
-    if (this.groupsCache && Date.now() < this.cacheExpiry) {
-      return new Observable(observer => {
-        observer.next(this.groupsCache!);
-        observer.complete();
-      });
+    const tenantId = this.currentTenantId();
+    if (this.groupsCache && this.cacheTenantId === tenantId) {
+      return of(this.groupsCache);
     }
 
-    return this.http.get<{ groups: CustomerGroup[] }>(`${this.api}/tenant/customer-groups`).pipe(
-      retry(2), // Retry up to 2 times on failure
-      tap((response) => {
-        // Handle both array and object responses
-        const groups = Array.isArray(response) ? response : (response.groups || []);
+    return this.http.get<unknown>(`${this.api}/tenant/customers/groups`).pipe(
+      map((response) => this.normalizeList(response)),
+      tap((groups) => {
         this.groupsCache = groups;
-        this.cacheExpiry = Date.now() + this.CACHE_DURATION;
-        this.groupsSubject.next(groups);
-      }),
-      map((response) => {
-        // Extract groups array from response
-        return Array.isArray(response) ? response : (response.groups || []);
+        this.cacheTenantId = tenantId;
       }),
       catchError((error) => {
-        console.error('Error fetching customer groups:', error);
-        
-        // Determine error type
         let errorMessage = 'Failed to fetch groups. Please try again.';
         let errorType: 'network' | 'server' | 'validation' = 'network';
 
@@ -77,18 +59,33 @@ export class CustomerGroupFetchService {
     );
   }
 
-  /**
-   * Invalidate the cache to force a fresh fetch
-   */
   invalidateCache(): void {
     this.groupsCache = null;
-    this.cacheExpiry = 0;
+    this.cacheTenantId = null;
   }
 
-  /**
-   * Get cached groups synchronously
-   */
   getCachedGroups(): CustomerGroup[] {
     return this.groupsCache || [];
+  }
+
+  private currentTenantId(): string | null {
+    return this.authService.user_info?.tenant_id ?? null;
+  }
+
+  private normalizeList(response: unknown): CustomerGroup[] {
+    if (Array.isArray(response)) {
+      return response as CustomerGroup[];
+    }
+    if (!response || typeof response !== 'object') {
+      return [];
+    }
+    const obj = response as Record<string, unknown>;
+    const candidates = [obj['data'], obj['groups'], obj['items']];
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) {
+        return candidate as CustomerGroup[];
+      }
+    }
+    return [];
   }
 }

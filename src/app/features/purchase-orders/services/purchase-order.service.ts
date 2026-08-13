@@ -56,6 +56,12 @@ export class PurchaseOrderService {
     if (filters.status) {
       params = params.set('status', filters.status);
     }
+    if (filters.fiscal_configuration_id) {
+      params = params.set('fiscal_configuration_id', filters.fiscal_configuration_id);
+    }
+    if (filters.billing_branch_id) {
+      params = params.set('billing_branch_id', filters.billing_branch_id);
+    }
     if (filters.warehouseId) {
       params = params.set('warehouse_id', filters.warehouseId);
     }
@@ -425,6 +431,9 @@ export class PurchaseOrderService {
       ['general_status', filters.general_status],
       ['payment_status', filters.payment_status],
       ['vendor_id', filters.vendor_id],
+      ['fiscal_configuration_id', filters.fiscal_configuration_id],
+      ['billing_branch_id', filters.billing_branch_id],
+      ['warehouse_id', filters.warehouse_id],
       ['created_from', filters.created_from],
       ['created_to', filters.created_to],
     ];
@@ -458,6 +467,15 @@ export class PurchaseOrderService {
     }
     if (listFilters.vendorId) {
       exportFilters.vendor_id = listFilters.vendorId;
+    }
+    if (listFilters.fiscal_configuration_id) {
+      exportFilters.fiscal_configuration_id = listFilters.fiscal_configuration_id;
+    }
+    if (listFilters.billing_branch_id) {
+      exportFilters.billing_branch_id = listFilters.billing_branch_id;
+    }
+    if (listFilters.warehouseId) {
+      exportFilters.warehouse_id = listFilters.warehouseId;
     }
 
     const from = options?.created_from ?? this.toDateOnly(listFilters.dateFrom);

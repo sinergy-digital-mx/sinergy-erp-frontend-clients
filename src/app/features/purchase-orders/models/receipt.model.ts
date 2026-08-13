@@ -45,6 +45,12 @@ export interface ReceiptResponse {
   updated_by: string;
   updated_at: string;
   line_items: ReceivedLineItem[];
+  batches?: ReceiptBatch[];
+}
+
+export interface ReceiptBatch {
+  id?: string;
+  batch_number: string;
 }
 
 /**
@@ -64,4 +70,6 @@ export interface ReceivedLineItem {
   received_original_ieps_unit: number;
   updated_by: string;
   updated_at: string;
+  batches?: ReceiptBatch[];
+  inventory_batches?: ReceiptBatch[];
 }

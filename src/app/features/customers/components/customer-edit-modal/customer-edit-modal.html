@@ -92,6 +92,9 @@
         <app-customer-group-dropdown
           [selectedGroupId]="selectedGroup()?.id || null"
           [disabled]="loading()"
+          placeholder="Selecciona un grupo"
+          [showAll]="true"
+          allMessage="Sin grupo"
           (groupSelect)="onGroupSelected($event)">
         </app-customer-group-dropdown>
       </div>

@@ -159,23 +159,27 @@ export class PropertyEditModalComponent implements OnInit {
 
   loadPropertyGroups() {
     this.loadingGroups.set(true);
-    
-    // Por ahora usamos el grupo hardcodeado que mencionaste
-    // Más adelante puedes crear un endpoint para obtener todos los grupos
-    const groups = [
-      {
-        id: '550e8400-e29b-41d4-a716-446655440100',
-        name: 'Campestre Divino'
+
+    this.propertyService.getPropertyGroups().subscribe({
+      next: (groups) => {
+        this.propertyGroups.set(groups);
+        this.groupSelectConfig = {
+          ...this.groupSelectConfig,
+          data: groups,
+          loading: false
+        };
+        this.loadingGroups.set(false);
+      },
+      error: () => {
+        this.propertyGroups.set([]);
+        this.groupSelectConfig = {
+          ...this.groupSelectConfig,
+          data: [],
+          loading: false
+        };
+        this.loadingGroups.set(false);
       }
-    ];
-    
-    this.propertyGroups.set(groups);
-    this.groupSelectConfig = {
-      ...this.groupSelectConfig,
-      data: groups,
-      loading: false
-    };
-    this.loadingGroups.set(false);
+    });
   }
 
   loadMeasurementUnits() {

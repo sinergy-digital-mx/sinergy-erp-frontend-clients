@@ -510,6 +510,16 @@ export class SalesOrderService {
   }
 
   /**
+   * Cancela la OV, libera lotes asignados y pasa a Cancelada.
+   */
+  cancelOrder(id: string): Observable<void> {
+    return this.http.post<unknown>(`${this.baseUrl}/${id}/cancel`, {}).pipe(
+      map(() => undefined),
+      catchError((error) => this.handleError(error))
+    );
+  }
+
+  /**
    * Delete order (cancels and releases inventory)
    */
   deleteOrder(id: string): Observable<{ message: string }> {
@@ -571,9 +581,6 @@ export class SalesOrderService {
     );
   }
 
-  /**
-   * Handle HTTP errors
-   */
   private parseNotesPatchResponse(response: unknown, fallbackNotes: string | null): { notes: string | null } {
     if (!response || typeof response !== 'object') {
       return { notes: fallbackNotes };

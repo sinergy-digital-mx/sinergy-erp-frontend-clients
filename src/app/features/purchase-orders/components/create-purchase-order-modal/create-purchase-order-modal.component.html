@@ -19,18 +19,29 @@
       @if (activeTab === 'info') {
       <!-- Form Grid -->
       <div class="form-grid">
-        <!-- Fiscal Configuration -->
+        <!-- Razón social -->
         <div class="form-field form-field--full">
-          <label class="form-label">CONFIGURACIÓN FISCAL *</label>
+          <label class="form-label">RAZÓN SOCIAL *</label>
           <select class="form-select" formControlName="fiscal_configuration_id">
-            <option value="">Selecciona una configuración fiscal</option>
+            <option value="">Selecciona una razón social</option>
             <option *ngFor="let config of fiscalConfigurations" [value]="config.id">
               {{ config.razon_social || config.rfc || config.id }}
             </option>
           </select>
         </div>
 
-        <!-- Warehouse -->
+        <!-- Sucursal -->
+        <div class="form-field">
+          <label class="form-label">SUCURSAL *</label>
+          <select class="form-select" formControlName="billing_branch_id">
+            <option value="">Selecciona una sucursal</option>
+            <option *ngFor="let branch of branches" [value]="branch.id">
+              {{ branchLabel(branch) }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Almacén -->
         <div class="form-field">
           <label class="form-label">ALMACÉN *</label>
           <select class="form-select" formControlName="warehouse_id">

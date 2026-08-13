@@ -180,6 +180,8 @@ export interface SalesOrder {
   fiscal_razon_social?: string;
   status?: SalesOrderStatus;
   general_status?: SalesOrderStatus;
+  can_cancel?: boolean;
+  cancel_blocked_reason?: string | null;
   payment_status: SalesPaymentStatus;
   subtotal?: string | number;
   discount_total?: string | number;
@@ -235,6 +237,7 @@ export interface SalesOrder {
     razon_social?: string;
     business_name?: string;
     rfc?: string;
+    prefix?: string | null;
     persona_type?: string;
     fiscal_regime?: string;
     status?: string;

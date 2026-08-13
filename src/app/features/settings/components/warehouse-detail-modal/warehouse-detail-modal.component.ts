@@ -11,6 +11,14 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { SelectComponent } from '../../../../core/components/select/select.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { LocationMapFieldsComponent } from '../../../../core/components/location-map-fields/location-map-fields.component';
+import {
+  DOCUMENT_PREFIX_ERROR,
+  DOCUMENT_PREFIX_MAX_LENGTH,
+  documentPrefixValidator,
+  normalizeDocumentPrefix,
+  uppercasePrefixControl,
+} from '../../utils/document-prefix.util';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { X } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
@@ -59,6 +67,8 @@ export class WarehouseDetailModalComponent implements OnInit {
 
   statusSelectConfig: any;
   branchSelectConfig: any;
+  readonly prefixMaxLength = DOCUMENT_PREFIX_MAX_LENGTH;
+  readonly prefixErrorMessage = DOCUMENT_PREFIX_ERROR;
 
   constructor(
     private fb: FormBuilder,
@@ -155,7 +165,7 @@ export class WarehouseDetailModalComponent implements OnInit {
   private createForm(): FormGroup {
     return this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
-      code: [''],
+      prefix: ['', [documentPrefixValidator()]],
       description: [''],
       street: [''],
       city: [''],
@@ -180,7 +190,7 @@ export class WarehouseDetailModalComponent implements OnInit {
     const status: 'active' | 'inactive' = raw.status === 'inactive' ? 'inactive' : 'active';
     return {
       name: String(raw.name).trim(),
-      code: raw.code?.trim() || undefined,
+      prefix: normalizeDocumentPrefix(raw.prefix),
       description: raw.description?.trim() || undefined,
       street: raw.street?.trim() || undefined,
       city: raw.city?.trim() || undefined,
@@ -195,14 +205,20 @@ export class WarehouseDetailModalComponent implements OnInit {
   }
 
   save() {
-    if (this.form.invalid || this.saving()) return;
+    if (this.form.invalid || this.saving()) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     const formValue = this.buildPayload();
 
     if (this.nested) {
-      const result: BranchWarehouse = this.isNew
-        ? formValue
-        : { ...(this.data.warehouse as BranchWarehouse), ...formValue };
+      const previous = (this.data.warehouse ?? {}) as BranchWarehouse;
+      const { code: _legacyCode, ...withoutCode } = previous;
+      const result: BranchWarehouse = {
+        ...withoutCode,
+        ...formValue,
+      };
       this.dialogRef.close(result);
       return;
     }
@@ -221,7 +237,7 @@ export class WarehouseDetailModalComponent implements OnInit {
         },
         error: (error) => {
           this.snackBar.openFromComponent(CustomSnackbarComponent, {
-            data: { message: error.error?.message || 'Error al crear almacén', type: 'error' },
+            data: { message: resolveHttpErrorMessage(error, 'Error al crear almacén'), type: 'error' },
             duration: 5000,
           });
           this.saving.set(false);
@@ -240,7 +256,7 @@ export class WarehouseDetailModalComponent implements OnInit {
         error: (error) => {
           this.snackBar.openFromComponent(CustomSnackbarComponent, {
             data: {
-              message: error.error?.message || 'Error al actualizar almacén',
+              message: resolveHttpErrorMessage(error, 'Error al actualizar almacén'),
               type: 'error',
             },
             duration: 5000,
@@ -253,6 +269,10 @@ export class WarehouseDetailModalComponent implements OnInit {
 
   close() {
     this.dialogRef.close();
+  }
+
+  onPrefixBlur(): void {
+    uppercasePrefixControl(this.form.get('prefix'));
   }
 
   onStatusChange(event: any): void {

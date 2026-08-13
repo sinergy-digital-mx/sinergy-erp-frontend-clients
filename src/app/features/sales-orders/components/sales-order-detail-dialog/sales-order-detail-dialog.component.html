@@ -302,6 +302,21 @@
           </div>
           <p class="notes-text">{{ order()!.notes || 'Sin notas' }}</p>
         </div>
+
+        @if (showCancelOrderButton()) {
+          <div class="action-buttons">
+            <span class="btn-cancel-order-wrap" [attr.title]="cancelOrderTooltip()">
+              <button
+                type="button"
+                class="btn-cancel-order"
+                [disabled]="!canCancelOrder()"
+                (click)="openCancelOrderDialog()">
+                <i class="fi fi-rr-cross-circle"></i>
+                Cancelar orden
+              </button>
+            </span>
+          </div>
+        }
       </div>
 
       <div class="main-content">
@@ -664,39 +679,41 @@
               <table class="products-table">
                 <thead>
                   <tr>
-                    <th>PRODUCTO</th>
-                    <th>LOTE</th>
+                    <th>LOTE / PRODUCTO</th>
                     <th>CANTIDAD ASIGNADA</th>
-                    <th>CREADO</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (row of getBatchAllocationsRows(); track row.allocation?.id || $index) {
                     <tr [class.row-clickable]="canOpenProduct(row.item)">
                       <td>
-                        <div
-                          class="product-info product-info--inline"
-                          [class.product-info--clickable]="canOpenProduct(row.item)"
-                          role="button"
-                          [attr.tabindex]="canOpenProduct(row.item) ? 0 : null"
-                          (click)="canOpenProduct(row.item) && openProductDetail(row.item)"
-                          (keydown.enter)="canOpenProduct(row.item) && openProductDetail(row.item)"
-                          (keydown.space)="$event.preventDefault(); canOpenProduct(row.item) && openProductDetail(row.item)">
-                          <strong>{{ row.item.product?.name || row.item.product_id }}</strong>
+                        <div class="batch-row-product">
+                          <span class="batch-lot-badge">{{ getAllocationBatchLabel(row) }}</span>
+                          <div
+                            class="product-info product-info--inline"
+                            [class.product-info--clickable]="canOpenProduct(row.item)"
+                            role="button"
+                            [attr.tabindex]="canOpenProduct(row.item) ? 0 : null"
+                            (click)="canOpenProduct(row.item) && openProductDetail(row.item)"
+                            (keydown.enter)="canOpenProduct(row.item) && openProductDetail(row.item)"
+                            (keydown.space)="$event.preventDefault(); canOpenProduct(row.item) && openProductDetail(row.item)">
+                            <strong>{{ row.item.product?.name || row.item.product_id }}</strong>
+                            @if (row.item.product?.sku) {
+                              <small>{{ row.item.product.sku }}</small>
+                            }
+                          </div>
                         </div>
                       </td>
-                      <td>{{ row.allocation?.inventory_batch?.batch_number || row.allocation?.inventory_batch_id || '-' }}</td>
                       <td>
                         <span class="qty-cell">
                           <span class="qty-cell__amount">{{ row.allocation?.quantity_allocated | removeTrailingZeros }}</span>
                           <span class="uom-badge">{{ getLineUom(row.item) }}</span>
                         </span>
                       </td>
-                      <td>{{ row.allocation?.created_at | date:'short' }}</td>
                     </tr>
                   } @empty {
                     <tr>
-                      <td colspan="4" class="text-center">
+                      <td colspan="2" class="text-center">
                         <div class="empty-state">
                           <i class="fi fi-rr-layers"></i>
                           <p>Sin asignaciones de lotes</p>

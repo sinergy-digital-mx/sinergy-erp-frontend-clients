@@ -24,7 +24,6 @@
       <!-- Filter Bar -->
       <div class="mb-4">
         <app-filter-bar 
-          [warehouses]="warehouses()"
           [initialSearch]="filters().search ?? null"
           [refreshing]="loading()"
           (filtersChange)="applyFilters($event)"
@@ -132,7 +131,9 @@
               <div class="space-y-2">
                 <div class="text-sm text-gray-600">
                   <div><strong>Proveedor:</strong> {{ order.vendor?.name || 'N/A' }}</div>
-                  <div><strong>Cedis:</strong> {{ order.warehouse?.name || 'N/A' }}</div>
+                  <div><strong>Razón social:</strong> {{ getFiscalLabel(order) }}</div>
+                  <div><strong>Sucursal:</strong> {{ getBranchLabel(order) }}</div>
+                  <div><strong>Almacén:</strong> {{ getWarehouseLabel(order) }}</div>
                   <div class="mt-2"><strong>Total:</strong> {{ formatCurrency(getOrderTotal(order)) }}</div>
                   <div><strong>Pago:</strong> 
                     <span [ngClass]="getPaymentStatusClass(order.payment_status)">
@@ -181,7 +182,13 @@
     <p class="dt-cell-muted truncate m-0">{{ item.vendor?.name || 'N/A' }}</p>
   </td>
   <td class="w-[150px]">
-    <p class="dt-cell-muted truncate m-0">{{ item.warehouse?.name || 'N/A' }}</p>
+    <p class="dt-cell-muted truncate m-0">{{ getFiscalLabel(item) }}</p>
+  </td>
+  <td class="w-[150px]">
+    <p class="dt-cell-muted truncate m-0">{{ getBranchLabel(item) }}</p>
+  </td>
+  <td class="w-[130px]">
+    <p class="dt-cell-muted truncate m-0">{{ getWarehouseLabel(item) }}</p>
   </td>
   <td class="w-[120px]">
     <span [ngClass]="getStatusClass(item.general_status || item.status)">

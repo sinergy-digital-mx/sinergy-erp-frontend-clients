@@ -76,6 +76,10 @@ export interface InventorySummaryItem {
   product_id: string;
   product_name: string;
   product_sku: string;
+  fiscal_configuration_id?: string | null;
+  billing_branch_id?: string | null;
+  razon_social?: string | null;
+  sucursal?: string | null;
   warehouse_id: string;
   warehouse_name: string;
   uom_id: string;
@@ -91,6 +95,8 @@ export interface InventorySummaryItem {
  */
 export interface InventorySummaryFilters {
   search?: string;
+  fiscal_configuration_id?: string;
+  billing_branch_id?: string;
   warehouse_id?: string;
   product_id?: string;
   only_available?: boolean;
@@ -104,6 +110,8 @@ export interface InventoryBatchExportFilters {
   search?: string;
   batch_number?: string;
   product_id?: string;
+  fiscal_configuration_id?: string;
+  billing_branch_id?: string;
   warehouse_id?: string;
   purchase_order_batch_id?: string;
   purchase_order_id?: string;
@@ -113,6 +121,8 @@ export interface InventoryBatchExportFilters {
 
 export interface InventorySummaryExportFilters {
   search?: string;
+  fiscal_configuration_id?: string;
+  billing_branch_id?: string;
   warehouse_id?: string;
   product_id?: string;
   only_available?: boolean;

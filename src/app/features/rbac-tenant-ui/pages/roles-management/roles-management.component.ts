@@ -10,7 +10,6 @@ import { BackButtonComponent } from '../../components/back-button/back-button.co
 import { RolePermissionsManagerComponent } from '../../components/role-permissions-manager/role-permissions-manager.component';
 import { RoleEditFormComponent } from '../../components/role-edit-form/role-edit-form.component';
 import { RoleCreateDialogComponent } from '../../components/role-create-dialog/role-create-dialog.component';
-import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 
@@ -24,7 +23,7 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
 @Component({
   selector: 'app-roles-management',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, RolePermissionsManagerComponent, RoleEditFormComponent, RoleCreateDialogComponent, ButtonComponent],
+  imports: [CommonModule, BackButtonComponent, RolePermissionsManagerComponent, RoleEditFormComponent, RoleCreateDialogComponent],
   styleUrl: './roles-management.component.scss',
   template: `
     <!-- Roles Management Container with Two-Column Layout -->
@@ -52,15 +51,14 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
                 type="text"
                 placeholder="Buscar roles..."
                 (input)="onRoleSearchChange($event)"
-                class="roles-mgmt-search-input flex-1 min-w-[150px] px-2 text-sm border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                class="roles-mgmt-search-input search-input px-2 text-sm border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
-              <app-button
-                text="Nuevo Rol"
-                size="sm"
-                [fullWidth]="false"
-                customClass="roles-mgmt-create-btn"
-                (clicked)="onCreateRoleClicked()">
-              </app-button>
+              <button
+                type="button"
+                class="roles-mgmt-create-btn"
+                (click)="onCreateRoleClicked()">
+                Nuevo Rol
+              </button>
             </div>
           </div>
 
@@ -198,7 +196,43 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
       background: #9ca3af;
     }
 
-    button:hover {
+    .roles-mgmt-search-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) max-content;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .roles-mgmt-search-input {
+      width: auto !important;
+      min-width: 0;
+      height: 36px;
+    }
+
+    .roles-mgmt-create-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      padding: 0 1.25rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      font-family: inherit;
+      color: #fff;
+      white-space: nowrap;
+      width: max-content;
+      background: linear-gradient(135deg, #4338ca 0%, #6366f1 48%, #7c3aed 100%);
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.32);
+    }
+
+    .roles-mgmt-create-btn:hover {
+      filter: brightness(1.06);
+    }
+
+    button:hover:not(.roles-mgmt-create-btn) {
       background-color: #f9fafb;
     }
 

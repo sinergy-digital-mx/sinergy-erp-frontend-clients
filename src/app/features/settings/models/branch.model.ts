@@ -2,7 +2,7 @@ export interface BranchWarehouse {
   id?: string;
   name: string;
   code?: string;
-  prefix?: string;
+  prefix?: string | null;
   description?: string;
   street?: string;
   city?: string;
@@ -18,7 +18,9 @@ export interface BranchWarehouse {
 export interface Branch {
   id: string;
   fiscal_configuration_id: string;
-  code: string;
+  name?: string;
+  code?: string;
+  prefix?: string | null;
   address: string;
   city: string;
   state: string;
@@ -36,7 +38,8 @@ export interface Branch {
 }
 
 export interface CreateBranchDto {
-  code: string;
+  name: string;
+  prefix?: string | null;
   address: string;
   city: string;
   state: string;
@@ -50,7 +53,8 @@ export interface CreateBranchDto {
 }
 
 export interface UpdateBranchDto {
-  code?: string;
+  name?: string;
+  prefix?: string | null;
   address?: string;
   city?: string;
   state?: string;

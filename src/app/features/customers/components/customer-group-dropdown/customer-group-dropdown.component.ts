@@ -23,6 +23,9 @@ import { FormControl } from '@angular/forms';
 export class CustomerGroupDropdownComponent implements OnInit, OnDestroy, OnChanges {
   @Input() selectedGroupId: string | null = null;
   @Input() disabled: boolean = false;
+  @Input() placeholder = 'Filtrar por grupo';
+  @Input() showAll = true;
+  @Input() allMessage = 'Ver Todos';
   @Output() groupSelect = new EventEmitter<{ groupId: string | null; groupName: string | null }>();
 
   groups: CustomerGroup[] = [];
@@ -44,6 +47,12 @@ export class CustomerGroupDropdownComponent implements OnInit, OnDestroy, OnChan
   constructor(private groupFetchService: CustomerGroupFetchService) {}
 
   ngOnInit() {
+    this.selectConfig = {
+      ...this.selectConfig,
+      placeholder: this.placeholder,
+      all: this.showAll,
+      all_message: this.allMessage,
+    };
     this.loadGroups();
   }
 
@@ -72,10 +81,12 @@ export class CustomerGroupDropdownComponent implements OnInit, OnDestroy, OnChan
           this.groups = groups;
           this.selectConfig = {
             ...this.selectConfig,
+            placeholder: this.placeholder,
+            all: this.showAll,
+            all_message: this.allMessage,
             data: groups.map(group => ({
               id: group.id,
-              name: group.name,
-              customer_count: group.customer_count || 0
+              name: group.name
             })),
             loading: false
           };
@@ -101,13 +112,15 @@ export class CustomerGroupDropdownComponent implements OnInit, OnDestroy, OnChan
    * Handle group selection change
    */
   onGroupChange(event: any) {
-    const selectedGroupId = event.value;
-    const selectedGroup = this.groups.find(g => g.id === selectedGroupId);
-    const groupName = selectedGroup?.name || null;
+    const selectedGroupId = event.value ? event.value : null;
+    const selectedGroup = selectedGroupId
+      ? this.groups.find(g => g.id === selectedGroupId)
+      : undefined;
+    const groupName = selectedGroup?.name ?? null;
 
     this.groupSelect.emit({
       groupId: selectedGroupId,
-      groupName: groupName
+      groupName
     });
   }
 }

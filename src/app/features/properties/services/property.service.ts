@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { Property, CreatePropertyDto, UpdatePropertyDto, MeasurementUnit } from '../models/property.model';
+import { Property, CreatePropertyDto, UpdatePropertyDto, MeasurementUnit, PropertyGroup } from '../models/property.model';
 
 @Injectable({
   providedIn: 'root',
@@ -38,5 +38,25 @@ export class PropertyService {
 
   getMeasurementUnits(): Observable<MeasurementUnit[]> {
     return this.http.get<MeasurementUnit[]>(`${this.api}/tenant/properties/measurement-units/all`);
+  }
+
+  getPropertyGroups(): Observable<PropertyGroup[]> {
+    return this.http.get<unknown>(`${this.api}/tenant/property-groups`).pipe(
+      map((response) => {
+        if (Array.isArray(response)) {
+          return response as PropertyGroup[];
+        }
+        if (response && typeof response === 'object') {
+          const obj = response as Record<string, unknown>;
+          const candidates = [obj['data'], obj['groups'], obj['items']];
+          for (const candidate of candidates) {
+            if (Array.isArray(candidate)) {
+              return candidate as PropertyGroup[];
+            }
+          }
+        }
+        return [];
+      })
+    );
   }
 }

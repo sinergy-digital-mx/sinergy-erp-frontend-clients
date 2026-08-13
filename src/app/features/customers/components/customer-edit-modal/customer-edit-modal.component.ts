@@ -434,7 +434,7 @@ export class CustomerEditModalComponent {
       fiscal_city: trim(v.fiscal_city) || undefined,
       fiscal_state: trim(v.fiscal_state) || undefined,
       fiscal_postal_code: trim(v.fiscal_postal_code) || undefined,
-      group_id: this.selectedGroup()?.id || null
+      group_id: this.selectedGroup()?.id ?? null
     };
     if (trim(v.additional_name)) payload.additional_name = trim(v.additional_name);
     if (trim(v.additional_lastname)) payload.additional_lastname = trim(v.additional_lastname);

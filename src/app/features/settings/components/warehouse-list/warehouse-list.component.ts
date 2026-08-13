@@ -33,7 +33,7 @@ export class WarehouseListComponent implements OnDestroy {
     rows: [],
     columns: [
       { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true, width: 150 },
-      { name: 'Código', prop: 'code', sortable: true, canAutoResize: true, width: 120 },
+      { name: 'Prefijo', prop: 'prefix', sortable: false, canAutoResize: true, width: 120 },
       { name: 'País', prop: 'country', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Estado', prop: 'state', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Status', prop: 'status', sortable: true, canAutoResize: true, width: 100 },

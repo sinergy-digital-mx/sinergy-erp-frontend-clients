@@ -2,11 +2,15 @@ import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, S
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { OrderFilters } from '../../models/filters.model';
 import { OrderStatus } from '../../models/purchase-order.model';
-import { Warehouse } from '../../models/warehouse.model';
+import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { BranchService } from '../../../settings/services/branch.service';
+import { WarehouseService } from '../../../settings/services/warehouse.service';
+import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
+import { Branch } from '../../../settings/models/branch.model';
+import { Warehouse } from '../../../settings/models/warehouse.model';
 
 @Component({
   selector: 'app-filter-bar',
@@ -20,22 +24,25 @@ import { Warehouse } from '../../models/warehouse.model';
   styleUrl: './filter-bar.component.scss'
 })
 export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
-  @Input() warehouses: Warehouse[] = [];
   /** Sincroniza el campo búsqueda con la URL o el listado (p. ej. ?search=uuid tras editar). */
   @Input() initialSearch: string | null = null;
   @Input() refreshing = false;
   @Output() filtersChange = new EventEmitter<OrderFilters>();
   @Output() refresh = new EventEmitter<void>();
 
-  // Form controls
   searchControl = new FormControl<string>('', { nonNullable: true });
   dateRangeControl = new FormControl<string>('', { nonNullable: true });
   dateFromControl = new FormControl<string>('', { nonNullable: true });
   dateToControl = new FormControl<string>('', { nonNullable: true });
   statusControl = new FormControl<OrderStatus | null>(null);
+  fiscalConfigurationControl = new FormControl<string | null>(null);
+  billingBranchControl = new FormControl<string | null>(null);
   warehouseControl = new FormControl<string | null>(null);
 
-  // Date range options
+  fiscalConfigurations: FiscalConfiguration[] = [];
+  branches: Branch[] = [];
+  warehouses: Warehouse[] = [];
+
   dateRangeOptions = [
     { label: 'Hoy', value: 'today' },
     { label: 'Semana', value: 'week' },
@@ -45,7 +52,6 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
 
   showCustomDateRange = false;
 
-  // Status options
   statusOptions: { label: string; value: OrderStatus }[] = [
     { label: 'En Proceso', value: 'En Proceso' },
     { label: 'Recibida', value: 'Recibida' },
@@ -54,6 +60,12 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
+  constructor(
+    private fiscalConfigurationService: FiscalConfigurationService,
+    private branchService: BranchService,
+    private warehouseService: WarehouseService
+  ) {}
+
   get hasActiveFilters(): boolean {
     return Boolean(
       this.searchControl.value.trim() ||
@@ -61,6 +73,8 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
       this.dateFromControl.value ||
       this.dateToControl.value ||
       this.statusControl.value ||
+      this.fiscalConfigurationControl.value ||
+      this.billingBranchControl.value ||
       this.warehouseControl.value
     );
   }
@@ -76,21 +90,18 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Search with debounce
+    this.loadFiscalConfigurations();
+    this.loadBranches();
+    this.loadWarehouses();
+
     this.searchControl.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        takeUntil(this.destroy$)
-      )
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => this.emitFilters());
 
-    // Date range preset changes
     this.dateRangeControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((value) => this.onDateRangeChange(value));
 
-    // Date range changes
     this.dateFromControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.emitFilters());
@@ -99,15 +110,25 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.emitFilters());
 
-    // Status changes
     this.statusControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.emitFilters());
 
-    // Warehouse changes
+    this.fiscalConfigurationControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.onFiscalConfigurationChange());
+
+    this.billingBranchControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.onBillingBranchChange());
+
     this.warehouseControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.emitFilters());
+  }
+
+  branchLabel(branch: Branch): string {
+    return branch.code?.trim() || branch.display_name?.trim() || '—';
   }
 
   onDateRangeChange(value: string): void {
@@ -162,8 +183,12 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     this.dateFromControl.setValue('', { emitEvent: false });
     this.dateToControl.setValue('', { emitEvent: false });
     this.statusControl.setValue(null, { emitEvent: false });
+    this.fiscalConfigurationControl.setValue(null, { emitEvent: false });
+    this.billingBranchControl.setValue(null, { emitEvent: false });
     this.warehouseControl.setValue(null, { emitEvent: false });
     this.showCustomDateRange = false;
+    this.loadBranches();
+    this.loadWarehouses();
     this.emitFilters();
   }
 
@@ -177,6 +202,63 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     this.destroy$.complete();
   }
 
+  private onFiscalConfigurationChange(): void {
+    this.billingBranchControl.setValue(null, { emitEvent: false });
+    this.warehouseControl.setValue(null, { emitEvent: false });
+    this.loadBranches(this.fiscalConfigurationControl.value || undefined);
+    this.loadWarehouses(this.billingBranchControl.value || undefined);
+    this.emitFilters();
+  }
+
+  private onBillingBranchChange(): void {
+    this.warehouseControl.setValue(null, { emitEvent: false });
+    this.loadWarehouses(this.billingBranchControl.value || undefined);
+    this.emitFilters();
+  }
+
+  private loadFiscalConfigurations(): void {
+    this.fiscalConfigurationService
+      .listFiscalConfigurations({ status: 'active', limit: 100 })
+      .subscribe({
+        next: (res) => {
+          this.fiscalConfigurations = res.data ?? [];
+        },
+        error: () => {
+          this.fiscalConfigurations = [];
+        },
+      });
+  }
+
+  private loadBranches(fiscalConfigurationId?: string): void {
+    const request$ = fiscalConfigurationId
+      ? this.branchService.getBranches(fiscalConfigurationId)
+      : this.branchService.getAllBranches();
+
+    request$.subscribe({
+      next: (branches) => {
+        this.branches = Array.isArray(branches) ? branches : [];
+      },
+      error: () => {
+        this.branches = [];
+      },
+    });
+  }
+
+  private loadWarehouses(billingBranchId?: string): void {
+    const params = billingBranchId
+      ? { billing_branch_id: billingBranchId, status: 'active' as const, limit: 100 }
+      : { status: 'active' as const, limit: 100 };
+
+    this.warehouseService.getWarehouses(params).subscribe({
+      next: (res) => {
+        this.warehouses = res.data ?? [];
+      },
+      error: () => {
+        this.warehouses = [];
+      },
+    });
+  }
+
   private emitFilters(): void {
     const filters: OrderFilters = {};
 
@@ -187,19 +269,27 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
 
     const dateFrom = this.dateFromControl.value;
     if (dateFrom) {
-      // Convert date string to ISO format
       filters.dateFrom = new Date(dateFrom).toISOString();
     }
 
     const dateTo = this.dateToControl.value;
     if (dateTo) {
-      // Convert date string to ISO format
       filters.dateTo = new Date(dateTo).toISOString();
     }
 
     const status = this.statusControl.value;
     if (status) {
       filters.status = status;
+    }
+
+    const fiscalConfigurationId = this.fiscalConfigurationControl.value;
+    if (fiscalConfigurationId) {
+      filters.fiscal_configuration_id = fiscalConfigurationId;
+    }
+
+    const billingBranchId = this.billingBranchControl.value;
+    if (billingBranchId) {
+      filters.billing_branch_id = billingBranchId;
     }
 
     const warehouseId = this.warehouseControl.value;

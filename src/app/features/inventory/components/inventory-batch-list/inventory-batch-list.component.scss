@@ -41,3 +41,9 @@
   background: #f3f4f6;
   white-space: nowrap;
 }
+
+.filter-bar__select:disabled {
+  background-color: #f9fafb !important;
+  color: #9ca3af;
+  cursor: not-allowed;
+}

@@ -9,7 +9,7 @@
   &__header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     padding: 1rem;
     border-bottom: 1px solid #e5e7eb;
     flex-shrink: 0;
@@ -19,6 +19,22 @@
       font-size: 1.125rem;
       font-weight: 600;
       color: #1f2937;
+    }
+
+    .fiscal-modal__title-block {
+      min-width: 0;
+      padding-right: 0.75rem;
+    }
+
+    .fiscal-modal__subtitle {
+      margin: 0.25rem 0 0;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: #6b7280;
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .close {

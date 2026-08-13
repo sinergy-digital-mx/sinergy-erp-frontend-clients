@@ -21,6 +21,10 @@ export interface InventoryBatch {
   source_tag_identifier?: string | null;
   warehouse_id: string;
   warehouse_name: string;
+  fiscal_configuration_id?: string | null;
+  billing_branch_id?: string | null;
+  razon_social?: string | null;
+  sucursal?: string | null;
   product_id: string;
   product_name: string;
   product_sku: string;

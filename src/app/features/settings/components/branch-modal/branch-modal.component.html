@@ -17,10 +17,24 @@
           <form [formGroup]="form" class="branch-form">
             <div class="branch-form__meta">
               <div>
-                <label>Código *</label>
-                <input type="text" formControlName="code" placeholder="Ej: Zona Norte Tijuana" />
-                <p *ngIf="form.get('code')?.invalid && form.get('code')?.touched" class="err">
-                  Código requerido (mín. 2 caracteres)
+                <label>Nombre *</label>
+                <input type="text" formControlName="name" placeholder="Ej. Sucursal Buenos Aires" />
+                <p *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="err">
+                  Nombre requerido (mín. 2 caracteres)
+                </p>
+              </div>
+              <div>
+                <label>Prefijo</label>
+                <input
+                  type="text"
+                  formControlName="prefix"
+                  class="uppercase"
+                  [maxlength]="prefixMaxLength"
+                  placeholder="Ej. SBA"
+                  (blur)="onPrefixBlur()" />
+                <p class="hint">Segmento del lote al recibir mercancía (letras y números, máx. 10).</p>
+                <p *ngIf="form.get('prefix')?.invalid && form.get('prefix')?.touched" class="err">
+                  {{ prefixErrorMessage }}
                 </p>
               </div>
               <div>
@@ -64,7 +78,7 @@
               <thead>
                 <tr>
                   <th>NOMBRE</th>
-                  <th>CÓDIGO</th>
+                  <th>PREFIJO</th>
                   <th>GPS</th>
                   <th>STATUS</th>
                   <th class="actions-col">ACCIONES</th>
@@ -73,7 +87,7 @@
               <tbody>
                 <tr *ngFor="let warehouse of warehouses; let i = index">
                   <td>{{ warehouse.name }}</td>
-                  <td>{{ warehouse.code || '—' }}</td>
+                  <td>{{ warehouse.prefix || '—' }}</td>
                   <td>
                     {{
                       warehouse.latitude != null && warehouse.longitude != null ? 'OK' : 'Sin GPS'

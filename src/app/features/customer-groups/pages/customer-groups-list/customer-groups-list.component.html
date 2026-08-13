@@ -1,0 +1,60 @@
+<div class="settings-list-page customer-groups-list px-4 pb-6">
+  <div class="customer-groups-list__header">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800">Grupos de clientes</h2>
+      <p class="text-sm text-gray-500 mt-1">
+        Catálogo de grupos de esta organización. Cada empresa administra los suyos.
+      </p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3" *ngIf="canCreate">
+      <app-button
+        text="+ Crear grupo"
+        variant="primary"
+        [fullWidth]="false"
+        (clicked)="openCreateModal()">
+      </app-button>
+    </div>
+  </div>
+
+  <app-datatable-wrapper
+    variant="settings"
+    [config]="table_config()"
+    [rowTemplate]="tableTemplate">
+  </app-datatable-wrapper>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td>
+    <p class="settings-cell-primary truncate">{{ item.name }}</p>
+  </td>
+  <td>
+    <span [class]="item.description ? 'settings-cell-text' : 'settings-cell-empty'">
+      {{ item.description || '—' }}
+    </span>
+    <span *ngIf="item.is_system" class="settings-badge settings-badge--status-inactive ml-2">sistema</span>
+  </td>
+  <td>
+    <span class="settings-cell-text">{{ item.customer_count ?? 0 }}</span>
+  </td>
+  <td>
+    <div class="flex gap-2">
+      <button
+        *ngIf="canUpdate"
+        type="button"
+        (click)="openEditModal(item); $event.stopPropagation()"
+        class="p-1.5 text-gray-600 hover:text-white hover:bg-gray-600 rounded-md transition-all duration-200"
+        title="Editar">
+        <lucide-icon [img]="Edit2" [size]="16"></lucide-icon>
+      </button>
+      <button
+        *ngIf="canDeleteGroup(item)"
+        type="button"
+        (click)="deleteGroup(item); $event.stopPropagation()"
+        class="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-md transition-all duration-200"
+        title="Eliminar">
+        <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
+      </button>
+    </div>
+  </td>
+</ng-template>

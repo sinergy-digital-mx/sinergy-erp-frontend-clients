@@ -47,7 +47,15 @@
     <span class="settings-cell-mono">{{ item.rfc }}</span>
   </td>
   <td>
-    <span class="settings-cell-text">{{ item.persona_type }}</span>
+    <span [class]="item.prefix ? 'settings-cell-mono' : 'settings-cell-empty'">{{ item.prefix || '—' }}</span>
+  </td>
+  <td>
+    <span
+      class="settings-badge"
+      [class.settings-badge--count]="getBranchCount(item) > 0"
+      [class.settings-badge--count-empty]="getBranchCount(item) === 0">
+      {{ getBranchCount(item) }}
+    </span>
   </td>
   <td>
     <span class="settings-badge" [ngClass]="getStatusClass(item.status)">

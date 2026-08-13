@@ -51,6 +51,10 @@ import {
   SalesOrderSellerDialogResult,
 } from '../sales-order-seller-dialog/sales-order-seller-dialog.component';
 import {
+  SalesOrderCancelDialogComponent,
+  SalesOrderCancelDialogResult,
+} from '../sales-order-cancel-dialog/sales-order-cancel-dialog.component';
+import {
   SalesOrderPaymentDialogComponent,
   SalesOrderPaymentDialogResult,
 } from '../sales-order-payment-dialog/sales-order-payment-dialog.component';
@@ -110,6 +114,20 @@ export class SalesOrderDetailDialogComponent {
   canEditSeller = computed(() => {
     const status = this.order()?.general_status ?? this.order()?.status ?? '';
     return status !== 'Cancelada';
+  });
+
+  showCancelOrderButton = computed(() => {
+    const status = this.order()?.general_status ?? this.order()?.status ?? '';
+    return status !== 'Cancelada';
+  });
+
+  canCancelOrder = computed(() => this.order()?.can_cancel !== false);
+
+  cancelOrderTooltip = computed(() => {
+    if (this.canCancelOrder()) {
+      return 'Cancelar orden';
+    }
+    return this.order()?.cancel_blocked_reason || 'No se puede cancelar esta orden';
   });
 
   canTicketReciboActions = computed(() => !!this.posCollection());
@@ -230,6 +248,45 @@ export class SalesOrderDetailDialogComponent {
           current ? { ...current, notes: result.notes ?? undefined } : current
         );
         this.toast.success(result.notes ? 'Notas actualizadas' : 'Notas eliminadas');
+      });
+  }
+
+  openCancelOrderDialog(): void {
+    const order = this.order();
+    if (!order || !this.showCancelOrderButton() || !this.canCancelOrder()) {
+      return;
+    }
+
+    this.dialog
+      .open(SalesOrderCancelDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: {
+          orderId: order.id,
+          folio: order.folio,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: SalesOrderCancelDialogResult | undefined) => {
+        if (!result) {
+          return;
+        }
+
+        if ('blockedCfdi' in result && result.blockedCfdi) {
+          const hint = result.message.includes('Facturación')
+            ? result.message
+            : `${result.message} Cancélala en el tab Facturación.`;
+          this.toast.error(hint);
+          this.activeTabIndex.set(4);
+          return;
+        }
+
+        if ('cancelled' in result && result.cancelled) {
+          const folio = order.folio || order.id.substring(0, 8);
+          this.toast.success(`Orden ${folio} cancelada`);
+          this.loadOrder(true);
+        }
       });
   }
 
@@ -706,7 +763,11 @@ export class SalesOrderDetailDialogComponent {
   }
 
   getRazonSocialSubtitle(): string {
-    return this.order()?.fiscal_configuration?.rfc?.trim() || '';
+    const fiscal = this.order()?.fiscal_configuration;
+    const rfc = fiscal?.rfc?.trim() || '';
+    const prefix = fiscal?.prefix?.trim();
+    if (rfc && prefix) return `${rfc} · ${prefix}`;
+    return rfc || prefix || '';
   }
 
   /** @deprecated Usar getRazonSocialDisplayName() */
@@ -772,6 +833,14 @@ export class SalesOrderDetailDialogComponent {
       }
     }
     return rows;
+  }
+
+  getAllocationBatchLabel(row: { allocation?: { inventory_batch?: { batch_number?: string }; inventory_batch_id?: string } }): string {
+    return (
+      row.allocation?.inventory_batch?.batch_number ||
+      row.allocation?.inventory_batch_id ||
+      '—'
+    );
   }
 
   getInvoices(): SalesOrderInvoice[] {
@@ -877,11 +946,6 @@ export class SalesOrderDetailDialogComponent {
     };
 
     const embedded = this.order()?.fiscal_configuration;
-    if (embedded?.rfc && embedded?.razon_social) {
-      openModal(embedded as FiscalConfiguration);
-      return;
-    }
-
     this.fiscalConfigService.getFiscalConfiguration(fiscalId).subscribe({
       next: (fiscalConfig) => openModal(fiscalConfig),
       error: () => {

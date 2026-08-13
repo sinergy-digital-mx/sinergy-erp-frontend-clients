@@ -12,6 +12,8 @@ import {
 export interface InventoryExportDialogData {
   defaultType: InventoryExportType;
   search?: string;
+  fiscal_configuration_id?: string;
+  billing_branch_id?: string;
   warehouse_id?: string;
   only_available?: boolean;
 }
@@ -63,12 +65,18 @@ export class InventoryExportDialogComponent {
     this.errorMessage.set('');
 
     const type = this.exportType();
-    const { search, warehouse_id, only_available } = this.data;
+    const { search, fiscal_configuration_id, billing_branch_id, warehouse_id, only_available } = this.data;
 
     if (type === 'batches') {
       const filters: InventoryBatchExportFilters = {};
       if (search) {
         filters.search = search;
+      }
+      if (fiscal_configuration_id) {
+        filters.fiscal_configuration_id = fiscal_configuration_id;
+      }
+      if (billing_branch_id) {
+        filters.billing_branch_id = billing_branch_id;
       }
       if (warehouse_id) {
         filters.warehouse_id = warehouse_id;
@@ -89,6 +97,12 @@ export class InventoryExportDialogComponent {
       const filters: InventorySummaryExportFilters = {};
       if (search) {
         filters.search = search;
+      }
+      if (fiscal_configuration_id) {
+        filters.fiscal_configuration_id = fiscal_configuration_id;
+      }
+      if (billing_branch_id) {
+        filters.billing_branch_id = billing_branch_id;
       }
       if (warehouse_id) {
         filters.warehouse_id = warehouse_id;

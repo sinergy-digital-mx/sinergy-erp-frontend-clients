@@ -9,9 +9,14 @@ import {
   InventoryBatchExportFilters,
   InventoryExportType,
   InventorySummaryExportFilters,
+  InventorySummaryFilters,
   PaginationParams, 
   PaginatedResponse 
 } from '../models/inventory-item.model';
+import {
+  InventoryLocationFilters,
+  InventoryLocationFiscal,
+} from '../models/inventory-location.model';
 import { InventoryMovement } from '../models/inventory-movement.model';
 import { StockReservation } from '../models/stock-reservation.model';
 import { environment } from '../../../../environments/environment';
@@ -157,10 +162,28 @@ export class InventoryService {
   }
 
   /**
+   * Catálogo jerárquico razón social → sucursal → almacén.
+   * Un request al entrar a Inventario. Permiso: inventory:Read.
+   */
+  getLocations(): Observable<InventoryLocationFiscal[]> {
+    return this.http
+      .get<{ data?: InventoryLocationFiscal[] } | InventoryLocationFiscal[]>(`${this.baseUrl}/locations`)
+      .pipe(
+        map((response) => {
+          if (Array.isArray(response)) {
+            return response;
+          }
+          return response.data ?? [];
+        }),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  /**
    * Get inventory summary (totalized by product and warehouse)
    */
   getSummary(
-    filters: any,
+    filters: InventorySummaryFilters,
     pagination: PaginationParams
   ): Observable<PaginatedResponse<any>> {
     let params = new HttpParams()
@@ -170,9 +193,7 @@ export class InventoryService {
     if (filters.search) {
       params = params.set('search', filters.search);
     }
-    if (filters.warehouse_id) {
-      params = params.set('warehouse_id', filters.warehouse_id);
-    }
+    params = this.applyLocationFilters(params, filters);
     if (filters.product_id) {
       params = params.set('product_id', filters.product_id);
     }
@@ -214,6 +235,8 @@ export class InventoryService {
         ['search', batchFilters.search],
         ['batch_number', batchFilters.batch_number],
         ['product_id', batchFilters.product_id],
+        ['fiscal_configuration_id', batchFilters.fiscal_configuration_id],
+        ['billing_branch_id', batchFilters.billing_branch_id],
         ['warehouse_id', batchFilters.warehouse_id],
         ['purchase_order_batch_id', batchFilters.purchase_order_batch_id],
         ['purchase_order_id', batchFilters.purchase_order_id],
@@ -229,6 +252,8 @@ export class InventoryService {
       const summaryFilters = filters as InventorySummaryExportFilters;
       const entries: [keyof InventorySummaryExportFilters, string | boolean | undefined][] = [
         ['search', summaryFilters.search],
+        ['fiscal_configuration_id', summaryFilters.fiscal_configuration_id],
+        ['billing_branch_id', summaryFilters.billing_branch_id],
         ['warehouse_id', summaryFilters.warehouse_id],
         ['product_id', summaryFilters.product_id],
         ['only_available', summaryFilters.only_available],
@@ -334,12 +359,13 @@ export class InventoryService {
         errorMessage = 'No tienes permisos para realizar esta acción';
         break;
 
-      case 404:
-        errorMessage = 'Artículo de inventario no encontrado';
+      case 400:
+      case 422:
+        errorMessage = this.extractErrorMessage(error);
         break;
 
-      case 422:
-        errorMessage = this.extractValidationErrors(error);
+      case 404:
+        errorMessage = 'Artículo de inventario no encontrado';
         break;
 
       case 500:
@@ -358,12 +384,31 @@ export class InventoryService {
   }
 
   /**
-   * Extract validation errors from response
+   * Aplica filtros de ubicación. "Todas" = no enviar el param.
    */
-  private extractValidationErrors(error: HttpErrorResponse): string {
+  private applyLocationFilters(params: HttpParams, filters: InventoryLocationFilters): HttpParams {
+    if (filters.fiscal_configuration_id) {
+      params = params.set('fiscal_configuration_id', filters.fiscal_configuration_id);
+    }
+    if (filters.billing_branch_id) {
+      params = params.set('billing_branch_id', filters.billing_branch_id);
+    }
+    if (filters.warehouse_id) {
+      params = params.set('warehouse_id', filters.warehouse_id);
+    }
+    return params;
+  }
+
+  private extractErrorMessage(error: HttpErrorResponse): string {
+    if (typeof error.error?.message === 'string' && error.error.message.trim()) {
+      return error.error.message;
+    }
+    if (Array.isArray(error.error?.message)) {
+      return error.error.message.filter((item: unknown) => typeof item === 'string').join(', ');
+    }
     if (error.error?.errors) {
       const errors = Object.values(error.error.errors).flat();
-      return errors.join(', ');
+      return (errors as string[]).join(', ');
     }
     return 'Error de validación. Por favor, verifica los datos ingresados.';
   }

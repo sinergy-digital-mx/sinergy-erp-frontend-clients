@@ -10,9 +10,11 @@ import { debounceTime, distinctUntilChanged, takeUntil, switchMap, catchError, f
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { WritePurchaseOrderDto } from '../../models/filters.model';
 import { FiscalConfigurationService } from '../../../../features/settings/services/fiscal-configuration.service';
+import { BranchService } from '../../../../features/settings/services/branch.service';
 import { WarehouseService } from '../../../../features/settings/services/warehouse.service';
 import { VendorService } from '../../../../features/settings/services/vendor.service';
 import { VendorQueryParams } from '../../../../features/settings/models/vendor.model';
+import { Branch } from '../../../../features/settings/models/branch.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ProductDetailModalComponent } from '../../../../features/settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
@@ -50,6 +52,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
 
   // Dropdowns data
   fiscalConfigurations: any[] = [];
+  branches: Branch[] = [];
   warehouses: any[] = [];
   filteredVendors: any[] = [];
   loadingVendors = false;
@@ -74,6 +77,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private purchaseOrderService: PurchaseOrderService,
     private fiscalConfigService: FiscalConfigurationService,
+    private branchService: BranchService,
     private warehouseService: WarehouseService,
     private vendorService: VendorService,
     private toast: ToastService,
@@ -84,7 +88,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   ) {
     this.form = this.fb.group({
       fiscal_configuration_id: ['', Validators.required],
-      warehouse_id: ['', Validators.required],
+      billing_branch_id: [{ value: '', disabled: true }, Validators.required],
+      warehouse_id: [{ value: '', disabled: true }, Validators.required],
       vendor_search: [''],
       vendor_id: ['', Validators.required],
       expected_delivery_date: ['', Validators.required],
@@ -94,8 +99,96 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadDropdownData();
+    this.loadFiscalConfigurations();
+    this.setupLocationCascade();
     this.setupVendorSearch();
+  }
+
+  private setupLocationCascade(): void {
+    this.form.get('fiscal_configuration_id')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((fiscalId) => {
+        this.form.patchValue({ billing_branch_id: '', warehouse_id: '' }, { emitEvent: false });
+        this.branches = [];
+        this.warehouses = [];
+        this.form.get('billing_branch_id')?.disable({ emitEvent: false });
+        this.form.get('warehouse_id')?.disable({ emitEvent: false });
+
+        if (fiscalId) {
+          this.loadBranches(fiscalId);
+          this.form.get('billing_branch_id')?.enable({ emitEvent: false });
+        }
+        this.cdr.detectChanges();
+      });
+
+    this.form.get('billing_branch_id')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((branchId) => {
+        this.form.patchValue({ warehouse_id: '' }, { emitEvent: false });
+        this.warehouses = [];
+        this.form.get('warehouse_id')?.disable({ emitEvent: false });
+
+        if (branchId) {
+          this.loadWarehouses(branchId);
+          this.form.get('warehouse_id')?.enable({ emitEvent: false });
+        }
+        this.cdr.detectChanges();
+      });
+  }
+
+  branchLabel(branch: Branch): string {
+    return branch.code?.trim() || branch.display_name?.trim() || '—';
+  }
+
+  private loadFiscalConfigurations(): void {
+    this.loading = true;
+    this.fiscalConfigService.listFiscalConfigurations({ status: 'active', limit: 100 }).subscribe({
+      next: (res) => {
+        this.fiscalConfigurations = res.data ?? [];
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading fiscal configurations:', error);
+        this.toast.error('Error al cargar razones sociales');
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private loadBranches(fiscalConfigurationId: string): void {
+    this.branchService.getBranches(fiscalConfigurationId).subscribe({
+      next: (branches) => {
+        this.branches = Array.isArray(branches) ? branches : [];
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading branches:', error);
+        this.toast.error('Error al cargar sucursales');
+        this.branches = [];
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private loadWarehouses(billingBranchId: string): void {
+    this.warehouseService.getWarehouses({
+      billing_branch_id: billingBranchId,
+      status: 'active',
+      limit: 100,
+    }).subscribe({
+      next: (res) => {
+        this.warehouses = res.data ?? [];
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading warehouses:', error);
+        this.toast.error('Error al cargar almacenes');
+        this.warehouses = [];
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   private setupVendorSearch(): void {
@@ -173,26 +266,6 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
 
   onTabChange(tabId: string): void {
     this.activeTab = tabId;
-  }
-
-  loadDropdownData(): void {
-    this.loading = true;
-    
-    // Load all dropdown data in parallel
-    Promise.all([
-      this.fiscalConfigService.listFiscalConfigurations().toPromise(),
-      this.warehouseService.getWarehouses().toPromise(),
-    ]).then(([fiscalConfigs, warehouses]) => {
-      this.fiscalConfigurations = fiscalConfigs?.data || [];
-      this.warehouses = warehouses?.data || [];
-      this.loading = false;
-      this.cdr.detectChanges();
-    }).catch((error) => {
-      console.error('Error loading dropdown data:', error);
-      this.toast.error('Error al cargar datos');
-      this.loading = false;
-      this.cdr.detectChanges();
-    });
   }
 
   onVendorChange(): void {
@@ -473,7 +546,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     }
 
     this.saving = true;
-    const fv = this.form.value;
+    const fv = this.form.getRawValue();
     const line_items = this.lineItems.map((li) => ({
       product_id: li.product_id,
       uom_id: li.uom_id,
@@ -485,6 +558,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
 
     const payload: WritePurchaseOrderDto = {
       fiscal_configuration_id: fv.fiscal_configuration_id,
+      billing_branch_id: fv.billing_branch_id,
       warehouse_id: fv.warehouse_id,
       vendor_id: fv.vendor_id,
       expected_delivery_date: fv.expected_delivery_date,

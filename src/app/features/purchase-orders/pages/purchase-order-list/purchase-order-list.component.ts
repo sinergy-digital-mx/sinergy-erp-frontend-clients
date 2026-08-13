@@ -4,10 +4,13 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
-import { WarehouseService } from '../../../../features/settings/services/warehouse.service';
 import { PurchaseOrder, OrderStatus, PaymentStatus } from '../../models/purchase-order.model';
 import { OrderFilters, PaginationParams } from '../../models/filters.model';
-import { Warehouse } from '../../../../features/settings/models/warehouse.model';
+import {
+  getPurchaseOrderListBranchLabel,
+  getPurchaseOrderListFiscalLabel,
+  getPurchaseOrderListWarehouseLabel,
+} from '../../utils/purchase-order-display.util';
 import { FilterBarComponent } from '../../components/filter-bar/filter-bar.component';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
@@ -45,7 +48,9 @@ export class PurchaseOrderListComponent implements OnInit {
     columns: [
       { name: 'Folio', prop: 'folio', sortable: true, canAutoResize: false, width: 120 },
       { name: 'Proveedor', prop: 'vendor', sortable: true, canAutoResize: false, width: 150 },
-      { name: 'Cedis', prop: 'warehouse', sortable: false, canAutoResize: false, width: 150 },
+      { name: 'Razón social', prop: 'razon_social', sortable: false, canAutoResize: false, width: 150 },
+      { name: 'Sucursal', prop: 'sucursal', sortable: false, canAutoResize: false, width: 150 },
+      { name: 'Almacén', prop: 'warehouse', sortable: false, canAutoResize: false, width: 130 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 120 },
       { name: 'Total', prop: 'requested_total', sortable: true, canAutoResize: false, width: 120 },
       { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 120 },
@@ -67,9 +72,6 @@ export class PurchaseOrderListComponent implements OnInit {
   filters = this.filtersState.asReadonly();
   loading = this.loadingState.asReadonly();
   hasMore = this.hasMoreState.asReadonly();
-  
-  // Warehouses for filters
-  warehouses = signal<Warehouse[]>([]);
   
   // Computed: stats
   totalOrders = computed(() => this.totalResultsState());
@@ -148,7 +150,6 @@ export class PurchaseOrderListComponent implements OnInit {
 
   constructor(
     private purchaseOrderService: PurchaseOrderService,
-    private warehouseService: WarehouseService,
     private route: ActivatedRoute,
     private router: Router,
     private dialog: MatDialog,
@@ -156,7 +157,6 @@ export class PurchaseOrderListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadWarehouses();
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
@@ -257,22 +257,6 @@ export class PurchaseOrderListComponent implements OnInit {
   }
 
   /**
-   * Load warehouses for filter dropdown
-   */
-  loadWarehouses(): void {
-    this.warehouseService.getWarehouses().subscribe({
-      next: (warehouses) => {
-        console.log('Warehouses response:', warehouses);
-        const warehouseArray = Array.isArray(warehouses) ? warehouses : (warehouses as any).data || [];
-        this.warehouses.set(warehouseArray);
-      },
-      error: (error) => {
-        console.error('Error loading warehouses:', error);
-      }
-    });
-  }
-
-  /**
    * Apply filters
    */
   applyFilters(filters: OrderFilters): void {
@@ -324,6 +308,18 @@ export class PurchaseOrderListComponent implements OnInit {
       default:
         return `${base} dt-status-pill--neutral`;
     }
+  }
+
+  getFiscalLabel(order: PurchaseOrder): string {
+    return getPurchaseOrderListFiscalLabel(order);
+  }
+
+  getBranchLabel(order: PurchaseOrder): string {
+    return getPurchaseOrderListBranchLabel(order);
+  }
+
+  getWarehouseLabel(order: PurchaseOrder): string {
+    return getPurchaseOrderListWarehouseLabel(order);
   }
 
   getPaymentStatusClass(paymentStatus: PaymentStatus | string): string {

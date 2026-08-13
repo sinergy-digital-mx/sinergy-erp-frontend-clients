@@ -5,7 +5,8 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReceiptService } from '../../services/receipt.service';
 import { PurchaseOrder, LineItem } from '../../models/purchase-order.model';
-import { LotMode, ReceivedItem, ReceivedLot, ReceiptRequest } from '../../models/receipt.model';
+import { LotMode, ReceivedItem, ReceivedLot, ReceiptRequest, ReceiptResponse } from '../../models/receipt.model';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 
@@ -264,9 +265,13 @@ export class ReceiptModalComponent implements OnInit {
         console.log('Success response:', response);
         this.isLoading = false;
         this.cdr.detectChanges();
+        const batchNumbers = this.collectBatchNumbers(response);
+        const message = batchNumbers.length
+          ? `Recibo registrado: ${batchNumbers.join(', ')}`
+          : 'Recibo registrado exitosamente';
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Recibo registrado exitosamente', type: 'success' },
-          duration: 3000
+          data: { message, type: 'success' },
+          duration: 4000
         });
         this.dialogRef.close(response);
       },
@@ -274,8 +279,7 @@ export class ReceiptModalComponent implements OnInit {
         console.error('Error response:', error);
         this.isLoading = false;
         this.cdr.detectChanges();
-        const errorMessage = error.error?.message || 
-                            (Array.isArray(error.error?.message) ? error.error.message.join(', ') : 'Error al registrar recibo');
+        const errorMessage = resolveHttpErrorMessage(error, 'Error al registrar recibo');
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
           data: { 
             message: errorMessage, 
@@ -292,5 +296,13 @@ export class ReceiptModalComponent implements OnInit {
    */
   onCancel(): void {
     this.dialogRef.close();
+  }
+
+  private collectBatchNumbers(response: ReceiptResponse): string[] {
+    const fromRoot = (response.batches ?? []).map((batch) => batch.batch_number);
+    const fromLines = (response.line_items ?? []).flatMap((line) =>
+      [...(line.batches ?? []), ...(line.inventory_batches ?? [])].map((batch) => batch.batch_number)
+    );
+    return [...new Set([...fromRoot, ...fromLines].filter((value): value is string => !!value))];
   }
 }

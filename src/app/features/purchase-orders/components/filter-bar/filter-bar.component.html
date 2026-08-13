@@ -65,7 +65,37 @@
       </select>
     </div>
 
-    <!-- Warehouse Dropdown -->
+    <!-- Razón social -->
+    <div class="filter-bar__field">
+      <select
+        id="fiscalConfiguration"
+        [formControl]="fiscalConfigurationControl"
+        class="filter-bar__select"
+        aria-label="Filtrar por razón social"
+      >
+        <option [ngValue]="null">Todas las razones sociales</option>
+        @for (fc of fiscalConfigurations; track fc.id) {
+          <option [ngValue]="fc.id">{{ fc.razon_social }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Sucursal -->
+    <div class="filter-bar__field">
+      <select
+        id="billingBranch"
+        [formControl]="billingBranchControl"
+        class="filter-bar__select"
+        aria-label="Filtrar por sucursal"
+      >
+        <option [ngValue]="null">Todas las sucursales</option>
+        @for (branch of branches; track branch.id) {
+          <option [ngValue]="branch.id">{{ branchLabel(branch) }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Almacén -->
     <div class="filter-bar__field">
       <select
         id="warehouse"
@@ -73,9 +103,9 @@
         class="filter-bar__select"
         aria-label="Filtrar por almacén"
       >
-        <option [value]="null">Todos los almacenes</option>
+        <option [ngValue]="null">Todos los almacenes</option>
         @for (warehouse of warehouses; track warehouse.id) {
-          <option [value]="warehouse.id">{{ warehouse.name }}</option>
+          <option [ngValue]="warehouse.id">{{ warehouse.name }}</option>
         }
       </select>
     </div>

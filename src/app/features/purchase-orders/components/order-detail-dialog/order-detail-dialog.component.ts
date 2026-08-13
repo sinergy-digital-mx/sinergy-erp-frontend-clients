@@ -16,6 +16,7 @@ import { PaymentDialogComponent, PaymentFormData } from '../payment-dialog/payme
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { BatchDetailDialogComponent } from '../../../inventory/components/batch-detail-dialog/batch-detail-dialog.component';
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
+import { BranchModalComponent } from '../../../settings/components/branch-modal/branch-modal.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { VendorDetailModalComponent } from '../../../settings/components/vendor-detail-modal/vendor-detail-modal.component';
@@ -24,6 +25,7 @@ import { Vendor } from '../../../settings/models/vendor.model';
 import { WarehouseDetailModalComponent } from '../../../settings/components/warehouse-detail-modal/warehouse-detail-modal.component';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
+import { formatTitleCase } from '../../../sales-orders/utils/sales-order-display.util';
 
 @Component({
   selector: 'app-order-detail-dialog',
@@ -327,7 +329,7 @@ export class OrderDetailDialogComponent {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        // Receipt was confirmed, reload order data
+        this.activeTabIndex.set(2);
         this.loadOrder();
       }
     });
@@ -621,8 +623,69 @@ export class OrderDetailDialogComponent {
   }
 
   getFiscalDisplayName(): string {
+    return this.getRazonSocialDisplayName();
+  }
+
+  getRazonSocialDisplayName(): string {
+    const order = this.order();
+    const value = order?.razon_social ?? order?.fiscal_configuration?.razon_social;
+    if (!value?.trim()) {
+      return '—';
+    }
+    return formatTitleCase(value.trim());
+  }
+
+  getRazonSocialSubtitle(): string {
     const fiscal = this.order()?.fiscal_configuration;
-    return fiscal?.razon_social || fiscal?.business_name || 'N/A';
+    const rfc = fiscal?.rfc?.trim() || '';
+    const prefix = fiscal?.prefix?.trim();
+    if (rfc && prefix) return `${rfc} · ${prefix}`;
+    return rfc || prefix || '';
+  }
+
+  getSucursalDisplayName(): string {
+    const order = this.order();
+    const value = order?.sucursal ?? order?.billing_branch?.code;
+    if (!value?.trim()) {
+      return '—';
+    }
+    return formatTitleCase(value.trim());
+  }
+
+  getSucursalSubtitle(): string {
+    const branch = this.order()?.billing_branch;
+    if (!branch) {
+      return '';
+    }
+    return [branch.city, branch.state].filter(Boolean).join(', ');
+  }
+
+  getWarehouseDisplayName(): string {
+    const name = this.order()?.warehouse?.name;
+    if (!name?.trim()) {
+      return '—';
+    }
+    return formatTitleCase(name.trim());
+  }
+
+  canOpenBranch(): boolean {
+    const order = this.order();
+    const branchId = order?.billing_branch_id ?? order?.billing_branch?.id;
+    const fiscalId = order?.fiscal_configuration_id ?? order?.fiscal_configuration?.id;
+    return !!(branchId && fiscalId);
+  }
+
+  openBranchDialog(): void {
+    const order = this.order();
+    const branchId = order?.billing_branch_id ?? order?.billing_branch?.id;
+    const fiscalConfigId = order?.fiscal_configuration_id ?? order?.fiscal_configuration?.id;
+    if (!branchId || !fiscalConfigId) return;
+
+    this.dialog.open(BranchModalComponent, {
+      data: { fiscalConfigId, branchId },
+      width: '80vw',
+      maxWidth: '1000px',
+    });
   }
 
   canOpenVendor(): boolean {
@@ -696,11 +759,6 @@ export class OrderDetailDialogComponent {
     };
 
     const embedded = this.order()?.fiscal_configuration;
-    if (embedded?.rfc && embedded?.razon_social) {
-      openModal(embedded as FiscalConfiguration);
-      return;
-    }
-
     this.fiscalConfigService.getFiscalConfiguration(fiscalId).subscribe({
       next: (fiscalConfig) => openModal(fiscalConfig),
       error: () => {

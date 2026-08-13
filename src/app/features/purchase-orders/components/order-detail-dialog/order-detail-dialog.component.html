@@ -74,26 +74,6 @@
           </div>
 
           <div
-            class="info-card info-card--yellow"
-            [class.info-card--clickable]="canOpenWarehouse()"
-            role="button"
-            [attr.tabindex]="canOpenWarehouse() ? 0 : null"
-            (click)="canOpenWarehouse() && openWarehouseDialog()"
-            (keydown.enter)="canOpenWarehouse() && openWarehouseDialog()"
-            (keydown.space)="$event.preventDefault(); canOpenWarehouse() && openWarehouseDialog()">
-            <div class="info-card__icon">
-              <i class="fi fi-rr-box"></i>
-            </div>
-            <div class="info-card__content">
-              <span class="info-card__label">PARA ALMACÉN</span>
-              <span class="info-card__value">{{ order()!.warehouse?.name || 'N/A' }}</span>
-            </div>
-            @if (canOpenWarehouse()) {
-              <i class="fi fi-rr-angle-right info-card__chevron"></i>
-            }
-          </div>
-
-          <div
             class="info-card info-card--purple"
             [class.info-card--clickable]="canOpenFiscal()"
             role="button"
@@ -106,9 +86,55 @@
             </div>
             <div class="info-card__content">
               <span class="info-card__label">RAZÓN SOCIAL</span>
-              <span class="info-card__value">{{ getFiscalDisplayName() }}</span>
+              <span class="info-card__value">{{ getRazonSocialDisplayName() }}</span>
+              @if (getRazonSocialSubtitle()) {
+                <span class="info-card__subvalue">{{ getRazonSocialSubtitle() }}</span>
+              }
             </div>
             @if (canOpenFiscal()) {
+              <i class="fi fi-rr-angle-right info-card__chevron"></i>
+            }
+          </div>
+
+          <div
+            class="info-card info-card--orange"
+            [class.info-card--clickable]="canOpenBranch()"
+            role="button"
+            [attr.tabindex]="canOpenBranch() ? 0 : null"
+            (click)="canOpenBranch() && openBranchDialog()"
+            (keydown.enter)="canOpenBranch() && openBranchDialog()"
+            (keydown.space)="$event.preventDefault(); canOpenBranch() && openBranchDialog()">
+            <div class="info-card__icon">
+              <i class="fi fi-rr-building"></i>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">SUCURSAL</span>
+              <span class="info-card__value">{{ getSucursalDisplayName() }}</span>
+              @if (getSucursalSubtitle()) {
+                <span class="info-card__subvalue">{{ getSucursalSubtitle() }}</span>
+              }
+            </div>
+            @if (canOpenBranch()) {
+              <i class="fi fi-rr-angle-right info-card__chevron"></i>
+            }
+          </div>
+
+          <div
+            class="info-card info-card--yellow"
+            [class.info-card--clickable]="canOpenWarehouse()"
+            role="button"
+            [attr.tabindex]="canOpenWarehouse() ? 0 : null"
+            (click)="canOpenWarehouse() && openWarehouseDialog()"
+            (keydown.enter)="canOpenWarehouse() && openWarehouseDialog()"
+            (keydown.space)="$event.preventDefault(); canOpenWarehouse() && openWarehouseDialog()">
+            <div class="info-card__icon">
+              <i class="fi fi-rr-box"></i>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">ALMACÉN</span>
+              <span class="info-card__value">{{ getWarehouseDisplayName() }}</span>
+            </div>
+            @if (canOpenWarehouse()) {
               <i class="fi fi-rr-angle-right info-card__chevron"></i>
             }
           </div>

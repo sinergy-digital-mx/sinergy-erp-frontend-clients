@@ -70,12 +70,13 @@ export const SETTINGS_PERMISSIONS = {
     delete: 'lead_groups:Delete'
   },
   
-  // Customer Groups sub-module
+  // Customer Groups sub-module (módulo customer-groups, categoría settings)
   customerGroups: {
-    view: 'customer_groups:Read',
-    create: 'customer_groups:Create',
-    update: 'customer_groups:Update',
-    delete: 'customer_groups:Delete'
+    viewMenu: 'CustomerGroup:ViewMenu',
+    view: 'CustomerGroup:Read',
+    create: 'CustomerGroup:Create',
+    update: 'CustomerGroup:Update',
+    delete: 'CustomerGroup:Delete'
   },
 
   // Exchange Rate sub-module
@@ -83,6 +84,13 @@ export const SETTINGS_PERMISSIONS = {
     viewMenu: 'exchangerate:ViewMenu',
     view: 'exchangerate:Read',
     update: 'exchangerate:Update'
+  },
+
+  // Importación de inventario (Madereria Zona Norte)
+  madereriaInventoryImport: {
+    viewMenu: 'madereria_inventory_import:ViewMenu',
+    view: 'madereria_inventory_import:Read',
+    create: 'madereria_inventory_import:Create'
   }
 } as const;
 

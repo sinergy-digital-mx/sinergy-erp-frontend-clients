@@ -37,13 +37,41 @@
             </div>
             <div class="filter-bar__field">
               <select
-                [(ngModel)]="selectedWarehouse"
-                (change)="onWarehouseChange()"
+                [ngModel]="selectedFiscalId()"
+                (ngModelChange)="onFiscalChange($event)"
+                class="filter-bar__select"
+                aria-label="Filtrar por razón social"
+              >
+                <option value="">Todas las razones sociales</option>
+                @for (fiscal of locations(); track fiscal.id) {
+                  <option [value]="fiscal.id">{{ fiscalOptionLabel(fiscal) }}</option>
+                }
+              </select>
+            </div>
+            <div class="filter-bar__field">
+              <select
+                [ngModel]="selectedBranchId()"
+                (ngModelChange)="onBranchChange($event)"
+                [disabled]="!selectedFiscalId()"
+                class="filter-bar__select"
+                aria-label="Filtrar por sucursal"
+              >
+                <option value="">Todas las sucursales</option>
+                @for (branch of branchOptions(); track branch.id) {
+                  <option [value]="branch.id">{{ branch.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="filter-bar__field">
+              <select
+                [ngModel]="selectedWarehouseId()"
+                (ngModelChange)="onWarehouseChange($event)"
+                [disabled]="!selectedBranchId()"
                 class="filter-bar__select"
                 aria-label="Filtrar por almacén"
               >
                 <option value="">Todos los almacenes</option>
-                @for (warehouse of warehouses(); track warehouse.id) {
+                @for (warehouse of warehouseOptions(); track warehouse.id) {
                   <option [value]="warehouse.id">{{ warehouse.name }}</option>
                 }
               </select>
@@ -112,6 +140,7 @@
                 <tr>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sucursal</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Almacén</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UOM</th>
                   <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Disponible</th>
@@ -125,6 +154,12 @@
                   <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 text-sm text-gray-900">{{ item.product_name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-500">{{ item.product_sku }}</td>
+                    <td class="px-4 py-3">
+                      <div class="flex flex-col min-w-0">
+                        <span class="dt-cell-primary truncate">{{ locationLabel(item.sucursal) }}</span>
+                        <span class="dt-cell-subtle truncate">{{ locationLabel(item.razon_social) }}</span>
+                      </div>
+                    </td>
                     <td class="px-4 py-3 text-sm text-gray-500">{{ item.warehouse_name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-500">{{ item.uom_name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ formatNumber(item.total_available_quantity) }}</td>
@@ -246,6 +281,12 @@
     <div class="flex flex-col">
       <span class="dt-cell-primary truncate">{{ item.product_name || 'N/A' }}</span>
       <span class="dt-cell-subtle">{{ item.product_sku || '' }}</span>
+    </div>
+  </td>
+  <td class="px-2 py-2 w-[190px]">
+    <div class="flex flex-col min-w-0" [title]="locationLabel(item.sucursal) + ' · ' + locationLabel(item.razon_social)">
+      <span class="dt-cell-primary truncate">{{ locationLabel(item.sucursal) }}</span>
+      <span class="dt-cell-subtle truncate">{{ locationLabel(item.razon_social) }}</span>
     </div>
   </td>
   <td class="px-2 py-2 w-[130px]">

@@ -76,6 +76,18 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
         path: 'global-discounts',
         loadChildren: () =>
           import('../global-discounts/global-discounts.routes').then((m) => m.GLOBAL_DISCOUNTS_ROUTES),
+      },
+      {
+        path: 'customer-groups',
+        loadChildren: () =>
+          import('../customer-groups/customer-groups.routes').then((m) => m.CUSTOMER_GROUPS_ROUTES),
+      },
+      {
+        path: 'madereria-inventory-import',
+        loadChildren: () =>
+          import('../madereria-inventory-import/madereria-inventory-import.routes').then(
+            (m) => m.MADERERIA_INVENTORY_IMPORT_ROUTES
+          ),
       }
     ]
   }

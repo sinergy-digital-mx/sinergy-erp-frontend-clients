@@ -3,6 +3,7 @@ export interface Warehouse {
   tenant_id: string;
   name: string;
   code: string;
+  prefix?: string | null;
   description?: string;
   street?: string;
   city?: string;
@@ -22,6 +23,7 @@ export interface Warehouse {
 export interface CreateWarehouseDto {
   name: string;
   code?: string;
+  prefix?: string | null;
   description?: string;
   street?: string;
   city?: string;
@@ -52,6 +54,7 @@ export interface WarehouseQueryParams {
   limit?: number;
   search?: string;
   status?: 'active' | 'inactive';
+  billing_branch_id?: string;
   state?: string;
   country?: string;
   code?: string;

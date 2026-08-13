@@ -64,6 +64,7 @@
             <div class="info-card__content">
               <span class="info-card__label">ALMACÉN</span>
               <span class="info-card__value">{{ batch()?.warehouse_name || 'N/A' }}</span>
+              <span class="info-card__sub">{{ batch()?.razon_social || '—' }} · {{ batch()?.sucursal || '—' }}</span>
             </div>
             <lucide-icon [img]="ArrowRight" class="info-card__arrow w-4 h-4"></lucide-icon>
           </div>

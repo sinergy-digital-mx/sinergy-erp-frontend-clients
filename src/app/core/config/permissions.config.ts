@@ -32,6 +32,7 @@ export {
   SHIPPING_PERMISSIONS,
 } from '../../features/logistics/config/permissions.config';
 export { WAREHOUSE_CONTROL_PERMISSIONS } from '../../features/warehouse-control/config/permissions.config';
+export { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../features/madereria-inventory-import/config/permissions.config';
 
 /**
  * Grouped permissions for easier access
@@ -58,6 +59,7 @@ import {
   TRUCK_PERMISSIONS,
 } from '../../features/logistics/config/permissions.config';
 import { WAREHOUSE_CONTROL_PERMISSIONS } from '../../features/warehouse-control/config/permissions.config';
+import { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../features/madereria-inventory-import/config/permissions.config';
 
 export const PERMISSIONS = {
   contracts: CONTRACT_PERMISSIONS,
@@ -80,4 +82,5 @@ export const PERMISSIONS = {
   trucks: TRUCK_PERMISSIONS,
   shippings: SHIPPING_PERMISSIONS,
   warehouseControl: WAREHOUSE_CONTROL_PERMISSIONS,
+  madereriaInventoryImport: MADERERIA_INVENTORY_IMPORT_PERMISSIONS,
 } as const;

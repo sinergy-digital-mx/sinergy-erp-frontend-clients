@@ -1,0 +1,188 @@
+<div class="settings-list-page madereria-import px-4 pb-6">
+  <div class="mb-5">
+    <h2 class="text-2xl font-semibold text-gray-800">Importación de inventario</h2>
+    <p class="text-sm text-gray-600 mt-1">
+      Carga el Excel de inventario (CODIGO, DESCRIPCION, ALTERNO, PRECIO1, COSTO PROM, CANTIDAD).
+      Si el producto no existe se crea; el precio solo se agrega cuando no hay uno activo;
+      el costo queda en PROVEEDOR IMPORTACION; cantidad mayor a 0 genera lote en el almacén elegido.
+    </p>
+  </div>
+
+  @if (!canImport) {
+    <div class="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800 mb-4">
+      Puedes consultar esta pantalla, pero no tienes permiso para importar.
+    </div>
+  }
+
+  <section class="bg-white rounded-lg border border-gray-200 p-4 mb-5">
+    <form [formGroup]="form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="md:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="madereria-fiscal">
+          Razón social
+        </label>
+        <select
+          id="madereria-fiscal"
+          class="madereria-import__select"
+          formControlName="fiscal_configuration_id">
+          <option value="">
+            {{ loadingFiscal ? 'Cargando...' : 'Selecciona una razón social' }}
+          </option>
+          @for (config of fiscalConfigurations; track config.id) {
+            <option [value]="config.id">{{ fiscalLabel(config) }}</option>
+          }
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="madereria-branch">
+          Sucursal
+        </label>
+        <select
+          id="madereria-branch"
+          class="madereria-import__select"
+          formControlName="billing_branch_id">
+          <option value="">
+            {{ loadingBranches ? 'Cargando...' : 'Selecciona una sucursal' }}
+          </option>
+          @for (branch of branches; track branch.id) {
+            <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+          }
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="madereria-warehouse">
+          Almacén
+        </label>
+        <select
+          id="madereria-warehouse"
+          class="madereria-import__select"
+          formControlName="warehouse_id">
+          <option value="">
+            {{ loadingWarehouses ? 'Cargando...' : 'Selecciona un almacén' }}
+          </option>
+          @for (warehouse of warehouses; track warehouse.id) {
+            <option [value]="warehouse.id">{{ warehouse.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="madereria-file">
+          Archivo
+        </label>
+        <div class="madereria-import__file-row">
+          <input
+            #fileInput
+            id="madereria-file"
+            type="file"
+            accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            (change)="onFileSelected($event)"
+            [disabled]="!canImport || importing" />
+          @if (selectedFile) {
+            <span class="text-sm text-gray-700 truncate">{{ selectedFile.name }}</span>
+            <button
+              type="button"
+              class="text-sm text-indigo-600 hover:text-indigo-800"
+              (click)="clearFile(fileInput)"
+              [disabled]="importing">
+              Quitar
+            </button>
+          }
+        </div>
+        @if (fileError) {
+          <p class="mt-1 text-sm text-red-600">{{ fileError }}</p>
+        } @else {
+          <p class="mt-1 text-xs text-gray-500">Formatos permitidos: .xls, .xlsx</p>
+        }
+      </div>
+
+      <div class="md:col-span-2">
+        <app-button
+          text="Importar"
+          type="button"
+          variant="primary"
+          [fullWidth]="false"
+          [loading]="importing && !job"
+          [disabled]="!canSubmit"
+          (clicked)="submit()">
+        </app-button>
+      </div>
+
+      @if (importing && job) {
+        <div class="md:col-span-2 madereria-import__progress">
+          <div class="flex items-center justify-between gap-3 mb-2">
+            <p class="text-sm font-medium text-gray-800">{{ progressLabel }}</p>
+            <p class="text-sm tabular-nums text-gray-600">{{ progressPercent }}%</p>
+          </div>
+          <div class="madereria-import__bar" role="progressbar" [attr.aria-valuenow]="progressPercent" aria-valuemin="0" aria-valuemax="100">
+            <div class="madereria-import__bar-fill" [style.width.%]="progressPercent"></div>
+          </div>
+          @if (job.current_sku) {
+            <p class="mt-2 text-xs text-gray-500">SKU actual: {{ job.current_sku }}</p>
+          }
+        </div>
+      }
+    </form>
+  </section>
+
+  @if (result) {
+    <section class="bg-white rounded-lg border border-gray-200 p-4">
+      <h3 class="text-lg font-semibold text-gray-800 mb-1">Resumen</h3>
+      <p class="text-sm text-gray-600 mb-4">
+        {{ result.warehouse_name }} · {{ result.file_rows }} filas en el archivo
+      </p>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div class="madereria-import__stat">
+          <p class="madereria-import__stat-label">Lotes</p>
+          <p class="madereria-import__stat-value">{{ result.batches_created }}</p>
+        </div>
+        <div class="madereria-import__stat">
+          <p class="madereria-import__stat-label">Precios nuevos</p>
+          <p class="madereria-import__stat-value">{{ result.prices_created }}</p>
+        </div>
+        <div class="madereria-import__stat">
+          <p class="madereria-import__stat-label">Costos nuevos</p>
+          <p class="madereria-import__stat-value">{{ result.costs_created }}</p>
+        </div>
+        <div class="madereria-import__stat">
+          <p class="madereria-import__stat-label">Costos actualizados</p>
+          <p class="madereria-import__stat-value">{{ result.costs_updated }}</p>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <h4 class="text-sm font-semibold text-gray-800 mb-2">
+          Productos que no estaban en catálogo
+          @if (result.products_created?.length) {
+            ({{ result.products_created.length }})
+          }
+        </h4>
+        @if (!result.products_created?.length) {
+          <p class="text-sm text-gray-500">Ninguno. Todos los SKU ya existían.</p>
+        } @else {
+          <ul class="madereria-import__list">
+            @for (product of result.products_created; track product.sku + '-' + product.row_number) {
+              <li>
+                <span class="font-medium text-gray-900">{{ product.sku }}</span>
+                <span class="text-gray-600"> — {{ product.name }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      @if (errorMessages().length) {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-3">
+          <h4 class="text-sm font-semibold text-red-800 mb-2">Errores</h4>
+          <ul class="madereria-import__list madereria-import__list--errors">
+            @for (message of errorMessages(); track $index) {
+              <li>{{ message }}</li>
+            }
+          </ul>
+        </div>
+      }
+    </section>
+  }
+</div>

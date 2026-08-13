@@ -1,6 +1,11 @@
 <div class="fiscal-modal">
   <div class="fiscal-modal__header">
-    <h2>{{ isNew ? 'Nueva Razón Social' : 'Editar Razón Social' }}</h2>
+    <div class="fiscal-modal__title-block">
+      <h2>{{ isNew ? 'Nueva Razón Social' : 'Editar Razón Social' }}</h2>
+      @if (!isNew && editedRazonSocial) {
+        <p class="fiscal-modal__subtitle">{{ editedRazonSocial }}</p>
+      }
+    </div>
     <lucide-icon
       [img]="X"
       class="close cursor-pointer"
@@ -40,6 +45,22 @@
               placeholder="Ej: GMM140115PIA">
             <p *ngIf="form.get('rfc')?.invalid && form.get('rfc')?.touched" class="text-xs text-red-600 mt-1">
               RFC inválido (formato: 3-4 letras + 6 dígitos + 3 alfanuméricos)
+            </p>
+          </div>
+
+          <!-- Prefijo -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Prefijo</label>
+            <input
+              type="text"
+              formControlName="prefix"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 uppercase"
+              [maxlength]="prefixMaxLength"
+              placeholder="Ej. MZN"
+              (blur)="onPrefixBlur()">
+            <p class="csd-field-hint">Se usa en el folio de lote al recibir mercancía.</p>
+            <p *ngIf="form.get('prefix')?.invalid && form.get('prefix')?.touched" class="text-xs text-red-600 mt-1">
+              {{ prefixErrorMessage }}
             </p>
           </div>
 
@@ -276,7 +297,7 @@
         <table class="data-table branches-table">
           <thead>
             <tr>
-              <th>CÓDIGO</th>
+              <th>NOMBRE</th>
               <th>DIRECCIÓN</th>
               <th>CIUDAD</th>
               <th>ESTADO</th>
@@ -287,7 +308,7 @@
           </thead>
           <tbody>
             <tr *ngFor="let branch of branches">
-              <td>{{ branch.code }}</td>
+              <td>{{ branch.name ?? branch.code }}</td>
               <td>{{ branch.address }}</td>
               <td>{{ branch.city }}</td>
               <td>{{ branch.state }}</td>

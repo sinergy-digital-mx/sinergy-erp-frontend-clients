@@ -100,7 +100,7 @@
               </div>
               <div>
                 <span class="text-xs text-gray-500 block">Grupo</span>
-                <span class="text-[#64748b]">{{ item.group?.name || '—' }}</span>
+                <span class="text-[#64748b]">{{ item.group?.name ?? '—' }}</span>
               </div>
               <div class="col-span-2">
                 <span class="text-xs text-gray-500 block">Creado</span>
@@ -160,7 +160,7 @@
       [countryPhoneCode]="item.phone_code">
     </app-phone>
   </td>
-  <td class="text-[#64748b] text-sm">{{ item.group?.name || '—' }}</td>
+  <td class="text-[#64748b] text-sm">{{ item.group?.name ?? '—' }}</td>
   <td>
     <span class="status-pill" [ngClass]="getStatusPillClass(item)">
       <span class="status-pill__dot"></span>

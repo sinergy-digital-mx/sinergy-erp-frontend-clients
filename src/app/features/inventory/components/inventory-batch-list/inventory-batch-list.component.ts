@@ -6,9 +6,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { InventoryBatchService, BatchFilters } from '../../services/inventory-batch.service';
 import { InventoryService } from '../../services/inventory.service';
 import { InventoryBatch } from '../../models/inventory-batch.model';
-import { InventorySummaryItem } from '../../models/inventory-item.model';
-import { WarehouseService } from '../../../settings/services/warehouse.service';
-import { Warehouse } from '../../../settings/models/warehouse.model';
+import { InventorySummaryFilters, InventorySummaryItem } from '../../models/inventory-item.model';
+import {
+  InventoryLocationFilters,
+  InventoryLocationFiscal,
+} from '../../models/inventory-location.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -26,6 +28,7 @@ import {
   InventoryExportDialogResult,
 } from '../inventory-export-dialog/inventory-export-dialog.component';
 import { ToastService } from '../../../../core/services/toast.service';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 
 @Component({
   selector: 'app-inventory-batch-list',
@@ -46,8 +49,20 @@ export class InventoryBatchListComponent implements OnInit {
 
   // Filters
   searchTerm = signal<string>('');
-  selectedWarehouse = signal<string>('');
-  warehouses = signal<Warehouse[]>([]);
+  selectedFiscalId = signal<string>('');
+  selectedBranchId = signal<string>('');
+  selectedWarehouseId = signal<string>('');
+  locations = signal<InventoryLocationFiscal[]>([]);
+
+  selectedFiscal = computed(() =>
+    this.locations().find((fiscal) => fiscal.id === this.selectedFiscalId()) ?? null
+  );
+
+  branchOptions = computed(() => this.selectedFiscal()?.branches ?? []);
+
+  warehouseOptions = computed(() =>
+    this.branchOptions().find((branch) => branch.id === this.selectedBranchId())?.warehouses ?? []
+  );
 
   // State for batches (Por Lotes tab)
   private batchesData = signal<InventoryBatch[]>([]);
@@ -65,8 +80,9 @@ export class InventoryBatchListComponent implements OnInit {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Lote', prop: 'batch_number', sortable: true, canAutoResize: false, width: 160 },
+      { name: 'Lote', prop: 'batch_number', sortable: true, canAutoResize: false, width: 200 },
       { name: 'Producto', prop: 'product_name', sortable: true, canAutoResize: false, width: 180 },
+      { name: 'Sucursal', prop: 'sucursal', sortable: false, canAutoResize: false, width: 190 },
       { name: 'Almacén', prop: 'warehouse_name', sortable: false, canAutoResize: false, width: 130 },
       { name: 'Cantidad', prop: 'quantity', sortable: true, canAutoResize: false, width: 100 },
       { name: 'Orden de Compra', prop: 'purchase_order_id', sortable: false, canAutoResize: false, width: 140 },
@@ -92,20 +108,9 @@ export class InventoryBatchListComponent implements OnInit {
     }, 0)
   );
 
-  warehouseTotals = computed(() => {
-    const totals: { [key: string]: number } = {};
-    this.warehouses().forEach(w => { totals[w.id] = this.getWarehouseTotalQuantity(w.id); });
-    return totals;
-  });
-
-  warehousesWithData = computed(() =>
-    this.warehouses().filter(w => this.warehouseTotals()[w.id] > 0)
-  );
-
   constructor(
     private inventoryBatchService: InventoryBatchService,
     private inventoryService: InventoryService,
-    private warehouseService: WarehouseService,
     private dialog: MatDialog,
     private authService: AuthService,
     private toast: ToastService
@@ -120,7 +125,7 @@ export class InventoryBatchListComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.loadWarehouses();
+    this.loadLocations();
     this.loadBatches();
   }
 
@@ -135,12 +140,10 @@ export class InventoryBatchListComponent implements OnInit {
     this.summaryLoadingState.set(true);
 
     const { page, limit } = this.summaryPaginationState();
-    const filters: any = {
-      page,
-      limit,
-      warehouse_id: this.selectedWarehouse() || undefined,
+    const filters: InventorySummaryFilters = {
       search: this.searchTerm() || undefined,
-      only_available: true
+      only_available: true,
+      ...this.locationFilters(),
     };
 
     this.inventoryService.getSummary(filters, { page, limit }).subscribe({
@@ -153,16 +156,18 @@ export class InventoryBatchListComponent implements OnInit {
         this.summaryLoadingState.set(false);
       },
       error: (err) => {
-        console.error('Error loading summary:', err);
         this.summaryLoadingState.set(false);
+        this.toast.error(resolveHttpErrorMessage(err, 'No se pudo cargar el inventario totalizado'));
       }
     });
   }
 
-  loadWarehouses(): void {
-    this.warehouseService.getWarehouses().subscribe({
-      next: (response) => this.warehouses.set(response.data || []),
-      error: (err) => console.error('Error loading warehouses:', err)
+  loadLocations(): void {
+    this.inventoryService.getLocations().subscribe({
+      next: (locations) => this.locations.set(locations),
+      error: (err) => {
+        this.toast.error(resolveHttpErrorMessage(err, 'No se pudo cargar el catálogo de ubicaciones'));
+      }
     });
   }
 
@@ -171,11 +176,12 @@ export class InventoryBatchListComponent implements OnInit {
     this.table_config.update(c => ({ ...c, loading: true }));
 
     const { page, limit } = this.paginationState();
+    const location = this.locationFilters();
     const filters: BatchFilters = {
       page,
       limit,
-      warehouse_id: this.selectedWarehouse() || undefined,
-      search: this.searchTerm() || undefined
+      search: this.searchTerm() || undefined,
+      ...location,
     };
 
     this.inventoryBatchService.getBatches(filters).subscribe({
@@ -199,9 +205,9 @@ export class InventoryBatchListComponent implements OnInit {
         this.loadingState.set(false);
       },
       error: (err) => {
-        console.error('Error loading batches:', err);
         this.loadingState.set(false);
         this.table_config.update(c => ({ ...c, loading: false }));
+        this.toast.error(resolveHttpErrorMessage(err, 'No se pudieron cargar los lotes'));
       }
     });
   }
@@ -247,33 +253,48 @@ export class InventoryBatchListComponent implements OnInit {
   }
 
   onSearch(): void {
-    this.paginationState.set({ ...this.paginationState(), page: 1 });
-    this.summaryPaginationState.set({ ...this.summaryPaginationState(), page: 1 });
-    if (this.activeTabIndex() === 0) {
-      this.loadBatches();
-    } else {
-      this.loadSummary();
-    }
+    this.reloadInventory();
   }
 
-  onWarehouseChange(): void {
-    this.paginationState.set({ ...this.paginationState(), page: 1 });
-    this.summaryPaginationState.set({ ...this.summaryPaginationState(), page: 1 });
-    if (this.activeTabIndex() === 0) {
-      this.loadBatches();
-    } else {
-      this.loadSummary();
-    }
+  onFiscalChange(id: string): void {
+    this.selectedFiscalId.set(id || '');
+    this.selectedBranchId.set('');
+    this.selectedWarehouseId.set('');
+    this.reloadInventory();
+  }
+
+  onBranchChange(id: string): void {
+    this.selectedBranchId.set(id || '');
+    this.selectedWarehouseId.set('');
+    this.reloadInventory();
+  }
+
+  onWarehouseChange(id: string): void {
+    this.selectedWarehouseId.set(id || '');
+    this.reloadInventory();
   }
 
   get hasActiveFilters(): boolean {
-    return !!(this.searchTerm() || this.selectedWarehouse());
+    return !!(this.searchTerm() || this.selectedFiscalId() || this.selectedBranchId() || this.selectedWarehouseId());
   }
 
   clearFilters(): void {
     this.searchTerm.set('');
-    this.selectedWarehouse.set('');
-    this.onSearch();
+    this.selectedFiscalId.set('');
+    this.selectedBranchId.set('');
+    this.selectedWarehouseId.set('');
+    this.reloadInventory();
+  }
+
+  locationLabel(value?: string | null): string {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : '—';
+  }
+
+  fiscalOptionLabel(fiscal: InventoryLocationFiscal): string {
+    const name = fiscal.razon_social?.trim() || 'Sin razón social';
+    const rfc = fiscal.rfc?.trim();
+    return rfc ? `${name} (${rfc})` : name;
   }
 
   onPageChange(event: IPaginationEvent): void {
@@ -290,15 +311,6 @@ export class InventoryBatchListComponent implements OnInit {
     const d = new Date(dateString);
     const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-  }
-
-  getWarehouseTotalQuantity(warehouseId: string): number {
-    return this.batchesData()
-      .filter(b => b.warehouse_id === warehouseId)
-      .reduce((sum, b) => {
-        const qty = typeof b.quantity === 'string' ? parseFloat(b.quantity) : b.quantity;
-        return sum + (isNaN(qty) ? 0 : qty);
-      }, 0);
   }
 
   // Summary tab methods
@@ -370,6 +382,33 @@ export class InventoryBatchListComponent implements OnInit {
     return Math.ceil(this.summaryTotal / this.summaryLimit);
   }
 
+  /**
+   * Recarga el listado activo desde página 1.
+   */
+  private reloadInventory(): void {
+    this.paginationState.set({ ...this.paginationState(), page: 1 });
+    this.summaryPaginationState.set({ ...this.summaryPaginationState(), page: 1 });
+    if (this.activeTabIndex() === 0) {
+      this.loadBatches();
+    } else {
+      this.loadSummary();
+    }
+  }
+
+  /**
+   * "Todas" = no enviar el param. Nunca sucursal sin razón ni almacén sin sucursal.
+   */
+  private locationFilters(): InventoryLocationFilters {
+    const fiscalId = this.selectedFiscalId() || undefined;
+    const branchId = fiscalId ? (this.selectedBranchId() || undefined) : undefined;
+    const warehouseId = branchId ? (this.selectedWarehouseId() || undefined) : undefined;
+    return {
+      fiscal_configuration_id: fiscalId,
+      billing_branch_id: branchId,
+      warehouse_id: warehouseId,
+    };
+  }
+
   openExportModal(): void {
     const defaultType = this.activeTabIndex() === 1 ? 'summary' : 'batches';
 
@@ -381,7 +420,7 @@ export class InventoryBatchListComponent implements OnInit {
         data: {
           defaultType,
           search: this.searchTerm() || undefined,
-          warehouse_id: this.selectedWarehouse() || undefined,
+          ...this.locationFilters(),
           only_available: defaultType === 'summary' ? true : undefined,
         },
       })

@@ -178,6 +178,16 @@ export const routes: Routes = [
         redirectTo: 'settings/global-discounts',
         pathMatch: 'full',
       },
+      {
+        path: 'customer-groups',
+        redirectTo: 'settings/customer-groups',
+        pathMatch: 'full',
+      },
+      {
+        path: 'madereria-inventory-import',
+        redirectTo: 'settings/madereria-inventory-import',
+        pathMatch: 'full',
+      },
 
       {
         path: 'divino-dashboard',
