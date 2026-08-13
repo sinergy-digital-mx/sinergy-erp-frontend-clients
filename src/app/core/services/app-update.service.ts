@@ -87,10 +87,14 @@ export class AppUpdateService {
     const dialogRef = this.dialog.open(AppUpdateDialogComponent, {
       data: versionInfo,
       disableClose: true,
-      panelClass: 'app-update-dialog-panel',
-      backdropClass: 'app-update-dialog-backdrop',
-      width: '400px',
-      maxWidth: '92vw'
+      autoFocus: false,
+      restoreFocus: false,
+      panelClass: 'px-upd-panel',
+      backdropClass: 'px-upd-backdrop',
+      width: '420px',
+      maxWidth: '92vw',
+      enterAnimationDuration: '0ms',
+      exitAnimationDuration: '160ms'
     });
 
     dialogRef.afterClosed().subscribe((reload) => {

@@ -258,23 +258,6 @@
   }
 }
 
-.lot-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #047857;
-  background-color: #ecfdf5;
-  border-radius: 9999px;
-  white-space: nowrap;
-
-  &--more {
-    color: #4338ca;
-    background-color: #eef2ff;
-  }
-}
-
 .customers-action-btn {
   display: inline-flex;
   align-items: center;

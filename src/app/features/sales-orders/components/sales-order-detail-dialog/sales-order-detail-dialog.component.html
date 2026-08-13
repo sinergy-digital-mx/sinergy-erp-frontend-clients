@@ -254,36 +254,34 @@
             </div>
           </div>
 
-          <div class="totals-card">
-            <div class="totals-row">
-              <span class="totals-label">Subtotal</span>
-              <span class="totals-value">{{ getDisplayedSubtotal() }}</span>
+          <div class="totals-row">
+            <span class="totals-label">Subtotal</span>
+            <span class="totals-value">{{ getDisplayedSubtotal() }}</span>
+          </div>
+          @if (hasLineDiscount()) {
+            <div class="totals-row totals-row--discount">
+              <span class="totals-label">Desc. por producto</span>
+              <span class="totals-value">{{ getDisplayedLineDiscount() }}</span>
             </div>
-            @if (hasLineDiscount()) {
-              <div class="totals-row totals-row--discount">
-                <span class="totals-label">Desc. por producto</span>
-                <span class="totals-value">{{ getDisplayedLineDiscount() }}</span>
-              </div>
-            }
-            @if (hasGlobalDiscount()) {
-              <div class="totals-row totals-row--discount">
-                <span class="totals-label">{{ globalDiscountLabel() }}</span>
-                <span class="totals-value">{{ getDisplayedGlobalDiscount() }}</span>
-              </div>
-            }
-            <div class="totals-row">
-              <span class="totals-label">IVA</span>
-              <span class="totals-value">{{ getDisplayedIva() }}</span>
+          }
+          @if (hasGlobalDiscount()) {
+            <div class="totals-row totals-row--discount">
+              <span class="totals-label">{{ globalDiscountLabel() }}</span>
+              <span class="totals-value">{{ getDisplayedGlobalDiscount() }}</span>
             </div>
-            <div class="totals-row">
-              <span class="totals-label">IEPS</span>
-              <span class="totals-value">{{ getDisplayedIeps() }}</span>
-            </div>
-            <div class="totals-divider"></div>
-            <div class="totals-row totals-row-total">
-              <span class="totals-label-total">Total</span>
-              <span class="totals-value-total" [ngClass]="getTotalColor()">{{ getDisplayedTotal() }}</span>
-            </div>
+          }
+          <div class="totals-row">
+            <span class="totals-label">IVA</span>
+            <span class="totals-value">{{ getDisplayedIva() }}</span>
+          </div>
+          <div class="totals-row">
+            <span class="totals-label">IEPS</span>
+            <span class="totals-value">{{ getDisplayedIeps() }}</span>
+          </div>
+          <div class="totals-divider"></div>
+          <div class="totals-row totals-row-total">
+            <span class="totals-label-total">Total</span>
+            <span class="totals-value-total" [ngClass]="getTotalColor()">{{ getDisplayedTotal() }}</span>
           </div>
         </div>
 

@@ -313,31 +313,31 @@ export class PurchaseOrderListComponent implements OnInit {
    * Get status badge class
    */
   getStatusClass(status: OrderStatus): string {
-    const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+    const base = 'dt-status-pill';
     switch (status) {
       case 'Creada':
-        return `${base} bg-blue-50 text-blue-700`;
+        return `${base} dt-status-pill--info`;
       case 'Recibida':
-        return `${base} bg-emerald-50 text-emerald-700`;
+        return `${base} dt-status-pill--success`;
       case 'Cancelada':
-        return `${base} bg-red-50 text-red-700`;
+        return `${base} dt-status-pill--danger`;
       default:
-        return `${base} bg-gray-100 text-gray-600`;
+        return `${base} dt-status-pill--neutral`;
     }
   }
 
   getPaymentStatusClass(paymentStatus: PaymentStatus | string): string {
-    const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+    const base = 'dt-status-pill';
     if (this.isPaymentPaid(paymentStatus)) {
-      return `${base} bg-emerald-50 text-emerald-700`;
+      return `${base} dt-status-pill--success`;
     }
     switch (paymentStatus) {
       case 'Parcial':
-        return `${base} bg-amber-50 text-amber-700`;
+        return `${base} dt-status-pill--warning`;
       case 'Pendiente':
-        return `${base} bg-red-50 text-red-700`;
+        return `${base} dt-status-pill--danger`;
       default:
-        return `${base} bg-gray-100 text-gray-600`;
+        return `${base} dt-status-pill--neutral`;
     }
   }
 
@@ -360,12 +360,7 @@ export class PurchaseOrderListComponent implements OnInit {
     if (!date) return '';
     const d = new Date(date);
     const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const month = months[d.getMonth()];
-    const day = d.getDate();
-    const hours = d.getHours() % 12 || 12;
-    const minutes = d.getMinutes().toString().padStart(2, '0');
-    const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
-    return `${month} ${day} ${hours}:${minutes} ${ampm}`;
+    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
   }
 
   /**

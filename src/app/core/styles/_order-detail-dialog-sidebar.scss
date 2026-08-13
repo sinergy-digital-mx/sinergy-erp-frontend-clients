@@ -13,18 +13,18 @@
   .info-cards-group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 8px;
   }
 
   .info-card {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem 1rem;
-    border-radius: 12px;
-    background: #fff;
-    border: 1px solid #e8ecf0;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    gap: 10px;
+    padding: 12px 14px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px #0000000f;
+    transition: box-shadow 0.2s;
 
     &--blue .info-card__icon {
       background: #6366f1;
@@ -59,11 +59,9 @@
 
     &--clickable {
       cursor: pointer;
-      transition: box-shadow 0.15s ease, border-color 0.15s ease;
 
       &:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
 
       &:focus-visible {
@@ -75,43 +73,49 @@
     &__chevron {
       margin-left: auto;
       color: #cbd5e1;
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       flex-shrink: 0;
     }
 
     &__icon {
-      width: 2.375rem;
-      height: 2.375rem;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 10px;
-      font-size: 1rem;
+      border-radius: 8px;
       flex-shrink: 0;
+
+      i {
+        font-size: 14px;
+        line-height: 1;
+      }
     }
 
     &__content {
       display: flex;
       flex-direction: column;
-      gap: 0.2rem;
       min-width: 0;
       flex: 1;
     }
 
     &__label {
-      font-size: 0.625rem;
-      font-weight: 700;
-      color: #94a3b8;
-      letter-spacing: 0.06em;
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      color: #9ca3af;
       text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
       line-height: 1.2;
     }
 
     &__value {
-      font-size: 0.8125rem;
-      font-weight: 700;
-      color: #0f172a;
-      line-height: 1.35;
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.3;
       word-break: break-word;
     }
 
@@ -127,7 +131,7 @@
   .section-card {
     background: #fff;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 0.875rem 1rem;
 
     &--notes .section-card__head {
@@ -158,7 +162,12 @@
     &--totals {
       display: flex;
       flex-direction: column;
-      gap: 0.625rem;
+      gap: 0.5rem;
+
+      .section-header {
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e5e7eb;
+      }
     }
 
     &--notes .section-title {
@@ -209,18 +218,20 @@
 
   .payment-pill {
     display: inline-flex;
-    padding: 0.2rem 0.55rem;
-    border-radius: 9999px;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 0 0.75rem;
+    border-radius: 6px;
     font-size: 0.6875rem;
-    font-weight: 700;
+    font-weight: 500;
     background: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
+    color: #991b1b;
+    box-sizing: border-box;
 
     &--paid {
-      background: #dcfce7;
-      color: #15803d;
-      border-color: #bbf7d0;
+      background: #d1fae5;
+      color: #065f46;
     }
   }
 
@@ -269,15 +280,7 @@
     }
   }
 
-  .totals-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 0.625rem 0.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-
+  .section-card--totals {
     .totals-row {
       display: flex;
       justify-content: space-between;
@@ -307,7 +310,7 @@
 
     .totals-divider {
       height: 1px;
-      background: #e2e8f0;
+      background: #e5e7eb;
       margin: 0.15rem 0;
     }
 

@@ -149,24 +149,22 @@
             </div>
           </div>
 
-          <div class="totals-card">
-            <div class="totals-row">
-              <span class="totals-label">Subtotal</span>
-              <span class="totals-value">{{ getSubtotal() }}</span>
-            </div>
-            <div class="totals-row">
-              <span class="totals-label">IVA</span>
-              <span class="totals-value">{{ getIVA() }}</span>
-            </div>
-            <div class="totals-row">
-              <span class="totals-label">IEPS</span>
-              <span class="totals-value">{{ getIEPS() }}</span>
-            </div>
-            <div class="totals-divider"></div>
-            <div class="totals-row totals-row-total">
-              <span class="totals-label-total">Total</span>
-              <span class="totals-value-total" [ngClass]="getTotalColor()">{{ getTotal() }}</span>
-            </div>
+          <div class="totals-row">
+            <span class="totals-label">Subtotal</span>
+            <span class="totals-value">{{ getSubtotal() }}</span>
+          </div>
+          <div class="totals-row">
+            <span class="totals-label">IVA</span>
+            <span class="totals-value">{{ getIVA() }}</span>
+          </div>
+          <div class="totals-row">
+            <span class="totals-label">IEPS</span>
+            <span class="totals-value">{{ getIEPS() }}</span>
+          </div>
+          <div class="totals-divider"></div>
+          <div class="totals-row totals-row-total">
+            <span class="totals-label-total">Total</span>
+            <span class="totals-value-total" [ngClass]="getTotalColor()">{{ getTotal() }}</span>
           </div>
         </div>
 

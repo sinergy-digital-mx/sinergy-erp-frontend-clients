@@ -12,7 +12,7 @@
   </div>
 
   @if (summary() && !summaryLoading()) {
-    <div class="summary-grid mb-6">
+    <div class="summary-grid">
       <div class="summary-card">
         <span class="summary-value">{{ summary()!.total_activities }}</span>
         <span class="summary-label">Total</span>
@@ -40,7 +40,7 @@
     </div>
   }
 
-  <div class="filters-row mb-4">
+  <div class="filters-row">
     <select
       class="filter-select"
       [value]="selectedType()"

@@ -102,19 +102,6 @@
                 <span class="text-xs text-gray-500 block">Grupo</span>
                 <span class="text-[#64748b]">{{ item.group?.name || '—' }}</span>
               </div>
-              <div>
-                <span class="text-xs text-gray-500 block">Lotes</span>
-                @if (item.contracts && item.contracts.length > 0) {
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="lot-badge">{{ item.contracts[0].property.code }}</span>
-                    @if (item.contracts.length > 1) {
-                      <span class="lot-badge lot-badge--more">+{{ item.contracts.length - 1 }}</span>
-                    }
-                  </div>
-                } @else {
-                  <span class="text-gray-400">—</span>
-                }
-              </div>
               <div class="col-span-2">
                 <span class="text-xs text-gray-500 block">Creado</span>
                 <span class="text-[#94a3b8]">{{ item.created_at | date:'mediumDate' }}</span>
@@ -174,18 +161,6 @@
     </app-phone>
   </td>
   <td class="text-[#64748b] text-sm">{{ item.group?.name || '—' }}</td>
-  <td>
-    @if (item.contracts && item.contracts.length > 0) {
-      <div class="flex items-center gap-1.5">
-        <span class="lot-badge">{{ item.contracts[0].property.code }}</span>
-        @if (item.contracts.length > 1) {
-          <span class="lot-badge lot-badge--more">+{{ item.contracts.length - 1 }}</span>
-        }
-      </div>
-    } @else {
-      <span class="text-gray-400">—</span>
-    }
-  </td>
   <td>
     <span class="status-pill" [ngClass]="getStatusPillClass(item)">
       <span class="status-pill__dot"></span>

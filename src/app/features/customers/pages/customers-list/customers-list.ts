@@ -61,7 +61,6 @@ export class CustomersList implements OnInit, OnDestroy {
       { name: 'Cliente', prop: 'name', sortable: true, canAutoResize: true },
       { name: 'Teléfono', prop: 'phone', sortable: true, canAutoResize: true },
       { name: 'Grupo', prop: 'group_id', sortable: true, canAutoResize: true },
-      { name: 'Lotes', prop: 'contracts', sortable: false, canAutoResize: true },
       { name: 'Estatus', prop: 'status', sortable: true, canAutoResize: true },
       { name: 'Creado', prop: 'created_at', sortable: true, canAutoResize: true },
       { name: '', prop: 'actions', sortable: false, canAutoResize: false, width: 64 },
@@ -338,24 +337,6 @@ export class CustomersList implements OnInit, OnDestroy {
 
   viewDetail(row: any) {
     this.router.navigate(['/customers/detail', row.id]);
-  }
-
-  getFirstLotCode(customer: Customer): string {
-    if (!customer.contracts || customer.contracts.length === 0) {
-      return '—';
-    }
-    return customer.contracts[0].property.code;
-  }
-
-  getAdditionalLotsCount(customer: Customer): number {
-    if (!customer.contracts || customer.contracts.length <= 1) {
-      return 0;
-    }
-    return customer.contracts.length - 1;
-  }
-
-  hasMultipleLots(customer: Customer): boolean {
-    return (customer.contracts?.length || 0) > 1;
   }
 
   getStatusPillClass(customer: Customer): string {

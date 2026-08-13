@@ -1,0 +1,24 @@
+.roles-mgmt-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.roles-mgmt-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 36px;
+  min-height: 36px !important;
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+:host ::ng-deep .roles-mgmt-create-btn {
+  height: 36px;
+  min-height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}

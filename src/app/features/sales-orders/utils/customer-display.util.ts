@@ -41,6 +41,18 @@ export function resolveSalesOrderCustomerName(
   return getCustomerDisplayName(order.customer, fallback);
 }
 
+export function getSalesOrderCompanyName(order?: SalesOrder | null): string {
+  const company = order?.customer?.company_name?.trim() || '';
+  if (!company) {
+    return '';
+  }
+  const display = resolveSalesOrderCustomerName(order, '');
+  if (display && display.toLowerCase() === company.toLowerCase()) {
+    return '';
+  }
+  return company;
+}
+
 export function resolveSalesOrderCustomerId(order?: SalesOrder | null): number | string | null {
   if (!order) {
     return null;

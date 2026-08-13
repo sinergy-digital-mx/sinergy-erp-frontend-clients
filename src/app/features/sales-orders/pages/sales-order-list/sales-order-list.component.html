@@ -121,7 +121,12 @@
               <div class="text-sm text-gray-600 space-y-1">
                 <div class="sales-order-list__mobile-customer">
                   <strong>Cliente:</strong>
-                  <span [title]="getOrderCustomerName(order)">{{ getOrderCustomerName(order) }}</span>
+                  <span class="sales-orders-col-customer__stack">
+                    <span [title]="getOrderCustomerName(order)">{{ getOrderCustomerName(order) }}</span>
+                    @if (getOrderCompanyName(order)) {
+                      <span class="sales-orders-col-customer__company">{{ getOrderCompanyName(order) }}</span>
+                    }
+                  </span>
                 </div>
                 <div><strong>Almacén:</strong> {{ order.warehouse?.name || 'N/A' }}</div>
                 <div><strong>Total:</strong> {{ formatCurrency(getOrderTotal(order)) }}</div>
@@ -140,8 +145,11 @@
     <span class="dt-folio-badge dt-folio-badge--odv">{{ item.folio || item.id.substring(0, 8) }}</span>
   </td>
   <td class="sales-orders-col-customer">
-    <span class="sales-orders-col-customer__name dt-cell-muted" [title]="getOrderCustomerName(item)">
-      {{ getOrderCustomerName(item) }}
+    <span class="sales-orders-col-customer__stack" [title]="getOrderCustomerName(item)">
+      <span class="sales-orders-col-customer__name">{{ getOrderCustomerName(item) }}</span>
+      @if (getOrderCompanyName(item)) {
+        <span class="sales-orders-col-customer__company">{{ getOrderCompanyName(item) }}</span>
+      }
     </span>
   </td>
   <td class="sales-orders-col-warehouse">

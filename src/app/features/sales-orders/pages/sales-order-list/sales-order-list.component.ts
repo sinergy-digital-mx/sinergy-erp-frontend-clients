@@ -18,7 +18,7 @@ import { DatatableWrapperComponent } from '../../../../core/components/datatable
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { ToastService } from '../../../../core/services/toast.service';
-import { resolveSalesOrderCustomerName } from '../../utils/customer-display.util';
+import { getSalesOrderCompanyName, resolveSalesOrderCustomerName } from '../../utils/customer-display.util';
 import { getSalesOrderStatus, getSalesOrderTotal } from '../../utils/sales-order-display.util';
 
 @Component({
@@ -198,25 +198,25 @@ export class SalesOrderListComponent implements OnInit {
   }
 
   getStatusClass(status: string): string {
-    const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+    const base = 'dt-status-pill';
     switch (status) {
-      case 'Creada': return `${base} bg-blue-50 text-blue-700`;
-      case 'En Selección': return `${base} bg-amber-50 text-amber-800`;
-      case 'Lista para entrega': return `${base} bg-teal-50 text-teal-800`;
-      case 'Surtida': return `${base} bg-emerald-50 text-emerald-700`;
-      case 'En Camino': return `${base} bg-indigo-50 text-indigo-700`;
-      case 'Cancelada': return `${base} bg-red-50 text-red-700`;
-      default: return `${base} bg-gray-100 text-gray-600`;
+      case 'Creada': return `${base} dt-status-pill--info`;
+      case 'En Selección': return `${base} dt-status-pill--warning`;
+      case 'Lista para entrega': return `${base} dt-status-pill--sky`;
+      case 'Surtida': return `${base} dt-status-pill--success`;
+      case 'En Camino': return `${base} dt-status-pill--sky`;
+      case 'Cancelada': return `${base} dt-status-pill--danger`;
+      default: return `${base} dt-status-pill--neutral`;
     }
   }
 
   getPaymentStatusClass(status: string): string {
-    const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+    const base = 'dt-status-pill';
     switch (status) {
-      case 'Pagado': return `${base} bg-emerald-50 text-emerald-700`;
-      case 'Parcial': return `${base} bg-amber-50 text-amber-700`;
-      case 'Pendiente': return `${base} bg-red-50 text-red-700`;
-      default: return `${base} bg-gray-100 text-gray-600`;
+      case 'Pagado': return `${base} dt-status-pill--success`;
+      case 'Parcial': return `${base} dt-status-pill--warning`;
+      case 'Pendiente': return `${base} dt-status-pill--danger`;
+      default: return `${base} dt-status-pill--neutral`;
     }
   }
 
@@ -228,10 +228,7 @@ export class SalesOrderListComponent implements OnInit {
     if (!date) return '';
     const d = new Date(date);
     const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    const hours = d.getHours() % 12 || 12;
-    const minutes = d.getMinutes().toString().padStart(2, '0');
-    const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
-    return `${months[d.getMonth()]} ${d.getDate()} ${hours}:${minutes} ${ampm}`;
+    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
   }
 
   getOrderTotal(order: SalesOrder): number {
@@ -244,5 +241,9 @@ export class SalesOrderListComponent implements OnInit {
 
   getOrderCustomerName(order: SalesOrder): string {
     return resolveSalesOrderCustomerName(order);
+  }
+
+  getOrderCompanyName(order: SalesOrder): string {
+    return getSalesOrderCompanyName(order);
   }
 }

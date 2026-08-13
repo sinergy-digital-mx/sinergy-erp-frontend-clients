@@ -488,9 +488,10 @@ export class SalesOrderDetailDialogComponent {
 
   getStatusBadgeClass(): string {
     const status = this.order()?.general_status ?? this.order()?.status ?? '';
-    if (status === 'Surtida' || status === 'Lista para entrega') return 'status-badge--success';
-    if (status === 'Creada' || status === 'En Selección') return 'status-badge--info';
-    if (status === 'En Camino') return 'status-badge--invoice';
+    if (status === 'Surtida') return 'status-badge--success';
+    if (status === 'Lista para entrega' || status === 'En Camino') return 'status-badge--sky';
+    if (status === 'Creada') return 'status-badge--info';
+    if (status === 'En Selección') return 'status-badge--warning';
     if (status === 'Cancelada') return 'status-badge--danger';
     return 'status-badge--neutral';
   }

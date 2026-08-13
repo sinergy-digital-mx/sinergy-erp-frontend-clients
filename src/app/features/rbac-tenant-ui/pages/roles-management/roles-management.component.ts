@@ -25,6 +25,7 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
   selector: 'app-roles-management',
   standalone: true,
   imports: [CommonModule, BackButtonComponent, RolePermissionsManagerComponent, RoleEditFormComponent, RoleCreateDialogComponent, ButtonComponent],
+  styleUrl: './roles-management.component.scss',
   template: `
     <!-- Roles Management Container with Two-Column Layout -->
     <div class="h-screen flex flex-col overflow-hidden">
@@ -46,20 +47,18 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
           <!-- Search and Create Button Section -->
           <div class="px-3 py-2 border-b border-gray-200 space-y-2 shrink-0">
             <!-- Search and Create Row -->
-            <div class="flex gap-2 flex-wrap">
-              <!-- Search Input -->
+            <div class="roles-mgmt-search-row">
               <input
                 type="text"
                 placeholder="Buscar roles..."
                 (input)="onRoleSearchChange($event)"
-                class="flex-1 min-w-[150px] px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                class="roles-mgmt-search-input flex-1 min-w-[150px] px-2 text-sm border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
-              
-              <!-- Create New Role Button -->
               <app-button
                 text="Nuevo Rol"
                 size="sm"
-                custom_class="btn_primary"
+                [fullWidth]="false"
+                customClass="roles-mgmt-create-btn"
                 (clicked)="onCreateRoleClicked()">
               </app-button>
             </div>

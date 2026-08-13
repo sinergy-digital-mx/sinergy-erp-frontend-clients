@@ -53,7 +53,38 @@
   max-width: none;
 }
 
-.sales-orders-col-customer__name,
+.sales-orders-col-customer__stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.sales-orders-col-customer__name {
+  display: block;
+  min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sales-orders-col-customer__company {
+  display: block;
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #9ca3af;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .sales-orders-col-warehouse__name {
   display: block;
   min-width: 0;
