@@ -593,13 +593,13 @@ main,
 .app-update-dialog-panel .mat-mdc-dialog-container,
 .mat-mdc-dialog-panel.app-update-dialog-panel .mat-mdc-dialog-container {
   padding: 0 !important;
-  border-radius: 1rem !important;
+  border-radius: 1.25rem !important;
   overflow: hidden !important;
 }
 
 .app-update-dialog-panel .mat-mdc-dialog-surface,
 .mat-mdc-dialog-panel.app-update-dialog-panel .mat-mdc-dialog-surface {
-  border-radius: 1rem !important;
+  border-radius: 1.25rem !important;
   overflow: hidden !important;
   box-shadow:
     0 25px 50px -12px rgba(15, 23, 42, 0.35),
