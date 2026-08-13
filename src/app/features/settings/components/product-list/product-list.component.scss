@@ -1,1 +1,14 @@
 @use '../../styles/settings-list-table';
+
+.product-list-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.product-list-filters__search {
+  flex: 1 1 16rem;
+  min-width: 12rem;
+  max-width: 24rem;
+}

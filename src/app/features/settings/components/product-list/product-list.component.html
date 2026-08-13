@@ -1,50 +1,49 @@
 <div class="settings-list-page px-4 pb-6">
   <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
     <h2 class="text-2xl font-semibold text-gray-800">Productos</h2>
+    <div class="flex flex-wrap items-center gap-2">
+      <app-button
+        text="Categorías"
+        size="sm"
+        custom_class="btn_secondary"
+        (clicked)="openCategoriesDialog()">
+      </app-button>
 
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap sm:justify-end">
-      <app-search
-        class="w-full sm:w-64"
-        [param_activate]="false"
-        [default_value]="search"
-        (searchChange)="onSearchChange($event)">
-      </app-search>
+      <app-button
+        text="Unidades"
+        size="sm"
+        custom_class="btn_secondary"
+        (clicked)="openUOMsDialog()">
+      </app-button>
 
-      <app-filter-clear-button
-        [active]="hasActiveFilters"
-        (clear)="clearFilters()">
-      </app-filter-clear-button>
+      <app-button
+        text="Listas de Precios"
+        size="sm"
+        custom_class="btn_secondary"
+        (clicked)="openPriceListsDialog()">
+      </app-button>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <app-button
-          text="Categorías"
-          size="sm"
-          custom_class="btn_secondary"
-          (clicked)="openCategoriesDialog()">
-        </app-button>
-
-        <app-button
-          text="Unidades"
-          size="sm"
-          custom_class="btn_secondary"
-          (clicked)="openUOMsDialog()">
-        </app-button>
-
-        <app-button
-          text="Listas de Precios"
-          size="sm"
-          custom_class="btn_secondary"
-          (clicked)="openPriceListsDialog()">
-        </app-button>
-
-        <app-button
-          text="Nuevo Producto"
-          size="sm"
-          custom_class="btn_primary"
-          (clicked)="openCreateProductModal()">
-        </app-button>
-      </div>
+      <app-button
+        text="Nuevo Producto"
+        size="sm"
+        custom_class="btn_primary"
+        (clicked)="openCreateProductModal()">
+      </app-button>
     </div>
+  </div>
+
+  <div class="product-list-filters mb-4">
+    <app-search
+      class="product-list-filters__search"
+      [param_activate]="false"
+      [default_value]="search"
+      (searchChange)="onSearchChange($event)">
+    </app-search>
+
+    <app-filter-clear-button
+      [active]="hasActiveFilters"
+      (clear)="clearFilters()">
+    </app-filter-clear-button>
   </div>
 
   <app-datatable-wrapper

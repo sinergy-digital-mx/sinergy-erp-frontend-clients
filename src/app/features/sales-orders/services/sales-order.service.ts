@@ -73,8 +73,11 @@ export class SalesOrderService {
     if (filters.customer_id) {
       params = params.set('customer_id', filters.customer_id.toString());
     }
-    if (filters.warehouse_id) {
-      params = params.set('warehouse_id', filters.warehouse_id);
+    if (filters.fiscal_configuration_id) {
+      params = params.set('fiscal_configuration_id', filters.fiscal_configuration_id);
+    }
+    if (filters.billing_branch_id) {
+      params = params.set('billing_branch_id', filters.billing_branch_id);
     }
     if (filters.dateFrom) {
       params = params.set('created_from', filters.dateFrom);
@@ -360,7 +363,8 @@ export class SalesOrderService {
       ['general_status', generalStatus],
       ['payment_status', filters.payment_status],
       ['sales_order_type', filters.sales_order_type],
-      ['warehouse_id', filters.warehouse_id],
+      ['fiscal_configuration_id', filters.fiscal_configuration_id],
+      ['billing_branch_id', filters.billing_branch_id],
       ['customer_id', filters.customer_id],
       ['created_from', filters.created_from],
       ['created_to', filters.created_to],

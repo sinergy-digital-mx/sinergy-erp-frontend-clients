@@ -217,7 +217,19 @@ export interface SalesOrder {
   terminal_user?: PosUserSummary;
   collected_by_user?: PosUserSummary;
   warehouse?: { id: string; name: string; zip_code?: string };
-  billing_branch?: { id?: string; display_name?: string; code?: string };
+  sucursal?: string;
+  billing_branch_id?: string;
+  billing_branch?: {
+    id?: string;
+    display_name?: string;
+    code?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    address?: string;
+    postal_code?: string;
+  };
+  razon_social?: string;
   fiscal_configuration?: {
     id?: string;
     razon_social?: string;
@@ -260,7 +272,8 @@ export interface SalesOrderFilters {
   payment_status?: SalesPaymentStatus;
   sales_order_type?: SalesOrderType;
   customer_id?: string | number;
-  warehouse_id?: string;
+  fiscal_configuration_id?: string;
+  billing_branch_id?: string;
   dateFrom?: string;
   dateTo?: string;
 }
@@ -272,7 +285,8 @@ export interface SalesOrderExportFilters {
   general_status?: string | SalesOrderStatus | SalesOrderStatus[];
   payment_status?: string;
   sales_order_type?: SalesOrderType;
-  warehouse_id?: string;
+  fiscal_configuration_id?: string;
+  billing_branch_id?: string;
   customer_id?: number | string;
   created_from?: string;
   created_to?: string;

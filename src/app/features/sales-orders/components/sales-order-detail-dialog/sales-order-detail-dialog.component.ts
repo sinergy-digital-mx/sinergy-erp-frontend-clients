@@ -37,12 +37,11 @@ import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calc
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
-import { WarehouseDetailModalComponent } from '../../../settings/components/warehouse-detail-modal/warehouse-detail-modal.component';
+import { BranchModalComponent } from '../../../settings/components/branch-modal/branch-modal.component';
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
-import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
-import { Warehouse } from '../../../settings/models/warehouse.model';
+import { formatTitleCase } from '../../utils/sales-order-display.util';
 import {
   SalesOrderNotesDialogComponent,
   SalesOrderNotesDialogResult,
@@ -147,7 +146,6 @@ export class SalesOrderDetailDialogComponent {
     private dialogRef: MatDialogRef<SalesOrderDetailDialogComponent>,
     private dialog: MatDialog,
     private salesOrderService: SalesOrderService,
-    private warehouseService: WarehouseService,
     private fiscalConfigService: FiscalConfigurationService,
     private router: Router,
     private taxCalculator: TaxCalculatorService,
@@ -674,7 +672,46 @@ export class SalesOrderDetailDialogComponent {
   }
 
   getCustomerDisplayName(): string {
-    return resolveSalesOrderCustomerName(this.order());
+    const order = this.order();
+    if (order?.customer_display_name?.trim()) {
+      return formatTitleCase(order.customer_display_name.trim());
+    }
+    return formatTitleCase(resolveSalesOrderCustomerName(order));
+  }
+
+  getSucursalDisplayName(): string {
+    const order = this.order();
+    const value = order?.sucursal ?? order?.billing_branch?.code;
+    if (!value?.trim()) {
+      return '—';
+    }
+    return formatTitleCase(value.trim());
+  }
+
+  getSucursalSubtitle(): string {
+    const branch = this.order()?.billing_branch;
+    if (!branch) {
+      return '';
+    }
+    return [branch.city, branch.state].filter(Boolean).join(', ');
+  }
+
+  getRazonSocialDisplayName(): string {
+    const order = this.order();
+    const value = order?.razon_social ?? order?.fiscal_configuration?.razon_social ?? order?.fiscal_razon_social;
+    if (!value?.trim()) {
+      return '—';
+    }
+    return formatTitleCase(value.trim());
+  }
+
+  getRazonSocialSubtitle(): string {
+    return this.order()?.fiscal_configuration?.rfc?.trim() || '';
+  }
+
+  /** @deprecated Usar getRazonSocialDisplayName() */
+  getFiscalDisplayName(): string {
+    return this.getRazonSocialDisplayName();
   }
 
   posPaymentMethodLabel(): string {
@@ -702,11 +739,6 @@ export class SalesOrderDetailDialogComponent {
 
   formatPosUserLabel(user: Parameters<typeof formatPosUser>[0]): string {
     return formatPosUser(user);
-  }
-
-  getFiscalDisplayName(): string {
-    const fiscal = this.order()?.fiscal_configuration;
-    return fiscal?.business_name || fiscal?.razon_social || this.order()?.fiscal_razon_social || 'N/A';
   }
 
   getLineUom(item: SalesOrderLineItem): string {
@@ -799,8 +831,11 @@ export class SalesOrderDetailDialogComponent {
     return resolveSalesOrderCustomerId(this.order()) != null;
   }
 
-  canOpenWarehouse(): boolean {
-    return !!(this.order()?.warehouse_id || this.order()?.warehouse?.id);
+  canOpenBranch(): boolean {
+    const order = this.order();
+    const branchId = order?.billing_branch_id ?? order?.billing_branch?.id;
+    const fiscalId = order?.fiscal_configuration_id ?? order?.fiscal_configuration?.id;
+    return !!(branchId && fiscalId);
   }
 
   canOpenFiscal(): boolean {
@@ -816,29 +851,16 @@ export class SalesOrderDetailDialogComponent {
     window.open(url, '_blank');
   }
 
-  openWarehouseDialog(): void {
-    const warehouseId = this.order()?.warehouse?.id ?? this.order()?.warehouse_id;
-    if (!warehouseId) return;
+  openBranchDialog(): void {
+    const order = this.order();
+    const branchId = order?.billing_branch_id ?? order?.billing_branch?.id;
+    const fiscalConfigId = order?.fiscal_configuration_id ?? order?.fiscal_configuration?.id;
+    if (!branchId || !fiscalConfigId) return;
 
-    const openModal = (warehouse: Warehouse) => {
-      this.dialog.open(WarehouseDetailModalComponent, {
-        data: { warehouse },
-        width: '80vw',
-        maxWidth: '1000px',
-      });
-    };
-
-    const embedded = this.order()?.warehouse;
-    if (embedded && 'code' in embedded) {
-      openModal(embedded as Warehouse);
-      return;
-    }
-
-    this.warehouseService.getWarehouse(warehouseId).subscribe({
-      next: (warehouse) => openModal(warehouse),
-      error: () => {
-        openModal({ id: warehouseId, name: embedded?.name || '' } as Warehouse);
-      },
+    this.dialog.open(BranchModalComponent, {
+      data: { fiscalConfigId, branchId },
+      width: '80vw',
+      maxWidth: '1000px',
     });
   }
 

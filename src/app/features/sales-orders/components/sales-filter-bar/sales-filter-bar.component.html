@@ -32,10 +32,19 @@
     </div>
 
     <div class="filter-bar__field">
-      <select [formControl]="warehouseControl" class="filter-bar__select">
-        <option [value]="null">Todos los almacenes</option>
-        @for (warehouse of warehouses; track warehouse.id) {
-          <option [value]="warehouse.id">{{ warehouse.name }}</option>
+      <select [formControl]="fiscalConfigurationControl" class="filter-bar__select">
+        <option [ngValue]="null">Todas las razones sociales</option>
+        @for (fc of fiscalConfigurations; track fc.id) {
+          <option [ngValue]="fc.id">{{ fc.razon_social }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-bar__field">
+      <select [formControl]="billingBranchControl" class="filter-bar__select">
+        <option [ngValue]="null">Todas las sucursales</option>
+        @for (branch of branches; track branch.id) {
+          <option [ngValue]="branch.id">{{ branchLabel(branch) }}</option>
         }
       </select>
     </div>

@@ -24,7 +24,6 @@
       <!-- Filter Bar -->
       <div class="mb-4">
         <app-sales-filter-bar
-          [warehouses]="warehouses()"
           [refreshing]="loading()"
           (filtersChange)="applyFilters($event)"
           (refresh)="loadOrders()">
@@ -122,13 +121,19 @@
                 <div class="sales-order-list__mobile-customer">
                   <strong>Cliente:</strong>
                   <span class="sales-orders-col-customer__stack">
-                    <span [title]="getOrderCustomerName(order)">{{ getOrderCustomerName(order) }}</span>
+                    <span class="sales-orders-col-customer__name" [title]="getOrderCustomerName(order)">{{ getOrderCustomerName(order) }}</span>
                     @if (getOrderCompanyName(order)) {
-                      <span class="sales-orders-col-customer__company">{{ getOrderCompanyName(order) }}</span>
+                      <span class="sales-orders-col-customer__company" [title]="getOrderCompanyName(order)">{{ getOrderCompanyName(order) }}</span>
                     }
                   </span>
                 </div>
-                <div><strong>Almacén:</strong> {{ order.warehouse?.name || 'N/A' }}</div>
+                <div class="sales-order-list__mobile-billing">
+                  <strong>Sucursal:</strong>
+                  <span class="sales-orders-col-billing__stack">
+                    <span class="sales-orders-col-billing__branch" [title]="getBranchLabel(order)">{{ getBranchLabel(order) }}</span>
+                    <span class="sales-orders-col-billing__fiscal" [title]="getFiscalLabel(order)">{{ getFiscalLabel(order) }}</span>
+                  </span>
+                </div>
                 <div><strong>Total:</strong> {{ formatCurrency(getOrderTotal(order)) }}</div>
                 <div class="text-xs text-gray-500">{{ formatDateHuman(order.created_at) }}</div>
               </div>
@@ -152,9 +157,10 @@
       }
     </span>
   </td>
-  <td class="sales-orders-col-warehouse">
-    <span class="sales-orders-col-warehouse__name dt-cell-muted" [title]="item.warehouse?.name || 'N/A'">
-      {{ item.warehouse?.name || 'N/A' }}
+  <td class="sales-orders-col-billing">
+    <span class="sales-orders-col-billing__stack" [title]="getBranchLabel(item) + ' · ' + getFiscalLabel(item)">
+      <span class="sales-orders-col-billing__branch">{{ getBranchLabel(item) }}</span>
+      <span class="sales-orders-col-billing__fiscal">{{ getFiscalLabel(item) }}</span>
     </span>
   </td>
   <td class="w-[120px]">

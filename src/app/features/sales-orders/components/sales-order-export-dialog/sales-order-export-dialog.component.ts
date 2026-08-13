@@ -92,8 +92,11 @@ export class SalesOrderExportDialogComponent {
     if (listFilters.sales_order_type) {
       filters.sales_order_type = listFilters.sales_order_type;
     }
-    if (listFilters.warehouse_id) {
-      filters.warehouse_id = listFilters.warehouse_id;
+    if (listFilters.fiscal_configuration_id) {
+      filters.fiscal_configuration_id = listFilters.fiscal_configuration_id;
+    }
+    if (listFilters.billing_branch_id) {
+      filters.billing_branch_id = listFilters.billing_branch_id;
     }
     if (listFilters.customer_id != null && listFilters.customer_id !== '') {
       filters.customer_id = listFilters.customer_id;

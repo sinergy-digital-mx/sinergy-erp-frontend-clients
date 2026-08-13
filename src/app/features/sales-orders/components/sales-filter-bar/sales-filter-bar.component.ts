@@ -3,8 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { SalesOrderFilters, SalesOrderStatus } from '../../models/sales-order.model';
-import { Warehouse } from '../../../settings/models/warehouse.model';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
+import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { BranchService } from '../../../settings/services/branch.service';
+import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
+import { Branch } from '../../../settings/models/branch.model';
 
 @Component({
   selector: 'app-sales-filter-bar',
@@ -14,7 +17,6 @@ import { FilterClearButtonComponent } from '../../../../core/components/filter-c
   styleUrl: './sales-filter-bar.component.scss'
 })
 export class SalesFilterBarComponent implements OnInit, OnDestroy {
-  @Input() warehouses: Warehouse[] = [];
   @Input() refreshing = false;
   @Output() filtersChange = new EventEmitter<SalesOrderFilters>();
   @Output() refresh = new EventEmitter<void>();
@@ -24,7 +26,11 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   dateFromControl = new FormControl<string>('', { nonNullable: true });
   dateToControl = new FormControl<string>('', { nonNullable: true });
   statusControl = new FormControl<SalesOrderStatus | null>(null);
-  warehouseControl = new FormControl<string | null>(null);
+  fiscalConfigurationControl = new FormControl<string | null>(null);
+  billingBranchControl = new FormControl<string | null>(null);
+
+  fiscalConfigurations: FiscalConfiguration[] = [];
+  branches: Branch[] = [];
 
   dateRangeOptions = [
     { label: 'Hoy', value: 'today' },
@@ -46,6 +52,11 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
+  constructor(
+    private fiscalConfigurationService: FiscalConfigurationService,
+    private branchService: BranchService
+  ) {}
+
   get hasActiveFilters(): boolean {
     return Boolean(
       this.searchControl.value.trim() ||
@@ -53,17 +64,26 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
       this.dateFromControl.value ||
       this.dateToControl.value ||
       this.statusControl.value ||
-      this.warehouseControl.value
+      this.fiscalConfigurationControl.value ||
+      this.billingBranchControl.value
     );
   }
 
   ngOnInit(): void {
+    this.loadFiscalConfigurations();
+    this.loadBranches();
+
     this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.dateRangeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(v => this.onDateRangeChange(v));
     this.dateFromControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.dateToControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.statusControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
-    this.warehouseControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
+    this.fiscalConfigurationControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.onFiscalConfigurationChange());
+    this.billingBranchControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
+  }
+
+  branchLabel(branch: Branch): string {
+    return branch.code?.trim() || branch.display_name?.trim() || '—';
   }
 
   onDateRangeChange(value: string): void {
@@ -115,8 +135,10 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.dateFromControl.setValue('', { emitEvent: false });
     this.dateToControl.setValue('', { emitEvent: false });
     this.statusControl.setValue(null, { emitEvent: false });
-    this.warehouseControl.setValue(null, { emitEvent: false });
+    this.fiscalConfigurationControl.setValue(null, { emitEvent: false });
+    this.billingBranchControl.setValue(null, { emitEvent: false });
     this.showCustomDateRange = false;
+    this.loadBranches();
     this.emitFilters();
   }
 
@@ -130,6 +152,40 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  private onFiscalConfigurationChange(): void {
+    this.billingBranchControl.setValue(null, { emitEvent: false });
+    this.loadBranches(this.fiscalConfigurationControl.value || undefined);
+    this.emitFilters();
+  }
+
+  private loadFiscalConfigurations(): void {
+    this.fiscalConfigurationService
+      .listFiscalConfigurations({ status: 'active', limit: 100 })
+      .subscribe({
+        next: (res) => {
+          this.fiscalConfigurations = res.data ?? [];
+        },
+        error: () => {
+          this.fiscalConfigurations = [];
+        },
+      });
+  }
+
+  private loadBranches(fiscalConfigurationId?: string): void {
+    const request$ = fiscalConfigurationId
+      ? this.branchService.getBranches(fiscalConfigurationId)
+      : this.branchService.getAllBranches();
+
+    request$.subscribe({
+      next: (branches) => {
+        this.branches = Array.isArray(branches) ? branches : [];
+      },
+      error: () => {
+        this.branches = [];
+      },
+    });
+  }
+
   private emitFilters(): void {
     const filters: SalesOrderFilters = {};
     const search = this.searchControl.value.trim();
@@ -140,8 +196,10 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     if (dateTo) filters.dateTo = new Date(dateTo).toISOString();
     const status = this.statusControl.value;
     if (status) filters.status = status;
-    const warehouseId = this.warehouseControl.value;
-    if (warehouseId) filters.warehouse_id = warehouseId;
+    const fiscalConfigurationId = this.fiscalConfigurationControl.value;
+    if (fiscalConfigurationId) filters.fiscal_configuration_id = fiscalConfigurationId;
+    const billingBranchId = this.billingBranchControl.value;
+    if (billingBranchId) filters.billing_branch_id = billingBranchId;
     this.filtersChange.emit(filters);
   }
 }

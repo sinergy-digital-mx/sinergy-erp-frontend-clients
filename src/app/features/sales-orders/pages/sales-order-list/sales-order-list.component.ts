@@ -3,9 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { SalesOrder, SalesOrderFilters, PaginationParams } from '../../models/sales-order.model';
-import { Warehouse } from '../../../settings/models/warehouse.model';
 import { SalesFilterBarComponent } from '../../components/sales-filter-bar/sales-filter-bar.component';
 import { CreateSalesOrderModalComponent } from '../../components/create-sales-order-modal/create-sales-order-modal.component';
 import { SalesOrderDetailDialogComponent } from '../../components/sales-order-detail-dialog/sales-order-detail-dialog.component';
@@ -18,8 +16,14 @@ import { DatatableWrapperComponent } from '../../../../core/components/datatable
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { ToastService } from '../../../../core/services/toast.service';
-import { getSalesOrderCompanyName, resolveSalesOrderCustomerName } from '../../utils/customer-display.util';
-import { getSalesOrderStatus, getSalesOrderTotal } from '../../utils/sales-order-display.util';
+import {
+  getSalesOrderListBranchLabel,
+  getSalesOrderListCompanyName,
+  getSalesOrderListCustomerName,
+  getSalesOrderListFiscalLabel,
+  getSalesOrderStatus,
+  getSalesOrderTotal,
+} from '../../utils/sales-order-display.util';
 
 @Component({
   selector: 'app-sales-order-list',
@@ -43,9 +47,9 @@ export class SalesOrderListComponent implements OnInit {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Folio', prop: 'folio', sortable: true, canAutoResize: false, width: 160 },
-      { name: 'Cliente', prop: 'customer', sortable: true, canAutoResize: false, width: 150 },
-      { name: 'Almacén', prop: 'warehouse', sortable: false, canAutoResize: false, width: 150 },
+      { name: 'Folio', prop: 'folio', sortable: true, canAutoResize: false, width: 140 },
+      { name: 'Cliente', prop: 'customer', sortable: true, canAutoResize: false, width: 140 },
+      { name: 'Sucursal', prop: 'billing_branch', sortable: false, canAutoResize: false, width: 190 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 120 },
       { name: 'Total', prop: 'requested_total', sortable: true, canAutoResize: false, width: 120 },
       { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 120 },
@@ -65,7 +69,6 @@ export class SalesOrderListComponent implements OnInit {
   orders = this.ordersData.asReadonly();
   loading = this.loadingState.asReadonly();
   hasMore = this.hasMoreState.asReadonly();
-  warehouses = signal<Warehouse[]>([]);
 
   // Stats
   totalOrders = computed(() => this.totalResultsState());
@@ -92,7 +95,6 @@ export class SalesOrderListComponent implements OnInit {
 
   constructor(
     private salesOrderService: SalesOrderService,
-    private warehouseService: WarehouseService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private taxCalculator: TaxCalculatorService,
@@ -101,7 +103,6 @@ export class SalesOrderListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadOrders();
-    this.loadWarehouses();
   }
 
   loadOrders(): void {
@@ -133,13 +134,6 @@ export class SalesOrderListComponent implements OnInit {
         this.loadingState.set(false);
         this.table_config.update(c => ({ ...c, loading: false }));
       }
-    });
-  }
-
-  loadWarehouses(): void {
-    this.warehouseService.getWarehouses().subscribe({
-      next: (res) => this.warehouses.set(Array.isArray(res) ? res : (res as any).data || []),
-      error: (err) => console.error('Error loading warehouses:', err)
     });
   }
 
@@ -240,10 +234,18 @@ export class SalesOrderListComponent implements OnInit {
   }
 
   getOrderCustomerName(order: SalesOrder): string {
-    return resolveSalesOrderCustomerName(order);
+    return getSalesOrderListCustomerName(order);
   }
 
   getOrderCompanyName(order: SalesOrder): string {
-    return getSalesOrderCompanyName(order);
+    return getSalesOrderListCompanyName(order);
+  }
+
+  getFiscalLabel(order: SalesOrder): string {
+    return getSalesOrderListFiscalLabel(order);
+  }
+
+  getBranchLabel(order: SalesOrder): string {
+    return getSalesOrderListBranchLabel(order);
   }
 }

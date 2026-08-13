@@ -42,7 +42,7 @@
     }
 
     td.sales-orders-col-customer,
-    td.sales-orders-col-warehouse {
+    td.sales-orders-col-billing {
       max-width: 0;
       overflow: hidden;
     }
@@ -58,7 +58,13 @@
   flex-direction: column;
   min-width: 0;
   line-height: 1.2;
-  text-transform: uppercase;
+}
+
+.sales-orders-col-customer__name,
+.sales-orders-col-customer__company,
+.sales-orders-col-billing__branch,
+.sales-orders-col-billing__fiscal {
+  text-transform: none;
 }
 
 .sales-orders-col-customer__name {
@@ -67,7 +73,6 @@
   font-size: 0.875rem;
   font-weight: 600;
   color: #334155;
-  text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -79,29 +84,50 @@
   font-size: 0.75rem;
   font-weight: 400;
   color: #9ca3af;
-  text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.sales-orders-col-warehouse__name {
+.sales-orders-col-billing__stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.sales-orders-col-billing__branch {
   display: block;
   min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.sales-order-list__mobile-customer {
+.sales-orders-col-billing__fiscal {
+  display: block;
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sales-order-list__mobile-customer,
+.sales-order-list__mobile-billing {
   display: flex;
   gap: 0.25rem;
   min-width: 0;
+  align-items: flex-start;
 
-  span {
+  .sales-orders-col-customer__stack,
+  .sales-orders-col-billing__stack {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    flex: 1;
   }
 }
