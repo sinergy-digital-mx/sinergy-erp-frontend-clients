@@ -317,17 +317,16 @@ export class ContractDownpaymentPaymentsComponent implements OnInit {
   }
 
   getStatusClass(status: string, isOverdue = false): string {
-    const baseClass = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ';
     if (isOverdue && (status === 'pendiente' || status === 'parcial')) {
-      return baseClass + 'bg-red-500 text-white shadow-sm';
+      return 'status-pill status-pill--overdue';
     }
     const statusMap: Record<string, string> = {
-      pendiente: 'bg-amber-500 text-white shadow-sm',
-      pagado: 'bg-emerald-500 text-white shadow-sm',
-      parcial: 'bg-blue-500 text-white shadow-sm',
-      cancelado: 'bg-gray-500 text-white shadow-sm'
+      pendiente: 'status-pill status-pill--pending',
+      pagado: 'status-pill status-pill--paid',
+      parcial: 'status-pill status-pill--partial',
+      cancelado: 'status-pill status-pill--cancelled'
     };
-    return baseClass + (statusMap[status] || 'bg-gray-500 text-white shadow-sm');
+    return statusMap[status] || 'status-pill status-pill--cancelled';
   }
 
   getStatusLabel(status: string, isOverdue = false): string {

@@ -14,84 +14,79 @@
           <span
             class="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
             [ngClass]="{
-              'bg-green-100 text-green-800': badgeStatus === 'activo',
-              'bg-blue-100 text-blue-800': badgeStatus === 'completado',
-              'bg-red-100 text-red-800': badgeStatus === 'cancelado',
-              'bg-yellow-100 text-yellow-800': badgeStatus === 'suspendido'
+              'bg-emerald-50 text-emerald-700': badgeStatus === 'activo',
+              'bg-indigo-50 text-indigo-700': badgeStatus === 'completado',
+              'bg-rose-50 text-rose-700': badgeStatus === 'cancelado',
+              'bg-amber-50 text-amber-800': badgeStatus === 'suspendido'
             }">
             {{ badgeStatus | titlecase }}
           </span>
-          <span *ngIf="current.customer" class="text-gray-400">•</span>
+          <span *ngIf="current.customer" class="text-slate-300">·</span>
           <span
             *ngIf="current.customer"
             (click)="navigateToCustomer()"
-            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors">
+            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-indigo-50 text-indigo-700 cursor-pointer hover:bg-indigo-100 transition-colors">
             {{ getCustomerName() }}
           </span>
           <span
             *ngIf="current.down_payment_financed"
-            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800">
+            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-50 text-amber-800">
             Enganche financiado activo
           </span>
         </div>
-        <div class="flex flex-wrap items-center gap-2 mb-3 text-xs contract-meta-badges">
-          <span class="inline-flex items-center px-2.5 py-1.5 rounded bg-gray-100 text-gray-700">
-            <span class="font-semibold text-gray-900 mr-1">Creado:</span>
-            {{ current.created_at | date:'medium' }}
-          </span>
-          <span class="inline-flex items-center px-2.5 py-1.5 rounded bg-gray-100 text-gray-700">
-            <span class="font-semibold text-gray-900 mr-1">Actualizado:</span>
-            {{ current.updated_at | date:'medium' }}
-          </span>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-xs text-slate-500">
+          <span>Creado {{ current.created_at | date:'medium' }}</span>
+          <span class="text-slate-300">·</span>
+          <span>Actualizado {{ current.updated_at | date:'medium' }}</span>
         </div>
 
         <div class="page-header-stats grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-2 sm:gap-3 text-xs pb-1">
           <div>
-            <span class="block text-gray-500 font-medium">Fecha Contrato</span>
-            <span class="text-gray-900 font-semibold">{{ current.contract_date | localDate:'mediumDate' }}</span>
+            <span class="block text-slate-500 font-medium">Fecha contrato</span>
+            <span class="text-slate-700 font-semibold">{{ current.contract_date | localDate:'mediumDate' }}</span>
           </div>
           <div>
-            <span class="block text-gray-500 font-medium">Precio Total</span>
-            <span class="text-gray-900 font-semibold">{{ current.total_price | currency:current.currency }}</span>
+            <span class="block text-slate-500 font-medium">Precio total</span>
+            <span class="text-slate-700 font-semibold">{{ current.total_price | currency:current.currency }}</span>
           </div>
           <div>
-            <span class="block text-gray-500 font-medium">Enganche</span>
+            <span class="block text-slate-500 font-medium">Enganche</span>
             @if (getDownPaymentTarget(current); as target) {
-              <span class="text-gray-900 font-semibold leading-tight">
+              <span class="text-slate-700 font-semibold leading-tight">
                 {{ current.down_payment | currency:current.currency }}
-                <span class="text-gray-400 font-medium mx-0.5">/</span>
+                <span class="text-slate-400 font-medium mx-0.5">/</span>
                 {{ target | currency:current.currency }}
               </span>
-              <span class="block text-[10px] text-gray-400 font-medium mt-0.5">abonado / meta</span>
+              <span class="block text-[10px] text-slate-400 font-medium mt-0.5">abonado / meta</span>
             } @else {
-              <span class="text-gray-900 font-semibold">{{ current.down_payment | currency:current.currency }}</span>
+              <span class="text-slate-700 font-semibold">{{ current.down_payment | currency:current.currency }}</span>
             }
           </div>
           <div>
-            <span class="block text-gray-500 font-medium">Total Pagado</span>
-            <span class="text-green-600 font-semibold">{{ (current.total_price - current.remaining_balance) | currency:current.currency }}</span>
+            <span class="block text-slate-500 font-medium">Total pagado</span>
+            <span class="text-emerald-600 font-semibold">{{ (current.total_price - current.remaining_balance) | currency:current.currency }}</span>
           </div>
           <div>
-            <span class="flex items-center gap-1 text-gray-500 font-medium">
-              Saldo Pendiente
+            <span class="flex items-center gap-1 text-slate-500 font-medium">
+              Saldo pendiente
               <span
                 *ngIf="paymentStats()"
-                class="cursor-help text-gray-400 hover:text-gray-600"
+                class="cursor-help text-slate-400 hover:text-slate-600"
                 [matTooltip]="getPendingBreakdown()"
                 matTooltipPosition="above"
                 matTooltipShowDelay="100">
                 <lucide-icon [img]="InfoIcon" [size]="14"></lucide-icon>
               </span>
             </span>
-            <span class="text-red-600 font-semibold">{{ current.remaining_balance | currency:current.currency }}</span>
+            <span class="text-rose-600 font-semibold">{{ current.remaining_balance | currency:current.currency }}</span>
           </div>
           <div>
-            <span class="block text-gray-500 font-medium">Meses de Pago</span>
-            <span class="text-gray-900 font-semibold">{{ current.payment_months }} meses</span>
+            <span class="block text-slate-500 font-medium">Meses de pago</span>
+            <span class="text-slate-700 font-semibold">{{ current.payment_months }} meses</span>
           </div>
           <div>
-            <span class="block text-gray-500 font-medium">Pago Mensual</span>
-            <span class="text-gray-900 font-semibold">{{ current.monthly_payment | currency:current.currency }}</span>
+            <span class="block text-slate-500 font-medium">Pago mensual</span>
+            <span class="text-slate-700 font-semibold">{{ current.monthly_payment | currency:current.currency }}</span>
           </div>
         </div>
       </div>
