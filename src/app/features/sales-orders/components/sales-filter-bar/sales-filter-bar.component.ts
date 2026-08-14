@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
@@ -26,8 +26,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   dateFromControl = new FormControl<string>('', { nonNullable: true });
   dateToControl = new FormControl<string>('', { nonNullable: true });
   statusControl = new FormControl<SalesOrderStatus | null>(null);
-  fiscalConfigurationControl = new FormControl<string | null>(null);
-  billingBranchControl = new FormControl<string | null>(null);
+  fiscalConfigurationControl = new FormControl<string>('', { nonNullable: true });
+  billingBranchControl = new FormControl<string>('', { nonNullable: true });
 
   fiscalConfigurations: FiscalConfiguration[] = [];
   branches: Branch[] = [];
@@ -54,7 +54,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
 
   constructor(
     private fiscalConfigurationService: FiscalConfigurationService,
-    private branchService: BranchService
+    private branchService: BranchService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   get hasActiveFilters(): boolean {
@@ -70,8 +71,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.billingBranchControl.disable({ emitEvent: false });
     this.loadFiscalConfigurations();
-    this.loadBranches();
 
     this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.dateRangeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(v => this.onDateRangeChange(v));
@@ -80,6 +81,12 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.statusControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.fiscalConfigurationControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.onFiscalConfigurationChange());
     this.billingBranchControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
+  }
+
+  fiscalOptionLabel(fc: FiscalConfiguration): string {
+    const name = fc.razon_social?.trim() || 'Sin razón social';
+    const rfc = fc.rfc?.trim();
+    return rfc ? `${name} (${rfc})` : name;
   }
 
   branchLabel(branch: Branch): string {
@@ -135,10 +142,11 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.dateFromControl.setValue('', { emitEvent: false });
     this.dateToControl.setValue('', { emitEvent: false });
     this.statusControl.setValue(null, { emitEvent: false });
-    this.fiscalConfigurationControl.setValue(null, { emitEvent: false });
-    this.billingBranchControl.setValue(null, { emitEvent: false });
+    this.fiscalConfigurationControl.setValue('', { emitEvent: false });
+    this.billingBranchControl.setValue('', { emitEvent: false });
+    this.billingBranchControl.disable({ emitEvent: false });
+    this.branches = [];
     this.showCustomDateRange = false;
-    this.loadBranches();
     this.emitFilters();
   }
 
@@ -153,8 +161,17 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   }
 
   private onFiscalConfigurationChange(): void {
-    this.billingBranchControl.setValue(null, { emitEvent: false });
-    this.loadBranches(this.fiscalConfigurationControl.value || undefined);
+    const fiscalId = this.fiscalConfigurationControl.value || undefined;
+    this.billingBranchControl.setValue('', { emitEvent: false });
+
+    if (fiscalId) {
+      this.billingBranchControl.enable({ emitEvent: false });
+      this.loadBranches(fiscalId);
+    } else {
+      this.billingBranchControl.disable({ emitEvent: false });
+      this.branches = [];
+    }
+
     this.emitFilters();
   }
 
@@ -163,25 +180,25 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
       .listFiscalConfigurations({ status: 'active', limit: 100 })
       .subscribe({
         next: (res) => {
-          this.fiscalConfigurations = res.data ?? [];
+          this.fiscalConfigurations = Array.isArray(res) ? res : (res.data ?? []);
+          this.cdr.detectChanges();
         },
         error: () => {
           this.fiscalConfigurations = [];
+          this.cdr.detectChanges();
         },
       });
   }
 
-  private loadBranches(fiscalConfigurationId?: string): void {
-    const request$ = fiscalConfigurationId
-      ? this.branchService.getBranches(fiscalConfigurationId)
-      : this.branchService.getAllBranches();
-
-    request$.subscribe({
+  private loadBranches(fiscalConfigurationId: string): void {
+    this.branchService.getBranches(fiscalConfigurationId).subscribe({
       next: (branches) => {
         this.branches = Array.isArray(branches) ? branches : [];
+        this.cdr.detectChanges();
       },
       error: () => {
         this.branches = [];
+        this.cdr.detectChanges();
       },
     });
   }

@@ -70,6 +70,9 @@
     <span class="settings-badge settings-badge--code">{{ item.placa }}</span>
   </td>
   <td>
+    <span [class]="serialNumberOf(item) === '—' ? 'settings-cell-empty' : 'settings-cell-text'">{{ serialNumberOf(item) }}</span>
+  </td>
+  <td>
     <span [class]="item.anio ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.anio || '—' }}</span>
   </td>
   <td>

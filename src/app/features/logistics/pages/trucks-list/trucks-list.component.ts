@@ -49,6 +49,7 @@ export class TrucksListComponent implements OnDestroy {
       { name: '', prop: 'photo', sortable: false, canAutoResize: false, width: 56 },
       { name: 'Nombre', prop: 'name', sortable: false, canAutoResize: true, width: 180 },
       { name: 'Placa', prop: 'placa', sortable: false, canAutoResize: true, width: 120 },
+      { name: 'Núm. serie', prop: 'serial_number', sortable: false, canAutoResize: true, width: 160 },
       { name: 'Año', prop: 'anio', sortable: false, canAutoResize: true, width: 80 },
       { name: 'Estado', prop: 'status', sortable: false, canAutoResize: true, width: 100 },
       { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 120 },
@@ -210,7 +211,10 @@ export class TrucksListComponent implements OnDestroy {
       data: { truck: null },
     });
     ref.afterClosed().subscribe((result) => {
-      if (result) this.reload();
+      if (result) {
+        this.upsertRow(result);
+        this.reload();
+      }
     });
   }
 
@@ -223,7 +227,10 @@ export class TrucksListComponent implements OnDestroy {
       data: { truck },
     });
     ref.afterClosed().subscribe((result) => {
-      if (result) this.reload();
+      if (result) {
+        this.upsertRow(result);
+        this.reload();
+      }
     });
   }
 
@@ -263,6 +270,19 @@ export class TrucksListComponent implements OnDestroy {
     });
   }
 
+  private upsertRow(saved: Truck): void {
+    this.table_config.update((c) => {
+      const rows = (c.rows as Truck[]) ?? [];
+      const exists = rows.some((row) => row.id === saved.id);
+      return {
+        ...c,
+        rows: exists
+          ? rows.map((row) => (row.id === saved.id ? { ...row, ...saved } : row))
+          : [saved, ...rows],
+      };
+    });
+  }
+
   private reload(): void {
     this.lastQueryParams = '';
     this.table_config.update((c) => ({ ...c, loading: true }));
@@ -283,5 +303,11 @@ export class TrucksListComponent implements OnDestroy {
     return status === 'active'
       ? 'settings-badge settings-badge--status-active'
       : 'settings-badge settings-badge--status-inactive';
+  }
+
+  serialNumberOf(row: Truck): string {
+    const value = row?.serial_number;
+    if (value == null || String(value).trim() === '') return '—';
+    return String(value);
   }
 }

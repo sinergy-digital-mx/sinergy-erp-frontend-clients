@@ -1,0 +1,112 @@
+<section class="inv-stats" aria-label="Estadísticas de inventario">
+  @if (loading) {
+    <div class="inv-stats__grid" aria-busy="true" aria-live="polite">
+      @for (slot of skeletonSlots; track slot) {
+        <div class="inv-stats__card inv-stats__card--skeleton" aria-hidden="true">
+          <div class="inv-stats__top">
+            <div class="inv-stats__skel inv-stats__skel--label"></div>
+            <div class="inv-stats__skel inv-stats__skel--icon"></div>
+          </div>
+          <div class="inv-stats__skel inv-stats__skel--value"></div>
+          <div class="inv-stats__skel inv-stats__skel--sub"></div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="inv-stats__grid">
+      <article class="inv-stats__card">
+        <div class="inv-stats__top">
+          <p class="inv-stats__label">Lotes</p>
+          <span class="inv-stats__icon inv-stats__icon--layers">
+            <lucide-icon [img]="Layers" [size]="18"></lucide-icon>
+          </span>
+        </div>
+        <p class="inv-stats__value">{{ formatCount(stats?.total_batches) }}</p>
+        <p class="inv-stats__sub">{{ batchesSub() }}</p>
+      </article>
+
+      <article class="inv-stats__card">
+        <div class="inv-stats__top">
+          <p class="inv-stats__label">Costo en inventario</p>
+          <span class="inv-stats__icon inv-stats__icon--cost">
+            <lucide-icon [img]="Receipt" [size]="18"></lucide-icon>
+          </span>
+        </div>
+        <p class="inv-stats__value">{{ formatMoney(stats?.total_cost) }}</p>
+        <p class="inv-stats__sub">{{ costSub() }}</p>
+      </article>
+
+      <article class="inv-stats__card">
+        <div class="inv-stats__top">
+          <p class="inv-stats__label">Valor a precio de venta</p>
+          <span class="inv-stats__icon inv-stats__icon--price">
+            <lucide-icon [img]="Tag" [size]="18"></lucide-icon>
+          </span>
+        </div>
+        <p class="inv-stats__value">{{ formatMoney(stats?.total_sale_value) }}</p>
+        <p class="inv-stats__sub">{{ priceSub() }}</p>
+      </article>
+
+      <article
+        class="inv-stats__card"
+        [class.inv-stats__card--positive]="!failed && !isNegativeMargin"
+        [class.inv-stats__card--negative]="isNegativeMargin">
+        <div class="inv-stats__top">
+          <p class="inv-stats__label">Margen bruto</p>
+          <span
+            class="inv-stats__icon"
+            [class.inv-stats__icon--margin-up]="!failed && !isNegativeMargin"
+            [class.inv-stats__icon--margin-down]="isNegativeMargin">
+            <lucide-icon [img]="TrendingUp" [size]="18"></lucide-icon>
+          </span>
+        </div>
+        <p
+          class="inv-stats__value"
+          [class.inv-stats__value--positive]="!failed && !isNegativeMargin"
+          [class.inv-stats__value--negative]="isNegativeMargin">
+          {{ formatMoney(stats?.gross_margin) }}
+        </p>
+        <span
+          class="inv-stats__badge"
+          [class.inv-stats__badge--positive]="!failed && !isNegativeMargin"
+          [class.inv-stats__badge--negative]="isNegativeMargin">
+          {{ formatPercent(stats?.gross_margin_percentage) }}
+        </span>
+      </article>
+
+      <article class="inv-stats__card">
+        <div class="inv-stats__top">
+          <p class="inv-stats__label">Existencia</p>
+          <span class="inv-stats__icon inv-stats__icon--stock">
+            <lucide-icon [img]="Package" [size]="18"></lucide-icon>
+          </span>
+        </div>
+        <p class="inv-stats__value">{{ formatQuantity(stats?.total_available_quantity) }}</p>
+        <p class="inv-stats__sub">{{ stockSub() }}</p>
+      </article>
+    </div>
+
+    @if (showWarningChips) {
+      <div class="inv-stats__chips">
+        @if (stats!.batches_without_cost > 0) {
+          <span
+            class="inv-stats__chip"
+            [matTooltip]="quantityWithoutCostTooltip()"
+            matTooltipPosition="above">
+            <lucide-icon [img]="AlertTriangle" [size]="14"></lucide-icon>
+            {{ stats!.batches_without_cost }} lotes sin costo
+          </span>
+        }
+        @if (stats!.products_without_price > 0) {
+          <span
+            class="inv-stats__chip"
+            [matTooltip]="quantityWithoutPriceTooltip()"
+            matTooltipPosition="above">
+            <lucide-icon [img]="AlertTriangle" [size]="14"></lucide-icon>
+            {{ stats!.products_without_price }} productos sin precio
+          </span>
+        }
+      </div>
+    }
+  }
+</section>

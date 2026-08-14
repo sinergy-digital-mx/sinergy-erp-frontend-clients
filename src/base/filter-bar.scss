@@ -48,6 +48,18 @@
 
   &__select {
     @include fc.pollux-select-field;
+
+    &:disabled {
+      background-color: #f3f4f6 !important;
+      color: #9ca3af !important;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+
+    option {
+      color: #111827;
+      background: #fff;
+    }
   }
 
   &__clear-button {

@@ -30,6 +30,7 @@ import {
   getCustomerStatusPillClass,
 } from '../../utils/customer-status.util';
 import { getFiscalPersonTypeLabel } from '../../utils/fiscal-person-type.util';
+import { formatRegisteredByUserLabel } from '../../utils/customer-registration.util';
 import { CustomerAddressDialogComponent } from '../../components/customer-address-dialog/customer-address-dialog.component';
 
 @Component({
@@ -59,13 +60,14 @@ export class CustomerDetail implements OnInit, OnDestroy {
   error = signal<any>(null);
   /** Persona adicional en detalle: colapsable (mismo criterio que el modal). */
   additionalPersonExpanded = signal(false);
-  activeInfoTab = signal<'customer' | 'credit' | 'fiscal'>('customer');
+  activeInfoTab = signal<'customer' | 'credit' | 'fiscal' | 'registration'>('customer');
   statuses = signal<CustomerStatus[]>([]);
   statusUpdating = signal(false);
   infoTabs: TabItem[] = [
     { id: 'customer', title: 'Información del Cliente' },
     { id: 'credit', title: 'Credito' },
-    { id: 'fiscal', title: 'Información Fiscal' }
+    { id: 'fiscal', title: 'Información Fiscal' },
+    { id: 'registration', title: 'Registro' }
   ];
   customerId: number | null = null;
   private destroy$ = new Subject<void>();
@@ -299,9 +301,17 @@ export class CustomerDetail implements OnInit, OnDestroy {
   }
 
   setActiveInfoTab(tab: string): void {
-    if (tab === 'customer' || tab === 'credit' || tab === 'fiscal') {
+    if (tab === 'customer' || tab === 'credit' || tab === 'fiscal' || tab === 'registration') {
       this.activeInfoTab.set(tab);
     }
+  }
+
+  registeredBranchLabel(customer: Customer): string {
+    return customer.registered_billing_branch?.code?.trim() || '—';
+  }
+
+  registeredByLabel(customer: Customer): string {
+    return formatRegisteredByUserLabel(customer.registered_by_user);
   }
 
   /** True si el API devolvió algún dato de contacto adicional. */

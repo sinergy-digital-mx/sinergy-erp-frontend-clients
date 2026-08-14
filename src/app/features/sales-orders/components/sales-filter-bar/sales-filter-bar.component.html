@@ -33,18 +33,18 @@
 
     <div class="filter-bar__field">
       <select [formControl]="fiscalConfigurationControl" class="filter-bar__select">
-        <option [ngValue]="null">Todas las razones sociales</option>
+        <option value="">Todas las razones sociales</option>
         @for (fc of fiscalConfigurations; track fc.id) {
-          <option [ngValue]="fc.id">{{ fc.razon_social }}</option>
+          <option [value]="fc.id">{{ fiscalOptionLabel(fc) }}</option>
         }
       </select>
     </div>
 
     <div class="filter-bar__field">
       <select [formControl]="billingBranchControl" class="filter-bar__select">
-        <option [ngValue]="null">Todas las sucursales</option>
+        <option value="">Todas las sucursales</option>
         @for (branch of branches; track branch.id) {
-          <option [ngValue]="branch.id">{{ branchLabel(branch) }}</option>
+          <option [value]="branch.id">{{ branchLabel(branch) }}</option>
         }
       </select>
     </div>

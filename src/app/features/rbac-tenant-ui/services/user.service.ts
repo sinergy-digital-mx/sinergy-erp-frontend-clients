@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, shareReplay, map } from 'rxjs/operators';
-import { User, Role, CreateUserDto, UpdateUserDto } from '../models';
+import { User, Role, CreateUserDto, UpdateUserDto, ChangePasswordDto } from '../models';
 import { environment } from '../../../../environments/environment';
 import { DataMapperService } from './data-mapper.service';
 
@@ -137,6 +137,17 @@ export class UserService {
     }).pipe(
       tap(() => this.clearCache()),
       shareReplay(1)
+    );
+  }
+
+  /**
+   * Cambia la contraseña del usuario logueado.
+   * Solo funciona si userId es el de la sesión; no enviar password en updateUser.
+   */
+  changePassword(userId: string, payload: ChangePasswordDto): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(
+      `${this.api}/tenant/users/${userId}/password`,
+      payload
     );
   }
 

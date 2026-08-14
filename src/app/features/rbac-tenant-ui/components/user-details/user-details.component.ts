@@ -182,7 +182,7 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
 
   openEditDialog(): void {
     this.dialog.open(UserDetailModalComponent, {
-      width: '620px',
+      width: '840px',
       maxHeight: '90vh',
       panelClass: 'custom-dialog-container',
       data: { user: this.user, isNew: false }

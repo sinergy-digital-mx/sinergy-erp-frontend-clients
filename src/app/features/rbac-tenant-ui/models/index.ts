@@ -168,6 +168,12 @@ export interface UpdateUserDto {
   employee?: UserEmployeeProfile | null;
 }
 
+/** Payload de PUT /tenant/users/:userId/password (solo el usuario logueado). */
+export interface ChangePasswordDto {
+  new_password: string;
+  confirm_password: string;
+}
+
 export interface Permission {
   id: string;
   type: PermissionType;

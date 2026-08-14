@@ -30,7 +30,7 @@ export class UserDetailModalComponent implements OnInit {
   readonly posUserTypeOptions = POS_USER_TYPE_OPTIONS;
   readonly paymentFrequencyOptions = PAYMENT_FREQUENCY_OPTIONS;
 
-  readonly tabs: TabItem[] = [
+  private readonly baseTabs: TabItem[] = [
     { id: 'general', title: 'Información general' },
     { id: 'pos', title: 'POS' },
     { id: 'employee', title: 'Empleado' },
@@ -40,6 +40,8 @@ export class UserDetailModalComponent implements OnInit {
   activeTab = 'general';
   isNew: boolean;
   saving = signal(false);
+  changingPassword = signal(false);
+  passwordError = signal<string | null>(null);
   loading = signal(true);
   showPassword = signal(false);
   showConfirmPassword = signal(false);
@@ -72,6 +74,26 @@ export class UserDetailModalComponent implements OnInit {
   private originalPosUserType: PosUserType | null = null;
 
   form: FormGroup;
+  passwordForm: FormGroup;
+
+  /** Tab Seguridad solo si se edita al usuario de la sesión. */
+  get isOwnProfile(): boolean {
+    const editedId = this.data.user?.id;
+    const loggedId = this.loggedInUserId;
+    return !this.isNew && !!editedId && !!loggedId && String(editedId) === String(loggedId);
+  }
+
+  get tabs(): TabItem[] {
+    if (!this.isOwnProfile) {
+      return this.baseTabs;
+    }
+    return [...this.baseTabs, { id: 'security', title: 'Seguridad' }];
+  }
+
+  /** user.id del login (JWT `sub`). */
+  private get loggedInUserId(): string | undefined {
+    return this.authService.user_info?.sub;
+  }
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { user: User | null; isNew?: boolean },
@@ -85,6 +107,10 @@ export class UserDetailModalComponent implements OnInit {
   ) {
     this.isNew = data.isNew ?? !data.user;
     this.form = this.createForm();
+    this.passwordForm = this.fb.group({
+      new_password: ['', [Validators.required, Validators.minLength(8)]],
+      confirm_password: ['', [Validators.required, Validators.minLength(8)]],
+    });
   }
 
   ngOnInit(): void {
@@ -480,8 +506,80 @@ export class UserDetailModalComponent implements OnInit {
     this.showConfirmPassword.update((v) => !v);
   }
 
+  cancelPasswordChange(): void {
+    this.passwordForm.reset({ new_password: '', confirm_password: '' });
+    this.passwordError.set(null);
+    this.showPassword.set(false);
+    this.showConfirmPassword.set(false);
+  }
+
+  changePassword(): void {
+    if (!this.isOwnProfile || !this.loggedInUserId) {
+      return;
+    }
+
+    this.passwordError.set(null);
+    const newPassword = String(this.passwordForm.get('new_password')?.value ?? '');
+    const confirmPassword = String(this.passwordForm.get('confirm_password')?.value ?? '');
+
+    if (this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched();
+      this.passwordError.set('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      this.passwordForm.get('confirm_password')?.markAsTouched();
+      this.passwordError.set('Las contraseñas no coinciden');
+      return;
+    }
+
+    this.changingPassword.set(true);
+    this.userService
+      .changePassword(this.loggedInUserId, {
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      })
+      .subscribe({
+        next: (response) => {
+          this.changingPassword.set(false);
+          this.cancelPasswordChange();
+          this.interceptorService.openSnackbar({
+            type: 'success',
+            title: 'Éxito',
+            message: response?.message || 'Contraseña actualizada correctamente',
+          });
+        },
+        error: (error) => {
+          this.changingPassword.set(false);
+          const message =
+            this.extractBackendMessages(error)[0] || 'No se pudo cambiar la contraseña';
+
+          if (error?.status === 400) {
+            this.passwordError.set(message);
+            this.interceptorService.openSnackbar({
+              type: 'error',
+              title: 'Error',
+              message,
+            });
+            return;
+          }
+
+          this.interceptorService.openSnackbar({
+            type: 'error',
+            title: 'Error',
+            message,
+          });
+
+          if (error?.status === 404) {
+            this.dialogRef.close(false);
+          }
+        },
+      });
+  }
+
   close(): void {
-    if (!this.saving()) {
+    if (!this.saving() && !this.changingPassword()) {
       this.dialogRef.close(false);
     }
   }

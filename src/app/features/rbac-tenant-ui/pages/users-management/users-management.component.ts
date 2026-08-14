@@ -127,7 +127,7 @@ export class UsersManagementComponent implements OnInit {
    */
   openCreateUserDialog(): void {
     this.dialog.open(UserDetailModalComponent, {
-      width: '620px',
+      width: '840px',
       maxHeight: '90vh',
       disableClose: false,
       panelClass: 'custom-dialog-container',

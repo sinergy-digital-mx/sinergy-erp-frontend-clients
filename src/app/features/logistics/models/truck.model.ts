@@ -4,6 +4,7 @@ export interface Truck {
   id: string;
   name: string;
   placa: string;
+  serial_number?: string | null;
   anio?: string | null;
   permiso_sct?: string | null;
   numero_permiso_sct?: string | null;
@@ -22,6 +23,7 @@ export interface Truck {
 export interface CreateTruckDto {
   name: string;
   placa: string;
+  serial_number?: string | null;
   anio?: string;
   permiso_sct?: string;
   numero_permiso_sct?: string;

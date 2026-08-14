@@ -67,6 +67,7 @@ export class TruckFormModalComponent implements OnInit {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
       placa: ['', [Validators.required, Validators.minLength(3)]],
+      serial_number: ['', [Validators.maxLength(50)]],
       anio: [''],
       permiso_sct: [''],
       numero_permiso_sct: [''],
@@ -81,7 +82,7 @@ export class TruckFormModalComponent implements OnInit {
   ngOnInit(): void {
     if (this.data.truck) {
       this.truckId = this.data.truck.id;
-      this.applyTruck(this.data.truck);
+      this.photoUrl = this.data.truck.photo?.trim() || null;
       this.setFotosEnabled(true);
       this.loadTruckDetail(this.data.truck.id);
     }
@@ -129,9 +130,11 @@ export class TruckFormModalComponent implements OnInit {
     request$.subscribe({
       next: (res) => {
         this.saving.set(false);
-        this.resultTruck = res.truck;
-        this.applyTruck(res.truck);
-        this.truckId = res.truck.id;
+        const saved = res.truck;
+        this.resultTruck = saved;
+        this.applyTruck(saved);
+        this.form.patchValue({ serial_number: saved.serial_number ?? '' });
+        this.truckId = saved.id;
         const wasNew = this.isNew;
         this.isNew = false;
         this.setFotosEnabled(true);
@@ -187,7 +190,7 @@ export class TruckFormModalComponent implements OnInit {
     this.truckService.uploadTruckPhoto(this.truckId, file).subscribe({
       next: (truck) => {
         this.uploadingPhoto.set(false);
-        this.resultTruck = truck;
+        this.resultTruck = this.resultTruck ? { ...this.resultTruck, ...truck } : truck;
         this.photoUrl = truck.photo?.trim() || null;
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
           data: { message: 'Foto del camión actualizada', type: 'success' },
@@ -215,15 +218,17 @@ export class TruckFormModalComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        // Mantener datos de la fila si el GET falla
+        if (this.data.truck) this.applyTruck(this.data.truck);
       },
     });
   }
 
   private applyTruck(truck: Truck): void {
+    const serial = truck.serial_number;
     this.form.patchValue({
       name: truck.name ?? '',
       placa: truck.placa ?? '',
+      serial_number: serial == null ? '' : String(serial),
       anio: truck.anio ?? '',
       permiso_sct: truck.permiso_sct ?? '',
       numero_permiso_sct: truck.numero_permiso_sct ?? '',
@@ -255,9 +260,11 @@ export class TruckFormModalComponent implements OnInit {
 
   private buildPayload(): CreateTruckDto {
     const raw = this.form.getRawValue();
+    const serial = String(raw.serial_number ?? '').trim();
     const payload: CreateTruckDto = {
       name: String(raw.name).trim(),
       placa: String(raw.placa).trim().toUpperCase(),
+      serial_number: serial || null,
     };
 
     const optionalKeys: (keyof CreateTruckDto)[] = [

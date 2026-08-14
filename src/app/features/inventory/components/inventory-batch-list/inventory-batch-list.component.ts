@@ -11,6 +11,8 @@ import {
   InventoryLocationFilters,
   InventoryLocationFiscal,
 } from '../../models/inventory-location.model';
+import { InventoryStats } from '../../models/inventory-stats.model';
+import { InventoryStatsCardsComponent } from '../inventory-stats-cards/inventory-stats-cards.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -33,7 +35,7 @@ import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-messa
 @Component({
   selector: 'app-inventory-batch-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RemoveTrailingZerosPipe, DatatableWrapperComponent, LucideAngularModule, FilterClearButtonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, RemoveTrailingZerosPipe, DatatableWrapperComponent, LucideAngularModule, FilterClearButtonComponent, InventoryStatsCardsComponent],
   templateUrl: './inventory-batch-list.component.html',
   styleUrl: './inventory-batch-list.component.scss'
 })
@@ -53,6 +55,9 @@ export class InventoryBatchListComponent implements OnInit {
   selectedBranchId = signal<string>('');
   selectedWarehouseId = signal<string>('');
   locations = signal<InventoryLocationFiscal[]>([]);
+  stats = signal<InventoryStats | null>(null);
+  statsLoading = signal(true);
+  statsFailed = signal(false);
 
   selectedFiscal = computed(() =>
     this.locations().find((fiscal) => fiscal.id === this.selectedFiscalId()) ?? null
@@ -126,6 +131,7 @@ export class InventoryBatchListComponent implements OnInit {
 
   ngOnInit() {
     this.loadLocations();
+    this.loadStats();
     this.loadBatches();
   }
 
@@ -167,6 +173,24 @@ export class InventoryBatchListComponent implements OnInit {
       next: (locations) => this.locations.set(locations),
       error: (err) => {
         this.toast.error(resolveHttpErrorMessage(err, 'No se pudo cargar el catálogo de ubicaciones'));
+      }
+    });
+  }
+
+  loadStats(): void {
+    this.statsLoading.set(true);
+    this.statsFailed.set(false);
+
+    this.inventoryService.getStats(this.locationFilters()).subscribe({
+      next: (stats) => {
+        this.stats.set(stats);
+        this.statsLoading.set(false);
+      },
+      error: (err) => {
+        this.stats.set(null);
+        this.statsFailed.set(true);
+        this.statsLoading.set(false);
+        this.toast.error(resolveHttpErrorMessage(err, 'No se pudieron cargar las estadísticas de inventario'));
       }
     });
   }
@@ -235,6 +259,7 @@ export class InventoryBatchListComponent implements OnInit {
       panelClass: 'transfer-dialog-panel',
     }).afterClosed().subscribe((success) => {
       if (success) {
+        this.loadStats();
         this.loadSummary();
         if (this.activeTabIndex() === 0) {
           this.loadBatches();
@@ -260,18 +285,18 @@ export class InventoryBatchListComponent implements OnInit {
     this.selectedFiscalId.set(id || '');
     this.selectedBranchId.set('');
     this.selectedWarehouseId.set('');
-    this.reloadInventory();
+    this.reloadLocationScope();
   }
 
   onBranchChange(id: string): void {
     this.selectedBranchId.set(id || '');
     this.selectedWarehouseId.set('');
-    this.reloadInventory();
+    this.reloadLocationScope();
   }
 
   onWarehouseChange(id: string): void {
     this.selectedWarehouseId.set(id || '');
-    this.reloadInventory();
+    this.reloadLocationScope();
   }
 
   get hasActiveFilters(): boolean {
@@ -283,7 +308,7 @@ export class InventoryBatchListComponent implements OnInit {
     this.selectedFiscalId.set('');
     this.selectedBranchId.set('');
     this.selectedWarehouseId.set('');
-    this.reloadInventory();
+    this.reloadLocationScope();
   }
 
   locationLabel(value?: string | null): string {
@@ -380,6 +405,14 @@ export class InventoryBatchListComponent implements OnInit {
 
   get summaryTotalPages() {
     return Math.ceil(this.summaryTotal / this.summaryLimit);
+  }
+
+  /**
+   * Recarga stats + listado al cambiar razón / sucursal / almacén.
+   */
+  private reloadLocationScope(): void {
+    this.loadStats();
+    this.reloadInventory();
   }
 
   /**

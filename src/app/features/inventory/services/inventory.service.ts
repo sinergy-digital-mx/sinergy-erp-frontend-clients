@@ -17,6 +17,7 @@ import {
   InventoryLocationFilters,
   InventoryLocationFiscal,
 } from '../models/inventory-location.model';
+import { InventoryStats } from '../models/inventory-stats.model';
 import { InventoryMovement } from '../models/inventory-movement.model';
 import { StockReservation } from '../models/stock-reservation.model';
 import { environment } from '../../../../environments/environment';
@@ -175,6 +176,22 @@ export class InventoryService {
           }
           return response.data ?? [];
         }),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  /**
+   * KPIs de inventario. Mismos filtros de ubicación que el listado.
+   * Permiso: inventory:Read. Search y paginación no aplican.
+   */
+  getStats(filters: InventoryLocationFilters = {}): Observable<InventoryStats> {
+    let params = new HttpParams();
+    params = this.applyLocationFilters(params, filters);
+
+    return this.http
+      .get<InventoryStats | { data?: InventoryStats }>(`${this.baseUrl}/stats`, { params })
+      .pipe(
+        map((response) => this.unwrapStats(response)),
         catchError((error) => this.handleError(error))
       );
   }
@@ -381,6 +398,20 @@ export class InventoryService {
     }
 
     return throwError(() => new Error(errorMessage));
+  }
+
+  /**
+   * Acepta el objeto plano o envuelto en `{ data }`.
+   */
+  private unwrapStats(response: InventoryStats | { data?: InventoryStats }): InventoryStats {
+    if (response && typeof response === 'object' && 'total_batches' in response) {
+      return response as InventoryStats;
+    }
+    const wrapped = response as { data?: InventoryStats };
+    if (wrapped.data) {
+      return wrapped.data;
+    }
+    throw new Error('No se pudieron cargar las estadísticas de inventario');
   }
 
   /**

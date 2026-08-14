@@ -4,7 +4,13 @@ import { Observable, from, of, tap, throwError } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
-import { CustomerStatus, UpdateCustomerDto } from '../../features/customers/models/customer-group.model';
+import {
+  CheckCustomerDuplicatesDto,
+  CustomerDuplicatesResponse,
+  CustomerRegistrationOptions,
+  CustomerStatus,
+  UpdateCustomerDto,
+} from '../../features/customers/models/customer-group.model';
 
 export interface CustomersExportFilters {
   search?: string;
@@ -71,6 +77,20 @@ export class CustomerService {
 
   createCustomer(data: any): Observable<any> {
     return this.http.post(`${this.api}/tenant/customers`, data);
+  }
+
+  getRegistrationOptions(): Observable<CustomerRegistrationOptions> {
+    return this.http
+      .get<unknown>(`${this.api}/tenant/customers/registration-options`)
+      .pipe(map((response) => this.normalizeRegistrationOptions(response)));
+  }
+
+  checkCustomerDuplicates(
+    payload: CheckCustomerDuplicatesDto
+  ): Observable<CustomerDuplicatesResponse> {
+    return this.http
+      .post<unknown>(`${this.api}/tenant/customers/duplicates`, payload)
+      .pipe(map((response) => this.normalizeDuplicatesResponse(response)));
   }
 
   exportCustomersExcel(
@@ -158,6 +178,56 @@ export class CustomerService {
     }
 
     return throwError(() => new Error('No se pudo generar el reporte'));
+  }
+
+  private normalizeRegistrationOptions(response: unknown): CustomerRegistrationOptions {
+    const root =
+      response && typeof response === 'object' ? (response as Record<string, unknown>) : {};
+    const nested =
+      root['data'] && typeof root['data'] === 'object' && !Array.isArray(root['data'])
+        ? (root['data'] as Record<string, unknown>)
+        : root;
+    const rawBranches = Array.isArray(nested['branches']) ? nested['branches'] : [];
+    const rawUsers = Array.isArray(nested['users']) ? nested['users'] : [];
+
+    return {
+      branches: rawBranches
+        .map((item) => {
+          const row = (item ?? {}) as Record<string, unknown>;
+          const id = String(row['id'] ?? '').trim();
+          const name = String(row['name'] ?? row['code'] ?? row['display_name'] ?? '').trim();
+          return { id, name: name || id };
+        })
+        .filter((branch) => !!branch.id),
+      users: rawUsers
+        .map((item) => {
+          const row = (item ?? {}) as Record<string, unknown>;
+          const id = String(row['id'] ?? '').trim();
+          return {
+            id,
+            first_name: row['first_name'] != null ? String(row['first_name']) : null,
+            last_name: row['last_name'] != null ? String(row['last_name']) : null,
+            email: row['email'] != null ? String(row['email']) : null,
+          };
+        })
+        .filter((user) => !!user.id),
+    };
+  }
+
+  private normalizeDuplicatesResponse(response: unknown): CustomerDuplicatesResponse {
+    const root =
+      response && typeof response === 'object' ? (response as Record<string, unknown>) : {};
+    const nested =
+      root['data'] && typeof root['data'] === 'object' && !Array.isArray(root['data'])
+        ? (root['data'] as Record<string, unknown>)
+        : root;
+    const matches = Array.isArray(nested['matches'])
+      ? (nested['matches'] as CustomerDuplicatesResponse['matches'])
+      : [];
+    return {
+      found: nested['found'] === true || matches.length > 0,
+      matches,
+    };
   }
 
   // getDetail(id: any): Observable<any> {

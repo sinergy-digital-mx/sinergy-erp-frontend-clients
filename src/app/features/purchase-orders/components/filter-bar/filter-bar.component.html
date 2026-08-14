@@ -73,14 +73,14 @@
         class="filter-bar__select"
         aria-label="Filtrar por razón social"
       >
-        <option [ngValue]="null">Todas las razones sociales</option>
+        <option value="">Todas las razones sociales</option>
         @for (fc of fiscalConfigurations; track fc.id) {
-          <option [ngValue]="fc.id">{{ fc.razon_social }}</option>
+          <option [value]="fc.id">{{ fiscalOptionLabel(fc) }}</option>
         }
       </select>
     </div>
 
-    <!-- Sucursal -->
+    <!-- Sucursal: solo con razón social -->
     <div class="filter-bar__field">
       <select
         id="billingBranch"
@@ -88,14 +88,14 @@
         class="filter-bar__select"
         aria-label="Filtrar por sucursal"
       >
-        <option [ngValue]="null">Todas las sucursales</option>
+        <option value="">Todas las sucursales</option>
         @for (branch of branches; track branch.id) {
-          <option [ngValue]="branch.id">{{ branchLabel(branch) }}</option>
+          <option [value]="branch.id">{{ branchLabel(branch) }}</option>
         }
       </select>
     </div>
 
-    <!-- Almacén -->
+    <!-- Almacén: solo con sucursal -->
     <div class="filter-bar__field">
       <select
         id="warehouse"
@@ -103,9 +103,9 @@
         class="filter-bar__select"
         aria-label="Filtrar por almacén"
       >
-        <option [ngValue]="null">Todos los almacenes</option>
+        <option value="">Todos los almacenes</option>
         @for (warehouse of warehouses; track warehouse.id) {
-          <option [ngValue]="warehouse.id">{{ warehouse.name }}</option>
+          <option [value]="warehouse.id">{{ warehouse.name }}</option>
         }
       </select>
     </div>

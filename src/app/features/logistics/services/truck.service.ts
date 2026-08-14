@@ -35,14 +35,14 @@ export class TruckService {
 
   getTruck(id: string): Observable<Truck> {
     return this.http.get<any>(`${this.baseUrl}/${id}`).pipe(
-      map((response) => this.unwrap(response))
+      map((response) => this.unwrapTruck(response))
     );
   }
 
   createTruck(data: CreateTruckDto): Observable<{ truck: Truck; message?: string }> {
     return this.http.post<any>(this.baseUrl, data).pipe(
       map((response) => ({
-        truck: this.unwrap(response),
+        truck: this.unwrapTruck(response),
         message: response?.message,
       }))
     );
@@ -51,7 +51,7 @@ export class TruckService {
   updateTruck(id: string, data: UpdateTruckDto): Observable<{ truck: Truck; message?: string }> {
     return this.http.put<any>(`${this.baseUrl}/${id}`, data).pipe(
       map((response) => ({
-        truck: this.unwrap(response),
+        truck: this.unwrapTruck(response),
         message: response?.message,
       }))
     );
@@ -68,15 +68,49 @@ export class TruckService {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<any>(`${this.baseUrl}/${id}/photo`, formData).pipe(
-      map((response) => this.unwrap(response))
+      map((response) => this.unwrapTruck(response))
     );
   }
 
-  private unwrap(response: ApiEnvelope<Truck> | Truck): Truck {
-    if (response && typeof response === 'object' && 'data' in response && response.data) {
-      return response.data;
+  /** Envelope `{ data: truck }` o el camión plano. No recorta keys. */
+  private unwrapTruck(response: ApiEnvelope<Truck> | Truck | unknown): Truck {
+    const raw = response as Record<string, unknown> | null;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return raw as unknown as Truck;
     }
-    return response as Truck;
+
+    const inner = raw['data'];
+    const looksLikeTruck =
+      inner &&
+      typeof inner === 'object' &&
+      !Array.isArray(inner) &&
+      ('id' in inner || 'placa' in inner || 'name' in inner || 'serial_number' in inner);
+    const entity = looksLikeTruck
+      ? (inner as Record<string, unknown>)
+      : raw;
+
+    return this.normalizeTruck(entity, raw);
+  }
+
+  private normalizeTruck(
+    entity: Record<string, unknown>,
+    envelope?: Record<string, unknown>
+  ): Truck {
+    const source = Object.prototype.hasOwnProperty.call(entity, 'serial_number')
+      ? entity
+      : envelope && Object.prototype.hasOwnProperty.call(envelope, 'serial_number')
+        ? envelope
+        : null;
+    const serial = source?.['serial_number'];
+    return {
+      ...entity,
+      ...(source
+        ? {
+            serial_number:
+              serial == null || String(serial).trim() === '' ? null : String(serial),
+          }
+        : {}),
+    } as Truck;
   }
 
   private normalizeList(response: any, params?: TruckQueryParams): TruckListResponse {
@@ -84,7 +118,7 @@ export class TruckService {
 
     if (Array.isArray(response)) {
       return {
-        data: response,
+        data: response.map((row) => this.normalizeTruck(row)),
         total: response.length,
         page: 1,
         limit: defaultLimit,
@@ -94,7 +128,8 @@ export class TruckService {
       };
     }
 
-    const data = response?.data ?? [];
+    const rows = Array.isArray(response?.data) ? response.data : [];
+    const data = rows.map((row: Record<string, unknown>) => this.normalizeTruck(row));
     const page = Number(response?.page) || params?.page || 1;
     const limit = Number(response?.limit) || params?.limit || defaultLimit;
     const total = Number(response?.total) || data.length;

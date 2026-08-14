@@ -2,7 +2,7 @@
   background: white;
   border-radius: 12px;
   width: 100%;
-  max-width: 620px;
+  max-width: 840px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -320,8 +320,13 @@
   }
 }
 
-.branches-intro {
+.branches-intro,
+.security-intro {
   margin-bottom: 12px;
+}
+
+.security-error {
+  margin-top: 12px;
 }
 
 .branch-list {

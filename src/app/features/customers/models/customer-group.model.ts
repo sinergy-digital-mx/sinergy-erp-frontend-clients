@@ -80,11 +80,76 @@ export interface Customer {
   additional_phone_country?: string;
   additional_phone_code?: string;
   status?: CustomerStatus | null;
+  registered_billing_branch_id?: string | null;
+  registered_billing_branch?: CustomerRegisteredBranch | null;
+  registered_by_user_id?: string | null;
+  registered_by_user?: CustomerRegisteredByUser | null;
   contracts?: CustomerContract[];
   addresses?: CustomerAddress[];
   activities?: CustomerActivity[];
   created_at?: string;
   updated_at?: string;
+}
+
+/** Sucursal de registro embebida en GET /tenant/customers/:id. */
+export interface CustomerRegisteredBranch {
+  id: string;
+  code: string;
+}
+
+/** Usuario que dio de alta, embebido en GET /tenant/customers/:id. */
+export interface CustomerRegisteredByUser {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+}
+
+/** Catálogo GET /tenant/customers/registration-options. */
+export interface CustomerRegistrationOptions {
+  branches: CustomerRegistrationBranchOption[];
+  users: CustomerRegistrationUserOption[];
+}
+
+export interface CustomerRegistrationBranchOption {
+  id: string;
+  name: string;
+}
+
+export interface CustomerRegistrationUserOption {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+}
+
+export type CustomerDuplicateMatchReason = 'email' | 'phone' | 'name' | 'rfc';
+
+export interface CheckCustomerDuplicatesDto {
+  name?: string;
+  lastname?: string;
+  email?: string;
+  phone?: string;
+  phone_code?: string;
+  fiscal_rfc?: string;
+}
+
+export interface CustomerDuplicateMatch {
+  id: string | number;
+  name: string;
+  lastname?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  phone_code?: string | null;
+  fiscal_rfc?: string | null;
+  company_name?: string | null;
+  status?: CustomerStatus | null;
+  match_reasons: CustomerDuplicateMatchReason[];
+}
+
+export interface CustomerDuplicatesResponse {
+  found: boolean;
+  matches: CustomerDuplicateMatch[];
 }
 
 /**
@@ -117,6 +182,8 @@ export interface UpdateCustomerDto {
   additional_phone?: string;
   additional_phone_country?: string;
   additional_phone_code?: string;
+  registered_billing_branch_id?: string | null;
+  registered_by_user_id?: string | null;
 }
 
 /**

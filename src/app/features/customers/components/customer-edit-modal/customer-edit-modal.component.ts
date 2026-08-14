@@ -13,7 +13,15 @@ import { LucideAngularModule, X } from 'lucide-angular';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { CustomerGroupDropdownComponent } from '../customer-group-dropdown/customer-group-dropdown.component';
-import { Customer, CustomerStatus, UpdateCustomerDto } from '../../models/customer-group.model';
+import {
+  CheckCustomerDuplicatesDto,
+  Customer,
+  CustomerDuplicateMatch,
+  CustomerRegistrationBranchOption,
+  CustomerRegistrationUserOption,
+  CustomerStatus,
+  UpdateCustomerDto,
+} from '../../models/customer-group.model';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
@@ -25,6 +33,12 @@ import {
   resolveFiscalPersonType,
   sanitizeFiscalPersonTypeForApi,
 } from '../../utils/fiscal-person-type.util';
+import { formatRegistrationUserOption } from '../../utils/customer-registration.util';
+import { CUSTOMER_DUPLICATE_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import {
+  CustomerDuplicateWarningDialogComponent,
+  CustomerDuplicateWarningResult,
+} from '../customer-duplicate-warning-dialog/customer-duplicate-warning-dialog.component';
 
 @Component({
   selector: 'app-customer-edit-modal',
@@ -50,12 +64,18 @@ export class CustomerEditModalComponent {
   update = signal(false);
   selectedGroup = signal<any>(null);
   isCreateMode = signal(false);
-  activeTab = signal<'customer' | 'credit' | 'fiscal'>('customer');
+  activeTab = signal<'customer' | 'credit' | 'fiscal' | 'registration'>('customer');
   tabs: TabItem[] = [
     { id: 'customer', title: 'Información del Cliente' },
     { id: 'credit', title: 'Credito' },
-    { id: 'fiscal', title: 'Información Fiscal' }
+    { id: 'fiscal', title: 'Información Fiscal' },
+    { id: 'registration', title: 'Registro' }
   ];
+  registrationBranches = signal<CustomerRegistrationBranchOption[]>([]);
+  registrationUsers = signal<CustomerRegistrationUserOption[]>([]);
+  registrationOptionsLoading = signal(false);
+  /** Tras “Continuar de todos modos”, no volver a consultar duplicados en este intento. */
+  private duplicateWarningAccepted = false;
   readonly fiscalPersonTypeOptions = FISCAL_PERSON_TYPE_OPTIONS;
   private readonly destroyRef = inject(DestroyRef);
   warehouses = signal<Warehouse[]>([]);
@@ -103,6 +123,8 @@ export class CustomerEditModalComponent {
       additional_phone_code: ['+52'],
       additional_phone_country: ['MX'],
       status_id: [null as number | null],
+      registered_billing_branch_id: [''],
+      registered_by_user_id: [''],
     });
 
     if (this.data?.customer) {
@@ -141,6 +163,8 @@ export class CustomerEditModalComponent {
         additional_phone_code: this.data.customer.additional_phone_code || '+52',
         additional_phone_country: this.data.customer.additional_phone_country || 'MX',
         status_id: this.resolveStatusId(this.data.customer),
+        registered_billing_branch_id: this.data.customer.registered_billing_branch_id || '',
+        registered_by_user_id: this.data.customer.registered_by_user_id || '',
       });
       this.selectedGroup.set(
         this.data.customer.group ??
@@ -153,9 +177,15 @@ export class CustomerEditModalComponent {
       }
     } else {
       this.isCreateMode.set(true);
+      const userId = this.authService.user_info?.sub;
+      if (userId) {
+        this.form.patchValue({ registered_by_user_id: userId });
+      }
+      this.form.get('registered_by_user_id')?.disable({ emitEvent: false });
     }
     this.loadWarehouses();
     this.loadStatuses();
+    this.loadRegistrationOptions();
     this.setupFiscalRfcAutoPersonType();
   }
 
@@ -205,10 +235,87 @@ export class CustomerEditModalComponent {
     });
   }
 
+  private loadRegistrationOptions(): void {
+    this.registrationOptionsLoading.set(true);
+    this.customerService.getRegistrationOptions().subscribe({
+      next: (options) => {
+        this.registrationBranches.set(options?.branches ?? []);
+        this.registrationUsers.set(options?.users ?? []);
+        this.ensureSavedRegistrationOptions();
+        if (this.isCreateMode()) {
+          this.applyRegistrationPrefill();
+        }
+        this.registrationOptionsLoading.set(false);
+      },
+      error: () => {
+        if (this.isCreateMode()) {
+          this.applyRegistrationPrefill();
+        }
+        this.registrationOptionsLoading.set(false);
+      },
+    });
+  }
+
+  private ensureSavedRegistrationOptions(): void {
+    const customer = this.data?.customer;
+    if (!customer) return;
+
+    const branchId = customer.registered_billing_branch_id;
+    if (branchId && !this.registrationBranches().some((branch) => branch.id === branchId)) {
+      this.registrationBranches.update((branches) => [
+        {
+          id: branchId,
+          name: customer.registered_billing_branch?.code || branchId,
+        },
+        ...branches,
+      ]);
+    }
+
+    const userId = customer.registered_by_user_id;
+    if (userId && !this.registrationUsers().some((user) => user.id === userId)) {
+      this.registrationUsers.update((users) => [
+        customer.registered_by_user ?? { id: userId },
+        ...users,
+      ]);
+    }
+  }
+
+  private applyRegistrationPrefill(): void {
+    const branchId = this.authService.getBillingBranchId();
+    if (branchId && this.registrationBranches().some((branch) => branch.id === branchId)) {
+      this.form.patchValue({ registered_billing_branch_id: branchId });
+    }
+
+    const userId = this.authService.user_info?.sub;
+    if (userId) {
+      this.form.patchValue({ registered_by_user_id: userId });
+    }
+    this.form.get('registered_by_user_id')?.disable({ emitEvent: false });
+  }
+
+  registeredByCreateLabel(): string {
+    const userId = this.authService.user_info?.sub;
+    const fromCatalog = this.registrationUsers().find((user) => user.id === userId);
+    if (fromCatalog) {
+      return formatRegistrationUserOption(fromCatalog);
+    }
+    return this.authService.user_info?.email || 'Usuario actual';
+  }
+
+  private emptyToNull(value: unknown): string | null {
+    if (value == null) return null;
+    const trimmed = String(value).trim();
+    return trimmed === '' ? null : trimmed;
+  }
+
   setActiveTab(tab: string): void {
-    if (tab === 'customer' || tab === 'credit' || tab === 'fiscal') {
+    if (tab === 'customer' || tab === 'credit' || tab === 'fiscal' || tab === 'registration') {
       this.activeTab.set(tab);
     }
+  }
+
+  registrationUserLabel(user: CustomerRegistrationUserOption): string {
+    return formatRegistrationUserOption(user);
   }
 
   private parseNullableInteger(value: unknown): number | null {
@@ -383,7 +490,9 @@ export class CustomerEditModalComponent {
       fiscal_city: trim(v.fiscal_city) || undefined,
       fiscal_state: trim(v.fiscal_state) || undefined,
       fiscal_postal_code: trim(v.fiscal_postal_code) || undefined,
-      group_id: this.selectedGroup()?.id ?? null
+      group_id: this.selectedGroup()?.id ?? null,
+      registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),
+      registered_by_user_id: this.emptyToNull(v.registered_by_user_id),
     };
     if (trim(v.additional_name)) dto.additional_name = trim(v.additional_name);
     if (trim(v.additional_lastname)) dto.additional_lastname = trim(v.additional_lastname);
@@ -412,9 +521,71 @@ export class CustomerEditModalComponent {
       return;
     }
 
+    if (this.duplicateWarningAccepted) {
+      this.postCreateCustomer();
+      return;
+    }
+
+    const duplicatesPayload = this.buildDuplicatesPayload();
+    if (!duplicatesPayload) {
+      this.postCreateCustomer();
+      return;
+    }
+
+    this.loading.set(true);
+    this.customerService.checkCustomerDuplicates(duplicatesPayload).subscribe({
+      next: (response) => {
+        if (response?.found && response.matches?.length) {
+          this.loading.set(false);
+          this.openDuplicateWarning(response.matches);
+          return;
+        }
+        this.postCreateCustomer();
+      },
+      error: () => {
+        this.postCreateCustomer();
+      },
+    });
+  }
+
+  private buildDuplicatesPayload(): CheckCustomerDuplicatesDto | null {
+    const v = this.form.getRawValue();
+    const trim = (s: string | null | undefined) => (typeof s === 'string' ? s.trim() : '');
+    const payload: CheckCustomerDuplicatesDto = {};
+
+    if (trim(v.email)) payload.email = trim(v.email);
+    if (trim(v.phone)) {
+      payload.phone = trim(v.phone);
+      if (trim(v.phone_code)) payload.phone_code = trim(v.phone_code);
+    }
+    if (trim(v.name) && trim(v.lastname)) {
+      payload.name = trim(v.name);
+      payload.lastname = trim(v.lastname);
+    }
+    if (trim(v.fiscal_rfc)) payload.fiscal_rfc = trim(v.fiscal_rfc);
+
+    return Object.keys(payload).length > 0 ? payload : null;
+  }
+
+  private openDuplicateWarning(matches: CustomerDuplicateMatch[]): void {
+    this.dialog
+      .open(CustomerDuplicateWarningDialogComponent, {
+        ...CUSTOMER_DUPLICATE_DIALOG_CONFIG,
+        data: { matches },
+      })
+      .afterClosed()
+      .subscribe((result: CustomerDuplicateWarningResult | undefined) => {
+        if (result?.action === 'continue') {
+          this.duplicateWarningAccepted = true;
+          this.postCreateCustomer();
+        }
+      });
+  }
+
+  private postCreateCustomer(): void {
     this.loading.set(true);
 
-    const v = this.form.value;
+    const v = this.form.getRawValue();
     const trim = (s: string | null | undefined) => (typeof s === 'string' ? s.trim() : '');
     const payload: Record<string, unknown> = {
       name: v.name,
@@ -434,7 +605,9 @@ export class CustomerEditModalComponent {
       fiscal_city: trim(v.fiscal_city) || undefined,
       fiscal_state: trim(v.fiscal_state) || undefined,
       fiscal_postal_code: trim(v.fiscal_postal_code) || undefined,
-      group_id: this.selectedGroup()?.id ?? null
+      group_id: this.selectedGroup()?.id ?? null,
+      registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),
+      registered_by_user_id: this.emptyToNull(v.registered_by_user_id),
     };
     if (trim(v.additional_name)) payload.additional_name = trim(v.additional_name);
     if (trim(v.additional_lastname)) payload.additional_lastname = trim(v.additional_lastname);

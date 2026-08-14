@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
@@ -35,9 +35,9 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   dateFromControl = new FormControl<string>('', { nonNullable: true });
   dateToControl = new FormControl<string>('', { nonNullable: true });
   statusControl = new FormControl<OrderStatus | null>(null);
-  fiscalConfigurationControl = new FormControl<string | null>(null);
-  billingBranchControl = new FormControl<string | null>(null);
-  warehouseControl = new FormControl<string | null>(null);
+  fiscalConfigurationControl = new FormControl<string>('', { nonNullable: true });
+  billingBranchControl = new FormControl<string>('', { nonNullable: true });
+  warehouseControl = new FormControl<string>('', { nonNullable: true });
 
   fiscalConfigurations: FiscalConfiguration[] = [];
   branches: Branch[] = [];
@@ -63,7 +63,8 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   constructor(
     private fiscalConfigurationService: FiscalConfigurationService,
     private branchService: BranchService,
-    private warehouseService: WarehouseService
+    private warehouseService: WarehouseService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   get hasActiveFilters(): boolean {
@@ -90,9 +91,9 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.billingBranchControl.disable({ emitEvent: false });
+    this.warehouseControl.disable({ emitEvent: false });
     this.loadFiscalConfigurations();
-    this.loadBranches();
-    this.loadWarehouses();
 
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
@@ -125,6 +126,12 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     this.warehouseControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.emitFilters());
+  }
+
+  fiscalOptionLabel(fc: FiscalConfiguration): string {
+    const name = fc.razon_social?.trim() || 'Sin razón social';
+    const rfc = fc.rfc?.trim();
+    return rfc ? `${name} (${rfc})` : name;
   }
 
   branchLabel(branch: Branch): string {
@@ -183,12 +190,14 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     this.dateFromControl.setValue('', { emitEvent: false });
     this.dateToControl.setValue('', { emitEvent: false });
     this.statusControl.setValue(null, { emitEvent: false });
-    this.fiscalConfigurationControl.setValue(null, { emitEvent: false });
-    this.billingBranchControl.setValue(null, { emitEvent: false });
-    this.warehouseControl.setValue(null, { emitEvent: false });
+    this.fiscalConfigurationControl.setValue('', { emitEvent: false });
+    this.billingBranchControl.setValue('', { emitEvent: false });
+    this.warehouseControl.setValue('', { emitEvent: false });
+    this.billingBranchControl.disable({ emitEvent: false });
+    this.warehouseControl.disable({ emitEvent: false });
+    this.branches = [];
+    this.warehouses = [];
     this.showCustomDateRange = false;
-    this.loadBranches();
-    this.loadWarehouses();
     this.emitFilters();
   }
 
@@ -203,16 +212,35 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private onFiscalConfigurationChange(): void {
-    this.billingBranchControl.setValue(null, { emitEvent: false });
-    this.warehouseControl.setValue(null, { emitEvent: false });
-    this.loadBranches(this.fiscalConfigurationControl.value || undefined);
-    this.loadWarehouses(this.billingBranchControl.value || undefined);
+    const fiscalId = this.fiscalConfigurationControl.value || undefined;
+    this.billingBranchControl.setValue('', { emitEvent: false });
+    this.warehouseControl.setValue('', { emitEvent: false });
+    this.warehouses = [];
+    this.warehouseControl.disable({ emitEvent: false });
+
+    if (fiscalId) {
+      this.billingBranchControl.enable({ emitEvent: false });
+      this.loadBranches(fiscalId);
+    } else {
+      this.billingBranchControl.disable({ emitEvent: false });
+      this.branches = [];
+    }
+
     this.emitFilters();
   }
 
   private onBillingBranchChange(): void {
-    this.warehouseControl.setValue(null, { emitEvent: false });
-    this.loadWarehouses(this.billingBranchControl.value || undefined);
+    const branchId = this.billingBranchControl.value || undefined;
+    this.warehouseControl.setValue('', { emitEvent: false });
+
+    if (branchId) {
+      this.warehouseControl.enable({ emitEvent: false });
+      this.loadWarehouses(branchId);
+    } else {
+      this.warehouseControl.disable({ emitEvent: false });
+      this.warehouses = [];
+    }
+
     this.emitFilters();
   }
 
@@ -221,42 +249,42 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
       .listFiscalConfigurations({ status: 'active', limit: 100 })
       .subscribe({
         next: (res) => {
-          this.fiscalConfigurations = res.data ?? [];
+          this.fiscalConfigurations = Array.isArray(res) ? res : (res.data ?? []);
+          this.cdr.detectChanges();
         },
         error: () => {
           this.fiscalConfigurations = [];
+          this.cdr.detectChanges();
         },
       });
   }
 
-  private loadBranches(fiscalConfigurationId?: string): void {
-    const request$ = fiscalConfigurationId
-      ? this.branchService.getBranches(fiscalConfigurationId)
-      : this.branchService.getAllBranches();
-
-    request$.subscribe({
+  private loadBranches(fiscalConfigurationId: string): void {
+    this.branchService.getBranches(fiscalConfigurationId).subscribe({
       next: (branches) => {
         this.branches = Array.isArray(branches) ? branches : [];
+        this.cdr.detectChanges();
       },
       error: () => {
         this.branches = [];
+        this.cdr.detectChanges();
       },
     });
   }
 
-  private loadWarehouses(billingBranchId?: string): void {
-    const params = billingBranchId
-      ? { billing_branch_id: billingBranchId, status: 'active' as const, limit: 100 }
-      : { status: 'active' as const, limit: 100 };
-
-    this.warehouseService.getWarehouses(params).subscribe({
-      next: (res) => {
-        this.warehouses = res.data ?? [];
-      },
-      error: () => {
-        this.warehouses = [];
-      },
-    });
+  private loadWarehouses(billingBranchId: string): void {
+    this.warehouseService
+      .getWarehouses({ billing_branch_id: billingBranchId, status: 'active', limit: 100 })
+      .subscribe({
+        next: (res) => {
+          this.warehouses = res.data ?? [];
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.warehouses = [];
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   private emitFilters(): void {
