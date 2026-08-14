@@ -180,6 +180,15 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
     return '—';
   }
 
+  getManagerLabel(): string {
+    const manager = this.user.manager;
+    if (!manager) {
+      return '—';
+    }
+    const name = `${manager.first_name || ''} ${manager.last_name || ''}`.trim();
+    return name || manager.email || '—';
+  }
+
   openEditDialog(): void {
     this.dialog.open(UserDetailModalComponent, {
       width: '840px',

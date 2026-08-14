@@ -38,6 +38,11 @@ export class DataMapperService {
       billing_branch: backendUser.billing_branch ?? backendUser.billingBranch ?? null,
       has_all_branches_access:
         backendUser.has_all_branches_access ?? backendUser.hasAllBranchesAccess,
+      is_employee: backendUser.is_employee ?? backendUser.isEmployee,
+      employee: backendUser.employee ?? null,
+      is_manager: backendUser.is_manager ?? backendUser.isManager,
+      manager: backendUser.manager ?? null,
+      reports: Array.isArray(backendUser.reports) ? backendUser.reports : undefined,
       ...backendUser // Include any additional fields
     };
   }

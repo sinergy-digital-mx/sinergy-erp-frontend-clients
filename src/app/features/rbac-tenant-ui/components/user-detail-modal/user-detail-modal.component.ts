@@ -6,7 +6,7 @@ import { forkJoin, of } from 'rxjs';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { BranchService } from '../../../settings/services/branch.service';
 import { Branch } from '../../../settings/models/branch.model';
-import { User, UserEmployeeProfile, POS_USER_TYPE_OPTIONS, PosUserType, isOpenGlobalCutBlockMessage, userHasOpenGlobalCut, POS_OPEN_GLOBAL_CUT_BLOCK_MESSAGE } from '../../models';
+import { User, UserEmployeeProfile, ManagerReport, POS_USER_TYPE_OPTIONS, PosUserType, isOpenGlobalCutBlockMessage, userHasOpenGlobalCut, POS_OPEN_GLOBAL_CUT_BLOCK_MESSAGE } from '../../models';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
@@ -34,6 +34,7 @@ export class UserDetailModalComponent implements OnInit {
     { id: 'general', title: 'Información general' },
     { id: 'pos', title: 'POS' },
     { id: 'employee', title: 'Empleado' },
+    { id: 'manager', title: 'Gerente' },
     { id: 'branches', title: 'Sucursales asignadas' }
   ];
 
@@ -53,6 +54,21 @@ export class UserDetailModalComponent implements OnInit {
   employeeId = signal<string | null>(null);
   photoUrl = signal<string | null>(null);
   uploadingPhoto = signal(false);
+
+  /** Usuarios a cargo (tab Gerente). Independiente de Guardar cambios. */
+  reports = signal<ManagerReport[]>([]);
+  allUsers = signal<User[]>([]);
+  loadingReports = signal(false);
+  addingReport = signal(false);
+  removingReportId = signal<string | null>(null);
+  selectedReportUserId = signal('');
+  persistingManager = signal(false);
+  /** Valor persistido en API; agregar/quitar reportes solo si ya es gerente guardado. */
+  savedIsManager = false;
+  /** Si hubo cambios de gerente/reportes, al cerrar se refresca la lista. */
+  private managerDirty = false;
+  private editedUserId: string | null = null;
+
   private hireDate = signal<string | null>(null);
   private monthlySalary = signal<number>(0);
 
@@ -68,6 +84,27 @@ export class UserDetailModalComponent implements OnInit {
   payrollPreview = computed(() =>
     calculatePayroll(this.monthlySalary(), Math.max(1, this.yearsOfService()))
   );
+
+  /**
+   * Candidatos a asignar: misma org, sin el gerente actual,
+   * sin los que ya están en reports y sin los que ya tienen responsable.
+   */
+  assignableUsers = computed(() => {
+    const managerId = this.editedUserId;
+    const reportIds = new Set(this.reports().map((item) => item.id));
+    return this.allUsers().filter((user) => {
+      if (managerId && user.id === managerId) {
+        return false;
+      }
+      if (reportIds.has(user.id)) {
+        return false;
+      }
+      if (user.manager?.id) {
+        return false;
+      }
+      return true;
+    });
+  });
 
   private originalIsPosUser = false;
   private originalBillingBranchId: string | null = null;
@@ -106,6 +143,7 @@ export class UserDetailModalComponent implements OnInit {
     private employeeService: EmployeeService
   ) {
     this.isNew = data.isNew ?? !data.user;
+    this.editedUserId = data.user?.id ?? null;
     this.form = this.createForm();
     this.passwordForm = this.fb.group({
       new_password: ['', [Validators.required, Validators.minLength(8)]],
@@ -117,6 +155,7 @@ export class UserDetailModalComponent implements OnInit {
     this.setupPosFieldBehavior();
     this.setupBranchFieldBehavior();
     this.setupEmployeeFieldBehavior();
+    this.setupManagerFieldBehavior();
     this.loadData();
   }
 
@@ -128,6 +167,7 @@ export class UserDetailModalComponent implements OnInit {
     this.hasOpenGlobalCut.set(!this.isNew && userHasOpenGlobalCut(user));
 
     const employee = user?.employee ?? null;
+    this.savedIsManager = !this.isNew && !!user?.is_manager;
 
     return this.fb.group({
       first_name: [user?.first_name || '', Validators.required],
@@ -143,6 +183,7 @@ export class UserDetailModalComponent implements OnInit {
 
       // Employee (RH / nómina)
       is_employee: [user?.is_employee ?? false],
+      is_manager: [user?.is_manager ?? false],
       employee: this.fb.group({
         employee_code: [employee?.employee_code ?? ''],
         rfc: [employee?.rfc ?? ''],
@@ -308,6 +349,7 @@ export class UserDetailModalComponent implements OnInit {
         this.originalBillingBranchId = billingBranchId ?? null;
         this.applyOpenCutEditLock();
         this.loadEmployeeProfile();
+        this.loadManagerData();
         this.loading.set(false);
       },
       error: () => {
@@ -334,7 +376,13 @@ export class UserDetailModalComponent implements OnInit {
     this.applyEmployeeProfile(this.data.user);
 
     this.userService.getUserById(this.data.user.id).subscribe({
-      next: (user) => this.applyEmployeeProfile(user),
+      next: (user) => {
+        this.applyEmployeeProfile(user);
+        this.applyManagerState(user);
+        if (user.is_manager && user.id && !this.loadingReports()) {
+          this.loadReports(user.id);
+        }
+      },
       error: () => {
         /* keep whatever we already have from the list row */
       },
@@ -383,6 +431,202 @@ export class UserDetailModalComponent implements OnInit {
       return '';
     }
     return value.length >= 10 ? value.slice(0, 10) : value;
+  }
+
+  /** Agregar/quitar gente a cargo usa endpoints propios; requiere gerente ya persistido. */
+  get canManageReports(): boolean {
+    return !!this.editedUserId && this.savedIsManager;
+  }
+
+  private setupManagerFieldBehavior(): void {
+    this.form.get('is_manager')?.valueChanges.subscribe((value: boolean) => {
+      this.persistManagerFlag(!!value);
+    });
+  }
+
+  /** En edición, el toggle se guarda al instante y el modal no se cierra. */
+  private persistManagerFlag(isManager: boolean): void {
+    if (this.isNew || !this.editedUserId) {
+      return;
+    }
+    if (isManager === this.savedIsManager || this.persistingManager()) {
+      return;
+    }
+
+    const userId = this.editedUserId;
+    this.persistingManager.set(true);
+    this.userService.updateUser(userId, { is_manager: isManager }).subscribe({
+      next: () => {
+        this.persistingManager.set(false);
+        this.savedIsManager = isManager;
+        this.managerDirty = true;
+        if (this.data.user) {
+          this.data.user.is_manager = isManager;
+        }
+        if (isManager) {
+          this.loadReports(userId);
+        } else {
+          this.reports.set([]);
+        }
+      },
+      error: (error) => {
+        this.persistingManager.set(false);
+        this.form.get('is_manager')?.setValue(this.savedIsManager, { emitEvent: false });
+        this.interceptorService.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: this.extractBackendMessages(error)[0] || 'No se pudo actualizar el gerente',
+        });
+      },
+    });
+  }
+
+  private loadManagerData(): void {
+    this.applyManagerState(this.data.user);
+
+    this.userService.getUsers().subscribe({
+      next: (users) => this.allUsers.set(users),
+      error: () => {
+        /* el selector queda vacío; se puede reintentar al reabrir */
+      },
+    });
+
+    if (this.isNew || !this.editedUserId) {
+      return;
+    }
+
+    if (this.savedIsManager) {
+      this.loadReports(this.editedUserId);
+    }
+  }
+
+  private applyManagerState(user: User | null): void {
+    if (!user) {
+      return;
+    }
+
+    if (user.is_manager != null) {
+      this.form.get('is_manager')?.setValue(!!user.is_manager, { emitEvent: false });
+      this.savedIsManager = !!user.is_manager;
+    }
+
+    if (Array.isArray(user.reports)) {
+      this.reports.set(user.reports);
+    }
+  }
+
+  private loadReports(userId: string): void {
+    this.loadingReports.set(true);
+    this.userService.getManagerReports(userId).subscribe({
+      next: (result) => {
+        this.loadingReports.set(false);
+        this.savedIsManager = !!result.is_manager;
+        this.form.get('is_manager')?.setValue(!!result.is_manager, { emitEvent: false });
+        this.reports.set(result.reports ?? []);
+      },
+      error: (error) => {
+        this.loadingReports.set(false);
+        this.interceptorService.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: this.extractBackendMessages(error)[0] || 'No se pudieron cargar los usuarios a cargo',
+        });
+      },
+    });
+  }
+
+  reportDisplayName(item: { first_name?: string; last_name?: string; email?: string }): string {
+    const name = `${item.first_name || ''} ${item.last_name || ''}`.trim();
+    return name || item.email || 'Usuario';
+  }
+
+  onReportUserSelected(event: Event): void {
+    this.selectedReportUserId.set((event.target as HTMLSelectElement).value || '');
+  }
+
+  addReport(): void {
+    const managerId = this.editedUserId;
+    const reportUserId = this.selectedReportUserId();
+    if (!this.canManageReports || !managerId || !reportUserId) {
+      return;
+    }
+
+    if (this.reports().some((item) => item.id === reportUserId)) {
+      return;
+    }
+
+    this.addingReport.set(true);
+    this.userService.addManagerReport(managerId, reportUserId).subscribe({
+      next: (result) => {
+        this.addingReport.set(false);
+        const added = result.report;
+        if (added?.id && !this.reports().some((item) => item.id === added.id)) {
+          this.reports.update((list) => [...list, added]);
+        }
+        if (added?.id) {
+          this.allUsers.update((users) =>
+            users.map((user) =>
+              user.id === added.id
+                ? {
+                    ...user,
+                    manager: {
+                      id: managerId,
+                      email: this.data.user?.email || '',
+                      first_name: this.data.user?.first_name,
+                      last_name: this.data.user?.last_name,
+                    },
+                  }
+                : user
+            )
+          );
+        }
+        this.selectedReportUserId.set('');
+        this.managerDirty = true;
+        this.interceptorService.openSnackbar({
+          type: 'success',
+          title: 'Éxito',
+          message: result.message || 'Usuario asignado al gerente',
+        });
+      },
+      error: (error) => this.onManagerReportError(error),
+    });
+  }
+
+  removeReport(reportUserId: string): void {
+    const managerId = this.editedUserId;
+    if (!this.canManageReports || !managerId || !reportUserId) {
+      return;
+    }
+
+    this.removingReportId.set(reportUserId);
+    this.userService.removeManagerReport(managerId, reportUserId).subscribe({
+      next: (result) => {
+        this.removingReportId.set(null);
+        this.reports.update((list) => list.filter((item) => item.id !== reportUserId));
+        this.allUsers.update((users) =>
+          users.map((user) => (user.id === reportUserId ? { ...user, manager: null } : user))
+        );
+        this.managerDirty = true;
+        this.interceptorService.openSnackbar({
+          type: 'success',
+          title: 'Éxito',
+          message: result.message || 'Usuario desasignado del gerente',
+        });
+      },
+      error: (error) => this.onManagerReportError(error),
+    });
+  }
+
+  private onManagerReportError(error: any): void {
+    this.addingReport.set(false);
+    this.removingReportId.set(null);
+    const message =
+      this.extractBackendMessages(error)[0] || 'No se pudo actualizar los usuarios a cargo';
+    this.interceptorService.openSnackbar({
+      type: 'error',
+      title: 'Error',
+      message,
+    });
   }
 
   onPhotoSelected(event: Event): void {
@@ -579,8 +823,8 @@ export class UserDetailModalComponent implements OnInit {
   }
 
   close(): void {
-    if (!this.saving() && !this.changingPassword()) {
-      this.dialogRef.close(false);
+    if (!this.saving() && !this.changingPassword() && !this.persistingManager()) {
+      this.dialogRef.close(this.managerDirty);
     }
   }
 
@@ -613,6 +857,7 @@ export class UserDetailModalComponent implements OnInit {
     }
 
     const isEmployee = !!this.form.get('is_employee')?.value;
+    const isManager = !!this.form.get('is_manager')?.value;
     if (isEmployee) {
       const employeeGroup = this.form.get('employee') as FormGroup;
       if (employeeGroup.invalid) {
@@ -684,6 +929,7 @@ export class UserDetailModalComponent implements OnInit {
       is_pos_user: isPosUser,
       pos_user_type: isPosUser ? posUserType : null,
       is_employee: isEmployee,
+      is_manager: isManager,
     };
 
     if (isEmployee) {
@@ -709,14 +955,14 @@ export class UserDetailModalComponent implements OnInit {
       };
 
       this.userService.createUser(payload as any).subscribe({
-        next: () => this.onSaveSuccess('Usuario creado exitosamente'),
+        next: (created) => this.onSaveSuccess('Usuario creado exitosamente', created),
         error: (error) => this.onSaveError(error)
       });
       return;
     }
 
     this.userService.updateUser(this.data.user!.id, commonPayload as any).subscribe({
-      next: () => this.onSaveSuccess('Usuario actualizado correctamente'),
+      next: (updated) => this.onSaveSuccess('Usuario actualizado correctamente', updated),
       error: (error) => this.onSaveError(error)
     });
   }
@@ -800,14 +1046,52 @@ export class UserDetailModalComponent implements OnInit {
     this.activeTab = 'pos';
   }
 
-  private onSaveSuccess(message: string): void {
+  private onSaveSuccess(message: string, savedUser?: User | null): void {
     this.saving.set(false);
     this.interceptorService.openSnackbar({
       type: 'success',
       title: 'Éxito',
       message
     });
+
+    const isManager = !!this.form.getRawValue().is_manager;
+    const userId = savedUser?.id || this.editedUserId;
+    if (isManager && userId) {
+      this.stayOpenAsManager(savedUser ?? this.data.user, userId);
+      return;
+    }
+
     this.dialogRef.close(true);
+  }
+
+  /** Tras guardar un gerente, el modal sigue abierto para asignar gente a cargo. */
+  private stayOpenAsManager(user: User | null, userId: string): void {
+    this.isNew = false;
+    this.editedUserId = userId;
+    this.savedIsManager = true;
+    this.managerDirty = true;
+    this.activeTab = 'manager';
+    if (user) {
+      this.data.user = { ...user, id: userId, is_manager: true };
+    } else if (this.data.user) {
+      this.data.user.is_manager = true;
+    } else {
+      this.data.user = {
+        id: userId,
+        email: this.form.get('email')?.value,
+        first_name: this.form.get('first_name')?.value,
+        last_name: this.form.get('last_name')?.value,
+        status: 'active',
+        is_manager: true,
+      };
+    }
+    this.form.get('is_manager')?.setValue(true, { emitEvent: false });
+    this.loadReports(userId);
+    if (this.allUsers().length === 0) {
+      this.userService.getUsers().subscribe({
+        next: (users) => this.allUsers.set(users),
+      });
+    }
   }
 
   /** NestJS often returns `message` as string[] for class-validator errors. */
@@ -898,6 +1182,8 @@ export class UserDetailModalComponent implements OnInit {
     } else if (/employee\./i.test(joinedForCheck)) {
       this.activeTab = 'employee';
       (this.form.get('employee') as FormGroup)?.markAllAsTouched();
+    } else if (/is_manager|gerente/i.test(joinedForCheck)) {
+      this.activeTab = 'manager';
     } else if (joinedForCheck.includes('sucursal')) {
       this.activeTab = 'branches';
     } else if (joinedForCheck.includes('pos_user_type')) {

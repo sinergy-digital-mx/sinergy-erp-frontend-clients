@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { UserService } from './user.service';
 import { User, Role } from '../models';
+import { environment } from '../../../../environments/environment';
 
 describe('UserService', () => {
   let service: UserService;
@@ -426,6 +427,63 @@ describe('UserService', () => {
       const req2 = httpMock.expectOne('/api/tenant/users');
       req2.flush(mockUsers);
       await secondPromise;
+    });
+  });
+
+  describe('manager reports', () => {
+    const managerId = 'mgr-1';
+    const reportUser = {
+      id: 'user-2',
+      email: 'ana@mzn.mx',
+      first_name: 'Ana',
+      last_name: 'López',
+      phone: null,
+      status: { id: 1, code: 'active', name: 'Active' },
+    };
+
+    it('getManagerReports lista usuarios a cargo', async () => {
+      const promise = new Promise((resolve) => {
+        service.getManagerReports(managerId).subscribe((res) => resolve(res));
+      });
+
+      const req = httpMock.expectOne(`${environment.api}/tenant/users/${managerId}/reports`);
+      expect(req.request.method).toBe('GET');
+      req.flush({ is_manager: true, reports: [reportUser] });
+
+      const result = await promise;
+      expect(result).toEqual({ is_manager: true, reports: [reportUser] });
+    });
+
+    it('addManagerReport envía user_id y limpia cache', async () => {
+      const promise = new Promise((resolve) => {
+        service.addManagerReport(managerId, reportUser.id).subscribe((res) => resolve(res));
+      });
+
+      const req = httpMock.expectOne(`${environment.api}/tenant/users/${managerId}/reports`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ user_id: reportUser.id });
+      req.flush({ message: 'Usuario asignado al gerente', report: reportUser });
+
+      const result = await promise;
+      expect(result).toEqual({
+        message: 'Usuario asignado al gerente',
+        report: reportUser,
+      });
+    });
+
+    it('removeManagerReport llama DELETE y limpia cache', async () => {
+      const promise = new Promise((resolve) => {
+        service.removeManagerReport(managerId, reportUser.id).subscribe((res) => resolve(res));
+      });
+
+      const req = httpMock.expectOne(
+        `${environment.api}/tenant/users/${managerId}/reports/${reportUser.id}`
+      );
+      expect(req.request.method).toBe('DELETE');
+      req.flush({ message: 'Usuario desasignado del gerente' });
+
+      const result = await promise;
+      expect(result).toEqual({ message: 'Usuario desasignado del gerente' });
     });
   });
 });

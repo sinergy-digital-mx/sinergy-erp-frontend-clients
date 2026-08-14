@@ -101,6 +101,34 @@ export interface UserEmployeeProfile {
   payroll?: Record<string, unknown>;
 }
 
+/** Gerente responsable de un usuario (campo `manager` del GET de usuario). */
+export interface UserManagerSummary {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+/** Usuario a cargo de un gerente (tab Gerente / GET reports). */
+export interface ManagerReport {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string | null;
+  status?: StatusObject | UserStatus | string;
+}
+
+export interface ManagerReportsResponse {
+  is_manager: boolean;
+  reports: ManagerReport[];
+}
+
+export interface AddManagerReportResponse {
+  message: string;
+  report: ManagerReport;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -122,6 +150,9 @@ export interface User {
   has_open_global_cut?: boolean;
   is_employee?: boolean;
   employee?: UserEmployeeProfile | null;
+  is_manager?: boolean;
+  manager?: UserManagerSummary | null;
+  reports?: ManagerReport[];
   [key: string]: any;
 }
 
@@ -151,6 +182,7 @@ export interface CreateUserDto {
   has_open_global_cut?: boolean;
   is_employee?: boolean;
   employee?: UserEmployeeProfile | null;
+  is_manager?: boolean;
 }
 
 export interface UpdateUserDto {
@@ -166,6 +198,7 @@ export interface UpdateUserDto {
   has_open_global_cut?: boolean;
   is_employee?: boolean;
   employee?: UserEmployeeProfile | null;
+  is_manager?: boolean;
 }
 
 /** Payload de PUT /tenant/users/:userId/password (solo el usuario logueado). */

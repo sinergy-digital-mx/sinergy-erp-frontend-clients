@@ -100,6 +100,18 @@
             }
           </dd>
         </div>
+        <div class="info-list__item">
+          <dt>Es gerente</dt>
+          <dd>
+            <span class="info-tag" [class.info-tag--manager]="user.is_manager">
+              {{ user.is_manager ? 'Sí' : 'No' }}
+            </span>
+          </dd>
+        </div>
+        <div class="info-list__item">
+          <dt>Responsable</dt>
+          <dd>{{ getManagerLabel() }}</dd>
+        </div>
       </dl>
     </section>
 

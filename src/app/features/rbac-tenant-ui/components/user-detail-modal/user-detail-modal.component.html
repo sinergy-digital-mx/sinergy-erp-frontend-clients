@@ -322,6 +322,82 @@
         </ng-container>
       </div>
 
+      <!-- Gerente (usuarios a cargo) -->
+      <div *ngIf="activeTab === 'manager'" class="tab-pane">
+        <div class="form-field form-field--full">
+          <label class="toggle-row" [class.toggle-row--disabled]="persistingManager()">
+            <input
+              type="checkbox"
+              class="toggle-checkbox"
+              formControlName="is_manager"
+              [attr.aria-disabled]="persistingManager()">
+            <span class="toggle-label">Es gerente</span>
+          </label>
+          <p class="field-hint">
+            Actívalo para asignar personas a cargo aquí mismo. Un usuario solo puede tener un responsable.
+          </p>
+        </div>
+
+        <ng-container *ngIf="form.get('is_manager')?.value">
+          <p class="field-hint" *ngIf="!canManageReports">
+            {{ isNew
+              ? 'Guarda el usuario para poder agregar personas a cargo.'
+              : (persistingManager() ? 'Guardando…' : 'Activando gerente…') }}
+          </p>
+
+          <div class="report-assign" *ngIf="canManageReports">
+            <label class="form-label" for="manager-report-select">Agregar usuario</label>
+            <div class="report-assign__row">
+              <select
+                id="manager-report-select"
+                class="form-input"
+                [value]="selectedReportUserId()"
+                (change)="onReportUserSelected($event)"
+                [disabled]="addingReport()">
+                <option value="">Selecciona un usuario…</option>
+                <option *ngFor="let user of assignableUsers()" [value]="user.id">
+                  {{ reportDisplayName(user) }} — {{ user.email }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="report-assign__btn"
+                [disabled]="!selectedReportUserId() || addingReport()"
+                (click)="addReport()">
+                {{ addingReport() ? 'Agregando…' : 'Agregar' }}
+              </button>
+            </div>
+            <p class="field-hint" *ngIf="assignableUsers().length === 0">
+              No hay usuarios disponibles. Excluye al gerente, a los ya asignados y a quienes ya tienen responsable.
+            </p>
+          </div>
+
+          <div *ngIf="canManageReports && loadingReports()" class="empty-state">
+            <p>Cargando usuarios a cargo…</p>
+          </div>
+
+          <ul *ngIf="!loadingReports() && reports().length > 0" class="report-list">
+            <li *ngFor="let report of reports()" class="report-item">
+              <div class="report-item__content">
+                <p class="report-item__name">{{ reportDisplayName(report) }}</p>
+                <p class="report-item__email">{{ report.email }}</p>
+              </div>
+              <button
+                type="button"
+                class="report-item__remove"
+                [disabled]="!canManageReports || removingReportId() === report.id"
+                (click)="removeReport(report.id)">
+                {{ removingReportId() === report.id ? 'Quitando…' : 'Quitar' }}
+              </button>
+            </li>
+          </ul>
+
+          <div *ngIf="canManageReports && !loadingReports() && reports().length === 0" class="empty-state">
+            <p>Sin usuarios a cargo.</p>
+          </div>
+        </ng-container>
+      </div>
+
       <!-- Sucursales asignadas -->
       <div *ngIf="activeTab === 'branches'" class="tab-pane">
         <p class="field-hint branches-intro">

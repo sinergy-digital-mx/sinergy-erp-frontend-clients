@@ -634,7 +634,9 @@
       if (
         'is_pos_user' in obj ||
         'pos_user_type' in obj ||
-        'billing_branch_id' in obj
+        'billing_branch_id' in obj ||
+        'is_employee' in obj ||
+        'is_manager' in obj
       ) {
         return obj;
       }
@@ -706,6 +708,12 @@
         this.user_info.billing_branch_id =
           branchId != null && String(branchId).trim() !== '' ? String(branchId) : null;
       }
+      if (source['is_employee'] != null) {
+        this.user_info.is_employee = this.normalizePosFlag(source['is_employee']);
+      }
+      if (source['is_manager'] != null) {
+        this.user_info.is_manager = this.normalizePosFlag(source['is_manager']);
+      }
     }
 
     private resetPosProfileCache(): void {
@@ -737,6 +745,7 @@
     pos_user_type?: 'VENTAS' | 'COBRANZA';
     billing_branch_id?: string | null;
     is_employee?: boolean;
+    is_manager?: boolean;
   }
 
   interface PermissionObject {

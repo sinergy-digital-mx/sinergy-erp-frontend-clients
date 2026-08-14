@@ -2,7 +2,16 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, shareReplay, map } from 'rxjs/operators';
-import { User, Role, CreateUserDto, UpdateUserDto, ChangePasswordDto } from '../models';
+import {
+  User,
+  Role,
+  CreateUserDto,
+  UpdateUserDto,
+  ChangePasswordDto,
+  ManagerReport,
+  ManagerReportsResponse,
+  AddManagerReportResponse,
+} from '../models';
 import { environment } from '../../../../environments/environment';
 import { DataMapperService } from './data-mapper.service';
 
@@ -95,8 +104,15 @@ export class UserService {
    * @param userData - The user data to create
    * @returns Observable<void>
    */
-  createUser(userData: CreateUserDto): Observable<void> {
-    return this.http.post<void>(`${this.api}/tenant/users`, userData).pipe(
+  createUser(userData: CreateUserDto): Observable<User | null> {
+    return this.http.post<any>(`${this.api}/tenant/users`, userData).pipe(
+      map((backendUser) => {
+        const raw = backendUser?.data ?? backendUser;
+        if (!raw?.id) {
+          return null;
+        }
+        return this.dataMapper.mapUser(raw);
+      }),
       tap(() => this.clearCache()),
       shareReplay(1)
     );
@@ -117,12 +133,64 @@ export class UserService {
   }
 
   /**
-   * Fetches a single user by ID (includes is_employee + employee profile).
+   * Fetches a single user by ID (includes is_employee, is_manager, manager y reports).
    */
   getUserById(userId: string): Observable<User> {
     return this.http.get<any>(`${this.api}/tenant/users/${userId}`).pipe(
       map(backendUser => this.dataMapper.mapUser(backendUser?.data ?? backendUser))
     );
+  }
+
+  /**
+   * Lista de usuarios a cargo de un gerente.
+   * GET /tenant/users/:userId/reports
+   */
+  getManagerReports(userId: string): Observable<ManagerReportsResponse> {
+    return this.http.get<any>(`${this.api}/tenant/users/${userId}/reports`).pipe(
+      map((res) => {
+        const data = res?.data ?? res;
+        const reports: ManagerReport[] = Array.isArray(data?.reports) ? data.reports : [];
+        return {
+          is_manager: !!(data?.is_manager),
+          reports,
+        };
+      })
+    );
+  }
+
+  /**
+   * Asigna un usuario a cargo del gerente.
+   * POST /tenant/users/:userId/reports { user_id }
+   */
+  addManagerReport(userId: string, reportUserId: string): Observable<AddManagerReportResponse> {
+    return this.http
+      .post<any>(`${this.api}/tenant/users/${userId}/reports`, { user_id: reportUserId })
+      .pipe(
+        map((res) => {
+          const data = res?.data ?? res;
+          return {
+            message: data?.message || 'Usuario asignado al gerente',
+            report: (data?.report ?? data) as ManagerReport,
+          };
+        }),
+        tap(() => this.clearCache())
+      );
+  }
+
+  /**
+   * Quita un usuario a cargo del gerente.
+   * DELETE /tenant/users/:userId/reports/:reportUserId
+   */
+  removeManagerReport(userId: string, reportUserId: string): Observable<{ message: string }> {
+    return this.http
+      .delete<any>(`${this.api}/tenant/users/${userId}/reports/${reportUserId}`)
+      .pipe(
+        map((res) => {
+          const data = res?.data ?? res;
+          return { message: data?.message || 'Usuario desasignado del gerente' };
+        }),
+        tap(() => this.clearCache())
+      );
   }
 
   getUserBranch(userId: string): Observable<string | null> {
