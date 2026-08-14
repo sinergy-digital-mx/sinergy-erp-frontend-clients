@@ -27,7 +27,7 @@ export interface PosDailyShiftUser {
   first_name?: string;
   last_name?: string;
   email?: string;
-  pos_user_type?: 'VENTAS' | 'COBRANZA';
+  pos_user_type?: 'VENTAS' | 'COBRANZA' | 'AMBOS';
 }
 
 export interface PosDailyShiftBranch {

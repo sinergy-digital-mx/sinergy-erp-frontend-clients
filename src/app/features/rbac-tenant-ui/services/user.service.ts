@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, BehaviorSubject, of } from 'rxjs';
 import { tap, shareReplay, map } from 'rxjs/operators';
 import {
   User,
@@ -11,6 +11,8 @@ import {
   ManagerReport,
   ManagerReportsResponse,
   AddManagerReportResponse,
+  CatalogStatus,
+  UserListQuery,
 } from '../models';
 import { environment } from '../../../../environments/environment';
 import { DataMapperService } from './data-mapper.service';
@@ -24,9 +26,46 @@ import { DataMapperService } from './data-mapper.service';
 })
 export class UserService {
   private usersCache$ = new BehaviorSubject<User[] | null>(null);
+  private statusesCache: CatalogStatus[] | null = null;
   private api = environment.api;
 
   constructor(private http: HttpClient, private dataMapper: DataMapperService) {}
+
+  /**
+   * Catálogo de estatus (active / inactive / deleted). Se carga una vez.
+   */
+  getUserStatuses(): Observable<CatalogStatus[]> {
+    if (this.statusesCache) {
+      return of(this.statusesCache);
+    }
+
+    return this.http.get<any>(`${this.api}/tenant/users/statuses`).pipe(
+      map((res) => {
+        const list = Array.isArray(res) ? res : res?.data ?? res?.statuses ?? [];
+        return (Array.isArray(list) ? list : []) as CatalogStatus[];
+      }),
+      tap((statuses) => {
+        this.statusesCache = statuses;
+      })
+    );
+  }
+
+  /**
+   * Lista usuarios. Sin status_id no incluye eliminados.
+   */
+  listUsers(query?: UserListQuery): Observable<User[]> {
+    const params = this.buildUserListParams(query);
+    const unfiltered = this.isUnfilteredQuery(query);
+
+    return this.http.get<any>(`${this.api}/tenant/users`, { params }).pipe(
+      map((backendUsers) => this.dataMapper.mapUsers(backendUsers)),
+      tap((users) => {
+        if (unfiltered) {
+          this.usersCache$.next(users);
+        }
+      })
+    );
+  }
 
   /**
    * Fetches all users for the current tenant
@@ -41,11 +80,76 @@ export class UserService {
       });
     }
 
-    return this.http.get<any>(`${this.api}/tenant/users`).pipe(
-      map(backendUsers => this.dataMapper.mapUsers(backendUsers)),
-      tap(users => this.usersCache$.next(users)),
-      shareReplay(1)
+    return this.listUsers();
+  }
+
+  /**
+   * Fetches users bypassing cache (always hits API).
+   */
+  refreshUsers(query?: UserListQuery): Observable<User[]> {
+    this.clearCache();
+    return this.listUsers(query);
+  }
+
+  /**
+   * Cambia Activo / Inactivo. No usar para deleted (eso es DELETE).
+   */
+  updateUserStatus(
+    userId: string,
+    statusId: number
+  ): Observable<{ message: string; user: User }> {
+    return this.http
+      .put<any>(`${this.api}/tenant/users/${userId}/status`, { status_id: statusId })
+      .pipe(
+        map((res) => {
+          const data = res?.data ?? res;
+          const rawUser = data?.user ?? data;
+          return {
+            message: data?.message || 'Estatus actualizado',
+            user: this.dataMapper.mapUser(rawUser),
+          };
+        }),
+        tap(() => this.clearCache())
+      );
+  }
+
+  /**
+   * Soft delete: pasa el usuario a deleted.
+   */
+  deleteUser(userId: string): Observable<{ message: string; user: User }> {
+    return this.http.delete<any>(`${this.api}/tenant/users/${userId}`).pipe(
+      map((res) => {
+        const data = res?.data ?? res;
+        const rawUser = data?.user ?? data;
+        return {
+          message: data?.message || 'Usuario eliminado',
+          user: rawUser?.id ? this.dataMapper.mapUser(rawUser) : (rawUser as User),
+        };
+      }),
+      tap(() => this.clearCache())
     );
+  }
+
+  private buildUserListParams(query?: UserListQuery): HttpParams {
+    let params = new HttpParams();
+    const search = query?.search?.trim();
+    if (search) {
+      params = params.set('search', search);
+    }
+    if (query?.status_id != null) {
+      params = params.set('status_id', String(query.status_id));
+    }
+    if (query?.role_id) {
+      params = params.set('role_id', query.role_id);
+    }
+    return params;
+  }
+
+  private isUnfilteredQuery(query?: UserListQuery): boolean {
+    if (!query) {
+      return true;
+    }
+    return !query.search?.trim() && query.status_id == null && !query.role_id;
   }
 
   /**
@@ -216,18 +320,6 @@ export class UserService {
     return this.http.put<{ message: string }>(
       `${this.api}/tenant/users/${userId}/password`,
       payload
-    );
-  }
-
-  /**
-   * Fetches users bypassing cache (always hits API).
-   */
-  refreshUsers(): Observable<User[]> {
-    this.clearCache();
-    return this.http.get<any>(`${this.api}/tenant/users`).pipe(
-      map((backendUsers) => this.dataMapper.mapUsers(backendUsers)),
-      tap((users) => this.usersCache$.next(users)),
-      shareReplay(1)
     );
   }
 

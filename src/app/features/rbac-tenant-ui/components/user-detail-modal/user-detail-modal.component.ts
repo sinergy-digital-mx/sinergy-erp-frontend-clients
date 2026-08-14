@@ -2,11 +2,12 @@ import { Component, Inject, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, switchMap } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { BranchService } from '../../../settings/services/branch.service';
 import { Branch } from '../../../settings/models/branch.model';
-import { User, UserEmployeeProfile, ManagerReport, POS_USER_TYPE_OPTIONS, PosUserType, isOpenGlobalCutBlockMessage, userHasOpenGlobalCut, POS_OPEN_GLOBAL_CUT_BLOCK_MESSAGE } from '../../models';
+import { User, UserEmployeeProfile, ManagerReport, POS_USER_TYPE_OPTIONS, POS_USER_TYPE_AMBOS_OPTION, PosUserType, CatalogStatus, isOpenGlobalCutBlockMessage, userHasOpenGlobalCut, POS_OPEN_GLOBAL_CUT_BLOCK_MESSAGE, getUserStatusId, getUserStatusCode } from '../../models';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
@@ -27,7 +28,18 @@ import {
   styleUrls: ['./user-detail-modal.component.scss']
 })
 export class UserDetailModalComponent implements OnInit {
-  readonly posUserTypeOptions = POS_USER_TYPE_OPTIONS;
+  get posUserTypeOptions(): ReadonlyArray<{
+    value: PosUserType;
+    label: string;
+    description: string;
+  }> {
+    const isManager = !!this.form?.get('is_manager')?.value;
+    const currentType = this.form?.get('pos_user_type')?.value as PosUserType | null;
+    if (isManager || currentType === 'AMBOS') {
+      return [...POS_USER_TYPE_OPTIONS, POS_USER_TYPE_AMBOS_OPTION];
+    }
+    return POS_USER_TYPE_OPTIONS;
+  }
   readonly paymentFrequencyOptions = PAYMENT_FREQUENCY_OPTIONS;
 
   private readonly baseTabs: TabItem[] = [
@@ -47,6 +59,7 @@ export class UserDetailModalComponent implements OnInit {
   showPassword = signal(false);
   showConfirmPassword = signal(false);
   branches = signal<Branch[]>([]);
+  statuses = signal<CatalogStatus[]>([]);
   showPosTypeChangeWarning = signal(false);
   hasOpenGlobalCut = signal(false);
 
@@ -109,6 +122,7 @@ export class UserDetailModalComponent implements OnInit {
   private originalIsPosUser = false;
   private originalBillingBranchId: string | null = null;
   private originalPosUserType: PosUserType | null = null;
+  private originalStatusId: number | null = null;
 
   form: FormGroup;
   passwordForm: FormGroup;
@@ -125,6 +139,31 @@ export class UserDetailModalComponent implements OnInit {
       return this.baseTabs;
     }
     return [...this.baseTabs, { id: 'security', title: 'Seguridad' }];
+  }
+
+  get selectableStatuses(): CatalogStatus[] {
+    const fromApi = this.statuses().filter((item) => item.code !== 'deleted');
+    if (fromApi.length > 0) {
+      return fromApi;
+    }
+    return [
+      { id: 1, code: 'active', name: 'Activo' },
+      { id: 2, code: 'inactive', name: 'Inactivo' },
+    ];
+  }
+
+  get canChangeStatus(): boolean {
+    if (this.isNew || this.isOwnProfile) {
+      return false;
+    }
+    const code = getUserStatusCode(this.data.user?.status);
+    if (code === 'deleted') {
+      return false;
+    }
+    return (
+      this.authService.hasEntityPermission('User', 'Update') ||
+      this.authService.hasEntityPermission('users', 'Update')
+    );
   }
 
   /** user.id del login (JWT `sub`). */
@@ -164,6 +203,7 @@ export class UserDetailModalComponent implements OnInit {
     this.originalIsPosUser = user?.is_pos_user ?? false;
     this.originalPosUserType = user?.pos_user_type ?? null;
     this.originalBillingBranchId = user?.billing_branch_id ?? null;
+    this.originalStatusId = getUserStatusId(user);
     this.hasOpenGlobalCut.set(!this.isNew && userHasOpenGlobalCut(user));
 
     const employee = user?.employee ?? null;
@@ -176,6 +216,7 @@ export class UserDetailModalComponent implements OnInit {
       phone: [user?.phone || ''],
       password: ['', this.isNew ? Validators.required : []],
       confirm_password: ['', this.isNew ? Validators.required : []],
+      status_id: [getUserStatusId(user) ?? 1],
       billing_branch_id: [user?.billing_branch_id ?? ''],
       is_pos_user: [user?.is_pos_user ?? false],
       pos_user_type: [user?.pos_user_type ?? null],
@@ -283,12 +324,41 @@ export class UserDetailModalComponent implements OnInit {
       this.applyBranchValidators(isPosUser);
     };
 
-    this.form.get('is_pos_user')?.valueChanges.subscribe(applyPosState);
+    this.form.get('is_pos_user')?.valueChanges.subscribe((isPosUser: boolean) => {
+      applyPosState(isPosUser);
+      this.syncPosTypeWithManager(!!this.form.get('is_manager')?.value, isPosUser);
+    });
     this.form.get('pos_user_type')?.valueChanges.subscribe((value: PosUserType | null) => {
       this.updatePosTypeChangeWarning(value);
     });
 
     applyPosState(!!this.form.get('is_pos_user')?.value);
+    this.syncPosTypeWithManager(!!this.form.get('is_manager')?.value);
+  }
+
+  /**
+   * AMBOS solo es válido con is_manager. Si se apaga gerente, quitar AMBOS.
+   * Si se enciende gerente en un POS, preseleccionar AMBOS.
+   */
+  private syncPosTypeWithManager(
+    isManager: boolean,
+    isPosUser = !!this.form.get('is_pos_user')?.value,
+    preferAmbos = false
+  ): void {
+    const typeControl = this.form.get('pos_user_type');
+    if (!typeControl || !isPosUser) {
+      return;
+    }
+
+    const currentType = typeControl.value as PosUserType | null;
+    if (!isManager && currentType === 'AMBOS') {
+      typeControl.setValue(null);
+      return;
+    }
+
+    if (isManager && (preferAmbos || !currentType)) {
+      typeControl.setValue('AMBOS');
+    }
   }
 
   private updatePosTypeChangeWarning(currentType: PosUserType | null): void {
@@ -329,25 +399,32 @@ export class UserDetailModalComponent implements OnInit {
 
   private loadData(): void {
     const branches$ = this.branchService.getAllBranches();
+    const statuses$ = this.userService.getUserStatuses().pipe(catchError(() => of([] as CatalogStatus[])));
     const userBranch$ =
       this.isNew || !this.data.user
         ? of<string | null>(this.data.user?.billing_branch_id ?? null)
         : this.userService.getUserBranch(this.data.user.id);
 
-    forkJoin({ branches: branches$, userBranch: userBranch$ }).subscribe({
-      next: ({ branches, userBranch }) => {
+    forkJoin({ branches: branches$, statuses: statuses$, userBranch: userBranch$ }).subscribe({
+      next: ({ branches, statuses, userBranch }) => {
         this.branches.set(branches);
+        this.statuses.set(statuses);
 
         const billingBranchId =
           userBranch ?? this.data.user?.billing_branch_id ?? null;
 
+        const statusId = getUserStatusId(this.data.user) ?? this.form.get('status_id')?.value ?? 1;
+        this.originalStatusId = getUserStatusId(this.data.user) ?? statusId;
+
         this.form.patchValue({
-          billing_branch_id: billingBranchId ?? ''
+          billing_branch_id: billingBranchId ?? '',
+          status_id: statusId,
         });
 
         this.applyBranchValidators(!!this.form.get('is_pos_user')?.value);
         this.originalBillingBranchId = billingBranchId ?? null;
         this.applyOpenCutEditLock();
+        this.applyStatusFieldState();
         this.loadEmployeeProfile();
         this.loadManagerData();
         this.loading.set(false);
@@ -379,6 +456,12 @@ export class UserDetailModalComponent implements OnInit {
       next: (user) => {
         this.applyEmployeeProfile(user);
         this.applyManagerState(user);
+        const statusId = getUserStatusId(user);
+        if (statusId != null) {
+          this.originalStatusId = statusId;
+          this.form.get('status_id')?.setValue(statusId, { emitEvent: false });
+        }
+        this.applyStatusFieldState();
         if (user.is_manager && user.id && !this.loadingReports()) {
           this.loadReports(user.id);
         }
@@ -440,6 +523,7 @@ export class UserDetailModalComponent implements OnInit {
 
   private setupManagerFieldBehavior(): void {
     this.form.get('is_manager')?.valueChanges.subscribe((value: boolean) => {
+      this.syncPosTypeWithManager(!!value, undefined, true);
       this.persistManagerFlag(!!value);
     });
   }
@@ -455,13 +539,29 @@ export class UserDetailModalComponent implements OnInit {
 
     const userId = this.editedUserId;
     this.persistingManager.set(true);
-    this.userService.updateUser(userId, { is_manager: isManager }).subscribe({
+
+    const payload: Record<string, unknown> = { is_manager: isManager };
+    if (
+      isManager &&
+      !!this.form.get('is_pos_user')?.value &&
+      !this.shouldLockPosEditByOpenCut()
+    ) {
+      payload['is_pos_user'] = true;
+      payload['pos_user_type'] = 'AMBOS';
+    }
+
+    this.userService.updateUser(userId, payload).subscribe({
       next: () => {
         this.persistingManager.set(false);
         this.savedIsManager = isManager;
         this.managerDirty = true;
         if (this.data.user) {
           this.data.user.is_manager = isManager;
+          if (payload['pos_user_type'] === 'AMBOS') {
+            this.data.user.pos_user_type = 'AMBOS';
+            this.data.user.is_pos_user = true;
+            this.originalPosUserType = 'AMBOS';
+          }
         }
         if (isManager) {
           this.loadReports(userId);
@@ -472,6 +572,7 @@ export class UserDetailModalComponent implements OnInit {
       error: (error) => {
         this.persistingManager.set(false);
         this.form.get('is_manager')?.setValue(this.savedIsManager, { emitEvent: false });
+        this.syncPosTypeWithManager(this.savedIsManager);
         this.interceptorService.openSnackbar({
           type: 'error',
           title: 'Error',
@@ -690,7 +791,8 @@ export class UserDetailModalComponent implements OnInit {
     return (
       !this.isNew &&
       this.hasOpenGlobalCut() &&
-      this.data.user?.pos_user_type === 'COBRANZA' &&
+      (this.data.user?.pos_user_type === 'COBRANZA' ||
+        this.data.user?.pos_user_type === 'AMBOS') &&
       !!this.data.user?.is_pos_user
     );
   }
@@ -703,6 +805,18 @@ export class UserDetailModalComponent implements OnInit {
     this.form.get('is_pos_user')?.disable({ emitEvent: false });
     this.form.get('pos_user_type')?.disable({ emitEvent: false });
     this.form.get('billing_branch_id')?.disable({ emitEvent: false });
+  }
+
+  private applyStatusFieldState(): void {
+    const control = this.form.get('status_id');
+    if (!control) {
+      return;
+    }
+    if (this.canChangeStatus) {
+      control.enable({ emitEvent: false });
+    } else {
+      control.disable({ emitEvent: false });
+    }
   }
 
   private restoreLockedPosFields(): void {
@@ -845,6 +959,7 @@ export class UserDetailModalComponent implements OnInit {
     }
 
     const posUserType = this.form.get('pos_user_type')?.value as PosUserType | null;
+    const isManager = !!this.form.get('is_manager')?.value;
     if (isPosUser && !posUserType) {
       this.form.get('pos_user_type')?.markAsTouched();
       this.interceptorService.openSnackbar({
@@ -856,8 +971,18 @@ export class UserDetailModalComponent implements OnInit {
       return;
     }
 
+    if (isPosUser && posUserType === 'AMBOS' && !isManager) {
+      this.form.get('pos_user_type')?.markAsTouched();
+      this.interceptorService.openSnackbar({
+        type: 'warning',
+        title: 'Advertencia',
+        message: 'Ventas y cobranza solo aplica a gerentes. Marca Es gerente o elige Ventas o Cobranza.'
+      });
+      this.activeTab = 'pos';
+      return;
+    }
+
     const isEmployee = !!this.form.get('is_employee')?.value;
-    const isManager = !!this.form.get('is_manager')?.value;
     if (isEmployee) {
       const employeeGroup = this.form.get('employee') as FormGroup;
       if (employeeGroup.invalid) {
@@ -961,7 +1086,21 @@ export class UserDetailModalComponent implements OnInit {
       return;
     }
 
-    this.userService.updateUser(this.data.user!.id, commonPayload as any).subscribe({
+    this.userService.updateUser(this.data.user!.id, commonPayload as any).pipe(
+      switchMap((updated) => {
+        const statusId = Number(this.form.getRawValue().status_id);
+        if (
+          !this.canChangeStatus ||
+          !statusId ||
+          statusId === this.originalStatusId
+        ) {
+          return of(updated);
+        }
+        return this.userService.updateUserStatus(this.data.user!.id, statusId).pipe(
+          map((result) => result.user ?? updated)
+        );
+      })
+    ).subscribe({
       next: (updated) => this.onSaveSuccess('Usuario actualizado correctamente', updated),
       error: (error) => this.onSaveError(error)
     });
@@ -1154,7 +1293,7 @@ export class UserDetailModalComponent implements OnInit {
 
     const knownMessages: Record<string, string> = {
       'pos_user_type es requerido cuando is_pos_user es true':
-        'Selecciona el tipo de terminal POS (Ventas o Cobranza).',
+        'Selecciona el tipo de terminal POS (Ventas, Cobranza, o ambos si es gerente).',
       'pos_user_type solo aplica cuando el usuario es de tipo POS':
         'El tipo de terminal solo aplica para usuarios POS.',
       'El usuario POS debe tener una sucursal asignada':

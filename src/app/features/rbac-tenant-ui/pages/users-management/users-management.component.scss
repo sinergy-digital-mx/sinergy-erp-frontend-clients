@@ -153,6 +153,11 @@
   background: #fef3c7;
 }
 
+.user-card__tag--pos-ambos {
+  color: #0f766e;
+  background: #ccfbf1;
+}
+
 .user-card__tag--code {
   color: #4b5563;
   background: #f3f4f6;
@@ -188,4 +193,9 @@
 .user-card__status--pending {
   color: #a16207;
   background: #fef9c3;
+}
+
+.user-card__status--deleted {
+  color: #b91c1c;
+  background: #fee2e2;
 }

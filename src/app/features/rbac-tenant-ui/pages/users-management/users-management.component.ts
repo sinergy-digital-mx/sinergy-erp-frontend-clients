@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable, combineLatest, map, switchMap, of, BehaviorSubject, startWith } from 'rxjs';
-import { User, Role, getPosUserTypeBadgeLabel } from '../../models';
+import { Observable, combineLatest, map, switchMap, of, BehaviorSubject, startWith, Subject, filter } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { User, Role, CatalogStatus, UserListQuery, getPosUserTypeBadgeLabel, getUserStatusCode, getUserStatusLabel } from '../../models';
 import { StateService } from '../../services/state.service';
 import { UserService } from '../../services/user.service';
 import { RoleService } from '../../services/role.service';
@@ -15,6 +16,7 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
 import { MatDialog } from '@angular/material/dialog';
 import { UserDetailModalComponent } from '../../components/user-detail-modal/user-detail-modal.component';
 import { PermissionSyncService } from '../../../../core/services/permission-sync.service';
+import { InterceptorService } from '../../../../core/services/interceptor.service';
 
 /**
  * UsersManagementComponent
@@ -30,7 +32,7 @@ import { PermissionSyncService } from '../../../../core/services/permission-sync
   templateUrl: './users-management.component.html',
   styleUrl: './users-management.component.scss'
 })
-export class UsersManagementComponent implements OnInit {
+export class UsersManagementComponent implements OnInit, OnDestroy {
   // Observable streams from state service
   users$: Observable<User[]>;
   filteredUsers$: Observable<User[]>;
@@ -41,9 +43,12 @@ export class UsersManagementComponent implements OnInit {
   roles$: Observable<Role[]>;
   userSearchFilter$: Observable<string>;
   userStatusFilter$: Observable<string>;
+  statuses: CatalogStatus[] = [];
+  private statusesReady$ = new BehaviorSubject<boolean>(false);
 
   // Trigger for refreshing user roles
   private refreshUserRoles$ = new BehaviorSubject<number>(0);
+  private destroy$ = new Subject<void>();
 
   constructor(
     private stateService: StateService,
@@ -53,7 +58,8 @@ export class UsersManagementComponent implements OnInit {
     private router: Router,
     private activatedRoute: ActivatedRoute,
     private dialog: MatDialog,
-    private permissionSyncService: PermissionSyncService
+    private permissionSyncService: PermissionSyncService,
+    private interceptorService: InterceptorService
   ) {
     // Initialize observables from state service
     this.users$ = this.stateService.users$;
@@ -93,17 +99,43 @@ export class UsersManagementComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Fetch users on component initialization
-    this.userService.getUsers().subscribe(users => {
-      console.log('Users loaded:', users);
-      this.stateService.updateUsers(users);
+    this.userService.getUserStatuses().subscribe({
+      next: (statuses) => {
+        this.statuses = statuses;
+        this.statusesReady$.next(true);
+      },
+      error: (error) => {
+        this.showApiError(error, 'No se pudo cargar el catálogo de estatus');
+        this.statusesReady$.next(true);
+      },
     });
 
-    // Fetch roles for the role assignment dropdown
-    this.roleService.getRoles().subscribe(roles => {
-      console.log('Roles loaded:', roles);
+    this.roleService.getRoles().subscribe((roles) => {
       this.stateService.updateRoles(roles);
     });
+
+    combineLatest([
+      this.stateService.userSearchFilter$,
+      this.stateService.userStatusFilter$,
+      this.stateService.userRoleFilter$,
+      this.statusesReady$,
+    ])
+      .pipe(
+        takeUntil(this.destroy$),
+        filter(([, , , ready]) => ready),
+        switchMap(([search, status, roleId]) =>
+          this.userService.refreshUsers(this.buildListQuery(search, status, roleId))
+        )
+      )
+      .subscribe({
+        next: (users) => this.stateService.updateUsers(users),
+        error: (error) => this.showApiError(error, 'No se pudieron cargar los usuarios'),
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   /**
@@ -140,8 +172,45 @@ export class UsersManagementComponent implements OnInit {
   }
 
   private refreshUsersList(): void {
-    this.userService.refreshUsers().subscribe(users => {
-      this.stateService.updateUsers(users);
+    this.reloadUsers();
+  }
+
+  private currentSearch = '';
+  private currentStatus: string = 'all';
+  private currentRoleId = '';
+
+  private buildListQuery(search: string, status: string, roleId: string): UserListQuery {
+    this.currentSearch = search;
+    this.currentStatus = status;
+    this.currentRoleId = roleId;
+    const query: UserListQuery = {};
+    const trimmed = search?.trim();
+    if (trimmed) {
+      query.search = trimmed;
+    }
+    if (status && status !== 'all') {
+      const statusId = this.statuses.find((item) => item.code === status)?.id;
+      if (statusId != null) {
+        query.status_id = statusId;
+      }
+    }
+    if (roleId) {
+      query.role_id = roleId;
+    }
+    return query;
+  }
+
+  private reloadUsers(keepSelectedId?: string | null): void {
+    this.userService.refreshUsers(
+      this.buildListQuery(this.currentSearch, this.currentStatus, this.currentRoleId)
+    ).subscribe({
+      next: (users) => {
+        this.stateService.updateUsers(users);
+        if (keepSelectedId && users.some((user) => user.id === keepSelectedId)) {
+          this.stateService.selectUser(keepSelectedId);
+        }
+      },
+      error: (error) => this.showApiError(error, 'No se pudieron cargar los usuarios'),
     });
   }
 
@@ -222,13 +291,11 @@ export class UsersManagementComponent implements OnInit {
    * @returns Normalized status string
    */
   getNormalizedStatus(status: any): string {
-    if (typeof status === 'string') {
-      return status;
-    }
-    if (status && typeof status === 'object' && status.code) {
-      return status.code;
-    }
-    return 'active';
+    return getUserStatusCode(status);
+  }
+
+  getStatusLabel(user: User): string {
+    return getUserStatusLabel(user);
   }
 
   /**
@@ -238,12 +305,35 @@ export class UsersManagementComponent implements OnInit {
   onUserUpdated(): void {
     let currentSelectedId: string | null = null;
     this.selectedUserId$.subscribe(id => currentSelectedId = id).unsubscribe();
+    this.reloadUsers(currentSelectedId);
+  }
 
-    this.userService.refreshUsers().subscribe(users => {
-      this.stateService.updateUsers(users);
-      if (currentSelectedId) {
-        this.stateService.selectUser(currentSelectedId);
-      }
+  onUserDeleted(event: { userId: string }): void {
+    this.userService.deleteUser(event.userId).subscribe({
+      next: (result) => {
+        this.interceptorService.openSnackbar({
+          type: 'success',
+          title: 'Éxito',
+          message: result.message || 'Usuario eliminado',
+        });
+        let selectedId: string | null = null;
+        this.selectedUserId$.subscribe((id) => (selectedId = id)).unsubscribe();
+        if (selectedId === event.userId) {
+          this.stateService.clearUserSelection();
+        }
+        this.reloadUsers();
+      },
+      error: (error) => this.showApiError(error, 'No se pudo eliminar el usuario'),
+    });
+  }
+
+  private showApiError(error: any, fallback: string): void {
+    const raw = error?.error?.message ?? error?.message;
+    const message = Array.isArray(raw) ? raw[0] : raw;
+    this.interceptorService.openSnackbar({
+      type: 'error',
+      title: 'Error',
+      message: message || fallback,
     });
   }
 
@@ -261,6 +351,8 @@ export class UsersManagementComponent implements OnInit {
         return 'user-card__status user-card__status--inactive';
       case 'pending':
         return 'user-card__status user-card__status--pending';
+      case 'deleted':
+        return 'user-card__status user-card__status--deleted';
       default:
         return 'user-card__status user-card__status--inactive';
     }

@@ -206,6 +206,9 @@
               console.log('[AuthService] Perfil POS tras login:', {
                 is_pos_user: this.user_info?.is_pos_user,
                 pos_user_type: this.user_info?.pos_user_type,
+                pos_can_sell: this.user_info?.pos_can_sell,
+                pos_can_collect: this.user_info?.pos_can_collect,
+                is_manager: this.user_info?.is_manager,
                 billing_branch_id: this.user_info?.billing_branch_id,
                 route: this.resolvePostLoginRoute(),
               });
@@ -521,13 +524,27 @@
     /**
      * Ruta POS según tipo de terminal del usuario logueado.
      * Solo aplica si is_pos_user es true en la sesión.
+     * Si puede vender y cobrar (gerente AMBOS), va al hub `/pos` — no a una sola app.
      */
     getPosEntryRoute(): string | null {
       if (!this.isPosTerminalUser()) {
         return null;
       }
 
+      if (this.canPosSell() && this.canPosCollect()) {
+        return '/pos';
+      }
+      if (this.canPosCollect()) {
+        return '/pos/cobranza';
+      }
+      if (this.canPosSell()) {
+        return '/pos/ventas';
+      }
+
       const type = this.getPosUserType();
+      if (type === 'AMBOS') {
+        return '/pos';
+      }
       if (type === 'COBRANZA') {
         return '/pos/cobranza';
       }
@@ -588,9 +605,13 @@
         return;
       }
 
+      const capabilities = this.derivePosCapabilities(source);
       const profile: PosSessionProfile = {
         is_pos_user: this.normalizePosFlag(source['is_pos_user']),
         pos_user_type: this.normalizePosUserType(source['pos_user_type']),
+        pos_can_sell: capabilities.canSell,
+        pos_can_collect: capabilities.canCollect,
+        is_manager: this.normalizePosFlag(source['is_manager']),
         billing_branch_id:
           source['billing_branch_id'] != null ? String(source['billing_branch_id']) : null,
       };
@@ -634,6 +655,8 @@
       if (
         'is_pos_user' in obj ||
         'pos_user_type' in obj ||
+        'pos_can_sell' in obj ||
+        'pos_can_collect' in obj ||
         'billing_branch_id' in obj ||
         'is_employee' in obj ||
         'is_manager' in obj
@@ -648,12 +671,41 @@
       return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
     }
 
-    private normalizePosUserType(value: unknown): 'VENTAS' | 'COBRANZA' | null {
+    private normalizePosUserType(value: unknown): PosTerminalType | null {
       if (typeof value !== 'string') {
         return null;
       }
       const normalized = value.trim().toUpperCase();
-      return normalized === 'VENTAS' || normalized === 'COBRANZA' ? normalized : null;
+      if (normalized === 'VENTAS' || normalized === 'COBRANZA' || normalized === 'AMBOS') {
+        return normalized;
+      }
+      return null;
+    }
+
+    private derivePosCapabilities(source: Record<string, unknown>): {
+      canSell: boolean;
+      canCollect: boolean;
+    } {
+      const hasSellFlag = source['pos_can_sell'] != null;
+      const hasCollectFlag = source['pos_can_collect'] != null;
+      if (hasSellFlag || hasCollectFlag) {
+        return {
+          canSell: this.normalizePosFlag(source['pos_can_sell']),
+          canCollect: this.normalizePosFlag(source['pos_can_collect']),
+        };
+      }
+
+      const type = this.normalizePosUserType(source['pos_user_type']);
+      if (type === 'AMBOS') {
+        return { canSell: true, canCollect: true };
+      }
+      if (type === 'VENTAS') {
+        return { canSell: true, canCollect: false };
+      }
+      if (type === 'COBRANZA') {
+        return { canSell: false, canCollect: true };
+      }
+      return { canSell: false, canCollect: false };
     }
 
     private mergePosClaimsFromUserInfo(): void {
@@ -680,16 +732,36 @@
       }
     }
 
-    getPosUserType(): 'VENTAS' | 'COBRANZA' | null {
+    getPosUserType(): PosTerminalType | null {
       return this.normalizePosUserType(this.user_info?.pos_user_type);
     }
 
-    isPosCobranzaTerminal(): boolean {
-      return this.getPosUserType() === 'COBRANZA';
+    /** Login `pos_can_sell` (o derivado de `pos_user_type`). */
+    canPosSell(): boolean {
+      if (this.user_info?.pos_can_sell != null) {
+        return this.normalizePosFlag(this.user_info.pos_can_sell);
+      }
+      const type = this.getPosUserType();
+      return type === 'VENTAS' || type === 'AMBOS';
     }
 
+    /** Login `pos_can_collect` (o derivado de `pos_user_type`). */
+    canPosCollect(): boolean {
+      if (this.user_info?.pos_can_collect != null) {
+        return this.normalizePosFlag(this.user_info.pos_can_collect);
+      }
+      const type = this.getPosUserType();
+      return type === 'COBRANZA' || type === 'AMBOS';
+    }
+
+    /** Terminal solo cobranza (no ventas). AMBOS no aplica. */
+    isPosCobranzaTerminal(): boolean {
+      return this.canPosCollect() && !this.canPosSell();
+    }
+
+    /** Terminal solo ventas (no cobranza). AMBOS no aplica. */
     isPosVentasTerminal(): boolean {
-      return this.getPosUserType() === 'VENTAS';
+      return this.canPosSell() && !this.canPosCollect();
     }
 
     mergePosProfile(source: Record<string, unknown>): void {
@@ -714,6 +786,14 @@
       if (source['is_manager'] != null) {
         this.user_info.is_manager = this.normalizePosFlag(source['is_manager']);
       }
+
+      const capabilities = this.derivePosCapabilities(source);
+      if (source['pos_can_sell'] != null || source['pos_user_type'] != null) {
+        this.user_info.pos_can_sell = capabilities.canSell;
+      }
+      if (source['pos_can_collect'] != null || source['pos_user_type'] != null) {
+        this.user_info.pos_can_collect = capabilities.canCollect;
+      }
     }
 
     private resetPosProfileCache(): void {
@@ -722,9 +802,14 @@
 
   }
 
+  export type PosTerminalType = 'VENTAS' | 'COBRANZA' | 'AMBOS';
+
   export interface PosSessionProfile {
     is_pos_user?: boolean;
-    pos_user_type?: 'VENTAS' | 'COBRANZA' | null;
+    pos_user_type?: PosTerminalType | null;
+    pos_can_sell?: boolean;
+    pos_can_collect?: boolean;
+    is_manager?: boolean;
     billing_branch_id?: string | null;
   }
 
@@ -742,7 +827,9 @@
     sub: string;        // user id (uuid)
     tenant_id: string;  // tenant id (uuid)
     is_pos_user?: boolean;
-    pos_user_type?: 'VENTAS' | 'COBRANZA';
+    pos_user_type?: PosTerminalType;
+    pos_can_sell?: boolean;
+    pos_can_collect?: boolean;
     billing_branch_id?: string | null;
     is_employee?: boolean;
     is_manager?: boolean;

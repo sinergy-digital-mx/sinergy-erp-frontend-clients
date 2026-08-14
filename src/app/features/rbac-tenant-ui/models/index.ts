@@ -3,9 +3,57 @@
  * Defines all TypeScript interfaces for the RBAC system
  */
 
-export type UserStatus = 'active' | 'inactive' | 'pending';
+export type UserStatus = 'active' | 'inactive' | 'pending' | 'deleted';
 
-export type PosUserType = 'VENTAS' | 'COBRANZA';
+export interface CatalogStatus {
+  id: number;
+  code: string;
+  name: string;
+}
+
+export interface UserListQuery {
+  search?: string;
+  status_id?: number;
+  role_id?: string;
+}
+
+export function getUserStatusCode(status: User['status'] | undefined | null): string {
+  if (typeof status === 'string' && status.trim()) {
+    return status.toLowerCase();
+  }
+  if (status && typeof status === 'object' && status.code) {
+    return String(status.code).toLowerCase();
+  }
+  return 'active';
+}
+
+export function getUserStatusLabel(user: Pick<User, 'status'> | null | undefined): string {
+  const status = user?.status;
+  if (status && typeof status === 'object' && status.name) {
+    return status.name;
+  }
+  const code = getUserStatusCode(status);
+  if (code === 'active') return 'Activo';
+  if (code === 'inactive') return 'Inactivo';
+  if (code === 'deleted') return 'Eliminado';
+  return code;
+}
+
+export function getUserStatusId(user: User | null | undefined): number | null {
+  if (!user) {
+    return null;
+  }
+  if (user.status_id != null && user.status_id !== undefined) {
+    return Number(user.status_id);
+  }
+  const status = user.status;
+  if (status && typeof status === 'object' && status.id != null) {
+    return Number(status.id);
+  }
+  return null;
+}
+
+export type PosUserType = 'VENTAS' | 'COBRANZA' | 'AMBOS';
 
 export const POS_USER_TYPE_OPTIONS: ReadonlyArray<{
   value: PosUserType;
@@ -23,6 +71,17 @@ export const POS_USER_TYPE_OPTIONS: ReadonlyArray<{
     description: 'Abre/cierra corte, cortes parciales y cobra ventas',
   },
 ];
+
+/** Solo gerentes (`is_manager`). Un POS normal es Ventas o Cobranza, nunca los dos. */
+export const POS_USER_TYPE_AMBOS_OPTION: {
+  value: PosUserType;
+  label: string;
+  description: string;
+} = {
+  value: 'AMBOS',
+  label: 'Ventas y cobranza',
+  description: 'Ve ambas apps en el menú POS. Solo gerentes.',
+};
 
 export const POS_OPEN_GLOBAL_CUT_BLOCK_MESSAGE =
   'No se puede cambiar el tipo POS ni la sucursal mientras hay un corte global abierto. Cierra el corte primero.';
@@ -49,6 +108,9 @@ export function userHasOpenGlobalCut(user: User | null | undefined): boolean {
 }
 
 export function getPosUserTypeLabel(posUserType: PosUserType | null | undefined): string | null {
+  if (posUserType === 'AMBOS') {
+    return POS_USER_TYPE_AMBOS_OPTION.label;
+  }
   const option = POS_USER_TYPE_OPTIONS.find((item) => item.value === posUserType);
   return option?.label ?? null;
 }
@@ -65,6 +127,9 @@ export function getPosUserTypeBadgeLabel(
   }
   if (posUserType === 'COBRANZA') {
     return 'POS Cobranza';
+  }
+  if (posUserType === 'AMBOS') {
+    return 'POS Ventas y cobranza';
   }
   return 'POS';
 }
@@ -153,6 +218,7 @@ export interface User {
   is_manager?: boolean;
   manager?: UserManagerSummary | null;
   reports?: ManagerReport[];
+  status_id?: number | null;
   [key: string]: any;
 }
 

@@ -18,7 +18,8 @@ export class DataMapperService {
     return {
       id: backendUser.id,
       email: backendUser.email,
-      status: this.normalizeStatus(backendUser.status),
+      status: backendUser.status ?? this.normalizeStatus(backendUser.status),
+      status_id: backendUser.status_id ?? backendUser.status?.id ?? null,
       createdAt: backendUser.createdAt || backendUser.created_at || backendUser.creationDate,
       updatedAt: backendUser.updatedAt || backendUser.updated_at,
       first_name: backendUser.first_name || backendUser.firstName || '',

@@ -1,24 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
 import { StateService } from '../../services/state.service';
-import { UserStatus } from '../../models';
+import { CatalogStatus, Role, UserStatus } from '../../models';
 
-/**
- * UserSearchFilterComponent
- * Presentational component for user search and status filtering
- * Integrates SearchComponent for email search and SelectComponent for status filtering
- * 
- * Requirements: 3.1, 3.2, 3.3, 4.1, 4.2, 4.3
- */
 @Component({
   selector: 'app-user-search-filter',
   standalone: true,
   imports: [CommonModule, SearchComponent, SelectComponent],
   template: `
     <div class="space-y-3 w-full">
-      <!-- Email Search Input -->
       <div class="w-full overflow-hidden">
         <app-search
           placeholder="Buscar por email..."
@@ -26,12 +18,19 @@ import { UserStatus } from '../../models';
         ></app-search>
       </div>
 
-      <!-- Status Filter Dropdown -->
-      <div class="w-full">
-        <app-select
-          [config]="statusFilterConfig"
-          (changeOption)="onStatusFilterChange($event)"
-        ></app-select>
+      <div class="filter-row">
+        <div class="filter-row__item">
+          <app-select
+            [config]="statusFilterConfig"
+            (changeOption)="onStatusFilterChange($event)"
+          ></app-select>
+        </div>
+        <div class="filter-row__item">
+          <app-select
+            [config]="roleFilterConfig"
+            (changeOption)="onRoleFilterChange($event)"
+          ></app-select>
+        </div>
       </div>
     </div>
   `,
@@ -40,66 +39,91 @@ import { UserStatus } from '../../models';
       display: block;
       width: 100%;
     }
-    
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .filter-row__item {
+      flex: 1;
+      min-width: 0;
+    }
+
     ::ng-deep .search_container {
       width: 100%;
     }
-    
+
     ::ng-deep .search_container input {
       width: 100% !important;
       max-width: 100% !important;
     }
-    
-    ::ng-deep .select_container {
-      width: 100%;
-    }
-    
+
+    ::ng-deep .select_container,
     ::ng-deep .filter__control {
       width: 100%;
     }
   `]
 })
-export class UserSearchFilterComponent implements OnInit {
+export class UserSearchFilterComponent implements OnChanges {
+  @Input() statuses: CatalogStatus[] = [];
+  @Input() roles: Role[] = [];
+
   statusFilterConfig: ISelect;
+  roleFilterConfig: ISelect;
 
   constructor(private stateService: StateService) {
-    // Initialize status filter configuration
-    this.statusFilterConfig = {
-      placeholder: 'Filtrar por estado',
-      data: [
-        { value: 'all', label: 'Todos los Estados' },
-        { value: 'active', label: 'Activo' },
-        { value: 'inactive', label: 'Inactivo' },
-        { value: 'pending', label: 'Pendiente' }
-      ],
-      name_select: 'status',
-      value: null,
-      option: 'label',
-      value_default: null,
-      all: false
-    };
+    this.statusFilterConfig = this.buildStatusConfig([]);
+    this.roleFilterConfig = this.buildRoleConfig([]);
   }
 
-  ngOnInit(): void {
-    // Component initialization
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['statuses']) {
+      this.statusFilterConfig = this.buildStatusConfig(this.statuses || []);
+    }
+    if (changes['roles']) {
+      this.roleFilterConfig = this.buildRoleConfig(this.roles || []);
+    }
   }
 
-  /**
-   * Handles search filter changes from SearchComponent
-   * Emits the search filter to the state service
-   * @param searchQuery - The search query string
-   */
   onSearchChange(searchQuery: string): void {
     this.stateService.setUserSearchFilter(searchQuery);
   }
 
-  /**
-   * Handles status filter changes from SelectComponent
-   * Emits the status filter to the state service
-   * @param event - The change event from SelectComponent
-   */
-  onStatusFilterChange(event: any): void {
-    const statusValue = event.value as UserStatus | 'all';
+  onStatusFilterChange(event: { value?: string | null }): void {
+    const raw = event?.value;
+    const statusValue = !raw ? 'all' : (raw as UserStatus | 'all');
     this.stateService.setUserStatusFilter(statusValue);
+  }
+
+  onRoleFilterChange(event: { value?: string | null }): void {
+    this.stateService.setUserRoleFilter(event?.value ? String(event.value) : '');
+  }
+
+  private buildStatusConfig(statuses: CatalogStatus[]): ISelect {
+    return {
+      placeholder: 'Filtrar por estado',
+      data: statuses.map((item) => ({ value: item.code, label: item.name })),
+      name_select: 'status',
+      value: 'value',
+      option: 'label',
+      all: true,
+      all_message: 'Todos',
+      value_default: null,
+    };
+  }
+
+  private buildRoleConfig(roles: Role[]): ISelect {
+    return {
+      placeholder: 'Filtrar por rol',
+      data: roles.map((role) => ({ value: role.id, label: role.name })),
+      name_select: 'role',
+      value: 'value',
+      option: 'label',
+      all: true,
+      all_message: 'Todos',
+      value_default: null,
+    };
   }
 }

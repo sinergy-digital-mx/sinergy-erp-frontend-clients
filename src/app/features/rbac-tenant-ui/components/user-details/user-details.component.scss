@@ -93,6 +93,32 @@
     background: #fef9c3;
     color: #a16207;
   }
+
+  &--deleted {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+}
+
+.user-detail__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+
+  app-button {
+    display: inline-flex;
+  }
+
+  ::ng-deep .user-detail__action-btn {
+    height: 36px;
+    min-width: 96px;
+    padding: 0 14px;
+    font-size: 0.8125rem;
+    line-height: 1;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
 }
 
 .user-detail__body {
@@ -210,6 +236,11 @@
   &--pos-cobranza {
     color: #b45309;
     background: #fef3c7;
+  }
+
+  &--pos-ambos {
+    color: #0f766e;
+    background: #ccfbf1;
   }
 
   &--code {
@@ -507,6 +538,10 @@
     padding: 16px;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .user-detail__actions {
+    justify-content: flex-end;
   }
 
   .user-detail__body {

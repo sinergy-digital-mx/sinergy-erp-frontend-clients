@@ -10,18 +10,32 @@
           <span
             class="user-detail__status"
             [ngClass]="getStatusBadgeClass(getNormalizedStatus(user.status))">
-            {{ getNormalizedStatus(user.status) | titlecase }}
+            {{ getStatusLabel() }}
           </span>
         </div>
         <p class="user-detail__email" [title]="user.email">{{ user.email }}</p>
       </div>
     </div>
-    <app-button
-      text="Editar"
-      size="sm"
-      custom_class="btn_primary"
-      (clicked)="openEditDialog()">
-    </app-button>
+    <div class="user-detail__actions">
+      <app-button
+        text="Editar"
+        size="sm"
+        variant="primary"
+        [fullWidth]="false"
+        customClass="user-detail__action-btn"
+        (clicked)="openEditDialog()">
+      </app-button>
+      @if (canDeleteUser) {
+        <app-button
+          text="Eliminar"
+          size="sm"
+          variant="danger"
+          [fullWidth]="false"
+          customClass="user-detail__action-btn"
+          (clicked)="confirmDeleteUser()">
+        </app-button>
+      }
+    </div>
   </header>
 
   <div class="user-detail__body">
@@ -67,7 +81,8 @@
               <span
                 class="info-tag"
                 [class.info-tag--pos]="user.pos_user_type === 'VENTAS'"
-                [class.info-tag--pos-cobranza]="user.pos_user_type === 'COBRANZA'">
+                [class.info-tag--pos-cobranza]="user.pos_user_type === 'COBRANZA'"
+                [class.info-tag--pos-ambos]="user.pos_user_type === 'AMBOS'">
                 {{ getPosUserTypeLabel() }}
               </span>
             } @else {

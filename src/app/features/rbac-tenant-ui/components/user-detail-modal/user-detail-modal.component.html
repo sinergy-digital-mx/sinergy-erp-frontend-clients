@@ -56,6 +56,14 @@
             <input type="tel" class="form-input" formControlName="phone" placeholder="+52 1234567890">
           </div>
 
+          <div class="form-field form-field--full" *ngIf="!isNew">
+            <label class="form-label">Estatus</label>
+            <select class="form-input" formControlName="status_id">
+              <option *ngFor="let item of selectableStatuses" [ngValue]="item.id">{{ item.name }}</option>
+            </select>
+            <p class="field-hint" *ngIf="isOwnProfile">No puedes cambiar el estatus de tu propia cuenta.</p>
+          </div>
+
           <ng-container *ngIf="isNew">
             <div class="form-field form-field--full">
               <label class="form-label">Contraseña *</label>
@@ -118,7 +126,8 @@
               <span class="toggle-label">Usuario de tipo POS</span>
             </label>
             <p class="field-hint">
-              Las terminales POS requieren sucursal asignada. <strong>Ventas</strong> solo captura pedidos; <strong>Cobranza</strong> maneja el corte del día y el cobro.
+              Las terminales POS requieren sucursal asignada. <strong>Ventas</strong> solo captura pedidos;
+              <strong>Cobranza</strong> maneja el corte del día y el cobro. Un <strong>gerente</strong> puede operar ambos.
             </p>
           </div>
 
@@ -145,8 +154,11 @@
               class="field-error">
               Selecciona un tipo de terminal
             </p>
+            <p *ngIf="!form.get('is_manager')?.value" class="field-hint">
+              Un POS normal es Ventas o Cobranza. Si además es gerente, puede elegir Ventas y cobranza.
+            </p>
             <p *ngIf="showPosTypeChangeWarning()" class="field-hint field-hint--warning">
-              Cambiar el tipo de terminal afecta qué pantallas verá al iniciar sesión en el POS (ventas vs cobranza/corte).
+              Cambiar el tipo de terminal afecta el menú al iniciar sesión (Ventas, Cobranza, o ambas).
             </p>
           </div>
 

@@ -5,72 +5,35 @@
         <lucide-icon [img]="LayoutGrid" class="pos-hub__ic" />
         <div>
           <p class="pos-hub__eyebrow">Punto de venta</p>
-          <h1 class="pos-hub__title">Panel principal</h1>
+          <h1 class="pos-hub__title">Elige una app</h1>
         </div>
-      </div>
-
-      <div class="pos-hub__session-status">
-        @if (checkingShift()) {
-          <span class="pos-hub__checking">Verificando sesión…</span>
-        } @else if (activeCashShift()) {
-          <div class="pos-hub__pill pos-hub__pill--ok">
-            <lucide-icon [img]="CircleCheck" class="pos-hub__ic-sm" />
-            <span>Sesión POS activa</span>
-          </div>
-          <span class="pos-hub__meta">
-            Efectivo inicial: {{ formatCurrency(parseFloat(activeCashShift().initial_cash) || 0) }}
-          </span>
-          <button
-            type="button"
-            class="pos-hub__btn pos-hub__btn--danger"
-            (click)="closeCashShift()"
-            [disabled]="checkingShift()">
-            <lucide-icon [img]="LogOut" class="pos-hub__ic-sm" />
-            <span>Cerrar sesión</span>
-          </button>
-        } @else {
-          <div class="pos-hub__pill pos-hub__pill--off">
-            <lucide-icon [img]="CircleAlert" class="pos-hub__ic-sm" />
-            <span>Sin sesión POS</span>
-          </div>
-          <button
-            type="button"
-            class="pos-hub__btn pos-hub__btn--primary"
-            (click)="openCashShift()"
-            [disabled]="checkingShift()">
-            <lucide-icon [img]="LogIn" class="pos-hub__ic-sm" />
-            <span>{{ checkingShift() ? '…' : 'Iniciar sesión' }}</span>
-          </button>
-        }
       </div>
     </div>
   </header>
 
-  <p class="pos-hub__lead">Elige una acción. Para vender, abre <strong>Tomar orden</strong> (requiere sesión activa).</p>
+  <p class="pos-hub__lead">
+    Como gerente puedes operar <strong>Ventas</strong> y <strong>Cobranza</strong>. No se abre una sola app al iniciar sesión.
+  </p>
 
   <div class="pos-hub__grid">
-    <button type="button" class="pos-tile" (click)="navigateToTakeOrder()">
-      <div class="pos-tile__icon">
-        <lucide-icon [img]="ShoppingCart" class="pos-tile__lucide" />
-      </div>
-      <h3>Tomar orden</h3>
-      <p>Nueva venta y carrito</p>
-    </button>
+    @if (canSell()) {
+      <button type="button" class="pos-tile" (click)="navigateToVentas()">
+        <div class="pos-tile__icon">
+          <lucide-icon [img]="ShoppingCart" class="pos-tile__lucide" />
+        </div>
+        <h3>Ventas</h3>
+        <p>Catálogo, carrito y registro de pedidos</p>
+      </button>
+    }
 
-    <button type="button" class="pos-tile" (click)="navigateToPendingOrders()">
-      <div class="pos-tile__icon pos-tile__icon--violet">
-        <lucide-icon [img]="Receipt" class="pos-tile__lucide" />
-      </div>
-      <h3>Órdenes</h3>
-      <p>Listado y seguimiento</p>
-    </button>
-
-    <button type="button" class="pos-tile" (click)="navigateToPayment()">
-      <div class="pos-tile__icon pos-tile__icon--amber">
-        <lucide-icon [img]="CreditCard" class="pos-tile__lucide" />
-      </div>
-      <h3>Cobrar</h3>
-      <p>Pago de orden existente</p>
-    </button>
+    @if (canCollect()) {
+      <button type="button" class="pos-tile" (click)="navigateToCobranza()">
+        <div class="pos-tile__icon pos-tile__icon--amber">
+          <lucide-icon [img]="Banknote" class="pos-tile__lucide" />
+        </div>
+        <h3>Cobranza</h3>
+        <p>Corte del día, pendientes y cobro</p>
+      </button>
+    }
   </div>
 </div>

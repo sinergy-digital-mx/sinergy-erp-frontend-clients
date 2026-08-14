@@ -24,6 +24,7 @@ import {
   LayoutDashboard,
   X,
   Landmark,
+  Banknote,
   UserCog,
   Truck,
   CalendarDays,
@@ -80,6 +81,7 @@ const MENU_SECTIONS: MenuSection[] = [
       'menu-trucks',
       'menu-inventory',
       'menu-pos',
+      'menu-pos-cobranza',
     ],
   },
   {
@@ -255,7 +257,7 @@ export class Sidebar implements OnInit, OnDestroy {
     },
   ];
 
-  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight, X, Landmark, UserCog, ClipboardCheck };
+  icons = { Home, Users, CreditCard, Bell, Settings, LogOut, FileText, MapPin, FileCheck, DollarSign, Megaphone, LandPlot, ShoppingCart, Package, ShoppingBag, Monitor, ChevronLeft, ChevronRight, X, Landmark, Banknote, UserCog, ClipboardCheck };
 
   constructor(
     public auth_service: AuthService,
@@ -313,24 +315,58 @@ export class Sidebar implements OnInit, OnDestroy {
   }
 
   private getMenuItems(): MenuItem[] {
-    const posType = this.auth_service.getPosUserType();
-    return this.menu.map((item) => {
+    const canSell = this.auth_service.canPosSell();
+    const canCollect = this.auth_service.canPosCollect();
+    const items: MenuItem[] = [];
+
+    for (const item of this.menu) {
       if (item.id !== 'menu-pos') {
-        return item;
+        items.push(item);
+        continue;
       }
-      if (posType === 'COBRANZA') {
-        return {
+
+      if (canSell && canCollect) {
+        items.push({
+          ...item,
+          id: 'menu-pos',
+          label: 'POS Ventas',
+          route: '/pos/ventas',
+          icon: Monitor,
+          permission: PERMISSIONS.pos.viewMenu,
+        });
+        items.push({
+          ...item,
+          id: 'menu-pos-cobranza',
+          label: 'POS Cobranza',
+          route: '/pos/cobranza',
+          icon: Banknote,
+          permissions: ['pos:Update', 'pos:Read', 'pos:ViewMenu'],
+        });
+        continue;
+      }
+
+      if (canCollect) {
+        items.push({
           ...item,
           label: 'POS Caja',
           route: '/pos/cobranza',
-        };
+        });
+        continue;
       }
-      return {
-        ...item,
-        label: 'Punto de Venta',
-        route: '/pos/ventas',
-      };
-    });
+
+      if (canSell) {
+        items.push({
+          ...item,
+          label: 'Punto de Venta',
+          route: '/pos/ventas',
+        });
+        continue;
+      }
+
+      items.push(item);
+    }
+
+    return items;
   }
 
   private updateVisibleMenuSections(): void {
@@ -339,7 +375,12 @@ export class Sidebar implements OnInit, OnDestroy {
       if (item.tenantId && tenantId !== item.tenantId) {
         return false;
       }
-      if (item.id === 'menu-pos' && this.auth_service.getPosUserType() === 'COBRANZA') {
+      if (item.id === 'menu-pos-cobranza') {
+        return ['pos:Update', 'pos:Read', 'pos:ViewMenu'].some((p) =>
+          this.auth_service.hasPermission(p)
+        );
+      }
+      if (item.id === 'menu-pos' && this.auth_service.isPosCobranzaTerminal()) {
         return ['pos:Update', 'pos:Read', 'pos:ViewMenu'].some((p) =>
           this.auth_service.hasPermission(p)
         );

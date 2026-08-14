@@ -24,6 +24,7 @@ export class StateService {
   // Filter subjects
   private userSearchFilterSubject = new BehaviorSubject<string>('');
   private userStatusFilterSubject = new BehaviorSubject<UserStatus | 'all'>('all');
+  private userRoleFilterSubject = new BehaviorSubject<string>('');
   private roleSearchFilterSubject = new BehaviorSubject<string>('');
 
   // Custom comparator for roles — compares id and permission_count to detect updates
@@ -52,7 +53,8 @@ export class StateService {
       a.billing_branch_id === b.billing_branch_id &&
       (a.billing_branch?.code ?? '') === (b.billing_branch?.code ?? '') &&
       (a.billing_branch?.display_name ?? '') === (b.billing_branch?.display_name ?? '') &&
-      a.has_open_global_cut === b.has_open_global_cut
+      a.has_open_global_cut === b.has_open_global_cut &&
+      a.status_id === b.status_id
     );
   }
 
@@ -82,6 +84,7 @@ export class StateService {
   // Public observables for filters
   public userSearchFilter$ = this.userSearchFilterSubject.asObservable().pipe(distinctUntilChanged());
   public userStatusFilter$ = this.userStatusFilterSubject.asObservable().pipe(distinctUntilChanged());
+  public userRoleFilter$ = this.userRoleFilterSubject.asObservable().pipe(distinctUntilChanged());
   public roleSearchFilter$ = this.roleSearchFilterSubject.asObservable().pipe(distinctUntilChanged());
 
   // Filtered users observable - combines users with search and status filters
@@ -92,8 +95,11 @@ export class StateService {
   ]).pipe(
     map(([users, searchFilter, statusFilter]) => {
       return users.filter(user => {
-        const matchesSearch = searchFilter === '' || 
-          user.email.toLowerCase().includes(searchFilter.toLowerCase());
+        const searchLower = searchFilter.toLowerCase();
+        const matchesSearch = searchFilter === '' ||
+          user.email.toLowerCase().includes(searchLower) ||
+          (user.first_name || '').toLowerCase().includes(searchLower) ||
+          (user.last_name || '').toLowerCase().includes(searchLower);
         
         // Normalize status for comparison
         const userStatus = typeof user.status === 'string' ? user.status : 
@@ -148,6 +154,10 @@ export class StateService {
     this.userStatusFilterSubject.next(status);
   }
 
+  setUserRoleFilter(roleId: string): void {
+    this.userRoleFilterSubject.next(roleId);
+  }
+
   updateUsers(users: User[]): void {
     this.usersSubject.next(users);
   }
@@ -178,6 +188,7 @@ export class StateService {
   resetFilters(): void {
     this.userSearchFilterSubject.next('');
     this.userStatusFilterSubject.next('all');
+    this.userRoleFilterSubject.next('');
     this.roleSearchFilterSubject.next('');
   }
 

@@ -154,7 +154,13 @@ export const routes: Routes = [
         path: 'pos',
         pathMatch: 'full',
         canActivate: [posEntryRedirectGuard],
-        children: [],
+        loadComponent: () =>
+          import('./features/pos/pages/pos-home/pos-home.component')
+            .then(m => m.POSHomeComponent),
+        data: {
+          permission: 'pos:ViewMenu',
+          title: 'Punto de Venta'
+        }
       },
       {
         path: 'zona-norte-reports',

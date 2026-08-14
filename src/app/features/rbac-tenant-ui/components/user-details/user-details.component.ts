@@ -1,13 +1,21 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable, BehaviorSubject, Subscription } from 'rxjs';
-import { User, Role, getPosUserTypeLabel, userHasOpenGlobalCut } from '../../models';
+import {
+  User,
+  Role,
+  getPosUserTypeLabel,
+  userHasOpenGlobalCut,
+  getUserStatusCode,
+  getUserStatusLabel,
+} from '../../models';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { UserDetailModalComponent } from '../user-detail-modal/user-detail-modal.component';
 import { LucideAngularModule, Shield, Plus, RefreshCw, Trash2, X } from 'lucide-angular';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-user-details',
@@ -28,6 +36,7 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
   @Output() roleReplaced = new EventEmitter<{ userId: string; oldRoleId: string; newRoleId: string }>();
   @Output() roleDeleted = new EventEmitter<{ userId: string; roleId: string }>();
   @Output() userUpdated = new EventEmitter<void>();
+  @Output() userDeleted = new EventEmitter<{ userId: string }>();
 
   availableRoles: Role[] = [];
   selectedAssignRoleId = '';
@@ -37,7 +46,11 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
   selectedRoleIdForAssignment$ = new BehaviorSubject<string | null>(null);
   private rolesSub?: Subscription;
 
-  constructor(private snackBar: MatSnackBar, private dialog: MatDialog) {}
+  constructor(
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     if (this.availableRoles$) {
@@ -127,6 +140,8 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
         return 'user-detail__status--active';
       case 'inactive':
         return 'user-detail__status--inactive';
+      case 'deleted':
+        return 'user-detail__status--deleted';
       case 'pending':
         return 'user-detail__status--pending';
       default:
@@ -135,9 +150,54 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
   }
 
   getNormalizedStatus(status: any): string {
-    if (typeof status === 'string') return status;
-    if (status && typeof status === 'object' && status.code) return status.code;
-    return 'active';
+    return getUserStatusCode(status);
+  }
+
+  getStatusLabel(): string {
+    return getUserStatusLabel(this.user);
+  }
+
+  get isOwnProfile(): boolean {
+    const loggedId = this.authService.user_info?.sub;
+    return !!loggedId && !!this.user?.id && String(this.user.id) === String(loggedId);
+  }
+
+  get isDeleted(): boolean {
+    return this.getNormalizedStatus(this.user?.status) === 'deleted';
+  }
+
+  get canDeleteUser(): boolean {
+    if (this.isOwnProfile || this.isDeleted) {
+      return false;
+    }
+    return this.hasUserPermission('Delete');
+  }
+
+  private hasUserPermission(action: 'Update' | 'Delete'): boolean {
+    return (
+      this.authService.hasEntityPermission('User', action) ||
+      this.authService.hasEntityPermission('users', action)
+    );
+  }
+
+  confirmDeleteUser(): void {
+    if (!this.canDeleteUser) {
+      return;
+    }
+    const name = `${this.user.first_name || ''} ${this.user.last_name || ''}`.trim() || this.user.email;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Eliminar usuario',
+        message: `¿Eliminar a ${name}? Dejará de poder iniciar sesión.`,
+        confirmText: 'Eliminar',
+        cancelText: 'Cancelar',
+        isDangerous: true,
+      },
+    }).afterClosed().subscribe((result) => {
+      if (result) {
+        this.userDeleted.emit({ userId: this.user.id });
+      }
+    });
   }
 
   getPosUserLabel(): string {
