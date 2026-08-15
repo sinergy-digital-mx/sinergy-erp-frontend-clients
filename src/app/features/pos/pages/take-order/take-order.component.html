@@ -137,7 +137,7 @@
               <div class="pos-card__head">
                 <h3 class="pos-card__name">{{ product.name }}</h3>
                 @if (product.has_price) {
-                  <span class="pos-card__price">{{ formatCurrency(product.cost || 0) }}</span>
+                  <span class="pos-card__price">{{ formatCurrency(catalogPriceGross(product)) }}</span>
                 } @else {
                   <span class="pos-card__no-price">Sin precio</span>
                 }
@@ -212,12 +212,14 @@
                     [id]="'pos-price-list-' + i"
                     class="pos-line__pricing-select"
                     [attr.aria-label]="'Lista de precio para ' + item.product_name"
+                    [name]="'pos-price-list-' + i"
                     [ngModel]="item.selected_price_list_id || ''"
+                    [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onPricingOptionChange(i, $event)">
-                    <option value="">Lista: precio sugerido</option>
-                    @for (opt of item.pricing_options || []; track opt.price_list_id) {
-                      <option [value]="opt.price_list_id">
-                        {{ opt.price_list_name }} · {{ formatCurrency(+opt.price || 0) }}
+                    <option [ngValue]="''">Lista: precio sugerido · {{ formatCurrency(suggestedPricingGross(item)) }}</option>
+                    @for (opt of item.pricing_options || []; track $index) {
+                      <option [ngValue]="opt.price_list_id">
+                        {{ opt.price_list_name }} · {{ formatCurrency(pricingOptionGross(opt)) }}
                       </option>
                     }
                   </select>

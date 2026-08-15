@@ -315,8 +315,10 @@ export class Sidebar implements OnInit, OnDestroy {
   }
 
   private getMenuItems(): MenuItem[] {
+    const posType = this.auth_service.getPosUserType();
     const canSell = this.auth_service.canPosSell();
     const canCollect = this.auth_service.canPosCollect();
+    const showBothPosApps = posType === 'AMBOS' || (canSell && canCollect);
     const items: MenuItem[] = [];
 
     for (const item of this.menu) {
@@ -325,7 +327,7 @@ export class Sidebar implements OnInit, OnDestroy {
         continue;
       }
 
-      if (canSell && canCollect) {
+      if (showBothPosApps) {
         items.push({
           ...item,
           id: 'menu-pos',
@@ -340,7 +342,7 @@ export class Sidebar implements OnInit, OnDestroy {
           label: 'POS Cobranza',
           route: '/pos/cobranza',
           icon: Banknote,
-          permissions: ['pos:Update', 'pos:Read', 'pos:ViewMenu'],
+          permission: PERMISSIONS.pos.viewMenu,
         });
         continue;
       }
@@ -348,7 +350,7 @@ export class Sidebar implements OnInit, OnDestroy {
       if (canCollect) {
         items.push({
           ...item,
-          label: 'POS Caja',
+          label: 'POS Cobranza',
           route: '/pos/cobranza',
         });
         continue;
@@ -357,7 +359,7 @@ export class Sidebar implements OnInit, OnDestroy {
       if (canSell) {
         items.push({
           ...item,
-          label: 'Punto de Venta',
+          label: 'POS Ventas',
           route: '/pos/ventas',
         });
         continue;
@@ -376,9 +378,10 @@ export class Sidebar implements OnInit, OnDestroy {
         return false;
       }
       if (item.id === 'menu-pos-cobranza') {
-        return ['pos:Update', 'pos:Read', 'pos:ViewMenu'].some((p) =>
-          this.auth_service.hasPermission(p)
-        );
+        return this.auth_service.hasPermission(PERMISSIONS.pos.viewMenu) ||
+          ['pos:Update', 'pos:Read', 'pos:ViewMenu'].some((p) =>
+            this.auth_service.hasPermission(p)
+          );
       }
       if (item.id === 'menu-pos' && this.auth_service.isPosCobranzaTerminal()) {
         return ['pos:Update', 'pos:Read', 'pos:ViewMenu'].some((p) =>

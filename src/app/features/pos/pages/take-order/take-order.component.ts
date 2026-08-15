@@ -34,10 +34,15 @@ import {
   PosInventorySummaryResponse,
   PosSummaryWarehouse,
   PosApplicableDiscount,
+  normalizePosPricingOptions,
+  collectPosPricingOptions,
+  unwrapProductPriceList,
+  filterProductPricesForUom,
+  PosPricingOption,
   resetPosWarehouseForBranch,
-  syncPosWarehouseContext,
+  firstPosSummaryWarehouseId,
 } from '../../models/pos-inventory-summary.model';
-import { WarehouseService } from '../../../settings/services/warehouse.service';
+import { ProductService } from '../../../settings/services/product.service';
 import {
   buildVentasPosOrderPayload,
   isPosOrderQueued,
@@ -117,16 +122,17 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   photoErrorStates = signal<Map<string, boolean>>(new Map());
 
   private sellerDialogOpen = false;
+  private productPricingCache = new Map<string, PosPricingOption[]>();
 
   constructor(
     public posService: POSService,
     public posState: PosStateService,
-    private warehouseService: WarehouseService,
     private authService: AuthService,
     private router: Router,
     private toast: ToastService,
     private dialog: MatDialog,
-    private globalDiscountService: GlobalDiscountService
+    private globalDiscountService: GlobalDiscountService,
+    private productService: ProductService
   ) {}
 
   readonly canSell = computed(() => this.posState.canCaptureSales());
@@ -156,6 +162,10 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     }
     resetPosWarehouseForBranch(this.authService.getBillingBranchId());
     this.selectedWarehouse.set('');
+    const fiscalFromLogin = this.authService.getFiscalConfigurationId();
+    if (fiscalFromLogin) {
+      this.posState.fiscalConfigurationId.set(fiscalFromLogin);
+    }
     if (this.canUseGlobalDiscounts()) {
       this.loadApplicableGlobalDiscounts();
     }
@@ -255,92 +265,75 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   private applyInventorySummaryMeta(summary: PosInventorySummaryResponse): void {
     const enriched = enrichPosInventorySummary(summary);
     this.lastInventorySummary.set(enriched);
+    this.warehouses.set(enriched.warehouses);
 
-    if (enriched.warehouses.length > 0) {
-      this.warehouses.set(enriched.warehouses);
+    const warehouseId = firstPosSummaryWarehouseId(enriched);
+    this.selectedWarehouse.set(warehouseId);
+    persistPosWarehouseId(warehouseId);
+
+    const loginBranch = this.authService.getBillingBranchId();
+    if (loginBranch) {
+      localStorage.setItem('pos_billing_branch_id', loginBranch);
+    } else if (enriched.billing_branch_id) {
+      localStorage.setItem('pos_billing_branch_id', enriched.billing_branch_id);
     }
 
-    const warehouseId = syncPosWarehouseContext(enriched);
-    if (warehouseId) {
-      this.selectedWarehouse.set(warehouseId);
+    const fiscalId =
+      this.authService.getFiscalConfigurationId() ||
+      enriched.fiscal_configuration_id ||
+      this.posState.fiscalConfigurationId();
+    if (fiscalId) {
+      this.posState.fiscalConfigurationId.set(fiscalId);
     }
   }
 
-  private resolveBillingBranchId(): string | null {
-    return (
-      this.lastInventorySummary()?.billing_branch_id?.trim() ||
-      this.authService.getBillingBranchId() ||
-      this.posState.dailyShift()?.billing_branch?.id?.trim() ||
-      null
-    );
-  }
-
-  private resolveWarehouseForSaleSync(): string {
+  private resolvePosSaleContext(): { warehouseId: string; fiscalConfigurationId: string } | null {
     const summary = this.lastInventorySummary();
-    if (summary) {
-      const warehouseId = syncPosWarehouseContext(enrichPosInventorySummary(summary));
-      if (warehouseId) {
-        this.selectedWarehouse.set(warehouseId);
-        return warehouseId;
-      }
-    }
+    const warehouseId = firstPosSummaryWarehouseId(summary);
+    const fiscalConfigurationId = (
+      this.authService.getFiscalConfigurationId() ||
+      summary?.fiscal_configuration_id ||
+      this.posState.fiscalConfigurationId() ||
+      ''
+    ).trim();
 
-    const current = this.selectedWarehouse()?.trim();
-    const validIds = new Set(this.warehouses().map((w) => w.id));
-    if (current && validIds.has(current)) {
-      return current;
-    }
-
-    return '';
-  }
-
-  private ensureWarehouseForSale(onReady: (warehouseId: string) => void): void {
-    const resolved = this.resolveWarehouseForSaleSync();
-    if (resolved) {
-      onReady(resolved);
-      return;
-    }
-
-    const branchId = this.resolveBillingBranchId();
-    if (!branchId) {
+    if (!warehouseId) {
       this.notifyError(
-        'Tu usuario POS no tiene sucursal asignada. Pide al administrador que la configure.',
+        'El catálogo POS no incluye almacén de tu sucursal. Recarga el catálogo e intenta de nuevo.',
         6000
       );
-      return;
+      return null;
+    }
+    if (!fiscalConfigurationId) {
+      this.notifyError(
+        'No hay configuración fiscal en la sesión. Vuelve a iniciar sesión.',
+        6000
+      );
+      return null;
     }
 
-    this.warehouseService.getWarehouses({ limit: 100, status: 'active' }).subscribe({
-      next: (response) => {
-        const branchWarehouses = (response.data ?? []).filter(
-          (warehouse) => (warehouse.billing_branch_id || '').trim() === branchId
-        );
-        const pick = branchWarehouses[0];
-        if (!pick?.id) {
-          this.notifyError(
-            'No hay almacén activo para tu sucursal POS. Revisa la configuración en Ajustes.',
-            6000
-          );
-          return;
-        }
+    this.selectedWarehouse.set(warehouseId);
+    persistPosWarehouseId(warehouseId);
+    this.posState.fiscalConfigurationId.set(fiscalConfigurationId);
+    return { warehouseId, fiscalConfigurationId };
+  }
 
-        const mapped: PosSummaryWarehouse[] = branchWarehouses.map((warehouse) => ({
-          id: warehouse.id,
-          name: warehouse.name,
-          status: warehouse.status,
-        }));
-        this.warehouses.set(mapped);
-        this.selectedWarehouse.set(pick.id);
-        persistPosWarehouseId(pick.id);
-        onReady(pick.id);
-      },
-      error: () => {
-        this.notifyError(
-          'No se pudo resolver el almacén de tu sucursal POS. Intenta de nuevo.',
-          5000
-        );
-      },
-    });
+  private rememberBranchContext(branch: unknown): void {
+    if (!branch || typeof branch !== 'object') {
+      return;
+    }
+    if (!this.authService.getBillingBranchId()) {
+      const id = (branch as { id?: string }).id;
+      if (id) {
+        localStorage.setItem('pos_billing_branch_id', String(id).trim());
+      }
+    }
+    if (!this.authService.getFiscalConfigurationId()) {
+      const fiscalId = resolveFiscalConfigurationIdFromBranch(branch);
+      if (fiscalId) {
+        this.posState.fiscalConfigurationId.set(String(fiscalId));
+      }
+    }
   }
 
   refreshDailyShift(): void {
@@ -420,11 +413,8 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
           if (response.daily_shift) {
             this.posState.setDailyShift(response.daily_shift);
           }
-          const branch = response.terminal_user?.billing_branch;
-          const fiscalId = resolveFiscalConfigurationIdFromBranch(branch);
-          if (fiscalId) {
-            this.posState.fiscalConfigurationId.set(String(fiscalId));
-          }
+          this.rememberBranchContext(response.terminal_user?.billing_branch);
+          this.rememberBranchContext(response.daily_shift?.billing_branch);
           this.posState.setSeller(response.seller);
           this.notifySuccess(`Vendedor: ${this.posState.sellerDisplayName()}`, 3000);
           this.loadApplicableGlobalDiscounts();
@@ -525,6 +515,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   ): void {
     const cartItem = this.buildCartItem(product, selection);
     this.posService.addItem(cartItem);
+    this.hydrateCartItemPricing(cartItem.product_id, cartItem.product_uom_id);
     this.notifySuccess(`${cartItem.product_name} agregado`, 2000);
   }
 
@@ -556,7 +547,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       line_total: 0,
       product_discount_id: selection.product_discount_id,
       selected_discount: selection.selected_discount,
-      pricing_options: Array.isArray(product.pricing_options) ? product.pricing_options : [],
+      pricing_options: normalizePosPricingOptions(collectPosPricingOptions(product)),
       selected_price_list_id: '',
       suggested_unit_price: Number(product.suggested_unit_price ?? product.cost ?? 0),
       suggested_iva_percentage: Number(product.suggested_iva_percentage ?? 16),
@@ -596,8 +587,20 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   onPricingOptionChange(index: number, optionId: string): void {
+    const selectedId = optionId == null ? '' : String(optionId);
+    this.applyPricingOption(index, selectedId);
     const item = this.posService.cart().items[index];
-    if (!item) return;
+    if (!item || !selectedId) {
+      return;
+    }
+    this.hydrateCartItemPricing(item.product_id, item.product_uom_id, index, selectedId);
+  }
+
+  private applyPricingOption(index: number, optionId: string): void {
+    const item = this.posService.cart().items[index];
+    if (!item) {
+      return;
+    }
 
     if (!optionId) {
       this.posService.updateItemPricing(index, {
@@ -611,13 +614,68 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
 
     const options = Array.isArray(item.pricing_options) ? item.pricing_options : [];
     const selected = options.find((opt) => String(opt.price_list_id) === String(optionId));
-    if (!selected) return;
+    if (!selected) {
+      return;
+    }
 
+    const unitPrice = Number(selected.price);
     this.posService.updateItemPricing(index, {
-      unit_price: Number(selected.price ?? item.unit_price ?? 0),
+      unit_price: Number.isFinite(unitPrice) ? unitPrice : Number(item.unit_price ?? 0),
       iva_percentage: Number(selected.iva_percentage ?? item.iva_percentage ?? 0),
       ieps_percentage: Number(selected.ieps_percentage ?? item.ieps_percentage ?? 0),
-      selected_price_list_id: optionId,
+      selected_price_list_id: String(selected.price_list_id),
+    });
+  }
+
+  private hydrateCartItemPricing(
+    productId: string,
+    productUomId: string,
+    index?: number,
+    selectedId?: string
+  ): void {
+    const cacheKey = `${productId}:${productUomId || ''}`;
+    const apply = (options: PosPricingOption[]) => {
+      if (options.length === 0) {
+        return;
+      }
+      const items = this.posService.cart().items;
+      const targetIndex =
+        index != null && items[index]?.product_id === productId
+          ? index
+          : items.findIndex(
+              (item) =>
+                item.product_id === productId &&
+                String(item.product_uom_id || '') === String(productUomId || '')
+            );
+      if (targetIndex < 0) {
+        return;
+      }
+      this.posService.replaceItemPricingOptions(targetIndex, options);
+      const currentId =
+        selectedId ?? this.posService.cart().items[targetIndex]?.selected_price_list_id ?? '';
+      if (currentId) {
+        this.applyPricingOption(targetIndex, currentId);
+      }
+    };
+
+    const cached = this.productPricingCache.get(cacheKey);
+    if (cached) {
+      apply(cached);
+      return;
+    }
+
+    this.productService.getProductPrices(productId).subscribe({
+      next: (raw) => {
+        const prices = filterProductPricesForUom(unwrapProductPriceList(raw), productUomId);
+        const options = normalizePosPricingOptions(prices);
+        if (options.length > 0) {
+          this.productPricingCache.set(cacheKey, options);
+        }
+        apply(options);
+      },
+      error: () => {
+        // Si falla el detalle de precios, se mantiene lo que vino en el summary POS.
+      },
     });
   }
 
@@ -640,47 +698,41 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.ensureWarehouseForSale((warehouseId) => {
-      const fiscalConfigurationId = this.posState.fiscalConfigurationId();
-      if (!fiscalConfigurationId) {
-        this.notifyError(
-          'No hay configuración fiscal en la sucursal del POS. Revisa la sucursal en Ajustes.',
-          6000
-        );
-        return;
-      }
+    const ctx = this.resolvePosSaleContext();
+    if (!ctx) {
+      return;
+    }
 
-      const payload = buildVentasPosOrderPayload(cart, {
-        warehouseId,
-        fiscalConfigurationId,
-        sellerUserId: seller.id,
-        terminalLabel: this.terminalLabel(),
-      });
+    const payload = buildVentasPosOrderPayload(cart, {
+      warehouseId: ctx.warehouseId,
+      fiscalConfigurationId: ctx.fiscalConfigurationId,
+      sellerUserId: seller.id,
+      terminalLabel: this.terminalLabel(),
+    });
 
-      this.saving.set(true);
+    this.saving.set(true);
 
-      this.posService.createPosSalesOrder(payload).subscribe({
-        next: (order) => {
-          this.saving.set(false);
-          const folioLabel = order.folio ? order.folio : 'sin folio';
-          const queued = isPosOrderQueued(order) || this.posState.salesQueueMode();
-          const message = queued
-            ? `Venta en cola (${folioLabel}). El cliente debe pasar a cobranza cuando abran el corte del día.`
-            : `Venta registrada (${folioLabel}). El cliente debe pasar a cobranza para pagar.`;
-          this.notifySuccess(message, 6000);
-          this.posService.clearCart();
+    this.posService.createPosSalesOrder(payload).subscribe({
+      next: (order) => {
+        this.saving.set(false);
+        const folioLabel = order.folio ? order.folio : 'sin folio';
+        const queued = isPosOrderQueued(order) || this.posState.salesQueueMode();
+        const message = queued
+          ? `Venta en cola (${folioLabel}). El cliente debe pasar a cobranza cuando abran el corte del día.`
+          : `Venta registrada (${folioLabel}). El cliente debe pasar a cobranza para pagar.`;
+        this.notifySuccess(message, 6000);
+        this.posService.clearCart();
+        this.loadProducts(this.searchTerm());
+      },
+      error: (error) => {
+        this.saving.set(false);
+        const backendMessage = error?.error?.message;
+        const msg = mapPosApiErrorMessage(backendMessage) || 'Error al crear la orden de venta';
+        this.notifyError(msg, 6000);
+        if (error?.status === 400 && isDiscountApiError(backendMessage)) {
           this.loadProducts(this.searchTerm());
-        },
-        error: (error) => {
-          this.saving.set(false);
-          const backendMessage = error?.error?.message;
-          const msg = mapPosApiErrorMessage(backendMessage) || 'Error al crear la orden de venta';
-          this.notifyError(msg, 6000);
-          if (error?.status === 400 && isDiscountApiError(backendMessage)) {
-            this.loadProducts(this.searchTerm());
-          }
-        },
-      });
+        }
+      },
     });
   }
 
@@ -696,6 +748,45 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       style: 'currency',
       currency: 'MXN',
     }).format(amount);
+  }
+
+  /** Precio de lista con IVA e IEPS, para que el drop coincida con el total de línea. */
+  pricingOptionGross(opt: { price?: number | string; iva_percentage?: number | string; ieps_percentage?: number | string }): number {
+    return this.unitPriceWithTaxes(opt.price, opt.iva_percentage, opt.ieps_percentage);
+  }
+
+  suggestedPricingGross(item: POSCartItem): number {
+    return this.unitPriceWithTaxes(
+      item.suggested_unit_price ?? item.unit_price,
+      item.suggested_iva_percentage ?? item.iva_percentage,
+      item.suggested_ieps_percentage ?? item.ieps_percentage
+    );
+  }
+
+  catalogPriceGross(product: {
+    cost?: number | string;
+    suggested_unit_price?: number | string;
+    suggested_iva_percentage?: number | string | null;
+    suggested_ieps_percentage?: number | string | null;
+    iva_percentage?: number | string | null;
+    ieps_percentage?: number | string | null;
+  }): number {
+    return this.unitPriceWithTaxes(
+      product.suggested_unit_price ?? product.cost,
+      product.suggested_iva_percentage ?? product.iva_percentage ?? 16,
+      product.suggested_ieps_percentage ?? product.ieps_percentage ?? 0
+    );
+  }
+
+  private unitPriceWithTaxes(
+    net: number | string | null | undefined,
+    ivaPercentage: number | string | null | undefined,
+    iepsPercentage: number | string | null | undefined
+  ): number {
+    const price = Number(net) || 0;
+    const iva = Number(ivaPercentage) || 0;
+    const ieps = Number(iepsPercentage) || 0;
+    return price * (1 + iva / 100 + ieps / 100);
   }
 
   getProductPhotoUrl(product: any): string {
@@ -825,9 +916,11 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
             sku: row.product_sku || row.sku || '',
             primary_photo_url: row.product_photo || row.primary_photo_url || null,
             cost: Number(row.suggested_unit_price ?? row.cost ?? 0),
+            suggested_iva_percentage: Number(row.suggested_iva_percentage ?? 16),
+            suggested_ieps_percentage: Number(row.suggested_ieps_percentage ?? 0),
             has_price: row.suggested_unit_price != null || row.cost != null,
             total_available_quantity: Number(row.total_available_quantity ?? row.available_quantity ?? 0),
-            pricing_options: Array.isArray(row.pricing_options) ? row.pricing_options : [],
+            pricing_options: normalizePosPricingOptions(collectPosPricingOptions(row)),
             product_uom_id: row.product_uom_id || row.uom_id || '',
             applicable_discounts: Array.isArray(row.applicable_discounts) ? row.applicable_discounts : [],
             has_applicable_discounts:
@@ -836,12 +929,6 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
           }));
           this.products.set(normalized);
           this.filteredProducts.set(normalized);
-          if (this.lastInventorySummary()) {
-            const warehouseId = syncPosWarehouseContext(this.lastInventorySummary()!);
-            if (warehouseId) {
-              this.selectedWarehouse.set(warehouseId);
-            }
-          }
           this.priceListError.set(false);
           this.loading.set(false);
         },

@@ -153,6 +153,17 @@ export class POSService {
     this.updateCart(updatedItems);
   }
 
+  replaceItemPricingOptions(
+    index: number,
+    pricingOptions: POSCartItem['pricing_options']
+  ): void {
+    const currentCart = this.cartState();
+    const updatedItems = currentCart.items.map((item, i) =>
+      i === index ? { ...item, pricing_options: pricingOptions } : item
+    );
+    this.updateCart(updatedItems);
+  }
+
   /**
    * Remove item from cart
    */
@@ -731,7 +742,7 @@ export class POSService {
     }
     const root = response as Record<string, unknown>;
     const inner = root['data'];
-    if (inner && typeof inner === 'object') {
+    if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
       return inner;
     }
     return response;

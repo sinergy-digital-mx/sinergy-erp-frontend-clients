@@ -210,6 +210,7 @@
                 pos_can_collect: this.user_info?.pos_can_collect,
                 is_manager: this.user_info?.is_manager,
                 billing_branch_id: this.user_info?.billing_branch_id,
+                fiscal_configuration_id: this.user_info?.fiscal_configuration_id,
                 route: this.resolvePostLoginRoute(),
               });
             } else {
@@ -594,6 +595,11 @@
       return id != null && String(id).trim() !== '' ? String(id) : null;
     }
 
+    getFiscalConfigurationId(): string | null {
+      const id = this.user_info?.fiscal_configuration_id;
+      return id != null && String(id).trim() !== '' ? String(id) : null;
+    }
+
     /** True when the logged-in user is flagged as an employee (RH portal access). */
     isEmployeeUser(): boolean {
       const value = (this.user_info as { is_employee?: unknown })?.is_employee;
@@ -614,6 +620,12 @@
         is_manager: this.normalizePosFlag(source['is_manager']),
         billing_branch_id:
           source['billing_branch_id'] != null ? String(source['billing_branch_id']) : null,
+        fiscal_configuration_id: this.readOptionalId(
+          source,
+          'fiscal_configuration_id',
+          'fiscalConfigurationId',
+          'fiscal_configuration'
+        ),
       };
 
       localStorage.setItem(this.user_profile_key, JSON.stringify(profile));
@@ -637,11 +649,13 @@
         response?.token ??
         null;
 
-      const profile =
+      const userProfile =
         this.pickUserProfile(root?.user) ??
         this.pickUserProfile(response?.user) ??
         this.pickUserProfile(root) ??
         null;
+
+      const profile = this.mergeAuthProfileFields(userProfile, root, response);
 
       return { token: token ? String(token) : null, profile };
     }
@@ -658,12 +672,64 @@
         'pos_can_sell' in obj ||
         'pos_can_collect' in obj ||
         'billing_branch_id' in obj ||
+        'fiscal_configuration_id' in obj ||
+        'fiscal_configuration' in obj ||
         'is_employee' in obj ||
         'is_manager' in obj
       ) {
         return obj;
       }
 
+      return null;
+    }
+
+    private mergeAuthProfileFields(
+      profile: Record<string, unknown> | null,
+      ...sources: unknown[]
+    ): Record<string, unknown> | null {
+      const merged: Record<string, unknown> = { ...(profile ?? {}) };
+      for (const source of sources) {
+        if (!source || typeof source !== 'object' || Array.isArray(source)) {
+          continue;
+        }
+        const row = source as Record<string, unknown>;
+        for (const key of [
+          'billing_branch_id',
+          'fiscal_configuration_id',
+          'fiscalConfigurationId',
+          'fiscal_configuration',
+          'is_pos_user',
+          'pos_user_type',
+          'pos_can_sell',
+          'pos_can_collect',
+          'is_manager',
+        ]) {
+          if (merged[key] == null && row[key] != null) {
+            merged[key] = row[key];
+          }
+        }
+      }
+      return Object.keys(merged).length > 0 ? merged : profile;
+    }
+
+    private readOptionalId(source: Record<string, unknown>, ...keys: string[]): string | null {
+      for (const key of keys) {
+        const value = source[key];
+        if (value == null || value === '') {
+          continue;
+        }
+        if (typeof value === 'object' && !Array.isArray(value) && 'id' in value) {
+          const nested = (value as { id?: unknown }).id;
+          if (nested != null && String(nested).trim()) {
+            return String(nested).trim();
+          }
+          continue;
+        }
+        const id = String(value).trim();
+        if (id) {
+          return id;
+        }
+      }
       return null;
     }
 
@@ -686,15 +752,6 @@
       canSell: boolean;
       canCollect: boolean;
     } {
-      const hasSellFlag = source['pos_can_sell'] != null;
-      const hasCollectFlag = source['pos_can_collect'] != null;
-      if (hasSellFlag || hasCollectFlag) {
-        return {
-          canSell: this.normalizePosFlag(source['pos_can_sell']),
-          canCollect: this.normalizePosFlag(source['pos_can_collect']),
-        };
-      }
-
       const type = this.normalizePosUserType(source['pos_user_type']);
       if (type === 'AMBOS') {
         return { canSell: true, canCollect: true };
@@ -704,6 +761,15 @@
       }
       if (type === 'COBRANZA') {
         return { canSell: false, canCollect: true };
+      }
+
+      const hasSellFlag = source['pos_can_sell'] != null;
+      const hasCollectFlag = source['pos_can_collect'] != null;
+      if (hasSellFlag || hasCollectFlag) {
+        return {
+          canSell: this.normalizePosFlag(source['pos_can_sell']),
+          canCollect: this.normalizePosFlag(source['pos_can_collect']),
+        };
       }
       return { canSell: false, canCollect: false };
     }
@@ -738,20 +804,26 @@
 
     /** Login `pos_can_sell` (o derivado de `pos_user_type`). */
     canPosSell(): boolean {
-      if (this.user_info?.pos_can_sell != null) {
-        return this.normalizePosFlag(this.user_info.pos_can_sell);
-      }
       const type = this.getPosUserType();
-      return type === 'VENTAS' || type === 'AMBOS';
+      if (type === 'AMBOS' || type === 'VENTAS') {
+        return true;
+      }
+      if (type === 'COBRANZA') {
+        return false;
+      }
+      return this.normalizePosFlag(this.user_info?.pos_can_sell);
     }
 
     /** Login `pos_can_collect` (o derivado de `pos_user_type`). */
     canPosCollect(): boolean {
-      if (this.user_info?.pos_can_collect != null) {
-        return this.normalizePosFlag(this.user_info.pos_can_collect);
-      }
       const type = this.getPosUserType();
-      return type === 'COBRANZA' || type === 'AMBOS';
+      if (type === 'AMBOS' || type === 'COBRANZA') {
+        return true;
+      }
+      if (type === 'VENTAS') {
+        return false;
+      }
+      return this.normalizePosFlag(this.user_info?.pos_can_collect);
     }
 
     /** Terminal solo cobranza (no ventas). AMBOS no aplica. */
@@ -780,6 +852,18 @@
         this.user_info.billing_branch_id =
           branchId != null && String(branchId).trim() !== '' ? String(branchId) : null;
       }
+      if (
+        source['fiscal_configuration_id'] !== undefined ||
+        source['fiscalConfigurationId'] !== undefined ||
+        source['fiscal_configuration'] !== undefined
+      ) {
+        this.user_info.fiscal_configuration_id = this.readOptionalId(
+          source,
+          'fiscal_configuration_id',
+          'fiscalConfigurationId',
+          'fiscal_configuration'
+        );
+      }
       if (source['is_employee'] != null) {
         this.user_info.is_employee = this.normalizePosFlag(source['is_employee']);
       }
@@ -788,10 +872,12 @@
       }
 
       const capabilities = this.derivePosCapabilities(source);
-      if (source['pos_can_sell'] != null || source['pos_user_type'] != null) {
+      if (
+        source['pos_can_sell'] != null ||
+        source['pos_can_collect'] != null ||
+        source['pos_user_type'] != null
+      ) {
         this.user_info.pos_can_sell = capabilities.canSell;
-      }
-      if (source['pos_can_collect'] != null || source['pos_user_type'] != null) {
         this.user_info.pos_can_collect = capabilities.canCollect;
       }
     }
@@ -811,6 +897,7 @@
     pos_can_collect?: boolean;
     is_manager?: boolean;
     billing_branch_id?: string | null;
+    fiscal_configuration_id?: string | null;
   }
 
   export interface UserInfoI {
@@ -831,6 +918,7 @@
     pos_can_sell?: boolean;
     pos_can_collect?: boolean;
     billing_branch_id?: string | null;
+    fiscal_configuration_id?: string | null;
     is_employee?: boolean;
     is_manager?: boolean;
   }

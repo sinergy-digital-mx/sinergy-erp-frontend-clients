@@ -1,39 +1,36 @@
 <div class="pos-hub">
-  <header class="pos-hub__session">
-    <div class="pos-hub__session-inner">
-      <div class="pos-hub__session-left">
-        <lucide-icon [img]="LayoutGrid" class="pos-hub__ic" />
-        <div>
-          <p class="pos-hub__eyebrow">Punto de venta</p>
-          <h1 class="pos-hub__title">Elige una app</h1>
-        </div>
-      </div>
+  <div class="pos-hub__stage">
+    <header class="pos-hub__hero">
+      <span class="pos-hub__badge">
+        <lucide-icon [img]="LayoutGrid" class="pos-hub__badge-ic" />
+        Punto de venta
+      </span>
+      <h1>¿Qué vas a hacer?</h1>
+      <p>Tienes acceso a ambas apps. Entra a la que necesites ahora.</p>
+    </header>
+
+    <div class="pos-hub__grid">
+      @if (canSell()) {
+        <button type="button" class="pos-tile" (click)="navigateToVentas()">
+          <div class="pos-tile__icon">
+            <lucide-icon [img]="ShoppingCart" class="pos-tile__lucide" />
+          </div>
+          <h3>Ventas</h3>
+          <p>Catálogo, carrito y registro</p>
+          <span class="pos-tile__cta">Entrar</span>
+        </button>
+      }
+
+      @if (canCollect()) {
+        <button type="button" class="pos-tile pos-tile--amber" (click)="navigateToCobranza()">
+          <div class="pos-tile__icon pos-tile__icon--amber">
+            <lucide-icon [img]="Banknote" class="pos-tile__lucide" />
+          </div>
+          <h3>Cobranza</h3>
+          <p>Corte del día, pendientes y cobro</p>
+          <span class="pos-tile__cta pos-tile__cta--amber">Entrar</span>
+        </button>
+      }
     </div>
-  </header>
-
-  <p class="pos-hub__lead">
-    Como gerente puedes operar <strong>Ventas</strong> y <strong>Cobranza</strong>. No se abre una sola app al iniciar sesión.
-  </p>
-
-  <div class="pos-hub__grid">
-    @if (canSell()) {
-      <button type="button" class="pos-tile" (click)="navigateToVentas()">
-        <div class="pos-tile__icon">
-          <lucide-icon [img]="ShoppingCart" class="pos-tile__lucide" />
-        </div>
-        <h3>Ventas</h3>
-        <p>Catálogo, carrito y registro de pedidos</p>
-      </button>
-    }
-
-    @if (canCollect()) {
-      <button type="button" class="pos-tile" (click)="navigateToCobranza()">
-        <div class="pos-tile__icon pos-tile__icon--amber">
-          <lucide-icon [img]="Banknote" class="pos-tile__lucide" />
-        </div>
-        <h3>Cobranza</h3>
-        <p>Corte del día, pendientes y cobro</p>
-      </button>
-    }
   </div>
 </div>
