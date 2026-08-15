@@ -304,15 +304,13 @@ export class UserDetailModalComponent implements OnInit {
         return;
       }
 
+      codeControl.enable({ emitEvent: false });
+      codeControl.setValidators([Validators.min(1)]);
+
       if (isPosUser) {
-        codeControl.clearValidators();
-        codeControl.setValue(null, { emitEvent: false });
-        codeControl.disable({ emitEvent: false });
         typeControl.enable({ emitEvent: false });
         typeControl.setValidators([Validators.required]);
       } else {
-        codeControl.enable({ emitEvent: false });
-        codeControl.setValidators([Validators.min(1)]);
         typeControl.clearValidators();
         typeControl.setValue(null, { emitEvent: false });
         typeControl.disable({ emitEvent: false });
@@ -540,28 +538,13 @@ export class UserDetailModalComponent implements OnInit {
     const userId = this.editedUserId;
     this.persistingManager.set(true);
 
-    const payload: Record<string, unknown> = { is_manager: isManager };
-    if (
-      isManager &&
-      !!this.form.get('is_pos_user')?.value &&
-      !this.shouldLockPosEditByOpenCut()
-    ) {
-      payload['is_pos_user'] = true;
-      payload['pos_user_type'] = 'AMBOS';
-    }
-
-    this.userService.updateUser(userId, payload).subscribe({
+    this.userService.updateUser(userId, { is_manager: isManager }).subscribe({
       next: () => {
         this.persistingManager.set(false);
         this.savedIsManager = isManager;
         this.managerDirty = true;
         if (this.data.user) {
           this.data.user.is_manager = isManager;
-          if (payload['pos_user_type'] === 'AMBOS') {
-            this.data.user.pos_user_type = 'AMBOS';
-            this.data.user.is_pos_user = true;
-            this.originalPosUserType = 'AMBOS';
-          }
         }
         if (isManager) {
           this.loadReports(userId);
@@ -1021,13 +1004,13 @@ export class UserDetailModalComponent implements OnInit {
       }
     }
 
-    const rawPosCode = this.form.get('pos_user_code')?.value;
+    const rawPosCode = this.form.getRawValue().pos_user_code;
     const posCode =
       rawPosCode === null || rawPosCode === undefined || rawPosCode === ''
         ? null
         : Number(rawPosCode);
 
-    if (!isPosUser && posCode !== null && (!Number.isInteger(posCode) || posCode < 1)) {
+    if (posCode !== null && (!Number.isInteger(posCode) || posCode < 1)) {
       this.interceptorService.openSnackbar({
         type: 'warning',
         title: 'Advertencia',
@@ -1053,6 +1036,7 @@ export class UserDetailModalComponent implements OnInit {
       billing_branch_id: billingBranchId,
       is_pos_user: isPosUser,
       pos_user_type: isPosUser ? posUserType : null,
+      pos_user_code: posCode,
       is_employee: isEmployee,
       is_manager: isManager,
     };
@@ -1065,10 +1049,6 @@ export class UserDetailModalComponent implements OnInit {
       delete commonPayload['billing_branch_id'];
       delete commonPayload['is_pos_user'];
       delete commonPayload['pos_user_type'];
-    }
-
-    if (!isPosUser && posCode !== null) {
-      commonPayload['pos_user_code'] = posCode;
     }
 
     if (this.isNew) {

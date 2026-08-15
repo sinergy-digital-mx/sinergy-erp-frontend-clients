@@ -66,7 +66,7 @@
                             {{ posBadge }}
                           </span>
                         }
-                        @if (!user.is_pos_user && user.pos_user_code) {
+                        @if (user.pos_user_code) {
                           <span class="user-card__tag user-card__tag--code">
                             Código: {{ user.pos_user_code }}
                           </span>

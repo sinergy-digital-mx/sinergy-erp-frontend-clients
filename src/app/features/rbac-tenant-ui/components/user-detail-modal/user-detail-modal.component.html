@@ -162,7 +162,7 @@
             </p>
           </div>
 
-          <div class="form-field form-field--full" *ngIf="!form.get('is_pos_user')?.value">
+          <div class="form-field form-field--full">
             <label class="form-label">Código</label>
             <input
               type="number"
@@ -174,7 +174,7 @@
             <p *ngIf="form.get('pos_user_code')?.invalid && form.get('pos_user_code')?.touched" class="field-error">
               Ingresa un número entero mayor a 0
             </p>
-            <p class="field-hint">Opcional. Debe ser único entre usuarios.</p>
+            <p class="field-hint">Número que se teclea al vender. Opcional, único por organización.</p>
           </div>
         </div>
       </div>

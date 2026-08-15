@@ -102,7 +102,7 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     id: 'system',
     title: 'Sistema',
-    itemIds: ['menu-notifications', 'menu-settings'],
+    itemIds: ['menu-settings'],
   },
 ];
 

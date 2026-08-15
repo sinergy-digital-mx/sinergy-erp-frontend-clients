@@ -216,7 +216,7 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
   }
 
   getPosUserCodeLabel(): string | null {
-    if (this.user.is_pos_user || !this.user.pos_user_code) {
+    if (!this.user.pos_user_code) {
       return null;
     }
     return String(this.user.pos_user_code);
