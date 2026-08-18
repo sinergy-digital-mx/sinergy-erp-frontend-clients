@@ -62,26 +62,40 @@ export class FiscalConfigurationService {
 
   getFinkokStatus(id: string, environment: 'demo' | 'production'): Observable<FinkokStatusResponse> {
     const params = new HttpParams().set('environment', environment);
-    return this.http.get<FinkokStatusResponse>(
+    return this.http.get<unknown>(
       `${this.api}/tenant/fiscal-configurations/${id}/finkok-status`,
       { params }
-    );
+    ).pipe(map((res) => this.unwrapStatus(res)));
   }
 
   registerFinkok(id: string, payload: RegisterFinkokDto): Observable<FiscalConfiguration> {
-    return this.http.post<FiscalConfiguration>(
-      `${this.api}/tenant/fiscal-configurations/${id}/register-finkok`,
-      payload
-    );
+    return this.http
+      .post<unknown>(`${this.api}/tenant/fiscal-configurations/${id}/register-finkok`, payload)
+      .pipe(map((res) => this.unwrapConfig(res)));
   }
 
   private unwrapConfig(res: unknown): FiscalConfiguration {
-    if (res && typeof res === 'object' && 'data' in res) {
-      const inner = (res as { data: unknown }).data;
-      if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
-        return inner as FiscalConfiguration;
-      }
+    const body = this.unwrapData(res);
+    const nested = body['fiscal_configuration'] ?? body['fiscalConfiguration'];
+    if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+      return nested as unknown as FiscalConfiguration;
     }
-    return res as FiscalConfiguration;
+    return body as unknown as FiscalConfiguration;
+  }
+
+  private unwrapStatus(res: unknown): FinkokStatusResponse {
+    return this.unwrapData(res) as unknown as FinkokStatusResponse;
+  }
+
+  private unwrapData(res: unknown): Record<string, unknown> {
+    if (!res || typeof res !== 'object') {
+      return {};
+    }
+    const body = res as Record<string, unknown>;
+    const inner = body['data'];
+    if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
+      return inner as Record<string, unknown>;
+    }
+    return body;
   }
 }

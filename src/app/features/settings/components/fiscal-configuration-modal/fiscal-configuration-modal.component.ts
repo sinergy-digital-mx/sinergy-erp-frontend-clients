@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { finalize } from 'rxjs/operators';
 import { FiscalConfigurationService } from '../../services/fiscal-configuration.service';
 import { BranchService } from '../../services/branch.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -68,7 +69,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
   finkokEnvironment: FinkokEnvironment = 'demo';
   finkokStatusLoading = false;
   finkokRegisterLoading = false;
-  finkokRegisterMode: 'verify' | 'add' | null = null;
+  finkokRegisterMode: 'add' | 'link_only' | null = null;
   finkokStatusResult: FinkokStatusResponse | null = null;
   readonly canUpdateFinkok: boolean;
   readonly prefixMaxLength = DOCUMENT_PREFIX_MAX_LENGTH;
@@ -509,54 +510,105 @@ export class FiscalConfigurationModalComponent implements OnInit {
   }
 
   linkFinkok(): void {
-    this.registerFinkok('verify');
+    this.registerFinkok('link_only');
   }
 
   registerInFinkok(): void {
-    this.registerFinkok('add', true);
+    if (!this.hasStoredCsdForFinkokAlta()) {
+      this.snackBar.openFromComponent(CustomSnackbarComponent, {
+        data: {
+          message: 'Guarda el CSD (.cer, .key y contraseña) en la razón antes de registrar en Finkok.',
+          type: 'error',
+        },
+        duration: 6000,
+      });
+      return;
+    }
+    this.registerFinkok('add');
   }
 
-  private registerFinkok(mode: 'verify' | 'add', addIfMissing = false): void {
-    const config = this.data.fiscalConfig;
-    if (!config?.id || this.finkokRegisterLoading || !this.canUpdateFinkok) return;
+  get isFinkokRfcInPortal(): boolean {
+    return this.finkokStatusResult?.exists_in_finkok === true;
+  }
+
+  private hasStoredCsdForFinkokAlta(): boolean {
+    const formValue = this.form.getRawValue();
+    const hasCer = this.hasDigitalSealStored || !!String(formValue.digital_seal || '').trim();
+    const hasKey = this.hasPrivateKeyStored || !!String(formValue.private_key || '').trim();
+    const hasPassword =
+      this.hasDigitalSealPasswordStored || !!String(formValue.digital_seal_password || '').trim();
+    return hasCer && hasKey && hasPassword;
+  }
+
+  private registerFinkok(mode: 'add' | 'link_only'): void {
+    const configId = this.data.fiscalConfig?.id;
+    if (this.finkokRegisterLoading || !this.canUpdateFinkok) return;
+    if (!configId) {
+      this.snackBar.openFromComponent(CustomSnackbarComponent, {
+        data: {
+          message: 'No se encontró el id de la razón. Cierra el modal y ábrelo de nuevo.',
+          type: 'error',
+        },
+        duration: 6000,
+      });
+      return;
+    }
 
     this.finkokRegisterLoading = true;
     this.finkokRegisterMode = mode;
 
     this.fiscalConfigService
-      .registerFinkok(config.id, {
+      .registerFinkok(configId, {
         mode,
         environment: this.finkokEnvironment,
-        ...(mode === 'add' ? { add_if_missing: addIfMissing } : {}),
       })
-      .subscribe({
-        next: (updated) => {
-          this.data.fiscalConfig = updated;
+      .pipe(
+        finalize(() => {
           this.finkokRegisterLoading = false;
           this.finkokRegisterMode = null;
-          this.finkokStatusResult = null;
           this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: (updated) => {
+          this.mergeFiscalConfig(updated);
+          this.finkokStatusResult = null;
+          const registered = this.data.fiscalConfig?.finkok_registration_status === 'registered';
           this.snackBar.openFromComponent(CustomSnackbarComponent, {
             data: {
-              message:
-                updated.finkok_registration_status === 'registered'
-                  ? 'Razón emisora vinculada con Finkok correctamente'
-                  : 'Operación completada',
-              type: 'success',
+              message: registered
+                ? 'Razón emisora registrada / vinculada con Finkok correctamente'
+                : mode === 'link_only'
+                  ? 'El RFC aún no está en Finkok. Usa Registrar en Finkok para darlo de alta.'
+                  : 'Operación completada. El badge sigue pendiente; verifica o vuelve a registrar.',
+              type: registered ? 'success' : 'warning',
             },
-            duration: 4000,
+            duration: registered ? 4000 : 8000,
           });
         },
         error: (error) => {
-          this.finkokRegisterLoading = false;
-          this.finkokRegisterMode = null;
-          this.cdr.detectChanges();
           this.snackBar.openFromComponent(CustomSnackbarComponent, {
-            data: { message: error.error?.message || 'Error al registrar en Finkok', type: 'error' },
-            duration: 5000,
+            data: {
+              message: resolveHttpErrorMessage(error, 'Error al registrar en Finkok'),
+              type: 'error',
+            },
+            duration: 6000,
           });
         },
       });
+  }
+
+  private mergeFiscalConfig(updated: FiscalConfiguration): void {
+    const current = this.data.fiscalConfig;
+    if (!current) {
+      this.data.fiscalConfig = updated;
+      return;
+    }
+    this.data.fiscalConfig = {
+      ...current,
+      ...updated,
+      id: updated?.id || current.id,
+    };
   }
 
   save() {

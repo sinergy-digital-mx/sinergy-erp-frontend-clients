@@ -211,6 +211,7 @@
                   text="Verificar en Finkok"
                   variant="secondary"
                   size="sm"
+                  type="button"
                   [fullWidth]="false"
                   [loading]="finkokStatusLoading"
                   [disabled]="finkokRegisterLoading"
@@ -219,22 +220,25 @@
 
                 <app-button
                   text="Vincular con Finkok"
-                  variant="primary"
+                  [variant]="isFinkokRfcInPortal ? 'primary' : 'secondary'"
                   size="sm"
+                  type="button"
                   [fullWidth]="false"
-                  [loading]="finkokRegisterLoading && finkokRegisterMode === 'verify'"
-                  [disabled]="!canUpdateFinkok || finkokStatusLoading || (finkokRegisterLoading && finkokRegisterMode !== 'verify')"
+                  [loading]="finkokRegisterLoading && finkokRegisterMode === 'link_only'"
+                  [disabled]="!canUpdateFinkok || finkokStatusLoading || (finkokRegisterLoading && finkokRegisterMode !== 'link_only')"
+                  title="Solo asocia un RFC que ya existe en Finkok. No lo da de alta."
                   (clicked)="linkFinkok()">
                 </app-button>
 
                 <app-button
                   text="Registrar en Finkok"
-                  variant="secondary"
+                  [variant]="isFinkokRfcInPortal ? 'secondary' : 'primary'"
                   size="sm"
+                  type="button"
                   [fullWidth]="false"
                   [loading]="finkokRegisterLoading && finkokRegisterMode === 'add'"
                   [disabled]="!canUpdateFinkok || finkokStatusLoading || (finkokRegisterLoading && finkokRegisterMode !== 'add')"
-                  title="Alta nueva con CSD si el RFC no existe en Finkok"
+                  title="Alta en Finkok con RFC + CSD. Si el RFC ya existe, lo vincula."
                   (clicked)="registerInFinkok()">
                 </app-button>
               </div>
@@ -268,7 +272,14 @@
               <p *ngIf="finkokStatusResult.exists_in_finkok && data.fiscalConfig?.finkok_registration_status !== 'registered'" class="finkok-status-hint">
                 RFC encontrado en Finkok. Usa <strong>Vincular con Finkok</strong> para completar el registro en el ERP.
               </p>
+              <p *ngIf="!finkokStatusResult.exists_in_finkok && data.fiscalConfig?.finkok_registration_status !== 'registered'" class="finkok-status-hint finkok-status-hint--warn">
+                El RFC aún no está en Finkok. <strong>Vincular</strong> no lo crea. Usa <strong>Registrar en Finkok</strong> (RFC + CSD).
+              </p>
             </div>
+
+            <p *ngIf="!finkokStatusResult && data.fiscalConfig?.finkok_registration_status === 'pending'" class="finkok-status-hint finkok-status-hint--warn">
+              Vincular solo asocia un RFC que ya existe en Finkok. Si aún no está en el portal, usa <strong>Registrar en Finkok</strong>.
+            </p>
 
             <p *ngIf="getFinkokRegistrationError() as registrationError" class="finkok-registration-error">
               {{ registrationError }}

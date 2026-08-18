@@ -570,6 +570,12 @@
   border: 1px solid #bbf7d0;
   font-size: 0.8125rem;
   color: #166534;
+
+  &--warn {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #92400e;
+  }
 }
 
 .finkok-registration-error {

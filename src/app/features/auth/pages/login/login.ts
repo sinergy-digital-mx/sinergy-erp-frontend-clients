@@ -18,6 +18,8 @@ import { PolluxBrandTextComponent } from '../../../../core/components/pollux-bra
 })
 export class Login{
 
+  private readonly rememberedEmailKey = 'sinergy_erp_remembered_email';
+
   form: FormGroup;
   loading:any = signal(false);
   error = signal<string | null>(null);
@@ -28,9 +30,12 @@ export class Login{
     private route: ActivatedRoute,
     private authService: AuthService
   ) {
+    const rememberedEmail = this.getRememberedEmail();
+
     this.form = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      email: [rememberedEmail, [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(3)]],
+      rememberUser: [!!rememberedEmail],
     });
 
     const reason = this.route.snapshot.queryParamMap.get('reason');
@@ -47,9 +52,12 @@ export class Login{
   
     this.loading.set(true);
     this.error.set(null);
+
+    const { email, password, rememberUser } = this.form.value;
   
-    this.authService.login(this.form.value).subscribe({
+    this.authService.login({ email, password }).subscribe({
       next: () => {
+        this.persistRememberedEmail(email, rememberUser);
         const isPosTerminal = this.authService.isPosTerminalUser();
         const route = this.authService.resolvePostLoginRoute();
         this.loading.set(false);
@@ -70,6 +78,25 @@ export class Login{
       },
     });
   }
-  
+
+  private getRememberedEmail(): string {
+    try {
+      return localStorage.getItem(this.rememberedEmailKey)?.trim() ?? '';
+    } catch {
+      return '';
+    }
+  }
+
+  private persistRememberedEmail(email: string, rememberUser: boolean): void {
+    try {
+      if (rememberUser && email) {
+        localStorage.setItem(this.rememberedEmailKey, email.trim());
+      } else {
+        localStorage.removeItem(this.rememberedEmailKey);
+      }
+    } catch {
+      // Storage puede estar bloqueado (modo privado); el login no debe fallar.
+    }
+  }
 
 }
