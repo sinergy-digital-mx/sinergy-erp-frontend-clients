@@ -276,6 +276,17 @@
   line-height: 1.4;
 }
 
+.invoice-card__error {
+  margin: 0.45rem 0.85rem 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
 .invoice-card__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -334,6 +345,7 @@
 .action-btn {
   display: inline-flex;
   align-items: center;
+  gap: 0.3rem;
   padding: 0.25rem 0.5rem;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
@@ -370,8 +382,10 @@
   }
 
   &--danger {
-    color: #dc2626;
-    border-color: #fca5a5;
+    color: #be123c;
+    border-color: #fecaca;
+    background: #fef2f2;
+    font-weight: 700;
   }
 }
 
@@ -423,4 +437,14 @@
   .invoice-card__actions {
     justify-content: flex-start;
   }
+}
+
+@keyframes invoicing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: invoicing-spin 1s linear infinite;
 }

@@ -24,6 +24,8 @@ export interface SalesOrderElectronicInvoice {
   stamp_status?: InvoiceStampStatus;
   sat_status?: InvoiceSatStatus;
   sat_es_cancelable?: string | null;
+  sat_estatus_cancelacion?: string | null;
+  sat_codigo_estatus?: string | null;
   stamped_at?: string | null;
   sat_last_sync_at?: string | null;
   xml_stamped?: string | null;
@@ -33,6 +35,7 @@ export interface SalesOrderElectronicInvoice {
   status?: string | null;
   metadata?: {
     finkok_incidencias?: FinkokIncidencia[];
+    finkok_environment?: 'demo' | 'production' | string;
     [key: string]: unknown;
   };
 }
@@ -42,6 +45,7 @@ export interface StampSalesOrderInvoicePayload {
   series?: string;
   folio?: string;
   certificate_serial?: string;
+  environment: 'demo' | 'production';
 }
 
 export interface CancelSalesOrderInvoicePayload {
@@ -63,8 +67,22 @@ export interface FinkokConfiguration {
   last_connection_test_status?: string | null;
 }
 
-export type { FinkokConfigurationsResponse } from '../../settings/models/finkok-configuration.model';
-export { hasFinkokCredentials } from '../../settings/models/finkok-configuration.model';
+export type { FinkokConfigurationsResponse, FinkokEnvironment } from '../../settings/models/finkok-configuration.model';
+export {
+  getFinkokEnvironmentConfig,
+  hasFinkokCredentials,
+  hasFinkokEnvironmentCredentials,
+} from '../../settings/models/finkok-configuration.model';
+
+export function isLocalStampHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1';
+}
+
+export function defaultStampEnvironment(): 'demo' | 'production' {
+  return isLocalStampHost() ? 'demo' : 'production';
+}
 
 export interface InvoiceValidationIssue {
   id: string;

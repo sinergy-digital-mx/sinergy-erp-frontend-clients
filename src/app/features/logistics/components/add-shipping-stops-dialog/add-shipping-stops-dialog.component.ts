@@ -13,7 +13,8 @@ import { ShippingService } from '../../services/shipping.service';
 
 export interface AddShippingStopsDialogData {
   shippingId: string;
-  warehouseId: string;
+  billingBranchId: string;
+  fiscalConfigurationId?: string;
   assignedOrderIds: string[];
 }
 
@@ -50,10 +51,11 @@ export class AddShippingStopsDialogComponent implements OnInit {
     this.loading.set(true);
     this.shippingService
       .getAvailableOrders({
-        origin_warehouse_id: this.data.warehouseId,
+        billing_branch_id: this.data.billingBranchId,
+        fiscal_configuration_id: this.data.fiscalConfigurationId,
         search: this.search || undefined,
         page: this.page,
-        limit: 20,
+        limit: 50,
       })
       .subscribe({
         next: (res) => {

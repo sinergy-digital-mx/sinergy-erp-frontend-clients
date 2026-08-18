@@ -8,11 +8,20 @@
     <div class="create-shipping__body">
       <form [formGroup]="form" class="create-shipping__form">
         <div>
-          <label>CEDIS origen *</label>
-          <select formControlName="origin_warehouse_id">
-            <option value="">Selecciona CEDIS / almacén</option>
-            @for (w of warehouses(); track w.id) {
-              <option [value]="w.id">{{ w.name }}</option>
+          <label>Razón social *</label>
+          <select formControlName="fiscal_configuration_id">
+            <option value="">Selecciona una razón social</option>
+            @for (fc of fiscalConfigurations(); track fc.id) {
+              <option [value]="fc.id">{{ fiscalLabel(fc) }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label>Sucursal *</label>
+          <select formControlName="billing_branch_id">
+            <option value="">Selecciona una sucursal</option>
+            @for (b of branches(); track b.id) {
+              <option [value]="b.id">{{ branchLabel(b) }}</option>
             }
           </select>
         </div>
@@ -21,20 +30,20 @@
           <input type="date" formControlName="shipping_date" />
         </div>
         <div>
-          <label>Chofer *</label>
-          <select formControlName="driver_id">
-            <option value="">Selecciona chofer</option>
-            @for (u of drivers(); track u.id) {
-              <option [value]="u.id">{{ driverLabel(u) }}</option>
-            }
-          </select>
-        </div>
-        <div>
           <label>Camión *</label>
           <select formControlName="truck_id">
             <option value="">Selecciona camión</option>
             @for (t of trucks(); track t.id) {
               <option [value]="t.id">{{ truckSelectLabel(t) }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label>Chofer *</label>
+          <select formControlName="driver_id">
+            <option value="">Selecciona chofer</option>
+            @for (u of drivers(); track u.id) {
+              <option [value]="u.id">{{ driverLabel(u) }}</option>
             }
           </select>
         </div>
@@ -58,14 +67,23 @@
             (searchChange)="onOrderSearch($event)"
           ></app-search>
         </div>
-        @if (!form.get('origin_warehouse_id')?.value) {
-          <p class="hint">Selecciona un almacén origen para listar órdenes.</p>
+        @if (!form.get('billing_branch_id')?.value) {
+          <p class="hint">Selecciona una sucursal para listar órdenes.</p>
         } @else if (loadingOrders()) {
           <p class="hint">Cargando…</p>
         } @else if (!orders().length) {
-          <p class="hint">No hay órdenes Surtida o Lista para entrega en este almacén.</p>
+          <p class="hint">No hay órdenes Surtida o Lista para entrega en esta sucursal.</p>
         } @else {
           <div class="order-list">
+            <div class="order-table__head">
+              <span></span>
+              <span>Folio</span>
+              <span>Cliente</span>
+              <span>Razón social</span>
+              <span>Sucursal</span>
+              <span>Estado</span>
+              <span>Total</span>
+            </div>
             @for (order of orders(); track order.id) {
               <label class="order-row">
                 <input
@@ -73,7 +91,12 @@
                   [checked]="isSelected(order.id)"
                   (change)="toggleOrder(order.id)"
                 />
-                <span>{{ orderLabel(order) }}</span>
+                <span class="order-row__folio">{{ orderFolio(order) }}</span>
+                <span>{{ orderCustomer(order) }}</span>
+                <span>{{ orderFiscal(order) }}</span>
+                <span>{{ orderBranch(order) }}</span>
+                <span>{{ orderStatus(order) }}</span>
+                <span class="order-row__total">{{ orderTotalLabel(order) }}</span>
               </label>
             }
           </div>
@@ -126,7 +149,7 @@
 
     <div class="preview-meta">
       <div>
-        <span>CEDIS origen</span>
+        <span>Sucursal</span>
         {{ originLabel(p.origin) }}
       </div>
       <div>
@@ -149,14 +172,16 @@
       <div class="preview-layout">
         <aside class="preview-route">
           <div class="preview-section">
-            <h4>Origen</h4>
+            <h4>Ruta</h4>
             <div class="stop-card" [class.stop-card--warn]="isOriginMissing()">
-              <div class="stop-card__seq" [class.stop-card__seq--warn]="isOriginMissing()">0</div>
+              <div class="stop-card__seq" [class.stop-card__seq--warn]="isOriginMissing()">
+                {{ originLetter(p.origin) }}
+              </div>
               <div class="stop-card__body">
                 <strong>{{ originLabel(p.origin) }}</strong>
                 <p class="stop-card__sub">{{ p.origin?.address_summary || 'Punto de salida' }}</p>
                 @if (isOriginMissing()) {
-                  <p class="warn-text">Este CEDIS no tiene ubicación registrada</p>
+                  <p class="warn-text">Esta sucursal no tiene ubicación registrada</p>
                   <button type="button" class="link-btn" (click)="openEditOrigin()">
                     Agregar / editar ubicación
                   </button>
@@ -176,7 +201,7 @@
                   class="stop-card__seq"
                   [class.stop-card__seq--warn]="o.location_status === 'without_location'"
                 >
-                  {{ $index + 1 }}
+                  {{ stopLetter(o, $index) }}
                 </div>
                 <div class="stop-card__body">
                   <div class="stop-card__row">
@@ -193,12 +218,12 @@
                     >
                   }
                   @if (stopNeedsAddress(o)) {
-                    <p class="warn-text">Sin dirección de entrega</p>
+                    <p class="warn-text">Este cliente no tiene dirección de entrega registrada</p>
                     <button type="button" class="link-btn" (click)="openAddCustomerAddress(o)">
                       Agregar dirección
                     </button>
                   } @else if (stopNeedsGps(o)) {
-                    <p class="warn-text">Sin coordenadas GPS</p>
+                    <p class="warn-text">La dirección de entrega no tiene coordenadas</p>
                     <button type="button" class="link-btn" (click)="openEditCustomerAddress(o)">
                       Editar dirección
                     </button>

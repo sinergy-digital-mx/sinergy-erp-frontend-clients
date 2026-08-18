@@ -31,7 +31,7 @@
 .btn-cancel-order {
   width: 100%;
   padding: 0.6rem 1rem;
-  border: none;
+  border: 1px solid #fecaca;
   border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -40,17 +40,19 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: #dc2626;
-  color: #fff;
+  background: #fef2f2;
+  color: #be123c;
   white-space: nowrap;
-  transition: background 0.15s ease, filter 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 
   i {
     font-size: 1rem;
   }
 
   &:hover:not(:disabled) {
-    background: #b91c1c;
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #9f1239;
   }
 
   &:disabled {

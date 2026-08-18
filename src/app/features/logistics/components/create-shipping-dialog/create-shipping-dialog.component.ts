@@ -1,18 +1,28 @@
-import { Component, Inject, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { LucideAngularModule, X, MapPin } from 'lucide-angular';
+import { LucideAngularModule, X } from 'lucide-angular';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { User } from '../../../rbac-tenant-ui/models';
-import { WarehouseService } from '../../../settings/services/warehouse.service';
-import { Warehouse } from '../../../settings/models/warehouse.model';
+import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { BranchService } from '../../../settings/services/branch.service';
+import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
+import { Branch } from '../../../settings/models/branch.model';
 import { SalesOrder } from '../../../sales-orders/models/sales-order.model';
+import {
+  getSalesOrderListBranchLabel,
+  getSalesOrderListCustomerName,
+  getSalesOrderListFiscalLabel,
+  getSalesOrderStatus,
+  getSalesOrderTotal,
+} from '../../../sales-orders/utils/sales-order-display.util';
 import {
   CustomerAddressDialogComponent,
 } from '../../../customers/components/customer-address-dialog/customer-address-dialog.component';
@@ -28,7 +38,7 @@ import {
 import { TruckService } from '../../services/truck.service';
 import { ShippingService } from '../../services/shipping.service';
 import { ShippingMapComponent } from '../shipping-map/shipping-map.component';
-import { WarehouseLocationDialogComponent } from '../warehouse-location-dialog/warehouse-location-dialog.component';
+import { BranchLocationDialogComponent } from '../branch-location-dialog/branch-location-dialog.component';
 
 export interface CreateShippingDialogData {
   shippingDate?: string;
@@ -50,14 +60,14 @@ type WizardStep = 'form' | 'preview';
   templateUrl: './create-shipping-dialog.component.html',
   styleUrl: './create-shipping-dialog.component.scss',
 })
-export class CreateShippingDialogComponent implements OnInit {
+export class CreateShippingDialogComponent implements OnInit, OnDestroy {
   readonly X = X;
-  readonly MapPin = MapPin;
   readonly truckSelectLabel = truckSelectLabel;
 
   form: FormGroup;
   step = signal<WizardStep>('form');
-  warehouses = signal<Warehouse[]>([]);
+  fiscalConfigurations = signal<FiscalConfiguration[]>([]);
+  branches = signal<Branch[]>([]);
   trucks = signal<Truck[]>([]);
   drivers = signal<User[]>([]);
   orders = signal<SalesOrder[]>([]);
@@ -74,9 +84,12 @@ export class CreateShippingDialogComponent implements OnInit {
   orderTotalPages = 1;
   orderTotal = 0;
 
+  private destroy$ = new Subject<void>();
+
   constructor(
     private fb: FormBuilder,
-    private warehouseService: WarehouseService,
+    private fiscalConfigurationService: FiscalConfigurationService,
+    private branchService: BranchService,
     private truckService: TruckService,
     private userService: UserService,
     private shippingService: ShippingService,
@@ -87,21 +100,30 @@ export class CreateShippingDialogComponent implements OnInit {
   ) {
     const today = this.toLocalDateString(new Date());
     this.form = this.fb.group({
-      origin_warehouse_id: ['', Validators.required],
+      fiscal_configuration_id: ['', Validators.required],
+      billing_branch_id: [{ value: '', disabled: true }, Validators.required],
       shipping_date: [data?.shippingDate || today, Validators.required],
-      driver_id: ['', Validators.required],
       truck_id: ['', Validators.required],
+      driver_id: ['', Validators.required],
       notes: [''],
     });
   }
 
   ngOnInit(): void {
     this.loadCatalogs();
-    this.form.get('origin_warehouse_id')?.valueChanges.subscribe(() => {
-      this.selectedOrderIds = new Set();
-      this.orderPage = 1;
-      this.loadOrders();
-    });
+    this.form
+      .get('fiscal_configuration_id')
+      ?.valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe((fiscalId) => this.onFiscalChange(fiscalId));
+    this.form
+      .get('billing_branch_id')
+      ?.valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.onBranchChange());
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private toLocalDateString(d: Date): string {
@@ -111,12 +133,40 @@ export class CreateShippingDialogComponent implements OnInit {
     return `${y}-${m}-${day}`;
   }
 
+  private onFiscalChange(fiscalId: string | null): void {
+    this.form.patchValue({ billing_branch_id: '' }, { emitEvent: false });
+    this.branches.set([]);
+    this.clearOrderSelection();
+    this.orders.set([]);
+    this.orderTotal = 0;
+    this.orderTotalPages = 1;
+
+    if (fiscalId) {
+      this.form.get('billing_branch_id')?.enable({ emitEvent: false });
+      this.loadBranches(fiscalId);
+    } else {
+      this.form.get('billing_branch_id')?.disable({ emitEvent: false });
+    }
+  }
+
+  private onBranchChange(): void {
+    this.clearOrderSelection();
+    this.orderPage = 1;
+    this.loadOrders();
+  }
+
+  private clearOrderSelection(): void {
+    this.selectedOrderIds = new Set();
+  }
+
   private loadCatalogs(): void {
     this.loadingCatalogs.set(true);
-    this.warehouseService.getWarehouses({ status: 'active', limit: 100 }).subscribe({
-      next: (res) => this.warehouses.set(res.data ?? []),
-      error: () => this.warehouses.set([]),
-    });
+    this.fiscalConfigurationService
+      .listFiscalConfigurations({ status: 'active', limit: 100 })
+      .subscribe({
+        next: (res) => this.fiscalConfigurations.set(Array.isArray(res) ? res : (res.data ?? [])),
+        error: () => this.fiscalConfigurations.set([]),
+      });
     this.truckService.getTrucks({ status: 'active', limit: 100 }).subscribe({
       next: (res) => this.trucks.set(res.data ?? []),
       error: () => this.trucks.set([]),
@@ -140,9 +190,17 @@ export class CreateShippingDialogComponent implements OnInit {
     });
   }
 
+  private loadBranches(fiscalConfigId: string): void {
+    this.branchService.getBranches(fiscalConfigId).subscribe({
+      next: (branches) => this.branches.set(Array.isArray(branches) ? branches : []),
+      error: () => this.branches.set([]),
+    });
+  }
+
   loadOrders(): void {
-    const warehouseId = this.form.get('origin_warehouse_id')?.value;
-    if (!warehouseId) {
+    const billingBranchId = this.form.get('billing_branch_id')?.value;
+    const fiscalConfigurationId = this.form.get('fiscal_configuration_id')?.value;
+    if (!billingBranchId) {
       this.orders.set([]);
       this.orderTotal = 0;
       this.orderTotalPages = 1;
@@ -151,10 +209,11 @@ export class CreateShippingDialogComponent implements OnInit {
     this.loadingOrders.set(true);
     this.shippingService
       .getAvailableOrders({
-        origin_warehouse_id: warehouseId,
+        billing_branch_id: billingBranchId,
+        fiscal_configuration_id: fiscalConfigurationId || undefined,
         search: this.orderSearch || undefined,
         page: this.orderPage,
-        limit: 20,
+        limit: 50,
       })
       .subscribe({
         next: (res) => {
@@ -187,24 +246,52 @@ export class CreateShippingDialogComponent implements OnInit {
     return this.selectedOrderIds.has(id);
   }
 
+  fiscalLabel(fc: FiscalConfiguration): string {
+    return fc.razon_social?.trim() || 'Sin razón social';
+  }
+
+  branchLabel(branch: Branch): string {
+    return branch.name?.trim() || branch.code?.trim() || branch.display_name?.trim() || '—';
+  }
+
   driverLabel(user: User): string {
     const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
     return name || user.email;
   }
 
-  orderLabel(order: SalesOrder): string {
-    const folio = order.folio || order.id.slice(0, 8);
-    const company = order.customer?.company_name?.trim() || '';
-    const person = [order.customer?.name, order.customer?.lastname]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
-    let customer = '';
-    if (company && person) customer = `${company} - ${person}`;
-    else if (company) customer = company;
-    else if (person) customer = person;
-    else customer = order.customer_display_name || order.customer_summary?.display_name || 'Cliente';
-    return `#${folio} · ${customer}`;
+  orderFolio(order: SalesOrder): string {
+    return order.folio || order.id.slice(0, 8);
+  }
+
+  orderCustomer(order: SalesOrder): string {
+    const nested = getSalesOrderListCustomerName(order, '');
+    if (nested && nested !== 'N/A') return nested;
+    const raw = String((order as SalesOrder & { customer_name?: string }).customer_name || '').trim();
+    return raw || 'Cliente';
+  }
+
+  orderFiscal(order: SalesOrder): string {
+    return getSalesOrderListFiscalLabel(order);
+  }
+
+  orderBranch(order: SalesOrder): string {
+    const fromUtil = getSalesOrderListBranchLabel(order);
+    if (fromUtil !== '—') return fromUtil;
+    return (
+      order.billing_branch?.display_name?.trim() ||
+      order.billing_branch?.code?.trim() ||
+      '—'
+    );
+  }
+
+  orderStatus(order: SalesOrder): string {
+    return String(getSalesOrderStatus(order) || '—');
+  }
+
+  orderTotalLabel(order: SalesOrder): string {
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(
+      getSalesOrderTotal(order)
+    );
   }
 
   close(): void {
@@ -264,10 +351,7 @@ export class CreateShippingDialogComponent implements OnInit {
     this.previewing.set(true);
     this.shippingService
       .preview({
-        shipping_date: value.shipping_date,
-        driver_id: value.driver_id,
-        truck_id: value.truck_id,
-        origin_warehouse_id: value.origin_warehouse_id,
+        billing_branch_id: value.billing_branch_id,
         orders: this.buildOrdersPayloadFromSelection(),
       })
       .subscribe({
@@ -309,7 +393,15 @@ export class CreateShippingDialogComponent implements OnInit {
   }
 
   originLabel(origin?: ShippingOrigin | null): string {
-    return origin?.name || origin?.warehouse_name || 'CEDIS origen';
+    return origin?.name || origin?.warehouse_name || 'Sucursal';
+  }
+
+  originLetter(origin?: ShippingOrigin | null): string {
+    return origin?.label || 'A';
+  }
+
+  stopLetter(order: ShippingPreviewOrder, index: number): string {
+    return order.label || String.fromCharCode(66 + index);
   }
 
   isOriginMissing(): boolean {
@@ -346,15 +438,18 @@ export class CreateShippingDialogComponent implements OnInit {
   }
 
   openEditOrigin(): void {
-    const warehouseId =
-      this.preview()?.origin?.warehouse_id || this.form.get('origin_warehouse_id')?.value;
-    if (!warehouseId) return;
-    const ref = this.dialog.open(WarehouseLocationDialogComponent, {
+    const origin = this.preview()?.origin;
+    const fiscalConfigId =
+      origin?.fiscal_configuration_id || this.form.get('fiscal_configuration_id')?.value;
+    const branchId = origin?.billing_branch_id || this.form.get('billing_branch_id')?.value;
+    if (!fiscalConfigId || !branchId) return;
+    const ref = this.dialog.open(BranchLocationDialogComponent, {
       width: '960px',
       maxWidth: '96vw',
       data: {
-        warehouseId,
-        warehouseName: this.originLabel(this.preview()?.origin),
+        fiscalConfigId,
+        branchId,
+        branchName: this.originLabel(origin),
       },
     });
     ref.afterClosed().subscribe((ok) => {
@@ -417,7 +512,7 @@ export class CreateShippingDialogComponent implements OnInit {
         data: {
           title: 'Ubicaciones incompletas',
           message:
-            'Hay paradas o CEDIS sin GPS; la distancia será parcial. ¿Crear de todos modos?',
+            'Hay paradas o sucursal sin GPS; la distancia será parcial. ¿Crear de todos modos?',
           confirmText: 'Crear envío',
           cancelText: 'Volver',
         },
@@ -436,7 +531,7 @@ export class CreateShippingDialogComponent implements OnInit {
       shipping_date: value.shipping_date,
       driver_id: value.driver_id,
       truck_id: value.truck_id,
-      origin_warehouse_id: value.origin_warehouse_id,
+      billing_branch_id: value.billing_branch_id,
       notes: value.notes?.trim() || undefined,
       orders: this.buildOrdersPayloadFromPreview(),
     };

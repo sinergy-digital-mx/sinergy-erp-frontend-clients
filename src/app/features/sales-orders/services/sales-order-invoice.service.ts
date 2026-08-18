@@ -91,16 +91,18 @@ export class SalesOrderInvoiceService {
 
 
   syncSat(orderId: string, invoiceId: string): Observable<SalesOrderElectronicInvoice> {
-
     return this.http
-
-      .post<unknown>(`${this.baseUrl}/${orderId}/invoices/${invoiceId}/sync-sat`, {})
-
+      .request<unknown>('POST', `${this.baseUrl}/${orderId}/invoices/${invoiceId}/sync-sat`)
       .pipe(map((response) => this.normalizeInvoice(response)));
-
   }
 
 
+
+  getInvoiceXml(orderId: string, invoiceId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${orderId}/invoices/${invoiceId}/xml`, {
+      responseType: 'blob',
+    });
+  }
 
   getInvoicePdf(
 

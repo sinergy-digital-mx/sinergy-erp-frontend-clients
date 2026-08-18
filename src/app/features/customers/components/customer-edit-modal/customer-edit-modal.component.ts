@@ -33,6 +33,11 @@ import {
   resolveFiscalPersonType,
   sanitizeFiscalPersonTypeForApi,
 } from '../../utils/fiscal-person-type.util';
+import {
+  SAT_COUNTRY_MEX,
+  resolveFiscalMunicipio,
+  resolveFiscalStreet,
+} from '../../utils/fiscal-domicile.util';
 import { formatRegistrationUserOption } from '../../utils/customer-registration.util';
 import { CUSTOMER_DUPLICATE_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import {
@@ -112,10 +117,15 @@ export class CustomerEditModalComponent {
       fiscal_rfc: [''],
       fiscal_razon_social: [''],
       fiscal_person_type: [''],
-      fiscal_address: [''],
-      fiscal_city: [''],
+      fiscal_postal_code: ['', [Validators.pattern(/^$|^\d{5}$/)]],
+      fiscal_street: [''],
+      fiscal_exterior_number: [''],
+      fiscal_interior_number: [''],
+      fiscal_colonia: [''],
+      fiscal_localidad: [''],
+      fiscal_municipio: [''],
       fiscal_state: [''],
-      fiscal_postal_code: [''],
+      fiscal_country: [SAT_COUNTRY_MEX, [Validators.pattern(/^$|^[A-Za-z]{3}$/)]],
       additional_name: [''],
       additional_lastname: [''],
       additional_email: ['', [Validators.email]],
@@ -152,10 +162,15 @@ export class CustomerEditModalComponent {
           this.data.customer.fiscal_person_type,
           this.data.customer.fiscal_rfc
         ),
-        fiscal_address: this.data.customer.fiscal_address || '',
-        fiscal_city: this.data.customer.fiscal_city || '',
-        fiscal_state: this.data.customer.fiscal_state || '',
         fiscal_postal_code: this.data.customer.fiscal_postal_code || '',
+        fiscal_street: resolveFiscalStreet(this.data.customer),
+        fiscal_exterior_number: this.data.customer.fiscal_exterior_number || '',
+        fiscal_interior_number: this.data.customer.fiscal_interior_number || '',
+        fiscal_colonia: this.data.customer.fiscal_colonia || '',
+        fiscal_localidad: this.data.customer.fiscal_localidad || '',
+        fiscal_municipio: resolveFiscalMunicipio(this.data.customer),
+        fiscal_state: this.data.customer.fiscal_state || '',
+        fiscal_country: (this.data.customer.fiscal_country || SAT_COUNTRY_MEX).trim().toUpperCase(),
         additional_name: this.data.customer.additional_name || '',
         additional_lastname: this.data.customer.additional_lastname || '',
         additional_email: this.data.customer.additional_email || '',
@@ -308,6 +323,50 @@ export class CustomerEditModalComponent {
     return trimmed === '' ? null : trimmed;
   }
 
+  /** Campos CSF. No envía `fiscal_address` ni `fiscal_city`. */
+  private buildFiscalApiFields(): Pick<
+    UpdateCustomerDto,
+    | 'fiscal_rfc'
+    | 'fiscal_razon_social'
+    | 'fiscal_person_type'
+    | 'fiscal_postal_code'
+    | 'fiscal_street'
+    | 'fiscal_exterior_number'
+    | 'fiscal_interior_number'
+    | 'fiscal_colonia'
+    | 'fiscal_localidad'
+    | 'fiscal_municipio'
+    | 'fiscal_state'
+    | 'fiscal_country'
+  > {
+    const v = this.form.getRawValue();
+    const postal = this.emptyToNull(v.fiscal_postal_code);
+    const street = this.emptyToNull(v.fiscal_street);
+    const exterior = this.emptyToNull(v.fiscal_exterior_number);
+    const interior = this.emptyToNull(v.fiscal_interior_number);
+    const colonia = this.emptyToNull(v.fiscal_colonia);
+    const localidad = this.emptyToNull(v.fiscal_localidad);
+    const municipio = this.emptyToNull(v.fiscal_municipio);
+    const state = this.emptyToNull(v.fiscal_state);
+    const country = this.emptyToNull(v.fiscal_country)?.toUpperCase() ?? null;
+    const hasDomicilio = !!(postal || street || exterior || interior || colonia || localidad || municipio || state);
+
+    return {
+      fiscal_rfc: this.emptyToNull(v.fiscal_rfc)?.toUpperCase() ?? undefined,
+      fiscal_razon_social: this.emptyToNull(v.fiscal_razon_social) ?? undefined,
+      fiscal_person_type: sanitizeFiscalPersonTypeForApi(v.fiscal_person_type),
+      fiscal_postal_code: postal,
+      fiscal_street: street,
+      fiscal_exterior_number: exterior,
+      fiscal_interior_number: interior,
+      fiscal_colonia: colonia,
+      fiscal_localidad: localidad,
+      fiscal_municipio: municipio,
+      fiscal_state: state,
+      fiscal_country: hasDomicilio ? country || SAT_COUNTRY_MEX : country,
+    };
+  }
+
   setActiveTab(tab: string): void {
     if (tab === 'customer' || tab === 'credit' || tab === 'fiscal' || tab === 'registration') {
       this.activeTab.set(tab);
@@ -412,6 +471,10 @@ export class CustomerEditModalComponent {
   private validateFormBeforeSubmit(): boolean {
     if (this.form.valid) return true;
     this.form.markAllAsTouched();
+    const fiscalKeys = ['fiscal_postal_code', 'fiscal_country'];
+    if (fiscalKeys.some((key) => !!this.form.get(key)?.invalid)) {
+      this.activeTab.set('fiscal');
+    }
     if (!this.additionalPersonExpanded()) {
       const keys = ['additional_email', 'additional_phone', 'additional_name', 'additional_lastname'];
       if (keys.some((key) => !!this.form.get(key)?.invalid)) {
@@ -483,13 +546,7 @@ export class CustomerEditModalComponent {
       warehouse_id: v.warehouse_id || null,
       credit_days: this.parseNullableInteger(v.credit_days),
       credit_amount: this.parseNullableDecimal(v.credit_amount),
-      fiscal_rfc: trim(v.fiscal_rfc) || undefined,
-      fiscal_razon_social: trim(v.fiscal_razon_social) || undefined,
-      fiscal_person_type: sanitizeFiscalPersonTypeForApi(v.fiscal_person_type),
-      fiscal_address: trim(v.fiscal_address) || undefined,
-      fiscal_city: trim(v.fiscal_city) || undefined,
-      fiscal_state: trim(v.fiscal_state) || undefined,
-      fiscal_postal_code: trim(v.fiscal_postal_code) || undefined,
+      ...this.buildFiscalApiFields(),
       group_id: this.selectedGroup()?.id ?? null,
       registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),
       registered_by_user_id: this.emptyToNull(v.registered_by_user_id),
@@ -598,13 +655,7 @@ export class CustomerEditModalComponent {
       warehouse_id: v.warehouse_id || null,
       credit_days: this.parseNullableInteger(v.credit_days),
       credit_amount: this.parseNullableDecimal(v.credit_amount),
-      fiscal_rfc: trim(v.fiscal_rfc) || undefined,
-      fiscal_razon_social: trim(v.fiscal_razon_social) || undefined,
-      fiscal_person_type: sanitizeFiscalPersonTypeForApi(v.fiscal_person_type),
-      fiscal_address: trim(v.fiscal_address) || undefined,
-      fiscal_city: trim(v.fiscal_city) || undefined,
-      fiscal_state: trim(v.fiscal_state) || undefined,
-      fiscal_postal_code: trim(v.fiscal_postal_code) || undefined,
+      ...this.buildFiscalApiFields(),
       group_id: this.selectedGroup()?.id ?? null,
       registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),
       registered_by_user_id: this.emptyToNull(v.registered_by_user_id),

@@ -386,15 +386,14 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     if (!this.posState.needsSellerCode() || this.sellerDialogOpen) {
       return;
     }
-    void this.openSellerCodeDialog();
+    this.openSellerCodeDialog();
   }
 
-  async openSellerCodeDialog(): Promise<void> {
+  openSellerCodeDialog(): void {
     if (this.sellerDialogOpen) {
       return;
     }
     this.sellerDialogOpen = true;
-    await this.exitFullscreenForDialog();
 
     const dialogRef = this.dialog.open(SellerCodeDialogComponent, {
       width: '400px',
@@ -422,7 +421,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.notifyError(mapPosApiErrorMessage(error.error?.message), 5000);
-          void this.openSellerCodeDialog();
+          this.openSellerCodeDialog();
         },
       });
     });
@@ -430,7 +429,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
 
   changeSeller(): void {
     this.posState.clearSeller();
-    void this.openSellerCodeDialog();
+    this.openSellerCodeDialog();
   }
 
   onSearchChange(): void {
@@ -461,26 +460,24 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       return;
     }
 
-    void this.exitFullscreenForDialog().then(() => {
-      this.dialog
-        .open(ProductDetailModalComponent, {
-          ...PRODUCT_DETAIL_DIALOG_CONFIG,
-          data: {
-            product: {
-              id: productId,
-              name: product.name,
-              sku: product.sku,
-            },
-            isNew: false,
+    this.dialog
+      .open(ProductDetailModalComponent, {
+        ...PRODUCT_DETAIL_DIALOG_CONFIG,
+        data: {
+          product: {
+            id: productId,
+            name: product.name,
+            sku: product.sku,
           },
-        })
-        .afterClosed()
-        .subscribe(() => {
-          if (this.canSell()) {
-            this.loadProducts(this.searchTerm());
-          }
-        });
-    });
+          isNew: false,
+        },
+      })
+      .afterClosed()
+      .subscribe(() => {
+        if (this.canSell()) {
+          this.loadProducts(this.searchTerm());
+        }
+      });
   }
 
   addProductToCart(product: any): void {
@@ -682,7 +679,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   saveOrder(): void {
     if (!this.canSell()) {
       this.notifyError('Identifica al vendedor con su código para registrar la venta', 4000);
-      void this.openSellerCodeDialog();
+      this.openSellerCodeDialog();
       return;
     }
 
@@ -694,7 +691,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
 
     const seller = this.posState.seller();
     if (!seller?.id) {
-      void this.openSellerCodeDialog();
+      this.openSellerCodeDialog();
       return;
     }
 
@@ -862,16 +859,6 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   private onFullscreenChange = (): void => {
     this.isFullscreen.set(!!document.fullscreenElement);
   };
-
-  private async exitFullscreenForDialog(): Promise<void> {
-    if (!document.fullscreenElement) return;
-    try {
-      await document.exitFullscreen();
-      this.isFullscreen.set(false);
-    } catch {
-      // Ignore; dialog can still attempt to open.
-    }
-  }
 
   cartQueueHint(): string {
     if (this.posState.shiftOpen()) {

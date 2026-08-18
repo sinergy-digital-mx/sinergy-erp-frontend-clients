@@ -65,10 +65,19 @@ export interface Customer {
   fiscal_rfc?: string;
   fiscal_razon_social?: string;
   fiscal_person_type?: string;
+  /** Legado GET: no enviar en POST/PUT. Prefill de Calle si `fiscal_street` viene vacío. */
   fiscal_address?: string;
+  /** Legado GET: no enviar en POST/PUT. Prefill de Municipio si `fiscal_municipio` viene vacío. */
   fiscal_city?: string;
+  fiscal_street?: string;
+  fiscal_exterior_number?: string;
+  fiscal_interior_number?: string;
+  fiscal_colonia?: string;
+  fiscal_localidad?: string;
+  fiscal_municipio?: string;
   fiscal_state?: string;
   fiscal_postal_code?: string;
+  fiscal_country?: string;
   group?: CustomerGroup | null;
   group_id?: string | null;
   legacy_customer_id?: number | null;
@@ -171,10 +180,15 @@ export interface UpdateCustomerDto {
   fiscal_rfc?: string;
   fiscal_razon_social?: string;
   fiscal_person_type?: string;
-  fiscal_address?: string;
-  fiscal_city?: string;
-  fiscal_state?: string;
-  fiscal_postal_code?: string;
+  fiscal_postal_code?: string | null;
+  fiscal_street?: string | null;
+  fiscal_exterior_number?: string | null;
+  fiscal_interior_number?: string | null;
+  fiscal_colonia?: string | null;
+  fiscal_localidad?: string | null;
+  fiscal_municipio?: string | null;
+  fiscal_state?: string | null;
+  fiscal_country?: string | null;
   group_id?: string | null;
   additional_name?: string;
   additional_lastname?: string;

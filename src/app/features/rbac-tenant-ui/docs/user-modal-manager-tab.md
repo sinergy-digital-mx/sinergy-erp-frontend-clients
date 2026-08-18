@@ -9,7 +9,7 @@ el contenido (lista + agregar) se habilita con el interruptor.
 
 Siempre, junto a POS / Empleado / Sucursales asignadas.
 
-Orden: Información general → POS → Empleado → **Gerente** → Sucursales → Seguridad (solo perfil propio).
+Orden: Información general → POS → Empleado → **Gerente** → Sucursales → Seguridad (perfil propio o `User:Reset_Password`).
 
 | Pantalla | Tab Gerente |
 |----------|-------------|

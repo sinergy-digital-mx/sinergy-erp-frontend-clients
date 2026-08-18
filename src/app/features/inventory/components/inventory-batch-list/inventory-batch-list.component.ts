@@ -239,8 +239,8 @@ export class InventoryBatchListComponent implements OnInit {
   openBatchDetail(batch: InventoryBatch): void {
     this.dialog.open(BatchDetailDialogComponent, {
       data: { batchId: batch.id },
-      width: '920px',
-      maxWidth: '95vw',
+      width: 'min(1120px, 96vw)',
+      maxWidth: '96vw',
       maxHeight: '90vh',
     });
   }

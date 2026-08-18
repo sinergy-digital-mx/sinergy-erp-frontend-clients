@@ -2,23 +2,30 @@ import { Component, Input, OnInit, Output, EventEmitter, computed, signal, injec
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { CustomerService } from '../../../../core/services/customer.service';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { ELECTRONIC_INVOICING_PERMISSIONS } from '../../config/electronic-invoicing-permissions.config';
 import {
   FinkokConfigurationsResponse,
-  hasFinkokCredentials,
   InvoiceValidationIssue,
   SalesOrderElectronicInvoice,
+  isLocalStampHost,
 } from '../../models/sales-order-electronic-invoice.model';
 import { SalesOrder, SalesOrderLineItem, Customer } from '../../models/sales-order.model';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
 import {
   countPendingSyncInvoices,
   countVigenteInvoices,
+  fiveDigitPostalCode,
   getInvoiceStatusClass,
   getInvoiceStatusLabel,
+  isGenericPublicReceptor,
 } from '../../utils/cfdi-xml-builder.util';
+import { resolveSalesOrderCustomerId } from '../../utils/customer-display.util';
 import {
   SalesOrderInvoiceCancelDialogComponent,
   SalesOrderInvoiceCancelDialogResult,
@@ -52,6 +59,7 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   private readonly fiscalConfigService = inject(FiscalConfigurationService);
+  private readonly customerService = inject(CustomerService);
 
   invoices = signal<SalesOrderElectronicInvoice[]>([]);
   finkokConfig = signal<FinkokConfigurationsResponse | null>(null);
@@ -60,18 +68,23 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   syncingId = signal<string | null>(null);
   cancellingId = signal<string | null>(null);
   previewingPdfId = signal<string | null>(null);
+  downloadingXmlId = signal<string | null>(null);
 
   canViewTab = computed(() =>
-    this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.viewMenu) &&
-    this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.read)
+    this.hasInvoicePermission(ELECTRONIC_INVOICING_PERMISSIONS.viewMenu) &&
+    this.hasInvoicePermission(ELECTRONIC_INVOICING_PERMISSIONS.read)
   );
 
-  canStamp = computed(() => this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.stamp));
-  canCancel = computed(() => this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.cancel));
-  canSyncSat = computed(() => this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.syncSat));
+  canStamp = computed(() => this.hasInvoicePermission(ELECTRONIC_INVOICING_PERMISSIONS.stamp));
+  canCancel = computed(
+    () =>
+      this.hasInvoicePermission(ELECTRONIC_INVOICING_PERMISSIONS.cancel) ||
+      this.hasInvoicePermission(ELECTRONIC_INVOICING_PERMISSIONS.stamp)
+  );
+  canSyncSat = computed(() => this.hasInvoicePermission(ELECTRONIC_INVOICING_PERMISSIONS.syncSat));
 
   summaryText = computed(() => {
-    const list = this.invoices();
+    const list = this.visibleInvoices();
     return `${list.length} factura${list.length === 1 ? '' : 's'} · ${countVigenteInvoices(list)} vigente${countVigenteInvoices(list) === 1 ? '' : 's'} · ${countPendingSyncInvoices(list)} pendientes sync`;
   });
 
@@ -79,14 +92,37 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   canStampInvoice = computed(() => this.canStamp() && this.validationIssues().length === 0);
 
   activeInvoiceWarning = computed(() => {
-    const env = this.finkokConfig()?.stamping_environment;
-    if (env !== 'production') return null;
-    const vigentes = countVigenteInvoices(this.invoices());
-    if (vigentes > 0 && this.canStamp()) {
+    const vigentesProd = this.visibleInvoices().filter((invoice) => {
+      if (this.getInvoiceEnvironment(invoice) !== 'production') return false;
+      const stamp = (invoice.stamp_status || '').toLowerCase();
+      const sat = (invoice.sat_status || '').toLowerCase();
+      return stamp === 'stamped' && !/\bcancelad[oa]\b/.test(sat);
+    });
+    if (vigentesProd.length > 0 && this.canStamp()) {
       return 'Ya existe una factura activa en producción. Cancela la anterior antes de timbrar otra factura en PROD.';
     }
     return null;
   });
+
+  demoStampedCount = computed(() =>
+    this.visibleInvoices().filter((invoice) => !!String(invoice.uuid || '').trim() && this.isStamped(invoice)).length
+  );
+
+  demoCancelledCount = computed(() =>
+    this.visibleInvoices().filter((invoice) => this.isCancelledStatus(invoice)).length
+  );
+
+  visibleInvoices = computed(() =>
+    this.invoices().filter((invoice) => {
+      const stamp = (invoice.stamp_status || '').toLowerCase();
+      return (
+        stamp === 'stamped' ||
+        stamp === 'cancel_pending' ||
+        stamp === 'cancelled' ||
+        stamp === 'cancel_error'
+      );
+    })
+  );
 
   ngOnInit(): void {
     if (this.canViewTab()) {
@@ -96,17 +132,19 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     }
   }
 
-  loadTabData(): void {
-    this.loading.set(true);
+  loadTabData(silent = false): void {
+    if (!silent) {
+      this.loading.set(true);
+    }
     this.invoiceService.getInvoices(this.orderId).subscribe({
       next: (invoices) => {
-        this.invoices.set(invoices);
+        this.invoices.set(invoices.map((invoice) => this.mapInvoice(invoice)));
         this.loading.set(false);
         this.invoicesChanged.emit();
       },
       error: (error) => {
         this.loading.set(false);
-        this.toast.error(error?.message || 'Error al cargar facturas');
+        this.toast.error(resolveHttpErrorMessage(error, 'Error al cargar facturas'));
       },
     });
 
@@ -125,15 +163,6 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
         })
       | undefined;
     const customer = order.customer;
-    const finkok = this.finkokConfig();
-
-    if (!hasFinkokCredentials(finkok)) {
-      issues.push({
-        id: 'finkok',
-        message: 'No hay credenciales Finkok activas. Configúralas en Configuración Fiscal → Integración Finkok.',
-        action: 'finkok',
-      });
-    }
 
     if (fiscal?.finkok_registration_status && fiscal.finkok_registration_status !== 'registered') {
       issues.push({
@@ -144,11 +173,36 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     }
 
     const rfc = customer?.fiscal_rfc;
-    if (!rfc || !String(rfc).trim()) {
+    const genericPublic = isGenericPublicReceptor(order);
+    if (!genericPublic && (!rfc || !String(rfc).trim())) {
       issues.push({
         id: 'customer-rfc',
         message: 'El cliente no tiene RFC fiscal configurado.',
         action: 'customer',
+      });
+    }
+
+    if (!genericPublic && !String(customer?.fiscal_razon_social ?? '').trim()) {
+      issues.push({
+        id: 'customer-razon',
+        message: 'El cliente no tiene razón social SAT. Debe coincidir letra por letra con la CSF.',
+        action: 'customer',
+      });
+    }
+
+    if (!genericPublic && !fiveDigitPostalCode(customer?.fiscal_postal_code) && !fiveDigitPostalCode(customer?.fiscal_zip_code)) {
+      issues.push({
+        id: 'customer-cp',
+        message: 'El cliente no tiene código postal fiscal de 5 dígitos (CSF).',
+        action: 'customer',
+      });
+    }
+
+    if (!fiveDigitPostalCode(order.billing_branch?.postal_code)) {
+      issues.push({
+        id: 'branch-cp',
+        message: 'La sucursal de facturación no tiene código postal de expedición.',
+        action: 'fiscal',
       });
     }
 
@@ -164,14 +218,90 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   }
 
   openNewInvoice(): void {
-    if (!this.canStampInvoice()) return;
+    if (!this.canStampInvoice() || this.stamping()) return;
 
+    const fiscalId = this.order.fiscal_configuration?.id ?? this.order.fiscal_configuration_id;
+    const hasPrefix = !!String(this.order.fiscal_configuration?.prefix ?? '').trim();
+    const customerId = resolveSalesOrderCustomerId(this.order);
+
+    const fiscal$ =
+      fiscalId && !hasPrefix
+        ? this.fiscalConfigService.getFiscalConfiguration(fiscalId).pipe(catchError(() => of(null)))
+        : of(null);
+
+    const customer$ = customerId
+      ? this.customerService.getCustomer(String(customerId)).pipe(catchError(() => of(null)))
+      : of(null);
+
+    this.stamping.set(true);
+    forkJoin({ fiscal: fiscal$, customer: customer$ }).subscribe({
+      next: ({ fiscal, customer }) => {
+        this.stamping.set(false);
+        this.openStampDialog(this.orderForStamp(fiscal, customer));
+      },
+      error: () => {
+        this.stamping.set(false);
+        this.openStampDialog(this.order);
+      },
+    });
+  }
+
+  private orderForStamp(fiscal: FiscalConfiguration | null, customerRaw: unknown): SalesOrder {
+    const customer = this.unwrapCustomerPayload(customerRaw);
+    return {
+      ...this.order,
+      fiscal_configuration: fiscal
+        ? { ...this.order.fiscal_configuration, ...fiscal }
+        : this.order.fiscal_configuration,
+      customer: customer
+        ? {
+            ...(this.order.customer ?? { id: customer.id, name: customer.name }),
+            ...customer,
+            fiscal_rfc: customer.fiscal_rfc ?? this.order.customer?.fiscal_rfc,
+            fiscal_razon_social: customer.fiscal_razon_social ?? this.order.customer?.fiscal_razon_social,
+            fiscal_postal_code: customer.fiscal_postal_code ?? this.order.customer?.fiscal_postal_code,
+          }
+        : this.order.customer,
+    };
+  }
+
+  private unwrapCustomerPayload(raw: unknown): Customer | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const obj = raw as Record<string, unknown>;
+    const source =
+      obj['data'] && typeof obj['data'] === 'object' && !Array.isArray(obj['data'])
+        ? (obj['data'] as Record<string, unknown>)
+        : obj;
+    if (source['id'] == null && !source['fiscal_rfc'] && !source['fiscal_postal_code']) {
+      return null;
+    }
+    const str = (value: unknown): string | undefined => {
+      if (value == null) return undefined;
+      const text = String(value).trim();
+      return text || undefined;
+    };
+    return {
+      id: (source['id'] as Customer['id']) ?? this.order.customer?.id ?? '',
+      name: str(source['name']) || this.order.customer?.name || '',
+      lastname: str(source['lastname']),
+      company_name: str(source['company_name']),
+      email: str(source['email']),
+      phone: str(source['phone']),
+      fiscal_rfc: str(source['fiscal_rfc']),
+      fiscal_razon_social: str(source['fiscal_razon_social']),
+      fiscal_postal_code: str(source['fiscal_postal_code']),
+      fiscal_zip_code: str(source['fiscal_zip_code']),
+    };
+  }
+
+  private openStampDialog(order: SalesOrder): void {
     const dialogRef = this.dialog.open(SalesOrderInvoiceStampDialogComponent, {
       width: '860px',
       maxWidth: '95vw',
       panelClass: 'invoice-stamp-dialog-panel',
       data: {
-        order: this.order,
+        orderId: this.orderId,
+        order,
         lineItems: this.lineItems,
         finkokConfig: this.finkokConfig(),
         validationIssues: this.validationIssues(),
@@ -180,25 +310,17 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe((result: SalesOrderInvoiceStampDialogResult | undefined) => {
-      if (!result?.payload) return;
-      this.stamping.set(true);
-      this.invoiceService.stampInvoice(this.orderId, result.payload).subscribe({
-        next: () => {
-          this.stamping.set(false);
-          this.toast.success('Factura timbrada correctamente');
-          this.loadTabData();
-        },
-        error: (error) => {
-          this.stamping.set(false);
-          this.toast.error(error?.message || 'Error al timbrar factura');
-          this.loadTabData();
-        },
-      });
+      if (!result?.stamped) return;
+      this.loadTabData();
     });
   }
 
   openCancelInvoice(invoice: SalesOrderElectronicInvoice): void {
-    if (!this.canCancel() || !invoice.id) return;
+    const invoiceId = this.invoiceRecordId(invoice);
+    if (!invoiceId) {
+      this.toast.error('No se encontró el id de la factura para cancelar');
+      return;
+    }
 
     this.dialog
       .open(SalesOrderInvoiceCancelDialogComponent, {
@@ -209,8 +331,8 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
       .afterClosed()
       .subscribe((result: SalesOrderInvoiceCancelDialogResult | undefined) => {
         if (!result?.payload) return;
-        this.cancellingId.set(invoice.id);
-        this.invoiceService.cancelInvoice(this.orderId, invoice.id, result.payload).subscribe({
+        this.cancellingId.set(invoiceId);
+        this.invoiceService.cancelInvoice(this.orderId, invoiceId, result.payload).subscribe({
           next: () => {
             this.cancellingId.set(null);
             this.toast.success('Solicitud de cancelación enviada');
@@ -218,63 +340,96 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
           },
           error: (error) => {
             this.cancellingId.set(null);
-            this.toast.error(error?.message || 'Error al cancelar factura');
+            this.toast.error(resolveHttpErrorMessage(error, 'Error al cancelar factura'), {
+              duration: 12000,
+            });
           },
         });
       });
   }
 
   syncSat(invoice: SalesOrderElectronicInvoice): void {
-    if (!this.canSyncSat() || !invoice.id || this.syncingId()) return;
+    if (!this.canShowSyncSat(invoice) || this.syncingId()) return;
+    const invoiceId = this.invoiceRecordId(invoice);
+    if (!invoiceId) {
+      this.toast.error('No se encontró el id de la factura para sincronizar');
+      return;
+    }
 
-    this.syncingId.set(invoice.id);
-    this.invoiceService.syncSat(this.orderId, invoice.id).subscribe({
-      next: () => {
+    this.syncingId.set(invoiceId);
+    this.invoiceService.syncSat(this.orderId, invoiceId).subscribe({
+      next: (updated) => {
         this.syncingId.set(null);
+        this.patchInvoice(updated, invoiceId);
         this.toast.success('Estatus SAT actualizado');
-        this.loadTabData();
+        this.loadTabData(true);
       },
       error: (error) => {
         this.syncingId.set(null);
-        this.toast.error(error?.message || 'Error al sincronizar con SAT');
+        this.toast.error(resolveHttpErrorMessage(error, 'Error al sincronizar con SAT'), {
+          duration: 12000,
+        });
       },
     });
   }
 
-  viewXml(invoice: SalesOrderElectronicInvoice): void {
-    const xml = invoice.xml_stamped;
-    if (!xml) {
-      this.toast.info('XML no disponible');
-      return;
-    }
-    const blob = new Blob([xml], { type: 'application/xml' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  canShowXml(invoice: SalesOrderElectronicInvoice): boolean {
+    return !!String(invoice.uuid || '').trim();
   }
 
-  canShowPdfPreview(invoice: SalesOrderElectronicInvoice): boolean {
-    if (!this.isDemoEnvironment() || !invoice.xml_unsigned) return false;
+  downloadXml(invoice: SalesOrderElectronicInvoice): void {
+    const invoiceId = this.invoiceRecordId(invoice);
+    if (!invoiceId || this.downloadingXmlId()) return;
+
+    this.downloadingXmlId.set(invoiceId);
+    this.invoiceService.getInvoiceXml(this.orderId, invoiceId).subscribe({
+      next: (blob) => {
+        this.downloadingXmlId.set(null);
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = this.getInvoiceXmlFileName(invoice);
+        anchor.rel = 'noopener';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        this.downloadingXmlId.set(null);
+        this.toast.error(resolveHttpErrorMessage(error, 'Error al descargar el XML'), {
+          duration: 12000,
+        });
+      },
+    });
+  }
+
+  canShowPdf(invoice: SalesOrderElectronicInvoice): boolean {
+    const uuid = String(invoice.uuid || '').trim();
+    if (!uuid) return false;
     const stamp = (invoice.stamp_status || '').toLowerCase();
-    return stamp === 'stamp_error' || stamp === 'pending_stamp' || stamp === 'pending';
+    return stamp === 'stamped' || stamp === 'cancel_pending' || stamp === 'cancelled';
   }
 
-  openPdfPreview(invoice: SalesOrderElectronicInvoice): void {
-    if (!invoice.id || this.previewingPdfId() || !this.canShowPdfPreview(invoice)) return;
+  openInvoicePdf(invoice: SalesOrderElectronicInvoice): void {
+    const invoiceId = this.invoiceRecordId(invoice);
+    if (!invoiceId || this.previewingPdfId() || !this.canShowPdf(invoice)) return;
 
-    this.previewingPdfId.set(invoice.id);
-    this.invoiceService.getInvoicePdf(this.orderId, invoice.id, { preview: true }).subscribe({
+    this.previewingPdfId.set(invoiceId);
+    this.invoiceService.getInvoicePdf(this.orderId, invoiceId).subscribe({
       next: (response) => {
         this.previewingPdfId.set(null);
         if (!response.signedUrl) {
-          this.toast.error('No se recibió la URL del PDF de vista previa');
+          this.toast.error('No se recibió la URL del PDF');
           return;
         }
         window.open(response.signedUrl, '_blank', 'noopener,noreferrer');
       },
       error: (error) => {
         this.previewingPdfId.set(null);
-        this.toast.error(error?.message || 'Error al generar vista previa PDF');
+        this.toast.error(resolveHttpErrorMessage(error, 'Error al obtener el PDF'), {
+          duration: 12000,
+        });
       },
     });
   }
@@ -305,12 +460,26 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     return `OV_FACTURA_${orderRef}_${seriesFolio}_${datePart}.pdf`;
   }
 
-  isDemoEnvironment(): boolean {
-    return this.finkokConfig()?.stamping_environment === 'demo';
+  getInvoiceXmlFileName(invoice: SalesOrderElectronicInvoice): string {
+    const uuid = String(invoice.uuid || '').trim();
+    return uuid ? `${uuid}.xml` : 'factura.xml';
   }
 
-  getEnvironmentLabel(): string {
-    return this.isDemoEnvironment() ? 'DEMO' : 'PROD';
+  showDemoAltaBanner(): boolean {
+    return isLocalStampHost() || this.finkokConfig()?.stamping_environment === 'demo';
+  }
+
+  getInvoiceEnvironment(invoice: SalesOrderElectronicInvoice): 'demo' | 'production' | null {
+    const raw = String(invoice.metadata?.finkok_environment || '').trim().toLowerCase();
+    if (raw === 'demo' || raw === 'production') return raw;
+    return null;
+  }
+
+  getInvoiceEnvironmentLabel(invoice: SalesOrderElectronicInvoice): 'DEMO' | 'PROD' | null {
+    const env = this.getInvoiceEnvironment(invoice);
+    if (env === 'demo') return 'DEMO';
+    if (env === 'production') return 'PROD';
+    return null;
   }
 
   getSystemStatusLabel(invoice: SalesOrderElectronicInvoice): string {
@@ -318,6 +487,7 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     if (stamp === 'stamped') return 'Activa en sistema';
     if (stamp === 'stamp_error') return 'Error de timbrado';
     if (stamp === 'cancel_pending') return 'Cancelación pendiente';
+    if (stamp === 'cancel_error') return 'Error de cancelación';
     if (stamp === 'cancelled') return 'Cancelada';
     if (stamp === 'pending' || stamp === 'pending_stamp') return 'Pendiente';
     return invoice.status || '—';
@@ -326,8 +496,12 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   getSystemStatusClass(invoice: SalesOrderElectronicInvoice): string {
     const stamp = (invoice.stamp_status || '').toLowerCase();
     if (stamp === 'stamped') return 'status-pill--success';
-    if (stamp === 'stamp_error' || stamp === 'cancelled') return 'status-pill--danger';
-    if (stamp === 'cancel_pending' || stamp === 'pending' || stamp === 'pending_stamp') return 'status-pill--warning';
+    if (stamp === 'stamp_error' || stamp === 'cancelled' || stamp === 'cancel_error') {
+      return 'status-pill--danger';
+    }
+    if (stamp === 'cancel_pending' || stamp === 'pending' || stamp === 'pending_stamp') {
+      return 'status-pill--warning';
+    }
     return 'status-pill--neutral';
   }
 
@@ -336,16 +510,18 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     if (sat) return sat;
     const stamp = (invoice.stamp_status || '').toLowerCase();
     if (stamp === 'stamp_error') return 'Error timbrado';
-    if (stamp === 'stamped') return 'Sin verificar';
+    if (stamp === 'stamped' || stamp === 'cancel_pending') return 'Sin verificar';
     return '—';
   }
 
   getSatStatusClass(invoice: SalesOrderElectronicInvoice): string {
-    const label = (invoice.sat_status || invoice.stamp_status || '').toLowerCase();
+    const label = (invoice.sat_status || '').toLowerCase();
     if (label.includes('vigente')) return 'status-pill--success';
-    if (label.includes('cancel') && !label.includes('pending')) return 'status-pill--danger';
-    if (label.includes('error') || label.includes('no encontrado')) return 'status-pill--warning';
-    if (label.includes('pending')) return 'status-pill--warning';
+    if (label.includes('cancelad')) return 'status-pill--danger';
+    if (label.includes('no encontrado') || label.includes('desconocido')) return 'status-pill--warning';
+    const stamp = (invoice.stamp_status || '').toLowerCase();
+    if (stamp === 'cancel_pending') return 'status-pill--warning';
+    if (stamp === 'cancel_error' || stamp === 'stamp_error') return 'status-pill--danger';
     return 'status-pill--neutral';
   }
 
@@ -382,19 +558,17 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   }
 
   getSatStatusCode(invoice: SalesOrderElectronicInvoice): string {
-    const metadata = invoice.metadata as { sat_status_code?: string } | undefined;
-    if (metadata?.sat_status_code) return metadata.sat_status_code;
-    const incidencias = invoice.metadata?.finkok_incidencias ?? [];
-    const first = incidencias.find((inc) => inc.code || inc.message);
-    if (first?.code && first?.message) return `${first.code}: ${first.message}`;
-    if (first?.message) return first.message;
-    if (invoice.stamp_error_message) return invoice.stamp_error_message;
-    return '—';
+    const fromInvoice = invoice.sat_codigo_estatus?.trim();
+    if (fromInvoice) return fromInvoice;
+    const metadata = invoice.metadata as { sat_codigo_estatus?: string; sat_status_code?: string } | undefined;
+    return metadata?.sat_codigo_estatus?.trim() || metadata?.sat_status_code?.trim() || '—';
   }
 
   getSatCancelStatus(invoice: SalesOrderElectronicInvoice): string {
-    const metadata = invoice.metadata as { sat_cancel_status?: string } | undefined;
-    return metadata?.sat_cancel_status || '—';
+    const fromInvoice = invoice.sat_estatus_cancelacion?.trim();
+    if (fromInvoice) return fromInvoice;
+    const metadata = invoice.metadata as { sat_estatus_cancelacion?: string; sat_cancel_status?: string } | undefined;
+    return metadata?.sat_estatus_cancelacion?.trim() || metadata?.sat_cancel_status?.trim() || '—';
   }
 
   openSatPortal(invoice: SalesOrderElectronicInvoice): void {
@@ -476,7 +650,120 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   }
 
   canShowCancel(invoice: SalesOrderElectronicInvoice): boolean {
-    const status = (invoice.sat_status || invoice.stamp_status || '').toLowerCase();
-    return this.canCancel() && !status.includes('cancel');
+    if (!this.canCancel()) return false;
+    const uuid = String(invoice.uuid || '').trim();
+    if (!uuid) return false;
+    const stamp = (invoice.stamp_status || '').toLowerCase();
+    return stamp === 'stamped' || stamp === 'cancel_pending';
+  }
+
+  canShowSyncSat(invoice: SalesOrderElectronicInvoice): boolean {
+    if (!this.canSyncSat()) return false;
+    const uuid = String(invoice.uuid || '').trim();
+    if (!uuid) return false;
+    const stamp = (invoice.stamp_status || '').toLowerCase();
+    return (
+      stamp === 'stamped' ||
+      stamp === 'cancel_pending' ||
+      stamp === 'cancelled' ||
+      stamp === 'cancel_error'
+    );
+  }
+
+  isStampError(invoice: SalesOrderElectronicInvoice): boolean {
+    const stamp = (invoice.stamp_status || '').toLowerCase();
+    return stamp === 'stamp_error' || (!String(invoice.uuid || '').trim() && stamp !== 'cancel_pending' && stamp !== 'cancelled');
+  }
+
+  private isStamped(invoice: SalesOrderElectronicInvoice): boolean {
+    return (invoice.stamp_status || '').toLowerCase() === 'stamped';
+  }
+
+  private isCancelledStatus(invoice: SalesOrderElectronicInvoice): boolean {
+    const stamp = (invoice.stamp_status || '').toLowerCase();
+    const sat = (invoice.sat_status || '').toLowerCase();
+    return stamp === 'cancelled' || stamp === 'cancel_pending' || /\bcancelad[oa]\b/.test(sat);
+  }
+
+  invoiceRecordId(invoice: SalesOrderElectronicInvoice): string {
+    const row = invoice as SalesOrderElectronicInvoice & Record<string, unknown>;
+    const nested = row['invoice'];
+    const nestedId =
+      nested && typeof nested === 'object' ? String((nested as { id?: string }).id || '') : '';
+    return String(
+      invoice.id || row['invoice_id'] || row['_id'] || row['electronic_invoice_id'] || nestedId || ''
+    ).trim();
+  }
+
+  private patchInvoice(updated: SalesOrderElectronicInvoice, fallbackId: string): void {
+    const mapped = this.mapInvoice(updated);
+    const updatedId = this.invoiceRecordId(mapped) || fallbackId;
+    this.invoices.update((list) =>
+      list.map((invoice) => (this.invoiceRecordId(invoice) === updatedId ? { ...invoice, ...mapped, id: updatedId } : invoice))
+    );
+  }
+
+  private pickText(row: Record<string, unknown>, ...keys: string[]): string | null {
+    for (const key of keys) {
+      const value = row[key];
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return null;
+  }
+
+  private mapInvoice(invoice: SalesOrderElectronicInvoice): SalesOrderElectronicInvoice {
+    const row = invoice as SalesOrderElectronicInvoice & Record<string, unknown>;
+    const nested =
+      row['invoice'] && typeof row['invoice'] === 'object'
+        ? (row['invoice'] as SalesOrderElectronicInvoice)
+        : invoice;
+    const source = { ...nested, ...invoice };
+    const sourceRow = source as SalesOrderElectronicInvoice & Record<string, unknown>;
+    const uuid =
+      source.uuid ||
+      (sourceRow['cfdi_uuid'] as string) ||
+      (sourceRow['fiscal_uuid'] as string) ||
+      null;
+    const stampStatus =
+      source.stamp_status ||
+      (sourceRow['stampStatus'] as string) ||
+      (!uuid ? 'stamp_error' : undefined);
+    const metadata: NonNullable<SalesOrderElectronicInvoice['metadata']> = {
+      ...(nested.metadata || {}),
+      ...(source.metadata || {}),
+    };
+    const finkokEnv =
+      this.pickText(metadata as Record<string, unknown>, 'finkok_environment', 'finkokEnvironment') ||
+      this.pickText(sourceRow, 'finkok_environment', 'finkokEnvironment');
+    if (finkokEnv) {
+      metadata.finkok_environment = finkokEnv;
+    }
+    return {
+      ...source,
+      id: this.invoiceRecordId(source),
+      uuid,
+      stamp_status: stampStatus,
+      metadata,
+      sat_status: this.pickText(sourceRow, 'sat_status', 'satStatus') || source.sat_status,
+      sat_es_cancelable: this.pickText(sourceRow, 'sat_es_cancelable', 'satEsCancelable'),
+      sat_estatus_cancelacion: this.pickText(
+        sourceRow,
+        'sat_estatus_cancelacion',
+        'satEstatusCancelacion'
+      ),
+      sat_codigo_estatus: this.pickText(sourceRow, 'sat_codigo_estatus', 'satCodigoEstatus'),
+      sat_last_sync_at: this.pickText(sourceRow, 'sat_last_sync_at', 'satLastSyncAt'),
+    };
+  }
+
+  private hasInvoicePermission(permission: string): boolean {
+    return this.authService.hasAdminRole() || this.authService.hasPermission(permission);
+  }
+
+  /** "Cancelado/Cancelada", no "Cancelable". */
+  private isCancelledSatOrStamp(invoice: SalesOrderElectronicInvoice): boolean {
+    const sat = (invoice.sat_status || '').toLowerCase();
+    const stamp = (invoice.stamp_status || '').toLowerCase();
+    return /\bcancelad[oa]\b/.test(sat) || stamp === 'cancelled';
   }
 }

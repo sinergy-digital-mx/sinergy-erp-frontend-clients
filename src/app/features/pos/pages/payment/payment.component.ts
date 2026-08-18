@@ -335,9 +335,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
     });
   }
 
-  async openDailyShift(): Promise<void> {
-    const wasFullscreen = await this.exitFullscreenForDialog();
-
+  openDailyShift(): void {
     const dialogRef = this.dialog.open(OpenDailyShiftDialogComponent, {
       width: '420px',
       maxWidth: '95vw',
@@ -345,9 +343,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
       panelClass: 'pos-dialog-panel',
     });
 
-    dialogRef.afterClosed().subscribe(async (result: OpenDailyShiftDialogResult | undefined) => {
-      await this.restoreFullscreenAfterDialog(wasFullscreen);
-
+    dialogRef.afterClosed().subscribe((result: OpenDailyShiftDialogResult | undefined) => {
       if (!result) {
         return;
       }
@@ -467,12 +463,11 @@ export class PaymentComponent implements OnInit, OnDestroy {
     this.loadPendingSales();
   }
 
-  async openPartialShift(): Promise<void> {
+  openPartialShift(): void {
     const shift = this.shift();
     if (!shift?.id) {
       return;
     }
-    const wasFullscreen = await this.exitFullscreenForDialog();
 
     const dialogRef = this.dialog.open(PartialShiftDialogComponent, {
       width: '440px',
@@ -482,9 +477,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
       data: { dailyShiftId: shift.id },
     });
 
-    dialogRef.afterClosed().subscribe(async (result: PartialShiftDialogResult | undefined) => {
-      await this.restoreFullscreenAfterDialog(wasFullscreen);
-
+    dialogRef.afterClosed().subscribe((result: PartialShiftDialogResult | undefined) => {
       if (!result) {
         return;
       }
@@ -498,12 +491,11 @@ export class PaymentComponent implements OnInit, OnDestroy {
     });
   }
 
-  async closeDailyShift(): Promise<void> {
+  closeDailyShift(): void {
     const shift = this.shift();
     if (!shift?.id) {
       return;
     }
-    const wasFullscreen = await this.exitFullscreenForDialog();
 
     const dialogRef = this.dialog.open(CloseDailyShiftDialogComponent, {
       width: '460px',
@@ -524,9 +516,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
       } satisfies CloseDailyShiftDialogData,
     });
 
-    dialogRef.afterClosed().subscribe(async (result: { notes?: string } | undefined) => {
-      await this.restoreFullscreenAfterDialog(wasFullscreen);
-
+    dialogRef.afterClosed().subscribe((result: { notes?: string } | undefined) => {
       if (!result) {
         return;
       }
@@ -729,13 +719,11 @@ export class PaymentComponent implements OnInit, OnDestroy {
       return;
     }
     if (!this.selectedCustomerId()) {
-      void this.openCustomerPicker();
+      this.openCustomerPicker();
     }
   }
 
-  async openCustomerPicker(): Promise<void> {
-    const wasFullscreen = await this.exitFullscreenForDialog();
-
+  openCustomerPicker(): void {
     const dialogRef = this.dialog.open(PosCustomerPickerDialogComponent, {
       width: '520px',
       maxWidth: '95vw',
@@ -743,9 +731,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
       data: { selectedCustomerId: this.selectedCustomerId() },
     });
 
-    dialogRef.afterClosed().subscribe(async (result: PosCustomerPickerDialogResult | undefined) => {
-      await this.restoreFullscreenAfterDialog(wasFullscreen);
-
+    dialogRef.afterClosed().subscribe((result: PosCustomerPickerDialogResult | undefined) => {
       if (!result) {
         return;
       }
@@ -841,18 +827,12 @@ export class PaymentComponent implements OnInit, OnDestroy {
     });
   }
 
-  async openPrinterSettings(): Promise<void> {
-    const wasFullscreen = await this.exitFullscreenForDialog();
-
-    const dialogRef = this.dialog.open(PosPrinterSettingsDialogComponent, {
+  openPrinterSettings(): void {
+    this.dialog.open(PosPrinterSettingsDialogComponent, {
       width: '440px',
       maxWidth: '95vw',
       panelClass: 'pos-dialog-panel',
       autoFocus: false,
-    });
-
-    dialogRef.afterClosed().subscribe(async () => {
-      await this.restoreFullscreenAfterDialog(wasFullscreen);
     });
   }
 
@@ -876,14 +856,13 @@ export class PaymentComponent implements OnInit, OnDestroy {
     });
   }
 
-  async previewTicket(item: CollectedSaleItem): Promise<void> {
+  previewTicket(item: CollectedSaleItem): void {
     const saleId = item.sales_order?.id;
     if (!saleId) {
       return;
     }
 
-    const wasFullscreen = await this.exitFullscreenForDialog();
-    const dialogRef = this.dialog.open(PosReceiptPreviewDialogComponent, {
+    this.dialog.open(PosReceiptPreviewDialogComponent, {
       width: '480px',
       maxWidth: '95vw',
       panelClass: 'pos-dialog-panel',
@@ -892,10 +871,6 @@ export class PaymentComponent implements OnInit, OnDestroy {
         salesOrderId: saleId,
         title: `Ticket ${collectedSaleFolio(item)}`,
       },
-    });
-
-    dialogRef.afterClosed().subscribe(async () => {
-      await this.restoreFullscreenAfterDialog(wasFullscreen);
     });
   }
 
@@ -969,37 +944,6 @@ export class PaymentComponent implements OnInit, OnDestroy {
   private onFullscreenChange = (): void => {
     this.isFullscreen.set(!!document.fullscreenElement);
   };
-
-  /** Sale de pantalla completa para que los modales Material queden encima y sean clicables. */
-  private async exitFullscreenForDialog(): Promise<boolean> {
-    const wasFullscreen = !!document.fullscreenElement;
-    if (!wasFullscreen) {
-      return false;
-    }
-    try {
-      await document.exitFullscreen();
-      this.isFullscreen.set(false);
-    } catch {
-      // El diálogo puede abrirse igual fuera de fullscreen.
-    }
-    return wasFullscreen;
-  }
-
-  private async restoreFullscreenAfterDialog(wasFullscreen: boolean): Promise<void> {
-    if (!wasFullscreen || document.fullscreenElement) {
-      return;
-    }
-    const root = this.posRootRef?.nativeElement;
-    if (!root) {
-      return;
-    }
-    try {
-      await root.requestFullscreen();
-      this.isFullscreen.set(true);
-    } catch {
-      this.isFullscreen.set(false);
-    }
-  }
 
   private initCustomerFromSale(sale: PendingSale): void {
     const customer = sale.customer;

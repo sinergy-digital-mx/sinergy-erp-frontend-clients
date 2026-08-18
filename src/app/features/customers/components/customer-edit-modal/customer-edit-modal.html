@@ -248,41 +248,96 @@
 
         <div class="col-span-2">
           <app-input
-            label="Razón social"
-            placeholder="Razón social"
+            label="Razón social / Nombre"
+            placeholder="Como aparece en la CSF"
             [form_control]="form.controls['fiscal_razon_social']">
           </app-input>
+          <p class="text-xs text-gray-400 mt-1 px-1">Exacto CSF, MAYÚSCULAS SAT. Debe coincidir letra por letra para timbrar.</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="customer-fiscal-postal-code">
+            Código postal
+          </label>
+          <input
+            id="customer-fiscal-postal-code"
+            type="text"
+            inputmode="numeric"
+            maxlength="5"
+            placeholder="5 dígitos"
+            formControlName="fiscal_postal_code"
+            class="w-full h-10 rounded-[10px] border px-3.5 py-2 text-sm focus:outline-none focus:ring-[3px]"
+            [ngClass]="form.controls['fiscal_postal_code'].invalid && form.controls['fiscal_postal_code'].touched
+              ? 'border-red-400 focus:ring-red-500/15 focus:border-red-500'
+              : 'border-gray-200 focus:ring-indigo-500/15 focus:border-indigo-500'">
+          @if (form.controls['fiscal_postal_code'].invalid && form.controls['fiscal_postal_code'].touched) {
+            <p class="text-xs text-red-600 mt-1">El código postal debe ser de 5 dígitos</p>
+          }
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="customer-fiscal-country">País</label>
+          <select
+            id="customer-fiscal-country"
+            formControlName="fiscal_country"
+            class="w-full h-10 px-3.5 rounded-[10px] border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-indigo-500/15 focus:border-indigo-500">
+            <option value="MEX">México (MEX)</option>
+          </select>
         </div>
 
         <div class="col-span-2">
           <app-input
-            label="Dirección fiscal"
-            placeholder="Dirección fiscal"
-            [form_control]="form.controls['fiscal_address']">
+            label="Calle / vialidad"
+            placeholder="Calle / vialidad"
+            [form_control]="form.controls['fiscal_street']">
           </app-input>
         </div>
 
         <div>
           <app-input
-            label="Ciudad"
-            placeholder="Ciudad"
-            [form_control]="form.controls['fiscal_city']">
+            label="No. exterior"
+            placeholder="No. exterior"
+            [form_control]="form.controls['fiscal_exterior_number']">
           </app-input>
         </div>
 
         <div>
           <app-input
-            label="Estado"
-            placeholder="Estado"
+            label="No. interior"
+            placeholder="Vacío si no aplica"
+            [form_control]="form.controls['fiscal_interior_number']">
+          </app-input>
+        </div>
+
+        <div class="col-span-2">
+          <app-input
+            label="Colonia"
+            placeholder="Colonia"
+            [form_control]="form.controls['fiscal_colonia']">
+          </app-input>
+        </div>
+
+        <div class="col-span-2">
+          <app-input
+            label="Localidad"
+            placeholder="Opcional"
+            [form_control]="form.controls['fiscal_localidad']">
+          </app-input>
+        </div>
+
+        <div>
+          <app-input
+            label="Municipio o alcaldía"
+            placeholder="Municipio o alcaldía"
+            [form_control]="form.controls['fiscal_municipio']">
+          </app-input>
+        </div>
+
+        <div>
+          <app-input
+            label="Entidad federativa"
+            placeholder="Entidad federativa"
             [form_control]="form.controls['fiscal_state']">
-          </app-input>
-        </div>
-
-        <div class="col-span-2">
-          <app-input
-            label="Código postal"
-            placeholder="Código postal"
-            [form_control]="form.controls['fiscal_postal_code']">
           </app-input>
         </div>
       }

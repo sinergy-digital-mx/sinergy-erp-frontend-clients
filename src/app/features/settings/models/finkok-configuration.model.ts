@@ -61,6 +61,34 @@ export function isFinkokConfigurationsResponse(
   return !!config && 'environments' in config;
 }
 
+function isEnvironmentConfigReady(envConfig: FinkokEnvironmentConfig | null | undefined): boolean {
+  if (!envConfig) {
+    return false;
+  }
+
+  const isActive = envConfig.is_active === 1 || envConfig.is_active === true;
+  return isActive && envConfig.has_password === true;
+}
+
+export function getFinkokEnvironmentConfig(
+  config: FinkokConfigurationsResponse | FinkokConfiguration | null | undefined,
+  environment: FinkokEnvironment
+): FinkokEnvironmentConfig | null {
+  if (!config) {
+    return null;
+  }
+
+  if (isFinkokConfigurationsResponse(config)) {
+    return config.environments?.[environment] ?? null;
+  }
+
+  if (config.environment && config.environment !== environment) {
+    return null;
+  }
+
+  return config;
+}
+
 export function getStampingEnvironmentConfig(
   config: FinkokConfigurationsResponse | FinkokConfiguration | null | undefined
 ): FinkokEnvironmentConfig | null {
@@ -76,17 +104,25 @@ export function getStampingEnvironmentConfig(
   return config;
 }
 
+export function hasFinkokEnvironmentCredentials(
+  config: FinkokConfigurationsResponse | FinkokConfiguration | null | undefined,
+  environment: FinkokEnvironment
+): boolean {
+  return isEnvironmentConfigReady(getFinkokEnvironmentConfig(config, environment));
+}
+
 export function hasFinkokCredentials(
   config: FinkokConfigurationsResponse | FinkokConfiguration | null | undefined
 ): boolean {
-  const envConfig = getStampingEnvironmentConfig(config);
-  if (!envConfig) {
+  if (!config) {
     return false;
   }
 
-  const isActive = envConfig.is_active === 1 || envConfig.is_active === true;
-  const hasPassword = envConfig.has_password === true;
-  return isActive && hasPassword;
+  if (isFinkokConfigurationsResponse(config)) {
+    return hasFinkokEnvironmentCredentials(config, config.stamping_environment || 'demo');
+  }
+
+  return isEnvironmentConfigReady(config);
 }
 
 export function getFinkokConnectionStatusLabel(status?: FinkokConnectionTestStatus | null): string {

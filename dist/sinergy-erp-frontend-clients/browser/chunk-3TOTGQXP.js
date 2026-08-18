@@ -1,1 +1,0 @@
-function o(t,s){if(!t||typeof t!="object")return s;let e=t,r=e.error?.message??e.message;return Array.isArray(r)?r.filter(n=>typeof n=="string"&&n.trim()).join(", ")||s:typeof r=="string"&&r.trim()?r:s}export{o as a};

@@ -32,11 +32,12 @@ export class ShippingService {
   }
 
   /**
-   * Órdenes elegibles para envío: Surtida + Lista para entrega del almacén/CEDIS,
+   * Órdenes elegibles: Surtida o Lista para entrega de cualquier almacén de la sucursal,
    * sin envío activo.
    */
   getAvailableOrders(params: {
-    origin_warehouse_id: string;
+    billing_branch_id: string;
+    fiscal_configuration_id?: string;
     search?: string;
     page?: number;
     limit?: number;
@@ -48,8 +49,11 @@ export class ShippingService {
     totalPages: number;
   }> {
     const httpParams: Record<string, string | number> = {
-      origin_warehouse_id: params.origin_warehouse_id,
+      billing_branch_id: params.billing_branch_id,
     };
+    if (params.fiscal_configuration_id) {
+      httpParams['fiscal_configuration_id'] = params.fiscal_configuration_id;
+    }
     if (params.search?.trim()) httpParams['search'] = params.search.trim();
     if (params.page != null) httpParams['page'] = params.page;
     if (params.limit != null) httpParams['limit'] = params.limit;

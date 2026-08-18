@@ -12,16 +12,13 @@ export interface CreateShippingDto {
   shipping_date: string;
   driver_id: string;
   truck_id: string;
-  origin_warehouse_id: string;
+  billing_branch_id: string;
   notes?: string;
   orders: ShippingOrderInput[];
 }
 
 export interface ShippingPreviewDto {
-  shipping_date?: string;
-  driver_id?: string;
-  truck_id?: string;
-  origin_warehouse_id: string;
+  billing_branch_id: string;
   orders: ShippingOrderInput[];
 }
 
@@ -46,6 +43,8 @@ export interface ShippingStop {
 
 export interface ShippingOrigin {
   label?: string;
+  billing_branch_id?: string;
+  fiscal_configuration_id?: string;
   warehouse_id?: string;
   name?: string;
   warehouse_name?: string;
@@ -104,6 +103,8 @@ export interface Shipping {
   truck_id?: string;
   truck_name?: string;
   truck_placa?: string;
+  origin_billing_branch_id?: string;
+  origin_billing_branch_name?: string;
   origin_warehouse_id?: string;
   origin_warehouse_name?: string;
   notes?: string | null;
@@ -124,6 +125,7 @@ export interface ShippingQueryParams {
   status?: string;
   driver_id?: string;
   truck_id?: string;
+  billing_branch_id?: string;
   origin_warehouse_id?: string;
   date_from?: string;
   date_to?: string;
@@ -223,44 +225,73 @@ export function normalizeShipping(raw: any): Shipping {
 
   const driver = raw.driver ?? raw.Driver;
   const truck = raw.truck ?? raw.Truck;
+  const branch = raw.origin_billing_branch ?? raw.originBillingBranch ?? raw.billing_branch;
   const warehouse = raw.origin_warehouse ?? raw.originWarehouse ?? raw.warehouse;
+  const branchLat = toNumber(branch?.latitude);
+  const branchLng = toNumber(branch?.longitude);
   const warehouseLat = toNumber(warehouse?.latitude);
   const warehouseLng = toNumber(warehouse?.longitude);
+  const originLat = toNumber(raw.origin?.latitude) ?? branchLat ?? warehouseLat;
+  const originLng = toNumber(raw.origin?.longitude) ?? branchLng ?? warehouseLng;
+  const originName =
+    raw.origin?.name ||
+    raw.origin?.warehouse_name ||
+    branch?.name ||
+    branch?.code ||
+    branch?.display_name ||
+    warehouse?.name;
+  const originAddress =
+    raw.origin?.address_summary ||
+    [branch?.address, branch?.city, branch?.state].filter(Boolean).join(', ') ||
+    [warehouse?.street, warehouse?.city, warehouse?.state].filter(Boolean).join(', ') ||
+    undefined;
   const origin = raw.origin
     ? {
         ...raw.origin,
+        billing_branch_id:
+          raw.origin.billing_branch_id ||
+          raw.origin_billing_branch_id ||
+          branch?.id ||
+          undefined,
+        fiscal_configuration_id:
+          raw.origin.fiscal_configuration_id ||
+          raw.fiscal_configuration_id ||
+          branch?.fiscal_configuration_id ||
+          undefined,
         warehouse_id:
           raw.origin.warehouse_id || raw.origin_warehouse_id || warehouse?.id || undefined,
-        name: raw.origin.name || raw.origin.warehouse_name || warehouse?.name,
+        name: originName,
         warehouse_name: raw.origin.warehouse_name || warehouse?.name,
         location_status:
           raw.origin.location_status ||
-          (toNumber(raw.origin.latitude) != null && toNumber(raw.origin.longitude) != null
-            ? 'ok'
-            : warehouseLat != null && warehouseLng != null
-              ? 'ok'
-              : 'without_location'),
-        latitude: toNumber(raw.origin.latitude) ?? warehouseLat,
-        longitude: toNumber(raw.origin.longitude) ?? warehouseLng,
-        address_summary:
-          raw.origin.address_summary ||
-          [warehouse?.street, warehouse?.city, warehouse?.state].filter(Boolean).join(', ') ||
-          undefined,
+          (originLat != null && originLng != null ? 'ok' : 'without_location'),
+        latitude: originLat,
+        longitude: originLng,
+        address_summary: originAddress,
       }
-    : warehouse
+    : branch
       ? {
-          warehouse_id: warehouse.id,
-          name: warehouse.name,
-          warehouse_name: warehouse.name,
-          latitude: warehouseLat,
-          longitude: warehouseLng,
+          billing_branch_id: branch.id,
+          fiscal_configuration_id: branch.fiscal_configuration_id,
+          name: originName,
+          latitude: branchLat,
+          longitude: branchLng,
           location_status:
-            warehouseLat != null && warehouseLng != null ? 'ok' : 'without_location',
-          address_summary: [warehouse.street, warehouse.city, warehouse.state]
-            .filter(Boolean)
-            .join(', '),
+            branchLat != null && branchLng != null ? 'ok' : 'without_location',
+          address_summary: originAddress,
         }
-      : undefined;
+      : warehouse
+        ? {
+            warehouse_id: warehouse.id,
+            name: warehouse.name,
+            warehouse_name: warehouse.name,
+            latitude: warehouseLat,
+            longitude: warehouseLng,
+            location_status:
+              warehouseLat != null && warehouseLng != null ? 'ok' : 'without_location',
+            address_summary: originAddress,
+          }
+        : undefined;
 
   const driverName =
     raw.driver_name ||
@@ -328,6 +359,13 @@ export function normalizeShipping(raw: any): Shipping {
     driver_name: driverName,
     truck_name: truckName,
     truck_placa: truckPlaca,
+    origin_billing_branch_id:
+      raw.origin_billing_branch_id || branch?.id || origin?.billing_branch_id,
+    origin_billing_branch_name:
+      raw.origin_billing_branch_name ||
+      branch?.name ||
+      branch?.code ||
+      origin?.name,
     origin_warehouse_id: raw.origin_warehouse_id || warehouse?.id || origin?.warehouse_id,
     origin_warehouse_name:
       raw.origin_warehouse_name || warehouse?.name || origin?.name || origin?.warehouse_name,

@@ -3,8 +3,17 @@ export function resolveHttpErrorMessage(error: unknown, fallback: string): strin
     return fallback;
   }
 
-  const httpError = error as { error?: { message?: string | string[] }; message?: string };
-  const msg = httpError.error?.message ?? httpError.message;
+  const httpError = error as {
+    error?: { message?: string | string[]; error?: string; data?: { message?: string | string[] } };
+    message?: string;
+    response?: { data?: { message?: string | string[] } };
+  };
+
+  const msg =
+    httpError.error?.message ??
+    httpError.response?.data?.message ??
+    httpError.error?.data?.message ??
+    httpError.message;
 
   if (Array.isArray(msg)) {
     const joined = msg.filter((item) => typeof item === 'string' && item.trim()).join(', ');

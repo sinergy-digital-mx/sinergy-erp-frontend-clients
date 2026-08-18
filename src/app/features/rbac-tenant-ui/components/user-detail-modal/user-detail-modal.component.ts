@@ -127,15 +127,28 @@ export class UserDetailModalComponent implements OnInit {
   form: FormGroup;
   passwordForm: FormGroup;
 
-  /** Tab Seguridad solo si se edita al usuario de la sesión. */
+  /** Tab Seguridad: perfil propio o permiso para restablecer contraseñas ajenas. */
   get isOwnProfile(): boolean {
     const editedId = this.data.user?.id;
     const loggedId = this.loggedInUserId;
     return !this.isNew && !!editedId && !!loggedId && String(editedId) === String(loggedId);
   }
 
+  /** `user:Reset_Password` en permissions_flat; Admin lo bypasea. */
+  get canResetOthers(): boolean {
+    return this.authService.hasEntityPermission('User', 'Reset_Password');
+  }
+
+  get showSecurityTab(): boolean {
+    return !this.isNew && (this.isOwnProfile || this.canResetOthers);
+  }
+
+  get passwordSubmitLabel(): string {
+    return this.isOwnProfile ? 'Cambiar contraseña' : 'Restablecer contraseña';
+  }
+
   get tabs(): TabItem[] {
-    if (!this.isOwnProfile) {
+    if (!this.showSecurityTab) {
       return this.baseTabs;
     }
     return [...this.baseTabs, { id: 'security', title: 'Seguridad' }];
@@ -855,7 +868,8 @@ export class UserDetailModalComponent implements OnInit {
   }
 
   changePassword(): void {
-    if (!this.isOwnProfile || !this.loggedInUserId) {
+    const userId = this.data.user?.id ?? this.editedUserId;
+    if (!this.showSecurityTab || !userId) {
       return;
     }
 
@@ -877,7 +891,7 @@ export class UserDetailModalComponent implements OnInit {
 
     this.changingPassword.set(true);
     this.userService
-      .changePassword(this.loggedInUserId, {
+      .changePassword(userId, {
         new_password: newPassword,
         confirm_password: confirmPassword,
       })
@@ -893,17 +907,13 @@ export class UserDetailModalComponent implements OnInit {
         },
         error: (error) => {
           this.changingPassword.set(false);
-          const message =
-            this.extractBackendMessages(error)[0] || 'No se pudo cambiar la contraseña';
+          const fallback = this.isOwnProfile
+            ? 'No se pudo cambiar la contraseña'
+            : 'No se pudo restablecer la contraseña';
+          const message = this.extractBackendMessages(error)[0] || fallback;
 
           if (error?.status === 400) {
             this.passwordError.set(message);
-            this.interceptorService.openSnackbar({
-              type: 'error',
-              title: 'Error',
-              message,
-            });
-            return;
           }
 
           this.interceptorService.openSnackbar({

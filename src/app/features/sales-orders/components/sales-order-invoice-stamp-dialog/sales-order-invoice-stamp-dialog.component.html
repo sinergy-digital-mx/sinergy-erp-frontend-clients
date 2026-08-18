@@ -1,23 +1,83 @@
 <div class="dialog-overlay" (click)="close()">
   <div class="dialog-container dialog-container--wide" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    @if (stamping()) {
+      <div class="stamp-loading" aria-live="polite">
+        <i class="fi fi-rr-spinner animate-spin"></i>
+        <p>Timbrando factura…</p>
+        <small>Finkok puede tardar unos segundos. No cierres esta ventana.</small>
+      </div>
+    }
     <div class="dialog-header">
       <h2>Nueva factura CFDI</h2>
-      <button type="button" class="close-button" (click)="close()" aria-label="Cerrar">
+      <button type="button" class="close-button" (click)="close()" aria-label="Cerrar" [disabled]="stamping()">
         <i class="fi fi-rr-cross-small"></i>
       </button>
     </div>
 
     <div class="dialog-body">
-      @if (data.finkokConfig?.stamping_environment === 'demo') {
-        <div class="alert alert--warning">
-          Ambiente Finkok: <strong>DEMO</strong>. Los timbrados no son válidos ante el SAT.
+      <section class="env-section">
+        <h3>Ambiente Finkok</h3>
+        <div class="env-toggle" role="group" aria-label="Ambiente Finkok">
+          <button
+            type="button"
+            class="env-toggle__btn"
+            [class.env-toggle__btn--active]="stampEnvironment() === 'demo'"
+            [disabled]="stamping()"
+            (click)="selectEnvironment('demo')"
+          >
+            Demo
+          </button>
+          <button
+            type="button"
+            class="env-toggle__btn"
+            [class.env-toggle__btn--active]="stampEnvironment() === 'production'"
+            [disabled]="stamping()"
+            (click)="selectEnvironment('production')"
+          >
+            Producción
+          </button>
         </div>
-      }
+
+        @if (stampEnvironment() === 'demo') {
+          <div class="alert alert--warning">
+            Factura de prueba (Finkok Demo). No tiene validez fiscal.
+          </div>
+        } @else {
+          <div class="alert alert--prod">
+            Se timbrará un CFDI real ante el SAT.
+          </div>
+        }
+
+        @if (hasSelectedEnvCredentials()) {
+          <p class="env-hint">
+            Usará: usuario Finkok “{{ selectedFinkokUsername() || '—' }}”
+            ({{ stampEnvironment() === 'demo' ? 'demo' : 'producción' }})
+          </p>
+        } @else {
+          <div class="alert alert--error">
+            Faltan credenciales Finkok de {{ environmentLabel(stampEnvironment()) }}.
+            <button type="button" class="link-btn" (click)="goToFinkokConfig()">
+              Ir a Integración Finkok
+            </button>
+          </div>
+        }
+      </section>
 
       @if (data.validationIssues.length > 0) {
         <div class="validation-list">
           @for (issue of data.validationIssues; track issue.id) {
             <div class="alert alert--error">{{ issue.message }}</div>
+          }
+        </div>
+      }
+
+      @if (stampError()) {
+        <div class="alert alert--error">
+          {{ stampError() }}
+          @if (isMissingEnvCredentialsError()) {
+            <button type="button" class="link-btn" (click)="goToFinkokConfig()">
+              Ir a Integración Finkok
+            </button>
           }
         </div>
       }
@@ -28,13 +88,13 @@
           <p><span>Razón social</span>{{ fiscal?.razon_social || fiscal?.business_name || '—' }}</p>
           <p><span>RFC</span>{{ fiscal?.rfc || '—' }}</p>
           <p><span>Régimen</span>{{ fiscal?.fiscal_regime || '—' }}</p>
-          <p><span>Lugar expedición</span>{{ data.order.warehouse?.name || '—' }}</p>
+          <p><span>Lugar expedición</span>{{ lugarExpedicion || '—' }}</p>
         </section>
 
         <section class="summary-card">
           <h3>Receptor</h3>
-          <p><span>RFC</span>{{ customer?.fiscal_rfc || '—' }}</p>
-          <p><span>Razón social</span>{{ customer?.fiscal_razon_social || customer?.company_name || customer?.name || '—' }}</p>
+          <p><span>RFC</span>{{ receptorRfc || '—' }}</p>
+          <p><span>Razón social</span>{{ receptorNombre || '—' }}</p>
           <p><span>Total OV</span>{{ formatCurrency(data.order.total ?? data.order.requested_total) }}</p>
         </section>
       </div>
@@ -43,11 +103,31 @@
         <div class="form-grid">
           <div class="form-field">
             <label for="series">Serie</label>
-            <input id="series" class="form-input" type="text" formControlName="series" />
+            <input
+              id="series"
+              class="form-input"
+              type="text"
+              formControlName="series"
+              [readonly]="seriesLocked"
+              [attr.title]="seriesLocked ? 'Prefijo de la razón social' : null" />
+            <p class="form-hint">
+              @if (seriesLocked) {
+                Prefijo de la razón social. No se puede editar aquí.
+              } @else {
+                Configura el prefijo en la razón social para usarlo como serie.
+              }
+            </p>
           </div>
           <div class="form-field">
             <label for="folio">Folio *</label>
-            <input id="folio" class="form-input" type="text" formControlName="folio" />
+            <input
+              id="folio"
+              class="form-input"
+              type="text"
+              formControlName="folio"
+              readonly
+              title="Folio de la orden de venta" />
+            <p class="form-hint">Folio de la orden de venta. No se puede editar.</p>
           </div>
           <div class="form-field">
             <label for="usoCfdi">Uso CFDI *</label>
@@ -82,7 +162,21 @@
           </div>
           <div class="form-field form-field--full">
             <label for="domicilioFiscalReceptor">Domicilio fiscal receptor (CP)</label>
-            <input id="domicilioFiscalReceptor" class="form-input" type="text" formControlName="domicilioFiscalReceptor" maxlength="5" />
+            <input
+              id="domicilioFiscalReceptor"
+              class="form-input"
+              type="text"
+              formControlName="domicilioFiscalReceptor"
+              maxlength="5"
+              readonly
+              title="Código postal de la CSF del cliente" />
+            <p class="form-hint">
+              @if (isGenericPublic) {
+                Público en general: mismo CP que el lugar de expedición.
+              } @else {
+                CP de la CSF del cliente. En CFDI 4.0 solo entra el código postal.
+              }
+            </p>
           </div>
         </div>
 
@@ -120,9 +214,14 @@
         </div>
 
         <div class="dialog-footer">
-          <button type="button" class="btn-secondary" (click)="close()">Cancelar</button>
-          <button type="submit" class="btn-primary" [disabled]="!data.canStamp || form.invalid">
-            Timbrar factura
+          <button type="button" class="btn-secondary" (click)="close()" [disabled]="stamping()">Cancelar</button>
+          <button type="submit" class="btn-primary" [disabled]="!canSubmitStamp() || form.invalid">
+            @if (stamping()) {
+              <i class="fi fi-rr-spinner animate-spin"></i>
+              Timbrando…
+            } @else {
+              Timbrar factura
+            }
           </button>
         </div>
       </form>

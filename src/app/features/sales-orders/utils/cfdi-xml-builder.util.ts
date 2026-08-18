@@ -40,9 +40,36 @@ function getProductSatClave(item: SalesOrderLineItem): string {
   return product?.sat_code || product?.codigo_sat || '01010101';
 }
 
-function getLugarExpedicion(order: SalesOrder): string {
-  const warehouse = order.warehouse as { zip_code?: string } | undefined;
-  return warehouse?.zip_code || '00000';
+export const SAT_GENERIC_PUBLIC_RFC = 'XAXX010101000';
+export const SAT_GENERIC_PUBLIC_NAME = 'PUBLICO EN GENERAL';
+
+export function fiveDigitPostalCode(value?: string | null): string {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  return digits.length >= 5 ? digits.slice(0, 5) : '';
+}
+
+export function isGenericPublicReceptor(order: SalesOrder): boolean {
+  const rfc = String(order.customer?.fiscal_rfc ?? '')
+    .replace(/[\s-]/g, '')
+    .toUpperCase();
+  if (rfc === SAT_GENERIC_PUBLIC_RFC) return true;
+  return !!order.customer_summary?.is_walk_in && !rfc;
+}
+
+/** CP de la sucursal que expide. Sin fallback a almacén ni a 22000. */
+export function getLugarExpedicion(order: SalesOrder): string {
+  return fiveDigitPostalCode(order.billing_branch?.postal_code);
+}
+
+/** CP de la CSF del cliente. Público en general usa el de expedición. */
+export function getReceptorDomicilioFiscal(order: SalesOrder): string {
+  if (isGenericPublicReceptor(order)) {
+    return getLugarExpedicion(order);
+  }
+  return (
+    fiveDigitPostalCode(order.customer?.fiscal_postal_code) ||
+    fiveDigitPostalCode(order.customer?.fiscal_zip_code)
+  );
 }
 
 function getCustomerField(order: SalesOrder, field: keyof Customer): string {
@@ -50,61 +77,195 @@ function getCustomerField(order: SalesOrder, field: keyof Customer): string {
   return value != null ? String(value) : '';
 }
 
-function buildConceptos(order: SalesOrder, lineItems: SalesOrderLineItem[]): string {
-  return lineItems
-    .map((item) => {
-      const qty = parseNum(item.quantity);
-      const unitPrice = parseNum(item.unit_price);
-      const discountPct = parseNum(item.discount_percentage);
-      const gross = unitPrice * qty;
-      const discount = gross * (discountPct / 100);
-      const importe = Math.max(gross - discount, 0);
-      const ivaPct = parseNum(item.iva_percentage);
-      const iepsPct = parseNum(item.ieps_percentage);
-      const hasTax = ivaPct > 0 || iepsPct > 0;
-      const objetoImp = hasTax ? '02' : '01';
+function satCatalogCode(value: string | undefined | null, fallback: string): string {
+  const match = String(value ?? '').trim().match(/^(\d{3,4})/);
+  return match?.[1] || fallback;
+}
 
-      return `
-    <cfdi:Concepto ClaveProdServ="${escapeXml(getProductSatClave(item))}" Cantidad="${qty}" ClaveUnidad="H87" Unidad="${escapeXml(item.uom_name || 'Pieza')}" Descripcion="${escapeXml(item.product?.name || 'Producto')}" ValorUnitario="${toMoney(unitPrice)}" Importe="${toMoney(importe)}" Descuento="${toMoney(discount)}" ObjetoImp="${objetoImp}" />`;
-    })
-    .join('');
+function cfdiFechaLocal(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
+function tasaOCuota(percent: number): string {
+  return (percent / 100).toFixed(6);
+}
+
+interface LineTax {
+  base: number;
+  impuesto: '002' | '003';
+  tasa: number;
+  importe: number;
+}
+
+interface BuiltConcepto {
+  xml: string;
+  importe: number;
+  discount: number;
+  taxes: LineTax[];
+}
+
+function buildConcepto(item: SalesOrderLineItem): BuiltConcepto {
+  const qty = parseNum(item.quantity);
+  const unitPrice = parseNum(item.unit_price);
+  const discountPct = parseNum(item.discount_percentage);
+  const gross = unitPrice * qty;
+  const discount = gross * (discountPct / 100);
+  const importe = Math.max(gross - discount, 0);
+  const ivaPct = parseNum(item.iva_percentage);
+  const iepsPct = parseNum(item.ieps_percentage);
+  const taxes: LineTax[] = [];
+  if (ivaPct > 0) {
+    taxes.push({
+      base: importe,
+      impuesto: '002',
+      tasa: ivaPct,
+      importe: Math.round(importe * (ivaPct / 100) * 100) / 100,
+    });
+  }
+  if (iepsPct > 0) {
+    taxes.push({
+      base: importe,
+      impuesto: '003',
+      tasa: iepsPct,
+      importe: Math.round(importe * (iepsPct / 100) * 100) / 100,
+    });
+  }
+
+  const objetoImp = taxes.length > 0 ? '02' : '01';
+  const discountAttr = discount > 0 ? ` Descuento="${toMoney(discount)}"` : '';
+  const taxXml =
+    taxes.length === 0
+      ? ''
+      : `
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+${taxes
+  .map(
+    (tax) =>
+      `          <cfdi:Traslado Base="${toMoney(tax.base)}" Impuesto="${tax.impuesto}" TipoFactor="Tasa" TasaOCuota="${tasaOCuota(tax.tasa)}" Importe="${toMoney(tax.importe)}"/>`
+  )
+  .join('\n')}
+        </cfdi:Traslados>
+      </cfdi:Impuestos>`;
+
+  const xml = `
+    <cfdi:Concepto ClaveProdServ="${escapeXml(getProductSatClave(item))}" Cantidad="${qty.toFixed(6)}" ClaveUnidad="H87" Unidad="${escapeXml(item.uom_name || 'Pieza')}" Descripcion="${escapeXml(item.product?.name || 'Producto')}" ValorUnitario="${toMoney(unitPrice)}" Importe="${toMoney(importe)}"${discountAttr} ObjetoImp="${objetoImp}">${taxXml}
+    </cfdi:Concepto>`;
+
+  return { xml, importe, discount, taxes };
+}
+
+function buildComprobanteImpuestos(conceptos: BuiltConcepto[]): string {
+  const allTaxes = conceptos.flatMap((c) => c.taxes);
+  if (allTaxes.length === 0) {
+    return '';
+  }
+
+  const grouped = new Map<string, { base: number; importe: number; tasa: number; impuesto: string }>();
+  for (const tax of allTaxes) {
+    const key = `${tax.impuesto}|${tasaOCuota(tax.tasa)}`;
+    const current = grouped.get(key) || { base: 0, importe: 0, tasa: tax.tasa, impuesto: tax.impuesto };
+    current.base += tax.base;
+    current.importe += tax.importe;
+    grouped.set(key, current);
+  }
+
+  const totalTrasladados = [...grouped.values()].reduce((sum, row) => sum + row.importe, 0);
+  const trasladosXml = [...grouped.values()]
+    .map(
+      (row) =>
+        `      <cfdi:Traslado Base="${toMoney(row.base)}" Impuesto="${row.impuesto}" TipoFactor="Tasa" TasaOCuota="${tasaOCuota(row.tasa)}" Importe="${toMoney(row.importe)}"/>`
+    )
+    .join('\n');
+
+  return `
+  <cfdi:Impuestos TotalImpuestosTrasladados="${toMoney(totalTrasladados)}">
+    <cfdi:Traslados>
+${trasladosXml}
+    </cfdi:Traslados>
+  </cfdi:Impuestos>`;
 }
 
 export function buildCfdiXml(context: CfdiBuildContext): string {
   const { order, lineItems, form } = context;
   const fiscal = order.fiscal_configuration;
-  const subtotal = toMoney(order.subtotal ?? order.requested_subtotal);
-  const discount = toMoney(order.discount_total ?? order.requested_discount_total);
-  const total = toMoney(order.total ?? order.requested_total ?? order.grand_total);
+  const built = lineItems.map((item) => buildConcepto(item));
+  const subtotalNum = built.reduce((sum, row) => sum + row.importe, 0);
+  const discountNum = built.reduce((sum, row) => sum + row.discount, 0);
+  const taxesNum = built.reduce((sum, row) => sum + row.taxes.reduce((s, tax) => s + tax.importe, 0), 0);
+  const subtotal = toMoney(order.subtotal ?? order.requested_subtotal ?? subtotalNum);
+  const discount = toMoney(order.discount_total ?? order.requested_discount_total ?? discountNum);
+  const total = toMoney(order.total ?? order.requested_total ?? order.grand_total ?? subtotalNum - discountNum + taxesNum);
   const emisorRfc = fiscal?.rfc || '';
   const emisorNombre = fiscal?.razon_social || fiscal?.business_name || order.fiscal_razon_social || '';
-  const receptorRfc = getCustomerField(order, 'fiscal_rfc');
-  const receptorNombre =
-    getCustomerField(order, 'fiscal_razon_social') ||
-    getCustomerField(order, 'company_name') ||
-    getCustomerField(order, 'name');
+  const genericPublic = isGenericPublicReceptor(order);
+  const receptorRfc = genericPublic ? SAT_GENERIC_PUBLIC_RFC : getCustomerField(order, 'fiscal_rfc');
+  const receptorNombre = genericPublic
+    ? SAT_GENERIC_PUBLIC_NAME
+    : getCustomerField(order, 'fiscal_razon_social');
+  const regimenEmisor = satCatalogCode(fiscal?.fiscal_regime, '601');
+  const regimenReceptor = satCatalogCode(form.regimenReceptor, '601');
+  const series = form.series?.trim() || '';
+  const serieAttr = series ? ` Serie="${escapeXml(series)}"` : '';
+  const discountAttr = parseNum(discount) > 0 ? ` Descuento="${discount}"` : '';
+  const lugarExpedicion = getLugarExpedicion(order);
+  const domicilioReceptor =
+    fiveDigitPostalCode(form.domicilioFiscalReceptor) || getReceptorDomicilioFiscal(order);
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" Version="4.0" Serie="${escapeXml(form.series)}" Folio="${escapeXml(form.folio)}" Fecha="${new Date().toISOString().slice(0, 19)}" SubTotal="${subtotal}" Descuento="${discount}" Total="${total}" Moneda="MXN" TipoDeComprobante="I" Exportacion="01" MetodoPago="${form.metodoPago}" FormaPago="${escapeXml(form.formaPago)}" LugarExpedicion="${escapeXml(getLugarExpedicion(order))}">
-  <cfdi:Emisor Rfc="${escapeXml(emisorRfc)}" Nombre="${escapeXml(emisorNombre)}" RegimenFiscal="${escapeXml(fiscal?.fiscal_regime || '601')}" />
-  <cfdi:Receptor Rfc="${escapeXml(receptorRfc)}" Nombre="${escapeXml(receptorNombre)}" DomicilioFiscalReceptor="${escapeXml(form.domicilioFiscalReceptor)}" RegimenFiscalReceptor="${escapeXml(form.regimenReceptor)}" UsoCFDI="${escapeXml(form.usoCfdi)}" />
-  <cfdi:Conceptos>${buildConceptos(order, lineItems)}
-  </cfdi:Conceptos>
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0"${serieAttr} Folio="${escapeXml(form.folio)}" Fecha="${cfdiFechaLocal()}" SubTotal="${subtotal}"${discountAttr} Total="${total}" Moneda="MXN" TipoDeComprobante="I" Exportacion="01" MetodoPago="${form.metodoPago}" FormaPago="${escapeXml(form.formaPago)}" LugarExpedicion="${escapeXml(lugarExpedicion)}">
+  <cfdi:Emisor Rfc="${escapeXml(emisorRfc)}" Nombre="${escapeXml(emisorNombre)}" RegimenFiscal="${escapeXml(regimenEmisor)}"/>
+  <cfdi:Receptor Rfc="${escapeXml(receptorRfc)}" Nombre="${escapeXml(receptorNombre)}" DomicilioFiscalReceptor="${escapeXml(domicilioReceptor)}" RegimenFiscalReceptor="${escapeXml(regimenReceptor)}" UsoCFDI="${escapeXml(form.usoCfdi)}"/>
+  <cfdi:Conceptos>${built.map((row) => row.xml).join('')}
+  </cfdi:Conceptos>${buildComprobanteImpuestos(built)}
 </cfdi:Comprobante>`;
+
+  return ensureCfdi40RootNamespaces(xml);
+}
+
+/** Fuerza el raíz CFDI 4.0 que Finkok valida (namespaces + schemaLocation, sin tfd). */
+export function ensureCfdi40RootNamespaces(xml: string): string {
+  let out = String(xml || '').replace(/^\uFEFF/, '').trim();
+  out = out.replace(/<tfd:TimbreFiscalDigital\b[^>]*\/>/g, '');
+  out = out.replace(/<cfdi:Complemento>\s*<\/cfdi:Complemento>/g, '');
+  out = out.replace(/<\/(?:[\w.]+:)?Comprobante>/, '</cfdi:Comprobante>');
+
+  const open = out.match(/<(?:[\w.]+:)?Comprobante\b([^>]*)>/);
+  if (!open) {
+    return out;
+  }
+
+  const restAttrs = open[1]
+    .replace(/\s+xmlns(?::[\w.-]+)?="[^"]*"/g, '')
+    .replace(/\s+xsi:schemaLocation="[^"]*"/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const root =
+    `<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd"` +
+    (restAttrs ? ` ${restAttrs}` : '') +
+    `>`;
+
+  return out.replace(/<(?:[\w.]+:)?Comprobante\b[^>]*>/, root);
+}
+
+export function fiscalPrefixAsSeries(order: SalesOrder): string {
+  return String(order.fiscal_configuration?.prefix ?? '').trim().toUpperCase();
 }
 
 export function defaultCfdiWizardForm(order: SalesOrder): CfdiWizardFormValues {
   const paymentStatus = String(order.payment_status ?? order.payments_summary?.payment_status ?? '').toLowerCase();
-  const customer = order.customer;
 
   return {
-    series: '',
+    series: fiscalPrefixAsSeries(order),
     folio: String(order.folio || ''),
     usoCfdi: 'G03',
     formaPago: paymentStatus === 'pagado' ? '03' : '99',
     metodoPago: paymentStatus === 'pagado' ? 'PUE' : 'PPD',
     regimenReceptor: '601',
-    domicilioFiscalReceptor: customer?.fiscal_zip_code || '',
+    domicilioFiscalReceptor: getReceptorDomicilioFiscal(order),
   };
 }
 

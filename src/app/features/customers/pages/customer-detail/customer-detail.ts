@@ -30,6 +30,11 @@ import {
   getCustomerStatusPillClass,
 } from '../../utils/customer-status.util';
 import { getFiscalPersonTypeLabel } from '../../utils/fiscal-person-type.util';
+import {
+  resolveFiscalCountryLabel,
+  resolveFiscalMunicipio,
+  resolveFiscalStreet,
+} from '../../utils/fiscal-domicile.util';
 import { formatRegisteredByUserLabel } from '../../utils/customer-registration.util';
 import { CustomerAddressDialogComponent } from '../../components/customer-address-dialog/customer-address-dialog.component';
 
@@ -339,6 +344,18 @@ export class CustomerDetail implements OnInit, OnDestroy {
   }
 
   getFiscalPersonTypeLabel = getFiscalPersonTypeLabel;
+
+  fiscalStreetLabel(customer: Customer): string {
+    return resolveFiscalStreet(customer) || '—';
+  }
+
+  fiscalMunicipioLabel(customer: Customer): string {
+    return resolveFiscalMunicipio(customer) || '—';
+  }
+
+  fiscalCountryLabel(customer: Customer): string {
+    return resolveFiscalCountryLabel(customer);
+  }
 
   getAddressTypeLabel(type: string | null | undefined): string {
     const map: Record<string, string> = {

@@ -267,7 +267,7 @@ export interface UpdateUserDto {
   is_manager?: boolean;
 }
 
-/** Payload de PUT /tenant/users/:userId/password (solo el usuario logueado). */
+/** Payload de PUT /tenant/users/:userId/password (propio o ajeno con User:Reset_Password). */
 export interface ChangePasswordDto {
   new_password: string;
   confirm_password: string;

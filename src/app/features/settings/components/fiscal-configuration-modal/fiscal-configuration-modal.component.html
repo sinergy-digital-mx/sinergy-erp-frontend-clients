@@ -58,7 +58,7 @@
               [maxlength]="prefixMaxLength"
               placeholder="Ej. MZN"
               (blur)="onPrefixBlur()">
-            <p class="csd-field-hint">Se usa en el folio de lote al recibir mercancía.</p>
+            <p class="csd-field-hint">Se usa en el folio de lote al recibir mercancía y como serie de la factura CFDI.</p>
             <p *ngIf="form.get('prefix')?.invalid && form.get('prefix')?.touched" class="text-xs text-red-600 mt-1">
               {{ prefixErrorMessage }}
             </p>

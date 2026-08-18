@@ -313,8 +313,8 @@ export class UserService {
   }
 
   /**
-   * Cambia la contraseña del usuario logueado.
-   * Solo funciona si userId es el de la sesión; no enviar password en updateUser.
+   * Cambia la contraseña propia, o la de cualquier usuario si hay User:Reset_Password.
+   * No enviar password en updateUser.
    */
   changePassword(userId: string, payload: ChangePasswordDto): Observable<{ message: string }> {
     return this.http.put<{ message: string }>(

@@ -163,8 +163,8 @@ export class BatchDetailDialogComponent implements OnInit {
     if (!batchId) return;
     this.dialog.open(BatchDetailDialogComponent, {
       data: { batchId },
-      width: '920px',
-      maxWidth: '95vw',
+      width: 'min(1120px, 96vw)',
+      maxWidth: '96vw',
       maxHeight: '90vh',
     });
   }

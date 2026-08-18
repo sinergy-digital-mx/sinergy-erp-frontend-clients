@@ -22,11 +22,15 @@ export class BranchService {
 
   // CRUD por fiscal config
   getBranches(fiscalConfigId: string): Observable<Branch[]> {
-    return this.http.get<Branch[]>(`${this.apiUrl}/fiscal-configurations/${fiscalConfigId}/branches`);
+    return this.http.get<unknown>(`${this.apiUrl}/fiscal-configurations/${fiscalConfigId}/branches`).pipe(
+      map((res) => this.unwrapBranchList(res))
+    );
   }
 
   getBranch(fiscalConfigId: string, branchId: string): Observable<Branch> {
-    return this.http.get<Branch>(`${this.apiUrl}/fiscal-configurations/${fiscalConfigId}/branches/${branchId}`);
+    return this.http.get<unknown>(`${this.apiUrl}/fiscal-configurations/${fiscalConfigId}/branches/${branchId}`).pipe(
+      map((res) => this.unwrapBranch(res))
+    );
   }
 
   createBranch(fiscalConfigId: string, data: CreateBranchDto): Observable<Branch> {
@@ -39,5 +43,23 @@ export class BranchService {
 
   deleteBranch(fiscalConfigId: string, branchId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/fiscal-configurations/${fiscalConfigId}/branches/${branchId}`);
+  }
+
+  private unwrapBranchList(res: unknown): Branch[] {
+    if (Array.isArray(res)) return res as Branch[];
+    if (res && typeof res === 'object' && Array.isArray((res as { data?: unknown }).data)) {
+      return (res as { data: Branch[] }).data;
+    }
+    return [];
+  }
+
+  private unwrapBranch(res: unknown): Branch {
+    if (res && typeof res === 'object' && 'data' in res) {
+      const inner = (res as { data: unknown }).data;
+      if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
+        return inner as Branch;
+      }
+    }
+    return res as Branch;
   }
 }

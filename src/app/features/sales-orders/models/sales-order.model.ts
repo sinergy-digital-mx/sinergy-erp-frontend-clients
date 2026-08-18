@@ -31,6 +31,8 @@ export interface Customer {
   phone?: string;
   fiscal_rfc?: string;
   fiscal_razon_social?: string;
+  fiscal_postal_code?: string;
+  /** Legado: usar `fiscal_postal_code`. */
   fiscal_zip_code?: string;
 }
 

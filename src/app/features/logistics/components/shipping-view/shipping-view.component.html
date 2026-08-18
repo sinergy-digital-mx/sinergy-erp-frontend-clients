@@ -54,7 +54,7 @@
 
     <div class="sv__meta">
       <div>
-        <span>CEDIS origen</span>
+        <span>Sucursal</span>
         {{ originLabel() }}
       </div>
       <div><span>Chofer</span>{{ s.driver_name || '—' }}</div>
@@ -72,9 +72,9 @@
         <div class="sv__banner">
           @if (gps.missingStops > 0 && gps.originMissing) {
             Hay {{ gps.missingStops }} tienda{{ gps.missingStops === 1 ? '' : 's' }} sin
-            coordenadas y el CEDIS sin GPS — corrige para recalcular la ruta.
+            coordenadas y la sucursal sin GPS — corrige para recalcular la ruta.
           } @else if (gps.originMissing) {
-            El CEDIS origen no tiene ubicación GPS — agrégala para trazar la ruta.
+            La sucursal origen no tiene ubicación GPS — agrégala para trazar la ruta.
           } @else {
             Hay {{ gps.missingStops }} tienda{{ gps.missingStops === 1 ? '' : 's' }} sin
             coordenadas — completa GPS para verlas en el mapa.
@@ -109,7 +109,7 @@
               </div>
               <p class="stop__muted">{{ s.origin?.address_summary || 'Punto de salida' }}</p>
               @if (isOriginMissing()) {
-                <p class="warn-text">Este CEDIS no tiene ubicación registrada</p>
+                <p class="warn-text">Esta sucursal no tiene ubicación registrada</p>
               }
             </div>
           </div>

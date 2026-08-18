@@ -11,8 +11,13 @@
       <p>Cargando facturas...</p>
     </div>
   } @else {
-    @if (finkokConfig()?.stamping_environment === 'demo') {
-      <div class="demo-banner">Modo pruebas Finkok — los timbrados no son válidos ante el SAT.</div>
+    @if (showDemoAltaBanner()) {
+      <div class="demo-banner">
+        <strong>Alta Finkok (demo):</strong>
+        3 facturas timbradas con UUID y 2 cancelaciones (motivo 02).
+        En esta OV: {{ demoStampedCount() }}/3 timbradas · {{ demoCancelledCount() }}/2 canceladas.
+        Las de error no cuentan.
+      </div>
     }
 
     <div class="invoicing-summary-row">
@@ -26,10 +31,11 @@
         >
           @if (stamping()) {
             <i class="fi fi-rr-spinner animate-spin"></i>
+            Abriendo…
           } @else {
             <i class="fi fi-rr-plus"></i>
+            Nueva factura
           }
-          Nueva factura
         </button>
       }
     </div>
@@ -53,9 +59,9 @@
       <div class="prod-warning-banner">{{ activeInvoiceWarning() }}</div>
     }
 
-    @if (invoices().length > 0) {
+    @if (visibleInvoices().length > 0) {
       <div class="invoice-cards">
-        @for (invoice of invoices(); track invoice.id; let i = $index) {
+        @for (invoice of visibleInvoices(); track invoice.id || $index; let i = $index) {
           <article class="invoice-card">
             <header class="invoice-card__header">
               <div class="invoice-card__identity">
@@ -67,12 +73,14 @@
                   </span>
                   <div class="invoice-card__badges">
                     <span class="invoice-card__type-badge">FACTURA</span>
-                    <span
-                      class="invoice-card__env-badge"
-                      [class.invoice-card__env-badge--demo]="isDemoEnvironment()"
-                    >
-                      {{ getEnvironmentLabel() }}
-                    </span>
+                    @if (getInvoiceEnvironmentLabel(invoice); as envLabel) {
+                      <span
+                        class="invoice-card__env-badge"
+                        [class.invoice-card__env-badge--demo]="envLabel === 'DEMO'"
+                      >
+                        {{ envLabel }}
+                      </span>
+                    }
                   </div>
                 </div>
               </div>
@@ -84,7 +92,7 @@
                 <span
                   class="status-pill"
                   [ngClass]="getSatStatusClass(invoice)"
-                  [title]="invoice.stamp_status === 'stamp_error' ? getInvoiceErrorTooltip(invoice) : ''"
+                  [title]="isStampError(invoice) ? getInvoiceErrorTooltip(invoice) : ''"
                 >
                   <span class="status-pill__label">SAT</span>
                   {{ getSatStatusLabel(invoice) }}
@@ -96,6 +104,9 @@
               <span class="field-label">UUID</span>
               <div class="invoice-card__uuid-value">{{ invoice.uuid || '—' }}</div>
             </div>
+            @if (isStampError(invoice)) {
+              <div class="invoice-card__error">{{ getInvoiceErrorTooltip(invoice) }}</div>
+            }
 
             <div class="invoice-card__grid">
               <div class="invoice-card__field">
@@ -153,14 +164,29 @@
                 }
               </span>
               <div class="invoice-card__actions">
-                @if (canSyncSat()) {
+                @if (canShowCancel(invoice)) {
+                  <button
+                    type="button"
+                    class="action-btn action-btn--danger"
+                    (click)="openCancelInvoice(invoice)"
+                    [disabled]="cancellingId() === invoiceRecordId(invoice)"
+                  >
+                    {{ cancellingId() === invoiceRecordId(invoice) ? 'Cancelando…' : 'Cancelar en SAT' }}
+                  </button>
+                }
+                @if (canShowSyncSat(invoice)) {
                   <button
                     type="button"
                     class="action-btn action-btn--sync"
                     (click)="syncSat(invoice)"
-                    [disabled]="syncingId() === invoice.id"
+                    [disabled]="!!syncingId()"
                   >
-                    Sincronizar SAT
+                    @if (syncingId() === invoiceRecordId(invoice)) {
+                      <i class="fi fi-rr-spinner animate-spin"></i>
+                      Sincronizando…
+                    } @else {
+                      Sincronizar SAT
+                    }
                   </button>
                 }
                 @if (invoice.uuid) {
@@ -168,29 +194,24 @@
                     Ver en SAT
                   </button>
                 }
-                @if (canShowPdfPreview(invoice)) {
+                @if (canShowPdf(invoice)) {
                   <button
                     type="button"
                     class="action-btn action-btn--preview"
-                    (click)="openPdfPreview(invoice)"
-                    [disabled]="previewingPdfId() === invoice.id"
+                    (click)="openInvoicePdf(invoice)"
+                    [disabled]="previewingPdfId() === invoiceRecordId(invoice)"
                   >
-                    {{ previewingPdfId() === invoice.id ? 'Generando…' : 'Vista previa PDF' }}
+                    {{ previewingPdfId() === invoiceRecordId(invoice) ? 'Generando…' : 'PDF' }}
                   </button>
                 }
-                @if (invoice.xml_stamped) {
-                  <button type="button" class="action-btn action-btn--neutral" (click)="viewXml(invoice)">
-                    XML
-                  </button>
-                }
-                @if (canShowCancel(invoice)) {
+                @if (canShowXml(invoice)) {
                   <button
                     type="button"
-                    class="action-btn action-btn--danger"
-                    (click)="openCancelInvoice(invoice)"
-                    [disabled]="cancellingId() === invoice.id"
+                    class="action-btn action-btn--neutral"
+                    (click)="downloadXml(invoice)"
+                    [disabled]="downloadingXmlId() === invoiceRecordId(invoice)"
                   >
-                    {{ cancellingId() === invoice.id ? 'Cancelando…' : 'Cancelar en SAT' }}
+                    {{ downloadingXmlId() === invoiceRecordId(invoice) ? 'Descargando…' : 'XML' }}
                   </button>
                 }
               </div>
@@ -203,7 +224,14 @@
         <i class="fi fi-rr-receipt"></i>
         <p>Sin facturas emitidas para esta orden</p>
         @if (canStamp() && canStampInvoice()) {
-          <button type="button" class="btn-primary" (click)="openNewInvoice()">+ Nueva factura</button>
+          <button type="button" class="btn-primary" (click)="openNewInvoice()" [disabled]="stamping()">
+            @if (stamping()) {
+              <i class="fi fi-rr-spinner animate-spin"></i>
+              Abriendo…
+            } @else {
+              + Nueva factura
+            }
+          </button>
         }
       </div>
     }

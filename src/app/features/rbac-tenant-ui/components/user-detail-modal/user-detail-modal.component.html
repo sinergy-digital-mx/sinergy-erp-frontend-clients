@@ -454,10 +454,16 @@
         </div>
       </div>
 
-      <!-- Seguridad (solo el usuario logueado) -->
-      <div *ngIf="activeTab === 'security' && isOwnProfile" class="tab-pane" [formGroup]="passwordForm">
+      <!-- Seguridad: perfil propio o User:Reset_Password -->
+      <div *ngIf="activeTab === 'security' && showSecurityTab" class="tab-pane" [formGroup]="passwordForm">
         <p class="field-hint security-intro">
-          Cambia tu contraseña. Debe tener al menos 8 caracteres y coincidir en ambos campos.
+          <ng-container *ngIf="isOwnProfile; else resetOthersHint">
+            Cambia tu contraseña. Debe tener al menos 8 caracteres y coincidir en ambos campos.
+          </ng-container>
+          <ng-template #resetOthersHint>
+            Restablece la contraseña de este usuario. Debe tener al menos 8 caracteres y coincidir en ambos campos.
+            El usuario seguirá con su sesión hasta que expire.
+          </ng-template>
         </p>
 
         <div class="form-grid form-grid--single">
@@ -533,7 +539,7 @@
         (clicked)="cancelPasswordChange()">
       </app-button>
       <app-button
-        text="Cambiar contraseña"
+        [text]="passwordSubmitLabel"
         custom_class="btn_primary"
         [loading]="changingPassword()"
         (clicked)="changePassword()">

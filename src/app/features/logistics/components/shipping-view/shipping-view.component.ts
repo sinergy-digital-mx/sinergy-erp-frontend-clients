@@ -35,7 +35,7 @@ import {
 import { ShippingService } from '../../services/shipping.service';
 import { ShippingMapComponent } from '../shipping-map/shipping-map.component';
 import { AddShippingStopsDialogComponent } from '../add-shipping-stops-dialog/add-shipping-stops-dialog.component';
-import { WarehouseLocationDialogComponent } from '../warehouse-location-dialog/warehouse-location-dialog.component';
+import { BranchLocationDialogComponent } from '../branch-location-dialog/branch-location-dialog.component';
 
 @Component({
   selector: 'app-shipping-view',
@@ -159,7 +159,13 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
 
   originLabel(): string {
     const s = this.shipping();
-    return s?.origin_warehouse_name || s?.origin?.name || s?.origin?.warehouse_name || 'CEDIS';
+    return (
+      s?.origin_billing_branch_name ||
+      s?.origin?.name ||
+      s?.origin_warehouse_name ||
+      s?.origin?.warehouse_name ||
+      'Sucursal'
+    );
   }
 
   stopLabel(stop: ShippingStop): string {
@@ -207,14 +213,17 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
 
   openAddStops(): void {
     const shipping = this.shipping();
-    if (!shipping?.origin_warehouse_id) return;
+    const billingBranchId =
+      shipping?.origin_billing_branch_id || shipping?.origin?.billing_branch_id;
+    if (!shipping || !billingBranchId) return;
     const assigned = new Set(this.stops().map((s) => s.sales_order_id));
     const ref = this.dialog.open(AddShippingStopsDialogComponent, {
       width: '720px',
       maxWidth: '95vw',
       data: {
         shippingId: shipping.id,
-        warehouseId: shipping.origin_warehouse_id,
+        billingBranchId,
+        fiscalConfigurationId: shipping.origin?.fiscal_configuration_id,
         assignedOrderIds: Array.from(assigned),
       },
     });
@@ -263,14 +272,16 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
 
   openEditOrigin(): void {
     const s = this.shipping();
-    const warehouseId = s?.origin?.warehouse_id || s?.origin_warehouse_id;
-    if (!warehouseId) return;
-    const ref = this.dialog.open(WarehouseLocationDialogComponent, {
+    const fiscalConfigId = s?.origin?.fiscal_configuration_id;
+    const branchId = s?.origin?.billing_branch_id || s?.origin_billing_branch_id;
+    if (!fiscalConfigId || !branchId) return;
+    const ref = this.dialog.open(BranchLocationDialogComponent, {
       width: '960px',
       maxWidth: '96vw',
       data: {
-        warehouseId,
-        warehouseName: this.originLabel(),
+        fiscalConfigId,
+        branchId,
+        branchName: this.originLabel(),
       },
     });
     ref.afterClosed().subscribe((ok) => {

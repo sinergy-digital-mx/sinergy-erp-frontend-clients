@@ -1,6 +1,7 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { FullscreenOverlayContainer, OverlayContainer } from '@angular/cdk/overlay';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/styled';
@@ -50,6 +51,8 @@ export const appConfig: ApplicationConfig = {
       withInterceptorsFromDi(),
       withInterceptors([authInterceptor])
     ),
+    // Anexa diálogos/overlays al elemento en fullscreen (POS) para no salir de pantalla completa.
+    { provide: OverlayContainer, useClass: FullscreenOverlayContainer },
     provideRouter(routes)
   ]
 };

@@ -44,7 +44,7 @@
         <!-- Info Cards Row -->
         <div class="info-cards">
           <!-- Producto -->
-          <div class="info-card info-card--blue clickable" (click)="openProductDetail()">
+          <div class="info-card clickable" (click)="openProductDetail()">
             <div class="info-card__icon">
               <lucide-icon [img]="Package" class="w-5 h-5"></lucide-icon>
             </div>
@@ -57,7 +57,7 @@
           </div>
 
           <!-- ALMACÉN -->
-          <div class="info-card info-card--yellow clickable" (click)="openWarehouseDetail()">
+          <div class="info-card clickable" (click)="openWarehouseDetail()">
             <div class="info-card__icon">
               <lucide-icon [img]="MapPin" class="w-5 h-5"></lucide-icon>
             </div>
@@ -70,7 +70,7 @@
           </div>
 
           <!-- Requisición -->
-          <div class="info-card info-card--purple" [class.clickable]="batch()?.purchase_order_id" (click)="openPurchaseOrder()">
+          <div class="info-card" [class.clickable]="batch()?.purchase_order_id" (click)="openPurchaseOrder()">
             <div class="info-card__icon">
               <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
             </div>
@@ -86,7 +86,7 @@
 
         <div class="meta-cards">
           <!-- Fecha -->
-          <div class="info-card info-card--mint">
+          <div class="info-card">
             <div class="info-card__icon">
               <lucide-icon [img]="Calendar" class="w-5 h-5"></lucide-icon>
             </div>
@@ -97,7 +97,7 @@
           </div>
 
           <!-- TAG -->
-          <div class="info-card info-card--gray">
+          <div class="info-card">
             <div class="info-card__icon">
               <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
             </div>
@@ -165,35 +165,35 @@
         <div class="movements-summary">
           <h3 class="movements-summary__title">Resumen de Movimientos</h3>
           <div class="movements-cards">
-            <div class="movement-card movement-card--blue">
+            <div class="movement-card">
               <div class="movement-card__icon-wrap">
                 <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
               </div>
               <span class="movement-card__label">Total Movimientos</span>
               <span class="movement-card__value">{{ batch()?.movement_summary?.total_movements ?? 0 }}</span>
             </div>
-            <div class="movement-card movement-card--green">
+            <div class="movement-card">
               <div class="movement-card__icon-wrap">
                 <lucide-icon [img]="ShoppingCart" class="w-5 h-5"></lucide-icon>
               </div>
               <span class="movement-card__label">Órdenes</span>
               <span class="movement-card__value">{{ batch()?.movement_summary?.by_type?.orders ?? 0 }}</span>
             </div>
-            <div class="movement-card movement-card--orange">
+            <div class="movement-card">
               <div class="movement-card__icon-wrap">
                 <lucide-icon [img]="ArrowUpRight" class="w-5 h-5"></lucide-icon>
               </div>
               <span class="movement-card__label">Transferencias salida</span>
               <span class="movement-card__value">{{ batch()?.movement_summary?.by_type?.transfers_out ?? 0 }}</span>
             </div>
-            <div class="movement-card movement-card--teal">
+            <div class="movement-card">
               <div class="movement-card__icon-wrap">
                 <lucide-icon [img]="ArrowDownLeft" class="w-5 h-5"></lucide-icon>
               </div>
               <span class="movement-card__label">Transferencias entrada</span>
               <span class="movement-card__value">{{ batch()?.movement_summary?.by_type?.transfers_in ?? 0 }}</span>
             </div>
-            <div class="movement-card movement-card--purple">
+            <div class="movement-card">
               <div class="movement-card__icon-wrap">
                 <lucide-icon [img]="Edit" class="w-5 h-5"></lucide-icon>
               </div>
