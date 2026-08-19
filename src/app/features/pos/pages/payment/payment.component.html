@@ -911,9 +911,11 @@
                 <span class="cobranza-total-card__folio">{{ collectedSaleFolio(item) }}</span>
                 <time class="cobranza-total-card__date">{{ formatDate(item.collected_at) }}</time>
               </div>
-              <div class="cobranza-total-card__amount">
-                <span>Total cobrado</span>
-                <strong>{{ collectedSaleTotal(item) }}</strong>
+              <div class="cobranza-total-card__breakdown">
+                <div class="cobranza-total-card__amount">
+                  <span>Total cobrado</span>
+                  <strong>{{ collectedSaleTotal(item) }}</strong>
+                </div>
               </div>
               <div class="cobranza-total-card__meta">
                 <div>

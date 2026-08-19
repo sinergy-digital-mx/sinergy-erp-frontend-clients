@@ -111,6 +111,9 @@ import { SalesOrderDetailDialogComponent } from '../../../sales-orders/component
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { SalesOrderInvoiceStampDialogComponent } from '../../../sales-orders/components/sales-order-invoice-stamp-dialog/sales-order-invoice-stamp-dialog.component';
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
+import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { Customer } from '../../../customers/models/customer-group.model';
 import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
@@ -343,7 +346,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
     private exchangeRateService: ExchangeRateService,
     private receiptPrintService: PosReceiptPrintService,
     private customerService: CustomerService,
-    private salesOrderService: SalesOrderService
+    private salesOrderService: SalesOrderService,
+    private fiscalConfigService: FiscalConfigurationService
   ) {}
 
   private preselectOrderId = signal<string | null>(null);
@@ -890,10 +894,32 @@ export class PaymentComponent implements OnInit, OnDestroy {
   };
 
   private openStampAfterCollect(orderId: string): void {
-    this.salesOrderService.getOrderDetailById(orderId).subscribe({
-      next: (payload) => {
+    this.salesOrderService.getOrderDetailById(orderId).pipe(
+      switchMap((payload) => {
         const order = payload?.header;
         if (!order) {
+          return of(null);
+        }
+        const lineItems = payload.line_items || payload.header.line_items || [];
+        const fiscalId = order.fiscal_configuration?.id ?? order.fiscal_configuration_id;
+        const hasPrefix = !!String(order.fiscal_configuration?.prefix ?? '').trim();
+        if (!fiscalId || hasPrefix) {
+          return of({ order, lineItems });
+        }
+        return this.fiscalConfigService.getFiscalConfiguration(String(fiscalId)).pipe(
+          map((fiscal) => ({
+            order: {
+              ...order,
+              fiscal_configuration: { ...order.fiscal_configuration, ...fiscal },
+            },
+            lineItems,
+          })),
+          catchError(() => of({ order, lineItems }))
+        );
+      })
+    ).subscribe({
+      next: (data) => {
+        if (!data) {
           return;
         }
         this.dialog.open(SalesOrderInvoiceStampDialogComponent, {
@@ -902,8 +928,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
           panelClass: 'invoice-stamp-dialog-panel',
           data: {
             orderId,
-            order,
-            lineItems: payload.line_items || payload.header.line_items || [],
+            order: data.order,
+            lineItems: data.lineItems,
             finkokConfig: null,
             validationIssues: [],
             canStamp: true,
