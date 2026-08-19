@@ -206,12 +206,13 @@
       </ng-container>
       }
 
-      @if (activeTab() === 'credit') {
-        <div class="col-span-2">
+      @if (activeTab() === 'credit' || !isCreateMode()) {
+        <div class="col-span-2" [hidden]="activeTab() !== 'credit'">
           <app-customer-fiscal-credits
             [customerId]="data.customer?.id ?? null"
             [canEdit]="!isCreateMode() && !isWalkInCustomer()"
-            [walkIn]="isWalkInCustomer()">
+            [walkIn]="isWalkInCustomer()"
+            [showSaveButton]="false">
           </app-customer-fiscal-credits>
         </div>
       }

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, Inject, inject, signal, ViewEncapsulation } from '@angular/core';
+import { Component, DestroyRef, Inject, inject, signal, ViewChild, ViewEncapsulation } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -46,6 +46,8 @@ import {
   CustomerDuplicateWarningDialogComponent,
   CustomerDuplicateWarningResult,
 } from '../customer-duplicate-warning-dialog/customer-duplicate-warning-dialog.component';
+import { of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-customer-edit-modal',
@@ -96,6 +98,7 @@ export class CustomerEditModalComponent {
 
   readonly X = X;
   form: FormGroup;
+  @ViewChild(CustomerFiscalCreditsComponent) fiscalCredits?: CustomerFiscalCreditsComponent;
 
   constructor(
     private fb: FormBuilder,
@@ -701,11 +704,32 @@ export class CustomerEditModalComponent {
       return;
     }
 
+    if (this.fiscalCredits?.hasInvalidEnabledCredit()) {
+      this.activeTab.set('credit');
+      this.interceptor_service.openSnackbar({
+        type: 'error',
+        title: 'Crédito',
+        message: 'Revisa días y monto de crédito en las razones sociales activadas.',
+      });
+      return;
+    }
+
     this.loading.set(true);
 
     const payload = this.buildUpdatePayload();
+    const customerId = String(this.data.customer!.id);
+    const credits = this.fiscalCredits?.buildUpdateItems();
 
-    this.customerService.updateCustomer(this.data.customer!.id, payload).subscribe({
+    this.customerService.updateCustomer(customerId, payload).pipe(
+      switchMap((updated) => {
+        if (!credits?.length) {
+          return of(updated);
+        }
+        return this.customerService.updateCustomerCredits(customerId, credits).pipe(
+          map(() => updated)
+        );
+      })
+    ).subscribe({
       next: () => {
         this.update.set(true);
         this.loading.set(false);

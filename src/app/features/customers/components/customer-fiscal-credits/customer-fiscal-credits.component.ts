@@ -108,7 +108,7 @@ interface CreditCardDraft {
           </article>
         }
 
-        @if (canEdit) {
+        @if (canEdit && showSaveButton) {
           <app-button
             text="Guardar crédito"
             variant="primary"
@@ -194,6 +194,8 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
   @Input() customerId: string | number | null = null;
   @Input() canEdit = false;
   @Input() walkIn = false;
+  /** En el modal de cliente el crédito se guarda con Actualizar, no con este botón. */
+  @Input() showSaveButton = true;
 
   private readonly customerService = inject(CustomerService);
   private readonly fiscalService = inject(FiscalConfigurationService);
@@ -223,14 +225,31 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
     if (!this.canEdit || this.walkIn || !this.customerId) {
       return false;
     }
-    return this.credits().every((item) => {
+    return !this.hasInvalidEnabledCredit();
+  }
+
+  hasInvalidEnabledCredit(): boolean {
+    return this.credits().some((item) => {
       if (!item.credit_enabled) {
-        return true;
+        return false;
       }
       const days = Number(item.credit_days);
       const amount = Number(item.credit_amount);
-      return Number.isFinite(days) && days >= 0 && Number.isFinite(amount) && amount > 0;
+      return !(Number.isFinite(days) && days >= 0 && Number.isFinite(amount) && amount > 0);
     });
+  }
+
+  /** Payload para PUT /customers/:id/credits. Null si no hay nada que enviar. */
+  buildUpdateItems(): CustomerCreditsUpdateItem[] | null {
+    if (this.walkIn || !this.customerId || this.loading() || this.credits().length === 0) {
+      return null;
+    }
+    return this.credits().map((item) => ({
+      fiscal_configuration_id: item.fiscal_configuration_id,
+      credit_enabled: item.credit_enabled,
+      credit_days: item.credit_enabled ? Number(item.credit_days) : null,
+      credit_amount: item.credit_enabled ? Number(item.credit_amount) : null,
+    }));
   }
 
   save(): void {
@@ -239,29 +258,15 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
       return;
     }
 
-    const enabledCard = this.credits().find((item) => item.credit_enabled);
-    const payload = enabledCard
-      ? {
-          credit_enabled: true,
-          credit_days: Number(enabledCard.credit_days),
-          credit_amount: Number(enabledCard.credit_amount),
-        }
-      : { credit_enabled: false };
-
-    const perRazon: CustomerCreditsUpdateItem[] = this.credits().map((item) => ({
-      fiscal_configuration_id: item.fiscal_configuration_id,
-      credit_enabled: item.credit_enabled,
-      credit_days: item.credit_enabled ? Number(item.credit_days) : null,
-      credit_amount: item.credit_enabled ? Number(item.credit_amount) : null,
-    }));
+    const perRazon = this.buildUpdateItems();
+    if (!perRazon?.length) {
+      return;
+    }
 
     this.saving.set(true);
     this.customerService
-      .updateCustomer(String(id), payload)
+      .updateCustomerCredits(String(id), perRazon)
       .pipe(
-        switchMap(() =>
-          this.customerService.updateCustomerCredits(String(id), perRazon).pipe(catchError(() => of(null)))
-        ),
         switchMap(() => this.customerService.getCustomer(String(id))),
         switchMap((raw) =>
           forkJoin({
