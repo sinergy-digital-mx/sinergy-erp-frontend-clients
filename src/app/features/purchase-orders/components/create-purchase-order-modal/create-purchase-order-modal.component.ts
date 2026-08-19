@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { LucideAngularModule, ExternalLink, Pencil } from 'lucide-angular';
+import { LucideAngularModule, ExternalLink, Pencil, Plus } from 'lucide-angular';
 import { Subject, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil, switchMap, catchError, finalize, map } from 'rxjs/operators';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
@@ -75,6 +75,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   selectedIeps = 0;
   readonly ExternalLink = ExternalLink;
   readonly Pencil = Pencil;
+  readonly Plus = Plus;
   readonly pedimentoMaxLength = PEDIMENTO_MAX_LENGTH;
   selectedVendor: (Vendor & { display_name?: string }) | null = null;
 
@@ -326,6 +327,17 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     return this.selectedVendor?.vendor_type === 'INTERNATIONAL';
   }
 
+  openCreateVendor(): void {
+    this.dialog.open(VendorDetailModalComponent, {
+      width: '80vw',
+      maxWidth: '1000px',
+      data: { vendor: null },
+    }).afterClosed().subscribe((created?: Vendor) => {
+      if (!created) return;
+      this.applySelectedVendor(created, true);
+    });
+  }
+
   openSelectedVendorDetail(): void {
     const vendorId = this.form.get('vendor_id')?.value;
     if (!vendorId) {
@@ -340,17 +352,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
         data: { vendor },
       }).afterClosed().subscribe((updated?: Vendor) => {
         if (!updated) return;
-        const displayName = this.formatVendorLabel(updated);
-        this.selectedVendor = { ...updated, display_name: displayName };
-        const patch: Record<string, string> = {
-          vendor_id: updated.id,
-          vendor_search: displayName,
-        };
-        if (updated.vendor_type !== 'INTERNATIONAL') {
-          patch['pedimento_number'] = '';
-        }
-        this.form.patchValue(patch, { emitEvent: false });
-        this.cdr.detectChanges();
+        this.applySelectedVendor(updated, false);
       });
     };
 
@@ -370,6 +372,23 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     if (!vendor) return '';
     if (typeof vendor === 'string') return vendor;
     return vendor?.display_name || this.formatVendorLabel(vendor) || '';
+  }
+
+  private applySelectedVendor(vendor: Vendor, reloadProducts: boolean): void {
+    const displayName = this.formatVendorLabel(vendor);
+    this.selectedVendor = { ...vendor, display_name: displayName };
+    const patch: Record<string, string> = {
+      vendor_id: vendor.id,
+      vendor_search: displayName,
+    };
+    if (vendor.vendor_type !== 'INTERNATIONAL') {
+      patch['pedimento_number'] = '';
+    }
+    this.form.patchValue(patch, { emitEvent: false });
+    if (reloadProducts) {
+      this.onVendorChange();
+    }
+    this.cdr.detectChanges();
   }
 
   private formatVendorLabel(vendor: any): string {

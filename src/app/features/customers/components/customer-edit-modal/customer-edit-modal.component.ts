@@ -22,8 +22,6 @@ import {
   CustomerStatus,
   UpdateCustomerDto,
 } from '../../models/customer-group.model';
-import { WarehouseService } from '../../../settings/services/warehouse.service';
-import { Warehouse } from '../../../settings/models/warehouse.model';
 import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
 import { CustomerFiscalCreditsComponent } from '../customer-fiscal-credits/customer-fiscal-credits.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
@@ -89,8 +87,6 @@ export class CustomerEditModalComponent {
   private duplicateWarningAccepted = false;
   readonly fiscalPersonTypeOptions = FISCAL_PERSON_TYPE_OPTIONS;
   private readonly destroyRef = inject(DestroyRef);
-  warehouses = signal<Warehouse[]>([]);
-  warehousesLoading = signal(false);
   statuses = signal<CustomerStatus[]>([]);
   statusesLoading = signal(false);
   /** Sección persona adicional: colapsada por defecto en crear; abierta si ya hay datos al editar. */
@@ -110,7 +106,6 @@ export class CustomerEditModalComponent {
     },
     private customerService: CustomerService,
     private interceptor_service: InterceptorService,
-    private warehouseService: WarehouseService,
     private authService: AuthService
   ) {
     this.form = this.fb.group({
@@ -121,7 +116,6 @@ export class CustomerEditModalComponent {
       phone_code: ['+52', [Validators.required]],
       phone_country: ['MX', [Validators.required]],
       company_name: [''],
-      warehouse_id: [''],
       fiscal_rfc: [''],
       fiscal_razon_social: [''],
       fiscal_person_type: [''],
@@ -162,7 +156,6 @@ export class CustomerEditModalComponent {
         phone_code: this.data.customer.phone_code || '+52',
         phone_country: titularCountry,
         company_name: this.data.customer.company_name || '',
-        warehouse_id: this.data.customer.warehouse_id || '',
         fiscal_rfc: this.data.customer.fiscal_rfc || '',
         fiscal_razon_social: this.data.customer.fiscal_razon_social || '',
         fiscal_person_type: resolveFiscalPersonType(
@@ -206,7 +199,6 @@ export class CustomerEditModalComponent {
       }
       this.form.get('registered_by_user_id')?.disable({ emitEvent: false });
     }
-    this.loadWarehouses();
     this.loadStatuses();
     this.loadRegistrationOptions();
     this.setupFiscalRfcAutoPersonType();
@@ -339,7 +331,7 @@ export class CustomerEditModalComponent {
   }
 
   /** Campos CSF. No envía `fiscal_address` ni `fiscal_city`. */
-  private buildFiscalApiFields(): Pick<
+  private buildFiscalApiFields(mode: 'create' | 'update'): Pick<
     UpdateCustomerDto,
     | 'fiscal_rfc'
     | 'fiscal_razon_social'
@@ -365,10 +357,11 @@ export class CustomerEditModalComponent {
     const state = this.emptyToNull(v.fiscal_state);
     const country = this.emptyToNull(v.fiscal_country)?.toUpperCase() ?? null;
     const hasDomicilio = !!(postal || street || exterior || interior || colonia || localidad || municipio || state);
+    const razonSocial = this.emptyToNull(v.fiscal_razon_social)?.toUpperCase() ?? null;
 
     return {
       fiscal_rfc: this.emptyToNull(v.fiscal_rfc)?.toUpperCase() ?? undefined,
-      fiscal_razon_social: this.emptyToNull(v.fiscal_razon_social) ?? undefined,
+      fiscal_razon_social: razonSocial ?? (mode === 'update' ? null : undefined),
       fiscal_person_type: sanitizeFiscalPersonTypeForApi(v.fiscal_person_type),
       fiscal_postal_code: postal,
       fiscal_street: street,
@@ -390,53 +383,6 @@ export class CustomerEditModalComponent {
 
   registrationUserLabel(user: CustomerRegistrationUserOption): string {
     return formatRegistrationUserOption(user);
-  }
-
-  private loadWarehouses(): void {
-    this.warehousesLoading.set(true);
-    this.warehouseService.getWarehouses({ page: 1, limit: 200 }).subscribe({
-      next: (response) => {
-        const warehouses = this.extractWarehousesFromResponse(response);
-        if (warehouses.length > 0) {
-          this.warehouses.set(warehouses);
-          this.warehousesLoading.set(false);
-          return;
-        }
-
-        // Fallback por compatibilidad con backends que ignoran/rompen paginación.
-        this.warehouseService.getWarehouses().subscribe({
-          next: (fallbackResponse) => {
-            this.warehouses.set(this.extractWarehousesFromResponse(fallbackResponse));
-            this.warehousesLoading.set(false);
-          },
-          error: () => {
-            this.warehousesLoading.set(false);
-          }
-        });
-      },
-      error: () => {
-        this.warehouseService.getWarehouses().subscribe({
-          next: (fallbackResponse) => {
-            this.warehouses.set(this.extractWarehousesFromResponse(fallbackResponse));
-            this.warehousesLoading.set(false);
-          },
-          error: () => {
-            this.warehousesLoading.set(false);
-          }
-        });
-      }
-    });
-  }
-
-  private extractWarehousesFromResponse(response: unknown): Warehouse[] {
-    const payload = response as any;
-    if (Array.isArray(payload)) return payload as Warehouse[];
-    if (Array.isArray(payload?.data)) return payload.data as Warehouse[];
-    if (Array.isArray(payload?.items)) return payload.items as Warehouse[];
-    if (Array.isArray(payload?.results)) return payload.results as Warehouse[];
-    if (Array.isArray(payload?.data?.data)) return payload.data.data as Warehouse[];
-    if (Array.isArray(payload?.data?.items)) return payload.data.items as Warehouse[];
-    return [];
   }
 
   private customerHasAdditionalPersonData(c: Customer): boolean {
@@ -544,9 +490,8 @@ export class CustomerEditModalComponent {
       phone_code: v.phone_code,
       country: v.phone_country,
       company_name: trim(v.company_name) || undefined,
-      warehouse_id: v.warehouse_id || null,
       auto_generate_invoice: !!v.auto_generate_invoice,
-      ...this.buildFiscalApiFields(),
+      ...this.buildFiscalApiFields('update'),
       group_id: this.selectedGroup()?.id ?? null,
       registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),
       registered_by_user_id: this.emptyToNull(v.registered_by_user_id),
@@ -652,9 +597,8 @@ export class CustomerEditModalComponent {
       phone_code: v.phone_code,
       phone_country: v.phone_country,
       company_name: v.company_name,
-      warehouse_id: v.warehouse_id || null,
       auto_generate_invoice: !!v.auto_generate_invoice,
-      ...this.buildFiscalApiFields(),
+      ...this.buildFiscalApiFields('create'),
       group_id: this.selectedGroup()?.id ?? null,
       registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),
       registered_by_user_id: this.emptyToNull(v.registered_by_user_id),

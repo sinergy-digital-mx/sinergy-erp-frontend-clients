@@ -4,13 +4,15 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { OrderFilters } from '../../models/filters.model';
-import { OrderStatus } from '../../models/purchase-order.model';
+import { OrderStatus, PaymentStatus } from '../../models/purchase-order.model';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { BranchService } from '../../../settings/services/branch.service';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
+import { VendorService } from '../../../settings/services/vendor.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { Branch } from '../../../settings/models/branch.model';
 import { Warehouse } from '../../../settings/models/warehouse.model';
+import { Vendor } from '../../../settings/models/vendor.model';
 
 @Component({
   selector: 'app-filter-bar',
@@ -34,7 +36,9 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   dateRangeControl = new FormControl<string>('', { nonNullable: true });
   dateFromControl = new FormControl<string>('', { nonNullable: true });
   dateToControl = new FormControl<string>('', { nonNullable: true });
-  statusControl = new FormControl<OrderStatus | null>(null);
+  statusControl = new FormControl<string>('', { nonNullable: true });
+  paymentStatusControl = new FormControl<string>('', { nonNullable: true });
+  vendorControl = new FormControl<string>('', { nonNullable: true });
   fiscalConfigurationControl = new FormControl<string>('', { nonNullable: true });
   billingBranchControl = new FormControl<string>('', { nonNullable: true });
   warehouseControl = new FormControl<string>('', { nonNullable: true });
@@ -42,6 +46,7 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   fiscalConfigurations: FiscalConfiguration[] = [];
   branches: Branch[] = [];
   warehouses: Warehouse[] = [];
+  vendors: Vendor[] = [];
 
   dateRangeOptions = [
     { label: 'Hoy', value: 'today' },
@@ -53,9 +58,14 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   showCustomDateRange = false;
 
   statusOptions: { label: string; value: OrderStatus }[] = [
-    { label: 'En Proceso', value: 'En Proceso' },
+    { label: 'Creada', value: 'Creada' },
     { label: 'Recibida', value: 'Recibida' },
     { label: 'Cancelada', value: 'Cancelada' }
+  ];
+
+  paymentStatusOptions: { label: string; value: Extract<PaymentStatus, 'Pendiente' | 'Pagado'> }[] = [
+    { label: 'Pendiente', value: 'Pendiente' },
+    { label: 'Pagado', value: 'Pagado' }
   ];
 
   private destroy$ = new Subject<void>();
@@ -64,6 +74,7 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     private fiscalConfigurationService: FiscalConfigurationService,
     private branchService: BranchService,
     private warehouseService: WarehouseService,
+    private vendorService: VendorService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -74,6 +85,8 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
       this.dateFromControl.value ||
       this.dateToControl.value ||
       this.statusControl.value ||
+      this.paymentStatusControl.value ||
+      this.vendorControl.value ||
       this.fiscalConfigurationControl.value ||
       this.billingBranchControl.value ||
       this.warehouseControl.value
@@ -91,9 +104,10 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.billingBranchControl.disable({ emitEvent: false });
-    this.warehouseControl.disable({ emitEvent: false });
     this.loadFiscalConfigurations();
+    this.loadAllBranches();
+    this.loadAllWarehouses();
+    this.loadVendors();
 
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
@@ -112,6 +126,14 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
       .subscribe(() => this.emitFilters());
 
     this.statusControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.emitFilters());
+
+    this.paymentStatusControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.emitFilters());
+
+    this.vendorControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.emitFilters());
 
@@ -136,6 +158,10 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
 
   branchLabel(branch: Branch): string {
     return branch.code?.trim() || branch.display_name?.trim() || '—';
+  }
+
+  vendorLabel(vendor: Vendor): string {
+    return vendor.company_name?.trim() || vendor.name?.trim() || vendor.razon_social?.trim() || '—';
   }
 
   onDateRangeChange(value: string): void {
@@ -167,6 +193,9 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
         return;
       default:
         this.showCustomDateRange = false;
+        this.dateFromControl.setValue('', { emitEvent: false });
+        this.dateToControl.setValue('', { emitEvent: false });
+        this.emitFilters();
         break;
     }
 
@@ -189,14 +218,14 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     this.dateRangeControl.setValue('', { emitEvent: false });
     this.dateFromControl.setValue('', { emitEvent: false });
     this.dateToControl.setValue('', { emitEvent: false });
-    this.statusControl.setValue(null, { emitEvent: false });
+    this.statusControl.setValue('', { emitEvent: false });
+    this.paymentStatusControl.setValue('', { emitEvent: false });
+    this.vendorControl.setValue('', { emitEvent: false });
     this.fiscalConfigurationControl.setValue('', { emitEvent: false });
     this.billingBranchControl.setValue('', { emitEvent: false });
     this.warehouseControl.setValue('', { emitEvent: false });
-    this.billingBranchControl.disable({ emitEvent: false });
-    this.warehouseControl.disable({ emitEvent: false });
-    this.branches = [];
-    this.warehouses = [];
+    this.loadAllBranches();
+    this.loadAllWarehouses();
     this.showCustomDateRange = false;
     this.emitFilters();
   }
@@ -212,33 +241,28 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private onFiscalConfigurationChange(): void {
-    const fiscalId = this.fiscalConfigurationControl.value || undefined;
+    const fiscalId = this.toQueryValue(this.fiscalConfigurationControl.value);
     this.billingBranchControl.setValue('', { emitEvent: false });
     this.warehouseControl.setValue('', { emitEvent: false });
-    this.warehouses = [];
-    this.warehouseControl.disable({ emitEvent: false });
 
     if (fiscalId) {
-      this.billingBranchControl.enable({ emitEvent: false });
       this.loadBranches(fiscalId);
     } else {
-      this.billingBranchControl.disable({ emitEvent: false });
-      this.branches = [];
+      this.loadAllBranches();
     }
+    this.loadAllWarehouses();
 
     this.emitFilters();
   }
 
   private onBillingBranchChange(): void {
-    const branchId = this.billingBranchControl.value || undefined;
+    const branchId = this.toQueryValue(this.billingBranchControl.value);
     this.warehouseControl.setValue('', { emitEvent: false });
 
     if (branchId) {
-      this.warehouseControl.enable({ emitEvent: false });
       this.loadWarehouses(branchId);
     } else {
-      this.warehouseControl.disable({ emitEvent: false });
-      this.warehouses = [];
+      this.loadAllWarehouses();
     }
 
     this.emitFilters();
@@ -257,6 +281,47 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
           this.cdr.detectChanges();
         },
       });
+  }
+
+  private loadAllBranches(): void {
+    this.branchService.getAllBranches().subscribe({
+      next: (branches) => {
+        this.branches = Array.isArray(branches) ? branches : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.branches = [];
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private loadAllWarehouses(): void {
+    this.warehouseService
+      .getWarehouses({ status: 'active', limit: 100 })
+      .subscribe({
+        next: (res) => {
+          this.warehouses = res.data ?? [];
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.warehouses = [];
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  private loadVendors(): void {
+    this.vendorService.getVendors({ status: 'active', limit: 100 }).subscribe({
+      next: (res) => {
+        this.vendors = res.data ?? [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.vendors = [];
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   private loadBranches(fiscalConfigurationId: string): void {
@@ -290,41 +355,59 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   private emitFilters(): void {
     const filters: OrderFilters = {};
 
-    const search = this.searchControl.value.trim();
+    const search = this.toQueryValue(this.searchControl.value);
     if (search) {
       filters.search = search;
     }
 
-    const dateFrom = this.dateFromControl.value;
+    const dateFrom = this.toQueryValue(this.dateFromControl.value);
     if (dateFrom) {
-      filters.dateFrom = new Date(dateFrom).toISOString();
+      filters.dateFrom = dateFrom;
     }
 
-    const dateTo = this.dateToControl.value;
+    const dateTo = this.toQueryValue(this.dateToControl.value);
     if (dateTo) {
-      filters.dateTo = new Date(dateTo).toISOString();
+      filters.dateTo = dateTo;
     }
 
-    const status = this.statusControl.value;
+    const status = this.toQueryValue(this.statusControl.value);
     if (status) {
-      filters.status = status;
+      filters.status = status as OrderStatus;
     }
 
-    const fiscalConfigurationId = this.fiscalConfigurationControl.value;
+    const paymentStatus = this.toQueryValue(this.paymentStatusControl.value);
+    if (paymentStatus) {
+      filters.paymentStatus = paymentStatus;
+    }
+
+    const vendorId = this.toQueryValue(this.vendorControl.value);
+    if (vendorId) {
+      filters.vendorId = vendorId;
+    }
+
+    const fiscalConfigurationId = this.toQueryValue(this.fiscalConfigurationControl.value);
     if (fiscalConfigurationId) {
       filters.fiscal_configuration_id = fiscalConfigurationId;
     }
 
-    const billingBranchId = this.billingBranchControl.value;
+    const billingBranchId = this.toQueryValue(this.billingBranchControl.value);
     if (billingBranchId) {
       filters.billing_branch_id = billingBranchId;
     }
 
-    const warehouseId = this.warehouseControl.value;
+    const warehouseId = this.toQueryValue(this.warehouseControl.value);
     if (warehouseId) {
       filters.warehouseId = warehouseId;
     }
 
     this.filtersChange.emit(filters);
+  }
+
+  private toQueryValue(value: string | null | undefined): string | undefined {
+    const trimmed = (value ?? '').trim();
+    if (!trimmed || trimmed === 'null' || trimmed === 'undefined') {
+      return undefined;
+    }
+    return trimmed;
   }
 }

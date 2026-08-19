@@ -6,9 +6,9 @@
         type="text"
         id="search"
         [formControl]="searchControl"
-        placeholder="Buscar..."
+        placeholder="Folio, proveedor o pedimento"
         class="filter-bar__input"
-        aria-label="Buscar órdenes por folio, proveedor o propósito"
+        aria-label="Buscar órdenes por folio, proveedor o pedimento"
       />
     </div>
 
@@ -58,9 +58,39 @@
         class="filter-bar__select"
         aria-label="Filtrar por estado de orden"
       >
-        <option [value]="null">Todos los estados</option>
+        <option value="">Todos los estados</option>
         @for (option of statusOptions; track option.value) {
           <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Pago -->
+    <div class="filter-bar__field">
+      <select
+        id="paymentStatus"
+        [formControl]="paymentStatusControl"
+        class="filter-bar__select"
+        aria-label="Filtrar por estado de pago"
+      >
+        <option value="">Todos los pagos</option>
+        @for (option of paymentStatusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Proveedor -->
+    <div class="filter-bar__field">
+      <select
+        id="vendor"
+        [formControl]="vendorControl"
+        class="filter-bar__select"
+        aria-label="Filtrar por proveedor"
+      >
+        <option value="">Todos los proveedores</option>
+        @for (vendor of vendors; track vendor.id) {
+          <option [value]="vendor.id">{{ vendorLabel(vendor) }}</option>
         }
       </select>
     </div>
@@ -80,7 +110,7 @@
       </select>
     </div>
 
-    <!-- Sucursal: solo con razón social -->
+    <!-- Sucursal: cascada si hay razón; si no, catálogo global -->
     <div class="filter-bar__field">
       <select
         id="billingBranch"
@@ -95,7 +125,7 @@
       </select>
     </div>
 
-    <!-- Almacén: solo con sucursal -->
+    <!-- Almacén: cascada si hay sucursal; si no, catálogo global -->
     <div class="filter-bar__field">
       <select
         id="warehouse"

@@ -2,11 +2,9 @@ import { Component, Input, OnChanges, SimpleChanges, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of, switchMap } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
-import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import {
   Customer,
   CustomerCreditsUpdateItem,
@@ -198,7 +196,6 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
   @Input() showSaveButton = true;
 
   private readonly customerService = inject(CustomerService);
-  private readonly fiscalService = inject(FiscalConfigurationService);
   private readonly interceptor = inject(InterceptorService);
 
   credits = signal<CreditCardDraft[]>([]);
@@ -267,21 +264,17 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
     this.customerService
       .updateCustomerCredits(String(id), perRazon)
       .pipe(
-        switchMap(() => this.customerService.getCustomer(String(id))),
-        switchMap((raw) =>
-          forkJoin({
-            customer: of(unwrapCustomerPayload(raw)),
-            fiscales: this.fiscalService
-              .listFiscalConfigurations({ status: 'active', limit: 100 })
-              .pipe(catchError(() => of({ data: [] as FiscalConfiguration[] }))),
-          })
+        switchMap((credits) =>
+          this.customerService.getCustomer(String(id)).pipe(
+            catchError(() => of(null)),
+            map((raw) => ({ customer: unwrapCustomerPayload(raw), credits }))
+          )
         )
       )
       .subscribe({
-        next: ({ customer, fiscales }) => {
+        next: ({ customer, credits }) => {
           this.saving.set(false);
-          const fiscalList = Array.isArray(fiscales) ? fiscales : (fiscales.data ?? []);
-          this.credits.set(this.draftsFromCustomer(customer, fiscalList));
+          this.credits.set(this.draftsFromCustomer(customer, credits));
           this.interceptor.openSnackbar({
             type: 'success',
             title: 'Éxito',
@@ -310,16 +303,14 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
     this.loading.set(true);
     forkJoin({
       customer: this.customerService.getCustomer(id).pipe(catchError(() => of(null))),
-      credits: this.customerService.getCustomerCredits(id).pipe(catchError(() => of([] as CustomerFiscalCredit[]))),
-      fiscales: this.fiscalService
-        .listFiscalConfigurations({ status: 'active', limit: 100 })
-        .pipe(catchError(() => of({ data: [] as FiscalConfiguration[] }))),
+      credits: this.customerService.getCustomerCredits(id).pipe(
+        catchError(() => of([] as CustomerFiscalCredit[]))
+      ),
     }).subscribe({
-      next: ({ customer, credits, fiscales }) => {
+      next: ({ customer, credits }) => {
         const unwrapped = unwrapCustomerPayload(customer);
-        const fiscalList = Array.isArray(fiscales) ? fiscales : (fiscales.data ?? []);
         const fromCustomer = creditsFromCustomer(unwrapped);
-        this.credits.set(this.draftsFromCustomer(unwrapped, fiscalList, credits.length ? credits : fromCustomer));
+        this.credits.set(this.draftsFromCustomer(unwrapped, credits.length ? credits : fromCustomer));
         this.loading.set(false);
       },
       error: () => {
@@ -329,13 +320,14 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
     });
   }
 
+  /** Opciones del tab Crédito: solo `credits[]` (fiscal_configuration_id + razon_social), no almacenes. */
   private draftsFromCustomer(
     customer: Customer | null,
-    fiscales: FiscalConfiguration[],
-    extraCredits: CustomerFiscalCredit[] = []
+    listed: CustomerFiscalCredit[]
   ): CreditCardDraft[] {
-    const listed = extraCredits.length ? extraCredits : creditsFromCustomer(customer);
-    const drafts = this.mergeDrafts(listed, fiscales);
+    const drafts = listed
+      .filter((item) => !!item.fiscal_configuration_id)
+      .map((item) => this.toDraft(item));
     if (!isCustomerCreditEnabled(customer) || drafts.some((item) => item.credit_enabled)) {
       return drafts;
     }
@@ -350,37 +342,18 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
     }));
   }
 
-  private mergeDrafts(credits: CustomerFiscalCredit[], fiscales: FiscalConfiguration[]): CreditCardDraft[] {
-    const byId = new Map(credits.map((item) => [String(item.fiscal_configuration_id), item]));
-    const ids = new Set<string>();
-    const drafts: CreditCardDraft[] = [];
-
-    for (const fiscal of fiscales) {
-      const id = String(fiscal.id);
-      ids.add(id);
-      drafts.push(this.toDraft(byId.get(id), fiscal));
-    }
-    for (const credit of credits) {
-      const id = String(credit.fiscal_configuration_id);
-      if (!ids.has(id)) {
-        drafts.push(this.toDraft(credit));
-      }
-    }
-    return drafts;
-  }
-
-  private toDraft(credit?: CustomerFiscalCredit, fiscal?: FiscalConfiguration): CreditCardDraft {
-    const enabled = isTruthyFlag(credit?.credit_enabled);
+  private toDraft(credit: CustomerFiscalCredit): CreditCardDraft {
+    const enabled = isTruthyFlag(credit.credit_enabled);
     return {
-      fiscal_configuration_id: String(credit?.fiscal_configuration_id || fiscal?.id || ''),
-      razon_social: credit?.razon_social || fiscal?.razon_social || 'Razón social',
-      rfc: credit?.rfc || fiscal?.rfc || '',
+      fiscal_configuration_id: String(credit.fiscal_configuration_id),
+      razon_social: credit.razon_social || 'Razón social',
+      rfc: credit.rfc || '',
       credit_enabled: enabled,
-      credit_days: credit?.credit_days != null ? String(credit.credit_days) : '',
-      credit_amount: credit?.credit_amount != null ? String(credit.credit_amount) : '',
-      credit_used: Number(credit?.credit_used ?? 0),
-      credit_available: Number(credit?.credit_available ?? 0),
-      credit_usage_percent: Number(credit?.credit_usage_percent ?? 0),
+      credit_days: credit.credit_days != null ? String(credit.credit_days) : '',
+      credit_amount: credit.credit_amount != null ? String(credit.credit_amount) : '',
+      credit_used: Number(credit.credit_used ?? 0),
+      credit_available: Number(credit.credit_available ?? 0),
+      credit_usage_percent: Number(credit.credit_usage_percent ?? 0),
     };
   }
 }

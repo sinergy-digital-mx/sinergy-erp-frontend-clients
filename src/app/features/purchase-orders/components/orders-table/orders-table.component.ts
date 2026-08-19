@@ -84,6 +84,7 @@ export class OrdersTableComponent implements OnInit, OnDestroy {
    */
   getStatusClass(status: OrderStatus): string {
     switch (status) {
+      case 'Creada':
       case 'En Proceso':
         return 'status-badge status-badge--en-proceso';
       case 'Recibida':

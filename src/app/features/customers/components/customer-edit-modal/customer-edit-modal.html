@@ -99,22 +99,13 @@
         </app-customer-group-dropdown>
       </div>
 
-      <!-- Almacén asignado (fuera del tab Crédito) -->
+      <!-- Mismo control que tab Información Fiscal: fiscal_razon_social -->
       <div class="col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Almacén asignado</label>
-        <select
-          formControlName="warehouse_id"
-          class="w-full px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 border border-gray-300 focus:ring-blue-500 focus:border-blue-500">
-          <option value="">Sin almacén</option>
-          @for (warehouse of warehouses(); track warehouse.id) {
-            <option [value]="warehouse.id">
-              {{ warehouse.name }} ({{ warehouse.code }})
-            </option>
-          }
-        </select>
-        @if (warehousesLoading()) {
-          <p class="mt-1 text-xs text-gray-500">Cargando almacenes...</p>
-        }
+        <app-input
+          label="Razón social"
+          placeholder="Como aparece en la CSF"
+          [form_control]="form.controls['fiscal_razon_social']">
+        </app-input>
       </div>
 
       @if (canEditStatus) {

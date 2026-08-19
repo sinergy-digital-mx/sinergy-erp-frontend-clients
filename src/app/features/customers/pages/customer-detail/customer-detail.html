@@ -101,6 +101,11 @@
             <span class="text-[#334155]">{{ customer()!.legacy_customer_id ?? '—' }}</span>
           </div>
 
+          <div class="col-span-2">
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Razón social</span>
+            <span class="text-[#334155]">{{ customer()!.fiscal_razon_social || '—' }}</span>
+          </div>
+
           <div>
             <span class="block text-xs font-semibold text-gray-500 mb-1">Estatus</span>
             @if (canEditStatus) {
@@ -119,11 +124,6 @@
                 {{ getStatusLabel(customer()!) }}
               </span>
             }
-          </div>
-
-          <div>
-            <span class="block text-xs font-semibold text-gray-500 mb-1">Almacén asignado</span>
-            <span class="text-[#334155]">{{ customer()!.warehouse?.name || '—' }}</span>
           </div>
 
           <div>

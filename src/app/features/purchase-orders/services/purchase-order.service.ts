@@ -44,35 +44,23 @@ export class PurchaseOrderService {
       .set('page', pagination.page.toString())
       .set('limit', pagination.limit.toString());
 
-    if (filters.search) {
-      params = params.set('search', filters.search);
-    }
-    if (filters.dateFrom) {
-      params = params.set('start_date', filters.dateFrom);
-    }
-    if (filters.dateTo) {
-      params = params.set('end_date', filters.dateTo);
-    }
-    if (filters.status) {
-      params = params.set('status', filters.status);
-    }
-    if (filters.fiscal_configuration_id) {
-      params = params.set('fiscal_configuration_id', filters.fiscal_configuration_id);
-    }
-    if (filters.billing_branch_id) {
-      params = params.set('billing_branch_id', filters.billing_branch_id);
-    }
-    if (filters.warehouseId) {
-      params = params.set('warehouse_id', filters.warehouseId);
-    }
-    if (filters.vendorId) {
-      params = params.set('vendor_id', filters.vendorId);
-    }
-    if (filters.unpaid) {
-      // Órdenes con saldo pendiente (Pendiente / Parcial / No pagado).
-      params = params.set('unpaid', 'true');
-    } else if (filters.paymentStatus) {
-      params = params.set('payment_status', filters.paymentStatus);
+    const paymentStatus = filters.paymentStatus || (filters.unpaid ? 'Pendiente' : undefined);
+    const queryEntries: [string, string | undefined][] = [
+      ['search', this.toQueryValue(filters.search)],
+      ['general_status', this.toQueryValue(filters.status)],
+      ['payment_status', this.toQueryValue(paymentStatus)],
+      ['vendor_id', this.toQueryValue(filters.vendorId)],
+      ['fiscal_configuration_id', this.toQueryValue(filters.fiscal_configuration_id)],
+      ['billing_branch_id', this.toQueryValue(filters.billing_branch_id)],
+      ['warehouse_id', this.toQueryValue(filters.warehouseId)],
+      ['created_from', this.toDateOnly(filters.dateFrom)],
+      ['created_to', this.toDateOnly(filters.dateTo)],
+    ];
+
+    for (const [key, value] of queryEntries) {
+      if (value) {
+        params = params.set(key, value);
+      }
     }
 
     return this.http.get<PaginatedResponse<PurchaseOrder>>(this.baseUrl, { params })
@@ -488,6 +476,17 @@ export class PurchaseOrderService {
     }
 
     return exportFilters;
+  }
+
+  private toQueryValue(value: unknown): string | undefined {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    const trimmed = String(value).trim();
+    if (!trimmed || trimmed === 'null' || trimmed === 'undefined') {
+      return undefined;
+    }
+    return trimmed;
   }
 
   toDateOnly(value?: string | null): string | undefined {

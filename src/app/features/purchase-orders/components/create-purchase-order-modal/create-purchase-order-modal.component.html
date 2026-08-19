@@ -56,16 +56,27 @@
         <div class="form-field">
           <div class="form-label-row">
             <label class="form-label">PROVEEDOR *</label>
-            <button
-              type="button"
-              class="label-action-btn"
-              [disabled]="!form.get('vendor_id')?.value"
-              (click)="openSelectedVendorDetail()"
-              title="Editar proveedor"
-              aria-label="Editar proveedor">
-              <lucide-icon [img]="Pencil" [size]="14"></lucide-icon>
-              <span>Editar</span>
-            </button>
+            <div class="form-label-actions">
+              <button
+                type="button"
+                class="label-action-btn"
+                (click)="openCreateVendor()"
+                title="Crear proveedor"
+                aria-label="Crear proveedor">
+                <lucide-icon [img]="Plus" [size]="14"></lucide-icon>
+                <span>Crear</span>
+              </button>
+              <button
+                type="button"
+                class="label-action-btn"
+                [disabled]="!form.get('vendor_id')?.value"
+                (click)="openSelectedVendorDetail()"
+                title="Editar proveedor"
+                aria-label="Editar proveedor">
+                <lucide-icon [img]="Pencil" [size]="14"></lucide-icon>
+                <span>Editar</span>
+              </button>
+            </div>
           </div>
           <input
             type="text"

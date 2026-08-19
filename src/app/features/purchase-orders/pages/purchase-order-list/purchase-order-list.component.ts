@@ -260,7 +260,10 @@ export class PurchaseOrderListComponent implements OnInit {
    * Apply filters
    */
   applyFilters(filters: OrderFilters): void {
-    this.filtersState.set(this.queryScopedFilters(filters));
+    this.filtersState.set({
+      ...this.queryScopedFilters(filters),
+      ...filters,
+    });
     this.paginationState.set({ page: 1, limit: 15 });
     const currentSearch = this.route.snapshot.queryParamMap.get('search')?.trim() || undefined;
     const nextSearch = filters.search?.trim() || undefined;
