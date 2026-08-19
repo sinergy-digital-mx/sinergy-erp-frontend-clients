@@ -39,6 +39,7 @@ export interface Customer {
 export interface SalesOrderCustomerSummary {
   id?: number;
   display_name?: string;
+  company_name?: string;
   is_walk_in?: boolean;
 }
 

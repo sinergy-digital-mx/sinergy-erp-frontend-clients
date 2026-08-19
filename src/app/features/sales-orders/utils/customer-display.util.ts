@@ -42,7 +42,12 @@ export function resolveSalesOrderCustomerName(
 }
 
 export function getSalesOrderCompanyName(order?: SalesOrder | null): string {
-  const company = order?.customer?.company_name?.trim() || '';
+  const company = (
+    order?.customer?.company_name ||
+    order?.customer?.fiscal_razon_social ||
+    order?.customer_summary?.company_name ||
+    ''
+  ).trim();
   if (!company) {
     return '';
   }

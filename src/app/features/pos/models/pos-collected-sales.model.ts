@@ -31,6 +31,9 @@ export interface CollectedSaleItem {
   customer?: {
     id?: number;
     name?: string;
+    lastname?: string;
+    company_name?: string;
+    fiscal_razon_social?: string;
     is_walk_in?: boolean;
   };
   seller_user?: {
@@ -84,12 +87,37 @@ export function collectedSaleTotal(item: CollectedSaleItem): string {
   return formatPosMoney(total);
 }
 
+export function posCustomerCompanySubtitle(customer?: {
+  name?: string;
+  lastname?: string;
+  company_name?: string;
+  fiscal_razon_social?: string;
+  display_name?: string;
+} | null): string {
+  const company = (customer?.company_name || customer?.fiscal_razon_social || '').trim();
+  if (!company) {
+    return '';
+  }
+  const name = [customer?.display_name, customer?.name, customer?.lastname]
+    .filter((part) => typeof part === 'string' && part.trim())
+    .join(' ')
+    .trim();
+  if (name && name.toLowerCase() === company.toLowerCase()) {
+    return '';
+  }
+  return company;
+}
+
 export function collectedSaleCustomerLabel(item: CollectedSaleItem): string {
   const c = item.customer;
   if (!c?.name) {
     return 'Mostrador';
   }
   return c.is_walk_in ? `${c.name} (mostrador)` : c.name;
+}
+
+export function collectedSaleCustomerCompany(item: CollectedSaleItem): string {
+  return posCustomerCompanySubtitle(item.customer);
 }
 
 export function collectedSaleSellerLabel(item: CollectedSaleItem): string {

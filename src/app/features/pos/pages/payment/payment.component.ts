@@ -95,11 +95,13 @@ import {
   CollectedSaleItem,
   CollectedSalesSummary,
   collectedByLabel,
+  collectedSaleCustomerCompany,
   collectedSaleCustomerLabel,
   collectedSaleFolio,
   collectedSaleSellerLabel,
   collectedSaleTotal,
   paymentMethodLabel,
+  posCustomerCompanySubtitle,
 } from '../../models/pos-collected-sales.model';
 import { PosSaleReceipt } from '../../models/pos-receipt.model';
 import { PosReceiptPrintService } from '../../services/pos-receipt-print.service';
@@ -120,6 +122,9 @@ import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog
 interface PendingSaleCustomer {
   id?: number;
   name?: string;
+  lastname?: string;
+  company_name?: string;
+  fiscal_razon_social?: string;
   is_walk_in?: boolean;
   credit_enabled?: boolean;
 }
@@ -218,7 +223,9 @@ export class PaymentComponent implements OnInit, OnDestroy {
     return list.filter((sale) => {
       const folio = (sale.folio || '').toLowerCase();
       const seller = this.sellerLabel(sale).toLowerCase();
-      return folio.includes(term) || seller.includes(term) || sale.id.toLowerCase().includes(term);
+      const customer = this.customerLabel(sale).toLowerCase();
+      const company = this.customerCompanyLabel(sale).toLowerCase();
+      return folio.includes(term) || seller.includes(term) || customer.includes(term) || company.includes(term) || sale.id.toLowerCase().includes(term);
     });
   });
 
@@ -231,8 +238,9 @@ export class PaymentComponent implements OnInit, OnDestroy {
     return list.filter((item) => {
       const folio = collectedSaleFolio(item).toLowerCase();
       const customer = collectedSaleCustomerLabel(item).toLowerCase();
+      const company = collectedSaleCustomerCompany(item).toLowerCase();
       const method = paymentMethodLabel(item.payment?.payment_method).toLowerCase();
-      return folio.includes(term) || customer.includes(term) || method.includes(term);
+      return folio.includes(term) || customer.includes(term) || company.includes(term) || method.includes(term);
     });
   });
 
@@ -1280,6 +1288,10 @@ export class PaymentComponent implements OnInit, OnDestroy {
     return c.is_walk_in ? `${c.name} (mostrador)` : c.name;
   }
 
+  customerCompanyLabel(sale: PendingSale): string {
+    return posCustomerCompanySubtitle(sale.customer);
+  }
+
   formatDate(value?: string): string {
     if (!value) {
       return '—';
@@ -1299,6 +1311,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
   readonly collectedSaleFolio = collectedSaleFolio;
   readonly collectedSaleTotal = collectedSaleTotal;
   readonly collectedSaleCustomerLabel = collectedSaleCustomerLabel;
+  readonly collectedSaleCustomerCompany = collectedSaleCustomerCompany;
   readonly collectedSaleSellerLabel = collectedSaleSellerLabel;
   readonly collectedByLabel = collectedByLabel;
 

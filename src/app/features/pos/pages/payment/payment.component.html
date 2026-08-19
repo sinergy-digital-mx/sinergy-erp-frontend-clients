@@ -255,7 +255,12 @@
                           <span>{{ sellerLabel(sale) }}</span>
                         </div>
                         <div class="cobranza-sale__row cobranza-sale__row--customer">
-                          <span>{{ customerLabel(sale) }}</span>
+                          <div class="cobranza-sale__customer">
+                            <span>{{ customerLabel(sale) }}</span>
+                            @if (customerCompanyLabel(sale)) {
+                              <span class="cobranza-sale__customer-company">{{ customerCompanyLabel(sale) }}</span>
+                            }
+                          </div>
                           @if (sale.customer?.is_walk_in) {
                             <span class="cobranza-chip">Mostrador</span>
                           }
@@ -332,7 +337,12 @@
                           <span class="cobranza-pay-chip">{{ paymentMethodLabel(item.payment?.payment_method) }}</span>
                         </div>
                         <div class="cobranza-sale__row cobranza-sale__row--customer">
-                          <span>{{ collectedSaleCustomerLabel(item) }}</span>
+                          <div class="cobranza-sale__customer">
+                            <span>{{ collectedSaleCustomerLabel(item) }}</span>
+                            @if (collectedSaleCustomerCompany(item)) {
+                              <span class="cobranza-sale__customer-company">{{ collectedSaleCustomerCompany(item) }}</span>
+                            }
+                          </div>
                           <lucide-icon [img]="ChevronRight" class="pos-ic pos-ic--xs" />
                         </div>
                       </button>
@@ -912,7 +922,12 @@
                 </div>
                 <div>
                   <span>Cliente</span>
-                  <strong>{{ collectedSaleCustomerLabel(item) }}</strong>
+                  <strong>
+                    {{ collectedSaleCustomerLabel(item) }}
+                    @if (collectedSaleCustomerCompany(item)) {
+                      <span class="cobranza-total-card__sub">{{ collectedSaleCustomerCompany(item) }}</span>
+                    }
+                  </strong>
                 </div>
                 <div>
                   <span>Cobró</span>
