@@ -24,6 +24,8 @@ import {
 } from '../../models/customer-group.model';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
+import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
+import { CustomerFiscalCreditsComponent } from '../customer-fiscal-credits/customer-fiscal-credits.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import {
@@ -58,7 +60,9 @@ import {
     PhoneCountrySelectComponent,
     PhoneCodeSelectComponent,
     PhoneDigitsDirective,
-    TabComponent
+    TabComponent,
+    SlimSwitchComponent,
+    CustomerFiscalCreditsComponent
   ],
   templateUrl: './customer-edit-modal.html',
   styleUrls: ['./customer-edit-modal.scss'],
@@ -97,7 +101,10 @@ export class CustomerEditModalComponent {
     private fb: FormBuilder,
     public dialog: MatDialog,
     public dialog_ref: MatDialogRef<CustomerEditModalComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { customer: Customer | null },
+    @Inject(MAT_DIALOG_DATA) public data: {
+      customer: Customer | null;
+      initialTab?: 'customer' | 'credit' | 'fiscal' | 'registration';
+    },
     private customerService: CustomerService,
     private interceptor_service: InterceptorService,
     private warehouseService: WarehouseService,
@@ -112,8 +119,6 @@ export class CustomerEditModalComponent {
       phone_country: ['MX', [Validators.required]],
       company_name: [''],
       warehouse_id: [''],
-      credit_days: ['', [Validators.min(0), Validators.pattern(/^$|^\d+$/)]],
-      credit_amount: ['', [Validators.min(0), Validators.pattern(/^$|^\d+(\.\d{1,2})?$/)]],
       fiscal_rfc: [''],
       fiscal_razon_social: [''],
       fiscal_person_type: [''],
@@ -126,6 +131,7 @@ export class CustomerEditModalComponent {
       fiscal_municipio: [''],
       fiscal_state: [''],
       fiscal_country: [SAT_COUNTRY_MEX, [Validators.pattern(/^$|^[A-Za-z]{3}$/)]],
+      auto_generate_invoice: [false],
       additional_name: [''],
       additional_lastname: [''],
       additional_email: ['', [Validators.email]],
@@ -154,8 +160,6 @@ export class CustomerEditModalComponent {
         phone_country: titularCountry,
         company_name: this.data.customer.company_name || '',
         warehouse_id: this.data.customer.warehouse_id || '',
-        credit_days: this.data.customer.credit_days ?? '',
-        credit_amount: this.data.customer.credit_amount ?? '',
         fiscal_rfc: this.data.customer.fiscal_rfc || '',
         fiscal_razon_social: this.data.customer.fiscal_razon_social || '',
         fiscal_person_type: resolveFiscalPersonType(
@@ -171,6 +175,7 @@ export class CustomerEditModalComponent {
         fiscal_municipio: resolveFiscalMunicipio(this.data.customer),
         fiscal_state: this.data.customer.fiscal_state || '',
         fiscal_country: (this.data.customer.fiscal_country || SAT_COUNTRY_MEX).trim().toUpperCase(),
+        auto_generate_invoice: this.data.customer.auto_generate_invoice === true,
         additional_name: this.data.customer.additional_name || '',
         additional_lastname: this.data.customer.additional_lastname || '',
         additional_email: this.data.customer.additional_email || '',
@@ -202,6 +207,13 @@ export class CustomerEditModalComponent {
     this.loadStatuses();
     this.loadRegistrationOptions();
     this.setupFiscalRfcAutoPersonType();
+    if (this.data?.initialTab) {
+      this.setActiveTab(this.data.initialTab);
+    }
+  }
+
+  isWalkInCustomer(): boolean {
+    return this.data?.customer?.is_walk_in === true;
   }
 
   private setupFiscalRfcAutoPersonType(): void {
@@ -377,20 +389,6 @@ export class CustomerEditModalComponent {
     return formatRegistrationUserOption(user);
   }
 
-  private parseNullableInteger(value: unknown): number | null {
-    if (value === null || value === undefined || value === '') return null;
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) return null;
-    return Math.max(0, Math.trunc(parsed));
-  }
-
-  private parseNullableDecimal(value: unknown): number | null {
-    if (value === null || value === undefined || value === '') return null;
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) return null;
-    return Math.max(0, Number(parsed.toFixed(2)));
-  }
-
   private loadWarehouses(): void {
     this.warehousesLoading.set(true);
     this.warehouseService.getWarehouses({ page: 1, limit: 200 }).subscribe({
@@ -544,8 +542,7 @@ export class CustomerEditModalComponent {
       country: v.phone_country,
       company_name: trim(v.company_name) || undefined,
       warehouse_id: v.warehouse_id || null,
-      credit_days: this.parseNullableInteger(v.credit_days),
-      credit_amount: this.parseNullableDecimal(v.credit_amount),
+      auto_generate_invoice: !!v.auto_generate_invoice,
       ...this.buildFiscalApiFields(),
       group_id: this.selectedGroup()?.id ?? null,
       registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),
@@ -653,8 +650,7 @@ export class CustomerEditModalComponent {
       phone_country: v.phone_country,
       company_name: v.company_name,
       warehouse_id: v.warehouse_id || null,
-      credit_days: this.parseNullableInteger(v.credit_days),
-      credit_amount: this.parseNullableDecimal(v.credit_amount),
+      auto_generate_invoice: !!v.auto_generate_invoice,
       ...this.buildFiscalApiFields(),
       group_id: this.selectedGroup()?.id ?? null,
       registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),

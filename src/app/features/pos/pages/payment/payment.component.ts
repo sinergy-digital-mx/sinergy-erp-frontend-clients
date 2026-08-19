@@ -32,6 +32,7 @@ import {
   Printer,
   Eye,
   Landmark,
+  Pencil,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -85,7 +86,7 @@ import {
   defaultCollectForm,
   parseOrderTotal,
   PosCollectForm,
-  splitMixedPaymentDefault,
+  mixedSelectedCount,
   sumCashDenominations,
   syncCashFormFromReceived,
   validateCollectForm,
@@ -104,11 +105,23 @@ import { PosSaleReceipt } from '../../models/pos-receipt.model';
 import { PosReceiptPrintService } from '../../services/pos-receipt-print.service';
 import { PosPrinterSettingsDialogComponent } from '../../components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
 import { PosReceiptPreviewDialogComponent } from '../../components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
+import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
+import { SalesOrderInvoiceStampDialogComponent } from '../../../sales-orders/components/sales-order-invoice-stamp-dialog/sales-order-invoice-stamp-dialog.component';
+import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
+import { CustomerService } from '../../../../core/services/customer.service';
+import { Customer } from '../../../customers/models/customer-group.model';
+import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
+import { CreditUsageBarComponent } from '../../../customers/components/credit-usage-bar/credit-usage-bar.component';
+import { isCustomerCreditEnabled, unwrapCustomerPayload } from '../../../customers/utils/customer-credit.util';
+import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
+import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 
 interface PendingSaleCustomer {
   id?: number;
   name?: string;
   is_walk_in?: boolean;
+  credit_enabled?: boolean;
 }
 
 interface PendingSale {
@@ -119,6 +132,8 @@ interface PendingSale {
   amount_pending?: number | string;
   amount_paid?: number | string;
   created_at?: string;
+  fiscal_configuration_id?: string;
+  fiscal_configuration?: { id?: string; razon_social?: string; rfc?: string };
   customer?: PendingSaleCustomer;
   seller_user?: { first_name?: string; last_name?: string; pos_user_code?: number | null };
   terminal_user?: { first_name?: string; last_name?: string; pos_user_type?: string };
@@ -130,7 +145,7 @@ type DashboardTab = 'pending' | 'collected' | 'shifts';
 @Component({
   selector: 'app-payment',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, SlimSwitchComponent, CreditUsageBarComponent],
   templateUrl: './payment.component.html',
   styleUrls: ['./payment.component.scss'],
 })
@@ -156,6 +171,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
   readonly Printer = Printer;
   readonly Eye = Eye;
   readonly Landmark = Landmark;
+  readonly Pencil = Pencil;
 
   pendingSales = signal<PendingSale[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);
@@ -179,6 +195,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
   /** ID enviado en POST collect (legacy numérico o UUID). */
   selectedCollectCustomerId = signal<number | string | null>(null);
   selectedCustomerName = signal('Público en General');
+  selectedCustomerDetail = signal<Customer | null>(null);
+  generateInvoice = signal(false);
   collectError = signal<string | null>(null);
   dailyUsdMxnRate = signal<number | null>(null);
   cashBillCounts = signal<CashDenominationCounts>({});
@@ -222,6 +240,10 @@ export class PaymentComponent implements OnInit, OnDestroy {
     const summary = this.collectedSummary();
     const count = summary?.count ?? this.collectedSales().length;
     const total = formatPosMoney(summary?.total_mxn ?? 0);
+    const credit = Number(summary?.credit_mxn ?? 0);
+    if (credit > 0) {
+      return `${count} cobrada${count === 1 ? '' : 's'} · ${total} · Crédito ${formatPosMoney(credit)}`;
+    }
     return `${count} cobrada${count === 1 ? '' : 's'} · ${total}`;
   });
 
@@ -266,8 +288,42 @@ export class PaymentComponent implements OnInit, OnDestroy {
   readonly amountsOk = computed(() => {
     const form = this.collectForm();
     const total = this.orderTotal();
+    if (form.paymentMethod === 'credit') {
+      return this.creditAvailable() + 0.01 >= total && total > 0;
+    }
     return validateCollectForm(form, total) === null;
   });
+
+  readonly showCreditTab = computed(() => {
+    if (this.customerMode() !== 'registered') {
+      return false;
+    }
+    if (this.selectedSale()?.customer?.credit_enabled === true) {
+      return true;
+    }
+    return isCustomerCreditEnabled(this.selectedCustomerDetail());
+  });
+
+  readonly saleCreditRazonSocial = computed(() => {
+    const sale = this.selectedSale();
+    const fromSale = sale?.fiscal_configuration?.razon_social?.trim();
+    if (fromSale) {
+      return fromSale;
+    }
+    const fiscalId = this.saleFiscalConfigurationId();
+    const match = this.selectedCustomerDetail()?.credits?.find(
+      (item) => String(item.fiscal_configuration_id) === String(fiscalId)
+    );
+    return match?.razon_social?.trim() || '';
+  });
+
+  readonly creditAvailable = computed(() => Number(this.selectedCustomerDetail()?.credit_available ?? 0));
+
+  readonly fiscalReadyForInvoice = computed(() => this.selectedCustomerDetail()?.fiscal_ready_for_invoice === true);
+
+  readonly showInvoiceSwitch = computed(() => this.customerMode() === 'registered');
+
+  readonly invoiceSwitchDisabled = computed(() => !this.fiscalReadyForInvoice());
 
   constructor(
     private posService: POSService,
@@ -277,13 +333,16 @@ export class PaymentComponent implements OnInit, OnDestroy {
     private toast: ToastService,
     private dialog: MatDialog,
     private exchangeRateService: ExchangeRateService,
-    private receiptPrintService: PosReceiptPrintService
+    private receiptPrintService: PosReceiptPrintService,
+    private customerService: CustomerService,
+    private salesOrderService: SalesOrderService
   ) {}
 
   private preselectOrderId = signal<string | null>(null);
 
   ngOnInit(): void {
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
     this.loadDailyExchangeRate();
     this.refreshDailyShift();
     const orderId = this.route.snapshot.queryParamMap.get('orderId');
@@ -294,6 +353,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   terminalLabel(): string {
@@ -569,6 +629,18 @@ export class PaymentComponent implements OnInit, OnDestroy {
     this.initCustomerFromSale(sale);
   }
 
+  openSaleDetail(event: Event, orderId?: string | null): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!orderId) {
+      return;
+    }
+    this.dialog.open(SalesOrderDetailDialogComponent, {
+      ...ORDER_DETAIL_DIALOG_OPTIONS,
+      data: { orderId },
+    });
+  }
+
   clearSelectedSale(): void {
     this.selectedSale.set(null);
     this.collectError.set(null);
@@ -594,10 +666,15 @@ export class PaymentComponent implements OnInit, OnDestroy {
         next.amountCardMxn = total;
       }
       if (method === 'mixed') {
-        const split = splitMixedPaymentDefault(total);
-        next.mixedCashMxn = split.mixedCashMxn;
-        next.mixedTransferMxn = split.mixedTransferMxn;
-        next.mixedReceivedMxn = split.mixedReceivedMxn;
+        next.mixedUsesCash = false;
+        next.mixedUsesTransfer = false;
+        next.mixedUsesCard = false;
+        next.mixedCashMxn = 0;
+        next.mixedTransferMxn = 0;
+        next.mixedReceivedMxn = 0;
+        next.mixedCardMxn = 0;
+        next.mixedTransferRef = '';
+        next.mixedCardRef = '';
       }
       return next;
     });
@@ -706,6 +783,131 @@ export class PaymentComponent implements OnInit, OnDestroy {
     return Number.isFinite(n) ? n : 0;
   }
 
+  toggleMixedType(type: 'cash' | 'transfer' | 'card', enabled: boolean): void {
+    const total = this.orderTotal();
+    this.collectForm.update((form) => {
+      const next = { ...form };
+      if (type === 'cash') {
+        next.mixedUsesCash = enabled;
+        next.mixedCashMxn = enabled ? next.mixedCashMxn : 0;
+        next.mixedReceivedMxn = enabled ? Math.max(next.mixedReceivedMxn, next.mixedCashMxn) : 0;
+      }
+      if (type === 'transfer') {
+        next.mixedUsesTransfer = enabled;
+        next.mixedTransferMxn = enabled ? next.mixedTransferMxn : 0;
+        next.mixedTransferRef = enabled ? next.mixedTransferRef : '';
+      }
+      if (type === 'card') {
+        next.mixedUsesCard = enabled;
+        next.mixedCardMxn = enabled ? next.mixedCardMxn : 0;
+        next.mixedCardRef = enabled ? next.mixedCardRef : '';
+      }
+      void total;
+      return next;
+    });
+    this.collectError.set(null);
+  }
+
+  mixedTypeCount(): number {
+    return mixedSelectedCount(this.collectForm());
+  }
+
+  creditInsufficient(): boolean {
+    return this.collectForm().paymentMethod === 'credit' && this.creditAvailable() + 0.01 < this.orderTotal();
+  }
+
+  openCustomerCreditSettings(): void {
+    this.openCustomerEditModal('credit');
+  }
+
+  openCustomerEditModal(tab: 'customer' | 'credit' | 'fiscal' | 'registration' = 'customer'): void {
+    const customer = this.selectedCustomerDetail();
+    if (!customer) {
+      return;
+    }
+    this.dialog
+      .open(CustomerEditModalComponent, {
+        ...CUSTOMER_FORM_DIALOG_CONFIG,
+        data: { customer, initialTab: tab },
+      })
+      .afterClosed()
+      .subscribe(() => {
+        if (this.selectedCustomerId()) {
+          this.loadRegisteredCustomer(this.selectedCustomerId());
+        }
+      });
+  }
+
+  onGenerateInvoiceChange(enabled: boolean): void {
+    if (this.invoiceSwitchDisabled()) {
+      return;
+    }
+    this.generateInvoice.set(enabled);
+  }
+
+  private loadRegisteredCustomer(customerId: string): void {
+    const fiscalId = this.saleFiscalConfigurationId();
+    this.customerService
+      .getCustomer(customerId, fiscalId ? { fiscal_configuration_id: fiscalId } : undefined)
+      .subscribe({
+        next: (raw) => {
+          const customer = unwrapCustomerPayload(raw);
+          this.selectedCustomerDetail.set(customer);
+          const ready = customer?.fiscal_ready_for_invoice === true;
+          this.generateInvoice.set(ready && customer?.auto_generate_invoice === true);
+          if (!isCustomerCreditEnabled(customer) && this.collectForm().paymentMethod === 'credit') {
+            this.setPaymentMethod('cash');
+          }
+        },
+        error: () => {
+          this.selectedCustomerDetail.set(null);
+          this.generateInvoice.set(false);
+        },
+      });
+  }
+
+  saleFiscalConfigurationId(): string | undefined {
+    const sale = this.selectedSale();
+    return sale?.fiscal_configuration_id || sale?.fiscal_configuration?.id || undefined;
+  }
+
+  private onVisibilityChange = (): void => {
+    if (document.visibilityState !== 'visible') {
+      return;
+    }
+    const id = this.selectedCustomerId();
+    if (this.customerMode() === 'registered' && id) {
+      this.loadRegisteredCustomer(id);
+    }
+  };
+
+  private openStampAfterCollect(orderId: string): void {
+    this.salesOrderService.getOrderDetailById(orderId).subscribe({
+      next: (payload) => {
+        const order = payload?.header;
+        if (!order) {
+          return;
+        }
+        this.dialog.open(SalesOrderInvoiceStampDialogComponent, {
+          width: '860px',
+          maxWidth: '95vw',
+          panelClass: 'invoice-stamp-dialog-panel',
+          data: {
+            orderId,
+            order,
+            lineItems: payload.line_items || payload.header.line_items || [],
+            finkokConfig: null,
+            validationIssues: [],
+            canStamp: true,
+          },
+        });
+      },
+      error: () => {
+        this.toast.info('El cobro pidió factura. Ábrela desde el detalle de la orden.');
+      },
+    });
+  }
+
   setCustomerMode(mode: CustomerMode): void {
     this.customerMode.set(mode);
     if (mode === 'walk_in') {
@@ -716,6 +918,11 @@ export class PaymentComponent implements OnInit, OnDestroy {
       this.selectedCustomerName.set(walkInName);
       this.selectedCustomerId.set('');
       this.selectedCollectCustomerId.set(null);
+      this.selectedCustomerDetail.set(null);
+      this.generateInvoice.set(false);
+      if (this.collectForm().paymentMethod === 'credit') {
+        this.setPaymentMethod('cash');
+      }
       return;
     }
     if (!this.selectedCustomerId()) {
@@ -753,6 +960,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
           'Cliente'
         : 'Cliente';
       this.selectedCustomerName.set(name);
+      this.loadRegisteredCustomer(result.customerId);
     });
   }
 
@@ -775,10 +983,18 @@ export class PaymentComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (form.paymentMethod === 'credit' && this.creditInsufficient()) {
+      this.collectError.set(`Crédito insuficiente. Disponible: ${this.formatCurrency(this.creditAvailable())}`);
+      return;
+    }
+
     const customerId = this.resolveCollectCustomerId();
 
     const payload = {
       ...buildCollectPayload(form, total, customerId),
+      ...(this.generateInvoice() && this.customerMode() === 'registered' && this.fiscalReadyForInvoice()
+        ? { generate_invoice: true }
+        : {}),
       ...(form.paymentMethod === 'cash'
         ? buildCashBreakdownPayload(
             this.cashBillCounts(),
@@ -811,6 +1027,12 @@ export class PaymentComponent implements OnInit, OnDestroy {
           this.toast.success(`Venta ${folio} cobrada — ${customerName}`);
         } else {
           this.toast.success(`Venta ${folio} cobrada`);
+        }
+        if (form.paymentMethod === 'credit') {
+          this.toast.info('Orden a crédito: sigue pendiente de cobro', { duration: 5000 });
+        }
+        if (response.invoice?.requested) {
+          this.openStampAfterCollect(sale.id);
         }
         void this.handleReceiptAfterCollect(sale.id, folio, response.receipt);
         this.selectedSale.set(null);
@@ -952,6 +1174,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
       this.selectedCustomerId.set('');
       this.selectedCollectCustomerId.set(null);
       this.selectedCustomerName.set(customer?.name || 'Público en General');
+      this.selectedCustomerDetail.set(null);
+      this.generateInvoice.set(false);
       return;
     }
     this.customerMode.set('registered');
@@ -960,6 +1184,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
       resolvePosCollectCustomerId(customer) ?? (customer.id != null ? customer.id : null)
     );
     this.selectedCustomerName.set(customer.name || 'Cliente');
+    this.loadRegisteredCustomer(String(customer.id));
   }
 
   shiftSalesTotal(shift: PosDailyShiftDetail): string {

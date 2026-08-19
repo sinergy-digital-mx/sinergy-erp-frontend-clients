@@ -46,6 +46,19 @@
             </span>
           </div>
 
+          @if (isInternationalVendor()) {
+            <div class="form-field full-width">
+              <label for="pedimento">Pedimento</label>
+              <input
+                type="text"
+                id="pedimento"
+                formControlName="pedimento_number"
+                placeholder="Número de pedimento"
+                [attr.maxlength]="pedimentoMaxLength"
+              />
+            </div>
+          }
+
           <div class="form-field">
             <label for="warehouse">Almacén *</label>
             <select id="warehouse" formControlName="warehouse_id">

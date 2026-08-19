@@ -28,6 +28,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   statusControl = new FormControl<SalesOrderStatus | null>(null);
   fiscalConfigurationControl = new FormControl<string>('', { nonNullable: true });
   billingBranchControl = new FormControl<string>('', { nonNullable: true });
+  creditControl = new FormControl<string>('', { nonNullable: true });
 
   fiscalConfigurations: FiscalConfiguration[] = [];
   branches: Branch[] = [];
@@ -66,7 +67,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
       this.dateToControl.value ||
       this.statusControl.value ||
       this.fiscalConfigurationControl.value ||
-      this.billingBranchControl.value
+      this.billingBranchControl.value ||
+      this.creditControl.value
     );
   }
 
@@ -81,6 +83,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.statusControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.fiscalConfigurationControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.onFiscalConfigurationChange());
     this.billingBranchControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
+    this.creditControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
   }
 
   fiscalOptionLabel(fc: FiscalConfiguration): string {
@@ -144,6 +147,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.statusControl.setValue(null, { emitEvent: false });
     this.fiscalConfigurationControl.setValue('', { emitEvent: false });
     this.billingBranchControl.setValue('', { emitEvent: false });
+    this.creditControl.setValue('', { emitEvent: false });
     this.billingBranchControl.disable({ emitEvent: false });
     this.branches = [];
     this.showCustomDateRange = false;
@@ -217,6 +221,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     if (fiscalConfigurationId) filters.fiscal_configuration_id = fiscalConfigurationId;
     const billingBranchId = this.billingBranchControl.value;
     if (billingBranchId) filters.billing_branch_id = billingBranchId;
+    if (this.creditControl.value === 'true') filters.is_credit = true;
     this.filtersChange.emit(filters);
   }
 }

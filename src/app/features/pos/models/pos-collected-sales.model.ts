@@ -12,6 +12,7 @@ export interface CollectedSalePayment {
   transfer_reference?: string | null;
   amount_card_mxn?: number | string;
   card_reference?: string | null;
+  amount_credit_mxn?: number | string;
   received_cash_mxn?: number | string;
   received_cash_usd?: number | string;
   change_cash_mxn?: number | string;
@@ -50,6 +51,7 @@ export interface CollectedSalesSummary {
   cash_usd?: number | string;
   transfer_mxn?: number | string;
   card_mxn?: number | string;
+  credit_mxn?: number | string;
 }
 
 export interface CollectedSalesResponse {
@@ -63,6 +65,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   transfer: 'Transferencia',
   card: 'Tarjeta',
   mixed: 'Mixto',
+  credit: 'Crédito',
 };
 
 export function paymentMethodLabel(method?: string | null): string {

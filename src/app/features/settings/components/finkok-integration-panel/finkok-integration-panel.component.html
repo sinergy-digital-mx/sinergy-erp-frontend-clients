@@ -32,7 +32,7 @@
         <option value="demo">Demo (pruebas)</option>
         <option value="production">Producción</option>
       </select>
-      <p class="field-hint">Define qué credenciales usa el timbrado y cancelación por defecto.</p>
+      <p class="field-hint">Define qué credenciales usa el timbrado y cancelación por defecto. No cambia las cuentas Demo / Producción.</p>
     </div>
 
     <app-tab
@@ -67,27 +67,27 @@
     }
 
     <section class="form-card">
-      <form [formGroup]="form" (ngSubmit)="saveConfiguration()">
+      <form [formGroup]="activeForm" (ngSubmit)="saveConfiguration()">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="md:col-span-2">
-            <label class="field-label" for="finkok_username">Usuario Finkok</label>
+            <label class="field-label" [attr.for]="'finkok_username_' + activeEnvironmentTab">Usuario Finkok</label>
             <input
-              id="finkok_username"
+              [id]="'finkok_username_' + activeEnvironmentTab"
               type="text"
               class="field-input"
               formControlName="finkok_username"
               placeholder="Usuario de Finkok"
               [disabled]="!canUpdate || saving"
             />
-            @if (form.get('finkok_username')?.invalid && form.get('finkok_username')?.touched) {
+            @if (activeForm.get('finkok_username')?.invalid && activeForm.get('finkok_username')?.touched) {
               <p class="field-error">El usuario es obligatorio.</p>
             }
           </div>
 
           <div class="md:col-span-2">
-            <label class="field-label" for="finkok_password">Contraseña Finkok</label>
+            <label class="field-label" [attr.for]="'finkok_password_' + activeEnvironmentTab">Contraseña Finkok</label>
             <input
-              id="finkok_password"
+              [id]="'finkok_password_' + activeEnvironmentTab"
               type="password"
               class="field-input"
               formControlName="finkok_password"
@@ -96,13 +96,13 @@
               [disabled]="!canUpdate || saving"
             />
             <p class="field-hint">
-              @if (hasSavedConfigForActiveTab && currentEnvironmentConfig?.has_password) {
-                Ya hay una contraseña guardada. Debes ingresarla completa cada vez que guardes.
+              @if (hasPasswordForActiveTab) {
+                Ya hay una contraseña guardada. Déjala vacía para conservarla, o escribe una nueva para reemplazarla.
               } @else {
-                La contraseña es obligatoria al guardar y nunca se muestra después.
+                La contraseña es obligatoria al guardar este ambiente por primera vez.
               }
             </p>
-            @if (form.get('finkok_password')?.invalid && form.get('finkok_password')?.touched) {
+            @if (activeForm.get('finkok_password')?.invalid && activeForm.get('finkok_password')?.touched) {
               <p class="field-error">La contraseña es obligatoria.</p>
             }
           </div>
@@ -117,17 +117,6 @@
               <span>Integración activa</span>
             </label>
           </div>
-
-          <div class="flex items-end">
-            <label class="toggle-row">
-              <input
-                type="checkbox"
-                formControlName="is_stamping_default"
-                [disabled]="!canUpdate || saving"
-              />
-              <span>Usar para timbrar</span>
-            </label>
-          </div>
         </div>
 
         <div class="actions-row">
@@ -137,7 +126,7 @@
               custom_class="btn_primary"
               type="submit"
               [loading]="saving"
-              [disabled]="saving || form.invalid">
+              [disabled]="saving || activeForm.invalid">
             </app-button>
 
             <app-button

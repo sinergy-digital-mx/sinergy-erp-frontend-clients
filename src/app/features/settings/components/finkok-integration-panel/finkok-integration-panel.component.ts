@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
@@ -10,6 +10,7 @@ import {
   FinkokEnvironment,
   FinkokEnvironmentConfig,
   getFinkokConnectionStatusLabel,
+  SaveFinkokConfigurationDto,
 } from '../../models/finkok-configuration.model';
 import { FinkokConfigurationService } from '../../services/finkok-configuration.service';
 
@@ -39,7 +40,8 @@ export class FinkokIntegrationPanelComponent implements OnInit {
   testMessage = '';
   configResponse: FinkokConfigurationsResponse | null = null;
 
-  form!: ReturnType<FinkokIntegrationPanelComponent['createForm']>;
+  demoForm: FormGroup;
+  prodForm: FormGroup;
 
   constructor(
     private fb: FormBuilder,
@@ -47,18 +49,10 @@ export class FinkokIntegrationPanelComponent implements OnInit {
     private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {
-    this.form = this.createForm();
+    this.demoForm = this.createForm();
+    this.prodForm = this.createForm();
     this.canRead = this.authService.hasEntityPermission('FiscalConfiguration', 'Read');
     this.canUpdate = this.authService.hasEntityPermission('FiscalConfiguration', 'Update');
-  }
-
-  private createForm() {
-    return this.fb.group({
-      finkok_username: ['', [Validators.required, Validators.minLength(1)]],
-      finkok_password: ['', [Validators.required]],
-      is_active: [true],
-      is_stamping_default: [false],
-    });
   }
 
   ngOnInit(): void {
@@ -67,12 +61,20 @@ export class FinkokIntegrationPanelComponent implements OnInit {
     }
   }
 
+  get activeForm(): FormGroup {
+    return this.activeEnvironmentTab === 'production' ? this.prodForm : this.demoForm;
+  }
+
   get currentEnvironmentConfig(): FinkokEnvironmentConfig | null {
     return this.configResponse?.environments?.[this.activeEnvironmentTab] ?? null;
   }
 
   get hasSavedConfigForActiveTab(): boolean {
     return this.currentEnvironmentConfig !== null;
+  }
+
+  get hasPasswordForActiveTab(): boolean {
+    return this.currentEnvironmentConfig?.has_password === true;
   }
 
   get connectionStatusLabel(): string {
@@ -88,15 +90,17 @@ export class FinkokIntegrationPanelComponent implements OnInit {
     this.statusMessage = '';
     this.errorMessage = '';
     this.testMessage = '';
-    this.applyEnvironmentToForm(this.currentEnvironmentConfig);
   }
 
   onStampingEnvironmentChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value as FinkokEnvironment;
+    const select = event.target as HTMLSelectElement;
+    const value = select.value as FinkokEnvironment;
     if (!this.canUpdate || value === this.stampingEnvironment || this.savingStampingEnvironment) {
+      select.value = this.stampingEnvironment;
       return;
     }
 
+    const previous = this.stampingEnvironment;
     this.savingStampingEnvironment = true;
     this.errorMessage = '';
 
@@ -109,12 +113,21 @@ export class FinkokIntegrationPanelComponent implements OnInit {
         })
       )
       .subscribe({
-        next: (config) => {
-          this.configResponse = config;
-          this.stampingEnvironment = config.stamping_environment;
-          this.statusMessage = `Ambiente de timbrado actualizado a ${value === 'demo' ? 'Demo' : 'Producción'}.`;
+        next: (stampingEnvironment) => {
+          this.stampingEnvironment = stampingEnvironment;
+          if (this.configResponse) {
+            this.configResponse = {
+              ...this.configResponse,
+              stamping_environment: stampingEnvironment,
+            };
+          }
+          this.statusMessage = `Ambiente de timbrado actualizado a ${
+            stampingEnvironment === 'demo' ? 'Demo' : 'Producción'
+          }.`;
         },
         error: (error) => {
+          select.value = previous;
+          this.stampingEnvironment = previous;
           this.errorMessage = error?.error?.message || 'No se pudo actualizar el ambiente de timbrado.';
         },
       });
@@ -136,12 +149,7 @@ export class FinkokIntegrationPanelComponent implements OnInit {
       )
       .subscribe({
         next: (config) => {
-          this.configResponse = config;
-          if (config) {
-            this.stampingEnvironment = config.stamping_environment || 'demo';
-            this.activeEnvironmentTab = this.stampingEnvironment;
-          }
-          this.applyEnvironmentToForm(this.currentEnvironmentConfig);
+          this.applyCredentialBundle(config, true);
         },
         error: (error) => {
           this.configResponse = null;
@@ -151,8 +159,8 @@ export class FinkokIntegrationPanelComponent implements OnInit {
   }
 
   saveConfiguration(): void {
-    if (!this.canUpdate || this.form.invalid || this.saving) {
-      this.form.markAllAsTouched();
+    if (!this.canUpdate || this.activeForm.invalid || this.saving) {
+      this.activeForm.markAllAsTouched();
       return;
     }
 
@@ -161,16 +169,21 @@ export class FinkokIntegrationPanelComponent implements OnInit {
     this.statusMessage = '';
     this.testMessage = '';
 
-    const formValue = this.form.getRawValue();
+    const environment = this.activeEnvironmentTab;
+    const formValue = this.activeForm.getRawValue();
+    const payload: SaveFinkokConfigurationDto = {
+      environment,
+      finkok_username: String(formValue.finkok_username ?? '').trim(),
+      is_active: formValue.is_active ? 1 : 0,
+    };
+
+    const password = String(formValue.finkok_password ?? '').trim();
+    if (password) {
+      payload.finkok_password = password;
+    }
 
     this.finkokService
-      .saveConfiguration({
-        environment: this.activeEnvironmentTab,
-        finkok_username: String(formValue.finkok_username).trim(),
-        finkok_password: String(formValue.finkok_password),
-        is_active: formValue.is_active ? 1 : 0,
-        is_stamping_default: formValue.is_stamping_default ? 1 : 0,
-      })
+      .saveConfiguration(payload)
       .pipe(
         finalize(() => {
           this.saving = false;
@@ -179,12 +192,10 @@ export class FinkokIntegrationPanelComponent implements OnInit {
       )
       .subscribe({
         next: (config) => {
-          this.configResponse = config;
-          this.stampingEnvironment = config.stamping_environment;
-          this.statusMessage = `Credenciales ${this.activeEnvironmentTab === 'demo' ? 'demo' : 'de producción'} guardadas correctamente.`;
-          this.form.patchValue({ finkok_password: '' });
-          this.form.get('finkok_password')?.markAsUntouched();
-          this.applyEnvironmentToForm(this.currentEnvironmentConfig);
+          this.applyCredentialBundle(config, true);
+          this.statusMessage = `Credenciales ${
+            environment === 'demo' ? 'demo' : 'de producción'
+          } guardadas correctamente.`;
         },
         error: (error) => {
           this.errorMessage = error?.error?.message || 'No se pudo guardar la configuración Finkok.';
@@ -197,12 +208,13 @@ export class FinkokIntegrationPanelComponent implements OnInit {
       return;
     }
 
+    const environment = this.activeEnvironmentTab;
     this.testing = true;
     this.errorMessage = '';
     this.testMessage = '';
 
     this.finkokService
-      .testConnection(this.activeEnvironmentTab)
+      .testConnection(environment)
       .pipe(
         finalize(() => {
           this.testing = false;
@@ -211,9 +223,9 @@ export class FinkokIntegrationPanelComponent implements OnInit {
       )
       .subscribe({
         next: (result) => {
-          if (this.configResponse?.environments[this.activeEnvironmentTab]) {
-            this.configResponse.environments[this.activeEnvironmentTab] = {
-              ...this.configResponse.environments[this.activeEnvironmentTab]!,
+          if (this.configResponse?.environments[environment]) {
+            this.configResponse.environments[environment] = {
+              ...this.configResponse.environments[environment]!,
               last_connection_test_status: result.last_connection_test_status,
             };
           }
@@ -230,25 +242,57 @@ export class FinkokIntegrationPanelComponent implements OnInit {
       });
   }
 
-  private applyEnvironmentToForm(config: FinkokEnvironmentConfig | null): void {
-    if (!config) {
-      this.form.reset({
-        finkok_username: '',
-        finkok_password: '',
-        is_active: true,
-        is_stamping_default: this.stampingEnvironment === this.activeEnvironmentTab,
-      });
+  private createForm(): FormGroup {
+    return this.fb.group({
+      finkok_username: ['', [Validators.required, Validators.minLength(1)]],
+      finkok_password: [''],
+      is_active: [true],
+    });
+  }
+
+  private applyCredentialBundle(
+    incoming: FinkokConfigurationsResponse | null,
+    hydrateForms: boolean
+  ): void {
+    const current = this.configResponse?.environments ?? { demo: null, production: null };
+    const nextEnvironments = {
+      demo: incoming?.environments?.demo ?? current.demo,
+      production: incoming?.environments?.production ?? current.production,
+    };
+
+    this.configResponse = {
+      stamping_environment: incoming?.stamping_environment || this.stampingEnvironment,
+      environments: nextEnvironments,
+    };
+    this.stampingEnvironment = this.configResponse.stamping_environment;
+
+    if (hydrateForms) {
+      this.hydrateForm(this.demoForm, nextEnvironments.demo);
+      this.hydrateForm(this.prodForm, nextEnvironments.production);
+    }
+  }
+
+  private hydrateForm(form: FormGroup, config: FinkokEnvironmentConfig | null): void {
+    const hasPassword = config?.has_password === true;
+    form.reset({
+      finkok_username: config?.finkok_username ?? '',
+      finkok_password: '',
+      is_active: config ? config.is_active === 1 || config.is_active === true : true,
+    });
+    this.syncPasswordValidator(form, hasPassword);
+  }
+
+  private syncPasswordValidator(form: FormGroup, hasPassword: boolean): void {
+    const control = form.get('finkok_password');
+    if (!control) {
       return;
     }
 
-    this.form.patchValue({
-      finkok_username: config.finkok_username ?? '',
-      finkok_password: '',
-      is_active: config.is_active === 1 || config.is_active === true,
-      is_stamping_default:
-        config.is_stamping_default === 1 ||
-        config.is_stamping_default === true ||
-        this.stampingEnvironment === this.activeEnvironmentTab,
-    });
+    if (hasPassword) {
+      control.clearValidators();
+    } else {
+      control.setValidators([Validators.required]);
+    }
+    control.updateValueAndValidity({ emitEvent: false });
   }
 }

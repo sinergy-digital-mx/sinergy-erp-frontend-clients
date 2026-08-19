@@ -126,6 +126,20 @@
       line-height: 1.35;
       word-break: break-word;
     }
+
+    &__badge {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      margin-top: 4px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
   }
 
   .section-card {
@@ -134,7 +148,8 @@
     border-radius: 8px;
     padding: 0.875rem 1rem;
 
-    &--notes .section-card__head {
+    &--notes .section-card__head,
+    &--pedimento .section-card__head {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -170,7 +185,8 @@
       }
     }
 
-    &--notes .section-title {
+    &--notes .section-title,
+    &--pedimento .section-title {
       margin-bottom: 0;
     }
 

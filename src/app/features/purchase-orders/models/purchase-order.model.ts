@@ -163,6 +163,10 @@ export interface PurchaseOrder {
   received_ieps_total?: string;
   received_total?: string;
   notes?: string;
+  /** Derivado del proveedor; no se envía al crear. */
+  is_international_vendor?: boolean;
+  /** Solo compras internacionales. Vacío / null si no hay pedimento. */
+  pedimento_number?: string | null;
   line_items: LineItem[];
   batches?: Batch[];
   payments: Payment[];

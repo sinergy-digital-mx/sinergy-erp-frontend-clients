@@ -49,6 +49,13 @@
       </select>
     </div>
 
+    <div class="filter-bar__field">
+      <select [formControl]="creditControl" class="filter-bar__select">
+        <option value="">Todos los pagos</option>
+        <option value="true">Solo crédito</option>
+      </select>
+    </div>
+
     <div class="filter-bar__field filter-bar__field--actions">
       <app-filter-clear-button
         [active]="hasActiveFilters"

@@ -29,11 +29,14 @@ export class FinkokConfigurationService {
     );
   }
 
-  setStampingEnvironment(environmentName: FinkokEnvironment): Observable<FinkokConfigurationsResponse> {
+  setStampingEnvironment(environmentName: FinkokEnvironment): Observable<FinkokEnvironment> {
     return this.http.patch<unknown>(`${this.baseUrl}/stamping-environment`, {
       environment: environmentName,
     }).pipe(
-      map((response) => this.normalizeConfigurations(response) ?? this.emptyResponse())
+      map((response) => {
+        const body = this.unwrap(response);
+        return this.readEnvironment(body['stamping_environment'] ?? body['environment']) || environmentName;
+      })
     );
   }
 
@@ -53,23 +56,50 @@ export class FinkokConfigurationService {
     if (body['environments'] && typeof body['environments'] === 'object') {
       const environments = body['environments'] as Record<string, unknown>;
       return {
-        stamping_environment: (body['stamping_environment'] as FinkokEnvironment) || 'demo',
+        stamping_environment: this.readEnvironment(body['stamping_environment']) || 'demo',
         environments: {
-          demo: (environments['demo'] as FinkokEnvironmentConfig | null) ?? null,
-          production: (environments['production'] as FinkokEnvironmentConfig | null) ?? null,
+          demo: this.asEnvironmentConfig(environments['demo'], 'demo'),
+          production: this.asEnvironmentConfig(environments['production'], 'production'),
         },
       };
     }
 
-    // Legacy single-record fallback
+    // PATCH u otra respuesta sin filas de credenciales: no inventar un form único.
+    if (!this.hasCredentialFields(body)) {
+      return {
+        stamping_environment: this.readEnvironment(body['stamping_environment'] ?? body['environment']) || 'demo',
+        environments: { demo: null, production: null },
+      };
+    }
+
+    const env = this.readEnvironment(body['environment']) || 'demo';
     const legacyConfig = body as unknown as FinkokEnvironmentConfig;
     return {
-      stamping_environment: (body['environment'] as FinkokEnvironment) || 'demo',
+      stamping_environment: this.readEnvironment(body['stamping_environment']) || env,
       environments: {
-        demo: body['environment'] === 'production' ? null : legacyConfig,
-        production: body['environment'] === 'production' ? legacyConfig : null,
+        demo: env === 'demo' ? legacyConfig : null,
+        production: env === 'production' ? legacyConfig : null,
       },
     };
+  }
+
+  private asEnvironmentConfig(value: unknown, environment: FinkokEnvironment): FinkokEnvironmentConfig | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    return { ...(value as FinkokEnvironmentConfig), environment };
+  }
+
+  private hasCredentialFields(body: Record<string, unknown>): boolean {
+    return (
+      body['finkok_username'] != null ||
+      body['has_password'] != null ||
+      body['is_active'] != null
+    );
+  }
+
+  private readEnvironment(value: unknown): FinkokEnvironment | null {
+    return value === 'demo' || value === 'production' ? value : null;
   }
 
   private normalizeTestResult(

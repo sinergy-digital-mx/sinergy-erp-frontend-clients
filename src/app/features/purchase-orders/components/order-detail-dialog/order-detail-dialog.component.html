@@ -67,6 +67,9 @@
             <div class="info-card__content">
               <span class="info-card__label">PROVEEDOR</span>
               <span class="info-card__value">{{ order()!.vendor?.name || 'N/A' }}</span>
+              @if (isInternationalVendor()) {
+                <span class="info-card__badge">Internacional</span>
+              }
             </div>
             @if (canOpenVendor()) {
               <i class="fi fi-rr-angle-right info-card__chevron"></i>
@@ -139,6 +142,25 @@
             }
           </div>
         </div>
+
+        @if (isInternationalVendor()) {
+          <div class="section-card section-card--pedimento">
+            <div class="section-card__head">
+              <h3 class="section-title">PEDIMENTO</h3>
+              @if (canEditPedimento()) {
+                <button
+                  type="button"
+                  class="notes-edit-btn"
+                  title="Editar pedimento"
+                  aria-label="Editar pedimento"
+                  (click)="openPedimentoEditor()">
+                  <i class="fi fi-rr-pencil"></i>
+                </button>
+              }
+            </div>
+            <p class="notes-text">{{ formatPedimento(order()!.pedimento_number) }}</p>
+          </div>
+        }
 
         <div class="section-card">
           <h3 class="section-title">FECHAS</h3>

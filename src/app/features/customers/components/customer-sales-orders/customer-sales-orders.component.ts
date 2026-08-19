@@ -4,6 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import { SalesOrder, SalesOrderFilters, PaginationParams } from '../../../sales-orders/models/sales-order.model';
 import { getSalesOrderTotal } from '../../../sales-orders/utils/sales-order-display.util';
+import { salesOrderCreditChipLabel } from '../../../sales-orders/utils/sales-order-credit.util';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { CreateSalesOrderModalComponent } from '../../../sales-orders/components/create-sales-order-modal/create-sales-order-modal.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
@@ -155,6 +156,10 @@ export class CustomerSalesOrdersComponent implements OnInit {
       default:
         return 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800';
     }
+  }
+
+  creditChipLabel(order: SalesOrder): string {
+    return salesOrderCreditChipLabel(order);
   }
 
   formatCurrency(amount: number): string {

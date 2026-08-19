@@ -6,7 +6,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import {
   CheckCustomerDuplicatesDto,
+  CustomerCreditsUpdateItem,
   CustomerDuplicatesResponse,
+  CustomerFiscalCredit,
   CustomerRegistrationOptions,
   CustomerStatus,
   UpdateCustomerDto,
@@ -49,8 +51,44 @@ export class CustomerService {
     });
   }
 
-  getCustomer(id: string): Observable<any> {
-    return this.http.get(`${this.api}/tenant/customers/${id}`);
+  getCustomer(id: string, options?: { fiscal_configuration_id?: string }): Observable<any> {
+    let params = new HttpParams();
+    if (options?.fiscal_configuration_id) {
+      params = params.set('fiscal_configuration_id', options.fiscal_configuration_id);
+    }
+    return this.http.get(`${this.api}/tenant/customers/${id}`, { params });
+  }
+
+  getCustomerCredits(id: string): Observable<CustomerFiscalCredit[]> {
+    return this.http.get<unknown>(`${this.api}/tenant/customers/${id}/credits`).pipe(
+      map((raw) => this.unwrapCredits(raw))
+    );
+  }
+
+  updateCustomerCredits(id: string, credits: CustomerCreditsUpdateItem[]): Observable<CustomerFiscalCredit[]> {
+    return this.http
+      .put<unknown>(`${this.api}/tenant/customers/${id}/credits`, { credits })
+      .pipe(map((raw) => this.unwrapCredits(raw)));
+  }
+
+  private unwrapCredits(raw: unknown): CustomerFiscalCredit[] {
+    if (Array.isArray(raw)) {
+      return raw as CustomerFiscalCredit[];
+    }
+    if (raw && typeof raw === 'object') {
+      const root = raw as Record<string, unknown>;
+      const nested = root['credits'] ?? root['data'];
+      if (Array.isArray(nested)) {
+        return nested as CustomerFiscalCredit[];
+      }
+      if (nested && typeof nested === 'object') {
+        const inner = (nested as Record<string, unknown>)['credits'];
+        if (Array.isArray(inner)) {
+          return inner as CustomerFiscalCredit[];
+        }
+      }
+    }
+    return [];
   }
 
   getCustomerAddresses(id: string): Observable<any> {

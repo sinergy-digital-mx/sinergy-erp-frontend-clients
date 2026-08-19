@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { LucideAngularModule, ExternalLink } from 'lucide-angular';
+import { LucideAngularModule, ExternalLink, Pencil } from 'lucide-angular';
 import { Subject, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil, switchMap, catchError, finalize, map } from 'rxjs/operators';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
@@ -13,11 +13,13 @@ import { FiscalConfigurationService } from '../../../../features/settings/servic
 import { BranchService } from '../../../../features/settings/services/branch.service';
 import { WarehouseService } from '../../../../features/settings/services/warehouse.service';
 import { VendorService } from '../../../../features/settings/services/vendor.service';
-import { VendorQueryParams } from '../../../../features/settings/models/vendor.model';
+import { Vendor, VendorQueryParams } from '../../../../features/settings/models/vendor.model';
+import { VendorDetailModalComponent } from '../../../../features/settings/components/vendor-detail-modal/vendor-detail-modal.component';
 import { Branch } from '../../../../features/settings/models/branch.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ProductDetailModalComponent } from '../../../../features/settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import { PEDIMENTO_MAX_LENGTH } from '../../utils/purchase-order-display.util';
 
 const VENDOR_SEARCH_LIMIT = 100;
 const VENDOR_SEARCH_MIN_CHARS = 2;
@@ -72,6 +74,9 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   selectedIva = 16;
   selectedIeps = 0;
   readonly ExternalLink = ExternalLink;
+  readonly Pencil = Pencil;
+  readonly pedimentoMaxLength = PEDIMENTO_MAX_LENGTH;
+  selectedVendor: (Vendor & { display_name?: string }) | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -94,6 +99,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       vendor_id: ['', Validators.required],
       expected_delivery_date: ['', Validators.required],
       payment_status: ['Pendiente', Validators.required],
+      pedimento_number: ['', [Validators.maxLength(PEDIMENTO_MAX_LENGTH)]],
       notes: ['']
     });
   }
@@ -202,7 +208,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
           }
 
           if (typeof value === 'string') {
-            this.form.patchValue({ vendor_id: '' }, { emitEvent: false });
+            this.selectedVendor = null;
+            this.form.patchValue({ vendor_id: '', pedimento_number: '' }, { emitEvent: false });
           }
 
           const term = typeof value === 'string' ? value.trim() : '';
@@ -271,6 +278,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   onVendorChange(): void {
     const vendorId = this.form.get('vendor_id')?.value;
     if (!vendorId) {
+      this.selectedVendor = null;
+      this.form.patchValue({ pedimento_number: '' }, { emitEvent: false });
       this.vendorProducts = [];
       this.lineItems = [];
       this.resetAddProductForm();
@@ -301,11 +310,60 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
 
   onVendorSelected(vendor: any): void {
     if (!vendor) return;
-    this.form.patchValue({
+    this.selectedVendor = vendor;
+    const patch: Record<string, string> = {
       vendor_id: vendor.id,
       vendor_search: vendor.display_name
-    }, { emitEvent: false });
+    };
+    if (vendor.vendor_type !== 'INTERNATIONAL') {
+      patch['pedimento_number'] = '';
+    }
+    this.form.patchValue(patch, { emitEvent: false });
     this.onVendorChange();
+  }
+
+  get isInternationalVendor(): boolean {
+    return this.selectedVendor?.vendor_type === 'INTERNATIONAL';
+  }
+
+  openSelectedVendorDetail(): void {
+    const vendorId = this.form.get('vendor_id')?.value;
+    if (!vendorId) {
+      this.toast.warning('Selecciona un proveedor primero');
+      return;
+    }
+
+    const openModal = (vendor: Vendor) => {
+      this.dialog.open(VendorDetailModalComponent, {
+        width: '80vw',
+        maxWidth: '1000px',
+        data: { vendor },
+      }).afterClosed().subscribe((updated?: Vendor) => {
+        if (!updated) return;
+        const displayName = this.formatVendorLabel(updated);
+        this.selectedVendor = { ...updated, display_name: displayName };
+        const patch: Record<string, string> = {
+          vendor_id: updated.id,
+          vendor_search: displayName,
+        };
+        if (updated.vendor_type !== 'INTERNATIONAL') {
+          patch['pedimento_number'] = '';
+        }
+        this.form.patchValue(patch, { emitEvent: false });
+        this.cdr.detectChanges();
+      });
+    };
+
+    this.vendorService.getVendor(String(vendorId)).subscribe({
+      next: (vendor) => openModal(vendor),
+      error: () => {
+        if (this.selectedVendor?.id) {
+          openModal(this.selectedVendor);
+          return;
+        }
+        this.toast.error('No se pudo cargar el proveedor');
+      },
+    });
   }
 
   displayVendor(vendor: any): string {
@@ -573,6 +631,10 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     if (notes) {
       payload.notes = notes;
     }
+    if (this.isInternationalVendor) {
+      const pedimento = String(fv.pedimento_number || '').trim();
+      payload.pedimento_number = pedimento || null;
+    }
 
     this.purchaseOrderService.createOrder(payload).subscribe({
       next: (order) => {
@@ -585,7 +647,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
         this.saving = false;
         this.cdr.detectChanges();
         console.error('Error creating order:', error);
-        const errorMessage = error.error?.message || 'Error al crear la orden de compra';
+        const errorMessage = error.message || error.error?.message || 'Error al crear la orden de compra';
         this.toast.error(errorMessage);
       }
     });

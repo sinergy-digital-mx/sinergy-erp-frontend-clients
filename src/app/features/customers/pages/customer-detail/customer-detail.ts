@@ -37,6 +37,10 @@ import {
 } from '../../utils/fiscal-domicile.util';
 import { formatRegisteredByUserLabel } from '../../utils/customer-registration.util';
 import { CustomerAddressDialogComponent } from '../../components/customer-address-dialog/customer-address-dialog.component';
+import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
+import { CustomerFiscalCreditsComponent } from '../../components/customer-fiscal-credits/customer-fiscal-credits.component';
+import { unwrapCustomerPayload } from '../../utils/customer-credit.util';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-customer-detail',
@@ -44,6 +48,7 @@ import { CustomerAddressDialogComponent } from '../../components/customer-addres
   schemas: [NO_ERRORS_SCHEMA],
   imports: [
     CommonModule,
+    FormsModule,
     TagModule,
     ButtonModule,
     MatCardModule,
@@ -55,6 +60,8 @@ import { CustomerAddressDialogComponent } from '../../components/customer-addres
     ButtonComponent,
     HasPermissionDirective,
     TabComponent,
+    SlimSwitchComponent,
+    CustomerFiscalCreditsComponent,
   ],
   templateUrl: 'customer-detail.html',
   styleUrl: 'customer-detail.scss'
@@ -74,6 +81,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
     { id: 'fiscal', title: 'Información Fiscal' },
     { id: 'registration', title: 'Registro' }
   ];
+  invoicePrefSaving = signal(false);
   customerId: number | null = null;
   private destroy$ = new Subject<void>();
 
@@ -96,6 +104,12 @@ export class CustomerDetail implements OnInit, OnDestroy {
       this.customerId = Number(params['id']);
       if (this.customerId) {
         this.loadCustomer();
+      }
+    });
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((query) => {
+      const tab = query.get('tab');
+      if (tab === 'credit' || tab === 'fiscal' || tab === 'customer' || tab === 'registration') {
+        this.activeInfoTab.set(tab);
       }
     });
   }
@@ -188,8 +202,9 @@ export class CustomerDetail implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: ({ customer, addresses }) => {
+          const unwrapped = unwrapCustomerPayload(customer) ?? (customer as Customer);
           this.customer.set({
-            ...customer,
+            ...unwrapped,
             addresses: this.normalizeAddresses(addresses),
           });
           this.additionalPersonExpanded.set(false);
@@ -309,6 +324,35 @@ export class CustomerDetail implements OnInit, OnDestroy {
     if (tab === 'customer' || tab === 'credit' || tab === 'fiscal' || tab === 'registration') {
       this.activeInfoTab.set(tab);
     }
+  }
+
+  isWalkInCustomer(customer: Customer): boolean {
+    return customer.is_walk_in === true;
+  }
+
+  onAutoGenerateInvoiceChange(enabled: boolean): void {
+    const customer = this.customer();
+    if (!customer || !this.canEditStatus || this.invoicePrefSaving()) {
+      return;
+    }
+    this.invoicePrefSaving.set(true);
+    this.customerService
+      .updateCustomer(String(customer.id), { auto_generate_invoice: enabled })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.invoicePrefSaving.set(false);
+          this.customer.set({ ...customer, auto_generate_invoice: enabled });
+        },
+        error: () => {
+          this.invoicePrefSaving.set(false);
+          this.interceptorService.openSnackbar({
+            type: 'error',
+            title: 'Error',
+            message: 'No se pudo guardar la preferencia de factura',
+          });
+        },
+      });
   }
 
   registeredBranchLabel(customer: Customer): string {

@@ -23,6 +23,9 @@
             {{ getPaymentStatus() }}
           </span>
         }
+        @if (creditChipLabel()) {
+          <span class="status-badge status-badge--credit">{{ creditChipLabel() }}</span>
+        }
         @if (invoiceSummary()) {
           <span class="status-badge status-badge--invoice">{{ invoiceSummary() }}</span>
         }
@@ -66,6 +69,9 @@
             <div class="info-card__content">
               <span class="info-card__label">CLIENTE</span>
               <span class="info-card__value">{{ getCustomerDisplayName() }}</span>
+              @if (getCustomerCompanyName()) {
+                <span class="info-card__subvalue">{{ getCustomerCompanyName() }}</span>
+              }
             </div>
             @if (canOpenCustomer()) {
               <i class="fi fi-rr-angle-right info-card__chevron"></i>
@@ -149,8 +155,13 @@
           }
           <div class="section-item">
             <span class="section-label">Estado de pago</span>
-            <span class="payment-pill" [class.payment-pill--paid]="getPaymentStatus() === 'Pagado'">
-              {{ getPaymentStatus() || '—' }}
+            <span class="payment-status-row">
+              <span class="payment-pill" [class.payment-pill--paid]="getPaymentStatus() === 'Pagado'">
+                {{ getPaymentStatus() || '—' }}
+              </span>
+              @if (creditChipLabel()) {
+                <span class="so-credit-chip">{{ creditChipLabel() }}</span>
+              }
             </span>
           </div>
           <div class="section-item section-item--seller">
@@ -222,6 +233,12 @@
                 <div class="section-item">
                   <span class="section-label">Tarjeta</span>
                   <span class="section-value">{{ posCollectionMoney(pay.amount_card_mxn) }}</span>
+                </div>
+              }
+              @if (pay.amount_credit_mxn != null && +pay.amount_credit_mxn > 0) {
+                <div class="section-item">
+                  <span class="section-label">Crédito</span>
+                  <span class="section-value">{{ posCollectionMoney(pay.amount_credit_mxn) }}</span>
                 </div>
               }
               @if (pay.change_cash_mxn != null && +pay.change_cash_mxn > 0) {
@@ -446,7 +463,12 @@
                   </div>
                   <div class="payments-summary-row">
                     <span>Estatus:</span>
-                    <span class="payments-status-badge" [ngClass]="getPaymentStatusClass()">{{ getPaymentStatus() }}</span>
+                    <span class="payments-status-row">
+                      <span class="payments-status-badge" [ngClass]="getPaymentStatusClass()">{{ getPaymentStatus() }}</span>
+                      @if (creditChipLabel()) {
+                        <span class="so-credit-chip">{{ creditChipLabel() }}</span>
+                      }
+                    </span>
                   </div>
                 </div>
                 <div class="payments-progress-track">

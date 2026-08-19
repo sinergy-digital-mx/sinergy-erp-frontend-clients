@@ -1,0 +1,48 @@
+<div class="pedimento-dialog">
+  <div class="pedimento-dialog__header">
+    <h3 class="pedimento-dialog__title">{{ dialogTitle }}</h3>
+    <button
+      type="button"
+      class="pedimento-dialog__close"
+      aria-label="Cerrar"
+      [disabled]="saving()"
+      (click)="cancel()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  <div class="pedimento-dialog__body">
+    <label class="pedimento-dialog__label" for="purchase-order-pedimento-input">Número de pedimento</label>
+    <input
+      id="purchase-order-pedimento-input"
+      type="text"
+      class="pedimento-dialog__input"
+      placeholder="Número de pedimento"
+      [attr.maxlength]="maxLength"
+      [ngModel]="pedimentoText()"
+      (ngModelChange)="pedimentoText.set($event)"
+      [disabled]="saving()">
+    <p class="pedimento-dialog__hint">Máximo {{ maxLength }} caracteres. Deja vacío y guarda para borrar el pedimento.</p>
+    @if (errorMessage()) {
+      <p class="pedimento-dialog__error" role="alert">{{ errorMessage() }}</p>
+    }
+  </div>
+
+  <div class="pedimento-dialog__footer">
+    <button type="button" class="pedimento-dialog__btn pedimento-dialog__btn--cancel" [disabled]="saving()" (click)="cancel()">
+      Cancelar
+    </button>
+    <button
+      type="button"
+      class="pedimento-dialog__btn pedimento-dialog__btn--save"
+      [disabled]="saving()"
+      (click)="save()">
+      @if (saving()) {
+        <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+        Guardando...
+      } @else {
+        Guardar
+      }
+    </button>
+  </div>
+</div>

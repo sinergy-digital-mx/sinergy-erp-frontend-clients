@@ -85,6 +85,9 @@ export class SalesOrderService {
     if (filters.dateTo) {
       params = params.set('created_to', filters.dateTo);
     }
+    if (filters.is_credit === true) {
+      params = params.set('is_credit', 'true');
+    }
 
     return this.http.get<PaginatedResponse<SalesOrder>>(this.baseUrl, { params })
       .pipe(
@@ -368,6 +371,7 @@ export class SalesOrderService {
       ['customer_id', filters.customer_id],
       ['created_from', filters.created_from],
       ['created_to', filters.created_to],
+      ['is_credit', filters.is_credit === true ? 'true' : undefined],
     ];
 
     for (const [key, value] of entries) {

@@ -351,7 +351,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(300px, 1.1fr) minmax(340px, 1fr);
+  grid-template-columns: minmax(280px, 33rem) minmax(0, 1fr);
   gap: 0.75rem;
   overflow: hidden;
 }
@@ -756,13 +756,15 @@
 }
 
 .cobranza-sale {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   width: 100%;
   text-align: left;
   border: 1px solid var(--pos-border);
   border-radius: 10px;
   padding: 0.75rem 0.85rem;
   background: #f8fafc;
-  cursor: pointer;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 
   &:hover {
@@ -774,6 +776,54 @@
     border-color: #4f46e5;
     background: linear-gradient(180deg, #faf5ff 0%, #eef2ff 100%);
     box-shadow: 0 2px 8px rgba(79, 70, 229, 0.12);
+  }
+
+  &__main {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    align-self: flex-start;
+    margin-top: 0.55rem;
+    padding: 0.22rem 0.5rem;
+    border: 1px solid #c7d2fe;
+    border-radius: 8px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+
+    lucide-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    lucide-icon ::ng-deep svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
+
+    &:hover {
+      background: #e0e7ff;
+      border-color: #818cf8;
+    }
   }
 
   &__row {
@@ -1016,12 +1066,19 @@
   color: var(--pos-muted);
 }
 
+.cobranza-customer-selected {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 .cobranza-customer-pick {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  margin-top: 0.5rem;
+  margin-top: 0;
   padding: 0.7rem 0.8rem;
   border: 1px solid #e0e7ff;
   border-radius: 10px;
@@ -1029,6 +1086,8 @@
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, box-shadow 0.15s;
+  flex: 1;
+  min-width: 0;
 
   &:hover {
     border-color: #a5b4fc;
@@ -1077,14 +1136,124 @@
   }
 }
 
+.cobranza-customer-edit {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0 0.85rem;
+  border: 1px solid #e0e7ff;
+  border-radius: 10px;
+  background: #fff;
+  color: #4b3e8e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: #c4b5fd;
+    background: #f5f3ff;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.cobranza-invoice-switch {
+  margin-top: 0.65rem;
+}
+
+.cobranza-invoice-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: #b45309;
+}
+
+.cobranza-mixed-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.cobranza-mixed-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+
+  input {
+    accent-color: #6b46c1;
+  }
+
+  &--on {
+    border-color: #c4b5fd;
+    background: #f5f3ff;
+    color: #4b3e8e;
+  }
+}
+
+.cobranza-credit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border: 1px solid #e8e4f4;
+  border-radius: 12px;
+  background: #faf9fd;
+
+  h4 {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #4b3e8e;
+  }
+
+  &__name {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #111827;
+  }
+}
+
+.cobranza-credit-link {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #6b46c1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .cobranza-pay-tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.35rem;
   margin-bottom: 0.75rem;
   padding: 0.25rem;
   background: #f1f5f9;
   border-radius: 10px;
+}
+
+.cobranza-pay-tabs--with-credit {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .cobranza-pay-tab {

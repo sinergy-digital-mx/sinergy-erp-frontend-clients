@@ -41,7 +41,8 @@ import { BranchModalComponent } from '../../../settings/components/branch-modal/
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
-import { formatTitleCase } from '../../utils/sales-order-display.util';
+import { formatTitleCase, getSalesOrderListCompanyName } from '../../utils/sales-order-display.util';
+import { salesOrderCreditChipLabel } from '../../utils/sales-order-credit.util';
 import {
   SalesOrderNotesDialogComponent,
   SalesOrderNotesDialogResult,
@@ -608,6 +609,14 @@ export class SalesOrderDetailDialogComponent {
     );
   }
 
+  creditChipLabel(): string {
+    const order = this.order();
+    return salesOrderCreditChipLabel({
+      is_credit: order?.is_credit,
+      payment_status: this.getPaymentStatus() as SalesOrder['payment_status'],
+    });
+  }
+
   getPaymentStatusClass(): string {
     const status = this.getPaymentStatus().trim().toLowerCase();
     if (status === 'pagado') return 'status-paid';
@@ -734,6 +743,10 @@ export class SalesOrderDetailDialogComponent {
       return formatTitleCase(order.customer_display_name.trim());
     }
     return formatTitleCase(resolveSalesOrderCustomerName(order));
+  }
+
+  getCustomerCompanyName(): string {
+    return getSalesOrderListCompanyName(this.order());
   }
 
   getSucursalDisplayName(): string {

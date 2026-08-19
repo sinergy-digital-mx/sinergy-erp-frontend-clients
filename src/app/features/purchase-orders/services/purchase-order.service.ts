@@ -619,6 +619,23 @@ export class PurchaseOrderService {
       );
   }
 
+  /**
+   * Actualiza solo el pedimento (PATCH /purchase-orders/:id/pedimento).
+   * Permitido en Creada y Recibida; bloqueado en Cancelada y si el proveedor es nacional.
+   */
+  updateOrderPedimento(
+    orderId: string,
+    pedimentoNumber: string | null
+  ): Observable<{ pedimento_number: string | null }> {
+    const value = pedimentoNumber?.trim() ? pedimentoNumber.trim() : null;
+    return this.http
+      .patch<unknown>(`${this.baseUrl}/${orderId}/pedimento`, { pedimento_number: value })
+      .pipe(
+        map((response) => this.parsePedimentoPatchResponse(response, value)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
   private parseNotesPatchResponse(response: unknown, fallbackNotes: string | null): { notes: string | null } {
     if (!response || typeof response !== 'object') {
       return { notes: fallbackNotes };
@@ -652,6 +669,44 @@ export class PurchaseOrderService {
     return { notes: fallbackNotes };
   }
 
+  private parsePedimentoPatchResponse(
+    response: unknown,
+    fallback: string | null
+  ): { pedimento_number: string | null } {
+    if (!response || typeof response !== 'object') {
+      return { pedimento_number: fallback };
+    }
+
+    const body = response as Record<string, unknown>;
+    const data = body['data'];
+    const header =
+      data && typeof data === 'object' && !Array.isArray(data)
+        ? (data as Record<string, unknown>)['header']
+        : undefined;
+
+    const candidates = [
+      body['pedimento_number'],
+      data && typeof data === 'object' && !Array.isArray(data)
+        ? (data as Record<string, unknown>)['pedimento_number']
+        : undefined,
+      header && typeof header === 'object' && !Array.isArray(header)
+        ? (header as Record<string, unknown>)['pedimento_number']
+        : undefined,
+    ];
+
+    for (const value of candidates) {
+      if (value === null) {
+        return { pedimento_number: null };
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return { pedimento_number: trimmed ? trimmed : null };
+      }
+    }
+
+    return { pedimento_number: fallback };
+  }
+
   /**
    * Handle HTTP errors
    */
@@ -664,6 +719,11 @@ export class PurchaseOrderService {
         this.router.navigate(['/auth/login']);
         errorMessage = 'Sesión expirada. Por favor, inicia sesión nuevamente.';
         break;
+
+      case 400: {
+        errorMessage = this.extractApiMessage(error) || 'Solicitud inválida';
+        break;
+      }
 
       case 403:
         // Forbidden - permission denied
@@ -691,10 +751,31 @@ export class PurchaseOrderService {
         break;
 
       default:
-        errorMessage = 'Ha ocurrido un error inesperado';
+        errorMessage = this.extractApiMessage(error) || 'Ha ocurrido un error inesperado';
     }
 
     return throwError(() => new Error(errorMessage));
+  }
+
+  private extractApiMessage(error: HttpErrorResponse): string | null {
+    const payload = error.error;
+    if (!payload) {
+      return null;
+    }
+    if (typeof payload === 'string' && payload.trim()) {
+      return payload;
+    }
+    if (typeof payload === 'object' && payload !== null && 'message' in payload) {
+      const message = (payload as { message?: unknown }).message;
+      if (typeof message === 'string' && message.trim()) {
+        return message;
+      }
+      if (Array.isArray(message)) {
+        const joined = message.filter((item) => typeof item === 'string' && item.trim()).join(', ');
+        return joined || null;
+      }
+    }
+    return null;
   }
 
   /**

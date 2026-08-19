@@ -118,6 +118,8 @@ export interface WritePurchaseOrderDto {
   payment_currency?: 'MXN' | 'USD';
   payment_status?: string;
   notes?: string;
+  /** Solo si el proveedor es internacional. No enviar en compras nacionales. */
+  pedimento_number?: string | null;
   line_items: PurchaseOrderApiLineItem[];
 }
 

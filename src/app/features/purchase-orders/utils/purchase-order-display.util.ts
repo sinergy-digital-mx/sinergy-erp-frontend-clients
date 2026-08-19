@@ -1,6 +1,20 @@
 import { PurchaseOrder } from '../models/purchase-order.model';
 import { formatTitleCase } from '../../sales-orders/utils/sales-order-display.util';
 
+export const PEDIMENTO_MAX_LENGTH = 30;
+
+export function isInternationalPurchaseOrder(order: PurchaseOrder | null | undefined): boolean {
+  if (!order) {
+    return false;
+  }
+  return order.is_international_vendor === true || order.vendor?.vendor_type === 'INTERNATIONAL';
+}
+
+export function formatPedimentoDisplay(value?: string | null): string {
+  const trimmed = value?.trim() ?? '';
+  return trimmed || 'Sin pedimento';
+}
+
 export function getPurchaseOrderListFiscalLabel(order: PurchaseOrder): string {
   const label =
     order.razon_social ??

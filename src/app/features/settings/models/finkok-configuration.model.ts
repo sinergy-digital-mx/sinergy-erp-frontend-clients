@@ -27,9 +27,8 @@ export interface FinkokConfiguration extends FinkokEnvironmentConfig {}
 export interface SaveFinkokConfigurationDto {
   environment: FinkokEnvironment;
   finkok_username: string;
-  finkok_password: string;
+  finkok_password?: string;
   is_active: 0 | 1;
-  is_stamping_default?: 0 | 1;
 }
 
 export interface FinkokTestConnectionResult {

@@ -135,6 +135,13 @@
                   </span>
                 </div>
                 <div><strong>Total:</strong> {{ formatCurrency(getOrderTotal(order)) }}</div>
+                <div class="sales-order-pay-cell">
+                  <strong>Pago:</strong>
+                  <span [ngClass]="getPaymentStatusClass(order.payment_status)">{{ order.payment_status }}</span>
+                  @if (creditChipLabel(order)) {
+                    <span class="so-credit-chip">{{ creditChipLabel(order) }}</span>
+                  }
+                </div>
                 <div class="text-xs text-gray-500">{{ formatDateHuman(order.created_at) }}</div>
               </div>
             </div>
@@ -169,8 +176,13 @@
   <td class="w-[120px]">
     <p class="dt-cell-amount m-0">{{ formatCurrency(getOrderTotal(item)) }}</p>
   </td>
-  <td class="w-[120px]">
-    <span [ngClass]="getPaymentStatusClass(item.payment_status)">{{ item.payment_status }}</span>
+  <td class="w-[200px]">
+    <span class="sales-order-pay-cell">
+      <span [ngClass]="getPaymentStatusClass(item.payment_status)">{{ item.payment_status }}</span>
+      @if (creditChipLabel(item)) {
+        <span class="so-credit-chip">{{ creditChipLabel(item) }}</span>
+      }
+    </span>
   </td>
   <td class="w-[160px]">
     <p class="dt-cell-subtle m-0">{{ formatDateHuman(item.created_at) }}</p>

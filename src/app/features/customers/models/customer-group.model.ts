@@ -40,6 +40,29 @@ export interface CustomerStatus {
 }
 
 /**
+ * Crédito del cliente por razón social (no por almacén).
+ */
+export interface CustomerFiscalCredit {
+  fiscal_configuration_id: string;
+  razon_social?: string;
+  rfc?: string;
+  fiscal_status?: string;
+  credit_enabled?: boolean;
+  credit_days?: number | null;
+  credit_amount?: number | null;
+  credit_used?: number | null;
+  credit_available?: number | null;
+  credit_usage_percent?: number | null;
+}
+
+export interface CustomerCreditsUpdateItem {
+  fiscal_configuration_id: string;
+  credit_enabled: boolean;
+  credit_days?: number | null;
+  credit_amount?: number | null;
+}
+
+/**
  * Customer Model
  * Represents a customer in the system
  */
@@ -60,8 +83,18 @@ export interface Customer {
     name: string;
     code?: string;
   } | null;
+  /** Crédito aplanado de una razón (GET ?fiscal_configuration_id=). No es global. */
+  credit_enabled?: boolean;
   credit_days?: number | null;
   credit_amount?: number | null;
+  credit_used?: number | null;
+  credit_available?: number | null;
+  credit_usage_percent?: number | null;
+  credits?: CustomerFiscalCredit[];
+  auto_generate_invoice?: boolean;
+  fiscal_ready_for_invoice?: boolean;
+  fiscal_missing_fields?: string[];
+  is_walk_in?: boolean;
   fiscal_rfc?: string;
   fiscal_razon_social?: string;
   fiscal_person_type?: string;
@@ -175,8 +208,10 @@ export interface UpdateCustomerDto {
   country?: string;
   company_name?: string;
   warehouse_id?: string | null;
+  credit_enabled?: boolean;
   credit_days?: number | null;
   credit_amount?: number | null;
+  auto_generate_invoice?: boolean;
   fiscal_rfc?: string;
   fiscal_razon_social?: string;
   fiscal_person_type?: string;

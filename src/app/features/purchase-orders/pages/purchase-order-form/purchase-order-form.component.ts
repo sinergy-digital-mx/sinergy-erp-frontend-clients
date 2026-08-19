@@ -22,6 +22,7 @@ import {
 } from '../../models/filters.model';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { validateQuantity, validatePrice, validateTaxPercentage, getErrorMessage } from '../../utils/order-validators';
+import { isInternationalPurchaseOrder, PEDIMENTO_MAX_LENGTH } from '../../utils/purchase-order-display.util';
 
 @Component({
   selector: 'app-purchase-order-form',
@@ -39,6 +40,8 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
   loadError = signal<string | null>(null);
   /** Folio de la OC cargada: el listado busca por folio, no por UUID. */
   loadedOrderFolio = signal<string | null>(null);
+  loadedOrder = signal<PurchaseOrder | null>(null);
+  readonly pedimentoMaxLength = PEDIMENTO_MAX_LENGTH;
 
   vendors = signal<Vendor[]>([]);
   fiscalConfigurations = signal<FiscalConfiguration[]>([]);
@@ -109,6 +112,7 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
         Validators.required
       ],
       payment_status: [this.paymentStatusToForm(order?.payment_status)],
+      pedimento_number: [order?.pedimento_number ?? '', [Validators.maxLength(PEDIMENTO_MAX_LENGTH)]],
       line_items: this.fb.array([], Validators.minLength(1))
     });
 
@@ -126,6 +130,9 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     const vendorCtrl = this.orderForm.get('vendor_id');
     this.vendorIdSub = vendorCtrl?.valueChanges.pipe(distinctUntilChanged()).subscribe((vid) => {
       this.loadVendorProducts(typeof vid === 'string' ? vid : '');
+      if (!this.isInternationalVendor()) {
+        this.orderForm?.get('pedimento_number')?.setValue('', { emitEvent: false });
+      }
     });
     const initialVendor = vendorCtrl?.value as string | undefined;
     if (initialVendor) {
@@ -229,6 +236,7 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     this.purchaseOrderService.getOrderById(id).subscribe({
       next: (order) => {
         this.loadedOrderFolio.set(order.folio?.trim() || null);
+        this.loadedOrder.set(order);
         this.initForm(order);
         if (this.orderForm) {
           this.orderForm.get('vendor_id')?.disable({ emitEvent: false });
@@ -276,6 +284,15 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
   hasVendorSelected(): boolean {
     if (!this.orderForm) return false;
     return !!this.orderForm.getRawValue().vendor_id;
+  }
+
+  isInternationalVendor(): boolean {
+    const order = this.loadedOrder();
+    if (this.isEditMode() && order) {
+      return isInternationalPurchaseOrder(order);
+    }
+    const vendorId = this.orderForm?.getRawValue()?.vendor_id as string | undefined;
+    return this.vendors().some((vendor) => vendor.id === vendorId && vendor.vendor_type === 'INTERNATIONAL');
   }
 
   onProductSelect(index: number, productId: string): void {
@@ -398,6 +415,12 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     const notes = (raw.purpose || '').trim();
     if (notes) {
       body.notes = notes;
+    }
+
+    if (this.isInternationalVendor()) {
+      const rawForm = this.orderForm!.getRawValue() as PurchaseOrderFormData & { pedimento_number?: string };
+      const pedimento = String(rawForm.pedimento_number || '').trim();
+      body.pedimento_number = pedimento || null;
     }
 
     return body;

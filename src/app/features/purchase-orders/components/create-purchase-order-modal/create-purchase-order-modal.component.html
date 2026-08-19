@@ -54,7 +54,19 @@
 
         <!-- Vendor -->
         <div class="form-field">
-          <label class="form-label">PROVEEDOR *</label>
+          <div class="form-label-row">
+            <label class="form-label">PROVEEDOR *</label>
+            <button
+              type="button"
+              class="label-action-btn"
+              [disabled]="!form.get('vendor_id')?.value"
+              (click)="openSelectedVendorDetail()"
+              title="Editar proveedor"
+              aria-label="Editar proveedor">
+              <lucide-icon [img]="Pencil" [size]="14"></lucide-icon>
+              <span>Editar</span>
+            </button>
+          </div>
           <input
             type="text"
             class="form-input"
@@ -85,6 +97,18 @@
           <label class="form-label">FECHA ESPERADA DE ENTREGA *</label>
           <input type="date" class="form-input" formControlName="expected_delivery_date">
         </div>
+
+        @if (isInternationalVendor) {
+          <div class="form-field form-field--full">
+            <label class="form-label">PEDIMENTO</label>
+            <input
+              type="text"
+              class="form-input"
+              formControlName="pedimento_number"
+              placeholder="Número de pedimento"
+              [attr.maxlength]="pedimentoMaxLength">
+          </div>
+        }
 
         <!-- Notes -->
         <div class="form-field form-field--full">

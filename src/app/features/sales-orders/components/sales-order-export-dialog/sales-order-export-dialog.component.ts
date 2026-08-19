@@ -101,6 +101,9 @@ export class SalesOrderExportDialogComponent {
     if (listFilters.customer_id != null && listFilters.customer_id !== '') {
       filters.customer_id = listFilters.customer_id;
     }
+    if (listFilters.is_credit === true) {
+      filters.is_credit = true;
+    }
 
     if (type === 'details') {
       filters.created_from = this.exportFrom();

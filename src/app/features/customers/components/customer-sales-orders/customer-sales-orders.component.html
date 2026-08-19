@@ -48,7 +48,12 @@
               </td>
               <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ formatCurrency(getOrderTotal(order)) }}</td>
               <td class="px-4 py-3 whitespace-nowrap">
-                <span [ngClass]="getPaymentStatusClass(order.payment_status)">{{ order.payment_status || '—' }}</span>
+                <span class="sales-order-pay-cell">
+                  <span [ngClass]="getPaymentStatusClass(order.payment_status)">{{ order.payment_status || '—' }}</span>
+                  @if (creditChipLabel(order)) {
+                    <span class="so-credit-chip">{{ creditChipLabel(order) }}</span>
+                  }
+                </span>
               </td>
               <td class="px-4 py-3 text-sm text-gray-600">{{ order.created_at | date:'medium' }}</td>
             </tr>

@@ -13,6 +13,12 @@ export interface CollectSaleResponse {
   message?: string;
   collection?: PosSaleCollection | null;
   receipt?: PosSaleReceipt | null;
+  invoice?: {
+    requested?: boolean;
+    fiscal_ready?: boolean;
+    fiscal_missing_fields?: string[];
+    stamp_path?: string;
+  } | null;
   sales_order?: {
     id?: string;
     folio?: string;
@@ -70,6 +76,10 @@ export function normalizeCollectSaleResponse(raw: unknown): CollectSaleResponse 
     message: source['message'] != null ? String(source['message']) : undefined,
     collection: normalizePosSaleCollection(source['collection']),
     receipt: normalizePosSaleReceipt(source['receipt']),
+    invoice:
+      source['invoice'] && typeof source['invoice'] === 'object'
+        ? (source['invoice'] as CollectSaleResponse['invoice'])
+        : null,
     sales_order:
       source['sales_order'] && typeof source['sales_order'] === 'object'
         ? (source['sales_order'] as CollectSaleResponse['sales_order'])

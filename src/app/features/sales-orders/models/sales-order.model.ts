@@ -185,6 +185,8 @@ export interface SalesOrder {
   can_cancel?: boolean;
   cancel_blocked_reason?: string | null;
   payment_status: SalesPaymentStatus;
+  is_credit?: boolean;
+  invoice_requested?: boolean;
   subtotal?: string | number;
   discount_total?: string | number;
   global_discount_amount?: string | number;
@@ -281,6 +283,7 @@ export interface SalesOrderFilters {
   billing_branch_id?: string;
   dateFrom?: string;
   dateTo?: string;
+  is_credit?: boolean;
 }
 
 export type SalesOrderExportType = 'headers' | 'details';
@@ -295,6 +298,7 @@ export interface SalesOrderExportFilters {
   customer_id?: number | string;
   created_from?: string;
   created_to?: string;
+  is_credit?: boolean;
 }
 
 export interface PaginationParams {

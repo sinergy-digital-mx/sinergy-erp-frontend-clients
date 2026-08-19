@@ -1,3 +1,5 @@
+export type PurchaseOrderVendorType = 'NATIONAL' | 'INTERNATIONAL';
+
 /**
  * Vendor entity (from external module)
  */
@@ -9,4 +11,5 @@ export interface Vendor {
   phone?: string;
   address?: string;
   rfc?: string;
+  vendor_type?: PurchaseOrderVendorType;
 }

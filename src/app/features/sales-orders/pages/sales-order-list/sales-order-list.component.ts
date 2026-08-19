@@ -24,6 +24,7 @@ import {
   getSalesOrderStatus,
   getSalesOrderTotal,
 } from '../../utils/sales-order-display.util';
+import { salesOrderCreditChipLabel } from '../../utils/sales-order-credit.util';
 
 @Component({
   selector: 'app-sales-order-list',
@@ -52,7 +53,7 @@ export class SalesOrderListComponent implements OnInit {
       { name: 'Sucursal', prop: 'billing_branch', sortable: false, canAutoResize: false, width: 190 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 120 },
       { name: 'Total', prop: 'requested_total', sortable: true, canAutoResize: false, width: 120 },
-      { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 200 },
       { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
     ],
     externalPaging: true,
@@ -212,6 +213,10 @@ export class SalesOrderListComponent implements OnInit {
       case 'Pendiente': return `${base} dt-status-pill--danger`;
       default: return `${base} dt-status-pill--neutral`;
     }
+  }
+
+  creditChipLabel(order: SalesOrder): string {
+    return salesOrderCreditChipLabel(order);
   }
 
   formatCurrency(amount: number): string {

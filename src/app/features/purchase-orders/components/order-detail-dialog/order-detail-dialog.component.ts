@@ -26,6 +26,14 @@ import { WarehouseDetailModalComponent } from '../../../settings/components/ware
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { formatTitleCase } from '../../../sales-orders/utils/sales-order-display.util';
+import {
+  formatPedimentoDisplay,
+  isInternationalPurchaseOrder,
+} from '../../utils/purchase-order-display.util';
+import {
+  PurchaseOrderPedimentoDialogComponent,
+  PurchaseOrderPedimentoDialogResult,
+} from '../purchase-order-pedimento-dialog/purchase-order-pedimento-dialog.component';
 
 @Component({
   selector: 'app-order-detail-dialog',
@@ -92,6 +100,16 @@ export class OrderDetailDialogComponent {
   canEditNotes = computed(() => {
     const status = this.order()?.general_status ?? this.order()?.status ?? '';
     return status !== 'Cancelada';
+  });
+
+  isInternationalVendor = computed(() => isInternationalPurchaseOrder(this.order()));
+
+  canEditPedimento = computed(() => {
+    if (!this.isInternationalVendor()) {
+      return false;
+    }
+    const status = this.order()?.general_status ?? this.order()?.status ?? '';
+    return status === 'Creada' || status === 'Recibida';
   });
 
   constructor(
@@ -175,6 +193,40 @@ export class OrderDetailDialogComponent {
           current ? { ...current, notes: result.notes ?? undefined } : current
         );
         this.toast.success(result.notes ? 'Notas actualizadas' : 'Notas eliminadas');
+      });
+  }
+
+  formatPedimento(value?: string | null): string {
+    return formatPedimentoDisplay(value);
+  }
+
+  openPedimentoEditor(): void {
+    const order = this.order();
+    if (!order || !this.canEditPedimento()) {
+      return;
+    }
+
+    this.dialog
+      .open(PurchaseOrderPedimentoDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: 'input',
+        data: {
+          orderId: order.id,
+          pedimentoNumber: order.pedimento_number ?? '',
+          folio: order.folio,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: PurchaseOrderPedimentoDialogResult | undefined) => {
+        if (!result?.saved) {
+          return;
+        }
+
+        this.order.update((current) =>
+          current ? { ...current, pedimento_number: result.pedimento_number } : current
+        );
+        this.toast.success(result.pedimento_number ? 'Pedimento actualizado' : 'Pedimento eliminado');
       });
   }
 
@@ -709,6 +761,11 @@ export class OrderDetailDialogComponent {
         data: { vendor },
         width: '80vw',
         maxWidth: '1000px',
+      }).afterClosed().subscribe((savedVendor?: Vendor) => {
+        if (!savedVendor) {
+          return;
+        }
+        this.loadOrder(true);
       });
     };
 
