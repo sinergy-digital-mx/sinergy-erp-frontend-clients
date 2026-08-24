@@ -45,31 +45,93 @@
 
             @if (filtersOpen()) {
               <div class="filters-panel" role="dialog" aria-label="Filtros de transferencias">
-                <div class="filters-panel__grid">
-                  <div class="filters-field">
-                    <label for="trfSourceWh">Almacén origen</label>
-                    <select
-                      id="trfSourceWh"
-                      [ngModel]="draftSourceWarehouseId()"
-                      (ngModelChange)="draftSourceWarehouseId.set($event)">
-                      <option value="">Todos</option>
-                      @for (wh of warehouses(); track wh.id) {
-                        <option [value]="wh.id">{{ warehouseOptionLabel(wh) }}</option>
-                      }
-                    </select>
-                  </div>
-                  <div class="filters-field">
-                    <label for="trfDestWh">Almacén destino</label>
-                    <select
-                      id="trfDestWh"
-                      [ngModel]="draftDestinationWarehouseId()"
-                      (ngModelChange)="draftDestinationWarehouseId.set($event)">
-                      <option value="">Todos</option>
-                      @for (wh of warehouses(); track wh.id) {
-                        <option [value]="wh.id">{{ warehouseOptionLabel(wh) }}</option>
-                      }
-                    </select>
-                  </div>
+                <div class="filters-panel__sides">
+                  <fieldset class="filters-side">
+                    <legend>Origen</legend>
+                    <div class="filters-field">
+                      <label for="trfSourceFiscal">Razón social</label>
+                      <select
+                        id="trfSourceFiscal"
+                        [ngModel]="draftSourceFiscalId()"
+                        (ngModelChange)="onDraftSourceFiscalChange($event)">
+                        <option value="">Todas</option>
+                        @for (fiscal of locations(); track fiscal.id) {
+                          <option [value]="fiscal.id">{{ fiscalLabel(fiscal) }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="filters-field">
+                      <label for="trfSourceBranch">Sucursal</label>
+                      <select
+                        id="trfSourceBranch"
+                        [ngModel]="draftSourceBranchId()"
+                        (ngModelChange)="onDraftSourceBranchChange($event)"
+                        [disabled]="!draftSourceFiscalId()">
+                        <option value="">Todas</option>
+                        @for (branch of draftSourceBranches(); track branch.id) {
+                          <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="filters-field">
+                      <label for="trfSourceWh">Almacén</label>
+                      <select
+                        id="trfSourceWh"
+                        [ngModel]="draftSourceWarehouseId()"
+                        (ngModelChange)="draftSourceWarehouseId.set($event)"
+                        [disabled]="!draftSourceBranchId()">
+                        <option value="">Todos</option>
+                        @for (wh of draftSourceWarehouses(); track wh.id) {
+                          <option [value]="wh.id">{{ warehouseLabel(wh) }}</option>
+                        }
+                      </select>
+                    </div>
+                  </fieldset>
+
+                  <fieldset class="filters-side">
+                    <legend>Destino</legend>
+                    <div class="filters-field">
+                      <label for="trfDestFiscal">Razón social</label>
+                      <select
+                        id="trfDestFiscal"
+                        [ngModel]="draftDestFiscalId()"
+                        (ngModelChange)="onDraftDestFiscalChange($event)">
+                        <option value="">Todas</option>
+                        @for (fiscal of locations(); track fiscal.id) {
+                          <option [value]="fiscal.id">{{ fiscalLabel(fiscal) }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="filters-field">
+                      <label for="trfDestBranch">Sucursal</label>
+                      <select
+                        id="trfDestBranch"
+                        [ngModel]="draftDestBranchId()"
+                        (ngModelChange)="onDraftDestBranchChange($event)"
+                        [disabled]="!draftDestFiscalId()">
+                        <option value="">Todas</option>
+                        @for (branch of draftDestBranches(); track branch.id) {
+                          <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="filters-field">
+                      <label for="trfDestWh">Almacén</label>
+                      <select
+                        id="trfDestWh"
+                        [ngModel]="draftDestWarehouseId()"
+                        (ngModelChange)="draftDestWarehouseId.set($event)"
+                        [disabled]="!draftDestBranchId()">
+                        <option value="">Todos</option>
+                        @for (wh of draftDestWarehouses(); track wh.id) {
+                          <option [value]="wh.id">{{ warehouseLabel(wh) }}</option>
+                        }
+                      </select>
+                    </div>
+                  </fieldset>
+                </div>
+
+                <div class="filters-panel__dates">
                   <div class="filters-field">
                     <label for="trfFrom">Desde</label>
                     <input
@@ -89,6 +151,7 @@
                     />
                   </div>
                 </div>
+
                 <div class="filters-panel__footer">
                   <button type="button" class="filters-panel__cancel" (click)="closeFilters()">
                     Cancelar
@@ -133,11 +196,25 @@
   <td class="px-2 py-2 w-[110px]">
     <span class="dt-cell-muted">{{ item.total_quantity | removeTrailingZeros }} {{ item.uom_name }}</span>
   </td>
-  <td class="px-2 py-2 w-[160px]">
-    <span class="text-sm text-gray-700">{{ warehouseLabel(item.source_warehouse) }}</span>
+  <td class="px-2 py-2 w-[210px] route-cell">
+    <app-transfer-location-path
+      [location]="sourceView(item)"
+      [showFiscal]="fiscalRelation(item) !== true"
+      [fiscalBold]="fiscalRelation(item) === false">
+    </app-transfer-location-path>
+    @if (fiscalRelation(item) === true) {
+      <span class="fiscal-chip fiscal-chip--same">Misma razón</span>
+    } @else if (fiscalRelation(item) === false) {
+      <span class="fiscal-chip fiscal-chip--change">Cambio de razón social</span>
+    }
   </td>
-  <td class="px-2 py-2 w-[160px]">
-    <span class="text-sm text-gray-700">{{ warehouseLabel(item.destination_warehouse) }}</span>
+  <td class="px-2 py-2 w-[220px] route-cell route-cell--dest">
+    <span class="route-arrow" aria-hidden="true">→</span>
+    <app-transfer-location-path
+      [location]="destView(item)"
+      [showFiscal]="fiscalRelation(item) !== true"
+      [fiscalBold]="fiscalRelation(item) === false">
+    </app-transfer-location-path>
   </td>
   <td class="px-2 py-2 w-[140px]">
     <span class="text-sm text-gray-700">{{ item.created_by_user?.name || '—' }}</span>

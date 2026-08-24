@@ -4,12 +4,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil, switchMap, tap, filter } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ArrowRight, LucideAngularModule, Plus } from 'lucide-angular';
 import { ProductService } from '../../services/product.service';
-import { Product } from '../../models/product.model';
+import { Product, ProductCatalogExportFilters } from '../../models/product.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
-import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { ProductDetailModalComponent } from '../product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { CategoriesDialogComponent } from '../categories-dialog/categories-dialog.component';
@@ -18,7 +18,12 @@ import { PriceListsDialogComponent } from '../price-lists-dialog/price-lists-dia
 import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
-import { ArrowRight } from 'lucide-angular';
+import {
+  ProductCatalogExportDialogComponent,
+  ProductCatalogExportDialogResult,
+} from '../product-catalog-export-dialog/product-catalog-export-dialog.component';
+import { AuthService } from '../../../../core/services/auth.service';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-product-list',
@@ -27,8 +32,8 @@ import { ArrowRight } from 'lucide-angular';
     CommonModule,
     DatatableWrapperComponent,
     SearchComponent,
-    ButtonComponent,
-    FilterClearButtonComponent
+    FilterClearButtonComponent,
+    LucideAngularModule,
   ],
   templateUrl: './product-list.component.html',
   styleUrl: './product-list.component.scss'
@@ -56,6 +61,7 @@ export class ProductListComponent implements OnDestroy {
 
   products = signal<Product[]>([]);
   ArrowRight = ArrowRight;
+  Plus = Plus;
   search = '';
   currentSort: ISortEvent | null = null;
   private destroy$ = new Subject<void>();
@@ -66,7 +72,9 @@ export class ProductListComponent implements OnDestroy {
     private route: ActivatedRoute,
     private productService: ProductService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private authService: AuthService,
+    private toast: ToastService
   ) {
     this.route.queryParams.pipe(
       takeUntil(this.destroy$),
@@ -190,6 +198,38 @@ export class ProductListComponent implements OnDestroy {
 
   get hasActiveFilters(): boolean {
     return !!this.search?.trim();
+  }
+
+  get canExportCatalog(): boolean {
+    return (
+      this.authService.hasEntityPermission('Product', 'Export') ||
+      this.authService.hasPermission('products:Export')
+    );
+  }
+
+  openCatalogExportDialog(): void {
+    this.dialog
+      .open(ProductCatalogExportDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: this.buildExportFilters(),
+      })
+      .afterClosed()
+      .subscribe((result: ProductCatalogExportDialogResult | undefined) => {
+        if (result?.downloaded) {
+          this.toast.success('Catálogo descargado');
+        }
+      });
+  }
+
+  private buildExportFilters(): ProductCatalogExportFilters {
+    const filters: ProductCatalogExportFilters = {};
+    const normalizedSearch = this.search?.trim();
+    if (normalizedSearch && !normalizedSearch.toLowerCase().startsWith('ext:')) {
+      filters.search = normalizedSearch;
+    }
+    return filters;
   }
 
   clearFilters(): void {

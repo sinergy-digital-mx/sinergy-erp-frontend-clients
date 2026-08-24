@@ -8,9 +8,9 @@
         <h2 class="transfer-dialog__title">Transferir inventario</h2>
         <p class="transfer-dialog__subtitle">
           @if (!stepReady()) {
-            Elige el almacén y producto de origen
+            Elige razón social, sucursal, almacén y producto de origen
           } @else {
-            Selecciona lotes, destino y confirma
+            3 pasos: lotes → destino → confirmar
           }
         </p>
       </div>
@@ -25,47 +25,56 @@
       <p>Cargando contexto...</p>
     </div>
   } @else if (!stepReady()) {
-    <div class="transfer-dialog__body">
-      <section class="transfer-section">
-        <h3 class="transfer-section__title">Origen</h3>
-        <div class="fields-row">
-          <div class="form-field">
-            <label for="originBranch">Sucursal</label>
+    <div class="transfer-dialog__body transfer-dialog__body--picker">
+      <section class="picker-section">
+        <h3 class="picker-section__title">Origen</h3>
+        <div class="cascade-fields">
+          <div class="cascade-field">
+            <label for="originFiscal">Razón social</label>
             <select
-              id="originBranch"
-              class="form-select"
-              [ngModel]="originBranchId()"
-              (ngModelChange)="onOriginBranchChange($event)">
-              <option value="">Seleccionar sucursal...</option>
-              @for (branch of branches(); track branch.id) {
-                <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+              id="originFiscal"
+              class="cascade-select"
+              [ngModel]="originFiscalId()"
+              (ngModelChange)="onOriginFiscalChange($event)">
+              <option value="">Seleccionar razón social...</option>
+              @for (fiscal of locations(); track fiscal.id) {
+                <option [value]="fiscal.id">{{ fiscalLabel(fiscal) }}</option>
               }
             </select>
           </div>
-          <div class="form-field">
+          <div class="cascade-field">
+            <label for="originBranch">Sucursal</label>
+            <select
+              id="originBranch"
+              class="cascade-select"
+              [ngModel]="originBranchId()"
+              (ngModelChange)="onOriginBranchChange($event)"
+              [disabled]="!originFiscalId()">
+              <option value="">Seleccionar sucursal...</option>
+              @for (branch of originBranches(); track branch.id) {
+                <option [value]="branch.id">{{ originBranchLabel(branch) }}</option>
+              }
+            </select>
+          </div>
+          <div class="cascade-field">
             <label for="originWarehouse">Almacén</label>
             <select
               id="originWarehouse"
-              class="form-select"
+              class="cascade-select"
               [ngModel]="originWarehouseId()"
               (ngModelChange)="onOriginWarehouseChange($event)"
               [disabled]="!originBranchId()">
               <option value="">Seleccionar almacén...</option>
               @for (wh of originWarehouses(); track wh.id) {
-                <option [value]="wh.id">{{ warehouseOptionLabel(wh) }}</option>
+                <option [value]="wh.id">{{ originWarehouseLabel(wh) }}</option>
               }
             </select>
-            @if (originBranchId() && originWarehouses().length === 0) {
-              <span class="field-hint field-hint--error">No hay almacenes activos en esta sucursal</span>
-            }
           </div>
         </div>
       </section>
 
-      <section class="transfer-section">
-        <div class="transfer-section__header">
-          <h3 class="transfer-section__title">Producto con stock</h3>
-        </div>
+      <section class="picker-section">
+        <h3 class="picker-section__title">Producto con stock</h3>
         <div class="origin-search">
           <div class="origin-search__field">
             <lucide-icon [img]="Search" class="origin-search__icon"></lucide-icon>
@@ -93,7 +102,7 @@
         </div>
 
         @if (!originWarehouseId()) {
-          <div class="empty-hint">Selecciona sucursal y almacén para ver productos disponibles.</div>
+          <div class="empty-hint">Selecciona razón social, sucursal y almacén para ver productos disponibles.</div>
         } @else if (searchingOrigin()) {
           <div class="empty-hint">Buscando stock...</div>
         } @else if (originCandidates().length === 0) {
@@ -137,186 +146,354 @@
       <button type="button" class="btn-cancel" (click)="close()">Cancelar</button>
     </div>
   } @else if (context(); as ctx) {
-    <div class="transfer-dialog__body">
-      <!-- Origen: strip limpio -->
-      <section class="origin-strip">
-        <div class="origin-strip__main">
-          <div class="origin-strip__product">
-            <span class="origin-strip__name">{{ ctx.product_name }}</span>
-            <span class="origin-strip__sku">{{ ctx.product_sku }} · {{ ctx.uom_name }}</span>
-          </div>
-          <div class="origin-strip__meta">
-            <div class="origin-strip__meta-item">
-              <span class="origin-strip__label">Almacén</span>
-              <span class="origin-strip__value">{{ ctx.source_warehouse.name }}</span>
-            </div>
-            <div class="origin-strip__meta-item">
-              <span class="origin-strip__label">Sucursal</span>
-              <span class="origin-strip__value">{{ sourceBranchLabel }}</span>
-            </div>
-            <div class="origin-strip__meta-item origin-strip__meta-item--stock">
-              <span class="origin-strip__label">Disponible</span>
-              <span class="origin-strip__value origin-strip__value--stock">
-                {{ formatQty(ctx.total_available_quantity) }} {{ ctx.uom_name }}
-                <span class="origin-strip__batches">{{ ctx.total_batches }} {{ ctx.total_batches === 1 ? 'lote' : 'lotes' }}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-        @if (openedFromList) {
-          <button type="button" class="btn-link" (click)="backToOrigin()">Cambiar origen</button>
-        }
-      </section>
+    <div class="transfer-flow">
+      <aside class="origin-pane">
+        <span class="origin-pane__kicker">Origen</span>
+        <p class="origin-pane__product">{{ ctx.product_name }}</p>
+        <p class="origin-pane__sku">{{ ctx.product_sku }} · {{ ctx.uom_name }}</p>
 
-      <!-- Lotes -->
-      <section class="transfer-section">
-        <div class="transfer-section__header">
-          <h3 class="transfer-section__title">Lotes a transferir</h3>
-          <button type="button" class="btn-link" (click)="transferAll()">Transferir todo</button>
-        </div>
-
-        <div class="batch-table-wrap">
-          <table class="batch-table">
-            <thead>
-              <tr>
-                <th class="col-check"></th>
-                <th>Lote</th>
-                <th>OC</th>
-                <th>Etiqueta</th>
-                <th class="text-right">Disponible</th>
-                <th class="text-right col-qty">A transferir</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (line of batchLines(); track line.batch.batch_id; let i = $index) {
-                <tr [class.batch-table__row--selected]="line.selected">
-                  <td class="col-check">
-                    <input
-                      type="checkbox"
-                      [checked]="line.selected"
-                      [disabled]="toNum(line.batch.available_quantity) <= 0"
-                      (change)="toggleBatch(i, $any($event.target).checked)"
-                    />
-                  </td>
-                  <td>
-                    <span class="batch-folio">{{ line.batch.batch_number }}</span>
-                  </td>
-                  <td class="text-blue-600">{{ line.batch.purchase_order_folio || '—' }}</td>
-                  <td>{{ line.batch.source_tag_identifier || '—' }}</td>
-                  <td class="text-right mono">{{ formatQty(line.batch.available_quantity) }}</td>
-                  <td class="text-right col-qty">
-                    @if (line.selected) {
-                      <div class="qty-cell">
-                        <input
-                          type="number"
-                          class="qty-input"
-                          [ngModel]="line.quantity"
-                          (ngModelChange)="updateQuantity(i, $event)"
-                          min="0"
-                          [max]="toNum(line.batch.available_quantity)"
-                          step="0.001"
-                        />
-                        <button
-                          type="button"
-                          class="btn-max"
-                          title="Usar todo el disponible"
-                          (click)="fillBatchAvailable(i)">
-                          Max
-                        </button>
-                      </div>
-                      @if (getLineError(line); as err) {
-                        <span class="qty-error">{{ err }}</span>
-                      }
-                    } @else {
-                      <span class="text-gray-400">—</span>
-                    }
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- Destino + notas en una fila amplia -->
-      <section class="transfer-section">
-        <h3 class="transfer-section__title">Destino</h3>
-        <div class="fields-row fields-row--3">
-          <div class="form-field">
-            <label for="destBranch">Sucursal</label>
-            <select
-              id="destBranch"
-              class="form-select"
-              [ngModel]="selectedBranchId()"
-              (ngModelChange)="onBranchChange($event)">
-              <option value="">Seleccionar...</option>
-              @for (branch of branches(); track branch.id) {
-                <option [value]="branch.id">{{ branchLabel(branch) }}</option>
-              }
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="destWarehouse">Almacén</label>
-            <select
-              id="destWarehouse"
-              class="form-select"
-              [ngModel]="selectedWarehouseId()"
-              (ngModelChange)="onWarehouseChange($event)"
-              [disabled]="!selectedBranchId()">
-              <option value="">Seleccionar...</option>
-              @for (wh of destinationWarehouses(); track wh.id) {
-                <option [value]="wh.id">{{ warehouseOptionLabel(wh) }}</option>
-              }
-            </select>
-            @if (selectedBranchId() && destinationWarehouses().length === 0) {
-              <span class="field-hint field-hint--error">No hay almacenes activos en esta sucursal</span>
+        @if (sourceLocation(); as loc) {
+          <div class="origin-pane__location">
+            @if (loc.fiscalName) {
+              <span class="origin-pane__fiscal">{{ loc.fiscalName }}</span>
             }
+            @if (loc.rfc) {
+              <span class="origin-pane__rfc">RFC {{ loc.rfc }}</span>
+            }
+            <span class="origin-pane__branch">{{ sourceBranchLine() }}</span>
+            <span class="origin-pane__warehouse">{{ loc.warehouseName }}</span>
           </div>
-          <div class="form-field">
-            <label for="transferNotes">Notas (opcional)</label>
-            <input
-              id="transferNotes"
-              type="text"
-              class="form-select"
-              placeholder="Motivo o referencia..."
-              [ngModel]="notes()"
-              (ngModelChange)="notes.set($event)"
-            />
-          </div>
-        </div>
-      </section>
-    </div>
+        }
 
-    <div class="transfer-dialog__footer transfer-dialog__footer--confirm">
-      <div class="footer-summary">
-        <div class="footer-summary__total">
-          <span class="footer-summary__label">Total</span>
-          <strong>{{ formatQty(totalToTransfer()) }} {{ ctx.uom_name }}</strong>
-          <span class="footer-summary__lots">· {{ selectedLinesCount() }} {{ selectedLinesCount() === 1 ? 'lote' : 'lotes' }}</span>
+        <div class="origin-pane__stock">
+          <span class="origin-pane__stock-label">Disponible</span>
+          <span class="origin-pane__stock-value">
+            {{ formatQty(ctx.total_available_quantity) }} {{ ctx.uom_name }}
+          </span>
         </div>
-        <div class="footer-summary__route">
-          {{ ctx.source_warehouse.name }}
-          <span class="footer-summary__arrow">→</span>
-          @if (selectedWarehouseId()) {
-            {{ destinationWarehouseName }}
-          } @else {
-            <span class="footer-summary__pending">elige destino</span>
+
+        <div class="origin-pane__total">
+          <strong>{{ formatQty(totalToTransfer()) }} {{ ctx.uom_name }}</strong>
+          <span>{{ selectedLinesCount() }} {{ selectedLinesCount() === 1 ? 'lote' : 'lotes' }}</span>
+        </div>
+
+        @if (openedFromList) {
+          <button type="button" class="btn-link origin-pane__change" (click)="backToOrigin()">
+            Cambiar origen
+          </button>
+        }
+      </aside>
+
+      <div class="flow-main">
+        <nav class="stepper" aria-label="Pasos de transferencia">
+          <button
+            type="button"
+            class="stepper__item"
+            [class.stepper__item--active]="activeStep() === 1"
+            [class.stepper__item--done]="activeStep() > 1"
+            (click)="goToStep(1)">
+            <span class="stepper__num">
+              @if (activeStep() > 1) {
+                <lucide-icon [img]="Check" class="stepper__check"></lucide-icon>
+              } @else {
+                1
+              }
+            </span>
+            Lotes
+          </button>
+          <span class="stepper__line" [class.stepper__line--on]="activeStep() > 1"></span>
+          <button
+            type="button"
+            class="stepper__item"
+            [class.stepper__item--active]="activeStep() === 2"
+            [class.stepper__item--done]="activeStep() > 2"
+            [class.stepper__item--locked]="!isStepUnlocked(2)"
+            [disabled]="!isStepUnlocked(2)"
+            (click)="goToStep(2)">
+            <span class="stepper__num">
+              @if (activeStep() > 2) {
+                <lucide-icon [img]="Check" class="stepper__check"></lucide-icon>
+              } @else {
+                2
+              }
+            </span>
+            Destino
+          </button>
+          <span class="stepper__line" [class.stepper__line--on]="activeStep() > 2"></span>
+          <button
+            type="button"
+            class="stepper__item"
+            [class.stepper__item--active]="activeStep() === 3"
+            [class.stepper__item--locked]="!isStepUnlocked(3)"
+            [disabled]="!isStepUnlocked(3)"
+            (click)="goToStep(3)">
+            <span class="stepper__num">3</span>
+            Listo
+          </button>
+        </nav>
+
+        <div class="flow-content">
+          @if (activeStep() === 1) {
+            <section class="step-block">
+              <div class="step-block__header">
+                <h3 class="step-block__title">Lotes a transferir</h3>
+                <button type="button" class="btn-link" (click)="transferAll()">Transferir todo</button>
+              </div>
+
+              <div class="lot-list">
+                @for (line of batchLines(); track line.batch.batch_id; let i = $index) {
+                  <div
+                    class="lot-row"
+                    [class.lot-row--selected]="line.selected"
+                    [class.lot-row--disabled]="toNum(line.batch.available_quantity) <= 0">
+                    <label class="lot-row__check">
+                      <input
+                        type="checkbox"
+                        [checked]="line.selected"
+                        [disabled]="toNum(line.batch.available_quantity) <= 0"
+                        (change)="toggleBatch(i, $any($event.target).checked)"
+                      />
+                    </label>
+                    <div class="lot-row__info">
+                      <span class="lot-row__folio">{{ line.batch.batch_number }}</span>
+                      <span class="lot-row__meta">
+                        {{ line.batch.purchase_order_folio || 'Sin OC' }}
+                        @if (line.batch.source_tag_identifier) {
+                          · {{ line.batch.source_tag_identifier }}
+                        }
+                      </span>
+                    </div>
+                    <div class="lot-row__avail">
+                      <span class="lot-row__avail-label">Disponible</span>
+                      <span class="lot-row__avail-value">{{ formatQty(line.batch.available_quantity) }}</span>
+                    </div>
+                    <div class="lot-row__qty">
+                      @if (line.selected) {
+                        <div class="qty-cell">
+                          <input
+                            type="number"
+                            class="qty-input"
+                            [ngModel]="line.quantity"
+                            (ngModelChange)="updateQuantity(i, $event)"
+                            min="0"
+                            [max]="toNum(line.batch.available_quantity)"
+                            step="0.001"
+                          />
+                          <button
+                            type="button"
+                            class="btn-max"
+                            title="Usar todo el disponible"
+                            (click)="fillBatchAvailable(i)">
+                            Max
+                          </button>
+                        </div>
+                        @if (getLineError(line); as err) {
+                          <span class="qty-error">{{ err }}</span>
+                        }
+                      } @else {
+                        <span class="lot-row__idle">—</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          @if (activeStep() === 2) {
+            <section class="step-block">
+              <h3 class="step-block__title">Destino</h3>
+
+              <div class="live-route">
+                <div class="live-route__col">
+                  <span class="live-route__kicker">Origen</span>
+                  @if (sourceLocation(); as loc) {
+                    <app-transfer-location-path [location]="loc" [withState]="true"></app-transfer-location-path>
+                  }
+                </div>
+                <lucide-icon [img]="ArrowRight" class="live-route__chevron"></lucide-icon>
+                <div class="live-route__col live-route__col--dest">
+                  <span class="live-route__kicker">Destino</span>
+                  @if (destinationLocation(); as dest) {
+                    <div class="loc-live">
+                      <span class="loc-live__fiscal" [class.loc-live__placeholder]="!selectedFiscalId()">
+                        {{ dest.fiscalName || 'Elige razón social' }}
+                      </span>
+                      <span class="loc-live__branch" [class.loc-live__placeholder]="!selectedBranchId()">
+                        {{ selectedBranchId() ? dest.branchCode || '—' : 'Elige sucursal' }}
+                      </span>
+                      <span class="loc-live__warehouse" [class.loc-live__placeholder]="!selectedWarehouseId()">
+                        {{ dest.warehouseName !== '—' ? dest.warehouseName : 'Elige almacén' }}
+                      </span>
+                    </div>
+                  } @else {
+                    <div class="loc-live">
+                      <span class="loc-live__placeholder">Elige razón social</span>
+                      <span class="loc-live__placeholder">Elige sucursal</span>
+                      <span class="loc-live__placeholder">Elige almacén</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              @if (destinations().length === 0) {
+                <div class="empty-hint">No hay almacenes destino disponibles.</div>
+              } @else {
+                <div class="cascade-fields cascade-fields--stack">
+                  <div class="cascade-field">
+                    <label for="destFiscal">Razón social</label>
+                    <select
+                      id="destFiscal"
+                      class="cascade-select cascade-select--prominent"
+                      [ngModel]="selectedFiscalId()"
+                      (ngModelChange)="onFiscalChange($event)">
+                      <option value="">Seleccionar razón social...</option>
+                      @for (fiscal of destinations(); track fiscal.id) {
+                        <option [value]="fiscal.id">{{ fiscalLabel(fiscal) }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="cascade-field">
+                    <label for="destBranch">Sucursal</label>
+                    <select
+                      id="destBranch"
+                      class="cascade-select cascade-select--prominent"
+                      [ngModel]="selectedBranchId()"
+                      (ngModelChange)="onBranchChange($event)"
+                      [disabled]="!selectedFiscalId()">
+                      <option value="">Seleccionar sucursal...</option>
+                      @for (branch of destinationBranches(); track branch.id) {
+                        <option [value]="branch.id">{{ destBranchLabel(branch) }}</option>
+                      }
+                    </select>
+                    @if (!selectedFiscalId()) {
+                      <span class="field-hint">Elige razón social primero</span>
+                    }
+                  </div>
+                  <div class="cascade-field">
+                    <label for="destWarehouse">Almacén</label>
+                    <select
+                      id="destWarehouse"
+                      class="cascade-select cascade-select--prominent"
+                      [ngModel]="selectedWarehouseId()"
+                      (ngModelChange)="onWarehouseChange($event)"
+                      [disabled]="!selectedBranchId()">
+                      <option value="">Seleccionar almacén...</option>
+                      @for (wh of destinationWarehouses(); track wh.id) {
+                        <option [value]="wh.id">{{ destWarehouseLabel(wh) }}</option>
+                      }
+                    </select>
+                    @if (!selectedBranchId()) {
+                      <span class="field-hint">Elige sucursal primero</span>
+                    }
+                  </div>
+                </div>
+              }
+            </section>
+          }
+
+          @if (activeStep() === 3) {
+            <section class="step-block">
+              <h3 class="step-block__title">Confirmar transferencia</h3>
+
+              <div class="confirm-notes">
+                <label for="transferNotes">Notas (opcional)</label>
+                <input
+                  id="transferNotes"
+                  type="text"
+                  class="cascade-select"
+                  placeholder="Traslado para surtir tienda centro"
+                  [ngModel]="notes()"
+                  (ngModelChange)="notes.set($event)"
+                />
+              </div>
+
+              <div class="confirm-summary">
+                <div class="confirm-summary__row">
+                  <span>Total</span>
+                  <strong>{{ formatQty(totalToTransfer()) }} {{ ctx.uom_name }} · {{ selectedLinesCount() }} {{ selectedLinesCount() === 1 ? 'lote' : 'lotes' }}</strong>
+                </div>
+                <div class="confirm-cards">
+                  <div class="confirm-card">
+                    <span class="confirm-card__kicker">Origen</span>
+                    @if (sourceLocation(); as loc) {
+                      <app-transfer-location-path
+                        [location]="loc"
+                        [showRfc]="true"
+                        [withState]="true"
+                        variant="detail">
+                      </app-transfer-location-path>
+                    }
+                  </div>
+                  <div class="confirm-card confirm-card--dest">
+                    <span class="confirm-card__kicker">Destino</span>
+                    @if (destinationLocation(); as dest) {
+                      <app-transfer-location-path
+                        [location]="dest"
+                        [showRfc]="true"
+                        [withState]="true"
+                        variant="detail">
+                      </app-transfer-location-path>
+                    }
+                  </div>
+                </div>
+                @if (crossingFiscal()) {
+                  <span class="fiscal-chip fiscal-chip--change">Cambio de razón social</span>
+                } @else {
+                  <span class="fiscal-chip fiscal-chip--same">Misma razón</span>
+                }
+              </div>
+            </section>
           }
         </div>
       </div>
-      <div class="footer-actions">
-        <button type="button" class="btn-cancel" (click)="close()" [disabled]="submitting()">Cancelar</button>
-        <button
-          type="button"
-          class="btn-confirm"
-          (click)="confirm()"
-          [disabled]="!canSubmit()">
-          @if (submitting()) {
-            Confirmando...
+    </div>
+
+    <div class="transfer-dialog__footer transfer-dialog__footer--confirm">
+      <div class="footer-route">
+        @if (footerRoute(); as route) {
+          <span class="footer-route__from">{{ route.from }}</span>
+          <lucide-icon [img]="ArrowRight" class="footer-route__arrow"></lucide-icon>
+          @if (route.to) {
+            <span class="footer-route__to">{{ route.to }}</span>
           } @else {
-            Confirmar transferencia
+            <span class="footer-route__pending">elige destino</span>
           }
-        </button>
+        }
+      </div>
+      <div class="footer-actions">
+        @if (activeStep() === 1) {
+          <button type="button" class="btn-cancel" (click)="close()" [disabled]="submitting()">Cancelar</button>
+          <button
+            type="button"
+            class="btn-confirm"
+            (click)="continue()"
+            [disabled]="!canGoToDestination()">
+            Continuar
+          </button>
+        } @else if (activeStep() === 2) {
+          <button type="button" class="btn-cancel" (click)="back()">Atrás</button>
+          <button
+            type="button"
+            class="btn-confirm"
+            (click)="continue()"
+            [disabled]="!canGoToConfirm()">
+            Continuar
+          </button>
+        } @else {
+          <button type="button" class="btn-cancel" (click)="back()" [disabled]="submitting()">Atrás</button>
+          <button
+            type="button"
+            class="btn-confirm"
+            (click)="confirm()"
+            [disabled]="!canSubmit()">
+            @if (submitting()) {
+              Confirmando...
+            } @else {
+              Confirmar transferencia
+            }
+          </button>
+        }
       </div>
     </div>
   }

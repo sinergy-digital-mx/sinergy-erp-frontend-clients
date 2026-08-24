@@ -228,6 +228,14 @@ export interface ProductQueryParams {
   status?: string;
 }
 
+export interface ProductCatalogExportFilters {
+  search?: string;
+  sku?: string;
+  category_id?: string;
+  subcategory_id?: string;
+  is_active?: boolean;
+}
+
 export interface ProductAttributeQueryParams {
   page?: number;
   limit?: number;

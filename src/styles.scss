@@ -218,16 +218,24 @@ main,
 }
 
 /* Modal transferencias de inventario */
+.cdk-overlay-pane.transfer-dialog-panel {
+  height: min(720px, 92vh);
+}
+
 .cdk-overlay-pane.transfer-dialog-panel .mat-mdc-dialog-container,
 .mat-mdc-dialog-panel.transfer-dialog-panel .mat-mdc-dialog-container {
   padding: 0 !important;
   overflow: hidden !important;
   border-radius: 1rem !important;
+  height: 100% !important;
 }
 
 .cdk-overlay-pane.transfer-dialog-panel .mat-mdc-dialog-surface,
 .mat-mdc-dialog-panel.transfer-dialog-panel .mat-mdc-dialog-surface {
   overflow: hidden !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column;
 }
 
 /* Modal detalle OV / OC: pantalla amplia + centrado real (evita pegarse a la izquierda) */

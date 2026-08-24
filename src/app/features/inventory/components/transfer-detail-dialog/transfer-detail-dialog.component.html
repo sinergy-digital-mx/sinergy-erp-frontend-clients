@@ -22,6 +22,38 @@
     <div class="transfer-detail__loading">Cargando...</div>
   } @else if (transfer(); as t) {
     <div class="transfer-detail__body">
+      <div class="route-cards">
+        <div class="route-card">
+          <span class="route-card__kicker">Origen</span>
+          @if (sourceLocation(); as loc) {
+            <app-transfer-location-path
+              [location]="loc"
+              [showRfc]="true"
+              [withState]="true"
+              variant="detail">
+            </app-transfer-location-path>
+          }
+        </div>
+        <lucide-icon [img]="ArrowRight" class="route-cards__arrow"></lucide-icon>
+        <div class="route-card route-card--dest">
+          <span class="route-card__kicker">Destino</span>
+          @if (destLocation(); as loc) {
+            <app-transfer-location-path
+              [location]="loc"
+              [showRfc]="true"
+              [withState]="true"
+              variant="detail">
+            </app-transfer-location-path>
+          }
+        </div>
+      </div>
+
+      @if (fiscalRelation() === true) {
+        <span class="fiscal-chip fiscal-chip--same">Misma razón</span>
+      } @else if (fiscalRelation() === false) {
+        <span class="fiscal-chip fiscal-chip--change">Cambio de razón social</span>
+      }
+
       <div class="info-grid">
         <div class="info-item">
           <span class="info-item__label">Producto</span>
@@ -31,18 +63,6 @@
           <span class="info-item__label">Cantidad total</span>
           <span class="info-item__value info-item__value--highlight">
             {{ t.total_quantity | removeTrailingZeros }} {{ t.uom_name }}
-          </span>
-        </div>
-        <div class="info-item">
-          <span class="info-item__label">Origen</span>
-          <span class="info-item__value">
-            {{ t.source_warehouse.billing_branch_code }} / {{ t.source_warehouse.name }}
-          </span>
-        </div>
-        <div class="info-item">
-          <span class="info-item__label">Destino</span>
-          <span class="info-item__value">
-            {{ t.destination_warehouse.billing_branch_code }} / {{ t.destination_warehouse.name }}
           </span>
         </div>
         <div class="info-item">

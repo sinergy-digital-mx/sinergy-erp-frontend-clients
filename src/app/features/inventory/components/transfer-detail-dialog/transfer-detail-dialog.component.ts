@@ -1,30 +1,52 @@
-import { Component, Inject, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { InventoryTransferService } from '../../services/inventory-transfer.service';
 import { InventoryTransfer } from '../../models/inventory-transfer.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
+import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 import { ToastService } from '../../../../core/services/toast.service';
-import { X, ArrowUpRight, ArrowDownLeft, Download } from 'lucide-angular';
+import { X, ArrowRight, Download } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
+import {
+  TransferLocationView,
+  fromTransferWarehouse,
+  isSameFiscal,
+} from '../../utils/transfer-location.util';
 
 @Component({
   selector: 'app-transfer-detail-dialog',
   standalone: true,
-  imports: [CommonModule, RemoveTrailingZerosPipe, LucideAngularModule],
+  imports: [CommonModule, RemoveTrailingZerosPipe, LucideAngularModule, TransferLocationPathComponent],
   templateUrl: './transfer-detail-dialog.component.html',
   styleUrl: './transfer-detail-dialog.component.scss',
 })
 export class TransferDetailDialogComponent implements OnInit {
   readonly X = X;
-  readonly ArrowUpRight = ArrowUpRight;
-  readonly ArrowDownLeft = ArrowDownLeft;
+  readonly ArrowRight = ArrowRight;
   readonly Download = Download;
 
   transfer = signal<InventoryTransfer | null>(null);
   loading = signal(true);
   downloadingPdf = signal(false);
+
+  sourceLocation = computed<TransferLocationView | null>(() => {
+    const t = this.transfer();
+    return t ? fromTransferWarehouse(t.source_warehouse) : null;
+  });
+
+  destLocation = computed<TransferLocationView | null>(() => {
+    const t = this.transfer();
+    return t ? fromTransferWarehouse(t.destination_warehouse) : null;
+  });
+
+  fiscalRelation = computed(() => {
+    const source = this.sourceLocation();
+    const dest = this.destLocation();
+    if (!source || !dest) return null;
+    return isSameFiscal(source, dest);
+  });
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { transferId: string },

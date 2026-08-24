@@ -10,6 +10,7 @@ import { TabComponent, TabItem } from '../../../../core/components/tab/tab.compo
 import { ProductService } from '../../services/product.service';
 import {
   Product,
+  CreateProductDto,
   UoM,
   UoMCatalog,
   ProductPrice,
@@ -40,26 +41,37 @@ export class ProductDetailModalComponent implements OnInit {
   // Exponer Number para el template
   Number = Number;
 
-  tabs: TabItem[] = [
-    { id: 'detalles', title: 'Detalles' },
-    { id: 'uoms', title: 'UOMs' },
-    { id: 'precios', title: 'Precios' },
-    { id: 'descuentos', title: 'Descuentos' },
-    { id: 'costos', title: 'Costos de Proveedor' },
-    { id: 'fotos', title: 'Fotos' }
-  ];
   activeTab = 'detalles';
 
+  get isPersistedProduct(): boolean {
+    return !!this.product?.id?.trim();
+  }
+
+  /** UOMs, precios, etc. solo cuando el producto ya existe en el API. */
+  get tabs(): TabItem[] {
+    const locked = !this.isPersistedProduct;
+    return [
+      { id: 'detalles', title: 'Detalles' },
+      { id: 'uoms', title: 'UOMs', disabled: locked },
+      { id: 'precios', title: 'Precios', disabled: locked },
+      { id: 'descuentos', title: 'Descuentos', disabled: locked },
+      { id: 'costos', title: 'Costos de Proveedor', disabled: locked },
+      { id: 'fotos', title: 'Fotos', disabled: locked },
+    ];
+  }
+
   onTabChange(tabId: string): void {
-    this.activeTab = tabId;
-    if (tabId === 'uoms') {
-      if (this.product?.id) {
-        this.loadUomCatalog(() => this.loadProductUoms());
-      } else {
-        this.loadUomCatalog();
-      }
+    if (tabId !== 'detalles' && !this.isPersistedProduct) {
+      this.activeTab = 'detalles';
+      this.showNotification('Primero crea el producto (nombre y SKU). Después podrás asignar UOMs.', 'info');
+      return;
     }
-    if (tabId === 'descuentos' && this.product?.id) {
+
+    this.activeTab = tabId;
+    if (tabId === 'uoms' && this.isPersistedProduct) {
+      this.loadUomCatalog(() => this.loadProductUoms());
+    }
+    if (tabId === 'descuentos' && this.isPersistedProduct) {
       this.loadProductDiscounts();
     }
   }
@@ -259,9 +271,9 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   loadProductPrices(): void {
-    if (!this.product) return;
-    
-    this.productService.getProductPrices(this.product.id).subscribe({
+    if (!this.isPersistedProduct) return;
+
+    this.productService.getProductPrices(this.product!.id).subscribe({
       next: (prices) => {
         console.log('Product prices loaded:', prices);
         this.product!.prices = prices;
@@ -295,9 +307,9 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   loadVendorCosts(): void {
-    if (!this.product) return;
-    
-    this.productService.getVendorCosts(this.product.id).subscribe({
+    if (!this.isPersistedProduct) return;
+
+    this.productService.getVendorCosts(this.product!.id).subscribe({
       next: (costs) => {
         console.log('Vendor costs loaded:', costs);
         this.product!.vendor_costs = costs;
@@ -331,9 +343,9 @@ export class ProductDetailModalComponent implements OnInit {
    * desfasado (sigue Pieza), se reaplica lo que el usuario guardó y se sincroniza `uom` con el catálogo.
    */
   loadProductUoms(catalogSnapshot?: Map<string, string>): void {
-    if (!this.product) return;
+    if (!this.isPersistedProduct) return;
 
-    this.productService.getAssignedUoMs(this.product.id).subscribe({
+    this.productService.getAssignedUoMs(this.product!.id).subscribe({
       next: (uoms) => {
         console.log('Product UOMs loaded:', uoms);
         this.product!.uoms = this.mapAssignedUomsResponse(uoms);
@@ -805,6 +817,79 @@ export class ProductDetailModalComponent implements OnInit {
     });
   }
 
+  private buildProductPayload(): CreateProductDto {
+    return {
+      sku: this.product!.sku.trim(),
+      external_sku: this.product!.external_sku?.trim() || undefined,
+      name: this.product!.name.trim(),
+      description: this.product!.description?.trim() || '',
+      sat_code: this.product!.sat_code?.trim() || undefined,
+      category_id: this.product!.category_id || undefined,
+      subcategory_id: this.product!.subcategory_id || undefined,
+      base_uom_id: this.product!.base_uom_id || undefined
+    };
+  }
+
+  private applyCreatedProduct(newProduct: Product): void {
+    const pendingUoms = this.product?.uoms ?? [];
+    const id = String(newProduct?.id ?? '').trim();
+    this.product = {
+      ...this.product,
+      ...newProduct,
+      id,
+      uoms: pendingUoms,
+    };
+    if (this.data) {
+      this.data.isNew = false;
+      this.data.product = this.product;
+    }
+    this.productUpdated.emit();
+  }
+
+  /** Crea el producto si aún no existe; las UOMs/precios requieren un ID persistido. */
+  private ensureProductPersisted(onReady: (productId: string) => void): void {
+    if (this.isPersistedProduct) {
+      onReady(this.product!.id);
+      return;
+    }
+
+    if (!this.product?.sku?.trim()) {
+      this.showNotification('El SKU es requerido. Complétalo en Detalles antes de guardar UOMs.', 'error');
+      return;
+    }
+    if (!this.product.name?.trim()) {
+      this.showNotification('El nombre es requerido. Complétalo en Detalles antes de guardar UOMs.', 'error');
+      return;
+    }
+
+    this.saving = true;
+    this.cdr.detectChanges();
+
+    this.productService.createProduct(this.buildProductPayload()).subscribe({
+      next: (newProduct) => {
+        this.applyCreatedProduct(newProduct);
+        const productId = this.product?.id?.trim();
+        if (!productId) {
+          this.saving = false;
+          this.cdr.detectChanges();
+          this.showNotification(
+            'El producto se creó, pero no se recibió su ID. Ciérralo y ábrelo desde el listado.',
+            'error'
+          );
+          return;
+        }
+        onReady(productId);
+      },
+      error: (error) => {
+        console.error('Error creating product:', error);
+        this.saving = false;
+        this.cdr.detectChanges();
+        const errorMessage = error.error?.message || error.message || 'Error al crear el producto';
+        this.showNotification(errorMessage, 'error');
+      }
+    });
+  }
+
   save(): void {
     if (!this.product) return;
 
@@ -821,43 +906,28 @@ export class ProductDetailModalComponent implements OnInit {
     console.log('Starting save, setting saving = true');
     this.saving = true;
     this.cdr.detectChanges();
-    
-    const body: any = {
-      sku: this.product.sku.trim(),
-      external_sku: this.product.external_sku?.trim() || undefined,
-      name: this.product.name.trim(),
-      description: this.product.description?.trim() || '',
-      sat_code: this.product.sat_code?.trim() || '',
-      category_id: this.product.category_id || undefined,
-      subcategory_id: this.product.subcategory_id || undefined,
-      base_uom_id: this.product.base_uom_id || undefined
-    };
 
+    const body = this.buildProductPayload();
     console.log('Saving product with body:', body);
 
-    // Determinar si es creación o actualización
-    const isNew = !this.product.id || this.data?.isNew;
-
-    if (isNew) {
-      // Crear nuevo producto
+    if (!this.isPersistedProduct) {
       this.productService.createProduct(body).subscribe({
         next: (newProduct) => {
           console.log('Product created successfully:', newProduct);
+          this.applyCreatedProduct(newProduct);
           this.saving = false;
           this.cdr.detectChanges();
-          this.showNotification('Producto creado correctamente', 'success');
-          this.dialogRef.close(newProduct);
+          this.showNotification('Producto creado correctamente. Ya puedes asignar UOMs.', 'success');
         },
         error: (error) => {
           console.error('Error creating product:', error);
           this.saving = false;
           this.cdr.detectChanges();
-          const errorMessage = error.error?.message || 'Error al crear el producto';
+          const errorMessage = error.error?.message || error.message || 'Error al crear el producto';
           this.showNotification(errorMessage, 'error');
         }
       });
     } else {
-      // Actualizar producto existente
       this.productService.updateProduct(this.product.id, body).subscribe({
         next: () => {
           console.log('Product saved successfully, setting saving = false');
@@ -944,6 +1014,10 @@ export class ProductDetailModalComponent implements OnInit {
 
   addUom(): void {
     if (!this.product) return;
+    if (!this.isPersistedProduct) {
+      this.showNotification('Primero crea el producto (nombre y SKU) para asignar UOMs.', 'info');
+      return;
+    }
     if (!this.product.uoms) this.product.uoms = [];
     
     // Crear nueva UOM vacía (temporal, sin ID hasta que se guarde)
@@ -1033,6 +1107,10 @@ export class ProductDetailModalComponent implements OnInit {
 
   saveUoms(): void {
     if (!this.product || !this.product.uoms) return;
+    if (!this.isPersistedProduct) {
+      this.showNotification('Primero crea el producto (nombre y SKU) para asignar UOMs.', 'info');
+      return;
+    }
     
     // Validar que haya al menos una UOM base
     const hasBase = this.product.uoms.some(u => u.is_base);
@@ -1054,23 +1132,36 @@ export class ProductDetailModalComponent implements OnInit {
       alert('Las UOMs no base deben tener un factor mayor a 0');
       return;
     }
-    
+
+    this.ensureProductPersisted((productId) => this.persistUoms(productId));
+  }
+
+  private persistUoms(productId: string): void {
+    const id = productId?.trim();
+    if (!id || !this.product?.uoms?.length) {
+      this.saving = false;
+      if (!id) {
+        this.showNotification('Guarda el producto (nombre y SKU) antes de asignar UOMs.', 'error');
+      }
+      return;
+    }
+
     this.saving = true;
-    
+
     // Separar UOMs nuevas de las existentes
-    const newUoms = this.product.uoms.filter(u => !u.id);
-    const existingUoms = this.product.uoms.filter(u => u.id);
-    
+    const newUoms = this.product.uoms.filter(u => !u.id?.trim());
+    const existingUoms = this.product.uoms.filter(u => !!u.id?.trim());
+
     // Contador de operaciones completadas
     let completed = 0;
     const total = newUoms.length + existingUoms.length;
-    
+
     if (total === 0) {
       this.saving = false;
       alert('No hay cambios para guardar');
       return;
     }
-    
+
     const checkComplete = () => {
       completed++;
       if (completed === total) {
@@ -1086,7 +1177,7 @@ export class ProductDetailModalComponent implements OnInit {
         this.loadUomCatalog(() => this.loadProductUoms(catalogSnapshot));
       }
     };
-    
+
     // Crear nuevas UOMs
     newUoms.forEach(uom => {
       const data = {
@@ -1095,12 +1186,12 @@ export class ProductDetailModalComponent implements OnInit {
         is_base: uom.is_base || false,
         parent_uom_id: uom.parent_uom_id || null
       };
-      
-      this.productService.createUOM(this.product!.id, data).subscribe({
+
+      this.productService.createUOM(id, data).subscribe({
         next: () => checkComplete(),
         error: (error) => {
           console.error('Error creating UOM:', error);
-          this.showNotification('Error al crear UOM', 'error');
+          this.showNotification(error?.message || 'Error al crear UOM', 'error');
           this.saving = false;
         }
       });
@@ -1115,7 +1206,7 @@ export class ProductDetailModalComponent implements OnInit {
         parent_uom_id: uom.parent_uom_id || null
       };
 
-      this.productService.updateUOM(this.product!.id, uom.id, data).subscribe({
+      this.productService.updateUOM(id, uom.id, data).subscribe({
         next: () => checkComplete(),
         error: (error) => {
           console.error('Error updating UOM:', error);

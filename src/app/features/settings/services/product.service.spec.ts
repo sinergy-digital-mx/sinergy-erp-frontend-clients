@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Router } from '@angular/router';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ProductService } from './product.service';
 import { Product, CreateProductDto, UpdateProductDto, ProductListResponse } from '../models/product.model';
 import { environment } from '../../../../environments/environment';
@@ -9,18 +11,25 @@ describe('ProductService', () => {
   let service: ProductService;
   let httpMock: HttpTestingController;
   const api = environment.api;
+  const routerMock = { navigate: vi.fn() };
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [ProductService]
+      providers: [
+        ProductService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: Router, useValue: routerMock },
+      ]
     });
     service = TestBed.inject(ProductService);
     httpMock = TestBed.inject(HttpTestingController);
+    routerMock.navigate.mockClear();
   });
 
   afterEach(() => {
     httpMock.verify();
+    TestBed.resetTestingModule();
   });
 
   it('should be created', () => {
@@ -138,6 +147,29 @@ describe('ProductService', () => {
       expect(req.request.body).toEqual(createDto);
       req.flush(mockProduct);
     });
+
+    it('should unwrap a nested create response and keep the product id', () => {
+      const createDto: CreateProductDto = {
+        sku: 'SKU002',
+        name: 'Product 2'
+      };
+
+      service.createProduct(createDto).subscribe(result => {
+        expect(result.id).toBe('abc-123');
+        expect(result.sku).toBe('SKU002');
+      });
+
+      const req = httpMock.expectOne(`${api}/tenant/products`);
+      req.flush({
+        data: {
+          id: 'abc-123',
+          sku: 'SKU002',
+          name: 'Product 2',
+          created_at: '2024-01-01',
+          updated_at: '2024-01-01'
+        }
+      });
+    });
   });
 
   describe('updateProduct', () => {
@@ -175,6 +207,47 @@ describe('ProductService', () => {
       const req = httpMock.expectOne(`${api}/tenant/products/1`);
       expect(req.request.method).toBe('DELETE');
       req.flush(null);
+    });
+  });
+
+  describe('exportProductCatalogExcel', () => {
+    it('should download the catalog with the current filters', () => {
+      const blob = new Blob(['xlsx'], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      service.exportProductCatalogExcel({ search: 'titebond', is_active: true }).subscribe((result) => {
+        expect(result.blob).toBe(blob);
+        expect(result.filename).toBe('catalogo-productos-2026-08-24.xlsx');
+      });
+
+      const req = httpMock.expectOne(
+        (request) =>
+          request.url === `${api}/tenant/products/export/excel` &&
+          request.params.get('search') === 'titebond' &&
+          request.params.get('is_active') === 'true'
+      );
+      expect(req.request.method).toBe('GET');
+      expect(req.request.responseType).toBe('blob');
+      req.flush(blob, {
+        headers: {
+          'content-disposition': 'attachment; filename="catalogo-productos-2026-08-24.xlsx"',
+        },
+      });
+    });
+
+    it('should show a permission error on 403', () => {
+      service.exportProductCatalogExcel().subscribe({
+        next: () => {
+          throw new Error('should not succeed');
+        },
+        error: (error: Error) => {
+          expect(error.message).toBe('No tienes permiso para descargar el catálogo');
+        },
+      });
+
+      const req = httpMock.expectOne(`${api}/tenant/products/export/excel`);
+      req.flush(new Blob([JSON.stringify({ message: 'forbidden' })]), { status: 403, statusText: 'Forbidden' });
     });
   });
 });

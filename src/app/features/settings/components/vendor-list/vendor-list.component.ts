@@ -29,6 +29,11 @@ import { AlertDialogComponent } from '../../../../core/components/alert-dialog/a
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
+import {
+  VendorExportDialogComponent,
+  VendorExportDialogResult,
+} from '../vendor-export-dialog/vendor-export-dialog.component';
+import { ToastService } from '../../../../core/services/toast.service';
 import { ArrowRight } from 'lucide-angular';
 
 
@@ -143,7 +148,9 @@ export class VendorListComponent implements OnDestroy {
 
     private dialog: MatDialog,
 
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+
+    private toast: ToastService
 
   ) {
 
@@ -452,6 +459,30 @@ export class VendorListComponent implements OnDestroy {
 
     return type === 'INTERNATIONAL' ? 'Internacional' : 'Nacional';
 
+  }
+
+
+
+  openExportModal(): void {
+    this.dialog
+      .open(VendorExportDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: {
+          search: this.search?.trim() || undefined,
+          vendor_type: this.vendorTypeFilter || undefined,
+          vendor_type_label: this.vendorTypeFilter
+            ? this.getVendorTypeLabel(this.vendorTypeFilter)
+            : undefined,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: VendorExportDialogResult | undefined) => {
+        if (result?.downloaded) {
+          this.toast.success('Reporte descargado');
+        }
+      });
   }
 
 

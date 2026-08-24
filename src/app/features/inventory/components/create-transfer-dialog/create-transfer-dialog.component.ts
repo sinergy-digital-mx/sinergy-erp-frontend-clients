@@ -2,20 +2,41 @@ import { Component, Inject, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { LucideAngularModule, X, ArrowRightLeft, Search } from 'lucide-angular';
+import {
+  ArrowRight,
+  ArrowRightLeft,
+  Check,
+  Search,
+  X,
+} from 'lucide-angular';
+import { LucideAngularModule } from 'lucide-angular';
 import { InventoryTransferService } from '../../services/inventory-transfer.service';
 import { InventoryService } from '../../services/inventory.service';
-import { WarehouseService } from '../../../settings/services/warehouse.service';
-import { BranchService } from '../../../settings/services/branch.service';
 import {
   CreateTransferDialogData,
   TransferContext,
   TransferContextBatch,
+  TransferDestinationBranch,
+  TransferDestinationWarehouse,
 } from '../../models/inventory-transfer.model';
 import { InventorySummaryItem } from '../../models/inventory-item.model';
-import { Warehouse } from '../../../settings/models/warehouse.model';
-import { Branch } from '../../../settings/models/branch.model';
+import {
+  InventoryLocationFiscal,
+  InventoryLocationBranch,
+  InventoryLocationWarehouse,
+} from '../../models/inventory-location.model';
 import { ToastService } from '../../../../core/services/toast.service';
+import {
+  TransferLocationView,
+  branchLine,
+  destinationBranchLabel,
+  destinationToLocationView,
+  fiscalOptionLabel,
+  fromContextWarehouse,
+  isSameFiscal,
+  shortFiscalLabel,
+} from '../../utils/transfer-location.util';
+import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 
 interface BatchLineState {
   batch: TransferContextBatch;
@@ -23,20 +44,25 @@ interface BatchLineState {
   quantity: number;
 }
 
+type TransferStep = 1 | 2 | 3;
+
 @Component({
   selector: 'app-create-transfer-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, TransferLocationPathComponent],
   templateUrl: './create-transfer-dialog.component.html',
   styleUrl: './create-transfer-dialog.component.scss',
 })
 export class CreateTransferDialogComponent implements OnInit {
   readonly X = X;
   readonly ArrowRightLeft = ArrowRightLeft;
+  readonly ArrowRight = ArrowRight;
   readonly Search = Search;
+  readonly Check = Check;
 
   /** false = elegir producto/almacén origen; true = flujo de transferencia */
   stepReady = signal(false);
+  activeStep = signal<TransferStep>(1);
 
   context = signal<TransferContext | null>(null);
   batchLines = signal<BatchLineState[]>([]);
@@ -44,14 +70,15 @@ export class CreateTransferDialogComponent implements OnInit {
   submitting = signal(false);
   searchingOrigin = signal(false);
 
-  branches = signal<Branch[]>([]);
-  warehouses = signal<Warehouse[]>([]);
+  locations = signal<InventoryLocationFiscal[]>([]);
   originCandidates = signal<InventorySummaryItem[]>([]);
 
+  originFiscalId = signal('');
   originBranchId = signal('');
   originWarehouseId = signal('');
   originSearch = signal('');
 
+  selectedFiscalId = signal('');
   selectedBranchId = signal('');
   selectedWarehouseId = signal('');
   notes = signal('');
@@ -61,22 +88,59 @@ export class CreateTransferDialogComponent implements OnInit {
   /** UOM del stock a transferir (lote / totalizado), no el default del producto */
   private uomId = '';
 
-  originWarehouses = computed(() => {
-    const branchId = this.originBranchId();
-    if (!branchId) return [];
-    return this.warehouses().filter(
-      w => w.billing_branch_id === branchId && w.status === 'active'
+  originFiscal = computed(() =>
+    this.locations().find(f => f.id === this.originFiscalId()) ?? null
+  );
+
+  originBranches = computed(() => this.originFiscal()?.branches ?? []);
+
+  originWarehouses = computed(() =>
+    this.originBranches().find(b => b.id === this.originBranchId())?.warehouses ?? []
+  );
+
+  destinations = computed(() => this.context()?.destinations ?? []);
+
+  selectedFiscal = computed(() =>
+    this.destinations().find(f => f.id === this.selectedFiscalId()) ?? null
+  );
+
+  destinationBranches = computed(() => this.selectedFiscal()?.branches ?? []);
+
+  selectedBranch = computed(() =>
+    this.destinationBranches().find(b => b.id === this.selectedBranchId()) ?? null
+  );
+
+  destinationWarehouses = computed(() => this.selectedBranch()?.warehouses ?? []);
+
+  selectedWarehouse = computed(() =>
+    this.destinationWarehouses().find(w => w.id === this.selectedWarehouseId()) ?? null
+  );
+
+  sourceLocation = computed<TransferLocationView | null>(() => {
+    const wh = this.context()?.source_warehouse;
+    return wh ? fromContextWarehouse(wh) : null;
+  });
+
+  destinationLocation = computed<TransferLocationView | null>(() => {
+    const fiscal = this.selectedFiscal();
+    const branch = this.selectedBranch();
+    const warehouse = this.selectedWarehouse();
+    if (!fiscal && !branch && !warehouse) return null;
+    return destinationToLocationView(
+      fiscal,
+      branch,
+      warehouse?.name ?? '',
+      warehouse?.id ?? '',
+      warehouse?.code ?? ''
     );
   });
 
-  destinationWarehouses = computed(() => {
-    const branchId = this.selectedBranchId();
-    const sourceId = this.context()?.source_warehouse.id ?? this.warehouseId;
-    if (!branchId) return [];
-
-    return this.warehouses().filter(
-      w => w.billing_branch_id === branchId && w.status === 'active' && w.id !== sourceId
-    );
+  crossingFiscal = computed(() => {
+    const source = this.sourceLocation();
+    const dest = this.destinationLocation();
+    if (!source || !dest || !this.selectedWarehouseId()) return false;
+    const same = isSameFiscal(source, dest);
+    return same === false;
   });
 
   totalToTransfer = computed(() =>
@@ -89,15 +153,24 @@ export class CreateTransferDialogComponent implements OnInit {
     this.batchLines().filter(l => l.selected && l.quantity > 0).length
   );
 
+  linesValid = computed(() => {
+    const selected = this.batchLines().filter(l => l.selected);
+    if (selected.length === 0) return false;
+    return selected.every(l => l.quantity > 0 && l.quantity <= this.toNum(l.batch.available_quantity));
+  });
+
+  canGoToDestination = computed(() => this.totalToTransfer() > 0 && this.linesValid());
+
+  canGoToConfirm = computed(
+    () => this.canGoToDestination() && !!this.selectedWarehouseId()
+  );
+
   canSubmit = computed(() => {
     if (this.submitting() || this.loading() || !this.stepReady()) return false;
     if (!this.selectedWarehouseId()) return false;
-    if (this.totalToTransfer() <= 0) return false;
-    if (this.selectedLinesCount() === 0) return false;
-    if (this.destinationWarehouses().length === 0 && this.selectedBranchId()) return false;
-    return this.batchLines()
-      .filter(l => l.selected)
-      .every(l => l.quantity > 0 && l.quantity <= this.toNum(l.batch.available_quantity));
+    if (!this.canGoToDestination()) return false;
+    const sourceId = this.context()?.source_warehouse.id ?? this.warehouseId;
+    return this.selectedWarehouseId() !== sourceId;
   });
 
   constructor(
@@ -105,13 +178,11 @@ export class CreateTransferDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<CreateTransferDialogComponent>,
     private transferService: InventoryTransferService,
     private inventoryService: InventoryService,
-    private warehouseService: WarehouseService,
-    private branchService: BranchService,
     private toast: ToastService
   ) {}
 
   ngOnInit(): void {
-    this.loadBranchesAndWarehouses();
+    this.loadLocations();
 
     if (this.data.product_id && this.data.warehouse_id) {
       this.productId = this.data.product_id;
@@ -125,18 +196,21 @@ export class CreateTransferDialogComponent implements OnInit {
     }
   }
 
+  private loadLocations(): void {
+    this.inventoryService.getLocations().subscribe({
+      next: (locations) => this.locations.set(locations),
+      error: () => this.toast.error('No se pudo cargar el catálogo de ubicaciones'),
+    });
+  }
+
   private loadContext(): void {
     this.loading.set(true);
     this.transferService.getContext(this.productId, this.warehouseId, this.uomId || undefined).subscribe({
       next: (ctx) => {
-        // Preferir UOM del lote/origen; el context sin uom_id puede devolver el UOM default del producto
-        if (this.uomId) {
-          ctx = { ...ctx, uom_id: this.uomId };
-        } else if (ctx.uom_id) {
-          this.uomId = ctx.uom_id;
-        }
-        this.context.set(ctx);
+        this.applyContext(ctx);
         this.initBatchLines(ctx);
+        this.resetDestination();
+        this.activeStep.set(1);
         this.loading.set(false);
       },
       error: (err) => {
@@ -148,6 +222,18 @@ export class CreateTransferDialogComponent implements OnInit {
           this.stepReady.set(false);
         }
       },
+    });
+  }
+
+  private applyContext(ctx: TransferContext): void {
+    if (this.uomId) {
+      ctx = { ...ctx, uom_id: this.uomId };
+    } else if (ctx.uom_id) {
+      this.uomId = ctx.uom_id;
+    }
+    this.context.set({
+      ...ctx,
+      destinations: ctx.destinations ?? [],
     });
   }
 
@@ -170,18 +256,6 @@ export class CreateTransferDialogComponent implements OnInit {
     this.batchLines.set(lines);
   }
 
-  private loadBranchesAndWarehouses(): void {
-    this.branchService.getAllBranches().subscribe({
-      next: (branches) => this.branches.set(branches),
-      error: () => this.toast.error('No se pudieron cargar las sucursales'),
-    });
-
-    this.warehouseService.getWarehouses({ limit: 100, status: 'active' }).subscribe({
-      next: (response) => this.warehouses.set(response.data || []),
-      error: () => this.toast.error('No se pudieron cargar los almacenes'),
-    });
-  }
-
   toNum(val: string | number | undefined): number {
     if (val === undefined || val === null) return 0;
     const n = typeof val === 'string' ? parseFloat(val) : val;
@@ -190,17 +264,36 @@ export class CreateTransferDialogComponent implements OnInit {
 
   formatQty(val: string | number | undefined): string {
     return new Intl.NumberFormat('es-MX', {
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 3,
       maximumFractionDigits: 3,
     }).format(this.toNum(val));
   }
 
-  branchLabel(branch: Branch): string {
-    return `${branch.code} — ${branch.city}, ${branch.state}`;
+  fiscalLabel(fiscal: { razon_social?: string; rfc?: string }): string {
+    return fiscalOptionLabel(fiscal);
   }
 
-  warehouseOptionLabel(wh: Warehouse): string {
-    return wh.code ? `${wh.code} — ${wh.name}` : wh.name;
+  originBranchLabel(branch: InventoryLocationBranch): string {
+    return branch.name;
+  }
+
+  originWarehouseLabel(wh: InventoryLocationWarehouse): string {
+    return wh.name;
+  }
+
+  destBranchLabel(branch: TransferDestinationBranch): string {
+    return destinationBranchLabel(branch);
+  }
+
+  destWarehouseLabel(wh: TransferDestinationWarehouse): string {
+    return wh.name;
+  }
+
+  onOriginFiscalChange(fiscalId: string): void {
+    this.originFiscalId.set(fiscalId);
+    this.originBranchId.set('');
+    this.originWarehouseId.set('');
+    this.originCandidates.set([]);
   }
 
   onOriginBranchChange(branchId: string): void {
@@ -258,9 +351,9 @@ export class CreateTransferDialogComponent implements OnInit {
     this.stepReady.set(false);
     this.context.set(null);
     this.batchLines.set([]);
-    this.selectedBranchId.set('');
-    this.selectedWarehouseId.set('');
+    this.resetDestination();
     this.notes.set('');
+    this.activeStep.set(1);
     this.productId = '';
     this.warehouseId = '';
     this.uomId = '';
@@ -309,6 +402,12 @@ export class CreateTransferDialogComponent implements OnInit {
     );
   }
 
+  onFiscalChange(fiscalId: string): void {
+    this.selectedFiscalId.set(fiscalId);
+    this.selectedBranchId.set('');
+    this.selectedWarehouseId.set('');
+  }
+
   onBranchChange(branchId: string): void {
     this.selectedBranchId.set(branchId);
     this.selectedWarehouseId.set('');
@@ -318,12 +417,58 @@ export class CreateTransferDialogComponent implements OnInit {
     this.selectedWarehouseId.set(warehouseId);
   }
 
+  private resetDestination(): void {
+    this.selectedFiscalId.set('');
+    this.selectedBranchId.set('');
+    this.selectedWarehouseId.set('');
+  }
+
   getLineError(line: BatchLineState): string | null {
     if (!line.selected) return null;
     const available = this.toNum(line.batch.available_quantity);
     if (line.quantity <= 0) return 'Cantidad debe ser mayor a 0';
     if (line.quantity > available) return `Máximo ${this.formatQty(available)}`;
     return null;
+  }
+
+  goToStep(step: TransferStep): void {
+    if (step === 1) {
+      this.activeStep.set(1);
+      return;
+    }
+    if (step === 2 && this.canGoToDestination()) {
+      this.activeStep.set(2);
+      return;
+    }
+    if (step === 3 && this.canGoToConfirm()) {
+      this.activeStep.set(3);
+    }
+  }
+
+  continue(): void {
+    if (this.activeStep() === 1 && this.canGoToDestination()) {
+      this.activeStep.set(2);
+      return;
+    }
+    if (this.activeStep() === 2 && this.canGoToConfirm()) {
+      this.activeStep.set(3);
+    }
+  }
+
+  back(): void {
+    if (this.activeStep() === 3) {
+      this.activeStep.set(2);
+      return;
+    }
+    if (this.activeStep() === 2) {
+      this.activeStep.set(1);
+    }
+  }
+
+  isStepUnlocked(step: TransferStep): boolean {
+    if (step === 1) return true;
+    if (step === 2) return this.canGoToDestination();
+    return this.canGoToConfirm();
   }
 
   close(): void {
@@ -346,13 +491,8 @@ export class CreateTransferDialogComponent implements OnInit {
 
     this.transferService.getContext(this.productId, this.warehouseId, this.uomId || undefined).subscribe({
       next: (freshCtx) => {
-        if (this.uomId) {
-          freshCtx = { ...freshCtx, uom_id: this.uomId };
-        } else if (freshCtx.uom_id) {
-          this.uomId = freshCtx.uom_id;
-        }
-        this.context.set(freshCtx);
-        this.submitTransfer(freshCtx);
+        this.applyContext(freshCtx);
+        this.submitTransfer(this.context()!);
       },
       error: (err) => {
         this.submitting.set(false);
@@ -398,21 +538,31 @@ export class CreateTransferDialogComponent implements OnInit {
     });
   }
 
-  get destinationBranchLabel(): string {
-    const branch = this.branches().find(b => b.id === this.selectedBranchId());
-    return branch ? this.branchLabel(branch) : '';
-  }
+  footerRoute = computed(() => {
+    const source = this.sourceLocation();
+    const dest = this.destinationLocation();
+    const fromWarehouse = source?.warehouseName || 'Origen';
 
-  get destinationWarehouseName(): string {
-    const wh = this.warehouses().find(w => w.id === this.selectedWarehouseId());
-    return wh?.name ?? '';
-  }
+    if (!this.selectedWarehouseId() || !dest) {
+      return { from: fromWarehouse, to: '' };
+    }
 
-  get sourceBranchLabel(): string {
-    const wh = this.context()?.source_warehouse;
-    if (!wh?.billing_branch) return '';
-    const bb = wh.billing_branch;
-    return `${bb.code} — ${bb.city}, ${bb.state}`;
+    if (this.crossingFiscal() && source) {
+      return {
+        from: `${shortFiscalLabel(source)} / ${source.branchCode || '—'} / ${source.warehouseName}`,
+        to: `${shortFiscalLabel(dest)} / ${dest.branchCode || '—'} / ${dest.warehouseName}`,
+      };
+    }
+
+    return {
+      from: fromWarehouse,
+      to: `${dest.branchCode || '—'} / ${dest.warehouseName}`,
+    };
+  });
+
+  sourceBranchLine(withState = true): string {
+    const loc = this.sourceLocation();
+    return loc ? branchLine(loc, withState) : '';
   }
 
   get openedFromList(): boolean {

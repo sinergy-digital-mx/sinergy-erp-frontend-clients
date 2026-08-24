@@ -1,34 +1,45 @@
 <div class="settings-list-page px-4 pb-6">
-  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-    <h2 class="text-2xl font-semibold text-gray-800">Productos</h2>
-    <div class="flex flex-wrap items-center gap-2">
-      <app-button
-        text="Categorías"
-        size="sm"
-        custom_class="btn_secondary"
-        (clicked)="openCategoriesDialog()">
-      </app-button>
+  <div class="product-list-header">
+    <h2 class="product-list-header__title">Productos</h2>
+    <div class="product-list-header__actions">
+      <div class="product-list-btn-group" role="group" aria-label="Administrar catálogo">
+        <button
+          type="button"
+          class="product-list-btn-group__btn"
+          (click)="openCategoriesDialog()">
+          Categorías
+        </button>
+        <button
+          type="button"
+          class="product-list-btn-group__btn"
+          (click)="openUOMsDialog()">
+          Unidades
+        </button>
+        <button
+          type="button"
+          class="product-list-btn-group__btn"
+          (click)="openPriceListsDialog()">
+          Listas de precios
+        </button>
+      </div>
 
-      <app-button
-        text="Unidades"
-        size="sm"
-        custom_class="btn_secondary"
-        (clicked)="openUOMsDialog()">
-      </app-button>
+      @if (canExportCatalog) {
+        <button
+          type="button"
+          class="product-list-header__export"
+          (click)="openCatalogExportDialog()">
+          <i class="fi fi-rr-download" aria-hidden="true"></i>
+          Descargar catálogo
+        </button>
+      }
 
-      <app-button
-        text="Listas de Precios"
-        size="sm"
-        custom_class="btn_secondary"
-        (clicked)="openPriceListsDialog()">
-      </app-button>
-
-      <app-button
-        text="Nuevo Producto"
-        size="sm"
-        custom_class="btn_primary"
-        (clicked)="openCreateProductModal()">
-      </app-button>
+      <button
+        type="button"
+        class="product-list-header__create"
+        (click)="openCreateProductModal()">
+        <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
+        Nuevo producto
+      </button>
     </div>
   </div>
 

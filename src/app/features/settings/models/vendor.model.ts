@@ -82,3 +82,12 @@ export interface VendorQueryParams {
   country?: string;
   vendor_type?: VendorType;
 }
+
+/** Filtros del listado reutilizados en GET /tenant/vendors/export/excel */
+export interface VendorsExportFilters {
+  search?: string;
+  status?: 'active' | 'inactive';
+  vendor_type?: VendorType;
+  state?: string;
+  country?: string;
+}

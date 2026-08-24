@@ -17,7 +17,7 @@ export const SETTINGS_PERMISSIONS = {
     manageUOMs: 'products:ManageUOMs',
     managePrices: 'products:ManagePrices',
     manageCategories: 'products:ManageCategories',
-    export: 'products:Export',
+    export: 'Product:Export',
     import: 'products:Import'
   },
   

@@ -1,16 +1,21 @@
-import { Component, OnInit, signal, ViewChild, TemplateRef, HostListener, ElementRef } from '@angular/core';
+import { Component, OnInit, signal, computed, ViewChild, TemplateRef, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { InventoryTransferService } from '../../services/inventory-transfer.service';
+import { InventoryService } from '../../services/inventory.service';
 import { InventoryTransfer, TransferFilters } from '../../models/inventory-transfer.model';
-import { WarehouseService } from '../../../settings/services/warehouse.service';
-import { Warehouse } from '../../../settings/models/warehouse.model';
+import {
+  InventoryLocationFiscal,
+  InventoryLocationBranch,
+  InventoryLocationWarehouse,
+} from '../../models/inventory-location.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
+import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
@@ -18,6 +23,12 @@ import { ArrowLeft, Download, ListFilter } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { ToastService } from '../../../../core/services/toast.service';
+import {
+  TransferLocationView,
+  fiscalOptionLabel,
+  fromTransferWarehouse,
+  isSameFiscal,
+} from '../../utils/transfer-location.util';
 
 @Component({
   selector: 'app-transfer-list',
@@ -27,6 +38,7 @@ import { ToastService } from '../../../../core/services/toast.service';
     FormsModule,
     RouterLink,
     DatatableWrapperComponent,
+    TransferLocationPathComponent,
     RemoveTrailingZerosPipe,
     LucideAngularModule,
     FilterClearButtonComponent,
@@ -42,19 +54,40 @@ export class TransferListComponent implements OnInit {
   readonly ListFilter = ListFilter;
 
   searchTerm = signal('');
+  sourceFiscalId = signal('');
+  sourceBranchId = signal('');
   sourceWarehouseId = signal('');
-  destinationWarehouseId = signal('');
+  destFiscalId = signal('');
+  destBranchId = signal('');
+  destWarehouseId = signal('');
   createdFrom = signal('');
   createdTo = signal('');
   downloadingPdfId = signal<string | null>(null);
 
   filtersOpen = signal(false);
+  draftSourceFiscalId = signal('');
+  draftSourceBranchId = signal('');
   draftSourceWarehouseId = signal('');
-  draftDestinationWarehouseId = signal('');
+  draftDestFiscalId = signal('');
+  draftDestBranchId = signal('');
+  draftDestWarehouseId = signal('');
   draftCreatedFrom = signal('');
   draftCreatedTo = signal('');
 
-  warehouses = signal<Warehouse[]>([]);
+  locations = signal<InventoryLocationFiscal[]>([]);
+
+  draftSourceBranches = computed(() =>
+    this.locations().find(f => f.id === this.draftSourceFiscalId())?.branches ?? []
+  );
+  draftSourceWarehouses = computed(() =>
+    this.draftSourceBranches().find(b => b.id === this.draftSourceBranchId())?.warehouses ?? []
+  );
+  draftDestBranches = computed(() =>
+    this.locations().find(f => f.id === this.draftDestFiscalId())?.branches ?? []
+  );
+  draftDestWarehouses = computed(() =>
+    this.draftDestBranches().find(b => b.id === this.draftDestBranchId())?.warehouses ?? []
+  );
 
   private transfersData = signal<InventoryTransfer[]>([]);
   private paginationState = signal({ page: 1, limit: 20 });
@@ -66,8 +99,8 @@ export class TransferListComponent implements OnInit {
       { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 120 },
       { name: 'Producto', prop: 'product_name', sortable: false, canAutoResize: false, width: 180 },
       { name: 'Cantidad', prop: 'total_quantity', sortable: false, canAutoResize: false, width: 110 },
-      { name: 'Origen', prop: 'source_warehouse', sortable: false, canAutoResize: false, width: 160 },
-      { name: 'Destino', prop: 'destination_warehouse', sortable: false, canAutoResize: false, width: 160 },
+      { name: 'Origen', prop: 'source_warehouse', sortable: false, canAutoResize: false, width: 210 },
+      { name: 'Destino', prop: 'destination_warehouse', sortable: false, canAutoResize: false, width: 220 },
       { name: 'Usuario', prop: 'created_by_user', sortable: false, canAutoResize: false, width: 140 },
       { name: 'Fecha', prop: 'created_at', sortable: false, canAutoResize: false, width: 120 },
       { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: false, width: 90 },
@@ -85,7 +118,7 @@ export class TransferListComponent implements OnInit {
 
   constructor(
     private transferService: InventoryTransferService,
-    private warehouseService: WarehouseService,
+    private inventoryService: InventoryService,
     private dialog: MatDialog,
     private authService: AuthService,
     private toast: ToastService,
@@ -110,13 +143,13 @@ export class TransferListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadWarehouses();
+    this.loadLocations();
     this.loadTransfers();
   }
 
-  private loadWarehouses(): void {
-    this.warehouseService.getWarehouses({ limit: 100, status: 'active' }).subscribe({
-      next: (response) => this.warehouses.set(response.data || []),
+  private loadLocations(): void {
+    this.inventoryService.getLocations().subscribe({
+      next: (locations) => this.locations.set(locations),
     });
   }
 
@@ -124,13 +157,21 @@ export class TransferListComponent implements OnInit {
     this.table_config.update(c => ({ ...c, loading: true }));
 
     const { page, limit } = this.paginationState();
-    // Solo filtros de almacén (y fechas/búsqueda). Sucursal = null → el API trae todo.
+    const sourceFiscal = this.sourceFiscalId() || undefined;
+    const sourceBranch = sourceFiscal ? (this.sourceBranchId() || undefined) : undefined;
+    const sourceWarehouse = sourceBranch ? (this.sourceWarehouseId() || undefined) : undefined;
+    const destFiscal = this.destFiscalId() || undefined;
+    const destBranch = destFiscal ? (this.destBranchId() || undefined) : undefined;
+    const destWarehouse = destBranch ? (this.destWarehouseId() || undefined) : undefined;
+
     const filters: TransferFilters = {
       search: this.searchTerm() || undefined,
-      source_warehouse_id: this.sourceWarehouseId() || undefined,
-      destination_warehouse_id: this.destinationWarehouseId() || undefined,
-      source_billing_branch_id: undefined,
-      destination_billing_branch_id: undefined,
+      source_fiscal_configuration_id: sourceFiscal,
+      source_billing_branch_id: sourceBranch,
+      source_warehouse_id: sourceWarehouse,
+      destination_fiscal_configuration_id: destFiscal,
+      destination_billing_branch_id: destBranch,
+      destination_warehouse_id: destWarehouse,
       created_from: this.createdFrom() || undefined,
       created_to: this.createdTo() || undefined,
     };
@@ -167,8 +208,12 @@ export class TransferListComponent implements OnInit {
 
   get hasPanelFilters(): boolean {
     return !!(
+      this.sourceFiscalId() ||
+      this.sourceBranchId() ||
       this.sourceWarehouseId() ||
-      this.destinationWarehouseId() ||
+      this.destFiscalId() ||
+      this.destBranchId() ||
+      this.destWarehouseId() ||
       this.createdFrom() ||
       this.createdTo()
     );
@@ -176,8 +221,12 @@ export class TransferListComponent implements OnInit {
 
   get panelFilterCount(): number {
     return [
+      this.sourceFiscalId(),
+      this.sourceBranchId(),
       this.sourceWarehouseId(),
-      this.destinationWarehouseId(),
+      this.destFiscalId(),
+      this.destBranchId(),
+      this.destWarehouseId(),
       this.createdFrom(),
       this.createdTo(),
     ].filter(Boolean).length;
@@ -192,8 +241,12 @@ export class TransferListComponent implements OnInit {
       this.closeFilters();
       return;
     }
+    this.draftSourceFiscalId.set(this.sourceFiscalId());
+    this.draftSourceBranchId.set(this.sourceBranchId());
     this.draftSourceWarehouseId.set(this.sourceWarehouseId());
-    this.draftDestinationWarehouseId.set(this.destinationWarehouseId());
+    this.draftDestFiscalId.set(this.destFiscalId());
+    this.draftDestBranchId.set(this.destBranchId());
+    this.draftDestWarehouseId.set(this.destWarehouseId());
     this.draftCreatedFrom.set(this.createdFrom());
     this.draftCreatedTo.set(this.createdTo());
     this.filtersOpen.set(true);
@@ -204,8 +257,12 @@ export class TransferListComponent implements OnInit {
   }
 
   applyFilters(): void {
+    this.sourceFiscalId.set(this.draftSourceFiscalId());
+    this.sourceBranchId.set(this.draftSourceBranchId());
     this.sourceWarehouseId.set(this.draftSourceWarehouseId());
-    this.destinationWarehouseId.set(this.draftDestinationWarehouseId());
+    this.destFiscalId.set(this.draftDestFiscalId());
+    this.destBranchId.set(this.draftDestBranchId());
+    this.destWarehouseId.set(this.draftDestWarehouseId());
     this.createdFrom.set(this.draftCreatedFrom());
     this.createdTo.set(this.draftCreatedTo());
     this.filtersOpen.set(false);
@@ -214,16 +271,46 @@ export class TransferListComponent implements OnInit {
 
   clearFilters(): void {
     this.searchTerm.set('');
+    this.sourceFiscalId.set('');
+    this.sourceBranchId.set('');
     this.sourceWarehouseId.set('');
-    this.destinationWarehouseId.set('');
+    this.destFiscalId.set('');
+    this.destBranchId.set('');
+    this.destWarehouseId.set('');
     this.createdFrom.set('');
     this.createdTo.set('');
+    this.draftSourceFiscalId.set('');
+    this.draftSourceBranchId.set('');
     this.draftSourceWarehouseId.set('');
-    this.draftDestinationWarehouseId.set('');
+    this.draftDestFiscalId.set('');
+    this.draftDestBranchId.set('');
+    this.draftDestWarehouseId.set('');
     this.draftCreatedFrom.set('');
     this.draftCreatedTo.set('');
     this.filtersOpen.set(false);
     this.onFilterChange();
+  }
+
+  onDraftSourceFiscalChange(id: string): void {
+    this.draftSourceFiscalId.set(id);
+    this.draftSourceBranchId.set('');
+    this.draftSourceWarehouseId.set('');
+  }
+
+  onDraftSourceBranchChange(id: string): void {
+    this.draftSourceBranchId.set(id);
+    this.draftSourceWarehouseId.set('');
+  }
+
+  onDraftDestFiscalChange(id: string): void {
+    this.draftDestFiscalId.set(id);
+    this.draftDestBranchId.set('');
+    this.draftDestWarehouseId.set('');
+  }
+
+  onDraftDestBranchChange(id: string): void {
+    this.draftDestBranchId.set(id);
+    this.draftDestWarehouseId.set('');
   }
 
   onPageChange(event: IPaginationEvent): void {
@@ -234,7 +321,8 @@ export class TransferListComponent implements OnInit {
   openCreate(): void {
     this.dialog.open(CreateTransferDialogComponent, {
       data: {},
-      width: 'min(1180px, 96vw)',
+      width: 'min(1100px, 96vw)',
+      height: '720px',
       maxWidth: '96vw',
       maxHeight: '92vh',
       panelClass: 'transfer-dialog-panel',
@@ -280,11 +368,27 @@ export class TransferListComponent implements OnInit {
     return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
-  warehouseLabel(wh: { name: string; billing_branch_code: string }): string {
-    return `${wh.billing_branch_code} / ${wh.name}`;
+  fiscalLabel(fiscal: InventoryLocationFiscal): string {
+    return fiscalOptionLabel(fiscal);
   }
 
-  warehouseOptionLabel(wh: Warehouse): string {
-    return wh.code ? `${wh.code} — ${wh.name}` : wh.name;
+  branchLabel(branch: InventoryLocationBranch): string {
+    return branch.name;
+  }
+
+  warehouseLabel(wh: InventoryLocationWarehouse): string {
+    return wh.name;
+  }
+
+  sourceView(transfer: InventoryTransfer): TransferLocationView {
+    return fromTransferWarehouse(transfer.source_warehouse);
+  }
+
+  destView(transfer: InventoryTransfer): TransferLocationView {
+    return fromTransferWarehouse(transfer.destination_warehouse);
+  }
+
+  fiscalRelation(transfer: InventoryTransfer): boolean | null {
+    return isSameFiscal(this.sourceView(transfer), this.destView(transfer));
   }
 }

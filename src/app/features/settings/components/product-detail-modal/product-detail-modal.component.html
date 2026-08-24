@@ -2,7 +2,7 @@
 <div class="product-detail-modal">
   <!-- Header -->
   <div class="modal-header">
-    <h2>{{ data?.isNew ? 'Crear Producto' : 'Editar Producto' }}</h2>
+    <h2>{{ isPersistedProduct ? 'Editar Producto' : 'Crear Producto' }}</h2>
     <button class="close-btn" (click)="hide()" type="button">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
         <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
@@ -126,9 +126,13 @@
             </div>
           </div>
 
+          <p class="form-hint" *ngIf="!isPersistedProduct">
+            Primero crea el producto. Después se habilitan UOMs, precios, descuentos y fotos.
+          </p>
+
           <div class="form-actions">
             <button class="btn btn--primary" (click)="save()" [disabled]="saving" type="button">
-              <span *ngIf="!saving">Guardar cambios</span>
+              <span *ngIf="!saving">{{ isPersistedProduct ? 'Guardar cambios' : 'Crear producto' }}</span>
               <span *ngIf="saving">Guardando...</span>
             </button>
           </div>

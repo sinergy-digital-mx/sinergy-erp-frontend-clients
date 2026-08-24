@@ -75,17 +75,23 @@ export class InventoryTransferService {
 
     if (filters.search) params = params.set('search', filters.search);
     if (filters.product_id) params = params.set('product_id', filters.product_id);
-    if (filters.source_warehouse_id) {
-      params = params.set('source_warehouse_id', filters.source_warehouse_id);
-    }
-    if (filters.destination_warehouse_id) {
-      params = params.set('destination_warehouse_id', filters.destination_warehouse_id);
+    if (filters.source_fiscal_configuration_id) {
+      params = params.set('source_fiscal_configuration_id', filters.source_fiscal_configuration_id);
     }
     if (filters.source_billing_branch_id) {
       params = params.set('source_billing_branch_id', filters.source_billing_branch_id);
     }
+    if (filters.source_warehouse_id) {
+      params = params.set('source_warehouse_id', filters.source_warehouse_id);
+    }
+    if (filters.destination_fiscal_configuration_id) {
+      params = params.set('destination_fiscal_configuration_id', filters.destination_fiscal_configuration_id);
+    }
     if (filters.destination_billing_branch_id) {
       params = params.set('destination_billing_branch_id', filters.destination_billing_branch_id);
+    }
+    if (filters.destination_warehouse_id) {
+      params = params.set('destination_warehouse_id', filters.destination_warehouse_id);
     }
     if (filters.created_from) params = params.set('created_from', filters.created_from);
     if (filters.created_to) params = params.set('created_to', filters.created_to);

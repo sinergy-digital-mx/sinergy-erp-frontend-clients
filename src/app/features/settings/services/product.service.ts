@@ -1,10 +1,12 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { Observable, from, of, throwError } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import {
   Product, CreateProductDto, UpdateProductDto, ProductListResponse, ProductQueryParams,
+  ProductCatalogExportFilters,
   Category, SubCategory, CategoryQueryParams, SubCategoryQueryParams,
   ProductPhoto, ProductPrice, PriceList, CreatePriceListDto, CreateProductPriceDto,
   VendorProductPrice, CreateVendorPriceDto,
@@ -18,8 +20,8 @@ import {
 })
 export class ProductService {
   private api = environment.api;
-
-  constructor(private http: HttpClient) { }
+  private http = inject(HttpClient);
+  private router = inject(Router);
 
   // ─── Products ───────────────────────────────────────────────
 
@@ -102,7 +104,25 @@ export class ProductService {
   }
 
   createProduct(data: CreateProductDto): Observable<Product> {
-    return this.http.post<Product>(`${this.api}/tenant/products`, data);
+    return this.http.post<unknown>(`${this.api}/tenant/products`, data).pipe(
+      map((response) => this.unwrapProduct(response))
+    );
+  }
+
+  /** Acepta el producto plano o envuelto en `{ data }` / `{ product }`. */
+  private unwrapProduct(response: unknown): Product {
+    const root =
+      response && typeof response === 'object' ? (response as Record<string, unknown>) : {};
+    const nestedCandidate = root['data'] ?? root['product'];
+    const nested =
+      nestedCandidate && typeof nestedCandidate === 'object' && !Array.isArray(nestedCandidate)
+        ? (nestedCandidate as Record<string, unknown>)
+        : root;
+    const id = String(nested['id'] ?? '').trim();
+    if (!id) {
+      throw new Error('No se recibió el identificador del producto');
+    }
+    return { ...(nested as unknown as Product), id };
   }
 
   updateProduct(id: string, data: UpdateProductDto): Observable<Product> {
@@ -115,6 +135,91 @@ export class ProductService {
 
   deleteProduct(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/products/${id}`);
+  }
+
+  exportProductCatalogExcel(
+    filters: ProductCatalogExportFilters = {}
+  ): Observable<{ blob: Blob; filename: string }> {
+    let params = new HttpParams();
+    const entries: [keyof ProductCatalogExportFilters, string | boolean | undefined][] = [
+      ['search', filters.search],
+      ['sku', filters.sku],
+      ['category_id', filters.category_id],
+      ['subcategory_id', filters.subcategory_id],
+      ['is_active', filters.is_active],
+    ];
+
+    for (const [key, value] of entries) {
+      if (value !== undefined && value !== null && value !== '') {
+        params = params.set(key, String(value));
+      }
+    }
+
+    return this.http
+      .get(`${this.api}/tenant/products/export/excel`, {
+        params,
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((response) => {
+          const disposition = response.headers.get('content-disposition') ?? undefined;
+          const filename =
+            this.parseFilenameFromDisposition(disposition) ??
+            `catalogo-productos-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+          return { blob: response.body as Blob, filename };
+        }),
+        catchError((error) => this.handleCatalogExportError(error))
+      );
+  }
+
+  private parseFilenameFromDisposition(header?: string): string | null {
+    if (!header) {
+      return null;
+    }
+    const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(header);
+    if (utfMatch?.[1]) {
+      try {
+        return decodeURIComponent(utfMatch[1].trim());
+      } catch {
+        return utfMatch[1].trim();
+      }
+    }
+    const match = /filename="([^"]+)"/i.exec(header) ?? /filename=([^;]+)/i.exec(header);
+    return match?.[1]?.trim().replace(/^["']|["']$/g, '') ?? null;
+  }
+
+  private handleCatalogExportError(error: HttpErrorResponse): Observable<never> {
+    if (error.status === 403) {
+      return throwError(() => new Error('No tienes permiso para descargar el catálogo'));
+    }
+    if (error.status === 401) {
+      this.router.navigate(['/login']);
+      return throwError(() => new Error('Sesión expirada. Por favor, inicia sesión nuevamente.'));
+    }
+
+    if (error.error instanceof Blob) {
+      return from(error.error.text()).pipe(
+        switchMap((text) => {
+          let message = '';
+          try {
+            const json = JSON.parse(text) as { message?: string | string[] };
+            if (Array.isArray(json.message)) {
+              message = json.message.join(', ');
+            } else if (typeof json.message === 'string') {
+              message = json.message;
+            }
+          } catch {
+            // El cuerpo no es JSON
+          }
+
+          return throwError(() => new Error(message || 'No se pudo generar el catálogo'));
+        })
+      );
+    }
+
+    return throwError(() => new Error('No se pudo generar el catálogo'));
   }
 
   // ─── Product Attributes (Tenant) ────────────────────────────
@@ -236,6 +341,9 @@ export class ProductService {
   // ─── Product UoMs ───────────────────────────────────────────
 
   getAssignedUoMs(productId: string): Observable<any[]> {
+    if (!productId?.trim()) {
+      return of([]);
+    }
     return this.http.get<any[]>(`${this.api}/tenant/products/${productId}/uoms`);
   }
 
@@ -254,7 +362,11 @@ export class ProductService {
   }
 
   createUOM(productId: string, data: { uom_catalog_id: string; factor?: number; is_base?: boolean; parent_uom_id?: string | null }): Observable<any> {
-    return this.http.post<any>(`${this.api}/tenant/products/${productId}/uoms`, data);
+    const id = productId?.trim();
+    if (!id) {
+      return throwError(() => new Error('Guarda el producto antes de asignar UOMs'));
+    }
+    return this.http.post<any>(`${this.api}/tenant/products/${id}/uoms`, data);
   }
 
   updateUOM(
@@ -262,11 +374,19 @@ export class ProductService {
     uomId: string,
     data: { uom_catalog_id?: string; factor?: number; is_base?: boolean; parent_uom_id?: string | null }
   ): Observable<any> {
-    return this.http.patch<any>(`${this.api}/tenant/products/${productId}/uoms/${uomId}`, data);
+    const id = productId?.trim();
+    if (!id || !uomId?.trim()) {
+      return throwError(() => new Error('Guarda el producto antes de actualizar UOMs'));
+    }
+    return this.http.patch<any>(`${this.api}/tenant/products/${id}/uoms/${uomId}`, data);
   }
 
   deleteUOM(productId: string, uomId: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/tenant/products/${productId}/uoms/${uomId}`);
+    const id = productId?.trim();
+    if (!id || !uomId?.trim()) {
+      return throwError(() => new Error('Guarda el producto antes de eliminar UOMs'));
+    }
+    return this.http.delete<void>(`${this.api}/tenant/products/${id}/uoms/${uomId}`);
   }
 
   // ─── UoM Relationships / Conversions ────────────────────────

@@ -140,12 +140,50 @@
   top: calc(100% + 0.5rem);
   right: 0;
   z-index: 40;
-  width: min(22rem, calc(100vw - 2rem));
+  width: min(40rem, calc(100vw - 2rem));
   padding: 1rem;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 0.875rem;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+.filters-panel__sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filters-side {
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+
+  legend {
+    padding: 0;
+    margin-bottom: 0.15rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9ca3af;
+  }
+}
+
+.filters-panel__dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #f3f4f6;
 }
 
 .filters-panel__grid {
@@ -179,6 +217,12 @@
       outline: none;
       border-color: #a5b4fc;
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+
+    &:disabled {
+      background: #f9fafb;
+      color: #9ca3af;
+      cursor: not-allowed;
     }
   }
 }
@@ -244,5 +288,51 @@
   &:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+  }
+}
+
+.route-cell {
+  vertical-align: top;
+}
+
+.route-cell--dest {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.route-arrow {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: #c7d2fe;
+  font-weight: 700;
+}
+
+.fiscal-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.35rem;
+  height: 1.3rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+
+  &--same {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  &--change {
+    background: #eef2ff;
+    color: #4338ca;
+  }
+}
+
+@media (max-width: 768px) {
+  .route-cell--dest {
+    flex-direction: column;
+    gap: 0.25rem;
   }
 }

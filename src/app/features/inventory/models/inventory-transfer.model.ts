@@ -8,15 +8,54 @@ export interface TransferContextBatch {
   source_tag_identifier?: string | null;
 }
 
+export interface TransferContextFiscal {
+  id: string;
+  razon_social: string;
+  rfc: string;
+}
+
+export interface TransferContextBranch {
+  id: string;
+  code: string;
+  name?: string;
+  city?: string;
+  state?: string;
+  fiscal_configuration?: TransferContextFiscal;
+}
+
 export interface TransferContextWarehouse {
   id: string;
   name: string;
-  billing_branch: {
-    id: string;
-    code: string;
-    city: string;
-    state: string;
-  };
+  code?: string;
+  billing_branch?: TransferContextBranch;
+  billing_branch_code?: string;
+  billing_branch_city?: string;
+  billing_branch_state?: string;
+  fiscal_configuration_id?: string;
+  fiscal_razon_social?: string;
+  fiscal_rfc?: string;
+}
+
+export interface TransferDestinationWarehouse {
+  id: string;
+  name: string;
+  code?: string;
+}
+
+export interface TransferDestinationBranch {
+  id: string;
+  name: string;
+  code?: string;
+  city?: string;
+  state?: string;
+  warehouses: TransferDestinationWarehouse[];
+}
+
+export interface TransferDestinationFiscal {
+  id: string;
+  razon_social: string;
+  rfc: string;
+  branches: TransferDestinationBranch[];
 }
 
 export interface TransferContext {
@@ -28,6 +67,7 @@ export interface TransferContext {
   total_available_quantity: string;
   total_batches: number;
   source_warehouse: TransferContextWarehouse;
+  destinations?: TransferDestinationFiscal[];
   batches: TransferContextBatch[];
 }
 
@@ -48,7 +88,14 @@ export interface CreateTransferDto {
 export interface TransferWarehouseSummary {
   id: string;
   name: string;
+  code?: string;
+  billing_branch_id?: string;
   billing_branch_code: string;
+  billing_branch_city?: string;
+  billing_branch_state?: string;
+  fiscal_configuration_id?: string;
+  fiscal_razon_social?: string;
+  fiscal_rfc?: string;
 }
 
 export interface TransferLine {
@@ -79,10 +126,12 @@ export interface InventoryTransfer {
 export interface TransferFilters {
   search?: string;
   product_id?: string;
-  source_warehouse_id?: string;
-  destination_warehouse_id?: string;
+  source_fiscal_configuration_id?: string;
   source_billing_branch_id?: string;
+  source_warehouse_id?: string;
+  destination_fiscal_configuration_id?: string;
   destination_billing_branch_id?: string;
+  destination_warehouse_id?: string;
   created_from?: string;
   created_to?: string;
 }
