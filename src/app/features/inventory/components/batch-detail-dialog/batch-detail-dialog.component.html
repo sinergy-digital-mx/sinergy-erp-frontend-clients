@@ -28,6 +28,7 @@
   }
 
   @if (!loading() && batch()) {
+    <div class="batch-detail__content">
     @if (batch()?.transferred_from_batch_number) {
       <div class="transfer-origin-banner">
         Este lote proviene de la transferencia del lote
@@ -339,6 +340,7 @@
         </div>
       </div>
     }
+    </div>
   }
 </div>
 

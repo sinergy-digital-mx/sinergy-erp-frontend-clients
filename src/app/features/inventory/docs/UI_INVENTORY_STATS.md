@@ -1,6 +1,8 @@
 # UI — Cards de stats de inventario
 
-Fila de KPI cards encima de filtros / tabs en **Por Lotes** y **Totalizado**.
+Fila de KPI cards encima de filtros / tabs en **Por Lotes** (`/inventory/lotes`) y **Totalizado** (`/inventory/totalizado`).
+`/inventory` redirige a **totalizado**. Por defecto se selecciona la primera razón social.
+Header, stats y filtros viven en el shell y se comparten al cambiar de pestaña.
 Los números siguen la cascada razón social → sucursal → almacén. No cambian con search ni paginación.
 
 **POS no cambia.**

@@ -50,6 +50,8 @@ interface MenuItem {
   permissions?: string[];
   /** Si se define, el ítem solo se muestra para este tenant. */
   tenantId?: string;
+  /** false = activo en rutas hijas (p. ej. /inventory/lotes). Default true. */
+  exact?: boolean;
 }
 
 interface MenuSection {
@@ -190,7 +192,8 @@ export class Sidebar implements OnInit, OnDestroy {
       route: '/inventory',
       icon: Package,
       id: 'menu-inventory',
-      permission: PERMISSIONS.inventory.viewMenu
+      permission: PERMISSIONS.inventory.viewMenu,
+      exact: false,
     },
     {
       label: 'Punto de Venta',

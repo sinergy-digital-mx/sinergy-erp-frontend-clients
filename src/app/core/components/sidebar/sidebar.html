@@ -40,7 +40,7 @@
                 @for (item of section.items; track item.id) {
                   <a [routerLink]="item.route"
                      routerLinkActive="router-link-active"
-                     [routerLinkActiveOptions]="{ exact: true }"
+                     [routerLinkActiveOptions]="{ exact: item.exact !== false }"
                      (click)="closeMobileMenu()"
                      [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
                      [title]="isCollapsed() && !isMobileOpen() ? item.label : ''">

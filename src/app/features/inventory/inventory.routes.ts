@@ -4,17 +4,6 @@ import { INVENTORY_PERMISSIONS } from './config/permissions.config';
 
 export const INVENTORY_ROUTES: Routes = [
   {
-    path: '',
-    loadComponent: () =>
-      import('./components/inventory-batch-list/inventory-batch-list.component')
-        .then(m => m.InventoryBatchListComponent),
-    canActivate: [permissionGuard],
-    data: {
-      permissions: [INVENTORY_PERMISSIONS.viewList],
-      title: 'Inventario'
-    }
-  },
-  {
     path: 'transfers',
     loadComponent: () =>
       import('./components/transfer-list/transfer-list.component')
@@ -24,5 +13,33 @@ export const INVENTORY_ROUTES: Routes = [
       permissions: [INVENTORY_PERMISSIONS.viewList],
       title: 'Transferencias de inventario'
     }
-  }
+  },
+  {
+    path: '',
+    loadComponent: () =>
+      import('./components/inventory-batch-list/inventory-batch-list.component')
+        .then(m => m.InventoryBatchListComponent),
+    canActivate: [permissionGuard],
+    data: {
+      permissions: [INVENTORY_PERMISSIONS.viewList],
+      title: 'Inventario'
+    },
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'totalizado' },
+      {
+        path: 'lotes',
+        loadComponent: () =>
+          import('./components/inventory-batches-view/inventory-batches-view.component')
+            .then(m => m.InventoryBatchesViewComponent),
+        data: { title: 'Inventario' },
+      },
+      {
+        path: 'totalizado',
+        loadComponent: () =>
+          import('./components/inventory-summary-view/inventory-summary-view.component')
+            .then(m => m.InventorySummaryViewComponent),
+        data: { title: 'Inventario totalizado' },
+      },
+    ],
+  },
 ];

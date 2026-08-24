@@ -84,10 +84,15 @@
 }
 
 .route-cards__arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 1.15rem;
   height: 1.15rem;
+  line-height: 0;
   color: #a5b4fc;
   align-self: center;
+  overflow: hidden;
 }
 
 .route-card {

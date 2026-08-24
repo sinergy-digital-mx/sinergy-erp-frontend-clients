@@ -2,7 +2,7 @@
   <div class="transfer-dialog__header">
     <div class="transfer-dialog__title-row">
       <div class="transfer-dialog__icon-wrap">
-        <lucide-icon [img]="ArrowRightLeft" class="transfer-dialog__icon"></lucide-icon>
+        <lucide-icon [img]="ArrowRightLeft" [size]="20" class="transfer-dialog__icon"></lucide-icon>
       </div>
       <div>
         <h2 class="transfer-dialog__title">Transferir inventario</h2>
@@ -16,7 +16,7 @@
       </div>
     </div>
     <button type="button" class="transfer-dialog__close" (click)="close()" aria-label="Cerrar">
-      <lucide-icon [img]="X" class="w-5 h-5"></lucide-icon>
+      <lucide-icon [img]="X" [size]="20"></lucide-icon>
     </button>
   </div>
 
@@ -77,7 +77,7 @@
         <h3 class="picker-section__title">Producto con stock</h3>
         <div class="origin-search">
           <div class="origin-search__field">
-            <lucide-icon [img]="Search" class="origin-search__icon"></lucide-icon>
+            <lucide-icon [img]="Search" [size]="16" class="origin-search__icon"></lucide-icon>
             <input
               type="text"
               class="origin-search__input"
@@ -194,7 +194,7 @@
             (click)="goToStep(1)">
             <span class="stepper__num">
               @if (activeStep() > 1) {
-                <lucide-icon [img]="Check" class="stepper__check"></lucide-icon>
+                <lucide-icon [img]="Check" [size]="12" class="stepper__check"></lucide-icon>
               } @else {
                 1
               }
@@ -212,7 +212,7 @@
             (click)="goToStep(2)">
             <span class="stepper__num">
               @if (activeStep() > 2) {
-                <lucide-icon [img]="Check" class="stepper__check"></lucide-icon>
+                <lucide-icon [img]="Check" [size]="12" class="stepper__check"></lucide-icon>
               } @else {
                 2
               }
@@ -311,7 +311,7 @@
                     <app-transfer-location-path [location]="loc" [withState]="true"></app-transfer-location-path>
                   }
                 </div>
-                <lucide-icon [img]="ArrowRight" class="live-route__chevron"></lucide-icon>
+                <lucide-icon [img]="ArrowRight" [size]="18" class="live-route__chevron"></lucide-icon>
                 <div class="live-route__col live-route__col--dest">
                   <span class="live-route__kicker">Destino</span>
                   @if (destinationLocation(); as dest) {
@@ -453,7 +453,7 @@
       <div class="footer-route">
         @if (footerRoute(); as route) {
           <span class="footer-route__from">{{ route.from }}</span>
-          <lucide-icon [img]="ArrowRight" class="footer-route__arrow"></lucide-icon>
+          <lucide-icon [img]="ArrowRight" [size]="15" class="footer-route__arrow"></lucide-icon>
           @if (route.to) {
             <span class="footer-route__to">{{ route.to }}</span>
           } @else {
