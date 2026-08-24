@@ -127,11 +127,15 @@
           </div>
 
           <p class="form-hint" *ngIf="!isPersistedProduct">
-            Primero crea el producto. Después se habilitan UOMs, precios, descuentos y fotos.
+            Primero crea el producto. Luego asigna una UOM para poder cargar precios, costos y descuentos.
+          </p>
+          <p class="form-hint" *ngIf="isPersistedProduct && !hasAssignedUoms">
+            Asigna al menos una UOM para habilitar precios, costos y descuentos.
           </p>
 
           <div class="form-actions">
             <button class="btn btn--primary" (click)="save()" [disabled]="saving" type="button">
+              <span class="btn-spinner" *ngIf="saving"></span>
               <span *ngIf="!saving">{{ isPersistedProduct ? 'Guardar cambios' : 'Crear producto' }}</span>
               <span *ngIf="saving">Guardando...</span>
             </button>
@@ -141,11 +145,17 @@
         <!-- Tab: UOMs -->
         <div *ngIf="activeTab === 'uoms'" class="tab-pane">
           <div class="tab-header">
-            <button class="btn btn--sm btn--primary" (click)="addUom()" type="button">+ Agregar UOM</button>
+            <button class="btn btn--sm btn--primary" (click)="addUom()" type="button" [disabled]="loadingUoms || saving">+ Agregar UOM</button>
           </div>
 
-          <div *ngIf="!product.uoms || product.uoms.length === 0" class="empty-state">
+          <div *ngIf="loadingUoms && (!product.uoms || product.uoms.length === 0)" class="tab-loader">
+            <div class="spinner"></div>
+            <p>Cargando UOMs...</p>
+          </div>
+
+          <div *ngIf="!loadingUoms && (!product.uoms || product.uoms.length === 0)" class="empty-state">
             <p>No hay UOMs configuradas</p>
+            <p class="form-hint">Sin una UOM no se pueden cargar precios, costos ni descuentos.</p>
           </div>
 
           <table *ngIf="product.uoms && product.uoms.length > 0" class="data-table uom-table">
@@ -192,6 +202,7 @@
 
           <div class="form-actions" *ngIf="product.uoms && product.uoms.length > 0">
             <button class="btn btn--primary" (click)="saveUoms()" [disabled]="saving" type="button">
+              <span class="btn-spinner" *ngIf="saving"></span>
               <span *ngIf="!saving">Guardar UOMs</span>
               <span *ngIf="saving">Guardando...</span>
             </button>
@@ -201,10 +212,15 @@
         <!-- Tab: Precios -->
         <div *ngIf="activeTab === 'precios'" class="tab-pane">
           <div class="tab-header">
-            <button class="btn btn--sm btn--primary" (click)="openPriceModal()" type="button">+ Agregar Precio</button>
+            <button class="btn btn--sm btn--primary" (click)="openPriceModal()" type="button" [disabled]="loadingPrices">+ Agregar Precio</button>
           </div>
 
-          <div *ngIf="!product.prices || product.prices.length === 0" class="empty-state">
+          <div *ngIf="loadingPrices && (!product.prices || product.prices.length === 0)" class="tab-loader">
+            <div class="spinner"></div>
+            <p>Cargando precios...</p>
+          </div>
+
+          <div *ngIf="!loadingPrices && (!product.prices || product.prices.length === 0)" class="empty-state">
             <p>No hay precios configurados</p>
           </div>
 
@@ -248,10 +264,15 @@
         <!-- Tab: Descuentos -->
         <div *ngIf="activeTab === 'descuentos'" class="tab-pane">
           <div class="tab-header" *ngIf="product.discounts && product.discounts.length > 0">
-            <button class="btn btn--sm btn--primary" (click)="openDiscountModal()" type="button">+ Agregar descuento</button>
+            <button class="btn btn--sm btn--primary" (click)="openDiscountModal()" type="button" [disabled]="loadingDiscounts">+ Agregar descuento</button>
           </div>
 
-          <div *ngIf="!product.discounts || product.discounts.length === 0" class="empty-state empty-state--discounts">
+          <div *ngIf="loadingDiscounts && (!product.discounts || product.discounts.length === 0)" class="tab-loader">
+            <div class="spinner"></div>
+            <p>Cargando descuentos...</p>
+          </div>
+
+          <div *ngIf="!loadingDiscounts && (!product.discounts || product.discounts.length === 0)" class="empty-state empty-state--discounts">
             <div class="empty-state__content">
               <p class="empty-state__title">Sin descuentos configurados</p>
               <p class="empty-state__subtitle">Los descuentos activos aparecerán disponibles en POS al vender este producto.</p>
@@ -305,10 +326,15 @@
         <!-- Tab: Costos -->
         <div *ngIf="activeTab === 'costos'" class="tab-pane">
           <div class="tab-header">
-            <button class="btn btn--sm btn--primary" (click)="openCostModal()" type="button">+ Agregar Costo</button>
+            <button class="btn btn--sm btn--primary" (click)="openCostModal()" type="button" [disabled]="loadingCosts">+ Agregar Costo</button>
           </div>
 
-          <div *ngIf="!product.vendor_costs || product.vendor_costs.length === 0" class="empty-state">
+          <div *ngIf="loadingCosts && (!product.vendor_costs || product.vendor_costs.length === 0)" class="tab-loader">
+            <div class="spinner"></div>
+            <p>Cargando costos...</p>
+          </div>
+
+          <div *ngIf="!loadingCosts && (!product.vendor_costs || product.vendor_costs.length === 0)" class="empty-state">
             <p>No hay costos de proveedor configurados</p>
           </div>
 
@@ -353,6 +379,10 @@
         <div *ngIf="activeTab === 'fotos'" class="tab-pane">
           <div class="photo-tab">
             <div class="photo-tab__preview">
+              <div class="photo-tab__overlay" *ngIf="uploadingPhoto">
+                <div class="spinner"></div>
+                <p>Subiendo foto...</p>
+              </div>
               <ng-container *ngIf="productPhotoUrl as photoUrl; else emptyPhoto">
                 <a [href]="photoUrl" target="_blank" rel="noopener noreferrer">
                   <img [src]="photoUrl" [alt]="'Foto de ' + (product.name || 'producto')" loading="lazy">
@@ -379,6 +409,7 @@
               (click)="openPhotoPicker(productPhotoInput)"
               [disabled]="uploadingPhoto || !product.id"
             >
+              <span class="btn-spinner" *ngIf="uploadingPhoto"></span>
               <span *ngIf="uploadingPhoto">Subiendo...</span>
               <span *ngIf="!uploadingPhoto">{{ productPhotoUrl ? 'Reemplazar foto' : 'Subir foto' }}</span>
             </button>
@@ -409,8 +440,11 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn btn--secondary" (click)="dismissAttributeModal()" type="button">Cancelar</button>
-        <button class="btn btn--primary" (click)="saveAttribute()" type="button">Guardar</button>
+        <button class="btn btn--secondary" (click)="dismissAttributeModal()" type="button" [disabled]="savingNested">Cancelar</button>
+        <button class="btn btn--primary" (click)="saveAttribute()" type="button" [disabled]="savingNested">
+          <span class="btn-spinner" *ngIf="savingNested"></span>
+          {{ savingNested ? 'Guardando...' : 'Guardar' }}
+        </button>
       </div>
     </div>
   </div>
@@ -437,8 +471,11 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn btn--secondary" (click)="dismissAttributeValueModal()" type="button">Cancelar</button>
-        <button class="btn btn--primary" (click)="saveAttributeValue()" type="button">Guardar</button>
+        <button class="btn btn--secondary" (click)="dismissAttributeValueModal()" type="button" [disabled]="savingNested">Cancelar</button>
+        <button class="btn btn--primary" (click)="saveAttributeValue()" type="button" [disabled]="savingNested">
+          <span class="btn-spinner" *ngIf="savingNested"></span>
+          {{ savingNested ? 'Guardando...' : 'Guardar' }}
+        </button>
       </div>
     </div>
   </div>
@@ -528,8 +565,11 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn btn--secondary" (click)="dismissDiscountModal()" type="button">Cancelar</button>
-        <button class="btn btn--primary" (click)="saveDiscount()" type="button">Guardar</button>
+        <button class="btn btn--secondary" (click)="dismissDiscountModal()" type="button" [disabled]="savingNested">Cancelar</button>
+        <button class="btn btn--primary" (click)="saveDiscount()" type="button" [disabled]="savingNested">
+          <span class="btn-spinner" *ngIf="savingNested"></span>
+          {{ savingNested ? 'Guardando...' : 'Guardar' }}
+        </button>
       </div>
     </div>
   </div>
@@ -589,8 +629,11 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn btn--secondary" (click)="dismissPriceModal()" type="button">Cancelar</button>
-        <button class="btn btn--primary" (click)="savePrice()" type="button">Guardar</button>
+        <button class="btn btn--secondary" (click)="dismissPriceModal()" type="button" [disabled]="savingNested">Cancelar</button>
+        <button class="btn btn--primary" (click)="savePrice()" type="button" [disabled]="savingNested">
+          <span class="btn-spinner" *ngIf="savingNested"></span>
+          {{ savingNested ? 'Guardando...' : 'Guardar' }}
+        </button>
       </div>
     </div>
   </div>
@@ -622,8 +665,11 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn btn--secondary" (click)="dismissPriceListModal()" type="button">Cancelar</button>
-        <button class="btn btn--primary" (click)="savePriceList()" type="button">Crear</button>
+        <button class="btn btn--secondary" (click)="dismissPriceListModal()" type="button" [disabled]="savingNested">Cancelar</button>
+        <button class="btn btn--primary" (click)="savePriceList()" type="button" [disabled]="savingNested">
+          <span class="btn-spinner" *ngIf="savingNested"></span>
+          {{ savingNested ? 'Creando...' : 'Crear' }}
+        </button>
       </div>
     </div>
   </div>
@@ -676,8 +722,11 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn btn--secondary" (click)="dismissCostModal()" type="button">Cancelar</button>
-        <button class="btn btn--primary" (click)="saveCost()" type="button">Guardar</button>
+        <button class="btn btn--secondary" (click)="dismissCostModal()" type="button" [disabled]="savingNested">Cancelar</button>
+        <button class="btn btn--primary" (click)="saveCost()" type="button" [disabled]="savingNested">
+          <span class="btn-spinner" *ngIf="savingNested"></span>
+          {{ savingNested ? 'Guardando...' : 'Guardar' }}
+        </button>
       </div>
     </div>
   </div>

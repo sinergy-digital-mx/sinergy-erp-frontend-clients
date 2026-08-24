@@ -36,6 +36,11 @@ export class ProductDetailModalComponent implements OnInit {
   loading = false;
   saving = false;
   uploadingPhoto = false;
+  loadingUoms = false;
+  loadingPrices = false;
+  loadingCosts = false;
+  loadingDiscounts = false;
+  savingNested = false;
   product: Product | null = null;
 
   // Exponer Number para el template
@@ -47,16 +52,21 @@ export class ProductDetailModalComponent implements OnInit {
     return !!this.product?.id?.trim();
   }
 
-  /** UOMs, precios, etc. solo cuando el producto ya existe en el API. */
+  /** UOMs ya guardadas en el API (precios/costos/descuentos las necesitan). */
+  get hasAssignedUoms(): boolean {
+    return !!this.product?.uoms?.some((uom) => !!uom.id?.trim());
+  }
+
   get tabs(): TabItem[] {
-    const locked = !this.isPersistedProduct;
+    const productLocked = !this.isPersistedProduct;
+    const uomLocked = productLocked || !this.hasAssignedUoms;
     return [
       { id: 'detalles', title: 'Detalles' },
-      { id: 'uoms', title: 'UOMs', disabled: locked },
-      { id: 'precios', title: 'Precios', disabled: locked },
-      { id: 'descuentos', title: 'Descuentos', disabled: locked },
-      { id: 'costos', title: 'Costos de Proveedor', disabled: locked },
-      { id: 'fotos', title: 'Fotos', disabled: locked },
+      { id: 'uoms', title: 'UOMs', disabled: productLocked },
+      { id: 'precios', title: 'Precios', disabled: uomLocked },
+      { id: 'descuentos', title: 'Descuentos', disabled: uomLocked },
+      { id: 'costos', title: 'Costos de Proveedor', disabled: uomLocked },
+      { id: 'fotos', title: 'Fotos', disabled: productLocked },
     ];
   }
 
@@ -67,13 +77,50 @@ export class ProductDetailModalComponent implements OnInit {
       return;
     }
 
+    if (['precios', 'descuentos', 'costos'].includes(tabId) && !this.hasAssignedUoms) {
+      this.activeTab = 'uoms';
+      this.loadUomCatalog(() => this.loadProductUoms());
+      this.showNotification('Asigna al menos una UOM antes de configurar precios, costos o descuentos.', 'info');
+      return;
+    }
+
     this.activeTab = tabId;
     if (tabId === 'uoms' && this.isPersistedProduct) {
       this.loadUomCatalog(() => this.loadProductUoms());
     }
+    if (tabId === 'precios' && this.isPersistedProduct) {
+      this.loadProductPrices();
+    }
+    if (tabId === 'costos' && this.isPersistedProduct) {
+      this.loadVendorCosts();
+    }
     if (tabId === 'descuentos' && this.isPersistedProduct) {
       this.loadProductDiscounts();
     }
+  }
+
+  private requireAssignedUoms(target: 'precio' | 'costo' | 'descuento'): boolean {
+    if (this.hasAssignedUoms) {
+      return true;
+    }
+    this.activeTab = 'uoms';
+    this.loadUomCatalog(() => this.loadProductUoms());
+    this.showNotification(`Asigna al menos una UOM antes de agregar un ${target}.`, 'info');
+    return false;
+  }
+
+  private beginNestedSave(): boolean {
+    if (this.savingNested) {
+      return false;
+    }
+    this.savingNested = true;
+    this.cdr.detectChanges();
+    return true;
+  }
+
+  private endNestedSave(): void {
+    this.savingNested = false;
+    this.cdr.detectChanges();
   }
 
   get productPhotoUrl(): string | null {
@@ -162,24 +209,28 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   dismissPriceModal(): void {
+    if (this.savingNested) return;
     this.closeNestedModalSafely(() => {
       this.priceModalVisible = false;
     });
   }
 
   dismissCostModal(): void {
+    if (this.savingNested) return;
     this.closeNestedModalSafely(() => {
       this.costModalVisible = false;
     });
   }
 
   dismissDiscountModal(): void {
+    if (this.savingNested) return;
     this.closeNestedModalSafely(() => {
       this.discountModalVisible = false;
     });
   }
 
   dismissPriceListModal(): void {
+    if (this.savingNested) return;
     this.closeNestedModalSafely(() => {
       this.priceListModalVisible = false;
     });
@@ -273,35 +324,41 @@ export class ProductDetailModalComponent implements OnInit {
   loadProductPrices(): void {
     if (!this.isPersistedProduct) return;
 
+    this.loadingPrices = true;
     this.productService.getProductPrices(this.product!.id).subscribe({
       next: (prices) => {
-        console.log('Product prices loaded:', prices);
         this.product!.prices = prices;
+        this.loadingPrices = false;
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error loading product prices:', error);
-        // Si falla, inicializar array vacío
+        this.loadingPrices = false;
         if (this.product) {
           this.product.prices = [];
         }
+        this.cdr.detectChanges();
       }
     });
   }
 
   loadProductDiscounts(): void {
-    if (!this.product?.id) return;
+    if (!this.isPersistedProduct) return;
 
-    this.productService.getProductDiscounts(this.product.id).subscribe({
+    this.loadingDiscounts = true;
+    this.productService.getProductDiscounts(this.product!.id).subscribe({
       next: (discounts) => {
         this.product!.discounts = discounts;
+        this.loadingDiscounts = false;
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error loading product discounts:', error);
+        this.loadingDiscounts = false;
         if (this.product) {
           this.product.discounts = [];
         }
+        this.cdr.detectChanges();
       }
     });
   }
@@ -309,18 +366,20 @@ export class ProductDetailModalComponent implements OnInit {
   loadVendorCosts(): void {
     if (!this.isPersistedProduct) return;
 
+    this.loadingCosts = true;
     this.productService.getVendorCosts(this.product!.id).subscribe({
       next: (costs) => {
-        console.log('Vendor costs loaded:', costs);
         this.product!.vendor_costs = costs;
+        this.loadingCosts = false;
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error loading vendor costs:', error);
-        // Si falla, inicializar array vacío
+        this.loadingCosts = false;
         if (this.product) {
           this.product.vendor_costs = [];
         }
+        this.cdr.detectChanges();
       }
     });
   }
@@ -345,20 +404,22 @@ export class ProductDetailModalComponent implements OnInit {
   loadProductUoms(catalogSnapshot?: Map<string, string>): void {
     if (!this.isPersistedProduct) return;
 
+    this.loadingUoms = true;
     this.productService.getAssignedUoMs(this.product!.id).subscribe({
       next: (uoms) => {
-        console.log('Product UOMs loaded:', uoms);
         this.product!.uoms = this.mapAssignedUomsResponse(uoms);
         this.reconcileUomsAfterLoad(catalogSnapshot);
         this.mergeAssignedUomIdsIntoCatalog();
+        this.loadingUoms = false;
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error loading product UOMs:', error);
-        // Si falla, inicializar array vacío
+        this.loadingUoms = false;
         if (this.product) {
           this.product.uoms = [];
         }
+        this.cdr.detectChanges();
       }
     });
   }
@@ -604,6 +665,7 @@ export class ProductDetailModalComponent implements OnInit {
 
   /** Cierra modal de atributo y sincroniza lista desde API (MatDialog + overlay). */
   dismissAttributeModal(): void {
+    if (this.savingNested) return;
     this.closeNestedModalSafely(() => {
       this.attributeModalVisible = false;
       this.refreshAttributesAfterModalClose();
@@ -612,6 +674,7 @@ export class ProductDetailModalComponent implements OnInit {
 
   /** Cierra modal de valor y sincroniza lista desde API. */
   dismissAttributeValueModal(): void {
+    if (this.savingNested) return;
     this.closeNestedModalSafely(() => {
       this.attributeValueModalVisible = false;
       this.refreshAttributesAfterModalClose();
@@ -698,12 +761,15 @@ export class ProductDetailModalComponent implements OnInit {
     };
 
     if (this.attributeForm.id) {
+      if (!this.beginNestedSave()) return;
       this.productService.updateProductAttribute(this.attributeForm.id, body).subscribe({
         next: () => {
+          this.endNestedSave();
           this.showNotification('Atributo actualizado correctamente', 'success');
           this.dismissAttributeModal();
         },
         error: (error) => {
+          this.endNestedSave();
           console.error('Error updating attribute:', error);
           this.showNotification(error.error?.message || 'Error al actualizar atributo', 'error');
         }
@@ -711,12 +777,15 @@ export class ProductDetailModalComponent implements OnInit {
       return;
     }
 
+    if (!this.beginNestedSave()) return;
     this.productService.createProductAttribute(body).subscribe({
       next: () => {
+        this.endNestedSave();
         this.showNotification('Atributo creado correctamente', 'success');
         this.dismissAttributeModal();
       },
       error: (error) => {
+        this.endNestedSave();
         console.error('Error creating attribute:', error);
         this.showNotification(error.error?.message || 'Error al crear atributo', 'error');
       }
@@ -770,16 +839,19 @@ export class ProductDetailModalComponent implements OnInit {
     };
 
     if (this.attributeValueForm.id) {
+      if (!this.beginNestedSave()) return;
       this.productService.updateProductAttributeValue(
         this.attributeValueForm.attribute_id,
         this.attributeValueForm.id,
         body
       ).subscribe({
         next: () => {
+          this.endNestedSave();
           this.showNotification('Valor actualizado correctamente', 'success');
           this.dismissAttributeValueModal();
         },
         error: (error) => {
+          this.endNestedSave();
           console.error('Error updating attribute value:', error);
           this.showNotification(error.error?.message || 'Error al actualizar valor', 'error');
         }
@@ -787,15 +859,18 @@ export class ProductDetailModalComponent implements OnInit {
       return;
     }
 
+    if (!this.beginNestedSave()) return;
     this.productService.createProductAttributeValue(
       this.attributeValueForm.attribute_id,
       body
     ).subscribe({
       next: () => {
+        this.endNestedSave();
         this.showNotification('Valor agregado correctamente', 'success');
         this.dismissAttributeValueModal();
       },
       error: (error) => {
+        this.endNestedSave();
         console.error('Error creating attribute value:', error);
         this.showNotification(error.error?.message || 'Error al agregar valor', 'error');
       }
@@ -1251,19 +1326,19 @@ export class ProductDetailModalComponent implements OnInit {
 
     console.log('Creating price list:', data);
 
+    if (!this.beginNestedSave()) return;
     this.productService.createPriceList(data).subscribe({
       next: (newList) => {
-        console.log('Price list created:', newList);
+        this.endNestedSave();
         this.closeNestedModalSafely(() => {
           this.priceListModalVisible = false;
         });
         this.showNotification('Lista de precios creada correctamente', 'success');
-        // Agregar la nueva lista al array
         this.priceLists.push(newList);
-        // Seleccionar la nueva lista
         this.priceForm.price_list_id = newList.id;
       },
       error: (error) => {
+        this.endNestedSave();
         console.error('Error creating price list:', error);
         this.showNotification('Error al crear la lista de precios: ' + (error.error?.message || error.message), 'error');
       }
@@ -1271,17 +1346,12 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   openPriceModal(price?: ProductPrice): void {
-    console.log('Opening price modal - product.uoms:', this.product?.uoms);
-    
-    // Cargar listas de precios si no están cargadas
-    if (this.priceLists.length === 0) {
-      this.loadPriceLists();
+    if (!this.requireAssignedUoms('precio')) {
+      return;
     }
 
-    // Asegurarse de que las UOMs estén cargadas
-    if (!this.product?.uoms || this.product.uoms.length === 0) {
-      console.log('Loading product UOMs...');
-      this.loadProductUoms();
+    if (this.priceLists.length === 0) {
+      this.loadPriceLists();
     }
 
     if (price) {
@@ -1307,6 +1377,9 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   savePrice(): void {
+    if (!this.requireAssignedUoms('precio')) {
+      return;
+    }
     if (!this.priceForm.price_list_id) {
       alert('Por favor selecciona una lista de precios');
       return;
@@ -1329,7 +1402,7 @@ export class ProductDetailModalComponent implements OnInit {
     };
 
     if (this.priceForm.id) {
-      // Update existing price
+      if (!this.beginNestedSave()) return;
       const updateData = {
         price: body.price,
         iva_percentage: body.iva_percentage,
@@ -1338,24 +1411,28 @@ export class ProductDetailModalComponent implements OnInit {
       
       this.productService.updateProductPrice(this.product!.id, this.priceForm.id, updateData).subscribe({
         next: () => {
+          this.endNestedSave();
           this.showNotification('Precio actualizado correctamente', 'success');
           this.reloadCurrentTab();
           this.dismissPriceModal();
         },
         error: (error) => {
+          this.endNestedSave();
           console.error('Error updating price:', error);
           this.showNotification('Error al actualizar el precio', 'error');
         }
       });
     } else {
-      // Create new price
+      if (!this.beginNestedSave()) return;
       this.productService.createProductPrice(this.product!.id, body).subscribe({
         next: () => {
+          this.endNestedSave();
           this.showNotification('Precio creado correctamente', 'success');
           this.reloadCurrentTab();
           this.dismissPriceModal();
         },
         error: (error) => {
+          this.endNestedSave();
           console.error('Error saving price:', error);
           this.showNotification('Error al guardar el precio', 'error');
         }
@@ -1381,14 +1458,12 @@ export class ProductDetailModalComponent implements OnInit {
   // ─── Costos ─────────────────────────────────────────────────
 
   openCostModal(cost?: VendorProductPrice): void {
-    // Cargar vendors si no están cargados
-    if (this.vendors.length === 0) {
-      this.loadVendors();
+    if (!this.requireAssignedUoms('costo')) {
+      return;
     }
 
-    // Asegurarse de que las UOMs estén cargadas
-    if (!this.product?.uoms || this.product.uoms.length === 0) {
-      this.loadProductUoms();
+    if (this.vendors.length === 0) {
+      this.loadVendors();
     }
 
     if (cost) {
@@ -1413,6 +1488,9 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   saveCost(): void {
+    if (!this.requireAssignedUoms('costo')) {
+      return;
+    }
     if (!this.costForm.vendor_id) {
       this.showNotification('Por favor selecciona un proveedor', 'error');
       return;
@@ -1435,32 +1513,36 @@ export class ProductDetailModalComponent implements OnInit {
     };
 
     if (this.costForm.id) {
-      // Update existing cost
+      if (!this.beginNestedSave()) return;
       this.productService.updateVendorCost(this.product!.id, this.costForm.id, {
         cost: body.cost,
         iva_percentage: body.iva_percentage,
         ieps_percentage: body.ieps_percentage
       }).subscribe({
         next: () => {
+          this.endNestedSave();
           this.showNotification('Costo actualizado correctamente', 'success');
           this.reloadCurrentTab();
           this.dismissCostModal();
         },
         error: (error) => {
+          this.endNestedSave();
           console.error('Error updating cost:', error);
           const errorMessage = error.error?.message || 'Error al actualizar el costo';
           this.showNotification(errorMessage, 'error');
         }
       });
     } else {
-      // Create new cost
+      if (!this.beginNestedSave()) return;
       this.productService.createVendorCost(this.product!.id, body).subscribe({
         next: () => {
+          this.endNestedSave();
           this.showNotification('Costo creado correctamente', 'success');
           this.reloadCurrentTab();
           this.dismissCostModal();
         },
         error: (error) => {
+          this.endNestedSave();
           console.error('Error saving cost:', error);
           const errorMessage = error.error?.message || 'Error al guardar el costo';
           this.showNotification(errorMessage, 'error');
@@ -1492,9 +1574,8 @@ export class ProductDetailModalComponent implements OnInit {
       this.showNotification('Guarda el producto antes de configurar descuentos', 'error');
       return;
     }
-
-    if (!this.product.uoms || this.product.uoms.length === 0) {
-      this.loadProductUoms();
+    if (!this.requireAssignedUoms('descuento')) {
+      return;
     }
 
     if (!this.product.prices || this.product.prices.length === 0) {
@@ -1522,6 +1603,9 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   saveDiscount(): void {
+    if (!this.requireAssignedUoms('descuento')) {
+      return;
+    }
     const name = (this.discountForm.name || '').trim();
     if (!name) {
       this.showNotification('El nombre es requerido', 'error');
@@ -1573,8 +1657,10 @@ export class ProductDetailModalComponent implements OnInit {
       ? this.productService.updateProductDiscount(productId, this.discountForm.id, body)
       : this.productService.createProductDiscount(productId, body);
 
+    if (!this.beginNestedSave()) return;
     request$.subscribe({
       next: () => {
+        this.endNestedSave();
         this.showNotification(
           this.discountForm.id ? 'Descuento actualizado correctamente' : 'Descuento creado correctamente',
           'success'
@@ -1583,6 +1669,7 @@ export class ProductDetailModalComponent implements OnInit {
         this.dismissDiscountModal();
       },
       error: (error) => {
+        this.endNestedSave();
         console.error('Error saving discount:', error);
         this.showNotification(this.getDiscountApiErrorMessage(error), 'error');
       }
