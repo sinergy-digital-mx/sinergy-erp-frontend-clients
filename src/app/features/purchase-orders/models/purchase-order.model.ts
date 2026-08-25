@@ -35,6 +35,10 @@ export interface Batch {
   quantity?: number | string;
   initial_quantity?: number | string;
   available_quantity?: number | string;
+  /** Cantidad pedida en la línea de OC, si el API la manda en el lote. */
+  requested_quantity?: number | string;
+  /** Cantidad recibida en este lote, si el API la manda. */
+  received_quantity?: number | string;
   purchase_order_batch_id: string;
   purchase_order_id?: string;
   purchase_order_detail_id: string;

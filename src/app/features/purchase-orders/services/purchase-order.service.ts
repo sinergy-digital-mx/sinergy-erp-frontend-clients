@@ -20,6 +20,7 @@ import {
 } from '../models/filters.model';
 import { Payment } from '../models/payment.model';
 import { environment } from '../../../../environments/environment';
+import { VendorCatalogProduct, VendorProductsQuery } from '../models/vendor-catalog.model';
 
 @Injectable({
   providedIn: 'root'
@@ -201,13 +202,52 @@ export class PurchaseOrderService {
   }
 
   /**
-   * Get vendor products
+   * Productos activos del proveedor. Por default incluye los que no tienen costo.
    */
-  getVendorProducts(vendorId: string): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.api}/tenant/vendors/${vendorId}/products`)
+  getVendorProducts(vendorId: string, query?: VendorProductsQuery): Observable<VendorCatalogProduct[]> {
+    let params = new HttpParams();
+    if (query?.search?.trim()) {
+      params = params.set('search', query.search.trim());
+    }
+    if (query?.include_without_cost === false) {
+      params = params.set('include_without_cost', 'false');
+    }
+    if (query?.only_with_cost === true) {
+      params = params.set('only_with_cost', 'true');
+    }
+
+    return this.http
+      .get<unknown>(`${environment.api}/tenant/vendors/${vendorId}/products`, { params })
       .pipe(
-        catchError(error => this.handleError(error))
+        map((response) => this.normalizeVendorProducts(response)),
+        catchError((error) => this.handleError(error))
       );
+  }
+
+  private normalizeVendorProducts(response: unknown): VendorCatalogProduct[] {
+    const raw = Array.isArray(response)
+      ? response
+      : (response as { data?: unknown } | null)?.data;
+    const list = Array.isArray(raw) ? raw : [];
+
+    return list.map((row: any) => {
+      const sku = row.sku ?? row.product_sku ?? '';
+      const uoms = (Array.isArray(row.uoms) ? row.uoms : []).map((uom: Record<string, unknown>) => ({
+        ...uom,
+        currency: uom['currency'] === 'USD' || uom['currency'] === 'MXN' ? uom['currency'] : null,
+      }));
+      const hasCost =
+        typeof row.has_vendor_cost === 'boolean'
+          ? row.has_vendor_cost
+          : uoms.length > 0;
+      return {
+        ...row,
+        sku,
+        product_sku: row.product_sku ?? sku,
+        has_vendor_cost: hasCost,
+        uoms,
+      } as VendorCatalogProduct;
+    });
   }
 
   /**

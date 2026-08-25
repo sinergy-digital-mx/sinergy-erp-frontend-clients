@@ -54,12 +54,15 @@ export interface UoMRelationship {
   created_at?: string;
 }
 
+export type VendorCostCurrency = 'MXN' | 'USD';
+
 export interface VendorProductPrice {
   id: string;
   vendor_id: string;
   product_id: string;
   product_uom_id: string;
   cost: number;
+  currency?: VendorCostCurrency | null;
   iva_percentage?: number;
   ieps_percentage?: number;
   subtotal?: number;

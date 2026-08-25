@@ -338,6 +338,9 @@
       }
 
       .totals-value-total {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
         font-size: 1.0625rem;
         font-weight: 800;
       }

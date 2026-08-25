@@ -4,25 +4,28 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { LucideAngularModule, ExternalLink, Pencil, Plus } from 'lucide-angular';
-import { Subject, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil, switchMap, catchError, finalize, map } from 'rxjs/operators';
+import { LucideAngularModule, ExternalLink, Pencil, Plus, ChevronDown } from 'lucide-angular';
+import { Subject } from 'rxjs';
+import { debounceTime, takeUntil } from 'rxjs/operators';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { WritePurchaseOrderDto } from '../../models/filters.model';
 import { FiscalConfigurationService } from '../../../../features/settings/services/fiscal-configuration.service';
 import { BranchService } from '../../../../features/settings/services/branch.service';
 import { WarehouseService } from '../../../../features/settings/services/warehouse.service';
 import { VendorService } from '../../../../features/settings/services/vendor.service';
-import { Vendor, VendorQueryParams } from '../../../../features/settings/models/vendor.model';
+import { Vendor } from '../../../../features/settings/models/vendor.model';
 import { VendorDetailModalComponent } from '../../../../features/settings/components/vendor-detail-modal/vendor-detail-modal.component';
 import { Branch } from '../../../../features/settings/models/branch.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ProductDetailModalComponent } from '../../../../features/settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { PEDIMENTO_MAX_LENGTH } from '../../utils/purchase-order-display.util';
-
-const VENDOR_SEARCH_LIMIT = 100;
-const VENDOR_SEARCH_MIN_CHARS = 2;
+import { VendorCatalogProduct, VendorCatalogUom } from '../../models/vendor-catalog.model';
+import {
+  VendorCostCurrency,
+  currencyMismatchMessage,
+  normalizeVendorCostCurrency,
+} from '../../../settings/utils/vendor-cost-currency.util';
 
 interface LineItem {
   product_id: string;
@@ -35,6 +38,7 @@ interface LineItem {
   iva_unit: number;
   ieps_percentage: number;
   ieps_unit: number;
+  currency: VendorCostCurrency;
 }
 
 @Component({
@@ -49,16 +53,16 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   loading = false;
   saving = false;
   lineItems: LineItem[] = [];
-  vendorProducts: any[] = [];
+  vendorProducts: VendorCatalogProduct[] = [];
   loadingProducts = false;
 
   // Dropdowns data
   fiscalConfigurations: any[] = [];
   branches: Branch[] = [];
   warehouses: any[] = [];
+  vendorOptions: any[] = [];
   filteredVendors: any[] = [];
   loadingVendors = false;
-  hasSearchedVendors = false;
   private destroy$ = new Subject<void>();
   tabs: TabItem[] = [
     { id: 'info', title: 'Información' },
@@ -66,16 +70,19 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   ];
   activeTab = 'info';
   addProductModalOpen = false;
-  productSearchTerm = '';
+  productSearchTerm: string | VendorCatalogProduct = '';
   selectedProduct: any = null;
   selectedUomId = '';
   selectedQuantity = 1;
   selectedUnitTotal = 0;
   selectedIva = 16;
   selectedIeps = 0;
+  selectedCurrency: VendorCostCurrency = 'MXN';
+  selectedCurrencyLocked = false;
   readonly ExternalLink = ExternalLink;
   readonly Pencil = Pencil;
   readonly Plus = Plus;
+  readonly ChevronDown = ChevronDown;
   readonly pedimentoMaxLength = PEDIMENTO_MAX_LENGTH;
   selectedVendor: (Vendor & { display_name?: string }) | null = null;
 
@@ -108,6 +115,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadFiscalConfigurations();
     this.setupLocationCascade();
+    this.loadVendorOptions();
     this.setupVendorSearch();
   }
 
@@ -198,73 +206,64 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     });
   }
 
-  private setupVendorSearch(): void {
-    this.form.get('vendor_search')?.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((value) => {
-          if (value && typeof value !== 'string') {
-            return of(null);
-          }
-
-          if (typeof value === 'string') {
-            this.selectedVendor = null;
-            this.form.patchValue({ vendor_id: '', pedimento_number: '' }, { emitEvent: false });
-          }
-
-          const term = typeof value === 'string' ? value.trim() : '';
-          if (term.length < VENDOR_SEARCH_MIN_CHARS) {
-            this.filteredVendors = [];
-            this.hasSearchedVendors = false;
-            this.loadingVendors = false;
-            return of(null);
-          }
-
-          this.loadingVendors = true;
-          const params: VendorQueryParams = {
-            limit: VENDOR_SEARCH_LIMIT,
-            status: 'active',
-            search: term,
-          };
-
-          return this.vendorService.getVendors(params).pipe(
-            map((response) => ({ term, response })),
-            catchError((error) => {
-              console.error('Error searching vendors:', error);
-              this.toast.error('Error al buscar proveedores');
-              return of({ term, response: { data: [] } });
-            }),
-            finalize(() => {
-              this.loadingVendors = false;
-              this.cdr.detectChanges();
-            })
-          );
-        }),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((result) => {
-        if (!result) {
-          this.cdr.detectChanges();
-          return;
-        }
-
-        this.hasSearchedVendors = true;
-        this.filteredVendors = (result.response?.data || []).map((vendor: any) => ({
+  private loadVendorOptions(): void {
+    this.loadingVendors = true;
+    this.vendorService.getAllActiveVendors().subscribe({
+      next: (vendors) => {
+        this.vendorOptions = vendors.map((vendor) => ({
           ...vendor,
           display_name: this.formatVendorLabel(vendor),
         }));
+        this.filteredVendors = this.filterVendorsLocally(this.currentVendorSearchTerm());
+        this.loadingVendors = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loadingVendors = false;
+        this.toast.error('Error al cargar proveedores');
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private setupVendorSearch(): void {
+    this.form.get('vendor_search')?.valueChanges
+      .pipe(debounceTime(120), takeUntil(this.destroy$))
+      .subscribe((value) => {
+        if (value && typeof value !== 'string') {
+          return;
+        }
+
+        if (typeof value === 'string') {
+          this.selectedVendor = null;
+          this.form.patchValue({ vendor_id: '', pedimento_number: '' }, { emitEvent: false });
+        }
+
+        this.filteredVendors = this.filterVendorsLocally(typeof value === 'string' ? value : '');
         this.cdr.detectChanges();
       });
   }
 
-  get vendorSearchTooShort(): boolean {
-    const value = this.form.get('vendor_search')?.value;
-    if (value && typeof value !== 'string') {
-      return false;
+  onVendorSearchFocus(): void {
+    this.filteredVendors = this.filterVendorsLocally(this.currentVendorSearchTerm());
+    if (!this.vendorOptions.length && !this.loadingVendors) {
+      this.loadVendorOptions();
     }
-    const term = String(value || '').trim();
-    return term.length > 0 && term.length < VENDOR_SEARCH_MIN_CHARS;
+  }
+
+  currentVendorSearchTerm(): string {
+    const value = this.form.get('vendor_search')?.value;
+    if (!value || typeof value !== 'string') return '';
+    return value.trim().toLowerCase();
+  }
+
+  private filterVendorsLocally(term: string): any[] {
+    const query = term.trim().toLowerCase();
+    if (!query) return this.vendorOptions;
+    return this.vendorOptions.filter((vendor) => {
+      const haystack = `${vendor.display_name || ''} ${vendor.name || ''} ${vendor.rfc || ''}`.toLowerCase();
+      return haystack.includes(query);
+    });
   }
 
   ngOnDestroy(): void {
@@ -291,13 +290,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     this.purchaseOrderService.getVendorProducts(vendorId).subscribe({
       next: (products) => {
         this.vendorProducts = products;
-        this.lineItems = this.lineItems.map((item) => ({
-          ...item,
-          product_id: '',
-          product_name: '',
-          product_sku: '',
-          uom_id: ''
-        }));
+        this.lineItems = [];
         this.resetAddProductForm();
         this.loadingProducts = false;
       },
@@ -385,6 +378,11 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       patch['pedimento_number'] = '';
     }
     this.form.patchValue(patch, { emitEvent: false });
+    const exists = this.vendorOptions.some((row) => row.id === vendor.id);
+    if (!exists) {
+      this.vendorOptions = [this.selectedVendor, ...this.vendorOptions];
+    }
+    this.filteredVendors = this.filterVendorsLocally('');
     if (reloadProducts) {
       this.onVendorChange();
     }
@@ -398,12 +396,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     return rfc ? `${name} (${rfc})` : name;
   }
 
-  get filteredProductsForModal(): any[] {
-    const raw =
-      typeof this.productSearchTerm === 'string'
-        ? this.productSearchTerm
-        : this.getProductOptionLabel(this.productSearchTerm);
-    const term = String(raw || '').toLowerCase().trim();
+  get filteredProductsForModal(): VendorCatalogProduct[] {
+    const term = this.currentProductSearchTerm();
     if (!term) return this.vendorProducts;
     return this.vendorProducts.filter((product) => {
       const haystack = `${product.product_name || ''} ${product.product_sku || product.sku || ''}`.toLowerCase();
@@ -411,9 +405,67 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     });
   }
 
-  get selectedProductUoms(): any[] {
+  get selectedProductUoms(): VendorCatalogUom[] {
     if (!this.selectedProduct) return [];
     return this.selectedProduct?.uoms || [];
+  }
+
+  get selectedProductHasVendorCost(): boolean {
+    return this.productHasVendorCost(this.selectedProduct);
+  }
+
+  get orderCurrency(): VendorCostCurrency | null {
+    const first = this.lineItems[0]?.currency;
+    return normalizeVendorCostCurrency(first);
+  }
+
+  get selectedUom(): VendorCatalogUom | undefined {
+    return this.selectedProductUoms.find((row) => row.uom_id === this.selectedUomId);
+  }
+
+  get selectedLineCurrency(): VendorCostCurrency {
+    return this.selectedUomCurrency ?? this.selectedCurrency;
+  }
+
+  get selectedUomCurrency(): VendorCostCurrency | null {
+    return normalizeVendorCostCurrency(this.selectedUom?.currency);
+  }
+
+  get selectedCurrencyMismatch(): boolean {
+    const order = this.orderCurrency;
+    const product = this.selectedLineCurrency;
+    return !!order && order !== product;
+  }
+
+  get currencyMismatchText(): string {
+    const order = this.orderCurrency;
+    if (!order || !this.selectedCurrencyMismatch) return '';
+    return currencyMismatchMessage(order, this.selectedLineCurrency);
+  }
+
+  get canConfirmAddProduct(): boolean {
+    return !!(
+      this.selectedProduct &&
+      this.selectedUomId &&
+      Number(this.selectedQuantity) > 0 &&
+      !this.selectedCurrencyMismatch
+    );
+  }
+
+  productHasVendorCost(product: VendorCatalogProduct | null): boolean {
+    if (!product) return false;
+    if (typeof product.has_vendor_cost === 'boolean') {
+      return product.has_vendor_cost;
+    }
+    return (product.uoms || []).length > 0;
+  }
+
+  private currentProductSearchTerm(): string {
+    const raw =
+      typeof this.productSearchTerm === 'string'
+        ? this.productSearchTerm
+        : this.getProductOptionLabel(this.productSearchTerm);
+    return String(raw || '').toLowerCase().trim();
   }
 
   openAddProductModal(): void {
@@ -434,9 +486,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     this.productSearchTerm = product;
     const firstUom = (product?.uoms || [])[0];
     this.selectedUomId = firstUom?.uom_id || '';
-    this.selectedUnitTotal = Number(firstUom?.cost || 0);
-    this.selectedIva = Number(firstUom?.iva_percentage || 0);
-    this.selectedIeps = Number(firstUom?.ieps_percentage || 0);
+    this.applySelectedUom();
   }
 
   openSelectedProductDetail(): void {
@@ -458,6 +508,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
           sku: this.selectedProduct?.product_sku || this.selectedProduct?.sku,
         },
         isNew: false,
+        initialTab: 'costos',
       },
     }).afterClosed().subscribe(() => {
       this.refreshSelectedProductFromVendor(productIdToRefresh, uomIdToRestore);
@@ -471,25 +522,27 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     this.purchaseOrderService.getVendorProducts(vendorId).subscribe({
       next: (products) => {
         this.vendorProducts = products;
+        const wasMissingCost = !this.productHasVendorCost(this.selectedProduct);
         const updated = products.find((product) => product.product_id === productId);
         if (!updated) {
+          this.toast.warning('El producto sigue sin costo de proveedor. Puedes capturarlo aquí o configurarlo en el producto.');
           this.cdr.detectChanges();
           return;
         }
 
         this.selectedProduct = updated;
         this.productSearchTerm = updated;
+        this.selectedUomId = preferredUomId || updated.uoms?.[0]?.uom_id || '';
+        this.applySelectedUom();
 
-        const uoms = updated.uoms || [];
-        const uom =
-          uoms.find((row: any) => row.uom_id === preferredUomId) ||
-          uoms[0];
+        if (!this.productHasVendorCost(updated)) {
+          this.toast.info('Sin costo de proveedor. Captura costo y moneda para agregarlo.');
+          this.cdr.detectChanges();
+          return;
+        }
 
-        if (uom) {
-          this.selectedUomId = uom.uom_id;
-          this.selectedUnitTotal = Number(uom.cost || 0);
-          this.selectedIva = Number(uom.iva_percentage || 0);
-          this.selectedIeps = Number(uom.ieps_percentage || 0);
+        if (wasMissingCost) {
+          this.toast.success('Costo de proveedor actualizado. Ya puedes agregar el producto.');
         }
 
         this.cdr.detectChanges();
@@ -500,9 +553,35 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     });
   }
 
+  setSelectedCurrency(currency: VendorCostCurrency): void {
+    if (this.selectedCurrencyLocked) return;
+    this.selectedCurrency = currency;
+  }
+
   onSelectedUomChange(): void {
-    const uom = this.selectedProductUoms.find((row) => row.uom_id === this.selectedUomId);
-    if (!uom) return;
+    this.applySelectedUom();
+  }
+
+  private applySelectedUom(): void {
+    const uom = this.selectedUom;
+    if (!uom) {
+      this.selectedCurrencyLocked = false;
+      this.selectedCurrency = this.orderCurrency ?? 'MXN';
+      return;
+    }
+
+    const locked = this.selectedUomCurrency;
+    if (locked) {
+      this.selectedCurrency = locked;
+      this.selectedCurrencyLocked = true;
+    } else if (this.orderCurrency) {
+      this.selectedCurrency = this.orderCurrency;
+      this.selectedCurrencyLocked = true;
+    } else {
+      this.selectedCurrency = 'MXN';
+      this.selectedCurrencyLocked = false;
+    }
+
     this.selectedUnitTotal = Number(uom.cost || 0);
     this.selectedIva = Number(uom.iva_percentage || 0);
     this.selectedIeps = Number(uom.ieps_percentage || 0);
@@ -511,6 +590,10 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   confirmAddProduct(): void {
     if (!this.selectedProduct || !this.selectedUomId) {
       this.toast.warning('Selecciona producto y UOM');
+      return;
+    }
+    if (this.selectedCurrencyMismatch) {
+      this.toast.warning(this.currencyMismatchText);
       return;
     }
     const quantity = Number(this.selectedQuantity || 0);
@@ -529,7 +612,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       iva_percentage: Number(this.selectedIva || 0),
       iva_unit: 0,
       ieps_percentage: Number(this.selectedIeps || 0),
-      ieps_unit: 0
+      ieps_unit: 0,
+      currency: this.selectedLineCurrency
     };
     this.calculateTotals(newItem);
     this.lineItems.push(newItem);
@@ -544,6 +628,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     this.selectedUnitTotal = 0;
     this.selectedIva = 16;
     this.selectedIeps = 0;
+    this.selectedCurrency = this.orderCurrency ?? 'MXN';
+    this.selectedCurrencyLocked = !!this.orderCurrency;
   }
 
   getAvailableQty(product: any): number {
@@ -556,7 +642,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     const name = product?.product_name || 'Producto';
     const productSku = product?.product_sku || product?.sku || '';
     const sku = productSku ? ` | SKU: ${productSku}` : '';
-    return `${name}${sku}`;
+    const missing = this.productHasVendorCost(product) ? '' : ' · Sin costo de proveedor';
+    return `${name}${sku}${missing}`;
   }
 
   displayProductSearch(): string {
@@ -608,9 +695,14 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     if (product && product.uoms) {
       const selectedUom = product.uoms.find(u => u.uom_id === item.uom_id);
       if (selectedUom) {
+        const uomCurrency = normalizeVendorCostCurrency(selectedUom.currency);
+        if (uomCurrency && this.orderCurrency && uomCurrency !== this.orderCurrency) {
+          this.toast.warning(currencyMismatchMessage(this.orderCurrency, uomCurrency));
+        }
         item.unit_total = selectedUom.cost || 0;
         item.iva_percentage = selectedUom.iva_percentage || 0;
         item.ieps_percentage = selectedUom.ieps_percentage || 0;
+        item.currency = uomCurrency ?? item.currency ?? this.orderCurrency ?? 'MXN';
         this.calculateTotals(item);
       }
     }
@@ -624,13 +716,15 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
 
     this.saving = true;
     const fv = this.form.getRawValue();
+    const paymentCurrency = this.orderCurrency ?? this.lineItems[0]?.currency ?? 'MXN';
     const line_items = this.lineItems.map((li) => ({
       product_id: li.product_id,
       uom_id: li.uom_id,
       quantity: Number(li.quantity),
       unit_total: Number(li.unit_total),
       iva_percentage: Number(li.iva_percentage),
-      ieps_percentage: Number(li.ieps_percentage)
+      ieps_percentage: Number(li.ieps_percentage),
+      currency: li.currency || paymentCurrency
     }));
 
     const payload: WritePurchaseOrderDto = {
@@ -639,6 +733,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       warehouse_id: fv.warehouse_id,
       vendor_id: fv.vendor_id,
       expected_delivery_date: fv.expected_delivery_date,
+      payment_currency: paymentCurrency,
       line_items
     };
 

@@ -1,7 +1,16 @@
 <div class="modal-container">
   <!-- Header -->
   <div class="modal-header">
-    <h2>Crear Orden de Compra</h2>
+    <div class="modal-header__title">
+      <h2>Crear Orden de Compra</h2>
+      <span
+        class="currency-badge"
+        [class.currency-badge--usd]="orderCurrency === 'USD'"
+        [class.currency-badge--empty]="!orderCurrency"
+        [title]="orderCurrency === 'USD' ? 'Dólares' : orderCurrency === 'MXN' ? 'Pesos' : 'Todavía no hay moneda'">
+        {{ orderCurrency || '—' }}
+      </span>
+    </div>
     <button class="close-btn" (click)="cancel()" type="button">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
         <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
@@ -78,24 +87,25 @@
               </button>
             </div>
           </div>
-          <input
-            type="text"
-            class="form-input"
-            formControlName="vendor_search"
-            placeholder="Escribe al menos 2 caracteres para buscar..."
-            [matAutocomplete]="autoVendor">
+          <div class="vendor-picker">
+            <input
+              type="text"
+              class="form-input vendor-picker__input"
+              formControlName="vendor_search"
+              placeholder="Buscar por nombre o RFC..."
+              [matAutocomplete]="autoVendor"
+              (focus)="onVendorSearchFocus()">
+            <lucide-icon [img]="ChevronDown" [size]="16" class="vendor-picker__chevron"></lucide-icon>
+          </div>
           <mat-autocomplete
             #autoVendor="matAutocomplete"
             [displayWith]="displayVendor.bind(this)"
             (optionSelected)="onVendorSelected($event.option.value)">
-            <mat-option *ngIf="loadingVendors" disabled>
-              Buscando proveedores...
+            <mat-option *ngIf="loadingVendors && filteredVendors.length === 0" disabled>
+              Cargando proveedores...
             </mat-option>
-            <mat-option *ngIf="vendorSearchTooShort" disabled>
-              Escribe al menos 2 caracteres
-            </mat-option>
-            <mat-option *ngIf="!loadingVendors && !vendorSearchTooShort && hasSearchedVendors && filteredVendors.length === 0" disabled>
-              No se encontraron proveedores
+            <mat-option *ngIf="!loadingVendors && filteredVendors.length === 0" disabled>
+              {{ currentVendorSearchTerm() ? 'No se encontraron proveedores' : 'No hay proveedores activos' }}
             </mat-option>
             <mat-option *ngFor="let vendor of filteredVendors" [value]="vendor">
               {{ vendor.display_name }}
@@ -243,9 +253,17 @@
               [disabled]="!selectedProduct"
               (click)="openSelectedProductDetail()">
               <lucide-icon [img]="ExternalLink" [size]="16"></lucide-icon>
-              <span>Ver producto</span>
+              <span>{{ selectedProductHasVendorCost ? 'Ver producto' : 'Configurar costo' }}</span>
             </button>
           </div>
+          @if (selectedProduct && !selectedProductHasVendorCost) {
+            <p class="product-cost-hint">
+              Este producto no tiene costo de proveedor. Captura costo, impuestos y moneda. Al crear la orden se guarda el costo.
+            </p>
+          }
+          @if (selectedCurrencyMismatch) {
+            <p class="product-cost-warning">{{ currencyMismatchText }}</p>
+          }
         </div>
 
         <div class="form-grid">
@@ -268,8 +286,36 @@
           </div>
           <div class="form-field">
             <label class="form-label">COSTO UNITARIO</label>
-            <input type="number" class="form-input" [(ngModel)]="selectedUnitTotal" [ngModelOptions]="{ standalone: true }" min="0" step="0.01">
+            <div class="cost-with-currency">
+              <input type="number" class="form-input" [(ngModel)]="selectedUnitTotal" [ngModelOptions]="{ standalone: true }" min="0" step="0.01">
+              @if (selectedCurrencyLocked) {
+                <span class="currency-badge" [class.currency-badge--usd]="selectedLineCurrency === 'USD'">
+                  {{ selectedLineCurrency }}
+                </span>
+              }
+            </div>
           </div>
+          @if (!selectedCurrencyLocked) {
+            <div class="form-field">
+              <label class="form-label">MONEDA *</label>
+              <div class="toggle-container">
+                <button
+                  type="button"
+                  class="toggle-btn"
+                  [class.active]="selectedCurrency === 'MXN'"
+                  (click)="setSelectedCurrency('MXN')">
+                  MXN
+                </button>
+                <button
+                  type="button"
+                  class="toggle-btn"
+                  [class.active]="selectedCurrency === 'USD'"
+                  (click)="setSelectedCurrency('USD')">
+                  USD
+                </button>
+              </div>
+            </div>
+          }
           <div class="form-field">
             <label class="form-label">IVA %</label>
             <input type="number" class="form-input" [(ngModel)]="selectedIva" [ngModelOptions]="{ standalone: true }" min="0" max="100" step="0.01">
@@ -282,7 +328,7 @@
       </div>
       <div class="add-product-modal__footer">
         <button type="button" class="btn btn--secondary" (click)="closeAddProductModal()">Cancelar</button>
-        <button type="button" class="btn btn--primary" (click)="confirmAddProduct()">Agregar</button>
+        <button type="button" class="btn btn--primary" (click)="confirmAddProduct()" [disabled]="!canConfirmAddProduct">Agregar</button>
       </div>
     </div>
   </div>

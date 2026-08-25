@@ -77,12 +77,24 @@
             </div>
             <div class="info-card__content">
               <span class="info-card__label">REQUISICIÓN</span>
-              <span class="info-card__value">{{ batch()?.purchase_order_folio || '-' }}</span>
+              <span class="info-card__value">{{ purchaseOrderFolio }}</span>
             </div>
             @if (batch()?.purchase_order_id) {
               <lucide-icon [img]="ArrowRight" class="info-card__arrow w-4 h-4"></lucide-icon>
             }
           </div>
+
+          @if (pedimentoNumber) {
+            <div class="info-card">
+              <div class="info-card__icon">
+                <lucide-icon [img]="Stamp" class="w-5 h-5"></lucide-icon>
+              </div>
+              <div class="info-card__content">
+                <span class="info-card__label">PEDIMENTO</span>
+                <span class="info-card__value">{{ formatPedimento(pedimentoNumber) }}</span>
+              </div>
+            </div>
+          }
         </div>
 
         <div class="meta-cards">

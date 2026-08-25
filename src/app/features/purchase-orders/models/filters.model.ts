@@ -130,6 +130,7 @@ export interface PurchaseOrderApiLineItem {
   unit_total: number;
   iva_percentage?: number;
   ieps_percentage?: number;
+  currency?: 'MXN' | 'USD';
 }
 
 /**
@@ -142,6 +143,7 @@ export interface LineItemFormData {
   unit_price: number;
   iva_percentage: number;
   ieps_percentage: number;
+  currency?: 'MXN' | 'USD';
 }
 
 /**
@@ -164,6 +166,7 @@ export interface CreatePurchaseOrderLineItemDto {
   unit_total: number;
   iva_percentage: number;
   ieps_percentage: number;
+  currency?: 'MXN' | 'USD';
 }
 
 /**

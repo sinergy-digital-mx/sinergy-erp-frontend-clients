@@ -16,8 +16,9 @@ import { ProductDetailModalComponent } from '../../../settings/components/produc
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
 import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
-import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp, ArrowRightLeft, ArrowUpRight, ArrowDownLeft } from 'lucide-angular';
+import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp, ArrowRightLeft, ArrowUpRight, ArrowDownLeft, Stamp } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
+import { formatPedimentoDisplay } from '../../../purchase-orders/utils/purchase-order-display.util';
 
 @Component({
   selector: 'app-batch-detail-dialog',
@@ -30,7 +31,7 @@ export class BatchDetailDialogComponent implements OnInit {
   X = X; Package = Package; MapPin = MapPin; FileText = FileText;
   Calendar = Calendar; ShoppingCart = ShoppingCart; ArrowRight = ArrowRight; Edit = Edit;
   ImageUp = ImageUp; ArrowRightLeft = ArrowRightLeft;
-  ArrowUpRight = ArrowUpRight; ArrowDownLeft = ArrowDownLeft;
+  ArrowUpRight = ArrowUpRight; ArrowDownLeft = ArrowDownLeft; Stamp = Stamp;
 
   batch = signal<InventoryBatch | null>(null);
   loading = signal(true);
@@ -94,12 +95,27 @@ export class BatchDetailDialogComponent implements OnInit {
     return typeof val === 'string' ? parseFloat(val) || 0 : (val || 0);
   }
 
+  get purchaseOrderFolio(): string {
+    return this.batch()?.purchase_order_folio ?? '—';
+  }
+
+  get pedimentoNumber(): string | null {
+    const value = this.batch()?.pedimento_number?.trim();
+    return value || null;
+  }
+
+  formatPedimento(value?: string | null): string {
+    return formatPedimentoDisplay(value);
+  }
+
   openPurchaseOrder(): void {
     const b = this.batch();
     if (!b?.purchase_order_id) return;
     this.dialog.open(OrderDetailDialogComponent, {
       ...ORDER_DETAIL_DIALOG_OPTIONS,
       data: { orderId: b.purchase_order_id }
+    }).afterClosed().subscribe(() => {
+      this.reloadBatch();
     });
   }
 

@@ -159,7 +159,7 @@ export class ProductDetailModalComponent implements OnInit {
 
   constructor(
     private productService: ProductService,
-    @Inject(MAT_DIALOG_DATA) public data: { product?: Product; isNew?: boolean },
+    @Inject(MAT_DIALOG_DATA) public data: { product?: Product; isNew?: boolean; initialTab?: string },
     private dialogRef: MatDialogRef<ProductDetailModalComponent>,
     private dialog: MatDialog,
     private toast: ToastService,
@@ -304,6 +304,11 @@ export class ProductDetailModalComponent implements OnInit {
         
         // Cargar costos de proveedor
         this.loadVendorCosts();
+
+        const initialTab = this.data?.initialTab;
+        if (typeof initialTab === 'string' && initialTab) {
+          this.activeTab = initialTab;
+        }
         
         // Cargar subcategorías si tiene categoría
         if (this.product.category_id) {
@@ -1473,6 +1478,7 @@ export class ProductDetailModalComponent implements OnInit {
         product_id: cost.product_id,
         product_uom_id: cost.product_uom_id,
         cost: cost.cost,
+        currency: cost.currency === 'USD' ? 'USD' : 'MXN',
         iva_percentage: cost.iva_percentage || 16,
         ieps_percentage: cost.ieps_percentage || 0
       };
@@ -1504,12 +1510,14 @@ export class ProductDetailModalComponent implements OnInit {
       return;
     }
 
+    const currency: 'MXN' | 'USD' = this.costForm.currency === 'USD' ? 'USD' : 'MXN';
     const body = {
       vendor_id: this.costForm.vendor_id,
       product_uom_id: this.costForm.product_uom_id,
       cost: Number(this.costForm.cost),
       iva_percentage: Number(this.costForm.iva_percentage) || 0,
-      ieps_percentage: Number(this.costForm.ieps_percentage) || 0
+      ieps_percentage: Number(this.costForm.ieps_percentage) || 0,
+      currency
     };
 
     if (this.costForm.id) {
@@ -1517,7 +1525,8 @@ export class ProductDetailModalComponent implements OnInit {
       this.productService.updateVendorCost(this.product!.id, this.costForm.id, {
         cost: body.cost,
         iva_percentage: body.iva_percentage,
-        ieps_percentage: body.ieps_percentage
+        ieps_percentage: body.ieps_percentage,
+        currency: body.currency
       }).subscribe({
         next: () => {
           this.endNestedSave();
@@ -1813,6 +1822,7 @@ export class ProductDetailModalComponent implements OnInit {
       product_id: '',
       product_uom_id: '',
       cost: 0,
+      currency: 'MXN',
       iva_percentage: 0,
       ieps_percentage: 0
     };

@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
-import { Document, DocumentLanguage, DocumentType, PurchaseOrder } from '../../models/purchase-order.model';
+import { Batch, Document, DocumentLanguage, DocumentType, PurchaseOrder } from '../../models/purchase-order.model';
+import { LineItem } from '../../models/line-item.model';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import {
   PurchaseOrderNotesDialogComponent,
@@ -25,6 +26,8 @@ import { Vendor } from '../../../settings/models/vendor.model';
 import { WarehouseDetailModalComponent } from '../../../settings/components/warehouse-detail-modal/warehouse-detail-modal.component';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
+import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
+import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { formatTitleCase } from '../../../sales-orders/utils/sales-order-display.util';
 import {
   formatPedimentoDisplay,
@@ -268,7 +271,13 @@ export class OrderDetailDialogComponent {
 
   formatCurrency(value: number | string): string {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    return isNaN(numValue) ? '$0.00' : this.taxCalculator.formatCurrency(numValue);
+    if (isNaN(numValue)) return '$0.00';
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: this.getPaymentCurrency(),
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(numValue);
   }
 
   formatLongDate(value?: string | null): string {
@@ -640,13 +649,52 @@ export class OrderDetailDialogComponent {
     });
   }
 
-  openBatchDetail(batch: any): void {
+  openBatchDetail(batch: Batch): void {
     this.dialog.open(BatchDetailDialogComponent, {
       data: { batchId: batch.id },
       width: '920px',
       maxWidth: '95vw',
       maxHeight: '90vh',
     });
+  }
+
+  getBatchLineItem(batch: Batch): LineItem | undefined {
+    const items = this.order()?.line_items;
+    if (!items?.length) {
+      return undefined;
+    }
+    if (batch.purchase_order_detail_id) {
+      const byDetailId = items.find((item) => item.id === batch.purchase_order_detail_id);
+      if (byDetailId) {
+        return byDetailId;
+      }
+    }
+    return items.find((item) => item.product_id === batch.product_id);
+  }
+
+  getBatchRequestedQuantity(batch: Batch): number | string {
+    if (batch.requested_quantity != null && batch.requested_quantity !== '') {
+      return batch.requested_quantity;
+    }
+    return this.getBatchLineItem(batch)?.quantity ?? 0;
+  }
+
+  getBatchReceivedQuantity(batch: Batch): number | string {
+    if (batch.received_quantity != null && batch.received_quantity !== '') {
+      return batch.received_quantity;
+    }
+    const line = this.getBatchLineItem(batch);
+    return batch.initial_quantity ?? batch.quantity ?? line?.received_original_quantity ?? 0;
+  }
+
+  getBatchRequestedUom(batch: Batch): string {
+    const line = this.getBatchLineItem(batch);
+    return line?.uom?.name || line?.product_uom?.uom?.name || batch.uom?.name || 'Unidad';
+  }
+
+  getBatchReceivedUom(batch: Batch): string {
+    const line = this.getBatchLineItem(batch);
+    return batch.uom?.name || line?.received_uom?.name || 'Unidad';
   }
 
   getLineItemsCount(): number {
@@ -737,6 +785,26 @@ export class OrderDetailDialogComponent {
       data: { fiscalConfigId, branchId },
       width: '80vw',
       maxWidth: '1000px',
+    });
+  }
+
+  canOpenProduct(item: LineItem): boolean {
+    return !!(item.product?.id || item.product_id);
+  }
+
+  openProductDetail(item: LineItem): void {
+    const productId = item.product?.id ?? item.product_id;
+    if (!productId) return;
+    this.dialog.open(ProductDetailModalComponent, {
+      ...PRODUCT_DETAIL_DIALOG_CONFIG,
+      data: {
+        product: {
+          id: productId,
+          name: item.product?.name,
+          sku: item.product?.sku,
+        },
+        isNew: false,
+      },
     });
   }
 

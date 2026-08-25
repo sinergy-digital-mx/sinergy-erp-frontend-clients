@@ -344,6 +344,7 @@
                 <th>UOM</th>
                 <th>PROVEEDOR</th>
                 <th>COSTO</th>
+                <th>MONEDA</th>
                 <th>IVA %</th>
                 <th>IEPS %</th>
                 <th>TOTAL</th>
@@ -355,6 +356,11 @@
                 <td>{{ cost.product_uom?.uom?.name || '—' }}</td>
                 <td>{{ cost.vendor?.name || '—' }}</td>
                 <td>${{ cost.cost | number:'1.2-2' }}</td>
+                <td>
+                  <span class="currency-badge" [class.currency-badge--usd]="(cost.currency || 'MXN') === 'USD'">
+                    {{ cost.currency || 'MXN' }}
+                  </span>
+                </td>
                 <td>{{ cost.iva_percentage || 0 }}%</td>
                 <td>{{ cost.ieps_percentage || 0 }}%</td>
                 <td [title]="'Costo: $' + (cost.cost | number:'1.2-2') + '\nIVA: $' + ((cost.iva_unit_total || 0) | number:'1.2-2') + '\nIEPS: $' + ((cost.ieps_unit_total || 0) | number:'1.2-2') + '\nTotal: $' + ((Number(cost.cost) + Number(cost.iva_unit_total || 0) + Number(cost.ieps_unit_total || 0)) | number:'1.2-2')" style="cursor: help;">
@@ -705,9 +711,29 @@
           </select>
         </div>
 
-        <div class="form-field form-field--full">
+        <div class="form-field">
           <label class="form-label">COSTO *</label>
           <input type="number" class="form-input" [(ngModel)]="costForm.cost" placeholder="0.00" step="0.01" min="0">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">MONEDA *</label>
+          <div class="toggle-container">
+            <button
+              type="button"
+              class="toggle-btn"
+              [class.active]="costForm.currency === 'MXN'"
+              (click)="costForm.currency = 'MXN'">
+              MXN
+            </button>
+            <button
+              type="button"
+              class="toggle-btn"
+              [class.active]="costForm.currency === 'USD'"
+              (click)="costForm.currency = 'USD'">
+              USD
+            </button>
+          </div>
         </div>
 
         <div class="form-field">

@@ -46,6 +46,8 @@ export interface InventoryBatch {
   purchase_order_id: string | null;
   purchase_order_detail_id: string | null;
   purchase_order_folio: string | null;
+  /** Pedimento de la OC de origen. null si no hay OC o la OC no tiene pedimento. */
+  pedimento_number?: string | null;
   created_by: string;
   created_at: string;
 }

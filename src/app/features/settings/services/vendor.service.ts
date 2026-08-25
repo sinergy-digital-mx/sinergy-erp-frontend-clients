@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, from, throwError } from 'rxjs';
+import { Observable, from, of, throwError } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import {
@@ -23,6 +23,25 @@ export class VendorService {
 
   getVendors(params?: VendorQueryParams): Observable<VendorListResponse> {
     return this.http.get<VendorListResponse>(`${this.api}/tenant/vendors`, { params: params as any });
+  }
+
+  getAllActiveVendors(): Observable<Vendor[]> {
+    const pageSize = 200;
+    const loadPage = (page: number, acc: Vendor[]): Observable<Vendor[]> =>
+      this.getVendors({ status: 'active', page, limit: pageSize }).pipe(
+        switchMap((response) => {
+          const rows = response?.data ?? [];
+          const next = acc.concat(rows);
+          const hasNext =
+            response?.hasNext === true ||
+            (typeof response?.total === 'number' && next.length < response.total);
+          if (hasNext && rows.length > 0) {
+            return loadPage(page + 1, next);
+          }
+          return of(next);
+        })
+      );
+    return loadPage(1, []);
   }
 
   getVendor(id: string): Observable<Vendor> {

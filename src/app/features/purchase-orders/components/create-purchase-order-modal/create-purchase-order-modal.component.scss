@@ -22,6 +22,35 @@
     color: #111827;
     margin: 0;
   }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+}
+
+.currency-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: #f1f5f9;
+  color: #334155;
+
+  &--usd {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  &--empty {
+    background: #f8fafc;
+    color: #94a3b8;
+  }
 }
 
 .close-btn {
@@ -157,6 +186,23 @@ input[type='number'] {
     -webkit-appearance: none;
     margin: 0;
   }
+}
+
+.vendor-picker {
+  position: relative;
+}
+
+.vendor-picker__input {
+  padding-right: 2.25rem;
+}
+
+.vendor-picker__chevron {
+  position: absolute;
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  pointer-events: none;
 }
 
 .form-select {
@@ -377,6 +423,68 @@ input[type='number'] {
 .product-picker-row__search {
   flex: 1;
   min-width: 0;
+}
+
+.product-cost-warning,
+.product-cost-hint {
+  margin: 0.5rem 0 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.product-cost-warning {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+}
+
+.product-cost-hint {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.cost-with-currency {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .form-input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.toggle-container {
+  display: inline-flex;
+  gap: 0.125rem;
+  background: #f1f5f9;
+  padding: 0.125rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  width: fit-content;
+}
+
+.toggle-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+  &.active {
+    background: #fff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  }
 }
 
 .product-detail-btn {

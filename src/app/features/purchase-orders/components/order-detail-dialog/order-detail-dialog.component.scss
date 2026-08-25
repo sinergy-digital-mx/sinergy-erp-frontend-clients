@@ -14,6 +14,23 @@
   color: #64748b;
 }
 
+.currency-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: #f1f5f9;
+  color: #334155;
+
+  &--usd {
+    background: #ecfdf5;
+    color: #047857;
+  }
+}
+
 .status-badge {
   &--success {
     background: #d1fae5;
@@ -537,6 +554,31 @@
       font-size: 0.75rem;
       color: #6b7280;
     }
+
+    &--clickable {
+      cursor: pointer;
+      border-radius: 8px;
+      padding: 0.25rem 0.35rem;
+      margin: -0.25rem -0.35rem;
+      transition: background-color 0.15s ease;
+
+      &:hover strong {
+        color: #2563eb;
+      }
+
+      &:hover {
+        background: #eff6ff;
+      }
+
+      &:focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  tbody tr.row-clickable:hover .product-info--clickable strong {
+    color: #2563eb;
   }
 }
 

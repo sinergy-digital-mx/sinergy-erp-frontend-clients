@@ -212,7 +212,15 @@
           <div class="totals-divider"></div>
           <div class="totals-row totals-row-total">
             <span class="totals-label-total">Total</span>
-            <span class="totals-value-total" [ngClass]="getTotalColor()">{{ getTotal() }}</span>
+            <span class="totals-value-total" [ngClass]="getTotalColor()">
+              {{ getTotal() }}
+              <span
+                class="currency-badge"
+                [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
+                [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
+                {{ getPaymentCurrency() }}
+              </span>
+            </span>
           </div>
         </div>
 
@@ -300,9 +308,16 @@
                 <tbody>
                   @if (order()!.line_items && order()!.line_items.length > 0) {
                     @for (item of order()!.line_items; track item.id) {
-                      <tr>
+                      <tr [class.row-clickable]="canOpenProduct(item)">
                         <td>
-                          <div class="product-info">
+                          <div
+                            class="product-info"
+                            [class.product-info--clickable]="canOpenProduct(item)"
+                            role="button"
+                            [attr.tabindex]="canOpenProduct(item) ? 0 : null"
+                            (click)="canOpenProduct(item) && openProductDetail(item)"
+                            (keydown.enter)="canOpenProduct(item) && openProductDetail(item)"
+                            (keydown.space)="$event.preventDefault(); canOpenProduct(item) && openProductDetail(item)">
                             <strong>{{ item.product?.name || 'N/A' }}</strong>
                             <small>{{ item.product?.sku || '' }}</small>
                           </div>
@@ -437,7 +452,8 @@
                     <tr>
                       <th>LOTE</th>
                       <th>PRODUCTO</th>
-                      <th>CANTIDAD</th>
+                      <th>SOLICITADAS</th>
+                      <th>RECIBIDAS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -458,8 +474,14 @@
                         </td>
                         <td>
                           <span class="qty-cell">
-                            <span class="qty-cell__amount">{{ batch.initial_quantity | removeTrailingZeros }}</span>
-                            <span class="uom-badge">{{ batch.uom?.name || 'Unidad' }}</span>
+                            <span class="qty-cell__amount">{{ getBatchRequestedQuantity(batch) | removeTrailingZeros }}</span>
+                            <span class="uom-badge">{{ getBatchRequestedUom(batch) }}</span>
+                          </span>
+                        </td>
+                        <td>
+                          <span class="qty-cell">
+                            <span class="qty-cell__amount">{{ getBatchReceivedQuantity(batch) | removeTrailingZeros }}</span>
+                            <span class="uom-badge uom-badge--success">{{ getBatchReceivedUom(batch) }}</span>
                           </span>
                         </td>
                       </tr>

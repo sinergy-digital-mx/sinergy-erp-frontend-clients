@@ -29,6 +29,7 @@ export interface LineItem {
   quantity: number | string;
   unit_price?: number;
   unit_total?: number;
+  currency?: 'MXN' | 'USD' | null;
   subtotal?: number;
   iva_percentage: number;
   iva_unit?: number;

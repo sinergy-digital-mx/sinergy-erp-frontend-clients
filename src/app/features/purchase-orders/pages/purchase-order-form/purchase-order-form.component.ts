@@ -23,6 +23,11 @@ import {
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { validateQuantity, validatePrice, validateTaxPercentage, getErrorMessage } from '../../utils/order-validators';
 import { isInternationalPurchaseOrder, PEDIMENTO_MAX_LENGTH } from '../../utils/purchase-order-display.util';
+import {
+  VendorCostCurrency,
+  currencyMismatchMessage,
+  normalizeVendorCostCurrency,
+} from '../../../settings/utils/vendor-cost-currency.util';
 
 @Component({
   selector: 'app-purchase-order-form',
@@ -130,6 +135,9 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     const vendorCtrl = this.orderForm.get('vendor_id');
     this.vendorIdSub = vendorCtrl?.valueChanges.pipe(distinctUntilChanged()).subscribe((vid) => {
       this.loadVendorProducts(typeof vid === 'string' ? vid : '');
+      if (!this.isEditMode()) {
+        this.lineItems.clear();
+      }
       if (!this.isInternationalVendor()) {
         this.orderForm?.get('pedimento_number')?.setValue('', { emitEvent: false });
       }
@@ -251,15 +259,24 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     });
   }
 
+  get orderCurrency(): VendorCostCurrency | null {
+    const fromOrder = normalizeVendorCostCurrency(this.loadedOrder()?.payment_currency);
+    if (fromOrder) return fromOrder;
+    const first = this.lineItems.at(0)?.get('currency')?.value;
+    return normalizeVendorCostCurrency(first);
+  }
+
   createLineItemFormGroup(item?: Partial<LineItem>): FormGroup {
     const unitCost = this.toNum(item?.unit_price ?? item?.unit_total);
+    const currency = normalizeVendorCostCurrency(item?.currency) ?? this.orderCurrency ?? 'MXN';
     return this.fb.group({
       product_id: [item?.product_id || '', Validators.required],
       uom_id: [item?.uom_id || item?.product_uom_id || '', Validators.required],
       quantity: [item?.quantity ?? 1, [Validators.required, validateQuantity()]],
       unit_price: [unitCost, [Validators.required, validatePrice()]],
       iva_percentage: [item?.iva_percentage ?? 16, [Validators.required, validateTaxPercentage()]],
-      ieps_percentage: [item?.ieps_percentage ?? 0, [Validators.required, validateTaxPercentage()]]
+      ieps_percentage: [item?.ieps_percentage ?? 0, [Validators.required, validateTaxPercentage()]],
+      currency: [currency]
     });
   }
 
@@ -299,13 +316,16 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     const vp = this.getVendorProduct(productId);
     if (vp?.uoms?.length) {
       const u = vp.uoms[0];
-      this.lineItems.at(index).patchValue({
-        uom_id: u.uom_id,
-        unit_price: u.cost ?? 0,
-        iva_percentage: u.iva_percentage ?? 0,
-        ieps_percentage: u.ieps_percentage ?? 0
-      });
+      this.applyCatalogUomToLine(index, u);
+      return;
     }
+    this.lineItems.at(index).patchValue({
+      uom_id: '',
+      unit_price: 0,
+      iva_percentage: 0,
+      ieps_percentage: 0,
+      currency: this.orderCurrency ?? 'MXN',
+    });
   }
 
   onVendorUomChange(index: number, uomId: string): void {
@@ -313,12 +333,23 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     const vp = this.getVendorProduct(pid);
     const u = vp?.uoms?.find((x) => x.uom_id === uomId);
     if (u) {
-      this.lineItems.at(index).patchValue({
-        unit_price: u.cost ?? 0,
-        iva_percentage: u.iva_percentage ?? 0,
-        ieps_percentage: u.ieps_percentage ?? 0
-      });
+      this.applyCatalogUomToLine(index, u);
     }
+  }
+
+  private applyCatalogUomToLine(index: number, u: VendorCatalogUom): void {
+    const uomCurrency = normalizeVendorCostCurrency(u.currency);
+    const order = this.orderCurrency;
+    if (uomCurrency && order && uomCurrency !== order) {
+      alert(currencyMismatchMessage(order, uomCurrency));
+    }
+    this.lineItems.at(index).patchValue({
+      uom_id: u.uom_id,
+      unit_price: u.cost ?? 0,
+      iva_percentage: u.iva_percentage ?? 0,
+      ieps_percentage: u.ieps_percentage ?? 0,
+      currency: uomCurrency ?? order ?? 'MXN',
+    });
   }
 
   getLineCalculations(index: number): ReturnType<TaxCalculatorService['calculateLineItem']> {
@@ -390,13 +421,15 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
    */
   private buildWritePurchaseOrderDto(): WritePurchaseOrderDto {
     const raw = this.orderForm!.getRawValue() as PurchaseOrderFormData;
+    const paymentCurrency = this.orderCurrency ?? 'MXN';
     const line_items: PurchaseOrderApiLineItem[] = raw.line_items.map((row) => ({
       product_id: row.product_id,
       uom_id: row.uom_id,
       quantity: this.toNum(row.quantity),
       unit_total: this.toNum(row.unit_price),
       iva_percentage: this.toNum(row.iva_percentage),
-      ieps_percentage: this.toNum(row.ieps_percentage)
+      ieps_percentage: this.toNum(row.ieps_percentage),
+      currency: normalizeVendorCostCurrency(row.currency) ?? paymentCurrency
     }));
 
     const body: WritePurchaseOrderDto = {
@@ -404,6 +437,7 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       warehouse_id: raw.warehouse_id,
       vendor_id: raw.vendor_id,
       expected_delivery_date: this.dateOnlyForInput(raw.tentative_receipt_date),
+      payment_currency: paymentCurrency,
       line_items
     };
 

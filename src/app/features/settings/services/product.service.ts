@@ -546,11 +546,11 @@ export class ProductService {
     return this.http.get<VendorProductPrice>(`${this.api}/tenant/products/${productId}/vendor-costs/${costId}`);
   }
 
-  createVendorCost(productId: string, data: { vendor_id: string; product_uom_id: string; cost: number; iva_percentage?: number; ieps_percentage?: number }): Observable<VendorProductPrice> {
+  createVendorCost(productId: string, data: { vendor_id: string; product_uom_id: string; cost: number; iva_percentage?: number; ieps_percentage?: number; currency: 'MXN' | 'USD' }): Observable<VendorProductPrice> {
     return this.http.post<VendorProductPrice>(`${this.api}/tenant/products/${productId}/vendor-costs`, data);
   }
 
-  updateVendorCost(productId: string, costId: string, data: { cost?: number; iva_percentage?: number; ieps_percentage?: number }): Observable<VendorProductPrice> {
+  updateVendorCost(productId: string, costId: string, data: { cost?: number; iva_percentage?: number; ieps_percentage?: number; currency?: 'MXN' | 'USD' }): Observable<VendorProductPrice> {
     return this.http.patch<VendorProductPrice>(`${this.api}/tenant/products/${productId}/vendor-costs/${costId}`, data);
   }
 
@@ -583,19 +583,33 @@ export class ProductService {
   // ─── Vendors ────────────────────────────────────────────────
 
   getVendors(params?: { is_active?: boolean }): Observable<any> {
-    return this.http.get<any>(`${this.api}/tenant/vendors`, { params: params as any }).pipe(
-      map(response => {
-        // Handle paginated response with data property
-        if (response && response.data && Array.isArray(response.data)) {
-          return response.data;
-        }
-        // Handle direct array response
-        if (Array.isArray(response)) {
-          return response;
-        }
-        return [];
-      })
-    );
+    const status = params?.is_active === false ? 'inactive' : 'active';
+    const pageSize = 200;
+
+    const loadPage = (page: number, acc: unknown[]): Observable<unknown[]> =>
+      this.http
+        .get<any>(`${this.api}/tenant/vendors`, {
+          params: { status, page, limit: pageSize } as any,
+        })
+        .pipe(
+          switchMap((response) => {
+            const rows = Array.isArray(response?.data)
+              ? response.data
+              : Array.isArray(response)
+                ? response
+                : [];
+            const next = acc.concat(rows);
+            const hasNext =
+              response?.hasNext === true ||
+              (typeof response?.total === 'number' && next.length < response.total);
+            if (hasNext && rows.length > 0) {
+              return loadPage(page + 1, next);
+            }
+            return of(next);
+          })
+        );
+
+    return loadPage(1, []);
   }
 
   // ─── Inventory ──────────────────────────────────────────────

@@ -134,7 +134,18 @@
                   <div><strong>Razón social:</strong> {{ getFiscalLabel(order) }}</div>
                   <div><strong>Sucursal:</strong> {{ getBranchLabel(order) }}</div>
                   <div><strong>Almacén:</strong> {{ getWarehouseLabel(order) }}</div>
-                  <div class="mt-2"><strong>Total:</strong> {{ formatCurrency(getOrderTotal(order)) }}</div>
+                  <div class="mt-2 flex items-center gap-1.5">
+                    <strong>Total:</strong>
+                    <span>{{ formatCurrency(getOrderTotal(order), getOrderCurrency(order)) }}</span>
+                    <span
+                      class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tracking-wide"
+                      [class.bg-slate-100]="getOrderCurrency(order) === 'MXN'"
+                      [class.text-slate-600]="getOrderCurrency(order) === 'MXN'"
+                      [class.bg-emerald-50]="getOrderCurrency(order) === 'USD'"
+                      [class.text-emerald-700]="getOrderCurrency(order) === 'USD'">
+                      {{ getOrderCurrency(order) }}
+                    </span>
+                  </div>
                   <div><strong>Pago:</strong> 
                     <span [ngClass]="getPaymentStatusClass(order.payment_status)">
                       {{ order.payment_status }}
@@ -196,7 +207,17 @@
     </span>
   </td>
   <td class="w-[120px]">
-    <p class="dt-cell-amount m-0">{{ formatCurrency(getOrderTotal(item)) }}</p>
+    <div class="flex items-center justify-end gap-1.5">
+      <p class="dt-cell-amount m-0">{{ formatCurrency(getOrderTotal(item), getOrderCurrency(item)) }}</p>
+      <span
+        class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tracking-wide"
+        [class.bg-slate-100]="getOrderCurrency(item) === 'MXN'"
+        [class.text-slate-600]="getOrderCurrency(item) === 'MXN'"
+        [class.bg-emerald-50]="getOrderCurrency(item) === 'USD'"
+        [class.text-emerald-700]="getOrderCurrency(item) === 'USD'">
+        {{ getOrderCurrency(item) }}
+      </span>
+    </div>
   </td>
   <td class="w-[120px]">
     <span [ngClass]="getPaymentStatusClass(item.payment_status)">

@@ -1,6 +1,13 @@
 <div class="purchase-order-form">
   <div class="header">
     <h1>{{ isEditMode() ? 'Editar' : 'Crear' }} Orden de Compra</h1>
+    <span
+      class="currency-badge"
+      [class.currency-badge--usd]="orderCurrency === 'USD'"
+      [class.currency-badge--empty]="!orderCurrency"
+      [title]="orderCurrency === 'USD' ? 'Dólares' : orderCurrency === 'MXN' ? 'Pesos' : 'Todavía no hay moneda'">
+      {{ orderCurrency || '—' }}
+    </span>
   </div>
 
   @if (loadError()) {
@@ -140,7 +147,7 @@
                 >
                   <option value="">Selecciona un producto</option>
                   <option *ngFor="let p of vendorProducts()" [value]="p.product_id">
-                    {{ p.product_name }}{{ p.sku ? ' (' + p.sku + ')' : '' }}
+                    {{ p.product_name }}{{ (p.product_sku || p.sku) ? ' (' + (p.product_sku || p.sku) + ')' : '' }}{{ p.has_vendor_cost === false ? ' · Sin costo' : '' }}
                   </option>
                 </select>
                 <span class="error" *ngIf="getLineItemFieldError(i, 'product_id')">
@@ -177,6 +184,13 @@
                 <input type="number" formControlName="unit_price" min="0" step="0.01" />
                 <span class="error" *ngIf="getLineItemFieldError(i, 'unit_price')">
                   {{ getLineItemFieldError(i, 'unit_price') }}
+                </span>
+              </div>
+
+              <div class="form-field">
+                <label>Moneda</label>
+                <span class="currency-badge" [class.currency-badge--usd]="item.get('currency')?.value === 'USD'">
+                  {{ item.get('currency')?.value || 'MXN' }}
                 </span>
               </div>
 

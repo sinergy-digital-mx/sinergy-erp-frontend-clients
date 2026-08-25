@@ -348,8 +348,17 @@ export class PurchaseOrderListComponent implements OnInit {
   /**
    * Format currency amount
    */
-  formatCurrency(amount: number): string {
-    return this.taxCalculator.formatCurrency(amount);
+  formatCurrency(amount: number, currency: 'MXN' | 'USD' = 'MXN'): string {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount ?? 0);
+  }
+
+  getOrderCurrency(order: PurchaseOrder): 'MXN' | 'USD' {
+    return order.payments_summary?.currency ?? order.payment_currency ?? 'MXN';
   }
 
   /**
