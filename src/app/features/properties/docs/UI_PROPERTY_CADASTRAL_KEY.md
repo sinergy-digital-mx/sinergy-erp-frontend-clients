@@ -16,7 +16,7 @@ Placeholder: `Clave catastral`. Vacío → `null`. Texto libre (sin validar form
 
 - **Crear / Editar lote:** input junto a Manzana (`block`) y Número de lote (`lot_number`).
 - **Listado de lotes:** columna `row.cadastral_key`. Si `null` / `''` → `—`. El `search` del listado ya cubre clave catastral.
-- **Detalle de contrato:** sección de lote (código, manzana, número de lote, clave). Si no hay clave, se captura ahí con `PUT /properties/:id`.
+- **Detalle de contrato:** ficha de solo lectura (código, manzana, número, área, precio). Clave catastral se edita y se ve en **Editar lote**.
 
 ## GET
 

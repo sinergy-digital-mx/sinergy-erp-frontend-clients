@@ -1,96 +1,38 @@
-<section class="lot-section">
+<section class="lot-strip">
   @if (loading() && !lot()) {
-    <p class="lot-section__loading">Cargando lote...</p>
+    <p class="lot-strip__loading">Cargando lote...</p>
   } @else if (lot(); as property) {
-    <div class="lot-section__head">
-      <div class="lot-section__identity">
-        <span class="lot-section__icon" aria-hidden="true">
-          <lucide-icon [img]="MapPin" [size]="18"></lucide-icon>
-        </span>
-        <div class="min-w-0">
-          <p class="lot-section__eyebrow">Lote del contrato</p>
-          <h3 class="lot-section__title">{{ property.name || property.code }}</h3>
-        </div>
-      </div>
-      <button type="button" class="lot-section__full-edit" (click)="openFullEditor()">
-        Editar lote
-      </button>
-    </div>
-
-    <div class="lot-section__grid">
-      <div class="lot-field">
-        <span class="lot-field__label">Lote</span>
-        <button type="button" class="lot-code" (click)="openFullEditor()">
-          {{ property.code }}
-        </button>
-      </div>
-
-      <div class="lot-field">
-        <span class="lot-field__label">Manzana</span>
-        <span class="lot-field__value">{{ property.block?.trim() || '—' }}</span>
-      </div>
-
-      <div class="lot-field">
-        <span class="lot-field__label">Número de lote</span>
-        <span class="lot-field__value">{{ property.lot_number?.trim() || '—' }}</span>
-      </div>
-
-      <div class="lot-field lot-field--cadastral">
-        <span class="lot-field__label">Clave catastral</span>
-
-        @if (showCadastralEditor()) {
-          <div class="lot-cadastral">
-            <app-input
-              placeholder="Clave catastral"
-              [maxlength]="100"
-              [form_control]="cadastralKeyControl">
-            </app-input>
-            <div class="lot-cadastral__actions">
-              <app-button
-                text="Guardar"
-                size="sm"
-                [fullWidth]="false"
-                customClass="btn_primary"
-                [loading]="saving()"
-                (clicked)="saveCadastralKey()">
-              </app-button>
-              @if (hasCadastralKey()) {
-                <button type="button" class="lot-link" (click)="cancelEditCadastralKey()">
-                  Cancelar
-                </button>
-              }
-            </div>
-            @if (!hasCadastralKey()) {
-              <p class="lot-cadastral__hint">
-                Aún no hay clave. Puedes capturarla aquí; el lote la guarda.
-              </p>
-            }
-          </div>
-        } @else {
-          <div class="lot-cadastral-view">
-            <span class="lot-field__value lot-field__value--mono">
-              {{ displayCadastralKey(property.cadastral_key) }}
-            </span>
-            <button
-              type="button"
-              class="lot-icon-btn"
-              (click)="startEditCadastralKey()"
-              aria-label="Editar clave catastral">
-              <lucide-icon [img]="Pencil" [size]="14"></lucide-icon>
-            </button>
-          </div>
+    <div class="lot-strip__top">
+      <div class="lot-strip__id">
+        <button type="button" class="lot-code" (click)="openEditor()">{{ property.code }}</button>
+        @if (property.group?.name) {
+          <span class="lot-strip__project">{{ property.group?.name }}</span>
         }
       </div>
+      <button type="button" class="lot-strip__edit" (click)="openEditor()">Editar lote</button>
     </div>
 
-    <div class="lot-section__meta">
-      <span>Área {{ formatArea(property) }}</span>
-      <span class="lot-section__dot">·</span>
-      <span>Precio {{ formatPrice(property) }}</span>
-      @if (property.group?.name) {
-        <span class="lot-section__dot">·</span>
-        <span>{{ property.group?.name }}</span>
-      }
-    </div>
+    <dl class="lot-strip__facts">
+      <div class="lot-strip__fact">
+        <dt>Manzana</dt>
+        <dd>{{ property.block?.trim() || '—' }}</dd>
+      </div>
+      <div class="lot-strip__fact">
+        <dt>Lote</dt>
+        <dd>{{ property.lot_number?.trim() || '—' }}</dd>
+      </div>
+      <div class="lot-strip__fact">
+        <dt>Área</dt>
+        <dd>{{ formatAreaValue(property) }} {{ formatAreaUnit(property) }}</dd>
+      </div>
+      <div class="lot-strip__fact">
+        <dt>Precio</dt>
+        <dd>{{ formatPrice(property) }}</dd>
+      </div>
+    </dl>
+
+    @if (property.cadastral_key?.trim()) {
+      <p class="lot-strip__cadastral">Clave catastral {{ property.cadastral_key }}</p>
+    }
   }
 </section>

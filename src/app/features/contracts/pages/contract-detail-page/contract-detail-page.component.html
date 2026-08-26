@@ -35,8 +35,8 @@
           </span>
           <span
             *ngIf="current.down_payment_financed"
-            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-50 text-amber-800">
-            Enganche financiado activo
+            class="chip-financed">
+            Enganche financiado
           </span>
         </div>
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-xs text-slate-500">
@@ -108,31 +108,32 @@
 
     <div class="page-body">
       <div class="tab-content" [class.active]="activeTab() === 'edit'">
-        <div *ngIf="current.down_payment_financed" class="mb-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
-            <div>
-              <span class="block font-semibold text-amber-700 mb-0.5">Meta enganche</span>
-              <span class="text-amber-900 font-semibold">
-                {{ current.down_payment_target != null ? (current.down_payment_target | currency:current.currency) : 'Sin definir' }}
-              </span>
+        <section *ngIf="current.down_payment_financed" class="financed-panel">
+          <h3 class="financed-panel__title">Enganche financiado</h3>
+          <dl class="financed-panel__facts">
+            <div class="financed-panel__fact">
+              <dt>Meta</dt>
+              <dd>{{ current.down_payment_target != null ? (current.down_payment_target | currency:current.currency) : 'Sin definir' }}</dd>
             </div>
-            <div>
-              <span class="block font-semibold text-amber-700 mb-0.5">Abonado</span>
-              <span class="text-amber-900 font-semibold">{{ current.down_payment | currency:current.currency }}</span>
+            <div class="financed-panel__fact">
+              <dt>Abonado</dt>
+              <dd>{{ current.down_payment | currency:current.currency }}</dd>
             </div>
-            <div>
-              <span class="block font-semibold text-amber-700 mb-0.5">Meses cuotas</span>
-              <span class="text-amber-900 font-semibold">{{ current.down_payment_months || '—' }}</span>
+            <div class="financed-panel__fact">
+              <dt>Meses</dt>
+              <dd>{{ current.down_payment_months || '—' }}</dd>
             </div>
-            <div>
-              <span class="block font-semibold text-amber-700 mb-0.5">Primer pago / día</span>
-              <span class="text-amber-900 font-semibold">
+            <div class="financed-panel__fact">
+              <dt>Primer pago</dt>
+              <dd>
                 {{ current.down_payment_first_payment_date ? (current.down_payment_first_payment_date | localDate:'mediumDate') : '—' }}
-                / {{ current.down_payment_payment_day || '—' }}
-              </span>
+                @if (current.down_payment_payment_day) {
+                  <span class="financed-panel__day">día {{ current.down_payment_payment_day }}</span>
+                }
+              </dd>
             </div>
-          </div>
-        </div>
+          </dl>
+        </section>
 
         @if (current.property_id) {
           <app-contract-lot-section
