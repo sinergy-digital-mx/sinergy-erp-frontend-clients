@@ -29,6 +29,11 @@
             {{ getCustomerName() }}
           </span>
           <span
+            *ngIf="current.property"
+            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-emerald-50 text-emerald-700">
+            {{ current.property.code }}
+          </span>
+          <span
             *ngIf="current.down_payment_financed"
             class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-50 text-amber-800">
             Enganche financiado activo
@@ -129,25 +134,19 @@
           </div>
         </div>
 
-        <div class="space-y-2.5" [formGroup]="form">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div>
-              <span class="block text-xs font-semibold text-gray-500 mb-1">Número de Contrato</span>
-              <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                {{ current.contract_number }}
-              </span>
-            </div>
+        @if (current.property_id) {
+          <app-contract-lot-section
+            [propertyId]="current.property_id"
+            (updated)="onLotUpdated($event)">
+          </app-contract-lot-section>
+        }
 
-            <div>
-              <span class="block text-xs font-semibold text-gray-500 mb-1">Lote</span>
-              <span
-                *ngIf="current.property"
-                (click)="openPropertyModal()"
-                class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 cursor-pointer hover:bg-green-200 transition-colors">
-                {{ current.property.code }}
-              </span>
-              <span *ngIf="!current.property" class="text-gray-900">—</span>
-            </div>
+        <div class="space-y-2.5" [formGroup]="form">
+          <div>
+            <span class="block text-xs font-semibold text-gray-500 mb-1">Número de Contrato</span>
+            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+              {{ current.contract_number }}
+            </span>
           </div>
 
           <div>

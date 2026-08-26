@@ -9,6 +9,9 @@
   </div>
 
   <div class="dialog__body">
+    @if (loadingProperty()) {
+      <p class="text-sm text-gray-500 px-1 pb-3">Cargando lote...</p>
+    }
     <div class="container grid grid-cols-1 md:grid-cols-2 gap-4" [formGroup]="form">
       <!-- Manzana -->
       <app-input
@@ -21,6 +24,16 @@
         label="Número de Lote"
         [form_control]="form.controls['lot_number']">
       </app-input>
+
+      <!-- Clave catastral -->
+      <div class="md:col-span-2">
+        <app-input
+          label="Clave catastral"
+          placeholder="Clave catastral"
+          [maxlength]="100"
+          [form_control]="form.controls['cadastral_key']">
+        </app-input>
+      </div>
 
       <!-- Código del Lote (Auto-generado) -->
       <div class="md:col-span-2">
@@ -122,6 +135,7 @@
       [text]="data?.property?.id ? 'Actualizar' : 'Crear'"
       custom_class="btn_primary"
       [loading]="loading()"
+      [disabled]="loadingProperty()"
       (clicked)="submit()">
     </app-button>
   </div>

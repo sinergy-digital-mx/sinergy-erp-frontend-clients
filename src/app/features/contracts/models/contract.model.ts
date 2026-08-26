@@ -63,6 +63,8 @@ export interface ContractProperty {
   code: string;
   name: string;
   block: string;
+  lot_number?: string | null;
+  cadastral_key?: string | null;
   total_area: number;
   total_price: number;
   list_price?: number | null;

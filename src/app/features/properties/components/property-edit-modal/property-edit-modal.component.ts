@@ -10,7 +10,7 @@ import { SelectComponent, ISelect } from '../../../../core/components/select/sel
 import { LucideAngularModule, X } from 'lucide-angular';
 import { PropertyService } from '../../services/property.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { Property, MeasurementUnit, PropertyStatus } from '../../models/property.model';
+import { Property, MeasurementUnit, normalizeCadastralKey } from '../../models/property.model';
 
 @Component({
   selector: 'app-property-edit-modal',
@@ -28,7 +28,10 @@ import { Property, MeasurementUnit, PropertyStatus } from '../../models/property
 })
 export class PropertyEditModalComponent implements OnInit {
   loading = signal(false);
+  loadingProperty = signal(false);
   update = signal(false);
+  /** Lote fresco del GET /:id (no recortar el objeto local). */
+  loadedProperty = signal<Property | null>(null);
   measurementUnits = signal<MeasurementUnit[]>([]);
   loadingUnits = signal(false);
   propertyGroups = signal<any[]>([]);
@@ -93,6 +96,7 @@ export class PropertyEditModalComponent implements OnInit {
       code: [{ value: '', disabled: true }], // Auto-generado, solo lectura
       block: ['', [Validators.required]],
       lot_number: ['', [Validators.required]],
+      cadastral_key: ['', [Validators.maxLength(100)]],
       name: ['', [Validators.required]],
       description: [''],
       location: [''],
@@ -123,26 +127,54 @@ export class PropertyEditModalComponent implements OnInit {
   ngOnInit() {
     this.loadMeasurementUnits();
     this.loadPropertyGroups();
-    this.populateFormData();
+    this.loadPropertyForForm();
   }
 
-  private populateFormData() {
-    if (this.data?.property) {
-      this.form.patchValue({
-        code: this.data.property.code,
-        block: this.data.property.block || '',
-        lot_number: this.data.property.lot_number || '',
-        name: this.data.property.name,
-        description: this.data.property.description || '',
-        location: this.data.property.location || '',
-        group_id: this.data.property.group_id,
-        total_area: this.data.property.total_area,
-        measurement_unit_id: this.data.property.measurement_unit_id,
-        total_price: this.data.property.total_price,
-        currency: this.data.property.currency,
-        status: this.data.property.status
-      });
+  /** Editar: GET /properties/:id y pintar todos los campos, incluido cadastral_key. */
+  private loadPropertyForForm() {
+    const id = this.data?.property?.id;
+    if (!id) {
+      return;
     }
+
+    this.loadingProperty.set(true);
+    this.propertyService.getProperty(id).subscribe({
+      next: (property) => {
+        this.loadedProperty.set(property);
+        this.patchProperty(property);
+        this.loadingProperty.set(false);
+      },
+      error: () => {
+        this.patchProperty(this.data.property!);
+        this.loadingProperty.set(false);
+      }
+    });
+  }
+
+  private patchProperty(property: Property) {
+    this.form.patchValue({
+      code: property.code,
+      block: property.block || '',
+      lot_number: property.lot_number || '',
+      cadastral_key: property.cadastral_key ?? '',
+      name: property.name,
+      description: property.description || '',
+      location: property.location || '',
+      group_id: property.group_id,
+      total_area: property.total_area,
+      measurement_unit_id: property.measurement_unit_id,
+      total_price: property.total_price,
+      currency: property.currency,
+      status: property.status
+    });
+  }
+
+  private buildPayload() {
+    const raw = this.form.getRawValue();
+    return {
+      ...raw,
+      cadastral_key: normalizeCadastralKey(raw.cadastral_key)
+    };
   }
 
   generateCode(): void {
@@ -233,14 +265,14 @@ export class PropertyEditModalComponent implements OnInit {
   }
 
   getOwnerName(): string | null {
-    const owner = this.data?.property?.contracts?.[0]?.customer;
+    const owner = (this.loadedProperty() ?? this.data?.property)?.contracts?.[0]?.customer;
     if (!owner) return null;
     
     return `${owner.name} ${owner.lastname}`;
   }
 
   navigateToCustomer(): void {
-    const customerId = this.data?.property?.contracts?.[0]?.customer?.id;
+    const customerId = (this.loadedProperty() ?? this.data?.property)?.contracts?.[0]?.customer?.id;
     if (customerId) {
       this.dialog_ref.close();
       this.router.navigate(['/customers/detail', customerId]);
@@ -263,15 +295,7 @@ export class PropertyEditModalComponent implements OnInit {
 
     this.loading.set(true);
 
-    // Habilitar temporalmente el campo code para enviarlo
-    this.form.get('code')?.enable();
-
-    const payload = {
-      ...this.form.value
-    };
-
-    // Deshabilitar nuevamente el campo code
-    this.form.get('code')?.disable();
+    const payload = this.buildPayload();
 
     this.propertyService.createProperty(payload).subscribe({
       next: () => {
@@ -309,18 +333,12 @@ export class PropertyEditModalComponent implements OnInit {
 
     this.loading.set(true);
 
-    // Habilitar temporalmente el campo code para enviarlo
-    this.form.get('code')?.enable();
-
-    const payload = {
-      ...this.form.value
-    };
-
-    // Deshabilitar nuevamente el campo code
-    this.form.get('code')?.disable();
+    const payload = this.buildPayload();
 
     this.propertyService.updateProperty(this.data.property!.id, payload).subscribe({
-      next: () => {
+      next: (saved) => {
+        this.form.patchValue({ cadastral_key: saved.cadastral_key ?? '' });
+        this.loadedProperty.set(saved);
         this.update.set(true);
         this.loading.set(false);
 

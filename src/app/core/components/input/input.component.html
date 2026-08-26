@@ -14,6 +14,7 @@
       [type]="type"
       [placeholder]="placeholder"
       [formControl]="form_control"
+      [attr.maxlength]="maxlength || null"
       [readonly]="readonly"
       (input)="!form_control && onInputChange($event)"
       [attr.aria-describedby]="showError ? errorId : null"

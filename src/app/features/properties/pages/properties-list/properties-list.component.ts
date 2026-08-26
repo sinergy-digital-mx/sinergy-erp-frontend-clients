@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { PropertyService } from '../../services/property.service';
-import { Property, PropertyStatus } from '../../models/property.model';
+import { Property, PropertyStatus, displayCadastralKey } from '../../models/property.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
@@ -40,6 +40,7 @@ export class PropertiesListComponent implements OnDestroy {
     columns: [
       { name: 'Código', prop: 'code', sortable: true, canAutoResize: true, width: 110 },
       { name: 'Manzana', prop: 'block', sortable: true, canAutoResize: true, width: 90 },
+      { name: 'Clave catastral', prop: 'cadastral_key', sortable: false, canAutoResize: true, width: 160 },
       { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: false, width: 180 },
       { name: 'Proyecto', prop: 'group', sortable: false, canAutoResize: true, width: 130 },
       { name: 'Cliente', prop: 'contracts', sortable: false, canAutoResize: true, width: 150 },
@@ -62,6 +63,7 @@ export class PropertiesListComponent implements OnDestroy {
   ArrowRight = ArrowRight;
   Plus = Plus;
   readonly Math = Math;
+  readonly displayCadastralKey = displayCadastralKey;
   search = '';
   selectedGroupId: string | null = null;
   selectedGroupName: string | null = null;

@@ -3,20 +3,17 @@ import { CommonModule, DatePipe, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
-import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { LucideAngularModule, ArrowLeft, Info } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InputComponent } from '../../../../core/components/input/input.component';
 import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
-import { Contract, ContractStatus, UpdateContractDto, getDownPaymentTarget } from '../../models/contract.model';
+import { Contract, ContractProperty, ContractStatus, UpdateContractDto, getDownPaymentTarget } from '../../models/contract.model';
 import { ContractService } from '../../services/contract.service';
 import { PaymentService } from '../../services/payment.service';
 import { PaymentStats } from '../../models/payment.model';
-import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
-import { PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
-import { PropertyService } from '../../../properties/services/property.service';
+import { Property } from '../../../properties/models/property.model';
 import { ContractDocumentsComponent } from '../../components/contract-documents/contract-documents.component';
 import { ContractPaymentsComponent } from '../../components/contract-payments/contract-payments.component';
 import { ContractHoaPaymentsComponent } from '../../components/contract-hoa-payments/contract-hoa-payments.component';
@@ -24,6 +21,7 @@ import { ContractDownpaymentPaymentsComponent } from '../../components/contract-
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
+import { ContractLotSectionComponent } from '../../components/contract-lot-section/contract-lot-section.component';
 
 @Component({
   selector: 'app-contract-detail-page',
@@ -41,6 +39,7 @@ import { UserService } from '../../../rbac-tenant-ui/services/user.service';
     ContractPaymentsComponent,
     ContractHoaPaymentsComponent,
     ContractDownpaymentPaymentsComponent,
+    ContractLotSectionComponent,
     LocalDatePipe
   ],
   providers: [DatePipe],
@@ -80,8 +79,6 @@ export class ContractDetailPageComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private location: Location,
-    private dialog: MatDialog,
-    private propertyService: PropertyService,
     private contractService: ContractService,
     private paymentService: PaymentService,
     private userService: UserService,
@@ -378,17 +375,31 @@ export class ContractDetailPageComponent implements OnInit {
     }
   }
 
-  openPropertyModal(): void {
+  onLotUpdated(property: Property): void {
     const current = this.contract();
-    if (!current?.property) return;
-    this.propertyService.getProperty(current.property.id).subscribe({
-      next: (property) => {
-        this.dialog.open(PropertyEditModalComponent, {
-          ...PROPERTY_FORM_DIALOG_CONFIG,
-          data: { property }
-        });
-      }
+    if (!current) {
+      return;
+    }
+
+    this.contract.set({
+      ...current,
+      property: this.toContractProperty(property, current.property)
     });
+  }
+
+  private toContractProperty(property: Property, previous?: Contract['property']): ContractProperty {
+    return {
+      id: property.id,
+      code: property.code,
+      name: property.name,
+      block: property.block ?? '',
+      lot_number: property.lot_number ?? null,
+      cadastral_key: property.cadastral_key ?? null,
+      total_area: property.total_area,
+      total_price: property.total_price,
+      list_price: previous?.list_price ?? null,
+      status: property.status
+    };
   }
 
   getCustomerName(): string {

@@ -35,13 +35,20 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <!-- Por Estado Card -->
         <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-sm font-semibold text-gray-700">Por Estado</h3>
-            <span class="text-sm text-gray-600">Total: {{ totalOrders() }} ({{ formatCurrency(totalAmount()) }})</span>
-          </div>
+          <h3 class="text-sm font-semibold text-gray-700 mb-3">Por Estado</h3>
           <div class="border-b border-gray-200 mb-4"></div>
           <div class="space-y-4">
-            <!-- Creadas -->
+            <div>
+              <div class="flex justify-between items-start mb-1">
+                <span class="text-sm text-gray-600">Total</span>
+                <span class="text-sm font-semibold text-[#334155]">{{ totalOrders() }}</span>
+              </div>
+              <p class="po-stat-amount">{{ formatStatsAmount(currencyAmount('MXN'), 'MXN') }}</p>
+              @if (hasUsd()) {
+                <p class="po-stat-amount">{{ formatStatsAmount(currencyAmount('USD'), 'USD') }}</p>
+              }
+            </div>
+
             <div>
               <div class="flex justify-between items-center mb-2">
                 <span class="text-sm text-gray-600">Creadas</span>
@@ -50,10 +57,12 @@
               <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
                 <div class="bg-blue-500 h-2 rounded-full transition-all" [style.width.%]="creadasPercent()"></div>
               </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(creadasAmount()) }}</p>
+              <p class="po-stat-amount">{{ formatStatsAmount(statusAmount('Creada', 'MXN'), 'MXN') }}</p>
+              @if (hasUsd()) {
+                <p class="po-stat-amount">{{ formatStatsAmount(statusAmount('Creada', 'USD'), 'USD') }}</p>
+              }
             </div>
-            
-            <!-- Recibidas -->
+
             <div>
               <div class="flex justify-between items-center mb-2">
                 <span class="text-sm text-gray-600">Recibidas</span>
@@ -62,20 +71,30 @@
               <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
                 <div class="bg-green-500 h-2 rounded-full transition-all" [style.width.%]="recibidasPercent()"></div>
               </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(recibidasAmount()) }}</p>
+              <p class="po-stat-amount">{{ formatStatsAmount(statusAmount('Recibida', 'MXN'), 'MXN') }}</p>
+              @if (hasUsd()) {
+                <p class="po-stat-amount">{{ formatStatsAmount(statusAmount('Recibida', 'USD'), 'USD') }}</p>
+              }
             </div>
           </div>
         </div>
 
         <!-- Estado de Pago Card -->
         <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-sm font-semibold text-gray-700">Estado de Pago</h3>
-            <span class="text-sm text-gray-600">Total: {{ totalOrders() }} ({{ formatCurrency(totalAmount()) }})</span>
-          </div>
+          <h3 class="text-sm font-semibold text-gray-700 mb-3">Estado de Pago</h3>
           <div class="border-b border-gray-200 mb-4"></div>
           <div class="space-y-4">
-            <!-- Pagadas -->
+            <div>
+              <div class="flex justify-between items-start mb-1">
+                <span class="text-sm text-gray-600">Total</span>
+                <span class="text-sm font-semibold text-[#334155]">{{ totalOrders() }}</span>
+              </div>
+              <p class="po-stat-amount">{{ formatStatsAmount(currencyAmount('MXN'), 'MXN') }}</p>
+              @if (hasUsd()) {
+                <p class="po-stat-amount">{{ formatStatsAmount(currencyAmount('USD'), 'USD') }}</p>
+              }
+            </div>
+
             <div>
               <div class="flex justify-between items-center mb-2">
                 <span class="text-sm text-gray-600">Pagadas</span>
@@ -84,10 +103,12 @@
               <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
                 <div class="bg-green-500 h-2 rounded-full transition-all" [style.width.%]="pagadasPercent()"></div>
               </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(pagadasAmount()) }}</p>
+              <p class="po-stat-amount">{{ formatStatsAmount(paymentAmount('Pagado', 'MXN'), 'MXN') }}</p>
+              @if (hasUsd()) {
+                <p class="po-stat-amount">{{ formatStatsAmount(paymentAmount('Pagado', 'USD'), 'USD') }}</p>
+              }
             </div>
-            
-            <!-- Pendientes -->
+
             <div>
               <div class="flex justify-between items-center mb-2">
                 <span class="text-sm text-gray-600">Pendientes</span>
@@ -96,7 +117,10 @@
               <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
                 <div class="bg-red-500 h-2 rounded-full transition-all" [style.width.%]="pendientesPercent()"></div>
               </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(pendientesAmount()) }}</p>
+              <p class="po-stat-amount">{{ formatStatsAmount(paymentAmount('Pendiente', 'MXN'), 'MXN') }}</p>
+              @if (hasUsd()) {
+                <p class="po-stat-amount">{{ formatStatsAmount(paymentAmount('Pendiente', 'USD'), 'USD') }}</p>
+              }
             </div>
           </div>
         </div>

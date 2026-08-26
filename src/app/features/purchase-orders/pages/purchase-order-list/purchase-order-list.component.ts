@@ -4,7 +4,15 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
-import { PurchaseOrder, OrderStatus, PaymentStatus } from '../../models/purchase-order.model';
+import {
+  PurchaseOrder,
+  OrderStatus,
+  PaymentStatus,
+  PaymentCurrency,
+  PurchaseOrderListStats,
+  emptyPurchaseOrderListStats,
+  normalizePurchaseOrderListStats,
+} from '../../models/purchase-order.model';
 import { OrderFilters, PaginationParams } from '../../models/filters.model';
 import {
   getPurchaseOrderListBranchLabel,
@@ -41,6 +49,7 @@ export class PurchaseOrderListComponent implements OnInit {
   private loadingState = signal<boolean>(false);
   private totalResultsState = signal<number>(0);
   private hasMoreState = signal<boolean>(true);
+  private statsState = signal<PurchaseOrderListStats>(emptyPurchaseOrderListStats());
   
   // Table configuration
   table_config = signal<IDatatableConfig>({
@@ -72,81 +81,20 @@ export class PurchaseOrderListComponent implements OnInit {
   filters = this.filtersState.asReadonly();
   loading = this.loadingState.asReadonly();
   hasMore = this.hasMoreState.asReadonly();
-  
-  // Computed: stats
-  totalOrders = computed(() => this.totalResultsState());
-  totalAmount = computed(() => {
-    return this.ordersData().reduce((sum, order) => sum + this.getOrderTotal(order), 0);
-  });
-  
-  // Status stats
-  creadasCount = computed(() => this.ordersData().filter(o => o.general_status === 'Creada').length);
-  recibidasCount = computed(() => this.ordersData().filter(o => o.general_status === 'Recibida').length);
-  canceladasCount = computed(() => this.ordersData().filter(o => o.general_status === 'Cancelada').length);
-  
-  creadasAmount = computed(() => 
-    this.ordersData()
-      .filter(o => o.general_status === 'Creada')
-      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
-  );
-  recibidasAmount = computed(() => 
-    this.ordersData()
-      .filter(o => o.general_status === 'Recibida')
-      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
-  );
-  canceladasAmount = computed(() => 
-    this.ordersData()
-      .filter(o => o.general_status === 'Cancelada')
-      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
-  );
-  
-  // Payment stats
-  pagadasCount = computed(() => this.ordersData().filter(o => this.isPaymentPaid(o.payment_status)).length);
-  parcialesCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Parcial').length);
-  pendientesCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pendiente').length);
-  
-  pagadasAmount = computed(() => 
-    this.ordersData()
-      .filter(o => this.isPaymentPaid(o.payment_status))
-      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
-  );
-  parcialesAmount = computed(() => 
-    this.ordersData()
-      .filter(o => o.payment_status === 'Parcial')
-      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
-  );
-  pendientesAmount = computed(() => 
-    this.ordersData()
-      .filter(o => o.payment_status === 'Pendiente')
-      .reduce((sum, order) => sum + this.getOrderTotal(order), 0)
-  );
-  
-  // Percentages for progress bars
-  creadasPercent = computed(() => {
-    const total = this.totalOrders();
-    return total > 0 ? (this.creadasCount() / total) * 100 : 0;
-  });
-  recibidasPercent = computed(() => {
-    const total = this.totalOrders();
-    return total > 0 ? (this.recibidasCount() / total) * 100 : 0;
-  });
-  canceladasPercent = computed(() => {
-    const total = this.totalOrders();
-    return total > 0 ? (this.canceladasCount() / total) * 100 : 0;
-  });
-  
-  pagadasPercent = computed(() => {
-    const total = this.totalOrders();
-    return total > 0 ? (this.pagadasCount() / total) * 100 : 0;
-  });
-  parcialesPercent = computed(() => {
-    const total = this.totalOrders();
-    return total > 0 ? (this.parcialesCount() / total) * 100 : 0;
-  });
-  pendientesPercent = computed(() => {
-    const total = this.totalOrders();
-    return total > 0 ? (this.pendientesCount() / total) * 100 : 0;
-  });
+
+  /** Cards leen stats del GET (todos los filtros), no la página. */
+  totalOrders = computed(() => this.statsState().count || this.totalResultsState());
+  hasUsd = computed(() => this.statNumber(this.statsState().by_currency.USD.count) > 0);
+
+  creadasCount = computed(() => this.statusCount('Creada'));
+  recibidasCount = computed(() => this.statusCount('Recibida'));
+  pagadasCount = computed(() => this.paymentCount('Pagado'));
+  pendientesCount = computed(() => this.paymentCount('Pendiente'));
+
+  creadasPercent = computed(() => this.countPercent(this.creadasCount()));
+  recibidasPercent = computed(() => this.countPercent(this.recibidasCount()));
+  pagadasPercent = computed(() => this.countPercent(this.pagadasCount()));
+  pendientesPercent = computed(() => this.countPercent(this.pendientesCount()));
 
   constructor(
     private purchaseOrderService: PurchaseOrderService,
@@ -237,6 +185,12 @@ export class PurchaseOrderListComponent implements OnInit {
           this.ordersData.set(orders);
           this.totalResultsState.set(total);
           this.hasMoreState.set(hasNext);
+          this.statsState.set(
+            normalizePurchaseOrderListStats(
+              Array.isArray(response) ? undefined : response.stats,
+              total
+            )
+          );
           
           this.table_config.update(c => ({
             ...c,
@@ -345,6 +299,27 @@ export class PurchaseOrderListComponent implements OnInit {
     return normalized === 'pagada' || normalized === 'pagado';
   }
 
+  currencyAmount(currency: PaymentCurrency): number {
+    return this.statNumber(this.statsState().by_currency[currency].amount);
+  }
+
+  statusAmount(status: 'Creada' | 'Recibida', currency: PaymentCurrency): number {
+    return this.statNumber(this.statsState().by_currency[currency].by_status[status].amount);
+  }
+
+  paymentAmount(status: 'Pagado' | 'Pendiente', currency: PaymentCurrency): number {
+    return this.statNumber(this.statsState().by_currency[currency].by_payment[status].amount);
+  }
+
+  /** Formato de cards: `MXN $1,045,914.40`. Nunca un $ genérico mezclado. */
+  formatStatsAmount(amount: number, currency: PaymentCurrency): string {
+    const body = new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(this.statNumber(amount));
+    return `${currency} $${body}`;
+  }
+
   /**
    * Format currency amount
    */
@@ -433,5 +408,26 @@ export class PurchaseOrderListComponent implements OnInit {
     });
     
     this.loadOrders();
+  }
+
+  private statusCount(status: 'Creada' | 'Recibida'): number {
+    const stats = this.statsState().by_currency;
+    return this.statNumber(stats.MXN.by_status[status].count)
+      + this.statNumber(stats.USD.by_status[status].count);
+  }
+
+  private paymentCount(status: 'Pagado' | 'Pendiente'): number {
+    const stats = this.statsState().by_currency;
+    return this.statNumber(stats.MXN.by_payment[status].count)
+      + this.statNumber(stats.USD.by_payment[status].count);
+  }
+
+  private countPercent(count: number): number {
+    const total = this.totalOrders();
+    return total > 0 ? (count / total) * 100 : 0;
+  }
+
+  private statNumber(value: number | string | undefined | null): number {
+    return Number(value) || 0;
   }
 }

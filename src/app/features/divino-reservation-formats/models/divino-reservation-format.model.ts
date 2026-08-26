@@ -24,6 +24,7 @@ export interface DivinoReservationFormatProperty {
   name: string;
   block?: string;
   lot_number?: string;
+  cadastral_key?: string | null;
 }
 
 export interface DivinoReservationFormatFiscalConfiguration {

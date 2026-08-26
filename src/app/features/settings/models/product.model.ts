@@ -169,7 +169,8 @@ export interface Product {
   external_sku?: string | null;
   name: string;
   description?: string | null;
-  /** Clave de producto/servicio SAT (CFDI); el API puede usar `codigo_sat` */
+  /** Clave SAT. El API guarda `sat_clave`; el formulario usa `sat_code`. */
+  sat_clave?: string | null;
   sat_code?: string | null;
   codigo_sat?: string | null;
   category_id?: string | null;
@@ -197,6 +198,7 @@ export interface CreateProductDto {
   external_sku?: string;
   name: string;
   description?: string;
+  sat_clave?: string;
   sat_code?: string;
   category_id?: string;
   subcategory_id?: string;

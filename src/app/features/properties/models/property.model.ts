@@ -6,6 +6,8 @@ export interface Property {
   code: string;
   block?: string;
   lot_number?: string;
+  /** Clave catastral (API: cadastral_key). Null si no está capturada. */
+  cadastral_key?: string | null;
   name: string;
   description?: string;
   location?: string;
@@ -51,6 +53,7 @@ export interface CreatePropertyDto {
   code: string;
   block?: string;
   lot_number?: string;
+  cadastral_key?: string | null;
   name: string;
   description?: string;
   location?: string;
@@ -63,3 +66,14 @@ export interface CreatePropertyDto {
 }
 
 export interface UpdatePropertyDto extends Partial<CreatePropertyDto> {}
+
+/** Vacío o solo espacios → null (el API no guarda string vacío). */
+export function normalizeCadastralKey(value?: string | null): string | null {
+  const trimmed = String(value ?? '').trim();
+  return trimmed || null;
+}
+
+/** Texto para listados y detalle. Null / vacío → —. */
+export function displayCadastralKey(value?: string | null): string {
+  return value?.trim() || '—';
+}

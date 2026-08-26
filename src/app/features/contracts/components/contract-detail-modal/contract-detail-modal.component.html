@@ -21,6 +21,11 @@
           {{ getCustomerName() }}
         </span>
         <span
+          *ngIf="data.contract.property"
+          class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+          {{ data.contract.property.code }}
+        </span>
+        <span
           *ngIf="data.contract.down_payment_financed"
           class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800">
           Enganche financiado activo
@@ -164,26 +169,19 @@
         </div>
       </div>
 
-      <div class="space-y-2.5" [formGroup]="form">
-        <!-- Número de Contrato y Lote (lado a lado) -->
-        <div class="grid grid-cols-2 gap-2.5">
-          <div>
-            <span class="block text-xs font-semibold text-gray-500 mb-1">Número de Contrato</span>
-            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
-              {{ data.contract.contract_number }}
-            </span>
-          </div>
+      @if (data.contract.property_id) {
+        <app-contract-lot-section
+          [propertyId]="data.contract.property_id"
+          (updated)="onLotUpdated($event)">
+        </app-contract-lot-section>
+      }
 
-          <div>
-            <span class="block text-xs font-semibold text-gray-500 mb-1">Lote</span>
-            <span 
-              *ngIf="data.contract.property"
-              (click)="openPropertyModal()"
-              class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 cursor-pointer hover:bg-green-200 transition-colors">
-              {{ data.contract.property.code }}
-            </span>
-            <span *ngIf="!data.contract.property" class="text-gray-900">—</span>
-          </div>
+      <div class="space-y-2.5" [formGroup]="form">
+        <div>
+          <span class="block text-xs font-semibold text-gray-500 mb-1">Número de Contrato</span>
+          <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+            {{ data.contract.contract_number }}
+          </span>
         </div>
 
         <!-- Vendido Por (Seller Autocomplete) -->

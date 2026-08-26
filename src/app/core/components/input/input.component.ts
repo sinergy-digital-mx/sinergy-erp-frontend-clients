@@ -17,6 +17,7 @@ export class InputComponent {
   @Input() readonly: boolean = false
   @Input() form_control: any
   @Input() type: 'text' | 'number' | 'time' | 'date' | 'textarea' = 'text'
+  @Input() maxlength?: number
   @Input() has_error: boolean = false
   @Input() debounce: number = 0
   @Output() change = new EventEmitter()
@@ -80,6 +81,9 @@ export class InputComponent {
     }
     if (errors['pattern']) {
       return 'El formato no es válido'
+    }
+    if (errors['maxlength']) {
+      return `Máximo ${errors['maxlength'].requiredLength} caracteres`
     }
     return 'Este campo tiene un error'
   }

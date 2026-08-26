@@ -1,7 +1,7 @@
 import { Component, Inject, signal, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Router } from '@angular/router';
@@ -10,21 +10,21 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { InputComponent } from '../../../../core/components/input/input.component';
 import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
 import { LucideAngularModule, X } from 'lucide-angular';
-import { Contract, ContractStatus, UpdateContractDto, getDownPaymentTarget } from '../../models/contract.model';
+import { Contract, ContractProperty, ContractStatus, UpdateContractDto, getDownPaymentTarget } from '../../models/contract.model';
 import { ContractService } from '../../services/contract.service';
 import { PaymentService } from '../../services/payment.service';
 import { PaymentStats } from '../../models/payment.model';
-import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
-import { PropertyService } from '../../../properties/services/property.service';
 import { ContractDocumentsComponent } from '../contract-documents/contract-documents.component';
 import { ContractPaymentsComponent } from '../contract-payments/contract-payments.component';
 import { ContractHoaPaymentsComponent } from '../contract-hoa-payments/contract-hoa-payments.component';
 import { ContractDownpaymentPaymentsComponent } from '../contract-downpayment-payments/contract-downpayment-payments.component';
+import { ContractLotSectionComponent } from '../contract-lot-section/contract-lot-section.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { GroupSelectComponent } from '../../../../core/components/group-select/group-select.component';
 import { LeadService } from '../../../../core/services/leads.service';
+import { Property } from '../../../properties/models/property.model';
 
 @Component({
   selector: 'app-contract-detail-modal',
@@ -42,6 +42,7 @@ import { LeadService } from '../../../../core/services/leads.service';
     ContractPaymentsComponent,
     ContractHoaPaymentsComponent,
     ContractDownpaymentPaymentsComponent,
+    ContractLotSectionComponent,
     LocalDatePipe,
     GroupSelectComponent
   ],
@@ -84,11 +85,9 @@ export class ContractDetailModalComponent implements OnInit {
   };
 
   constructor(
-    public dialog: MatDialog,
     public dialog_ref: MatDialogRef<ContractDetailModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { contract: Contract },
     private router: Router,
-    private propertyService: PropertyService,
     private contractService: ContractService,
     private paymentService: PaymentService,
     private userService: UserService,
@@ -490,16 +489,27 @@ export class ContractDetailModalComponent implements OnInit {
     }
   }
 
-  openPropertyModal() {
-    if (this.data.contract.property) {
-      this.propertyService.getProperty(this.data.contract.property.id).subscribe({
-        next: (property) => {
-          this.dialog.open(PropertyEditModalComponent, {
-            data: { property }
-          });
-        }
-      });
-    }
+  onLotUpdated(property: Property): void {
+    this.data.contract = {
+      ...this.data.contract,
+      property: this.toContractProperty(property, this.data.contract.property)
+    };
+    this.cdr.detectChanges();
+  }
+
+  private toContractProperty(property: Property, previous?: Contract['property']): ContractProperty {
+    return {
+      id: property.id,
+      code: property.code,
+      name: property.name,
+      block: property.block ?? '',
+      lot_number: property.lot_number ?? null,
+      cadastral_key: property.cadastral_key ?? null,
+      total_area: property.total_area,
+      total_price: property.total_price,
+      list_price: previous?.list_price ?? null,
+      status: property.status
+    };
   }
 
   getStatusClass(status: string): string {

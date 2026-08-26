@@ -602,12 +602,10 @@ export class ProductDetailModalComponent implements OnInit {
     });
   }
 
-  /** Unifica SAT del API (`sat_code` / `codigo_sat`) en `sat_code` para el formulario. */
+  /** Unifica SAT del API (`sat_clave` / `sat_code` / `codigo_sat`) en `sat_code` para el formulario. */
   private normalizeProductSatFields(product: Product): Product {
-    const p = product as Product & { codigo_sat?: string | null };
-    if ((p.sat_code == null || p.sat_code === '') && p.codigo_sat) {
-      p.sat_code = p.codigo_sat;
-    }
+    const p = product as Product & { sat_clave?: string | null; codigo_sat?: string | null };
+    p.sat_code = p.sat_code || p.sat_clave || p.codigo_sat || '';
     return p;
   }
 
@@ -903,6 +901,7 @@ export class ProductDetailModalComponent implements OnInit {
       external_sku: this.product!.external_sku?.trim() || undefined,
       name: this.product!.name.trim(),
       description: this.product!.description?.trim() || '',
+      sat_clave: this.product!.sat_code?.trim() || undefined,
       sat_code: this.product!.sat_code?.trim() || undefined,
       category_id: this.product!.category_id || undefined,
       subcategory_id: this.product!.subcategory_id || undefined,

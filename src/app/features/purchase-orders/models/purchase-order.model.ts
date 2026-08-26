@@ -57,6 +57,109 @@ export type OrderStatus = 'Creada' | 'En Proceso' | 'Recibida' | 'Cancelada';
 export type PaymentStatus = 'Pagada' | 'Pagado' | 'Parcial' | 'Pendiente' | 'No pagado';
 export type PaymentCurrency = 'MXN' | 'USD';
 
+/** Conteo + monto de un cubo en stats del listado (requested_total). */
+export interface PurchaseOrderStatBucket {
+  count: number;
+  amount: number;
+}
+
+export interface PurchaseOrderCurrencyStats {
+  count: number;
+  amount: number;
+  by_status: {
+    Creada: PurchaseOrderStatBucket;
+    Recibida: PurchaseOrderStatBucket;
+    Cancelada: PurchaseOrderStatBucket;
+  };
+  by_payment: {
+    Pagado: PurchaseOrderStatBucket;
+    Pendiente: PurchaseOrderStatBucket;
+  };
+}
+
+/** `stats` del GET /purchase-orders: cubre todas las OC de los filtros, no solo la página. */
+export interface PurchaseOrderListStats {
+  count: number;
+  by_currency: {
+    MXN: PurchaseOrderCurrencyStats;
+    USD: PurchaseOrderCurrencyStats;
+  };
+}
+
+function emptyStatBucket(): PurchaseOrderStatBucket {
+  return { count: 0, amount: 0 };
+}
+
+function emptyCurrencyStats(): PurchaseOrderCurrencyStats {
+  return {
+    count: 0,
+    amount: 0,
+    by_status: {
+      Creada: emptyStatBucket(),
+      Recibida: emptyStatBucket(),
+      Cancelada: emptyStatBucket(),
+    },
+    by_payment: {
+      Pagado: emptyStatBucket(),
+      Pendiente: emptyStatBucket(),
+    },
+  };
+}
+
+export function emptyPurchaseOrderListStats(count = 0): PurchaseOrderListStats {
+  return {
+    count,
+    by_currency: {
+      MXN: emptyCurrencyStats(),
+      USD: emptyCurrencyStats(),
+    },
+  };
+}
+
+export function normalizePurchaseOrderListStats(
+  stats?: PurchaseOrderListStats | null,
+  fallbackCount = 0
+): PurchaseOrderListStats {
+  if (!stats?.by_currency) {
+    return emptyPurchaseOrderListStats(fallbackCount);
+  }
+
+  return {
+    count: Number(stats.count) || fallbackCount,
+    by_currency: {
+      MXN: mergeCurrencyStats(stats.by_currency.MXN),
+      USD: mergeCurrencyStats(stats.by_currency.USD),
+    },
+  };
+}
+
+function mergeCurrencyStats(raw?: PurchaseOrderCurrencyStats | null): PurchaseOrderCurrencyStats {
+  if (!raw) {
+    return emptyCurrencyStats();
+  }
+
+  return {
+    count: Number(raw.count) || 0,
+    amount: Number(raw.amount) || 0,
+    by_status: {
+      Creada: mergeStatBucket(raw.by_status?.Creada),
+      Recibida: mergeStatBucket(raw.by_status?.Recibida),
+      Cancelada: mergeStatBucket(raw.by_status?.Cancelada),
+    },
+    by_payment: {
+      Pagado: mergeStatBucket(raw.by_payment?.Pagado),
+      Pendiente: mergeStatBucket(raw.by_payment?.Pendiente),
+    },
+  };
+}
+
+function mergeStatBucket(raw?: PurchaseOrderStatBucket | null): PurchaseOrderStatBucket {
+  return {
+    count: Number(raw?.count) || 0,
+    amount: Number(raw?.amount) || 0,
+  };
+}
+
 export interface PaymentsSummary {
   amount_paid: number | string;
   amount_pending: number | string;

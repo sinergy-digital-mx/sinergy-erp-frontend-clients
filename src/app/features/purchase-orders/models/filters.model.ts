@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentStatus } from './purchase-order.model';
+import { OrderStatus, PaymentStatus, PurchaseOrderListStats } from './purchase-order.model';
 
 /**
  * Order filters
@@ -50,6 +50,8 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
+  /** Solo en listado de OC: montos partidos por MXN / USD. No sumar data[]. */
+  stats?: PurchaseOrderListStats;
 }
 
 /**
