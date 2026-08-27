@@ -1,9 +1,10 @@
 import { Component, Inject, signal, computed, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { Batch, Document, DocumentLanguage, DocumentType, PurchaseOrder } from '../../models/purchase-order.model';
 import { LineItem } from '../../models/line-item.model';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
@@ -11,9 +12,10 @@ import {
   PurchaseOrderNotesDialogComponent,
   PurchaseOrderNotesDialogResult,
 } from '../purchase-order-notes-dialog/purchase-order-notes-dialog.component';
-import { TaxCalculatorService } from '../../services/tax-calculator.service';
 import { ReceiptModalComponent } from '../receipt-modal/receipt-modal.component';
 import { PaymentDialogComponent, PaymentFormData } from '../payment-dialog/payment-dialog.component';
+import { EditPurchaseOrderLineDialogComponent } from '../edit-purchase-order-line-dialog/edit-purchase-order-line-dialog.component';
+import { AddPurchaseOrderLineDialogComponent } from '../add-purchase-order-line-dialog/add-purchase-order-line-dialog.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { BatchDetailDialogComponent } from '../../../inventory/components/batch-detail-dialog/batch-detail-dialog.component';
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
@@ -43,6 +45,7 @@ import {
   standalone: true,
   imports: [
     CommonModule,
+    NgTemplateOutlet,
     FormsModule,
     MatDialogModule,
     RemoveTrailingZerosPipe
@@ -92,12 +95,22 @@ export class OrderDetailDialogComponent {
     return this.getRemainingAmount() >= 0.01;
   });
 
-  /** Abrir formulario de edición (cantidades, líneas, etc.). */
+  /** Editar encabezado (cantidades en formulario). */
   canEditOrder = computed(() => {
     const o = this.order();
     if (!o) return false;
     const st = o.general_status ?? o.status;
     return st === 'Creada' || st === 'En Proceso';
+  });
+
+  /** Acciones de línea: lápiz, basura y agregar producto. */
+  canEditLines = computed(() => {
+    const order = this.order();
+    if (!order) return false;
+    if (typeof order.can_edit_lines === 'boolean') {
+      return order.can_edit_lines;
+    }
+    return (order.general_status ?? order.status) === 'Creada';
   });
 
   canEditNotes = computed(() => {
@@ -120,7 +133,6 @@ export class OrderDetailDialogComponent {
     private dialogRef: MatDialogRef<OrderDetailDialogComponent>,
     private router: Router,
     private purchaseOrderService: PurchaseOrderService,
-    public taxCalculator: TaxCalculatorService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
     private dialog: MatDialog,
@@ -167,6 +179,108 @@ export class OrderDetailDialogComponent {
     if (!id) return;
     this.dialogRef.close(true);
     void this.router.navigate(['/purchase-orders', id, 'edit']);
+  }
+
+  openEditLineItem(item: LineItem): void {
+    const order = this.order();
+    if (!order || !this.canEditLines()) return;
+
+    this.dialog
+      .open(EditPurchaseOrderLineDialogComponent, {
+        width: '460px',
+        maxWidth: '95vw',
+        panelClass: 'po-line-dialog-panel',
+        autoFocus: 'first-tabbable',
+        data: {
+          orderId: order.id,
+          folio: order.folio,
+          currency: this.getPaymentCurrency(),
+          lineItem: item,
+        },
+      })
+      .afterClosed()
+      .subscribe((updated: PurchaseOrder | undefined) => {
+        if (!updated) return;
+        this.applyLineMutation(updated);
+        this.toast.success('Línea actualizada');
+      });
+  }
+
+  confirmDeleteLineItem(item: LineItem): void {
+    const order = this.order();
+    if (!order || !this.canEditLines()) return;
+
+    const name = item.product?.name || 'este producto';
+    this.dialog
+      .open(AlertDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Eliminar producto',
+          message: `¿Eliminar ${name} de esta orden? Se recalcularán los totales.`,
+          type: 'warning',
+          text_accept: 'Eliminar',
+          text_cancel: 'Cancelar',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.purchaseOrderService.deleteLineItem(order.id, item.id).subscribe({
+          next: (updated) => {
+            this.applyLineMutation(updated);
+            this.toast.success('Producto eliminado');
+          },
+          error: (error: Error) => {
+            this.toast.error(error?.message || 'No se pudo eliminar la línea');
+          },
+        });
+      });
+  }
+
+  openAddLineItem(): void {
+    const order = this.order();
+    if (!order || !this.canEditLines()) return;
+    if (!order.vendor_id) {
+      this.toast.error('La orden no tiene proveedor');
+      return;
+    }
+
+    this.dialog
+      .open(AddPurchaseOrderLineDialogComponent, {
+        width: '760px',
+        maxWidth: '95vw',
+        panelClass: 'po-line-dialog-panel',
+        autoFocus: 'first-tabbable',
+        data: {
+          orderId: order.id,
+          vendorId: order.vendor_id,
+          currency: this.getPaymentCurrency(),
+          folio: order.folio,
+        },
+      })
+      .afterClosed()
+      .subscribe((updated: PurchaseOrder | undefined) => {
+        if (!updated) return;
+        this.applyLineMutation(updated);
+        this.toast.success('Producto agregado');
+      });
+  }
+
+  /** Pinta líneas y totales con la respuesta de PATCH/DELETE/POST (sin GET extra). */
+  private applyLineMutation(updated: PurchaseOrder): void {
+    const current = this.order();
+    if (!updated?.id || !Array.isArray(updated.line_items)) {
+      this.loadOrder(true);
+      return;
+    }
+
+    this.order.set({
+      ...current,
+      ...updated,
+      documents: updated.documents ?? current?.documents,
+      payments: updated.payments ?? current?.payments ?? [],
+      batches: updated.batches ?? current?.batches,
+    });
   }
 
   openNotesEditor(): void {
@@ -238,31 +352,123 @@ export class OrderDetailDialogComponent {
   }
 
   getSubtotal(): string {
-    const order = this.order();
-    if (!order) return '$0.00';
-    const value = this.showReceivedTotals() ? order.received_subtotal : order.requested_subtotal;
-    return this.formatCurrency(value);
+    return this.formatAmount(this.displayedSubtotalAmount());
   }
 
   getIVA(): string {
-    const order = this.order();
-    if (!order) return '$0.00';
-    const value = this.showReceivedTotals() ? order.received_iva_total : order.requested_iva_total;
-    return this.formatCurrency(value);
+    return this.formatAmount(this.displayedIvaAmount());
   }
 
   getIEPS(): string {
-    const order = this.order();
-    if (!order) return '$0.00';
-    const value = this.showReceivedTotals() ? order.received_ieps_total : order.requested_ieps_total;
-    return this.formatCurrency(value);
+    return this.formatAmount(this.displayedIepsAmount());
   }
 
   getTotal(): string {
+    return this.formatAmount(this.displayedTotalAmount());
+  }
+
+  displayedSubtotalAmount(): number {
     const order = this.order();
-    if (!order) return '$0.00';
-    const value = this.showReceivedTotals() ? order.received_total : order.requested_total;
-    return this.formatCurrency(value);
+    if (!order) return 0;
+    return this.parseNumber(this.showReceivedTotals() ? order.received_subtotal : order.requested_subtotal);
+  }
+
+  displayedIvaAmount(): number {
+    const order = this.order();
+    if (!order) return 0;
+    return this.parseNumber(this.showReceivedTotals() ? order.received_iva_total : order.requested_iva_total);
+  }
+
+  displayedIepsAmount(): number {
+    const order = this.order();
+    if (!order) return 0;
+    return this.parseNumber(this.showReceivedTotals() ? order.received_ieps_total : order.requested_ieps_total);
+  }
+
+  displayedTotalAmount(): number {
+    const order = this.order();
+    if (!order) return 0;
+    return this.parseNumber(this.showReceivedTotals() ? order.received_total : order.requested_total);
+  }
+
+  hasDisplayedIeps(): boolean {
+    return this.displayedIepsAmount() > 0;
+  }
+
+  hasRequestedIva(): boolean {
+    return this.parseNumber(this.order()?.requested_iva_total) > 0;
+  }
+
+  hasRequestedIeps(): boolean {
+    return this.parseNumber(this.order()?.requested_ieps_total) > 0;
+  }
+
+  /** Columna IVA solo si alguna línea tiene IVA distinto de 0. */
+  hasLineIvaColumn(): boolean {
+    return (this.order()?.line_items ?? []).some(
+      (item) => this.parseNumber(item.iva_percentage) > 0 || this.parseNumber(item.line_iva) > 0
+    );
+  }
+
+  hasLineIepsColumn(): boolean {
+    return (this.order()?.line_items ?? []).some(
+      (item) => this.parseNumber(item.ieps_percentage) > 0 || this.parseNumber(item.line_ieps) > 0
+    );
+  }
+
+  hasLineTax(item: LineItem): boolean {
+    return this.getLineIvaAmount(item) > 0 || this.getLineIepsAmount(item) > 0;
+  }
+
+  /** `unit_total` del GET. Sin IVA. */
+  getLineUnitCost(item: LineItem): number {
+    return this.parseNumber(item.unit_total);
+  }
+
+  /** `line_subtotal` del GET. Sin IVA. */
+  getLineSubtotal(item: LineItem): number {
+    return this.parseNumber(item.line_subtotal);
+  }
+
+  getLineIvaPercent(item: LineItem): number {
+    return this.parseNumber(item.iva_percentage);
+  }
+
+  /** `line_iva` del GET. */
+  getLineIvaAmount(item: LineItem): number {
+    return this.parseNumber(item.line_iva);
+  }
+
+  getLineIepsPercent(item: LineItem): number {
+    return this.parseNumber(item.ieps_percentage);
+  }
+
+  getLineIepsAmount(item: LineItem): number {
+    return this.parseNumber(item.line_ieps);
+  }
+
+  /** `line_total` del GET. Con IVA + IEPS. */
+  getLineTotal(item: LineItem): number {
+    return this.parseNumber(item.line_total);
+  }
+
+  hasReceivedQuantity(item: LineItem): boolean {
+    return this.parseNumber(item.received_original_quantity) > 0;
+  }
+
+  getProductsColspan(): number {
+    let count = 5;
+    if (this.hasLineIvaColumn()) count += 1;
+    if (this.hasLineIepsColumn()) count += 1;
+    if (this.canEditLines()) count += 1;
+    return count;
+  }
+
+  formatAmount(value: number | string | null | undefined): string {
+    return new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(this.parseNumber(value));
   }
 
   getTotalColor(): string {
@@ -271,13 +477,8 @@ export class OrderDetailDialogComponent {
 
   formatCurrency(value: number | string): string {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(numValue)) return '$0.00';
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: this.getPaymentCurrency(),
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(numValue);
+    if (isNaN(numValue)) return this.formatAmount(0);
+    return this.formatAmount(numValue);
   }
 
   formatLongDate(value?: string | null): string {
@@ -382,9 +583,10 @@ export class OrderDetailDialogComponent {
 
     const dialogRef = this.dialog.open(ReceiptModalComponent, {
       data: { purchaseOrder: order },
-      width: '1120px',
-      maxWidth: '98vw',
+      width: '820px',
+      maxWidth: '96vw',
       maxHeight: '90vh',
+      panelClass: 'receipt-modal-panel',
       disableClose: false
     });
 

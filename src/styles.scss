@@ -222,6 +222,32 @@ main,
   height: min(720px, 92vh);
 }
 
+/* Modales editar / agregar línea de OC */
+.cdk-overlay-pane.po-line-dialog-panel .mat-mdc-dialog-container,
+.mat-mdc-dialog-panel.po-line-dialog-panel .mat-mdc-dialog-container {
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 10px !important;
+}
+
+.cdk-overlay-pane.po-line-dialog-panel .mat-mdc-dialog-surface,
+.mat-mdc-dialog-panel.po-line-dialog-panel .mat-mdc-dialog-surface {
+  overflow: hidden !important;
+}
+
+/* Modal recibo de mercancía OC */
+.cdk-overlay-pane.receipt-modal-panel .mat-mdc-dialog-container,
+.mat-mdc-dialog-panel.receipt-modal-panel .mat-mdc-dialog-container {
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 10px !important;
+}
+
+.cdk-overlay-pane.receipt-modal-panel .mat-mdc-dialog-surface,
+.mat-mdc-dialog-panel.receipt-modal-panel .mat-mdc-dialog-surface {
+  overflow: hidden !important;
+}
+
 .cdk-overlay-pane.transfer-dialog-panel .mat-mdc-dialog-container,
 .mat-mdc-dialog-panel.transfer-dialog-panel .mat-mdc-dialog-container {
   padding: 0 !important;

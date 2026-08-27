@@ -265,6 +265,8 @@ export interface PurchaseOrder {
   requested_iva_total?: string;
   requested_ieps_total?: string;
   requested_total?: string;
+  /** true solo si `general_status === 'Creada'`. */
+  can_edit_lines?: boolean;
   received_subtotal?: string;
   received_iva_total?: string;
   received_ieps_total?: string;

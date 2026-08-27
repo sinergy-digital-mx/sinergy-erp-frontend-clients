@@ -5,7 +5,6 @@ import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { Document, DocumentType, PurchaseOrder, RegenerateDocumentResponse } from '../models/purchase-order.model';
 import { LineItem } from '../models/line-item.model';
-import { TaxCalculatorService } from './tax-calculator.service';
 import { 
   OrderFilters, 
   PaginationParams, 
@@ -30,8 +29,7 @@ export class PurchaseOrderService {
 
   constructor(
     private http: HttpClient,
-    private router: Router,
-    private taxCalculator: TaxCalculatorService
+    private router: Router
   ) {}
 
   /**
@@ -104,6 +102,13 @@ export class PurchaseOrderService {
       if (data.payments_summary && typeof data.payments_summary === 'object') {
         order.payments_summary = data.payments_summary;
       }
+    } else if (
+      body?.data &&
+      typeof body.data === 'object' &&
+      !Array.isArray(body.data) &&
+      ((body.data as Record<string, unknown>).id || (body.data as Record<string, unknown>).line_items)
+    ) {
+      order = { ...(body.data as Record<string, unknown>) };
     } else {
       order = { ...body };
     }
@@ -127,33 +132,11 @@ export class PurchaseOrderService {
 
   private normalizeLineItemFromApi(item: Record<string, unknown>): LineItem {
     const qty = this.parseAmount(item.quantity);
-    const unitCost = this.parseAmount(item.unit_price ?? item.unit_total);
-    const ivaPct = this.parseAmount(item.iva_percentage);
-    const iepsPct = this.parseAmount(item.ieps_percentage);
-
-    const hasRowTotals =
-      item.subtotal != null &&
-      item.iva_amount != null &&
-      item.ieps_amount != null &&
-      item.line_total != null;
-
-    let subtotal: number;
-    let iva_amount: number;
-    let ieps_amount: number;
-    let line_total: number;
-
-    if (hasRowTotals) {
-      subtotal = this.parseAmount(item.subtotal);
-      iva_amount = this.parseAmount(item.iva_amount);
-      ieps_amount = this.parseAmount(item.ieps_amount);
-      line_total = this.parseAmount(item.line_total);
-    } else {
-      const calc = this.taxCalculator.calculateLineItem(qty, unitCost, ivaPct, iepsPct);
-      subtotal = calc.subtotal;
-      iva_amount = calc.iva_amount;
-      ieps_amount = calc.ieps_amount;
-      line_total = calc.line_total;
-    }
+    const unitCost = this.parseAmount(item.unit_total ?? item.unit_price);
+    const line_subtotal = this.parseAmount(item.line_subtotal ?? item.subtotal);
+    const line_iva = this.parseAmount(item.line_iva ?? item.iva_amount);
+    const line_ieps = this.parseAmount(item.line_ieps ?? item.ieps_amount);
+    const line_total = this.parseAmount(item.line_total);
 
     const productUom = item.product_uom as Record<string, unknown> | undefined;
     const nestedUom = productUom?.uom as LineItem['uom'] | undefined;
@@ -170,11 +153,16 @@ export class PurchaseOrderService {
       quantity: qty,
       unit_price: unitCost,
       unit_total: unitCost,
+      iva_percentage: this.parseAmount(item.iva_percentage),
+      ieps_percentage: this.parseAmount(item.ieps_percentage),
       uom,
       uom_id: uomId,
-      subtotal,
-      iva_amount,
-      ieps_amount,
+      subtotal: line_subtotal,
+      iva_amount: line_iva,
+      ieps_amount: line_ieps,
+      line_subtotal,
+      line_iva,
+      line_ieps,
       line_total
     };
   }
@@ -271,30 +259,39 @@ export class PurchaseOrderService {
   }
 
   /**
-   * Update a single line item (OC en Creada; totales del encabezado se recalculan en backend).
+   * Actualiza una línea (solo Creada). La respuesta es la OC completa, igual que el GET.
    */
-  patchLineItem(orderId: string, lineItemId: string, body: UpdateLineItemDto): Observable<unknown> {
+  patchLineItem(orderId: string, lineItemId: string, body: UpdateLineItemDto): Observable<PurchaseOrder> {
     return this.http
       .patch<unknown>(`${this.baseUrl}/${orderId}/line-items/${lineItemId}`, body)
-      .pipe(catchError((error) => this.handleError(error)));
+      .pipe(
+        map((raw) => this.normalizePurchaseOrderResponse(raw)),
+        catchError((error) => this.handleError(error))
+      );
   }
 
   /**
-   * Delete a line item and recalculate header totals (OC en Creada).
+   * Elimina una línea (solo Creada). La respuesta es la OC completa.
    */
-  deleteLineItem(orderId: string, lineItemId: string): Observable<{ success: boolean; id: string }> {
+  deleteLineItem(orderId: string, lineItemId: string): Observable<PurchaseOrder> {
     return this.http
-      .delete<{ success: boolean; id: string }>(`${this.baseUrl}/${orderId}/line-items/${lineItemId}`)
-      .pipe(catchError((error) => this.handleError(error)));
+      .delete<unknown>(`${this.baseUrl}/${orderId}/line-items/${lineItemId}`)
+      .pipe(
+        map((raw) => this.normalizePurchaseOrderResponse(raw)),
+        catchError((error) => this.handleError(error))
+      );
   }
 
   /**
-   * Agrega una línea a una OC (p. ej. en estado Creada). Si el backend usa otra ruta, ajustar aquí.
+   * Agrega una línea a una OC en Creada. La respuesta es la OC completa.
    */
-  createLineItem(orderId: string, body: CreatePurchaseOrderLineItemDto): Observable<unknown> {
+  createLineItem(orderId: string, body: CreatePurchaseOrderLineItemDto): Observable<PurchaseOrder> {
     return this.http
       .post<unknown>(`${this.baseUrl}/${orderId}/line-items`, body)
-      .pipe(catchError((error) => this.handleError(error)));
+      .pipe(
+        map((raw) => this.normalizePurchaseOrderResponse(raw)),
+        catchError((error) => this.handleError(error))
+      );
   }
 
   /**
@@ -770,8 +767,7 @@ export class PurchaseOrderService {
         break;
 
       case 404:
-        // Not found
-        errorMessage = 'Orden de compra no encontrada';
+        errorMessage = this.extractApiMessage(error) || 'Orden de compra no encontrada';
         break;
 
       case 422:

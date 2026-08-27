@@ -37,6 +37,13 @@ export interface LineItem {
   ieps_percentage: number;
   ieps_unit?: number;
   ieps_amount?: number;
+  /** Importe de la línea sin impuestos (`quantity * unit_total`). */
+  line_subtotal?: number | string;
+  /** IVA de la línea en dinero. */
+  line_iva?: number | string;
+  /** IEPS de la línea en dinero. */
+  line_ieps?: number | string;
+  /** Importe de la línea con IVA + IEPS. */
   line_total?: number;
   received_product?: Product;
   received_original_product_id?: string;

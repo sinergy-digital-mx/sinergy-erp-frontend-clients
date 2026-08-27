@@ -1,16 +1,24 @@
-/// Cantidad + badge de unidad (detalle OV/OC, tablas, recibos).
+/// Cantidad + unidad en un solo badge (detalle OV/OC, tablas, recibos).
 @mixin uom-qty-badges {
   .qty-cell {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    flex-wrap: wrap;
+    gap: 0.28rem;
+    height: 24px;
+    padding: 0 0.55rem 0 0.5rem;
+    border-radius: 4px;
+    background: #e8eefc;
+    color: #1e40af;
+    border-left: 3px solid #1d4ed8;
+    box-sizing: border-box;
+    white-space: nowrap;
+    line-height: 1;
   }
 
   .qty-cell__amount {
-    font-size: 0.8125rem;
-    font-weight: 700;
-    color: #0f172a;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: inherit;
     font-variant-numeric: tabular-nums;
   }
 
@@ -36,6 +44,23 @@
     &--success {
       background: #d1fae5;
       color: #065f46;
+    }
+  }
+
+  .qty-cell .uom-badge {
+    display: inline;
+    height: auto;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+
+    &--muted,
+    &--success {
+      background: transparent;
+      color: inherit;
     }
   }
 }

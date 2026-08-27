@@ -1,10 +1,18 @@
 <div class="receipt-modal">
   <div class="modal-header">
-    <div>
+    <div class="modal-header__text">
       <h2>Recibo de Orden de Compra</h2>
-      @if (purchaseOrder?.folio) {
-        <p class="folio">{{ purchaseOrder.folio }}</p>
-      }
+      <p class="modal-header__meta">
+        @if (purchaseOrder?.folio) {
+          <span class="folio">{{ purchaseOrder.folio }}</span>
+          <span class="dot" aria-hidden="true">·</span>
+        }
+        <span>{{ getProductCount() }} productos solicitados</span>
+        <span class="dot" aria-hidden="true">·</span>
+        <span>
+          Recibiendo {{ getReceivingProductCount() }} de {{ getProductCount() }}
+        </span>
+      </p>
     </div>
     <button type="button" class="btn-close-modal" (click)="onCancel()" aria-label="Cerrar modal">
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -16,153 +24,164 @@
   @if (purchaseOrder) {
     <form (ngSubmit)="onSubmit()">
       <div class="modal-content">
-        <div class="section">
-          <div class="items-list">
-            @for (lineItem of purchaseOrder.line_items; track lineItem.id; let i = $index) {
-              <div class="item-row">
-                <div class="item-row__header">
-                  <div class="item-row__product">
-                    <h4>{{ getProductName(lineItem) }}</h4>
-                  </div>
-                  <div class="item-row__meta">
-                    <span class="meta-chip">
-                      <span class="meta-chip__label">SKU</span>
-                      <span class="meta-chip__value">{{ getProductSku(lineItem) }}</span>
-                    </span>
-                    <span class="meta-chip meta-chip--order">
-                      <span class="meta-chip__label">Ordenado</span>
-                      <span class="meta-chip__value">
-                        <span class="qty-cell">
-                          <span class="qty-cell__amount">{{ lineItem.quantity | removeTrailingZeros }}</span>
-                          <span class="uom-badge">{{ getLineUomName(lineItem) }}</span>
-                        </span>
-                      </span>
-                    </span>
-                    @if (getUnitCost(lineItem) !== null) {
-                      <span class="meta-chip">
-                        <span class="meta-chip__label">Costo unit.</span>
-                        <span class="meta-chip__value">{{ formatCurrency(getUnitCost(lineItem)!) }}</span>
-                      </span>
-                    }
-                    @if (getLineTotal(lineItem) !== null) {
-                      <span class="meta-chip meta-chip--total">
-                        <span class="meta-chip__label">Total línea</span>
-                        <span class="meta-chip__value">{{ formatCurrency(getLineTotal(lineItem)!) }}</span>
-                      </span>
-                    }
-                  </div>
+        <div class="items-list">
+          @for (lineItem of purchaseOrder.line_items; track lineItem.id) {
+            <div class="item-card" [class.item-card--over]="isOverReceived(lineItem)">
+              <div class="item-card__top">
+                <div class="item-card__identity">
+                  <p class="item-card__name">{{ getProductName(lineItem) }}</p>
+                  <p class="item-card__sku">SKU {{ getProductSku(lineItem) }}</p>
                 </div>
 
-                <div class="item-inputs-row">
-                  <div class="input-group">
-                    <label>Modo de lotes</label>
-                    <select
-                      [(ngModel)]="lotModes[lineItem.id]"
-                      [ngModelOptions]="{standalone: true}"
-                      (ngModelChange)="onLotModeChange(lineItem.id, $event)"
-                      class="field-input select-input"
-                    >
-                      <option value="single">Un solo lote</option>
-                      <option value="multiple">Múltiples lotes</option>
-                    </select>
-                  </div>
-
-                  <div class="input-group">
-                    <label>Cantidad Recibida</label>
-                    <input 
-                      type="number" 
-                      [(ngModel)]="receivedQuantities[lineItem.id]"
-                      [ngModelOptions]="{standalone: true}"
-                      placeholder="0"
-                      min="0"
-                      step="0.001"
-                      class="field-input quantity-input"
-                      [disabled]="getLotMode(lineItem.id) === 'multiple'"
-                    />
-                  </div>
-
+                <div class="item-card__progress">
+                  <p class="item-card__ratio" [class.is-over]="isOverReceived(lineItem)">
+                    {{ getReceivingQty(lineItem) | removeTrailingZeros }}
+                    /
+                    {{ getOrderedQty(lineItem) | removeTrailingZeros }}
+                    {{ getLineUomName(lineItem) }}
+                  </p>
+                  <p class="item-card__pending">
+                    @if (getAlreadyReceivedQty(lineItem) > 0) {
+                      Ya recibidos {{ getAlreadyReceivedQty(lineItem) | removeTrailingZeros }} {{ getLineUomName(lineItem) }}
+                      <span class="dot" aria-hidden="true">·</span>
+                    }
+                    @if (isOverReceived(lineItem)) {
+                      Excede {{ getOverReceivedQty(lineItem) | removeTrailingZeros }} {{ getLineUomName(lineItem) }}
+                    } @else if (getRemainingQty(lineItem) === 0) {
+                      Completo
+                    } @else {
+                      Pendiente {{ getRemainingQty(lineItem) | removeTrailingZeros }} {{ getLineUomName(lineItem) }}
+                    }
+                  </p>
                 </div>
+              </div>
 
-                @if (getLotMode(lineItem.id) === 'multiple') {
-                  <div class="lots-section">
-                    <div class="lots-header">
-                      <h5>Lotes</h5>
-                      <button
-                        type="button"
-                        class="btn-add-lot btn-icon-text"
-                        (click)="addLot(lineItem.id)"
-                        aria-label="Agregar lote"
-                        title="Agregar lote"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                        <span>Agregar</span>
-                      </button>
-                    </div>
+              <div class="progress-bar" [attr.aria-valuenow]="getProgressPercent(lineItem)" aria-valuemin="0" aria-valuemax="100">
+                <span class="progress-bar__fill" [class.is-over]="isOverReceived(lineItem)" [style.width.%]="getProgressPercent(lineItem)"></span>
+              </div>
 
-                    <div class="lots-grid-header">
-                      <span>Tag / Identificador</span>
-                      <span>Cantidad</span>
-                      <span>UOM</span>
-                      <span></span>
-                    </div>
-                    <div class="lots-grid-body">
-                      @for (lot of getLots(lineItem.id); track $index; let lotIndex = $index) {
-                        <div class="lots-grid-row">
-                          <input
-                            type="text"
-                            [(ngModel)]="multipleLotsByLine[lineItem.id][lotIndex].tag_identifier"
-                            [ngModelOptions]="{standalone: true}"
-                            placeholder="Ej: 12404277658"
-                            class="field-input text-input"
-                          />
-                          <input
-                            type="number"
-                            [(ngModel)]="multipleLotsByLine[lineItem.id][lotIndex].quantity"
-                            [ngModelOptions]="{standalone: true}"
-                            min="0"
-                            step="0.001"
-                            class="field-input quantity-input"
-                          />
-                          <select
-                            [(ngModel)]="multipleLotsByLine[lineItem.id][lotIndex].product_uom_id"
-                            [ngModelOptions]="{standalone: true}"
-                            class="field-input select-input"
-                          >
-                            <option [value]="lineItem.product_uom?.id || lineItem.product_uom_id">
-                              {{ lineItem.product_uom?.uom?.name || lineItem.uom?.name || 'Unidad' }}
-                            </option>
-                          </select>
-                          <button
-                            type="button"
-                            class="btn-remove-lot btn-icon-only"
-                            (click)="removeLot(lineItem.id, lotIndex)"
-                            [disabled]="getLots(lineItem.id).length <= 1"
-                            aria-label="Eliminar lote"
-                            title="Eliminar lote"
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                              <path d="M6 7H18M10 11V16M14 11V16M9 7L10 5H14L15 7M8 7V18C8 18.5 8.4 19 9 19H15C15.6 19 16 18.5 16 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                          </button>
-                        </div>
-                      }
-                    </div>
-
-                    <p class="lots-total">
-                      Total lotes: <strong>{{ getLotsTotal(lineItem.id) }}</strong>
-                    </p>
-                  </div>
+              <div class="item-card__stats">
+                <span class="stat">
+                  <span class="stat__label">Ordenado</span>
+                  <span class="stat__value">{{ getOrderedQty(lineItem) | removeTrailingZeros }} {{ getLineUomName(lineItem) }}</span>
+                </span>
+                @if (getUnitCost(lineItem) !== null) {
+                  <span class="stat">
+                    <span class="stat__label">Costo unit.</span>
+                    <span class="stat__value">{{ formatCurrency(getUnitCost(lineItem)!) }}</span>
+                  </span>
+                }
+                @if (getLineTotal(lineItem) !== null) {
+                  <span class="stat stat--total">
+                    <span class="stat__label">Total línea</span>
+                    <span class="stat__value">{{ formatCurrency(getLineTotal(lineItem)!) }}</span>
+                  </span>
                 }
               </div>
-            }
-          </div>
+
+              <div class="item-card__controls">
+                <div class="lot-mode" role="group" aria-label="Modo de lotes">
+                  <button
+                    type="button"
+                    class="lot-mode__btn"
+                    [class.is-active]="getLotMode(lineItem.id) === 'single'"
+                    (click)="onLotModeChange(lineItem.id, 'single')"
+                  >
+                    Un lote
+                  </button>
+                  <button
+                    type="button"
+                    class="lot-mode__btn"
+                    [class.is-active]="getLotMode(lineItem.id) === 'multiple'"
+                    (click)="onLotModeChange(lineItem.id, 'multiple')"
+                  >
+                    Múltiples
+                  </button>
+                </div>
+
+                @if (getLotMode(lineItem.id) === 'single') {
+                  <div class="qty-field">
+                    <label [attr.for]="'qty-' + lineItem.id">Cantidad recibida</label>
+                    <div class="qty-field__control">
+                      <input
+                        [id]="'qty-' + lineItem.id"
+                        type="number"
+                        class="form-input"
+                        [(ngModel)]="receivedQuantities[lineItem.id]"
+                        [ngModelOptions]="{standalone: true}"
+                        placeholder="0"
+                        min="0"
+                        step="0.001"
+                      />
+                      <span class="qty-field__uom">{{ getLineUomName(lineItem) }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <button
+                    type="button"
+                    class="btn-add-lot"
+                    (click)="addLot(lineItem.id)"
+                    aria-label="Agregar lote"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Agregar lote
+                  </button>
+                }
+              </div>
+
+              @if (getLotMode(lineItem.id) === 'multiple') {
+                <div class="lots">
+                  <div class="lots__head">
+                    <span>Tag / Identificador</span>
+                    <span>Cantidad</span>
+                    <span>UOM</span>
+                    <span></span>
+                  </div>
+                  <div class="lots__body">
+                    @for (lot of getLots(lineItem.id); track $index; let lotIndex = $index) {
+                      <div class="lots__row">
+                        <input
+                          type="text"
+                          class="form-input"
+                          [(ngModel)]="multipleLotsByLine[lineItem.id][lotIndex].tag_identifier"
+                          [ngModelOptions]="{standalone: true}"
+                          placeholder="Ej: 12404277658"
+                        />
+                        <input
+                          type="number"
+                          class="form-input"
+                          [(ngModel)]="multipleLotsByLine[lineItem.id][lotIndex].quantity"
+                          [ngModelOptions]="{standalone: true}"
+                          min="0"
+                          step="0.001"
+                        />
+                        <span class="lot-uom">{{ getLineUomName(lineItem) }}</span>
+                        <button
+                          type="button"
+                          class="btn-remove-lot"
+                          (click)="removeLot(lineItem.id, lotIndex)"
+                          [disabled]="getLots(lineItem.id).length <= 1"
+                          aria-label="Eliminar lote"
+                          title="Eliminar lote"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M6 7H18M10 11V16M14 11V16M9 7L10 5H14L15 7M8 7V18C8 18.5 8.4 19 9 19H15C15.6 19 16 18.5 16 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
         </div>
       </div>
 
       <div class="modal-actions">
-        <button 
+        <button
           type="submit"
           class="btn-confirm"
           [disabled]="isLoading"

@@ -93,6 +93,60 @@ export class ReceiptModalComponent implements OnInit {
     return this.lotModes[lineItemId] || 'single';
   }
 
+  /** Cantidad pedida en la línea. */
+  getOrderedQty(lineItem: LineItem): number {
+    return Number(lineItem.quantity || 0);
+  }
+
+  /** Cantidad ya recibida en recibos anteriores. */
+  getAlreadyReceivedQty(lineItem: LineItem): number {
+    return Number(lineItem.received_original_quantity || 0);
+  }
+
+  /** Cantidad que se está capturando en este recibo (lote único o suma de lotes). */
+  getReceivingQty(lineItem: LineItem): number {
+    if (this.getLotMode(lineItem.id) === 'multiple') {
+      return this.getLotsTotal(lineItem.id);
+    }
+    return Number(this.receivedQuantities[lineItem.id] || 0);
+  }
+
+  /** Lo que falta por recibir tras esta captura. */
+  getRemainingQty(lineItem: LineItem): number {
+    return Math.max(
+      0,
+      this.getOrderedQty(lineItem) - this.getAlreadyReceivedQty(lineItem) - this.getReceivingQty(lineItem)
+    );
+  }
+
+  getOverReceivedQty(lineItem: LineItem): number {
+    return Math.max(
+      0,
+      this.getAlreadyReceivedQty(lineItem) + this.getReceivingQty(lineItem) - this.getOrderedQty(lineItem)
+    );
+  }
+
+  isOverReceived(lineItem: LineItem): boolean {
+    return this.getOverReceivedQty(lineItem) > 0;
+  }
+
+  getProgressPercent(lineItem: LineItem): number {
+    const ordered = this.getOrderedQty(lineItem);
+    if (ordered <= 0) {
+      return 0;
+    }
+    const done = this.getAlreadyReceivedQty(lineItem) + this.getReceivingQty(lineItem);
+    return Math.min(100, (done / ordered) * 100);
+  }
+
+  getProductCount(): number {
+    return this.purchaseOrder?.line_items?.length ?? 0;
+  }
+
+  getReceivingProductCount(): number {
+    return (this.purchaseOrder?.line_items ?? []).filter((item) => this.getReceivingQty(item) > 0).length;
+  }
+
   onLotModeChange(lineItemId: string, mode: LotMode): void {
     this.lotModes[lineItemId] = mode;
     if (mode === 'single') {
