@@ -103,16 +103,27 @@
                   <div class="qty-field">
                     <label [attr.for]="'qty-' + lineItem.id">Cantidad recibida</label>
                     <div class="qty-field__control">
-                      <input
-                        [id]="'qty-' + lineItem.id"
-                        type="number"
-                        class="form-input"
-                        [(ngModel)]="receivedQuantities[lineItem.id]"
-                        [ngModelOptions]="{standalone: true}"
-                        placeholder="0"
-                        min="0"
-                        step="0.001"
-                      />
+                      <div class="qty-field__input-wrap">
+                        <input
+                          [id]="'qty-' + lineItem.id"
+                          type="number"
+                          class="form-input"
+                          [(ngModel)]="receivedQuantities[lineItem.id]"
+                          [ngModelOptions]="{standalone: true}"
+                          placeholder="0"
+                          min="0"
+                          step="0.001"
+                        />
+                        <button
+                          type="button"
+                          class="btn-max"
+                          title="Usar la cantidad pendiente"
+                          [disabled]="getMaxReceivableQty(lineItem) <= 0"
+                          (click)="fillMaxReceivedQty(lineItem)"
+                        >
+                          MAX
+                        </button>
+                      </div>
                       <span class="qty-field__uom">{{ getLineUomName(lineItem) }}</span>
                     </div>
                   </div>

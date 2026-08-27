@@ -7,6 +7,10 @@ export interface PosSaleReceipt {
   escpos_base64?: string;
   plain_text?: string;
   printer_profile?: string;
+  /** Folio público del ticket (QR / autofactura). */
+  public_invoice_code?: string;
+  /** URL del QR de autofactura (incluye email si el cliente ya lo tenía). */
+  self_invoice_url?: string;
 }
 
 export interface CollectSaleResponse {
@@ -59,6 +63,10 @@ export function normalizePosSaleReceipt(raw: unknown): PosSaleReceipt | null {
     plain_text: nested['plain_text'] != null ? String(nested['plain_text']) : undefined,
     printer_profile:
       nested['printer_profile'] != null ? String(nested['printer_profile']) : undefined,
+    public_invoice_code:
+      nested['public_invoice_code'] != null ? String(nested['public_invoice_code']) : undefined,
+    self_invoice_url:
+      nested['self_invoice_url'] != null ? String(nested['self_invoice_url']) : undefined,
   };
 }
 

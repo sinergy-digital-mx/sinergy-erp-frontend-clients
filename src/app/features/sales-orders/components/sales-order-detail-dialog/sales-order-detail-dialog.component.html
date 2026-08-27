@@ -123,6 +123,48 @@
               <i class="fi fi-rr-angle-right info-card__chevron"></i>
             }
           </div>
+
+          @if (getPublicInvoiceCode(); as publicCode) {
+            <div class="info-card info-card--blue info-card--folio">
+              <div class="info-card__icon">
+                <i class="fi fi-rr-ticket"></i>
+              </div>
+              <div class="info-card__content">
+                <span class="info-card__label">FOLIO PÚBLICO</span>
+                <span class="info-card__value">{{ publicCode }}</span>
+                @if (getSelfInvoiceUrl(); as invoiceUrl) {
+                  <a
+                    class="info-card__subvalue info-card__subvalue--link"
+                    [href]="invoiceUrl"
+                    target="_blank"
+                    rel="noopener noreferrer">
+                    Facturar en línea
+                  </a>
+                }
+              </div>
+              <div class="info-card__actions">
+                <button
+                  type="button"
+                  class="info-card__action"
+                  title="Copiar folio público"
+                  aria-label="Copiar folio público"
+                  (click)="copyPublicInvoiceCode($event)">
+                  <i class="fi fi-rr-copy"></i>
+                </button>
+                @if (getSelfInvoiceUrl(); as invoiceUrl) {
+                  <a
+                    class="info-card__action info-card__action--link"
+                    [href]="invoiceUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Facturar en línea"
+                    aria-label="Facturar en línea">
+                    <i class="fi fi-rr-link"></i>
+                  </a>
+                }
+              </div>
+            </div>
+          }
         </div>
 
         <div class="section-card">
@@ -185,6 +227,12 @@
         @if (isPosOrder()) {
           <div class="section-card section-card--pos-info">
             <h3 class="section-title">INFORMACIÓN POS</h3>
+            @if (getPublicInvoiceCode(); as publicCode) {
+              <div class="section-item">
+                <span class="section-label">Folio público</span>
+                <span class="section-value section-value--mono">{{ publicCode }}</span>
+              </div>
+            }
             <div class="section-item">
               <span class="section-label">Terminal</span>
               <span class="section-value">{{ formatPosUserLabel(order()!.terminal_user) }}</span>

@@ -13,6 +13,7 @@ import { AuthService } from "./auth.service";
 import { ToastService } from "./toast.service";
 import { ToastType } from "../models/toast.model";
 import { AlertDialogComponent } from "../components/alert-dialog/alert-dialog.component";
+import { isPublicApiRequest } from "../http/skip-auth.context";
 
 
 @Injectable({ providedIn: "root" })
@@ -30,8 +31,13 @@ export class InterceptorService implements HttpInterceptor {
     console.log()
 
     let request = req;
+    const publicRequest = isPublicApiRequest(req);
 
-    if (token) {
+    if (publicRequest) {
+      if (request.headers.has("Authorization")) {
+        request = request.clone({ headers: request.headers.delete("Authorization") });
+      }
+    } else if (token) {
       request = req.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`, // si tu API usa Bearer, usa: `Bearer ${token}`
@@ -41,12 +47,12 @@ export class InterceptorService implements HttpInterceptor {
 
     return next.handle(request).pipe(
       tap((event: any) => {
-        if (event?.body?.errormessage === "Token Not Valid") {
+        if (!publicRequest && event?.body?.errormessage === "Token Not Valid") {
           this.auth_service.logout();
         }
       }),
       catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
+        if (error.status === 401 && !publicRequest) {
           this.auth_service.logout();
         }
         // ✅ RxJS 7+

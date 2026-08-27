@@ -778,6 +778,67 @@
     background: linear-gradient(180deg, #faf5ff 0%, #fff 100%);
   }
 
+  .section-value--mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.75rem;
+    letter-spacing: -0.02em;
+    word-break: break-all;
+  }
+
+  .info-card--folio .info-card__value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .info-card__subvalue--link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .info-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .info-card__action {
+    width: 1.625rem;
+    height: 1.625rem;
+    border: none;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-decoration: none;
+    flex-shrink: 0;
+
+    i {
+      font-size: 0.8rem;
+      line-height: 1;
+    }
+
+    &:hover {
+      background: #e2e8f0;
+      color: #334155;
+    }
+
+    &--link:hover {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+  }
+
   .section-item--highlight .section-value--change {
     color: #059669;
     font-weight: 800;

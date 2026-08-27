@@ -3,19 +3,27 @@ import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { InterceptorService } from '../services/interceptor.service';
+import { isPublicApiRequest } from '../http/skip-auth.context';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const interceptorService = inject(InterceptorService);
+  const publicRequest = isPublicApiRequest(req);
 
-  // Add authorization header if token exists
-  const token = authService.token;
-  if (token) {
-    req = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+  // Portal público: sin Bearer. El resto anexa token si existe.
+  if (publicRequest) {
+    if (req.headers.has('Authorization')) {
+      req = req.clone({ headers: req.headers.delete('Authorization') });
+    }
+  } else {
+    const token = authService.token;
+    if (token) {
+      req = req.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    }
   }
 
   return next(req).pipe(
@@ -26,7 +34,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           error.error?.code === 'PERMISSIONS_CHANGED' ||
           error.error?.message === 'PERMISSIONS_CHANGED');
 
-      if (permissionsChanged) {
+      if (permissionsChanged && !publicRequest) {
         console.log('🔄 Permissions changed detected, refreshing token...');
         
         // Call refresh endpoint to get new token

@@ -1,11 +1,19 @@
 import { Customer, SalesOrder, SalesOrderCustomerSummary } from '../models/sales-order.model';
 
+function joinPersonName(name?: string | null, lastname?: string | null): string {
+  return `${name || ''} ${lastname || ''}`.trim();
+}
+
+function withWalkInSuffix(name: string, isWalkIn?: boolean): string {
+  return isWalkIn ? `${name} (mostrador)` : name;
+}
+
 export function getCustomerDisplayName(
   customer?: Customer | null,
   fallback = 'N/A',
 ): string {
   if (!customer) return fallback;
-  const fullName = `${customer.name || ''} ${customer.lastname || ''}`.trim();
+  const fullName = joinPersonName(customer.name, customer.lastname);
   return fullName || customer.company_name || fallback;
 }
 
@@ -13,11 +21,15 @@ export function getCustomerSummaryDisplayName(
   summary?: SalesOrderCustomerSummary | null,
   fallback = 'N/A',
 ): string {
-  if (!summary?.display_name?.trim()) {
+  if (!summary) {
     return fallback;
   }
-  const name = summary.display_name.trim();
-  return summary.is_walk_in ? `${name} (mostrador)` : name;
+  const name =
+    joinPersonName(summary.name, summary.lastname) || summary.display_name?.trim() || '';
+  if (!name) {
+    return fallback;
+  }
+  return withWalkInSuffix(name, summary.is_walk_in);
 }
 
 export function resolveSalesOrderCustomerName(
@@ -27,13 +39,21 @@ export function resolveSalesOrderCustomerName(
   if (!order) {
     return fallback;
   }
-  if (order.customer_display_name?.trim()) {
-    const name = order.customer_display_name.trim();
-    if (order.customer_summary?.is_walk_in) {
-      return `${name} (mostrador)`;
-    }
-    return name;
+
+  const personName =
+    joinPersonName(order.customer_summary?.name, order.customer_summary?.lastname) ||
+    joinPersonName(order.customer?.name, order.customer?.lastname);
+  if (personName) {
+    return withWalkInSuffix(personName, order.customer_summary?.is_walk_in);
   }
+
+  if (order.customer_display_name?.trim()) {
+    return withWalkInSuffix(
+      order.customer_display_name.trim(),
+      order.customer_summary?.is_walk_in,
+    );
+  }
+
   const summaryName = getCustomerSummaryDisplayName(order.customer_summary, '');
   if (summaryName) {
     return summaryName;
@@ -43,9 +63,9 @@ export function resolveSalesOrderCustomerName(
 
 export function getSalesOrderCompanyName(order?: SalesOrder | null): string {
   const company = (
+    order?.customer_summary?.company_name ||
     order?.customer?.company_name ||
     order?.customer?.fiscal_razon_social ||
-    order?.customer_summary?.company_name ||
     ''
   ).trim();
   if (!company) {

@@ -1,0 +1,328 @@
+<main class="min-h-screen flex items-center justify-center px-4 py-8 self-invoice-bg">
+  <div class="w-full" [class.max-w-md]="step() !== 'fiscal'" [class.max-w-3xl]="step() === 'fiscal'">
+    <div class="bg-white rounded-xl shadow-lg p-6 sm:p-8 self-invoice-card">
+      <div class="flex justify-center mb-5">
+        <app-pollux-brand-text theme="light" size="lg" />
+      </div>
+
+      <h1 class="text-2xl font-semibold text-center text-gray-800">Factura tu compra</h1>
+      <p class="text-sm text-center text-gray-500 mt-1 mb-6">
+        Sin cuenta. Usa el folio de tu ticket.
+      </p>
+
+      @if (previewLoading()) {
+        <p class="text-sm text-center text-gray-500 py-8">Cargando recibo…</p>
+      }
+
+      @if (!previewLoading() && showPreviewCard()) {
+        <div class="rounded-xl border border-gray-100 bg-slate-50 px-4 py-3 mb-5">
+          <p class="text-xs uppercase tracking-wide text-gray-400">Recibo</p>
+          <p class="text-base font-semibold text-gray-900 font-mono break-all">{{ preview()?.code }}</p>
+          <dl class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+            <div>
+              <dt class="text-gray-400">Empresa</dt>
+              <dd class="text-gray-800">{{ preview()?.issuer_name || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-gray-400">Sucursal</dt>
+              <dd class="text-gray-800">{{ preview()?.branch_name || '—' }}</dd>
+            </div>
+            <div class="sm:col-span-2">
+              <dt class="text-gray-400">Total</dt>
+              <dd class="text-lg font-semibold text-gray-900">{{ formattedTotal() }}</dd>
+            </div>
+          </dl>
+        </div>
+      }
+
+      @if (!previewLoading() && step() === 'folio') {
+        <form [formGroup]="folioForm" (ngSubmit)="submitFolio()" class="flex flex-col gap-4">
+          <app-input
+            label="Número de recibo"
+            placeholder="MZN-CENT-INV-000012"
+            [form_control]="folioForm.controls['code']">
+          </app-input>
+          <p class="text-xs text-gray-400 -mt-2 px-1">
+            Cópialo del ticket, incluye las letras de la sucursal.
+          </p>
+          <app-button type="submit">Continuar</app-button>
+        </form>
+      }
+
+      @if (!previewLoading() && step() === 'identify') {
+        <form [formGroup]="identifyForm" (ngSubmit)="submitIdentify()" class="flex flex-col gap-4">
+          <app-input
+            label="Correo"
+            placeholder="ana@empresa.com"
+            [form_control]="identifyForm.controls['email']">
+          </app-input>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="self-invoice-phone">Teléfono</label>
+            <input
+              id="self-invoice-phone"
+              type="text"
+              inputmode="numeric"
+              maxlength="10"
+              placeholder="6641234567"
+              formControlName="phone"
+              appPhoneDigits
+              autocomplete="tel"
+              class="w-full h-10 rounded-[10px] border px-3.5 py-2 text-sm focus:outline-none focus:ring-[3px]"
+              [ngClass]="identifyInvalid('phone')
+                ? 'border-red-400 focus:ring-red-500/15 focus:border-red-500'
+                : 'border-gray-200 focus:ring-indigo-500/15 focus:border-indigo-500'">
+            @if (identifyInvalid('phone')) {
+              <p class="mt-1 text-sm text-red-600" role="alert">Ingresa 10 dígitos</p>
+            }
+          </div>
+
+          <app-button type="submit" [loading]="identifyLoading()">Continuar</app-button>
+          <button type="button" class="text-sm text-indigo-600 hover:underline" (click)="goToOtherReceipt()">
+            Otro recibo
+          </button>
+        </form>
+      }
+
+      @if (!previewLoading() && step() === 'fiscal') {
+        <form [formGroup]="fiscalForm" (ngSubmit)="submitStamp()">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <app-input
+                label="RFC"
+                placeholder="RFC"
+                [maxlength]="13"
+                [form_control]="fiscalForm.controls['fiscal_rfc']">
+              </app-input>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="self-invoice-person-type">
+                Tipo de persona
+              </label>
+              <select
+                id="self-invoice-person-type"
+                formControlName="fiscal_person_type"
+                class="w-full h-10 px-3.5 rounded-[10px] border text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px]"
+                [ngClass]="controlInvalid('fiscal_person_type')
+                  ? 'border-red-400 focus:ring-red-500/15 focus:border-red-500'
+                  : 'border-gray-200 focus:ring-indigo-500/15 focus:border-indigo-500'">
+                <option value="">Selecciona tipo de persona</option>
+                @for (option of fiscalPersonTypeOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="sm:col-span-2">
+              <app-input
+                label="Razón social / Nombre"
+                placeholder="Como aparece en la CSF"
+                [form_control]="fiscalForm.controls['fiscal_razon_social']">
+              </app-input>
+              <p class="text-xs text-gray-400 mt-1 px-1">Exacto CSF, MAYÚSCULAS SAT.</p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="self-invoice-postal-code">
+                Código postal
+              </label>
+              <input
+                id="self-invoice-postal-code"
+                type="text"
+                inputmode="numeric"
+                maxlength="5"
+                placeholder="5 dígitos"
+                formControlName="fiscal_postal_code"
+                class="w-full h-10 rounded-[10px] border px-3.5 py-2 text-sm focus:outline-none focus:ring-[3px]"
+                [ngClass]="controlInvalid('fiscal_postal_code')
+                  ? 'border-red-400 focus:ring-red-500/15 focus:border-red-500'
+                  : 'border-gray-200 focus:ring-indigo-500/15 focus:border-indigo-500'">
+              @if (controlInvalid('fiscal_postal_code')) {
+                <p class="text-xs text-red-600 mt-1">El código postal debe ser de 5 dígitos</p>
+              }
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="self-invoice-country">País</label>
+              <select
+                id="self-invoice-country"
+                formControlName="fiscal_country"
+                class="w-full h-10 px-3.5 rounded-[10px] border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-indigo-500/15 focus:border-indigo-500">
+                <option value="MEX">México (MEX)</option>
+              </select>
+            </div>
+
+            <div class="sm:col-span-2">
+              <app-input
+                label="Calle / vialidad"
+                placeholder="Calle / vialidad"
+                [form_control]="fiscalForm.controls['fiscal_street']">
+              </app-input>
+            </div>
+
+            <div>
+              <app-input
+                label="No. exterior"
+                placeholder="No. exterior"
+                [form_control]="fiscalForm.controls['fiscal_exterior_number']">
+              </app-input>
+            </div>
+
+            <div>
+              <app-input
+                label="No. interior"
+                placeholder="Vacío si no aplica"
+                [form_control]="fiscalForm.controls['fiscal_interior_number']">
+              </app-input>
+            </div>
+
+            <div class="sm:col-span-2">
+              <app-input
+                label="Colonia"
+                placeholder="Colonia"
+                [form_control]="fiscalForm.controls['fiscal_colonia']">
+              </app-input>
+            </div>
+
+            <div class="sm:col-span-2">
+              <app-input
+                label="Localidad"
+                placeholder="Opcional"
+                [form_control]="fiscalForm.controls['fiscal_localidad']">
+              </app-input>
+            </div>
+
+            <div>
+              <app-input
+                label="Municipio o alcaldía"
+                placeholder="Municipio o alcaldía"
+                [form_control]="fiscalForm.controls['fiscal_municipio']">
+              </app-input>
+            </div>
+
+            <div>
+              <app-input
+                label="Entidad federativa"
+                placeholder="Entidad federativa"
+                [form_control]="fiscalForm.controls['fiscal_state']">
+              </app-input>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="self-invoice-uso-cfdi">
+                Uso CFDI
+              </label>
+              <select
+                id="self-invoice-uso-cfdi"
+                formControlName="uso_cfdi"
+                class="w-full h-10 px-3.5 rounded-[10px] border text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px]"
+                [ngClass]="controlInvalid('uso_cfdi')
+                  ? 'border-red-400 focus:ring-red-500/15 focus:border-red-500'
+                  : 'border-gray-200 focus:ring-indigo-500/15 focus:border-indigo-500'">
+                <option value="">Selecciona uso CFDI</option>
+                @for (option of usoCfdiOptions(); track option.code) {
+                  <option [value]="option.code">{{ option.label }}</option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="self-invoice-regimen">
+                Régimen fiscal
+              </label>
+              <select
+                id="self-invoice-regimen"
+                formControlName="regimen_fiscal_receptor"
+                class="w-full h-10 px-3.5 rounded-[10px] border text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px]"
+                [ngClass]="controlInvalid('regimen_fiscal_receptor')
+                  ? 'border-red-400 focus:ring-red-500/15 focus:border-red-500'
+                  : 'border-gray-200 focus:ring-indigo-500/15 focus:border-indigo-500'">
+                <option value="">Selecciona régimen</option>
+                @for (option of regimenOptions(); track option.code) {
+                  <option [value]="option.code">{{ option.label }}</option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="self-invoice-forma-pago">
+                Forma de pago
+              </label>
+              <select
+                id="self-invoice-forma-pago"
+                formControlName="forma_pago"
+                class="w-full h-10 px-3.5 rounded-[10px] border text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px]"
+                [ngClass]="controlInvalid('forma_pago')
+                  ? 'border-red-400 focus:ring-red-500/15 focus:border-red-500'
+                  : 'border-gray-200 focus:ring-indigo-500/15 focus:border-indigo-500'">
+                <option value="">Selecciona forma de pago</option>
+                @for (option of formaPagoOptions(); track option.code) {
+                  <option [value]="option.code">{{ option.label }}</option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="self-invoice-metodo-pago">
+                Método de pago
+              </label>
+              <select
+                id="self-invoice-metodo-pago"
+                formControlName="metodo_pago"
+                class="w-full h-10 px-3.5 rounded-[10px] border text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px]"
+                [ngClass]="controlInvalid('metodo_pago')
+                  ? 'border-red-400 focus:ring-red-500/15 focus:border-red-500'
+                  : 'border-gray-200 focus:ring-indigo-500/15 focus:border-indigo-500'">
+                <option value="">Selecciona método de pago</option>
+                @for (option of metodoPagoOptions(); track option.code) {
+                  <option [value]="option.code">{{ option.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-6 flex flex-col-reverse sm:flex-row gap-3">
+            <app-button type="button" variant="secondary" [fullWidth]="true" (clicked)="goBackToIdentify()">
+              Volver
+            </app-button>
+            <app-button type="submit" [loading]="stampLoading()" [fullWidth]="true">
+              Timbrar factura
+            </app-button>
+          </div>
+        </form>
+      }
+
+      @if (!previewLoading() && (step() === 'downloads' || step() === 'success')) {
+        <div class="flex flex-col gap-4">
+          @if (step() === 'success') {
+            <p class="text-sm text-center text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+              Factura timbrada
+            </p>
+          } @else {
+            <p class="text-sm text-center text-gray-600">
+              Este recibo ya tiene factura. Puedes descargar PDF y XML.
+            </p>
+          }
+
+          @if (issued()?.uuid || success()?.uuid) {
+            <div class="rounded-lg bg-slate-50 px-3 py-2">
+              <p class="text-xs text-gray-400">UUID</p>
+              <p class="text-sm font-mono break-all text-gray-800">{{ issued()?.uuid || success()?.uuid }}</p>
+            </div>
+          }
+
+          <app-button type="button" [loading]="pdfLoading()" (clicked)="downloadPdf()">
+            Descargar PDF
+          </app-button>
+          <app-button type="button" variant="secondary" [loading]="xmlLoading()" (clicked)="downloadXml()">
+            Descargar XML
+          </app-button>
+          <button type="button" class="text-sm text-indigo-600 hover:underline" (click)="goToOtherReceipt()">
+            Facturar otro recibo
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</main>

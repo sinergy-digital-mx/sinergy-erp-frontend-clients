@@ -153,6 +153,10 @@ export class OrderDetailDialogComponent {
     this.purchaseOrderService.getOrderById(this.data.orderId).subscribe({
       next: (order) => {
         this.order.set(order);
+        const status = order.general_status ?? order.status;
+        if (status === 'Recibida') {
+          this.showReceivedTotals.set(true);
+        }
         this.loadDocuments(order.id);
         this.loading.set(false);
         this.refreshing.set(false);
@@ -391,28 +395,32 @@ export class OrderDetailDialogComponent {
     return this.parseNumber(this.showReceivedTotals() ? order.received_total : order.requested_total);
   }
 
+  hasDisplayedIva(): boolean {
+    return this.displayedIvaAmount() > 0;
+  }
+
   hasDisplayedIeps(): boolean {
     return this.displayedIepsAmount() > 0;
   }
 
-  hasRequestedIva(): boolean {
-    return this.parseNumber(this.order()?.requested_iva_total) > 0;
-  }
-
-  hasRequestedIeps(): boolean {
-    return this.parseNumber(this.order()?.requested_ieps_total) > 0;
-  }
-
-  /** Columna IVA solo si alguna línea tiene IVA distinto de 0. */
+  /** Columna IVA si alguna línea tiene IVA (solicitado o recibido). */
   hasLineIvaColumn(): boolean {
     return (this.order()?.line_items ?? []).some(
-      (item) => this.parseNumber(item.iva_percentage) > 0 || this.parseNumber(item.line_iva) > 0
+      (item) =>
+        this.parseNumber(item.iva_percentage) > 0 ||
+        this.parseNumber(item.line_iva) > 0 ||
+        this.parseNumber(item.received_original_iva_percentage) > 0 ||
+        this.parseNumber(item.received_original_iva_unit) > 0
     );
   }
 
   hasLineIepsColumn(): boolean {
     return (this.order()?.line_items ?? []).some(
-      (item) => this.parseNumber(item.ieps_percentage) > 0 || this.parseNumber(item.line_ieps) > 0
+      (item) =>
+        this.parseNumber(item.ieps_percentage) > 0 ||
+        this.parseNumber(item.line_ieps) > 0 ||
+        this.parseNumber(item.received_original_ieps_percentage) > 0 ||
+        this.parseNumber(item.received_original_ieps_unit) > 0
     );
   }
 
@@ -420,36 +428,85 @@ export class OrderDetailDialogComponent {
     return this.getLineIvaAmount(item) > 0 || this.getLineIepsAmount(item) > 0;
   }
 
-  /** `unit_total` del GET. Sin IVA. */
+  /** Costo unitario sin IVA. En Recibidos usa el costo de recepción si viene. */
   getLineUnitCost(item: LineItem): number {
+    if (this.showReceivedTotals()) {
+      const received = this.parseNumber(item.received_original_unit_total);
+      if (received > 0) return received;
+    }
     return this.parseNumber(item.unit_total);
   }
 
-  /** `line_subtotal` del GET. Sin IVA. */
+  getLineDisplayQuantity(item: LineItem): number {
+    if (this.showReceivedTotals()) {
+      return this.parseNumber(item.received_original_quantity);
+    }
+    return this.parseNumber(item.quantity);
+  }
+
+  /** Importe de línea sin IVA. */
   getLineSubtotal(item: LineItem): number {
+    if (this.showReceivedTotals()) {
+      const qty = this.getLineDisplayQuantity(item);
+      if (qty <= 0) return 0;
+      return this.parseNumber(this.getLineUnitCost(item) * qty);
+    }
     return this.parseNumber(item.line_subtotal);
   }
 
   getLineIvaPercent(item: LineItem): number {
+    if (this.showReceivedTotals() && item.received_original_iva_percentage != null) {
+      return this.parseNumber(item.received_original_iva_percentage);
+    }
     return this.parseNumber(item.iva_percentage);
   }
 
-  /** `line_iva` del GET. */
+  /** IVA de la línea en dinero. */
   getLineIvaAmount(item: LineItem): number {
+    if (this.showReceivedTotals()) {
+      const qty = this.getLineDisplayQuantity(item);
+      if (qty <= 0) return 0;
+      const unit = this.parseNumber(item.received_original_iva_unit ?? item.iva_unit);
+      if (unit > 0) return this.parseNumber(unit * qty);
+      const pct = this.getLineIvaPercent(item);
+      if (pct <= 0) return 0;
+      return this.parseNumber((this.getLineSubtotal(item) * pct) / 100);
+    }
     return this.parseNumber(item.line_iva);
   }
 
   getLineIepsPercent(item: LineItem): number {
+    if (this.showReceivedTotals() && item.received_original_ieps_percentage != null) {
+      return this.parseNumber(item.received_original_ieps_percentage);
+    }
     return this.parseNumber(item.ieps_percentage);
   }
 
   getLineIepsAmount(item: LineItem): number {
+    if (this.showReceivedTotals()) {
+      const qty = this.getLineDisplayQuantity(item);
+      if (qty <= 0) return 0;
+      const unit = this.parseNumber(item.received_original_ieps_unit ?? item.ieps_unit);
+      if (unit > 0) return this.parseNumber(unit * qty);
+      const pct = this.getLineIepsPercent(item);
+      if (pct <= 0) return 0;
+      return this.parseNumber((this.getLineSubtotal(item) * pct) / 100);
+    }
     return this.parseNumber(item.line_ieps);
   }
 
-  /** `line_total` del GET. Con IVA + IEPS. */
+  /** Importe de línea con IVA + IEPS. */
   getLineTotal(item: LineItem): number {
-    return this.parseNumber(item.line_total);
+    if (this.showReceivedTotals()) {
+      return this.parseNumber(
+        this.getLineSubtotal(item) + this.getLineIvaAmount(item) + this.getLineIepsAmount(item)
+      );
+    }
+    const persisted = this.parseNumber(item.line_total);
+    if (persisted > 0) return persisted;
+    return this.parseNumber(
+      this.getLineSubtotal(item) + this.getLineIvaAmount(item) + this.getLineIepsAmount(item)
+    );
   }
 
   hasReceivedQuantity(item: LineItem): boolean {
@@ -592,7 +649,8 @@ export class OrderDetailDialogComponent {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        this.activeTabIndex.set(2);
+        this.showReceivedTotals.set(true);
+        this.activeTabIndex.set(0);
         this.loadOrder();
       }
     });
@@ -897,6 +955,63 @@ export class OrderDetailDialogComponent {
   getBatchReceivedUom(batch: Batch): string {
     const line = this.getBatchLineItem(batch);
     return batch.uom?.name || line?.received_uom?.name || 'Unidad';
+  }
+
+  /** Parte de la línea que corresponde a este lote (1 si es el único). */
+  private getBatchQtyRatio(batch: Batch): number {
+    const line = this.getBatchLineItem(batch);
+    if (!line) return 0;
+    const lineQty = this.showReceivedTotals()
+      ? this.parseNumber(line.received_original_quantity) || this.parseNumber(line.quantity)
+      : this.parseNumber(line.quantity);
+    if (lineQty <= 0) return 0;
+    const batchQty = this.parseNumber(
+      this.showReceivedTotals() ? this.getBatchReceivedQuantity(batch) : this.getBatchRequestedQuantity(batch)
+    );
+    return batchQty / lineQty;
+  }
+
+  getBatchUnitCost(batch: Batch): number {
+    const line = this.getBatchLineItem(batch);
+    return line ? this.getLineUnitCost(line) : 0;
+  }
+
+  getBatchSubtotal(batch: Batch): number {
+    const line = this.getBatchLineItem(batch);
+    if (!line) return 0;
+    return this.parseNumber(this.getLineSubtotal(line) * this.getBatchQtyRatio(batch));
+  }
+
+  getBatchTotal(batch: Batch): number {
+    const line = this.getBatchLineItem(batch);
+    if (!line) return 0;
+    return this.parseNumber(this.getLineTotal(line) * this.getBatchQtyRatio(batch));
+  }
+
+  getBatchIvaPercent(batch: Batch): number {
+    const line = this.getBatchLineItem(batch);
+    return line ? this.getLineIvaPercent(line) : 0;
+  }
+
+  getBatchIvaAmount(batch: Batch): number {
+    const line = this.getBatchLineItem(batch);
+    if (!line) return 0;
+    return this.parseNumber(this.getLineIvaAmount(line) * this.getBatchQtyRatio(batch));
+  }
+
+  getBatchIepsPercent(batch: Batch): number {
+    const line = this.getBatchLineItem(batch);
+    return line ? this.getLineIepsPercent(line) : 0;
+  }
+
+  getBatchIepsAmount(batch: Batch): number {
+    const line = this.getBatchLineItem(batch);
+    if (!line) return 0;
+    return this.parseNumber(this.getLineIepsAmount(line) * this.getBatchQtyRatio(batch));
+  }
+
+  hasBatchTax(batch: Batch): boolean {
+    return this.getBatchIvaAmount(batch) > 0 || this.getBatchIepsAmount(batch) > 0;
   }
 
   getLineItemsCount(): number {

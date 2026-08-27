@@ -3,6 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { PosSaleReceipt } from '../models/pos-receipt.model';
+import { decodeEscPosBase64 } from '../utils/escpos-preview.util';
+import { rewriteSelfInvoiceEscPos, uint8ToBase64 } from '../utils/self-invoice-escpos.util';
 
 const LS_PRINTER = 'pos_printer_name';
 const LS_AUTO_PRINT = 'pos_auto_print_on_collect';
@@ -83,13 +85,17 @@ export class PosReceiptPrintService {
     const qz = await this.ensureQz();
     await this.connectQz(qz);
     const config = qz.configs.create(printerName);
+    const rewritten = rewriteSelfInvoiceEscPos(decodeEscPosBase64(base64), {
+      url: receipt.self_invoice_url?.trim() || undefined,
+      folio: receipt.public_invoice_code?.trim() || undefined,
+    });
 
     await qz.print(config, [
       {
         type: 'raw',
         format: 'command',
         flavor: 'base64',
-        data: base64,
+        data: uint8ToBase64(rewritten),
       },
     ]);
   }

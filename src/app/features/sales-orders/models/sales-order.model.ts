@@ -38,6 +38,8 @@ export interface Customer {
 
 export interface SalesOrderCustomerSummary {
   id?: number;
+  name?: string;
+  lastname?: string;
   display_name?: string;
   company_name?: string;
   is_walk_in?: boolean;
@@ -174,6 +176,10 @@ export interface SalesOrder {
   id: string;
   tenant_id?: string;
   folio?: string;
+  /** Folio del ticket de autofactura (`MZN-CTR-INV-000033`). Null si aún no hay ticket. */
+  public_invoice_code?: string | null;
+  /** URL del portal de autofactura. Null si no hay ticket o no aplica. */
+  self_invoice_url?: string | null;
   fiscal_configuration_id?: string;
   customer_id: number | string;
   warehouse_id: string;

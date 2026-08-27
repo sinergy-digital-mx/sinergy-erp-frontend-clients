@@ -24,13 +24,19 @@
       <div class="preview-wrap">
         <article class="thermal-receipt" aria-label="Vista previa ticket térmico">
           @for (line of previewLines(); track $index) {
-            <p
-              class="thermal-receipt__line"
-              [class.thermal-receipt__line--center]="line.align === 'center'"
-              [class.thermal-receipt__line--right]="line.align === 'right'"
-              [class.thermal-receipt__line--bold]="line.bold">
-              {{ line.text || ' ' }}
-            </p>
+            @if (line.kind === 'qr' && line.qrSafe) {
+              <div class="thermal-receipt__qr-wrap">
+                <img class="thermal-receipt__qr" [src]="line.qrSafe" alt="Código QR" />
+              </div>
+            } @else {
+              <p
+                class="thermal-receipt__line"
+                [class.thermal-receipt__line--center]="line.align === 'center'"
+                [class.thermal-receipt__line--right]="line.align === 'right'"
+                [class.thermal-receipt__line--bold]="line.bold">
+                {{ line.text || ' ' }}
+              </p>
+            }
           }
         </article>
       </div>

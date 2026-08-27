@@ -139,7 +139,8 @@
   &__line {
     margin: 0;
     white-space: pre-wrap;
-    word-break: break-word;
+    overflow-wrap: anywhere;
+    word-break: break-all;
 
     &--center {
       text-align: center;
@@ -152,6 +153,18 @@
     &--bold {
       font-weight: 700;
     }
+  }
+
+  &__qr-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 0.4rem 0 0.55rem;
+  }
+
+  &__qr {
+    width: 9.5rem;
+    height: 9.5rem;
+    image-rendering: pixelated;
   }
 }
 

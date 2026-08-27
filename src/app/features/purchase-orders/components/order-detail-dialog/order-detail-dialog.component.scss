@@ -549,7 +549,8 @@
       white-space: nowrap;
     }
 
-    .col-product {
+    .col-product,
+    .col-lot {
       text-align: left;
     }
   }
@@ -640,6 +641,17 @@
     white-space: nowrap;
   }
 
+  .tax-stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+
+    .money-cell {
+      justify-content: center;
+    }
+  }
+
   .product-info {
     display: flex;
     flex-direction: column;
@@ -699,7 +711,8 @@
     justify-content: center;
   }
 
-  .col-product {
+  .col-product,
+  .col-lot {
     text-align: left;
   }
 }

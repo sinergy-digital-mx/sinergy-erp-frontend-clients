@@ -16,6 +16,14 @@ export const routes: Routes = [
         .then(m => m.Login),
   },
 
+  // AUTOFACURA (público, sin JWT ni layout ERP)
+  {
+    path: 'facturar',
+    loadChildren: () =>
+      import('./features/self-invoice/self-invoice.routes')
+        .then(m => m.SELF_INVOICE_ROUTES),
+  },
+
   // POS - Tomar Orden y Cobrar Orden (pantalla completa, sin layout)
   {
     path: 'pos/pending-orders',

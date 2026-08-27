@@ -119,6 +119,15 @@ export class ReceiptModalComponent implements OnInit {
     );
   }
 
+  /** Pendiente máximo de esta línea (ordenado menos ya recibido). */
+  getMaxReceivableQty(lineItem: LineItem): number {
+    return Math.max(0, this.getOrderedQty(lineItem) - this.getAlreadyReceivedQty(lineItem));
+  }
+
+  fillMaxReceivedQty(lineItem: LineItem): void {
+    this.receivedQuantities[lineItem.id] = this.getMaxReceivableQty(lineItem);
+  }
+
   getOverReceivedQty(lineItem: LineItem): number {
     return Math.max(
       0,

@@ -32,94 +32,115 @@
       </div>
 
       <!-- Stats Dashboard -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <!-- Por Estado Card -->
-        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <h3 class="text-sm font-semibold text-gray-700 mb-3">Por Estado</h3>
-          <div class="border-b border-gray-200 mb-4"></div>
-          <div class="space-y-4">
+        <div class="po-stats-card">
+          <h3 class="po-stats-card__title">Por Estado</h3>
+          <div class="po-stats-card__rows">
             <div>
-              <div class="flex justify-between items-start mb-1">
-                <span class="text-sm text-gray-600">Total</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ totalOrders() }}</span>
+              <div class="po-stat-row">
+                <span>Total</span>
+                <span class="po-stat-row__count">{{ totalOrders() }}</span>
               </div>
-              <p class="po-stat-amount">{{ formatStatsAmount(currencyAmount('MXN'), 'MXN') }}</p>
-              @if (hasUsd()) {
-                <p class="po-stat-amount">{{ formatStatsAmount(currencyAmount('USD'), 'USD') }}</p>
-              }
+              <div class="po-stat-amounts">
+                <span>{{ formatStatsAmount(currencyAmount('MXN'), 'MXN') }}</span>
+                @if (hasUsd()) {
+                  <span>{{ formatStatsAmount(currencyAmount('USD'), 'USD') }}</span>
+                }
+              </div>
             </div>
 
             <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Creadas</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ creadasCount() }}</span>
+              <div class="po-stat-row">
+                <span>Creadas</span>
+                <span class="po-stat-row__count">{{ creadasCount() }}</span>
               </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-blue-500 h-2 rounded-full transition-all" [style.width.%]="creadasPercent()"></div>
+              <div class="po-stat-bar">
+                <div class="po-stat-bar__fill po-stat-bar__fill--blue" [style.width.%]="creadasPercent()"></div>
               </div>
-              <p class="po-stat-amount">{{ formatStatsAmount(statusAmount('Creada', 'MXN'), 'MXN') }}</p>
-              @if (hasUsd()) {
-                <p class="po-stat-amount">{{ formatStatsAmount(statusAmount('Creada', 'USD'), 'USD') }}</p>
-              }
+              <div class="po-stat-amounts">
+                <span>{{ formatStatsAmount(statusAmount('Creada', 'MXN'), 'MXN') }}</span>
+                @if (hasUsd()) {
+                  <span>{{ formatStatsAmount(statusAmount('Creada', 'USD'), 'USD') }}</span>
+                }
+              </div>
             </div>
 
             <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Recibidas</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ recibidasCount() }}</span>
+              <div class="po-stat-row">
+                <span>Recibidas</span>
+                <span class="po-stat-row__count">{{ recibidasCount() }}</span>
               </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-green-500 h-2 rounded-full transition-all" [style.width.%]="recibidasPercent()"></div>
+              <div class="po-stat-bar">
+                <div class="po-stat-bar__fill po-stat-bar__fill--green" [style.width.%]="recibidasPercent()"></div>
               </div>
-              <p class="po-stat-amount">{{ formatStatsAmount(statusAmount('Recibida', 'MXN'), 'MXN') }}</p>
-              @if (hasUsd()) {
-                <p class="po-stat-amount">{{ formatStatsAmount(statusAmount('Recibida', 'USD'), 'USD') }}</p>
-              }
+              <div class="po-stat-amounts">
+                <span>{{ formatStatsAmount(statusAmount('Recibida', 'MXN'), 'MXN') }}</span>
+                @if (hasUsd()) {
+                  <span>{{ formatStatsAmount(statusAmount('Recibida', 'USD'), 'USD') }}</span>
+                }
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Estado de Pago Card -->
-        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <h3 class="text-sm font-semibold text-gray-700 mb-3">Estado de Pago</h3>
-          <div class="border-b border-gray-200 mb-4"></div>
-          <div class="space-y-4">
+        <div class="po-stats-card">
+          <h3 class="po-stats-card__title">Estado de Pago</h3>
+          <div class="po-stats-card__rows">
             <div>
-              <div class="flex justify-between items-start mb-1">
-                <span class="text-sm text-gray-600">Total</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ totalOrders() }}</span>
+              <div class="po-stat-row">
+                <span>Total</span>
+                <span class="po-stat-row__count">{{ totalOrders() }}</span>
               </div>
-              <p class="po-stat-amount">{{ formatStatsAmount(currencyAmount('MXN'), 'MXN') }}</p>
-              @if (hasUsd()) {
-                <p class="po-stat-amount">{{ formatStatsAmount(currencyAmount('USD'), 'USD') }}</p>
-              }
+              <div class="po-stat-amounts">
+                <span>{{ formatStatsAmount(currencyAmount('MXN'), 'MXN') }}</span>
+                @if (hasUsd()) {
+                  <span>{{ formatStatsAmount(currencyAmount('USD'), 'USD') }}</span>
+                }
+              </div>
             </div>
 
             <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Pagadas</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ pagadasCount() }}</span>
+              <div class="po-stat-row">
+                <span>Pagadas</span>
+                <span class="po-stat-row__count">{{ pagadasCount() }}</span>
               </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-green-500 h-2 rounded-full transition-all" [style.width.%]="pagadasPercent()"></div>
+              <div class="po-stat-bar">
+                <div class="po-stat-bar__fill po-stat-bar__fill--green" [style.width.%]="pagadasPercent()"></div>
               </div>
-              <p class="po-stat-amount">{{ formatStatsAmount(paymentAmount('Pagado', 'MXN'), 'MXN') }}</p>
-              @if (hasUsd()) {
-                <p class="po-stat-amount">{{ formatStatsAmount(paymentAmount('Pagado', 'USD'), 'USD') }}</p>
-              }
+              <div class="po-stat-amounts">
+                <span>{{ formatStatsAmount(paymentAmount('Pagado', 'MXN'), 'MXN') }}</span>
+                @if (hasUsd()) {
+                  <span>{{ formatStatsAmount(paymentAmount('Pagado', 'USD'), 'USD') }}</span>
+                }
+              </div>
             </div>
 
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Pendientes</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ pendientesCount() }}</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-red-500 h-2 rounded-full transition-all" [style.width.%]="pendientesPercent()"></div>
-              </div>
-              <p class="po-stat-amount">{{ formatStatsAmount(paymentAmount('Pendiente', 'MXN'), 'MXN') }}</p>
-              @if (hasUsd()) {
-                <p class="po-stat-amount">{{ formatStatsAmount(paymentAmount('Pendiente', 'USD'), 'USD') }}</p>
+            <div
+              class="po-debt"
+              [class.po-debt--loading]="loading()"
+              [class.po-debt--clear]="!loading() && !hasAnyDebt()">
+              <span class="po-debt__label">
+                <span class="po-debt__dot" aria-hidden="true"></span>
+                Deuda
+              </span>
+              @if (loading()) {
+                <span class="po-debt__loader" aria-label="Cargando deuda"></span>
+              } @else if (hasAnyDebt()) {
+                <span class="po-debt__chips">
+                  @if (paymentAmount('Pendiente', 'MXN') > 0) {
+                    <span class="po-debt-chip po-debt-chip--mxn">{{ formatStatsAmount(paymentAmount('Pendiente', 'MXN'), 'MXN') }}</span>
+                  }
+                  @if (paymentAmount('Pendiente', 'USD') > 0) {
+                    <span class="po-debt-chip po-debt-chip--usd">{{ formatStatsAmount(paymentAmount('Pendiente', 'USD'), 'USD') }}</span>
+                  }
+                </span>
+              } @else {
+                <span class="po-debt__ok">Sin deuda</span>
+              }
+              @if (!loading()) {
+                <span class="po-debt__count">{{ pendientesCount() }}</span>
               }
             </div>
           </div>

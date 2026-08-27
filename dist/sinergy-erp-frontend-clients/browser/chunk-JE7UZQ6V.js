@@ -1,0 +1,1 @@
+import"./chunk-7CGTOI24.js";var t=[{path:"",loadComponent:()=>import("./chunk-HMR6JVEJ.js").then(o=>o.SelfInvoicePortalComponent),title:"Facturar tu compra"},{path:":code",loadComponent:()=>import("./chunk-HMR6JVEJ.js").then(o=>o.SelfInvoicePortalComponent),title:"Facturar tu compra"}];export{t as SELF_INVOICE_ROUTES};

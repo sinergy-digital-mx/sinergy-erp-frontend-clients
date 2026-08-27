@@ -46,7 +46,7 @@ export class PurchaseOrderListComponent implements OnInit {
   private ordersData = signal<PurchaseOrder[]>([]);
   private filtersState = signal<OrderFilters>({});
   private paginationState = signal<PaginationParams>({ page: 1, limit: 15 });
-  private loadingState = signal<boolean>(false);
+  private loadingState = signal<boolean>(true);
   private totalResultsState = signal<number>(0);
   private hasMoreState = signal<boolean>(true);
   private statsState = signal<PurchaseOrderListStats>(emptyPurchaseOrderListStats());
@@ -70,10 +70,10 @@ export class PurchaseOrderListComponent implements OnInit {
     page: 1,
     limit: 15,
     totalResults: 0,
-    loading: false,
     emptyState: { title: 'Sin resultados', subtitle: 'No se encontraron órdenes de compra' },
     columnMode: 'force',
     reorderable: false,
+    loading: true,
   });
   
   // Public readonly signals
@@ -94,7 +94,9 @@ export class PurchaseOrderListComponent implements OnInit {
   creadasPercent = computed(() => this.countPercent(this.creadasCount()));
   recibidasPercent = computed(() => this.countPercent(this.recibidasCount()));
   pagadasPercent = computed(() => this.countPercent(this.pagadasCount()));
-  pendientesPercent = computed(() => this.countPercent(this.pendientesCount()));
+  hasAnyDebt = computed(() =>
+    this.paymentAmount('Pendiente', 'MXN') > 0 || this.paymentAmount('Pendiente', 'USD') > 0
+  );
 
   constructor(
     private purchaseOrderService: PurchaseOrderService,

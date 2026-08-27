@@ -90,6 +90,9 @@ export class PurchaseOrderService {
     if (body?.data && typeof body.data === 'object' && (body.data as Record<string, unknown>).header) {
       const data = body.data as Record<string, unknown>;
       order = { ...(data.header as Record<string, unknown>) };
+      if (Array.isArray(data.line_items)) {
+        order.line_items = data.line_items;
+      }
       if (Array.isArray(data.documents)) {
         order.documents = data.documents;
       }

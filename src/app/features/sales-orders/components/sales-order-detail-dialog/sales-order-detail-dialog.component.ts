@@ -738,11 +738,7 @@ export class SalesOrderDetailDialogComponent {
   }
 
   getCustomerDisplayName(): string {
-    const order = this.order();
-    if (order?.customer_display_name?.trim()) {
-      return formatTitleCase(order.customer_display_name.trim());
-    }
-    return formatTitleCase(resolveSalesOrderCustomerName(order));
+    return formatTitleCase(resolveSalesOrderCustomerName(this.order()));
   }
 
   getCustomerCompanyName(): string {
@@ -781,6 +777,31 @@ export class SalesOrderDetailDialogComponent {
     const prefix = fiscal?.prefix?.trim();
     if (rfc && prefix) return `${rfc} · ${prefix}`;
     return rfc || prefix || '';
+  }
+
+  getPublicInvoiceCode(): string | null {
+    const code = this.order()?.public_invoice_code?.trim();
+    return code || null;
+  }
+
+  getSelfInvoiceUrl(): string | null {
+    const url = this.order()?.self_invoice_url?.trim();
+    return url || null;
+  }
+
+  async copyPublicInvoiceCode(event: Event): Promise<void> {
+    event.preventDefault();
+    event.stopPropagation();
+    const code = this.getPublicInvoiceCode();
+    if (!code) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(code);
+      this.toast.success('Folio público copiado');
+    } catch {
+      this.toast.error('No se pudo copiar el folio público');
+    }
   }
 
   /** @deprecated Usar getRazonSocialDisplayName() */

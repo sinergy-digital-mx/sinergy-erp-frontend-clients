@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, Eye, Printer, X } from 'lucide-angular';
 import { PosSaleReceipt, normalizePosSaleReceipt } from '../../models/pos-receipt.model';
@@ -11,6 +12,10 @@ import {
   buildEscPosPreview,
   hasReceiptPreview,
 } from '../../utils/escpos-preview.util';
+
+export interface ReceiptPreviewLine extends EscPosPreviewLine {
+  qrSafe?: SafeUrl;
+}
 
 export interface PosReceiptPreviewDialogData {
   title?: string;
@@ -30,6 +35,7 @@ export interface PosReceiptPreviewDialogData {
 export class PosReceiptPreviewDialogComponent implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<PosReceiptPreviewDialogComponent>);
   readonly data = inject<PosReceiptPreviewDialogData>(MAT_DIALOG_DATA);
+  private readonly sanitizer = inject(DomSanitizer);
   private readonly posService = inject(POSService);
   private readonly salesOrderService = inject(SalesOrderService);
   private readonly printService = inject(PosReceiptPrintService);
@@ -41,7 +47,7 @@ export class PosReceiptPreviewDialogComponent implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
   receipt = signal<PosSaleReceipt | null>(null);
-  previewLines = signal<EscPosPreviewLine[]>([]);
+  previewLines = signal<ReceiptPreviewLine[]>([]);
   printing = signal(false);
 
   ngOnInit(): void {
@@ -124,7 +130,12 @@ export class PosReceiptPreviewDialogComponent implements OnInit {
 
   private applyReceipt(receipt: PosSaleReceipt): void {
     this.receipt.set(receipt);
-    this.previewLines.set(buildEscPosPreview(receipt));
+    this.previewLines.set(
+      buildEscPosPreview(receipt).map((line) => ({
+        ...line,
+        qrSafe: line.qrSrc ? this.sanitizer.bypassSecurityTrustUrl(line.qrSrc) : undefined,
+      }))
+    );
     this.loading.set(false);
     this.error.set(null);
   }
