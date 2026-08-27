@@ -68,7 +68,7 @@
                 @if (getUnitCost(lineItem) !== null) {
                   <span class="stat">
                     <span class="stat__label">Costo unit.</span>
-                    <span class="stat__value">{{ formatCurrency(getUnitCost(lineItem)!) }}</span>
+                    <span class="stat__value">{{ formatUnitCost(getUnitCost(lineItem)!) }}</span>
                   </span>
                 }
                 @if (getLineTotal(lineItem) !== null) {

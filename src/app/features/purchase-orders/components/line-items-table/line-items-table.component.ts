@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { LineItem } from '../../models/line-item.model';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
+import { formatPurchaseOrderUnitCost } from '../../utils/purchase-order-display.util';
 
 /**
  * Line items table component
@@ -45,6 +46,10 @@ export class LineItemsTableComponent {
    */
   formatCurrency(amount: number): string {
     return this.taxCalculator.formatCurrency(amount);
+  }
+
+  formatUnitCost(amount: number): string {
+    return formatPurchaseOrderUnitCost(amount);
   }
 
   /**

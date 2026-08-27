@@ -5,6 +5,7 @@ import { InventoryTransferService } from '../../services/inventory-transfer.serv
 import { InventoryTransfer } from '../../models/inventory-transfer.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
+import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { X, ArrowRight, Download } from 'lucide-angular';
@@ -108,10 +109,8 @@ export class TransferDetailDialogComponent implements OnInit {
     event.stopPropagation();
     if (!batchId) return;
     this.dialog.open(BatchDetailDialogComponent, {
+      ...BATCH_DETAIL_DIALOG_OPTIONS,
       data: { batchId },
-      width: 'min(1120px, 96vw)',
-      maxWidth: '96vw',
-      maxHeight: '90vh',
     });
   }
 }

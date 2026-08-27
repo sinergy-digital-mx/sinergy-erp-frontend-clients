@@ -18,6 +18,7 @@ import { EditPurchaseOrderLineDialogComponent } from '../edit-purchase-order-lin
 import { AddPurchaseOrderLineDialogComponent } from '../add-purchase-order-line-dialog/add-purchase-order-line-dialog.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { BatchDetailDialogComponent } from '../../../inventory/components/batch-detail-dialog/batch-detail-dialog.component';
+import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
 import { BranchModalComponent } from '../../../settings/components/branch-modal/branch-modal.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
@@ -33,7 +34,9 @@ import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialo
 import { formatTitleCase } from '../../../sales-orders/utils/sales-order-display.util';
 import {
   formatPedimentoDisplay,
+  formatPurchaseOrderUnitCost,
   isInternationalPurchaseOrder,
+  parsePurchaseOrderDecimal,
 } from '../../utils/purchase-order-display.util';
 import {
   PurchaseOrderPedimentoDialogComponent,
@@ -431,10 +434,10 @@ export class OrderDetailDialogComponent {
   /** Costo unitario sin IVA. En Recibidos usa el costo de recepción si viene. */
   getLineUnitCost(item: LineItem): number {
     if (this.showReceivedTotals()) {
-      const received = this.parseNumber(item.received_original_unit_total);
+      const received = parsePurchaseOrderDecimal(item.received_original_unit_total);
       if (received > 0) return received;
     }
-    return this.parseNumber(item.unit_total);
+    return parsePurchaseOrderDecimal(item.unit_total);
   }
 
   getLineDisplayQuantity(item: LineItem): number {
@@ -526,6 +529,10 @@ export class OrderDetailDialogComponent {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(this.parseNumber(value));
+  }
+
+  formatUnitCost(value: number | string | null | undefined): string {
+    return formatPurchaseOrderUnitCost(value);
   }
 
   getTotalColor(): string {
@@ -911,10 +918,8 @@ export class OrderDetailDialogComponent {
 
   openBatchDetail(batch: Batch): void {
     this.dialog.open(BatchDetailDialogComponent, {
+      ...BATCH_DETAIL_DIALOG_OPTIONS,
       data: { batchId: batch.id },
-      width: '920px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
     });
   }
 

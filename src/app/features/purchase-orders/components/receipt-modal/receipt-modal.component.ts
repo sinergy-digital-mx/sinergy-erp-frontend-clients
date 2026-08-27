@@ -9,6 +9,7 @@ import { LotMode, ReceivedItem, ReceivedLot, ReceiptRequest, ReceiptResponse } f
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { formatPurchaseOrderUnitCost } from '../../utils/purchase-order-display.util';
 
 @Component({
   selector: 'app-receipt-modal',
@@ -79,6 +80,10 @@ export class ReceiptModalComponent implements OnInit {
     const unitCost = this.getUnitCost(lineItem);
     if (unitCost == null) return null;
     return unitCost * Number(lineItem.quantity || 0);
+  }
+
+  formatUnitCost(amount: number): string {
+    return formatPurchaseOrderUnitCost(amount);
   }
 
   formatCurrency(amount: number): string {

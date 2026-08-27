@@ -10,6 +10,17 @@
       <span class="money-cell__amount">{{ formatAmount(amount) }}</span>
     </span>
   </ng-template>
+  <ng-template #costCell let-amount>
+    <span class="money-cell">
+      <span
+        class="currency-badge"
+        [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
+        [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
+        {{ getPaymentCurrency() }}
+      </span>
+      <span class="money-cell__amount">{{ formatUnitCost(amount) }}</span>
+    </span>
+  </ng-template>
   <ng-template #importeCell let-net let-gross="gross" let-hasTax="hasTax">
     @if (hasTax) {
       <div class="importe-stack">
@@ -389,7 +400,7 @@
                           </div>
                         </td>
                         <td class="col-money">
-                          <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: getLineUnitCost(item) }" />
+                          <ng-container *ngTemplateOutlet="costCell; context: { $implicit: getLineUnitCost(item) }" />
                         </td>
                         <td class="col-money">
                           <ng-container
@@ -642,7 +653,7 @@
                           </div>
                         </td>
                         <td class="col-money">
-                          <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: getBatchUnitCost(batch) }" />
+                          <ng-container *ngTemplateOutlet="costCell; context: { $implicit: getBatchUnitCost(batch) }" />
                         </td>
                         <td class="col-money">
                           <ng-container

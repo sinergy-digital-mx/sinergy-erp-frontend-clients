@@ -16,6 +16,7 @@ import {
 } from '../../utils/inventory-list.util';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
+import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 
 @Component({
   selector: 'app-inventory-summary-view',
@@ -92,10 +93,8 @@ export class InventorySummaryViewComponent {
   openBatchDetail(batchId: string): void {
     if (!batchId) return;
     this.dialog.open(BatchDetailDialogComponent, {
+      ...BATCH_DETAIL_DIALOG_OPTIONS,
       data: { batchId },
-      width: 'min(1120px, 96vw)',
-      maxWidth: '96vw',
-      maxHeight: '90vh',
     });
   }
 

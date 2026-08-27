@@ -28,7 +28,7 @@
                 <span class="uom-badge">{{ getLineUomName(item) }}</span>
               </td>
               <td role="cell" data-label="CANTIDAD" class="text-right">{{ item.quantity }}</td>
-              <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatCurrency(item.unit_price ?? item.unit_total ?? 0) }}</td>
+              <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatUnitCost(item.unit_price ?? item.unit_total ?? 0) }}</td>
               <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
               <td role="cell" data-label="IVA" class="text-right">{{ formatCurrency(item.iva_amount) }}</td>
               <td role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
@@ -64,7 +64,7 @@
             <span class="uom-badge">{{ getLineUomName(item) }}</span>
           </td>
           <td role="cell" data-label="CANTIDAD" class="text-right">{{ item.quantity }}</td>
-          <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatCurrency(item.unit_price ?? item.unit_total ?? 0) }}</td>
+          <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatUnitCost(item.unit_price ?? item.unit_total ?? 0) }}</td>
           <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
           <td role="cell" data-label="IVA" class="text-right">{{ formatCurrency(item.iva_amount) }}</td>
           <td role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
@@ -138,7 +138,7 @@
         </div>
         <div class="line-item-card__row">
           <span class="label">COSTO UNIT.:</span>
-          <span class="value">{{ formatCurrency(item.unit_price ?? item.unit_total ?? 0) }}</span>
+          <span class="value">{{ formatUnitCost(item.unit_price ?? item.unit_total ?? 0) }}</span>
         </div>
         <div class="line-item-card__row">
           <span class="label">SUBTOTAL:</span>

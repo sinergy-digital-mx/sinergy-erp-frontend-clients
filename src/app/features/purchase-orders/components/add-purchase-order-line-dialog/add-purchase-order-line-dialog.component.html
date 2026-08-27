@@ -86,7 +86,7 @@
             [(ngModel)]="selectedUnitTotal"
             [ngModelOptions]="{ standalone: true }"
             min="0"
-            step="0.01"
+            step="any"
             [disabled]="saving()">
           <span class="currency-badge" [class.currency-badge--usd]="data.currency === 'USD'">
             {{ data.currency }}

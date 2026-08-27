@@ -181,7 +181,7 @@
 
               <div class="form-field">
                 <label>Costo unitario *</label>
-                <input type="number" formControlName="unit_price" min="0" step="0.01" />
+                <input type="number" formControlName="unit_price" min="0" step="any" />
                 <span class="error" *ngIf="getLineItemFieldError(i, 'unit_price')">
                   {{ getLineItemFieldError(i, 'unit_price') }}
                 </span>

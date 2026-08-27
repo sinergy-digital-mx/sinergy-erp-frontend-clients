@@ -27,7 +27,7 @@ Estos montos **vienen persistidos** en el GET. Pollux no calcula: pinta `unit_to
 | Columna | Fuente | Cómo pintar |
 |---------|--------|-------------|
 | Producto | `product.name` + código | igual que ahora |
-| Costo | `unit_total` | **sin IVA**. Número + badge `payment_currency` |
+| Costo | `unit_total` | **sin IVA**. Número + badge `payment_currency`. Pintar el valor persistido **sin redondear a 2 decimales** |
 | Importe | `line_subtotal` y `line_total` | misma columna: gris s/IVA, negrita c/IVA. Un solo badge. Si IVA e IEPS son 0, un solo monto |
 | IVA | `iva_percentage` | badge `%`. **Ocultar columna** si todas las líneas van en 0. En la fila, si es 0 no pintar badge |
 | IEPS | `ieps_percentage` | igual que IVA |

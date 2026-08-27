@@ -11,6 +11,7 @@ import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { AuthService } from '../../../../core/services/auth.service';
 import { OrderDetailDialogComponent } from '../../../purchase-orders/components/order-detail-dialog/order-detail-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
+import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 import { WarehouseDetailModalComponent } from '../../../settings/components/warehouse-detail-modal/warehouse-detail-modal.component';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
@@ -179,10 +180,8 @@ export class BatchDetailDialogComponent implements OnInit {
   openRelatedBatch(batchId: string | undefined): void {
     if (!batchId) return;
     this.dialog.open(BatchDetailDialogComponent, {
+      ...BATCH_DETAIL_DIALOG_OPTIONS,
       data: { batchId },
-      width: 'min(1120px, 96vw)',
-      maxWidth: '96vw',
-      maxHeight: '90vh',
     });
   }
 

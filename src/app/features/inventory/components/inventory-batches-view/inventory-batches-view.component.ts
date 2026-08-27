@@ -5,6 +5,7 @@ import { DatatableWrapperComponent } from '../../../../core/components/datatable
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
+import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 import { OrderDetailDialogComponent } from '../../../purchase-orders/components/order-detail-dialog/order-detail-dialog.component';
 import { InventoryBatch } from '../../models/inventory-batch.model';
 import { InventoryBatchService, BatchFilters } from '../../services/inventory-batch.service';
@@ -77,10 +78,8 @@ export class InventoryBatchesViewComponent {
 
   openBatchDetail(batch: InventoryBatch): void {
     this.dialog.open(BatchDetailDialogComponent, {
+      ...BATCH_DETAIL_DIALOG_OPTIONS,
       data: { batchId: batch.id },
-      width: 'min(1120px, 96vw)',
-      maxWidth: '96vw',
-      maxHeight: '90vh',
     });
   }
 

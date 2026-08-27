@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-height: 85vh;
+  max-height: min(92dvh, calc(100dvh - 1.5rem));
   overflow: hidden;
   background: #f8fafc;
   border-radius: 0.75rem;
@@ -127,8 +127,20 @@
 // Info Cards
 .info-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   gap: 0.75rem;
+
+  &--codes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    .info-card:only-child {
+      grid-column: 1 / -1;
+    }
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
 }
 
 .info-card {
@@ -203,6 +215,24 @@
     color: #9ca3af;
     flex-shrink: 0;
     align-self: center;
+  }
+
+  &--code {
+    align-items: center;
+
+    .info-card__content {
+      min-width: 0;
+      overflow: visible;
+    }
+
+    .info-card__value {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: unset;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      line-height: 1.35;
+    }
   }
 }
 

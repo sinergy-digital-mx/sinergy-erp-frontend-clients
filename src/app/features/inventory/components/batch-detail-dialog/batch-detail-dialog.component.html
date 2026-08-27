@@ -69,9 +69,11 @@
             </div>
             <lucide-icon [img]="ArrowRight" class="info-card__arrow w-4 h-4"></lucide-icon>
           </div>
+        </div>
 
+        <div class="info-cards info-cards--codes">
           <!-- Requisición -->
-          <div class="info-card" [class.clickable]="batch()?.purchase_order_id" (click)="openPurchaseOrder()">
+          <div class="info-card info-card--code" [class.clickable]="batch()?.purchase_order_id" (click)="openPurchaseOrder()">
             <div class="info-card__icon">
               <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
             </div>
@@ -85,7 +87,7 @@
           </div>
 
           @if (pedimentoNumber) {
-            <div class="info-card">
+            <div class="info-card info-card--code">
               <div class="info-card__icon">
                 <lucide-icon [img]="Stamp" class="w-5 h-5"></lucide-icon>
               </div>
