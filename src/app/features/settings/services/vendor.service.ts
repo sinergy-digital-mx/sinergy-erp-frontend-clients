@@ -25,16 +25,24 @@ export class VendorService {
     return this.http.get<VendorListResponse>(`${this.api}/tenant/vendors`, { params: params as any });
   }
 
+  /**
+   * Trae todos los proveedores activos. El API no acepta limit > 100,
+   * así que se pagina hasta agotar resultados.
+   */
   getAllActiveVendors(): Observable<Vendor[]> {
-    const pageSize = 200;
+    const pageSize = 100;
     const loadPage = (page: number, acc: Vendor[]): Observable<Vendor[]> =>
       this.getVendors({ status: 'active', page, limit: pageSize }).pipe(
         switchMap((response) => {
           const rows = response?.data ?? [];
           const next = acc.concat(rows);
+          const pageNum = Number(response?.page ?? page);
+          const totalPages = Number(response?.totalPages ?? 0);
           const hasNext =
             response?.hasNext === true ||
-            (typeof response?.total === 'number' && next.length < response.total);
+            (typeof response?.total === 'number' && next.length < response.total) ||
+            (totalPages > 0 && pageNum < totalPages) ||
+            rows.length === pageSize;
           if (hasNext && rows.length > 0) {
             return loadPage(page + 1, next);
           }

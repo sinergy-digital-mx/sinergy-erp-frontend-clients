@@ -584,7 +584,7 @@ export class ProductService {
 
   getVendors(params?: { is_active?: boolean }): Observable<any> {
     const status = params?.is_active === false ? 'inactive' : 'active';
-    const pageSize = 200;
+    const pageSize = 100;
 
     const loadPage = (page: number, acc: unknown[]): Observable<unknown[]> =>
       this.http
@@ -599,9 +599,13 @@ export class ProductService {
                 ? response
                 : [];
             const next = acc.concat(rows);
+            const pageNum = Number(response?.page ?? page);
+            const totalPages = Number(response?.totalPages ?? 0);
             const hasNext =
               response?.hasNext === true ||
-              (typeof response?.total === 'number' && next.length < response.total);
+              (typeof response?.total === 'number' && next.length < response.total) ||
+              (totalPages > 0 && pageNum < totalPages) ||
+              rows.length === pageSize;
             if (hasNext && rows.length > 0) {
               return loadPage(page + 1, next);
             }

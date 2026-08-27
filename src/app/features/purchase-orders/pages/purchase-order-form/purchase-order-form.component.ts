@@ -212,14 +212,14 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
   }
 
   loadDropdownData(): void {
-    this.vendorService.getVendors({ limit: 200, status: 'active' }).subscribe({
-      next: (response) => {
-        this.vendors.set(response.data || []);
+    this.vendorService.getAllActiveVendors().subscribe({
+      next: (vendors) => {
+        this.vendors.set(vendors);
       },
       error: (error) => console.error('Error loading vendors:', error)
     });
 
-    this.fiscalConfigurationService.listFiscalConfigurations({ limit: 200 }).subscribe({
+    this.fiscalConfigurationService.listFiscalConfigurations({ limit: 100 }).subscribe({
       next: (res) => {
         this.fiscalConfigurations.set(res.data || []);
       },

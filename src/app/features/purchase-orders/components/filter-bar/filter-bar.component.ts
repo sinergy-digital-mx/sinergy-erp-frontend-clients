@@ -312,9 +312,9 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private loadVendors(): void {
-    this.vendorService.getVendors({ status: 'active', limit: 100 }).subscribe({
-      next: (res) => {
-        this.vendors = res.data ?? [];
+    this.vendorService.getAllActiveVendors().subscribe({
+      next: (vendors) => {
+        this.vendors = vendors;
         this.cdr.detectChanges();
       },
       error: () => {
