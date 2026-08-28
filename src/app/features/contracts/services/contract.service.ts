@@ -1,8 +1,14 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { Contract, CreateContractDto, UpdateContractDto, ContractStats, ContractStatsResponse } from '../models/contract.model';
+import {
+  Contract,
+  ContractListFilters,
+  CreateContractDto,
+  UpdateContractDto,
+  ContractStats,
+} from '../models/contract.model';
 
 @Injectable({
   providedIn: 'root',
@@ -12,8 +18,10 @@ export class ContractService {
 
   constructor(private http: HttpClient) {}
 
-  getContracts(params?: any): Observable<any> {
-    return this.http.get<any>(`${this.api}/tenant/contracts`, { params });
+  getContracts(params?: ContractListFilters): Observable<any> {
+    return this.http.get<any>(`${this.api}/tenant/contracts`, {
+      params: this.buildParams(params, true),
+    });
   }
 
   getContract(id: string): Observable<Contract> {
@@ -24,8 +32,11 @@ export class ContractService {
     return this.http.get<Contract>(`${this.api}/tenant/contracts/by-number/${contractNumber}`);
   }
 
-  getContractStats(): Observable<ContractStats> {
-    return this.http.get<ContractStats>(`${this.api}/tenant/contracts/stats`);
+  /** KPIs del mismo alcance que la tabla (sin page/limit). */
+  getContractStats(filters?: ContractListFilters): Observable<ContractStats> {
+    return this.http.get<ContractStats>(`${this.api}/tenant/contracts/stats`, {
+      params: this.buildParams(filters, false),
+    });
   }
 
   createContract(data: CreateContractDto): Observable<Contract> {
@@ -40,15 +51,46 @@ export class ContractService {
     return this.http.delete<void>(`${this.api}/tenant/contracts/${id}`);
   }
 
-  exportToExcel(): Observable<Blob> {
+  exportToExcel(filters?: ContractListFilters): Observable<Blob> {
     return this.http.get(`${this.api}/tenant/contracts/export/excel`, {
-      responseType: 'blob'
+      params: this.buildParams(filters, false),
+      responseType: 'blob',
     });
   }
 
   getContractStatement(id: string): Observable<Blob> {
     return this.http.get(`${this.api}/tenant/contracts/${id}/pdf`, {
-      responseType: 'blob'
+      responseType: 'blob',
     });
+  }
+
+  private buildParams(filters?: ContractListFilters, includePagination = false): HttpParams {
+    let params = new HttpParams();
+    if (!filters) {
+      return params;
+    }
+
+    params = this.setIfPresent(params, 'group_id', filters.group_id);
+    params = this.setIfPresent(params, 'search', filters.search);
+    params = this.setIfPresent(params, 'status', filters.status);
+    if (filters.hasOverdue === true || filters.hasOverdue === 'true') {
+      params = params.set('hasOverdue', 'true');
+    }
+    params = this.setIfPresent(params, 'customerId', filters.customerId);
+    params = this.setIfPresent(params, 'propertyId', filters.propertyId);
+
+    if (includePagination) {
+      params = this.setIfPresent(params, 'page', filters.page);
+      params = this.setIfPresent(params, 'limit', filters.limit);
+    }
+
+    return params;
+  }
+
+  private setIfPresent(params: HttpParams, key: string, value: unknown): HttpParams {
+    if (value === undefined || value === null || value === '') {
+      return params;
+    }
+    return params.set(key, String(value));
   }
 }

@@ -1,10 +1,22 @@
 .stats-v2-card {
+  position: relative;
+  overflow: hidden;
   border: 1px solid #e5e7eb;
   border-radius: 0.9rem;
   background: #ffffff;
   padding: 1rem 1.1rem;
   text-align: left;
   transition: all 0.2s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0.9rem 0.9rem 0 0;
+  }
 }
 
 .stats-v2-card:hover {
@@ -44,12 +56,20 @@
   font-size: 1.6rem;
   font-weight: 700;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .stats-v2-card__count {
   font-size: 2rem;
   font-weight: 800;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-v2-card__sub {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: #64748b;
 }
 
 .stats-v2-card__meta {
@@ -58,6 +78,10 @@
   gap: 1rem;
   flex-wrap: wrap;
   font-size: 0.75rem;
+}
+
+.stats-v2-card--total::before {
+  background: #334155;
 }
 
 .stats-v2-card--total .stats-v2-card__title,
@@ -71,6 +95,10 @@
   border-color: #bfdbfe;
 }
 
+.stats-v2-card--completed::before {
+  background: #3b82f6;
+}
+
 .stats-v2-card--completed .stats-v2-card__title,
 .stats-v2-card--completed .stats-v2-card__amount,
 .stats-v2-card--completed .stats-v2-card__count {
@@ -80,6 +108,10 @@
 .stats-v2-card--pending {
   background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
   border-color: #bbf7d0;
+}
+
+.stats-v2-card--pending::before {
+  background: #10b981;
 }
 
 .stats-v2-card--pending .stats-v2-card__title,
@@ -105,6 +137,10 @@
   border-color: #fecaca;
 }
 
+.stats-v2-card--overdue::before {
+  background: #ef4444;
+}
+
 .stats-v2-card--overdue .stats-v2-card__title,
 .stats-v2-card--overdue .stats-v2-card__amount,
 .stats-v2-card--overdue .stats-v2-card__count {
@@ -113,6 +149,44 @@
 
 .stats-v2-card--overdue .stats-v2-card__meta {
   color: #b91c1c;
+}
+
+.stats-v2-card--skeleton {
+  pointer-events: none;
+  min-height: 118px;
+}
+
+.stats-v2-skel {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: stats-v2-pulse 1.2s ease-in-out infinite;
+}
+
+.stats-v2-skel--title {
+  width: 38%;
+  height: 0.7rem;
+}
+
+.stats-v2-skel--subtitle {
+  width: 62%;
+  height: 0.6rem;
+  margin-top: 0.45rem;
+}
+
+.stats-v2-skel--amount {
+  width: 55%;
+  height: 1.6rem;
+  margin-top: 1.1rem;
+}
+
+@keyframes stats-v2-pulse {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 @media (max-width: 639px) {

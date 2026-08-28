@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Filter, Search, X } from 'lucide-angular';
 
 interface ActiveFilter {
-  type: 'search' | 'status';
+  type: 'search' | 'status' | 'group';
   value: string;
   label: string;
 }
@@ -141,7 +141,9 @@ export class ContractFilterIndicatorComponent {
 
   @Input() activeSearchTerm: string | null = null;
   @Input() activeStatusFilter: string | null = null;
-  @Output() filterClear = new EventEmitter<'search' | 'status' | 'all'>();
+  @Input() activeGroupId: string | null = null;
+  @Input() activeGroupName: string | null = null;
+  @Output() filterClear = new EventEmitter<'search' | 'status' | 'group' | 'all'>();
 
   activeFilters: ActiveFilter[] = [];
 
@@ -151,6 +153,14 @@ export class ContractFilterIndicatorComponent {
 
   private updateActiveFilters() {
     this.activeFilters = [];
+
+    if (this.activeGroupId) {
+      this.activeFilters.push({
+        type: 'group',
+        value: this.activeGroupId,
+        label: `Grupo: ${this.activeGroupName || this.activeGroupId}`
+      });
+    }
 
     if (this.activeStatusFilter) {
       const statusLabel = this.getStatusLabel(this.activeStatusFilter);
@@ -174,7 +184,7 @@ export class ContractFilterIndicatorComponent {
     return this.activeFilters.length > 0;
   }
 
-  clearFilter(filterType: 'search' | 'status') {
+  clearFilter(filterType: 'search' | 'status' | 'group') {
     this.filterClear.emit(filterType);
   }
 
@@ -182,9 +192,10 @@ export class ContractFilterIndicatorComponent {
     this.filterClear.emit('all');
   }
 
-  getFilterIcon(filterType: 'search' | 'status') {
+  getFilterIcon(filterType: 'search' | 'status' | 'group') {
     switch (filterType) {
       case 'status':
+      case 'group':
         return this.Filter;
       case 'search':
         return this.Search;

@@ -48,6 +48,11 @@ export interface ContractSeller {
   email: string;
 }
 
+export interface ContractCustomerGroup {
+  id: string;
+  name: string;
+}
+
 export interface ContractCustomer {
   id: number;
   name: string;
@@ -56,6 +61,8 @@ export interface ContractCustomer {
   phone: string;
   phone_country: string;
   phone_code: string;
+  group_id?: string | null;
+  group?: ContractCustomerGroup | null;
 }
 
 export interface ContractProperty {
@@ -100,6 +107,18 @@ export interface CreateContractDto {
 
 export interface UpdateContractDto extends Partial<CreateContractDto> {}
 
+/** Filtros compartidos por lista, stats y Excel. page/limit solo van en la lista. */
+export interface ContractListFilters {
+  group_id?: string;
+  search?: string;
+  status?: string;
+  hasOverdue?: string | boolean;
+  customerId?: number | string;
+  propertyId?: string;
+  page?: number;
+  limit?: number;
+}
+
 export interface ContractStats {
   total: {
     count: number;
@@ -121,6 +140,13 @@ export interface ContractStats {
     value: number;
   };
 }
+
+export const EMPTY_CONTRACT_STATS: ContractStats = {
+  total: { count: 0, value: 0 },
+  completed: { count: 0, value: 0 },
+  pending: { count: 0, value: 0, paid: 0, remaining: 0 },
+  overdue: { contracts_count: 0, payments_count: 0, value: 0 },
+};
 
 export interface ContractStatsResponse {
   active: number;

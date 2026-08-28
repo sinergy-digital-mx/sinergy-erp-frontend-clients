@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core
 import { CommonModule } from '@angular/common';
 
 interface ActiveFilter {
-  type: 'status' | 'group' | 'search';
+  type: 'status' | 'group' | 'customerGroup' | 'search';
   label: string;
 }
 
@@ -114,8 +114,10 @@ export class PropertyFilterIndicatorComponent implements OnChanges {
   @Input() activeStatusLabel: string | null = null;
   @Input() activeGroupId: string | null = null;
   @Input() activeGroupName: string | null = null;
+  @Input() activeCustomerGroupId: string | null = null;
+  @Input() activeCustomerGroupName: string | null = null;
   @Input() activeSearchTerm: string | null = null;
-  @Output() filterClear = new EventEmitter<'status' | 'group' | 'search' | 'all'>();
+  @Output() filterClear = new EventEmitter<'status' | 'group' | 'customerGroup' | 'search' | 'all'>();
 
   activeFilters: ActiveFilter[] = [];
 
@@ -136,6 +138,13 @@ export class PropertyFilterIndicatorComponent implements OnChanges {
       });
     }
 
+    if (this.activeCustomerGroupId) {
+      this.activeFilters.push({
+        type: 'customerGroup',
+        label: `Grupo: ${this.activeCustomerGroupName || this.activeCustomerGroupId}`,
+      });
+    }
+
     if (this.activeSearchTerm?.trim()) {
       this.activeFilters.push({
         type: 'search',
@@ -144,7 +153,7 @@ export class PropertyFilterIndicatorComponent implements OnChanges {
     }
   }
 
-  clearFilter(filterType: 'status' | 'group' | 'search'): void {
+  clearFilter(filterType: 'status' | 'group' | 'customerGroup' | 'search'): void {
     this.filterClear.emit(filterType);
   }
 

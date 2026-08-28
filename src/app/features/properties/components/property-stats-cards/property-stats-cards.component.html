@@ -1,0 +1,71 @@
+<section class="prop-stats" aria-label="Estadísticas de lotes">
+  @if (loading) {
+    <div class="prop-stats__grid" aria-busy="true" aria-live="polite">
+      @for (slot of skeletonSlots; track slot) {
+        <div class="prop-stats__card prop-stats__card--skeleton" aria-hidden="true">
+          <div class="prop-stats__top">
+            <div class="prop-stats__skel prop-stats__skel--label"></div>
+            <div class="prop-stats__skel prop-stats__skel--icon"></div>
+          </div>
+          <div class="prop-stats__skel prop-stats__skel--value"></div>
+          <div class="prop-stats__skel prop-stats__skel--sub"></div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="prop-stats__grid">
+      <article class="prop-stats__card prop-stats__card--total">
+        <div class="prop-stats__top">
+          <p class="prop-stats__label">Total · Lotes</p>
+          <span class="prop-stats__icon">
+            <lucide-icon [img]="LandPlot" [size]="20"></lucide-icon>
+          </span>
+        </div>
+        <p class="prop-stats__value">{{ formatCount(displayStats.total.count) }}</p>
+        <p class="prop-stats__sub">
+          {{ formatArea(displayStats.total.area) }} · {{ formatMoney(displayStats.total.value) }}
+        </p>
+        @if (soldReservedChip) {
+          <span class="prop-stats__chip">{{ soldReservedChip }}</span>
+        }
+      </article>
+
+      <article class="prop-stats__card prop-stats__card--available">
+        <div class="prop-stats__top">
+          <p class="prop-stats__label">Disponibles</p>
+          <span class="prop-stats__icon">
+            <lucide-icon [img]="CheckCircle2" [size]="20"></lucide-icon>
+          </span>
+        </div>
+        <p class="prop-stats__value">{{ formatCount(displayStats.available.count) }}</p>
+        <p class="prop-stats__sub">
+          {{ formatMoney(displayStats.available.value) }} · {{ formatArea(displayStats.available.area) }}
+        </p>
+      </article>
+
+      <article class="prop-stats__card prop-stats__card--payment">
+        <div class="prop-stats__top">
+          <p class="prop-stats__label">Activos en pago</p>
+          <span class="prop-stats__icon">
+            <lucide-icon [img]="CalendarClock" [size]="20"></lucide-icon>
+          </span>
+        </div>
+        <p class="prop-stats__value">{{ formatCount(displayStats.active_in_payment.count) }}</p>
+        <p class="prop-stats__sub">
+          Pendiente {{ formatMoney(displayStats.active_in_payment.remaining_balance) }}
+        </p>
+      </article>
+
+      <article class="prop-stats__card prop-stats__card--avg">
+        <div class="prop-stats__top">
+          <p class="prop-stats__label">Precio prom. $/m²</p>
+          <span class="prop-stats__icon">
+            <lucide-icon [img]="Ruler" [size]="20"></lucide-icon>
+          </span>
+        </div>
+        <p class="prop-stats__value">{{ formatMoney(displayStats.avg_price_per_m2) }}</p>
+        <p class="prop-stats__sub">Sobre el filtro actual</p>
+      </article>
+    </div>
+  }
+</section>

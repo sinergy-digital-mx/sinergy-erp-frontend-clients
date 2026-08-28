@@ -4,7 +4,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { PropertyService } from '../../services/property.service';
-import { Property, PropertyStatus, displayCadastralKey } from '../../models/property.model';
+import {
+  Property,
+  PropertyListFilters,
+  PropertyStatus,
+  PropertyStats,
+  EMPTY_PROPERTY_STATS,
+  displayCadastralKey,
+} from '../../models/property.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
@@ -14,7 +21,12 @@ import { PropertyGroupDropdownComponent } from '../../components/property-group-
 import { PropertyStatusDropdownComponent } from '../../components/property-status-dropdown/property-status-dropdown.component';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { PropertyFilterIndicatorComponent } from '../../components/property-filter-indicator/property-filter-indicator.component';
+import { PropertyStatsCardsComponent } from '../../components/property-stats-cards/property-stats-cards.component';
 import { ArrowRight, Plus, LucideAngularModule } from 'lucide-angular';
+import { CustomerGroupDropdownComponent } from '../../../customers/components/customer-group-dropdown/customer-group-dropdown.component';
+import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
+import { ToastService } from '../../../../core/services/toast.service';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 
 @Component({
   selector: 'app-properties-list',
@@ -27,7 +39,9 @@ import { ArrowRight, Plus, LucideAngularModule } from 'lucide-angular';
     PropertyStatusDropdownComponent,
     FilterClearButtonComponent,
     PropertyFilterIndicatorComponent,
+    PropertyStatsCardsComponent,
     LucideAngularModule,
+    CustomerGroupDropdownComponent,
   ],
   templateUrl: './properties-list.component.html',
   styleUrl: './properties-list.component.scss'
@@ -44,6 +58,7 @@ export class PropertiesListComponent implements OnDestroy {
       { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: false, width: 180 },
       { name: 'Proyecto', prop: 'group', sortable: false, canAutoResize: true, width: 130 },
       { name: 'Cliente', prop: 'contracts', sortable: false, canAutoResize: true, width: 150 },
+      { name: 'Grupo', prop: 'customer_group', sortable: false, canAutoResize: true, width: 120 },
       { name: 'Área', prop: 'total_area', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Precio', prop: 'total_price', sortable: true, canAutoResize: true, width: 120 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: true, width: 120 },
@@ -67,17 +82,36 @@ export class PropertiesListComponent implements OnDestroy {
   search = '';
   selectedGroupId: string | null = null;
   selectedGroupName: string | null = null;
+  selectedCustomerGroupId: string | null = null;
+  selectedCustomerGroupName: string | null = null;
   selectedStatus: PropertyStatus | null = null;
   currentSort: ISortEvent | null = null;
+  stats = signal<PropertyStats>(EMPTY_PROPERTY_STATS);
+  statsLoading = signal(true);
   private destroy$ = new Subject<void>();
   private lastQueryParams: string = '';
+  private lastFilterKey = '';
+  private listRequestId = 0;
+  private statsRequestId = 0;
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private propertyService: PropertyService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private toast: ToastService,
+    private customerGroupFetch: CustomerGroupFetchService
   ) {
+    this.customerGroupFetch.fetchGroups().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (groups) => {
+        if (this.selectedCustomerGroupId) {
+          this.selectedCustomerGroupName =
+            groups.find((group) => group.id === this.selectedCustomerGroupId)?.name ?? null;
+        }
+      },
+      error: () => undefined,
+    });
+
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((query) => {
       const queryString = JSON.stringify(query);
       
@@ -89,8 +123,16 @@ export class PropertiesListComponent implements OnDestroy {
       this.search = query?.search ?? '';
       this.selectedGroupId = query?.groupId ?? null;
       this.selectedStatus = query?.status ?? null;
+      this.selectedCustomerGroupId = query?.customer_group_id ?? null;
       if (!this.selectedGroupId) {
         this.selectedGroupName = null;
+      }
+      if (!this.selectedCustomerGroupId) {
+        this.selectedCustomerGroupName = null;
+      } else {
+        this.selectedCustomerGroupName =
+          this.customerGroupFetch.getCachedGroups().find((group) => group.id === this.selectedCustomerGroupId)?.name
+          ?? this.selectedCustomerGroupName;
       }
       const page = query?.page ? Number(query.page) : 1;
       const limit = query?.limit ? Number(query.limit) : 20;
@@ -101,7 +143,15 @@ export class PropertiesListComponent implements OnDestroy {
         limit: isNaN(limit) ? 20 : limit,
       }));
 
+      const filters = this.buildApiFilters();
+      const filterKey = JSON.stringify(filters);
+      const reloadStats = filterKey !== this.lastFilterKey;
+      this.lastFilterKey = filterKey;
+
       this.getProperties();
+      if (reloadStats) {
+        this.loadStats();
+      }
     });
   }
 
@@ -111,63 +161,82 @@ export class PropertiesListComponent implements OnDestroy {
   }
 
   getProperties() {
+    const requestId = ++this.listRequestId;
     this.table_config.update(c => ({ ...c, loading: true }));
     const config = this.table_config();
-    
-    let data: any = {
+
+    const data: PropertyListFilters = {
       page: config.page,
       limit: config.limit,
-      ...(this.search && { search: this.search }),
-      ...(this.selectedGroupId && { groupId: this.selectedGroupId }),
-      ...(this.selectedStatus && { status: this.selectedStatus }),
-      ...(this.currentSort && this.currentSort.direction && { 
-        sort: this.currentSort.column.prop, 
-        order: this.currentSort.direction 
+      ...this.buildApiFilters(),
+      ...(this.currentSort && this.currentSort.direction && {
+        sort: this.currentSort.column.prop,
+        order: this.currentSort.direction
       })
     };
 
-    this.propertyService.getProperties(data).subscribe(res => {
-      // Handle both array response and paginated response
-      const properties = Array.isArray(res) ? res : (res?.data ?? []);
-      const total = Array.isArray(res) ? res.length : (res?.total ?? 0);
-      
-      this.table_config.update(c => ({
-        ...c,
-        rows: properties,
-        totalResults: total,
-        hasNext: res?.hasNext ?? false,
-        loading: false,
-      }));
+    this.propertyService.getProperties(data).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        if (requestId !== this.listRequestId) {
+          return;
+        }
+        const properties = Array.isArray(res) ? res : (res?.data ?? []);
+        const total = Array.isArray(res) ? res.length : (res?.total ?? 0);
+
+        this.table_config.update(c => ({
+          ...c,
+          rows: properties,
+          totalResults: total,
+          hasNext: res?.hasNext ?? false,
+          loading: false,
+        }));
+      },
+      error: () => {
+        if (requestId !== this.listRequestId) {
+          return;
+        }
+        this.table_config.update(c => ({ ...c, loading: false }));
+        this.toast.error('No se pudieron cargar los lotes');
+      }
+    });
+  }
+
+  loadStats() {
+    const requestId = ++this.statsRequestId;
+    this.statsLoading.set(true);
+    this.propertyService.getPropertyStats(this.buildApiFilters()).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (stats) => {
+        if (requestId !== this.statsRequestId) {
+          return;
+        }
+        this.stats.set(stats);
+        this.statsLoading.set(false);
+      },
+      error: (error) => {
+        if (requestId !== this.statsRequestId) {
+          return;
+        }
+        this.stats.set(EMPTY_PROPERTY_STATS);
+        this.statsLoading.set(false);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudieron cargar las estadísticas de lotes'));
+      }
     });
   }
 
   onPageChange(event: IPaginationEvent) {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: event.page,
-        limit: event.limit,
-        search: this.search || undefined,
-        groupId: this.selectedGroupId || undefined,
-        status: this.selectedStatus || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateWithParams({ page: event.page, limit: event.limit });
   }
 
   onSortChange(event: ISortEvent) {
     this.currentSort = event;
+    const alreadyFirstPage = (this.table_config().page ?? 1) === 1;
     this.table_config.update(c => ({ ...c, page: 1 }));
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        search: this.search || undefined,
-        groupId: this.selectedGroupId || undefined,
-        status: this.selectedStatus || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateWithParams({ page: 1 });
+    if (alreadyFirstPage) {
+      this.getProperties();
+    }
   }
 
   onRowClick(event: any) {
@@ -177,59 +246,44 @@ export class PropertiesListComponent implements OnDestroy {
 
   onSearchChange(searchTerm: string) {
     this.search = searchTerm;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        search: searchTerm || undefined,
-        groupId: this.selectedGroupId || undefined,
-        status: this.selectedStatus || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateWithParams({ page: 1, search: searchTerm || undefined });
   }
 
   onGroupSelect(event: { groupId: string | null; groupName: string | null }) {
     this.selectedGroupId = event.groupId;
     this.selectedGroupName = event.groupName;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        groupId: event.groupId || undefined,
-        search: this.search || undefined,
-        status: this.selectedStatus || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateWithParams({ page: 1, groupId: event.groupId || undefined });
+  }
+
+  onCustomerGroupSelect(event: { groupId: string | null; groupName: string | null }) {
+    this.selectedCustomerGroupId = event.groupId;
+    this.selectedCustomerGroupName = event.groupName;
+    this.navigateWithParams({ page: 1, customer_group_id: event.groupId || undefined });
   }
 
   onStatusSelect(event: { status: PropertyStatus | null }) {
     this.selectedStatus = event.status;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        status: event.status || undefined,
-        search: this.search || undefined,
-        groupId: this.selectedGroupId || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateWithParams({ page: 1, status: event.status || undefined });
   }
 
   get hasActiveFilters(): boolean {
-    return !!(this.search || this.selectedGroupId || this.selectedStatus);
+    return !!(this.search || this.selectedGroupId || this.selectedStatus || this.selectedCustomerGroupId);
   }
 
   clearAllFilters(): void {
     this.selectedGroupId = null;
     this.selectedGroupName = null;
+    this.selectedCustomerGroupId = null;
+    this.selectedCustomerGroupName = null;
     this.selectedStatus = null;
-    this.onSearchChange('');
+    this.search = '';
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {}
+    });
   }
 
-  onFilterClear(type: 'status' | 'group' | 'search' | 'all'): void {
+  onFilterClear(type: 'status' | 'group' | 'customerGroup' | 'search' | 'all'): void {
     if (type === 'all') {
       this.clearAllFilters();
       return;
@@ -240,6 +294,10 @@ export class PropertiesListComponent implements OnDestroy {
     }
     if (type === 'group') {
       this.onGroupSelect({ groupId: null, groupName: null });
+      return;
+    }
+    if (type === 'customerGroup') {
+      this.onCustomerGroupSelect({ groupId: null, groupName: null });
       return;
     }
     if (type === 'status') {
@@ -254,6 +312,7 @@ export class PropertiesListComponent implements OnDestroy {
     }).afterClosed().subscribe((result) => {
       if (result) {
         this.getProperties();
+        this.loadStats();
       }
     });
   }
@@ -265,6 +324,7 @@ export class PropertiesListComponent implements OnDestroy {
     }).afterClosed().subscribe((result) => {
       if (result) {
         this.getProperties();
+        this.loadStats();
       }
     });
   }
@@ -311,22 +371,63 @@ export class PropertiesListComponent implements OnDestroy {
   }
 
   getOwnerName(property: Property): string {
-    const owner = property.contracts?.[0]?.customer;
+    const owner = this.getOwner(property);
     if (!owner) return '—';
-    
-    // Mostrar nombre + primer apellido
+
+    if (owner.fullName?.trim()) {
+      return owner.fullName.trim();
+    }
     const firstLastname = owner.lastname?.split(' ')[0] || '';
     return `${owner.name} ${firstLastname}`.trim();
   }
 
+  getCustomerGroupName(property: Property): string {
+    return this.getOwner(property)?.group?.name ?? '—';
+  }
+
   hasOwner(property: Property): boolean {
-    return !!(property.contracts && property.contracts.length > 0 && property.contracts[0].customer);
+    return !!this.getOwner(property);
   }
 
   navigateToCustomer(property: Property): void {
-    const customerId = property.contracts?.[0]?.customer?.id;
+    const customerId = this.getOwner(property)?.id;
     if (customerId) {
       this.router.navigate(['/customers/detail', customerId]);
     }
+  }
+
+  private getOwner(property: Property) {
+    return property.customer ?? property.contracts?.[0]?.customer ?? null;
+  }
+
+  private buildApiFilters(): PropertyListFilters {
+    return {
+      ...(this.search && { search: this.search }),
+      ...(this.selectedGroupId && { groupId: this.selectedGroupId }),
+      ...(this.selectedCustomerGroupId && { customer_group_id: this.selectedCustomerGroupId }),
+      ...(this.selectedStatus && { status: this.selectedStatus }),
+    };
+  }
+
+  private navigateWithParams(overrides: Record<string, string | number | undefined> = {}): void {
+    const config = this.table_config();
+    const search = 'search' in overrides ? overrides['search'] : this.search || undefined;
+    const groupId = 'groupId' in overrides ? overrides['groupId'] : this.selectedGroupId || undefined;
+    const customerGroupId = 'customer_group_id' in overrides
+      ? overrides['customer_group_id']
+      : this.selectedCustomerGroupId || undefined;
+    const status = 'status' in overrides ? overrides['status'] : this.selectedStatus || undefined;
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: overrides['page'] ?? config.page ?? 1,
+        limit: overrides['limit'] ?? config.limit ?? 20,
+        ...(search && { search }),
+        ...(groupId && { groupId }),
+        ...(customerGroupId && { customer_group_id: customerGroupId }),
+        ...(status && { status }),
+      },
+    });
   }
 }

@@ -33,6 +33,15 @@
         </app-property-status-dropdown>
       </div>
 
+      <div class="filter-bar__field">
+        <app-customer-group-dropdown
+          [selectedGroupId]="selectedCustomerGroupId"
+          placeholder="Grupo de cliente"
+          allMessage="Todos los grupos"
+          (groupSelect)="onCustomerGroupSelect($event)">
+        </app-customer-group-dropdown>
+      </div>
+
       <div class="filter-bar__field filter-bar__field--clear">
         <app-filter-clear-button
           [active]="hasActiveFilters"
@@ -46,10 +55,17 @@
     [activeSearchTerm]="search"
     [activeGroupId]="selectedGroupId"
     [activeGroupName]="selectedGroupName"
+    [activeCustomerGroupId]="selectedCustomerGroupId"
+    [activeCustomerGroupName]="selectedCustomerGroupName"
     [activeStatus]="selectedStatus"
     [activeStatusLabel]="selectedStatus ? getStatusLabel(selectedStatus) : null"
     (filterClear)="onFilterClear($event)">
   </app-property-filter-indicator>
+
+  <app-property-stats-cards
+    [stats]="stats()"
+    [loading]="statsLoading()">
+  </app-property-stats-cards>
 
   <app-datatable-wrapper
     class="properties-page__table hidden md:block"
@@ -102,6 +118,10 @@
                 } @else {
                   <span class="text-gray-400">—</span>
                 }
+              </div>
+              <div>
+                <span class="text-xs text-gray-500 block">Grupo</span>
+                <span class="text-[#64748b]">{{ getCustomerGroupName(item) }}</span>
               </div>
               <div>
                 <span class="text-xs text-gray-500 block">Área</span>
@@ -173,6 +193,7 @@
       <span class="text-gray-400">—</span>
     }
   </td>
+  <td class="text-[#64748b] text-sm">{{ getCustomerGroupName(item) }}</td>
   <td class="text-[#64748b] text-sm">{{ formatArea(item) }}</td>
   <td>
     <span class="price-cell">{{ formatPrice(item) }}</span>

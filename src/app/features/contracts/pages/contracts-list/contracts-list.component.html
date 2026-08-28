@@ -10,6 +10,14 @@
         (searchChange)="onSearchChange($event)">
       </app-search>
 
+      <app-customer-group-dropdown
+        class="w-full sm:w-56"
+        [selectedGroupId]="selectedGroupId"
+        placeholder="Grupo de cliente"
+        allMessage="Todos los grupos"
+        (groupSelect)="onGroupSelect($event)">
+      </app-customer-group-dropdown>
+
       <app-filter-clear-button
         [active]="hasActiveFilters"
         (clear)="clearFilters()">
@@ -38,79 +46,94 @@
   <app-contract-filter-indicator
     [activeSearchTerm]="search"
     [activeStatusFilter]="getActiveStatusFilter()"
+    [activeGroupId]="selectedGroupId"
+    [activeGroupName]="selectedGroupName"
     (filterClear)="onFilterClear($event)">
   </app-contract-filter-indicator>
 
   <!-- Stats Cards V2 -->
-  <div *ngIf="stats()" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-    <button
-      type="button"
-      (click)="applyFilter('total')"
-      class="stats-v2-card stats-v2-card--total"
-      [class.stats-v2-card--active]="activeFilter() === 'total'">
-      <div class="stats-v2-card__top">
-        <p class="stats-v2-card__title">Total</p>
-        <p class="stats-v2-card__subtitle">Todos los contratos</p>
-      </div>
-      <div class="stats-v2-card__bottom">
-        <p class="stats-v2-card__amount">{{ stats()!.total.value | currency:'USD':'symbol':'1.0-0' }}</p>
-        <p class="stats-v2-card__count">{{ stats()!.total.count }}</p>
-      </div>
-    </button>
+  @if (statsLoading()) {
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" aria-busy="true">
+      @for (slot of skeletonSlots; track slot) {
+        <div class="stats-v2-card stats-v2-card--skeleton" aria-hidden="true">
+          <div class="stats-v2-skel stats-v2-skel--title"></div>
+          <div class="stats-v2-skel stats-v2-skel--subtitle"></div>
+          <div class="stats-v2-skel stats-v2-skel--amount"></div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <button
+        type="button"
+        (click)="applyFilter('total')"
+        class="stats-v2-card stats-v2-card--total"
+        [class.stats-v2-card--active]="activeFilter() === 'total'">
+        <div class="stats-v2-card__top">
+          <p class="stats-v2-card__title">Total</p>
+          <p class="stats-v2-card__subtitle">Todos los contratos</p>
+        </div>
+        <div class="stats-v2-card__bottom">
+          <p class="stats-v2-card__amount">{{ stats().total.value | currency:'MXN':'symbol':'1.2-2' }}</p>
+          <p class="stats-v2-card__count">{{ stats().total.count }}</p>
+        </div>
+        <p class="stats-v2-card__sub">{{ stats().total.count }} contratos</p>
+      </button>
 
-    <button
-      type="button"
-      (click)="applyFilter('completed')"
-      class="stats-v2-card stats-v2-card--completed"
-      [class.stats-v2-card--active]="activeFilter() === 'completed'">
-      <div class="stats-v2-card__top">
-        <p class="stats-v2-card__title">Completados</p>
-        <p class="stats-v2-card__subtitle">Pagados en su totalidad</p>
-      </div>
-      <div class="stats-v2-card__bottom">
-        <p class="stats-v2-card__amount">{{ stats()!.completed.value | currency:'USD':'symbol':'1.0-0' }}</p>
-        <p class="stats-v2-card__count">{{ stats()!.completed.count }}</p>
-      </div>
-    </button>
+      <button
+        type="button"
+        (click)="applyFilter('completed')"
+        class="stats-v2-card stats-v2-card--completed"
+        [class.stats-v2-card--active]="activeFilter() === 'completed'">
+        <div class="stats-v2-card__top">
+          <p class="stats-v2-card__title">Completados</p>
+          <p class="stats-v2-card__subtitle">Pagados en su totalidad</p>
+        </div>
+        <div class="stats-v2-card__bottom">
+          <p class="stats-v2-card__amount">{{ stats().completed.value | currency:'MXN':'symbol':'1.2-2' }}</p>
+          <p class="stats-v2-card__count">{{ stats().completed.count }}</p>
+        </div>
+      </button>
 
-    <button
-      type="button"
-      (click)="applyFilter('pending')"
-      class="stats-v2-card stats-v2-card--pending"
-      [class.stats-v2-card--active]="activeFilter() === 'pending'">
-      <div class="stats-v2-card__top">
-        <p class="stats-v2-card__title">Activos</p>
-        <p class="stats-v2-card__subtitle">En proceso de pago</p>
-      </div>
-      <div class="stats-v2-card__bottom">
-        <p class="stats-v2-card__amount">{{ stats()!.pending.value | currency:'USD':'symbol':'1.0-0' }}</p>
-        <p class="stats-v2-card__count">{{ stats()!.pending.count }}</p>
-      </div>
-      <div class="stats-v2-card__meta">
-        <span class="stats-v2-card__meta-paid">Pagado: <strong>{{ stats()!.pending.paid | currency:'USD':'symbol':'1.0-0' }}</strong></span>
-        <span class="stats-v2-card__meta-debt">Pendiente: <strong>{{ stats()!.pending.remaining | currency:'USD':'symbol':'1.0-0' }}</strong></span>
-      </div>
-    </button>
+      <button
+        type="button"
+        (click)="applyFilter('pending')"
+        class="stats-v2-card stats-v2-card--pending"
+        [class.stats-v2-card--active]="activeFilter() === 'pending'">
+        <div class="stats-v2-card__top">
+          <p class="stats-v2-card__title">Activos</p>
+          <p class="stats-v2-card__subtitle">En proceso de pago</p>
+        </div>
+        <div class="stats-v2-card__bottom">
+          <p class="stats-v2-card__amount">{{ stats().pending.value | currency:'MXN':'symbol':'1.2-2' }}</p>
+          <p class="stats-v2-card__count">{{ stats().pending.count }}</p>
+        </div>
+        <div class="stats-v2-card__meta">
+          <span class="stats-v2-card__meta-paid">Pagado: <strong>{{ stats().pending.paid | currency:'MXN':'symbol':'1.2-2' }}</strong></span>
+          <span class="stats-v2-card__meta-debt">Pendiente: <strong>{{ stats().pending.remaining | currency:'MXN':'symbol':'1.2-2' }}</strong></span>
+        </div>
+      </button>
 
-    <button
-      type="button"
-      (click)="applyFilter('overdue')"
-      class="stats-v2-card stats-v2-card--overdue"
-      [class.stats-v2-card--active]="activeFilter() === 'overdue'">
-      <div class="stats-v2-card__top">
-        <p class="stats-v2-card__title">Vencidos</p>
-        <p class="stats-v2-card__subtitle">Con pagos atrasados</p>
-      </div>
-      <div class="stats-v2-card__bottom">
-        <p class="stats-v2-card__amount">{{ stats()!.overdue.value | currency:'USD':'symbol':'1.0-0' }}</p>
-        <p class="stats-v2-card__count">{{ stats()!.overdue.contracts_count }}</p>
-      </div>
-      <div class="stats-v2-card__meta">
-        <span>Contratos: <strong>{{ stats()!.overdue.contracts_count }}</strong></span>
-        <span>Pagos: <strong>{{ stats()!.overdue.payments_count }}</strong></span>
-      </div>
-    </button>
-  </div>
+      <button
+        type="button"
+        (click)="applyFilter('overdue')"
+        class="stats-v2-card stats-v2-card--overdue"
+        [class.stats-v2-card--active]="activeFilter() === 'overdue'">
+        <div class="stats-v2-card__top">
+          <p class="stats-v2-card__title">Vencidos</p>
+          <p class="stats-v2-card__subtitle">Con pagos atrasados</p>
+        </div>
+        <div class="stats-v2-card__bottom">
+          <p class="stats-v2-card__amount">{{ stats().overdue.value | currency:'MXN':'symbol':'1.2-2' }}</p>
+          <p class="stats-v2-card__count">{{ stats().overdue.contracts_count }}</p>
+        </div>
+        <div class="stats-v2-card__meta">
+          <span>Contratos: <strong>{{ stats().overdue.contracts_count }}</strong></span>
+          <span>Pagos: <strong>{{ stats().overdue.payments_count }}</strong></span>
+        </div>
+      </button>
+    </div>
+  }
 
   <app-datatable-wrapper
     class="hidden md:block"
@@ -144,6 +167,7 @@
                   (click)="navigateToCustomer(item.customer.id); $event.stopPropagation()">
                   {{ getCustomerName(item) }}
                 </p>
+                <p class="mt-0.5 text-xs text-gray-500 truncate">{{ getCustomerGroupName(item) }}</p>
               </div>
               <span [class]="getStatusClass(item.status) + ' shrink-0'">
                 {{ getStatusLabel(item.status) }}
@@ -244,6 +268,7 @@
     </span>
     <span *ngIf="!item.customer" class="text-sm text-gray-400">—</span>
   </td>
+  <td class="text-sm text-gray-600">{{ getCustomerGroupName(item) }}</td>
   <td>
     <span 
       *ngIf="item.property"
