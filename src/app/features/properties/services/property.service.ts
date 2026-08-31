@@ -1,13 +1,12 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   Property,
   CreatePropertyDto,
   UpdatePropertyDto,
   MeasurementUnit,
-  PropertyGroup,
   PropertyListFilters,
   PropertyStats,
 } from '../models/property.model';
@@ -26,7 +25,7 @@ export class PropertyService {
     });
   }
 
-  /** KPIs del mismo alcance que la tabla (sin page/limit). No enviar group_id. */
+  /** KPIs del mismo alcance que la tabla (sin page/limit). */
   getPropertyStats(filters?: PropertyListFilters): Observable<PropertyStats> {
     return this.http.get<PropertyStats>(`${this.api}/tenant/properties/stats`, {
       params: this.buildParams(filters, false),
@@ -57,34 +56,13 @@ export class PropertyService {
     return this.http.get<MeasurementUnit[]>(`${this.api}/tenant/properties/measurement-units/all`);
   }
 
-  getPropertyGroups(): Observable<PropertyGroup[]> {
-    return this.http.get<unknown>(`${this.api}/tenant/property-groups`).pipe(
-      map((response) => {
-        if (Array.isArray(response)) {
-          return response as PropertyGroup[];
-        }
-        if (response && typeof response === 'object') {
-          const obj = response as Record<string, unknown>;
-          const candidates = [obj['data'], obj['groups'], obj['items']];
-          for (const candidate of candidates) {
-            if (Array.isArray(candidate)) {
-              return candidate as PropertyGroup[];
-            }
-          }
-        }
-        return [];
-      })
-    );
-  }
-
   private buildParams(filters?: PropertyListFilters, includePagination = false): HttpParams {
     let params = new HttpParams();
     if (!filters) {
       return params;
     }
 
-    params = this.setIfPresent(params, 'groupId', filters.groupId);
-    params = this.setIfPresent(params, 'customer_group_id', filters.customer_group_id);
+    params = this.setIfPresent(params, 'group_id', filters.group_id);
     params = this.setIfPresent(params, 'status', filters.status);
     params = this.setIfPresent(params, 'search', filters.search);
 

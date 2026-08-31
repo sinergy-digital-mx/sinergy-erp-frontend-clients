@@ -1,6 +1,25 @@
 import { Component, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
+import {
+  ArrowLeftRight,
+  Building2,
+  ChevronRight,
+  FileDown,
+  FolderOpen,
+  Landmark,
+  LucideAngularModule,
+  LucideIconData,
+  Mail,
+  Monitor,
+  Package,
+  Send,
+  Shield,
+  Tag,
+  Target,
+  UserCog,
+  Users,
+} from 'lucide-angular';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Subscription } from 'rxjs';
 import { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../../madereria-inventory-import/config/permissions.config';
@@ -9,7 +28,7 @@ interface SettingsSection {
   id: string;
   title: string;
   description: string;
-  icon: string;
+  icon: LucideIconData;
   route: string;
   permissions: string[];
 }
@@ -22,128 +41,110 @@ interface SettingsSection {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   template: `
     <div class="min-h-screen">
       <div class="px-2 py-2">
-        <!-- Header -->
         <div class="mb-6">
           <h1 class="text-3xl font-bold text-gray-900 mb-2">Configuración</h1>
           <p class="text-gray-600">Gestiona usuarios, roles y permisos de tu empresa</p>
         </div>
 
-        <!-- Accesos y Permisos -->
         <div class="mb-8" *ngIf="visibleAccessSections.length > 0">
           <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Accesos y Permisos</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div *ngFor="let section of visibleAccessSections" 
-                 (click)="navigateTo(section.route)"
-                 class="bg-white rounded-lg p-5 hover:shadow-md transition-shadow duration-300 cursor-pointer border border-gray-200">
-              
-              <div class="flex flex-col h-full">
-                <div class="text-4xl mb-3">{{ section.icon }}</div>
-                
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ section.title }}</h3>
-                <p class="text-gray-600 text-sm mb-4 grow">{{ section.description }}</p>
-                
-                <div class="inline-flex items-center text-indigo-600 font-medium text-sm hover:text-indigo-700 transition-colors">
-                  Ir a {{ section.title }}
-                  <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
+            <ng-container *ngFor="let section of visibleAccessSections">
+              <ng-container *ngTemplateOutlet="sectionCard; context: { $implicit: section }"></ng-container>
+            </ng-container>
           </div>
         </div>
 
-        <!-- Empresa -->
         <div class="mb-8" *ngIf="visibleCompanySections.length > 0">
           <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Empresa</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div *ngFor="let section of visibleCompanySections" 
-                 (click)="navigateTo(section.route)"
-                 class="bg-white rounded-lg p-5 hover:shadow-md transition-shadow duration-300 cursor-pointer border border-gray-200">
-              
-              <div class="flex flex-col h-full">
-                <div class="text-4xl mb-3">{{ section.icon }}</div>
-                
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ section.title }}</h3>
-                <p class="text-gray-600 text-sm mb-4 grow">{{ section.description }}</p>
-                
-                <div class="inline-flex items-center text-indigo-600 font-medium text-sm hover:text-indigo-700 transition-colors">
-                  Ir a {{ section.title }}
-                  <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
+            <ng-container *ngFor="let section of visibleCompanySections">
+              <ng-container *ngTemplateOutlet="sectionCard; context: { $implicit: section }"></ng-container>
+            </ng-container>
           </div>
         </div>
 
-        <!-- Mi Portal (empleados) -->
         <div class="mb-8" *ngIf="showEmployeePortal">
           <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Mi Portal</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div (click)="navigateTo('/employee-portal')"
                  class="bg-white rounded-lg p-5 hover:shadow-md transition-shadow duration-300 cursor-pointer border border-gray-200">
               <div class="flex flex-col h-full">
-                <div class="text-4xl mb-3">🧑‍💼</div>
+                <span class="settings-card__icon">
+                  <lucide-icon [img]="UserCog" [size]="22"></lucide-icon>
+                </span>
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">Portal de empleado</h3>
                 <p class="text-gray-600 text-sm mb-4 grow">Consulta tu información, tus días de vacaciones y envía solicitudes de ausencia</p>
                 <div class="inline-flex items-center text-indigo-600 font-medium text-sm hover:text-indigo-700 transition-colors">
                   Ir a mi portal
-                  <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                  </svg>
+                  <lucide-icon [img]="ChevronRight" [size]="16" class="ml-2"></lucide-icon>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Comunicación -->
         <div class="mb-8" *ngIf="visibleCommunicationSections.length > 0">
           <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Comunicación</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div *ngFor="let section of visibleCommunicationSections" 
-                 (click)="navigateTo(section.route)"
-                 class="bg-white rounded-lg p-5 hover:shadow-md transition-shadow duration-300 cursor-pointer border border-gray-200">
-              
-              <div class="flex flex-col h-full">
-                <div class="text-4xl mb-3">{{ section.icon }}</div>
-                
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ section.title }}</h3>
-                <p class="text-gray-600 text-sm mb-4 grow">{{ section.description }}</p>
-                
-                <div class="inline-flex items-center text-indigo-600 font-medium text-sm hover:text-indigo-700 transition-colors">
-                  Ir a {{ section.title }}
-                  <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
+            <ng-container *ngFor="let section of visibleCommunicationSections">
+              <ng-container *ngTemplateOutlet="sectionCard; context: { $implicit: section }"></ng-container>
+            </ng-container>
           </div>
         </div>
       </div>
     </div>
+
+    <ng-template #sectionCard let-section>
+      <div (click)="navigateTo(section.route)"
+           class="bg-white rounded-lg p-5 hover:shadow-md transition-shadow duration-300 cursor-pointer border border-gray-200">
+        <div class="flex flex-col h-full">
+          <span class="settings-card__icon">
+            <lucide-icon [img]="section.icon" [size]="22"></lucide-icon>
+          </span>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ section.title }}</h3>
+          <p class="text-gray-600 text-sm mb-4 grow">{{ section.description }}</p>
+          <div class="inline-flex items-center text-indigo-600 font-medium text-sm hover:text-indigo-700 transition-colors">
+            Ir a {{ section.title }}
+            <lucide-icon [img]="ChevronRight" [size]="16" class="ml-2"></lucide-icon>
+          </div>
+        </div>
+      </div>
+    </ng-template>
   `,
   styles: [`
     :host {
       display: block;
       height: 100%;
     }
+
+    .settings-card__icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      margin-bottom: 0.75rem;
+      border-radius: 0.75rem;
+      background: #eef2ff;
+      color: #4f46e5;
+    }
   `]
 })
 export class SettingsComponent implements OnInit, OnDestroy {
+  readonly ChevronRight = ChevronRight;
+  readonly UserCog = UserCog;
+
   accessSections: SettingsSection[] = [
     {
       id: 'users',
       title: 'Usuarios',
       description: 'Gestiona usuarios, asigna roles y controla permisos de acceso de forma centralizada',
-      icon: '👥',
+      icon: Users,
       route: 'users',
       permissions: ['user:ViewMenu']
     },
@@ -151,7 +152,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'roles',
       title: 'Roles y Permisos',
       description: 'Crea y gestiona roles personalizados, define permisos granulares y organiza el control de acceso',
-      icon: '🔐',
+      icon: Shield,
       route: 'roles',
       permissions: ['role:ViewMenu']
     }
@@ -162,7 +163,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'fiscal-configurations',
       title: 'Razones Sociales y Sucursales',
       description: 'Gestiona razones sociales, sucursales, almacenes, RFC, régimen fiscal y certificados digitales',
-      icon: '📋',
+      icon: Landmark,
       route: 'fiscal-configurations',
       permissions: ['billing:ViewMenu', 'warehouses:ViewMenu']
     },
@@ -170,7 +171,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'madereria-inventory-import',
       title: 'Importación de inventario',
       description: 'Importa productos, precios, costos y lotes desde el Excel de inventario de Madereria',
-      icon: '📥',
+      icon: FileDown,
       route: 'madereria-inventory-import',
       permissions: [MADERERIA_INVENTORY_IMPORT_PERMISSIONS.viewMenu]
     },
@@ -178,7 +179,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'vendors',
       title: 'Proveedores',
       description: 'Gestiona proveedores, información de contacto, RFC y datos fiscales de tus proveedores',
-      icon: '🏢',
+      icon: Building2,
       route: 'vendors',
       permissions: ['vendors:ViewMenu']
     },
@@ -186,7 +187,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'products',
       title: 'Productos',
       description: 'Gestiona el catálogo de productos, SKU, nombres y descripciones de tus productos',
-      icon: '📦',
+      icon: Package,
       route: 'products',
       permissions: ['products:ViewMenu']
     },
@@ -194,7 +195,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'pos-configuration',
       title: 'Punto de Venta',
       description: 'Configura y gestiona tu punto de venta, terminales, cajas y configuraciones de ventas',
-      icon: '🛒',
+      icon: Monitor,
       route: 'pos-configuration',
       permissions: ['pos_configuration:ViewMenu']
     },
@@ -202,7 +203,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'exchange-rates',
       title: 'Tipo de Cambio',
       description: 'Registra y consulta el tipo de cambio diario USD/MXN para operaciones financieras',
-      icon: '💱',
+      icon: ArrowLeftRight,
       route: 'exchange-rates',
       permissions: ['exchangerate:ViewMenu', 'exchangerate:Read', 'exchangerate:Update']
     },
@@ -210,7 +211,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'goals',
       title: 'Metas',
       description: 'Define metas de venta por sucursal y periodo, y configura la comisión activa del reporte',
-      icon: '🎯',
+      icon: Target,
       route: 'goals',
       permissions: ['goals:ViewMenu', 'goals:Read']
     },
@@ -218,7 +219,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'global-discounts',
       title: 'Descuentos globales',
       description: 'Administra descuentos generales de orden para POS (porcentaje o monto fijo)',
-      icon: '🏷️',
+      icon: Tag,
       route: 'global-discounts',
       permissions: ['global_discounts:ViewMenu', 'global_discounts:Read', 'globalDiscount:ViewMenu', 'globalDiscount:Read']
     },
@@ -226,7 +227,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'customer-groups',
       title: 'Grupos de clientes',
       description: 'Administra el catálogo de grupos de clientes de tu organización',
-      icon: '🗂️',
+      icon: FolderOpen,
       route: 'customer-groups',
       permissions: ['CustomerGroup:ViewMenu']
     }
@@ -237,7 +238,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'email-templates',
       title: 'Plantillas de Correo',
       description: 'Crea y gestiona plantillas de correo personalizadas para notificaciones y comunicaciones',
-      icon: '📧',
+      icon: Mail,
       route: 'email-templates',
       permissions: [
         'email-templates:ViewMenu',
@@ -256,7 +257,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       id: 'mailer-configurations',
       title: 'Configuración de Correo',
       description: 'Configura el proveedor de envío de correos, incluyendo Resend y la configuración activa',
-      icon: '✉️',
+      icon: Send,
       route: 'mailer-configurations',
       permissions: []
     }

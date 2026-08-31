@@ -17,7 +17,7 @@ Permiso: `customers:Read`. Mismo catálogo que Clientes. No hardcodear ni usar e
 | Todos los grupos | omitir `group_id` |
 | Un grupo | `group_id` (UUID) |
 
-En contratos el param es **`group_id`**, no `customer_group_id`.
+En contratos el param es **`group_id`**. Incluye el contrato si el **cliente o el lote** está en ese grupo.
 
 ## Endpoints — mismos params
 

@@ -17,7 +17,6 @@ import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { PropertyEditModalComponent } from '../../components/property-edit-modal/property-edit-modal.component';
 import { PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
-import { PropertyGroupDropdownComponent } from '../../components/property-group-dropdown/property-group-dropdown.component';
 import { PropertyStatusDropdownComponent } from '../../components/property-status-dropdown/property-status-dropdown.component';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { PropertyFilterIndicatorComponent } from '../../components/property-filter-indicator/property-filter-indicator.component';
@@ -35,7 +34,6 @@ import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-messa
     CommonModule,
     DatatableWrapperComponent,
     SearchComponent,
-    PropertyGroupDropdownComponent,
     PropertyStatusDropdownComponent,
     FilterClearButtonComponent,
     PropertyFilterIndicatorComponent,
@@ -56,9 +54,8 @@ export class PropertiesListComponent implements OnDestroy {
       { name: 'Manzana', prop: 'block', sortable: true, canAutoResize: true, width: 90 },
       { name: 'Clave catastral', prop: 'cadastral_key', sortable: false, canAutoResize: true, width: 160 },
       { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: false, width: 180 },
-      { name: 'Proyecto', prop: 'group', sortable: false, canAutoResize: true, width: 130 },
+      { name: 'Grupo', prop: 'group', sortable: false, canAutoResize: true, width: 140 },
       { name: 'Cliente', prop: 'contracts', sortable: false, canAutoResize: true, width: 150 },
-      { name: 'Grupo', prop: 'customer_group', sortable: false, canAutoResize: true, width: 120 },
       { name: 'Área', prop: 'total_area', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Precio', prop: 'total_price', sortable: true, canAutoResize: true, width: 120 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: true, width: 120 },
@@ -82,8 +79,6 @@ export class PropertiesListComponent implements OnDestroy {
   search = '';
   selectedGroupId: string | null = null;
   selectedGroupName: string | null = null;
-  selectedCustomerGroupId: string | null = null;
-  selectedCustomerGroupName: string | null = null;
   selectedStatus: PropertyStatus | null = null;
   currentSort: ISortEvent | null = null;
   stats = signal<PropertyStats>(EMPTY_PROPERTY_STATS);
@@ -104,9 +99,9 @@ export class PropertiesListComponent implements OnDestroy {
   ) {
     this.customerGroupFetch.fetchGroups().pipe(takeUntil(this.destroy$)).subscribe({
       next: (groups) => {
-        if (this.selectedCustomerGroupId) {
-          this.selectedCustomerGroupName =
-            groups.find((group) => group.id === this.selectedCustomerGroupId)?.name ?? null;
+        if (this.selectedGroupId) {
+          this.selectedGroupName =
+            groups.find((group) => group.id === this.selectedGroupId)?.name ?? null;
         }
       },
       error: () => undefined,
@@ -121,18 +116,14 @@ export class PropertiesListComponent implements OnDestroy {
       this.lastQueryParams = queryString;
 
       this.search = query?.search ?? '';
-      this.selectedGroupId = query?.groupId ?? null;
       this.selectedStatus = query?.status ?? null;
-      this.selectedCustomerGroupId = query?.customer_group_id ?? null;
+      this.selectedGroupId = query?.group_id ?? query?.customer_group_id ?? null;
       if (!this.selectedGroupId) {
         this.selectedGroupName = null;
-      }
-      if (!this.selectedCustomerGroupId) {
-        this.selectedCustomerGroupName = null;
       } else {
-        this.selectedCustomerGroupName =
-          this.customerGroupFetch.getCachedGroups().find((group) => group.id === this.selectedCustomerGroupId)?.name
-          ?? this.selectedCustomerGroupName;
+        this.selectedGroupName =
+          this.customerGroupFetch.getCachedGroups().find((group) => group.id === this.selectedGroupId)?.name
+          ?? this.selectedGroupName;
       }
       const page = query?.page ? Number(query.page) : 1;
       const limit = query?.limit ? Number(query.limit) : 20;
@@ -252,13 +243,7 @@ export class PropertiesListComponent implements OnDestroy {
   onGroupSelect(event: { groupId: string | null; groupName: string | null }) {
     this.selectedGroupId = event.groupId;
     this.selectedGroupName = event.groupName;
-    this.navigateWithParams({ page: 1, groupId: event.groupId || undefined });
-  }
-
-  onCustomerGroupSelect(event: { groupId: string | null; groupName: string | null }) {
-    this.selectedCustomerGroupId = event.groupId;
-    this.selectedCustomerGroupName = event.groupName;
-    this.navigateWithParams({ page: 1, customer_group_id: event.groupId || undefined });
+    this.navigateWithParams({ page: 1, group_id: event.groupId || undefined });
   }
 
   onStatusSelect(event: { status: PropertyStatus | null }) {
@@ -267,14 +252,12 @@ export class PropertiesListComponent implements OnDestroy {
   }
 
   get hasActiveFilters(): boolean {
-    return !!(this.search || this.selectedGroupId || this.selectedStatus || this.selectedCustomerGroupId);
+    return !!(this.search || this.selectedGroupId || this.selectedStatus);
   }
 
   clearAllFilters(): void {
     this.selectedGroupId = null;
     this.selectedGroupName = null;
-    this.selectedCustomerGroupId = null;
-    this.selectedCustomerGroupName = null;
     this.selectedStatus = null;
     this.search = '';
     this.router.navigate([], {
@@ -283,7 +266,7 @@ export class PropertiesListComponent implements OnDestroy {
     });
   }
 
-  onFilterClear(type: 'status' | 'group' | 'customerGroup' | 'search' | 'all'): void {
+  onFilterClear(type: 'status' | 'group' | 'search' | 'all'): void {
     if (type === 'all') {
       this.clearAllFilters();
       return;
@@ -294,10 +277,6 @@ export class PropertiesListComponent implements OnDestroy {
     }
     if (type === 'group') {
       this.onGroupSelect({ groupId: null, groupName: null });
-      return;
-    }
-    if (type === 'customerGroup') {
-      this.onCustomerGroupSelect({ groupId: null, groupName: null });
       return;
     }
     if (type === 'status') {
@@ -381,8 +360,8 @@ export class PropertiesListComponent implements OnDestroy {
     return `${owner.name} ${firstLastname}`.trim();
   }
 
-  getCustomerGroupName(property: Property): string {
-    return this.getOwner(property)?.group?.name ?? '—';
+  getGroupName(property: Property): string {
+    return property.group?.name ?? '—';
   }
 
   hasOwner(property: Property): boolean {
@@ -403,8 +382,7 @@ export class PropertiesListComponent implements OnDestroy {
   private buildApiFilters(): PropertyListFilters {
     return {
       ...(this.search && { search: this.search }),
-      ...(this.selectedGroupId && { groupId: this.selectedGroupId }),
-      ...(this.selectedCustomerGroupId && { customer_group_id: this.selectedCustomerGroupId }),
+      ...(this.selectedGroupId && { group_id: this.selectedGroupId }),
       ...(this.selectedStatus && { status: this.selectedStatus }),
     };
   }
@@ -412,10 +390,7 @@ export class PropertiesListComponent implements OnDestroy {
   private navigateWithParams(overrides: Record<string, string | number | undefined> = {}): void {
     const config = this.table_config();
     const search = 'search' in overrides ? overrides['search'] : this.search || undefined;
-    const groupId = 'groupId' in overrides ? overrides['groupId'] : this.selectedGroupId || undefined;
-    const customerGroupId = 'customer_group_id' in overrides
-      ? overrides['customer_group_id']
-      : this.selectedCustomerGroupId || undefined;
+    const groupId = 'group_id' in overrides ? overrides['group_id'] : this.selectedGroupId || undefined;
     const status = 'status' in overrides ? overrides['status'] : this.selectedStatus || undefined;
 
     this.router.navigate([], {
@@ -424,8 +399,7 @@ export class PropertiesListComponent implements OnDestroy {
         page: overrides['page'] ?? config.page ?? 1,
         limit: overrides['limit'] ?? config.limit ?? 20,
         ...(search && { search }),
-        ...(groupId && { groupId }),
-        ...(customerGroupId && { customer_group_id: customerGroupId }),
+        ...(groupId && { group_id: groupId }),
         ...(status && { status }),
       },
     });

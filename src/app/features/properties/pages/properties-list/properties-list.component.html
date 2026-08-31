@@ -20,13 +20,6 @@
       </div>
 
       <div class="filter-bar__field">
-        <app-property-group-dropdown
-          [selectedGroupId]="selectedGroupId"
-          (groupSelect)="onGroupSelect($event)">
-        </app-property-group-dropdown>
-      </div>
-
-      <div class="filter-bar__field">
         <app-property-status-dropdown
           [selectedStatus]="selectedStatus"
           (statusSelect)="onStatusSelect($event)">
@@ -35,10 +28,10 @@
 
       <div class="filter-bar__field">
         <app-customer-group-dropdown
-          [selectedGroupId]="selectedCustomerGroupId"
+          [selectedGroupId]="selectedGroupId"
           placeholder="Grupo de cliente"
           allMessage="Todos los grupos"
-          (groupSelect)="onCustomerGroupSelect($event)">
+          (groupSelect)="onGroupSelect($event)">
         </app-customer-group-dropdown>
       </div>
 
@@ -55,8 +48,6 @@
     [activeSearchTerm]="search"
     [activeGroupId]="selectedGroupId"
     [activeGroupName]="selectedGroupName"
-    [activeCustomerGroupId]="selectedCustomerGroupId"
-    [activeCustomerGroupName]="selectedCustomerGroupName"
     [activeStatus]="selectedStatus"
     [activeStatusLabel]="selectedStatus ? getStatusLabel(selectedStatus) : null"
     (filterClear)="onFilterClear($event)">
@@ -103,8 +94,8 @@
 
             <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               <div>
-                <span class="text-xs text-gray-500 block">Proyecto</span>
-                <span class="text-[#64748b]">{{ item.group?.name || '—' }}</span>
+                <span class="text-xs text-gray-500 block">Grupo</span>
+                <span class="text-[#64748b]">{{ getGroupName(item) }}</span>
               </div>
               <div>
                 <span class="text-xs text-gray-500 block">Cliente</span>
@@ -118,10 +109,6 @@
                 } @else {
                   <span class="text-gray-400">—</span>
                 }
-              </div>
-              <div>
-                <span class="text-xs text-gray-500 block">Grupo</span>
-                <span class="text-[#64748b]">{{ getCustomerGroupName(item) }}</span>
               </div>
               <div>
                 <span class="text-xs text-gray-500 block">Área</span>
@@ -183,7 +170,7 @@
       }
     </div>
   </td>
-  <td class="text-[#64748b] text-sm">{{ item.group?.name || '—' }}</td>
+  <td class="text-[#64748b] text-sm">{{ getGroupName(item) }}</td>
   <td (click)="$event.stopPropagation()">
     @if (hasOwner(item)) {
       <button type="button" class="customer-link" (click)="navigateToCustomer(item)">
@@ -193,7 +180,6 @@
       <span class="text-gray-400">—</span>
     }
   </td>
-  <td class="text-[#64748b] text-sm">{{ getCustomerGroupName(item) }}</td>
   <td class="text-[#64748b] text-sm">{{ formatArea(item) }}</td>
   <td>
     <span class="price-cell">{{ formatPrice(item) }}</span>

@@ -78,10 +78,9 @@ export interface CreatePropertyDto {
 
 export interface UpdatePropertyDto extends Partial<CreatePropertyDto> {}
 
-/** Filtros de listado. groupId = proyecto; customer_group_id = grupo de cliente. No usar group_id. */
+/** Filtros de listado. group_id = grupo de cliente (mismo catálogo que Clientes). */
 export interface PropertyListFilters {
-  groupId?: string;
-  customer_group_id?: string;
+  group_id?: string;
   status?: string;
   search?: string;
   page?: number;

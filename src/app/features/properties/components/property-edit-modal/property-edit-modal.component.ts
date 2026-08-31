@@ -11,6 +11,7 @@ import { LucideAngularModule, X } from 'lucide-angular';
 import { PropertyService } from '../../services/property.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { Property, MeasurementUnit, normalizeCadastralKey } from '../../models/property.model';
+import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
 
 @Component({
   selector: 'app-property-edit-modal',
@@ -75,7 +76,7 @@ export class PropertyEditModalComponent implements OnInit {
   };
 
   groupSelectConfig: ISelect = {
-    placeholder: 'Selecciona un proyecto',
+    placeholder: 'Selecciona un grupo',
     data: [],
     value: 'id',
     option: 'name',
@@ -89,6 +90,7 @@ export class PropertyEditModalComponent implements OnInit {
     public dialog_ref: MatDialogRef<PropertyEditModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { property: Property | null },
     private propertyService: PropertyService,
+    private customerGroupFetch: CustomerGroupFetchService,
     private interceptor_service: InterceptorService,
     private router: Router
   ) {
@@ -126,7 +128,7 @@ export class PropertyEditModalComponent implements OnInit {
 
   ngOnInit() {
     this.loadMeasurementUnits();
-    this.loadPropertyGroups();
+    this.loadCustomerGroups();
     this.loadPropertyForForm();
   }
 
@@ -189,10 +191,10 @@ export class PropertyEditModalComponent implements OnInit {
     }
   }
 
-  loadPropertyGroups() {
+  loadCustomerGroups() {
     this.loadingGroups.set(true);
 
-    this.propertyService.getPropertyGroups().subscribe({
+    this.customerGroupFetch.fetchGroups().subscribe({
       next: (groups) => {
         this.propertyGroups.set(groups);
         this.groupSelectConfig = {
@@ -210,6 +212,11 @@ export class PropertyEditModalComponent implements OnInit {
           loading: false
         };
         this.loadingGroups.set(false);
+        this.interceptor_service.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: 'No pudimos cargar los grupos de cliente.'
+        });
       }
     });
   }

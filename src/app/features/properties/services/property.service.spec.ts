@@ -24,10 +24,9 @@ describe('PropertyService stats', () => {
     httpMock.verify();
   });
 
-  it('sends groupId and customer_group_id on list and stats, without page on stats', async () => {
+  it('sends group_id on list and stats, without page on stats', async () => {
     const filters = {
-      groupId: 'project-1',
-      customer_group_id: 'cust-group-1',
+      group_id: 'cust-group-1',
       status: 'disponible',
       search: 'MZ',
       page: 2,
@@ -36,21 +35,21 @@ describe('PropertyService stats', () => {
 
     const listPromise = firstValueFrom(service.getProperties(filters));
     const listReq = httpMock.expectOne((req) => req.url === `${api}/tenant/properties`);
-    expect(listReq.request.params.get('groupId')).toBe('project-1');
-    expect(listReq.request.params.get('customer_group_id')).toBe('cust-group-1');
+    expect(listReq.request.params.get('group_id')).toBe('cust-group-1');
     expect(listReq.request.params.get('status')).toBe('disponible');
     expect(listReq.request.params.get('page')).toBe('2');
-    expect(listReq.request.params.has('group_id')).toBe(false);
+    expect(listReq.request.params.has('groupId')).toBe(false);
+    expect(listReq.request.params.has('customer_group_id')).toBe(false);
     listReq.flush({ data: [], total: 0 });
     await listPromise;
 
     const statsPromise = firstValueFrom(service.getPropertyStats(filters));
     const statsReq = httpMock.expectOne((req) => req.url === `${api}/tenant/properties/stats`);
-    expect(statsReq.request.params.get('groupId')).toBe('project-1');
-    expect(statsReq.request.params.get('customer_group_id')).toBe('cust-group-1');
+    expect(statsReq.request.params.get('group_id')).toBe('cust-group-1');
     expect(statsReq.request.params.has('page')).toBe(false);
     expect(statsReq.request.params.has('limit')).toBe(false);
-    expect(statsReq.request.params.has('group_id')).toBe(false);
+    expect(statsReq.request.params.has('groupId')).toBe(false);
+    expect(statsReq.request.params.has('customer_group_id')).toBe(false);
     statsReq.flush(EMPTY_PROPERTY_STATS);
     await statsPromise;
   });
