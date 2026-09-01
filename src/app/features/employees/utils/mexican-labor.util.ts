@@ -120,19 +120,16 @@ export function getIntegrationFactor(yearsOfService: number): number {
 }
 
 /**
- * Inclusive number of calendar days between two ISO dates.
- * Used to preview the size of a vacation / absence request.
+ * Inclusive number of calendar days between two ISO dates (YYYY-MM-DD).
+ * Used for faltas / permisos / incapacidad.
  */
 export function getInclusiveDays(
   startDate: string | null | undefined,
   endDate: string | null | undefined
 ): number {
-  if (!startDate || !endDate) {
-    return 0;
-  }
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+  const start = parseIsoDateLocal(startDate);
+  const end = parseIsoDateLocal(endDate);
+  if (!start || !end) {
     return 0;
   }
   const ms = end.getTime() - start.getTime();
@@ -140,6 +137,62 @@ export function getInclusiveDays(
     return 0;
   }
   return Math.floor(ms / (1000 * 60 * 60 * 24)) + 1;
+}
+
+/**
+ * Días hábiles inclusivos (lunes a viernes).
+ * 16–24 abril 2026 = 7, no 9.
+ */
+export function getBusinessDays(
+  startDate: string | null | undefined,
+  endDate: string | null | undefined
+): number {
+  const start = parseIsoDateLocal(startDate);
+  const end = parseIsoDateLocal(endDate);
+  if (!start || !end || start > end) {
+    return 0;
+  }
+
+  let count = 0;
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    const day = cursor.getDay();
+    if (day !== 0 && day !== 6) {
+      count += 1;
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return count;
+}
+
+/**
+ * Preview of days the API will store.
+ * Vacaciones = hábiles (lun–vie) salvo `countWeekends`.
+ * Faltas / permisos / incapacidad = días naturales.
+ */
+export function getLeaveDays(
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+  type?: string | null,
+  countWeekends = false
+): number {
+  if (type === 'vacation' && !countWeekends) {
+    return getBusinessDays(startDate, endDate);
+  }
+  return getInclusiveDays(startDate, endDate);
+}
+
+/** Evita el desfase UTC de `new Date('YYYY-MM-DD')`. */
+function parseIsoDateLocal(value: string | null | undefined): Date | null {
+  if (!value) {
+    return null;
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!match) {
+    const fallback = new Date(value);
+    return Number.isNaN(fallback.getTime()) ? null : fallback;
+  }
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
 function round2(value: number): number {

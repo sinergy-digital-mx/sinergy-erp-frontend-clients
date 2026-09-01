@@ -8,6 +8,7 @@ import { EmployeeService } from '../../services/employee.service';
 import {
   Employee,
   LeaveRequest,
+  canCorrectLeaveRequest,
   getLeaveStatusLabel,
   getLeaveTypeLabel,
   getPaymentFrequencyLabel,
@@ -28,6 +29,7 @@ export class EmployeeDetailComponent implements OnInit {
   readonly getLeaveTypeLabel = getLeaveTypeLabel;
   readonly getLeaveStatusLabel = getLeaveStatusLabel;
   readonly getPaymentFrequencyLabel = getPaymentFrequencyLabel;
+  readonly canCorrectLeaveRequest = canCorrectLeaveRequest;
 
   employee = signal<Employee | null>(null);
   leaveRequests = signal<LeaveRequest[]>([]);
@@ -140,7 +142,7 @@ export class EmployeeDetailComponent implements OnInit {
     }
     this.dialog
       .open(LeaveRequestDialogComponent, {
-        width: '480px',
+        width: '520px',
         panelClass: 'custom-dialog-container',
         data: {
           employeeId: emp.id,
@@ -151,6 +153,30 @@ export class EmployeeDetailComponent implements OnInit {
       .afterClosed()
       .subscribe((created) => {
         if (created) {
+          this.load();
+        }
+      });
+  }
+
+  correct(request: LeaveRequest): void {
+    const emp = this.employee();
+    if (!emp) {
+      return;
+    }
+    this.dialog
+      .open(LeaveRequestDialogComponent, {
+        width: '520px',
+        panelClass: 'custom-dialog-container',
+        data: {
+          employeeId: emp.id,
+          employeeName: this.fullName(emp),
+          availableDays: emp.vacation?.available_days,
+          request,
+        },
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed) {
           this.load();
         }
       });

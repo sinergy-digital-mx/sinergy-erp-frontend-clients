@@ -1,7 +1,8 @@
 # Cálculo conforme a la Ley Federal del Trabajo
 
 Implementado en `utils/mexican-labor.util.ts`. El backend es la **fuente de
-verdad**; estas fórmulas solo alimentan el preview en vivo del modal de usuario.
+verdad**; estas fórmulas solo alimentan el preview en vivo del modal de usuario
+y el conteo estimado de días en solicitudes.
 
 ## Vacaciones (reforma "Vacaciones Dignas", art. 76 LFT)
 
@@ -28,6 +29,15 @@ días = 20 + extraBlocks * 2
 `getYearsOfService(hireDate)` calcula los años cumplidos entre la fecha de
 ingreso y hoy.
 
+### Arrastre
+
+RH captura `vacation_carryover_days` (días extra / no tomados el año anterior).
+El API lo devuelve como `vacation.carryover_days`.
+
+```
+available_days = entitled_days + carryover_days − taken_days − pending_days
+```
+
 ## Nómina
 
 Derivada del salario mensual (`calculatePayroll`):
@@ -51,5 +61,12 @@ SDI                = salario_diario * factor_integración
 
 ## Días de una solicitud
 
-`getInclusiveDays(start, end)` cuenta días naturales **inclusivos** (del primer
-al último día). El backend recalcula `days` al registrar la solicitud.
+`getLeaveDays(start, end, type, countWeekends)`:
+
+- **Vacaciones** (`type === 'vacation'` y `countWeekends` falso): días hábiles
+  lun–vie. Ejemplo: 16–24 abril 2026 = **7**, no 9.
+- **Faltas / permisos / incapacidad**, o vacaciones con `count_weekends: true`:
+  días naturales inclusivos (`getInclusiveDays`).
+
+El backend recalcula `days` al registrar o al corregir fechas sin override.
+RH puede mandar `days` para un ajuste puntual.

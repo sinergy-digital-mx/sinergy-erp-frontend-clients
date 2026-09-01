@@ -313,6 +313,21 @@ export class UserService {
   }
 
   /**
+   * Reemplaza almacenes de Mesa de Control.
+   * PUT /tenant/users/:userId/warehouses { warehouse_ids }
+   */
+  updateUserWarehouses(userId: string, warehouseIds: string[]): Observable<User> {
+    return this.http
+      .put<any>(`${this.api}/tenant/users/${userId}/warehouses`, {
+        warehouse_ids: warehouseIds,
+      })
+      .pipe(
+        map((res) => this.dataMapper.mapUser(res?.data ?? res?.user ?? res)),
+        tap(() => this.clearCache())
+      );
+  }
+
+  /**
    * Cambia la contraseña propia, o la de cualquier usuario si hay User:Reset_Password.
    * No enviar password en updateUser.
    */

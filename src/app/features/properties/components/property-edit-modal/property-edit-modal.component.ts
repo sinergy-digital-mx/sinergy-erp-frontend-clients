@@ -1,7 +1,14 @@
 import { Component, Inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { InputComponent } from '../../../../core/components/input/input.component';
@@ -10,7 +17,14 @@ import { SelectComponent, ISelect } from '../../../../core/components/select/sel
 import { LucideAngularModule, X } from 'lucide-angular';
 import { PropertyService } from '../../services/property.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { Property, MeasurementUnit, normalizeCadastralKey } from '../../models/property.model';
+import {
+  Property,
+  MeasurementUnit,
+  CreatePropertyDto,
+  UpdatePropertyDto,
+  normalizeCadastralKey,
+  parseOptionalNumber,
+} from '../../models/property.model';
 import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
 
 @Component({
@@ -40,6 +54,10 @@ export class PropertyEditModalComponent implements OnInit {
 
   readonly X = X;
   form: FormGroup;
+  /** Evita bucles al prellenar total desde precio/m². */
+  private syncingPrice = false;
+  /** Si el usuario escribió solo el total, no mandar price_per_m2. */
+  private omitPricePerM2 = false;
 
   statusSelectConfig: ISelect = {
     placeholder: 'Selecciona un estado',
@@ -94,21 +112,26 @@ export class PropertyEditModalComponent implements OnInit {
     private interceptor_service: InterceptorService,
     private router: Router
   ) {
-    this.form = this.fb.group({
-      code: [{ value: '', disabled: true }], // Auto-generado, solo lectura
-      block: ['', [Validators.required]],
-      lot_number: ['', [Validators.required]],
-      cadastral_key: ['', [Validators.maxLength(100)]],
-      name: ['', [Validators.required]],
-      description: [''],
-      location: [''],
-      group_id: ['', [Validators.required]],
-      total_area: ['', [Validators.required, Validators.min(0)]],
-      measurement_unit_id: ['', [Validators.required]],
-      total_price: ['', [Validators.required, Validators.min(0)]],
-      currency: ['MXN'],
-      status: ['disponible']
-    });
+    const isEdit = !!this.data?.property?.id;
+    this.form = this.fb.group(
+      {
+        code: [{ value: '', disabled: true }], // Auto-generado, solo lectura
+        block: ['', [Validators.required]],
+        lot_number: ['', [Validators.required]],
+        cadastral_key: ['', [Validators.maxLength(100)]],
+        name: ['', [Validators.required]],
+        description: [''],
+        location: [''],
+        group_id: ['', [Validators.required]],
+        total_area: ['', isEdit ? [Validators.min(0)] : [Validators.required, Validators.min(0)]],
+        measurement_unit_id: ['', [Validators.required]],
+        price_per_m2: ['', [Validators.min(0)]],
+        total_price: ['', [Validators.min(0)]],
+        currency: ['MXN'],
+        status: ['disponible']
+      },
+      { validators: isEdit ? null : lotCreatePriceValidator }
+    );
 
     // Update select configs with form controls
     this.statusSelectConfig.form_control = this.form.get('status');
@@ -123,6 +146,29 @@ export class PropertyEditModalComponent implements OnInit {
 
     this.form.get('lot_number')?.valueChanges.subscribe(() => {
       this.generateCode();
+    });
+
+    this.form.get('total_area')?.valueChanges.subscribe(() => {
+      if (!this.syncingPrice) {
+        this.prefillTotalFromPricePerM2();
+      }
+    });
+
+    this.form.get('price_per_m2')?.valueChanges.subscribe(() => {
+      if (!this.syncingPrice) {
+        this.omitPricePerM2 = parseOptionalNumber(this.form.get('price_per_m2')?.value) == null;
+        this.prefillTotalFromPricePerM2();
+      }
+    });
+
+    this.form.get('total_price')?.valueChanges.subscribe(() => {
+      if (this.syncingPrice) {
+        return;
+      }
+      this.omitPricePerM2 = true;
+      this.syncingPrice = true;
+      this.form.get('price_per_m2')?.setValue('', { emitEvent: false });
+      this.syncingPrice = false;
     });
   }
 
@@ -154,6 +200,7 @@ export class PropertyEditModalComponent implements OnInit {
   }
 
   private patchProperty(property: Property) {
+    this.syncingPrice = true;
     this.form.patchValue({
       code: property.code,
       block: property.block || '',
@@ -165,18 +212,58 @@ export class PropertyEditModalComponent implements OnInit {
       group_id: property.group_id,
       total_area: property.total_area,
       measurement_unit_id: property.measurement_unit_id,
+      price_per_m2: property.price_per_m2 ?? '',
       total_price: property.total_price,
       currency: property.currency,
       status: property.status
     });
+    this.syncingPrice = false;
+    this.omitPricePerM2 = parseOptionalNumber(property.price_per_m2) == null;
+  }
+
+  private prefillTotalFromPricePerM2(): void {
+    const area = parseOptionalNumber(this.form.get('total_area')?.value);
+    const perM2 = parseOptionalNumber(this.form.get('price_per_m2')?.value);
+    if (area == null || perM2 == null) {
+      return;
+    }
+    const total = Math.round((area * perM2 + Number.EPSILON) * 100) / 100;
+    this.syncingPrice = true;
+    this.form.get('total_price')?.setValue(total);
+    this.syncingPrice = false;
+    this.omitPricePerM2 = false;
   }
 
   private buildPayload() {
     const raw = this.form.getRawValue();
-    return {
+    const totalArea = parseOptionalNumber(raw.total_area);
+    const totalPrice = parseOptionalNumber(raw.total_price);
+    const pricePerM2 = parseOptionalNumber(raw.price_per_m2);
+
+    const payload: Record<string, unknown> = {
       ...raw,
       cadastral_key: normalizeCadastralKey(raw.cadastral_key)
     };
+
+    if (totalArea != null) {
+      payload['total_area'] = totalArea;
+    } else {
+      delete payload['total_area'];
+    }
+
+    if (totalPrice != null) {
+      payload['total_price'] = totalPrice;
+    } else {
+      delete payload['total_price'];
+    }
+
+    if (pricePerM2 != null && !this.omitPricePerM2) {
+      payload['price_per_m2'] = pricePerM2;
+    } else {
+      delete payload['price_per_m2'];
+    }
+
+    return payload;
   }
 
   generateCode(): void {
@@ -304,7 +391,7 @@ export class PropertyEditModalComponent implements OnInit {
 
     const payload = this.buildPayload();
 
-    this.propertyService.createProperty(payload).subscribe({
+    this.propertyService.createProperty(payload as unknown as CreatePropertyDto).subscribe({
       next: () => {
         this.update.set(true);
         this.loading.set(false);
@@ -342,9 +429,16 @@ export class PropertyEditModalComponent implements OnInit {
 
     const payload = this.buildPayload();
 
-    this.propertyService.updateProperty(this.data.property!.id, payload).subscribe({
+    this.propertyService.updateProperty(this.data.property!.id, payload as unknown as UpdatePropertyDto).subscribe({
       next: (saved) => {
-        this.form.patchValue({ cadastral_key: saved.cadastral_key ?? '' });
+        this.syncingPrice = true;
+        this.form.patchValue({
+          cadastral_key: saved.cadastral_key ?? '',
+          total_price: saved.total_price,
+          price_per_m2: saved.price_per_m2 ?? '',
+        });
+        this.syncingPrice = false;
+        this.omitPricePerM2 = parseOptionalNumber(saved.price_per_m2) == null;
         this.loadedProperty.set(saved);
         this.update.set(true);
         this.loading.set(false);
@@ -371,4 +465,19 @@ export class PropertyEditModalComponent implements OnInit {
       }
     });
   }
+
+  get showPriceRequiredError(): boolean {
+    return this.form.hasError('priceRequired') &&
+      !!(this.form.get('total_price')?.touched || this.form.get('price_per_m2')?.touched);
+  }
+}
+
+/** Alta: hace falta total_price o price_per_m2. */
+function lotCreatePriceValidator(group: AbstractControl): ValidationErrors | null {
+  const total = parseOptionalNumber(group.get('total_price')?.value);
+  const perM2 = parseOptionalNumber(group.get('price_per_m2')?.value);
+  if (total == null && perM2 == null) {
+    return { priceRequired: true };
+  }
+  return null;
 }

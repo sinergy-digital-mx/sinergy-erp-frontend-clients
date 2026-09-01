@@ -267,6 +267,17 @@
             </div>
           </div>
 
+          <h4 class="employee-section-title">Vacaciones</h4>
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">Días de arrastre</label>
+              <input type="number" class="form-input" formControlName="vacation_carryover_days" min="0" step="0.5" placeholder="0">
+              <p class="field-hint">
+                Días extra o no tomados el año anterior. Se suman a los días de ley (art. 76).
+              </p>
+            </div>
+          </div>
+
           <h4 class="employee-section-title">Nómina</h4>
           <div class="form-grid">
             <div class="form-field">
@@ -294,6 +305,14 @@
             <div class="preview-card">
               <span class="preview-card__label">Vacaciones / año (LFT)</span>
               <span class="preview-card__value">{{ entitledVacationDays() }} días</span>
+            </div>
+            <div class="preview-card">
+              <span class="preview-card__label">Arrastre</span>
+              <span class="preview-card__value">{{ carryoverDaysPreview() }} días</span>
+            </div>
+            <div class="preview-card">
+              <span class="preview-card__label">Disponibles (est.)</span>
+              <span class="preview-card__value">{{ previewAvailableDays() }} días</span>
             </div>
             <div class="preview-card">
               <span class="preview-card__label">Salario diario</span>
@@ -451,6 +470,36 @@
 
         <div *ngIf="branches().length === 0" class="empty-state">
           <p>No hay sucursales configuradas.</p>
+        </div>
+
+        <div class="warehouse-assign">
+          <h3 class="warehouse-assign__title">Almacén(es) Mesa de Control</h3>
+          <p class="field-hint">
+            Recorta el tablero a estos almacenes para el rol jefe de almacén.
+            Si el usuario tiene sucursal, solo se listan almacenes de esa sucursal.
+          </p>
+
+          <div *ngIf="availableWarehouses().length > 0" class="branch-list">
+            <label
+              *ngFor="let warehouse of availableWarehouses()"
+              class="branch-item"
+              [class.branch-item--selected]="isWarehouseSelected(warehouse.id)">
+              <input
+                type="checkbox"
+                [checked]="isWarehouseSelected(warehouse.id)"
+                (change)="toggleWarehouse(warehouse.id)">
+              <span class="branch-item__name">{{ warehouseLabel(warehouse) }}</span>
+            </label>
+          </div>
+
+          <div *ngIf="availableWarehouses().length === 0" class="empty-state">
+            <p *ngIf="selectedBranchId(); else noWarehouses">
+              No hay almacenes en esta sucursal.
+            </p>
+            <ng-template #noWarehouses>
+              <p>No hay almacenes configurados.</p>
+            </ng-template>
+          </div>
         </div>
       </div>
 

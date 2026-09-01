@@ -183,6 +183,37 @@
               <span class="section-value">Requerido</span>
             </div>
           }
+          @if (controlDesk(); as desk) {
+            <div class="section-item">
+              <span class="section-label">Mesa de Control</span>
+              <span class="section-value">{{ controlDeskProgressLabel() }}</span>
+            </div>
+            @if (desk.position?.code) {
+              <div class="section-item">
+                <span class="section-label">Posición</span>
+                <span class="section-value">{{ desk.position.code }}</span>
+              </div>
+            }
+            @if (desk.missing?.length) {
+              <div class="section-item section-item--stack">
+                <span class="section-label">Faltantes</span>
+                <span class="section-value">
+                  @for (item of desk.missing; track $index) {
+                    <span class="so-control-desk-missing">
+                      Falta {{ item.product_name || 'producto' }} — {{ item.warehouse_name || 'almacén' }}
+                    </span>
+                  }
+                </span>
+              </div>
+            }
+            @if (desk.job_id) {
+              <div class="section-item">
+                <button type="button" class="so-control-desk-link" (click)="goToControlDesk()">
+                  Abrir en Mesa de Control
+                </button>
+              </div>
+            }
+          }
           @if (order()!.corroborated_at || order()!.corroborated_by_user) {
             <div class="section-item">
               <span class="section-label">Corroboró</span>

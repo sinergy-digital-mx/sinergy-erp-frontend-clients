@@ -76,9 +76,9 @@
         </app-select>
       </div>
 
-      <!-- Área Total -->
+      <!-- Área (m²) -->
       <app-input
-        label="Área Total"
+        label="Área (m²)"
         type="number"
         [form_control]="form.controls['total_area']">
       </app-input>
@@ -91,12 +91,28 @@
         </app-select>
       </div>
 
-      <!-- Precio Total -->
+      <!-- Precio por m² -->
       <app-input
-        label="Precio Total"
+        label="Precio por m²"
+        type="number"
+        [form_control]="form.controls['price_per_m2']">
+      </app-input>
+
+      <!-- Precio total -->
+      <app-input
+        label="Precio total"
         type="number"
         [form_control]="form.controls['total_price']">
       </app-input>
+
+      <p class="md:col-span-2 text-xs text-gray-500 -mt-2">
+        El precio por m² es opcional. Si lo capturas y hay área, se calcula el total (área × precio/m²).
+      </p>
+      @if (showPriceRequiredError) {
+        <p class="md:col-span-2 text-xs text-red-600 -mt-2">
+          Captura el precio total o el precio por m².
+        </p>
+      }
 
       <!-- Moneda -->
       <div>

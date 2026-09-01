@@ -128,7 +128,7 @@
             <th>Periodo</th>
             <th>Días</th>
             <th>Estatus</th>
-            <th *ngIf="canManageLeave">Acciones</th>
+            <th *ngIf="canManageLeave || canUpdate">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -153,13 +153,16 @@
                 {{ getLeaveStatusLabel(req.status) }}
               </span>
             </td>
-            <td *ngIf="canManageLeave">
-              <div class="row-actions" *ngIf="req.status === 'pending'">
-                <button class="action-btn action-btn--approve" (click)="review(req, 'approved')">Aprobar</button>
-                <button class="action-btn action-btn--reject" (click)="review(req, 'rejected')">Rechazar</button>
-                <button class="action-btn" (click)="cancel(req)">Cancelar</button>
+            <td *ngIf="canManageLeave || canUpdate">
+              <div class="row-actions" *ngIf="req.status === 'pending' || (canUpdate && canCorrectLeaveRequest(req.status))">
+                <button *ngIf="canUpdate && canCorrectLeaveRequest(req.status)" class="action-btn" (click)="correct(req)">Corregir</button>
+                <ng-container *ngIf="canManageLeave && req.status === 'pending'">
+                  <button class="action-btn action-btn--approve" (click)="review(req, 'approved')">Aprobar</button>
+                  <button class="action-btn action-btn--reject" (click)="review(req, 'rejected')">Rechazar</button>
+                  <button class="action-btn" (click)="cancel(req)">Cancelar</button>
+                </ng-container>
               </div>
-              <span *ngIf="req.status !== 'pending'" class="muted">—</span>
+              <span *ngIf="req.status !== 'pending' && !(canUpdate && canCorrectLeaveRequest(req.status))" class="muted">—</span>
             </td>
           </tr>
         </tbody>

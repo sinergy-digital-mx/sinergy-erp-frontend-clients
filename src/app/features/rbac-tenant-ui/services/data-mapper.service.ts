@@ -44,7 +44,10 @@ export class DataMapperService {
       is_manager: backendUser.is_manager ?? backendUser.isManager,
       manager: backendUser.manager ?? null,
       reports: Array.isArray(backendUser.reports) ? backendUser.reports : undefined,
-      ...backendUser // Include any additional fields
+      ...backendUser, // Include any additional fields
+      assigned_warehouses: Array.isArray(backendUser.assigned_warehouses)
+        ? backendUser.assigned_warehouses
+        : [],
     };
   }
 

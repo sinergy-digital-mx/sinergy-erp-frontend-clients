@@ -1,13 +1,13 @@
 /**
- * Warehouse Control module permissions.
+ * Warehouse Control (Mesa de Control).
  * Entity en RBAC: WarehouseControl (se normaliza a warehousecontrol).
  */
 export const WAREHOUSE_CONTROL_PERMISSIONS = {
   viewMenu: 'WarehouseControl:ViewMenu',
   read: 'WarehouseControl:Read',
-  /** Corroborar / confirmar picking */
-  corroborate: 'WarehouseControl:Update',
+  create: 'WarehouseControl:Create',
   update: 'WarehouseControl:Update',
+  corroborate: 'WarehouseControl:Update',
 } as const;
 
 export type WarehouseControlPermission =

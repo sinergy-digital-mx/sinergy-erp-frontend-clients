@@ -2,7 +2,12 @@
   display: flex;
   flex-direction: column;
   max-height: 85vh;
-  width: min(920px, 95vw);
+  width: min(1120px, 95vw);
+  --zn-person-accent: #1b7f5e;
+}
+
+.seller-orders-dialog--commissions {
+  --zn-person-accent: #6b4c9a;
 }
 
 .seller-orders-dialog__header {
@@ -118,4 +123,9 @@
 .payment-pill--paid {
   background: #ecfdf5;
   color: #059669;
+}
+
+.person-accent {
+  font-weight: 700;
+  color: var(--zn-person-accent, #1b7f5e);
 }

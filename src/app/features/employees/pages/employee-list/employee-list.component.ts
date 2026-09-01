@@ -13,11 +13,13 @@ import {
   LeaveRequest,
   LeaveStatus,
   LeaveType,
+  canCorrectLeaveRequest,
   getLeaveStatusLabel,
   getLeaveTypeLabel,
 } from '../../models/employee.model';
 import { EMPLOYEE_PERMISSIONS } from '../../config/permissions.config';
 import { LeaveReviewDialogComponent } from '../../components/leave-review-dialog/leave-review-dialog.component';
+import { LeaveRequestDialogComponent } from '../../components/leave-request-dialog/leave-request-dialog.component';
 
 @Component({
   selector: 'app-employee-list',
@@ -30,6 +32,7 @@ export class EmployeeListComponent implements OnInit {
   readonly permissions = EMPLOYEE_PERMISSIONS;
   readonly getLeaveTypeLabel = getLeaveTypeLabel;
   readonly getLeaveStatusLabel = getLeaveStatusLabel;
+  readonly canCorrectLeaveRequest = canCorrectLeaveRequest;
 
   readonly tabs: TabItem[] = [
     { id: 'employees', title: 'Empleados' },
@@ -78,6 +81,10 @@ export class EmployeeListComponent implements OnInit {
 
   get canManageLeave(): boolean {
     return this.auth.hasPermission(this.permissions.manageLeave) || this.auth.hasAdminRole();
+  }
+
+  get canUpdate(): boolean {
+    return this.auth.hasPermission(this.permissions.update) || this.auth.hasAdminRole();
   }
 
   onTabChange(tabId: string): void {
@@ -200,6 +207,25 @@ export class EmployeeListComponent implements OnInit {
       this.leavePage.update((p) => p + 1);
       this.loadLeaveRequests();
     }
+  }
+
+  correct(request: LeaveRequest): void {
+    this.dialog
+      .open(LeaveRequestDialogComponent, {
+        width: '520px',
+        panelClass: 'custom-dialog-container',
+        data: {
+          employeeId: request.employee_id || request.employee?.id,
+          employeeName: this.fullName(request.employee || {}),
+          request,
+        },
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed) {
+          this.loadLeaveRequests();
+        }
+      });
   }
 
   review(request: LeaveRequest, decision: 'approved' | 'rejected'): void {

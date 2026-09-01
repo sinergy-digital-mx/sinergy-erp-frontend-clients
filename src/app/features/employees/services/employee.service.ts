@@ -12,6 +12,7 @@ import {
   PaginatedResponse,
   PaginationParams,
   ReviewLeaveRequestDto,
+  UpdateLeaveRequestDto,
 } from '../models/employee.model';
 
 /**
@@ -150,6 +151,25 @@ export class EmployeeService {
     return this.http
       .post<LeaveRequest | { data: LeaveRequest }>(
         `${this.baseUrl}/${id}/leave-requests`,
+        payload
+      )
+      .pipe(
+        map((raw) => this.unwrap<LeaveRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  /**
+   * Corrige una solicitud ya cargada (días, fechas, etc.).
+   * No aplica a canceladas / rechazadas.
+   */
+  updateLeaveRequest(
+    requestId: string,
+    payload: UpdateLeaveRequestDto
+  ): Observable<LeaveRequest> {
+    return this.http
+      .put<LeaveRequest | { data: LeaveRequest }>(
+        `${this.baseUrl}/leave-requests/${requestId}`,
         payload
       )
       .pipe(

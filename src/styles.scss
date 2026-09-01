@@ -42,7 +42,7 @@ main,
   input[type='text']:not(.mat-mdc-input-element):not(.mdc-text-field__input):not(.p-inputtext):not(.search-input):not(.zn-date-range__input):not(.form-input),
   input[type='search']:not(.mat-mdc-input-element):not(.search-input):not(.form-input):not(.cobranza-search__input):not(.pos-search__input):not(.pos-customer-search__input),
   input[type='email']:not(.mat-mdc-input-element):not(.p-inputtext):not(.form-input),
-  input[type='number']:not(.mat-mdc-input-element):not(.p-inputtext):not(.form-input):not(.pos-qty__input),
+  input[type='number']:not(.mat-mdc-input-element):not(.p-inputtext):not(.form-input):not(.pos-qty__input):not(.wc-ctrl):not(.wc-qty-input),
   input[type='password']:not(.mat-mdc-input-element):not(.form-input),
   input[type='date']:not(.mat-mdc-input-element):not(.zn-date-range__input):not(.form-input),
   input[type='time']:not(.mat-mdc-input-element):not(.form-input) {
@@ -65,7 +65,7 @@ main,
     box-sizing: border-box;
   }
 
-  select:not(.mat-mdc-select-trigger):not([class*='p-']):not(.form-select):not(.pos-line__pricing-select) {
+  select:not(.mat-mdc-select-trigger):not([class*='p-']):not(.form-select):not(.pos-line__pricing-select):not(.wc-assign-select) {
     @include fc.pollux-select-field;
   }
 }
@@ -615,6 +615,21 @@ main,
   color: white !important;
   padding: 0 !important;
   box-shadow: none !important;
+}
+
+.mat-mdc-tooltip.wc-status-tooltip,
+.wc-status-tooltip.mat-mdc-tooltip {
+  max-width: 360px !important;
+  white-space: normal !important;
+  line-height: 1.35 !important;
+  text-align: left !important;
+}
+
+.mat-mdc-tooltip.wc-status-tooltip .mdc-tooltip__surface,
+.wc-status-tooltip .mdc-tooltip__surface {
+  white-space: normal !important;
+  overflow: visible !important;
+  max-width: none !important;
 }
 
 .mdc-tooltip__surface-animation {

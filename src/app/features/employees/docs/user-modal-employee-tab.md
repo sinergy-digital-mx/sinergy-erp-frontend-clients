@@ -12,12 +12,14 @@ agregó una pestaña **Empleado** que sigue el mismo patrón que la de POS.
    sub-formulario `employee` (reactive `FormGroup` anidado):
    - Datos: puesto\*, departamento, fecha de ingreso\*, fecha de nacimiento,
      código, RFC, CURP, NSS.
+   - Vacaciones: días de arrastre (`vacation_carryover_days`).
    - Nómina: salario mensual\*, frecuencia de pago.
    - Banco: banco, CLABE, cuenta.
    - (\*) obligatorios cuando `is_employee` es `true`.
-3. **Preview en vivo** (no editable): antigüedad, vacaciones/año (LFT), salario
-   diario, pago quincenal, pago semanal y salario anual. Se recalcula con
-   `computed()` a partir de `hire_date` y `monthly_salary`
+3. **Preview en vivo** (no editable): antigüedad, vacaciones/año (LFT), arrastre,
+   disponibles estimados (ley + arrastre), salario diario, pago quincenal, pago
+   semanal y salario anual. Se recalcula con `computed()` a partir de
+   `hire_date`, `vacation_carryover_days` y `monthly_salary`
    (ver `utils/mexican-labor.util.ts`).
 4. **Foto**: solo disponible al **editar** un empleado ya guardado (requiere el
    `employee.id`). En alta se indica que debe guardarse primero. Sube vía

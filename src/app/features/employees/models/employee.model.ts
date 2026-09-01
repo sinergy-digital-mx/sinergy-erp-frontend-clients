@@ -47,6 +47,9 @@ export const LEAVE_TYPE_OPTIONS: ReadonlyArray<{
 export interface EmployeeVacationSummary {
   years_of_service: number;
   entitled_days: number;
+  /** Días extra / no tomados el año anterior (RH: vacation_carryover_days). */
+  carryover_days?: number;
+  balance_days?: number;
   taken_days: number;
   pending_days: number;
   available_days: number;
@@ -79,6 +82,7 @@ export interface LeaveRequest {
   days: number;
   reason?: string;
   is_paid?: boolean;
+  count_weekends?: boolean;
   review_notes?: string;
   reviewed_by?: string;
   reviewed_at?: string;
@@ -115,6 +119,7 @@ export interface EmployeeProfile {
   department?: string;
   hire_date?: string;
   birth_date?: string;
+  vacation_carryover_days?: number;
   monthly_salary?: number;
   payment_frequency?: PaymentFrequency;
   bank_name?: string;
@@ -190,6 +195,24 @@ export interface CreateLeaveRequestDto {
   end_date: string;
   reason?: string;
   is_paid?: boolean;
+  /** Override del cálculo automático (medios días o un ajuste puntual). */
+  days?: number;
+  /** En vacation el default del API es false (solo lun–vie). */
+  count_weekends?: boolean;
+}
+
+/**
+ * Corregir una solicitud ya cargada (no aplica a canceladas/rechazadas).
+ * Si cambian fechas y no se manda `days`, el backend recalcula.
+ */
+export interface UpdateLeaveRequestDto {
+  type?: LeaveType;
+  start_date?: string;
+  end_date?: string;
+  reason?: string;
+  is_paid?: boolean;
+  days?: number;
+  count_weekends?: boolean;
 }
 
 /**
@@ -234,4 +257,9 @@ export function getPaymentFrequencyLabel(
   return (
     PAYMENT_FREQUENCY_OPTIONS.find((o) => o.value === frequency)?.label ?? '—'
   );
+}
+
+/** RH puede corregir pendientes y aprobadas; no canceladas ni rechazadas. */
+export function canCorrectLeaveRequest(status: LeaveStatus | string | undefined): boolean {
+  return status !== 'cancelled' && status !== 'rejected';
 }

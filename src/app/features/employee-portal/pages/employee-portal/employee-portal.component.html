@@ -33,6 +33,9 @@
       <div class="info-card">
         <span class="info-card__label">Vacaciones por año</span>
         <span class="info-card__value">{{ emp.vacation?.entitled_days ?? 0 }} días</span>
+        <span class="info-card__hint" *ngIf="(emp.vacation?.carryover_days ?? 0) > 0">
+          + {{ emp.vacation?.carryover_days }} de arrastre
+        </span>
       </div>
       <div class="info-card">
         <span class="info-card__label">Tomados</span>
@@ -69,6 +72,10 @@
             <label class="form-label">Motivo</label>
             <textarea class="form-input" formControlName="reason" rows="2" placeholder="Ej. Vacaciones familiares"></textarea>
           </div>
+
+          <p class="field-hint" *ngIf="leaveForm.get('type')?.value === 'vacation'">
+            Las vacaciones cuentan días hábiles (lun–vie). 16–24 abril = 7, no 9.
+          </p>
 
           <div class="days-hint" *ngIf="requestedDays() > 0">
             <span>{{ requestedDays() }} día(s) solicitados</span>

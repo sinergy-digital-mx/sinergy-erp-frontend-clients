@@ -1,8 +1,11 @@
 export type SalesReportPeriod = 'today' | 'week' | 'month' | 'year' | 'range';
 
+export type SalesReportView = 'sales' | 'commissions';
+
 export type SalesGoalMetricType = 'amount' | 'sales_count';
 
 export interface SalesReportQueryParams {
+  view?: SalesReportView;
   period: SalesReportPeriod;
   fiscal_configuration_id?: string;
   billing_branch_id?: string;
@@ -10,19 +13,43 @@ export interface SalesReportQueryParams {
   date_to?: string;
 }
 
+export interface SalesReportSummaryTop {
+  id: string;
+  name: string;
+  pos_user_code?: number | string | null;
+  amount: number;
+  sales_count: number;
+}
+
+export interface SalesReportSummaryBranch {
+  billing_branch_id: string;
+  branch_name: string;
+  sales_count: number;
+  amount: number;
+}
+
 export interface SalesReportSummary {
   total_sellers: number;
+  people_count?: number;
+  people_label?: string | null;
   total_sales_count: number;
   total_amount: number;
+  average_ticket?: number | null;
+  total_commission?: number | null;
+  commission_rate?: number | null;
+  top?: SalesReportSummaryTop | null;
+  branches?: SalesReportSummaryBranch[] | null;
 }
 
 export interface SalesReportFiltersApplied {
+  view?: SalesReportView;
   fiscal_configuration_id: string | null;
   billing_branch_id: string | null;
   period: SalesReportPeriod;
+  period_label?: string | null;
   date_from: string | null;
   date_to: string | null;
-  commission_rate: number;
+  commission_rate: number | null;
 }
 
 export interface SalesReportRowGoal {
@@ -43,8 +70,9 @@ export interface SalesReportApiRow {
   seller_pos_user_code?: number | string | null;
   total_sales_count: number;
   amount_sold: number;
-  commission_percentage: number;
-  commission_amount: number;
+  average_ticket?: number | null;
+  commission_percentage?: number | null;
+  commission_amount?: number | null;
   goal?: SalesReportRowGoal | null;
 }
 
@@ -73,6 +101,8 @@ export interface SalesReportGoals {
 }
 
 export interface SalesReportResponse {
+  view?: SalesReportView;
+  view_label?: string | null;
   summary: SalesReportSummary;
   filters_applied: SalesReportFiltersApplied;
   rows: SalesReportApiRow[];
@@ -83,13 +113,15 @@ export interface SellerSalesRow {
   billingBranchId: string;
   branchCode: string;
   branchName: string;
+  branchInitials: string;
   sellerId: string;
   sellerName: string;
   sellerPosUserCode: number | string | null;
   sellerDisplayName: string;
   salesCount: number;
-  commissionRatePct: number;
-  commissionAmount: number;
+  averageTicket: number | null;
+  commissionRatePct: number | null;
+  commissionAmount: number | null;
   totalSold: number;
   hasGoal: boolean;
   goalMetricType: SalesGoalMetricType | null;
@@ -99,6 +131,7 @@ export interface SellerSalesRow {
 }
 
 export interface SellerOrdersQueryParams {
+  view?: SalesReportView;
   seller_id: string;
   billing_branch_id: string;
   period: SalesReportPeriod;
@@ -117,6 +150,9 @@ export interface SellerOrderRow {
   customer_person_name?: string | null;
   customer_name?: string | null;
   is_walk_in?: boolean;
+  seller_name?: string | null;
+  assigned_seller_name?: string | null;
+  branch_name?: string | null;
   total?: number | string | null;
   amount?: number | string | null;
   payment_status?: string | null;
@@ -128,8 +164,16 @@ export interface SellerOrdersSummary {
   total_amount?: number;
 }
 
+export interface SellerOrdersSeller {
+  id?: string;
+  name?: string;
+  pos_user_code?: number | string | null;
+  role_label?: string | null;
+}
+
 export interface SellerOrdersResponse {
   summary?: SellerOrdersSummary | null;
+  seller?: SellerOrdersSeller | null;
   orders?: SellerOrderRow[];
   data?: SellerOrderRow[];
   rows?: SellerOrderRow[];

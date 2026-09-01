@@ -7,6 +7,8 @@ import { catchError, map } from 'rxjs/operators';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { BranchService } from '../../../settings/services/branch.service';
 import { Branch } from '../../../settings/models/branch.model';
+import { Warehouse } from '../../../settings/models/warehouse.model';
+import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { User, UserEmployeeProfile, ManagerReport, POS_USER_TYPE_OPTIONS, POS_USER_TYPE_AMBOS_OPTION, PosUserType, CatalogStatus, isOpenGlobalCutBlockMessage, userHasOpenGlobalCut, POS_OPEN_GLOBAL_CUT_BLOCK_MESSAGE, getUserStatusId, getUserStatusCode } from '../../models';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -59,6 +61,9 @@ export class UserDetailModalComponent implements OnInit {
   showPassword = signal(false);
   showConfirmPassword = signal(false);
   branches = signal<Branch[]>([]);
+  warehouses = signal<Warehouse[]>([]);
+  selectedWarehouseIds = signal<string[]>([]);
+  selectedBranchId = signal<string>('');
   statuses = signal<CatalogStatus[]>([]);
   showPosTypeChangeWarning = signal(false);
   hasOpenGlobalCut = signal(false);
@@ -84,6 +89,7 @@ export class UserDetailModalComponent implements OnInit {
 
   private hireDate = signal<string | null>(null);
   private monthlySalary = signal<number>(0);
+  private vacationCarryover = signal<number>(0);
 
   /** Whole years of service derived from the hire date. */
   yearsOfService = computed(() => getYearsOfService(this.hireDate()));
@@ -91,6 +97,13 @@ export class UserDetailModalComponent implements OnInit {
   /** Entitled vacation days per Mexican LFT ("Vacaciones dignas"). */
   entitledVacationDays = computed(() =>
     this.hireDate() ? getEntitledVacationDays(this.yearsOfService()) : 0
+  );
+
+  carryoverDaysPreview = computed(() => this.vacationCarryover());
+
+  /** Preview: días de ley + arrastre (sin tomados/pendientes). */
+  previewAvailableDays = computed(
+    () => this.entitledVacationDays() + this.vacationCarryover()
   );
 
   /** Live payroll breakdown derived from the monthly salary. */
@@ -102,6 +115,15 @@ export class UserDetailModalComponent implements OnInit {
    * Candidatos a asignar: misma org, sin el gerente actual,
    * sin los que ya están en reports y sin los que ya tienen responsable.
    */
+  availableWarehouses = computed(() => {
+    const branchId = this.selectedBranchId();
+    const all = this.warehouses();
+    if (!branchId) {
+      return all;
+    }
+    return all.filter((warehouse) => warehouse.billing_branch_id === branchId);
+  });
+
   assignableUsers = computed(() => {
     const managerId = this.editedUserId;
     const reportIds = new Set(this.reports().map((item) => item.id));
@@ -190,6 +212,7 @@ export class UserDetailModalComponent implements OnInit {
     private fb: FormBuilder,
     private userService: UserService,
     private branchService: BranchService,
+    private warehouseService: WarehouseService,
     private authService: AuthService,
     private interceptorService: InterceptorService,
     private employeeService: EmployeeService
@@ -247,6 +270,7 @@ export class UserDetailModalComponent implements OnInit {
         department: [employee?.department ?? ''],
         hire_date: [employee?.hire_date ?? ''],
         birth_date: [employee?.birth_date ?? ''],
+        vacation_carryover_days: [employee?.vacation_carryover_days ?? null],
         monthly_salary: [employee?.monthly_salary ?? null],
         payment_frequency: [employee?.payment_frequency ?? 'biweekly'],
         bank_name: [employee?.bank_name ?? ''],
@@ -301,11 +325,15 @@ export class UserDetailModalComponent implements OnInit {
     employeeGroup.get('monthly_salary')?.valueChanges.subscribe((value) => {
       this.monthlySalary.set(Number(value) || 0);
     });
+    employeeGroup.get('vacation_carryover_days')?.valueChanges.subscribe((value) => {
+      this.vacationCarryover.set(Number(value) || 0);
+    });
 
     this.form.get('is_employee')?.valueChanges.subscribe(applyEmployeeState);
 
     this.hireDate.set((employeeGroup.get('hire_date')?.value as string) || null);
     this.monthlySalary.set(Number(employeeGroup.get('monthly_salary')?.value) || 0);
+    this.vacationCarryover.set(Number(employeeGroup.get('vacation_carryover_days')?.value) || 0);
     applyEmployeeState(!!this.form.get('is_employee')?.value);
   }
 
@@ -391,6 +419,10 @@ export class UserDetailModalComponent implements OnInit {
         this.form.get('billing_branch_id')?.markAsTouched();
       }
     });
+    this.form.get('billing_branch_id')?.valueChanges.subscribe((branchId: string) => {
+      this.selectedBranchId.set(branchId || '');
+      this.pruneWarehousesOutsideBranch(branchId || '');
+    });
   }
 
   private applyBranchValidators(isPosUser: boolean): void {
@@ -410,16 +442,27 @@ export class UserDetailModalComponent implements OnInit {
 
   private loadData(): void {
     const branches$ = this.branchService.getAllBranches();
+    const warehouses$ = this.warehouseService.getWarehouses({ limit: 500 }).pipe(
+      map((res) => (Array.isArray(res) ? res : res?.data || [])),
+      catchError(() => of([] as Warehouse[]))
+    );
     const statuses$ = this.userService.getUserStatuses().pipe(catchError(() => of([] as CatalogStatus[])));
     const userBranch$ =
       this.isNew || !this.data.user
         ? of<string | null>(this.data.user?.billing_branch_id ?? null)
         : this.userService.getUserBranch(this.data.user.id);
 
-    forkJoin({ branches: branches$, statuses: statuses$, userBranch: userBranch$ }).subscribe({
-      next: ({ branches, statuses, userBranch }) => {
+    forkJoin({
+      branches: branches$,
+      warehouses: warehouses$,
+      statuses: statuses$,
+      userBranch: userBranch$,
+    }).subscribe({
+      next: ({ branches, warehouses, statuses, userBranch }) => {
         this.branches.set(branches);
+        this.warehouses.set(warehouses);
         this.statuses.set(statuses);
+        this.applyAssignedWarehouses(this.data.user);
 
         const billingBranchId =
           userBranch ?? this.data.user?.billing_branch_id ?? null;
@@ -431,6 +474,8 @@ export class UserDetailModalComponent implements OnInit {
           billing_branch_id: billingBranchId ?? '',
           status_id: statusId,
         });
+        this.selectedBranchId.set(billingBranchId ?? '');
+        this.pruneWarehousesOutsideBranch(billingBranchId ?? '');
 
         this.applyBranchValidators(!!this.form.get('is_pos_user')?.value);
         this.originalBillingBranchId = billingBranchId ?? null;
@@ -466,6 +511,8 @@ export class UserDetailModalComponent implements OnInit {
     this.userService.getUserById(this.data.user.id).subscribe({
       next: (user) => {
         this.applyEmployeeProfile(user);
+        this.applyAssignedWarehouses(user);
+        this.pruneWarehousesOutsideBranch(this.selectedBranchId());
         this.applyManagerState(user);
         const statusId = getUserStatusId(user);
         if (statusId != null) {
@@ -510,6 +557,7 @@ export class UserDetailModalComponent implements OnInit {
         department: employee.department ?? '',
         hire_date: this.toDateInput(employee.hire_date),
         birth_date: this.toDateInput(employee.birth_date),
+        vacation_carryover_days: this.resolveCarryoverDays(employee),
         monthly_salary: employee.monthly_salary ?? null,
         payment_frequency: employee.payment_frequency ?? 'biweekly',
         bank_name: employee.bank_name ?? '',
@@ -779,6 +827,42 @@ export class UserDetailModalComponent implements OnInit {
     return !this.form.get('billing_branch_id')?.value;
   }
 
+  warehouseLabel(warehouse: Warehouse): string {
+    return warehouse.code ? `${warehouse.name} (${warehouse.code})` : warehouse.name;
+  }
+
+  isWarehouseSelected(warehouseId: string): boolean {
+    return this.selectedWarehouseIds().includes(warehouseId);
+  }
+
+  toggleWarehouse(warehouseId: string): void {
+    const current = this.selectedWarehouseIds();
+    this.selectedWarehouseIds.set(
+      current.includes(warehouseId)
+        ? current.filter((id) => id !== warehouseId)
+        : [...current, warehouseId]
+    );
+  }
+
+  private applyAssignedWarehouses(user: User | null | undefined): void {
+    const rows = user?.assigned_warehouses ?? [];
+    this.selectedWarehouseIds.set(
+      rows.map((item) => item.id).filter((id): id is string => !!id)
+    );
+  }
+
+  private pruneWarehousesOutsideBranch(branchId: string): void {
+    if (!branchId) {
+      return;
+    }
+    const allowed = new Set(
+      this.warehouses()
+        .filter((warehouse) => warehouse.billing_branch_id === branchId)
+        .map((warehouse) => warehouse.id)
+    );
+    this.selectedWarehouseIds.set(this.selectedWarehouseIds().filter((id) => allowed.has(id)));
+  }
+
   isPosEditLockedByOpenCut(): boolean {
     return this.hasOpenGlobalCut();
   }
@@ -1044,6 +1128,7 @@ export class UserDetailModalComponent implements OnInit {
       email: this.form.get('email')?.value,
       phone: this.form.get('phone')?.value || undefined,
       billing_branch_id: billingBranchId,
+      warehouse_ids: this.selectedWarehouseIds(),
       is_pos_user: isPosUser,
       pos_user_type: isPosUser ? posUserType : null,
       pos_user_code: posCode,
@@ -1133,7 +1218,24 @@ export class UserDetailModalComponent implements OnInit {
       payload.monthly_salary = Number(raw.monthly_salary);
     }
 
+    if (
+      raw.vacation_carryover_days !== null &&
+      raw.vacation_carryover_days !== undefined &&
+      raw.vacation_carryover_days !== ''
+    ) {
+      payload.vacation_carryover_days = Number(raw.vacation_carryover_days);
+    }
+
     return payload;
+  }
+
+  private resolveCarryoverDays(employee: UserEmployeeProfile): number | null {
+    if (employee.vacation_carryover_days != null && String(employee.vacation_carryover_days) !== '') {
+      const n = Number(employee.vacation_carryover_days);
+      return Number.isFinite(n) ? n : null;
+    }
+    const fromVacation = employee.vacation?.['carryover_days'];
+    return typeof fromVacation === 'number' ? fromVacation : null;
   }
 
   private getEmployeeFormErrorMessage(employeeGroup: FormGroup): string {

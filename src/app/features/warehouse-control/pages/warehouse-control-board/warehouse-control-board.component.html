@@ -1,0 +1,453 @@
+<div class="purchase-order-list-container">
+  <div class="purchase-content">
+    <div class="px-4 pb-8">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+        <div>
+          <h2 class="text-2xl font-semibold text-gray-800">Mesa de Control</h2>
+          <p class="wc-subtitle">
+            @if (view() === 'admin') {
+              Picking por almacén, posiciones de piso y armado
+            } @else {
+              Surtido de tus almacenes · lleva el bulto a la posición marcada
+            }
+          </p>
+          @if (view() === 'warehouse' && scopeChip()) {
+            <span [class]="scopeKindClass()">{{ scopeChip() }}</span>
+          }
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          @if (canSwitchView()) {
+            <div class="wc-toggle" role="group" aria-label="Vista">
+              <button
+                type="button"
+                class="wc-toggle__btn"
+                [class.wc-toggle__btn--on]="view() === 'admin'"
+                (click)="setView('admin')">
+                Admin
+              </button>
+              <button
+                type="button"
+                class="wc-toggle__btn"
+                [class.wc-toggle__btn--on]="view() === 'warehouse'"
+                (click)="setView('warehouse')">
+                Jefe de almacén
+              </button>
+            </div>
+          }
+          @if (canConfigure()) {
+            <a class="page-export-btn" routerLink="positions">
+              <i class="fi fi-rr-settings" aria-hidden="true"></i>
+              Configurar
+            </a>
+          }
+        </div>
+      </div>
+
+      <div class="filter-bar mb-4" role="search" aria-label="Filtros de Mesa de Control">
+        <div class="filter-bar__container">
+          <div class="filter-bar__field">
+            <input
+              type="search"
+              class="filter-bar__input"
+              [formControl]="searchControl"
+              placeholder="Buscar folio o cliente" />
+          </div>
+          @if (showBranchCombo()) {
+            <div class="filter-bar__field">
+              <select class="filter-bar__select" [formControl]="branchControl" aria-label="Sucursal">
+                @if (view() === 'admin') {
+                  <option value="">Todas las sucursales</option>
+                }
+                @for (branch of branchOptions(); track branch.id) {
+                  <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+                }
+              </select>
+            </div>
+          }
+          @if (view() === 'admin') {
+            <div class="filter-bar__field">
+              <select class="filter-bar__select" [formControl]="statusControl" aria-label="Estado">
+                @for (item of jobStatuses; track item.value) {
+                  <option [value]="item.value">{{ item.label }}</option>
+                }
+              </select>
+            </div>
+          }
+          <div class="filter-bar__field filter-bar__field--actions">
+            <app-filter-clear-button [active]="hasActiveFilters" (clear)="clearFilters()"></app-filter-clear-button>
+            <button
+              type="button"
+              class="filter-bar__refresh-button"
+              [disabled]="loading()"
+              (click)="loadBoard()"
+              title="Actualizar"
+              aria-label="Actualizar tablero">
+              <svg
+                class="filter-bar__refresh-icon"
+                [class.filter-bar__refresh-icon--spin]="loading()"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true">
+                <path d="M20 12A8 8 0 1 1 12 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                <path d="M20 4V9H15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      @if (view() === 'admin') {
+        <div class="wc-status-strip mb-4" role="group" aria-label="Filtros por estado">
+          <button
+            type="button"
+            class="wc-chip"
+            [class.wc-chip--active]="!statusControl.value"
+            matTooltip="Estos estados son de Mesa de Control. La OV sigue en En Selección hasta que corroboras."
+            matTooltipClass="wc-status-tooltip"
+                        matTooltipPosition="above"
+            (click)="showAllJobs()">
+            En mesa <strong>{{ statValue('in_desk') }}</strong>
+          </button>
+          @for (row of statusRows; track row.key) {
+            <button
+              type="button"
+              class="wc-chip"
+              [class]="'wc-chip wc-chip--' + row.fill"
+              [class.wc-chip--active]="isKpiActive(row.status)"
+              [matTooltip]="statusTooltip(row.status)"
+              matTooltipClass="wc-status-tooltip"
+                        matTooltipPosition="above"
+              (click)="filterByStatus(row.status)">
+              {{ row.label }} <strong>{{ statValue(row.key) }}</strong>
+            </button>
+          }
+          <span class="wc-chip wc-chip--static">
+            Piso {{ statValue('positions_free') }}/{{ statValue('positions_occupied') }}
+          </span>
+          @if (statValue('with_shortage') > 0) {
+            <span class="wc-chip wc-chip--rose">
+              Faltante <strong>{{ statValue('with_shortage') }}</strong>
+            </span>
+          }
+        </div>
+      } @else {
+        <div class="wc-status-strip mb-4">
+          @if (scopeChip()) {
+            <span [class]="scopeKindClass()">{{ scopeChip() }}</span>
+          }
+          <span class="wc-chip wc-chip--static">Pendientes <strong>{{ warehouseStats().pending || 0 }}</strong></span>
+          <span class="wc-chip wc-chip--amber">En curso <strong>{{ warehouseStats().in_progress || 0 }}</strong></span>
+          <span class="wc-chip wc-chip--emerald">Surtidas hoy <strong>{{ warehouseStats().picked_today || 0 }}</strong></span>
+        </div>
+      }
+
+      @if (loading() && !hasBoardData()) {
+        <div class="wc-loading" aria-live="polite">
+          <app-spinner></app-spinner>
+        </div>
+      } @else {
+        <div
+          class="wc-layout"
+          [class.wc-layout--wh]="view() === 'warehouse'"
+          [class.wc-layout--busy]="loading()">
+          <section class="wc-floor-card">
+            <div class="wc-section-head">
+              <div>
+                <h3>Mapa de piso</h3>
+                <p>
+                  @if (!branchControl.value) {
+                    Elige sucursal para pintar el mapa
+                  } @else if (view() === 'warehouse') {
+                    Destino del bulto · {{ selectedBranchName() }}
+                  } @else {
+                    {{ selectedBranchName() || 'Sucursal' }} · click en una celda ocupada
+                  }
+                </p>
+              </div>
+              <div class="wc-legend">
+                @for (item of statusLegend; track item.status) {
+                  <span [matTooltip]="statusTooltip(item.status)" matTooltipClass="wc-status-tooltip"
+                        matTooltipPosition="above">
+                    <i class="wc-dot" [class]="'wc-dot wc-dot--' + item.dot"></i>
+                    {{ item.label }}
+                  </span>
+                }
+                <span class="wc-wh wc-wh--frio">Frío</span>
+                <span class="wc-wh wc-wh--seco">Seco</span>
+              </div>
+            </div>
+
+            @if (!branchControl.value) {
+              <app-empty-stage
+                icon="fi fi-rr-map-marker"
+                message="Selecciona una sucursal"
+                sub_message="El mapa de armado se pinta por sucursal. El picking sí puede arrancar."
+                [params]="emptyParams">
+              </app-empty-stage>
+            } @else if (!hasPositionsCatalog()) {
+              <div class="wc-empty-cta">
+                <app-empty-stage
+                  icon="fi fi-rr-apps"
+                  message="Define posiciones de armado"
+                  sub_message="Sin catálogo el picking arranca igual. El mapa aparece cuando hay celdas."
+                  [params]="emptyParams">
+                </app-empty-stage>
+                @if (canConfigure()) {
+                  <a class="page-create-btn" routerLink="positions">Configurar posiciones</a>
+                }
+              </div>
+            } @else {
+              <div
+                class="wc-floor"
+                [style.grid-template-columns]="'repeat(' + floorGrid().columns + ', minmax(0, 1fr))'">
+                @for (cell of floorGrid().cells; track trackCell($index, cell)) {
+                  @if (cell.position; as pos) {
+                    <button
+                      type="button"
+                      class="wc-bay"
+                      [class.wc-bay--occupied]="pos.occupied"
+                      [class.wc-bay--released]="cellJob(cell)?.status === 'released'"
+                      [class.wc-bay--picking]="cellJob(cell)?.status === 'picking'"
+                      [class.wc-bay--waiting_assembly]="cellJob(cell)?.status === 'waiting_assembly'"
+                      [class.wc-bay--assembling]="cellJob(cell)?.status === 'assembling'"
+                      [class.wc-bay--assembled]="cellJob(cell)?.status === 'assembled'"
+                      [disabled]="view() === 'warehouse' || !pos.occupied"
+                      [matTooltip]="cellJob(cell) ? statusTooltip(cellJob(cell)?.status) : ''"
+                      matTooltipClass="wc-status-tooltip"
+                        matTooltipPosition="above"
+                      (click)="onCellClick(cell)">
+                      <span class="wc-bay__code">{{ pos.code }}</span>
+                      @if (cellJob(cell); as job) {
+                        <span class="dt-folio-badge dt-folio-badge--odv">{{ job.folio || job.id.slice(0, 8) }}</span>
+                        <span class="wc-bay__customer" [title]="customerName(job)">{{ customerName(job) }}</span>
+                        <div class="wc-bay__chips">
+                          @for (task of jobTasks(job); track task.id) {
+                            <span [class]="warehouseKindClass(task)">{{ taskChip(task) }}</span>
+                          }
+                        </div>
+                      } @else {
+                        <span class="wc-bay__free">Libre</span>
+                        @if (pos.name) {
+                          <span class="wc-bay__name">{{ pos.name }}</span>
+                        }
+                      }
+                    </button>
+                  } @else {
+                    <div class="wc-bay wc-bay--blank"></div>
+                  }
+                }
+              </div>
+            }
+          </section>
+
+          @if (view() === 'admin') {
+            <section class="wc-side-card">
+              <div class="wc-section-head">
+                <div>
+                  <h3>Cola sin posición</h3>
+                  <p>{{ queue().length }} órdenes esperando piso</p>
+                </div>
+              </div>
+              <div class="wc-stack">
+                @for (job of queue(); track job.id) {
+                  <article class="wc-ticket" (click)="openJob(job.id)">
+                    <div class="wc-ticket__line">
+                      <span class="dt-folio-badge dt-folio-badge--odv">{{ job.folio || job.id.slice(0, 8) }}</span>
+                      <span class="wc-ticket__name">{{ customerName(job) }}</span>
+                      <span
+                        class="dt-status-pill"
+                        [ngClass]="statusPillClass(job.status)"
+                        [matTooltip]="statusTooltip(job.status)"
+                        matTooltipClass="wc-status-tooltip"
+                        matTooltipPosition="above">{{ jobStatusLabel(job.status) }}</span>
+                      @if (job.has_shortage) {
+                        <span class="wc-short">Faltante</span>
+                      }
+                    </div>
+                    <div class="wc-ticket__line wc-ticket__line--sub">
+                      <div class="wc-ticket__chips">
+                        @for (task of jobTasks(job); track task.id) {
+                          <span [class]="warehouseKindClass(task)">{{ taskChip(task) }}</span>
+                        }
+                      </div>
+                      <div class="wc-ticket__actions" (click)="$event.stopPropagation()">
+                        <button
+                          type="button"
+                          class="wc-ctrl wc-ctrl--primary"
+                          [disabled]="acting() || !freePositions().length"
+                          (click)="assignNextFree(job.id, $event)">
+                          Siguiente libre
+                        </button>
+                        <select
+                          class="wc-assign-select"
+                          [disabled]="acting() || !freePositions().length"
+                          (change)="assignPosition(job.id, $any($event.target).value, $event); $any($event.target).value = ''">
+                          <option value="">Asignar</option>
+                          @for (pos of freePositions(); track pos.id) {
+                            <option [value]="pos.id">{{ pos.code }}</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+                  </article>
+                } @empty {
+                  <app-empty-stage
+                    icon="fi fi-rr-check"
+                    message="Nada en cola"
+                    sub_message="Las OV sin posición aparecen aquí para asignar piso."
+                    [params]="emptyParams">
+                  </app-empty-stage>
+                }
+              </div>
+            </section>
+
+            <section class="wc-jobs-card">
+              <div class="wc-section-head">
+                <div>
+                  <h3>Órdenes en mesa</h3>
+                  <p>{{ jobs().length }} de {{ statValue('in_desk') }} en el tablero</p>
+                </div>
+              </div>
+              <div class="wc-table-wrap">
+                <table class="wc-table">
+                  <thead>
+                    <tr>
+                      <th>Folio</th>
+                      <th>Cliente</th>
+                      <th>Estado</th>
+                      <th>Posición</th>
+                      <th>Almacenes</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (job of jobs(); track job.id) {
+                      <tr (click)="openJob(job.id)">
+                        <td>
+                          <span class="dt-folio-badge dt-folio-badge--odv">{{ job.folio || job.id.slice(0, 8) }}</span>
+                        </td>
+                        <td>
+                          <strong class="wc-table__name">{{ customerName(job) }}</strong>
+                          @if (job.has_shortage) {
+                            <span class="wc-short">Faltante</span>
+                          }
+                        </td>
+                        <td>
+                          <span
+                            class="dt-status-pill"
+                            [ngClass]="statusPillClass(job.status)"
+                            [matTooltip]="statusTooltip(job.status)"
+                            matTooltipClass="wc-status-tooltip"
+                        matTooltipPosition="above">{{ jobStatusLabel(job.status) }}</span>
+                        </td>
+                        <td>{{ positionCode(job) }}</td>
+                        <td>
+                          <div class="wc-ticket__chips">
+                            @for (task of jobTasks(job); track task.id) {
+                              <span [class]="warehouseKindClass(task)">{{ taskChip(task) }}</span>
+                            }
+                          </div>
+                        </td>
+                        <td class="wc-table__open">Ver</td>
+                      </tr>
+                    } @empty {
+                      <tr class="wc-table__empty">
+                        <td colspan="6">{{ loading() ? 'Cargando…' : 'Sin órdenes en mesa con estos filtros.' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          } @else {
+            <section class="wc-side-card">
+              <div class="wc-section-head">
+                <div>
+                  <h3>Surtir estas {{ pickRows().length }}</h3>
+                  <p>Inicia y cierra tu almacén. El inventario se descuenta al surtir.</p>
+                </div>
+              </div>
+              <div class="wc-stack wc-stack--picks">
+                @for (row of pickRows(); track row.task.id) {
+                  <article class="wc-ticket wc-ticket--pick">
+                    <div class="wc-pick-top">
+                      <div class="wc-pick-id">
+                        <span class="dt-folio-badge dt-folio-badge--odv">{{ row.job.folio || row.job.id.slice(0, 8) }}</span>
+                        <strong class="wc-pick-customer" [title]="customerName(row.job)">{{ customerName(row.job) }}</strong>
+                      </div>
+                      <div class="wc-ticket__actions">
+                        @if (row.task.status === 'pending') {
+                          <button type="button" class="wc-ctrl wc-ctrl--primary" [disabled]="acting()" (click)="startTask(row.job, row.task, $event)">
+                            Iniciar
+                          </button>
+                        }
+                        @if (row.task.status === 'in_progress') {
+                          <button type="button" class="wc-ctrl wc-ctrl--primary" [disabled]="acting()" (click)="completeTask(row.job, row.task, $event)">
+                            Surtir 100%
+                          </button>
+                          <button type="button" class="wc-ctrl wc-ctrl--ghost" [disabled]="acting()" (click)="togglePartial(row.task, $event)">
+                            {{ partialTaskId() === row.task.id ? 'Cancelar' : 'Ajustar' }}
+                          </button>
+                        }
+                        @if (partialTaskId() === row.task.id) {
+                          <button type="button" class="wc-ctrl wc-ctrl--primary" [disabled]="acting()" (click)="completePartial(row.job, row.task, $event)">
+                            Confirmar
+                          </button>
+                        }
+                      </div>
+                    </div>
+                    <div class="wc-pick-meta">
+                      <span [class]="warehouseKindClass(row.task)">{{ warehouseKindLabel(row.task) }}</span>
+                      <span class="wc-dest" [class.wc-dest--empty]="!row.job.position?.code">
+                        {{ row.job.position?.code || 'Sin posición' }}
+                      </span>
+                      <span
+                        class="dt-status-pill"
+                        [ngClass]="statusPillClass(row.job.status)"
+                        [matTooltip]="statusTooltip(row.job.status)"
+                        matTooltipClass="wc-status-tooltip"
+                        matTooltipPosition="above">{{ jobStatusLabel(row.job.status) }}</span>
+                      @if (row.task.status === 'short' || row.job.has_shortage) {
+                        <span class="wc-short">Faltante</span>
+                      }
+                    </div>
+                    <div class="wc-pick-lines">
+                      @for (line of row.task.lines || []; track line.id || $index) {
+                        <div class="wc-pick-line">
+                          <span class="wc-pick-line__name" [title]="line.product_name || 'Producto'">
+                            {{ line.product_name || 'Producto' }}
+                          </span>
+                          <span class="wc-pick-line__ordered">Pedido {{ lineOrdered(line) }}</span>
+                          @if (partialTaskId() === row.task.id && line.id) {
+                            <input
+                              type="number"
+                              min="0"
+                              class="wc-qty-input"
+                              [ngModel]="partialQty[line.id]"
+                              (ngModelChange)="partialQty[line.id] = $event"
+                              [attr.aria-label]="'Surtido de ' + (line.product_name || 'producto')" />
+                          }
+                        </div>
+                      }
+                      @if (partialTaskId() === row.task.id && isPartialShort(row.task)) {
+                        <span class="wc-short">Se registrará faltante</span>
+                      }
+                    </div>
+                  </article>
+                } @empty {
+                  <app-empty-stage
+                    icon="fi fi-rr-box"
+                    message="Sin tareas de surtido"
+                    sub_message="Cuando haya OV en tus almacenes aparecen aquí."
+                    [params]="emptyParams">
+                  </app-empty-stage>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

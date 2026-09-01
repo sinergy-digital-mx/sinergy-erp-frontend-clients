@@ -20,7 +20,7 @@ const MONTH_LABELS = [
         [class.zn-period-panel--range]="period === 'range'">
         <div class="zn-period-toggle" role="group">
           @for (opt of visibleOptions; track opt.value) {
-            @if (opt.value === 'month') {
+            @if (opt.value === 'month' && !monthAsServerPreset) {
               <div class="zn-period-toggle__month-wrap">
                 <button
                   type="button"
@@ -389,6 +389,8 @@ export class ReportPeriodSelectorComponent {
   @Input() dateTo = '';
   @Input() includeYear = false;
   @Input() dayOnly = false;
+  /** Mes/Hoy/Semana/Año mandan el preset al servidor, sin date_from/date_to. Solo Rango usa fechas. */
+  @Input() monthAsServerPreset = false;
   @Input() ariaLabel = 'Periodo del reporte';
   @Input() dateFromId = 'report-date-from';
   @Input() dateToId = 'report-date-to';
@@ -421,6 +423,9 @@ export class ReportPeriodSelectorComponent {
   get isMonthActive(): boolean {
     if (this.period === 'month') {
       return true;
+    }
+    if (this.monthAsServerPreset) {
+      return false;
     }
     if (this.period === 'range' && this.dateFrom && this.dateTo) {
       return this.getMonthIndexFromRange(this.dateFrom, this.dateTo) !== null;
@@ -479,6 +484,12 @@ export class ReportPeriodSelectorComponent {
     this.monthDropdownOpen = false;
 
     if (preset === 'month') {
+      if (this.monthAsServerPreset) {
+        this.dateFrom = '';
+        this.dateTo = '';
+        this.periodChange.emit('month');
+        return;
+      }
       // Mes actual como rango explícito (mismo path que elegir el mes en el dropdown).
       this.onSelectMonth(new Date().getMonth());
       return;

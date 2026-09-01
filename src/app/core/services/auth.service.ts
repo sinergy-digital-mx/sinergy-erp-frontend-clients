@@ -211,6 +211,7 @@
                 is_manager: this.user_info?.is_manager,
                 billing_branch_id: this.user_info?.billing_branch_id,
                 fiscal_configuration_id: this.user_info?.fiscal_configuration_id,
+                assigned_warehouses: this.user_info?.assigned_warehouses?.length ?? 0,
                 route: this.resolvePostLoginRoute(),
               });
             } else {
@@ -620,6 +621,7 @@
         is_manager: this.normalizePosFlag(source['is_manager']),
         billing_branch_id:
           source['billing_branch_id'] != null ? String(source['billing_branch_id']) : null,
+        assigned_warehouses: this.normalizeAssignedWarehouses(source['assigned_warehouses']),
         fiscal_configuration_id: this.readOptionalId(
           source,
           'fiscal_configuration_id',
@@ -675,7 +677,8 @@
         'fiscal_configuration_id' in obj ||
         'fiscal_configuration' in obj ||
         'is_employee' in obj ||
-        'is_manager' in obj
+        'is_manager' in obj ||
+        'assigned_warehouses' in obj
       ) {
         return obj;
       }
@@ -703,6 +706,7 @@
           'pos_can_sell',
           'pos_can_collect',
           'is_manager',
+          'assigned_warehouses',
         ]) {
           if (merged[key] == null && row[key] != null) {
             merged[key] = row[key];
@@ -870,6 +874,11 @@
       if (source['is_manager'] != null) {
         this.user_info.is_manager = this.normalizePosFlag(source['is_manager']);
       }
+      if (source['assigned_warehouses'] !== undefined) {
+        this.user_info.assigned_warehouses = this.normalizeAssignedWarehouses(
+          source['assigned_warehouses']
+        );
+      }
 
       const capabilities = this.derivePosCapabilities(source);
       if (
@@ -882,6 +891,35 @@
       }
     }
 
+    getAssignedWarehouses(): AssignedWarehouse[] {
+      return this.normalizeAssignedWarehouses(this.user_info?.assigned_warehouses);
+    }
+
+    private normalizeAssignedWarehouses(raw: unknown): AssignedWarehouse[] {
+      if (!Array.isArray(raw)) {
+        return [];
+      }
+      return raw
+        .map((item) => {
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+          const row = item as Record<string, unknown>;
+          const id = row['id'] ?? row['warehouse_id'];
+          if (id == null || String(id).trim() === '') {
+            return null;
+          }
+          return {
+            id: String(id),
+            name: row['name'] != null ? String(row['name']) : undefined,
+            code: row['code'] != null ? String(row['code']) : undefined,
+            billing_branch_id:
+              row['billing_branch_id'] != null ? String(row['billing_branch_id']) : null,
+          } as AssignedWarehouse;
+        })
+        .filter((item): item is AssignedWarehouse => item != null);
+    }
+
     private resetPosProfileCache(): void {
       this.posProfileLoaded = false;
     }
@@ -889,6 +927,13 @@
   }
 
   export type PosTerminalType = 'VENTAS' | 'COBRANZA' | 'AMBOS';
+
+  export interface AssignedWarehouse {
+    id: string;
+    name?: string;
+    code?: string;
+    billing_branch_id?: string | null;
+  }
 
   export interface PosSessionProfile {
     is_pos_user?: boolean;
@@ -898,6 +943,7 @@
     is_manager?: boolean;
     billing_branch_id?: string | null;
     fiscal_configuration_id?: string | null;
+    assigned_warehouses?: AssignedWarehouse[];
   }
 
   export interface UserInfoI {
@@ -921,6 +967,7 @@
     fiscal_configuration_id?: string | null;
     is_employee?: boolean;
     is_manager?: boolean;
+    assigned_warehouses?: AssignedWarehouse[];
   }
 
   interface PermissionObject {

@@ -58,7 +58,7 @@ src/app/features/employees/
 | `Employee:ViewMenu`    | Muestra el ítem "Empleados" en el menú lateral       |
 | `Employee:Create`      | Alta de empleado (desde el modal de usuario)         |
 | `Employee:Read`        | Lista y detalle                                      |
-| `Employee:Update`      | Editar datos, subir foto, registrar solicitudes      |
+| `Employee:Update`      | Editar datos, arrastre de vacaciones, subir foto, registrar o corregir solicitudes |
 | `Employee:Delete`      | Eliminar perfil de empleado                          |
 | `Employee:ManageLeave` | Aprobar / rechazar / cancelar solicitudes            |
 

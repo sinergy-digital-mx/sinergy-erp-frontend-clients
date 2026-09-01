@@ -1,0 +1,281 @@
+<div
+  class="purchase-order-list-container"
+  [class.zn-view--sales]="view === 'sales'"
+  [class.zn-view--commissions]="view === 'commissions'">
+  <div class="purchase-content">
+    <div class="px-4 pb-8">
+      <div class="zn-report-header mb-5">
+        <div class="zn-report-header__titles">
+          <h2 class="zn-report-header__title">Reporte de ventas</h2>
+          <p class="zn-report-header__subtitle">{{ subtitle }}</p>
+        </div>
+        <button
+          type="button"
+          class="zn-excel-btn"
+          [disabled]="exporting() || rangeIncomplete"
+          (click)="downloadExcel()">
+          @if (exporting()) {
+            <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+            Descargando...
+          } @else {
+            <i class="fi fi-rr-download" aria-hidden="true"></i>
+            Descargar Excel
+          }
+        </button>
+      </div>
+
+      <div class="zn-report-toolbar mb-5">
+        <div class="zn-report-toolbar__left">
+          <div class="zn-view-toggle" role="group" aria-label="Vista del reporte">
+            <button
+              type="button"
+              class="zn-view-toggle__btn zn-view-toggle__btn--sales"
+              [class.zn-view-toggle__btn--active]="view === 'sales'"
+              [attr.aria-pressed]="view === 'sales'"
+              (click)="setView('sales')">
+              Ventas
+            </button>
+            <button
+              type="button"
+              class="zn-view-toggle__btn zn-view-toggle__btn--commissions"
+              [class.zn-view-toggle__btn--active]="view === 'commissions'"
+              [attr.aria-pressed]="view === 'commissions'"
+              (click)="setView('commissions')">
+              Comisiones
+            </button>
+          </div>
+
+          <div class="zn-filters__panel">
+            <div class="zn-filters__field">
+              <label class="zn-filters__label" for="zn-fiscal-config">Razón social</label>
+              <select
+                id="zn-fiscal-config"
+                class="zn-filters__select"
+                [(ngModel)]="fiscalConfigurationId"
+                (change)="onFiscalConfigChange()"
+                aria-label="Filtrar por razón social">
+                <option value="">Todas las razones sociales</option>
+                @for (fc of fiscalConfigurations; track fc.id) {
+                  <option [value]="fc.id">{{ fc.razon_social }}</option>
+                }
+              </select>
+            </div>
+            <div class="zn-filters__field">
+              <label class="zn-filters__label" for="zn-branch">Sucursal</label>
+              <select
+                id="zn-branch"
+                class="zn-filters__select"
+                [(ngModel)]="billingBranchId"
+                (change)="loadReport()"
+                aria-label="Filtrar por sucursal">
+                <option value="">Todas las sucursales</option>
+                @for (b of branches; track b.id) {
+                  <option [value]="b.id">{{ branchLabel(b) }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <app-report-period-selector
+          [period]="datePreset"
+          [dateFrom]="customDateFrom"
+          [dateTo]="customDateTo"
+          [includeYear]="true"
+          [monthAsServerPreset]="true"
+          dateFromId="zn-date-from"
+          dateToId="zn-date-to"
+          ariaLabel="Periodo del reporte"
+          (periodChange)="onPeriodChange($event)"
+          (rangeChange)="onRangeChange($event)" />
+      </div>
+
+      @if (goals(); as g) {
+        @if (!g.has_active_goals && g.message) {
+          <div class="zn-goals-banner mb-5" role="status">
+            <i class="fi fi-rr-info" aria-hidden="true"></i>
+            <span>{{ g.message }}</span>
+          </div>
+        }
+
+        @if (g.branch_goal; as branchGoal) {
+          <div
+            class="zn-branch-goal mb-5"
+            [class.zn-branch-goal--hero]="view === 'commissions'"
+            [class.zn-branch-goal--compact]="view === 'sales'">
+            <div class="zn-branch-goal__header">
+              <div>
+                <p class="zn-branch-goal__title">Meta sucursal</p>
+                <p class="zn-branch-goal__branch">{{ branchGoal.branch_name }}</p>
+              </div>
+              <div class="zn-branch-goal__values">
+                <span class="zn-branch-goal__current">
+                  {{ formatGoalValue(branchGoal.current_value, branchGoal.metric_type) }}
+                </span>
+                <span class="zn-branch-goal__sep">/</span>
+                <span class="zn-branch-goal__target">
+                  {{ formatGoalValue(branchGoal.target_value, branchGoal.metric_type) }}
+                </span>
+                <span class="zn-branch-goal__pct">
+                  ({{ formatProgressPct(branchGoal.progress_percentage) }})
+                </span>
+              </div>
+            </div>
+            <div class="zn-progress" [class.zn-progress--hero]="view === 'commissions'" aria-hidden="true">
+              <div
+                class="zn-progress__fill zn-progress__fill--{{ progressColor(branchGoal.progress_percentage) }}"
+                [style.width.%]="progressWidth(branchGoal.progress_percentage)">
+              </div>
+            </div>
+          </div>
+        }
+      }
+
+      <div class="zn-kpi-grid mb-4">
+        <div class="zn-kpi zn-kpi--people">
+          <p class="zn-kpi__label">{{ peopleLabel }}</p>
+          <p class="zn-kpi__value">{{ peopleCount }}</p>
+        </div>
+        <div class="zn-kpi zn-kpi--sales">
+          <p class="zn-kpi__label">Ventas</p>
+          <p class="zn-kpi__value">{{ summary()?.total_sales_count ?? 0 }}</p>
+        </div>
+        <div class="zn-kpi zn-kpi--amount">
+          <p class="zn-kpi__label">Monto</p>
+          <p class="zn-kpi__value">{{ formatCurrency(summary()?.total_amount ?? 0) }}</p>
+        </div>
+        @if (view === 'commissions') {
+          <div class="zn-kpi zn-kpi--commission">
+            <p class="zn-kpi__label">Comisión</p>
+            <p class="zn-kpi__value">{{ formatCurrency(summary()?.total_commission) }}</p>
+            @if (summary()?.commission_rate != null) {
+              <p class="zn-kpi__hint">{{ summary()?.commission_rate }}%</p>
+            }
+          </div>
+        } @else {
+          <div class="zn-kpi zn-kpi--ticket">
+            <p class="zn-kpi__label">Ticket promedio</p>
+            <p class="zn-kpi__value">{{ formatCurrency(summary()?.average_ticket) }}</p>
+          </div>
+        }
+      </div>
+
+      @if (summary()?.top; as top) {
+        <div class="zn-leader-chip mb-4">
+          Líder: {{ top.name }} · {{ formatCurrency(top.amount) }}
+        </div>
+      }
+
+      @if (branchBars.length > 1) {
+        <div class="zn-branch-bars mb-5" aria-label="Ventas por sucursal">
+          @for (b of branchBars; track b.billing_branch_id) {
+            <div class="zn-branch-bars__row">
+              <span class="zn-branch-bars__name">{{ b.branch_name }}</span>
+              <div class="zn-branch-bars__track" aria-hidden="true">
+                <div class="zn-branch-bars__fill" [style.width.%]="branchBarWidth(b)"></div>
+              </div>
+              <span class="zn-branch-bars__meta">
+                {{ b.sales_count }} · {{ formatCurrency(b.amount) }}
+              </span>
+            </div>
+          }
+        </div>
+      }
+
+      @if (table_config().loading || table_config().rows.length > 0) {
+        <app-datatable-wrapper
+          [config]="table_config()"
+          [rowTemplate]="tableTemplate"
+          (rowClick)="onTableRowClick($event)">
+        </app-datatable-wrapper>
+      } @else {
+        <div class="zn-empty">
+          <app-empty-stage
+            [message]="emptyTitle"
+            [sub_message]="emptySubtitle"
+            [params]="emptyParams">
+          </app-empty-stage>
+          <div class="zn-empty__actions">
+            <button type="button" class="zn-empty__btn" (click)="onTryAnotherRange()">
+              Prueba otro rango
+            </button>
+            @if (billingBranchId) {
+              <button type="button" class="zn-empty__btn zn-empty__btn--ghost" (click)="clearBranchFilter()">
+                Todas las sucursales
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="px-2 py-2">
+    <span class="zn-branch-cell">
+      <span class="zn-branch-cell__avatar" aria-hidden="true">{{ item.branchInitials }}</span>
+      <span class="zn-branch-cell__name">{{ item.branchName || item.branchCode }}</span>
+    </span>
+  </td>
+  <td class="px-2 py-2">
+    <button
+      type="button"
+      class="zn-seller-link"
+      (click)="openSellerOrders(item); $event.stopPropagation()">
+      {{ item.sellerDisplayName }}
+    </button>
+  </td>
+  <td class="px-2 py-2">
+    <span class="zn-sales-pill">{{ item.salesCount }}</span>
+  </td>
+  <td class="px-2 py-2">
+    <p class="zn-amount m-0">{{ formatCurrency(item.totalSold) }}</p>
+  </td>
+  @if (view === 'commissions') {
+    <td class="px-2 py-2">
+      @if (item.commissionAmount != null) {
+        <span class="zn-commission-cell__amount">
+          @if (item.commissionRatePct != null) {
+            {{ item.commissionRatePct }}% ·
+          }
+          {{ formatCurrency(item.commissionAmount) }}
+        </span>
+      } @else {
+        <span class="text-xs text-gray-400">—</span>
+      }
+    </td>
+  } @else {
+    <td class="px-2 py-2">
+      <p class="zn-amount m-0">{{ formatCurrency(item.averageTicket) }}</p>
+    </td>
+  }
+  <td class="px-2 py-2">
+    @if (item.hasGoal && item.goalTargetValue != null) {
+      <div class="zn-row-goal">
+        <div class="zn-row-goal__values">
+          <span class="zn-row-goal__current">
+            {{ formatGoalValue(item.goalCurrentValue ?? 0, item.goalMetricType ?? 'amount') }}
+          </span>
+          <span class="zn-row-goal__sep">/</span>
+          <span class="zn-row-goal__target">
+            {{ formatGoalValue(item.goalTargetValue, item.goalMetricType ?? 'amount') }}
+          </span>
+          @if (item.goalProgressPct != null) {
+            <span class="zn-row-goal__pct">{{ formatProgressPct(item.goalProgressPct, false) }}</span>
+          }
+        </div>
+        @if (item.goalProgressPct != null) {
+          <div class="zn-progress zn-progress--row" aria-hidden="true">
+            <div
+              class="zn-progress__fill zn-progress__fill--{{ progressColor(item.goalProgressPct) }}"
+              [style.width.%]="progressWidth(item.goalProgressPct)">
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <span class="text-xs text-gray-400">—</span>
+    }
+  </td>
+</ng-template>

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, TemplateRef, ViewChild, signal } from '@angular/core';
+import { Component, Inject, OnInit, TemplateRef, ViewChild, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -7,12 +7,15 @@ import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detai
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import {
   SalesReportPeriod,
+  SalesReportView,
   SellerOrderRow,
+  SellerOrdersSeller,
   SellerOrdersSummary,
 } from '../../models/sales-report.model';
 import { SalesReportService } from '../../services/sales-report.service';
 
 export interface SellerOrdersDialogData {
+  view: SalesReportView;
   sellerId: string;
   sellerDisplayName: string;
   billingBranchId: string;
@@ -35,15 +38,32 @@ export class SellerOrdersDialogComponent implements OnInit {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
 
   summary = signal<SellerOrdersSummary | null>(null);
+  seller = signal<SellerOrdersSeller | null>(null);
+
+  readonly title = computed(() => {
+    const seller = this.seller();
+    const name = seller?.name?.trim() || this.data.sellerDisplayName;
+    const code = seller?.pos_user_code;
+    const display =
+      code != null && String(code).trim() !== '' && !name.includes(`(${code})`)
+        ? `${name} (${code})`
+        : name;
+    const role =
+      seller?.role_label?.trim() || (this.data.view === 'commissions' ? 'Comisionado' : 'Vendedor');
+    return `${role} — ${display}`;
+  });
 
   tableConfig = signal<IDatatableConfig>({
     rows: [] as SellerOrderRow[],
     columns: [
-      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 120 },
-      { name: 'Fecha', prop: 'created_at', sortable: false, canAutoResize: false, width: 140 },
-      { name: 'Cliente', prop: 'customer', sortable: false, canAutoResize: false, width: 200 },
-      { name: 'Total', prop: 'total', sortable: false, canAutoResize: false, width: 120 },
-      { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Fecha', prop: 'created_at', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Cliente', prop: 'customer', sortable: false, canAutoResize: false, width: 180 },
+      { name: 'Vendedor', prop: 'seller_name', sortable: false, canAutoResize: false, width: 150 },
+      { name: 'Comisionado', prop: 'assigned_seller_name', sortable: false, canAutoResize: false, width: 150 },
+      { name: 'Sucursal', prop: 'branch_name', sortable: false, canAutoResize: false, width: 140 },
+      { name: 'Total', prop: 'total', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 110 },
     ],
     externalPaging: false,
     externalSorting: false,
@@ -51,7 +71,7 @@ export class SellerOrdersDialogComponent implements OnInit {
     limit: 100,
     totalResults: 0,
     loading: false,
-    emptyState: { title: 'Sin ventas', subtitle: 'No hay órdenes para este vendedor en el periodo' },
+    emptyState: { title: 'Sin ventas', subtitle: 'No hay órdenes para esta persona en el periodo' },
     columnMode: 'force',
     reorderable: false,
   });
@@ -65,6 +85,10 @@ export class SellerOrdersDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadOrders();
+  }
+
+  get isCommissionsView(): boolean {
+    return this.data.view === 'commissions';
   }
 
   close(): void {
@@ -123,6 +147,7 @@ export class SellerOrdersDialogComponent implements OnInit {
 
     this.salesReportService
       .getBySellerOrders({
+        view: this.data.view,
         seller_id: this.data.sellerId,
         billing_branch_id: this.data.billingBranchId,
         period: this.data.period,
@@ -134,6 +159,7 @@ export class SellerOrdersDialogComponent implements OnInit {
         next: (res) => {
           const orders = res.orders ?? res.data ?? res.rows ?? [];
           this.summary.set(res.summary ?? null);
+          this.seller.set(res.seller ?? null);
           this.tableConfig.update((cfg) => ({
             ...cfg,
             rows: orders,
@@ -143,6 +169,7 @@ export class SellerOrdersDialogComponent implements OnInit {
         },
         error: () => {
           this.summary.set(null);
+          this.seller.set(null);
           this.tableConfig.update((cfg) => ({
             ...cfg,
             rows: [],

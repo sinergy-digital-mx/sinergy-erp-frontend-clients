@@ -74,6 +74,19 @@ export class ContractLotSectionComponent implements OnChanges {
     return `${currency} $${amount}`;
   }
 
+  formatPricePerM2(property: Property): string {
+    const value = Number(property.price_per_m2);
+    if (!Number.isFinite(value)) {
+      return '—';
+    }
+    const currency = property.currency || 'MXN';
+    const amount = new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+    return `${currency} $${amount}`;
+  }
+
   private loadLot(emitAfterLoad = false): void {
     this.loading.set(true);
     this.propertyService.getProperty(this.propertyId).subscribe({

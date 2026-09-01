@@ -29,6 +29,12 @@
         <dt>Precio</dt>
         <dd>{{ formatPrice(property) }}</dd>
       </div>
+      @if (property.price_per_m2 != null) {
+        <div class="lot-strip__fact">
+          <dt>Precio / m²</dt>
+          <dd>{{ formatPricePerM2(property) }}</dd>
+        </div>
+      }
     </dl>
 
     @if (property.cadastral_key?.trim()) {

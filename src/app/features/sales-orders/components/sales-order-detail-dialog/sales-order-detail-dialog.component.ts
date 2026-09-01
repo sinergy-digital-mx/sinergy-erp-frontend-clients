@@ -121,8 +121,12 @@ export class SalesOrderDetailDialogComponent {
   keepPreviousDocument = signal(false);
 
   canEditOrder = computed(() => {
-    const status = this.order()?.general_status ?? this.order()?.status ?? '';
-    return status === 'Creada' || status === 'En Selección';
+    const order = this.order();
+    const status = order?.general_status ?? order?.status ?? '';
+    if (status !== 'Creada' && status !== 'En Selección') {
+      return false;
+    }
+    return !this.isControlDeskPickingStarted(order);
   });
 
   canEditNotes = computed(() => {
@@ -380,6 +384,33 @@ export class SalesOrderDetailDialogComponent {
     if (!user) return '—';
     const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
     return name || user.email || '—';
+  }
+
+  controlDesk() {
+    return this.order()?.control_desk ?? null;
+  }
+
+  controlDeskProgressLabel(): string {
+    const progress = this.controlDesk()?.progress;
+    const done = progress?.warehouses_done ?? 0;
+    const total = progress?.warehouses_total ?? 0;
+    return `${done}/${total} almacenes`;
+  }
+
+  isControlDeskPickingStarted(order = this.order()): boolean {
+    const desk = order?.control_desk;
+    if (!desk) return false;
+    if (desk.status && desk.status !== 'released') return true;
+    return (desk.progress?.warehouses_done ?? 0) > 0;
+  }
+
+  goToControlDesk(): void {
+    const jobId = this.controlDesk()?.job_id;
+    if (!jobId) return;
+    this.dialogRef.close(true);
+    void this.router.navigate(['/warehouse-control'], {
+      queryParams: { jobId },
+    });
   }
 
   parseNumber(value: number | string | undefined | null): number {

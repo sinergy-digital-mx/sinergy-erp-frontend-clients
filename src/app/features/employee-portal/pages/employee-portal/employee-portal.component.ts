@@ -13,7 +13,7 @@ import {
   getLeaveTypeLabel,
   getPaymentFrequencyLabel,
 } from '../../../employees/models/employee.model';
-import { getInclusiveDays } from '../../../employees/utils/mexican-labor.util';
+import { getLeaveDays } from '../../../employees/utils/mexican-labor.util';
 
 @Component({
   selector: 'app-employee-portal',
@@ -40,7 +40,7 @@ export class EmployeePortalComponent implements OnInit {
   private leaveFormValue;
   requestedDays = computed(() => {
     const value = this.leaveFormValue();
-    return getInclusiveDays(value?.start_date, value?.end_date);
+    return getLeaveDays(value?.start_date, value?.end_date, value?.type);
   });
   availableDays = computed(() => this.employee()?.vacation?.available_days ?? 0);
   exceedsAvailable = computed(() => {

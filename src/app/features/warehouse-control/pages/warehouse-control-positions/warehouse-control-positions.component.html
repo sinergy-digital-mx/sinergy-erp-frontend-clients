@@ -1,0 +1,147 @@
+<div class="purchase-order-list-container">
+  <div class="purchase-content">
+    <div class="px-4 pb-8">
+      <div class="transfers-header">
+        <div class="transfers-header__left">
+          <a routerLink="/warehouse-control" class="back-link" title="Volver a Mesa de Control">
+            <i class="fi fi-rr-angle-left" aria-hidden="true"></i>
+          </a>
+          <div>
+            <h2 class="transfers-header__title">Configurar posiciones</h2>
+            <p class="wc-subtitle">Celdas de piso por sucursal. El código es único. No se borra una ocupada.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-bar mb-4" role="search" aria-label="Sucursal de posiciones">
+        <div class="filter-bar__container">
+          <div class="filter-bar__field">
+            <select
+              class="filter-bar__select"
+              [(ngModel)]="selectedBranchId"
+              (ngModelChange)="onBranchChange()"
+              aria-label="Sucursal">
+              <option value="">Selecciona sucursal</option>
+              @for (branch of branches(); track branch.id) {
+                <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+
+      @if (!selectedBranchId) {
+        <app-empty-stage
+          icon="fi fi-rr-map-marker"
+          message="Elige una sucursal"
+          sub_message="El mapa de armado se define por sucursal."
+          [params]="emptyParams">
+        </app-empty-stage>
+      } @else {
+        <div class="wc-pos-grid">
+          <form class="wc-card" [formGroup]="form" (ngSubmit)="save()">
+            <h3>{{ editingId() ? 'Editar posición' : 'Nueva posición' }}</h3>
+            <label>
+              <span>Código *</span>
+              <input class="filter-bar__input" formControlName="code" placeholder="A1" />
+            </label>
+            <label>
+              <span>Nombre</span>
+              <input class="filter-bar__input" formControlName="name" placeholder="Pasillo A · 1" />
+            </label>
+            <div class="wc-card__row">
+              <label>
+                <span>Fila</span>
+                <input class="filter-bar__input" type="number" formControlName="row" />
+              </label>
+              <label>
+                <span>Columna</span>
+                <input class="filter-bar__input" type="number" formControlName="col" />
+              </label>
+              <label>
+                <span>Orden</span>
+                <input class="filter-bar__input" type="number" formControlName="sort_order" />
+              </label>
+            </div>
+            <div class="wc-card__actions">
+              <button type="submit" class="page-create-btn" [disabled]="saving() || form.invalid">
+                {{ editingId() ? 'Guardar' : 'Agregar' }}
+              </button>
+              @if (editingId()) {
+                <button type="button" class="page-export-btn" (click)="resetForm()">Cancelar</button>
+              }
+            </div>
+          </form>
+
+          <section class="wc-card">
+            <h3>Vista previa</h3>
+            @if (previewGrid().cells.length) {
+              <div
+                class="wc-preview"
+                [style.grid-template-columns]="'repeat(' + previewGrid().columns + ', minmax(96px, 1fr))'">
+                @for (cell of previewGrid().cells; track cell.key) {
+                  @if (cell.position; as pos) {
+                    <div class="wc-preview__cell" [class.is-busy]="pos.occupied">
+                      <strong>{{ pos.code }}</strong>
+                      <small>{{ pos.occupied ? (pos.job?.folio || 'Ocupada') : 'Libre' }}</small>
+                    </div>
+                  } @else {
+                    <div class="wc-preview__cell is-empty"></div>
+                  }
+                }
+              </div>
+            } @else {
+              <p class="wc-hint">Agrega la primera celda para ver el mapa.</p>
+            }
+          </section>
+        </div>
+
+        <div class="wc-table-wrap">
+          <table class="wc-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Fila</th>
+                <th>Col</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (pos of positions(); track pos.id) {
+                <tr>
+                  <td><strong>{{ pos.code }}</strong></td>
+                  <td>{{ pos.name || '—' }}</td>
+                  <td>{{ pos.row }}</td>
+                  <td>{{ pos.col }}</td>
+                  <td>
+                    <span class="wc-state" [class.is-busy]="pos.occupied">
+                      {{ pos.occupied ? (pos.job?.folio || 'Ocupada') : 'Libre' }}
+                    </span>
+                  </td>
+                  <td class="wc-table__actions">
+                    <button type="button" (click)="startEdit(pos)">
+                      <i class="fi fi-rr-pencil" aria-hidden="true"></i>
+                      Editar
+                    </button>
+                    <button type="button" [disabled]="pos.occupied" (click)="remove(pos)">
+                      <i class="fi fi-rr-trash" aria-hidden="true"></i>
+                      Borrar
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="wc-hint">
+                    Sin posiciones. El picking sí puede arrancar.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>

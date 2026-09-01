@@ -1,118 +1,134 @@
-<div class="wc-panel">
-  <div class="wc-panel__header">
-    <div class="wc-panel__title-block">
-      <span class="wc-panel__badge">En Selección</span>
-      <h2 class="wc-panel__folio">#{{ order()?.folio || data.orderId.slice(0, 8) }}</h2>
+<div class="wc-drawer">
+  <div class="dialog-header">
+    <div class="dialog-header-main">
+      <span class="order-type-badge">MESA</span>
+      <h2 class="dialog-header__folio">#{{ job()?.folio || data.jobId.slice(0, 8) }}</h2>
+      <span
+        class="dt-status-pill"
+        [ngClass]="statusPillClass(job()?.status)"
+        [matTooltip]="statusTooltip()"
+        matTooltipClass="wc-status-tooltip"
+        matTooltipPosition="above">{{ jobStatusLabel() }}</span>
     </div>
-    <button type="button" class="wc-panel__close" (click)="close()" aria-label="Cerrar">
-      <i class="fi fi-rr-cross-small"></i>
-    </button>
+    <div class="dialog-header-actions">
+      <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">
+        <i class="fi fi-rr-cross-small"></i>
+      </button>
+    </div>
   </div>
 
   @if (loading()) {
-    <div class="wc-panel__loading"><app-spinner></app-spinner></div>
-  } @else if (order(); as o) {
-    <div class="wc-panel__meta">
-      <div class="wc-panel__meta-item">
-        <span class="wc-panel__meta-label">Cliente</span>
-        <span class="wc-panel__meta-value">{{ customerName() }}</span>
+    <div class="wc-drawer__loading"><app-spinner></app-spinner></div>
+  } @else if (job(); as o) {
+    <div class="wc-drawer__meta">
+      <div>
+        <span>Cliente</span>
+        <strong>{{ customerName() }}</strong>
       </div>
-      <div class="wc-panel__meta-item">
-        <span class="wc-panel__meta-label">CEDIS</span>
-        <span class="wc-panel__meta-value">{{ branchLabel() }}</span>
+      <div>
+        <span>Sucursal</span>
+        <strong>{{ branchLabel() }}</strong>
       </div>
-      <div class="wc-panel__meta-item">
-        <span class="wc-panel__meta-label">Almacén origen</span>
-        <span class="wc-panel__meta-value">{{ warehouseLabel() }}</span>
+      <div>
+        <span>Posición</span>
+        <strong>{{ o.position?.code || 'Sin posición' }}</strong>
       </div>
-      <div class="wc-panel__meta-item">
-        <span class="wc-panel__meta-label">Fecha entrega</span>
-        <span class="wc-panel__meta-value">{{ formatDate(o.expected_delivery_date) }}</span>
+      <div>
+        <span>Progreso</span>
+        <strong>{{ warehousesDoneLabel() }}</strong>
       </div>
-      <div class="wc-panel__meta-item">
-        <span class="wc-panel__meta-label">Total</span>
-        <span class="wc-panel__meta-value">{{ formatCurrency(o.total) }}</span>
-      </div>
-      @if (o.notes) {
-        <div class="wc-panel__meta-item wc-panel__meta-item--full">
-          <span class="wc-panel__meta-label">Notas</span>
-          <span class="wc-panel__meta-value">{{ o.notes }}</span>
-        </div>
-      }
     </div>
 
-    <div class="wc-panel__body">
-      <h3 class="wc-panel__section-title">Qué tomar</h3>
-
-      @if (hasInsufficientStock()) {
-        <div class="wc-panel__stock-warning">
-          Hay líneas con stock insuficiente. El servidor rechazará la corroboración hasta resolver el inventario.
+    <div class="wc-drawer__body">
+      @if (missing().length) {
+        <div class="wc-drawer__missing">
+          <p class="wc-drawer__missing-title">Faltantes</p>
+          @for (item of missing(); track $index) {
+            <p>{{ missingLabel(item) }}</p>
+          }
         </div>
       }
 
-      <div class="wc-panel__table-wrap">
-        <table class="wc-panel__table">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>Unidad</th>
-              <th>Cantidad</th>
-              <th>Almacén</th>
-              <th>Stock disp.</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (line of lines(); track line.id || $index) {
-              <tr [class.wc-panel__row--warn]="isInsufficientStock(line)">
-                <td>
-                  <div class="wc-panel__product-name">{{ line.product_name || '—' }}</div>
-                  <div class="wc-panel__product-sku">SKU: {{ line.product_sku || 'N/A' }}</div>
-                  @if (line.quantity_base_uom != null && line.quantity_base_uom !== '') {
-                    <div class="wc-panel__product-sku" title="Cantidad en UOM base">
-                      Base: {{ formatQty(line.quantity_base_uom) }}
-                    </div>
+      @for (group of taskGroups(); track group.warehouseId || group.warehouseName) {
+        <section class="wc-wh">
+          <div class="wc-wh__head">
+            <div>
+              <h3>{{ group.warehouseName }}</h3>
+              <p>
+                @for (task of group.tasks; track task.id) {
+                  {{ taskChip(task) }} líneas · {{ taskStatusLabel(task.status) }}
+                }
+              </p>
+            </div>
+            <span>{{ groupProgress(group).pct }}%</span>
+          </div>
+          <div class="wc-wh__bar">
+            <div [style.width.%]="groupProgress(group).pct"></div>
+          </div>
+          <div class="wc-wh__table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Pedida</th>
+                  <th>Surtida</th>
+                  <th>Faltante</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (task of group.tasks; track task.id) {
+                  @for (line of task.lines || []; track line.id || $index) {
+                    <tr [class.is-short]="isShortLine(line) || task.status === 'short'">
+                      <td>
+                        <strong>{{ line.product_name || '—' }}</strong>
+                        <small>SKU: {{ line.product_sku || 'N/A' }}</small>
+                      </td>
+                      <td>{{ orderedQty(line) }}</td>
+                      <td>{{ pickedQty(line) }}</td>
+                      <td [class.is-warn]="isShortLine(line)">{{ shortQty(line) }}</td>
+                    </tr>
                   }
-                </td>
-                <td>{{ line.uom_name || '—' }}</td>
-                <td>{{ formatQty(line.quantity) }}</td>
-                <td>{{ line.warehouse_name || warehouseLabel() }}</td>
-                <td>
-                  <span [class.wc-panel__stock--low]="isInsufficientStock(line)">
-                    {{ formatQty(line.available_quantity) }}
-                  </span>
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="5" class="wc-panel__empty">Sin líneas</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      } @empty {
+        <p class="wc-drawer__empty">Sin tareas de almacén</p>
+      }
 
-      <div class="wc-panel__notes">
-        <label class="wc-panel__notes-label" for="wc-notes">Notas de corroboración (opcional)</label>
-        <textarea
-          id="wc-notes"
-          class="wc-panel__notes-input"
-          rows="2"
-          [(ngModel)]="notes"
-          placeholder="Ej. Armado completo rack 3"></textarea>
-      </div>
+      @if (canCorroborate()) {
+        <label class="wc-drawer__notes">
+          Notas de corroboración (opcional)
+          <textarea rows="2" [(ngModel)]="notes" placeholder="Ej. Armado completo rack 3"></textarea>
+        </label>
+      }
     </div>
 
-    <div class="wc-panel__footer">
-      <button type="button" class="wc-panel__btn wc-panel__btn--ghost" (click)="close()">
-        Cancelar
-      </button>
+    <div class="wc-drawer__footer">
+      <button type="button" class="page-export-btn" (click)="close()">Cerrar</button>
+      @if (canAssign()) {
+        <select class="wc-drawer__select" [(ngModel)]="selectedPositionId" [disabled]="acting()">
+          <option value="">Posición…</option>
+          @for (pos of freePositions(); track pos.id) {
+            <option [value]="pos.id">{{ pos.code }}</option>
+          }
+        </select>
+        <button type="button" class="page-export-btn" [disabled]="acting() || !selectedPositionId" (click)="assignSelected()">
+          Asignar
+        </button>
+        <button type="button" class="page-export-btn" [disabled]="acting()" (click)="assignNextFree()">
+          Siguiente libre
+        </button>
+      }
+      @if (canAssemble()) {
+        <button type="button" class="page-export-btn" [disabled]="acting()" (click)="assemble()">
+          {{ o.status === 'assembling' ? 'Marcar armada' : 'Marcar armando' }}
+        </button>
+      }
       @if (canCorroborate()) {
-        <button
-          type="button"
-          class="wc-panel__btn wc-panel__btn--primary"
-          (click)="corroborate()"
-          [disabled]="confirming()">
-          {{ confirming() ? 'Confirmando…' : 'Confirmar corroboración' }}
+        <button type="button" class="page-create-btn" [disabled]="acting()" (click)="corroborate()">
+          {{ acting() ? 'Confirmando…' : 'Corroborar' }}
         </button>
       }
     </div>

@@ -167,7 +167,7 @@ export class Sidebar implements OnInit, OnDestroy {
       permission: PERMISSIONS.salesOrders.viewMenu
     },
     {
-      label: 'Control de almacén',
+      label: 'Mesa de Control',
       route: '/warehouse-control',
       icon: ClipboardCheck,
       id: 'menu-warehouse-control',

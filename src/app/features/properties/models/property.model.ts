@@ -17,6 +17,8 @@ export interface Property {
   measurement_unit_id: string;
   measurement_unit?: MeasurementUnit;
   total_price: number;
+  /** Precio por m². Opcional en alta/edición; el API lo deriva si solo mandan total. */
+  price_per_m2?: number | null;
   currency: string;
   status: PropertyStatus;
   customer?: PropertyCustomer | null;
@@ -69,9 +71,10 @@ export interface CreatePropertyDto {
   description?: string;
   location?: string;
   group_id: string;
-  total_area: number;
+  total_area?: number;
   measurement_unit_id: string;
-  total_price: number;
+  total_price?: number;
+  price_per_m2?: number | null;
   currency?: string;
   status?: PropertyStatus;
 }
@@ -125,4 +128,13 @@ export function normalizeCadastralKey(value?: string | null): string | null {
 /** Texto para listados y detalle. Null / vacío → —. */
 export function displayCadastralKey(value?: string | null): string {
   return value?.trim() || '—';
+}
+
+/** Vacío / no numérico → null. */
+export function parseOptionalNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }

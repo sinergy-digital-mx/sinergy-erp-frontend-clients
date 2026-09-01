@@ -1,7 +1,7 @@
-<div class="seller-orders-dialog">
+<div class="seller-orders-dialog" [class.seller-orders-dialog--commissions]="isCommissionsView">
   <div class="seller-orders-dialog__header">
     <div>
-      <h2>Ventas — {{ data.sellerDisplayName }}</h2>
+      <h2>{{ title() }}</h2>
       <p>
         @if (summary(); as s) {
           {{ s.total_orders ?? s.total_sales_count ?? tableConfig().totalResults }} ventas
@@ -55,6 +55,13 @@
       }
     </div>
   </td>
+  <td class="px-2 py-2" [class.person-accent]="!isCommissionsView">
+    {{ item.seller_name || '—' }}
+  </td>
+  <td class="px-2 py-2" [class.person-accent]="isCommissionsView">
+    {{ item.assigned_seller_name || '—' }}
+  </td>
+  <td class="px-2 py-2">{{ item.branch_name || data.branchName || '—' }}</td>
   <td class="px-2 py-2">{{ formatCurrency(orderTotal(item)) }}</td>
   <td class="px-2 py-2">
     <span class="payment-pill" [class.payment-pill--paid]="isPaid(item.payment_status)">

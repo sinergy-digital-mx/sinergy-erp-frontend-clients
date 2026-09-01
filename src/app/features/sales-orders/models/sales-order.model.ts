@@ -223,6 +223,7 @@ export interface SalesOrder {
   grand_total?: number;
   notes?: string;
   requires_selection_assembly?: boolean;
+  control_desk?: SalesOrderControlDesk | null;
   corroborated_at?: string | null;
   corroborated_by?: string | null;
   corroborated_by_user?: SalesOrderUserSummary | null;
@@ -332,6 +333,25 @@ export interface PaginatedResponse<T> {
   totalPages: number;
   hasNext?: boolean;
   hasPrev?: boolean;
+}
+
+export interface SalesOrderControlDeskMissing {
+  product_name?: string;
+  warehouse_name?: string;
+}
+
+export interface SalesOrderControlDesk {
+  job_id?: string;
+  status?: string;
+  progress?: {
+    warehouses_done?: number;
+    warehouses_total?: number;
+  };
+  position?: {
+    id?: string;
+    code?: string;
+  } | null;
+  missing?: SalesOrderControlDeskMissing[];
 }
 
 export interface SalesOrderFormData {

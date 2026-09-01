@@ -36,7 +36,9 @@
         <span class="info-card__label">Vacaciones disponibles</span>
         <span class="info-card__value">{{ emp.vacation?.available_days ?? 0 }} días</span>
         <span class="info-card__hint">
-          de {{ emp.vacation?.entitled_days ?? 0 }} · {{ emp.vacation?.taken_days ?? 0 }} tomados · {{ emp.vacation?.pending_days ?? 0 }} pendientes
+          {{ emp.vacation?.entitled_days ?? 0 }} de ley
+          <ng-container *ngIf="(emp.vacation?.carryover_days ?? 0) > 0"> + {{ emp.vacation?.carryover_days }} arrastre</ng-container>
+          · {{ emp.vacation?.taken_days ?? 0 }} tomados · {{ emp.vacation?.pending_days ?? 0 }} pendientes
         </span>
       </div>
       <div class="info-card">
@@ -95,7 +97,7 @@
               <th>Días</th>
               <th>Estatus</th>
               <th>Motivo</th>
-              <th *ngIf="canManageLeave">Acciones</th>
+              <th *ngIf="canManageLeave || canUpdate">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -105,13 +107,16 @@
               <td>{{ req.days }}</td>
               <td><span class="status-badge" [ngClass]="'status-badge--' + req.status">{{ getLeaveStatusLabel(req.status) }}</span></td>
               <td class="reason-cell">{{ req.reason || '—' }}</td>
-              <td *ngIf="canManageLeave">
-                <div class="row-actions" *ngIf="req.status === 'pending'">
-                  <button class="action-btn action-btn--approve" (click)="review(req, 'approved')">Aprobar</button>
-                  <button class="action-btn action-btn--reject" (click)="review(req, 'rejected')">Rechazar</button>
-                  <button class="action-btn" (click)="cancel(req)">Cancelar</button>
+              <td *ngIf="canManageLeave || canUpdate">
+                <div class="row-actions" *ngIf="req.status === 'pending' || (canUpdate && canCorrectLeaveRequest(req.status))">
+                  <button *ngIf="canUpdate && canCorrectLeaveRequest(req.status)" class="action-btn" (click)="correct(req)">Corregir</button>
+                  <ng-container *ngIf="canManageLeave && req.status === 'pending'">
+                    <button class="action-btn action-btn--approve" (click)="review(req, 'approved')">Aprobar</button>
+                    <button class="action-btn action-btn--reject" (click)="review(req, 'rejected')">Rechazar</button>
+                    <button class="action-btn" (click)="cancel(req)">Cancelar</button>
+                  </ng-container>
                 </div>
-                <span *ngIf="req.status !== 'pending'" class="muted">—</span>
+                <span *ngIf="req.status !== 'pending' && !(canUpdate && canCorrectLeaveRequest(req.status))" class="muted">—</span>
               </td>
             </tr>
           </tbody>

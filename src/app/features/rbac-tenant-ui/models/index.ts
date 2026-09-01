@@ -156,6 +156,7 @@ export interface UserEmployeeProfile {
   department?: string;
   hire_date?: string;
   birth_date?: string;
+  vacation_carryover_days?: number;
   monthly_salary?: number;
   payment_frequency?: 'weekly' | 'biweekly' | 'monthly';
   bank_name?: string;
@@ -219,7 +220,15 @@ export interface User {
   manager?: UserManagerSummary | null;
   reports?: ManagerReport[];
   status_id?: number | null;
+  assigned_warehouses?: UserAssignedWarehouse[];
   [key: string]: any;
+}
+
+export interface UserAssignedWarehouse {
+  id: string;
+  name?: string;
+  code?: string;
+  billing_branch_id?: string | null;
 }
 
 export interface UserBillingBranch {
@@ -249,6 +258,7 @@ export interface CreateUserDto {
   is_employee?: boolean;
   employee?: UserEmployeeProfile | null;
   is_manager?: boolean;
+  warehouse_ids?: string[];
 }
 
 export interface UpdateUserDto {
@@ -265,6 +275,7 @@ export interface UpdateUserDto {
   is_employee?: boolean;
   employee?: UserEmployeeProfile | null;
   is_manager?: boolean;
+  warehouse_ids?: string[];
 }
 
 /** Payload de PUT /tenant/users/:userId/password (propio o ajeno con User:Reset_Password). */
