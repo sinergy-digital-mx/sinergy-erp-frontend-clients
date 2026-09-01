@@ -6,11 +6,12 @@ import { WarehouseService } from '../../../purchase-orders/services/warehouse.se
 import { InventorySummaryItem, InventorySummaryFilters, PaginationParams } from '../../models/inventory-item.model';
 import { Warehouse } from '../../../purchase-orders/models/warehouse.model';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
 @Component({
   selector: 'app-inventory-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SpinnerComponent],
   templateUrl: './inventory-list.component.html',
   styleUrls: ['./inventory-list.component.scss']
 })

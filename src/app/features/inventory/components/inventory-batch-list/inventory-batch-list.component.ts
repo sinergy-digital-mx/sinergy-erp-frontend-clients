@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { LucideAngularModule, ArrowRightLeft } from 'lucide-angular';
+import { LucideAngularModule, ArrowRightLeft, ClipboardCheck } from 'lucide-angular';
 import { InventoryService } from '../../services/inventory.service';
 import { InventoryListState } from '../../services/inventory-list-state.service';
 import { InventoryLocationFiscal } from '../../models/inventory-location.model';
@@ -42,6 +42,7 @@ export class InventoryBatchListComponent implements OnInit {
   readonly state = inject(InventoryListState);
 
   readonly ArrowRightLeft = ArrowRightLeft;
+  readonly ClipboardCheck = ClipboardCheck;
 
   locations = signal<InventoryLocationFiscal[]>([]);
   stats = signal<InventoryStats | null>(null);

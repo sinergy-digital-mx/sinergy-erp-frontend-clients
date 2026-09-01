@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { of } from 'rxjs';
 import { catchError, finalize, timeout } from 'rxjs/operators';
 import { SETTINGS_PERMISSIONS } from '../../config/permissions.config';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import {
   DailyExchangeRate,
@@ -13,7 +14,7 @@ import {
 @Component({
   selector: 'app-exchange-rate-settings',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, SpinnerComponent],
   templateUrl: './exchange-rate-settings.component.html',
   styleUrl: './exchange-rate-settings.component.scss'
 })

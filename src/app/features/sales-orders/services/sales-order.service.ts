@@ -11,6 +11,7 @@ import {
   PaginationParams, 
   PaginatedResponse,
   SalesOrderFormData,
+  SalesOrderProductsSummaryParams,
   SalesOrderDetailPayload,
   SalesOrderDetailResponse,
   RegenerateSalesDocumentResponse,
@@ -28,6 +29,11 @@ import {
   SalesOrderPaymentsSummary,
 } from '../models/sales-order-payment.model';
 import { environment } from '../../../../environments/environment';
+
+export interface SalesOrderSellerPatchResult {
+  seller_user?: SalesOrder['seller_user'];
+  assigned_seller_user?: SalesOrder['assigned_seller_user'];
+}
 
 @Injectable({
   providedIn: 'root'
@@ -66,6 +72,9 @@ export class SalesOrderService {
     }
     if (filters.payment_status) {
       params = params.set('payment_status', filters.payment_status);
+    }
+    if (filters.collection_channel) {
+      params = params.set('collection_channel', filters.collection_channel);
     }
     if (filters.sales_order_type) {
       params = params.set('sales_order_type', filters.sales_order_type);
@@ -216,6 +225,8 @@ export class SalesOrderService {
     const payments = payload.payments ?? payload.header.payments ?? [];
     const payments_summary =
       payload.payments_summary ?? payload.header.payments_summary;
+    const payment_display =
+      payload.payment_display ?? payload.header.payment_display;
 
     const discount_summary =
       normalizeSalesOrderDiscountSummary(
@@ -228,6 +239,7 @@ export class SalesOrderService {
       ...payload.header,
       payments,
       payments_summary,
+      payment_display,
       discount_summary,
       global_discount_amount:
         payload.header.global_discount_amount ?? discount_summary?.global_discount_amount,
@@ -241,6 +253,7 @@ export class SalesOrderService {
       header,
       payments,
       payments_summary,
+      payment_display,
       discount_summary,
     };
   }
@@ -311,7 +324,12 @@ export class SalesOrderService {
    * Create new sales order
    */
   createOrder(data: SalesOrderFormData): Observable<SalesOrder> {
-    console.log('[SalesOrder] Creating order', { warehouse_id: data.warehouse_id, line_items: data.line_items.length });
+    console.log('[SalesOrder] Creating order', {
+      fiscal_configuration_id: data.fiscal_configuration_id,
+      billing_branch_id: data.billing_branch_id,
+      warehouse_id: data.warehouse_id,
+      line_items: data.line_items.length,
+    });
 
     return this.http.post<SalesOrder>(this.baseUrl, data)
       .pipe(
@@ -326,7 +344,29 @@ export class SalesOrderService {
   }
 
   /**
-   * Get products summary by warehouse for sales order creation
+   * Stock agregado de todos los almacenes de la sucursal (alta MANUAL).
+   */
+  getProductsSummary(params: SalesOrderProductsSummaryParams): Observable<any> {
+    let httpParams = new HttpParams()
+      .set('fiscal_configuration_id', params.fiscal_configuration_id)
+      .set('billing_branch_id', params.billing_branch_id)
+      .set('limit', String(params.limit ?? 100));
+
+    if (params.search?.trim()) {
+      httpParams = httpParams.set('search', params.search.trim());
+    }
+    if (params.page != null) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+
+    return this.http.get<any>(`${this.baseUrl}/products-summary`, { params: httpParams })
+      .pipe(
+        catchError(error => this.handleError(error))
+      );
+  }
+
+  /**
+   * Resumen de un solo almacén. Legado / POS; no usar en el modal Crear OV.
    */
   getWarehouseProductsSummary(warehouseId: string): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/warehouse/${warehouseId}/products-summary`)
@@ -365,6 +405,7 @@ export class SalesOrderService {
       ['search', filters.search],
       ['general_status', generalStatus],
       ['payment_status', filters.payment_status],
+      ['collection_channel', filters.collection_channel],
       ['sales_order_type', filters.sales_order_type],
       ['fiscal_configuration_id', filters.fiscal_configuration_id],
       ['billing_branch_id', filters.billing_branch_id],
@@ -492,10 +533,24 @@ export class SalesOrderService {
   updateOrderSeller(
     orderId: string,
     sellerUserId: string
-  ): Observable<{ seller_user: SalesOrder['seller_user'] }> {
+  ): Observable<SalesOrderSellerPatchResult> {
     return this.http
       .patch<unknown>(`${this.baseUrl}/${orderId}/seller`, {
         seller_user_id: sellerUserId,
+      })
+      .pipe(
+        map((response) => this.parseSellerPatchResponse(response)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  updateOrderAssignedSeller(
+    orderId: string,
+    assignedSellerUserId: string
+  ): Observable<SalesOrderSellerPatchResult> {
+    return this.http
+      .patch<unknown>(`${this.baseUrl}/${orderId}/assigned-seller`, {
+        assigned_seller_user_id: assignedSellerUserId,
       })
       .pipe(
         map((response) => this.parseSellerPatchResponse(response)),
@@ -533,6 +588,9 @@ export class SalesOrderService {
       );
   }
 
+  /**
+   * Reescribe los dos PDFs A4 (DOCUMENTO_ORIGINAL + ENTREGA). No toca el ticket térmico.
+   */
   regenerateOriginalPDF(
     orderId: string,
     language: SalesDocumentLanguage,
@@ -618,17 +676,21 @@ export class SalesOrderService {
     return { notes: fallbackNotes };
   }
 
-  private parseSellerPatchResponse(
-    response: unknown
-  ): { seller_user: SalesOrder['seller_user'] } {
+  private parseSellerPatchResponse(response: unknown): SalesOrderSellerPatchResult {
     const body = this.unwrapData(response);
     const header =
       body['header'] && typeof body['header'] === 'object' && !Array.isArray(body['header'])
         ? (body['header'] as Record<string, unknown>)
         : body;
 
-    const sellerUser = (header['seller_user'] ?? body['seller_user'] ?? null) as SalesOrder['seller_user'];
-    return { seller_user: sellerUser ?? undefined };
+    const result: SalesOrderSellerPatchResult = {};
+    if ('seller_user' in header || 'seller_user' in body) {
+      result.seller_user = (header['seller_user'] ?? body['seller_user'] ?? null) as SalesOrder['seller_user'];
+    }
+    if ('assigned_seller_user' in header || 'assigned_seller_user' in body) {
+      result.assigned_seller_user = (header['assigned_seller_user'] ?? body['assigned_seller_user'] ?? null) as SalesOrder['assigned_seller_user'];
+    }
+    return result;
   }
 
   /**

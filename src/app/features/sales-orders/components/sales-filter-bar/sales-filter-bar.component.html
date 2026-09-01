@@ -32,6 +32,24 @@
     </div>
 
     <div class="filter-bar__field">
+      <select [formControl]="paymentStatusControl" class="filter-bar__select">
+        <option value="">Todos los pagos</option>
+        @for (option of paymentStatusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-bar__field">
+      <select [formControl]="collectionChannelControl" class="filter-bar__select">
+        <option value="">Todos los orígenes</option>
+        @for (option of collectionChannelOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-bar__field">
       <select [formControl]="fiscalConfigurationControl" class="filter-bar__select">
         <option value="">Todas las razones sociales</option>
         @for (fc of fiscalConfigurations; track fc.id) {
@@ -51,7 +69,7 @@
 
     <div class="filter-bar__field">
       <select [formControl]="creditControl" class="filter-bar__select">
-        <option value="">Todos los pagos</option>
+        <option value="">Crédito: todos</option>
         <option value="true">Solo crédito</option>
       </select>
     </div>

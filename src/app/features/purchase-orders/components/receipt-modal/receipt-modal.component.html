@@ -35,7 +35,11 @@
 
                 <div class="item-card__progress">
                   <p class="item-card__ratio" [class.is-over]="isOverReceived(lineItem)">
-                    {{ getReceivingQty(lineItem) | removeTrailingZeros }}
+                    @if (getReceivingQty(lineItem) > 0) {
+                      {{ getReceivingQty(lineItem) | removeTrailingZeros }}
+                    } @else {
+                      —
+                    }
                     /
                     {{ getOrderedQty(lineItem) | removeTrailingZeros }}
                     {{ getLineUomName(lineItem) }}
@@ -110,7 +114,7 @@
                           class="form-input"
                           [(ngModel)]="receivedQuantities[lineItem.id]"
                           [ngModelOptions]="{standalone: true}"
-                          placeholder="0"
+                          placeholder=""
                           min="0"
                           step="0.001"
                         />
@@ -142,12 +146,64 @@
                 }
               </div>
 
+              <label class="measure-toggle">
+                <input
+                  type="checkbox"
+                  [ngModel]="indicateMeasure[lineItem.id]"
+                  (ngModelChange)="onIndicateMeasureChange(lineItem.id, $event)"
+                  [ngModelOptions]="{standalone: true}"
+                />
+                Indicar medida
+              </label>
+
+              @if (isIndicateMeasure(lineItem.id)) {
+                <div class="measure-fields" [class.measure-fields--multiple]="getLotMode(lineItem.id) === 'multiple'">
+                  @if (getLotMode(lineItem.id) === 'single') {
+                    <div class="qty-field">
+                      <label [attr.for]="'measure-' + lineItem.id">Tamaño</label>
+                      <input
+                        [id]="'measure-' + lineItem.id"
+                        type="number"
+                        class="form-input form-input--num"
+                        [(ngModel)]="measureValues[lineItem.id]"
+                        [ngModelOptions]="{standalone: true}"
+                        placeholder=""
+                        min="0"
+                        step="0.001"
+                      />
+                    </div>
+                  }
+                  <div class="qty-field measure-fields__uom">
+                    <label [attr.for]="'measure-uom-' + lineItem.id">
+                      {{ getLotMode(lineItem.id) === 'multiple' ? 'Unidad del tamaño' : 'Unidad' }}
+                    </label>
+                    <select
+                      [id]="'measure-uom-' + lineItem.id"
+                      class="form-input"
+                      [(ngModel)]="measureUomIds[lineItem.id]"
+                      [ngModelOptions]="{standalone: true}"
+                    >
+                      <option value="">Elegir unidad</option>
+                      @for (uom of uomCatalog; track uom.id) {
+                        <option [value]="uom.id">{{ uom.name }}</option>
+                      }
+                    </select>
+                  </div>
+                  @if (getLotMode(lineItem.id) === 'single' && getLineMeasurePreview(lineItem.id)) {
+                    <span class="measure-preview">{{ getLineMeasurePreview(lineItem.id) }}</span>
+                  }
+                </div>
+              }
+
               @if (getLotMode(lineItem.id) === 'multiple') {
-                <div class="lots">
+                <div class="lots" [class.lots--measure]="isIndicateMeasure(lineItem.id)">
                   <div class="lots__head">
                     <span>Tag / Identificador</span>
                     <span>Cantidad</span>
                     <span>UOM</span>
+                    @if (isIndicateMeasure(lineItem.id)) {
+                      <span>Tamaño</span>
+                    }
                     <span></span>
                   </div>
                   <div class="lots__body">
@@ -155,20 +211,33 @@
                       <div class="lots__row">
                         <input
                           type="text"
-                          class="form-input"
+                          class="form-input lot-tag"
                           [(ngModel)]="multipleLotsByLine[lineItem.id][lotIndex].tag_identifier"
                           [ngModelOptions]="{standalone: true}"
-                          placeholder="Ej: 12404277658"
+                          placeholder="Ej: A-01"
                         />
                         <input
                           type="number"
-                          class="form-input"
+                          class="form-input form-input--num lot-qty"
                           [(ngModel)]="multipleLotsByLine[lineItem.id][lotIndex].quantity"
                           [ngModelOptions]="{standalone: true}"
+                          placeholder=""
                           min="0"
                           step="0.001"
                         />
                         <span class="lot-uom">{{ getLineUomName(lineItem) }}</span>
+                        @if (isIndicateMeasure(lineItem.id)) {
+                          <input
+                            type="number"
+                            class="form-input form-input--num lot-measure"
+                            [(ngModel)]="multipleLotsByLine[lineItem.id][lotIndex].measure"
+                            [ngModelOptions]="{standalone: true}"
+                            placeholder=""
+                            min="0"
+                            step="0.001"
+                            [attr.aria-label]="'Tamaño lote ' + (lotIndex + 1)"
+                          />
+                        }
                         <button
                           type="button"
                           class="btn-remove-lot"

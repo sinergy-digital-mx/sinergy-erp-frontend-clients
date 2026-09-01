@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { CustomerService } from '../../../../core/services/customer.service';
@@ -41,7 +42,7 @@ import { FiscalConfiguration } from '../../../settings/models/fiscal-configurati
 @Component({
   selector: 'app-sales-order-invoicing-tab',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SpinnerComponent],
   templateUrl: './sales-order-invoicing-tab.component.html',
   styleUrl: './sales-order-invoicing-tab.component.scss',
 })

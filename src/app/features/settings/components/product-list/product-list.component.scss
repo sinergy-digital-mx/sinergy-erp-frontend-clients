@@ -29,14 +29,38 @@
   }
 
   &__export,
+  &__import,
   &__create {
-    @include brand.brand-btn-primary;
     flex-shrink: 0;
     height: 36px;
     padding: 0 0.875rem;
     font-size: 0.8125rem;
     border-radius: 8px;
     white-space: nowrap;
+  }
+
+  &__export,
+  &__create {
+    @include brand.brand-btn-primary;
+  }
+
+  &__import {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid #c7d2fe;
+    background: #fff;
+    color: #4338ca;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: #eef2ff;
+      color: #312e81;
+    }
   }
 }
 

@@ -22,7 +22,7 @@
 
   @if (loading()) {
     <div class="transfer-dialog__loading">
-      <p>Cargando contexto...</p>
+      <app-spinner></app-spinner>
     </div>
   } @else if (!stepReady()) {
     <div class="transfer-dialog__body transfer-dialog__body--picker">
@@ -260,6 +260,9 @@
                         {{ line.batch.purchase_order_folio || 'Sin OC' }}
                         @if (line.batch.source_tag_identifier) {
                           · {{ line.batch.source_tag_identifier }}
+                        }
+                        @if (line.batch.measure_label) {
+                          · {{ line.batch.measure_label }}
                         }
                       </span>
                     </div>

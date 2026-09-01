@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LucideAngularModule, Plus, Pencil } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { CustomerActivityService } from '../../services/customer-activity.service';
 import {
@@ -26,7 +27,7 @@ import {
 @Component({
   selector: 'app-customer-activities',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, LucideAngularModule],
+  imports: [CommonModule, ButtonComponent, LucideAngularModule, SpinnerComponent],
   templateUrl: './customer-activities.component.html',
   styleUrl: './customer-activities.component.scss',
 })

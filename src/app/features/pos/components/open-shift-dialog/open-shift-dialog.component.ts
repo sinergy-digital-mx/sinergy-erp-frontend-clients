@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { BranchService } from '../../../settings/services/branch.service';
@@ -41,6 +42,7 @@ const LS_BRANCH = 'pos_billing_branch_id';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    SpinnerComponent,
   ],
   templateUrl: './open-shift-dialog.component.html',
   styleUrls: ['./open-shift-dialog.component.scss'],

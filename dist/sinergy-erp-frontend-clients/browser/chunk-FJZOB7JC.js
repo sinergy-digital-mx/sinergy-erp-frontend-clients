@@ -1,0 +1,1 @@
+function t(e,n="\u2014"){return e?.measure_label?.trim()||n}function a(e){let n=e.measure_label?.trim();return n||"Sin medida"}function u(e){return Array.isArray(e)&&e.length>0}function l(e,n){return u(e)?e.map(r=>`${a(r)} \u2192 ${n(r.total_available_quantity??void 0)}`).join(" \xB7 "):""}export{t as a,u as b,l as c};

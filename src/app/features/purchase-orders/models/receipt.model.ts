@@ -14,14 +14,26 @@ export interface ReceivedItem {
   expiration_date?: string | null;
   lot_mode?: LotMode;
   lots?: ReceivedLot[];
+  /** Tamaño de la pieza (8, 12). Independiente de product_uom_id. */
+  measure?: number;
+  /** UoM de catálogo del tamaño (Foot, PIES). No es la UOM de la OC. */
+  measure_uom_id?: string;
 }
 
 export type LotMode = 'single' | 'multiple';
 
 export interface ReceivedLot {
   tag_identifier: string;
-  quantity: number;
+  quantity: number | null;
   product_uom_id: string;
+  measure?: number | null;
+  measure_uom_id?: string;
+}
+
+export interface UomCatalogItem {
+  id: string;
+  name: string;
+  abbreviation?: string;
 }
 
 /**

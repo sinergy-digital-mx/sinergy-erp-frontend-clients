@@ -6,6 +6,7 @@ export interface TransferContextBatch {
   available_quantity: string;
   purchase_order_folio?: string | null;
   source_tag_identifier?: string | null;
+  measure_label?: string | null;
 }
 
 export interface TransferContextFiscal {
@@ -104,6 +105,7 @@ export interface TransferLine {
   destination_batch_id?: string;
   destination_batch_number: string;
   quantity: string;
+  measure_label?: string | null;
 }
 
 export interface InventoryTransfer {

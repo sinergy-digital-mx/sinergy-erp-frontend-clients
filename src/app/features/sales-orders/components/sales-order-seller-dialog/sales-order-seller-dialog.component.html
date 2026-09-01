@@ -12,10 +12,10 @@
   </div>
 
   <div class="seller-dialog__body">
-    <label class="seller-dialog__label" for="sales-order-seller-select">Vendedor</label>
+    <label class="seller-dialog__label" for="sales-order-seller-select">{{ fieldLabel }}</label>
 
     @if (loading()) {
-      <p class="seller-dialog__hint">Cargando vendedores...</p>
+      <app-spinner></app-spinner>
     } @else {
       <select
         id="sales-order-seller-select"
@@ -23,13 +23,15 @@
         [ngModel]="selectedSellerId()"
         (ngModelChange)="selectedSellerId.set($event)"
         [disabled]="saving() || sellers().length === 0">
-        <option value="" disabled>Selecciona un vendedor</option>
+        <option value="" disabled>Selecciona {{ isAssignedMode ? 'un comisionado' : 'un vendedor' }}</option>
         @for (seller of sellers(); track seller.id) {
           <option [value]="seller.id">{{ sellerLabel(seller) }}</option>
         }
       </select>
       @if (sellers().length === 0) {
-        <p class="seller-dialog__hint">No hay usuarios elegibles como vendedor.</p>
+        <p class="seller-dialog__hint">No hay usuarios con código POS elegibles.</p>
+      } @else if (isAssignedMode) {
+        <p class="seller-dialog__hint">Quien comisiona esta venta</p>
       }
     }
 

@@ -4,6 +4,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { InventoryTransferService } from '../../services/inventory-transfer.service';
 import { InventoryTransfer } from '../../models/inventory-transfer.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
 import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
@@ -19,7 +20,7 @@ import {
 @Component({
   selector: 'app-transfer-detail-dialog',
   standalone: true,
-  imports: [CommonModule, RemoveTrailingZerosPipe, LucideAngularModule, TransferLocationPathComponent],
+  imports: [CommonModule, RemoveTrailingZerosPipe, LucideAngularModule, TransferLocationPathComponent, SpinnerComponent],
   templateUrl: './transfer-detail-dialog.component.html',
   styleUrl: './transfer-detail-dialog.component.scss',
 })

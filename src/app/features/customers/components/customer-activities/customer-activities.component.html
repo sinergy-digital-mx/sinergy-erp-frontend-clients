@@ -70,7 +70,7 @@
 
   @if (loading()) {
     <div class="text-center py-8">
-      <p class="text-sm text-gray-500">Cargando actividades...</p>
+      <app-spinner></app-spinner>
     </div>
   } @else if (activities().length === 0) {
     <div class="text-center py-8 text-gray-500">

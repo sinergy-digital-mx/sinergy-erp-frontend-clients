@@ -65,7 +65,7 @@ main,
     box-sizing: border-box;
   }
 
-  select:not(.mat-mdc-select-trigger):not([class*='p-']):not(.form-select) {
+  select:not(.mat-mdc-select-trigger):not([class*='p-']):not(.form-select):not(.pos-line__pricing-select) {
     @include fc.pollux-select-field;
   }
 }
@@ -222,6 +222,10 @@ main,
   height: min(720px, 92vh);
 }
 
+.cdk-overlay-pane.audit-dialog-panel {
+  height: min(860px, 92vh);
+}
+
 /* Modales editar / agregar línea de OC */
 .cdk-overlay-pane.po-line-dialog-panel .mat-mdc-dialog-container,
 .mat-mdc-dialog-panel.po-line-dialog-panel .mat-mdc-dialog-container {
@@ -249,7 +253,9 @@ main,
 }
 
 .cdk-overlay-pane.transfer-dialog-panel .mat-mdc-dialog-container,
-.mat-mdc-dialog-panel.transfer-dialog-panel .mat-mdc-dialog-container {
+.mat-mdc-dialog-panel.transfer-dialog-panel .mat-mdc-dialog-container,
+.cdk-overlay-pane.audit-dialog-panel .mat-mdc-dialog-container,
+.mat-mdc-dialog-panel.audit-dialog-panel .mat-mdc-dialog-container {
   padding: 0 !important;
   overflow: hidden !important;
   border-radius: 1rem !important;
@@ -257,7 +263,9 @@ main,
 }
 
 .cdk-overlay-pane.transfer-dialog-panel .mat-mdc-dialog-surface,
-.mat-mdc-dialog-panel.transfer-dialog-panel .mat-mdc-dialog-surface {
+.mat-mdc-dialog-panel.transfer-dialog-panel .mat-mdc-dialog-surface,
+.cdk-overlay-pane.audit-dialog-panel .mat-mdc-dialog-surface,
+.mat-mdc-dialog-panel.audit-dialog-panel .mat-mdc-dialog-surface {
   overflow: hidden !important;
   height: 100% !important;
   display: flex !important;
@@ -341,13 +349,19 @@ main,
   border-radius: 8px !important;
 }
 
-/* Modal detalle de lote: más ancho para folio OC y pedimento */
+/* Modal detalle de lote: mismo tamaño anidado (OC/OV) que desde el listado */
 .cdk-global-overlay-wrapper:has(.batch-detail-dialog-container) {
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
   padding: 0.75rem;
   box-sizing: border-box;
+}
+
+/* Anidado sobre OC/OV: el wrapper queda a viewport, no recortado por el modal padre */
+.cdk-overlay-container > .cdk-global-overlay-wrapper:has(> .batch-detail-dialog-container) {
+  position: fixed !important;
+  inset: 0 !important;
 }
 
 .cdk-overlay-pane.batch-detail-dialog-container,
@@ -359,13 +373,29 @@ main,
   bottom: auto !important;
   transform: translate(-50%, -50%) !important;
   margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
   width: min(1440px, calc(100vw - 1.5rem)) !important;
   max-width: calc(100vw - 1.5rem) !important;
+  height: min(92dvh, calc(100dvh - 1.5rem)) !important;
   max-height: min(92dvh, calc(100dvh - 1.5rem)) !important;
+}
+
+.cdk-overlay-pane.batch-detail-dialog-container .mat-mdc-dialog-container,
+.cdk-overlay-pane.batch-detail-dialog-container .mat-mdc-dialog-inner-container,
+.cdk-overlay-pane.batch-detail-dialog-container .mat-mdc-dialog-surface,
+.mat-mdc-dialog-panel.batch-detail-dialog-container .mat-mdc-dialog-container,
+.mat-mdc-dialog-panel.batch-detail-dialog-container .mat-mdc-dialog-inner-container,
+.mat-mdc-dialog-panel.batch-detail-dialog-container .mat-mdc-dialog-surface {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
 }
 
 .mat-mdc-dialog-container:has(.batch-detail) {
   width: 100% !important;
+  height: 100% !important;
   max-width: 100% !important;
   max-height: 100% !important;
   padding: 0 !important;
@@ -374,8 +404,10 @@ main,
   box-sizing: border-box;
 }
 
+.mat-mdc-dialog-container:has(.batch-detail) .mat-mdc-dialog-inner-container,
 .mat-mdc-dialog-container:has(.batch-detail) .mat-mdc-dialog-surface {
   width: 100% !important;
+  height: 100% !important;
   max-width: 100% !important;
   max-height: 100% !important;
   border-radius: 8px !important;
@@ -415,11 +447,13 @@ main,
     transform: none !important;
     width: 100vw !important;
     max-width: 100vw !important;
+    height: 100dvh !important;
     max-height: 100dvh !important;
   }
 
   .mat-mdc-dialog-container:has(.batch-detail) {
     border-radius: 0;
+    height: 100dvh !important;
     max-height: 100dvh !important;
   }
 }

@@ -1,26 +1,94 @@
 .spinner-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.spinner {
+  border: 5px solid rgba(255, 255, 255, 0.28);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: #fff;
+  animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.pollux-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 1.25rem 0.75rem;
+  user-select: none;
+}
+
+.pollux-loader__orbit {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 2px solid #e0e7ff;
+  border-top-color: #4338ca;
+  border-right-color: #06b6d4;
+  animation: pollux-spin 0.85s linear infinite;
+}
+
+.pollux-loader__word {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.08em;
+  min-height: 1.6em;
+}
+
+.pollux-loader__letter {
+  display: inline-block;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  background: linear-gradient(135deg, #3730a3 0%, #4338ca 42%, #0891b2 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: pollux-bounce 1.05s ease-in-out infinite;
+}
+
+.pollux-loader--sm {
+  gap: 0.45rem;
+  padding: 0.5rem 0.25rem;
+
+  .pollux-loader__orbit {
+    width: 1.65rem;
+    height: 1.65rem;
+    border-width: 2px;
   }
-  
-  .spinner {
-    border: 5px solid rgba(0, 0, 0, 0.1);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border-left-color: #fff;
-    animation: spin 1s ease infinite;
+
+  .pollux-loader__letter {
+    font-size: 0.95rem;
+    letter-spacing: 0.1em;
   }
-  
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-  
-    100% {
-      transform: rotate(360deg);
-    }
+}
+
+@keyframes pollux-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pollux-bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    filter: brightness(1);
   }
-  
+  35% {
+    transform: translateY(-9px) scale(1.12);
+    filter: brightness(1.2);
+  }
+}

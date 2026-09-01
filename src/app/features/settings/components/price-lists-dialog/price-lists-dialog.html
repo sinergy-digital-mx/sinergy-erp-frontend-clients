@@ -14,8 +14,7 @@
     </div>
 
     <div *ngIf="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Cargando listas...</p>
+      <app-spinner></app-spinner>
     </div>
 
     <div *ngIf="!loading && priceLists.length === 0" class="empty-state">

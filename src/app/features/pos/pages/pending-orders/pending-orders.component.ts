@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { POSService } from '../../services/pos.service';
 import { formatPosMoney } from '../../models/pos-daily-shift.model';
 import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
 
 interface PendingSale {
@@ -20,7 +21,7 @@ interface PendingSale {
 @Component({
   selector: 'app-pending-orders',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SpinnerComponent],
   templateUrl: './pending-orders.component.html',
   styleUrls: ['./pending-orders.component.scss']
 })

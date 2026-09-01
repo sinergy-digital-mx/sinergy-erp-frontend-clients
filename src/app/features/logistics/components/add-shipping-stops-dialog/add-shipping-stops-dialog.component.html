@@ -10,7 +10,7 @@
 
   <div class="add-stops__list">
     @if (loading()) {
-      <p class="text-sm text-gray-500 p-4">Cargando órdenes elegibles…</p>
+      <p class="text-sm text-gray-500 p-4"><app-spinner></app-spinner></p>
     } @else if (!orders().length) {
       <p class="text-sm text-gray-500 p-4">No hay órdenes Surtida o Lista para entrega disponibles en esta sucursal.</p>
     } @else {

@@ -117,6 +117,7 @@ import { catchError, map, switchMap } from 'rxjs/operators';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { Customer } from '../../../customers/models/customer-group.model';
 import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CreditUsageBarComponent } from '../../../customers/components/credit-usage-bar/credit-usage-bar.component';
 import { isCustomerCreditEnabled, unwrapCustomerPayload } from '../../../customers/utils/customer-credit.util';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
@@ -153,7 +154,7 @@ type DashboardTab = 'pending' | 'collected' | 'shifts';
 @Component({
   selector: 'app-payment',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, SlimSwitchComponent, CreditUsageBarComponent],
+  imports: [CommonModule, FormsModule, LucideAngularModule, SlimSwitchComponent, CreditUsageBarComponent, SpinnerComponent],
   templateUrl: './payment.component.html',
   styleUrls: ['./payment.component.scss'],
 })

@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { PurchaseOrder, OrderStatus, PaymentStatus } from '../../models/purchase-order.model';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 
@@ -10,7 +11,7 @@ import { TaxCalculatorService } from '../../services/tax-calculator.service';
 @Component({
   selector: 'app-orders-table',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SpinnerComponent],
   templateUrl: './orders-table.component.html',
   styleUrls: ['./orders-table.component.scss']
 })

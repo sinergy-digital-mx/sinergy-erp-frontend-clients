@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
@@ -14,8 +14,8 @@ import { LucideAngularModule, Search } from 'lucide-angular';
     standalone: true,
   imports: [CommonModule, ReactiveFormsModule, InputComponent, LucideAngularModule],
 })
-export class SearchComponent implements OnInit {
-  search = new FormControl();
+export class SearchComponent implements OnInit, OnChanges, OnDestroy {
+  search = new FormControl('');
   subscription: Subscription;
   readonly Search = Search;
   @Input() default_value?: string;
@@ -33,24 +33,21 @@ export class SearchComponent implements OnInit {
 
   ngOnInit(): void {
     this.subscription = this.search.valueChanges.pipe(debounceTime(600)).subscribe((value) => {
-      if (typeof value != 'undefined') {
-        this.searchChange.emit(value.trim());
-        if(this.param_activate){
-          this.addQueryParam(value)
-        }
-      }
+      this.emitSearch(value);
     });
 
     if(this.param_activate){
-      this.search.setValue(this.route.snapshot.queryParams[this.param_name])
+      this.search.setValue(this.route.snapshot.queryParams[this.param_name] ?? '')
     }
   }
-  ngOnChanges(): void {
-    this.search.setValue(this.default_value);
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['default_value'] && typeof this.default_value === 'string') {
+      this.search.setValue(this.default_value, { emitEvent: false });
+    }
   }
 
   ngOnDestroy() {
-    this.subscription.unsubscribe();
+    this.subscription?.unsubscribe();
   }
 
   addQueryParam(value:string): void {
@@ -67,7 +64,16 @@ export class SearchComponent implements OnInit {
   }
 
   clear(): void {
-    this.search.setValue('');
+    this.search.setValue('', { emitEvent: false });
+    this.emitSearch('');
+  }
+
+  private emitSearch(value: unknown): void {
+    const next = typeof value === 'string' ? value.trim() : '';
+    this.searchChange.emit(next);
+    if (this.param_activate) {
+      this.addQueryParam(next);
+    }
   }
 
 }

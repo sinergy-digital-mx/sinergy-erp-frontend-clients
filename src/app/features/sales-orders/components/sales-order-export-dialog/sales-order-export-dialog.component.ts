@@ -89,6 +89,9 @@ export class SalesOrderExportDialogComponent {
     if (listFilters.payment_status) {
       filters.payment_status = listFilters.payment_status;
     }
+    if (listFilters.collection_channel) {
+      filters.collection_channel = listFilters.collection_channel;
+    }
     if (listFilters.sales_order_type) {
       filters.sales_order_type = listFilters.sales_order_type;
     }

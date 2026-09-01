@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import { SalesOrder, SalesOrderFilters, PaginationParams } from '../../../sales-orders/models/sales-order.model';
 import { getSalesOrderTotal } from '../../../sales-orders/utils/sales-order-display.util';
-import { salesOrderCreditChipLabel } from '../../../sales-orders/utils/sales-order-credit.util';
+import { salesOrderListPaymentMetaLabel } from '../../../sales-orders/utils/sales-order-collection.util';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { CreateSalesOrderModalComponent } from '../../../sales-orders/components/create-sales-order-modal/create-sales-order-modal.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
@@ -14,11 +14,12 @@ import { InterceptorService } from '../../../../core/services/interceptor.servic
 import { Plus } from 'lucide-angular';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
 @Component({
   selector: 'app-customer-sales-orders',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, HasPermissionDirective],
+  imports: [CommonModule, ButtonComponent, HasPermissionDirective, SpinnerComponent],
   templateUrl: './customer-sales-orders.component.html',
   styleUrl: './customer-sales-orders.component.scss'
 })
@@ -158,8 +159,8 @@ export class CustomerSalesOrdersComponent implements OnInit {
     }
   }
 
-  creditChipLabel(order: SalesOrder): string {
-    return salesOrderCreditChipLabel(order);
+  paymentMetaLabel(order: SalesOrder): string {
+    return salesOrderListPaymentMetaLabel(order);
   }
 
   formatCurrency(amount: number): string {

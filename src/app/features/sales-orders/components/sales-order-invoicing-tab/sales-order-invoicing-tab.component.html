@@ -7,8 +7,7 @@
     </div>
   } @else if (loading()) {
     <div class="empty-state">
-      <i class="fi fi-rr-spinner animate-spin"></i>
-      <p>Cargando facturas...</p>
+      <app-spinner></app-spinner>
     </div>
   } @else {
     @if (showDemoAltaBanner()) {

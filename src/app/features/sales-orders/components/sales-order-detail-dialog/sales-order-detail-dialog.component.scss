@@ -1,4 +1,5 @@
 @use '../../../../core/styles/order-detail-dialog-layout' as layout;
+@use '../../styles/payment-chips';
 
 @include layout.order-detail-dialog-shell(#f8fafc);
 
@@ -289,6 +290,15 @@
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
+
+  &--clickable {
+    cursor: pointer;
+    transition: background-color 0.15s;
+
+    &:hover {
+      background: #bfdbfe;
+    }
+  }
 }
 
 .billing-tab {
@@ -581,10 +591,28 @@
   padding: 1rem;
 }
 
+.documents-legacy-hint {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
 .regenerate-language-prompt {
   margin: 0 0 0.75rem;
   color: #374151;
   font-size: 0.875rem;
+}
+
+.regenerate-language-note {
+  margin: 0 0 0.85rem;
+  color: #6b7280;
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 .regenerate-modal {
@@ -778,6 +806,39 @@
     background: linear-gradient(180deg, #faf5ff 0%, #fff 100%);
   }
 
+  .section-card--pay-info {
+    border-color: #c7d2fe;
+    background: linear-gradient(180deg, #eef2ff 0%, #fff 100%);
+  }
+
+  .section-item--pay-note {
+    align-items: flex-start;
+  }
+
+  .pay-note {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+    min-width: 0;
+    max-width: 16rem;
+  }
+
+  .pay-note__text {
+    margin: 0;
+    padding: 0.4rem 0.55rem;
+    border-radius: 8px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: right;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
   .section-value--mono {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.75rem;
@@ -844,8 +905,36 @@
     font-weight: 800;
   }
 
-  .section-item--seller {
+  .section-item--seller,
+  .section-item--payment-method {
     align-items: flex-start;
+  }
+
+  .seller-value-col,
+  .section-value-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .payment-display-line {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #475569;
+    width: 100%;
+  }
+
+  .section-hint {
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: #94a3b8;
+    text-align: right;
+    line-height: 1.3;
   }
 
   .seller-value-row {
@@ -1130,17 +1219,4 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
-}
-
-.so-credit-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: #ede9fe;
-  color: #4b3e8e;
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1.3;
-  white-space: nowrap;
 }

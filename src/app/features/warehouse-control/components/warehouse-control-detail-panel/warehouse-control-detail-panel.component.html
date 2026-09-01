@@ -10,7 +10,7 @@
   </div>
 
   @if (loading()) {
-    <div class="wc-panel__loading">Cargando detalle…</div>
+    <div class="wc-panel__loading"><app-spinner></app-spinner></div>
   } @else if (order(); as o) {
     <div class="wc-panel__meta">
       <div class="wc-panel__meta-item">

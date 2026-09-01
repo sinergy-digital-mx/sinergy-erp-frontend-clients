@@ -1,14 +1,17 @@
-import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { BranchService } from '../../../settings/services/branch.service';
+import { Branch } from '../../../settings/models/branch.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 
 interface LineItem {
@@ -17,6 +20,7 @@ interface LineItem {
   product_name?: string;
   product_sku?: string;
   available_quantity?: number;
+  warehouse_names?: string[];
   uom_name?: string;
   pricing_options?: any[];
   selected_pricing_option_id?: string;
@@ -34,7 +38,7 @@ interface LineItem {
   templateUrl: './create-sales-order-modal.component.html',
   styleUrl: './create-sales-order-modal.component.scss'
 })
-export class CreateSalesOrderModalComponent implements OnInit {
+export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   form: FormGroup;
   loading = false;
   saving = false;
@@ -45,10 +49,10 @@ export class CreateSalesOrderModalComponent implements OnInit {
   customers: any[] = [];
   filteredCustomers: any[] = [];
   fiscalConfigurations: any[] = [];
-  warehouses: any[] = [];
+  branches: Branch[] = [];
   tabs: TabItem[] = [
     { id: 'info', title: 'Información' },
-    { id: 'products', title: 'Productos' }
+    { id: 'products', title: 'Productos', disabled: true }
   ];
   activeTab = 'info';
   addProductModalOpen = false;
@@ -61,11 +65,15 @@ export class CreateSalesOrderModalComponent implements OnInit {
   selectedIeps = 0;
   selectedPricingOptionId = '';
 
+  private destroy$ = new Subject<void>();
+  private productSearch$ = new Subject<string>();
+  private productsSub?: Subscription;
+
   constructor(
     private fb: FormBuilder,
     private salesOrderService: SalesOrderService,
     private fiscalConfigService: FiscalConfigurationService,
-    private warehouseService: WarehouseService,
+    private branchService: BranchService,
     private customerService: CustomerService,
     private dialog: MatDialog,
     private toast: ToastService,
@@ -75,20 +83,24 @@ export class CreateSalesOrderModalComponent implements OnInit {
   ) {
     this.form = this.fb.group({
       fiscal_configuration_id: ['', Validators.required],
+      billing_branch_id: [{ value: '', disabled: true }, Validators.required],
       customer_search: [''],
       customer_id: ['', Validators.required],
-      warehouse_id: ['', Validators.required],
-      expected_delivery_date: [''],
+      expected_delivery_date: ['', Validators.required],
       requires_selection_assembly: [false],
-      sales_order_type: ['MANUAL'],
-      payment_status: ['Pendiente'],
       notes: ['']
     });
   }
 
   ngOnInit(): void {
     this.loadDropdownData();
-    this.form.get('customer_search')?.valueChanges.subscribe((value) => {
+    this.setupLocationCascade();
+    this.productSearch$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((term) => this.loadProducts(term));
+    this.form.get('customer_search')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((value) => {
       if (typeof value === 'string') {
         this.form.patchValue({ customer_id: '' }, { emitEvent: false });
       }
@@ -96,18 +108,42 @@ export class CreateSalesOrderModalComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.productsSub?.unsubscribe();
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  get hasBillingBranch(): boolean {
+    return !!this.form.get('billing_branch_id')?.value;
+  }
+
+  get canConfirmAddProduct(): boolean {
+    const quantity = Number(this.selectedQuantity || 0);
+    return !!(
+      this.selectedProduct &&
+      this.selectedUomId &&
+      Number.isFinite(quantity) &&
+      quantity > 0 &&
+      this.getAvailableQty(this.selectedProduct) > 0
+    );
+  }
+
   onTabChange(tabId: string): void {
     this.activeTab = tabId;
+  }
+
+  branchLabel(branch: Branch): string {
+    return branch.code?.trim() || branch.display_name?.trim() || '—';
   }
 
   loadDropdownData(): void {
     this.loading = true;
 
     Promise.all([
-      this.fiscalConfigService.listFiscalConfigurations().toPromise(),
-      this.customerService.getCustomers({ limit: 100 }).toPromise(),
-      this.warehouseService.getWarehouses().toPromise()
-    ]).then(([fiscalConfigs, customers, warehouses]) => {
+      this.fiscalConfigService.listFiscalConfigurations({ status: 'active', limit: 100 }).toPromise(),
+      this.customerService.getCustomers({ limit: 100 }).toPromise()
+    ]).then(([fiscalConfigs, customers]) => {
       this.fiscalConfigurations = (fiscalConfigs as any)?.data || [];
       const customerRows = (customers as any)?.data || [];
       this.customers = customerRows.map((customer: any) => ({
@@ -115,7 +151,6 @@ export class CreateSalesOrderModalComponent implements OnInit {
         display_name: this.formatCustomerLabel(customer)
       }));
       this.filteredCustomers = [...this.customers];
-      this.warehouses = (warehouses as any)?.data || [];
       this.prefillCustomerIfProvided();
       this.loading = false;
       this.cdr.detectChanges();
@@ -127,15 +162,66 @@ export class CreateSalesOrderModalComponent implements OnInit {
     });
   }
 
-  onWarehouseChange(): void {
-    const warehouseId = this.form.get('warehouse_id')?.value;
-    if (!warehouseId) {
-      this.products = [];
-      this.lineItems = [];
-      this.resetAddProductForm();
-      return;
+  private setupLocationCascade(): void {
+    this.form.get('fiscal_configuration_id')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((fiscalId) => {
+        this.form.patchValue({ billing_branch_id: '' }, { emitEvent: false });
+        this.branches = [];
+        this.form.get('billing_branch_id')?.disable({ emitEvent: false });
+        this.resetProductsState();
+
+        if (fiscalId) {
+          this.loadBranches(fiscalId);
+          this.form.get('billing_branch_id')?.enable({ emitEvent: false });
+        }
+        this.cdr.detectChanges();
+      });
+
+    this.form.get('billing_branch_id')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((branchId) => {
+        this.resetProductsState();
+        if (branchId) {
+          this.setProductsTabEnabled(true);
+          this.loadProducts();
+        }
+        this.cdr.detectChanges();
+      });
+  }
+
+  private loadBranches(fiscalConfigurationId: string): void {
+    this.branchService.getBranches(fiscalConfigurationId).subscribe({
+      next: (branches) => {
+        this.branches = Array.isArray(branches) ? branches : [];
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading branches:', error);
+        this.toast.error('Error al cargar sucursales');
+        this.branches = [];
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private resetProductsState(): void {
+    this.productsSub?.unsubscribe();
+    this.products = [];
+    this.lineItems = [];
+    this.loadingProducts = false;
+    this.closeAddProductModal();
+    this.resetAddProductForm();
+    this.setProductsTabEnabled(false);
+  }
+
+  private setProductsTabEnabled(enabled: boolean): void {
+    this.tabs = this.tabs.map((tab) =>
+      tab.id === 'products' ? { ...tab, disabled: !enabled } : tab
+    );
+    if (!enabled && this.activeTab === 'products') {
+      this.activeTab = 'info';
     }
-    this.loadProducts();
   }
 
   onCustomerSelected(customer: any): void {
@@ -224,22 +310,31 @@ export class CreateSalesOrderModalComponent implements OnInit {
     return customer.email || `Cliente ${customer.id}`;
   }
 
-  loadProducts(): void {
-    const warehouseId = this.form.get('warehouse_id')?.value;
-    if (!warehouseId) {
+  loadProducts(search = ''): void {
+    const fiscalId = this.form.get('fiscal_configuration_id')?.value;
+    const branchId = this.form.get('billing_branch_id')?.value;
+    if (!fiscalId || !branchId) {
       this.products = [];
       return;
     }
 
+    this.productsSub?.unsubscribe();
     this.loadingProducts = true;
-    this.salesOrderService.getWarehouseProductsSummary(warehouseId).subscribe({
+    this.productsSub = this.salesOrderService.getProductsSummary({
+      fiscal_configuration_id: fiscalId,
+      billing_branch_id: branchId,
+      search: search.trim() || undefined,
+      limit: 100
+    }).subscribe({
       next: (res: any) => {
         this.products = this.normalizeWarehouseProducts(res);
         this.loadingProducts = false;
         this.cdr.detectChanges();
       },
       error: () => {
+        this.products = [];
         this.loadingProducts = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -258,6 +353,7 @@ export class CreateSalesOrderModalComponent implements OnInit {
       const name = row.product_name || row.name || 'Producto';
       const sku = row.product_sku || row.sku || '';
       const available = this.getAvailableQty(row);
+      const warehouseNames = Array.isArray(row.warehouse_names) ? row.warehouse_names : [];
       const uoms = this.normalizeUoms(row);
 
       return {
@@ -269,6 +365,7 @@ export class CreateSalesOrderModalComponent implements OnInit {
         product_sku: sku,
         sku,
         available_quantity: available,
+        warehouse_names: warehouseNames,
         uoms
       };
     });
@@ -307,29 +404,27 @@ export class CreateSalesOrderModalComponent implements OnInit {
   }
 
   openAddProductModal(): void {
-    if (!this.form.get('warehouse_id')?.value) {
-      this.toast.warning('Selecciona un almacén antes de agregar productos');
+    if (!this.hasBillingBranch) {
+      this.toast.warning('Selecciona una sucursal antes de agregar productos');
       return;
     }
     this.addProductModalOpen = true;
     this.resetAddProductForm();
+    this.loadProducts();
   }
 
   closeAddProductModal(): void {
     this.addProductModalOpen = false;
   }
 
+  onProductSearchChange(value: any): void {
+    this.productSearchTerm = value;
+    if (typeof value !== 'string') return;
+    this.productSearch$.next(value);
+  }
+
   get filteredProductsForModal(): any[] {
-    const raw =
-      typeof this.productSearchTerm === 'string'
-        ? this.productSearchTerm
-        : this.getProductOptionLabel(this.productSearchTerm);
-    const term = String(raw || '').toLowerCase().trim();
-    if (!term) return this.products;
-    return this.products.filter((product) => {
-      const haystack = `${product.product_name || product.name || ''} ${product.product_sku || product.sku || ''}`.toLowerCase();
-      return haystack.includes(term);
-    });
+    return this.products;
   }
 
   get selectedProductUoms(): any[] {
@@ -375,6 +470,11 @@ export class CreateSalesOrderModalComponent implements OnInit {
       this.toast.warning('Selecciona producto y UOM');
       return;
     }
+    const available = this.getAvailableQty(this.selectedProduct);
+    if (available <= 0) {
+      this.toast.warning('Este producto no tiene stock disponible en la sucursal');
+      return;
+    }
     const quantity = Number(this.selectedQuantity || 0);
     if (!Number.isFinite(quantity) || quantity <= 0) {
       this.toast.warning('Cantidad inválida');
@@ -386,7 +486,10 @@ export class CreateSalesOrderModalComponent implements OnInit {
       product_uom_id: this.selectedUomId,
       product_name: this.selectedProduct.product_name,
       product_sku: this.selectedProduct.product_sku || this.selectedProduct.sku || '',
-      available_quantity: this.getAvailableQty(this.selectedProduct),
+      available_quantity: available,
+      warehouse_names: Array.isArray(this.selectedProduct.warehouse_names)
+        ? this.selectedProduct.warehouse_names
+        : [],
       uom_name: selectedUom?.uom_name || selectedUom?.name || '',
       pricing_options: Array.isArray(selectedUom?.pricing_options) ? selectedUom.pricing_options : [],
       selected_pricing_option_id: this.selectedPricingOptionId || undefined,
@@ -415,7 +518,15 @@ export class CreateSalesOrderModalComponent implements OnInit {
     const name = product?.product_name || product?.name || 'Producto';
     const sku = product?.product_sku || product?.sku ? ` | SKU: ${product?.product_sku || product?.sku}` : '';
     const available = this.getAvailableQty(product);
-    return `${name}${sku} | Disp: ${available}`;
+    const warehouses = this.getWarehouseNamesLabel(product);
+    const warehouseSuffix = warehouses ? ` | ${warehouses}` : '';
+    return `${name}${sku} | Disp: ${available}${warehouseSuffix}`;
+  }
+
+  getWarehouseNamesLabel(product: any): string {
+    const names = product?.warehouse_names;
+    if (!Array.isArray(names) || names.length === 0) return '';
+    return names.filter((name: unknown) => !!name).join(', ');
   }
 
   displayProduct(value: any): string {
@@ -450,6 +561,7 @@ export class CreateSalesOrderModalComponent implements OnInit {
       item.product_name = product.product_name || product.name || '';
       item.product_sku = product.product_sku || product.sku || '';
       item.available_quantity = this.getAvailableQty(product);
+      item.warehouse_names = Array.isArray(product.warehouse_names) ? product.warehouse_names : [];
       item.uom_name = uom.uom_name || uom.name || '';
       item.unit_price = Number(uom.cost || item.unit_price || 0);
       item.discount_percentage = Number(item.discount_percentage || 0);
@@ -489,15 +601,13 @@ export class CreateSalesOrderModalComponent implements OnInit {
     }
 
     this.saving = true;
-    const fv = this.form.value;
+    const fv = this.form.getRawValue();
     const payload = {
       fiscal_configuration_id: fv.fiscal_configuration_id,
-      warehouse_id: fv.warehouse_id,
+      billing_branch_id: fv.billing_branch_id,
       customer_id: fv.customer_id,
-      expected_delivery_date: fv.expected_delivery_date || undefined,
+      expected_delivery_date: fv.expected_delivery_date,
       requires_selection_assembly: !!fv.requires_selection_assembly,
-      sales_order_type: fv.sales_order_type || 'MANUAL',
-      payment_status: fv.payment_status || 'Pendiente',
       notes: (fv.notes || '').trim() || undefined,
       line_items: this.lineItems.map((li) => ({
         product_id: li.product_id,

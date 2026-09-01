@@ -14,7 +14,7 @@
 
   @if (loading()) {
     <div class="text-center py-8">
-      <p class="text-sm text-gray-500">Cargando órdenes de venta...</p>
+      <app-spinner></app-spinner>
     </div>
   } @else if (orders().length === 0) {
     <div class="text-center py-8 text-gray-500">
@@ -47,12 +47,10 @@
                 <span [ngClass]="getStatusClass(getOrderStatus(order))">{{ getOrderStatus(order) }}</span>
               </td>
               <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ formatCurrency(getOrderTotal(order)) }}</td>
-              <td class="px-4 py-3 whitespace-nowrap">
-                <span class="sales-order-pay-cell">
+              <td class="px-4 py-3">
+                <span class="sales-order-pay-cell" [title]="paymentMetaLabel(order)">
                   <span [ngClass]="getPaymentStatusClass(order.payment_status)">{{ order.payment_status || '—' }}</span>
-                  @if (creditChipLabel(order)) {
-                    <span class="so-credit-chip">{{ creditChipLabel(order) }}</span>
-                  }
+                  <span class="sales-order-pay-cell__meta">{{ paymentMetaLabel(order) }}</span>
                 </span>
               </td>
               <td class="px-4 py-3 text-sm text-gray-600">{{ order.created_at | date:'medium' }}</td>

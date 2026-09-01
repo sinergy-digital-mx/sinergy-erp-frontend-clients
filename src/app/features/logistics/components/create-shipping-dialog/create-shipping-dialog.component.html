@@ -70,7 +70,7 @@
         @if (!form.get('billing_branch_id')?.value) {
           <p class="hint">Selecciona una sucursal para listar órdenes.</p>
         } @else if (loadingOrders()) {
-          <p class="hint">Cargando…</p>
+          <p class="hint"><app-spinner size="sm"></app-spinner></p>
         } @else if (!orders().length) {
           <p class="hint">No hay órdenes Surtida o Lista para entrega en esta sucursal.</p>
         } @else {

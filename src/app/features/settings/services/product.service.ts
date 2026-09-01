@@ -7,6 +7,9 @@ import { environment } from '../../../../environments/environment';
 import {
   Product, CreateProductDto, UpdateProductDto, ProductListResponse, ProductQueryParams,
   ProductCatalogExportFilters,
+  VendorCatalogImportError,
+  VendorCatalogImportPreview,
+  VendorCatalogImportResult,
   Category, SubCategory, CategoryQueryParams, SubCategoryQueryParams,
   ProductPhoto, ProductPrice, PriceList, CreatePriceListDto, CreateProductPriceDto,
   VendorProductPrice, CreateVendorPriceDto,
@@ -310,8 +313,12 @@ export class ProductService {
 
   // ─── UoM Catalog ────────────────────────────────────────────
 
-  getUOMCatalog(): Observable<UoMCatalog[]> {
-    return this.http.get<any>(`${this.api}/uom-catalog`).pipe(
+  getUOMCatalog(params?: { limit?: number }): Observable<UoMCatalog[]> {
+    const httpParams: Record<string, string> = {};
+    if (params?.limit != null) {
+      httpParams['limit'] = String(params.limit);
+    }
+    return this.http.get<any>(`${this.api}/uom-catalog`, { params: httpParams }).pipe(
       map(response => {
         // Handle paginated response with data property
         if (response && response.data && Array.isArray(response.data)) {
@@ -556,6 +563,221 @@ export class ProductService {
 
   deleteVendorCost(productId: string, costId: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/products/${productId}/vendor-costs/${costId}`);
+  }
+
+  // ─── Importación masiva de costos / precios por proveedor ───
+
+  previewVendorCosts(vendorId: string): Observable<VendorCatalogImportPreview> {
+    return this.http
+      .get<unknown>(`${this.api}/tenant/products/import/vendor-costs/preview`, {
+        params: { vendor_id: vendorId },
+      })
+      .pipe(
+        map((response) => this.unwrapVendorImportPreview(response)),
+        catchError((error) =>
+          this.mapVendorCatalogImportError(
+            error,
+            'Este proveedor no tiene productos con costo.'
+          )
+        )
+      );
+  }
+
+  downloadVendorCostTemplate(vendorId: string): Observable<{ blob: Blob; filename: string }> {
+    return this.downloadVendorImportTemplate(
+      `${this.api}/tenant/products/import/vendor-costs/template`,
+      { vendor_id: vendorId },
+      'costos-proveedor.xlsx',
+      'Este proveedor no tiene productos con costo.'
+    );
+  }
+
+  importVendorCosts(vendorId: string, file: File): Observable<VendorCatalogImportResult> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('vendor_id', vendorId);
+    return this.http
+      .post<unknown>(`${this.api}/tenant/products/import/vendor-costs`, form)
+      .pipe(
+        map((response) => this.unwrapVendorImportResult(response)),
+        catchError((error) =>
+          this.mapVendorCatalogImportError(error, 'No se pudo importar el archivo')
+        )
+      );
+  }
+
+  previewVendorPrices(
+    vendorId: string,
+    priceListId: string
+  ): Observable<VendorCatalogImportPreview> {
+    return this.http
+      .get<unknown>(`${this.api}/tenant/products/import/vendor-prices/preview`, {
+        params: { vendor_id: vendorId, price_list_id: priceListId },
+      })
+      .pipe(
+        map((response) => this.unwrapVendorImportPreview(response)),
+        catchError((error) =>
+          this.mapVendorCatalogImportError(
+            error,
+            'Este proveedor no tiene productos con costo.'
+          )
+        )
+      );
+  }
+
+  downloadVendorPriceTemplate(
+    vendorId: string,
+    priceListId: string
+  ): Observable<{ blob: Blob; filename: string }> {
+    return this.downloadVendorImportTemplate(
+      `${this.api}/tenant/products/import/vendor-prices/template`,
+      { vendor_id: vendorId, price_list_id: priceListId },
+      'precios-proveedor.xlsx',
+      'Este proveedor no tiene productos con costo.'
+    );
+  }
+
+  importVendorPrices(
+    vendorId: string,
+    priceListId: string,
+    file: File
+  ): Observable<VendorCatalogImportResult> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('vendor_id', vendorId);
+    form.append('price_list_id', priceListId);
+    return this.http
+      .post<unknown>(`${this.api}/tenant/products/import/vendor-prices`, form)
+      .pipe(
+        map((response) => this.unwrapVendorImportResult(response)),
+        catchError((error) =>
+          this.mapVendorCatalogImportError(error, 'No se pudo importar el archivo')
+        )
+      );
+  }
+
+  private downloadVendorImportTemplate(
+    url: string,
+    params: Record<string, string>,
+    fallbackFilename: string,
+    fallbackError: string
+  ): Observable<{ blob: Blob; filename: string }> {
+    return this.http
+      .get(url, {
+        params,
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((response) => {
+          const disposition = response.headers.get('content-disposition') ?? undefined;
+          return {
+            blob: response.body as Blob,
+            filename: this.parseFilenameFromDisposition(disposition) ?? fallbackFilename,
+          };
+        }),
+        catchError((error) => this.mapVendorCatalogImportError(error, fallbackError))
+      );
+  }
+
+  private unwrapVendorImportPreview(response: unknown): VendorCatalogImportPreview {
+    const raw = this.unwrapRecord(response);
+    return {
+      vendor_id: String(raw['vendor_id'] ?? ''),
+      vendor_name: String(raw['vendor_name'] ?? ''),
+      product_count: this.toFiniteNumber(raw['product_count']),
+      row_count: this.toFiniteNumber(raw['row_count']),
+      price_list_id: raw['price_list_id'] != null ? String(raw['price_list_id']) : undefined,
+      price_list_name: raw['price_list_name'] != null ? String(raw['price_list_name']) : undefined,
+    };
+  }
+
+  private unwrapVendorImportResult(response: unknown): VendorCatalogImportResult {
+    const raw = this.unwrapRecord(response);
+    return {
+      updated: this.toFiniteNumber(raw['updated']),
+      created: this.toFiniteNumber(raw['created']),
+      skipped: this.toFiniteNumber(raw['skipped']),
+      errors: this.unwrapVendorImportErrors(raw['errors']),
+    };
+  }
+
+  private unwrapVendorImportErrors(value: unknown): VendorCatalogImportError[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value.map((item) => {
+      const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+      return {
+        row: this.toFiniteNumber(row['row']),
+        sku: String(row['sku'] ?? ''),
+        message: String(row['message'] ?? ''),
+      };
+    });
+  }
+
+  private unwrapRecord(response: unknown): Record<string, unknown> {
+    if (!response || typeof response !== 'object') {
+      return {};
+    }
+    const root = response as Record<string, unknown>;
+    const nested = root['data'];
+    if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+      return nested as Record<string, unknown>;
+    }
+    return root;
+  }
+
+  private toFiniteNumber(value: unknown): number {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  private mapVendorCatalogImportError(error: HttpErrorResponse, fallback: string): Observable<never> {
+    if (error.status === 401) {
+      this.router.navigate(['/login']);
+      return throwError(() => new Error('Sesión expirada. Por favor, inicia sesión nuevamente.'));
+    }
+    if (error.status === 403) {
+      return throwError(() => new Error('No tienes permiso para actualizar productos'));
+    }
+    if (error.status === 404) {
+      return throwError(() => new Error('No encontrado'));
+    }
+
+    if (error.error instanceof Blob && typeof error.error.text === 'function') {
+      return from(error.error.text()).pipe(
+        switchMap((text) =>
+          throwError(() => new Error(this.parseJsonErrorMessage(text) || fallback))
+        )
+      );
+    }
+
+    return throwError(() => new Error(this.parseJsonErrorMessage(error.error) || fallback));
+  }
+
+  private parseJsonErrorMessage(source: unknown): string {
+    if (typeof source === 'string' && source.trim()) {
+      try {
+        return this.parseJsonErrorMessage(JSON.parse(source));
+      } catch {
+        return source.trim();
+      }
+    }
+    if (!source || typeof source !== 'object') {
+      return '';
+    }
+    const obj = source as { message?: string | string[]; error?: string };
+    if (Array.isArray(obj.message)) {
+      return obj.message.filter((item) => typeof item === 'string' && item.trim()).join(', ');
+    }
+    if (typeof obj.message === 'string' && obj.message.trim()) {
+      return obj.message.trim();
+    }
+    if (typeof obj.error === 'string' && obj.error.trim()) {
+      return obj.error.trim();
+    }
+    return '';
   }
 
   // ─── Product Discounts ──────────────────────────────────────

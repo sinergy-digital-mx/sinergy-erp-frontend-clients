@@ -1,0 +1,128 @@
+<div class="insights">
+  @if (loading()) {
+    <div class="insights__loading">
+      <app-spinner></app-spinner>
+    </div>
+  } @else if (error()) {
+    <div class="insights__error">
+      <p>No se pudieron cargar los productos del cliente</p>
+      <button type="button" class="insights__retry" (click)="loadInsights()">Reintentar</button>
+    </div>
+  } @else {
+    <div class="insights__grid">
+      <section class="insights__panel">
+        <h3 class="insights__title">Productos más comprados</h3>
+        @if (mostPurchased().length === 0) {
+          <p class="insights__empty">Aún no hay compras registradas</p>
+        } @else {
+          <div class="product-carousel">
+            @if (purchasedOverflow()) {
+              <button
+                type="button"
+                class="product-carousel__nav product-carousel__nav--prev"
+                [disabled]="!purchasedCanPrev()"
+                aria-label="Ver productos anteriores"
+                (click)="scrollRow('purchased', -1)">
+                <lucide-icon [img]="ChevronLeft" [size]="18"></lucide-icon>
+              </button>
+              <button
+                type="button"
+                class="product-carousel__nav product-carousel__nav--next"
+                [disabled]="!purchasedCanNext()"
+                aria-label="Ver productos siguientes"
+                (click)="scrollRow('purchased', 1)">
+                <lucide-icon [img]="ChevronRight" [size]="18"></lucide-icon>
+              </button>
+            }
+            <div
+              #purchasedTrack
+              class="product-row"
+              (scroll)="onRowScroll('purchased', purchasedTrack)">
+              @for (item of mostPurchased(); track item.product_id) {
+                <button type="button" class="product-card" (click)="openProduct(item)">
+                  <div class="product-card__photo">
+                    @if (hasPhoto(item)) {
+                      <img
+                        [src]="item.photo!"
+                        [alt]="productName(item)"
+                        loading="lazy"
+                        (load)="onPhotoLoad()"
+                        (error)="onPhotoError(item.product_id)" />
+                    } @else {
+                      <div class="product-card__placeholder">
+                        <lucide-icon [img]="Package" [size]="28"></lucide-icon>
+                      </div>
+                    }
+                  </div>
+                  <span class="product-card__name">{{ productName(item) }}</span>
+                  @if (item.sku) {
+                    <span class="product-card__sku">{{ item.sku }}</span>
+                  }
+                  <span class="product-card__meta">{{ timesOrderedLabel(item) }}</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </section>
+
+      <section class="insights__panel">
+        <h3 class="insights__title">Productos que le pueden interesar</h3>
+        @if (recommended().length === 0) {
+          <p class="insights__empty">{{ recommendedEmptyMessage() }}</p>
+        } @else {
+          <div class="product-carousel">
+            @if (recommendedOverflow()) {
+              <button
+                type="button"
+                class="product-carousel__nav product-carousel__nav--prev"
+                [disabled]="!recommendedCanPrev()"
+                aria-label="Ver productos anteriores"
+                (click)="scrollRow('recommended', -1)">
+                <lucide-icon [img]="ChevronLeft" [size]="18"></lucide-icon>
+              </button>
+              <button
+                type="button"
+                class="product-carousel__nav product-carousel__nav--next"
+                [disabled]="!recommendedCanNext()"
+                aria-label="Ver productos siguientes"
+                (click)="scrollRow('recommended', 1)">
+                <lucide-icon [img]="ChevronRight" [size]="18"></lucide-icon>
+              </button>
+            }
+            <div
+              #recommendedTrack
+              class="product-row"
+              (scroll)="onRowScroll('recommended', recommendedTrack)">
+              @for (item of recommended(); track item.product_id) {
+                <button type="button" class="product-card" (click)="openProduct(item)">
+                  <div class="product-card__photo">
+                    @if (hasPhoto(item)) {
+                      <img
+                        [src]="item.photo!"
+                        [alt]="productName(item)"
+                        loading="lazy"
+                        (load)="onPhotoLoad()"
+                        (error)="onPhotoError(item.product_id)" />
+                    } @else {
+                      <div class="product-card__placeholder">
+                        <lucide-icon [img]="Package" [size]="28"></lucide-icon>
+                      </div>
+                    }
+                  </div>
+                  <span class="product-card__name">{{ productName(item) }}</span>
+                  @if (item.sku) {
+                    <span class="product-card__sku">{{ item.sku }}</span>
+                  }
+                  @if (item.reason_label) {
+                    <span [class]="reasonChipClass(item.reason)">{{ item.reason_label }}</span>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </section>
+    </div>
+  }
+</div>

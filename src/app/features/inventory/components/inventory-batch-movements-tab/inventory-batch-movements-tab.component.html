@@ -1,0 +1,97 @@
+<div class="movements">
+  <div class="movements__bar">
+    <div class="movements__filters" role="group" aria-label="Filtrar por tipo">
+      <button
+        type="button"
+        class="filter-chip"
+        [class.is-active]="selectedType() === ''"
+        (click)="setType('')">
+        Todos
+      </button>
+      @for (item of filterTypes(); track item.type) {
+        <button
+          type="button"
+          class="filter-chip"
+          [class.is-active]="selectedType() === item.type"
+          (click)="setType(item.type)">
+          {{ item.label }}
+        </button>
+      }
+    </div>
+    <button type="button" class="btn-refresh" (click)="refresh()" [disabled]="loading()">
+      <i class="fi fi-rr-refresh" [class.animate-spin]="loading()"></i>
+      Actualizar
+    </button>
+  </div>
+
+  @if (loading() && items().length === 0) {
+    <app-spinner></app-spinner>
+  } @else if (displayedItems().length === 0) {
+    <div class="empty-state">
+      <i class="fi fi-rr-time-past"></i>
+      <p>Sin movimientos.</p>
+    </div>
+  } @else {
+    <ol class="timeline">
+      @for (item of displayedItems(); track item.id) {
+        <li class="timeline__item" [attr.data-tone]="chipTone(item)">
+          <span class="timeline__dot" aria-hidden="true"></span>
+          <div class="timeline__card">
+            <div class="timeline__head">
+              <span class="type-chip" [attr.data-tone]="chipTone(item)">{{ item.type_label || item.type }}</span>
+              <p class="timeline__title">
+                <span>{{ movementTitle(item) }}</span>
+                <span class="timeline__sep" aria-hidden="true">·</span>
+                <span>{{ actorName(item) }}</span>
+                @if (authorizedBy(item); as authorized) {
+                  <span class="timeline__sep" aria-hidden="true">·</span>
+                  <span>autorizó {{ authorized }}</span>
+                }
+                <span class="timeline__sep" aria-hidden="true">·</span>
+                <time [attr.datetime]="item.occurred_at">{{ formatOccurredAt(item.occurred_at) }}</time>
+              </p>
+              @if (formatQuantity(item)) {
+                <span [class]="quantityClass(item)">{{ formatQuantity(item) }}</span>
+              }
+            </div>
+
+            <p class="timeline__description">{{ movementText(item) }}</p>
+
+            @if (hasChanges(item)) {
+              <ul class="changes">
+                @for (change of item.changes; track change.field || change.field_label) {
+                  <li>
+                    <span class="changes__field">{{ changeLabel(change) }}</span>
+                    <span class="changes__from">{{ change.from ?? '—' }}</span>
+                    <span class="changes__arrow" aria-hidden="true">→</span>
+                    <span class="changes__to">{{ change.to ?? '—' }}</span>
+                  </li>
+                }
+              </ul>
+            }
+
+            @if (hasExpandableDetail(item)) {
+              <details class="meta">
+                <summary>Detalle</summary>
+                <div class="meta__body">
+                  @if (metaLinks(item).length) {
+                    <div class="meta__links">
+                      @for (link of metaLinks(item); track link.kind + link.id) {
+                        <button type="button" class="folio-link" (click)="emitReference(link.kind, link.id)">
+                          {{ link.label }}
+                        </button>
+                      }
+                    </div>
+                  }
+                  @if (extraMeta(item).length) {
+                    <p class="meta__extra">{{ extraMeta(item).join(' · ') }}</p>
+                  }
+                </div>
+              </details>
+            }
+          </div>
+        </li>
+      }
+    </ol>
+  }
+</div>

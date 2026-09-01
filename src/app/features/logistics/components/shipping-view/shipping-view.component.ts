@@ -16,6 +16,7 @@ import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { LucideAngularModule, MapPin, Plus, RefreshCw, X } from 'lucide-angular';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
 import {
@@ -46,6 +47,7 @@ import { BranchLocationDialogComponent } from '../branch-location-dialog/branch-
     HasPermissionDirective,
     LucideAngularModule,
     ShippingMapComponent,
+    SpinnerComponent,
   ],
   templateUrl: './shipping-view.component.html',
   styleUrl: './shipping-view.component.scss',

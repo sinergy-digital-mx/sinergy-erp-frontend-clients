@@ -31,6 +31,7 @@ import {
   CustomerExportDialogResult,
 } from '../../components/customer-export-dialog/customer-export-dialog.component';
 import { ToastService } from '../../../../core/services/toast.service';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
 @Component({
   selector: 'app-customers-list',
@@ -47,7 +48,8 @@ import { ToastService } from '../../../../core/services/toast.service';
     FilterIndicatorComponent,
     PhoneComponent,
     LucideAngularModule,
-    FilterClearButtonComponent
+    FilterClearButtonComponent,
+    SpinnerComponent,
   ],
   templateUrl: './customers-list.html',
   styleUrl: './customers-list.scss',

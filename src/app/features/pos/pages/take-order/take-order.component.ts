@@ -2,6 +2,8 @@ import { Component, OnDestroy, OnInit, signal, computed, ViewChild, ElementRef }
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -20,6 +22,8 @@ import {
   User,
   Percent,
   Info,
+  ChevronDown,
+  X,
 } from 'lucide-angular';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
@@ -32,7 +36,6 @@ import {
   normalizePosInventorySummary,
   persistPosWarehouseId,
   PosInventorySummaryResponse,
-  PosSummaryWarehouse,
   PosApplicableDiscount,
   normalizePosPricingOptions,
   collectPosPricingOptions,
@@ -54,16 +57,19 @@ import { GlobalDiscount } from '../../../global-discounts/models/global-discount
 import { GLOBAL_DISCOUNT_PERMISSIONS } from '../../../global-discounts/config/permissions.config';
 import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
 import { dailyShiftIsOpen } from '../../models/pos-daily-shift.model';
+import { formatMeasureTotalsLine, hasMeasureTotals } from '../../../../core/utils/inventory-measure.util';
+import { formatInventoryNumber } from '../../../inventory/utils/inventory-list.util';
 
 @Component({
   selector: 'app-take-order',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, SpinnerComponent],
   templateUrl: './take-order.component.html',
   styleUrls: ['./take-order.component.scss'],
 })
 export class TakeOrderComponent implements OnInit, OnDestroy {
   @ViewChild('posRoot') posRootRef?: ElementRef<HTMLElement>;
+  @ViewChild('catalogSearch') catalogSearchRef?: ElementRef<HTMLInputElement>;
   readonly Search = Search;
   readonly Plus = Plus;
   readonly ShoppingCart = ShoppingCart;
@@ -77,12 +83,15 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   readonly User = User;
   readonly Percent = Percent;
   readonly Info = Info;
+  readonly ChevronDown = ChevronDown;
+  readonly X = X;
+
+  private static readonly CART_TOTALS_OPEN_KEY = 'pos_cart_totals_open';
+  cartTotalsOpen = signal(TakeOrderComponent.readCartTotalsOpen());
 
   products = signal<any[]>([]);
-  warehouses = signal<PosSummaryWarehouse[]>([]);
   filteredProducts = signal<any[]>([]);
 
-  selectedWarehouse = signal<string>('');
   searchTerm = signal<string>('');
   loading = signal<boolean>(false);
   saving = signal<boolean>(false);
@@ -123,6 +132,9 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
 
   private sellerDialogOpen = false;
   private productPricingCache = new Map<string, PosPricingOption[]>();
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchInput$ = new Subject<string>();
+  private lastAppliedSearch: string | null = null;
 
   constructor(
     public posService: POSService,
@@ -142,6 +154,24 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     return count > 0 ? `Carrito (${count})` : 'Carrito';
   });
 
+  toggleCartTotals(): void {
+    const next = !this.cartTotalsOpen();
+    this.cartTotalsOpen.set(next);
+    try {
+      localStorage.setItem(TakeOrderComponent.CART_TOTALS_OPEN_KEY, next ? 'true' : 'false');
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }
+
+  private static readCartTotalsOpen(): boolean {
+    try {
+      return localStorage.getItem(TakeOrderComponent.CART_TOTALS_OPEN_KEY) !== 'false';
+    } catch {
+      return true;
+    }
+  }
+
   private notifyError(message: string, duration = 4500): void {
     this.toast.error(message, { duration });
   }
@@ -155,13 +185,15 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.searchInput$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((term) => this.applyCatalogSearch(term));
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
     if (this.authService.isPosCobranzaTerminal()) {
       void this.router.navigate(['/pos/cobranza'], { replaceUrl: true });
       return;
     }
     resetPosWarehouseForBranch(this.authService.getBillingBranchId());
-    this.selectedWarehouse.set('');
     const fiscalFromLogin = this.authService.getFiscalConfigurationId();
     if (fiscalFromLogin) {
       this.posState.fiscalConfigurationId.set(fiscalFromLogin);
@@ -230,6 +262,8 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);
   }
 
@@ -243,21 +277,6 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     return branch?.display_name || branch?.code || 'Sucursal';
   }
 
-  selectedWarehouseName(): string {
-    const warehouses = this.warehouses();
-    const id = this.selectedWarehouse()?.trim();
-    if (id) {
-      const match = warehouses.find((x) => x.id === id);
-      if (match?.name) {
-        return match.name;
-      }
-    }
-    if (warehouses.length === 1) {
-      return warehouses[0].name;
-    }
-    return id ? 'Almacén sin nombre' : 'Almacén';
-  }
-
   loadData(): void {
     this.refreshDailyShift();
   }
@@ -265,10 +284,8 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   private applyInventorySummaryMeta(summary: PosInventorySummaryResponse): void {
     const enriched = enrichPosInventorySummary(summary);
     this.lastInventorySummary.set(enriched);
-    this.warehouses.set(enriched.warehouses);
 
     const warehouseId = firstPosSummaryWarehouseId(enriched);
-    this.selectedWarehouse.set(warehouseId);
     persistPosWarehouseId(warehouseId);
 
     const loginBranch = this.authService.getBillingBranchId();
@@ -312,7 +329,6 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       return null;
     }
 
-    this.selectedWarehouse.set(warehouseId);
     persistPosWarehouseId(warehouseId);
     this.posState.fiscalConfigurationId.set(fiscalConfigurationId);
     return { warehouseId, fiscalConfigurationId };
@@ -432,21 +448,42 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     this.openSellerCodeDialog();
   }
 
-  onSearchChange(): void {
+  onSearchInput(term: string): void {
+    this.searchTerm.set(term);
+    this.searchInput$.next(term);
+  }
+
+  clearSearch(): void {
+    if (!this.searchTerm()) {
+      this.catalogSearchRef?.nativeElement.focus();
+      return;
+    }
+    this.searchTerm.set('');
+    this.searchInput$.next('');
+    this.applyCatalogSearch('');
+    this.catalogSearchRef?.nativeElement.focus();
+  }
+
+  private applyCatalogSearch(term: string): void {
+    if (this.lastAppliedSearch === term) {
+      return;
+    }
+    this.lastAppliedSearch = term;
+
     if (this.canSell()) {
-      this.loadProducts(this.searchTerm());
+      this.loadProducts(term);
       return;
     }
 
-    const term = this.searchTerm().toLowerCase();
-    if (!term) {
+    const normalized = term.toLowerCase();
+    if (!normalized.trim()) {
       this.filteredProducts.set(this.products());
       return;
     }
 
     const filtered = this.products().filter(
       (p) =>
-        p.name.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term)
+        p.name.toLowerCase().includes(normalized) || p.sku.toLowerCase().includes(normalized)
     );
     this.filteredProducts.set(filtered);
   }
@@ -500,6 +537,13 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   hasApplicableDiscounts(product: any): boolean {
     return Boolean(product.has_applicable_discounts) ||
       (Array.isArray(product.applicable_discounts) && product.applicable_discounts.length > 0);
+  }
+
+  productMeasureLine(product: any): string {
+    if (!hasMeasureTotals(product?.measure_totals)) {
+      return '';
+    }
+    return formatMeasureTotalsLine(product.measure_totals, formatInventoryNumber);
   }
 
   private commitProductToCart(
@@ -869,12 +913,12 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
 
   catalogEmptyMessage(): string {
     if (this.priceListError()) {
-      return 'No se pudo cargar el catálogo. Revisa la sucursal y el almacén.';
+      return 'No se pudo cargar el catálogo. Revisa la sucursal.';
     }
     if (this.searchTerm().trim()) {
       return 'No hay productos que coincidan con tu búsqueda.';
     }
-    return 'No hay productos disponibles en este almacén.';
+    return 'No hay productos disponibles en esta sucursal.';
   }
 
   retryCatalogLoad(): void {
@@ -907,6 +951,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
             suggested_ieps_percentage: Number(row.suggested_ieps_percentage ?? 0),
             has_price: row.suggested_unit_price != null || row.cost != null,
             total_available_quantity: Number(row.total_available_quantity ?? row.available_quantity ?? 0),
+            measure_totals: Array.isArray(row.measure_totals) ? row.measure_totals : [],
             pricing_options: normalizePosPricingOptions(collectPosPricingOptions(row)),
             product_uom_id: row.product_uom_id || row.uom_id || '',
             applicable_discounts: Array.isArray(row.applicable_discounts) ? row.applicable_discounts : [],

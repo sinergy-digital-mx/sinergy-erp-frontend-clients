@@ -8,7 +8,7 @@
     </div>
   } @else {
     @if (mapLoading()) {
-      <div class="shipping-map__overlay">Cargando mapa…</div>
+      <div class="shipping-map__overlay"><app-spinner></app-spinner></div>
     }
     @if (mapError(); as err) {
       <div class="shipping-map__empty">{{ err }}</div>

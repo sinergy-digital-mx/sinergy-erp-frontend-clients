@@ -6,7 +6,7 @@
 
   <div class="branch-modal__body">
     <div *ngIf="loading()" class="loading-state">
-      <p>Cargando sucursal...</p>
+      <app-spinner></app-spinner>
     </div>
 
     <ng-container *ngIf="!loading()">

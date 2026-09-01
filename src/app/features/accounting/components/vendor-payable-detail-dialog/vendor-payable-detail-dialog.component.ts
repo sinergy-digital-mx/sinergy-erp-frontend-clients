@@ -2,6 +2,7 @@ import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { AccountingService } from '../../services/accounting.service';
 import { AccountsPayableOrderRow, AccountsPayableVendorDetail } from '../../models/accounting.model';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
@@ -14,7 +15,7 @@ export interface VendorPayableDetailDialogData {
 @Component({
   selector: 'app-vendor-payable-detail-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule],
+  imports: [CommonModule, MatDialogModule, SpinnerComponent],
   templateUrl: './vendor-payable-detail-dialog.component.html',
   styleUrl: './vendor-payable-detail-dialog.component.scss',
 })

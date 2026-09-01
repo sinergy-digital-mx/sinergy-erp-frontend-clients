@@ -5,7 +5,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReceiptService } from '../../services/receipt.service';
 import { PurchaseOrder, LineItem } from '../../models/purchase-order.model';
-import { LotMode, ReceivedItem, ReceivedLot, ReceiptRequest, ReceiptResponse } from '../../models/receipt.model';
+import { LotMode, ReceivedItem, ReceivedLot, ReceiptRequest, ReceiptResponse, UomCatalogItem } from '../../models/receipt.model';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
@@ -21,9 +21,13 @@ import { formatPurchaseOrderUnitCost } from '../../utils/purchase-order-display.
 export class ReceiptModalComponent implements OnInit {
   isLoading = false;
   purchaseOrder: PurchaseOrder;
-  receivedQuantities: { [key: string]: number } = {};
+  receivedQuantities: { [key: string]: number | null } = {};
   lotModes: Record<string, LotMode> = {};
   multipleLotsByLine: Record<string, ReceivedLot[]> = {};
+  indicateMeasure: Record<string, boolean> = {};
+  measureValues: Record<string, number | null> = {};
+  measureUomIds: Record<string, string> = {};
+  uomCatalog: UomCatalogItem[] = [];
 
   constructor(
     private receiptService: ReceiptService,
@@ -37,13 +41,21 @@ export class ReceiptModalComponent implements OnInit {
 
   ngOnInit() {
     if (this.purchaseOrder?.line_items) {
-      // Initialize quantities and dates objects
       this.purchaseOrder.line_items.forEach((item) => {
-        this.receivedQuantities[item.id] = 0;
+        this.receivedQuantities[item.id] = null;
         this.lotModes[item.id] = 'single';
         this.multipleLotsByLine[item.id] = [];
+        this.indicateMeasure[item.id] = false;
+        this.measureValues[item.id] = null;
+        this.measureUomIds[item.id] = '';
       });
     }
+    this.receiptService.getUomCatalog(200).subscribe({
+      next: (items) => {
+        this.uomCatalog = items ?? [];
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   /**
@@ -170,6 +182,32 @@ export class ReceiptModalComponent implements OnInit {
     }
   }
 
+  isIndicateMeasure(lineItemId: string): boolean {
+    return !!this.indicateMeasure[lineItemId];
+  }
+
+  onIndicateMeasureChange(lineItemId: string, checked: boolean): void {
+    this.indicateMeasure[lineItemId] = checked;
+  }
+
+  getMeasureUomName(uomId: string | null | undefined): string {
+    const id = (uomId || '').trim();
+    if (!id) {
+      return '';
+    }
+    const match = this.uomCatalog.find((item) => item.id === id);
+    return (match?.name || match?.abbreviation || '').trim();
+  }
+
+  getLineMeasurePreview(lineItemId: string): string {
+    const measure = this.parseMeasure(this.measureValues[lineItemId]);
+    const unitName = this.getMeasureUomName(this.measureUomIds[lineItemId]);
+    if (measure == null || !unitName) {
+      return '';
+    }
+    return `${measure} ${unitName}`;
+  }
+
   addLot(lineItemId: string): void {
     const lineItem = this.getLineItemById(lineItemId);
     if (!lineItem) {
@@ -178,7 +216,7 @@ export class ReceiptModalComponent implements OnInit {
     const productUomId = lineItem.product_uom?.id || lineItem.product_uom_id || '';
     this.multipleLotsByLine[lineItemId] = [
       ...(this.multipleLotsByLine[lineItemId] || []),
-      { tag_identifier: '', quantity: 0, product_uom_id: productUomId }
+      { tag_identifier: '', quantity: null, product_uom_id: productUomId, measure: null }
     ];
   }
 
@@ -202,6 +240,18 @@ export class ReceiptModalComponent implements OnInit {
 
   private getLineUomId(lineItem: LineItem): string {
     return lineItem.product_uom?.id || lineItem.product_uom_id || '';
+  }
+
+  private parseMeasure(value: number | string | null | undefined): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    const parsed = typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private measureUnitMissingMessage(): string {
+    return 'Indica la unidad del tamaño (Foot, PIES, …). No uses la unidad de la orden de compra';
   }
 
   private validateMultipleLots(lineItem: LineItem, lots: ReceivedLot[]): string | null {
@@ -257,9 +307,27 @@ export class ReceiptModalComponent implements OnInit {
       
       const lotMode = this.getLotMode(lineItem.id);
       const lineUomId = this.getLineUomId(lineItem);
+      const wantsMeasure = this.isIndicateMeasure(lineItem.id);
+      const measureUomId = (this.measureUomIds[lineItem.id] || '').trim();
+
       if (lotMode === 'single' && quantity > 0) {
+        if (wantsMeasure && !measureUomId) {
+          this.snackBar.openFromComponent(CustomSnackbarComponent, {
+            data: { message: this.measureUnitMissingMessage(), type: 'error' },
+            duration: 4000
+          });
+          return;
+        }
+        if (wantsMeasure && this.parseMeasure(this.measureValues[lineItem.id]) == null) {
+          this.snackBar.openFromComponent(CustomSnackbarComponent, {
+            data: { message: `Indica el tamaño para ${this.getProductName(lineItem)}`, type: 'error' },
+            duration: 4000
+          });
+          return;
+        }
+
         hasValidItems = true;
-        receivedItems.push({
+        const item: ReceivedItem = {
           line_item_id: lineItem.id,
           product_id: lineItem.product_id,
           product_uom_id: lineUomId,
@@ -271,18 +339,32 @@ export class ReceiptModalComponent implements OnInit {
           ieps_unit: lineItem.ieps_unit || 0,
           expiration_date: null,
           lot_mode: 'single'
-        });
+        };
+        if (wantsMeasure) {
+          item.measure = this.parseMeasure(this.measureValues[lineItem.id])!;
+          item.measure_uom_id = measureUomId;
+        }
+        receivedItems.push(item);
       } else if (lotMode === 'multiple') {
         const lots = this.getLots(lineItem.id)
           .map((lot) => ({
             tag_identifier: (lot.tag_identifier || '').trim(),
             quantity: Number(lot.quantity || 0),
-            product_uom_id: lot.product_uom_id || lineUomId
+            product_uom_id: lot.product_uom_id || lineUomId,
+            measure: this.parseMeasure(lot.measure)
           }))
           .filter((lot) => lot.tag_identifier || lot.quantity > 0);
 
         if (lots.length === 0) {
           continue;
+        }
+
+        if (wantsMeasure && !measureUomId) {
+          this.snackBar.openFromComponent(CustomSnackbarComponent, {
+            data: { message: this.measureUnitMissingMessage(), type: 'error' },
+            duration: 4000
+          });
+          return;
         }
 
         const validationError = this.validateMultipleLots(lineItem, lots);
@@ -294,8 +376,33 @@ export class ReceiptModalComponent implements OnInit {
           return;
         }
 
+        if (wantsMeasure) {
+          const missingMeasure = lots.findIndex((lot) => lot.measure == null);
+          if (missingMeasure >= 0) {
+            this.snackBar.openFromComponent(CustomSnackbarComponent, {
+              data: {
+                message: `El lote ${missingMeasure + 1} en ${this.getProductName(lineItem)} requiere tamaño`,
+                type: 'error'
+              },
+              duration: 4000
+            });
+            return;
+          }
+        }
+
         hasValidItems = true;
-        receivedItems.push({
+        const payloadLots: ReceivedLot[] = lots.map((lot) => {
+          const row: ReceivedLot = {
+            tag_identifier: lot.tag_identifier,
+            quantity: lot.quantity,
+            product_uom_id: lot.product_uom_id
+          };
+          if (wantsMeasure && lot.measure != null) {
+            row.measure = lot.measure;
+          }
+          return row;
+        });
+        const item: ReceivedItem = {
           line_item_id: lineItem.id,
           product_id: lineItem.product_id,
           product_uom_id: lineUomId,
@@ -307,8 +414,12 @@ export class ReceiptModalComponent implements OnInit {
           ieps_unit: lineItem.ieps_unit || 0,
           expiration_date: null,
           lot_mode: 'multiple',
-          lots
-        });
+          lots: payloadLots
+        };
+        if (wantsMeasure) {
+          item.measure_uom_id = measureUomId;
+        }
+        receivedItems.push(item);
       }
     }
 

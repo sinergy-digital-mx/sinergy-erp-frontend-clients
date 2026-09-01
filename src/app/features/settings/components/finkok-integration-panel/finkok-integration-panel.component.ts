@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import {
   FinkokConfigurationsResponse,
@@ -17,7 +18,7 @@ import { FinkokConfigurationService } from '../../services/finkok-configuration.
 @Component({
   selector: 'app-finkok-integration-panel',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ButtonComponent, TabComponent],
+  imports: [CommonModule, ReactiveFormsModule, ButtonComponent, TabComponent, SpinnerComponent],
   templateUrl: './finkok-integration-panel.component.html',
   styleUrl: './finkok-integration-panel.component.scss',
 })

@@ -37,6 +37,7 @@ import {
   shortFiscalLabel,
 } from '../../utils/transfer-location.util';
 import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
 interface BatchLineState {
   batch: TransferContextBatch;
@@ -49,7 +50,7 @@ type TransferStep = 1 | 2 | 3;
 @Component({
   selector: 'app-create-transfer-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, TransferLocationPathComponent],
+  imports: [CommonModule, FormsModule, LucideAngularModule, TransferLocationPathComponent, SpinnerComponent],
   templateUrl: './create-transfer-dialog.component.html',
   styleUrl: './create-transfer-dialog.component.scss',
 })

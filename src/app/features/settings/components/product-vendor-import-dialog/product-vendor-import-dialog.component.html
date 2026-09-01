@@ -1,0 +1,205 @@
+<div class="import-dialog">
+  <div class="import-dialog__header">
+    <h3 class="import-dialog__title">{{ title }}</h3>
+    <button
+      type="button"
+      class="import-dialog__close"
+      aria-label="Cerrar"
+      [disabled]="importing()"
+      (click)="cancel()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  <div class="import-dialog__body">
+    <span class="import-dialog__label" id="vendor-import-type-label">Tipo</span>
+    <div
+      class="import-dialog__type"
+      role="radiogroup"
+      aria-labelledby="vendor-import-type-label">
+      <button
+        type="button"
+        role="radio"
+        class="import-dialog__type-btn"
+        [class.import-dialog__type-btn--active]="!isPrices()"
+        [attr.aria-checked]="!isPrices()"
+        [disabled]="fieldsLocked()"
+        (click)="setMode('costs')">
+        Costos
+      </button>
+      <button
+        type="button"
+        role="radio"
+        class="import-dialog__type-btn"
+        [class.import-dialog__type-btn--active]="isPrices()"
+        [attr.aria-checked]="isPrices()"
+        [disabled]="fieldsLocked()"
+        (click)="setMode('prices')">
+        Precios
+      </button>
+    </div>
+
+    <p class="import-dialog__disclaimer">{{ disclaimer() }}</p>
+
+    <label class="import-dialog__label" for="vendor-import-search">Proveedor</label>
+    <div class="import-dialog__picker">
+      <input
+        id="vendor-import-search"
+        type="text"
+        class="import-dialog__input"
+        [formControl]="vendorSearchCtrl"
+        [matAutocomplete]="autoVendor"
+        placeholder="Buscar proveedor..."
+        [readonly]="fieldsLocked()"
+        (focus)="onVendorSearchFocus()" />
+      <mat-autocomplete
+        #autoVendor="matAutocomplete"
+        [displayWith]="displayVendor"
+        (optionSelected)="onVendorSelected($event.option.value)">
+        @if (loadingVendors() && vendors().length === 0) {
+          <mat-option disabled>Cargando proveedores...</mat-option>
+        } @else if (!loadingVendors() && vendors().length === 0) {
+          <mat-option disabled>No se encontraron proveedores</mat-option>
+        }
+        @for (vendor of vendors(); track vendor.id) {
+          <mat-option [value]="vendor">{{ vendor.name }}</mat-option>
+        }
+      </mat-autocomplete>
+    </div>
+
+    @if (isPrices()) {
+      <label class="import-dialog__label" for="vendor-import-price-list">Lista de precios</label>
+      <select
+        id="vendor-import-price-list"
+        class="import-dialog__input import-dialog__select"
+        [formControl]="priceListCtrl"
+        [attr.disabled]="fieldsLocked() || loadingPriceLists() ? true : null">
+        <option value="">
+          {{ loadingPriceLists() ? 'Cargando...' : 'Selecciona una lista de precios' }}
+        </option>
+        @for (list of priceLists(); track list.id) {
+          <option [value]="list.id">{{ list.name }}</option>
+        }
+      </select>
+    }
+
+    @if (previewLoading()) {
+      <p class="import-dialog__preview import-dialog__preview--muted">Consultando productos...</p>
+    } @else if (previewError()) {
+      <p class="import-dialog__error" role="alert">{{ previewError() }}</p>
+    } @else if (previewText()) {
+      <p class="import-dialog__preview">{{ previewText() }}</p>
+    }
+
+    <button
+      type="button"
+      class="import-dialog__btn import-dialog__btn--secondary"
+      [disabled]="!canDownloadTemplate()"
+      (click)="downloadTemplate()">
+      @if (downloading()) {
+        <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+        Descargando...
+      } @else {
+        <i class="fi fi-rr-download" aria-hidden="true"></i>
+        Descargar productos de este proveedor
+      }
+    </button>
+
+    <div
+      class="import-dialog__dropzone"
+      [class.import-dialog__dropzone--active]="isDragOver()"
+      [class.import-dialog__dropzone--has-file]="!!selectedFile()"
+      [class.import-dialog__dropzone--disabled]="fieldsLocked()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+      (click)="fileInput.click()">
+      <input
+        #fileInput
+        type="file"
+        class="import-dialog__file-input"
+        [accept]="acceptTypes"
+        [disabled]="fieldsLocked()"
+        (change)="onFileSelected($event)"
+        (click)="$event.stopPropagation()" />
+      @if (selectedFile()) {
+        <p class="import-dialog__file-name">{{ selectedFile()!.name }}</p>
+        <button
+          type="button"
+          class="import-dialog__link"
+          [disabled]="fieldsLocked()"
+          (click)="clearFile(); $event.stopPropagation()">
+          Quitar
+        </button>
+      } @else {
+        <p class="import-dialog__dropzone-title">Arrastra el Excel o elige un archivo</p>
+        <button
+          type="button"
+          class="import-dialog__link"
+          [disabled]="fieldsLocked()"
+          (click)="fileInput.click(); $event.stopPropagation()">
+          Seleccionar .xlsx
+        </button>
+      }
+    </div>
+
+    @if (fileError()) {
+      <p class="import-dialog__error" role="alert">{{ fileError() }}</p>
+    }
+
+    @if (errorMessage()) {
+      <p class="import-dialog__error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    @if (result(); as importResult) {
+      <div class="import-dialog__result">
+        <p class="import-dialog__result-summary">{{ resultSummary() }}</p>
+        @if (importResult.errors.length) {
+          <div class="import-dialog__errors">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fila</th>
+                  <th>SKU</th>
+                  <th>Mensaje</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of importResult.errors; track item.row + item.sku + $index) {
+                  <tr>
+                    <td>{{ item.row }}</td>
+                    <td>{{ item.sku }}</td>
+                    <td>{{ item.message }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="import-dialog__footer">
+    <button
+      type="button"
+      class="import-dialog__btn import-dialog__btn--cancel"
+      [disabled]="importing()"
+      (click)="cancel()">
+      Cancelar
+    </button>
+    <button
+      type="button"
+      class="import-dialog__btn import-dialog__btn--primary"
+      [disabled]="!canImport()"
+      (click)="importFile()">
+      @if (importing()) {
+        <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+        Importando...
+      } @else {
+        <i class="fi fi-rr-upload" aria-hidden="true"></i>
+        {{ importLabel() }}
+      }
+    </button>
+  </div>
+</div>

@@ -5,7 +5,7 @@
   </div>
 
   @if (loading()) {
-    <div class="shift-detail-modal__loading">Cargando...</div>
+    <div class="shift-detail-modal__loading"><app-spinner></app-spinner></div>
   } @else if (shift(); as item) {
     <div class="shift-detail-modal__body">
       <dl class="shift-detail-modal__grid">

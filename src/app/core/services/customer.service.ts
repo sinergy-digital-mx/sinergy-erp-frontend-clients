@@ -2,6 +2,10 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, from, of, tap, throwError } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
+import {
+  getRegistrationUserStatusCode,
+  isActiveRegistrationUser,
+} from '../../features/customers/utils/customer-registration.util';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import {
@@ -9,7 +13,10 @@ import {
   CustomerCreditsUpdateItem,
   CustomerDuplicatesResponse,
   CustomerFiscalCredit,
+  CustomerRegistrationFiscalOption,
   CustomerRegistrationOptions,
+  CustomerRegistrationSellerOption,
+  CustomerRegistrationUserOption,
   CustomerStatus,
   UpdateCustomerDto,
 } from '../../features/customers/models/customer-group.model';
@@ -21,12 +28,15 @@ export interface CustomersExportFilters {
 }
 
 
+type UserStatusCatalogItem = { id: number; code: string };
+
 @Injectable({
   providedIn: 'root',
 })
 export class CustomerService {
   api = environment.api;
   private statusesCache: CustomerStatus[] | null = null;
+  private userStatusCatalogCache: UserStatusCatalogItem[] | null = null;
 
 
   constructor(private router: Router, public http: HttpClient, public activated_route: ActivatedRoute) {
@@ -118,9 +128,31 @@ export class CustomerService {
   }
 
   getRegistrationOptions(): Observable<CustomerRegistrationOptions> {
-    return this.http
-      .get<unknown>(`${this.api}/tenant/customers/registration-options`)
-      .pipe(map((response) => this.normalizeRegistrationOptions(response)));
+    return this.getAssignableUserStatuses().pipe(
+      switchMap((statuses) =>
+        this.http.get<unknown>(`${this.api}/tenant/customers/registration-options`).pipe(
+          switchMap((response) => {
+            const options = this.normalizeRegistrationOptions(response, statuses);
+            if (!this.registrationOptionsNeedActiveIntersect(response, statuses)) {
+              return of(options);
+            }
+            const activeId = statuses.find((item) => item.code === 'active')?.id;
+            return this.getActiveUserIdSet(activeId).pipe(
+              map((activeIds) => {
+                if (!activeIds) {
+                  return options;
+                }
+                return {
+                  ...options,
+                  users: options.users.filter((user) => activeIds.has(user.id)),
+                  sellers: options.sellers.filter((seller) => activeIds.has(seller.id)),
+                };
+              })
+            );
+          })
+        )
+      )
+    );
   }
 
   checkCustomerDuplicates(
@@ -218,37 +250,174 @@ export class CustomerService {
     return throwError(() => new Error('No se pudo generar el reporte'));
   }
 
-  private normalizeRegistrationOptions(response: unknown): CustomerRegistrationOptions {
+  private getAssignableUserStatuses(): Observable<UserStatusCatalogItem[]> {
+    if (this.userStatusCatalogCache) {
+      return of(this.userStatusCatalogCache);
+    }
+    return this.http.get<unknown>(`${this.api}/tenant/users/statuses`).pipe(
+      map((res) => {
+        const root = res && typeof res === 'object' ? (res as Record<string, unknown>) : {};
+        const list = Array.isArray(res) ? res : root['data'] ?? root['statuses'] ?? [];
+        const statuses = (Array.isArray(list) ? list : [])
+          .map((item) => {
+            const row = (item ?? {}) as Record<string, unknown>;
+            return {
+              id: Number(row['id']),
+              code: String(row['code'] ?? '').trim().toLowerCase(),
+            };
+          })
+          .filter((item) => Number.isFinite(item.id) && !!item.code);
+        this.userStatusCatalogCache = statuses;
+        return statuses;
+      }),
+      catchError(() => of([] as UserStatusCatalogItem[]))
+    );
+  }
+
+  private getActiveUserIdSet(activeStatusId?: number): Observable<Set<string> | null> {
+    let params = new HttpParams();
+    if (activeStatusId != null) {
+      params = params.set('status_id', String(activeStatusId));
+    }
+    return this.http.get<unknown>(`${this.api}/tenant/users`, { params }).pipe(
+      map((res) => {
+        const ids = new Set<string>();
+        for (const user of this.extractArrayPayload(res)) {
+          const id = String((user as Record<string, unknown>)['id'] ?? '').trim();
+          if (!id) {
+            continue;
+          }
+          if (activeStatusId == null && isActiveRegistrationUser(user) === false) {
+            continue;
+          }
+          ids.add(id);
+        }
+        return ids;
+      }),
+      catchError(() => of(null))
+    );
+  }
+
+  private extractArrayPayload(payload: unknown): unknown[] {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+    if (!payload || typeof payload !== 'object') {
+      return [];
+    }
+    const row = payload as Record<string, unknown>;
+    const nested = row['users'] ?? row['data'] ?? row['items'];
+    if (Array.isArray(nested)) {
+      return nested;
+    }
+    if (nested && typeof nested === 'object') {
+      const inner = (nested as Record<string, unknown>)['users']
+        ?? (nested as Record<string, unknown>)['items']
+        ?? (nested as Record<string, unknown>)['data'];
+      return Array.isArray(inner) ? inner : [];
+    }
+    return [];
+  }
+
+  private registrationOptionsNeedActiveIntersect(
+    response: unknown,
+    statuses: UserStatusCatalogItem[]
+  ): boolean {
+    const { rawUsers, rawSellers } = this.extractRegistrationPeople(response);
+    const activeIds = this.activeStatusIds(statuses);
+    return [...rawUsers, ...rawSellers].some(
+      (item) => isActiveRegistrationUser(item, activeIds) === null
+    );
+  }
+
+  private extractRegistrationPeople(response: unknown): {
+    rawFiscals: unknown[];
+    rawUsers: unknown[];
+    rawSellers: unknown[];
+  } {
     const root =
       response && typeof response === 'object' ? (response as Record<string, unknown>) : {};
     const nested =
       root['data'] && typeof root['data'] === 'object' && !Array.isArray(root['data'])
         ? (root['data'] as Record<string, unknown>)
         : root;
-    const rawBranches = Array.isArray(nested['branches']) ? nested['branches'] : [];
-    const rawUsers = Array.isArray(nested['users']) ? nested['users'] : [];
+    return {
+      rawFiscals: Array.isArray(nested['fiscal_configurations'])
+        ? nested['fiscal_configurations']
+        : [],
+      rawUsers: Array.isArray(nested['users']) ? nested['users'] : [],
+      rawSellers: Array.isArray(nested['sellers']) ? nested['sellers'] : [],
+    };
+  }
+
+  private activeStatusIds(statuses: UserStatusCatalogItem[]): number[] {
+    return statuses.filter((item) => item.code === 'active').map((item) => item.id);
+  }
+
+  private normalizeRegistrationOptions(
+    response: unknown,
+    statuses: UserStatusCatalogItem[] = []
+  ): CustomerRegistrationOptions {
+    const { rawFiscals, rawUsers, rawSellers } = this.extractRegistrationPeople(response);
+    const activeIds = this.activeStatusIds(statuses);
 
     return {
+      fiscal_configurations: rawFiscals
+        .map((item) => this.normalizeRegistrationFiscal(item))
+        .filter((fiscal): fiscal is CustomerRegistrationFiscalOption => !!fiscal),
+      users: rawUsers
+        .filter((item) => isActiveRegistrationUser(item, activeIds) !== false)
+        .map((item) => this.normalizeRegistrationPerson(item))
+        .filter((user): user is CustomerRegistrationUserOption => !!user),
+      sellers: rawSellers
+        .filter((item) => isActiveRegistrationUser(item, activeIds) !== false)
+        .map((item) => this.normalizeRegistrationSeller(item))
+        .filter((seller): seller is CustomerRegistrationSellerOption => !!seller),
+    };
+  }
+
+  private normalizeRegistrationFiscal(item: unknown): CustomerRegistrationFiscalOption | null {
+    const row = (item ?? {}) as Record<string, unknown>;
+    const id = String(row['id'] ?? '').trim();
+    if (!id) return null;
+    const rawBranches = Array.isArray(row['branches']) ? row['branches'] : [];
+    return {
+      id,
+      razon_social: row['razon_social'] != null ? String(row['razon_social']) : null,
+      rfc: row['rfc'] != null ? String(row['rfc']) : null,
+      status: row['status'] != null ? String(row['status']) : null,
       branches: rawBranches
-        .map((item) => {
-          const row = (item ?? {}) as Record<string, unknown>;
-          const id = String(row['id'] ?? '').trim();
-          const name = String(row['name'] ?? row['code'] ?? row['display_name'] ?? '').trim();
-          return { id, name: name || id };
+        .map((branch) => {
+          const b = (branch ?? {}) as Record<string, unknown>;
+          const branchId = String(b['id'] ?? '').trim();
+          const name = String(b['name'] ?? b['code'] ?? b['display_name'] ?? '').trim();
+          return { id: branchId, name: name || branchId };
         })
         .filter((branch) => !!branch.id),
-      users: rawUsers
-        .map((item) => {
-          const row = (item ?? {}) as Record<string, unknown>;
-          const id = String(row['id'] ?? '').trim();
-          return {
-            id,
-            first_name: row['first_name'] != null ? String(row['first_name']) : null,
-            last_name: row['last_name'] != null ? String(row['last_name']) : null,
-            email: row['email'] != null ? String(row['email']) : null,
-          };
-        })
-        .filter((user) => !!user.id),
+    };
+  }
+
+  private normalizeRegistrationPerson(item: unknown): CustomerRegistrationUserOption | null {
+    const row = (item ?? {}) as Record<string, unknown>;
+    const id = String(row['id'] ?? '').trim();
+    if (!id) return null;
+    return {
+      id,
+      first_name: row['first_name'] != null ? String(row['first_name']) : null,
+      last_name: row['last_name'] != null ? String(row['last_name']) : null,
+      email: row['email'] != null ? String(row['email']) : null,
+      status: getRegistrationUserStatusCode(item),
+    };
+  }
+
+  private normalizeRegistrationSeller(item: unknown): CustomerRegistrationSellerOption | null {
+    const person = this.normalizeRegistrationPerson(item);
+    if (!person) return null;
+    const row = (item ?? {}) as Record<string, unknown>;
+    const code = row['pos_user_code'];
+    return {
+      ...person,
+      pos_user_code: code != null && String(code).trim() !== '' ? (code as number | string) : null,
     };
   }
 

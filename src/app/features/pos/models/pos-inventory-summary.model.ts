@@ -184,6 +184,13 @@ export interface PosSummaryProductRow {
   suggested_iva_percentage?: string | number | null;
   suggested_ieps_percentage?: string | number | null;
   total_available_quantity?: string | number | null;
+  measure_totals?: Array<{
+    measure?: string | null;
+    measure_uom_id?: string | null;
+    measure_uom_name?: string | null;
+    measure_label?: string | null;
+    total_available_quantity?: string | number | null;
+  }>;
   product_photo?: string | null;
   pricing_options?: unknown[];
   has_applicable_discounts?: boolean;

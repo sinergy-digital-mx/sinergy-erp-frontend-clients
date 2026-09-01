@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { LucideAngularModule, X, ChevronDown } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
@@ -29,6 +30,7 @@ const PHOTO_ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
     LucideAngularModule,
     TabComponent,
     HasPermissionDirective,
+    SpinnerComponent,
   ],
   templateUrl: './truck-form-modal.component.html',
   styleUrl: './truck-form-modal.component.scss',

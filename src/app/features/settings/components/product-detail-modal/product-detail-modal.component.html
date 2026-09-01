@@ -12,8 +12,7 @@
 
   <!-- Loading -->
   <div *ngIf="loading" class="loading-container">
-    <div class="spinner"></div>
-    <p>Cargando producto...</p>
+    <app-spinner></app-spinner>
   </div>
 
   <!-- Content -->
@@ -149,8 +148,7 @@
           </div>
 
           <div *ngIf="loadingUoms && (!product.uoms || product.uoms.length === 0)" class="tab-loader">
-            <div class="spinner"></div>
-            <p>Cargando UOMs...</p>
+            <app-spinner></app-spinner>
           </div>
 
           <div *ngIf="!loadingUoms && (!product.uoms || product.uoms.length === 0)" class="empty-state">
@@ -216,8 +214,7 @@
           </div>
 
           <div *ngIf="loadingPrices && (!product.prices || product.prices.length === 0)" class="tab-loader">
-            <div class="spinner"></div>
-            <p>Cargando precios...</p>
+            <app-spinner></app-spinner>
           </div>
 
           <div *ngIf="!loadingPrices && (!product.prices || product.prices.length === 0)" class="empty-state">
@@ -268,8 +265,7 @@
           </div>
 
           <div *ngIf="loadingDiscounts && (!product.discounts || product.discounts.length === 0)" class="tab-loader">
-            <div class="spinner"></div>
-            <p>Cargando descuentos...</p>
+            <app-spinner></app-spinner>
           </div>
 
           <div *ngIf="!loadingDiscounts && (!product.discounts || product.discounts.length === 0)" class="empty-state empty-state--discounts">
@@ -330,8 +326,7 @@
           </div>
 
           <div *ngIf="loadingCosts && (!product.vendor_costs || product.vendor_costs.length === 0)" class="tab-loader">
-            <div class="spinner"></div>
-            <p>Cargando costos...</p>
+            <app-spinner></app-spinner>
           </div>
 
           <div *ngIf="!loadingCosts && (!product.vendor_costs || product.vendor_costs.length === 0)" class="empty-state">
@@ -620,17 +615,17 @@
 
         <div class="form-field">
           <label class="form-label">PRECIO *</label>
-          <input type="number" class="form-input" [(ngModel)]="priceForm.price" placeholder="0.00" step="0.01" min="0">
+          <input type="number" class="form-input" [(ngModel)]="priceForm.price" step="0.01" min="0">
         </div>
 
         <div class="form-field">
           <label class="form-label">IVA %</label>
-          <input type="number" class="form-input" [(ngModel)]="priceForm.iva_percentage" placeholder="0" step="0.01" min="0" max="100">
+          <input type="number" class="form-input" [(ngModel)]="priceForm.iva_percentage" step="0.01" min="0" max="100">
         </div>
 
         <div class="form-field form-field--full">
           <label class="form-label">IEPS %</label>
-          <input type="number" class="form-input" [(ngModel)]="priceForm.ieps_percentage" placeholder="0" step="0.01" min="0" max="100">
+          <input type="number" class="form-input" [(ngModel)]="priceForm.ieps_percentage" step="0.01" min="0" max="100">
         </div>
       </div>
 
@@ -713,7 +708,7 @@
 
         <div class="form-field">
           <label class="form-label">COSTO *</label>
-          <input type="number" class="form-input" [(ngModel)]="costForm.cost" placeholder="0.00" step="0.01" min="0">
+          <input type="number" class="form-input" [(ngModel)]="costForm.cost" step="0.01" min="0">
         </div>
 
         <div class="form-field">
@@ -738,12 +733,12 @@
 
         <div class="form-field">
           <label class="form-label">IVA %</label>
-          <input type="number" class="form-input" [(ngModel)]="costForm.iva_percentage" placeholder="0" step="0.01" min="0">
+          <input type="number" class="form-input" [(ngModel)]="costForm.iva_percentage" step="0.01" min="0">
         </div>
 
         <div class="form-field">
           <label class="form-label">IEPS %</label>
-          <input type="number" class="form-input" [(ngModel)]="costForm.ieps_percentage" placeholder="0" step="0.01" min="0">
+          <input type="number" class="form-input" [(ngModel)]="costForm.ieps_percentage" step="0.01" min="0">
         </div>
       </div>
 

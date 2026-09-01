@@ -10,17 +10,15 @@
   --dt-header-bg: #f9fafb;
 
   .loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(255, 255, 255, 0.7);
+    min-height: 16rem;
+    background-color: rgba(255, 255, 255, 0.86);
     z-index: 10;
-    border-radius: 4px;
+    border-radius: 12px;
+    border: 1px dashed #e0e7ff;
   }
 
   .empty-state-container {

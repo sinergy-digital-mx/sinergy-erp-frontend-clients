@@ -33,6 +33,16 @@
         </button>
       }
 
+      @if (canUpdateCatalog) {
+        <button
+          type="button"
+          class="product-list-header__import"
+          (click)="openVendorImportDialog()">
+          <i class="fi fi-rr-upload" aria-hidden="true"></i>
+          Importar
+        </button>
+      }
+
       <button
         type="button"
         class="product-list-header__create"

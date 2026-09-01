@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { Warehouse, CreateWarehouseDto, UpdateWarehouseDto, WarehouseListResponse, WarehouseQueryParams } from '../models/warehouse.model';
 
@@ -17,7 +17,9 @@ export class WarehouseService {
   }
 
   getWarehouse(id: string): Observable<Warehouse> {
-    return this.http.get<Warehouse>(`${this.api}/tenant/warehouses/${id}`);
+    return this.http.get<Warehouse | { data: Warehouse }>(`${this.api}/tenant/warehouses/${id}`).pipe(
+      map((res) => (res && typeof res === 'object' && 'data' in res ? res.data : res) as Warehouse)
+    );
   }
 
   createWarehouse(data: CreateWarehouseDto): Observable<Warehouse> {

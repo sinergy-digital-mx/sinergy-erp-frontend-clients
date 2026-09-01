@@ -7,6 +7,7 @@ import { TaxCalculatorService } from '../../services/tax-calculator.service';
 import { PurchaseOrder } from '../../models/purchase-order.model';
 import { OrderHeaderComponent } from '../../components/order-header/order-header.component';
 import { LineItemsTableComponent } from '../../components/line-items-table/line-items-table.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { PaymentsListComponent } from '../../components/payments-list/payments-list.component';
 import { PaymentDialogComponent, PaymentFormData } from '../../components/payment-dialog/payment-dialog.component';
 import { CancelDialogComponent } from '../../components/cancel-dialog/cancel-dialog.component';
@@ -14,7 +15,7 @@ import { CancelDialogComponent } from '../../components/cancel-dialog/cancel-dia
 @Component({
   selector: 'app-purchase-order-detail',
   standalone: true,
-  imports: [CommonModule, OrderHeaderComponent, LineItemsTableComponent, PaymentsListComponent],
+  imports: [CommonModule, OrderHeaderComponent, LineItemsTableComponent, PaymentsListComponent, SpinnerComponent],
   templateUrl: './purchase-order-detail.component.html',
   styleUrls: ['./purchase-order-detail.component.scss']
 })

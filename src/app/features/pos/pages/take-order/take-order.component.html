@@ -17,7 +17,7 @@
             <lucide-icon [img]="Package" class="pos-ic pos-ic--sm" />
             <span>Corte abierto</span>
           </div>
-          <span class="pos-session-meta">{{ branchLabel() }} · {{ selectedWarehouseName() }}</span>
+          <span class="pos-session-meta">{{ branchLabel() }}</span>
           @if (posState.seller(); as seller) {
             <span class="pos-session-meta">· Vendedor: {{ posState.sellerDisplayName() }}</span>
           }
@@ -88,13 +88,24 @@
         <div class="pos-search">
           <lucide-icon [img]="Search" class="pos-search__icon" />
           <input
+            #catalogSearch
             type="search"
             class="pos-search__input"
             placeholder="Buscar por nombre o SKU…"
             [ngModel]="searchTerm()"
-            (ngModelChange)="searchTerm.set($event); onSearchChange()"
+            (ngModelChange)="onSearchInput($event)"
             autocomplete="off"
           />
+          @if (searchTerm()) {
+            <button
+              type="button"
+              class="pos-search__clear"
+              (click)="clearSearch()"
+              title="Limpiar búsqueda"
+              aria-label="Limpiar búsqueda">
+              <lucide-icon [img]="X" [size]="14" class="pos-search__clear-icon" />
+            </button>
+          }
         </div>
         <p class="pos-catalog__hint">{{ filteredProducts().length }} productos</p>
       </div>
@@ -147,6 +158,9 @@
                 <span class="pos-card__meta-dot" aria-hidden="true">·</span>
                 <span>Stock {{ product.total_available_quantity || 0 }}</span>
               </p>
+              @if (productMeasureLine(product)) {
+                <p class="pos-card__measures">{{ productMeasureLine(product) }}</p>
+              }
               @if (hasApplicableDiscounts(product)) {
                 <span class="pos-card__discount-badge">
                   <lucide-icon [img]="Percent" class="pos-ic pos-ic--xs" />
@@ -179,8 +193,7 @@
 
         @if (loading()) {
           <div class="pos-loading-grid">
-            <div class="pos-spinner"></div>
-            <p>Cargando catálogo…</p>
+            <app-spinner></app-spinner>
           </div>
         }
       </div>
@@ -207,6 +220,19 @@
                   <span class="pos-line__meta-sep" aria-hidden="true">·</span>
                   <span class="pos-line__unit">{{ formatCurrency(item.unit_price) }} · {{ item.uom_name }}</span>
                 </p>
+              </div>
+              <button
+                type="button"
+                class="pos-line__remove"
+                (click)="removeItem(i)"
+                title="Quitar del carrito"
+                aria-label="Quitar del carrito">
+                <lucide-icon [img]="Trash2" class="pos-ic pos-ic--xs" />
+              </button>
+            </div>
+
+            <div class="pos-line__bottom">
+              <div class="pos-line__controls">
                 @if ((item.pricing_options?.length || 0) > 0) {
                   <select
                     [id]="'pos-price-list-' + i"
@@ -216,7 +242,7 @@
                     [ngModel]="item.selected_price_list_id || ''"
                     [ngModelOptions]="{standalone: true}"
                     (ngModelChange)="onPricingOptionChange(i, $event)">
-                    <option [ngValue]="''">Lista: precio sugerido · {{ formatCurrency(suggestedPricingGross(item)) }}</option>
+                    <option [ngValue]="''">Lista: sugerido · {{ formatCurrency(suggestedPricingGross(item)) }}</option>
                     @for (opt of item.pricing_options || []; track $index) {
                       <option [ngValue]="opt.price_list_id">
                         {{ opt.price_list_name }} · {{ formatCurrency(pricingOptionGross(opt)) }}
@@ -231,47 +257,36 @@
                     [attr.aria-label]="'Descuento para ' + item.product_name"
                     [ngModel]="item.product_discount_id || ''"
                     (ngModelChange)="onLineDiscountChange(i, $event)">
-                    <option value="">Sin descuento</option>
+                    <option value="">Sin desc.</option>
                     @for (discount of item.applicable_discounts || []; track discount.id) {
                       <option [value]="discount.id">{{ formatLineDiscountOption(discount) }}</option>
                     }
                   </select>
                 }
-              </div>
-              <button
-                type="button"
-                class="pos-line__remove"
-                (click)="removeItem(i)"
-                title="Quitar del carrito"
-                aria-label="Quitar del carrito">
-                <lucide-icon [img]="Trash2" class="pos-ic pos-ic--xs" />
-              </button>
-            </div>
-
-            <div class="pos-line__bottom">
-              <div class="pos-qty" role="group" [attr.aria-label]="'Cantidad de ' + item.product_name">
-                <button
-                  type="button"
-                  class="pos-qty__btn"
-                  (click)="updateQuantity(i, item.quantity - 1)"
-                  aria-label="Disminuir cantidad">
-                  <lucide-icon [img]="Minus" class="pos-ic pos-ic--xs" />
-                </button>
-                <input
-                  class="pos-qty__input"
-                  type="number"
-                  [value]="item.quantity"
-                  (change)="updateQuantity(i, +$any($event.target).value)"
-                  min="1"
-                  [attr.aria-label]="'Cantidad'"
-                />
-                <button
-                  type="button"
-                  class="pos-qty__btn"
-                  (click)="updateQuantity(i, item.quantity + 1)"
-                  aria-label="Aumentar cantidad">
-                  <lucide-icon [img]="Plus" class="pos-ic pos-ic--xs" />
-                </button>
+                <div class="pos-qty" role="group" [attr.aria-label]="'Cantidad de ' + item.product_name">
+                  <button
+                    type="button"
+                    class="pos-qty__btn"
+                    (click)="updateQuantity(i, item.quantity - 1)"
+                    aria-label="Disminuir cantidad">
+                    <lucide-icon [img]="Minus" class="pos-ic pos-ic--xs" />
+                  </button>
+                  <input
+                    class="pos-qty__input"
+                    type="number"
+                    [value]="item.quantity"
+                    (change)="updateQuantity(i, +$any($event.target).value)"
+                    min="1"
+                    [attr.aria-label]="'Cantidad'"
+                  />
+                  <button
+                    type="button"
+                    class="pos-qty__btn"
+                    (click)="updateQuantity(i, item.quantity + 1)"
+                    aria-label="Aumentar cantidad">
+                    <lucide-icon [img]="Plus" class="pos-ic pos-ic--xs" />
+                  </button>
+                </div>
               </div>
               <span class="pos-line__total">{{ formatCurrency(item.line_total) }}</span>
             </div>
@@ -287,7 +302,8 @@
         }
       </div>
 
-      <div class="pos-cart__summary">
+      <div class="pos-cart__summary" [class.pos-cart__summary--collapsed]="!cartTotalsOpen()">
+        @if (cartTotalsOpen()) {
         @if (canUseGlobalDiscounts()) {
           <div class="pos-cart__global-discount">
             <label class="pos-cart__global-discount-label" for="pos-global-discount">
@@ -360,10 +376,24 @@
           <span>IEPS</span>
           <strong>{{ formatCurrency(posService.cart().total_ieps) }}</strong>
         </div>
-        <div class="pos-sum-row pos-sum-row--total">
-          <span>Total</span>
+        }
+        <button
+          type="button"
+          class="pos-sum-row pos-sum-row--total pos-cart__total-toggle"
+          [class.is-open]="cartTotalsOpen()"
+          [class.pos-sum-row--total-collapsed]="!cartTotalsOpen()"
+          (click)="toggleCartTotals()"
+          [attr.aria-expanded]="cartTotalsOpen()">
+          <span class="pos-cart__total-label">
+            Total
+            <lucide-icon
+              [img]="ChevronDown"
+              [size]="16"
+              class="pos-cart__total-chevron"
+              aria-hidden="true" />
+          </span>
           <strong>{{ formatCurrency(posService.cart().grand_total) }}</strong>
-        </div>
+        </button>
         <p class="pos-cart__hint">{{ cartQueueHint() }}</p>
       </div>
           </div>

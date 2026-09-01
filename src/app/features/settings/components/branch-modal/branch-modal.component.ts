@@ -6,6 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { BranchService } from '../../services/branch.service';
 import { Branch, BranchWarehouse } from '../../models/branch.model';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { SelectComponent } from '../../../../core/components/select/select.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
@@ -33,6 +34,7 @@ import { LucideAngularModule } from 'lucide-angular';
     TabComponent,
     LucideAngularModule,
     LocationMapFieldsComponent,
+    SpinnerComponent,
   ],
   templateUrl: './branch-modal.component.html',
   styleUrl: './branch-modal.component.scss',

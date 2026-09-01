@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ToastType } from '../../../../core/models/toast.model';
 import { ProductService } from '../../services/product.service';
@@ -10,7 +11,7 @@ import { PriceList } from '../../models/product.model';
 @Component({
   selector: 'app-price-lists-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SpinnerComponent],
   templateUrl: './price-lists-dialog.html',
   styleUrls: ['./price-lists-dialog.scss']
 })

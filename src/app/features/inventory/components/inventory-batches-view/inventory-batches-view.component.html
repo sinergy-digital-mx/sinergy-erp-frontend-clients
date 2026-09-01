@@ -41,7 +41,7 @@
       <span class="text-sm text-gray-400">-</span>
     }
   </td>
-  <td class="px-2 py-2 w-[160px]">
+  <td class="px-2 py-2 w-[140px]">
     @if (item.source_tag_identifier) {
       <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-700">
         {{ item.source_tag_identifier }}
@@ -49,6 +49,9 @@
     } @else {
       <span class="text-sm text-gray-400">Sin Tag</span>
     }
+  </td>
+  <td class="px-2 py-2 w-[110px]">
+    <span class="text-sm text-gray-700">{{ measureLabel(item) }}</span>
   </td>
   <td class="px-2 py-2 w-[160px]">
     <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>

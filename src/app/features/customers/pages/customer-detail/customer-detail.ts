@@ -4,13 +4,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { MatDialog } from '@angular/material/dialog';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { PropertyService } from '../../../properties/services/property.service';
 import { CustomerEditModalComponent } from '../../components/customer-edit-modal/customer-edit-modal.component';
 import { CustomerDocumentsComponent } from '../../components/customer-documents/customer-documents.component';
 import { CustomerSalesOrdersComponent } from '../../components/customer-sales-orders/customer-sales-orders.component';
+import { CustomerProductInsightsComponent } from '../../components/customer-product-insights/customer-product-insights.component';
 import { CustomerActivitiesComponent } from '../../components/customer-activities/customer-activities.component';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
 import { CUSTOMER_FORM_DIALOG_CONFIG, PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
@@ -35,10 +36,11 @@ import {
   resolveFiscalMunicipio,
   resolveFiscalStreet,
 } from '../../utils/fiscal-domicile.util';
-import { formatRegisteredByUserLabel } from '../../utils/customer-registration.util';
+import { formatAssignedSellerLabel, formatRegisteredByUserLabel } from '../../utils/customer-registration.util';
 import { CustomerAddressDialogComponent } from '../../components/customer-address-dialog/customer-address-dialog.component';
 import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
 import { CustomerFiscalCreditsComponent } from '../../components/customer-fiscal-credits/customer-fiscal-credits.component';
+import { CustomerAssignmentHistoryComponent } from '../../components/customer-assignment-history/customer-assignment-history.component';
 import { unwrapCustomerPayload } from '../../utils/customer-credit.util';
 import { FormsModule } from '@angular/forms';
 
@@ -52,16 +54,18 @@ import { FormsModule } from '@angular/forms';
     TagModule,
     ButtonModule,
     MatCardModule,
-    MatProgressSpinnerModule,
     PhoneComponent,
     CustomerDocumentsComponent,
     CustomerSalesOrdersComponent,
+    CustomerProductInsightsComponent,
     CustomerActivitiesComponent,
     ButtonComponent,
     HasPermissionDirective,
     TabComponent,
     SlimSwitchComponent,
     CustomerFiscalCreditsComponent,
+    SpinnerComponent,
+    CustomerAssignmentHistoryComponent,
   ],
   templateUrl: 'customer-detail.html',
   styleUrl: 'customer-detail.scss'
@@ -355,12 +359,24 @@ export class CustomerDetail implements OnInit, OnDestroy {
       });
   }
 
+  registeredFiscalLabel(customer: Customer): string {
+    return customer.registered_fiscal_configuration?.razon_social?.trim() || '—';
+  }
+
   registeredBranchLabel(customer: Customer): string {
     return customer.registered_billing_branch?.code?.trim() || '—';
   }
 
   registeredByLabel(customer: Customer): string {
     return formatRegisteredByUserLabel(customer.registered_by_user);
+  }
+
+  assignedSellerLabel(customer: Customer): string {
+    return formatAssignedSellerLabel(customer.assigned_seller_user, 'Sin vendedor');
+  }
+
+  assignmentHistory(customer: Customer) {
+    return customer.assignment_history ?? [];
   }
 
   /** True si el API devolvió algún dato de contacto adicional. */

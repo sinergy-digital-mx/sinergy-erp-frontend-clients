@@ -19,7 +19,7 @@ import { Branch } from '../../../../features/settings/models/branch.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ProductDetailModalComponent } from '../../../../features/settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
-import { PEDIMENTO_MAX_LENGTH } from '../../utils/purchase-order-display.util';
+import { catalogInputNumber, PEDIMENTO_MAX_LENGTH } from '../../utils/purchase-order-display.util';
 import { VendorCatalogProduct, VendorCatalogUom } from '../../models/vendor-catalog.model';
 import {
   VendorCostCurrency,
@@ -32,11 +32,11 @@ interface LineItem {
   product_name?: string;
   product_sku?: string;
   uom_id: string;
-  quantity: number;
-  unit_total: number;
-  iva_percentage: number;
+  quantity: number | null;
+  unit_total: number | null;
+  iva_percentage: number | null;
   iva_unit: number;
-  ieps_percentage: number;
+  ieps_percentage: number | null;
   ieps_unit: number;
   currency: VendorCostCurrency;
 }
@@ -73,10 +73,10 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   productSearchTerm: string | VendorCatalogProduct = '';
   selectedProduct: any = null;
   selectedUomId = '';
-  selectedQuantity = 1;
-  selectedUnitTotal = 0;
-  selectedIva = 16;
-  selectedIeps = 0;
+  selectedQuantity: number | null = null;
+  selectedUnitTotal: number | null = null;
+  selectedIva: number | null = null;
+  selectedIeps: number | null = null;
   selectedCurrency: VendorCostCurrency = 'MXN';
   selectedCurrencyLocked = false;
   readonly ExternalLink = ExternalLink;
@@ -567,6 +567,9 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     if (!uom) {
       this.selectedCurrencyLocked = false;
       this.selectedCurrency = this.orderCurrency ?? 'MXN';
+      this.selectedUnitTotal = null;
+      this.selectedIva = null;
+      this.selectedIeps = null;
       return;
     }
 
@@ -582,9 +585,9 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       this.selectedCurrencyLocked = false;
     }
 
-    this.selectedUnitTotal = Number(uom.cost || 0);
-    this.selectedIva = Number(uom.iva_percentage || 0);
-    this.selectedIeps = Number(uom.ieps_percentage || 0);
+    this.selectedUnitTotal = catalogInputNumber(uom.cost);
+    this.selectedIva = catalogInputNumber(uom.iva_percentage);
+    this.selectedIeps = catalogInputNumber(uom.ieps_percentage);
   }
 
   confirmAddProduct(): void {
@@ -608,10 +611,10 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       product_sku: this.selectedProduct.product_sku || this.selectedProduct.sku || '',
       uom_id: this.selectedUomId,
       quantity,
-      unit_total: Number(this.selectedUnitTotal || 0),
-      iva_percentage: Number(this.selectedIva || 0),
+      unit_total: this.selectedUnitTotal,
+      iva_percentage: this.selectedIva,
       iva_unit: 0,
-      ieps_percentage: Number(this.selectedIeps || 0),
+      ieps_percentage: this.selectedIeps,
       ieps_unit: 0,
       currency: this.selectedLineCurrency
     };
@@ -624,10 +627,10 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     this.productSearchTerm = '';
     this.selectedProduct = null;
     this.selectedUomId = '';
-    this.selectedQuantity = 1;
-    this.selectedUnitTotal = 0;
-    this.selectedIva = 16;
-    this.selectedIeps = 0;
+    this.selectedQuantity = null;
+    this.selectedUnitTotal = null;
+    this.selectedIva = null;
+    this.selectedIeps = null;
     this.selectedCurrency = this.orderCurrency ?? 'MXN';
     this.selectedCurrencyLocked = !!this.orderCurrency;
   }
@@ -661,8 +664,11 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   }
 
   calculateTotals(item: LineItem): void {
-    item.iva_unit = (item.unit_total * item.iva_percentage) / 100;
-    item.ieps_unit = (item.unit_total * item.ieps_percentage) / 100;
+    const unit = Number(item.unit_total || 0);
+    const iva = Number(item.iva_percentage || 0);
+    const ieps = Number(item.ieps_percentage || 0);
+    item.iva_unit = (unit * iva) / 100;
+    item.ieps_unit = (unit * ieps) / 100;
   }
 
   getProductUoms(lineItemIndex: number): any[] {
@@ -681,9 +687,9 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       // Set default UOM to the first one
       const defaultUom = product.uoms[0];
       item.uom_id = defaultUom.uom_id;
-      item.unit_total = defaultUom.cost || 0;
-      item.iva_percentage = defaultUom.iva_percentage || 0;
-      item.ieps_percentage = defaultUom.ieps_percentage || 0;
+      item.unit_total = catalogInputNumber(defaultUom.cost);
+      item.iva_percentage = catalogInputNumber(defaultUom.iva_percentage);
+      item.ieps_percentage = catalogInputNumber(defaultUom.ieps_percentage);
       this.calculateTotals(item);
     }
   }
@@ -699,9 +705,9 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
         if (uomCurrency && this.orderCurrency && uomCurrency !== this.orderCurrency) {
           this.toast.warning(currencyMismatchMessage(this.orderCurrency, uomCurrency));
         }
-        item.unit_total = selectedUom.cost || 0;
-        item.iva_percentage = selectedUom.iva_percentage || 0;
-        item.ieps_percentage = selectedUom.ieps_percentage || 0;
+        item.unit_total = catalogInputNumber(selectedUom.cost);
+        item.iva_percentage = catalogInputNumber(selectedUom.iva_percentage);
+        item.ieps_percentage = catalogInputNumber(selectedUom.ieps_percentage);
         item.currency = uomCurrency ?? item.currency ?? this.orderCurrency ?? 'MXN';
         this.calculateTotals(item);
       }
@@ -721,9 +727,9 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       product_id: li.product_id,
       uom_id: li.uom_id,
       quantity: Number(li.quantity),
-      unit_total: Number(li.unit_total),
-      iva_percentage: Number(li.iva_percentage),
-      ieps_percentage: Number(li.ieps_percentage),
+      unit_total: Number(li.unit_total || 0),
+      iva_percentage: Number(li.iva_percentage || 0),
+      ieps_percentage: Number(li.ieps_percentage || 0),
       currency: li.currency || paymentCurrency
     }));
 

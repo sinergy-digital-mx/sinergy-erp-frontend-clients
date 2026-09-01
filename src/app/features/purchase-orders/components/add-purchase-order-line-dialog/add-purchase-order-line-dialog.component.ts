@@ -15,6 +15,7 @@ import { CreatePurchaseOrderLineItemDto } from '../../models/filters.model';
 import { PaymentCurrency, PurchaseOrder } from '../../models/purchase-order.model';
 import { VendorCatalogProduct, VendorCatalogUom } from '../../models/vendor-catalog.model';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
+import { catalogInputNumber } from '../../utils/purchase-order-display.util';
 
 export interface AddPurchaseOrderLineDialogData {
   orderId: string;
@@ -42,10 +43,10 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
   productSearchTerm: string | VendorCatalogProduct = '';
   selectedProduct: VendorCatalogProduct | null = null;
   selectedUomId = '';
-  selectedQuantity = 1;
-  selectedUnitTotal = 0;
-  selectedIva = 16;
-  selectedIeps = 0;
+  selectedQuantity: number | null = null;
+  selectedUnitTotal: number | null = null;
+  selectedIva: number | null = null;
+  selectedIeps: number | null = null;
   selectedCurrency: VendorCostCurrency = 'MXN';
   selectedCurrencyLocked = true;
 
@@ -148,7 +149,8 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
     this.selectedIeps = value;
   }
 
-  isTaxPreset(current: number, preset: number): boolean {
+  isTaxPreset(current: number | null, preset: number): boolean {
+    if (current === null || current === undefined) return false;
     return Number(current) === preset;
   }
 
@@ -261,6 +263,9 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
     if (!uom) {
       this.selectedCurrency = this.data.currency;
       this.selectedCurrencyLocked = true;
+      this.selectedUnitTotal = null;
+      this.selectedIva = null;
+      this.selectedIeps = null;
       return;
     }
 
@@ -273,9 +278,9 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
       this.selectedCurrencyLocked = true;
     }
 
-    this.selectedUnitTotal = Number(uom.cost || 0);
-    this.selectedIva = Number(uom.iva_percentage || 0);
-    this.selectedIeps = Number(uom.ieps_percentage || 0);
+    this.selectedUnitTotal = catalogInputNumber(uom.cost);
+    this.selectedIva = catalogInputNumber(uom.iva_percentage);
+    this.selectedIeps = catalogInputNumber(uom.ieps_percentage);
   }
 
   private productHasVendorCost(product: VendorCatalogProduct | null): boolean {

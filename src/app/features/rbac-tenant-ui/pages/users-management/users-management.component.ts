@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable, combineLatest, map, switchMap, of, BehaviorSubject, startWith, Subject, filter } from 'rxjs';
+import { Observable, combineLatest, map, switchMap, of, BehaviorSubject, startWith, Subject, filter, catchError, EMPTY } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { User, Role, CatalogStatus, UserListQuery, getPosUserTypeBadgeLabel, getUserStatusCode, getUserStatusLabel } from '../../models';
 import { StateService } from '../../services/state.service';
@@ -63,7 +63,8 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
   ) {
     // Initialize observables from state service
     this.users$ = this.stateService.users$;
-    this.filteredUsers$ = this.stateService.filteredUsers$;
+    // El API ya filtra por search/status/role; no volver a recortar en cliente.
+    this.filteredUsers$ = this.stateService.users$;
     this.selectedUserId$ = this.stateService.selectedUserId$;
     this.roles$ = this.stateService.roles$;
     this.userSearchFilter$ = this.stateService.userSearchFilter$;
@@ -99,6 +100,10 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.stateService.resetFilters();
+    this.stateService.clearUserSelection();
+    this.stateService.updateUsers([]);
+
     this.userService.getUserStatuses().subscribe({
       next: (statuses) => {
         this.statuses = statuses;
@@ -124,18 +129,22 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
         filter(([, , , ready]) => ready),
         switchMap(([search, status, roleId]) =>
-          this.userService.refreshUsers(this.buildListQuery(search, status, roleId))
+          this.userService.refreshUsers(this.buildListQuery(search, status, roleId)).pipe(
+            catchError((error) => {
+              this.showApiError(error, 'No se pudieron cargar los usuarios');
+              return EMPTY;
+            })
+          )
         )
       )
-      .subscribe({
-        next: (users) => this.stateService.updateUsers(users),
-        error: (error) => this.showApiError(error, 'No se pudieron cargar los usuarios'),
-      });
+      .subscribe((users) => this.stateService.updateUsers(users));
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.stateService.resetFilters();
+    this.stateService.clearUserSelection();
   }
 
   /**
@@ -189,7 +198,8 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
       query.search = trimmed;
     }
     if (status && status !== 'all') {
-      const statusId = this.statuses.find((item) => item.code === status)?.id;
+      const wanted = status.toLowerCase();
+      const statusId = this.statuses.find((item) => item.code?.toLowerCase() === wanted)?.id;
       if (statusId != null) {
         query.status_id = statusId;
       }

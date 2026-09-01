@@ -5,6 +5,7 @@ import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { POSService } from '../../services/pos.service';
 
 export interface CloseShiftDialogData {
@@ -20,7 +21,8 @@ export interface CloseShiftDialogData {
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
-    MatInputModule
+    MatInputModule,
+    SpinnerComponent,
   ],
   templateUrl: './close-shift-dialog.component.html',
   styleUrls: ['./close-shift-dialog.component.scss']

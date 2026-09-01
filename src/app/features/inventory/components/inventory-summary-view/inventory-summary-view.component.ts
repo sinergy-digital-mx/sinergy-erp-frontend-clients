@@ -1,9 +1,7 @@
 import { Component, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
-import { LucideAngularModule, ChevronRight, ChevronDown, ArrowRightLeft } from 'lucide-angular';
-import { PERMISSIONS } from '../../../../core/config/permissions.config';
-import { AuthService } from '../../../../core/services/auth.service';
+import { LucideAngularModule, ChevronRight, ChevronDown } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { InventorySummaryFilters, InventorySummaryItem } from '../../models/inventory-item.model';
@@ -14,14 +12,19 @@ import {
   formatInventoryNumber,
   inventoryLocationLabel,
 } from '../../utils/inventory-list.util';
-import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
+import {
+  formatMeasureTotalsLine,
+  hasMeasureTotals,
+  inventoryMeasureLabel,
+} from '../../../../core/utils/inventory-measure.util';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
 import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
 @Component({
   selector: 'app-inventory-summary-view',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, SpinnerComponent],
   templateUrl: './inventory-summary-view.component.html',
   styleUrl: './inventory-summary-view.component.scss',
 })
@@ -29,12 +32,10 @@ export class InventorySummaryViewComponent {
   private readonly inventoryService = inject(InventoryService);
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
-  private readonly authService = inject(AuthService);
   readonly state = inject(InventoryListState);
 
   readonly ChevronRight = ChevronRight;
   readonly ChevronDown = ChevronDown;
-  readonly ArrowRightLeft = ArrowRightLeft;
 
   readonly items = signal<InventorySummaryItem[]>([]);
   readonly loading = signal(true);
@@ -54,14 +55,6 @@ export class InventorySummaryViewComponent {
     });
   }
 
-  get canCreateTransfer(): boolean {
-    return (
-      this.authService.hasPermission(PERMISSIONS.inventory.write) ||
-      this.authService.hasPermission(PERMISSIONS.inventory.transfer) ||
-      this.authService.hasPermission(PERMISSIONS.inventory.create)
-    );
-  }
-
   get totalPages(): number {
     return Math.ceil(this.total() / this.limit()) || 1;
   }
@@ -69,6 +62,15 @@ export class InventorySummaryViewComponent {
   locationLabel = inventoryLocationLabel;
   formatDate = formatInventoryDate;
   formatNumber = formatInventoryNumber;
+  measureLabel = inventoryMeasureLabel;
+
+  hasMeasureBreakdown(item: InventorySummaryItem): boolean {
+    return hasMeasureTotals(item.measure_totals);
+  }
+
+  measureTotalsLine(item: InventorySummaryItem): string {
+    return formatMeasureTotalsLine(item.measure_totals, formatInventoryNumber);
+  }
 
   onPageChange(nextPage: number): void {
     this.page.set(nextPage);
@@ -96,29 +98,6 @@ export class InventorySummaryViewComponent {
       ...BATCH_DETAIL_DIALOG_OPTIONS,
       data: { batchId },
     });
-  }
-
-  openTransfer(item: InventorySummaryItem, event?: Event): void {
-    event?.stopPropagation();
-    this.dialog
-      .open(CreateTransferDialogComponent, {
-        data: {
-          product_id: item.product_id,
-          warehouse_id: item.warehouse_id,
-          uom_id: item.uom_id,
-        },
-        width: 'min(1100px, 96vw)',
-        height: '720px',
-        maxWidth: '96vw',
-        maxHeight: '92vh',
-        panelClass: 'transfer-dialog-panel',
-      })
-      .afterClosed()
-      .subscribe((success) => {
-        if (success) {
-          this.state.reloadAll();
-        }
-      });
   }
 
   private loadSummary(): void {

@@ -5,7 +5,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CustomerActivityService } from '../../services/customer-activity.service';
 import { CustomerActivity } from '../../models/customer-group.model';
 import { CustomerActivityFormDialogComponent } from '../customer-activity-form-dialog/customer-activity-form-dialog.component';
@@ -22,7 +22,7 @@ import { takeUntil } from 'rxjs/operators';
     MatPaginatorModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    SpinnerComponent,
   ],
   template: `<div class="activities-list">
   <div class="activities-header">
@@ -33,8 +33,7 @@ import { takeUntil } from 'rxjs/operators';
   </div>
 
   <div *ngIf="isLoading" class="loading-container">
-    <mat-spinner diameter="40"></mat-spinner>
-    <p>Cargando actividades...</p>
+    <app-spinner></app-spinner>
   </div>
 
   <div *ngIf="error && !isLoading" class="error-container">

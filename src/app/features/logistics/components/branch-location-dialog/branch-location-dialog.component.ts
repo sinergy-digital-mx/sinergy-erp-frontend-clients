@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { LucideAngularModule, X } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { LocationMapFieldsComponent } from '../../../../core/components/location-map-fields/location-map-fields.component';
 import { BranchService } from '../../../settings/services/branch.service';
@@ -24,6 +25,7 @@ export interface BranchLocationDialogData {
     ButtonComponent,
     LucideAngularModule,
     LocationMapFieldsComponent,
+    SpinnerComponent,
   ],
   templateUrl: './branch-location-dialog.component.html',
   styleUrl: './branch-location-dialog.component.scss',

@@ -135,12 +135,12 @@
                   </span>
                 </div>
                 <div><strong>Total:</strong> {{ formatCurrency(getOrderTotal(order)) }}</div>
-                <div class="sales-order-pay-cell">
+                <div class="sales-order-list__mobile-pay">
                   <strong>Pago:</strong>
-                  <span [ngClass]="getPaymentStatusClass(order.payment_status)">{{ order.payment_status }}</span>
-                  @if (creditChipLabel(order)) {
-                    <span class="so-credit-chip">{{ creditChipLabel(order) }}</span>
-                  }
+                  <span class="sales-order-pay-cell" [title]="paymentMetaLabel(order)">
+                    <span [ngClass]="getPaymentStatusClass(order.payment_status)">{{ order.payment_status }}</span>
+                    <span class="sales-order-pay-cell__meta">{{ paymentMetaLabel(order) }}</span>
+                  </span>
                 </div>
                 <div class="text-xs text-gray-500">{{ formatDateHuman(order.created_at) }}</div>
               </div>
@@ -176,12 +176,10 @@
   <td class="w-[120px]">
     <p class="dt-cell-amount m-0">{{ formatCurrency(getOrderTotal(item)) }}</p>
   </td>
-  <td class="w-[200px]">
-    <span class="sales-order-pay-cell">
+  <td class="sales-orders-col-pay">
+    <span class="sales-order-pay-cell" [title]="paymentMetaLabel(item)">
       <span [ngClass]="getPaymentStatusClass(item.payment_status)">{{ item.payment_status }}</span>
-      @if (creditChipLabel(item)) {
-        <span class="so-credit-chip">{{ creditChipLabel(item) }}</span>
-      }
+      <span class="sales-order-pay-cell__meta">{{ paymentMetaLabel(item) }}</span>
     </span>
   </td>
   <td class="w-[160px]">

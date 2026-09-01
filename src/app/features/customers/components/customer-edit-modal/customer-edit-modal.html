@@ -335,20 +335,35 @@
 
       @if (activeTab() === 'registration') {
         <div class="col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="customer-registered-fiscal">
+            Razón social de registro
+          </label>
+          <select
+            id="customer-registered-fiscal"
+            formControlName="registered_fiscal_configuration_id"
+            class="w-full h-10 px-3.5 rounded-[10px] border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-indigo-500/15 focus:border-indigo-500">
+            <option value="">Sin razón social</option>
+            @for (fiscal of registrationFiscals(); track fiscal.id) {
+              <option [value]="fiscal.id">{{ fiscalLabel(fiscal) }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="col-span-2">
           <label class="block text-sm font-medium text-gray-700 mb-1" for="customer-registered-branch">
             Sucursal de registro
           </label>
           <select
             id="customer-registered-branch"
             formControlName="registered_billing_branch_id"
-            class="w-full h-10 px-3.5 rounded-[10px] border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-indigo-500/15 focus:border-indigo-500">
+            class="w-full h-10 px-3.5 rounded-[10px] border border-gray-200 text-sm text-gray-800 bg-white disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-[3px] focus:ring-indigo-500/15 focus:border-indigo-500">
             <option value="">Sin sucursal</option>
-            @for (branch of registrationBranches(); track branch.id) {
+            @for (branch of selectedRegistrationBranches(); track branch.id) {
               <option [value]="branch.id">{{ branch.name }}</option>
             }
           </select>
           @if (registrationOptionsLoading()) {
-            <p class="mt-1 text-xs text-gray-500">Cargando sucursales...</p>
+            <p class="mt-1 text-xs text-gray-500">Cargando catálogo...</p>
           }
         </div>
 
@@ -356,25 +371,37 @@
           <label class="block text-sm font-medium text-gray-700 mb-1" for="customer-registered-by">
             Registrado por
           </label>
-          @if (isCreateMode()) {
-            <input
-              id="customer-registered-by"
-              type="text"
-              [value]="registeredByCreateLabel()"
-              disabled
-              class="w-full h-10 px-3.5 rounded-[10px] border border-gray-200 text-sm text-gray-500 bg-gray-100 cursor-not-allowed">
-          } @else {
-            <select
-              id="customer-registered-by"
-              formControlName="registered_by_user_id"
-              class="w-full h-10 px-3.5 rounded-[10px] border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-indigo-500/15 focus:border-indigo-500">
-              <option value="">Sin usuario</option>
-              @for (user of registrationUsers(); track user.id) {
-                <option [value]="user.id">{{ registrationUserLabel(user) }}</option>
-              }
-            </select>
-          }
+          <select
+            id="customer-registered-by"
+            formControlName="registered_by_user_id"
+            class="w-full h-10 px-3.5 rounded-[10px] border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-indigo-500/15 focus:border-indigo-500">
+            <option value="">Sin usuario</option>
+            @for (user of registrationUsers(); track user.id) {
+              <option [value]="user.id">{{ registrationUserLabel(user) }}</option>
+            }
+          </select>
         </div>
+
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="customer-assigned-seller">
+            Vendedor asignado
+          </label>
+          <select
+            id="customer-assigned-seller"
+            formControlName="assigned_seller_user_id"
+            class="w-full h-10 px-3.5 rounded-[10px] border border-gray-200 text-sm text-gray-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-indigo-500/15 focus:border-indigo-500">
+            <option value="">Sin vendedor</option>
+            @for (seller of registrationSellers(); track seller.id) {
+              <option [value]="seller.id">{{ registrationSellerLabel(seller) }}</option>
+            }
+          </select>
+        </div>
+
+        @if (!isCreateMode() && assignmentHistory().length) {
+          <div class="col-span-2">
+            <app-customer-assignment-history [entries]="assignmentHistory()"></app-customer-assignment-history>
+          </div>
+        }
       }
     </form>
   </div>

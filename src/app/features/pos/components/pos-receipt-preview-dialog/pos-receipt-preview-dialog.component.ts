@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, Eye, Printer, X } from 'lucide-angular';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { PosSaleReceipt, normalizePosSaleReceipt } from '../../models/pos-receipt.model';
 import { POSService } from '../../services/pos.service';
 import { PosReceiptPrintService } from '../../services/pos-receipt-print.service';
@@ -28,7 +29,7 @@ export interface PosReceiptPreviewDialogData {
 @Component({
   selector: 'app-pos-receipt-preview-dialog',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, SpinnerComponent],
   templateUrl: './pos-receipt-preview-dialog.component.html',
   styleUrl: './pos-receipt-preview-dialog.component.scss',
 })

@@ -1,0 +1,62 @@
+@if (entries.length) {
+  <section class="assignment-history">
+    <div class="assignment-history__bar">
+      <p class="assignment-history__title">Historial de asignaciones</p>
+      <button
+        type="button"
+        class="assignment-history__link"
+        (click)="toggleSection()"
+        [attr.aria-expanded]="sectionOpen()">
+        {{ sectionOpen() ? 'Ocultar' : 'Mostrar' }}
+      </button>
+    </div>
+
+    @if (sectionOpen()) {
+      <ol class="assignment-history__list">
+        @for (entry of entries; track entryKey(entry, $index); let i = $index) {
+          <li class="assignment-history__item">
+            <button
+              type="button"
+              class="assignment-history__event"
+              (click)="toggleEntry(entry, i)"
+              [attr.aria-expanded]="isEntryOpen(entry, i)">
+              <span class="assignment-history__event-title">{{ entryTitle(entry) }}</span>
+              <span class="assignment-history__event-meta">
+                @if (entryActor(entry); as actor) {
+                  <span>{{ actor }}</span>
+                  @if (entryDate(entry)) {
+                    <span aria-hidden="true">·</span>
+                  }
+                }
+                @if (entryDate(entry); as date) {
+                  <span>{{ date }}</span>
+                }
+              </span>
+            </button>
+
+            @if (isEntryOpen(entry, i)) {
+              <div class="assignment-history__detail">
+                @if (entryChanges(entry).length) {
+                  <ul class="assignment-history__changes">
+                    @for (change of entryChanges(entry); track $index) {
+                      <li class="assignment-history__change">
+                        <span class="assignment-history__field">{{ changeLabel(change) }}</span>
+                        <span class="assignment-history__values">
+                          <span class="assignment-history__from">{{ changeValue(change.from) }}</span>
+                          <span class="assignment-history__arrow" aria-hidden="true">→</span>
+                          <span class="assignment-history__to">{{ changeValue(change.to) }}</span>
+                        </span>
+                      </li>
+                    }
+                  </ul>
+                } @else if (entry.description) {
+                  <p class="assignment-history__fallback">{{ entry.description }}</p>
+                }
+              </div>
+            }
+          </li>
+        }
+      </ol>
+    }
+  </section>
+}

@@ -59,6 +59,16 @@ export interface PaginatedResponse<T> {
 /**
  * Inventory Summary Batch
  */
+export interface InventoryMeasureTotal {
+  measure?: string | null;
+  measure_uom_id?: string | null;
+  measure_uom_name?: string | null;
+  measure_label?: string | null;
+  total_available_quantity: string;
+  total_initial_quantity: string;
+  total_batches: number;
+}
+
 export interface InventorySummaryBatch {
   batch_id: string;
   batch_number: string;
@@ -66,6 +76,7 @@ export interface InventorySummaryBatch {
   initial_quantity: string;
   purchase_order_folio: string;
   source_tag_identifier?: string | null;
+  measure_label?: string | null;
   created_at: string;
 }
 
@@ -87,6 +98,8 @@ export interface InventorySummaryItem {
   total_available_quantity: string;
   total_initial_quantity: string;
   total_batches: number;
+  /** Desglose por tamaño. No clonar filas. */
+  measure_totals?: InventoryMeasureTotal[];
   batches: InventorySummaryBatch[];
 }
 

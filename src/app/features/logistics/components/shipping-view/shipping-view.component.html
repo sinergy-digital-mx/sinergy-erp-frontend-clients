@@ -1,5 +1,5 @@
 @if (loading()) {
-  <div class="sv__loading" [class.sv--embedded]="embedded">Cargando envío…</div>
+  <div class="sv__loading" [class.sv--embedded]="embedded"><app-spinner></app-spinner></div>
 } @else if (errorMessage()) {
   <div class="sv__empty" [class.sv--embedded]="embedded">{{ errorMessage() }}</div>
 } @else if (shipping(); as s) {

@@ -4,6 +4,22 @@ import { INVENTORY_PERMISSIONS } from './config/permissions.config';
 
 export const INVENTORY_ROUTES: Routes = [
   {
+    path: 'audits',
+    loadComponent: () =>
+      import('./components/audit-list/audit-list.component')
+        .then(m => m.AuditListComponent),
+    canActivate: [permissionGuard],
+    data: {
+      permissions: [
+        INVENTORY_PERMISSIONS.viewList,
+        INVENTORY_PERMISSIONS.count,
+        INVENTORY_PERMISSIONS.authorize,
+      ],
+      permissionMode: 'any',
+      title: 'Auditorías de inventario'
+    }
+  },
+  {
     path: 'transfers',
     loadComponent: () =>
       import('./components/transfer-list/transfer-list.component')

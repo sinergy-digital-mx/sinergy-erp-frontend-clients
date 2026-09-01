@@ -13,7 +13,7 @@
 
   <div class="modal-body">
     @if (loading()) {
-      <p class="status-msg">Cargando ticket…</p>
+      <p class="status-msg"><app-spinner></app-spinner></p>
     } @else if (error() && previewLines().length === 0) {
       <p class="status-msg status-msg--error">{{ error() }}</p>
     } @else {

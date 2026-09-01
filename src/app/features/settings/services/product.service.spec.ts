@@ -250,4 +250,147 @@ describe('ProductService', () => {
       req.flush(new Blob([JSON.stringify({ message: 'forbidden' })]), { status: 403, statusText: 'Forbidden' });
     });
   });
+
+  describe('vendor catalog import', () => {
+    it('should preview vendor costs', () => {
+      service.previewVendorCosts('vendor-1').subscribe((result) => {
+        expect(result.product_count).toBe(12);
+        expect(result.row_count).toBe(20);
+      });
+
+      const req = httpMock.expectOne(
+        (request) =>
+          request.url === `${api}/tenant/products/import/vendor-costs/preview` &&
+          request.params.get('vendor_id') === 'vendor-1'
+      );
+      expect(req.request.method).toBe('GET');
+      req.flush({
+        vendor_id: 'vendor-1',
+        vendor_name: 'Acme',
+        product_count: 12,
+        row_count: 20,
+      });
+    });
+
+    it('should unwrap nested preview payloads', () => {
+      service.previewVendorPrices('vendor-1', 'list-1').subscribe((result) => {
+        expect(result.vendor_name).toBe('Acme');
+        expect(result.product_count).toBe(3);
+      });
+
+      const req = httpMock.expectOne(
+        (request) =>
+          request.url === `${api}/tenant/products/import/vendor-prices/preview` &&
+          request.params.get('vendor_id') === 'vendor-1' &&
+          request.params.get('price_list_id') === 'list-1'
+      );
+      req.flush({
+        data: {
+          vendor_id: 'vendor-1',
+          vendor_name: 'Acme',
+          product_count: 3,
+          row_count: 5,
+        },
+      });
+    });
+
+    it('should show a fallback message when the vendor has no cost products', () => {
+      service.previewVendorCosts('vendor-empty').subscribe({
+        next: () => {
+          throw new Error('should not succeed');
+        },
+        error: (error: Error) => {
+          expect(error.message).toBe('Este proveedor no tiene productos con costo.');
+        },
+      });
+
+      const req = httpMock.expectOne(
+        (request) =>
+          request.url === `${api}/tenant/products/import/vendor-costs/preview` &&
+          request.params.get('vendor_id') === 'vendor-empty'
+      );
+      req.flush({}, { status: 400, statusText: 'Bad Request' });
+    });
+
+    it('should show No encontrado on 404', () => {
+      service.previewVendorCosts('missing').subscribe({
+        next: () => {
+          throw new Error('should not succeed');
+        },
+        error: (error: Error) => {
+          expect(error.message).toBe('No encontrado');
+        },
+      });
+
+      const req = httpMock.expectOne(
+        (request) =>
+          request.url === `${api}/tenant/products/import/vendor-costs/preview` &&
+          request.params.get('vendor_id') === 'missing'
+      );
+      req.flush({}, { status: 404, statusText: 'Not Found' });
+    });
+
+    it('should download the cost template as a blob and use Content-Disposition', () => {
+      const blob = new Blob(['xlsx'], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      service.downloadVendorCostTemplate('vendor-1').subscribe((result) => {
+        expect(result.blob).toBe(blob);
+        expect(result.filename).toBe('costos-acme.xlsx');
+      });
+
+      const req = httpMock.expectOne(
+        (request) =>
+          request.url === `${api}/tenant/products/import/vendor-costs/template` &&
+          request.params.get('vendor_id') === 'vendor-1'
+      );
+      expect(req.request.method).toBe('GET');
+      expect(req.request.responseType).toBe('blob');
+      req.flush(blob, {
+        headers: { 'content-disposition': 'attachment; filename="costos-acme.xlsx"' },
+      });
+    });
+
+    it('should post multipart vendor costs', () => {
+      const file = new File(['x'], 'costos.xlsx', {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      service.importVendorCosts('vendor-1', file).subscribe((result) => {
+        expect(result.updated).toBe(12);
+        expect(result.skipped).toBe(40);
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0].sku).toBe('AJENO');
+      });
+
+      const req = httpMock.expectOne(`${api}/tenant/products/import/vendor-costs`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toBeInstanceOf(FormData);
+      expect(req.request.body.get('vendor_id')).toBe('vendor-1');
+      expect(req.request.body.get('file')).toBe(file);
+      req.flush({
+        updated: 12,
+        created: 0,
+        skipped: 40,
+        errors: [{ row: 8, sku: 'AJENO', message: 'El SKU no pertenece a este proveedor.' }],
+      });
+    });
+
+    it('should post multipart vendor prices with price_list_id', () => {
+      const file = new File(['x'], 'precios.xlsx', {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      service.importVendorPrices('vendor-1', 'list-9', file).subscribe((result) => {
+        expect(result.created).toBe(3);
+      });
+
+      const req = httpMock.expectOne(`${api}/tenant/products/import/vendor-prices`);
+      expect(req.request.body.get('vendor_id')).toBe('vendor-1');
+      expect(req.request.body.get('price_list_id')).toBe('list-9');
+      expect(req.request.body.get('file')).toBe(file);
+      req.flush({ updated: 2, created: 3, skipped: 1, errors: [] });
+    });
+  });
 });

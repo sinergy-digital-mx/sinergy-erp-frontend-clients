@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CustomerActivityService } from '../../services/customer-activity.service';
 import { ActivitySummary } from '../../models/customer-group.model';
 import { Subject } from 'rxjs';
@@ -10,13 +10,12 @@ import { takeUntil } from 'rxjs/operators';
 @Component({
   selector: 'app-customer-activity-summary',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatProgressSpinnerModule],
+  imports: [CommonModule, MatCardModule, SpinnerComponent],
   template: `<div class="activity-summary">
   <h3>Resumen de Actividades</h3>
 
   <div *ngIf="isLoading" class="loading-container">
-    <mat-spinner diameter="40"></mat-spinner>
-    <p>Cargando resumen...</p>
+    <app-spinner></app-spinner>
   </div>
 
   <div *ngIf="error && !isLoading" class="error-container">

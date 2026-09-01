@@ -2,6 +2,7 @@ import { Component, Inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { WAREHOUSE_CONTROL_PERMISSIONS } from '../../config/permissions.config';
@@ -18,7 +19,7 @@ export interface WarehouseControlDetailPanelData {
 @Component({
   selector: 'app-warehouse-control-detail-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, SpinnerComponent],
   templateUrl: './warehouse-control-detail-panel.component.html',
   styleUrl: './warehouse-control-detail-panel.component.scss',
 })

@@ -4,6 +4,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angu
 import { AccountingService } from '../../services/accounting.service';
 import { AccountsReceivableDetail, AccountsReceivableOrderRow } from '../../models/accounting.model';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
@@ -17,7 +18,7 @@ export interface ReceivableDetailDialogData {
 @Component({
   selector: 'app-receivable-detail-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule],
+  imports: [CommonModule, MatDialogModule, SpinnerComponent],
   templateUrl: './receivable-detail-dialog.component.html',
   styleUrl: './receivable-detail-dialog.component.scss',
 })

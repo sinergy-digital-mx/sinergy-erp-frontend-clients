@@ -158,7 +158,7 @@
         <div class="cobranza-shifts__history">
           <h3>Historial de parciales</h3>
           @if (loadingShiftDetail()) {
-            <p class="cobranza-empty">Cargando cortes…</p>
+            <p class="cobranza-empty"><app-spinner size="sm"></app-spinner></p>
           } @else if (partialShifts(currentShift).length === 0) {
             <p class="cobranza-empty">Aún no hay cortes parciales en este turno.</p>
           } @else {
@@ -232,7 +232,7 @@
 
           <div class="cobranza-sales-scroll">
             @if (loading()) {
-              <p class="cobranza-empty">Cargando ventas…</p>
+              <p class="cobranza-empty"><app-spinner size="sm"></app-spinner></p>
             } @else if (filteredPendingSales().length === 0) {
               <p class="cobranza-empty">{{ pendingEmptyMessage() }}</p>
             } @else {
@@ -314,7 +314,7 @@
 
           <div class="cobranza-sales-scroll">
             @if (loadingCollected()) {
-              <p class="cobranza-empty">Cargando cobros…</p>
+              <p class="cobranza-empty"><app-spinner size="sm"></app-spinner></p>
             } @else if (filteredCollectedSales().length === 0) {
               <p class="cobranza-empty">No hay ventas cobradas en este corte.</p>
             } @else {
@@ -947,7 +947,7 @@
             <section class="cobranza-block">
               <h3 class="cobranza-block__title">Desglose de pago</h3>
               @if (loadingCollectionDetail()) {
-                <p class="cobranza-empty cobranza-empty--inline">Cargando detalle…</p>
+                <p class="cobranza-empty cobranza-empty--inline"><app-spinner size="sm"></app-spinner></p>
               } @else {
                 @if (collectionDetailPayment(); as pay) {
                   <dl class="cobranza-detail-list">

@@ -18,12 +18,15 @@ import {
   Customer,
   CustomerDuplicateMatch,
   CustomerRegistrationBranchOption,
+  CustomerRegistrationFiscalOption,
+  CustomerRegistrationSellerOption,
   CustomerRegistrationUserOption,
   CustomerStatus,
   UpdateCustomerDto,
 } from '../../models/customer-group.model';
 import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
 import { CustomerFiscalCreditsComponent } from '../customer-fiscal-credits/customer-fiscal-credits.component';
+import { CustomerAssignmentHistoryComponent } from '../customer-assignment-history/customer-assignment-history.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import {
@@ -38,7 +41,7 @@ import {
   resolveFiscalMunicipio,
   resolveFiscalStreet,
 } from '../../utils/fiscal-domicile.util';
-import { formatRegistrationUserOption } from '../../utils/customer-registration.util';
+import { formatAssignedSellerLabel, formatRegistrationUserOption } from '../../utils/customer-registration.util';
 import { CUSTOMER_DUPLICATE_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import {
   CustomerDuplicateWarningDialogComponent,
@@ -62,7 +65,8 @@ import { map, switchMap } from 'rxjs/operators';
     PhoneDigitsDirective,
     TabComponent,
     SlimSwitchComponent,
-    CustomerFiscalCreditsComponent
+    CustomerFiscalCreditsComponent,
+    CustomerAssignmentHistoryComponent,
   ],
   templateUrl: './customer-edit-modal.html',
   styleUrls: ['./customer-edit-modal.scss'],
@@ -80,8 +84,9 @@ export class CustomerEditModalComponent {
     { id: 'fiscal', title: 'Información Fiscal' },
     { id: 'registration', title: 'Registro' }
   ];
-  registrationBranches = signal<CustomerRegistrationBranchOption[]>([]);
+  registrationFiscals = signal<CustomerRegistrationFiscalOption[]>([]);
   registrationUsers = signal<CustomerRegistrationUserOption[]>([]);
+  registrationSellers = signal<CustomerRegistrationSellerOption[]>([]);
   registrationOptionsLoading = signal(false);
   /** Tras “Continuar de todos modos”, no volver a consultar duplicados en este intento. */
   private duplicateWarningAccepted = false;
@@ -136,8 +141,10 @@ export class CustomerEditModalComponent {
       additional_phone_code: ['+52'],
       additional_phone_country: ['MX'],
       status_id: [null as number | null],
-      registered_billing_branch_id: [''],
+      registered_fiscal_configuration_id: [''],
+      registered_billing_branch_id: [{ value: '', disabled: true }],
       registered_by_user_id: [''],
+      assigned_seller_user_id: [''],
     });
 
     if (this.data?.customer) {
@@ -179,9 +186,14 @@ export class CustomerEditModalComponent {
         additional_phone_code: this.data.customer.additional_phone_code || '+52',
         additional_phone_country: this.data.customer.additional_phone_country || 'MX',
         status_id: this.resolveStatusId(this.data.customer),
+        registered_fiscal_configuration_id: this.data.customer.registered_fiscal_configuration_id || '',
         registered_billing_branch_id: this.data.customer.registered_billing_branch_id || '',
         registered_by_user_id: this.data.customer.registered_by_user_id || '',
-      });
+        assigned_seller_user_id: this.data.customer.assigned_seller_user_id || '',
+      }, { emitEvent: false });
+      if (this.data.customer.registered_fiscal_configuration_id) {
+        this.form.get('registered_billing_branch_id')?.enable({ emitEvent: false });
+      }
       this.selectedGroup.set(
         this.data.customer.group ??
           (this.data.customer.group_id
@@ -195,10 +207,10 @@ export class CustomerEditModalComponent {
       this.isCreateMode.set(true);
       const userId = this.authService.user_info?.sub;
       if (userId) {
-        this.form.patchValue({ registered_by_user_id: userId });
+        this.form.patchValue({ registered_by_user_id: userId }, { emitEvent: false });
       }
-      this.form.get('registered_by_user_id')?.disable({ emitEvent: false });
     }
+    this.setupRegistrationCascade();
     this.loadStatuses();
     this.loadRegistrationOptions();
     this.setupFiscalRfcAutoPersonType();
@@ -257,12 +269,26 @@ export class CustomerEditModalComponent {
     });
   }
 
+  private setupRegistrationCascade(): void {
+    this.form.get('registered_fiscal_configuration_id')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((fiscalId) => {
+        this.form.patchValue({ registered_billing_branch_id: '' }, { emitEvent: false });
+        if (fiscalId) {
+          this.form.get('registered_billing_branch_id')?.enable({ emitEvent: false });
+        } else {
+          this.form.get('registered_billing_branch_id')?.disable({ emitEvent: false });
+        }
+      });
+  }
+
   private loadRegistrationOptions(): void {
     this.registrationOptionsLoading.set(true);
     this.customerService.getRegistrationOptions().subscribe({
       next: (options) => {
-        this.registrationBranches.set(options?.branches ?? []);
+        this.registrationFiscals.set(options?.fiscal_configurations ?? []);
         this.registrationUsers.set(options?.users ?? []);
+        this.registrationSellers.set(options?.sellers ?? []);
         this.ensureSavedRegistrationOptions();
         if (this.isCreateMode()) {
           this.applyRegistrationPrefill();
@@ -282,15 +308,43 @@ export class CustomerEditModalComponent {
     const customer = this.data?.customer;
     if (!customer) return;
 
-    const branchId = customer.registered_billing_branch_id;
-    if (branchId && !this.registrationBranches().some((branch) => branch.id === branchId)) {
-      this.registrationBranches.update((branches) => [
+    const fiscalId = customer.registered_fiscal_configuration_id;
+    if (fiscalId && !this.registrationFiscals().some((fiscal) => fiscal.id === fiscalId)) {
+      this.registrationFiscals.update((fiscals) => [
         {
-          id: branchId,
-          name: customer.registered_billing_branch?.code || branchId,
+          id: fiscalId,
+          razon_social: customer.registered_fiscal_configuration?.razon_social || fiscalId,
+          rfc: customer.registered_fiscal_configuration?.rfc,
+          branches: [],
         },
-        ...branches,
+        ...fiscals,
       ]);
+    }
+
+    const branchId = customer.registered_billing_branch_id;
+    if (branchId) {
+      const ownerId = fiscalId || this.findFiscalIdForBranch(branchId);
+      if (ownerId) {
+        this.registrationFiscals.update((fiscals) =>
+          fiscals.map((fiscal) => {
+            if (fiscal.id !== ownerId) return fiscal;
+            if (fiscal.branches.some((branch) => branch.id === branchId)) return fiscal;
+            return {
+              ...fiscal,
+              branches: [
+                {
+                  id: branchId,
+                  name:
+                    customer.registered_billing_branch?.name ||
+                    customer.registered_billing_branch?.code ||
+                    branchId,
+                },
+                ...fiscal.branches,
+              ],
+            };
+          })
+        );
+      }
     }
 
     const userId = customer.registered_by_user_id;
@@ -300,28 +354,62 @@ export class CustomerEditModalComponent {
         ...users,
       ]);
     }
+
+    const sellerId = customer.assigned_seller_user_id;
+    if (sellerId && !this.registrationSellers().some((seller) => seller.id === sellerId)) {
+      this.registrationSellers.update((sellers) => [
+        customer.assigned_seller_user ?? { id: sellerId },
+        ...sellers,
+      ]);
+    }
+  }
+
+  private findFiscalIdForBranch(branchId: string): string | null {
+    const owner = this.registrationFiscals().find((fiscal) =>
+      fiscal.branches.some((branch) => branch.id === branchId)
+    );
+    return owner?.id ?? null;
   }
 
   private applyRegistrationPrefill(): void {
     const branchId = this.authService.getBillingBranchId();
-    if (branchId && this.registrationBranches().some((branch) => branch.id === branchId)) {
-      this.form.patchValue({ registered_billing_branch_id: branchId });
+    const sessionFiscalId = this.authService.getFiscalConfigurationId();
+    const fiscals = this.registrationFiscals();
+
+    let fiscalId =
+      sessionFiscalId && fiscals.some((fiscal) => fiscal.id === sessionFiscalId)
+        ? sessionFiscalId
+        : '';
+    if (!fiscalId && branchId) {
+      fiscalId = this.findFiscalIdForBranch(branchId) ?? '';
+    }
+
+    if (fiscalId) {
+      this.form.patchValue({ registered_fiscal_configuration_id: fiscalId }, { emitEvent: false });
+      this.form.get('registered_billing_branch_id')?.enable({ emitEvent: false });
+      const branches = this.branchesForFiscal(fiscalId);
+      if (branchId && branches.some((branch) => branch.id === branchId)) {
+        this.form.patchValue({ registered_billing_branch_id: branchId }, { emitEvent: false });
+      }
     }
 
     const userId = this.authService.user_info?.sub;
     if (userId) {
-      this.form.patchValue({ registered_by_user_id: userId });
+      this.form.patchValue({ registered_by_user_id: userId }, { emitEvent: false });
     }
-    this.form.get('registered_by_user_id')?.disable({ emitEvent: false });
   }
 
-  registeredByCreateLabel(): string {
-    const userId = this.authService.user_info?.sub;
-    const fromCatalog = this.registrationUsers().find((user) => user.id === userId);
-    if (fromCatalog) {
-      return formatRegistrationUserOption(fromCatalog);
-    }
-    return this.authService.user_info?.email || 'Usuario actual';
+  branchesForFiscal(fiscalId: string | null | undefined): CustomerRegistrationBranchOption[] {
+    if (!fiscalId) return [];
+    return this.registrationFiscals().find((fiscal) => fiscal.id === fiscalId)?.branches ?? [];
+  }
+
+  selectedRegistrationBranches(): CustomerRegistrationBranchOption[] {
+    return this.branchesForFiscal(this.form.get('registered_fiscal_configuration_id')?.value);
+  }
+
+  assignmentHistory() {
+    return this.data?.customer?.assignment_history ?? [];
   }
 
   private emptyToNull(value: unknown): string | null {
@@ -383,6 +471,14 @@ export class CustomerEditModalComponent {
 
   registrationUserLabel(user: CustomerRegistrationUserOption): string {
     return formatRegistrationUserOption(user);
+  }
+
+  registrationSellerLabel(user: CustomerRegistrationSellerOption): string {
+    return formatAssignedSellerLabel(user, user.id);
+  }
+
+  fiscalLabel(fiscal: CustomerRegistrationFiscalOption): string {
+    return (fiscal.razon_social || fiscal.rfc || fiscal.id).trim();
   }
 
   private customerHasAdditionalPersonData(c: Customer): boolean {
@@ -493,8 +589,10 @@ export class CustomerEditModalComponent {
       auto_generate_invoice: !!v.auto_generate_invoice,
       ...this.buildFiscalApiFields('update'),
       group_id: this.selectedGroup()?.id ?? null,
+      registered_fiscal_configuration_id: this.emptyToNull(v.registered_fiscal_configuration_id),
       registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),
       registered_by_user_id: this.emptyToNull(v.registered_by_user_id),
+      assigned_seller_user_id: this.emptyToNull(v.assigned_seller_user_id),
     };
     if (trim(v.additional_name)) dto.additional_name = trim(v.additional_name);
     if (trim(v.additional_lastname)) dto.additional_lastname = trim(v.additional_lastname);
@@ -600,8 +698,10 @@ export class CustomerEditModalComponent {
       auto_generate_invoice: !!v.auto_generate_invoice,
       ...this.buildFiscalApiFields('create'),
       group_id: this.selectedGroup()?.id ?? null,
+      registered_fiscal_configuration_id: this.emptyToNull(v.registered_fiscal_configuration_id),
       registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),
       registered_by_user_id: this.emptyToNull(v.registered_by_user_id),
+      assigned_seller_user_id: this.emptyToNull(v.assigned_seller_user_id),
     };
     if (trim(v.additional_name)) payload.additional_name = trim(v.additional_name);
     if (trim(v.additional_lastname)) payload.additional_lastname = trim(v.additional_lastname);

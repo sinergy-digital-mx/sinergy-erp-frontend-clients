@@ -1,3 +1,18 @@
-<div class="spinner-container">
-  <div [ngStyle]="setSpinnerStyles()" class="spinner"></div>
-</div>
+@if (isCompact) {
+  <div class="spinner-container">
+    <div [ngStyle]="setSpinnerStyles()" class="spinner"></div>
+  </div>
+} @else {
+  <div
+    class="pollux-loader"
+    [class.pollux-loader--sm]="size === 'sm'"
+    role="status"
+    aria-label="Cargando">
+    <span class="pollux-loader__orbit" aria-hidden="true"></span>
+    <div class="pollux-loader__word">
+      @for (letter of letters; track $index) {
+        <span class="pollux-loader__letter" [style.animation-delay]="$index * 80 + 'ms'">{{ letter }}</span>
+      }
+    </div>
+  </div>
+}

@@ -7,6 +7,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { DocumentUploadModalComponent } from '../document-upload-modal/document-upload-modal.component';
 import { LucideAngularModule, Plus, Download, Trash2, FileText, Image, FileCheck, FileX } from 'lucide-angular';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
 @Component({
   selector: 'app-customer-documents',
@@ -14,7 +15,8 @@ import { LucideAngularModule, Plus, Download, Trash2, FileText, Image, FileCheck
   imports: [
     CommonModule,
     ButtonComponent,
-    LucideAngularModule
+    LucideAngularModule,
+    SpinnerComponent,
   ],
   templateUrl: './customer-documents.component.html',
   styleUrls: ['./customer-documents.component.scss']

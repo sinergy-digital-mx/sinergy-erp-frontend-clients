@@ -241,6 +241,28 @@ export interface ProductCatalogExportFilters {
   is_active?: boolean;
 }
 
+export interface VendorCatalogImportPreview {
+  vendor_id: string;
+  vendor_name: string;
+  product_count: number;
+  row_count: number;
+  price_list_id?: string;
+  price_list_name?: string;
+}
+
+export interface VendorCatalogImportError {
+  row: number;
+  sku: string;
+  message: string;
+}
+
+export interface VendorCatalogImportResult {
+  updated: number;
+  created: number;
+  skipped: number;
+  errors: VendorCatalogImportError[];
+}
+
 export interface ProductAttributeQueryParams {
   page?: number;
   limit?: number;

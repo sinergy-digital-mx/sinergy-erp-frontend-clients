@@ -25,6 +25,8 @@ export const INVENTORY_PERMISSIONS = {
   adjustStock: 'inventory:AdjustStock',
   write: 'inventory:Write',
   transfer: 'inventory:Transfer',
+  count: 'inventory:Count',
+  authorize: 'inventory:Authorize',
   
   // Batch management
   createBatch: 'inventory:CreateBatch',

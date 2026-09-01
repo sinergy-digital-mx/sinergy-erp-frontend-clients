@@ -28,7 +28,7 @@
     <div class="table-container">
       @if (loading()) {
         <div class="loading-state">
-          <p>Cargando inventario...</p>
+          <app-spinner></app-spinner>
         </div>
       } @else if (items().length === 0) {
         <div class="empty-state">

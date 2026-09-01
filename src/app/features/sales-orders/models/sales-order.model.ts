@@ -2,6 +2,7 @@ import { PosSaleCollection } from '../../pos/models/pos-sale-collection.model';
 import { PosSaleReceipt, normalizePosSaleReceipt } from '../../pos/models/pos-receipt.model';
 import {
   SalesOrderPayment,
+  SalesOrderPaymentDisplay,
   SalesOrderPaymentsSummary,
 } from './sales-order-payment.model';
 
@@ -14,6 +15,7 @@ export type SalesOrderStatus =
   | 'Cancelada';
 export type SalesPaymentStatus = 'Pendiente' | 'Pagado';
 export type SalesOrderType = 'POS' | 'MANUAL';
+export type SalesOrderCollectionChannel = 'pos_cobranza' | 'manual' | 'mixed';
 
 export interface SalesOrderUserSummary {
   id?: string;
@@ -182,7 +184,7 @@ export interface SalesOrder {
   self_invoice_url?: string | null;
   fiscal_configuration_id?: string;
   customer_id: number | string;
-  warehouse_id: string;
+  warehouse_id?: string | null;
   delivery_date?: string;
   expected_delivery_date?: string;
   sales_order_type?: SalesOrderType;
@@ -192,6 +194,12 @@ export interface SalesOrder {
   can_cancel?: boolean;
   cancel_blocked_reason?: string | null;
   payment_status: SalesPaymentStatus;
+  payment_method?: string | null;
+  payment_method_label?: string | null;
+  payment_breakdown_label?: string | null;
+  collection_channel?: SalesOrderCollectionChannel | null;
+  collection_channel_label?: string | null;
+  payment_display?: SalesOrderPaymentDisplay | null;
   is_credit?: boolean;
   invoice_requested?: boolean;
   subtotal?: string | number;
@@ -226,7 +234,8 @@ export interface SalesOrder {
   customer_display_name?: string;
   customer_summary?: SalesOrderCustomerSummary;
   pos_collection?: PosSaleCollection;
-  seller_user?: PosUserSummary;
+  seller_user?: PosUserSummary | null;
+  assigned_seller_user?: PosUserSummary | null;
   terminal_user?: PosUserSummary;
   collected_by_user?: PosUserSummary;
   warehouse?: { id: string; name: string; zip_code?: string };
@@ -284,6 +293,7 @@ export interface SalesOrderFilters {
   status?: SalesOrderStatus;
   general_status?: SalesOrderStatus | SalesOrderStatus[] | string;
   payment_status?: SalesPaymentStatus;
+  collection_channel?: SalesOrderCollectionChannel;
   sales_order_type?: SalesOrderType;
   customer_id?: string | number;
   fiscal_configuration_id?: string;
@@ -299,6 +309,7 @@ export interface SalesOrderExportFilters {
   search?: string;
   general_status?: string | SalesOrderStatus | SalesOrderStatus[];
   payment_status?: string;
+  collection_channel?: SalesOrderCollectionChannel;
   sales_order_type?: SalesOrderType;
   fiscal_configuration_id?: string;
   billing_branch_id?: string;
@@ -325,17 +336,20 @@ export interface PaginatedResponse<T> {
 
 export interface SalesOrderFormData {
   fiscal_configuration_id?: string;
+  billing_branch_id?: string;
   customer_id: number | string;
-  warehouse_id: string;
+  /** Obligatorio en POS. No enviar en alta MANUAL. */
+  warehouse_id?: string;
   expected_delivery_date?: string;
   sales_order_type?: SalesOrderType;
   fiscal_razon_social?: string;
   seller_user_id?: string;
+  assigned_seller_user_id?: string;
   payment_status?: string;
   notes?: string;
   requires_selection_assembly?: boolean;
   global_discount_id?: string;
-    line_items: Array<{
+  line_items: Array<{
     product_id: string;
     product_uom_id: string;
     quantity: number;
@@ -347,6 +361,14 @@ export interface SalesOrderFormData {
   }>;
 }
 
+export interface SalesOrderProductsSummaryParams {
+  fiscal_configuration_id: string;
+  billing_branch_id: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
 export interface SalesOrderDetailPayload {
   header: SalesOrder;
   line_items: SalesOrderLineItem[];
@@ -354,6 +376,7 @@ export interface SalesOrderDetailPayload {
   pos_collection?: PosSaleCollection;
   payments?: SalesOrderPayment[];
   payments_summary?: SalesOrderPaymentsSummary;
+  payment_display?: SalesOrderPaymentDisplay;
   discount_summary?: SalesOrderDiscountSummary;
   applied_line_discounts?: SalesOrderAppliedProductDiscount[];
   applied_global_discount?: SalesOrderAppliedGlobalDiscount | null;

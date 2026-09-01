@@ -1,7 +1,7 @@
 <div class="order-detail-dialog">
   @if (loading()) {
     <div class="loading-container">
-      <p class="text-gray-500">Cargando orden...</p>
+      <app-spinner></app-spinner>
     </div>
   }
 
@@ -56,24 +56,24 @@
       <div class="sidebar">
         <div class="info-cards-group">
           <div
-            class="info-card info-card--green"
-            [class.info-card--clickable]="canOpenCustomer()"
+            class="info-card info-card--purple"
+            [class.info-card--clickable]="canOpenFiscal()"
             role="button"
-            [attr.tabindex]="canOpenCustomer() ? 0 : null"
-            (click)="canOpenCustomer() && openCustomerInNewTab()"
-            (keydown.enter)="canOpenCustomer() && openCustomerInNewTab()"
-            (keydown.space)="$event.preventDefault(); canOpenCustomer() && openCustomerInNewTab()">
+            [attr.tabindex]="canOpenFiscal() ? 0 : null"
+            (click)="canOpenFiscal() && openFiscalDialog()"
+            (keydown.enter)="canOpenFiscal() && openFiscalDialog()"
+            (keydown.space)="$event.preventDefault(); canOpenFiscal() && openFiscalDialog()">
             <div class="info-card__icon">
-              <i class="fi fi-rr-shop"></i>
+              <i class="fi fi-rr-document"></i>
             </div>
             <div class="info-card__content">
-              <span class="info-card__label">CLIENTE</span>
-              <span class="info-card__value">{{ getCustomerDisplayName() }}</span>
-              @if (getCustomerCompanyName()) {
-                <span class="info-card__subvalue">{{ getCustomerCompanyName() }}</span>
+              <span class="info-card__label">RAZÓN SOCIAL</span>
+              <span class="info-card__value">{{ getRazonSocialDisplayName() }}</span>
+              @if (getRazonSocialSubtitle()) {
+                <span class="info-card__subvalue">{{ getRazonSocialSubtitle() }}</span>
               }
             </div>
-            @if (canOpenCustomer()) {
+            @if (canOpenFiscal()) {
               <i class="fi fi-rr-angle-right info-card__chevron"></i>
             }
           </div>
@@ -102,24 +102,24 @@
           </div>
 
           <div
-            class="info-card info-card--purple"
-            [class.info-card--clickable]="canOpenFiscal()"
+            class="info-card info-card--green"
+            [class.info-card--clickable]="canOpenCustomer()"
             role="button"
-            [attr.tabindex]="canOpenFiscal() ? 0 : null"
-            (click)="canOpenFiscal() && openFiscalDialog()"
-            (keydown.enter)="canOpenFiscal() && openFiscalDialog()"
-            (keydown.space)="$event.preventDefault(); canOpenFiscal() && openFiscalDialog()">
+            [attr.tabindex]="canOpenCustomer() ? 0 : null"
+            (click)="canOpenCustomer() && openCustomerInNewTab()"
+            (keydown.enter)="canOpenCustomer() && openCustomerInNewTab()"
+            (keydown.space)="$event.preventDefault(); canOpenCustomer() && openCustomerInNewTab()">
             <div class="info-card__icon">
-              <i class="fi fi-rr-document"></i>
+              <i class="fi fi-rr-shop"></i>
             </div>
             <div class="info-card__content">
-              <span class="info-card__label">RAZÓN SOCIAL</span>
-              <span class="info-card__value">{{ getRazonSocialDisplayName() }}</span>
-              @if (getRazonSocialSubtitle()) {
-                <span class="info-card__subvalue">{{ getRazonSocialSubtitle() }}</span>
+              <span class="info-card__label">CLIENTE</span>
+              <span class="info-card__value">{{ getCustomerDisplayName() }}</span>
+              @if (getCustomerCompanyName()) {
+                <span class="info-card__subvalue">{{ getCustomerCompanyName() }}</span>
               }
             </div>
-            @if (canOpenFiscal()) {
+            @if (canOpenCustomer()) {
               <i class="fi fi-rr-angle-right info-card__chevron"></i>
             }
           </div>
@@ -214,12 +214,31 @@
                 <button
                   type="button"
                   class="seller-change-btn"
-                  (click)="openSellerEditor()"
+                  (click)="openSellerEditor('seller')"
                   title="Cambiar vendedor"
                   aria-label="Cambiar vendedor">
                   Cambiar
                 </button>
               }
+            </div>
+          </div>
+          <div class="section-item section-item--seller">
+            <span class="section-label">Comisionado</span>
+            <div class="seller-value-col">
+              <div class="seller-value-row">
+                <span class="section-value">{{ getAssignedSellerDisplayName() }}</span>
+                @if (canEditSeller()) {
+                  <button
+                    type="button"
+                    class="seller-change-btn"
+                    (click)="openSellerEditor('assignedSeller')"
+                    title="Cambiar comisionado"
+                    aria-label="Cambiar comisionado">
+                    Cambiar
+                  </button>
+                }
+              </div>
+              <span class="section-hint">Quien comisiona esta venta</span>
             </div>
           </div>
         </div>
@@ -241,6 +260,38 @@
               <div class="section-item">
                 <span class="section-label">Cobró</span>
                 <span class="section-value">{{ formatPosUserLabel(order()!.collected_by_user) }}</span>
+              </div>
+            }
+          </div>
+        }
+
+        @if (hasManualPaymentCard()) {
+          <div class="section-card section-card--pay-info">
+            <h3 class="section-title">{{ paymentCardTitle() }}</h3>
+            @if (collectionChannelLabel()) {
+              <div class="section-item">
+                <span class="section-label">Origen</span>
+                <span class="section-value">{{ collectionChannelLabel() }}</span>
+              </div>
+            }
+            <div class="section-item">
+              <span class="section-label">Método</span>
+              <span class="section-value">{{ paymentMethodHeaderLabel() }}</span>
+            </div>
+            @for (line of paymentCardLines(); track $index) {
+              <div class="section-item">
+                <span class="section-label">{{ line.label || paymentMethodLabel(line.method) }}</span>
+                <span class="section-value">{{ formatPaymentDisplayLine(line) }}</span>
+              </div>
+            }
+            @if (manualPaymentNotes().length) {
+              <div class="section-item section-item--pay-note">
+                <span class="section-label">Nota</span>
+                <div class="pay-note">
+                  @for (note of manualPaymentNotes(); track $index) {
+                    <p class="pay-note__text">{{ note }}</p>
+                  }
+                </div>
               </div>
             }
           </div>
@@ -545,10 +596,11 @@
                         <td>{{ payment.reference_number || '—' }}</td>
                         <td>
                           <span
-                            class="payment-source-chip"
-                            [class.payment-source-chip--pos]="payment.source === 'pos_cobranza'"
+                            class="so-collection-chip"
+                            [class.so-collection-chip--pos]="payment.source === 'pos_cobranza'"
+                            [class.so-collection-chip--manual]="payment.source !== 'pos_cobranza'"
                           >
-                            {{ payment.source === 'pos_cobranza' ? 'Cobranza POS' : 'Manual' }}
+                            {{ paymentSourceLabel(payment) }}
                           </span>
                         </td>
                         <td>
@@ -668,6 +720,12 @@
                 </button>
               </div>
 
+              @if (hasLegacyReciboDocument()) {
+                <p class="documents-legacy-hint">
+                  Hay un PDF marcado como RECIBO (dato viejo). Regenera el PDF Original para que quede como Entrega.
+                </p>
+              }
+
               @if (hasDocuments()) {
                 <table class="documents-table">
                   <thead>
@@ -685,7 +743,7 @@
                         <td>
                           <div class="document-type-cell">
                             <span class="document-badge" [ngClass]="getDocumentBadgeClass(doc.document_type_name)">
-                              {{ doc.document_type_name }}
+                              {{ getDocumentTypeLabel(doc.document_type_name) }}
                             </span>
                           </div>
                         </td>
@@ -758,7 +816,12 @@
                     <tr [class.row-clickable]="canOpenProduct(row.item)">
                       <td>
                         <div class="batch-row-product">
-                          <span class="batch-lot-badge">{{ getAllocationBatchLabel(row) }}</span>
+                          <span
+                            class="batch-lot-badge"
+                            [class.batch-lot-badge--clickable]="canOpenBatch(row)"
+                            (click)="canOpenBatch(row) && openBatchDetail(row, $event)">
+                            {{ getAllocationBatchLabel(row) }}
+                          </span>
                           <div
                             class="product-info product-info--inline"
                             [class.product-info--clickable]="canOpenProduct(row.item)"
@@ -828,6 +891,7 @@
 
       <div class="regenerate-modal__body">
         <p class="regenerate-language-prompt">¿En qué idioma desea generar el documento?</p>
+        <p class="regenerate-language-note">Reescribe el PDF de la orden y el de entrega. No toca el ticket.</p>
         <div class="language-options">
           <label class="language-option" [class.selected]="selectedRegenerateLanguage() === 'es'">
             <input

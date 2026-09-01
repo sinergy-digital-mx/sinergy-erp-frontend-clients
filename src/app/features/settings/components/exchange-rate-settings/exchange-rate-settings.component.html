@@ -78,7 +78,7 @@
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Hoy</h3>
 
         @if (loadingCurrent) {
-          <p class="text-sm text-gray-500">Consultando valor de hoy...</p>
+          <p class="text-sm text-gray-500"><app-spinner size="sm"></app-spinner></p>
         } @else if (todayLoadError) {
           <p class="text-sm text-red-600">{{ todayLoadError }}</p>
         } @else if (todaysRate) {
@@ -99,7 +99,7 @@
       <h3 class="text-lg font-semibold text-gray-800 mb-3">Historial reciente</h3>
 
       @if (loadingHistory) {
-        <p class="text-sm text-gray-500">Cargando historial...</p>
+        <p class="text-sm text-gray-500"><app-spinner size="sm"></app-spinner></p>
       } @else if (historyLoadError) {
         <p class="text-sm text-red-600">{{ historyLoadError }}</p>
       } @else if (history.length === 0) {

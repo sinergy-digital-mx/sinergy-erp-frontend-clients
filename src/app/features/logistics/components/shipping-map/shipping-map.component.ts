@@ -11,6 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import {
   GoogleMap,
   GoogleMapsLoaderService,
@@ -37,7 +38,7 @@ type MapOverlay = { setMap: (map: GoogleMap | null) => void };
 @Component({
   selector: 'app-shipping-map',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SpinnerComponent],
   templateUrl: './shipping-map.component.html',
   styleUrl: './shipping-map.component.scss',
 })

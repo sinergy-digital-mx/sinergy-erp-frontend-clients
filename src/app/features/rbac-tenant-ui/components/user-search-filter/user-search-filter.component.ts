@@ -102,6 +102,7 @@ export class UserSearchFilterComponent implements OnChanges {
   }
 
   private buildStatusConfig(statuses: CatalogStatus[]): ISelect {
+    const current = this.stateService.currentUserStatusFilter;
     return {
       placeholder: 'Filtrar por estado',
       data: statuses.map((item) => ({ value: item.code, label: item.name })),
@@ -110,11 +111,12 @@ export class UserSearchFilterComponent implements OnChanges {
       option: 'label',
       all: true,
       all_message: 'Todos',
-      value_default: null,
+      value_default: !current || current === 'all' ? null : current,
     };
   }
 
   private buildRoleConfig(roles: Role[]): ISelect {
+    const current = this.stateService.currentUserRoleFilter;
     return {
       placeholder: 'Filtrar por rol',
       data: roles.map((role) => ({ value: role.id, label: role.name })),
@@ -123,7 +125,7 @@ export class UserSearchFilterComponent implements OnChanges {
       option: 'label',
       all: true,
       all_message: 'Todos',
-      value_default: null,
+      value_default: current || null,
     };
   }
 }

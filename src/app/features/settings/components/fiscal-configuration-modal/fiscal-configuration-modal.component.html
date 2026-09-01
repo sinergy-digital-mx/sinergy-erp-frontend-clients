@@ -297,7 +297,7 @@
         </div>
 
         <div *ngIf="loadingBranches" class="loading-state">
-          <p>Cargando sucursales...</p>
+          <app-spinner></app-spinner>
         </div>
 
         <div *ngIf="!loadingBranches && branches.length === 0" class="empty-state">

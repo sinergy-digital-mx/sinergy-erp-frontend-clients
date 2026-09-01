@@ -7,6 +7,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { ToastService } from '../../../../core/services/toast.service';
 import { ToastType } from '../../../../core/models/toast.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ProductService } from '../../services/product.service';
 import {
   Product,
@@ -25,7 +26,7 @@ import { CategoriesDialogComponent } from '../categories-dialog/categories-dialo
 @Component({
   selector: 'app-product-detail-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, TabComponent],
+  imports: [CommonModule, FormsModule, TabComponent, SpinnerComponent],
   templateUrl: './product-detail-modal.component.html',
   styleUrls: ['./product-detail-modal.component.scss']
 })
@@ -1365,8 +1366,8 @@ export class ProductDetailModalComponent implements OnInit {
         product_id: price.product_id,
         product_uom_id: price.product_uom_id,
         price: price.price,
-        iva_percentage: (price as any).iva_percentage || 16,
-        ieps_percentage: (price as any).ieps_percentage || 0
+        iva_percentage: (price as any).iva_percentage ?? null,
+        ieps_percentage: (price as any).ieps_percentage ?? null
       };
     } else {
       this.priceForm = this.getEmptyPriceForm();
@@ -1478,8 +1479,8 @@ export class ProductDetailModalComponent implements OnInit {
         product_uom_id: cost.product_uom_id,
         cost: cost.cost,
         currency: cost.currency === 'USD' ? 'USD' : 'MXN',
-        iva_percentage: cost.iva_percentage || 16,
-        ieps_percentage: cost.ieps_percentage || 0
+        iva_percentage: cost.iva_percentage ?? null,
+        ieps_percentage: cost.ieps_percentage ?? null
       };
     } else {
       this.costForm = this.getEmptyCostForm();
@@ -1795,9 +1796,9 @@ export class ProductDetailModalComponent implements OnInit {
       price_list_id: '',
       product_id: '',
       product_uom_id: '',
-      price: 0,
-      iva_percentage: 0,
-      ieps_percentage: 0
+      price: null,
+      iva_percentage: null,
+      ieps_percentage: null
     };
   }
 
@@ -1820,10 +1821,10 @@ export class ProductDetailModalComponent implements OnInit {
       vendor_id: '',
       product_id: '',
       product_uom_id: '',
-      cost: 0,
+      cost: null,
       currency: 'MXN',
-      iva_percentage: 0,
-      ieps_percentage: 0
+      iva_percentage: null,
+      ieps_percentage: null
     };
   }
 

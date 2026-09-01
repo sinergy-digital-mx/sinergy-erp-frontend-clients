@@ -1,0 +1,46 @@
+@import '../transfer-list/transfer-list.component.scss';
+
+.filters-panel__grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 1.35rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  &[data-status='draft'] {
+    background: #f1f5f9;
+    color: #475569;
+  }
+
+  &[data-status='submitted'] {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  &[data-status='posted'] {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  &[data-status='cancelled'] {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+}
+
+.variance-neg {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.variance-pos {
+  color: #15803d;
+  font-weight: 700;
+}

@@ -19,7 +19,7 @@
     </div>
   } @else if (isEditMode() && loading()) {
     <div class="section loading-state">
-      <p>Cargando orden…</p>
+      <app-spinner></app-spinner>
     </div>
   } @else if (orderForm) {
     <form [formGroup]="orderForm" (ngSubmit)="save()">
@@ -195,7 +195,7 @@
               </div>
 
               <div class="form-field">
-                <label>IVA % *</label>
+                <label>IVA %</label>
                 <input type="number" formControlName="iva_percentage" min="0" max="100" />
                 <span class="error" *ngIf="getLineItemFieldError(i, 'iva_percentage')">
                   {{ getLineItemFieldError(i, 'iva_percentage') }}
@@ -203,7 +203,7 @@
               </div>
 
               <div class="form-field">
-                <label>IEPS % *</label>
+                <label>IEPS %</label>
                 <input type="number" formControlName="ieps_percentage" min="0" max="100" />
                 <span class="error" *ngIf="getLineItemFieldError(i, 'ieps_percentage')">
                   {{ getLineItemFieldError(i, 'ieps_percentage') }}

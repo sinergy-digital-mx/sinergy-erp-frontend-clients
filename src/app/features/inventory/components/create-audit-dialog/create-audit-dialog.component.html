@@ -1,0 +1,211 @@
+<div class="audit-dialog">
+  <div class="audit-dialog__header">
+    <div class="audit-dialog__title-row">
+      <div class="audit-dialog__icon-wrap">
+        <lucide-icon [img]="ClipboardCheck" [size]="20"></lucide-icon>
+      </div>
+      <div>
+        <h2 class="audit-dialog__title">Nueva auditoría</h2>
+        <p class="audit-dialog__subtitle">
+          Se congela la existencia de cada lote. Al autorizar, el disponible queda igual a lo contado.
+        </p>
+      </div>
+    </div>
+    <button type="button" class="audit-dialog__close" (click)="close()" aria-label="Cerrar">
+      <lucide-icon [img]="X" [size]="20"></lucide-icon>
+    </button>
+  </div>
+
+  <div class="audit-dialog__body">
+    <section class="picker-section">
+      <h3 class="picker-section__title">Almacén</h3>
+      <div class="cascade-fields">
+        <div class="cascade-field">
+          <label for="auditFiscal">Razón social</label>
+          <select
+            id="auditFiscal"
+            class="cascade-select"
+            [ngModel]="fiscalId()"
+            (ngModelChange)="onFiscalChange($event)">
+            <option value="">Seleccionar razón social...</option>
+            @for (fiscal of locations(); track fiscal.id) {
+              <option [value]="fiscal.id">{{ fiscalLabel(fiscal) }}</option>
+            }
+          </select>
+        </div>
+        <div class="cascade-field">
+          <label for="auditBranch">Sucursal</label>
+          <select
+            id="auditBranch"
+            class="cascade-select"
+            [ngModel]="branchId()"
+            (ngModelChange)="onBranchChange($event)"
+            [disabled]="!fiscalId()">
+            <option value="">Seleccionar sucursal...</option>
+            @for (branch of branches(); track branch.id) {
+              <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+            }
+          </select>
+        </div>
+        <div class="cascade-field">
+          <label for="auditWarehouse">Almacén</label>
+          <select
+            id="auditWarehouse"
+            class="cascade-select"
+            [ngModel]="warehouseId()"
+            (ngModelChange)="onWarehouseChange($event)"
+            [disabled]="!branchId()">
+            <option value="">Seleccionar almacén...</option>
+            @for (wh of warehouses(); track wh.id) {
+              <option [value]="wh.id">{{ warehouseLabel(wh) }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="picker-section">
+      <h3 class="picker-section__title">Alcance</h3>
+      @if (productLabel()) {
+        <div class="selected-product">
+          <span>{{ productLabel() }}</span>
+          <button type="button" class="text-btn" (click)="clearProduct()">Todo el almacén</button>
+        </div>
+      } @else {
+        <p class="field-hint">Por defecto se cuentan todos los lotes del almacén. Opcional: limitar a un producto.</p>
+        <div class="origin-search">
+          <div class="origin-search__field">
+            <lucide-icon [img]="Search" [size]="16" class="origin-search__icon"></lucide-icon>
+            <input
+              type="text"
+              class="origin-search__input"
+              placeholder="Buscar producto por nombre o SKU..."
+              [ngModel]="productSearch()"
+              (ngModelChange)="productSearch.set($event)"
+              (keyup.enter)="searchProducts()"
+              [disabled]="!warehouseId()"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn-search"
+            (click)="searchProducts()"
+            [disabled]="!warehouseId() || searchingProducts()">
+            {{ searchingProducts() ? 'Buscando...' : 'Buscar' }}
+          </button>
+        </div>
+        @if (productCandidates().length > 0) {
+          <div class="batch-table-wrap">
+            <table class="batch-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>SKU</th>
+                  <th class="text-right">Lotes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of productCandidates(); track item.product_id + item.uom_id) {
+                  <tr>
+                    <td class="font-medium">{{ item.product_name }}</td>
+                    <td>{{ item.product_sku }}</td>
+                    <td class="text-right">{{ item.total_batches }}</td>
+                    <td class="text-right">
+                      <button type="button" class="btn-select" (click)="selectProduct(item)">Usar</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      <label class="check-row">
+        <input
+          type="checkbox"
+          [ngModel]="includeEmptyLots()"
+          (ngModelChange)="toggleEmptyLots($event)"
+          [disabled]="!warehouseId()"
+        />
+        Incluir lotes en cero
+      </label>
+    </section>
+
+    @if (openAuditId()) {
+      <div class="open-audit-banner">
+        Ya hay una auditoría abierta
+        @if (openAuditFolio()) {
+          <strong>{{ openAuditFolio() }}</strong>
+        }
+        en este almacén.
+        <button type="button" class="text-btn" (click)="openExisting()">Abrir</button>
+      </div>
+    }
+
+    <section class="picker-section">
+      <h3 class="picker-section__title">Lotes a incluir</h3>
+      @if (!warehouseId()) {
+        <p class="empty-hint">Selecciona un almacén para ver el snapshot.</p>
+      } @else if (loadingContext()) {
+        <p class="empty-hint"><app-spinner></app-spinner></p>
+      } @else if (lots().length === 0) {
+        <p class="empty-hint">No hay lotes para este alcance.</p>
+      } @else {
+        <p class="lots-summary">{{ lots().length }} lotes en el snapshot</p>
+        <div class="batch-table-wrap">
+          <table class="batch-table">
+            <thead>
+              <tr>
+                <th>Lote</th>
+                <th>Producto</th>
+                <th>SKU</th>
+                <th>Medida</th>
+                <th class="text-right">Sistema</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (lot of lots(); track lotKey(lot, $index)) {
+                <tr>
+                  <td class="font-medium">{{ lot.batch_number }}</td>
+                  <td>{{ lot.product_name || '—' }}</td>
+                  <td>{{ lot.product_sku || '—' }}</td>
+                  <td>{{ lot.measure_label || '—' }}</td>
+                  <td class="text-right">
+                    {{ lot.available_quantity | removeTrailingZeros }}
+                    @if (lot.uom_name) {
+                      {{ lot.uom_name }}
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="picker-section">
+      <label class="notes-label" for="auditNotes">Notas</label>
+      <textarea
+        id="auditNotes"
+        class="notes-input"
+        rows="2"
+        [ngModel]="notes()"
+        (ngModelChange)="notes.set($event)"
+        placeholder="Opcional"
+      ></textarea>
+      <p class="pause-note">
+        Pausa las salidas de este almacén mientras dura el conteo: al autorizar se sobrescribe la existencia.
+      </p>
+    </section>
+  </div>
+
+  <div class="audit-dialog__footer">
+    <button type="button" class="btn-cancel" (click)="close()">Cancelar</button>
+    <button type="button" class="btn-primary" (click)="submit()" [disabled]="!canCreate()">
+      {{ submitting() ? 'Creando...' : 'Crear snapshot' }}
+    </button>
+  </div>
+</div>

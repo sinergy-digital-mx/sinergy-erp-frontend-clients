@@ -111,6 +111,19 @@ export class WarehouseDetailModalComponent implements OnInit {
       }
       return;
     }
+
+    const incoming = this.data.warehouse as Warehouse | null;
+    if (incoming?.id && incoming.status == null) {
+      this.warehouseService.getWarehouse(incoming.id).subscribe({
+        next: (warehouse) => {
+          this.data.warehouse = warehouse;
+          this.loadBranches();
+        },
+        error: () => this.loadBranches(),
+      });
+      return;
+    }
+
     this.loadBranches();
   }
 

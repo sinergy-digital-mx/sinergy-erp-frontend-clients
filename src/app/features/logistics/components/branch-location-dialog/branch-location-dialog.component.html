@@ -8,7 +8,7 @@
   </div>
 
   @if (loading()) {
-    <div class="whl-dialog__body"><p class="text-sm text-gray-500">Cargando…</p></div>
+    <div class="whl-dialog__body"><app-spinner></app-spinner></div>
   } @else {
     <div class="whl-dialog__body">
       <app-location-map-fields

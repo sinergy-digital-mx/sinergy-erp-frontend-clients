@@ -6,6 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { LucideAngularModule, X } from 'lucide-angular';
 import { Subject, takeUntil } from 'rxjs';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
@@ -56,6 +57,7 @@ type WizardStep = 'form' | 'preview';
     SearchComponent,
     LucideAngularModule,
     ShippingMapComponent,
+    SpinnerComponent,
   ],
   templateUrl: './create-shipping-dialog.component.html',
   styleUrl: './create-shipping-dialog.component.scss',

@@ -4,6 +4,10 @@ import { Observable, from, throwError } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { Document, DocumentType, PurchaseOrder, RegenerateDocumentResponse } from '../models/purchase-order.model';
+import {
+  PurchaseOrderMovementsResponse,
+  normalizePurchaseOrderMovementsResponse,
+} from '../models/purchase-order-movement.model';
 import { LineItem } from '../models/line-item.model';
 import { 
   OrderFilters, 
@@ -69,6 +73,16 @@ export class PurchaseOrderService {
   }
 
   /**
+   * Historial de movimientos de la OC (refresh del tab).
+   */
+  getOrderMovements(id: string): Observable<PurchaseOrderMovementsResponse> {
+    return this.http.get<unknown>(`${this.baseUrl}/${id}/movements`).pipe(
+      map((raw) => normalizePurchaseOrderMovementsResponse(raw)),
+      catchError((error) => this.handleError(error))
+    );
+  }
+
+  /**
    * Get single purchase order by ID
    */
   getOrderById(id: string): Observable<PurchaseOrder> {
@@ -96,8 +110,19 @@ export class PurchaseOrderService {
       if (Array.isArray(data.documents)) {
         order.documents = data.documents;
       }
-      if (Array.isArray(data.batches) && data.batches.length > 0) {
+      if (Array.isArray(data.batches)) {
         order.batches = data.batches;
+      }
+      if (data.batches_summary && typeof data.batches_summary === 'object') {
+        order.batches_summary = data.batches_summary;
+      }
+      if (Array.isArray(data.movements)) {
+        order.movements = data.movements;
+      }
+      if (data.movements_count != null) {
+        order.movements_count = Number(data.movements_count) || 0;
+      } else if (Array.isArray(data.movements)) {
+        order.movements_count = data.movements.length;
       }
       if (Array.isArray(data.payments)) {
         order.payments = data.payments;

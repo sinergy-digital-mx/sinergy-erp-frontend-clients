@@ -1,0 +1,72 @@
+<div class="add-line">
+  <div class="add-line__header">
+    <h2>Agregar lote</h2>
+    <button type="button" class="icon-btn" (click)="close()" aria-label="Cerrar">
+      <lucide-icon [img]="X" [size]="18"></lucide-icon>
+    </button>
+  </div>
+
+  <p class="add-line__hint">
+    Para mercancía que no salió en el snapshot (típico: existencia 0).
+  </p>
+
+  <div class="search-row">
+    <lucide-icon [img]="Search" [size]="16" class="search-row__icon"></lucide-icon>
+    <input
+      type="text"
+      [ngModel]="searchTerm()"
+      (ngModelChange)="searchTerm.set($event)"
+      (keyup.enter)="search()"
+      placeholder="Buscar por lote, producto o SKU..."
+    />
+    <button type="button" class="btn-search" (click)="search()" [disabled]="loading()">
+      {{ loading() ? 'Buscando...' : 'Buscar' }}
+    </button>
+  </div>
+
+  @if (loading()) {
+    <p class="empty"><app-spinner></app-spinner></p>
+  } @else if (batches().length === 0) {
+    <p class="empty">No hay lotes disponibles fuera del snapshot.</p>
+  } @else {
+    <table class="batch-table">
+      <thead>
+        <tr>
+          <th>Lote</th>
+          <th>Producto</th>
+          <th class="text-right">Disponible</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (batch of batches(); track batch.id) {
+          <tr>
+            <td class="font-medium">{{ batch.batch_number }}</td>
+            <td>
+              <div>{{ batch.product_name }}</div>
+              <div class="sku">
+                {{ batch.product_sku }}
+                @if (batch.measure_label) {
+                  · {{ batch.measure_label }}
+                }
+              </div>
+            </td>
+            <td class="text-right">
+              {{ (batch.available_quantity ?? batch.quantity) | removeTrailingZeros }}
+              {{ batch.uom_name }}
+            </td>
+            <td class="text-right">
+              <button
+                type="button"
+                class="btn-add"
+                (click)="add(batch)"
+                [disabled]="submittingId() !== null">
+                {{ submittingId() === batch.id ? 'Agregando...' : 'Agregar' }}
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

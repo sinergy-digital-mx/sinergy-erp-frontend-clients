@@ -1,7 +1,24 @@
 <div class="batch-detail">
   <div class="batch-detail__chrome">
     <div class="batch-detail__header">
-      <h2 class="batch-detail__title">{{ batch()?.batch_number || '...' }}</h2>
+      <div class="batch-detail__heading">
+        <div class="batch-detail__identity">
+          <div class="batch-detail__title-row">
+            <h2 class="batch-detail__title">{{ batch()?.batch_number || '...' }}</h2>
+            @if (batch()) {
+              <span class="batch-stock-pill" [class.batch-stock-pill--ok]="hasAvailableStock" [class.batch-stock-pill--empty]="!hasAvailableStock">
+                {{ hasAvailableStock ? 'Con stock' : 'Sin stock' }}
+              </span>
+            }
+          </div>
+          @if (batch()) {
+            <p class="batch-detail__product">
+              <span class="batch-detail__product-name">{{ batch()?.product_name || 'N/A' }}</span>
+              <span class="batch-detail__product-sku">SKU {{ batch()?.product_sku || '—' }}</span>
+            </p>
+          }
+        </div>
+      </div>
       <button type="button" class="batch-detail__close" (click)="close()" aria-label="Cerrar">
         <lucide-icon [img]="X" class="w-5 h-5"></lucide-icon>
       </button>
@@ -15,6 +32,9 @@
           [class.active]="activeTab === tab.id"
           (click)="activeTab = tab.id">
           {{ tab.label }}
+          @if (tab.count != null) {
+            <span class="batch-detail__tab-count" [class.is-active]="activeTab === tab.id">{{ tab.count }}</span>
+          }
         </button>
       }
     </nav>
@@ -23,7 +43,7 @@
   <!-- Loading -->
   @if (loading()) {
     <div class="batch-detail__loading">
-      <p>Cargando...</p>
+      <app-spinner></app-spinner>
     </div>
   }
 
@@ -45,7 +65,7 @@
         <!-- Info Cards Row -->
         <div class="info-cards">
           <!-- Producto -->
-          <div class="info-card clickable" (click)="openProductDetail()">
+          <div class="info-card info-card--product clickable" (click)="openProductDetail()">
             <div class="info-card__icon">
               <lucide-icon [img]="Package" class="w-5 h-5"></lucide-icon>
             </div>
@@ -58,7 +78,7 @@
           </div>
 
           <!-- ALMACÉN -->
-          <div class="info-card clickable" (click)="openWarehouseDetail()">
+          <div class="info-card info-card--warehouse clickable" (click)="openWarehouseDetail()">
             <div class="info-card__icon">
               <lucide-icon [img]="MapPin" class="w-5 h-5"></lucide-icon>
             </div>
@@ -67,13 +87,23 @@
               <span class="info-card__value">{{ batch()?.warehouse_name || 'N/A' }}</span>
               <span class="info-card__sub">{{ batch()?.razon_social || '—' }} · {{ batch()?.sucursal || '—' }}</span>
             </div>
-            <lucide-icon [img]="ArrowRight" class="info-card__arrow w-4 h-4"></lucide-icon>
+            @if (showWarehousePencil) {
+              <button
+                type="button"
+                class="tag-edit-btn"
+                (click)="openTransfer($event)"
+                title="Mover lote">
+                <lucide-icon [img]="Edit" class="w-4 h-4"></lucide-icon>
+              </button>
+            } @else {
+              <lucide-icon [img]="ArrowRight" class="info-card__arrow w-4 h-4"></lucide-icon>
+            }
           </div>
         </div>
 
         <div class="info-cards info-cards--codes">
           <!-- Requisición -->
-          <div class="info-card info-card--code" [class.clickable]="batch()?.purchase_order_id" (click)="openPurchaseOrder()">
+          <div class="info-card info-card--code info-card--requisition" [class.clickable]="batch()?.purchase_order_id" (click)="openPurchaseOrder()">
             <div class="info-card__icon">
               <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
             </div>
@@ -87,7 +117,7 @@
           </div>
 
           @if (pedimentoNumber) {
-            <div class="info-card info-card--code">
+            <div class="info-card info-card--code info-card--pedimento">
               <div class="info-card__icon">
                 <lucide-icon [img]="Stamp" class="w-5 h-5"></lucide-icon>
               </div>
@@ -101,7 +131,7 @@
 
         <div class="meta-cards">
           <!-- Fecha -->
-          <div class="info-card">
+          <div class="info-card info-card--date">
             <div class="info-card__icon">
               <lucide-icon [img]="Calendar" class="w-5 h-5"></lucide-icon>
             </div>
@@ -112,17 +142,34 @@
           </div>
 
           <!-- TAG -->
-          <div class="info-card">
+          <div class="info-card info-card--tag" [class.info-card--editable]="showTagPencil">
             <div class="info-card__icon">
               <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
             </div>
             <div class="info-card__content">
               <span class="info-card__label">TAG</span>
-              <span class="info-card__value">{{ sourceTag || '-' }}</span>
+              <span class="info-card__value">{{ sourceTag || '—' }}</span>
             </div>
-            <button type="button" class="tag-edit-btn" (click)="openTagModal()" title="Editar TAG">
-              <lucide-icon [img]="Edit" class="w-4 h-4"></lucide-icon>
-            </button>
+            @if (showTagPencil) {
+              <button type="button" class="tag-edit-btn" (click)="openTagModal(); $event.stopPropagation()" title="Editar TAG">
+                <lucide-icon [img]="Edit" class="w-4 h-4"></lucide-icon>
+              </button>
+            }
+          </div>
+
+          <div class="info-card info-card--measure" [class.info-card--editable]="showMeasurePencil">
+            <div class="info-card__icon">
+              <lucide-icon [img]="Ruler" class="w-5 h-5"></lucide-icon>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">MEDIDA</span>
+              <span class="info-card__value">{{ measureLabel }}</span>
+            </div>
+            @if (showMeasurePencil) {
+              <button type="button" class="tag-edit-btn" (click)="openMeasureModal(); $event.stopPropagation()" title="Indicar medida">
+                <lucide-icon [img]="Edit" class="w-4 h-4"></lucide-icon>
+              </button>
+            }
           </div>
         </div>
 
@@ -147,68 +194,54 @@
 
           <!-- Quantities -->
           <div class="quantities">
-            <div class="quantity-item">
+            <div class="quantity-item quantity-item--initial">
               <span class="quantity-item__label">Cantidad Inicial</span>
               <span class="quantity-item__value">{{ batch()?.initial_quantity | removeTrailingZeros }} {{ batch()?.uom_name }}</span>
             </div>
-            <div class="quantity-item">
+            <div class="quantity-item quantity-item--available">
               <span class="quantity-item__label">Disponible</span>
               <span class="quantity-item__value green">{{ batch()?.available_quantity | removeTrailingZeros }} {{ batch()?.uom_name }}</span>
             </div>
-            <div class="quantity-item">
+            <div class="quantity-item quantity-item--consumed">
               <span class="quantity-item__label">Consumido</span>
               <span class="quantity-item__value">{{ batch()?.quantity_consumed | removeTrailingZeros }} {{ batch()?.uom_name }}</span>
             </div>
           </div>
         </div>
 
-        @if (canCreateTransfer) {
-          <div class="transfer-action-bar">
-            <button
-              type="button"
-              class="transfer-action-btn"
-              [disabled]="!canTransfer"
-              (click)="openTransfer()"
-              [title]="canTransfer ? 'Transferir este lote' : 'Sin stock disponible'">
-              <lucide-icon [img]="ArrowRightLeft" class="w-4 h-4"></lucide-icon>
-              Transferir este lote
-            </button>
-          </div>
-        }
-
         <!-- Resumen de Movimientos -->
         <div class="movements-summary">
           <h3 class="movements-summary__title">Resumen de Movimientos</h3>
           <div class="movements-cards">
-            <div class="movement-card">
+            <div class="movement-card movement-card--total">
               <div class="movement-card__icon-wrap">
                 <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
               </div>
               <span class="movement-card__label">Total Movimientos</span>
               <span class="movement-card__value">{{ batch()?.movement_summary?.total_movements ?? 0 }}</span>
             </div>
-            <div class="movement-card">
+            <div class="movement-card movement-card--orders">
               <div class="movement-card__icon-wrap">
                 <lucide-icon [img]="ShoppingCart" class="w-5 h-5"></lucide-icon>
               </div>
               <span class="movement-card__label">Órdenes</span>
-              <span class="movement-card__value">{{ batch()?.movement_summary?.by_type?.orders ?? 0 }}</span>
+              <span class="movement-card__value">{{ summaryOrders }}</span>
             </div>
-            <div class="movement-card">
+            <div class="movement-card movement-card--out">
               <div class="movement-card__icon-wrap">
                 <lucide-icon [img]="ArrowUpRight" class="w-5 h-5"></lucide-icon>
               </div>
               <span class="movement-card__label">Transferencias salida</span>
               <span class="movement-card__value">{{ batch()?.movement_summary?.by_type?.transfers_out ?? 0 }}</span>
             </div>
-            <div class="movement-card">
+            <div class="movement-card movement-card--in">
               <div class="movement-card__icon-wrap">
                 <lucide-icon [img]="ArrowDownLeft" class="w-5 h-5"></lucide-icon>
               </div>
               <span class="movement-card__label">Transferencias entrada</span>
               <span class="movement-card__value">{{ batch()?.movement_summary?.by_type?.transfers_in ?? 0 }}</span>
             </div>
-            <div class="movement-card">
+            <div class="movement-card movement-card--adjust">
               <div class="movement-card__icon-wrap">
                 <lucide-icon [img]="Edit" class="w-5 h-5"></lucide-icon>
               </div>
@@ -218,6 +251,19 @@
           </div>
         </div>
 
+      </div>
+    }
+
+    <!-- Tab: Movimientos -->
+    @if (activeTab === 'movimientos') {
+      <div class="batch-detail__body">
+        <app-inventory-batch-movements-tab
+          [batchId]="data.batchId"
+          [movements]="batch()?.movements"
+          [total]="movementsCount"
+          (openReference)="onMovementReference($event)"
+          (movementsLoaded)="onMovementsLoaded($event)">
+        </app-inventory-batch-movements-tab>
       </div>
     }
 
@@ -243,6 +289,7 @@
             <p>Sin transferencias registradas para este lote</p>
           </div>
         } @else {
+          <div class="history-card">
           <table class="transfer-history-table">
             <thead>
               <tr>
@@ -252,6 +299,7 @@
                 <th>Lote relacionado</th>
                 <th>Almacén</th>
                 <th>Fecha</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -288,10 +336,22 @@
                   </td>
                   <td>{{ entry.warehouse_name }}</td>
                   <td>{{ entry.created_at ? formatDate(entry.created_at) : '—' }}</td>
+                  <td>
+                    @if (entry.transfer_id) {
+                      <button
+                        type="button"
+                        class="transfer-detail-btn"
+                        (click)="openTransferDetail(entry.transfer_id)">
+                        <lucide-icon [img]="Eye" class="w-3.5 h-3.5"></lucide-icon>
+                        Detalle de transferencia
+                      </button>
+                    }
+                  </td>
                 </tr>
               }
             </tbody>
           </table>
+          </div>
         }
       </div>
     }
@@ -299,9 +359,90 @@
     <!-- Tab: Auditorías -->
     @if (activeTab === 'auditorias') {
       <div class="batch-detail__body">
-        <div class="empty-tab">
-          <p>Sin auditorías registradas</p>
-        </div>
+        @if (auditsLoading()) {
+          <div class="empty-tab empty-tab--loading">
+            <app-spinner></app-spinner>
+          </div>
+        } @else {
+          @if (canCount && !openAuditId()) {
+            <div class="transfer-action-bar">
+              <button
+                type="button"
+                class="transfer-action-btn"
+                (click)="startOrContinueAudit()"
+                [disabled]="startingAudit()">
+                <lucide-icon [img]="ClipboardCheck" class="w-4 h-4"></lucide-icon>
+                {{ startingAudit() ? 'Creando...' : 'Contar este lote' }}
+              </button>
+            </div>
+          }
+
+          @if (visibleAuditHistory.length === 0) {
+            <div class="empty-tab">
+              <p>Sin auditorías registradas para este lote</p>
+            </div>
+          } @else {
+            <div class="history-card">
+            <table class="transfer-history-table">
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th class="text-right">Sistema</th>
+                  <th class="text-right">Contado</th>
+                  <th class="text-right">Varianza</th>
+                  <th>Contó</th>
+                  <th>Autorizó</th>
+                  <th>Fecha</th>
+                  <th>Motivo</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (entry of visibleAuditHistory; track auditId(entry) || entry.folio) {
+                  <tr [class.is-open-audit]="isOpenAudit(entry)">
+                    <td>
+                      <div class="audit-folio-cell">
+                        <div>
+                          @if (auditId(entry)) {
+                            <button type="button" class="folio-link" (click)="openAuditDetail(entry)">
+                              {{ entry.folio }}
+                            </button>
+                          } @else {
+                            {{ entry.folio }}
+                          }
+                          @if (entry.status) {
+                            <div class="sku-sub">{{ auditStatus(entry) }}</div>
+                          }
+                        </div>
+                        @if (auditId(entry)) {
+                          <button
+                            type="button"
+                            class="transfer-detail-btn"
+                            (click)="openAuditDetail(entry)">
+                            {{ isOpenAudit(entry) ? 'Continuar' : 'Ver' }}
+                          </button>
+                        }
+                      </div>
+                    </td>
+                    <td class="text-right">{{ qtyLabel(entry.system_quantity) }}</td>
+                    <td class="text-right">{{ qtyLabel(entry.counted_quantity) }}</td>
+                    <td class="text-right" [class.positive]="auditVarianceClass(entry) === 'positive'" [class.negative]="auditVarianceClass(entry) === 'negative'">
+                      @if (auditVariance(entry) === null) {
+                        —
+                      } @else {
+                        {{ auditVariance(entry) | removeTrailingZeros }}
+                      }
+                    </td>
+                    <td>{{ auditUser(entry, 'counted_by_user') }}</td>
+                    <td>{{ auditUser(entry, 'authorized_by_user') }}</td>
+                    <td>{{ formatDate(entry.authorized_at || entry.posted_at || entry.counted_at || '') }}</td>
+                    <td>{{ entry.reason || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            </div>
+          }
+        }
       </div>
     }
 
@@ -375,14 +516,105 @@
           class="tag-modal__input"
           [ngModel]="tagDraft()"
           (ngModelChange)="updateTagDraft($event)"
+          maxlength="100"
           placeholder="Ej. 12312313123"
         />
-        <small>Guardado local temporal hasta que exista endpoint.</small>
+        <small>Vacío elimina el TAG.</small>
       </div>
       <div class="tag-modal__footer">
-        <button type="button" class="btn-cancel" (click)="closeTagModal()">Cancelar</button>
-        <button type="button" class="btn-save" (click)="saveTagLocally()">Guardar</button>
+        <button type="button" class="btn-cancel" (click)="closeTagModal()" [disabled]="savingTag()">Cancelar</button>
+        <button type="button" class="btn-save" (click)="saveTag()" [disabled]="savingTag()">
+          {{ savingTag() ? 'Guardando...' : 'Guardar' }}
+        </button>
       </div>
+    </div>
+  </div>
+}
+
+@if (showMeasureModal()) {
+  <div class="tag-modal-overlay" (click)="closeMeasureModal()">
+    <div class="tag-modal tag-modal--measure" (click)="$event.stopPropagation()">
+      <div class="tag-modal__header">
+        <h3>{{ showCreateUom() ? 'Nueva unidad' : 'Indicar medida' }}</h3>
+        <button type="button" class="tag-modal__close" (click)="closeMeasureModal()" [disabled]="savingMeasure() || savingNewUom()">
+          <lucide-icon [img]="X" class="w-4 h-4"></lucide-icon>
+        </button>
+      </div>
+
+      @if (!showCreateUom()) {
+        <div class="tag-modal__body">
+          <div class="measure-fields">
+            <div class="measure-fields__size">
+              <label for="batchMeasureSize">Tamaño</label>
+              <input
+                id="batchMeasureSize"
+                type="number"
+                class="tag-modal__input"
+                [ngModel]="measureSize()"
+                (ngModelChange)="measureSize.set($event)"
+                min="0.001"
+                step="0.001"
+              />
+            </div>
+            <div class="measure-fields__uom">
+              <label for="batchMeasureUom">Unidad</label>
+              <select
+                id="batchMeasureUom"
+                class="tag-modal__input"
+                [ngModel]="measureUomId()"
+                (ngModelChange)="measureUomId.set($event)"
+                [disabled]="loadingUomCatalog()">
+                <option value="">Elegir unidad</option>
+                @for (uom of uomCatalog(); track uom.id) {
+                  <option [value]="uom.id">{{ uom.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <button type="button" class="measure-new-uom" (click)="toggleCreateUom()" [disabled]="savingNewUom()">
+            Nueva unidad
+          </button>
+        </div>
+        <div class="tag-modal__footer">
+          <button type="button" class="btn-cancel" (click)="closeMeasureModal()" [disabled]="savingMeasure()">Cancelar</button>
+          <button type="button" class="btn-save" (click)="saveMeasure()" [disabled]="savingMeasure() || loadingUomCatalog() || !canSaveMeasure">
+            {{ savingMeasure() ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      } @else {
+        <div class="tag-modal__body">
+          <div class="tag-modal__field">
+            <label for="newGlobalUomName">Nombre</label>
+            <input
+              id="newGlobalUomName"
+              type="text"
+              class="tag-modal__input"
+              [ngModel]="newUomName()"
+              (ngModelChange)="newUomName.set($event)"
+              maxlength="80"
+              placeholder="Foot, PIES, Pie"
+            />
+          </div>
+          <div class="tag-modal__field">
+            <label for="newGlobalUomDescription">Descripción</label>
+            <input
+              id="newGlobalUomDescription"
+              type="text"
+              class="tag-modal__input"
+              [ngModel]="newUomDescription()"
+              (ngModelChange)="newUomDescription.set($event)"
+              maxlength="160"
+              placeholder="Opcional"
+            />
+          </div>
+        </div>
+        <div class="tag-modal__footer">
+          <button type="button" class="btn-cancel" (click)="toggleCreateUom()" [disabled]="savingNewUom()">Volver</button>
+          <button type="button" class="btn-save" (click)="createGlobalUom()" [disabled]="!canCreateUom">
+            {{ savingNewUom() ? 'Creando...' : 'Crear' }}
+          </button>
+        </div>
+      }
     </div>
   </div>
 }

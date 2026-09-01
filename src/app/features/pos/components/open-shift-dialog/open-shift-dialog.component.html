@@ -4,7 +4,7 @@
   <mat-dialog-content class="open-pos-dialog__body">
     <div class="open-pos-dialog__fields">
       @if (loading()) {
-        <div class="hint">Cargando sucursales y almacenes…</div>
+        <div class="hint"><app-spinner size="sm"></app-spinner></div>
       }
 
       <div class="form-field">
@@ -34,7 +34,7 @@
           <span class="req">*</span>
         </label>
         @if (loading() || loadingEquipments()) {
-          <div class="hint">Cargando equipos…</div>
+          <div class="hint"><app-spinner size="sm"></app-spinner></div>
         } @else if (!selectedBranchId()) {
           <div class="hint">Elige primero una sucursal para ver los equipos configurados ahí.</div>
         } @else if (posConfigurations().length === 0) {

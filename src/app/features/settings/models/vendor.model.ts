@@ -17,8 +17,8 @@ export interface Vendor {
   razon_social?: string;
   rfc?: string;
   persona_type?: VendorPersonaType;
-  /** Internacional */
-  tax_id?: string;
+  /** Internacional (opcional) */
+  tax_id?: string | null;
   legal_name?: string;
   /** Bancario */
   bank_name?: string;
@@ -47,7 +47,7 @@ export interface CreateVendorDto {
   razon_social?: string;
   rfc?: string;
   persona_type?: VendorPersonaType;
-  tax_id?: string;
+  tax_id?: string | null;
   legal_name?: string;
   bank_name?: string;
   bank_account_holder?: string;

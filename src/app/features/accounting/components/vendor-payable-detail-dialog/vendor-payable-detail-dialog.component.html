@@ -11,7 +11,7 @@
 
   <div class="vendor-detail-dialog__body">
     @if (loading()) {
-      <p class="loading-text">Cargando órdenes de compra...</p>
+      <p class="loading-text"><app-spinner></app-spinner></p>
     } @else if (!detail()?.orders?.length) {
       <p class="loading-text">No hay órdenes de compra pendientes.</p>
     } @else {

@@ -96,6 +96,8 @@ export class VendorDetailModalComponent implements OnDestroy {
       this.form.patchValue({
         ...data.vendor,
         vendor_type: data.vendor.vendor_type ?? 'NATIONAL',
+        tax_id: data.vendor.tax_id ?? '',
+        rfc: data.vendor.rfc ?? '',
         credit_limit: data.vendor.credit_limit ?? 0,
         credit_days: data.vendor.credit_days ?? 0,
       });
@@ -159,7 +161,7 @@ export class VendorDetailModalComponent implements OnDestroy {
       this.clearControlValidators('rfc');
     }
     this.setControlValidators('persona_type', national, [Validators.required]);
-    this.setControlValidators('tax_id', !national, [Validators.required]);
+    this.clearControlValidators('tax_id');
     this.setControlValidators('legal_name', !national, [Validators.required]);
     this.setControlValidators('country', !national, [Validators.required]);
 
@@ -273,7 +275,7 @@ export class VendorDetailModalComponent implements OnDestroy {
 
     return {
       ...base,
-      tax_id: trim(v.tax_id),
+      tax_id: trim(v.tax_id) || null,
       legal_name: trim(v.legal_name),
       bank_swift_bic: trim(v.bank_swift_bic)?.toUpperCase(),
       bank_iban: trim(v.bank_iban)?.toUpperCase(),

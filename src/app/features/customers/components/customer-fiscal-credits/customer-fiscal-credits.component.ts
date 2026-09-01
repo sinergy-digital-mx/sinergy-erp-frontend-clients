@@ -11,6 +11,7 @@ import {
   CustomerFiscalCredit,
 } from '../../models/customer-group.model';
 import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CreditUsageBarComponent } from '../credit-usage-bar/credit-usage-bar.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import {
@@ -35,14 +36,14 @@ interface CreditCardDraft {
 @Component({
   selector: 'app-customer-fiscal-credits',
   standalone: true,
-  imports: [CommonModule, FormsModule, SlimSwitchComponent, CreditUsageBarComponent, ButtonComponent],
+  imports: [CommonModule, FormsModule, SlimSwitchComponent, CreditUsageBarComponent, ButtonComponent, SpinnerComponent],
   template: `
     @if (walkIn) {
       <p class="fiscal-credits__empty">El mostrador no puede tener crédito.</p>
     } @else if (!customerId) {
       <p class="fiscal-credits__empty">Guarda el cliente para configurar crédito por razón social.</p>
     } @else if (loading()) {
-      <p class="fiscal-credits__empty">Cargando crédito por razón social...</p>
+      <p class="fiscal-credits__empty"><app-spinner></app-spinner></p>
     } @else if (credits().length === 0) {
       <p class="fiscal-credits__empty">No hay razones sociales para asignar crédito.</p>
     } @else {

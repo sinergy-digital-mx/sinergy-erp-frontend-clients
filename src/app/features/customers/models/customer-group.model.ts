@@ -116,10 +116,15 @@ export interface Customer {
   additional_phone_country?: string;
   additional_phone_code?: string;
   status?: CustomerStatus | null;
+  registered_fiscal_configuration_id?: string | null;
+  registered_fiscal_configuration?: CustomerRegisteredFiscalConfiguration | null;
   registered_billing_branch_id?: string | null;
   registered_billing_branch?: CustomerRegisteredBranch | null;
   registered_by_user_id?: string | null;
   registered_by_user?: CustomerRegisteredByUser | null;
+  assigned_seller_user_id?: string | null;
+  assigned_seller_user?: CustomerAssignedSellerUser | null;
+  assignment_history?: AssignmentHistoryEntry[] | null;
   contracts?: CustomerContract[];
   addresses?: CustomerAddress[];
   activities?: CustomerActivity[];
@@ -127,10 +132,18 @@ export interface Customer {
   updated_at?: string;
 }
 
+/** Razón social de registro embebida en GET /tenant/customers/:id. */
+export interface CustomerRegisteredFiscalConfiguration {
+  id: string;
+  razon_social?: string | null;
+  rfc?: string | null;
+}
+
 /** Sucursal de registro embebida en GET /tenant/customers/:id. */
 export interface CustomerRegisteredBranch {
   id: string;
   code: string;
+  name?: string;
 }
 
 /** Usuario que dio de alta, embebido en GET /tenant/customers/:id. */
@@ -141,10 +154,49 @@ export interface CustomerRegisteredByUser {
   email?: string | null;
 }
 
+/** Vendedor asignado (comisiona) embebido en GET /tenant/customers/:id. */
+export interface CustomerAssignedSellerUser {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  pos_user_code?: number | string | null;
+}
+
+export interface AssignmentHistoryChange {
+  field?: string;
+  field_label?: string;
+  from?: string | null;
+  to?: string | null;
+  from_id?: string | null;
+  to_id?: string | null;
+}
+
+export interface AssignmentHistoryEntry {
+  id: string;
+  type?: string;
+  type_label?: string;
+  title?: string;
+  description?: string;
+  actor_id?: string | null;
+  actor_name?: string | null;
+  occurred_at?: string | null;
+  changes?: AssignmentHistoryChange[];
+}
+
 /** Catálogo GET /tenant/customers/registration-options. */
 export interface CustomerRegistrationOptions {
-  branches: CustomerRegistrationBranchOption[];
+  fiscal_configurations: CustomerRegistrationFiscalOption[];
   users: CustomerRegistrationUserOption[];
+  sellers: CustomerRegistrationSellerOption[];
+}
+
+export interface CustomerRegistrationFiscalOption {
+  id: string;
+  razon_social?: string | null;
+  rfc?: string | null;
+  status?: string | null;
+  branches: CustomerRegistrationBranchOption[];
 }
 
 export interface CustomerRegistrationBranchOption {
@@ -157,6 +209,16 @@ export interface CustomerRegistrationUserOption {
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;
+  status?: string | null;
+}
+
+export interface CustomerRegistrationSellerOption {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  pos_user_code?: number | string | null;
+  status?: string | null;
 }
 
 export type CustomerDuplicateMatchReason = 'email' | 'phone' | 'name' | 'rfc';
@@ -225,8 +287,10 @@ export interface UpdateCustomerDto {
   additional_phone?: string;
   additional_phone_country?: string;
   additional_phone_code?: string;
+  registered_fiscal_configuration_id?: string | null;
   registered_billing_branch_id?: string | null;
   registered_by_user_id?: string | null;
+  assigned_seller_user_id?: string | null;
 }
 
 /**

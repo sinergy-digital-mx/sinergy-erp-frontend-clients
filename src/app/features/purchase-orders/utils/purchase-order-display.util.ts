@@ -11,6 +11,18 @@ export function parsePurchaseOrderDecimal(value: number | string | null | undefi
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+/** Valor numérico para inputs de captura: vacío si falta o es 0 (no prellenar). */
+export function catalogInputNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n) || n === 0) {
+    return null;
+  }
+  return n;
+}
+
 /** Costo unitario persistido: no redondear a 2 decimales. */
 export function formatPurchaseOrderUnitCost(value: number | string | null | undefined): string {
   return new Intl.NumberFormat('es-MX', {

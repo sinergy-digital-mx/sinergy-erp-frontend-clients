@@ -1,6 +1,13 @@
-# UI — Tab Registro (sucursal y quién registró)
+# UI — Tab Registro (razón, sucursal, vendedor asignado e historial)
 
 Tab **Registro** en Crear / Editar cliente y en el detalle. Datos **solo informativos**: no filtran ventas ni POS.
+
+Hay dos bloques:
+
+1. **Registro** — razón social / sucursal de alta. No restringe dónde puede comprar.
+2. **Vendedor asignado** — quién comisiona por default. Independiente de quién lo registró.
+
+No usar `warehouse_id`. El cliente no lleva almacén.
 
 Implementado en `customer-edit-modal` y `customer-detail`.
 
@@ -13,22 +20,28 @@ Cuarto tab, después de Información Fiscal:
 3. Información Fiscal
 4. **Registro**
 
-Campos opcionales. El cliente se puede guardar sin llenarlos.
+Ningún campo es obligatorio.
 
-## Endpoint de catálogo
+## Catálogo
 
 `GET /tenant/customers/registration-options` — permiso `customers:Read`.
 
-No usar `/billing/branches` ni `/users`.
+Respuesta: `fiscal_configurations[]` con `branches` anidadas, `users` y `sellers` (usuarios con código POS).
 
-Cargar al abrir el modal. No cachear entre organizaciones ni en localStorage.
+`users` y `sellers` solo **activos**. Inactivos y eliminados no se listan. Si el cliente ya tiene uno inactivo asignado, el select conserva ese valor para no perderlo.
+
+No usar `branches` plano (repetía CEDIS Ensenada por cada razón). No cachear entre organizaciones ni en localStorage.
+
+Cascada: sucursal deshabilitada hasta elegir razón; al cambiar razón se resetea la sucursal.
 
 ## Prefill al crear
 
 | Campo | Prefill |
 |-------|---------|
-| Sucursal de registro | `user.billing_branch_id` de la sesión si está en el catálogo |
-| Registrado por | usuario actual (`sub`) si está en el catálogo |
+| Razón social de registro | Razón de `user.billing_branch_id` si esa sucursal está en el catálogo |
+| Sucursal de registro | `user.billing_branch_id` de la sesión si pertenece a esa razón |
+| Registrado por | `user.id` de la sesión |
+| Vendedor asignado | `null` |
 
 En editar se pinta lo guardado; no se pisa con la sesión.
 
@@ -36,6 +49,15 @@ Vacío → `null`. Si no se envía `registered_by_user_id` al crear, el back asi
 
 ## Guardar / leer
 
-`POST /tenant/customers` y `PUT /tenant/customers/:id` con `registered_billing_branch_id` y `registered_by_user_id`.
+`POST /tenant/customers` y `PUT /tenant/customers/:id` con:
 
-Detalle: `registered_billing_branch.code` y `{first_name} {last_name}` (fallback `email`).
+- `registered_fiscal_configuration_id`
+- `registered_billing_branch_id`
+- `registered_by_user_id`
+- `assigned_seller_user_id`
+
+Detalle: `registered_fiscal_configuration.razon_social`, `registered_billing_branch.code`, `{first_name} {last_name}` y vendedor `{nombre} ({pos_user_code})`.
+
+Historial: `assignment_history` del GET. Cada evento muestra `title`, fecha y `actor_name` si existe. Los cambios se listan desde `changes[]` (o se parte `description` si viene concatenada). El bloque y cada evento son colapsables.
+
+El vendedor asignado del cliente **no** es el **Vendedor** de la OV (quien vendió). Al crear la OV se copia a **Comisionado**. Ver `src/app/features/sales-orders/docs/UI_SALES_ORDER_SELLER.md`.

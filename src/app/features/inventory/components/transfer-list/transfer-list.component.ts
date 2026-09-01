@@ -19,7 +19,7 @@ import { TransferLocationPathComponent } from '../transfer-location-path/transfe
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
-import { ArrowLeft, Download, ListFilter } from 'lucide-angular';
+import { ArrowLeft, Download, Eye, ListFilter } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -51,6 +51,7 @@ export class TransferListComponent implements OnInit {
 
   readonly ArrowLeft = ArrowLeft;
   readonly Download = Download;
+  readonly Eye = Eye;
   readonly ListFilter = ListFilter;
 
   searchTerm = signal('');
@@ -103,7 +104,7 @@ export class TransferListComponent implements OnInit {
       { name: 'Destino', prop: 'destination_warehouse', sortable: false, canAutoResize: false, width: 220 },
       { name: 'Usuario', prop: 'created_by_user', sortable: false, canAutoResize: false, width: 140 },
       { name: 'Fecha', prop: 'created_at', sortable: false, canAutoResize: false, width: 120 },
-      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: false, width: 90 },
+      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: false, width: 210 },
     ],
     externalPaging: true,
     externalSorting: false,
@@ -331,7 +332,8 @@ export class TransferListComponent implements OnInit {
     });
   }
 
-  openTransferDetail(transfer: InventoryTransfer): void {
+  openTransferDetail(transfer: InventoryTransfer, event?: Event): void {
+    event?.stopPropagation();
     this.dialog.open(TransferDetailDialogComponent, {
       data: { transferId: transfer.id },
       width: 'min(1100px, 96vw)',

@@ -67,7 +67,9 @@
   <!-- Mobile Cards -->
   <div class="block md:hidden">
     @if (table_config().loading) {
-      <div class="py-10 text-center text-gray-500 text-sm">Cargando clientes...</div>
+      <div class="py-10 text-center text-gray-500 text-sm">
+        <app-spinner></app-spinner>
+      </div>
     } @else if (!table_config().rows?.length) {
       <div class="py-10 text-center text-gray-500 text-sm">No se encontraron clientes</div>
     } @else {

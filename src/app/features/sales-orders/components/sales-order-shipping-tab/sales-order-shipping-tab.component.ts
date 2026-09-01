@@ -3,11 +3,12 @@ import { CommonModule, NgComponentOutlet } from '@angular/common';
 import { SalesOrderShippingInfo } from '../../models/sales-order.model';
 import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
 @Component({
   selector: 'app-sales-order-shipping-tab',
   standalone: true,
-  imports: [CommonModule, NgComponentOutlet, HasPermissionDirective],
+  imports: [CommonModule, NgComponentOutlet, HasPermissionDirective, SpinnerComponent],
   template: `
     <div class="so-shipping-tab" *hasPermission="permissions.viewDetail">
       @if (!shippingInfo()?.has_shipping || !shippingInfo()?.shipping_id) {
@@ -28,7 +29,9 @@ import { HasPermissionDirective } from '../../../../core/directives/has-permissi
           "
         ></ng-container>
       } @else {
-        <div class="so-shipping-tab__empty">Cargando envío…</div>
+        <div class="so-shipping-tab__empty">
+          <app-spinner></app-spinner>
+        </div>
       }
     </div>
   `,

@@ -17,7 +17,7 @@
 
   <div class="receivable-detail-dialog__body">
     @if (loading()) {
-      <p class="loading-text">Cargando órdenes pendientes...</p>
+      <p class="loading-text"><app-spinner></app-spinner></p>
     } @else if (!detail()?.orders?.length) {
       <p class="loading-text">No hay órdenes pendientes para esta razón social.</p>
     } @else {

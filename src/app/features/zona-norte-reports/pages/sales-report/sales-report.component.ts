@@ -36,7 +36,7 @@ import {
           <div class="zn-report-header mb-5">
             <div>
               <h2 class="text-2xl font-semibold text-gray-800">Reporte de Ventas - Zona Norte</h2>
-              <p class="text-sm text-gray-600 mt-1">Desempeño por vendedor y sucursal</p>
+              <p class="text-sm text-gray-600 mt-1">Comisiones por comisionado y sucursal</p>
             </div>
 
             <app-report-period-selector
@@ -124,7 +124,7 @@ import {
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div class="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-4 shadow-sm">
-              <p class="text-xs font-medium uppercase tracking-wide text-violet-600">Vendedores</p>
+              <p class="text-xs font-medium uppercase tracking-wide text-violet-600">Comisionados</p>
               <p class="text-2xl font-bold text-gray-900 mt-1">{{ summary()?.total_sellers ?? 0 }}</p>
             </div>
             <div class="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm">
@@ -424,7 +424,7 @@ export class SalesReportComponent implements OnInit {
     rows: [],
     columns: [
       { name: 'Sucursal', prop: 'branch', sortable: false, canAutoResize: false, width: 140 },
-      { name: 'Vendedor', prop: 'seller', sortable: false, canAutoResize: false, width: 200 },
+      { name: 'Comisionado', prop: 'seller', sortable: false, canAutoResize: false, width: 200 },
       { name: 'Total ventas', prop: 'salesCount', sortable: false, canAutoResize: false, width: 110 },
       { name: 'Comisión', prop: 'commission', sortable: false, canAutoResize: false, width: 130 },
       { name: 'Monto vendido', prop: 'totalSold', sortable: false, canAutoResize: false, width: 130 },
@@ -645,7 +645,7 @@ export class SalesReportComponent implements OnInit {
 
     return [
       { name: 'Sucursal', prop: 'branch', sortable: false, canAutoResize: false, width: 140 },
-      { name: 'Vendedor', prop: 'seller', sortable: false, canAutoResize: false, width: 200 },
+      { name: 'Comisionado', prop: 'seller', sortable: false, canAutoResize: false, width: 200 },
       { name: 'Total ventas', prop: 'salesCount', sortable: false, canAutoResize: false, width: 110 },
       { name: commissionLabel, prop: 'commission', sortable: false, canAutoResize: false, width: 130 },
       { name: 'Monto vendido', prop: 'totalSold', sortable: false, canAutoResize: false, width: 130 },

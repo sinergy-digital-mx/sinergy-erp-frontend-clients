@@ -1,0 +1,65 @@
+<div class="movements">
+  <div class="movements__bar">
+    <label class="movements__filter">
+      <span>Tipo</span>
+      <select
+        [ngModel]="selectedType()"
+        (ngModelChange)="setType($event)">
+        <option value="">Todos</option>
+        @for (item of filterTypes(); track item.type) {
+          <option [value]="item.type">{{ item.label }}</option>
+        }
+      </select>
+    </label>
+    <button type="button" class="btn-refresh" (click)="refresh()" [disabled]="loading()">
+      <i class="fi fi-rr-refresh" [class.animate-spin]="loading()"></i>
+      Actualizar
+    </button>
+  </div>
+
+  @if (loading() && items().length === 0) {
+    <app-spinner></app-spinner>
+  } @else if (displayedItems().length === 0) {
+    <div class="empty-state">
+      <i class="fi fi-rr-time-past"></i>
+      <p>Sin movimientos.</p>
+    </div>
+  } @else {
+    <div class="movements-table-wrap">
+      <table class="movements-table">
+        <thead>
+          <tr>
+            <th class="col-when">Fecha</th>
+            <th class="col-type">Tipo</th>
+            <th class="col-what">Movimiento</th>
+            <th class="col-who">Usuario</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of displayedItems(); track item.id) {
+            <tr>
+              <td class="col-when">{{ formatOccurredAt(item.occurred_at) }}</td>
+              <td class="col-type">{{ item.type_label }}</td>
+              <td class="col-what">
+                <p class="movements-text">{{ movementText(item) }}</p>
+                @if (hasChanges(item)) {
+                  <ul class="changes">
+                    @for (change of item.changes; track change.field || change.field_label) {
+                      <li>
+                        <span class="changes__field">{{ changeLabel(change) }}</span>
+                        <span class="changes__from">{{ change.from ?? '—' }}</span>
+                        <span class="changes__arrow" aria-hidden="true">→</span>
+                        <span class="changes__to">{{ change.to ?? '—' }}</span>
+                      </li>
+                    }
+                  </ul>
+                }
+              </td>
+              <td class="col-who">{{ actorName(item) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

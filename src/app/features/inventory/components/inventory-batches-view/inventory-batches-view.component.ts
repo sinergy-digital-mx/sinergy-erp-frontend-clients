@@ -11,6 +11,7 @@ import { InventoryBatch } from '../../models/inventory-batch.model';
 import { InventoryBatchService, BatchFilters } from '../../services/inventory-batch.service';
 import { InventoryListState } from '../../services/inventory-list-state.service';
 import { formatInventoryDate, inventoryLocationLabel } from '../../utils/inventory-list.util';
+import { inventoryMeasureLabel } from '../../../../core/utils/inventory-measure.util';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
@@ -41,7 +42,8 @@ export class InventoryBatchesViewComponent {
       { name: 'Almacén', prop: 'warehouse_name', sortable: false, canAutoResize: false, width: 130 },
       { name: 'Cantidad', prop: 'quantity', sortable: true, canAutoResize: false, width: 100 },
       { name: 'Orden de Compra', prop: 'purchase_order_id', sortable: false, canAutoResize: false, width: 140 },
-      { name: 'TAG', prop: 'source_tag_identifier', sortable: false, canAutoResize: false, width: 160 },
+      { name: 'TAG', prop: 'source_tag_identifier', sortable: false, canAutoResize: false, width: 140 },
+      { name: 'Medida', prop: 'measure_label', sortable: false, canAutoResize: false, width: 110 },
       { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
     ],
     externalPaging: true,
@@ -68,6 +70,7 @@ export class InventoryBatchesViewComponent {
 
   locationLabel = inventoryLocationLabel;
   formatDate = formatInventoryDate;
+  measureLabel = inventoryMeasureLabel;
 
   onPageChange(event: IPaginationEvent): void {
     this.pagination.set({ page: event.page, limit: event.limit });

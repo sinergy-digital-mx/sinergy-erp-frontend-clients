@@ -76,13 +76,13 @@ export class SelectComponent
     
     if (this.config.form_control) {
       this.subscription = this.config.form_control.valueChanges.subscribe((value) => {
-        const data = this.config.data.find((option) => option[this.config.value] === value);
+        const data = this.config.data?.find((option) => option[this.config.value] === value);
         this.changeOption.emit({ value, name: this.config.name_select, data });
         this.onChange(value);
       });
     } else {
       this.subscription = this.select.valueChanges.subscribe((value) => {
-        const data = this.config.data.find((option) => option[this.config.value] === value);
+        const data = this.config.data?.find((option) => option[this.config.value] === value);
         this.changeOption.emit({ value, name: this.config.name_select, data });
         this.onChange(value);
       });

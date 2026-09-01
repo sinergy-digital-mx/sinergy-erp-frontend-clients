@@ -22,6 +22,7 @@ import {
   ProductCatalogExportDialogComponent,
   ProductCatalogExportDialogResult,
 } from '../product-catalog-export-dialog/product-catalog-export-dialog.component';
+import { ProductVendorImportDialogComponent } from '../product-vendor-import-dialog/product-vendor-import-dialog.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 
@@ -207,6 +208,13 @@ export class ProductListComponent implements OnDestroy {
     );
   }
 
+  get canUpdateCatalog(): boolean {
+    return (
+      this.authService.hasEntityPermission('Product', 'Update') ||
+      this.authService.hasPermission('products:Update')
+    );
+  }
+
   openCatalogExportDialog(): void {
     this.dialog
       .open(ProductCatalogExportDialogComponent, {
@@ -221,6 +229,14 @@ export class ProductListComponent implements OnDestroy {
           this.toast.success('Catálogo descargado');
         }
       });
+  }
+
+  openVendorImportDialog(): void {
+    this.dialog.open(ProductVendorImportDialogComponent, {
+      width: '520px',
+      maxWidth: '95vw',
+      autoFocus: false,
+    });
   }
 
   private buildExportFilters(): ProductCatalogExportFilters {

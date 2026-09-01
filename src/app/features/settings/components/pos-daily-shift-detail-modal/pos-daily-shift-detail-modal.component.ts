@@ -25,6 +25,7 @@ import {
   CloseDailyShiftDialogData,
 } from '../../../pos/components/close-daily-shift-dialog/close-daily-shift-dialog.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 
 export interface PosDailyShiftDetailModalResult {
@@ -34,7 +35,7 @@ export interface PosDailyShiftDetailModalResult {
 @Component({
   selector: 'app-pos-daily-shift-detail-modal',
   standalone: true,
-  imports: [CommonModule, ButtonComponent],
+  imports: [CommonModule, ButtonComponent, SpinnerComponent],
   templateUrl: './pos-daily-shift-detail-modal.component.html',
   styleUrl: './pos-daily-shift-detail-modal.component.scss',
 })

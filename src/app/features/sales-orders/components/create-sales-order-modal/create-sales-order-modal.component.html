@@ -19,9 +19,9 @@
       @if (activeTab === 'info') {
       <div class="form-grid">
         <div class="form-field form-field--full">
-          <label class="form-label">CONFIGURACIÓN FISCAL *</label>
+          <label class="form-label">RAZÓN SOCIAL *</label>
           <select class="form-select" formControlName="fiscal_configuration_id">
-            <option value="">Selecciona una configuración fiscal</option>
+            <option value="">Selecciona una razón social</option>
             <option *ngFor="let config of fiscalConfigurations" [value]="config.id">
               {{ config.razon_social || config.rfc || config.id }}
             </option>
@@ -29,11 +29,11 @@
         </div>
 
         <div class="form-field">
-          <label class="form-label">ALMACÉN *</label>
-          <select class="form-select" formControlName="warehouse_id" (change)="onWarehouseChange()">
-            <option value="">Selecciona un almacén</option>
-            <option *ngFor="let warehouse of warehouses" [value]="warehouse.id">
-              {{ warehouse.name }}
+          <label class="form-label">SUCURSAL *</label>
+          <select class="form-select" formControlName="billing_branch_id">
+            <option value="">Selecciona una sucursal</option>
+            <option *ngFor="let branch of branches" [value]="branch.id">
+              {{ branchLabel(branch) }}
             </option>
           </select>
         </div>
@@ -67,7 +67,7 @@
         </div>
 
         <div class="form-field">
-          <label class="form-label">FECHA DE ENTREGA</label>
+          <label class="form-label">FECHA DE ENTREGA *</label>
           <input type="date" class="form-input" formControlName="expected_delivery_date">
         </div>
 
@@ -89,13 +89,13 @@
       <div class="line-items-section">
         <div class="section-header">
           <h3>Productos</h3>
-          <button type="button" class="btn btn--sm btn--primary" (click)="openAddProductModal()" [disabled]="!form.get('warehouse_id')?.value">
+          <button type="button" class="btn btn--sm btn--primary" (click)="openAddProductModal()" [disabled]="!hasBillingBranch">
             + Agregar Producto
           </button>
         </div>
 
         <div *ngIf="lineItems.length === 0" class="empty-state">
-          <p>Selecciona un almacén y agrega productos.</p>
+          <p>Selecciona una sucursal y agrega productos.</p>
         </div>
 
         <div *ngIf="lineItems.length > 0" class="line-items-cards">
@@ -106,6 +106,9 @@
                 <div class="product-cell__meta">
                   <span>SKU: {{ item.product_sku || 'N/A' }}</span>
                   <span>Disp: {{ item.available_quantity ?? 0 }}</span>
+                  @if (item.warehouse_names?.length) {
+                    <span>{{ item.warehouse_names.join(', ') }}</span>
+                  }
                 </div>
               </div>
               <button type="button" class="btn-icon btn-icon--danger" (click)="removeLineItem(i)" title="Eliminar">
@@ -196,7 +199,8 @@
           <input
             type="text"
             class="form-input"
-            [(ngModel)]="productSearchTerm"
+            [ngModel]="productSearchTerm"
+            (ngModelChange)="onProductSearchChange($event)"
             [ngModelOptions]="{ standalone: true }"
             placeholder="Buscar por nombre o SKU..."
             [matAutocomplete]="autoProductPicker">
@@ -236,6 +240,9 @@
           <div class="form-field">
             <label class="form-label">DISPONIBLE</label>
             <input type="number" class="form-input" [value]="getAvailableQty(selectedProduct)" readonly>
+            @if (getWarehouseNamesLabel(selectedProduct)) {
+              <span class="form-hint">{{ getWarehouseNamesLabel(selectedProduct) }}</span>
+            }
           </div>
           <div class="form-field">
             <label class="form-label">CANTIDAD *</label>
@@ -261,7 +268,7 @@
       </div>
       <div class="add-product-modal__footer">
         <button type="button" class="btn btn--secondary" (click)="closeAddProductModal()">Cancelar</button>
-        <button type="button" class="btn btn--primary" (click)="confirmAddProduct()">Agregar</button>
+        <button type="button" class="btn btn--primary" (click)="confirmAddProduct()" [disabled]="!canConfirmAddProduct">Agregar</button>
       </div>
     </div>
   </div>

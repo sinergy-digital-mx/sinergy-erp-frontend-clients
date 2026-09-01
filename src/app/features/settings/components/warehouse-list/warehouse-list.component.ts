@@ -11,6 +11,7 @@ import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { WarehouseDetailModalComponent } from '../warehouse-detail-modal/warehouse-detail-modal.component';
+import { WAREHOUSE_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 
 @Component({
@@ -106,8 +107,7 @@ export class WarehouseListComponent implements OnDestroy {
 
   openCreateWarehouseModal() {
     const dialogRef = this.dialog.open(WarehouseDetailModalComponent, {
-      width: '960px',
-      maxWidth: '96vw',
+      ...WAREHOUSE_DETAIL_DIALOG_CONFIG,
       data: { warehouse: null }
     });
 
@@ -120,8 +120,7 @@ export class WarehouseListComponent implements OnDestroy {
 
   viewDetail(warehouse: Warehouse) {
     const dialogRef = this.dialog.open(WarehouseDetailModalComponent, {
-      width: '960px',
-      maxWidth: '96vw',
+      ...WAREHOUSE_DETAIL_DIALOG_CONFIG,
       data: { warehouse }
     });
 

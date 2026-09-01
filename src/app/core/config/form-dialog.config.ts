@@ -44,3 +44,10 @@ export const PRODUCT_DETAIL_DIALOG_CONFIG: MatDialogConfig = {
   width: '850px',
   panelClass: 'product-detail-modal-panel',
 };
+
+export const WAREHOUSE_DETAIL_DIALOG_CONFIG: MatDialogConfig = {
+  width: '960px',
+  maxWidth: '96vw',
+  maxHeight: '92vh',
+  autoFocus: 'first-tabbable',
+};

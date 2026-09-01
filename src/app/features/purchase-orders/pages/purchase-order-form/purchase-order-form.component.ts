@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
@@ -22,7 +23,7 @@ import {
 } from '../../models/filters.model';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { validateQuantity, validatePrice, validateTaxPercentage, getErrorMessage } from '../../utils/order-validators';
-import { isInternationalPurchaseOrder, PEDIMENTO_MAX_LENGTH } from '../../utils/purchase-order-display.util';
+import { catalogInputNumber, isInternationalPurchaseOrder, PEDIMENTO_MAX_LENGTH } from '../../utils/purchase-order-display.util';
 import {
   VendorCostCurrency,
   currencyMismatchMessage,
@@ -32,7 +33,7 @@ import {
 @Component({
   selector: 'app-purchase-order-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, SpinnerComponent],
   templateUrl: './purchase-order-form.component.html',
   styleUrls: ['./purchase-order-form.component.scss']
 })
@@ -267,15 +268,15 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
   }
 
   createLineItemFormGroup(item?: Partial<LineItem>): FormGroup {
-    const unitCost = this.toNum(item?.unit_price ?? item?.unit_total);
+    const unitCost = item ? this.toNum(item.unit_price ?? item.unit_total) : null;
     const currency = normalizeVendorCostCurrency(item?.currency) ?? this.orderCurrency ?? 'MXN';
     return this.fb.group({
       product_id: [item?.product_id || '', Validators.required],
       uom_id: [item?.uom_id || item?.product_uom_id || '', Validators.required],
-      quantity: [item?.quantity ?? 1, [Validators.required, validateQuantity()]],
+      quantity: [item?.quantity ?? null, [Validators.required, validateQuantity()]],
       unit_price: [unitCost, [Validators.required, validatePrice()]],
-      iva_percentage: [item?.iva_percentage ?? 16, [Validators.required, validateTaxPercentage()]],
-      ieps_percentage: [item?.ieps_percentage ?? 0, [Validators.required, validateTaxPercentage()]],
+      iva_percentage: [item?.iva_percentage ?? null, [validateTaxPercentage()]],
+      ieps_percentage: [item?.ieps_percentage ?? null, [validateTaxPercentage()]],
       currency: [currency]
     });
   }
@@ -321,9 +322,9 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     }
     this.lineItems.at(index).patchValue({
       uom_id: '',
-      unit_price: 0,
-      iva_percentage: 0,
-      ieps_percentage: 0,
+      unit_price: null,
+      iva_percentage: null,
+      ieps_percentage: null,
       currency: this.orderCurrency ?? 'MXN',
     });
   }
@@ -345,9 +346,9 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     }
     this.lineItems.at(index).patchValue({
       uom_id: u.uom_id,
-      unit_price: u.cost ?? 0,
-      iva_percentage: u.iva_percentage ?? 0,
-      ieps_percentage: u.ieps_percentage ?? 0,
+      unit_price: catalogInputNumber(u.cost),
+      iva_percentage: catalogInputNumber(u.iva_percentage),
+      ieps_percentage: catalogInputNumber(u.ieps_percentage),
       currency: uomCurrency ?? order ?? 'MXN',
     });
   }

@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, O
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
-import { SalesOrderFilters, SalesOrderStatus } from '../../models/sales-order.model';
+import { SalesOrderFilters, SalesOrderStatus, SalesPaymentStatus, SalesOrderCollectionChannel } from '../../models/sales-order.model';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { BranchService } from '../../../settings/services/branch.service';
@@ -26,6 +26,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   dateFromControl = new FormControl<string>('', { nonNullable: true });
   dateToControl = new FormControl<string>('', { nonNullable: true });
   statusControl = new FormControl<SalesOrderStatus | null>(null);
+  paymentStatusControl = new FormControl<string>('', { nonNullable: true });
+  collectionChannelControl = new FormControl<string>('', { nonNullable: true });
   fiscalConfigurationControl = new FormControl<string>('', { nonNullable: true });
   billingBranchControl = new FormControl<string>('', { nonNullable: true });
   creditControl = new FormControl<string>('', { nonNullable: true });
@@ -51,6 +53,17 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     { label: 'Cancelada', value: 'Cancelada' }
   ];
 
+  paymentStatusOptions: { label: string; value: SalesPaymentStatus }[] = [
+    { label: 'Pendiente', value: 'Pendiente' },
+    { label: 'Pagado', value: 'Pagado' },
+  ];
+
+  collectionChannelOptions: { label: string; value: SalesOrderCollectionChannel }[] = [
+    { label: 'POS cobranza', value: 'pos_cobranza' },
+    { label: 'Cobrada manual', value: 'manual' },
+    { label: 'POS cobranza + Manual', value: 'mixed' },
+  ];
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -66,6 +79,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
       this.dateFromControl.value ||
       this.dateToControl.value ||
       this.statusControl.value ||
+      this.paymentStatusControl.value ||
+      this.collectionChannelControl.value ||
       this.fiscalConfigurationControl.value ||
       this.billingBranchControl.value ||
       this.creditControl.value
@@ -81,6 +96,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.dateFromControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.dateToControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.statusControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
+    this.paymentStatusControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
+    this.collectionChannelControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.fiscalConfigurationControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.onFiscalConfigurationChange());
     this.billingBranchControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.creditControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
@@ -145,6 +162,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.dateFromControl.setValue('', { emitEvent: false });
     this.dateToControl.setValue('', { emitEvent: false });
     this.statusControl.setValue(null, { emitEvent: false });
+    this.paymentStatusControl.setValue('', { emitEvent: false });
+    this.collectionChannelControl.setValue('', { emitEvent: false });
     this.fiscalConfigurationControl.setValue('', { emitEvent: false });
     this.billingBranchControl.setValue('', { emitEvent: false });
     this.creditControl.setValue('', { emitEvent: false });
@@ -217,6 +236,18 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     if (dateTo) filters.dateTo = new Date(dateTo).toISOString();
     const status = this.statusControl.value;
     if (status) filters.status = status;
+    const paymentStatus = this.paymentStatusControl.value;
+    if (paymentStatus === 'Pendiente' || paymentStatus === 'Pagado') {
+      filters.payment_status = paymentStatus;
+    }
+    const collectionChannel = this.collectionChannelControl.value;
+    if (
+      collectionChannel === 'pos_cobranza' ||
+      collectionChannel === 'manual' ||
+      collectionChannel === 'mixed'
+    ) {
+      filters.collection_channel = collectionChannel;
+    }
     const fiscalConfigurationId = this.fiscalConfigurationControl.value;
     if (fiscalConfigurationId) filters.fiscal_configuration_id = fiscalConfigurationId;
     const billingBranchId = this.billingBranchControl.value;

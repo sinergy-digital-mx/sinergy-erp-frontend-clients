@@ -7,6 +7,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, takeUntil } from 'rxjs';
 import { LucideAngularModule, ChevronLeft, ChevronRight, Plus } from 'lucide-angular';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { SHIPPING_PERMISSIONS } from '../../config/permissions.config';
 import {
@@ -37,7 +38,7 @@ interface CalendarEvent {
 @Component({
   selector: 'app-shippings-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, HasPermissionDirective, LucideAngularModule],
+  imports: [CommonModule, FormsModule, HasPermissionDirective, LucideAngularModule, SpinnerComponent],
   templateUrl: './shippings-calendar.component.html',
   styleUrl: './shippings-calendar.component.scss',
 })

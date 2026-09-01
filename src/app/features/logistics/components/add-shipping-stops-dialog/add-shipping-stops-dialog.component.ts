@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { LucideAngularModule, X } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { SalesOrder } from '../../../sales-orders/models/sales-order.model';
@@ -21,7 +22,7 @@ export interface AddShippingStopsDialogData {
 @Component({
   selector: 'app-add-shipping-stops-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonComponent, SearchComponent, LucideAngularModule],
+  imports: [CommonModule, FormsModule, ButtonComponent, SearchComponent, LucideAngularModule, SpinnerComponent],
   templateUrl: './add-shipping-stops-dialog.component.html',
   styleUrl: './add-shipping-stops-dialog.component.scss',
 })

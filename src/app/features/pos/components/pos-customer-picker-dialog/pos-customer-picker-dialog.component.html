@@ -46,7 +46,7 @@
 
     <div class="customer-list">
       @if (loadingCustomers()) {
-        <p class="customer-list__empty">Cargando clientes…</p>
+        <p class="customer-list__empty"><app-spinner></app-spinner></p>
       } @else if (filteredCustomers().length === 0) {
         <p class="customer-list__empty">No hay clientes que coincidan con la búsqueda</p>
       } @else {

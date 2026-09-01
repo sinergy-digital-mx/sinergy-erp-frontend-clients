@@ -24,6 +24,7 @@ import {
 } from '../../utils/document-prefix.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { SelectComponent } from '../../../../core/components/select/select.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
@@ -34,7 +35,7 @@ import { LucideAngularModule } from 'lucide-angular';
 @Component({
   selector: 'app-fiscal-configuration-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, ButtonComponent, SelectComponent, TabComponent, LucideAngularModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, ButtonComponent, SelectComponent, TabComponent, LucideAngularModule, SpinnerComponent],
   templateUrl: './fiscal-configuration-modal.component.html',
   styleUrl: './fiscal-configuration-modal.component.scss'
 })

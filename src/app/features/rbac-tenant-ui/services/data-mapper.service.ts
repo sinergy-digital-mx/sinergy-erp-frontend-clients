@@ -61,11 +61,19 @@ export class DataMapperService {
     if (Array.isArray(backendUsers)) {
       usersArray = backendUsers;
     } else if (backendUsers && typeof backendUsers === 'object') {
-      // Try to find the users array in the object
-      usersArray = backendUsers.users || backendUsers.data || backendUsers.items || [];
+      const nested = backendUsers.users || backendUsers.data || backendUsers.items;
+      if (Array.isArray(nested)) {
+        usersArray = nested;
+      } else if (nested && typeof nested === 'object') {
+        const inner = nested.users || nested.items || nested.data;
+        usersArray = Array.isArray(inner) ? inner : [];
+      }
     }
-    
+
     console.log('usersArray:', usersArray);
+    if (!Array.isArray(usersArray)) {
+      return [];
+    }
     return usersArray.map((user: any) => this.mapUser(user));
   }
 

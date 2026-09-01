@@ -1,0 +1,194 @@
+<div class="purchase-order-list-container">
+  <div class="purchase-content">
+    <div class="px-4">
+      <div class="transfers-header">
+        <div class="transfers-header__left">
+          <a routerLink="/inventory" class="back-link" title="Volver a inventario">
+            <lucide-icon [img]="ArrowLeft" [size]="18"></lucide-icon>
+          </a>
+          <h2 class="transfers-header__title">Auditorías de inventario</h2>
+        </div>
+          <a
+            routerLink="/inventory/transfers"
+            class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
+            Transferencias
+          </a>
+          @if (canCount) {
+            <button type="button" class="page-create-btn" (click)="openCreate()">
+              Nueva auditoría
+            </button>
+          }
+      </div>
+
+      <div class="transfers-toolbar">
+        <div class="transfers-toolbar__search">
+          <input
+            type="text"
+            class="transfers-search"
+            [ngModel]="searchTerm()"
+            (ngModelChange)="searchTerm.set($event)"
+            (keyup.enter)="onSearch()"
+            placeholder="Buscar folio o producto..."
+          />
+        </div>
+
+        <div class="transfers-toolbar__actions">
+          <div class="filters-anchor">
+            <button
+              type="button"
+              class="filters-btn"
+              [class.filters-btn--active]="hasPanelFilters"
+              [class.filters-btn--open]="filtersOpen()"
+              (click)="toggleFilters()"
+              [attr.aria-expanded]="filtersOpen()">
+              <lucide-icon [img]="ListFilter" [size]="16"></lucide-icon>
+              <span>Filtros</span>
+              @if (panelFilterCount > 0) {
+                <span class="filters-btn__badge">{{ panelFilterCount }}</span>
+              }
+            </button>
+
+            @if (filtersOpen()) {
+              <div class="filters-panel" role="dialog" aria-label="Filtros de auditorías">
+                <div class="filters-panel__grid">
+                  <div class="filters-field">
+                    <label for="audFiscal">Razón social</label>
+                    <select
+                      id="audFiscal"
+                      [ngModel]="draftFiscalId()"
+                      (ngModelChange)="onDraftFiscalChange($event)">
+                      <option value="">Todas</option>
+                      @for (fiscal of locations(); track fiscal.id) {
+                        <option [value]="fiscal.id">{{ fiscalLabel(fiscal) }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="filters-field">
+                    <label for="audBranch">Sucursal</label>
+                    <select
+                      id="audBranch"
+                      [ngModel]="draftBranchId()"
+                      (ngModelChange)="onDraftBranchChange($event)"
+                      [disabled]="!draftFiscalId()">
+                      <option value="">Todas</option>
+                      @for (branch of draftBranches(); track branch.id) {
+                        <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="filters-field">
+                    <label for="audWh">Almacén</label>
+                    <select
+                      id="audWh"
+                      [ngModel]="draftWarehouseId()"
+                      (ngModelChange)="draftWarehouseId.set($event)"
+                      [disabled]="!draftBranchId()">
+                      <option value="">Todos</option>
+                      @for (wh of draftWarehouses(); track wh.id) {
+                        <option [value]="wh.id">{{ warehouseLabel(wh) }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="filters-field">
+                    <label for="audStatus">Estado</label>
+                    <select
+                      id="audStatus"
+                      [ngModel]="draftStatus()"
+                      (ngModelChange)="draftStatus.set($event)">
+                      <option value="">Todos</option>
+                      @for (item of statuses; track item) {
+                        <option [value]="item">{{ statusLabel(item) }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="filters-panel__dates">
+                  <div class="filters-field">
+                    <label for="audFrom">Desde</label>
+                    <input
+                      id="audFrom"
+                      type="date"
+                      [ngModel]="draftCreatedFrom()"
+                      (ngModelChange)="draftCreatedFrom.set($event)"
+                    />
+                  </div>
+                  <div class="filters-field">
+                    <label for="audTo">Hasta</label>
+                    <input
+                      id="audTo"
+                      type="date"
+                      [ngModel]="draftCreatedTo()"
+                      (ngModelChange)="draftCreatedTo.set($event)"
+                    />
+                  </div>
+                </div>
+
+                <div class="filters-panel__footer">
+                  <button type="button" class="filters-panel__cancel" (click)="closeFilters()">Cancelar</button>
+                  <button type="button" class="filters-panel__apply" (click)="applyFilters()">Aplicar</button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <app-filter-clear-button [active]="hasActiveFilters" (clear)="clearFilters()">
+          </app-filter-clear-button>
+        </div>
+      </div>
+
+      <app-datatable-wrapper
+        [config]="table_config()"
+        [rowTemplate]="tableTemplate"
+        (pageChange)="onPageChange($event)"
+        (rowClick)="openDetail($event.data)">
+      </app-datatable-wrapper>
+    </div>
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="px-2 py-2 w-[120px]">
+    <button type="button" class="folio-open-btn" (click)="openDetail(item, $event)">
+      {{ item.folio }}
+    </button>
+  </td>
+  <td class="px-2 py-2 w-[220px]">
+    <app-transfer-location-path [location]="warehouseView(item)"></app-transfer-location-path>
+  </td>
+  <td class="px-2 py-2 w-[170px]">
+    <span class="dt-cell-primary">{{ productLabel(item) }}</span>
+  </td>
+  <td class="px-2 py-2 w-[120px]">
+    <span class="status-badge" [attr.data-status]="item.status">{{ statusLabel(item.status) }}</span>
+  </td>
+  <td class="px-2 py-2 w-[110px]">
+    <span class="dt-cell-muted">{{ countedLabel(item) }}</span>
+  </td>
+  <td class="px-2 py-2 w-[100px]">
+    <span
+      class="dt-cell-muted"
+      [class.variance-neg]="item.totals?.total_variance && +item.totals.total_variance < 0"
+      [class.variance-pos]="item.totals?.total_variance && +item.totals.total_variance > 0">
+      {{ item.totals?.total_variance != null ? (item.totals.total_variance | removeTrailingZeros) : '—' }}
+    </span>
+  </td>
+  <td class="px-2 py-2 w-[150px]">
+    <div class="flex flex-col">
+      <span class="text-sm text-gray-700">{{ userName(item, 'created_by_user') }}</span>
+      <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>
+    </div>
+  </td>
+  <td class="px-2 py-2 w-[150px]">
+    <div class="flex flex-col">
+      <span class="text-sm text-gray-700">{{ userName(item, 'authorized_by_user') }}</span>
+      <span class="text-xs text-gray-500">{{ formatDate(item.authorized_at) }}</span>
+    </div>
+  </td>
+  <td class="px-2 py-2 w-[130px]">
+    <button type="button" class="transfer-detail-btn" (click)="openDetail(item, $event)">
+      <lucide-icon [img]="Eye" [size]="14"></lucide-icon>
+      Ver detalle
+    </button>
+  </td>
+</ng-template>

@@ -2,6 +2,8 @@ import { LineItem } from './line-item.model';
 import { Payment } from './payment.model';
 import { Warehouse } from './warehouse.model';
 import { Vendor } from './vendor.model';
+import { PurchaseOrderBatchesSummary, PurchaseOrderLotNode } from './purchase-order-lot.model';
+import { PurchaseOrderMovement } from './purchase-order-movement.model';
 
 // Re-export LineItem for convenience
 export type { LineItem } from './line-item.model';
@@ -28,6 +30,7 @@ export interface Batch {
   };
   uom_id: string;
   uom_name?: string;
+  measure_label?: string | null;
   uom?: {
     id: string;
     name: string;
@@ -277,7 +280,10 @@ export interface PurchaseOrder {
   /** Solo compras internacionales. Vacío / null si no hay pedimento. */
   pedimento_number?: string | null;
   line_items: LineItem[];
-  batches?: Batch[];
+  batches?: PurchaseOrderLotNode[];
+  batches_summary?: PurchaseOrderBatchesSummary | null;
+  movements?: PurchaseOrderMovement[];
+  movements_count?: number;
   payments: Payment[];
   documents?: Document[];
   warehouse?: Warehouse;

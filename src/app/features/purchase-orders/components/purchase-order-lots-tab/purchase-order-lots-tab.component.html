@@ -1,0 +1,176 @@
+@if (receivedLots().length === 0) {
+  <div class="empty-state">
+    <i class="fi fi-rr-layers"></i>
+    <p>No hay lotes registrados</p>
+  </div>
+} @else {
+  @if (summary) {
+    <p class="lots-caption">
+      <span>{{ summary.received_lots }} recibidos</span>
+      <span>{{ summary.received_quantity | removeTrailingZeros }} {{ summaryUom() }}</span>
+      <span>Origen {{ summary.remaining_on_received_lots | removeTrailingZeros }} {{ summaryUom() }}</span>
+      <span>Almacenes {{ summary.remaining_total | removeTrailingZeros }} {{ summaryUom() }}</span>
+      <span>Migrados {{ summary.migrated_quantity | removeTrailingZeros }} {{ summaryUom() }}</span>
+      <span class="lots-caption__amount">
+        <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
+        {{ formatAmount(summary.amount_total) }}
+      </span>
+    </p>
+  }
+
+  <div class="lots-table-wrap">
+    <table class="lots-table">
+      <thead>
+        <tr>
+          <th class="col-lot">Lote</th>
+          <th class="col-product">Producto</th>
+          <th class="col-place">Almacén</th>
+          <th class="col-money">Costo</th>
+          <th class="col-money">Importe</th>
+          <th class="col-qty">Llegaron</th>
+          <th class="col-qty">Quedan</th>
+          <th class="col-qty">Migrados</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of visibleRows(); track lotKey(row.lot) + '-' + row.depth) {
+          <tr
+            [class.is-child]="row.isMigration"
+            [class.is-expandable]="hasChildren(row.lot)"
+            (click)="hasChildren(row.lot) && toggle(row.lot)">
+            <td class="col-lot" [style.padding-left.px]="12 + row.depth * 20">
+              <div class="lot-id">
+                @if (hasChildren(row.lot)) {
+                  <button
+                    type="button"
+                    class="lot-toggle"
+                    [class.is-open]="isExpanded(row.lot)"
+                    (click)="toggle(row.lot, $event)"
+                    [attr.aria-expanded]="isExpanded(row.lot)"
+                    aria-label="Ver destino">
+                    <i class="fi fi-rr-angle-small-right"></i>
+                  </button>
+                } @else {
+                  <span class="lot-toggle lot-toggle--empty"></span>
+                }
+                <div class="lot-id__text">
+                  @if (row.isMigration) {
+                    <span class="migrated-tag">Migrado a</span>
+                  }
+                  <button type="button" class="lot-link" (click)="onOpenBatch(row.lot, $event)">
+                    {{ row.lot.batch_number }}
+                  </button>
+                </div>
+              </div>
+            </td>
+            <td class="col-product">
+              @if (!row.isMigration) {
+                <div class="cell-stack">
+                  <strong>{{ productName(row.lot) }}</strong>
+                  <small>
+                    {{ productSku(row.lot) }}
+                    @if (hasMeasure(row.lot)) {
+                      · {{ measureLabel(row.lot) }}
+                    }
+                  </small>
+                  @if (showConsumed(row.lot)) {
+                    <small class="cell-note">
+                      Otras salidas {{ row.lot.consumed_quantity | removeTrailingZeros }} {{ uomName(row.lot) }}
+                    </small>
+                  }
+                </div>
+              } @else {
+                <div class="cell-stack">
+                  <strong>{{ transferFolio(row.lot) || 'Migración' }}</strong>
+                  <small>{{ transferWhen(row.lot) }}</small>
+                </div>
+              }
+            </td>
+            <td class="col-place">
+              <div class="cell-stack">
+                @if (!row.isMigration) {
+                  <span>{{ branchName(row.lot) }}</span>
+                  <small>{{ warehouseName(row.lot) }}</small>
+                } @else {
+                  <span>{{ destinationBranch(row.lot) }}</span>
+                  <small>{{ destinationWarehouse(row.lot) }}</small>
+                }
+              </div>
+            </td>
+            <td class="col-money">
+              @if (!row.isMigration) {
+                <span class="money-cell">
+                  <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
+                  {{ formatUnitCost(row.lot.unit_cost) }}
+                </span>
+              }
+            </td>
+            <td class="col-money">
+              @if (!row.isMigration) {
+                <span class="money-cell">
+                  <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
+                  {{ formatAmount(row.lot.amount) }}
+                </span>
+              }
+            </td>
+            <td class="col-qty">
+              <span class="qty-cell" [class.qty-cell--soft]="row.isMigration">
+                <span class="qty-cell__amount">
+                  {{ (row.isMigration ? movedQuantity(row.lot) : row.lot.received_quantity) | removeTrailingZeros }}
+                </span>
+                <span class="uom-badge">{{ uomName(row.lot) }}</span>
+              </span>
+            </td>
+            <td class="col-qty">
+              <span class="qty-cell qty-cell--remain">
+                <span class="qty-cell__amount">{{ row.lot.remaining_quantity | removeTrailingZeros }}</span>
+                <span class="uom-badge">{{ uomName(row.lot) }}</span>
+              </span>
+            </td>
+            <td class="col-qty">
+              @if (hasMigrated(row.lot)) {
+                <span class="qty-cell qty-cell--moved">
+                  <span class="qty-cell__amount">{{ row.lot.migrated_quantity | removeTrailingZeros }}</span>
+                  <span class="uom-badge">{{ uomName(row.lot) }}</span>
+                </span>
+              } @else {
+                <span class="qty-empty">—</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+      @if (summary) {
+        <tfoot>
+          <tr>
+            <td colspan="4" class="lots-foot-label">Totales</td>
+            <td class="col-money">
+              <span class="money-cell">
+                <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
+                {{ formatAmount(summary.amount_total) }}
+              </span>
+            </td>
+            <td class="col-qty">
+              <span class="qty-cell">
+                <span class="qty-cell__amount">{{ summary.received_quantity | removeTrailingZeros }}</span>
+                <span class="uom-badge">{{ summaryUom() }}</span>
+              </span>
+            </td>
+            <td class="col-qty">
+              <span class="qty-cell qty-cell--remain">
+                <span class="qty-cell__amount">{{ summary.remaining_on_received_lots | removeTrailingZeros }}</span>
+                <span class="uom-badge">{{ summaryUom() }}</span>
+              </span>
+            </td>
+            <td class="col-qty">
+              <span class="qty-cell qty-cell--moved">
+                <span class="qty-cell__amount">{{ summary.migrated_quantity | removeTrailingZeros }}</span>
+                <span class="uom-badge">{{ summaryUom() }}</span>
+              </span>
+            </td>
+          </tr>
+        </tfoot>
+      }
+    </table>
+  </div>
+}

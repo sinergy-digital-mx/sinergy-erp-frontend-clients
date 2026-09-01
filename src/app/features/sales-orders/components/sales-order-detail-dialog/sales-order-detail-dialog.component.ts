@@ -17,12 +17,20 @@ import {
 import {
   isManualSalesOrderPayment,
   salesOrderPaymentMethodLabel,
+  salesOrderPaymentSourceLabel,
   SalesOrderPayment,
   SalesOrderPaymentCurrency,
   SalesOrderPaymentDocument,
+  SalesOrderPaymentDisplayLine,
 } from '../../models/sales-order-payment.model';
 import { formatPosUser } from '../../utils/pos-user-display.util';
 import { resolveSalesOrderCustomerName, resolveSalesOrderCustomerId } from '../../utils/customer-display.util';
+import {
+  getSalesOrderDocumentChipLabel,
+  getSalesOrderDocumentKind,
+  isLegacySalesOrderReciboType,
+  isSalesOrderTicketDocument,
+} from '../../utils/sales-order-document.util';
 import {
   PosSaleCollection,
   posCollectionMethodLabel,
@@ -35,8 +43,11 @@ import { PosPrinterSettingsDialogComponent } from '../../../pos/components/pos-p
 import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import { BatchDetailDialogComponent } from '../../../inventory/components/batch-detail-dialog/batch-detail-dialog.component';
+import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 import { BranchModalComponent } from '../../../settings/components/branch-modal/branch-modal.component';
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
@@ -44,11 +55,17 @@ import { FiscalConfiguration } from '../../../settings/models/fiscal-configurati
 import { formatTitleCase, getSalesOrderListCompanyName } from '../../utils/sales-order-display.util';
 import { salesOrderCreditChipLabel } from '../../utils/sales-order-credit.util';
 import {
+  salesOrderCollectionChannel,
+  salesOrderCollectionChannelLabel,
+  salesOrderHeaderPaymentMethodLabel,
+} from '../../utils/sales-order-collection.util';
+import {
   SalesOrderNotesDialogComponent,
   SalesOrderNotesDialogResult,
 } from '../sales-order-notes-dialog/sales-order-notes-dialog.component';
 import {
   SalesOrderSellerDialogComponent,
+  SalesOrderSellerDialogMode,
   SalesOrderSellerDialogResult,
 } from '../sales-order-seller-dialog/sales-order-seller-dialog.component';
 import {
@@ -74,6 +91,7 @@ import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.conf
     CommonModule,
     MatDialogModule,
     RemoveTrailingZerosPipe,
+    SpinnerComponent,
     SalesOrderInvoicingTabComponent,
     SalesOrderShippingTabComponent,
   ],
@@ -132,6 +150,10 @@ export class SalesOrderDetailDialogComponent {
   });
 
   canTicketReciboActions = computed(() => !!this.posCollection());
+
+  hasLegacyReciboDocument = computed(() =>
+    this.documents().some((doc) => isLegacySalesOrderReciboType(doc.document_type_name))
+  );
 
   canAddPayment = computed(() => {
     const order = this.order();
@@ -291,11 +313,14 @@ export class SalesOrderDetailDialogComponent {
       });
   }
 
-  openSellerEditor(): void {
+  openSellerEditor(mode: SalesOrderSellerDialogMode = 'seller'): void {
     const order = this.order();
     if (!order || !this.canEditSeller()) {
       return;
     }
+
+    const current =
+      mode === 'assignedSeller' ? order.assigned_seller_user : order.seller_user;
 
     this.dialog
       .open(SalesOrderSellerDialogComponent, {
@@ -305,7 +330,9 @@ export class SalesOrderDetailDialogComponent {
         data: {
           orderId: order.id,
           folio: order.folio,
-          currentSellerId: order.seller_user?.id ?? null,
+          mode,
+          currentSellerId: current?.id ?? null,
+          currentSeller: current ?? null,
         },
       })
       .afterClosed()
@@ -314,14 +341,21 @@ export class SalesOrderDetailDialogComponent {
           return;
         }
 
-        if (result.seller_user) {
-          this.order.update((current) =>
-            current ? { ...current, seller_user: result.seller_user } : current
-          );
-        } else {
-          this.loadOrder(true);
-        }
-        this.toast.success('Vendedor actualizado');
+        this.order.update((currentOrder) => {
+          if (!currentOrder) return currentOrder;
+          return {
+            ...currentOrder,
+            seller_user:
+              result.seller_user !== undefined ? result.seller_user : currentOrder.seller_user,
+            assigned_seller_user:
+              result.assigned_seller_user !== undefined
+                ? result.assigned_seller_user
+                : currentOrder.assigned_seller_user,
+          };
+        });
+        this.toast.success(
+          mode === 'assignedSeller' ? 'Comisionado actualizado' : 'Vendedor actualizado'
+        );
       });
   }
 
@@ -329,6 +363,14 @@ export class SalesOrderDetailDialogComponent {
     const seller = this.order()?.seller_user;
     if (!seller) {
       return 'Sin vendedor';
+    }
+    return formatPosUser(seller);
+  }
+
+  getAssignedSellerDisplayName(): string {
+    const seller = this.order()?.assigned_seller_user;
+    if (!seller) {
+      return 'Sin comisionado';
     }
     return formatPosUser(seller);
   }
@@ -617,6 +659,98 @@ export class SalesOrderDetailDialogComponent {
     });
   }
 
+  collectionChannelLabel(): string {
+    return salesOrderCollectionChannelLabel(this.order());
+  }
+
+  paymentMethodHeaderLabel(): string {
+    return salesOrderHeaderPaymentMethodLabel(this.order());
+  }
+
+  paymentCardTitle(): string {
+    const channel = salesOrderCollectionChannel(this.order());
+    if (channel === 'pos_cobranza') {
+      return 'COBRO POS';
+    }
+    if (channel === 'manual') {
+      return 'COBRO MANUAL';
+    }
+    if (channel === 'mixed') {
+      return 'COBRO';
+    }
+    return 'FORMA DE PAGO';
+  }
+
+  hasManualPaymentCard(): boolean {
+    if (this.posCollection()) {
+      return false;
+    }
+    if (salesOrderCollectionChannel(this.order())) {
+      return true;
+    }
+    const method = this.paymentMethodHeaderLabel();
+    if (method && method !== 'Sin cobro') {
+      return true;
+    }
+    return this.paymentCardLines().length > 0;
+  }
+
+  manualPaymentNotes(): string[] {
+    const seen = new Set<string>();
+    const notes: string[] = [];
+    for (const payment of this.payments()) {
+      if (!isManualSalesOrderPayment(payment)) {
+        continue;
+      }
+      const note = payment.notes?.trim();
+      if (!note || seen.has(note)) {
+        continue;
+      }
+      seen.add(note);
+      notes.push(note);
+    }
+    return notes;
+  }
+
+  paymentCardLines(): SalesOrderPaymentDisplayLine[] {
+    const lines = this.paymentDisplayLines();
+    const header = this.normalizePaymentLabel(this.paymentMethodHeaderLabel());
+    if (lines.length === 1) {
+      const only = lines[0];
+      const label = this.normalizePaymentLabel(only.label || this.paymentMethodLabel(only.method));
+      if (label === header) {
+        return [];
+      }
+    }
+    return lines;
+  }
+
+  paymentDisplayLines(): SalesOrderPaymentDisplayLine[] {
+    const lines = this.order()?.payment_display?.lines;
+    return Array.isArray(lines) ? lines : [];
+  }
+
+  private normalizePaymentLabel(value: string): string {
+    return value.normalize('NFD').replace(/\p{M}/gu, '').trim().toLowerCase();
+  }
+
+  formatPaymentDisplayLine(line: SalesOrderPaymentDisplayLine): string {
+    const mxn = this.parseNumber(line.amount_mxn);
+    const usd = this.parseNumber(line.amount_usd);
+    const parts: string[] = [];
+    if (line.amount_mxn != null && line.amount_mxn !== '') {
+      parts.push(this.formatPaymentCurrency(mxn));
+    }
+    if (line.amount_usd != null && line.amount_usd !== '' && usd > 0) {
+      parts.push(this.posCollectionUsd(usd));
+    }
+    return parts.join(' · ') || this.formatPaymentCurrency(0);
+  }
+
+  paymentSourceLabel(payment: SalesOrderPayment): string {
+    return salesOrderPaymentSourceLabel(payment);
+  }
+
   getPaymentStatusClass(): string {
     const status = this.getPaymentStatus().trim().toLowerCase();
     if (status === 'pagado') return 'status-paid';
@@ -875,6 +1009,49 @@ export class SalesOrderDetailDialogComponent {
       row.allocation?.inventory_batch_id ||
       '—'
     );
+  }
+
+  getAllocationBatchId(row: {
+    allocation?: {
+      inventory_batch?: { id?: string };
+      inventory_batch_id?: string;
+      batch_id?: string;
+    };
+  }): string | null {
+    const id =
+      row.allocation?.inventory_batch?.id ||
+      row.allocation?.inventory_batch_id ||
+      row.allocation?.batch_id;
+    return id ? String(id) : null;
+  }
+
+  canOpenBatch(row: {
+    allocation?: {
+      inventory_batch?: { id?: string };
+      inventory_batch_id?: string;
+      batch_id?: string;
+    };
+  }): boolean {
+    return !!this.getAllocationBatchId(row);
+  }
+
+  openBatchDetail(
+    row: {
+      allocation?: {
+        inventory_batch?: { id?: string };
+        inventory_batch_id?: string;
+        batch_id?: string;
+      };
+    },
+    event?: Event
+  ): void {
+    event?.stopPropagation();
+    const batchId = this.getAllocationBatchId(row);
+    if (!batchId) return;
+    this.dialog.open(BatchDetailDialogComponent, {
+      ...BATCH_DETAIL_DIALOG_OPTIONS,
+      data: { batchId },
+    });
   }
 
   getInvoices(): SalesOrderInvoice[] {
@@ -1158,15 +1335,21 @@ export class SalesOrderDetailDialogComponent {
     return null;
   }
 
+  getDocumentTypeLabel(documentType: string): string {
+    return getSalesOrderDocumentChipLabel(documentType);
+  }
+
   getDocumentBadgeClass(documentType: string): string {
-    const typeMap: Record<string, string> = {
-      DOCUMENTO_ORIGINAL: 'badge-blue',
-      DOCUMENTO_RECIBO: 'badge-green',
-      'TICKET / RECIBO': 'badge-green',
-      TICKET_RECIBO: 'badge-green',
-      DOCUMENTO_RECEPCION: 'badge-green'
-    };
-    return typeMap[documentType] || 'badge-gray';
+    switch (getSalesOrderDocumentKind(documentType)) {
+      case 'original':
+        return 'badge-blue';
+      case 'delivery':
+        return 'badge-green';
+      case 'ticket':
+        return 'badge-gray';
+      default:
+        return 'badge-gray';
+    }
   }
 
   formatDocumentDate(dateString?: string | null): string {
@@ -1185,8 +1368,7 @@ export class SalesOrderDetailDialogComponent {
   }
 
   isTicketDocument(doc: SalesOrderDocument): boolean {
-    const type = (doc.document_type_name || '').toUpperCase();
-    return type.includes('TICKET') || type.includes('RECIBO');
+    return isSalesOrderTicketDocument(doc.document_type_name);
   }
 
   openTicketPreview(): void {

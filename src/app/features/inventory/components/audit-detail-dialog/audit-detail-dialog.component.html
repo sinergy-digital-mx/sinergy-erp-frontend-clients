@@ -1,0 +1,261 @@
+<div class="audit-detail">
+  <div class="audit-detail__header">
+    <div class="audit-detail__heading">
+      <div class="audit-detail__icon">
+        <lucide-icon [img]="ClipboardCheck" [size]="18"></lucide-icon>
+      </div>
+      <div>
+        <h2>{{ audit()?.folio || 'Auditoría' }}</h2>
+        @if (audit(); as a) {
+          <span class="status-badge" [attr.data-status]="a.status">{{ statusLabel(a.status) }}</span>
+        }
+      </div>
+    </div>
+    <button type="button" class="icon-btn" (click)="close()" aria-label="Cerrar">
+      <lucide-icon [img]="X" [size]="18"></lucide-icon>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="audit-detail__loading">
+      <app-spinner></app-spinner>
+    </div>
+  } @else if (audit(); as a) {
+    <div class="audit-detail__body">
+      <div class="meta-grid">
+        <div class="meta-card">
+          <span class="meta-card__label">Almacén</span>
+          @if (warehouseLocation(); as loc) {
+            <app-transfer-location-path [location]="loc" [showRfc]="true" variant="detail"></app-transfer-location-path>
+          }
+        </div>
+        <div class="meta-card">
+          <span class="meta-card__label">Alcance</span>
+          <strong>{{ productLabel(a) }}</strong>
+          <span class="progress-text">
+            {{ a.totals?.counted_lines ?? 0 }} / {{ a.totals?.total_lines ?? a.lines?.length ?? 0 }} lotes
+            @if (pendingCount() > 0 && canEditLines) {
+              · {{ pendingCount() }} pendientes
+            }
+          </span>
+        </div>
+      </div>
+
+      <div class="trace-grid">
+        <div><span>Creada</span><strong>{{ userName(a.created_by_user) }}</strong><em>{{ formatDate(a.created_at) }}</em></div>
+        <div><span>Enviada</span><strong>{{ userName(a.submitted_by_user) }}</strong><em>{{ formatDate(a.submitted_at) }}</em></div>
+        <div><span>Autorizada</span><strong>{{ userName(a.authorized_by_user) }}</strong><em>{{ formatDate(a.authorized_at) }}</em></div>
+        @if (a.rejected_by_user) {
+          <div><span>Rechazada</span><strong>{{ userName(a.rejected_by_user) }}</strong><em>{{ formatDate(a.rejected_at) }}</em></div>
+        }
+        @if (a.cancelled_by_user) {
+          <div><span>Cancelada</span><strong>{{ userName(a.cancelled_by_user) }}</strong><em>{{ formatDate(a.cancelled_at) }}</em></div>
+        }
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <span class="kpi-card__label">Sistema</span>
+          <strong class="kpi-card__value">{{ liveTotals().system | removeTrailingZeros }}</strong>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-card__label">Contado</span>
+          <strong class="kpi-card__value">
+            {{ liveTotals().counted === null ? '—' : (liveTotals().counted | removeTrailingZeros) }}
+          </strong>
+        </div>
+        <div
+          class="kpi-card"
+          [class.kpi-card--neg]="liveTotals().variance !== null && liveTotals().variance < 0"
+          [class.kpi-card--pos]="liveTotals().variance !== null && liveTotals().variance > 0">
+          <span class="kpi-card__label">Varianza</span>
+          <strong class="kpi-card__value">
+            @if (liveTotals().variance === null) {
+              —
+            } @else {
+              {{ liveTotals().variance > 0 ? '+' : '' }}{{ liveTotals().variance | removeTrailingZeros }}
+            }
+          </strong>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-card__label">Con diferencia</span>
+          <strong class="kpi-card__value">{{ liveTotals().withVariance }}</strong>
+          <span class="kpi-card__hint">de {{ liveTotals().totalLines }} lotes</span>
+        </div>
+      </div>
+
+      <div class="table-toolbar">
+        <input
+          type="text"
+          class="filter-input"
+          placeholder="Filtrar lote o producto..."
+          [ngModel]="lineFilter()"
+          (ngModelChange)="lineFilter.set($event)"
+        />
+        @if (a.status === 'submitted' || a.status === 'posted') {
+          <label class="check-row">
+            <input type="checkbox" [ngModel]="onlyVariance()" (ngModelChange)="onlyVariance.set($event)" />
+            Solo diferencias
+          </label>
+        }
+        @if (canEditLines) {
+          <button type="button" class="btn-secondary" (click)="addLine()">
+            <lucide-icon [img]="Plus" [size]="14"></lucide-icon>
+            Agregar lote
+          </button>
+        }
+      </div>
+
+      <div class="lines-wrap">
+        <table class="lines-table">
+          <thead>
+            <tr>
+              <th>Lote</th>
+              <th>Producto</th>
+              <th class="text-right">Sistema</th>
+              <th class="text-right">Contado</th>
+              <th class="text-right">Dif.</th>
+              <th>Motivo</th>
+              @if (a.status === 'posted') {
+                <th>Antes / después</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of displayedLines(); track line.id) {
+              <tr
+                [class.has-variance]="needsReason(line)"
+                [class.is-focus]="data.focusBatchId === line.inventory_batch_id">
+                <td>
+                  @if (line.inventory_batch_id) {
+                    <button type="button" class="folio-link" (click)="openBatch(line.inventory_batch_id)">
+                      {{ line.batch_number }}
+                    </button>
+                  } @else {
+                    {{ line.batch_number }}
+                  }
+                </td>
+                <td>
+                  <div class="product-cell">{{ line.product_name || '—' }}</div>
+                  <div class="sku">
+                    {{ line.product_sku }}
+                    @if (line.uom_name) { · {{ line.uom_name }} }
+                    @if (line.measure_label) { · {{ line.measure_label }} }
+                  </div>
+                </td>
+                <td class="text-right">{{ line.system_quantity | removeTrailingZeros }}</td>
+                <td class="text-right counted-cell">
+                  @if (canEditLines) {
+                    <input
+                      type="text"
+                      inputmode="decimal"
+                      [ngModel]="draftOf(line).countedInput"
+                      (ngModelChange)="updateCounted(line, $event)"
+                      (blur)="normalizeCounted(line)"
+                      placeholder="—"
+                    />
+                  } @else {
+                    {{ draftOf(line).countedInput === '' ? '—' : (draftOf(line).countedInput | removeTrailingZeros) }}
+                  }
+                </td>
+                <td class="text-right" [class]="varianceClass(line)">
+                  @if (varianceOf(line) === null) {
+                    —
+                  } @else {
+                    {{ varianceOf(line) | removeTrailingZeros }}
+                  }
+                </td>
+                <td>
+                  @if (canEditLines) {
+                    <input
+                      type="text"
+                      class="reason-input"
+                      [class.required]="needsReason(line) && !draftOf(line).reason.trim()"
+                      [ngModel]="draftOf(line).reason"
+                      (ngModelChange)="updateReason(line, $event)"
+                      [placeholder]="needsReason(line) ? 'Motivo obligatorio' : 'Opcional'"
+                    />
+                  } @else {
+                    {{ line.reason || '—' }}
+                    @if (line.counted_by_user) {
+                      <div class="sku">{{ userName(line.counted_by_user) }} · {{ formatDate(line.counted_at) }}</div>
+                    }
+                  }
+                  @if (line.stock_moved_during_count) {
+                    <div class="moved-chip">Stock se movió durante el conteo</div>
+                  }
+                </td>
+                @if (a.status === 'posted') {
+                  <td class="sku">
+                    {{ line.quantity_before_post | removeTrailingZeros }} → {{ line.quantity_after_post | removeTrailingZeros }}
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (displayedLines().length === 0) {
+          <p class="empty">Sin líneas para mostrar</p>
+        }
+      </div>
+    </div>
+
+    @if (actionPanel(); as panel) {
+      <div class="action-panel">
+        <label for="auditActionNotes">
+          @if (panel === 'authorize') { Notas (opcional) }
+          @else if (panel === 'reject') { Motivo de rechazo (mín. 3 caracteres) }
+          @else { Motivo de cancelación (opcional) }
+        </label>
+        <textarea
+          id="auditActionNotes"
+          rows="2"
+          [ngModel]="actionNotes()"
+          (ngModelChange)="actionNotes.set($event)"
+        ></textarea>
+        <div class="action-panel__btns">
+          <button type="button" class="btn-cancel" (click)="closeAction()">Volver</button>
+          <button type="button" class="btn-primary" (click)="confirmAction()" [disabled]="acting()">
+            @if (panel === 'authorize') { Autorizar y aplicar }
+            @else if (panel === 'reject') { Rechazar }
+            @else { Cancelar auditoría }
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="audit-detail__footer">
+        <div class="footer-hint">
+          @if (dirty() && canEditLines) { Cambios sin guardar }
+          @else if (canEditLines && pendingCount() > 0) { Completa {{ pendingCount() }} lotes para enviar }
+          @else if (canEditLines && varianceWithoutReason()) { Hay diferencias sin motivo }
+        </div>
+        <div class="footer-actions">
+          @if (canEditLines) {
+            <button type="button" class="btn-secondary" (click)="save()" [disabled]="saving() || !dirty()">
+              {{ saving() ? 'Guardando...' : 'Guardar' }}
+            </button>
+            <button type="button" class="btn-ghost" (click)="openAction('cancel')" [disabled]="acting()">
+              Cancelar
+            </button>
+            <button type="button" class="btn-primary" (click)="submit()" [disabled]="!canSubmit">
+              Enviar a autorización
+            </button>
+          }
+          @if (a.status === 'submitted' && canCount) {
+            <button type="button" class="btn-ghost" (click)="openAction('cancel')" [disabled]="acting()">
+              Cancelar
+            </button>
+          }
+          @if (a.status === 'submitted' && canAuthorize) {
+            <button type="button" class="btn-warn" (click)="openAction('reject')" [disabled]="acting()">
+              Rechazar
+            </button>
+            <button type="button" class="btn-primary" (click)="openAction('authorize')" [disabled]="acting()">
+              Autorizar
+            </button>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

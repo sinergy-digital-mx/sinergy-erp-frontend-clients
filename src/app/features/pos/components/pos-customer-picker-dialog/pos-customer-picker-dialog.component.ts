@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, Check, Search, Store } from 'lucide-angular';
 import { CustomerService } from '../../../../core/services/customer.service';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
 export interface PosCustomerPickerDialogData {
   selectedCustomerId: string;
@@ -17,7 +18,7 @@ export interface PosCustomerPickerDialogResult {
 @Component({
   selector: 'app-pos-customer-picker-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, SpinnerComponent],
   templateUrl: './pos-customer-picker-dialog.component.html',
   styleUrls: ['./pos-customer-picker-dialog.component.scss'],
 })

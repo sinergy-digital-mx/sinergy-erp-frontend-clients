@@ -5,7 +5,8 @@ import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
-import { Batch, Document, DocumentLanguage, DocumentType, PurchaseOrder } from '../../models/purchase-order.model';
+import { Document, DocumentLanguage, DocumentType, PurchaseOrder } from '../../models/purchase-order.model';
+import { purchaseOrderReceivedLots } from '../../models/purchase-order-lot.model';
 import { LineItem } from '../../models/line-item.model';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import {
@@ -13,10 +14,13 @@ import {
   PurchaseOrderNotesDialogResult,
 } from '../purchase-order-notes-dialog/purchase-order-notes-dialog.component';
 import { ReceiptModalComponent } from '../receipt-modal/receipt-modal.component';
+import { PurchaseOrderLotsTabComponent } from '../purchase-order-lots-tab/purchase-order-lots-tab.component';
+import { PurchaseOrderMovementsTabComponent } from '../purchase-order-movements-tab/purchase-order-movements-tab.component';
 import { PaymentDialogComponent, PaymentFormData } from '../payment-dialog/payment-dialog.component';
 import { EditPurchaseOrderLineDialogComponent } from '../edit-purchase-order-line-dialog/edit-purchase-order-line-dialog.component';
 import { AddPurchaseOrderLineDialogComponent } from '../add-purchase-order-line-dialog/add-purchase-order-line-dialog.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { BatchDetailDialogComponent } from '../../../inventory/components/batch-detail-dialog/batch-detail-dialog.component';
 import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
@@ -30,7 +34,7 @@ import { WarehouseDetailModalComponent } from '../../../settings/components/ware
 import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
-import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import { PRODUCT_DETAIL_DIALOG_CONFIG, WAREHOUSE_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { formatTitleCase } from '../../../sales-orders/utils/sales-order-display.util';
 import {
   formatPedimentoDisplay,
@@ -51,7 +55,10 @@ import {
     NgTemplateOutlet,
     FormsModule,
     MatDialogModule,
-    RemoveTrailingZerosPipe
+    RemoveTrailingZerosPipe,
+    SpinnerComponent,
+    PurchaseOrderLotsTabComponent,
+    PurchaseOrderMovementsTabComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './order-detail-dialog.component.html',
@@ -287,6 +294,9 @@ export class OrderDetailDialogComponent {
       documents: updated.documents ?? current?.documents,
       payments: updated.payments ?? current?.payments ?? [],
       batches: updated.batches ?? current?.batches,
+      batches_summary: updated.batches_summary ?? current?.batches_summary,
+      movements: updated.movements ?? current?.movements,
+      movements_count: updated.movements_count ?? current?.movements_count,
     });
   }
 
@@ -647,7 +657,7 @@ export class OrderDetailDialogComponent {
 
     const dialogRef = this.dialog.open(ReceiptModalComponent, {
       data: { purchaseOrder: order },
-      width: '820px',
+      width: '900px',
       maxWidth: '96vw',
       maxHeight: '90vh',
       panelClass: 'receipt-modal-panel',
@@ -916,107 +926,12 @@ export class OrderDetailDialogComponent {
     });
   }
 
-  openBatchDetail(batch: Batch): void {
+  openBatchDetail(batchId: string): void {
+    if (!batchId) return;
     this.dialog.open(BatchDetailDialogComponent, {
       ...BATCH_DETAIL_DIALOG_OPTIONS,
-      data: { batchId: batch.id },
+      data: { batchId },
     });
-  }
-
-  getBatchLineItem(batch: Batch): LineItem | undefined {
-    const items = this.order()?.line_items;
-    if (!items?.length) {
-      return undefined;
-    }
-    if (batch.purchase_order_detail_id) {
-      const byDetailId = items.find((item) => item.id === batch.purchase_order_detail_id);
-      if (byDetailId) {
-        return byDetailId;
-      }
-    }
-    return items.find((item) => item.product_id === batch.product_id);
-  }
-
-  getBatchRequestedQuantity(batch: Batch): number | string {
-    if (batch.requested_quantity != null && batch.requested_quantity !== '') {
-      return batch.requested_quantity;
-    }
-    return this.getBatchLineItem(batch)?.quantity ?? 0;
-  }
-
-  getBatchReceivedQuantity(batch: Batch): number | string {
-    if (batch.received_quantity != null && batch.received_quantity !== '') {
-      return batch.received_quantity;
-    }
-    const line = this.getBatchLineItem(batch);
-    return batch.initial_quantity ?? batch.quantity ?? line?.received_original_quantity ?? 0;
-  }
-
-  getBatchRequestedUom(batch: Batch): string {
-    const line = this.getBatchLineItem(batch);
-    return line?.uom?.name || line?.product_uom?.uom?.name || batch.uom?.name || 'Unidad';
-  }
-
-  getBatchReceivedUom(batch: Batch): string {
-    const line = this.getBatchLineItem(batch);
-    return batch.uom?.name || line?.received_uom?.name || 'Unidad';
-  }
-
-  /** Parte de la línea que corresponde a este lote (1 si es el único). */
-  private getBatchQtyRatio(batch: Batch): number {
-    const line = this.getBatchLineItem(batch);
-    if (!line) return 0;
-    const lineQty = this.showReceivedTotals()
-      ? this.parseNumber(line.received_original_quantity) || this.parseNumber(line.quantity)
-      : this.parseNumber(line.quantity);
-    if (lineQty <= 0) return 0;
-    const batchQty = this.parseNumber(
-      this.showReceivedTotals() ? this.getBatchReceivedQuantity(batch) : this.getBatchRequestedQuantity(batch)
-    );
-    return batchQty / lineQty;
-  }
-
-  getBatchUnitCost(batch: Batch): number {
-    const line = this.getBatchLineItem(batch);
-    return line ? this.getLineUnitCost(line) : 0;
-  }
-
-  getBatchSubtotal(batch: Batch): number {
-    const line = this.getBatchLineItem(batch);
-    if (!line) return 0;
-    return this.parseNumber(this.getLineSubtotal(line) * this.getBatchQtyRatio(batch));
-  }
-
-  getBatchTotal(batch: Batch): number {
-    const line = this.getBatchLineItem(batch);
-    if (!line) return 0;
-    return this.parseNumber(this.getLineTotal(line) * this.getBatchQtyRatio(batch));
-  }
-
-  getBatchIvaPercent(batch: Batch): number {
-    const line = this.getBatchLineItem(batch);
-    return line ? this.getLineIvaPercent(line) : 0;
-  }
-
-  getBatchIvaAmount(batch: Batch): number {
-    const line = this.getBatchLineItem(batch);
-    if (!line) return 0;
-    return this.parseNumber(this.getLineIvaAmount(line) * this.getBatchQtyRatio(batch));
-  }
-
-  getBatchIepsPercent(batch: Batch): number {
-    const line = this.getBatchLineItem(batch);
-    return line ? this.getLineIepsPercent(line) : 0;
-  }
-
-  getBatchIepsAmount(batch: Batch): number {
-    const line = this.getBatchLineItem(batch);
-    if (!line) return 0;
-    return this.parseNumber(this.getLineIepsAmount(line) * this.getBatchQtyRatio(batch));
-  }
-
-  hasBatchTax(batch: Batch): boolean {
-    return this.getBatchIvaAmount(batch) > 0 || this.getBatchIepsAmount(batch) > 0;
   }
 
   getLineItemsCount(): number {
@@ -1028,7 +943,23 @@ export class OrderDetailDialogComponent {
   }
 
   getBatchesCount(): number {
-    return this.order()?.batches?.length ?? 0;
+    const summary = this.order()?.batches_summary;
+    if (summary?.received_lots != null) {
+      return summary.received_lots;
+    }
+    return purchaseOrderReceivedLots(this.order()?.batches).length;
+  }
+
+  getMigratedLotsCount(): number {
+    return this.order()?.batches_summary?.migrated_lots ?? 0;
+  }
+
+  getMovementsCount(): number {
+    const order = this.order();
+    if (order?.movements_count != null) {
+      return order.movements_count;
+    }
+    return order?.movements?.length ?? 0;
   }
 
   getPaymentsCount(): number {
@@ -1176,9 +1107,8 @@ export class OrderDetailDialogComponent {
 
     const openModal = (warehouse: Warehouse) => {
       this.dialog.open(WarehouseDetailModalComponent, {
+        ...WAREHOUSE_DETAIL_DIALOG_CONFIG,
         data: { warehouse },
-        width: '80vw',
-        maxWidth: '1000px',
       });
     };
 

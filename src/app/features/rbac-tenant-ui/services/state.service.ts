@@ -147,15 +147,23 @@ export class StateService {
   }
 
   setUserSearchFilter(filter: string): void {
-    this.userSearchFilterSubject.next(filter);
+    this.userSearchFilterSubject.next(filter ?? '');
   }
 
   setUserStatusFilter(status: UserStatus | 'all'): void {
-    this.userStatusFilterSubject.next(status);
+    this.userStatusFilterSubject.next(status || 'all');
   }
 
   setUserRoleFilter(roleId: string): void {
-    this.userRoleFilterSubject.next(roleId);
+    this.userRoleFilterSubject.next(roleId ?? '');
+  }
+
+  get currentUserStatusFilter(): UserStatus | 'all' {
+    return this.userStatusFilterSubject.value;
+  }
+
+  get currentUserRoleFilter(): string {
+    return this.userRoleFilterSubject.value;
   }
 
   updateUsers(users: User[]): void {

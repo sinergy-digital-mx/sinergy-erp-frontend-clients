@@ -8,11 +8,18 @@
           </a>
           <h2 class="transfers-header__title">Transferencias de inventario</h2>
         </div>
-        @if (canCreateTransfer) {
-          <button type="button" class="page-create-btn" (click)="openCreate()">
-            Crear
-          </button>
-        }
+        <div class="flex items-center gap-2 flex-wrap">
+          <a
+            routerLink="/inventory/audits"
+            class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
+            Auditorías
+          </a>
+          @if (canCreateTransfer) {
+            <button type="button" class="page-create-btn" (click)="openCreate()">
+              Crear
+            </button>
+          }
+        </div>
       </div>
 
       <div class="transfers-toolbar">
@@ -183,9 +190,13 @@
 
 <ng-template #tableTemplate let-item="$implicit">
   <td class="px-2 py-2 w-[120px]">
-    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-indigo-100 text-indigo-700 whitespace-nowrap">
+    <button
+      type="button"
+      class="folio-open-btn"
+      (click)="openTransferDetail(item, $event)"
+      title="Ver detalle de la transferencia">
       {{ item.folio }}
-    </span>
+    </button>
   </td>
   <td class="px-2 py-2 w-[180px]">
     <div class="flex flex-col">
@@ -222,15 +233,24 @@
   <td class="px-2 py-2 w-[120px]">
     <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>
   </td>
-  <td class="px-2 py-2 w-[90px]">
-    <button
-      type="button"
-      class="transfer-pdf-btn"
-      (click)="downloadPdf(item, $event)"
-      [disabled]="downloadingPdfId() === item.id"
-      title="Descargar PDF">
-      <lucide-icon [img]="Download" [size]="14"></lucide-icon>
-      PDF
-    </button>
+  <td class="px-2 py-2 w-[210px]">
+    <div class="transfer-actions">
+      <button
+        type="button"
+        class="transfer-detail-btn"
+        (click)="openTransferDetail(item, $event)">
+        <lucide-icon [img]="Eye" [size]="14"></lucide-icon>
+        Ver detalle
+      </button>
+      <button
+        type="button"
+        class="transfer-pdf-btn"
+        (click)="downloadPdf(item, $event)"
+        [disabled]="downloadingPdfId() === item.id"
+        title="Descargar PDF">
+        <lucide-icon [img]="Download" [size]="14"></lucide-icon>
+        PDF
+      </button>
+    </div>
   </td>
 </ng-template>

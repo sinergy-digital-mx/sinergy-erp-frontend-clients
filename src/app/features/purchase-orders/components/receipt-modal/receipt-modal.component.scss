@@ -283,9 +283,8 @@
   min-width: 7.5rem;
 }
 
-.qty-field__input-wrap .form-input {
-  width: 100%;
-  padding-right: 2.35rem;
+.qty-field__input-wrap .form-input,
+.form-input--num {
   appearance: textfield;
 
   &::-webkit-outer-spin-button,
@@ -293,6 +292,11 @@
     appearance: none;
     margin: 0;
   }
+}
+
+.qty-field__input-wrap .form-input {
+  width: 100%;
+  padding-right: 2.35rem;
 }
 
 .btn-max {
@@ -387,12 +391,68 @@
   background: #fafbfc;
 }
 
+.measure-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    width: 0.9rem;
+    height: 0.9rem;
+    margin: 0;
+    accent-color: #4f46e5;
+  }
+}
+
+.measure-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 0.65rem;
+
+  .qty-field {
+    min-width: 7.5rem;
+  }
+
+  &__uom {
+    min-width: 10rem;
+    flex: 1 1 10rem;
+  }
+}
+
+.measure-preview {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 4px;
+  padding: 0 0.45rem;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  margin-bottom: 0.15rem;
+}
+
 .lots__head,
 .lots__row {
   display: grid;
   grid-template-columns: minmax(140px, 1.6fr) minmax(84px, 0.7fr) 44px 28px;
   gap: 0.4rem;
   align-items: center;
+}
+
+.lots--measure {
+  .lots__head,
+  .lots__row {
+    grid-template-columns: minmax(120px, 1.4fr) minmax(72px, 0.65fr) 44px minmax(64px, 0.55fr) 28px;
+  }
 }
 
 .lots__head {
@@ -499,11 +559,11 @@
     padding: 0.4rem;
     background: #fff;
 
-    input:first-child {
+    .lot-tag {
       grid-area: tag;
     }
 
-    input[type='number'] {
+    .lot-qty {
       grid-area: qty;
     }
 
@@ -511,8 +571,19 @@
       grid-area: uom;
     }
 
+    .lot-measure {
+      grid-area: size;
+    }
+
     .btn-remove-lot {
       grid-area: del;
     }
+  }
+
+  .lots--measure .lots__row {
+    grid-template-columns: 1fr 1fr auto auto;
+    grid-template-areas:
+      "tag tag tag tag"
+      "qty uom size del";
   }
 }
