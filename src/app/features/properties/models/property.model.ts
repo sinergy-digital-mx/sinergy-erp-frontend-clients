@@ -99,6 +99,9 @@ export interface PropertyStatsBucket {
 }
 
 export interface PropertyStats {
+  /** Código para las cards. `null` si el filtro mezcla USD y MXN. */
+  currency: string | null;
+  currencies: string[];
   total: PropertyStatsBucket;
   available: PropertyStatsBucket;
   active_in_payment: {
@@ -111,6 +114,8 @@ export interface PropertyStats {
 }
 
 export const EMPTY_PROPERTY_STATS: PropertyStats = {
+  currency: 'USD',
+  currencies: ['USD'],
   total: { count: 0, area: 0, value: 0 },
   available: { count: 0, area: 0, value: 0 },
   active_in_payment: { count: 0, remaining_balance: 0 },

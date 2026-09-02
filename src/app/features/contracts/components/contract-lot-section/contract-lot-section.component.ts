@@ -6,6 +6,7 @@ import { InterceptorService } from '../../../../core/services/interceptor.servic
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
 import { Property } from '../../../properties/models/property.model';
 import { PropertyService } from '../../../properties/services/property.service';
+import { formatPolluxMoney } from '../../../../core/utils/pollux-money.util';
 
 @Component({
   selector: 'app-contract-lot-section',
@@ -65,13 +66,7 @@ export class ContractLotSectionComponent implements OnChanges {
   }
 
   formatPrice(property: Property): string {
-    const value = Number(property.total_price ?? 0);
-    const currency = property.currency || 'MXN';
-    const amount = new Intl.NumberFormat('es-MX', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(Number.isFinite(value) ? value : 0);
-    return `${currency} $${amount}`;
+    return formatPolluxMoney(property.total_price, property.currency);
   }
 
   formatPricePerM2(property: Property): string {
@@ -79,12 +74,7 @@ export class ContractLotSectionComponent implements OnChanges {
     if (!Number.isFinite(value)) {
       return '—';
     }
-    const currency = property.currency || 'MXN';
-    const amount = new Intl.NumberFormat('es-MX', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-    return `${currency} $${amount}`;
+    return formatPolluxMoney(value, property.currency);
   }
 
   private loadLot(emitAfterLoad = false): void {

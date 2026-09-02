@@ -167,10 +167,30 @@
 }
 
 .price-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.875rem;
   font-weight: 600;
   color: #334155;
   white-space: nowrap;
+}
+
+.currency-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: #f1f5f9;
+  color: #334155;
+
+  &--usd {
+    background: #ecfdf5;
+    color: #047857;
+  }
 }
 
 .status-pill {

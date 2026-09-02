@@ -23,6 +23,11 @@ import { ContractFilterIndicatorComponent } from '../../components/contract-filt
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import {
+  formatPolluxAmount,
+  formatPolluxMoney,
+  resolvePolluxCurrency,
+} from '../../../../core/utils/pollux-money.util';
 import { ArrowRight, AlertCircle, Download } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
@@ -78,6 +83,8 @@ export class ContractsListComponent implements OnDestroy {
   AlertCircle = AlertCircle;
   Download = Download;
   readonly Math = Math;
+  readonly formatRowAmount = formatPolluxAmount;
+  readonly resolveCurrency = resolvePolluxCurrency;
   readonly skeletonSlots = [0, 1, 2, 3];
   search = '';
   selectedGroupId: string | null = null;
@@ -422,6 +429,10 @@ export class ContractsListComponent implements OnDestroy {
       'suspendido': 'Suspendido'
     };
     return labels[status] || status;
+  }
+
+  formatCardMoney(value: number): string {
+    return formatPolluxMoney(value, this.stats().currency);
   }
 
   getCustomerName(contract: Contract): string {

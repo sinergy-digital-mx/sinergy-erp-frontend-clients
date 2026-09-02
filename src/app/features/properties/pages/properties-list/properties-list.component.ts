@@ -26,6 +26,10 @@ import { CustomerGroupDropdownComponent } from '../../../customers/components/cu
 import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import {
+  formatPolluxAmount,
+  resolvePolluxCurrency,
+} from '../../../../core/utils/pollux-money.util';
 
 @Component({
   selector: 'app-properties-list',
@@ -315,14 +319,11 @@ export class PropertiesListComponent implements OnDestroy {
   }
 
   formatPrice(property: Property): string {
-    const value = Number(property.total_price ?? 0);
-    const currency = property.currency || 'MXN';
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(Number.isFinite(value) ? value : 0);
+    return formatPolluxAmount(property.total_price);
+  }
+
+  resolveCurrency(property: Property): string {
+    return resolvePolluxCurrency(property.currency);
   }
 
   getStatusPillClass(status: string): string {

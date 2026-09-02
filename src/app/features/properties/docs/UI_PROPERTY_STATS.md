@@ -38,6 +38,8 @@ El select de grupo usa `GET /tenant/customers/groups`. El payload manda `group_i
 GET /tenant/properties/stats?group_id={uuid}&status=disponible
 ```
 
+Respuesta incluye `currency` (`USD` hoy) y `currencies`. Pintar cards con `stats.currency`.
+
 Permiso: `Property:Read`. Path `/properties/stats` (antes de `/:id`).
 
 | Card | Valor | Sub |
@@ -49,6 +51,6 @@ Permiso: `Property:Read`. Path `/properties/stats` (antes de `/:id`).
 
 Chip opcional en TOTAL si > 0: `{sold.count} vendidos · {reserved.count} reservados`. No abrir más cards.
 
-Montos MXN, m² a 2 decimales. Loading: 4 skeletons. Error: toast + cards en 0; la tabla sigue.
+Montos con `stats.currency` / `data[].currency` (`USD` hoy). Cards: `USD $…`. Tabla: `$…` + badge. No `MX$` ni Intl con MXN fijo. m² a 2 decimales. Loading: 4 skeletons. Error: toast + cards en 0; la tabla sigue.
 
 Columna de grupo: `group.name`. Una sola, no “Proyecto” + “Grupo”.

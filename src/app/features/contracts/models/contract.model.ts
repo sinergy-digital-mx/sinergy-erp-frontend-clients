@@ -120,6 +120,9 @@ export interface ContractListFilters {
 }
 
 export interface ContractStats {
+  /** Código para las cards. `null` si el filtro mezcla USD y MXN. */
+  currency: string | null;
+  currencies: string[];
   total: {
     count: number;
     value: number;
@@ -142,6 +145,8 @@ export interface ContractStats {
 }
 
 export const EMPTY_CONTRACT_STATS: ContractStats = {
+  currency: 'USD',
+  currencies: ['USD'],
   total: { count: 0, value: 0 },
   completed: { count: 0, value: 0 },
   pending: { count: 0, value: 0, paid: 0, remaining: 0 },

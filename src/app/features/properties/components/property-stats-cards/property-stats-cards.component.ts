@@ -8,6 +8,7 @@ import {
   Ruler,
 } from 'lucide-angular';
 import { EMPTY_PROPERTY_STATS, PropertyStats } from '../../models/property.model';
+import { formatPolluxMoney } from '../../../../core/utils/pollux-money.util';
 
 @Component({
   selector: 'app-property-stats-cards',
@@ -51,12 +52,7 @@ export class PropertyStatsCardsComponent {
   }
 
   formatMoney(value: number | undefined): string {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(this.toNumber(value));
+    return formatPolluxMoney(this.toNumber(value), this.displayStats.currency);
   }
 
   formatArea(value: number | undefined): string {

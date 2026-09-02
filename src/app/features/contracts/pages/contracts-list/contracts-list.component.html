@@ -74,7 +74,7 @@
           <p class="stats-v2-card__subtitle">Todos los contratos</p>
         </div>
         <div class="stats-v2-card__bottom">
-          <p class="stats-v2-card__amount">{{ stats().total.value | currency:'MXN':'symbol':'1.2-2' }}</p>
+          <p class="stats-v2-card__amount">{{ formatCardMoney(stats().total.value) }}</p>
           <p class="stats-v2-card__count">{{ stats().total.count }}</p>
         </div>
         <p class="stats-v2-card__sub">{{ stats().total.count }} contratos</p>
@@ -90,7 +90,7 @@
           <p class="stats-v2-card__subtitle">Pagados en su totalidad</p>
         </div>
         <div class="stats-v2-card__bottom">
-          <p class="stats-v2-card__amount">{{ stats().completed.value | currency:'MXN':'symbol':'1.2-2' }}</p>
+          <p class="stats-v2-card__amount">{{ formatCardMoney(stats().completed.value) }}</p>
           <p class="stats-v2-card__count">{{ stats().completed.count }}</p>
         </div>
       </button>
@@ -105,12 +105,12 @@
           <p class="stats-v2-card__subtitle">En proceso de pago</p>
         </div>
         <div class="stats-v2-card__bottom">
-          <p class="stats-v2-card__amount">{{ stats().pending.value | currency:'MXN':'symbol':'1.2-2' }}</p>
+          <p class="stats-v2-card__amount">{{ formatCardMoney(stats().pending.value) }}</p>
           <p class="stats-v2-card__count">{{ stats().pending.count }}</p>
         </div>
         <div class="stats-v2-card__meta">
-          <span class="stats-v2-card__meta-paid">Pagado: <strong>{{ stats().pending.paid | currency:'MXN':'symbol':'1.2-2' }}</strong></span>
-          <span class="stats-v2-card__meta-debt">Pendiente: <strong>{{ stats().pending.remaining | currency:'MXN':'symbol':'1.2-2' }}</strong></span>
+          <span class="stats-v2-card__meta-paid">Pagado: <strong>{{ formatCardMoney(stats().pending.paid) }}</strong></span>
+          <span class="stats-v2-card__meta-debt">Pendiente: <strong>{{ formatCardMoney(stats().pending.remaining) }}</strong></span>
         </div>
       </button>
 
@@ -124,7 +124,7 @@
           <p class="stats-v2-card__subtitle">Con pagos atrasados</p>
         </div>
         <div class="stats-v2-card__bottom">
-          <p class="stats-v2-card__amount">{{ stats().overdue.value | currency:'MXN':'symbol':'1.2-2' }}</p>
+          <p class="stats-v2-card__amount">{{ formatCardMoney(stats().overdue.value) }}</p>
           <p class="stats-v2-card__count">{{ stats().overdue.contracts_count }}</p>
         </div>
         <div class="stats-v2-card__meta">
@@ -191,11 +191,21 @@
               </div>
               <div>
                 <span class="text-xs text-gray-500 block">Precio Total</span>
-                <span class="text-gray-900 font-medium">{{ item.total_price | currency:item.currency }}</span>
+                <span class="text-gray-900 font-medium money-cell">
+                  {{ formatRowAmount(item.total_price) }}
+                  <span class="currency-badge" [class.currency-badge--usd]="resolveCurrency(item.currency) === 'USD'">
+                    {{ resolveCurrency(item.currency) }}
+                  </span>
+                </span>
               </div>
               <div>
                 <span class="text-xs text-gray-500 block">Saldo Pendiente</span>
-                <span class="text-red-600 font-medium">{{ item.remaining_balance | currency:item.currency }}</span>
+                <span class="text-red-600 font-medium money-cell">
+                  {{ formatRowAmount(item.remaining_balance) }}
+                  <span class="currency-badge" [class.currency-badge--usd]="resolveCurrency(item.currency) === 'USD'">
+                    {{ resolveCurrency(item.currency) }}
+                  </span>
+                </span>
               </div>
               <div class="col-span-2">
                 <span class="text-xs text-gray-500 block">Siguiente Pago</span>
@@ -279,8 +289,22 @@
     <span *ngIf="!item.property" class="text-sm text-gray-400">—</span>
   </td>
   <td>{{ item.contract_date | date:'mediumDate' }}</td>
-  <td>{{ item.total_price | currency:item.currency }}</td>
-  <td>{{ item.remaining_balance | currency:item.currency }}</td>
+  <td>
+    <span class="money-cell">
+      {{ formatRowAmount(item.total_price) }}
+      <span class="currency-badge" [class.currency-badge--usd]="resolveCurrency(item.currency) === 'USD'">
+        {{ resolveCurrency(item.currency) }}
+      </span>
+    </span>
+  </td>
+  <td>
+    <span class="money-cell">
+      {{ formatRowAmount(item.remaining_balance) }}
+      <span class="currency-badge" [class.currency-badge--usd]="resolveCurrency(item.currency) === 'USD'">
+        {{ resolveCurrency(item.currency) }}
+      </span>
+    </span>
+  </td>
   <td>
     <div class="flex items-center gap-2">
       <span>{{ item.next_payment_date | date:'mediumDate' }}</span>

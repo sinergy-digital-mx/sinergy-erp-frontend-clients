@@ -15,6 +15,8 @@ Key exacta: **`price_per_m2`**.
 
 `POST /properties` y `PUT /properties/:id`.
 
+`currency` opcional: `USD` \| `MXN`. Default **USD**. Cards y tabla pintan con esa moneda, no `MX$`.
+
 ## UI
 
 1. **Área (m²)** (`total_area`).

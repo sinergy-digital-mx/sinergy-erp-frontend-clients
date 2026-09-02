@@ -42,4 +42,4 @@ Leer `GET /tenant/contracts/stats`. Vacío / error: `0` / `$0.00`. Skeletons mie
 | ACTIVOS | `pending.value` | Pagado `pending.paid` · Pendiente `pending.remaining` |
 | VENCIDOS | `overdue.value` | Contratos `overdue.contracts_count` · Pagos `overdue.payments_count` |
 
-Montos MXN. Columna opcional de grupo: `customer.group?.name ?? '—'`.
+Montos con `stats.currency` / `data[].currency` (`USD` hoy). Cards: `USD $2,913,337.14`. Tabla: `$25,000.00` + badge USD. No `MX$`. Columna opcional de grupo: `customer.group?.name ?? '—'`.
