@@ -1,0 +1,154 @@
+<div class="add-line-dialog">
+  <div class="add-line-dialog__header">
+    <h3>{{ dialogTitle }}</h3>
+    <button type="button" class="add-line-dialog__close" aria-label="Cerrar" [disabled]="saving()" (click)="cancel()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  <div class="add-line-dialog__body">
+    <div class="form-field form-field--full">
+      <label class="form-label">Producto *</label>
+      <div class="product-picker-row">
+        <div class="product-picker-row__search">
+          <input
+            type="text"
+            class="form-input"
+            [(ngModel)]="productSearchTerm"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Buscar por nombre o SKU..."
+            [matAutocomplete]="autoProductPicker"
+            [disabled]="loadingProducts() || saving()"
+            (ngModelChange)="onProductSearchChange($event)">
+          <mat-autocomplete
+            #autoProductPicker="matAutocomplete"
+            [displayWith]="displayProduct.bind(this)"
+            (optionSelected)="onProductSelected($event.option.value)">
+            <mat-option *ngFor="let product of filteredProducts" [value]="product">
+              {{ getProductOptionLabel(product) }}
+            </mat-option>
+          </mat-autocomplete>
+        </div>
+        <button
+          type="button"
+          class="product-detail-btn"
+          [disabled]="!selectedProduct || saving()"
+          (click)="openSelectedProductDetail()">
+          <lucide-icon [img]="ExternalLink" [size]="16"></lucide-icon>
+          <span>Ver producto</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">UOM *</label>
+        <select
+          class="form-select"
+          [(ngModel)]="selectedUomId"
+          [ngModelOptions]="{ standalone: true }"
+          (change)="onSelectedUomChange()"
+          [disabled]="saving()">
+          <option value="">Seleccionar...</option>
+          <option *ngFor="let uom of selectedProductUoms" [value]="uom.id || uom.product_uom_id || uom.uom_id">
+            {{ uom.uom_name || uom.name }}
+          </option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">SKU</label>
+        <input type="text" class="form-input" [value]="selectedProduct?.product_sku || selectedProduct?.sku || ''" readonly>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Cantidad *</label>
+        <input
+          type="number"
+          class="form-input"
+          [(ngModel)]="selectedQuantity"
+          [ngModelOptions]="{ standalone: true }"
+          min="0.001"
+          step="any"
+          [disabled]="saving()">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Precio unitario</label>
+        <div class="cost-with-currency">
+          <input
+            type="number"
+            class="form-input"
+            [(ngModel)]="selectedUnitPrice"
+            [ngModelOptions]="{ standalone: true }"
+            min="0"
+            step="any"
+            [disabled]="saving()">
+          <span class="currency-badge" [class.currency-badge--usd]="data.currency === 'USD'">
+            {{ data.currency }}
+          </span>
+        </div>
+      </div>
+      <div class="form-field form-field--full">
+        <label class="form-label">IVA %</label>
+        <div class="tax-row">
+          @for (preset of taxPresets; track preset) {
+            <button
+              type="button"
+              class="tax-chip"
+              [class.is-active]="isTaxPreset(selectedIva, preset)"
+              [disabled]="saving()"
+              (click)="setIva(preset)">
+              {{ preset }}%
+            </button>
+          }
+          <input
+            type="number"
+            class="form-input tax-row__input"
+            [(ngModel)]="selectedIva"
+            [ngModelOptions]="{ standalone: true }"
+            min="0"
+            max="100"
+            step="0.01"
+            [disabled]="saving()">
+        </div>
+      </div>
+      <div class="form-field form-field--full">
+        <label class="form-label">IEPS %</label>
+        <div class="tax-row">
+          @for (preset of taxPresets; track preset) {
+            <button
+              type="button"
+              class="tax-chip"
+              [class.is-active]="isTaxPreset(selectedIeps, preset)"
+              [disabled]="saving()"
+              (click)="setIeps(preset)">
+              {{ preset }}%
+            </button>
+          }
+          <input
+            type="number"
+            class="form-input tax-row__input"
+            [(ngModel)]="selectedIeps"
+            [ngModelOptions]="{ standalone: true }"
+            min="0"
+            max="100"
+            step="0.01"
+            [disabled]="saving()">
+        </div>
+      </div>
+    </div>
+
+    @if (errorMessage()) {
+      <p class="add-line-dialog__error" role="alert">{{ errorMessage() }}</p>
+    }
+  </div>
+
+  <div class="add-line-dialog__footer">
+    <button type="button" class="btn btn--secondary" [disabled]="saving()" (click)="cancel()">Cancelar</button>
+    <button type="button" class="btn btn--primary" [disabled]="!canConfirm" (click)="save()">
+      @if (saving()) {
+        Agregando...
+      } @else {
+        Agregar
+      }
+    </button>
+  </div>
+</div>

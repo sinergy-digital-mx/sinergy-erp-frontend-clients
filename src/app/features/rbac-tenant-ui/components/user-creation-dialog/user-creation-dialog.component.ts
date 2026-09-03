@@ -5,7 +5,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { UserService } from '../../services/user.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
-import { AuthService } from '../../../../core/services/auth.service';
 
 /**
  * UserCreationDialogComponent
@@ -32,7 +31,6 @@ export class UserCreationDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: any,
     private userService: UserService,
     private snackBar: MatSnackBar,
-    private authService: AuthService
   ) {
     this.form = this.fb.group({
       first_name: ['', [Validators.required]],
@@ -78,7 +76,6 @@ export class UserCreationDialogComponent {
     this.loading.set(true);
 
     const payload = {
-      tenant_id: this.authService.user_info.tenant_id,
       first_name: this.form.get('first_name')?.value,
       last_name: this.form.get('last_name')?.value,
       email: this.form.get('email')?.value,

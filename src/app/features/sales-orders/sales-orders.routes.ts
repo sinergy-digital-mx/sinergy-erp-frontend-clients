@@ -26,14 +26,9 @@ export const SALES_ORDERS_ROUTES: Routes = [
     }
   },
   {
+    // Las líneas se editan en el diálogo de detalle (igual que OC). No abrir formulario de página.
     path: ':id/edit',
-    loadComponent: () => 
-      import('./pages/sales-order-form/sales-order-form.component')
-        .then(m => m.SalesOrderFormComponent),
-    canActivate: [permissionGuard],
-    data: { 
-      permissions: [SALES_ORDER_PERMISSIONS.update],
-      title: 'Editar Orden de Venta'
-    }
+    redirectTo: '',
+    pathMatch: 'full',
   }
 ];

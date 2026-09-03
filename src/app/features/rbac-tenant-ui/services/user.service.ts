@@ -210,8 +210,8 @@ export class UserService {
    */
   createUser(userData: CreateUserDto): Observable<User | null> {
     return this.http.post<any>(`${this.api}/tenant/users`, userData).pipe(
-      map((backendUser) => {
-        const raw = backendUser?.data ?? backendUser;
+      map((response) => {
+        const raw = response?.user ?? response?.data ?? response;
         if (!raw?.id) {
           return null;
         }
@@ -230,7 +230,10 @@ export class UserService {
    */
   updateUser(userId: string, userData: UpdateUserDto): Observable<User> {
     return this.http.put<any>(`${this.api}/tenant/users/${userId}`, userData).pipe(
-      map(backendUser => this.dataMapper.mapUser(backendUser)),
+      map((response) => {
+        const raw = response?.user ?? response?.data ?? response;
+        return this.dataMapper.mapUser(raw);
+      }),
       tap(() => this.clearCache()),
       shareReplay(1)
     );

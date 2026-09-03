@@ -7,6 +7,7 @@ import { SalesOrderService } from '../../services/sales-order.service';
 import {
   SalesDocumentLanguage,
   SalesOrder,
+  SalesOrderDetailPayload,
   SalesOrderDiscountSummary,
   SalesOrderDocument,
   SalesOrderInvoice,
@@ -83,6 +84,10 @@ import { SalesOrderShippingTabComponent } from '../sales-order-shipping-tab/sale
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
 import { countVigenteInvoices } from '../../utils/cfdi-xml-builder.util';
 import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
+import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
+import { formatUnitAmount } from '../../../../core/utils/unit-money.util';
+import { EditSalesOrderLineDialogComponent } from '../edit-sales-order-line-dialog/edit-sales-order-line-dialog.component';
+import { AddSalesOrderLineDialogComponent } from '../add-sales-order-line-dialog/add-sales-order-line-dialog.component';
 
 @Component({
   selector: 'app-sales-order-detail-dialog',
@@ -120,9 +125,13 @@ export class SalesOrderDetailDialogComponent {
   selectedRegenerateLanguage = signal<SalesDocumentLanguage>('es');
   keepPreviousDocument = signal(false);
 
-  canEditOrder = computed(() => {
+  canEditLines = computed(() => {
     const order = this.order();
-    const status = order?.general_status ?? order?.status ?? '';
+    if (!order) return false;
+    if (typeof order.can_edit_lines === 'boolean') {
+      return order.can_edit_lines;
+    }
+    const status = order.general_status ?? order.status ?? '';
     if (status !== 'Creada' && status !== 'En Selección') {
       return false;
     }
@@ -241,11 +250,124 @@ export class SalesOrderDetailDialogComponent {
     this.dialogRef.close(true);
   }
 
-  goToEditForm(): void {
-    const id = this.order()?.id;
-    if (!id) return;
-    this.dialogRef.close(true);
-    void this.router.navigate(['/sales-orders', id, 'edit']);
+  openEditLineItem(item: SalesOrderLineItem): void {
+    const order = this.order();
+    if (!order || !item.id || !this.canEditLines()) return;
+
+    this.dialog
+      .open(EditSalesOrderLineDialogComponent, {
+        width: '460px',
+        maxWidth: '95vw',
+        panelClass: 'po-line-dialog-panel',
+        autoFocus: 'first-tabbable',
+        data: {
+          orderId: order.id,
+          folio: order.folio,
+          currency: this.getPaymentCurrency(),
+          lineItem: item,
+        },
+      })
+      .afterClosed()
+      .subscribe((updated: SalesOrderDetailPayload | undefined) => {
+        if (!updated) return;
+        this.applyLineMutation(updated);
+        this.toast.success('Línea actualizada');
+      });
+  }
+
+  confirmDeleteLineItem(item: SalesOrderLineItem): void {
+    const order = this.order();
+    if (!order || !item.id || !this.canEditLines()) return;
+
+    const name = item.product?.name || 'este producto';
+    this.dialog
+      .open(AlertDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Eliminar producto',
+          message: `¿Eliminar ${name} de esta orden? Se recalcularán los totales.`,
+          type: 'warning',
+          text_accept: 'Eliminar',
+          text_cancel: 'Cancelar',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.salesOrderService.deleteLineItem(order.id, String(item.id)).subscribe({
+          next: (updated) => {
+            this.applyLineMutation(updated);
+            this.toast.success('Producto eliminado');
+          },
+          error: (error: Error) => {
+            this.toast.error(error?.message || 'No se pudo eliminar la línea');
+          },
+        });
+      });
+  }
+
+  openAddLineItem(): void {
+    const order = this.order();
+    if (!order || !this.canEditLines()) return;
+
+    const fiscalId = order.fiscal_configuration_id || order.fiscal_configuration?.id;
+    const branchId = order.billing_branch_id || order.billing_branch?.id;
+    if (!fiscalId || !branchId) {
+      this.toast.error('La orden no tiene razón social o sucursal');
+      return;
+    }
+
+    this.dialog
+      .open(AddSalesOrderLineDialogComponent, {
+        width: '760px',
+        maxWidth: '95vw',
+        panelClass: 'po-line-dialog-panel',
+        autoFocus: 'first-tabbable',
+        data: {
+          orderId: order.id,
+          folio: order.folio,
+          currency: this.getPaymentCurrency(),
+          fiscal_configuration_id: fiscalId,
+          billing_branch_id: branchId,
+        },
+      })
+      .afterClosed()
+      .subscribe((updated: SalesOrderDetailPayload | undefined) => {
+        if (!updated) return;
+        this.applyLineMutation(updated);
+        this.toast.success('Producto agregado');
+      });
+  }
+
+  private applyLineMutation(updated: SalesOrderDetailPayload): void {
+    if (!updated?.header || !Array.isArray(updated.line_items)) {
+      this.loadOrder(true);
+      return;
+    }
+
+    const current = this.order();
+    this.order.set({
+      ...current,
+      ...updated.header,
+      payments: updated.payments ?? updated.header.payments ?? current?.payments,
+      payments_summary:
+        updated.payments_summary ?? updated.header.payments_summary ?? current?.payments_summary,
+      discount_summary:
+        updated.discount_summary ?? updated.header.discount_summary ?? current?.discount_summary,
+    });
+    this.lineItems.set(updated.line_items);
+    this.discountSummary.set(
+      updated.discount_summary ?? updated.header.discount_summary ?? this.discountSummary()
+    );
+    if (updated.documents) {
+      this.documents.set(updated.documents);
+    }
+    if (updated.pos_collection !== undefined) {
+      this.posCollection.set(updated.pos_collection ?? null);
+    }
+    if (updated.shipping !== undefined) {
+      this.shippingInfo.set(updated.shipping ?? null);
+    }
   }
 
   openNotesEditor(): void {
@@ -507,6 +629,86 @@ export class SalesOrderDetailDialogComponent {
     return this.formatCurrency(this.getTotalsSnapshot().ieps);
   }
 
+  hasDisplayedIeps(): boolean {
+    return this.getTotalsSnapshot().ieps > 0;
+  }
+
+  hasLineIvaColumn(): boolean {
+    return this.lineItems().some(
+      (item) => this.parseNumber(item.iva_percentage) > 0 || this.parseNumber(item.line_iva) > 0
+    );
+  }
+
+  hasLineIepsColumn(): boolean {
+    return this.lineItems().some(
+      (item) => this.parseNumber(item.ieps_percentage) > 0 || this.parseNumber(item.line_ieps) > 0
+    );
+  }
+
+  hasLineTax(item: SalesOrderLineItem): boolean {
+    return this.getLineIvaAmount(item) > 0 || this.getLineIepsAmount(item) > 0;
+  }
+
+  getLineUnitPrice(item: SalesOrderLineItem): number {
+    return this.parseNumber(item.unit_price);
+  }
+
+  getLineSubtotal(item: SalesOrderLineItem): number {
+    if (item.line_subtotal != null && item.line_subtotal !== '') {
+      return this.parseNumber(item.line_subtotal);
+    }
+    return this.parseNumber(item.quantity) * this.parseNumber(item.unit_price);
+  }
+
+  getLineIvaPercent(item: SalesOrderLineItem): number {
+    return this.parseNumber(item.iva_percentage);
+  }
+
+  getLineIvaAmount(item: SalesOrderLineItem): number {
+    if (item.line_iva != null && item.line_iva !== '') {
+      return this.parseNumber(item.line_iva);
+    }
+    const taxable = Math.max(
+      this.getLineSubtotal(item) - this.parseNumber(item.line_discount_amount),
+      0
+    );
+    return taxable * (this.getLineIvaPercent(item) / 100);
+  }
+
+  getLineIepsPercent(item: SalesOrderLineItem): number {
+    return this.parseNumber(item.ieps_percentage);
+  }
+
+  getLineIepsAmount(item: SalesOrderLineItem): number {
+    if (item.line_ieps != null && item.line_ieps !== '') {
+      return this.parseNumber(item.line_ieps);
+    }
+    const taxable = Math.max(
+      this.getLineSubtotal(item) - this.parseNumber(item.line_discount_amount),
+      0
+    );
+    return taxable * (this.getLineIepsPercent(item) / 100);
+  }
+
+  getProductsColspan(): number {
+    let count = 5;
+    if (this.hasLineIvaColumn()) count += 1;
+    if (this.hasLineIepsColumn()) count += 1;
+    if (this.canEditLines()) count += 1;
+    return count;
+  }
+
+  formatAmount(value: number | string | null | undefined): string {
+    return new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(this.parseNumber(value));
+  }
+
+  formatUnitPrice(value: number | string | null | undefined): string {
+    return formatUnitAmount(value);
+  }
+
   getDisplayedTotal(): string {
     return this.formatCurrency(this.getTotalsSnapshot().total);
   }
@@ -529,7 +731,7 @@ export class SalesOrderDetailDialogComponent {
     return 0;
   }
 
-  private getTotalsSnapshot(): {
+  getTotalsSnapshot(): {
     subtotal: number;
     discount: number;
     iva: number;
@@ -1012,15 +1214,14 @@ export class SalesOrderDetailDialogComponent {
   }
 
   getLineTotal(item: SalesOrderLineItem): number {
-    const qty = this.parseNumber(item.quantity);
-    const unit = this.parseNumber(item.unit_price);
-    const discountPct = this.parseNumber(item.discount_percentage);
-    const taxable = unit * qty;
-    const discount = taxable * (discountPct / 100);
-    const discountedSubtotal = Math.max(taxable - discount, 0);
-    const iva = discountedSubtotal * (this.parseNumber(item.iva_percentage) / 100);
-    const ieps = discountedSubtotal * (this.parseNumber(item.ieps_percentage) / 100);
-    return discountedSubtotal + iva + ieps;
+    if (item.line_total != null && item.line_total !== '') {
+      return this.parseNumber(item.line_total);
+    }
+    const taxable = Math.max(
+      this.getLineSubtotal(item) - this.parseNumber(item.line_discount_amount),
+      0
+    );
+    return taxable + this.getLineIvaAmount(item) + this.getLineIepsAmount(item);
   }
 
   getBatchAllocationsRows(): Array<{ item: SalesOrderLineItem; allocation: any }> {

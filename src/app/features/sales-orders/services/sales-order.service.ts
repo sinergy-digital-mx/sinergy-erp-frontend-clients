@@ -385,6 +385,43 @@ export class SalesOrderService {
       );
   }
 
+  createLineItem(
+    orderId: string,
+    body: SalesOrderFormData['line_items'][number]
+  ): Observable<SalesOrderDetailPayload> {
+    return this.http
+      .post<SalesOrderDetailResponse>(`${this.baseUrl}/${orderId}/line-items`, body)
+      .pipe(
+        map((response) => this.normalizeDetailPayload(response.data)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  patchLineItem(
+    orderId: string,
+    lineItemId: string,
+    body: Partial<SalesOrderFormData['line_items'][number]>
+  ): Observable<SalesOrderDetailPayload> {
+    return this.http
+      .patch<SalesOrderDetailResponse>(
+        `${this.baseUrl}/${orderId}/line-items/${lineItemId}`,
+        body
+      )
+      .pipe(
+        map((response) => this.normalizeDetailPayload(response.data)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  deleteLineItem(orderId: string, lineItemId: string): Observable<SalesOrderDetailPayload> {
+    return this.http
+      .delete<SalesOrderDetailResponse>(`${this.baseUrl}/${orderId}/line-items/${lineItemId}`)
+      .pipe(
+        map((response) => this.normalizeDetailPayload(response.data)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
   /**
    * Export sales orders to Excel (headers or line details).
    * Details require created_from and created_to.

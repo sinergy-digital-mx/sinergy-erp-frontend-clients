@@ -64,6 +64,10 @@ export interface SalesOrderLineItem {
   iva_unit?: string | number;
   ieps_percentage?: string | number;
   ieps_unit?: string | number;
+  line_subtotal?: string | number;
+  line_iva?: string | number;
+  line_ieps?: string | number;
+  line_total?: string | number;
   uom_name?: string;
   base_uom_name?: string;
   product?: { id: string; name: string; sku: string };
@@ -193,6 +197,7 @@ export interface SalesOrder {
   general_status?: SalesOrderStatus;
   can_cancel?: boolean;
   cancel_blocked_reason?: string | null;
+  can_edit_lines?: boolean;
   payment_status: SalesPaymentStatus;
   payment_method?: string | null;
   payment_method_label?: string | null;

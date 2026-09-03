@@ -1,4 +1,56 @@
 <div class="order-detail-dialog">
+  <ng-template #moneyCell let-amount>
+    <span class="money-cell">
+      <span
+        class="currency-badge"
+        [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
+        [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
+        {{ getPaymentCurrency() }}
+      </span>
+      <span class="money-cell__amount">{{ formatAmount(amount) }}</span>
+    </span>
+  </ng-template>
+  <ng-template #costCell let-amount>
+    <span class="money-cell">
+      <span
+        class="currency-badge"
+        [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
+        [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
+        {{ getPaymentCurrency() }}
+      </span>
+      <span class="money-cell__amount">{{ formatUnitPrice(amount) }}</span>
+    </span>
+  </ng-template>
+  <ng-template #importeCell let-net let-gross="gross" let-hasTax="hasTax">
+    @if (hasTax) {
+      <div class="importe-stack">
+        <span
+          class="currency-badge"
+          [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
+          [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
+          {{ getPaymentCurrency() }}
+        </span>
+        <div class="importe-stack__values">
+          <span class="importe-stack__net">{{ formatAmount(net) }}</span>
+          <span class="importe-stack__gross">{{ formatAmount(gross) }}</span>
+        </div>
+      </div>
+    } @else {
+      <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: net }" />
+    }
+  </ng-template>
+  <ng-template #taxCell let-percent let-amount="amount">
+    @if (percent > 0 || amount > 0) {
+      <div class="tax-stack">
+        @if (percent > 0) {
+          <span class="tax-badge">{{ percent | removeTrailingZeros }}%</span>
+        }
+        @if (amount > 0) {
+          <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: amount }" />
+        }
+      </div>
+    }
+  </ng-template>
   @if (loading()) {
     <div class="loading-container">
       <app-spinner></app-spinner>
@@ -10,12 +62,6 @@
       <div class="dialog-header-main">
         <span class="order-type-badge order-type-badge--sale">VENTA</span>
         <h2 class="dialog-header__folio">#{{ order()!.folio || order()!.id.substring(0, 8) }}</h2>
-        @if (canEditOrder()) {
-          <button type="button" class="edit-header-btn" (click)="goToEditForm()">
-            <i class="fi fi-rr-pencil"></i>
-            Editar orden
-          </button>
-        }
       </div>
       <div class="dialog-header-actions">
         @if (getPaymentStatus()) {
@@ -427,10 +473,12 @@
             <span class="totals-label">IVA</span>
             <span class="totals-value">{{ getDisplayedIva() }}</span>
           </div>
-          <div class="totals-row">
-            <span class="totals-label">IEPS</span>
-            <span class="totals-value">{{ getDisplayedIeps() }}</span>
-          </div>
+          @if (hasDisplayedIeps()) {
+            <div class="totals-row">
+              <span class="totals-label">IEPS</span>
+              <span class="totals-value">{{ getDisplayedIeps() }}</span>
+            </div>
+          }
           <div class="totals-divider"></div>
           <div class="totals-row totals-row-total">
             <span class="totals-label-total">Total</span>
@@ -499,20 +547,43 @@
         <div class="tabs-content">
           @if (activeTabIndex() === 0) {
             <div class="tab-content-wrapper">
+              @if (canEditLines()) {
+                <div class="tab-header">
+                  <button type="button" class="btn-add-line" (click)="openAddLineItem()">
+                    <i class="fi fi-rr-plus"></i>
+                    Agregar producto
+                  </button>
+                </div>
+              }
+              <div class="products-table-wrap">
               <table class="products-table">
                 <thead>
                   <tr>
-                    <th>PRODUCTO</th>
-                    <th>PRECIO UNIT.</th>
-                    <th>TOTAL LÍNEA</th>
-                    <th>SOLICITADAS</th>
-                    <th>ENTREGADAS</th>
+                    <th class="col-product">PRODUCTO</th>
+                    <th class="col-money">PRECIO</th>
+                    <th class="col-money">
+                      IMPORTE
+                      @if (hasLineIvaColumn() || hasLineIepsColumn()) {
+                        <span class="th-sub">s/IVA · c/IVA</span>
+                      }
+                    </th>
+                    @if (hasLineIvaColumn()) {
+                      <th class="col-money">IVA</th>
+                    }
+                    @if (hasLineIepsColumn()) {
+                      <th class="col-money">IEPS</th>
+                    }
+                    <th class="col-qty">SOLICITADAS</th>
+                    <th class="col-qty">ENTREGADAS</th>
+                    @if (canEditLines()) {
+                      <th class="col-actions">ACCIONES</th>
+                    }
                   </tr>
                 </thead>
                 <tbody>
                   @for (item of lineItems(); track item.id || $index) {
                     <tr [class.row-clickable]="canOpenProduct(item)">
-                      <td>
+                      <td class="col-product">
                         <div
                           class="product-info"
                           [class.product-info--clickable]="canOpenProduct(item)"
@@ -525,15 +596,42 @@
                           <small>{{ item.product?.sku || '-' }}</small>
                         </div>
                       </td>
-                      <td>{{ formatCurrency(item.unit_price) }}</td>
-                      <td>{{ formatCurrency(getLineTotal(item)) }}</td>
-                      <td>
+                      <td class="col-money">
+                        <ng-container *ngTemplateOutlet="costCell; context: { $implicit: getLineUnitPrice(item) }" />
+                      </td>
+                      <td class="col-money">
+                        <ng-container
+                          *ngTemplateOutlet="importeCell; context: {
+                            $implicit: getLineSubtotal(item),
+                            gross: getLineTotal(item),
+                            hasTax: hasLineTax(item)
+                          }" />
+                      </td>
+                      @if (hasLineIvaColumn()) {
+                        <td class="col-money">
+                          <ng-container
+                            *ngTemplateOutlet="taxCell; context: {
+                              $implicit: getLineIvaPercent(item),
+                              amount: getLineIvaAmount(item)
+                            }" />
+                        </td>
+                      }
+                      @if (hasLineIepsColumn()) {
+                        <td class="col-money">
+                          <ng-container
+                            *ngTemplateOutlet="taxCell; context: {
+                              $implicit: getLineIepsPercent(item),
+                              amount: getLineIepsAmount(item)
+                            }" />
+                        </td>
+                      }
+                      <td class="col-qty">
                         <span class="qty-cell">
                           <span class="qty-cell__amount">{{ getRequestedQuantity(item) | removeTrailingZeros }}</span>
                           <span class="uom-badge">{{ getLineUom(item) }}</span>
                         </span>
                       </td>
-                      <td>
+                      <td class="col-qty">
                         <span class="qty-cell">
                           <span class="qty-cell__amount">{{ getDeliveredQuantity(item) | removeTrailingZeros }}</span>
                           <span class="uom-badge" [class.uom-badge--muted]="getDeliveredQuantity(item) === 0">
@@ -541,10 +639,32 @@
                           </span>
                         </span>
                       </td>
+                      @if (canEditLines()) {
+                        <td class="col-actions">
+                          <div class="line-actions">
+                            <button
+                              type="button"
+                              class="action-btn edit-btn"
+                              title="Editar línea"
+                              aria-label="Editar línea"
+                              (click)="openEditLineItem(item); $event.stopPropagation()">
+                              <i class="fi fi-rr-pencil"></i>
+                            </button>
+                            <button
+                              type="button"
+                              class="action-btn delete-btn"
+                              title="Eliminar línea"
+                              aria-label="Eliminar línea"
+                              (click)="confirmDeleteLineItem(item); $event.stopPropagation()">
+                              <i class="fi fi-rr-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      }
                     </tr>
                   } @empty {
                     <tr>
-                      <td colspan="5" class="text-center">
+                      <td [attr.colspan]="getProductsColspan()" class="text-center">
                         <div class="empty-state">
                           <i class="fi fi-rr-box"></i>
                           <p>No hay líneas</p>
@@ -553,7 +673,43 @@
                     </tr>
                   }
                 </tbody>
+                @if (lineItems().length > 0) {
+                  <tfoot>
+                    <tr>
+                      <td class="col-product products-footer-label">Totales</td>
+                      <td></td>
+                      <td class="col-money">
+                        <ng-container
+                          *ngTemplateOutlet="importeCell; context: {
+                            $implicit: getTotalsSnapshot().subtotal,
+                            gross: getTotalsSnapshot().total,
+                            hasTax: getTotalsSnapshot().iva > 0 || getTotalsSnapshot().ieps > 0
+                          }" />
+                      </td>
+                      @if (hasLineIvaColumn()) {
+                        <td class="col-money">
+                          @if (getTotalsSnapshot().iva > 0) {
+                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: getTotalsSnapshot().iva }" />
+                          }
+                        </td>
+                      }
+                      @if (hasLineIepsColumn()) {
+                        <td class="col-money">
+                          @if (hasDisplayedIeps()) {
+                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: getTotalsSnapshot().ieps }" />
+                          }
+                        </td>
+                      }
+                      <td></td>
+                      <td></td>
+                      @if (canEditLines()) {
+                        <td></td>
+                      }
+                    </tr>
+                  </tfoot>
+                }
               </table>
+              </div>
             </div>
           }
 

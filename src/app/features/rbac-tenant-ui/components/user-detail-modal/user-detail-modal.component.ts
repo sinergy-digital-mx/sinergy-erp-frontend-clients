@@ -1256,7 +1256,6 @@ export class UserDetailModalComponent implements OnInit {
     if (this.isNew) {
       const payload = {
         ...commonPayload,
-        tenant_id: this.authService.user_info.tenant_id,
         status_id: 1,
         password: this.form.get('password')?.value
       };
