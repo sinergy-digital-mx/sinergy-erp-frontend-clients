@@ -703,6 +703,15 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return formatMeasureTotalsLine(product.measure_totals, formatInventoryNumber);
   }
 
+  catalogCardTrack(product: any): string {
+    return `${product?.id || product?.product_id || ''}:${product?.product_uom_id || product?.uom_id || ''}`;
+  }
+
+  catalogUomLabel(product: any): string {
+    const label = String(product?.uom_name || product?.uom_abbreviation || '').trim();
+    return label || 'Pieza';
+  }
+
   private commitProductToCart(
     product: any,
     selection: {

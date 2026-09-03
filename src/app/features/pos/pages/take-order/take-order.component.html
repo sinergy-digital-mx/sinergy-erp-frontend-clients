@@ -119,7 +119,7 @@
       </div>
 
       <div class="pos-product-grid">
-        @for (product of filteredProducts(); track product.id) {
+        @for (product of filteredProducts(); track catalogCardTrack(product)) {
           <article
             class="pos-card"
             [class.pos-card--disabled]="!canAddToCart(product)"
@@ -134,6 +134,12 @@
                 (click)="openProductDetail(product, $event)">
                 <lucide-icon [img]="Info" class="pos-ic pos-ic--sm" />
               </button>
+              @if (hasApplicableDiscounts(product)) {
+                <span class="pos-card__discount-badge">
+                  <lucide-icon [img]="Percent" class="pos-ic pos-ic--xs" />
+                  Desc.
+                </span>
+              }
               @if (hasProductPhoto(product)) {
                 <img
                   [src]="getProductPhotoUrl(product)"
@@ -153,8 +159,9 @@
               }
             </div>
             <div class="pos-card__body">
-              <div class="pos-card__head">
-                <h3 class="pos-card__name">{{ product.name }}</h3>
+              <h3 class="pos-card__name" [attr.title]="product.name">{{ product.name }}</h3>
+              <div class="pos-card__row">
+                <span class="pos-card__uom" [attr.title]="catalogUomLabel(product)">{{ catalogUomLabel(product) }}</span>
                 @if (product.has_price) {
                   <span class="pos-card__price">{{ formatCurrency(catalogPriceGross(product)) }}</span>
                 } @else {
@@ -166,15 +173,11 @@
                 <span class="pos-card__meta-dot" aria-hidden="true">·</span>
                 <span>Stock {{ product.total_available_quantity || 0 }}</span>
               </p>
-              @if (productMeasureLine(product)) {
-                <p class="pos-card__measures">{{ productMeasureLine(product) }}</p>
-              }
-              @if (hasApplicableDiscounts(product)) {
-                <span class="pos-card__discount-badge">
-                  <lucide-icon [img]="Percent" class="pos-ic pos-ic--xs" />
-                  Descuentos
-                </span>
-              }
+              <div class="pos-card__extra">
+                @if (productMeasureLine(product)) {
+                  <p class="pos-card__measures">{{ productMeasureLine(product) }}</p>
+                }
+              </div>
             </div>
             <button
               type="button"
