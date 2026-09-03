@@ -238,6 +238,37 @@
         </div>
       </div>
 
+      <div class="pos-customer">
+        <div class="pos-customer__toggle" [class.pos-customer__toggle--selected]="hasSelectedCustomer()">
+          <button type="button" class="pos-customer__pick" (click)="openCustomerPicker()">
+            <span class="pos-customer__toggle-left">
+              <span class="pos-customer__avatar" [class.pos-customer__avatar--filled]="hasSelectedCustomer()">
+                {{ customerInitials() }}
+              </span>
+              <span class="pos-customer__toggle-text">
+                <span class="pos-customer__label">Cliente</span>
+                @if (hasSelectedCustomer()) {
+                  <span class="pos-customer__name">{{ selectedCustomerName() }}</span>
+                } @else {
+                  <span class="pos-customer__hint">Público en General · opcional</span>
+                }
+              </span>
+            </span>
+            <lucide-icon [img]="ChevronRight" class="pos-customer__chevron pos-ic pos-ic--sm" />
+          </button>
+          @if (hasSelectedCustomer()) {
+            <button
+              type="button"
+              class="pos-customer__clear"
+              title="Quitar cliente"
+              aria-label="Quitar cliente"
+              (click)="clearSelectedCustomer()">
+              <lucide-icon [img]="X" class="pos-ic pos-ic--xs" />
+            </button>
+          }
+        </div>
+      </div>
+
       <div class="pos-cart__body">
         <div class="pos-cart__panel pos-cart__panel--products">
       <div class="pos-cart__lines" [class.pos-cart__lines--empty]="posService.cart().items.length === 0">

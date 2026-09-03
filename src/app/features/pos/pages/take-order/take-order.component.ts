@@ -23,10 +23,15 @@ import {
   Percent,
   Info,
   ChevronDown,
+  ChevronRight,
   X,
   MapPin,
 } from 'lucide-angular';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
+import {
+  PosCustomerPickerDialogComponent,
+  PosCustomerPickerDialogResult,
+} from '../../components/pos-customer-picker-dialog/pos-customer-picker-dialog.component';
 import { PosBranchSessionService } from '../../services/pos-branch-session.service';
 import { UnclosedDailyShiftDialogComponent } from '../../components/unclosed-daily-shift-dialog/unclosed-daily-shift-dialog.component';
 import {
@@ -58,6 +63,7 @@ import {
   isPosOrderQueued,
   resolveFiscalConfigurationIdFromBranch,
 } from '../../utils/pos-order.util';
+import { resolvePosCollectCustomerId } from '../../utils/pos-collect.util';
 import { isDiscountApiError, formatGlobalDiscountLabel, formatApplicableDiscountLabel } from '../../utils/pos-discount.util';
 import { GlobalDiscountService } from '../../../global-discounts/services/global-discount.service';
 import { GlobalDiscount } from '../../../global-discounts/models/global-discount.model';
@@ -93,6 +99,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   readonly Percent = Percent;
   readonly Info = Info;
   readonly ChevronDown = ChevronDown;
+  readonly ChevronRight = ChevronRight;
   readonly X = X;
   readonly MapPin = MapPin;
 
@@ -106,6 +113,11 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   loading = signal<boolean>(false);
   saving = signal<boolean>(false);
   confirming = signal<boolean>(false);
+
+  selectedCustomerId = signal('');
+  selectedCustomerName = signal('Público en General');
+  selectedOrderCustomerId = signal<number | string | null>(null);
+  readonly hasSelectedCustomer = computed(() => Boolean(this.selectedCustomerId()));
 
   priceListError = signal<boolean>(false);
   isFullscreen = signal<boolean>(false);
@@ -316,6 +328,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
           return;
         }
         this.posService.clearCart();
+        this.clearSelectedCustomer();
         resetPosWarehouseForBranch(this.authService.getBillingBranchId());
         const fiscal = this.authService.getFiscalConfigurationId();
         if (fiscal) {
@@ -864,6 +877,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
         : 'Se registrará la venta y el cliente pasará a cobranza para pagar.',
       totalLabel: this.formatCurrency(cart.grand_total),
       itemSummary: this.cartItemSummary(cart),
+      customerLabel: this.selectedCustomerName(),
       acceptLabel: 'Registrar venta',
       queued: this.posState.salesQueueMode(),
     }).subscribe((confirmed) => {
@@ -876,6 +890,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
         fiscalConfigurationId: ctx.fiscalConfigurationId,
         sellerUserId: seller.id,
         terminalLabel: this.terminalLabel(),
+        customerId: this.selectedOrderCustomerId() ?? undefined,
       });
 
       this.saving.set(true);
@@ -890,6 +905,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
             : `Venta registrada (${folioLabel}). El cliente debe pasar a cobranza para pagar.`;
           this.notifySuccess(message, 6000);
           this.posService.clearCart();
+          this.clearSelectedCustomer();
           this.loadProducts(this.searchTerm());
         },
         error: (error) => {
@@ -942,6 +958,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       subtitle: 'No se retiene inventario ni se cobra. Puedes convertirla en venta después.',
       totalLabel: this.formatCurrency(cart.grand_total),
       itemSummary: this.cartItemSummary(cart),
+      customerLabel: this.selectedCustomerName(),
       acceptLabel: 'Guardar cotización',
     }).subscribe((confirmed) => {
       if (!confirmed) {
@@ -953,6 +970,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
         fiscalConfigurationId: ctx.fiscalConfigurationId,
         sellerUserId: seller.id,
         terminalLabel: this.terminalLabel(),
+        customerId: this.selectedOrderCustomerId() ?? undefined,
       });
 
       this.saving.set(true);
@@ -962,6 +980,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
           const folioLabel = quotation.folio ? quotation.folio : 'sin folio';
           this.notifySuccess(`Cotización guardada (${folioLabel}). No se retuvo inventario.`, 6000);
           this.posService.clearCart();
+          this.clearSelectedCustomer();
           this.loadProducts(this.searchTerm());
         },
         error: (error) => {
@@ -1001,9 +1020,62 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     return lineLabel;
   }
 
+  openCustomerPicker(): void {
+    this.dialog
+      .open(PosCustomerPickerDialogComponent, {
+        width: '520px',
+        maxWidth: '95vw',
+        panelClass: 'pos-dialog-panel',
+        data: { selectedCustomerId: this.selectedCustomerId() },
+      })
+      .afterClosed()
+      .subscribe((result: PosCustomerPickerDialogResult | undefined) => {
+        if (!result) {
+          return;
+        }
+        if (!result.customerId) {
+          this.clearSelectedCustomer();
+          return;
+        }
+        this.selectedCustomerId.set(result.customerId);
+        const collectId = result.customer
+          ? resolvePosCollectCustomerId(result.customer)
+          : resolvePosCollectCustomerId({ id: result.customerId });
+        this.selectedOrderCustomerId.set(collectId ?? result.customerId);
+        this.selectedCustomerName.set(this.customerDisplayName(result.customer));
+      });
+  }
+
+  clearSelectedCustomer(): void {
+    this.selectedCustomerId.set('');
+    this.selectedOrderCustomerId.set(null);
+    this.selectedCustomerName.set('Público en General');
+  }
+
+  customerInitials(): string {
+    const name = this.selectedCustomerName();
+    const words = name.split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  private customerDisplayName(customer: any): string {
+    if (!customer) {
+      return 'Cliente';
+    }
+    const parts = [customer.name, customer.lastname].filter(Boolean).join(' ').trim();
+    if (customer.company_name) {
+      return parts ? `${parts} · ${customer.company_name}` : customer.company_name;
+    }
+    return parts || customer.email || 'Cliente';
+  }
+
   cancel(): void {
     if (confirm('¿Descartar orden actual?')) {
       this.posService.clearCart();
+      this.clearSelectedCustomer();
       this.router.navigate(['/pos/ventas']);
     }
   }

@@ -9,6 +9,9 @@
     <span>Total</span>
     <strong>{{ data.totalLabel }}</strong>
     <small>{{ data.itemSummary }}</small>
+    @if (data.customerLabel) {
+      <small class="pos-checkout-dialog__customer">{{ data.customerLabel }}</small>
+    }
   </div>
 
   @if (!isQuote()) {

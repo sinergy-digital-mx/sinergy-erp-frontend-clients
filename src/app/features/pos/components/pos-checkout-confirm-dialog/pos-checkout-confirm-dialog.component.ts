@@ -11,6 +11,7 @@ export interface PosCheckoutConfirmDialogData {
   subtitle: string;
   totalLabel: string;
   itemSummary: string;
+  customerLabel?: string;
   acceptLabel: string;
   queued?: boolean;
 }

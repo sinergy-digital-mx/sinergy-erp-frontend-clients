@@ -10,6 +10,7 @@
     "build:prod": "npm run version:generate && ng build --configuration production --base-href /",
     "build:deploy": "node scripts/build-with-version.js /",
     "deploy": "npm run build:deploy",
+    "deploy:both": "node scripts/deploy-both.js",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
