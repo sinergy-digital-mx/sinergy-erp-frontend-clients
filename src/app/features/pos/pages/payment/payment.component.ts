@@ -39,6 +39,7 @@ import {
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ExchangeRateService } from '../../../../core/services/exchange-rate.service';
+import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
 import { POSService } from '../../services/pos.service';
 import { PosStateService } from '../../services/pos-state.service';
 import { PosBranchSessionService } from '../../services/pos-branch-session.service';
@@ -159,7 +160,7 @@ type DashboardTab = 'pending' | 'collected' | 'shifts';
 @Component({
   selector: 'app-payment',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, SlimSwitchComponent, CreditUsageBarComponent, SpinnerComponent],
+  imports: [CommonModule, FormsModule, LucideAngularModule, SlimSwitchComponent, CreditUsageBarComponent, SpinnerComponent, PosOverlayHostDirective],
   templateUrl: './payment.component.html',
   styleUrls: ['./payment.component.scss'],
 })
@@ -669,6 +670,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(CloseDailyShiftDialogComponent, {
       width: '520px',
       maxWidth: '95vw',
+      maxHeight: '90vh',
       disableClose: true,
       panelClass: 'pos-dialog-panel',
       data: this.buildCloseDailyShiftData(shift),

@@ -754,6 +754,25 @@ main,
   }
 }
 
+// Overlay de Material acotado al POS: el menú lateral sigue usable.
+.pos-overlay-scope {
+  position: relative;
+  isolation: isolate;
+
+  > .cdk-overlay-container {
+    position: absolute !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    pointer-events: none;
+  }
+
+  .cdk-overlay-backdrop,
+  .cdk-global-overlay-wrapper {
+    position: absolute !important;
+  }
+}
+
 // POS — modales con .modal-container (elegir cliente, turno, etc.)
 .cdk-overlay-pane.pos-dialog-panel,
 .mat-mdc-dialog-panel.pos-dialog-panel {

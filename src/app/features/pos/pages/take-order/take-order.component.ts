@@ -27,6 +27,7 @@ import {
   X,
   MapPin,
 } from 'lucide-angular';
+import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
 import {
   PosCustomerPickerDialogComponent,
@@ -78,7 +79,7 @@ import { formatInventoryNumber } from '../../../inventory/utils/inventory-list.u
 @Component({
   selector: 'app-take-order',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, SpinnerComponent],
+  imports: [CommonModule, FormsModule, LucideAngularModule, SpinnerComponent, PosOverlayHostDirective],
   templateUrl: './take-order.component.html',
   styleUrls: ['./take-order.component.scss'],
 })

@@ -88,14 +88,18 @@ export class CloseDailyShiftDialogComponent {
   readonly differenceMxnType = computed(() =>
     cashDifferenceType(this.countedMxn(), this.expectedMxn()),
   );
+  readonly differenceUsdType = computed(() =>
+    cashDifferenceType(this.countedUsd(), this.expectedUsd()),
+  );
 
-  readonly showUsd = computed(
-    () =>
-      this.data.openingCashUsd > 0 ||
-      this.data.collectedCashUsd > 0 ||
-      this.data.removedUsd > 0 ||
-      this.countedUsd() > 0 ||
-      this.expectedUsd() !== 0,
+  readonly activeCounted = computed(() =>
+    this.activeTab() === 'USD' ? this.countedUsd() : this.countedMxn(),
+  );
+  readonly activeDifference = computed(() =>
+    this.activeTab() === 'USD' ? this.differenceUsd() : this.differenceMxn(),
+  );
+  readonly activeDifferenceType = computed(() =>
+    this.activeTab() === 'USD' ? this.differenceUsdType() : this.differenceMxnType(),
   );
 
   constructor(
@@ -104,6 +108,18 @@ export class CloseDailyShiftDialogComponent {
   ) {}
 
   formatMxn(value: number): string {
+    return formatPosMoney(value);
+  }
+
+  formatMoney(currency: 'MXN' | 'USD', value: number): string {
+    if (currency === 'USD') {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value);
+    }
     return formatPosMoney(value);
   }
 

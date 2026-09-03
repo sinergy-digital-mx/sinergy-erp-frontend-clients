@@ -17,6 +17,7 @@
 }
 
 .pos-take-root {
+  position: relative;
   height: calc(100vh - 0px);
   display: flex;
   flex-direction: column;
@@ -30,15 +31,6 @@
   width: 100vw;
   height: 100vh;
   padding: 0.55rem 0.65rem 0;
-  position: relative;
-
-  // Overlay de Material reparentado al root en fullscreen.
-  > .cdk-overlay-container {
-    position: absolute;
-    inset: 0;
-    z-index: 1000;
-    pointer-events: none;
-  }
 }
 
 .pos-session-bar {

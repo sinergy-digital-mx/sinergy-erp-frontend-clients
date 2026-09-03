@@ -154,6 +154,7 @@ export class PosDailyShiftDetailModalComponent {
     const dialogRef = this.dialog.open(CloseDailyShiftDialogComponent, {
       width: '520px',
       maxWidth: '95vw',
+      maxHeight: '90vh',
       disableClose: true,
       panelClass: 'pos-dialog-panel',
       data: {

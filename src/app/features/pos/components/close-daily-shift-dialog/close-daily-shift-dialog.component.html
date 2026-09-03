@@ -1,4 +1,5 @@
 <div class="pos-dialog pos-dialog--wide close-shift-dialog">
+  <div class="close-shift-dialog__body">
   <h2 class="pos-dialog__title">Cerrar corte del día</h2>
   <p class="pos-dialog__subtitle">
     Cuenta el efectivo que queda en caja de {{ data.branchLabel }} ({{ data.shiftDate }}).
@@ -45,15 +46,23 @@
   <h3 class="close-shift-count-title">¿Cuánto queda en caja?</h3>
   <p class="partial-hint">Cuenta billetes y monedas con <strong>+</strong> / <strong>−</strong>. Los centavos se escriben a mano.</p>
 
-  <div class="partial-tabs">
-    <button type="button" [class.partial-tabs__btn--active]="activeTab() === 'MXN'" (click)="activeTab.set('MXN')">
+  <div class="partial-tabs" role="tablist" aria-label="Moneda a contar">
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="activeTab() === 'MXN'"
+      [class.partial-tabs__btn--active]="activeTab() === 'MXN'"
+      (click)="activeTab.set('MXN')">
       Pesos
     </button>
-    @if (showUsd()) {
-      <button type="button" [class.partial-tabs__btn--active]="activeTab() === 'USD'" (click)="activeTab.set('USD')">
-        Dólares
-      </button>
-    }
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="activeTab() === 'USD'"
+      [class.partial-tabs__btn--active]="activeTab() === 'USD'"
+      (click)="activeTab.set('USD')">
+      Dólares
+    </button>
   </div>
 
   @if (activeTab() === 'MXN') {
@@ -80,10 +89,9 @@
       <span>Centavos</span>
       <input
         id="close-cents-mxn"
-        type="number"
-        min="0"
-        step="0.01"
+        type="text"
         inputmode="decimal"
+        autocomplete="off"
         placeholder="0.00"
         [ngModel]="centsMxnRaw()"
         (ngModelChange)="setCentsRaw('MXN', $event)" />
@@ -112,10 +120,9 @@
       <span>Centavos</span>
       <input
         id="close-cents-usd"
-        type="number"
-        min="0"
-        step="0.01"
+        type="text"
         inputmode="decimal"
+        autocomplete="off"
         placeholder="0.00"
         [ngModel]="centsUsdRaw()"
         (ngModelChange)="setCentsRaw('USD', $event)" />
@@ -125,25 +132,23 @@
   <div class="close-shift-count-totals">
     <div class="close-shift-count-totals__row">
       <span>Contado</span>
-      <strong>{{ formatMxn(countedMxn()) }}</strong>
+      <strong>{{ formatMoney(activeTab(), activeCounted()) }}</strong>
     </div>
     <div
       class="close-shift-diff"
-      [class.close-shift-diff--exact]="differenceMxnType() === 'exact'"
-      [class.close-shift-diff--surplus]="differenceMxnType() === 'surplus'"
-      [class.close-shift-diff--shortage]="differenceMxnType() === 'shortage'">
-      <span>{{ differenceLabel(differenceMxnType()) }}</span>
-      <strong>{{ formatMxn(abs(differenceMxn())) }}</strong>
+      [class.close-shift-diff--exact]="activeDifferenceType() === 'exact'"
+      [class.close-shift-diff--surplus]="activeDifferenceType() === 'surplus'"
+      [class.close-shift-diff--shortage]="activeDifferenceType() === 'shortage'">
+      <span>{{ differenceLabel(activeDifferenceType()) }}</span>
+      <strong>{{ formatMoney(activeTab(), abs(activeDifference())) }}</strong>
     </div>
-    @if (showUsd()) {
-      <p class="close-shift-summary__aside">USD contado {{ countedUsd() | number:'1.2-2' }} · esperado {{ expectedUsd() | number:'1.2-2' }}</p>
-    }
   </div>
 
   <label class="pos-dialog__field">
     <span>Notas (opcional)</span>
     <input type="text" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Cierre turno, faltante, etc." />
   </label>
+  </div>
 
   <div class="pos-dialog__actions">
     <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="cancel()"></app-button>
