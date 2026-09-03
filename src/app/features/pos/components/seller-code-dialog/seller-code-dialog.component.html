@@ -8,6 +8,7 @@
       type="number"
       min="1"
       step="1"
+      inputmode="numeric"
       [ngModel]="code()"
       (ngModelChange)="code.set($event === '' || $event == null ? null : +$event)"
       (keyup.enter)="confirm()"
@@ -19,7 +20,17 @@
   }
 
   <div class="pos-dialog__actions">
-    <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="cancel()"></app-button>
-    <app-button text="Continuar" custom_class="btn_primary" (clicked)="confirm()"></app-button>
+    <app-button
+      text="Cancelar"
+      customClass="btn_secondary"
+      size="sm"
+      [fullWidth]="false"
+      (clicked)="cancel()"></app-button>
+    <app-button
+      text="Continuar"
+      customClass="btn_primary"
+      size="sm"
+      [fullWidth]="false"
+      (clicked)="confirm()"></app-button>
   </div>
 </div>

@@ -40,7 +40,44 @@ export class PosBranchSelectDialogComponent {
   }
 
   branchLabel(branch: AssignedBranch): string {
-    return branch.display_name || branch.code || branch.id;
+    const title = this.branchTitle(branch);
+    const city = this.branchSubtitle(branch);
+    return city ? `${title} — ${city}` : title;
+  }
+
+  branchTitle(branch: AssignedBranch): string {
+    const fromDisplay = this.splitDisplayName(branch.display_name).name;
+    return this.prettyLabel(fromDisplay || branch.code || branch.id);
+  }
+
+  branchSubtitle(branch: AssignedBranch): string | null {
+    if (branch.city?.trim()) {
+      return this.prettyLabel(branch.city);
+    }
+    const fromDisplay = this.splitDisplayName(branch.display_name).city;
+    return fromDisplay ? this.prettyLabel(fromDisplay) : null;
+  }
+
+  /** Evita códigos en MAYÚSCULAS que se leen como texto gigante. */
+  private prettyLabel(raw: string): string {
+    return raw.replace(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/g, (word) => {
+      if (word.length <= 2) {
+        return word.toUpperCase();
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    });
+  }
+
+  private splitDisplayName(displayName?: string): { name: string; city: string | null } {
+    const raw = displayName?.trim() ?? '';
+    if (!raw) {
+      return { name: '', city: null };
+    }
+    const parts = raw.split(/\s*[—–-]\s*/);
+    if (parts.length < 2) {
+      return { name: raw, city: null };
+    }
+    return { name: parts[0], city: parts.slice(1).join(' — ') };
   }
 
   selectBranch(branch: AssignedBranch): void {

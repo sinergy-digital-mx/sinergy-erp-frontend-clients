@@ -1,4 +1,13 @@
-import { Component, OnDestroy, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  OnDestroy,
+  OnInit,
+  signal,
+  computed,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -81,7 +90,7 @@ import { formatInventoryNumber } from '../../../inventory/utils/inventory-list.u
   templateUrl: './take-order.component.html',
   styleUrls: ['./take-order.component.scss'],
 })
-export class TakeOrderComponent implements OnInit, OnDestroy {
+export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('posRoot') posRootRef?: ElementRef<HTMLElement>;
   @ViewChild('catalogSearch') catalogSearchRef?: ElementRef<HTMLInputElement>;
   readonly Search = Search;
@@ -224,6 +233,11 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
     if (this.authService.isPosCobranzaTerminal()) {
       void this.router.navigate(['/pos/cobranza'], { replaceUrl: true });
+    }
+  }
+
+  ngAfterViewInit(): void {
+    if (this.authService.isPosCobranzaTerminal()) {
       return;
     }
     this.posBranchSession.ensureSelected().subscribe({

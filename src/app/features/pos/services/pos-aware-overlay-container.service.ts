@@ -6,12 +6,19 @@ import { OverlayContainer } from '@angular/cdk/overlay';
  * Overlay de CDK acotado al root POS cuando hay host registrado.
  * Así el backdrop no tapa el menú lateral. Fuera de POS se comporta
  * como FullscreenOverlayContainer (body o elemento en fullscreen).
+ *
+ * CDK 21 monta diálogos con Popover nativo (top layer). Eso ignora el host
+ * y cubre toda la app; hasHost() sirve para apagar usePopover solo en POS.
  */
 @Injectable({ providedIn: 'root' })
 export class PosAwareOverlayContainer extends OverlayContainer implements OnDestroy {
   private readonly documentRef = inject(DOCUMENT);
   private posHost: HTMLElement | null = null;
   private readonly onFullscreenChange = (): void => this.relocate();
+
+  hasHost(): boolean {
+    return this.posHost != null;
+  }
 
   setPosHost(host: HTMLElement): void {
     this.posHost = host;
@@ -24,6 +31,12 @@ export class PosAwareOverlayContainer extends OverlayContainer implements OnDest
     }
     this.posHost = null;
     this.relocate();
+  }
+
+  override getContainerElement(): HTMLElement {
+    const container = super.getContainerElement();
+    this.relocate();
+    return container;
   }
 
   protected override _createContainer(): void {

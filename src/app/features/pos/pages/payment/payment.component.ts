@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   Component,
   OnDestroy,
   OnInit,
@@ -160,7 +161,7 @@ type DashboardTab = 'pending' | 'collected' | 'shifts';
   templateUrl: './payment.component.html',
   styleUrls: ['./payment.component.scss'],
 })
-export class PaymentComponent implements OnInit, OnDestroy {
+export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('posRoot') posRootRef?: ElementRef<HTMLElement>;
 
   readonly Wallet = Wallet;
@@ -361,6 +362,13 @@ export class PaymentComponent implements OnInit, OnDestroy {
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     this.loadDailyExchangeRate();
+    const orderId = this.route.snapshot.queryParamMap.get('orderId');
+    if (orderId) {
+      this.preselectOrderId.set(orderId);
+    }
+  }
+
+  ngAfterViewInit(): void {
     this.posBranchSession.ensureSelected().subscribe({
       next: (ok) => {
         if (ok) {
@@ -369,10 +377,6 @@ export class PaymentComponent implements OnInit, OnDestroy {
       },
       error: (error) => this.toast.error(mapPosApiErrorMessage(error.error?.message)),
     });
-    const orderId = this.route.snapshot.queryParamMap.get('orderId');
-    if (orderId) {
-      this.preselectOrderId.set(orderId);
-    }
   }
 
   ngOnDestroy(): void {

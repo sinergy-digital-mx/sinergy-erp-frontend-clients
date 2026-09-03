@@ -5,3 +5,14 @@
   font-size: 12px;
   color: #dc2626;
 }
+
+.pos-dialog__field input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}

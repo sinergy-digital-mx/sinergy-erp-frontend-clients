@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewInit, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import {
@@ -18,7 +18,7 @@ import { PosBranchSessionService } from '../../services/pos-branch-session.servi
   templateUrl: './pos-home.component.html',
   styleUrls: ['./pos-home.component.scss'],
 })
-export class POSHomeComponent implements OnInit {
+export class POSHomeComponent implements AfterViewInit {
   readonly LayoutGrid = LayoutGrid;
   readonly ShoppingCart = ShoppingCart;
   readonly Banknote = Banknote;
@@ -29,7 +29,7 @@ export class POSHomeComponent implements OnInit {
     private posBranchSession: PosBranchSessionService
   ) {}
 
-  ngOnInit(): void {
+  ngAfterViewInit(): void {
     this.posBranchSession.ensureSelected().subscribe();
   }
 

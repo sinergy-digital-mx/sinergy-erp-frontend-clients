@@ -1,28 +1,38 @@
-<div class="pos-dialog">
+<div class="pos-dialog pos-branch-dialog">
   <h2 class="pos-dialog__title">Sucursal POS</h2>
   <p class="pos-dialog__subtitle">
-    Inventario y corte son de la sucursal que elijas. Si esa sucursal no tiene corte abierto, las
-    ventas quedan en cola. El corte de la sucursal anterior no se cierra.
+    Inventario y corte son de la sucursal elegida. Si no tiene corte abierto, las ventas quedan en
+    cola.
   </p>
 
-  <div class="pos-branch-list">
-    @for (branch of data.branches; track branch.id) {
-      <button
-        type="button"
-        class="pos-branch-option"
-        [class.pos-branch-option--on]="selectedId() === branch.id"
-        [disabled]="saving()"
-        (click)="selectBranch(branch)">
-        <span class="pos-branch-option__radio" [class.pos-branch-option__radio--on]="selectedId() === branch.id"></span>
-        <span>
-          {{ branchLabel(branch) }}
+  <label class="pos-branch-field">
+    <span class="pos-branch-field__label">Sucursal</span>
+    <div class="pos-branch-list" role="listbox" [attr.aria-disabled]="saving()">
+      @for (branch of data.branches; track branch.id) {
+        <button
+          type="button"
+          role="option"
+          class="pos-branch-option"
+          [class.pos-branch-option--on]="selectedId() === branch.id"
+          [attr.aria-selected]="selectedId() === branch.id"
+          [disabled]="saving()"
+          (click)="selectBranch(branch)">
+          <span
+            class="pos-branch-option__radio"
+            [class.pos-branch-option__radio--on]="selectedId() === branch.id"></span>
+          <span class="pos-branch-option__copy">
+            <span class="pos-branch-option__name">{{ branchTitle(branch) }}</span>
+            @if (branchSubtitle(branch); as city) {
+              <span class="pos-branch-option__meta">{{ city }}</span>
+            }
+          </span>
           @if (branch.is_primary) {
-            <small>Principal</small>
+            <span class="pos-branch-option__badge">Principal</span>
           }
-        </span>
-      </button>
-    }
-  </div>
+        </button>
+      }
+    </div>
+  </label>
 
   @if (error()) {
     <p class="pos-dialog__error">{{ error() }}</p>
@@ -33,12 +43,16 @@
       <app-button
         text="Cancelar"
         customClass="btn_secondary"
+        size="sm"
+        [fullWidth]="false"
         [disabled]="saving()"
         (clicked)="cancel()"></app-button>
     }
     <app-button
       text="Continuar"
       customClass="btn_primary"
+      size="sm"
+      [fullWidth]="false"
       [loading]="saving()"
       (clicked)="confirm()"></app-button>
   </div>

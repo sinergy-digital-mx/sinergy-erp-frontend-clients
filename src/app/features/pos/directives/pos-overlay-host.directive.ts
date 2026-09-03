@@ -1,4 +1,4 @@
-import { Directive, ElementRef, OnDestroy, OnInit, inject } from '@angular/core';
+import { Directive, ElementRef, OnDestroy, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { PosAwareOverlayContainer } from '../services/pos-aware-overlay-container.service';
 
@@ -10,12 +10,12 @@ import { PosAwareOverlayContainer } from '../services/pos-aware-overlay-containe
     class: 'pos-overlay-scope',
   },
 })
-export class PosOverlayHostDirective implements OnInit, OnDestroy {
+export class PosOverlayHostDirective implements OnDestroy {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly overlay = inject(PosAwareOverlayContainer);
   private readonly dialog = inject(MatDialog);
 
-  ngOnInit(): void {
+  constructor() {
     this.overlay.setPosHost(this.host.nativeElement);
   }
 

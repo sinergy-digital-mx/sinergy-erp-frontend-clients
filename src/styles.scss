@@ -759,17 +759,23 @@ main,
   position: relative;
   isolation: isolate;
 
-  > .cdk-overlay-container {
+  .cdk-overlay-container,
+  .cdk-overlay-popover,
+  .cdk-global-overlay-wrapper,
+  .cdk-overlay-backdrop {
     position: absolute !important;
     inset: 0 !important;
     width: auto !important;
     height: auto !important;
-    pointer-events: none;
   }
 
-  .cdk-overlay-backdrop,
-  .cdk-global-overlay-wrapper {
-    position: absolute !important;
+  .cdk-overlay-container {
+    pointer-events: none;
+    z-index: 30;
+  }
+
+  .cdk-overlay-popover {
+    pointer-events: none;
   }
 }
 

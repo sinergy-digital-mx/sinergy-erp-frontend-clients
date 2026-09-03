@@ -1,7 +1,7 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { OverlayContainer } from '@angular/cdk/overlay';
+import { OVERLAY_DEFAULT_CONFIG, OverlayContainer } from '@angular/cdk/overlay';
 import { PosAwareOverlayContainer } from './features/pos/services/pos-aware-overlay-container.service';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
@@ -54,6 +54,16 @@ export const appConfig: ApplicationConfig = {
     ),
     // Overlays de POS se anclan al root del módulo; el resto usa body / fullscreen.
     { provide: OverlayContainer, useExisting: PosAwareOverlayContainer },
+    // CDK 21 usa Popover (top layer) y tapa el menú. Solo se apaga dentro de POS.
+    {
+      provide: OVERLAY_DEFAULT_CONFIG,
+      useFactory: (pos: PosAwareOverlayContainer) => ({
+        get usePopover() {
+          return !pos.hasHost();
+        },
+      }),
+      deps: [PosAwareOverlayContainer],
+    },
     provideRouter(routes)
   ]
 };
