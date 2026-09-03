@@ -1,85 +1,75 @@
 <div #posRoot class="pos-take-root" posOverlayHost [class.pos-take-root--fullscreen]="isFullscreen()">
-  <!-- Barra corte global POS -->
+  <div class="pos-take-layout" [class.pos-take-layout--locked]="!isCobranzaTerminal() && !canSell()">
+    @if (!isCobranzaTerminal() && !canSell()) {
+      <div class="pos-lock-overlay" aria-hidden="true">
+        <div class="pos-lock-card">
+          <lucide-icon [img]="User" class="pos-lock-card__icon" />
+          <h3>Identifica al vendedor</h3>
+          <p>Ingresa el código del vendedor POS para cargar el catálogo y registrar ventas.</p>
+          <button type="button" class="pos-btn pos-btn--primary pos-btn--lg" (click)="openSellerCodeDialog()">
+            <span>Ingresar código</span>
+          </button>
+        </div>
+      </div>
+    }
+
+    <div class="pos-take-main">
   <header class="pos-session-bar">
     <div class="pos-session-bar__content">
-      <div class="pos-session-bar__left">
-        <div class="pos-session-bar__title">
-          <lucide-icon [img]="Monitor" class="pos-session-bar__title-icon" />
-          <span>Punto de Venta</span>
+      <div class="pos-session-bar__brand">
+        <span>Punto de Venta</span>
+      </div>
+
+      <nav class="pos-session-bar__meta" aria-label="Sesión POS">
+        <div class="pos-meta">
+          <span class="pos-meta__k">Corte</span>
+          @if (posState.checkingShift()) {
+            <span class="pos-meta__v">Verificando…</span>
+          } @else if (posState.requiresPreviousClose()) {
+            <span class="pos-meta__v pos-meta__v--warn">Atrasado</span>
+          } @else if (posState.shiftOpen()) {
+            <span class="pos-meta__v pos-meta__v--ok">Abierto</span>
+          } @else {
+            <span class="pos-meta__v pos-meta__v--warn">En cola</span>
+          }
         </div>
-      </div>
 
-      <div class="pos-session-bar__center">
-        @if (posState.checkingShift()) {
-          <span class="pos-session-bar__checking">Verificando corte…</span>
-        } @else if (posState.requiresPreviousClose()) {
-          <div class="pos-pill pos-pill--warn">
-            <lucide-icon [img]="AlertCircle" class="pos-ic pos-ic--sm" />
-            <span>Corte de otro día — ventas en cola</span>
-          </div>
-          <span class="pos-session-meta">{{ branchLabel() }}</span>
+        <div class="pos-meta">
+          <span class="pos-meta__k">Sucursal</span>
+          <span class="pos-meta__v">{{ branchLabel() }}</span>
           @if (canSwitchBranch()) {
-            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
-              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
-              Cambiar
-            </button>
+            <button type="button" class="pos-meta__link" (click)="changeBranch()">Cambiar</button>
           }
-          @if (posState.seller()) {
-            <span class="pos-session-meta">Vendedor: {{ posState.sellerDisplayName() }}</span>
-          }
-        } @else if (posState.shiftOpen()) {
-          <div class="pos-pill pos-pill--ok">
-            <lucide-icon [img]="Package" class="pos-ic pos-ic--sm" />
-            <span>Corte abierto</span>
-          </div>
-          <span class="pos-session-meta">{{ branchLabel() }}</span>
-          @if (canSwitchBranch()) {
-            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
-              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
-              Cambiar
-            </button>
-          }
-          @if (posState.seller(); as seller) {
-            <span class="pos-session-meta">· Vendedor: {{ posState.sellerDisplayName() }}</span>
-          }
-        } @else {
-          <div class="pos-pill pos-pill--warn">
-            <lucide-icon [img]="AlertCircle" class="pos-ic pos-ic--sm" />
-            <span>Sin corte — ventas en cola</span>
-          </div>
-          <span class="pos-session-meta">{{ branchLabel() }}</span>
-          @if (canSwitchBranch()) {
-            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
-              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
-              Cambiar
-            </button>
-          }
-          @if (posState.seller()) {
-            <span class="pos-session-meta">Vendedor: {{ posState.sellerDisplayName() }}</span>
-          }
-        }
-      </div>
+        </div>
 
-      <div class="pos-session-bar__right">
-        <button type="button" class="pos-btn pos-btn--ghost pos-btn--icon" (click)="toggleFullscreen()">
+        <div class="pos-meta">
+          <span class="pos-meta__k">Vendedor</span>
+          @if (posState.seller()) {
+            <span class="pos-meta__v">{{ posState.sellerDisplayName() }}</span>
+            <button type="button" class="pos-meta__link" (click)="changeSeller()">Cambiar</button>
+          } @else if (posState.needsSellerCode()) {
+            <button type="button" class="pos-meta__link pos-meta__link--emphasis" (click)="openSellerCodeDialog()">
+              Código
+            </button>
+          } @else {
+            <span class="pos-meta__v pos-meta__v--muted">—</span>
+          }
+        </div>
+      </nav>
+
+      <div class="pos-session-bar__tools">
+        <div class="pos-meta">
+          <span class="pos-meta__k">Terminal</span>
+          <span class="pos-meta__v">{{ terminalLabel() }}</span>
+        </div>
+        <button
+          type="button"
+          class="pos-session-bar__icon-btn"
+          (click)="toggleFullscreen()"
+          [attr.aria-label]="isFullscreen() ? 'Salir de pantalla completa' : 'Pantalla completa'"
+          [title]="isFullscreen() ? 'Salir de pantalla completa' : 'Pantalla completa'">
           <lucide-icon [img]="isFullscreen() ? Minimize2 : Maximize2" class="pos-ic pos-ic--btn" />
         </button>
-        <div class="pos-terminal-chip">
-          <lucide-icon [img]="Monitor" class="pos-ic pos-ic--sm" />
-          <span class="pos-terminal-chip__label">{{ terminalLabel() }}</span>
-        </div>
-        @if (!isCobranzaTerminal() && posState.seller()) {
-          <button type="button" class="pos-btn pos-btn--ghost" (click)="changeSeller()">
-            <lucide-icon [img]="User" class="pos-ic pos-ic--btn" />
-            <span>Cambiar vendedor</span>
-          </button>
-        }
-        @if (!isCobranzaTerminal() && posState.needsSellerCode()) {
-          <button type="button" class="pos-btn pos-btn--primary" (click)="openSellerCodeDialog()">
-            <lucide-icon [img]="User" class="pos-ic pos-ic--btn" />
-            <span>Código vendedor</span>
-          </button>
-        }
       </div>
     </div>
   </header>
@@ -100,20 +90,7 @@
     </div>
   }
 
-  <div class="pos-take-body" [class.pos-take-body--locked]="!isCobranzaTerminal() && !canSell()">
-    @if (!isCobranzaTerminal() && !canSell()) {
-      <div class="pos-lock-overlay" aria-hidden="true">
-        <div class="pos-lock-card">
-          <lucide-icon [img]="User" class="pos-lock-card__icon" />
-          <h3>Identifica al vendedor</h3>
-          <p>Ingresa el código del vendedor POS para cargar el catálogo y registrar ventas.</p>
-          <button type="button" class="pos-btn pos-btn--primary pos-btn--lg" (click)="openSellerCodeDialog()">
-            <span>Ingresar código</span>
-          </button>
-        </div>
-      </div>
-    }
-
+  <div class="pos-take-body">
     <section class="pos-catalog">
       <div class="pos-catalog__toolbar">
         <div class="pos-search">
@@ -229,6 +206,8 @@
         }
       </div>
     </section>
+      </div>
+    </div>
 
     <aside class="pos-cart">
       <div class="pos-cart__head">
@@ -366,98 +345,106 @@
       </div>
 
       <div class="pos-cart__summary" [class.pos-cart__summary--collapsed]="!cartTotalsOpen()">
+        <button
+          type="button"
+          class="pos-cart__sheet-toggle"
+          [class.is-open]="cartTotalsOpen()"
+          (click)="toggleCartTotals()"
+          [attr.aria-expanded]="cartTotalsOpen()"
+          [attr.aria-label]="cartTotalsOpen() ? 'Ocultar desglose' : 'Ver desglose'">
+          <lucide-icon
+            [img]="ChevronDown"
+            [size]="16"
+            class="pos-cart__sheet-chevron"
+            aria-hidden="true" />
+        </button>
+
         @if (cartTotalsOpen()) {
-        @if (canUseGlobalDiscounts()) {
-          <div class="pos-cart__global-discount">
-            <label class="pos-cart__global-discount-label" for="pos-global-discount">
-              <lucide-icon [img]="Percent" class="pos-ic pos-ic--xs" />
-              Descuento global
-            </label>
-            <select
-              id="pos-global-discount"
-              class="pos-cart__global-discount-select"
-              [disabled]="loadingGlobalDiscounts() || posService.cart().items.length === 0"
-              [value]="selectedGlobalDiscountId()"
-              (change)="onGlobalDiscountChange($any($event.target).value)">
-              @if (loadingGlobalDiscounts()) {
-                <option value="">Cargando descuentos…</option>
-              } @else {
-                <option value="">Sin descuento</option>
-                @if (applicableGlobalDiscounts().length === 0) {
-                  <option value="" disabled>No hay descuentos vigentes</option>
+          @if (canUseGlobalDiscounts()) {
+            <div class="pos-cart__global-discount">
+              <div class="pos-cart__global-discount-head">
+                <label class="pos-cart__global-discount-label" for="pos-global-discount">
+                  <lucide-icon [img]="Percent" class="pos-ic pos-ic--xs" />
+                  Descuento global
+                </label>
+                <button
+                  type="button"
+                  class="pos-cart__global-discount-create"
+                  (click)="openCreateGlobalDiscount()"
+                  title="Crear descuento global">
+                  <lucide-icon [img]="Plus" class="pos-ic pos-ic--xs" />
+                  Crear
+                </button>
+              </div>
+              <select
+                id="pos-global-discount"
+                class="pos-line__pricing-select pos-cart__global-discount-select"
+                [disabled]="loadingGlobalDiscounts() || posService.cart().items.length === 0"
+                [value]="selectedGlobalDiscountId()"
+                (change)="onGlobalDiscountChange($any($event.target).value)">
+                @if (loadingGlobalDiscounts()) {
+                  <option value="">Cargando…</option>
+                } @else {
+                  <option value="">Sin descuento</option>
+                  @if (applicableGlobalDiscounts().length === 0) {
+                    <option value="" disabled>No hay descuentos vigentes</option>
+                  }
+                  @for (discount of applicableGlobalDiscounts(); track discount.id) {
+                    <option [value]="discount.id">{{ formatGlobalDiscountOption(discount) }}</option>
+                  }
                 }
-                @for (discount of applicableGlobalDiscounts(); track discount.id) {
-                  <option [value]="discount.id">{{ formatGlobalDiscountOption(discount) }}</option>
-                }
+              </select>
+            </div>
+          }
+
+          @if (cartAppliedDiscounts().length > 0) {
+            <div class="pos-cart__discounts">
+              <h3 class="pos-cart__discounts-title">Desc. por producto</h3>
+              @for (discount of cartAppliedDiscounts(); track $index) {
+                <div class="pos-cart__discount-row">
+                  <span>• {{ discount.discountName }} · {{ discount.productName }}</span>
+                  <strong>-{{ formatCurrency(discount.amount) }}</strong>
+                </div>
               }
-            </select>
-            @if (!loadingGlobalDiscounts() && applicableGlobalDiscounts().length === 0 && posService.cart().items.length > 0) {
-              <p class="pos-cart__global-discount-hint">
-                Crea descuentos en Configuración → Descuentos globales.
-              </p>
-            }
+            </div>
+          }
+          <div class="pos-sum-row">
+            <span>Subtotal</span>
+            <strong>{{ formatCurrency(cartHasDiscounts() ? posService.cart().total_gross_subtotal : posService.cart().total_subtotal) }}</strong>
+          </div>
+          @if (cartHasItems()) {
+            <div class="pos-sum-row pos-sum-row--discount">
+              <span>Desc. por producto</span>
+              <strong>-{{ formatCurrency(posService.cart().total_discount) }}</strong>
+            </div>
+          }
+          @if (canUseGlobalDiscounts() && cartHasItems()) {
+            <div class="pos-sum-row pos-sum-row--discount">
+              <span>
+                Desc. global
+                @if (posService.cart().selected_global_discount; as globalDiscount) {
+                  ({{ globalDiscount.name }})
+                }
+              </span>
+              <strong>-{{ formatCurrency(posService.cart().global_discount_amount) }}</strong>
+            </div>
+          }
+          <div class="pos-sum-row">
+            <span>IVA</span>
+            <strong>{{ formatCurrency(posService.cart().total_iva) }}</strong>
+          </div>
+          <div class="pos-sum-row">
+            <span>IEPS</span>
+            <strong>{{ formatCurrency(posService.cart().total_ieps) }}</strong>
           </div>
         }
 
-        @if (cartAppliedDiscounts().length > 0) {
-          <div class="pos-cart__discounts">
-            <h3 class="pos-cart__discounts-title">Desc. por producto</h3>
-            @for (discount of cartAppliedDiscounts(); track $index) {
-              <div class="pos-cart__discount-row">
-                <span>• {{ discount.discountName }} · {{ discount.productName }}</span>
-                <strong>-{{ formatCurrency(discount.amount) }}</strong>
-              </div>
-            }
-          </div>
-        }
-        <div class="pos-sum-row">
-          <span>Subtotal</span>
-          <strong>{{ formatCurrency(cartHasDiscounts() ? posService.cart().total_gross_subtotal : posService.cart().total_subtotal) }}</strong>
-        </div>
-        @if (cartHasItems()) {
-          <div class="pos-sum-row pos-sum-row--discount">
-            <span>Desc. por producto</span>
-            <strong>-{{ formatCurrency(posService.cart().total_discount) }}</strong>
-          </div>
-        }
-        @if (canUseGlobalDiscounts() && cartHasItems()) {
-          <div class="pos-sum-row pos-sum-row--discount">
-            <span>
-              Desc. global
-              @if (posService.cart().selected_global_discount; as globalDiscount) {
-                ({{ globalDiscount.name }})
-              }
-            </span>
-            <strong>-{{ formatCurrency(posService.cart().global_discount_amount) }}</strong>
-          </div>
-        }
-        <div class="pos-sum-row">
-          <span>IVA</span>
-          <strong>{{ formatCurrency(posService.cart().total_iva) }}</strong>
-        </div>
-        <div class="pos-sum-row">
-          <span>IEPS</span>
-          <strong>{{ formatCurrency(posService.cart().total_ieps) }}</strong>
-        </div>
-        }
-        <button
-          type="button"
-          class="pos-sum-row pos-sum-row--total pos-cart__total-toggle"
-          [class.is-open]="cartTotalsOpen()"
-          [class.pos-sum-row--total-collapsed]="!cartTotalsOpen()"
-          (click)="toggleCartTotals()"
-          [attr.aria-expanded]="cartTotalsOpen()">
-          <span class="pos-cart__total-label">
-            Total
-            <lucide-icon
-              [img]="ChevronDown"
-              [size]="16"
-              class="pos-cart__total-chevron"
-              aria-hidden="true" />
-          </span>
+        <div
+          class="pos-sum-row pos-sum-row--total"
+          [class.pos-sum-row--total-collapsed]="!cartTotalsOpen()">
+          <span>Total</span>
           <strong>{{ formatCurrency(posService.cart().grand_total) }}</strong>
-        </button>
-        <p class="pos-cart__hint">{{ cartQueueHint() }}</p>
+        </div>
       </div>
           </div>
       </div>

@@ -12,10 +12,6 @@ function run(command, cwd) {
   execSync(command, { stdio: 'inherit', cwd, shell: true, env: process.env });
 }
 
-function runOutput(command, cwd) {
-  return execSync(command, { encoding: 'utf8', cwd, shell: true }).trim();
-}
-
 function getSshKeyPath() {
   return path.resolve(thisRepo, '..', '..', '..', 'ssh', 'sinergy');
 }
@@ -55,14 +51,7 @@ ensureGitSshAuth();
 console.log('=== Frontend: build + commit + push ===');
 run('npm run build:deploy', frontendDir);
 
-const backendDirty = runOutput('git status --porcelain', backendDir);
-if (backendDirty) {
-  console.warn(
-    'Backend tiene cambios sin commit; el push solo envía commits existentes.'
-  );
-}
-
-console.log('=== Backend: push only ===');
-run('git push origin main', backendDir);
+console.log('=== Backend: build + commit dist + push ===');
+run('npm run build:deploy', backendDir);
 
 console.log('\nDeploy front + back listo.');

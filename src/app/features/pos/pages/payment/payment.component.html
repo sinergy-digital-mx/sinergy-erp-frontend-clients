@@ -1,65 +1,61 @@
 <div #posRoot class="pos-take-root cobranza-root" posOverlayHost [class.pos-take-root--fullscreen]="isFullscreen()">
   <header class="pos-session-bar">
     <div class="pos-session-bar__content">
-      <div class="pos-session-bar__left">
-        <div class="pos-session-bar__title">
-          <lucide-icon [img]="Wallet" class="pos-session-bar__title-icon" />
-          <span>Cobranza POS</span>
+      <div class="pos-session-bar__brand">
+        <span>Cobranza POS</span>
+      </div>
+
+      <nav class="pos-session-bar__meta" aria-label="Sesión POS">
+        <div class="pos-meta">
+          <span class="pos-meta__k">Corte</span>
+          @if (posState.checkingShift()) {
+            <span class="pos-meta__v">Verificando…</span>
+          } @else if (requiresPreviousClose() && shift(); as currentShift) {
+            <span class="pos-meta__v pos-meta__v--warn">{{ currentShift.shift_date }}</span>
+          } @else if (shiftOpen()) {
+            <span class="pos-meta__v pos-meta__v--ok">Abierto</span>
+          } @else {
+            <span class="pos-meta__v pos-meta__v--warn">Cerrado</span>
+          }
         </div>
-      </div>
 
-      <div class="pos-session-bar__center">
-        @if (posState.checkingShift()) {
-          <span class="pos-session-bar__checking">Verificando corte…</span>
-        } @else if (requiresPreviousClose() && shift(); as currentShift) {
-          <div class="pos-pill pos-pill--warn">
-            <lucide-icon [img]="AlertTriangle" class="pos-ic pos-ic--sm" />
-            <span>Corte {{ currentShift.shift_date }} sin cerrar</span>
-          </div>
-          <span class="pos-session-meta">{{ branchLabel() }} · Total en corte {{ shiftSalesTotal(currentShift) }}</span>
+        <div class="pos-meta">
+          <span class="pos-meta__k">Sucursal</span>
+          <span class="pos-meta__v">{{ branchLabel() }}</span>
           @if (canSwitchBranch()) {
-            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
-              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
-              Cambiar
-            </button>
+            <button type="button" class="pos-meta__link" (click)="changeBranch()">Cambiar</button>
           }
-        } @else if (shiftOpen() && shift(); as currentShift) {
-          <div class="pos-pill pos-pill--ok">
-            <lucide-icon [img]="Package" class="pos-ic pos-ic--sm" />
-            <span>Corte abierto</span>
+        </div>
+
+        @if (shift(); as currentShift) {
+          <div class="pos-meta">
+            <span class="pos-meta__k">Total</span>
+            <span class="pos-meta__v">{{ shiftSalesTotal(currentShift) }}</span>
           </div>
-          <span class="pos-session-meta">{{ branchLabel() }} · Total en corte {{ shiftSalesTotal(currentShift) }}</span>
-          @if (canSwitchBranch()) {
-            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
-              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
-              Cambiar
-            </button>
-          }
-        } @else {
-          <div class="pos-pill pos-pill--warn">
-            <span>Sin corte abierto</span>
-          </div>
-          <span class="pos-session-meta">{{ branchLabel() }}</span>
-          @if (canSwitchBranch()) {
-            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
-              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
-              Cambiar
-            </button>
-          }
         }
-      </div>
+      </nav>
 
-      <div class="pos-session-bar__right">
-        <button type="button" class="pos-btn pos-btn--ghost pos-btn--icon" (click)="openPrinterSettings()" title="Impresora térmica">
+      <div class="pos-session-bar__tools">
+        <div class="pos-meta">
+          <span class="pos-meta__k">Terminal</span>
+          <span class="pos-meta__v">{{ terminalLabel() }}</span>
+        </div>
+        <button
+          type="button"
+          class="pos-session-bar__icon-btn"
+          (click)="openPrinterSettings()"
+          title="Impresora térmica"
+          aria-label="Impresora térmica">
           <lucide-icon [img]="Printer" class="pos-ic pos-ic--btn" />
         </button>
-        <button type="button" class="pos-btn pos-btn--ghost pos-btn--icon" (click)="toggleFullscreen()">
+        <button
+          type="button"
+          class="pos-session-bar__icon-btn"
+          (click)="toggleFullscreen()"
+          [attr.aria-label]="isFullscreen() ? 'Salir de pantalla completa' : 'Pantalla completa'"
+          [title]="isFullscreen() ? 'Salir de pantalla completa' : 'Pantalla completa'">
           <lucide-icon [img]="isFullscreen() ? Minimize2 : Maximize2" class="pos-ic pos-ic--btn" />
         </button>
-        <div class="pos-terminal-chip">
-          <lucide-icon [img]="Monitor" class="pos-ic pos-ic--sm" />
-          <span class="pos-terminal-chip__label">{{ terminalLabel() }}</span>
-        </div>
       </div>
     </div>
   </header>

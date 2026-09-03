@@ -13,11 +13,9 @@ import { ActivatedRoute } from '@angular/router';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import {
   LucideAngularModule,
-  Monitor,
   Wallet,
   Maximize2,
   Minimize2,
-  Package,
   Search,
   User,
   Store,
@@ -33,8 +31,6 @@ import {
   Eye,
   Landmark,
   Pencil,
-  MapPin,
-  AlertTriangle,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -167,11 +163,9 @@ type DashboardTab = 'pending' | 'collected' | 'shifts';
 export class PaymentComponent implements OnInit, OnDestroy {
   @ViewChild('posRoot') posRootRef?: ElementRef<HTMLElement>;
 
-  readonly Monitor = Monitor;
   readonly Wallet = Wallet;
   readonly Maximize2 = Maximize2;
   readonly Minimize2 = Minimize2;
-  readonly Package = Package;
   readonly Search = Search;
   readonly User = User;
   readonly Store = Store;
@@ -187,8 +181,6 @@ export class PaymentComponent implements OnInit, OnDestroy {
   readonly Eye = Eye;
   readonly Landmark = Landmark;
   readonly Pencil = Pencil;
-  readonly MapPin = MapPin;
-  readonly AlertTriangle = AlertTriangle;
 
   pendingSales = signal<PendingSale[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);

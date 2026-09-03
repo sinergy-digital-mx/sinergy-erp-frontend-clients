@@ -61,6 +61,7 @@ export interface PosDailyShiftListItem {
   opening_cash_mxn?: number | string | null;
   opening_cash_usd?: number | string | null;
   terminal_user?: PosDailyShiftUser | null;
+  billing_branch_id?: string | null;
   billing_branch?: PosDailyShiftBranch | null;
   sales_summary?: {
     total_mxn?: number | string;
@@ -187,15 +188,40 @@ export function dailyShiftTerminalLabel(shift: PosDailyShiftListItem): string {
   return name || user.email || '—';
 }
 
+export function dailyShiftBranchId(
+  shift: PosDailyShiftListItem | null | undefined,
+): string | null {
+  if (!shift) {
+    return null;
+  }
+  const nested = shift.billing_branch?.id;
+  if (nested != null && String(nested).trim() !== '') {
+    return String(nested).trim();
+  }
+  const root = shift.billing_branch_id;
+  if (root != null && String(root).trim() !== '') {
+    return String(root).trim();
+  }
+  return null;
+}
+
 export function dailyShiftMatchesBranch(
   shift: PosDailyShiftListItem | null | undefined,
   billingBranchId: string | null | undefined,
 ): boolean {
-  if (!shift || !billingBranchId) {
+  if (!shift) {
     return false;
   }
-  const shiftId = shift.billing_branch?.id;
-  return !!shiftId && String(shiftId) === String(billingBranchId);
+  // GET current ya viene filtrado por sucursal. Sin ids no ocultar el corte.
+  const sessionBranchId = billingBranchId != null ? String(billingBranchId).trim() : '';
+  if (!sessionBranchId) {
+    return true;
+  }
+  const shiftBranchId = dailyShiftBranchId(shift);
+  if (!shiftBranchId) {
+    return true;
+  }
+  return shiftBranchId === sessionBranchId;
 }
 
 export function dailyShiftBranchLabel(shift: PosDailyShiftListItem): string {

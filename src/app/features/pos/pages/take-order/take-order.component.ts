@@ -16,16 +16,13 @@ import {
   Minus,
   Maximize2,
   Minimize2,
-  Monitor,
   Package,
-  AlertCircle,
   User,
   Percent,
   Info,
   ChevronDown,
   ChevronRight,
   X,
-  MapPin,
 } from 'lucide-angular';
 import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
@@ -69,6 +66,7 @@ import { isDiscountApiError, formatGlobalDiscountLabel, formatApplicableDiscount
 import { GlobalDiscountService } from '../../../global-discounts/services/global-discount.service';
 import { GlobalDiscount } from '../../../global-discounts/models/global-discount.model';
 import { GLOBAL_DISCOUNT_PERMISSIONS } from '../../../global-discounts/config/permissions.config';
+import { GlobalDiscountFormDialogComponent } from '../../../global-discounts/components/global-discount-form-dialog/global-discount-form-dialog.component';
 import { QUOTATION_PERMISSIONS } from '../../../quotations/config/permissions.config';
 import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
@@ -93,16 +91,13 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   readonly Minus = Minus;
   readonly Maximize2 = Maximize2;
   readonly Minimize2 = Minimize2;
-  readonly Monitor = Monitor;
   readonly Package = Package;
-  readonly AlertCircle = AlertCircle;
   readonly User = User;
   readonly Percent = Percent;
   readonly Info = Info;
   readonly ChevronDown = ChevronDown;
   readonly ChevronRight = ChevronRight;
   readonly X = X;
-  readonly MapPin = MapPin;
 
   private static readonly CART_TOTALS_OPEN_KEY = 'pos_cart_totals_open';
   cartTotalsOpen = signal(TakeOrderComponent.readCartTotalsOpen());
@@ -142,6 +137,12 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
 
   canUseGlobalDiscounts = computed(() =>
     GLOBAL_DISCOUNT_PERMISSIONS.viewList.some((permission) =>
+      this.authService.hasPermission(permission)
+    )
+  );
+
+  canCreateGlobalDiscounts = computed(() =>
+    GLOBAL_DISCOUNT_PERMISSIONS.create.some((permission) =>
       this.authService.hasPermission(permission)
     )
   );
@@ -265,6 +266,27 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
         this.loadingGlobalDiscounts.set(false);
       },
     });
+  }
+
+  openCreateGlobalDiscount(): void {
+    if (!this.canCreateGlobalDiscounts()) {
+      this.notifyError('No tienes permiso para crear descuentos globales', 3500);
+      return;
+    }
+
+    this.dialog
+      .open(GlobalDiscountFormDialogComponent, {
+        width: '560px',
+        maxWidth: '95vw',
+        panelClass: 'pos-dialog-panel',
+        data: { discount: null },
+      })
+      .afterClosed()
+      .subscribe((created) => {
+        if (created) {
+          this.loadApplicableGlobalDiscounts();
+        }
+      });
   }
 
   onGlobalDiscountChange(discountId: string): void {
@@ -1197,16 +1219,6 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   private onFullscreenChange = (): void => {
     this.isFullscreen.set(!!document.fullscreenElement);
   };
-
-  cartQueueHint(): string {
-    if (this.posState.requiresPreviousClose()) {
-      return 'Hay un corte de otro día sin cerrar. La venta quedará en cola hasta que cobranza lo cierre y abra el de hoy.';
-    }
-    if (this.posState.shiftOpen()) {
-      return 'Corte activo — la venta irá directo a cobranza pendiente de pago.';
-    }
-    return 'Sin corte abierto — la venta quedará en cola hasta que cobranza abra el día.';
-  }
 
   catalogEmptyMessage(): string {
     if (this.priceListError()) {

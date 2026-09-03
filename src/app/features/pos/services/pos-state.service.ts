@@ -48,16 +48,12 @@ export class PosStateService {
 
     this.setDailyShift(forActiveBranch);
 
-    if (!forActiveBranch) {
-      this.unclosedShiftAlert.set(null);
-      return null;
-    }
-
-    const alert =
-      response.unclosed_shift_alert ??
-      (response.requires_previous_close || forActiveBranch.is_previous_day
-        ? unclosedAlertFromShift(forActiveBranch)
-        : null);
+    const alert = forActiveBranch
+      ? response.unclosed_shift_alert ??
+        (response.requires_previous_close || forActiveBranch.is_previous_day
+          ? unclosedAlertFromShift(forActiveBranch)
+          : null)
+      : null;
     this.unclosedShiftAlert.set(alert);
     return forActiveBranch;
   }
