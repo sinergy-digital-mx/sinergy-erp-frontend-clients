@@ -4,7 +4,6 @@ import {
   PosDailyShiftDetail,
   UnclosedShiftAlert,
   dailyShiftIsOpen,
-  dailyShiftMatchesBranch,
   normalizeDailyShiftDetail,
   unclosedAlertFromShift,
 } from '../models/pos-daily-shift.model';
@@ -38,24 +37,23 @@ export class PosStateService {
 
   applyCurrentDailyShift(
     response: CurrentDailyShiftResponse,
-    billingBranchId: string | null | undefined
+    _billingBranchId?: string | null
   ): PosDailyShiftDetail | null {
-    const shift = response.daily_shift;
-    const forActiveBranch =
-      shift && dailyShiftIsOpen(shift) && dailyShiftMatchesBranch(shift, billingBranchId)
-        ? shift
+    const shift =
+      response.daily_shift && dailyShiftIsOpen(response.daily_shift)
+        ? response.daily_shift
         : null;
 
-    this.setDailyShift(forActiveBranch);
+    this.setDailyShift(shift);
 
-    const alert = forActiveBranch
+    const alert = shift
       ? response.unclosed_shift_alert ??
-        (response.requires_previous_close || forActiveBranch.is_previous_day
-          ? unclosedAlertFromShift(forActiveBranch)
+        (response.requires_previous_close || shift.is_previous_day
+          ? unclosedAlertFromShift(shift)
           : null)
       : null;
     this.unclosedShiftAlert.set(alert);
-    return forActiveBranch;
+    return shift;
   }
 
   setDailyShift(shift: PosDailyShiftDetail | null): void {

@@ -42,27 +42,30 @@ export class PosBranchSessionService {
       catchError(() => of(undefined)),
       switchMap(() => {
         this.syncLabel();
+        const lastBranchId = this.auth.getBillingBranchId();
+        if (lastBranchId) {
+          this.markConfirmed();
+          return of(true);
+        }
         if (!this.canSwitch()) {
           this.markConfirmed();
           return of(true);
         }
-        if (this.isConfirmed() && this.auth.getBillingBranchId()) {
-          return of(true);
-        }
-        return this.pickBranch({ required: true });
+        return this.pickBranch({ required: true }).pipe(map((id) => !!id));
       })
     );
   }
 
-  pickBranch(opts: { required: boolean }): Observable<boolean> {
+  pickBranch(opts: { required: boolean }): Observable<string | null> {
     const branches = this.auth.getAssignedBranches();
     if (branches.length <= 1) {
       this.markConfirmed();
       this.syncLabel();
-      return of(false);
+      return of(this.auth.getBillingBranchId());
     }
 
-    const previousId = this.auth.getBillingBranchId();
+    const lastBranchId =
+      this.auth.getBillingBranchId() || this.auth.getPrimaryBillingBranchId();
     const dialogRef = this.dialog.open(PosBranchSelectDialogComponent, {
       width: '440px',
       maxWidth: '95vw',
@@ -70,7 +73,7 @@ export class PosBranchSessionService {
       panelClass: 'pos-dialog-panel',
       data: {
         branches,
-        currentId: previousId,
+        currentId: lastBranchId,
         required: opts.required,
       },
     });
@@ -78,11 +81,11 @@ export class PosBranchSessionService {
     return dialogRef.afterClosed().pipe(
       map((result: PosBranchSelectResult | undefined) => {
         if (!result?.id) {
-          return false;
+          return null;
         }
         this.markConfirmed();
         this.syncLabel(result.label);
-        return result.id !== previousId;
+        return result.id;
       })
     );
   }

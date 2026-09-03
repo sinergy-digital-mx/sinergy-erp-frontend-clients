@@ -360,19 +360,19 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   changeBranch(): void {
     this.posBranchSession.pickBranch({ required: false }).subscribe({
-      next: (changed) => {
-        if (!changed) {
+      next: (branchId) => {
+        if (!branchId) {
           return;
         }
         this.posService.clearCart();
         this.clearSelectedCustomer();
-        resetPosWarehouseForBranch(this.authService.getBillingBranchId());
+        resetPosWarehouseForBranch(branchId);
         const fiscal = this.authService.getFiscalConfigurationId();
         if (fiscal) {
           this.posState.fiscalConfigurationId.set(fiscal);
         }
         this.posState.setDailyShift(null);
-        this.refreshDailyShift(() => this.notifyBranchSwitchResult());
+        this.refreshDailyShift(() => this.notifyBranchSwitchResult(), branchId);
         this.loadProducts(this.searchTerm());
       },
       error: (error) => {
@@ -459,14 +459,12 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  refreshDailyShift(onDone?: () => void): void {
+  refreshDailyShift(onDone?: () => void, billingBranchId?: string | null): void {
+    const branchId = billingBranchId ?? this.authService.getBillingBranchId();
     this.posState.checkingShift.set(true);
-    this.posService.getCurrentDailyShift().subscribe({
+    this.posService.getCurrentDailyShift(branchId).subscribe({
       next: (response) => {
-        const forActiveBranch = this.posState.applyCurrentDailyShift(
-          response,
-          this.authService.getBillingBranchId()
-        );
+        const forActiveBranch = this.posState.applyCurrentDailyShift(response, branchId);
         this.posState.checkingShift.set(false);
         onDone?.();
         if (forActiveBranch) {

@@ -181,7 +181,7 @@
               class="pos-card__add"
               (click)="addProductToCart(product); $event.stopPropagation()"
               [disabled]="!canAddToCart(product)">
-              <lucide-icon [img]="Plus" class="pos-ic pos-ic--sm" />
+              <lucide-icon [img]="Plus" [size]="14" class="pos-ic pos-ic--xs" />
               <span>Agregar</span>
             </button>
           </article>

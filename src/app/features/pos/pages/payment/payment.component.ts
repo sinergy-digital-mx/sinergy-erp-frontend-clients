@@ -399,8 +399,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   changeBranch(): void {
     this.posBranchSession.pickBranch({ required: false }).subscribe({
-      next: (changed) => {
-        if (!changed) {
+      next: (branchId) => {
+        if (!branchId) {
           return;
         }
         const fiscal = this.authService.getFiscalConfigurationId();
@@ -408,7 +408,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           this.posState.fiscalConfigurationId.set(fiscal);
         }
         this.posState.setDailyShift(null);
-        this.refreshDailyShift(true);
+        this.refreshDailyShift(true, branchId);
       },
       error: (error) =>
         this.toast.error(
@@ -430,14 +430,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.toast.info(`${name}: sin corte. Ábrelo aquí para cobrar, o las ventas quedan en cola.`);
   }
 
-  refreshDailyShift(afterBranchSwitch = false): void {
+  refreshDailyShift(afterBranchSwitch = false, billingBranchId?: string | null): void {
+    const branchId = billingBranchId ?? this.authService.getBillingBranchId();
     this.posState.checkingShift.set(true);
-    this.posService.getCurrentDailyShift().subscribe({
+    this.posService.getCurrentDailyShift(branchId).subscribe({
       next: (response) => {
-        const openShift = this.posState.applyCurrentDailyShift(
-          response,
-          this.authService.getBillingBranchId()
-        );
+        const openShift = this.posState.applyCurrentDailyShift(response, branchId);
         this.posState.checkingShift.set(false);
         if (openShift) {
           this.loadPendingSales();

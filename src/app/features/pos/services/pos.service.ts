@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { GlobalDiscount } from '../../global-discounts/models/global-discount.model';
 import { POSCart, POSCartItem } from '../models/pos.model';
 import { PosApplicableDiscount } from '../models/pos-inventory-summary.model';
@@ -15,6 +15,8 @@ import {
   ValidateSellerCodeResponse,
   normalizeDailyShiftDetail,
   parseUnclosedShiftAlert,
+  dailyShiftIsOpen,
+  unclosedAlertFromShift,
 } from '../models/pos-daily-shift.model';
 import { SalesOrder, SalesOrderFormData } from '../../sales-orders/models/sales-order.model';
 import { environment } from '../../../../environments/environment';
@@ -637,8 +639,13 @@ export class POSService {
     );
   }
 
-  getCurrentDailyShift(): Observable<CurrentDailyShiftResponse> {
-    return this.http.get(`${this.API_URL}/daily-shift/current`).pipe(
+  getCurrentDailyShift(billingBranchId?: string | null): Observable<CurrentDailyShiftResponse> {
+    const branchId = billingBranchId?.trim() || '';
+    let params = new HttpParams();
+    if (branchId) {
+      params = params.set('billing_branch_id', branchId);
+    }
+    return this.http.get(`${this.API_URL}/daily-shift/current`, { params }).pipe(
       map((res: any) => this.extractCurrentDailyShiftResponse(res)),
       catchError((error) => {
         if (error?.status === 404) {
@@ -649,7 +656,49 @@ export class POSService {
           });
         }
         return throwError(() => error);
+      }),
+      switchMap((current) => {
+        if (dailyShiftIsOpen(current.daily_shift) || !branchId) {
+          return of(current);
+        }
+        return this.resolveOpenShiftFromBranchList(branchId, current);
       })
+    );
+  }
+
+  private resolveOpenShiftFromBranchList(
+    billingBranchId: string,
+    current: CurrentDailyShiftResponse
+  ): Observable<CurrentDailyShiftResponse> {
+    return this.getDailyShifts({ billing_branch_id: billingBranchId, status: 'open' }).pipe(
+      switchMap((list) => {
+        const open = (list.data ?? []).find((row) => dailyShiftIsOpen(row));
+        if (!open?.id) {
+          return of(current);
+        }
+        return this.getDailyShift(open.id).pipe(
+          map((detail) => {
+            const alert =
+              current.unclosed_shift_alert ??
+              (detail.is_previous_day ? unclosedAlertFromShift(detail) : null);
+            return {
+              daily_shift: detail,
+              requires_previous_close: Boolean(alert) || detail.is_previous_day === true,
+              unclosed_shift_alert: alert,
+            };
+          }),
+          catchError(() =>
+            of({
+              daily_shift: open as PosDailyShiftDetail,
+              requires_previous_close: open.is_previous_day === true,
+              unclosed_shift_alert: open.is_previous_day
+                ? unclosedAlertFromShift(open)
+                : null,
+            })
+          )
+        );
+      }),
+      catchError(() => of(current))
     );
   }
 

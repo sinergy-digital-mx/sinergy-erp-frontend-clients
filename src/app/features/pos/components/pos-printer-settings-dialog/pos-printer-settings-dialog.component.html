@@ -31,7 +31,7 @@
       class="detect-btn"
       (click)="detectPrinters()"
       [disabled]="loading()">
-      <lucide-icon [img]="RefreshCw" [class.detect-btn__spin]="loading()" />
+      <lucide-icon [img]="RefreshCw" [size]="16" [class.detect-btn__spin]="loading()" />
       {{ loading() ? 'Buscando impresoras…' : 'Buscar impresoras' }}
     </button>
 

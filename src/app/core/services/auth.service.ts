@@ -16,6 +16,7 @@
     user_info: UserInfoI;
     name_token = 'sinergy_erp_token'
     user_profile_key = 'sinergy_erp_user_profile'
+    private readonly posActiveBranchKey = 'pos_billing_branch_id'
     token: string;
     permissions$ = new BehaviorSubject<Set<string>>(new Set());
 
@@ -74,6 +75,7 @@
       this.user_info = null as any;
       localStorage.removeItem(this.name_token);
       localStorage.removeItem(this.user_profile_key);
+      localStorage.removeItem(this.posActiveBranchKey);
       sessionStorage.removeItem('pos_branch_session_confirmed');
       this.permissions$.next(new Set());
       this.resetPosProfileCache();
@@ -596,8 +598,37 @@
     }
 
     getBillingBranchId(): string | null {
+      const stored = this.readStoredPosBranchId();
+      if (stored && this.isAssignedBranch(stored)) {
+        return stored;
+      }
       const id = this.user_info?.billing_branch_id;
       return id != null && String(id).trim() !== '' ? String(id) : null;
+    }
+
+    private readStoredPosBranchId(): string | null {
+      const id = localStorage.getItem(this.posActiveBranchKey)?.trim();
+      return id || null;
+    }
+
+    private persistPosActiveBranch(billingBranchId: string): void {
+      const id = billingBranchId.trim();
+      if (id) {
+        localStorage.setItem(this.posActiveBranchKey, id);
+      }
+    }
+
+    private isAssignedBranch(billingBranchId: string): boolean {
+      return this.getAssignedBranches().some((row) => row.id === billingBranchId);
+    }
+
+    getPrimaryBillingBranchId(): string | null {
+      const fromProfile = this.user_info?.primary_billing_branch_id;
+      if (fromProfile != null && String(fromProfile).trim() !== '') {
+        return String(fromProfile).trim();
+      }
+      const primary = this.getAssignedBranches().find((row) => row.is_primary);
+      return primary?.id ?? null;
     }
 
     getAssignedBranches(): AssignedBranch[] {
@@ -615,36 +646,48 @@
       return this.http.get<Record<string, unknown>>(`${this.api}/tenant/users/me/branches`).pipe(
         tap((response) => {
           const payload = this.unwrapObjectPayload(response);
+          const incoming = this.normalizeAssignedBranches(payload['assigned_branches']);
+          const lastId = this.readStoredPosBranchId();
+          const serverId =
+            payload['billing_branch_id'] != null
+              ? String(payload['billing_branch_id'])
+              : null;
+          const keep =
+            lastId && (incoming.length === 0 || incoming.some((row) => row.id === lastId))
+              ? lastId
+              : serverId;
           this.applySessionUser({
             ...(this.user_info as unknown as Record<string, unknown>),
             ...payload,
+            billing_branch_id: keep,
           });
+          if (keep) {
+            this.persistPosActiveBranch(keep);
+          }
+          if (keep && serverId && keep !== serverId) {
+            this.setActiveBranch(keep).subscribe({ error: () => undefined });
+          }
         }),
         map(() => undefined)
       );
     }
 
     setActiveBranch(billingBranchId: string): Observable<Record<string, unknown>> {
+      const nextId = String(billingBranchId).trim();
       return this.http
         .put<Record<string, unknown>>(`${this.api}/tenant/users/me/active-branch`, {
-          billing_branch_id: billingBranchId,
+          billing_branch_id: nextId,
         })
         .pipe(
           tap((response) => {
             const payload = this.unwrapObjectPayload(response);
-            const nextId =
-              payload['billing_branch_id'] != null
-                ? String(payload['billing_branch_id'])
-                : billingBranchId;
+            this.persistPosActiveBranch(nextId);
             this.applySessionUser({
               ...(this.user_info as unknown as Record<string, unknown>),
               ...payload,
               billing_branch_id: nextId,
             });
-            if (nextId) {
-              localStorage.setItem('pos_billing_branch_id', nextId);
-              localStorage.removeItem('pos_warehouse_id');
-            }
+            localStorage.removeItem('pos_warehouse_id');
           })
         );
     }
