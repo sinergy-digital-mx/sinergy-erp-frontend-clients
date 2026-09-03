@@ -342,16 +342,26 @@
               class="tab-button"
               [class.active]="activeTabIndex() === 3"
               (click)="activeTabIndex.set(3)">
-              Pagos
-              <span class="tab-count" [class.active]="activeTabIndex() === 3">{{ getPaymentsCount() }}</span>
+              Costo real
+              @if (getExtraCostsCount() > 0) {
+                <span class="tab-count" [class.active]="activeTabIndex() === 3">{{ getExtraCostsCount() }}</span>
+              }
             </button>
             <button
               type="button"
               class="tab-button"
               [class.active]="activeTabIndex() === 4"
               (click)="activeTabIndex.set(4)">
+              Pagos
+              <span class="tab-count" [class.active]="activeTabIndex() === 4">{{ getPaymentsCount() }}</span>
+            </button>
+            <button
+              type="button"
+              class="tab-button"
+              [class.active]="activeTabIndex() === 5"
+              (click)="activeTabIndex.set(5)">
               Historial de movimientos
-              <span class="tab-count" [class.active]="activeTabIndex() === 4">{{ getMovementsCount() }}</span>
+              <span class="tab-count" [class.active]="activeTabIndex() === 5">{{ getMovementsCount() }}</span>
             </button>
           </nav>
         </div>
@@ -632,8 +642,17 @@
             </div>
           }
 
-          <!-- Pagos Tab -->
           @if (activeTabIndex() === 3) {
+            <div class="tab-content-wrapper tab-content-wrapper--dense">
+              <app-purchase-order-real-cost-tab
+                [order]="order()!"
+                (saved)="onRealCostSaved($event)">
+              </app-purchase-order-real-cost-tab>
+            </div>
+          }
+
+          <!-- Pagos Tab -->
+          @if (activeTabIndex() === 4) {
             <div class="tab-content-wrapper">
               <div class="tab-header">
                 @if (canAddPayment()) {
@@ -700,7 +719,7 @@
             </div>
           }
 
-          @if (activeTabIndex() === 4) {
+          @if (activeTabIndex() === 5) {
             <div class="tab-content-wrapper">
               <app-purchase-order-movements-tab
                 [orderId]="order()?.id ?? ''"

@@ -54,7 +54,7 @@ export class DatatableWrapperComponent implements OnInit, OnChanges {
     reorderable: false,
     loading: false,
     emptyState: {
-      title: 'No result found',
+      title: 'Sin resultados',
       subtitle: '',
     },
   };
@@ -62,9 +62,9 @@ export class DatatableWrapperComponent implements OnInit, OnChanges {
   // Empty state parameters for the empty-stage component
   emptyStateParams = {
     icon_size: 28,
-    row_gap: 12,
-    width: 52,
-    height: 52,
+    row_gap: 16,
+    width: 72,
+    height: 72,
     wrapper_icon_circle: true,
   };
 
@@ -110,16 +110,18 @@ export class DatatableWrapperComponent implements OnInit, OnChanges {
     if (this.isMobile) {
       this.emptyStateParams = {
         ...this.emptyStateParams,
-        width: 40,
-        height: 40,
-        icon_size: 20,
+        width: 56,
+        height: 56,
+        icon_size: 24,
+        row_gap: 12,
       };
     } else {
       this.emptyStateParams = {
         ...this.emptyStateParams,
-        width: 52,
-        height: 52,
+        width: 72,
+        height: 72,
         icon_size: 28,
+        row_gap: 16,
       };
     }
   }

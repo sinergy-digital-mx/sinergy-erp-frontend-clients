@@ -22,6 +22,7 @@ import {
   ProductAttributeValue
 } from '../../models/product.model';
 import { CategoriesDialogComponent } from '../categories-dialog/categories-dialog.component';
+import { formatUnitAmount as formatStoredUnitAmount } from '../../../../core/utils/unit-money.util';
 
 @Component({
   selector: 'app-product-detail-modal',
@@ -1709,6 +1710,10 @@ export class ProductDetailModalComponent implements OnInit {
       return `${discount.value}%`;
     }
     return `$${discount.value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  formatUnitAmount(value: number | string | null | undefined): string {
+    return formatStoredUnitAmount(value);
   }
 
   formatDiscountValidity(discount: ProductDiscount): string {

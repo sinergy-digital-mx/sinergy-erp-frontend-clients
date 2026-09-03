@@ -12,12 +12,33 @@
       <div class="pos-session-bar__center">
         @if (posState.checkingShift()) {
           <span class="pos-session-bar__checking">Verificando corte…</span>
+        } @else if (posState.requiresPreviousClose()) {
+          <div class="pos-pill pos-pill--warn">
+            <lucide-icon [img]="AlertCircle" class="pos-ic pos-ic--sm" />
+            <span>Corte de otro día — ventas en cola</span>
+          </div>
+          <span class="pos-session-meta">{{ branchLabel() }}</span>
+          @if (canSwitchBranch()) {
+            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
+              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
+              Cambiar
+            </button>
+          }
+          @if (posState.seller()) {
+            <span class="pos-session-meta">Vendedor: {{ posState.sellerDisplayName() }}</span>
+          }
         } @else if (posState.shiftOpen()) {
           <div class="pos-pill pos-pill--ok">
             <lucide-icon [img]="Package" class="pos-ic pos-ic--sm" />
             <span>Corte abierto</span>
           </div>
           <span class="pos-session-meta">{{ branchLabel() }}</span>
+          @if (canSwitchBranch()) {
+            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
+              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
+              Cambiar
+            </button>
+          }
           @if (posState.seller(); as seller) {
             <span class="pos-session-meta">· Vendedor: {{ posState.sellerDisplayName() }}</span>
           }
@@ -26,6 +47,13 @@
             <lucide-icon [img]="AlertCircle" class="pos-ic pos-ic--sm" />
             <span>Sin corte — ventas en cola</span>
           </div>
+          <span class="pos-session-meta">{{ branchLabel() }}</span>
+          @if (canSwitchBranch()) {
+            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
+              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
+              Cambiar
+            </button>
+          }
           @if (posState.seller()) {
             <span class="pos-session-meta">Vendedor: {{ posState.sellerDisplayName() }}</span>
           }
@@ -60,8 +88,11 @@
     <div
       class="pos-shift-banner"
       [class.pos-shift-banner--open]="posState.shiftOpen()"
-      [class.pos-shift-banner--queue]="posState.salesQueueMode()">
-      @if (posState.shiftOpen()) {
+      [class.pos-shift-banner--queue]="posState.salesQueueMode() && !posState.requiresPreviousClose()"
+      [class.pos-shift-banner--alert]="posState.requiresPreviousClose()">
+      @if (posState.requiresPreviousClose()) {
+        <span>Hay un corte de otro día sin cerrar. Cobranza debe cerrarlo; las ventas quedan en cola.</span>
+      } @else if (posState.shiftOpen()) {
         <span>Corte activo — las ventas van directo a cobranza.</span>
       } @else {
         <span>Sin corte abierto — las ventas quedan en cola hasta que cobranza abra el día.</span>
@@ -276,7 +307,8 @@
                     type="number"
                     [value]="item.quantity"
                     (change)="updateQuantity(i, +$any($event.target).value)"
-                    min="1"
+                    min="0.001"
+                    step="any"
                     [attr.aria-label]="'Cantidad'"
                   />
                   <button
@@ -400,15 +432,30 @@
       </div>
 
       <div class="pos-cart__actions">
-        <button type="button" class="pos-btn pos-btn--muted" (click)="cancel()" [disabled]="saving()">
+        <button type="button" class="pos-btn pos-btn--muted" (click)="cancel()" [disabled]="saving() || confirming()">
           Cancelar
         </button>
+        @if (canQuote()) {
+          <button
+            type="button"
+            class="pos-btn pos-btn--muted"
+            (click)="saveQuotation()"
+            [disabled]="
+              saving() ||
+              confirming() ||
+              !canSell() ||
+              posService.cart().items.length === 0
+            ">
+            {{ saving() ? 'Guardando…' : 'Cotizar' }}
+          </button>
+        }
         <button
           type="button"
           class="pos-btn pos-btn--accent"
           (click)="saveOrder()"
           [disabled]="
             saving() ||
+            confirming() ||
             !canSell() ||
             posService.cart().items.length === 0
           ">

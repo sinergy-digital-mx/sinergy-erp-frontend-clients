@@ -1,0 +1,91 @@
+.quotation-email-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.quotation-email-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  span {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.875rem;
+    color: #0f172a;
+    background: #fff;
+    font-family: inherit;
+    box-sizing: border-box;
+
+    &:focus {
+      outline: none;
+      border-color: #a5b4fc;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 5.5rem;
+  }
+
+  &--area {
+    grid-column: 1 / -1;
+  }
+}
+
+.quotation-email-form + .tab-header {
+  justify-content: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .quotation-email-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+.btn-convert-order {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+
+  i {
+    font-size: 1rem;
+  }
+
+  &:hover:not(:disabled) {
+    background: #dbeafe;
+    border-color: #93c5fd;
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}

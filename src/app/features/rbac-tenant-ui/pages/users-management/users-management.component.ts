@@ -17,6 +17,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { UserDetailModalComponent } from '../../components/user-detail-modal/user-detail-modal.component';
 import { PermissionSyncService } from '../../../../core/services/permission-sync.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 /**
  * UsersManagementComponent
@@ -28,7 +29,7 @@ import { InterceptorService } from '../../../../core/services/interceptor.servic
 @Component({
   selector: 'app-users-management',
   standalone: true,
-  imports: [CommonModule, UserSearchFilterComponent, UserDetailsComponent, BackButtonComponent, ButtonComponent],
+  imports: [CommonModule, UserSearchFilterComponent, UserDetailsComponent, BackButtonComponent, ButtonComponent, EmptyStageComponent],
   templateUrl: './users-management.component.html',
   styleUrl: './users-management.component.scss'
 })

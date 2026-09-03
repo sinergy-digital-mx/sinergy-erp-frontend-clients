@@ -26,6 +26,10 @@
           <th class="col-product">Producto</th>
           <th class="col-place">Almacén</th>
           <th class="col-money">Costo</th>
+          @if (hasRealCostColumns()) {
+            <th class="col-money">Real USD</th>
+            <th class="col-money">Real MXN</th>
+          }
           <th class="col-money">Importe</th>
           <th class="col-qty">Llegaron</th>
           <th class="col-qty">Quedan</th>
@@ -105,6 +109,24 @@
                 </span>
               }
             </td>
+            @if (hasRealCostColumns()) {
+              <td class="col-money">
+                @if (!row.isMigration) {
+                  <span class="money-cell money-cell--usd">
+                    <span class="currency-badge currency-badge--real-usd">USD</span>
+                    {{ formatOptionalUnitCost(row.lot.real_unit_cost_usd) }}
+                  </span>
+                }
+              </td>
+              <td class="col-money">
+                @if (!row.isMigration) {
+                  <span class="money-cell money-cell--mxn">
+                    <span class="currency-badge currency-badge--real-mxn">MXN</span>
+                    {{ formatOptionalUnitCost(row.lot.real_unit_cost_mxn) }}
+                  </span>
+                }
+              </td>
+            }
             <td class="col-money">
               @if (!row.isMigration) {
                 <span class="money-cell">
@@ -143,7 +165,7 @@
       @if (summary) {
         <tfoot>
           <tr>
-            <td colspan="4" class="lots-foot-label">Totales</td>
+            <td [attr.colspan]="hasRealCostColumns() ? 6 : 4" class="lots-foot-label">Totales</td>
             <td class="col-money">
               <span class="money-cell">
                 <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>

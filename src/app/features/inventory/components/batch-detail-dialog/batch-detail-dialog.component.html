@@ -129,6 +129,56 @@
           }
         </div>
 
+        @if (showCostsCard) {
+          <div class="costs-card">
+            <div class="costs-card__header">
+              <div class="info-card__icon costs-card__icon">
+                <lucide-icon [img]="CircleDollarSign" class="w-5 h-5"></lucide-icon>
+              </div>
+              <span class="costs-card__title">COSTOS</span>
+            </div>
+            <div class="costs-card__grid">
+              @if (showVendorCost) {
+                <div class="costs-row">
+                  <span class="costs-row__label">Costo proveedor</span>
+                  <span class="costs-row__value">
+                    <span class="currency-badge" [class.currency-badge--usd]="vendorCostCurrency() === 'USD'">
+                      {{ vendorCostCurrency() }}
+                    </span>
+                    {{ formatBatchCost(batch()?.unit_cost) }}
+                  </span>
+                </div>
+              }
+              @if (hasRealCost) {
+                <div class="costs-row">
+                  <span class="costs-row__label">Costo real</span>
+                  <span class="costs-row__stack">
+                    <span class="costs-row__value costs-row__value--usd">
+                      <span class="currency-badge currency-badge--real-usd">USD</span>
+                      {{ formatBatchCost(batch()?.real_unit_cost_usd) }}
+                    </span>
+                    <span class="costs-row__value costs-row__value--mxn">
+                      <span class="currency-badge currency-badge--real-mxn">MXN</span>
+                      {{ formatBatchCost(batch()?.real_unit_cost_mxn) }}
+                    </span>
+                  </span>
+                </div>
+                <div class="costs-row">
+                  <span class="costs-row__label">T.C. aduana</span>
+                  <span class="costs-row__value">{{ formatBatchRate(batch()?.customs_exchange_rate) }}</span>
+                </div>
+              }
+              <div class="costs-row">
+                <span class="costs-row__label">Precio sugerido</span>
+                <span class="costs-row__value">
+                  <span class="currency-badge">{{ batch()?.suggested_price_currency || 'MXN' }}</span>
+                  {{ formatSuggestedPrice(batch()?.suggested_unit_price) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        }
+
         <div class="meta-cards">
           <!-- Fecha -->
           <div class="info-card info-card--date">

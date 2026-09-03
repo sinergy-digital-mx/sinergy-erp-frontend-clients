@@ -9,8 +9,8 @@
       Cantidad
       <input
         type="number"
-        min="1"
-        step="1"
+        min="0.001"
+        step="any"
         [ngModel]="quantity()"
         (ngModelChange)="quantity.set(+$event || 1)"
       />

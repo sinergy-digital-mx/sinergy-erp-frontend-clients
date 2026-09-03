@@ -37,6 +37,12 @@ export class DataMapperService {
         false,
       billing_branch_id: backendUser.billing_branch_id ?? backendUser.billingBranchId ?? null,
       billing_branch: backendUser.billing_branch ?? backendUser.billingBranch ?? null,
+      primary_billing_branch_id:
+        backendUser.primary_billing_branch_id ?? backendUser.primaryBillingBranchId ?? null,
+      assigned_branches: Array.isArray(backendUser.assigned_branches)
+        ? backendUser.assigned_branches
+        : [],
+      can_switch_branch: !!backendUser.can_switch_branch,
       has_all_branches_access:
         backendUser.has_all_branches_access ?? backendUser.hasAllBranchesAccess,
       is_employee: backendUser.is_employee ?? backendUser.isEmployee,

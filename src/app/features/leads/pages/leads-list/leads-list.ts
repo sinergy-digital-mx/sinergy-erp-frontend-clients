@@ -23,6 +23,7 @@ import { takeUntil } from 'rxjs/operators';
 import { PhoneComponent } from '../../../../core/components/phone/phone.component';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { GroupFetchService } from '../../services/group-fetch.service';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 @Component({
   selector: 'app-leads-list',
@@ -40,6 +41,7 @@ import { GroupFetchService } from '../../services/group-fetch.service';
     FilterIndicatorComponent,
     PhoneComponent,
     FilterClearButtonComponent,
+    EmptyStageComponent,
   ],
   templateUrl: './leads-list.html',
   styleUrl: './leads-list.scss',

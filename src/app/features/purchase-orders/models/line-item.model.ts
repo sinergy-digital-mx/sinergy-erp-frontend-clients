@@ -58,6 +58,9 @@ export interface LineItem {
   received_converted_uom?: UnitOfMeasure;
   received_converted_uom_id?: string;
   received_converted_quantity?: number | string;
+  igi_percentage?: number | string | null;
+  real_unit_cost_usd?: number | string | null;
+  real_unit_cost_mxn?: number | string | null;
   product?: Product;
   uom?: UnitOfMeasure;
   created_by?: string;

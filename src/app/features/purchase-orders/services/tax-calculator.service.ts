@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { formatUnitCurrency } from '../../../core/utils/unit-money.util';
 import { LineItem } from '../models/line-item.model';
 import { Payment } from '../models/payment.model';
 import { PaymentStatus } from '../models/purchase-order.model';
@@ -94,12 +95,7 @@ export class TaxCalculatorService {
    * Format currency amount
    */
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
+    return formatUnitCurrency(amount);
   }
 
   /**

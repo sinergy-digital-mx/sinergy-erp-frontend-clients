@@ -373,6 +373,104 @@
   }
 }
 
+.costs-card {
+  background: #fff;
+  border: 1px solid #e0e7ff;
+  border-radius: 0.75rem;
+  padding: 1rem 1.15rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+  }
+
+  &__icon {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  &__title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #64748b;
+  }
+
+  &__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+}
+
+.costs-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+
+  &__label {
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  &__stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+  }
+
+  &__value {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+
+    &--usd {
+      color: #b91c1c;
+    }
+
+    &--mxn {
+      color: #15803d;
+    }
+  }
+}
+
+.currency-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 0.4rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: #f1f5f9;
+  color: #334155;
+
+  &--usd {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  &--real-usd {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  &--real-mxn {
+    background: #dcfce7;
+    color: #15803d;
+  }
+}
+
 .meta-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

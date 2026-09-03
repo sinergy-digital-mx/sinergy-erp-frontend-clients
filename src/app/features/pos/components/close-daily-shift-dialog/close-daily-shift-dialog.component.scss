@@ -1,4 +1,10 @@
-@import '../open-daily-shift-dialog/open-daily-shift-dialog.component.scss';
+@use '../open-daily-shift-dialog/open-daily-shift-dialog.component.scss';
+@use '../partial-shift-dialog/partial-shift-dialog.component.scss';
+
+.close-shift-dialog {
+  max-height: 90vh;
+  overflow: auto;
+}
 
 .close-shift-summary {
   display: flex;
@@ -23,6 +29,14 @@
     font-weight: 700;
     text-align: right;
   }
+
+  &--expected {
+    margin-top: 0.2rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid #e2e8f0;
+    font-weight: 700;
+    color: #0f172a;
+  }
 }
 
 .close-shift-summary__warn {
@@ -37,5 +51,95 @@
 
   &--historical {
     margin: 0 0 0.75rem;
+  }
+}
+
+.close-shift-summary__aside {
+  margin: 0.2rem 0 0;
+  font-size: 0.74rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.close-shift-count-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.close-shift-cents {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+
+  span {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #334155;
+  }
+
+  input {
+    width: 7.5rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-align: right;
+    color: #0f172a;
+  }
+}
+
+.close-shift-count-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+}
+
+.close-shift-count-totals__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #334155;
+
+  strong {
+    color: #0f172a;
+  }
+}
+
+.close-shift-diff {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+
+  &--exact {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+  }
+
+  &--surplus {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+  }
+
+  &--shortage {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
   }
 }

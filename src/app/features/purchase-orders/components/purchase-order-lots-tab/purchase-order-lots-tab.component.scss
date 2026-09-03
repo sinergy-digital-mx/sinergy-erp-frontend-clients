@@ -63,6 +63,26 @@
     background: #ecfdf5;
     color: #047857;
   }
+
+  &--real-usd {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  &--real-mxn {
+    background: #dcfce7;
+    color: #15803d;
+  }
+}
+
+.money-cell--usd {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.money-cell--mxn {
+  color: #15803d;
+  font-weight: 700;
 }
 
 .lots-table-wrap {

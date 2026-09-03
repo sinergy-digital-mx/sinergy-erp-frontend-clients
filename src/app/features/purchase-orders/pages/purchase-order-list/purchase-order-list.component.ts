@@ -21,6 +21,7 @@ import {
 } from '../../utils/purchase-order-display.util';
 import { FilterBarComponent } from '../../components/filter-bar/filter-bar.component';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { OrderDetailDialogComponent } from '../../components/order-detail-dialog/order-detail-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
@@ -31,7 +32,7 @@ import { TaxCalculatorService } from '../../services/tax-calculator.service';
 @Component({
   selector: 'app-purchase-order-list',
   standalone: true,
-  imports: [CommonModule, FilterBarComponent, DatatableWrapperComponent],
+  imports: [CommonModule, FilterBarComponent, DatatableWrapperComponent, EmptyStageComponent],
   templateUrl: './purchase-order-list.component.html',
   styleUrls: ['./purchase-order-list.component.scss']
 })

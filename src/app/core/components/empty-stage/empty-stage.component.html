@@ -1,17 +1,22 @@
-<ng-container>
-  <div class="empty_stage" [ngStyle]="setStyles()">
-    <div>
-      <div [class.circle_icon]="params.wrapper_icon_circle">
-        @if (!image) {
-          <i [class]="icon ? icon : 'fi-rr-search'"></i>
-        }
-        @if (image) {
-          <img [src]="image" alt="" />
-        }
-      </div>
-      <p>
-        {{ message }} <span>{{ sub_message ? sub_message : '' }}</span>
-      </p>
-    </div>
+<div class="empty-stage" [class.empty-stage--compact]="compact" role="status" [ngStyle]="hostVars">
+  <div class="empty-stage__icon" [class.empty-stage__icon--circle]="params.wrapper_icon_circle !== false">
+    @if (image) {
+      <img [src]="image" alt="" />
+    } @else if (icon) {
+      <i [class]="icon"></i>
+    } @else {
+      <svg class="empty-stage__svg" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <rect x="6" y="16" width="36" height="24" rx="5" stroke="currentColor" stroke-width="2" />
+        <path d="M6 20.5 24 32 42 20.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M16 8h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        <path d="M20 4h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    }
   </div>
-</ng-container>
+  <div class="empty-stage__copy">
+    <p class="empty-stage__title">{{ message }}</p>
+    @if (sub_message) {
+      <p class="empty-stage__subtitle">{{ sub_message }}</p>
+    }
+  </div>
+</div>

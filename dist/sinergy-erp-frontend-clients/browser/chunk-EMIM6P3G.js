@@ -1,0 +1,1 @@
+var t={viewMenu:"Quotation:ViewMenu",viewList:"Quotation:Read",viewDetail:"Quotation:Read",create:"Quotation:Create",update:"Quotation:Update",delete:"Quotation:Delete",convert:"Quotation:Convert",send:"Quotation:Send"};export{t as a};

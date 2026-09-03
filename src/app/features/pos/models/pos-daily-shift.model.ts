@@ -36,10 +36,28 @@ export interface PosDailyShiftBranch {
   display_name?: string;
 }
 
+export interface UnclosedShiftAlert {
+  active: true;
+  daily_shift_id: string;
+  shift_date: string;
+  today: string;
+  days_open: number;
+  title: string;
+  message: string;
+  severity: 'blocking';
+}
+
+export interface CurrentDailyShiftResponse {
+  daily_shift: PosDailyShiftDetail | null;
+  requires_previous_close: boolean;
+  unclosed_shift_alert: UnclosedShiftAlert | null;
+}
+
 export interface PosDailyShiftListItem {
   id: string;
   shift_date: string;
   status: PosDailyShiftStatus | string;
+  is_previous_day?: boolean;
   opening_cash_mxn?: number | string | null;
   opening_cash_usd?: number | string | null;
   terminal_user?: PosDailyShiftUser | null;
@@ -51,6 +69,7 @@ export interface PosDailyShiftListItem {
   totals?: {
     partial_shifts_count?: number;
     removed_total_mxn?: number | string;
+    removed_total_usd?: number | string;
     sales_total_mxn?: number | string;
   } | null;
   partial_shifts_count?: number;
@@ -78,10 +97,35 @@ export interface PosDailyShiftPartial {
   denominations?: PosDailyShiftDenomination[];
 }
 
+export interface PosDailyShiftCashDrawer {
+  opening_cash_mxn?: number | string;
+  opening_cash_usd?: number | string;
+  collected_cash_mxn?: number | string;
+  collected_cash_usd?: number | string;
+  collected_transfer_mxn?: number | string;
+  collected_card_mxn?: number | string;
+  collected_credit_mxn?: number | string;
+  removed_total_mxn?: number | string;
+  removed_total_usd?: number | string;
+  expected_cash_mxn?: number | string;
+  expected_cash_usd?: number | string;
+  closing_cash_mxn?: number | string | null;
+  closing_cash_usd?: number | string | null;
+  cash_difference_mxn?: number | string | null;
+  cash_difference_usd?: number | string | null;
+  closing_denominations?: Array<{
+    currency: 'MXN' | 'USD';
+    denomination: number;
+    bill_count: number;
+    amount?: number | string;
+  }> | null;
+}
+
 export interface PosDailyShiftDetail extends PosDailyShiftListItem {
   notes?: string | null;
   closed_at?: string | null;
   partial_shifts?: PosDailyShiftPartial[];
+  cash_drawer?: PosDailyShiftCashDrawer | null;
 }
 
 export interface OpenDailyShiftResponse {
@@ -103,11 +147,34 @@ export function parsePosMoney(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+export function expectedCashInDrawer(
+  opening: number,
+  collectedCash: number,
+  removed: number,
+): number {
+  return Math.round((opening + collectedCash - removed + Number.EPSILON) * 100) / 100;
+}
+
+export function cashDifferenceType(
+  counted: number,
+  expected: number,
+): 'exact' | 'surplus' | 'shortage' {
+  const diff = Math.round((counted - expected + Number.EPSILON) * 100) / 100;
+  if (diff > 0.009) {
+    return 'surplus';
+  }
+  if (diff < -0.009) {
+    return 'shortage';
+  }
+  return 'exact';
+}
+
 export function formatPosMoney(value: unknown): string {
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
     minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
   }).format(parsePosMoney(value));
 }
 
@@ -118,6 +185,17 @@ export function dailyShiftTerminalLabel(shift: PosDailyShiftListItem): string {
   }
   const name = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim();
   return name || user.email || '—';
+}
+
+export function dailyShiftMatchesBranch(
+  shift: PosDailyShiftListItem | null | undefined,
+  billingBranchId: string | null | undefined,
+): boolean {
+  if (!shift || !billingBranchId) {
+    return false;
+  }
+  const shiftId = shift.billing_branch?.id;
+  return !!shiftId && String(shiftId) === String(billingBranchId);
 }
 
 export function dailyShiftBranchLabel(shift: PosDailyShiftListItem): string {
@@ -208,6 +286,46 @@ export function dailyShiftIsOpen(shift: PosDailyShiftListItem | null | undefined
     return record.is_open;
   }
   return normalizeDailyShiftStatus(shift.status) === 'open';
+}
+
+export function parseUnclosedShiftAlert(raw: unknown): UnclosedShiftAlert | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const source = raw as Record<string, unknown>;
+  const dailyShiftId = String(source['daily_shift_id'] ?? '').trim();
+  const shiftDate = String(source['shift_date'] ?? '').slice(0, 10);
+  if (!dailyShiftId) {
+    return null;
+  }
+
+  const daysOpen = Number(source['days_open']);
+  return {
+    active: true,
+    daily_shift_id: dailyShiftId,
+    shift_date: shiftDate,
+    today: String(source['today'] ?? '').slice(0, 10),
+    days_open: Number.isFinite(daysOpen) && daysOpen > 0 ? daysOpen : 1,
+    title: String(source['title'] ?? 'Corte del día anterior sin cerrar'),
+    message:
+      String(source['message'] ?? '').trim() ||
+      `No se cerró el corte del ${shiftDate || 'día anterior'}. Es necesario cerrarlo para continuar.`,
+    severity: 'blocking',
+  };
+}
+
+export function unclosedAlertFromShift(shift: PosDailyShiftListItem): UnclosedShiftAlert {
+  const shiftDate = String(shift.shift_date ?? '').slice(0, 10);
+  return {
+    active: true,
+    daily_shift_id: shift.id,
+    shift_date: shiftDate,
+    today: '',
+    days_open: 1,
+    title: 'Corte del día anterior sin cerrar',
+    message: `No se cerró el corte del ${shiftDate || 'día anterior'}. Cobranza debe cerrarlo para continuar.`,
+    severity: 'blocking',
+  };
 }
 
 export function dailyShiftSalesTotal(shift: PosDailyShiftListItem): number {

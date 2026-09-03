@@ -63,6 +63,7 @@ export class UserDetailModalComponent implements OnInit {
   branches = signal<Branch[]>([]);
   warehouses = signal<Warehouse[]>([]);
   selectedWarehouseIds = signal<string[]>([]);
+  selectedBranchIds = signal<string[]>([]);
   selectedBranchId = signal<string>('');
   statuses = signal<CatalogStatus[]>([]);
   showPosTypeChangeWarning = signal(false);
@@ -116,12 +117,15 @@ export class UserDetailModalComponent implements OnInit {
    * sin los que ya están en reports y sin los que ya tienen responsable.
    */
   availableWarehouses = computed(() => {
-    const branchId = this.selectedBranchId();
+    const selected = this.selectedBranchIds();
     const all = this.warehouses();
-    if (!branchId) {
+    if (!selected.length) {
       return all;
     }
-    return all.filter((warehouse) => warehouse.billing_branch_id === branchId);
+    const allowed = new Set(selected);
+    return all.filter(
+      (warehouse) => warehouse.billing_branch_id && allowed.has(warehouse.billing_branch_id)
+    );
   });
 
   assignableUsers = computed(() => {
@@ -415,13 +419,16 @@ export class UserDetailModalComponent implements OnInit {
 
   private setupBranchFieldBehavior(): void {
     this.form.get('is_pos_user')?.valueChanges.subscribe((isPosUser: boolean) => {
-      if (isPosUser && !this.form.get('billing_branch_id')?.value) {
+      if (isPosUser && this.selectedBranchIds().length === 0) {
         this.form.get('billing_branch_id')?.markAsTouched();
+      }
+      if (isPosUser && this.selectedBranchIds().length && !this.form.get('billing_branch_id')?.value) {
+        this.form.patchValue({ billing_branch_id: this.selectedBranchIds()[0] });
       }
     });
     this.form.get('billing_branch_id')?.valueChanges.subscribe((branchId: string) => {
       this.selectedBranchId.set(branchId || '');
-      this.pruneWarehousesOutsideBranch(branchId || '');
+      this.pruneWarehousesOutsideBranches();
     });
   }
 
@@ -463,19 +470,23 @@ export class UserDetailModalComponent implements OnInit {
         this.warehouses.set(warehouses);
         this.statuses.set(statuses);
         this.applyAssignedWarehouses(this.data.user);
+        this.applyAssignedBranches(this.data.user, userBranch);
 
         const billingBranchId =
-          userBranch ?? this.data.user?.billing_branch_id ?? null;
+          this.form.get('billing_branch_id')?.value ||
+          userBranch ||
+          this.data.user?.billing_branch_id ||
+          null;
 
         const statusId = getUserStatusId(this.data.user) ?? this.form.get('status_id')?.value ?? 1;
         this.originalStatusId = getUserStatusId(this.data.user) ?? statusId;
 
         this.form.patchValue({
-          billing_branch_id: billingBranchId ?? '',
+          billing_branch_id: billingBranchId ?? this.form.get('billing_branch_id')?.value ?? '',
           status_id: statusId,
         });
         this.selectedBranchId.set(billingBranchId ?? '');
-        this.pruneWarehousesOutsideBranch(billingBranchId ?? '');
+        this.pruneWarehousesOutsideBranches();
 
         this.applyBranchValidators(!!this.form.get('is_pos_user')?.value);
         this.originalBillingBranchId = billingBranchId ?? null;
@@ -512,7 +523,8 @@ export class UserDetailModalComponent implements OnInit {
       next: (user) => {
         this.applyEmployeeProfile(user);
         this.applyAssignedWarehouses(user);
-        this.pruneWarehousesOutsideBranch(this.selectedBranchId());
+        this.applyAssignedBranches(user);
+        this.pruneWarehousesOutsideBranches();
         this.applyManagerState(user);
         const statusId = getUserStatusId(user);
         if (statusId != null) {
@@ -820,11 +832,97 @@ export class UserDetailModalComponent implements OnInit {
   }
 
   isBranchOptionSelected(branchId: string): boolean {
+    return this.selectedBranchIds().includes(branchId);
+  }
+
+  isPrimaryBranch(branchId: string): boolean {
     return this.form.get('billing_branch_id')?.value === branchId;
   }
 
   isAllBranchesSelected(): boolean {
-    return !this.form.get('billing_branch_id')?.value;
+    return !this.form.get('is_pos_user')?.value && this.selectedBranchIds().length === 0;
+  }
+
+  toggleBranch(branchId: string): void {
+    if (
+      this.isPosEditLockedByOpenCut() &&
+      this.originalBillingBranchId === branchId &&
+      this.isBranchOptionSelected(branchId)
+    ) {
+      return;
+    }
+
+    const current = this.selectedBranchIds();
+    const isPosUser = !!this.form.get('is_pos_user')?.value;
+
+    if (current.includes(branchId)) {
+      if (isPosUser && current.length === 1) {
+        return;
+      }
+      const next = current.filter((id) => id !== branchId);
+      this.selectedBranchIds.set(next);
+      if (this.form.get('billing_branch_id')?.value === branchId) {
+        this.form.patchValue({ billing_branch_id: next[0] ?? '' });
+      }
+    } else {
+      this.selectedBranchIds.set([...current, branchId]);
+      if (!this.form.get('billing_branch_id')?.value) {
+        this.form.patchValue({ billing_branch_id: branchId });
+      }
+    }
+
+    this.selectedBranchId.set(this.form.get('billing_branch_id')?.value || '');
+    this.pruneWarehousesOutsideBranches();
+  }
+
+  selectAllBranches(): void {
+    if (this.form.get('is_pos_user')?.value || this.isPosEditLockedByOpenCut()) {
+      return;
+    }
+    this.selectedBranchIds.set([]);
+    this.form.patchValue({ billing_branch_id: '' });
+    this.selectedBranchId.set('');
+    this.pruneWarehousesOutsideBranches();
+  }
+
+  setPrimaryBranch(branchId: string): void {
+    if (!this.selectedBranchIds().includes(branchId)) {
+      this.toggleBranch(branchId);
+    }
+    this.form.patchValue({ billing_branch_id: branchId });
+    this.selectedBranchId.set(branchId);
+  }
+
+  private applyAssignedBranches(
+    user: User | null | undefined,
+    fallbackBranchId?: string | null
+  ): void {
+    const assigned = user?.assigned_branches ?? [];
+    if (assigned.length) {
+      const ids = assigned.map((row) => row.id).filter((id): id is string => !!id);
+      this.selectedBranchIds.set(ids);
+      const primary =
+        assigned.find((row) => row.is_primary)?.id ??
+        user?.primary_billing_branch_id ??
+        user?.billing_branch_id ??
+        ids[0] ??
+        '';
+      this.form.patchValue({ billing_branch_id: primary }, { emitEvent: false });
+      this.selectedBranchId.set(primary);
+      return;
+    }
+
+    const single = fallbackBranchId ?? user?.billing_branch_id ?? null;
+    if (single) {
+      this.selectedBranchIds.set([single]);
+      this.form.patchValue({ billing_branch_id: single }, { emitEvent: false });
+      this.selectedBranchId.set(single);
+      return;
+    }
+
+    this.selectedBranchIds.set([]);
+    this.form.patchValue({ billing_branch_id: '' }, { emitEvent: false });
+    this.selectedBranchId.set('');
   }
 
   warehouseLabel(warehouse: Warehouse): string {
@@ -851,13 +949,14 @@ export class UserDetailModalComponent implements OnInit {
     );
   }
 
-  private pruneWarehousesOutsideBranch(branchId: string): void {
-    if (!branchId) {
+  private pruneWarehousesOutsideBranches(): void {
+    const selected = this.selectedBranchIds();
+    if (!selected.length) {
       return;
     }
     const allowed = new Set(
       this.warehouses()
-        .filter((warehouse) => warehouse.billing_branch_id === branchId)
+        .filter((warehouse) => warehouse.billing_branch_id && selected.includes(warehouse.billing_branch_id))
         .map((warehouse) => warehouse.id)
     );
     this.selectedWarehouseIds.set(this.selectedWarehouseIds().filter((id) => allowed.has(id)));
@@ -865,6 +964,10 @@ export class UserDetailModalComponent implements OnInit {
 
   isPosEditLockedByOpenCut(): boolean {
     return this.hasOpenGlobalCut();
+  }
+
+  originalActiveLocked(branchId: string): boolean {
+    return this.shouldLockPosEditByOpenCut() && this.originalBillingBranchId === branchId;
   }
 
   private shouldLockPosEditByOpenCut(): boolean {
@@ -884,7 +987,6 @@ export class UserDetailModalComponent implements OnInit {
 
     this.form.get('is_pos_user')?.disable({ emitEvent: false });
     this.form.get('pos_user_type')?.disable({ emitEvent: false });
-    this.form.get('billing_branch_id')?.disable({ emitEvent: false });
   }
 
   private applyStatusFieldState(): void {
@@ -1021,15 +1123,16 @@ export class UserDetailModalComponent implements OnInit {
 
   save(): void {
     const isPosUser = !!this.form.get('is_pos_user')?.value;
+    const assignedIds = this.selectedBranchIds();
     const billingBranchRaw = this.form.get('billing_branch_id')?.value;
-    const billingBranchId = billingBranchRaw ? billingBranchRaw : null;
+    const billingBranchId = billingBranchRaw || assignedIds[0] || null;
 
-    if (isPosUser && !billingBranchId) {
+    if (isPosUser && assignedIds.length === 0) {
       this.form.get('billing_branch_id')?.markAsTouched();
       this.interceptorService.openSnackbar({
         type: 'warning',
         title: 'Advertencia',
-        message: 'El usuario POS debe tener una sucursal asignada'
+        message: 'El usuario POS debe tener al menos una sucursal asignada'
       });
       this.activeTab = 'branches';
       return;
@@ -1128,6 +1231,8 @@ export class UserDetailModalComponent implements OnInit {
       email: this.form.get('email')?.value,
       phone: this.form.get('phone')?.value || undefined,
       billing_branch_id: billingBranchId,
+      billing_branch_ids: assignedIds,
+      primary_billing_branch_id: billingBranchId,
       warehouse_ids: this.selectedWarehouseIds(),
       is_pos_user: isPosUser,
       pos_user_type: isPosUser ? posUserType : null,
@@ -1142,6 +1247,8 @@ export class UserDetailModalComponent implements OnInit {
 
     if (this.shouldLockPosEditByOpenCut()) {
       delete commonPayload['billing_branch_id'];
+      delete commonPayload['billing_branch_ids'];
+      delete commonPayload['primary_billing_branch_id'];
       delete commonPayload['is_pos_user'];
       delete commonPayload['pos_user_type'];
     }

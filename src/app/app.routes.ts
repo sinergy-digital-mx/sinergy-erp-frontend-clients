@@ -103,6 +103,12 @@ export const routes: Routes = [
             .then(m => m.SALES_ORDERS_ROUTES),
       },
       {
+        path: 'quotations',
+        loadChildren: () =>
+          import('./features/quotations/quotations.routes')
+            .then(m => m.QUOTATIONS_ROUTES),
+      },
+      {
         path: 'warehouse-control',
         loadChildren: () =>
           import('./features/warehouse-control/warehouse-control.routes')
@@ -175,6 +181,12 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/zona-norte-reports/zona-norte-reports.routes')
             .then(m => m.ZONA_NORTE_REPORTS_ROUTES),
+      },
+      {
+        path: 'customer-sales-reports',
+        loadChildren: () =>
+          import('./features/customer-sales-reports/customer-sales-reports.routes')
+            .then(m => m.CUSTOMER_SALES_REPORTS_ROUTES),
       },
       {
         path: 'accounting',

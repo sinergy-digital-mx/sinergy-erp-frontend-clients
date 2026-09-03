@@ -432,8 +432,9 @@
       <!-- Sucursales asignadas -->
       <div *ngIf="activeTab === 'branches'" class="tab-pane">
         <p class="field-hint branches-intro">
-          Selecciona una sucursal para restringir el acceso del usuario. Si no seleccionas ninguna, tendrá acceso a todas.
-          Los usuarios POS deben tener una sucursal asignada.
+          Marca las sucursales que puede usar. Una debe ser principal (default).
+          En POS, si tiene más de una, elige en cuál opera (inventario y corte).
+          Sin ninguna, un usuario no POS ve todas.
         </p>
 
         <div *ngIf="branches().length > 0" class="branch-list">
@@ -443,29 +444,40 @@
             [class.branch-item--selected]="isAllBranchesSelected()"
             [class.branch-item--disabled]="isPosEditLockedByOpenCut()">
             <input
-              type="radio"
-              formControlName="billing_branch_id"
-              value="">
+              type="checkbox"
+              [checked]="isAllBranchesSelected()"
+              (change)="selectAllBranches()">
             <span class="branch-item__name">Sin restricción / Todas las sucursales</span>
           </label>
 
-          <label
+          <div
             *ngFor="let branch of branches()"
             class="branch-item"
             [class.branch-item--selected]="isBranchOptionSelected(branch.id)"
-            [class.branch-item--disabled]="isPosEditLockedByOpenCut()">
-            <input
-              type="radio"
-              formControlName="billing_branch_id"
-              [value]="branch.id">
-            <span class="branch-item__name">{{ branchLabel(branch) }}</span>
-          </label>
+            [class.branch-item--disabled]="isPosEditLockedByOpenCut() && isPrimaryBranch(branch.id) && originalActiveLocked(branch.id)">
+            <label class="branch-item__pick">
+              <input
+                type="checkbox"
+                [checked]="isBranchOptionSelected(branch.id)"
+                [disabled]="isPosEditLockedByOpenCut() && originalActiveLocked(branch.id)"
+                (change)="toggleBranch(branch.id)">
+              <span class="branch-item__name">{{ branchLabel(branch) }}</span>
+            </label>
+            <button
+              type="button"
+              class="branch-item__primary"
+              [class.branch-item__primary--on]="isPrimaryBranch(branch.id)"
+              [disabled]="!isBranchOptionSelected(branch.id)"
+              (click)="setPrimaryBranch(branch.id)">
+              {{ isPrimaryBranch(branch.id) ? 'Principal' : 'Hacer principal' }}
+            </button>
+          </div>
         </div>
 
         <p
-          *ngIf="form.get('is_pos_user')?.value && form.get('billing_branch_id')?.invalid && form.get('billing_branch_id')?.touched"
+          *ngIf="form.get('is_pos_user')?.value && selectedBranchIds().length === 0 && form.get('billing_branch_id')?.touched"
           class="field-error branches-error">
-          Selecciona una sucursal para usuarios POS
+          Selecciona al menos una sucursal para usuarios POS
         </p>
 
         <div *ngIf="branches().length === 0" class="empty-state">
@@ -476,7 +488,7 @@
           <h3 class="warehouse-assign__title">Almacén(es) Mesa de Control</h3>
           <p class="field-hint">
             Recorta el tablero a estos almacenes para el rol jefe de almacén.
-            Si el usuario tiene sucursal, solo se listan almacenes de esa sucursal.
+            Si el usuario tiene sucursales, solo se listan almacenes de esas sucursales.
           </p>
 
           <div *ngIf="availableWarehouses().length > 0" class="branch-list">
@@ -493,8 +505,8 @@
           </div>
 
           <div *ngIf="availableWarehouses().length === 0" class="empty-state">
-            <p *ngIf="selectedBranchId(); else noWarehouses">
-              No hay almacenes en esta sucursal.
+            <p *ngIf="selectedBranchIds().length; else noWarehouses">
+              No hay almacenes en las sucursales seleccionadas.
             </p>
             <ng-template #noWarehouses>
               <p>No hay almacenes configurados.</p>

@@ -7,11 +7,12 @@ import { InventorySummaryItem, InventorySummaryFilters, PaginationParams } from 
 import { Warehouse } from '../../../purchase-orders/models/warehouse.model';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 @Component({
   selector: 'app-inventory-list',
   standalone: true,
-  imports: [CommonModule, SpinnerComponent],
+  imports: [CommonModule, SpinnerComponent, EmptyStageComponent],
   templateUrl: './inventory-list.component.html',
   styleUrls: ['./inventory-list.component.scss']
 })

@@ -1,6 +1,7 @@
   import { Injectable } from '@angular/core';
   import { HttpClient } from '@angular/common/http';
   import { Observable, BehaviorSubject, of } from 'rxjs';
+  import { map, tap } from 'rxjs/operators';
   import { jwtDecode } from 'jwt-decode';
   import { ActivatedRoute, Router } from '@angular/router';
   import { environment } from '../../../environments/environment';
@@ -73,6 +74,7 @@
       this.user_info = null as any;
       localStorage.removeItem(this.name_token);
       localStorage.removeItem(this.user_profile_key);
+      sessionStorage.removeItem('pos_branch_session_confirmed');
       this.permissions$.next(new Set());
       this.resetPosProfileCache();
     }
@@ -494,6 +496,7 @@
         { path: '/purchase-orders', permissions: ['purchaseOrders:Read', 'purchase_orders:read', 'purchase_orders:ViewMenu'] },
         { path: '/inventory', permissions: ['inventory:Read', 'inventory:ViewMenu'] },
         { path: '/sales-orders', permissions: ['salesOrders:Read', 'sales_orders:read', 'sales_orders:ViewMenu'] },
+        { path: '/quotations', permissions: ['Quotation:Read', 'Quotation:ViewMenu', 'quotation:Read', 'quotation:ViewMenu'] },
         { path: '/warehouse-control', permissions: ['WarehouseControl:Read', 'WarehouseControl:ViewMenu', 'warehousecontrol:Read', 'warehousecontrol:ViewMenu'] },
         { path: '/employees', permissions: ['Employee:Read', 'Employee:ViewMenu', 'employee:Read', 'employee:ViewMenu'] },
         { path: '/settings/goals', permissions: ['goals:Read', 'goals:ViewMenu'] },
@@ -507,6 +510,7 @@
           ],
         },
         { path: '/accounting', permissions: ['accounting:Read', 'Accounting:Read', 'accounting:ViewMenu', 'Accounting:ViewMenu'] },
+        { path: '/customer-sales-reports', permissions: ['customer_sales_report:Read', 'customer_sales_report:ViewMenu'] },
 
         { path: '/marketing', permissions: ['marketing:ViewDashboard', 'marketing:ViewMenu'] },
         { path: '/pos/ventas', permissions: ['pos:Create', 'pos:ViewMenu'] },
@@ -596,6 +600,55 @@
       return id != null && String(id).trim() !== '' ? String(id) : null;
     }
 
+    getAssignedBranches(): AssignedBranch[] {
+      return this.normalizeAssignedBranches(this.user_info?.assigned_branches);
+    }
+
+    canSwitchBranch(): boolean {
+      if (this.user_info?.can_switch_branch === true) {
+        return true;
+      }
+      return this.getAssignedBranches().length > 1;
+    }
+
+    refreshMyBranches(): Observable<void> {
+      return this.http.get<Record<string, unknown>>(`${this.api}/tenant/users/me/branches`).pipe(
+        tap((response) => {
+          const payload = this.unwrapObjectPayload(response);
+          this.applySessionUser({
+            ...(this.user_info as unknown as Record<string, unknown>),
+            ...payload,
+          });
+        }),
+        map(() => undefined)
+      );
+    }
+
+    setActiveBranch(billingBranchId: string): Observable<Record<string, unknown>> {
+      return this.http
+        .put<Record<string, unknown>>(`${this.api}/tenant/users/me/active-branch`, {
+          billing_branch_id: billingBranchId,
+        })
+        .pipe(
+          tap((response) => {
+            const payload = this.unwrapObjectPayload(response);
+            const nextId =
+              payload['billing_branch_id'] != null
+                ? String(payload['billing_branch_id'])
+                : billingBranchId;
+            this.applySessionUser({
+              ...(this.user_info as unknown as Record<string, unknown>),
+              ...payload,
+              billing_branch_id: nextId,
+            });
+            if (nextId) {
+              localStorage.setItem('pos_billing_branch_id', nextId);
+              localStorage.removeItem('pos_warehouse_id');
+            }
+          })
+        );
+    }
+
     getFiscalConfigurationId(): string | null {
       const id = this.user_info?.fiscal_configuration_id;
       return id != null && String(id).trim() !== '' ? String(id) : null;
@@ -613,6 +666,11 @@
       }
 
       const capabilities = this.derivePosCapabilities(source);
+      const incomingBranches = this.normalizeAssignedBranches(source['assigned_branches']);
+      const assignedBranches =
+        incomingBranches.length > 0
+          ? incomingBranches
+          : this.normalizeAssignedBranches(this.user_info?.assigned_branches);
       const profile: PosSessionProfile = {
         is_pos_user: this.normalizePosFlag(source['is_pos_user']),
         pos_user_type: this.normalizePosUserType(source['pos_user_type']),
@@ -621,6 +679,13 @@
         is_manager: this.normalizePosFlag(source['is_manager']),
         billing_branch_id:
           source['billing_branch_id'] != null ? String(source['billing_branch_id']) : null,
+        primary_billing_branch_id:
+          source['primary_billing_branch_id'] != null
+            ? String(source['primary_billing_branch_id'])
+            : null,
+        assigned_branches: assignedBranches,
+        can_switch_branch:
+          this.normalizePosFlag(source['can_switch_branch']) || assignedBranches.length > 1,
         assigned_warehouses: this.normalizeAssignedWarehouses(source['assigned_warehouses']),
         fiscal_configuration_id: this.readOptionalId(
           source,
@@ -674,6 +739,8 @@
         'pos_can_sell' in obj ||
         'pos_can_collect' in obj ||
         'billing_branch_id' in obj ||
+        'assigned_branches' in obj ||
+        'can_switch_branch' in obj ||
         'fiscal_configuration_id' in obj ||
         'fiscal_configuration' in obj ||
         'is_employee' in obj ||
@@ -698,6 +765,9 @@
         const row = source as Record<string, unknown>;
         for (const key of [
           'billing_branch_id',
+          'primary_billing_branch_id',
+          'assigned_branches',
+          'can_switch_branch',
           'fiscal_configuration_id',
           'fiscalConfigurationId',
           'fiscal_configuration',
@@ -856,6 +926,20 @@
         this.user_info.billing_branch_id =
           branchId != null && String(branchId).trim() !== '' ? String(branchId) : null;
       }
+      if (source['primary_billing_branch_id'] !== undefined) {
+        const primary = source['primary_billing_branch_id'];
+        this.user_info.primary_billing_branch_id =
+          primary != null && String(primary).trim() !== '' ? String(primary) : null;
+      }
+      if (source['assigned_branches'] !== undefined) {
+        const nextBranches = this.normalizeAssignedBranches(source['assigned_branches']);
+        if (nextBranches.length > 0 || !this.user_info.assigned_branches?.length) {
+          this.user_info.assigned_branches = nextBranches;
+        }
+      }
+      if (source['can_switch_branch'] !== undefined) {
+        this.user_info.can_switch_branch = this.normalizePosFlag(source['can_switch_branch']);
+      }
       if (
         source['fiscal_configuration_id'] !== undefined ||
         source['fiscalConfigurationId'] !== undefined ||
@@ -895,6 +979,40 @@
       return this.normalizeAssignedWarehouses(this.user_info?.assigned_warehouses);
     }
 
+    private normalizeAssignedBranches(raw: unknown): AssignedBranch[] {
+      if (!Array.isArray(raw)) {
+        return [];
+      }
+      return raw
+        .map((item) => {
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+          const row = item as Record<string, unknown>;
+          const id = row['id'] ?? row['billing_branch_id'];
+          if (id == null || String(id).trim() === '') {
+            return null;
+          }
+          return {
+            id: String(id),
+            code: row['code'] != null ? String(row['code']) : undefined,
+            city: row['city'] != null ? String(row['city']) : undefined,
+            display_name:
+              row['display_name'] != null
+                ? String(row['display_name'])
+                : row['name'] != null
+                  ? String(row['name'])
+                  : [row['code'], row['city']].filter(Boolean).join(' — ') || undefined,
+            is_primary: this.normalizePosFlag(row['is_primary']),
+            fiscal_configuration_id:
+              row['fiscal_configuration_id'] != null
+                ? String(row['fiscal_configuration_id'])
+                : null,
+          } as AssignedBranch;
+        })
+        .filter((item): item is AssignedBranch => item != null);
+    }
+
     private normalizeAssignedWarehouses(raw: unknown): AssignedWarehouse[] {
       if (!Array.isArray(raw)) {
         return [];
@@ -920,6 +1038,18 @@
         .filter((item): item is AssignedWarehouse => item != null);
     }
 
+    private unwrapObjectPayload(response: unknown): Record<string, unknown> {
+      if (!response || typeof response !== 'object' || Array.isArray(response)) {
+        return {};
+      }
+      const root = response as Record<string, unknown>;
+      const inner = root['data'];
+      if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
+        return inner as Record<string, unknown>;
+      }
+      return root;
+    }
+
     private resetPosProfileCache(): void {
       this.posProfileLoaded = false;
     }
@@ -927,6 +1057,15 @@
   }
 
   export type PosTerminalType = 'VENTAS' | 'COBRANZA' | 'AMBOS';
+
+  export interface AssignedBranch {
+    id: string;
+    code?: string;
+    city?: string;
+    display_name?: string;
+    is_primary?: boolean;
+    fiscal_configuration_id?: string | null;
+  }
 
   export interface AssignedWarehouse {
     id: string;
@@ -942,6 +1081,9 @@
     pos_can_collect?: boolean;
     is_manager?: boolean;
     billing_branch_id?: string | null;
+    primary_billing_branch_id?: string | null;
+    assigned_branches?: AssignedBranch[];
+    can_switch_branch?: boolean;
     fiscal_configuration_id?: string | null;
     assigned_warehouses?: AssignedWarehouse[];
   }
@@ -964,6 +1106,9 @@
     pos_can_sell?: boolean;
     pos_can_collect?: boolean;
     billing_branch_id?: string | null;
+    primary_billing_branch_id?: string | null;
+    assigned_branches?: AssignedBranch[];
+    can_switch_branch?: boolean;
     fiscal_configuration_id?: string | null;
     is_employee?: boolean;
     is_manager?: boolean;

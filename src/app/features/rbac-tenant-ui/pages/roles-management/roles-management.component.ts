@@ -12,6 +12,7 @@ import { RoleEditFormComponent } from '../../components/role-edit-form/role-edit
 import { RoleCreateDialogComponent } from '../../components/role-create-dialog/role-create-dialog.component';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 /**
  * RolesManagementComponent
@@ -23,7 +24,7 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
 @Component({
   selector: 'app-roles-management',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, RolePermissionsManagerComponent, RoleEditFormComponent, RoleCreateDialogComponent],
+  imports: [CommonModule, BackButtonComponent, RolePermissionsManagerComponent, RoleEditFormComponent, RoleCreateDialogComponent, EmptyStageComponent],
   styleUrl: './roles-management.component.scss',
   template: `
     <!-- Roles Management Container with Two-Column Layout -->
@@ -66,9 +67,11 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
           <div class="flex-1 overflow-y-auto min-h-0">
             @if (filteredRoles$ | async; as roles) {
               @if (roles.length === 0) {
-                <div class="p-3 text-center text-gray-500 text-sm">
-                  <p>No se encontraron roles</p>
-                </div>
+                <app-empty-stage
+                  [compact]="true"
+                  message="Sin resultados"
+                  sub_message="No se encontraron roles">
+                </app-empty-stage>
               } @else {
                 @for (role of roles; track role.id) {
                   <div class="border-b border-gray-100 last:border-b-0">

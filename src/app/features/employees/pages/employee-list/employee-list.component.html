@@ -34,9 +34,11 @@
 
     <div *ngIf="loading()" class="state-message">Cargando empleados...</div>
 
-    <div *ngIf="!loading() && employees().length === 0" class="state-message">
-      No hay empleados que coincidan con los filtros.
-    </div>
+    <app-empty-stage
+      *ngIf="!loading() && employees().length === 0"
+      message="Sin resultados"
+      sub_message="No hay empleados que coincidan con los filtros.">
+    </app-empty-stage>
 
     <div *ngIf="!loading() && employees().length > 0" class="table-wrapper">
       <table class="data-table">
@@ -115,9 +117,11 @@
 
     <div *ngIf="leaveLoading()" class="state-message">Cargando solicitudes...</div>
 
-    <div *ngIf="!leaveLoading() && leaveRequests().length === 0" class="state-message">
-      No hay solicitudes que coincidan con los filtros.
-    </div>
+    <app-empty-stage
+      *ngIf="!leaveLoading() && leaveRequests().length === 0"
+      message="Sin resultados"
+      sub_message="No hay solicitudes que coincidan con los filtros.">
+    </app-empty-stage>
 
     <div *ngIf="!leaveLoading() && leaveRequests().length > 0" class="table-wrapper">
       <table class="data-table">

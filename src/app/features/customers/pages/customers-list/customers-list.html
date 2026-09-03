@@ -71,7 +71,10 @@
         <app-spinner></app-spinner>
       </div>
     } @else if (!table_config().rows?.length) {
-      <div class="py-10 text-center text-gray-500 text-sm">No se encontraron clientes</div>
+      <app-empty-stage
+        message="Sin resultados"
+        sub_message="No se encontraron clientes">
+      </app-empty-stage>
     } @else {
       <div class="space-y-3">
         @for (item of table_config().rows; track item.id) {

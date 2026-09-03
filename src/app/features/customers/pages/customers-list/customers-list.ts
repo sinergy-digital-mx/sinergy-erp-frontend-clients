@@ -32,6 +32,7 @@ import {
 } from '../../components/customer-export-dialog/customer-export-dialog.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 @Component({
   selector: 'app-customers-list',
@@ -50,6 +51,7 @@ import { SpinnerComponent } from '../../../../core/components/spinner/spinner.co
     LucideAngularModule,
     FilterClearButtonComponent,
     SpinnerComponent,
+    EmptyStageComponent,
   ],
   templateUrl: './customers-list.html',
   styleUrl: './customers-list.scss',

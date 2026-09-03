@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { PosApplicableDiscount } from '../../models/pos-inventory-summary.model';
 import { formatApplicableDiscountLabel, previewLineDiscount } from '../../utils/pos-discount.util';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 
 export interface PosAddProductDialogData {
   product_id: string;
@@ -37,7 +38,7 @@ export class PosAddProductDialogComponent {
   selectedDiscountId = signal<string>('');
 
   readonly preview = computed(() => {
-    const qty = Math.max(1, Number(this.quantity()) || 1);
+    const qty = Math.max(0.001, Number(this.quantity()) || 1);
     const discount = this.resolveSelectedDiscount();
     const line = previewLineDiscount(this.data.unit_price, qty, discount);
     const iva = line.lineNetSubtotal * (this.data.iva_percentage / 100);
@@ -54,10 +55,7 @@ export class PosAddProductDialogComponent {
   ) {}
 
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-    }).format(amount);
+    return formatUnitCurrency(amount);
   }
 
   discountLabel(discount: PosApplicableDiscount): string {
@@ -69,7 +67,7 @@ export class PosAddProductDialogComponent {
   }
 
   confirm(): void {
-    const qty = Math.max(1, Math.floor(Number(this.quantity()) || 1));
+    const qty = Math.max(0.001, Number(this.quantity()) || 1);
     const discount = this.resolveSelectedDiscount();
     this.dialogRef.close({
       quantity: qty,

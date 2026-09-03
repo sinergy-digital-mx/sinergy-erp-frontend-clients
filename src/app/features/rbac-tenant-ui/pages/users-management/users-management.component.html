@@ -34,9 +34,11 @@
       <div class="flex-1 overflow-y-auto min-h-0 user-cards-panel">
         @if (filteredUsers$ | async; as users) {
           @if (users.length === 0) {
-            <div class="p-3 text-center text-gray-500 text-sm">
-              <p>No se encontraron usuarios</p>
-            </div>
+            <app-empty-stage
+              [compact]="true"
+              message="Sin resultados"
+              sub_message="No se encontraron usuarios">
+            </app-empty-stage>
           } @else {
             <div class="user-cards">
               @for (user of users; track user.id) {

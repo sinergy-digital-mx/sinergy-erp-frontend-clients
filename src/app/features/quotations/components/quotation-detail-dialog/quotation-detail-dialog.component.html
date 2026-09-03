@@ -1,0 +1,424 @@
+<div class="order-detail-dialog">
+  @if (loading()) {
+    <div class="loading-container">
+      <app-spinner></app-spinner>
+    </div>
+  }
+
+  @if (header() && !loading()) {
+    <div class="dialog-header">
+      <div class="dialog-header-main">
+        <span class="order-type-badge order-type-badge--sale">COTIZACIÓN</span>
+        <h2 class="dialog-header__folio">#{{ header()!.folio || header()!.id.substring(0, 8) }}</h2>
+      </div>
+      <div class="dialog-header-actions">
+        <span class="status-badge" [ngClass]="getStatusBadgeClass()">
+          {{ header()!.general_status || '-' }}
+        </span>
+        <button
+          type="button"
+          class="refresh-btn"
+          (click)="reload(true)"
+          [disabled]="refreshing()"
+          title="Actualizar"
+          aria-label="Actualizar cotización">
+          <i class="fi fi-rr-refresh" [class.animate-spin]="refreshing()"></i>
+        </button>
+        <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">
+          <i class="fi fi-rr-cross-small"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="dialog-content">
+      <div class="sidebar">
+        <div class="info-cards-group">
+          <div class="info-card info-card--purple">
+            <div class="info-card__icon">
+              <i class="fi fi-rr-document"></i>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">RAZÓN SOCIAL</span>
+              <span class="info-card__value">{{ getRazonSocialDisplayName() }}</span>
+              @if (getRazonSocialSubtitle()) {
+                <span class="info-card__subvalue">{{ getRazonSocialSubtitle() }}</span>
+              }
+            </div>
+          </div>
+
+          <div class="info-card info-card--orange">
+            <div class="info-card__icon">
+              <i class="fi fi-rr-building"></i>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">SUCURSAL</span>
+              <span class="info-card__value">{{ getSucursalDisplayName() }}</span>
+              @if (getSucursalSubtitle()) {
+                <span class="info-card__subvalue">{{ getSucursalSubtitle() }}</span>
+              }
+            </div>
+          </div>
+
+          <div class="info-card info-card--green">
+            <div class="info-card__icon">
+              <i class="fi fi-rr-shop"></i>
+            </div>
+            <div class="info-card__content">
+              <span class="info-card__label">CLIENTE</span>
+              <span class="info-card__value">{{ getCustomerDisplayName() }}</span>
+              @if (getCustomerCompanyName()) {
+                <span class="info-card__subvalue">{{ getCustomerCompanyName() }}</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h3 class="section-title">FECHAS</h3>
+          <div class="section-item">
+            <span class="section-label">Fecha cotización</span>
+            <span class="section-value">{{ formatShortDate(header()!.created_at) }}</span>
+          </div>
+          <div class="section-item">
+            <span class="section-label">Entrega estimada</span>
+            <span class="section-value">{{ formatShortDate(header()!.expected_delivery_date) }}</span>
+          </div>
+          <div class="section-item">
+            <span class="section-label">Tipo</span>
+            <span class="section-value">{{ header()!.quotation_type === 'POS' ? 'POS' : 'Manual' }}</span>
+          </div>
+          <div class="section-item section-item--seller">
+            <span class="section-label">Vendedor</span>
+            <div class="seller-value-row">
+              <span class="section-value">{{ getSellerDisplayName() }}</span>
+            </div>
+          </div>
+          <div class="section-item section-item--seller">
+            <span class="section-label">Comisionado</span>
+            <div class="seller-value-col">
+              <div class="seller-value-row">
+                <span class="section-value">{{ getAssignedSellerDisplayName() }}</span>
+              </div>
+              <span class="section-hint">Quien comisiona esta venta</span>
+            </div>
+          </div>
+        </div>
+
+        @if (isPosQuotation()) {
+          <div class="section-card section-card--pos-info">
+            <h3 class="section-title">INFORMACIÓN POS</h3>
+            <div class="section-item">
+              <span class="section-label">Terminal</span>
+              <span class="section-value">{{ formatPosUserLabel(header()!.terminal_user) }}</span>
+            </div>
+          </div>
+        }
+
+        <div class="section-card section-card--totals">
+          <div class="section-header">
+            <h3 class="section-title">TOTALES</h3>
+          </div>
+
+          <div class="totals-row">
+            <span class="totals-label">Subtotal</span>
+            <span class="totals-value">{{ getDisplayedSubtotal() }}</span>
+          </div>
+          @if (hasLineDiscount()) {
+            <div class="totals-row totals-row--discount">
+              <span class="totals-label">Desc. por producto</span>
+              <span class="totals-value">{{ getDisplayedLineDiscount() }}</span>
+            </div>
+          }
+          @if (hasGlobalDiscount()) {
+            <div class="totals-row totals-row--discount">
+              <span class="totals-label">{{ globalDiscountLabel() }}</span>
+              <span class="totals-value">{{ getDisplayedGlobalDiscount() }}</span>
+            </div>
+          }
+          <div class="totals-row">
+            <span class="totals-label">IVA</span>
+            <span class="totals-value">{{ getDisplayedIva() }}</span>
+          </div>
+          <div class="totals-row">
+            <span class="totals-label">IEPS</span>
+            <span class="totals-value">{{ getDisplayedIeps() }}</span>
+          </div>
+          <div class="totals-divider"></div>
+          <div class="totals-row totals-row-total">
+            <span class="totals-label-total">Total</span>
+            <span class="totals-value-total totals-value-total--requested">{{ getDisplayedTotal() }}</span>
+          </div>
+        </div>
+
+        <div class="section-card section-card--notes">
+          <div class="section-card__head">
+            <h3 class="section-title">NOTAS</h3>
+            @if (canEditNotes()) {
+              <button type="button" class="notes-edit-btn" title="Editar notas" aria-label="Editar notas" (click)="openNotesEditor()">
+                <i class="fi fi-rr-pencil"></i>
+              </button>
+            }
+          </div>
+          <p class="notes-text">{{ header()!.notes || 'Sin notas' }}</p>
+        </div>
+
+        <div class="action-buttons">
+          @if (canShowConvert()) {
+            <button
+              type="button"
+              class="btn-convert-order"
+              [disabled]="converting()"
+              (click)="convert()">
+              @if (converting()) {
+                <i class="fi fi-rr-spinner animate-spin"></i>
+              } @else {
+                <i class="fi fi-rr-refresh"></i>
+              }
+              Convertir a venta
+            </button>
+          }
+          @if (header()!.converted_to_sales_order_id) {
+            <button type="button" class="btn-convert-order" (click)="goToSalesOrder()">
+              <i class="fi fi-rr-file-invoice"></i>
+              Ir a la orden de venta
+            </button>
+          }
+          @if (canShowCancel()) {
+            <span class="btn-cancel-order-wrap">
+              <button
+                type="button"
+                class="btn-cancel-order"
+                [disabled]="cancelling()"
+                (click)="cancelQuotation()">
+                @if (cancelling()) {
+                  <i class="fi fi-rr-spinner animate-spin"></i>
+                } @else {
+                  <i class="fi fi-rr-cross-circle"></i>
+                }
+                Cancelar cotización
+              </button>
+            </span>
+          }
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="tabs-header">
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 0" (click)="activeTabIndex.set(0)">
+            Productos
+            <span class="tab-count" [class.active]="activeTabIndex() === 0">{{ getLineItemsCount() }}</span>
+          </button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 1" (click)="activeTabIndex.set(1)">
+            Documentos
+            <span class="tab-count" [class.active]="activeTabIndex() === 1">{{ getDocumentsCount() }}</span>
+          </button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 2" (click)="activeTabIndex.set(2)">
+            Correo
+            <span class="tab-count" [class.active]="activeTabIndex() === 2">{{ getEmailsCount() }}</span>
+          </button>
+        </div>
+
+        <div class="tabs-content">
+          @if (activeTabIndex() === 0) {
+            <div class="tab-content-wrapper">
+              <table class="products-table">
+                <thead>
+                  <tr>
+                    <th>PRODUCTO</th>
+                    <th>PRECIO UNIT.</th>
+                    <th>TOTAL LÍNEA</th>
+                    <th>CANTIDAD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of lineItems(); track item.id || $index) {
+                    <tr>
+                      <td>
+                        <div class="product-info">
+                          <strong>{{ item.product?.name || item.product_id }}</strong>
+                          <small>{{ item.product?.sku || '-' }}</small>
+                        </div>
+                      </td>
+                      <td>{{ formatCurrency(item.unit_price) }}</td>
+                      <td>{{ formatCurrency(getLineTotal(item)) }}</td>
+                      <td>
+                        <span class="qty-cell">
+                          <span class="qty-cell__amount">{{ getLineQty(item) | removeTrailingZeros }}</span>
+                          <span class="uom-badge">{{ getLineUom(item) }}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="4" class="text-center">
+                        <div class="empty-state">
+                          <i class="fi fi-rr-box"></i>
+                          <p>No hay líneas</p>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          @if (activeTabIndex() === 1) {
+            <div class="tab-content-wrapper">
+              <div class="tab-header">
+                <button class="btn-secondary" type="button" (click)="openPdf()">
+                  <i class="fi fi-rr-eye"></i>
+                  Ver PDF
+                </button>
+                @if (canUpdate) {
+                  <button class="btn-secondary" type="button" (click)="regeneratePDF()" [disabled]="regeneratingPDF()">
+                    @if (regeneratingPDF()) {
+                      <i class="fi fi-rr-spinner animate-spin"></i>
+                    } @else {
+                      <i class="fi fi-rr-refresh"></i>
+                    }
+                    Regenerar PDF Original
+                  </button>
+                }
+              </div>
+
+              @if (documents().length) {
+                <table class="documents-table">
+                  <thead>
+                    <tr>
+                      <th>TIPO</th>
+                      <th>IDIOMA</th>
+                      <th>NOMBRE DE ARCHIVO</th>
+                      <th>FECHA DE CARGA</th>
+                      <th>ACCIONES</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (doc of documents(); track doc.id + '|' + (doc.uploaded_at || '') + '|' + (doc.document_name || '')) {
+                      <tr>
+                        <td>
+                          <div class="document-type-cell">
+                            <span class="document-badge" [ngClass]="getDocumentBadgeClass(doc.document_type_name)">
+                              {{ getDocumentTypeLabel(doc.document_type_name) }}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          @if (getDocumentLanguageLabel(doc.document_language); as langLabel) {
+                            <span class="document-language-badge">{{ langLabel }}</span>
+                          } @else {
+                            <span class="document-language-empty">—</span>
+                          }
+                        </td>
+                        <td>
+                          <span class="document-name">{{ doc.document_name || '—' }}</span>
+                        </td>
+                        <td>
+                          <span class="document-date">{{ formatDocumentDate(doc.uploaded_at) }}</span>
+                        </td>
+                        <td>
+                          <div class="document-actions">
+                            <button class="action-btn download-btn" (click)="downloadDocument(doc)" title="Descargar">
+                              <i class="fi fi-rr-download"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <div class="empty-state">
+                  <i class="fi fi-rr-document"></i>
+                  <p>No hay documentos adjuntos</p>
+                </div>
+              }
+            </div>
+          }
+
+          @if (activeTabIndex() === 2) {
+            <div class="tab-content-wrapper">
+              <p class="documents-legacy-hint">
+                Se genera el PDF de <strong>{{ header()!.folio }}</strong> y se envía como adjunto.
+              </p>
+
+              @if (canShowSend()) {
+                <div class="quotation-email-form">
+                  <label class="quotation-email-field">
+                    <span>Para</span>
+                    <input type="email" [(ngModel)]="emailTo" name="emailTo" placeholder="cliente@correo.com" />
+                  </label>
+                  <label class="quotation-email-field">
+                    <span>CC</span>
+                    <input type="text" [(ngModel)]="emailCc" name="emailCc" placeholder="Separados por comas" />
+                  </label>
+                  <label class="quotation-email-field">
+                    <span>Asunto</span>
+                    <input type="text" [(ngModel)]="emailSubject" name="emailSubject" />
+                  </label>
+                  <label class="quotation-email-field quotation-email-field--area">
+                    <span>Mensaje</span>
+                    <textarea rows="4" [(ngModel)]="emailMessage" name="emailMessage"></textarea>
+                  </label>
+                </div>
+                <div class="tab-header">
+                  <button
+                    class="btn-primary"
+                    type="button"
+                    (click)="sendEmail()"
+                    [disabled]="sendingEmail()">
+                    @if (sendingEmail()) {
+                      <i class="fi fi-rr-spinner animate-spin"></i>
+                      Enviando…
+                    } @else {
+                      <i class="fi fi-rr-envelope"></i>
+                      Enviar cotización
+                    }
+                  </button>
+                </div>
+              } @else {
+                <p class="documents-legacy-hint">{{ sendBlockedReason() }}</p>
+              }
+
+              @if (emails().length) {
+                <table class="documents-table">
+                  <thead>
+                    <tr>
+                      <th>FECHA</th>
+                      <th>DESTINO</th>
+                      <th>ASUNTO</th>
+                      <th>ENVIÓ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of emails(); track row.id) {
+                      <tr>
+                        <td>
+                          <span class="document-date">{{ formatDocumentDate(row.sent_at) }}</span>
+                        </td>
+                        <td>
+                          <span class="document-name">{{ row.to_email }}</span>
+                        </td>
+                        <td>
+                          <span class="document-name">{{ row.subject || '—' }}</span>
+                        </td>
+                        <td>
+                          <span class="document-date">{{ senderLabel(row) }}</span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <div class="empty-state">
+                  <i class="fi fi-rr-envelope"></i>
+                  <p>Aún no se ha enviado esta cotización</p>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

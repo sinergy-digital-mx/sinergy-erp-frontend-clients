@@ -1,0 +1,174 @@
+<div class="purchase-order-list-container">
+  <div class="purchase-content">
+    <div class="px-4">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+        <h2 class="text-2xl font-semibold text-gray-800">Cotizaciones</h2>
+        <div class="flex items-center gap-2 flex-wrap">
+          @if (canCreate) {
+            <button type="button" class="page-create-btn" (click)="openCreate()">
+              Crear
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <app-sales-filter-bar
+          mode="quotation"
+          [refreshing]="loading()"
+          (filtersChange)="applyFilters($event)"
+          (refresh)="load()">
+        </app-sales-filter-bar>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-semibold text-gray-700">Por Estado</h3>
+            <span class="text-sm text-gray-600">Total: {{ totalOrders() }} ({{ formatCurrency(totalAmount()) }})</span>
+          </div>
+          <div class="border-b border-gray-200 mb-4"></div>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-600">Creadas</span>
+                <span class="text-sm font-semibold text-[#334155]">{{ creadasCount() }}</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                <div class="bg-blue-500 h-2 rounded-full transition-all" [style.width.%]="creadasPercent()"></div>
+              </div>
+              <p class="text-xs text-gray-500">{{ formatCurrency(creadasAmount()) }}</p>
+            </div>
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-600">Convertidas</span>
+                <span class="text-sm font-semibold text-[#334155]">{{ convertidasCount() }}</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                <div class="bg-green-500 h-2 rounded-full transition-all" [style.width.%]="convertidasPercent()"></div>
+              </div>
+              <p class="text-xs text-gray-500">{{ formatCurrency(convertidasAmount()) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-semibold text-gray-700">Por Tipo</h3>
+            <span class="text-sm text-gray-600">Total: {{ totalOrders() }} ({{ formatCurrency(totalAmount()) }})</span>
+          </div>
+          <div class="border-b border-gray-200 mb-4"></div>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-600">POS</span>
+                <span class="text-sm font-semibold text-[#334155]">{{ posCount() }}</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                <div class="bg-green-500 h-2 rounded-full transition-all" [style.width.%]="posPercent()"></div>
+              </div>
+              <p class="text-xs text-gray-500">{{ formatCurrency(posAmount()) }}</p>
+            </div>
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-600">Manual</span>
+                <span class="text-sm font-semibold text-[#334155]">{{ manualCount() }}</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                <div class="bg-blue-500 h-2 rounded-full transition-all" [style.width.%]="manualPercent()"></div>
+              </div>
+              <p class="text-xs text-gray-500">{{ formatCurrency(manualAmount()) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hidden md:block">
+        <app-datatable-wrapper
+          variant="modern"
+          class="sales-order-list__table"
+          [config]="table_config()"
+          [rowTemplate]="tableTemplate"
+          (pageChange)="onPageChange($event)"
+          (sortChange)="onSortChange($event)"
+          (rowClick)="openDetail($event.data)">
+        </app-datatable-wrapper>
+      </div>
+
+      <div class="block md:hidden">
+        @if (!loading() && !table_config().rows?.length) {
+          <app-empty-stage
+            message="Sin resultados"
+            sub_message="No se encontraron cotizaciones">
+          </app-empty-stage>
+        }
+        <div class="space-y-3">
+          @for (row of table_config().rows; track row.id) {
+            <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm" (click)="openDetail(row)">
+              <div class="flex justify-between items-start mb-2">
+                <span class="dt-folio-badge dt-folio-badge--odv">{{ row.folio || row.id.substring(0, 8) }}</span>
+                <span [ngClass]="statusClass(row.general_status)">{{ row.general_status }}</span>
+              </div>
+              <div class="text-sm text-gray-600 space-y-1">
+                <div class="sales-order-list__mobile-customer">
+                  <strong>Cliente:</strong>
+                  <span class="sales-orders-col-customer__stack">
+                    <span class="sales-orders-col-customer__name" [title]="customerName(row)">{{ customerName(row) }}</span>
+                    @if (companyName(row)) {
+                      <span class="sales-orders-col-customer__company" [title]="companyName(row)">{{ companyName(row) }}</span>
+                    }
+                  </span>
+                </div>
+                <div class="sales-order-list__mobile-billing">
+                  <strong>Sucursal:</strong>
+                  <span class="sales-orders-col-billing__stack">
+                    <span class="sales-orders-col-billing__branch" [title]="branchLabel(row)">{{ branchLabel(row) }}</span>
+                    <span class="sales-orders-col-billing__fiscal" [title]="fiscalLabel(row)">{{ fiscalLabel(row) }}</span>
+                  </span>
+                </div>
+                <div><strong>Total:</strong> {{ formatCurrency(getTotal(row)) }}</div>
+                <div class="sales-order-list__mobile-pay">
+                  <strong>Tipo:</strong>
+                  <span [ngClass]="typeClass(row.quotation_type)">{{ typeLabel(row.quotation_type) }}</span>
+                </div>
+                <div class="text-xs text-gray-500">{{ formatDateHuman(row.created_at) }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="sales-orders-col-folio">
+    <span class="dt-folio-badge dt-folio-badge--odv">{{ item.folio || item.id.substring(0, 8) }}</span>
+  </td>
+  <td class="sales-orders-col-customer">
+    <span class="sales-orders-col-customer__stack" [title]="customerName(item)">
+      <span class="sales-orders-col-customer__name">{{ customerName(item) }}</span>
+      @if (companyName(item)) {
+        <span class="sales-orders-col-customer__company">{{ companyName(item) }}</span>
+      }
+    </span>
+  </td>
+  <td class="sales-orders-col-billing">
+    <span class="sales-orders-col-billing__stack" [title]="branchLabel(item) + ' · ' + fiscalLabel(item)">
+      <span class="sales-orders-col-billing__branch">{{ branchLabel(item) }}</span>
+      <span class="sales-orders-col-billing__fiscal">{{ fiscalLabel(item) }}</span>
+    </span>
+  </td>
+  <td class="w-[120px]">
+    <span [ngClass]="statusClass(item.general_status)">{{ item.general_status }}</span>
+  </td>
+  <td class="w-[120px]">
+    <p class="dt-cell-amount m-0">{{ formatCurrency(getTotal(item)) }}</p>
+  </td>
+  <td class="sales-orders-col-pay">
+    <span [ngClass]="typeClass(item.quotation_type)">{{ typeLabel(item.quotation_type) }}</span>
+  </td>
+  <td class="w-[160px]">
+    <p class="dt-cell-subtle m-0">{{ formatDateHuman(item.created_at) }}</p>
+  </td>
+</ng-template>

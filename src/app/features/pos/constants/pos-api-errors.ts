@@ -9,6 +9,8 @@ export const POS_API_ERROR_MESSAGES: Record<string, string> = {
     'Esta venta está en cola. Cobranza debe abrir el corte del día para asignarla antes de cobrar.',
   'No se puede cambiar el tipo POS de un usuario con corte global abierto':
     'No se puede modificar este usuario COBRANZA mientras tenga un corte abierto.',
+  'No se puede cambiar el tipo POS ni la sucursal mientras hay un corte global abierto. Cierra el corte primero.':
+    'Cierra el corte de esta sucursal antes de cambiar.',
   'Este cliente no tiene crédito activo con esta razón social':
     'Este cliente no tiene crédito activo con esta razón social',
   'Selecciona al menos dos formas de pago': 'Selecciona al menos dos formas de pago',

@@ -10,7 +10,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import {
   LucideAngularModule,
   Monitor,
@@ -33,18 +33,21 @@ import {
   Eye,
   Landmark,
   Pencil,
+  MapPin,
+  AlertTriangle,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ExchangeRateService } from '../../../../core/services/exchange-rate.service';
 import { POSService } from '../../services/pos.service';
 import { PosStateService } from '../../services/pos-state.service';
+import { PosBranchSessionService } from '../../services/pos-branch-session.service';
 import {
-  dailyShiftIsOpen,
   dailyShiftPartialCount,
   dailyShiftRemovedTotal,
   dailyShiftSalesTotal,
   dailyShiftTerminalLabel,
+  expectedCashInDrawer,
   formatPosMoney,
   parsePosMoney,
   partialPerformedByLabel,
@@ -54,6 +57,7 @@ import {
   PosDailyShiftPartial,
 } from '../../models/pos-daily-shift.model';
 import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import {
   OpenDailyShiftDialogComponent,
   OpenDailyShiftDialogResult,
@@ -62,7 +66,8 @@ import {
   PartialShiftDialogComponent,
   PartialShiftDialogResult,
 } from '../../components/partial-shift-dialog/partial-shift-dialog.component';
-import { CloseDailyShiftDialogComponent, CloseDailyShiftDialogData } from '../../components/close-daily-shift-dialog/close-daily-shift-dialog.component';
+import { CloseDailyShiftDialogComponent, CloseDailyShiftDialogData, CloseDailyShiftDialogResult } from '../../components/close-daily-shift-dialog/close-daily-shift-dialog.component';
+import { UnclosedDailyShiftDialogComponent } from '../../components/unclosed-daily-shift-dialog/unclosed-daily-shift-dialog.component';
 import {
   PosCustomerPickerDialogComponent,
   PosCustomerPickerDialogResult,
@@ -181,6 +186,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
   readonly Eye = Eye;
   readonly Landmark = Landmark;
   readonly Pencil = Pencil;
+  readonly MapPin = MapPin;
+  readonly AlertTriangle = AlertTriangle;
 
   pendingSales = signal<PendingSale[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);
@@ -217,6 +224,9 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   readonly shift = computed(() => this.posState.dailyShift());
   readonly shiftOpen = computed(() => this.posState.shiftOpen());
+  readonly hasOpenShiftRecord = computed(() => this.posState.hasOpenShiftRecord());
+  readonly requiresPreviousClose = computed(() => this.posState.requiresPreviousClose());
+  private unclosedDialogRef: MatDialogRef<UnclosedDailyShiftDialogComponent> | null = null;
 
   readonly filteredPendingSales = computed(() => {
     const term = this.searchFolio().trim().toLowerCase();
@@ -348,7 +358,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
     private receiptPrintService: PosReceiptPrintService,
     private customerService: CustomerService,
     private salesOrderService: SalesOrderService,
-    private fiscalConfigService: FiscalConfigurationService
+    private fiscalConfigService: FiscalConfigurationService,
+    private posBranchSession: PosBranchSessionService
   ) {}
 
   private preselectOrderId = signal<string | null>(null);
@@ -357,7 +368,14 @@ export class PaymentComponent implements OnInit, OnDestroy {
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     this.loadDailyExchangeRate();
-    this.refreshDailyShift();
+    this.posBranchSession.ensureSelected().subscribe({
+      next: (ok) => {
+        if (ok) {
+          this.refreshDailyShift();
+        }
+      },
+      error: (error) => this.toast.error(mapPosApiErrorMessage(error.error?.message)),
+    });
     const orderId = this.route.snapshot.queryParamMap.get('orderId');
     if (orderId) {
       this.preselectOrderId.set(orderId);
@@ -375,16 +393,54 @@ export class PaymentComponent implements OnInit, OnDestroy {
   }
 
   branchLabel(): string {
-    const branch = this.shift()?.billing_branch;
-    return branch?.display_name || branch?.code || 'Sucursal';
+    return this.posBranchSession.label();
   }
 
-  refreshDailyShift(): void {
+  canSwitchBranch(): boolean {
+    return this.posBranchSession.canSwitch();
+  }
+
+  changeBranch(): void {
+    this.posBranchSession.pickBranch({ required: false }).subscribe({
+      next: (changed) => {
+        if (!changed) {
+          return;
+        }
+        const fiscal = this.authService.getFiscalConfigurationId();
+        if (fiscal) {
+          this.posState.fiscalConfigurationId.set(fiscal);
+        }
+        this.posState.setDailyShift(null);
+        this.refreshDailyShift(true);
+      },
+      error: (error) =>
+        this.toast.error(
+          mapPosApiErrorMessage(resolveHttpErrorMessage(error, 'No se pudo cambiar la sucursal'))
+        ),
+    });
+  }
+
+  private notifyBranchSwitchResult(todayShiftOpen: boolean, previousClose: boolean): void {
+    const name = this.posBranchSession.label();
+    if (previousClose) {
+      this.toast.info(`${name}: hay un corte de otro día. Ciérralo antes de abrir el de hoy.`);
+      return;
+    }
+    if (todayShiftOpen) {
+      this.toast.success(`${name}: corte abierto.`);
+      return;
+    }
+    this.toast.info(`${name}: sin corte. Ábrelo aquí para cobrar, o las ventas quedan en cola.`);
+  }
+
+  refreshDailyShift(afterBranchSwitch = false): void {
     this.posState.checkingShift.set(true);
     this.posService.getCurrentDailyShift().subscribe({
-      next: ({ daily_shift }) => {
-        const openShift = daily_shift && dailyShiftIsOpen(daily_shift) ? daily_shift : null;
-        this.posState.setDailyShift(openShift);
+      next: (response) => {
+        const openShift = this.posState.applyCurrentDailyShift(
+          response,
+          this.authService.getBillingBranchId()
+        );
         this.posState.checkingShift.set(false);
         if (openShift) {
           this.loadPendingSales();
@@ -395,10 +451,17 @@ export class PaymentComponent implements OnInit, OnDestroy {
           this.collectedSales.set([]);
           this.collectedSummary.set(null);
         }
+        if (afterBranchSwitch) {
+          this.notifyBranchSwitchResult(
+            this.posState.shiftOpen(),
+            this.posState.requiresPreviousClose()
+          );
+        }
+        this.promptUnclosedShiftIfNeeded();
       },
       error: (error) => {
         this.posState.checkingShift.set(false);
-        if (!this.posState.shiftOpen()) {
+        if (!this.posState.hasOpenShiftRecord()) {
           this.posState.setDailyShift(null);
         }
         if (error?.status !== 404) {
@@ -408,7 +471,40 @@ export class PaymentComponent implements OnInit, OnDestroy {
     });
   }
 
+  private promptUnclosedShiftIfNeeded(): void {
+    const alert = this.posState.unclosedShiftAlert();
+    if (!alert) {
+      this.unclosedDialogRef?.close();
+      this.unclosedDialogRef = null;
+      return;
+    }
+
+    const openAlertId = this.unclosedDialogRef?.componentInstance?.data?.alert?.daily_shift_id;
+    if (this.unclosedDialogRef && openAlertId === alert.daily_shift_id) {
+      return;
+    }
+
+    this.unclosedDialogRef?.close();
+    this.unclosedDialogRef = this.dialog.open(UnclosedDailyShiftDialogComponent, {
+      width: '440px',
+      maxWidth: '95vw',
+      disableClose: true,
+      panelClass: 'pos-dialog-panel',
+      autoFocus: false,
+      data: {
+        mode: 'cobranza',
+        alert,
+        onCloseShift: () => this.closeDailyShift(),
+      },
+    });
+  }
+
   openDailyShift(): void {
+    if (this.posState.requiresPreviousClose()) {
+      this.promptUnclosedShiftIfNeeded();
+      this.toast.info('Cierra el corte de ayer antes de abrir el de hoy.');
+      return;
+    }
     const dialogRef = this.dialog.open(OpenDailyShiftDialogComponent, {
       width: '420px',
       maxWidth: '95vw',
@@ -462,7 +558,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   loadShiftDetail(): void {
     const shiftId = this.shift()?.id;
-    if (!shiftId || !this.posState.shiftOpen()) {
+    if (!shiftId || !this.posState.hasOpenShiftRecord()) {
       return;
     }
     this.loadingShiftDetail.set(true);
@@ -479,7 +575,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
   }
 
   loadCollectedSales(): void {
-    if (!this.posState.shiftOpen()) {
+    if (!this.posState.hasOpenShiftRecord()) {
       this.collectedSales.set([]);
       this.collectedSummary.set(null);
       return;
@@ -571,38 +667,71 @@ export class PaymentComponent implements OnInit, OnDestroy {
     }
 
     const dialogRef = this.dialog.open(CloseDailyShiftDialogComponent, {
-      width: '460px',
+      width: '520px',
       maxWidth: '95vw',
       disableClose: true,
       panelClass: 'pos-dialog-panel',
-      data: {
-        shiftDate: shift.shift_date,
-        branchLabel: this.branchLabel(),
-        openingMxn: this.shiftOpeningMxn(shift),
-        openingUsd: parsePosMoney(shift.opening_cash_usd) > 0
-          ? `USD ${parsePosMoney(shift.opening_cash_usd).toFixed(2)}`
-          : undefined,
-        salesTotal: this.shiftSalesTotal(shift),
-        partialCount: this.shiftPartialCount(shift),
-        removedTotal: formatPosMoney(dailyShiftRemovedTotal(shift)),
-        pendingCount: this.pendingSales().length,
-      } satisfies CloseDailyShiftDialogData,
+      data: this.buildCloseDailyShiftData(shift),
     });
 
-    dialogRef.afterClosed().subscribe((result: { notes?: string } | undefined) => {
+    dialogRef.afterClosed().subscribe((result: CloseDailyShiftDialogResult | undefined) => {
       if (!result) {
         return;
       }
       this.posService.closeDailyShift(shift.id, result).subscribe({
-        next: () => {
-          this.posState.clearAll();
+        next: (closed) => {
+          this.posState.setUnclosedShiftAlert(null);
+          this.unclosedDialogRef?.close();
+          this.unclosedDialogRef = null;
+          this.posState.setDailyShift(null);
           this.pendingSales.set([]);
           this.selectedSale.set(null);
-          this.toast.success('Corte cerrado correctamente');
+          this.toast.success(this.closeShiftResultMessage(closed));
+          this.refreshDailyShift();
         },
         error: (error) => this.toast.error(mapPosApiErrorMessage(error.error?.message)),
       });
     });
+  }
+
+  private buildCloseDailyShiftData(shift: PosDailyShiftDetail): CloseDailyShiftDialogData {
+    const drawer = shift.cash_drawer;
+    const summary = this.collectedSummary();
+    const openingMxn = parsePosMoney(drawer?.opening_cash_mxn ?? shift.opening_cash_mxn);
+    const openingUsd = parsePosMoney(drawer?.opening_cash_usd ?? shift.opening_cash_usd);
+    const collectedCashMxn = parsePosMoney(summary?.cash_mxn ?? drawer?.collected_cash_mxn);
+    const collectedCashUsd = parsePosMoney(summary?.cash_usd ?? drawer?.collected_cash_usd);
+    const removedMxn = parsePosMoney(drawer?.removed_total_mxn ?? dailyShiftRemovedTotal(shift));
+    const removedUsd = parsePosMoney(drawer?.removed_total_usd ?? shift.totals?.removed_total_usd);
+    return {
+      shiftDate: shift.shift_date,
+      branchLabel: this.branchLabel(),
+      openingCashMxn: openingMxn,
+      openingCashUsd: openingUsd,
+      collectedCashMxn,
+      collectedCashUsd,
+      collectedTransferMxn: parsePosMoney(summary?.transfer_mxn ?? drawer?.collected_transfer_mxn),
+      collectedCardMxn: parsePosMoney(summary?.card_mxn ?? drawer?.collected_card_mxn),
+      collectedCreditMxn: parsePosMoney(summary?.credit_mxn ?? drawer?.collected_credit_mxn),
+      removedMxn,
+      removedUsd,
+      expectedCashMxn: expectedCashInDrawer(openingMxn, collectedCashMxn, removedMxn),
+      expectedCashUsd: expectedCashInDrawer(openingUsd, collectedCashUsd, removedUsd),
+      partialCount: this.shiftPartialCount(shift),
+      pendingCount: this.pendingSales().length,
+      isHistorical: this.posState.requiresPreviousClose(),
+    };
+  }
+
+  private closeShiftResultMessage(shift: PosDailyShiftDetail): string {
+    const diff = parsePosMoney(shift.cash_drawer?.cash_difference_mxn);
+    if (diff > 0.009) {
+      return `Corte cerrado. Sobrante ${formatPosMoney(diff)}.`;
+    }
+    if (diff < -0.009) {
+      return `Corte cerrado. Faltante ${formatPosMoney(Math.abs(diff))}.`;
+    }
+    return 'Corte cerrado. La caja cuadra.';
   }
 
   loadPendingSales(): void {

@@ -31,9 +31,10 @@
           <app-spinner></app-spinner>
         </div>
       } @else if (items().length === 0) {
-        <div class="empty-state">
-          <p>No se encontraron productos en inventario</p>
-        </div>
+        <app-empty-stage
+          message="Sin resultados"
+          sub_message="No se encontraron productos en inventario">
+        </app-empty-stage>
       } @else {
         <table class="inventory-table">
           <thead>

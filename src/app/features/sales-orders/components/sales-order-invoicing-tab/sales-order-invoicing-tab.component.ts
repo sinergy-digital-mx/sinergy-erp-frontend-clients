@@ -9,6 +9,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { ELECTRONIC_INVOICING_PERMISSIONS } from '../../config/electronic-invoicing-permissions.config';
 import {
   FinkokConfigurationsResponse,
@@ -436,8 +437,7 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   }
 
   formatCurrency(value: number | string | undefined | null): string {
-    const n = Number(value);
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number.isFinite(n) ? n : 0);
+    return formatUnitCurrency(value);
   }
 
   formatDate(value?: string | null): string {

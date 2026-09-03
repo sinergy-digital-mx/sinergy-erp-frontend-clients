@@ -29,6 +29,7 @@ import {
 import { DIVINO_RESERVATION_FORMAT_PERMISSIONS } from '../../config/permissions.config';
 import { ReservationFormatModalComponent } from '../../components/reservation-format-modal/reservation-format-modal.component';
 import { SendReservationFormatModalComponent } from '../../components/send-reservation-format-modal/send-reservation-format-modal.component';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 @Component({
   selector: 'app-reservation-formats-list',
@@ -39,6 +40,7 @@ import { SendReservationFormatModalComponent } from '../../components/send-reser
     SearchComponent,
     LucideAngularModule,
     HasPermissionDirective,
+    EmptyStageComponent,
   ],
   templateUrl: './reservation-formats-list.component.html',
   styleUrls: ['./reservation-formats-list.component.scss'],

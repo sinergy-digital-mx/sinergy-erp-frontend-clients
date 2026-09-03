@@ -1,44 +1,148 @@
-<div class="pos-dialog">
+<div class="pos-dialog pos-dialog--wide close-shift-dialog">
   <h2 class="pos-dialog__title">Cerrar corte del día</h2>
   <p class="pos-dialog__subtitle">
-    Cierra el corte global de {{ data.branchLabel }} ({{ data.shiftDate }}). Los cortes parciales quedan registrados dentro de este corte.
+    Cuenta el efectivo que queda en caja de {{ data.branchLabel }} ({{ data.shiftDate }}).
+    Tarjeta, transferencia y crédito no se cuentan aquí.
   </p>
 
   @if (data.isHistorical) {
     <p class="close-shift-summary__warn close-shift-summary__warn--historical">
-      Este corte es de un día anterior. Ciérralo solo si quedó abierto por error.
+      Este corte es de un día anterior. Ciérralo para poder abrir el corte de hoy.
     </p>
   }
 
   <div class="close-shift-summary">
     <div class="close-shift-summary__row">
       <span>Efectivo inicial</span>
-      <strong>{{ data.openingMxn }}</strong>
+      <strong>{{ formatMxn(data.openingCashMxn) }}</strong>
     </div>
-    @if (data.openingUsd) {
-      <div class="close-shift-summary__row">
-        <span>Efectivo inicial USD</span>
-        <strong>{{ data.openingUsd }}</strong>
-      </div>
+    <div class="close-shift-summary__row">
+      <span>+ Cobrado en efectivo</span>
+      <strong>{{ formatMxn(data.collectedCashMxn) }}</strong>
+    </div>
+    <div class="close-shift-summary__row">
+      <span>− Retiros ({{ data.partialCount }} parcial{{ data.partialCount === 1 ? '' : 'es' }})</span>
+      <strong>{{ formatMxn(data.removedMxn) }}</strong>
+    </div>
+    <div class="close-shift-summary__row close-shift-summary__row--expected">
+      <span>Esperado en caja</span>
+      <strong>{{ formatMxn(expectedMxn()) }}</strong>
+    </div>
+    @if (data.collectedTransferMxn > 0 || data.collectedCardMxn > 0 || data.collectedCreditMxn > 0) {
+      <p class="close-shift-summary__aside">
+        Fuera de caja: transferencia {{ formatMxn(data.collectedTransferMxn) }}
+        · tarjeta {{ formatMxn(data.collectedCardMxn) }}
+        · crédito {{ formatMxn(data.collectedCreditMxn) }}
+      </p>
     }
-    <div class="close-shift-summary__row">
-      <span>Ventas cobradas</span>
-      <strong>{{ data.salesTotal }}</strong>
-    </div>
-    <div class="close-shift-summary__row">
-      <span>Cortes parciales</span>
-      <strong>{{ data.partialCount }} · {{ data.removedTotal }} retirados</strong>
-    </div>
     @if (data.pendingCount > 0) {
       <p class="close-shift-summary__warn">
-        Aún hay {{ data.pendingCount }} venta(s) pendiente(s) de cobro. El backend permite cerrar el corte de todas formas.
+        Aún hay {{ data.pendingCount }} venta(s) sin cobrar (no a crédito). No se cancelan: al abrir el corte de hoy vuelven a cobranza.
       </p>
+    }
+  </div>
+
+  <h3 class="close-shift-count-title">¿Cuánto queda en caja?</h3>
+  <p class="partial-hint">Cuenta billetes y monedas con <strong>+</strong> / <strong>−</strong>. Los centavos se escriben a mano.</p>
+
+  <div class="partial-tabs">
+    <button type="button" [class.partial-tabs__btn--active]="activeTab() === 'MXN'" (click)="activeTab.set('MXN')">
+      Pesos
+    </button>
+    @if (showUsd()) {
+      <button type="button" [class.partial-tabs__btn--active]="activeTab() === 'USD'" (click)="activeTab.set('USD')">
+        Dólares
+      </button>
+    }
+  </div>
+
+  @if (activeTab() === 'MXN') {
+    <div class="denom-grid">
+      @for (d of mxnDenoms; track d) {
+        <div class="denom-row">
+          <span class="denom-row__label">{{ formatDenomLabel('MXN', d) }}</span>
+          <div
+            class="denom-stepper"
+            tabindex="0"
+            role="spinbutton"
+            [attr.aria-label]="denomAriaLabel('MXN', d)"
+            [attr.aria-valuenow]="getCount('MXN', d)"
+            aria-valuemin="0"
+            (keydown)="onDenomKeydown($event, 'MXN', d)">
+            <button type="button" class="denom-stepper__btn" tabindex="-1" [disabled]="getCount('MXN', d) <= 0" (click)="adjustCount('MXN', d, -1)">−</button>
+            <span class="denom-stepper__value">{{ getCount('MXN', d) }}</span>
+            <button type="button" class="denom-stepper__btn" tabindex="-1" (click)="adjustCount('MXN', d, 1)">+</button>
+          </div>
+        </div>
+      }
+    </div>
+    <label class="close-shift-cents" for="close-cents-mxn">
+      <span>Centavos</span>
+      <input
+        id="close-cents-mxn"
+        type="number"
+        min="0"
+        step="0.01"
+        inputmode="decimal"
+        placeholder="0.00"
+        [ngModel]="centsMxnRaw()"
+        (ngModelChange)="setCentsRaw('MXN', $event)" />
+    </label>
+  } @else {
+    <div class="denom-grid">
+      @for (d of usdDenoms; track d) {
+        <div class="denom-row">
+          <span class="denom-row__label">{{ formatDenomLabel('USD', d) }}</span>
+          <div
+            class="denom-stepper"
+            tabindex="0"
+            role="spinbutton"
+            [attr.aria-label]="denomAriaLabel('USD', d)"
+            [attr.aria-valuenow]="getCount('USD', d)"
+            aria-valuemin="0"
+            (keydown)="onDenomKeydown($event, 'USD', d)">
+            <button type="button" class="denom-stepper__btn" tabindex="-1" [disabled]="getCount('USD', d) <= 0" (click)="adjustCount('USD', d, -1)">−</button>
+            <span class="denom-stepper__value">{{ getCount('USD', d) }}</span>
+            <button type="button" class="denom-stepper__btn" tabindex="-1" (click)="adjustCount('USD', d, 1)">+</button>
+          </div>
+        </div>
+      }
+    </div>
+    <label class="close-shift-cents" for="close-cents-usd">
+      <span>Centavos</span>
+      <input
+        id="close-cents-usd"
+        type="number"
+        min="0"
+        step="0.01"
+        inputmode="decimal"
+        placeholder="0.00"
+        [ngModel]="centsUsdRaw()"
+        (ngModelChange)="setCentsRaw('USD', $event)" />
+    </label>
+  }
+
+  <div class="close-shift-count-totals">
+    <div class="close-shift-count-totals__row">
+      <span>Contado</span>
+      <strong>{{ formatMxn(countedMxn()) }}</strong>
+    </div>
+    <div
+      class="close-shift-diff"
+      [class.close-shift-diff--exact]="differenceMxnType() === 'exact'"
+      [class.close-shift-diff--surplus]="differenceMxnType() === 'surplus'"
+      [class.close-shift-diff--shortage]="differenceMxnType() === 'shortage'">
+      <span>{{ differenceLabel(differenceMxnType()) }}</span>
+      <strong>{{ formatMxn(abs(differenceMxn())) }}</strong>
+    </div>
+    @if (showUsd()) {
+      <p class="close-shift-summary__aside">USD contado {{ countedUsd() | number:'1.2-2' }} · esperado {{ expectedUsd() | number:'1.2-2' }}</p>
     }
   </div>
 
   <label class="pos-dialog__field">
     <span>Notas (opcional)</span>
-    <input type="text" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Cierre turno" />
+    <input type="text" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Cierre turno, faltante, etc." />
   </label>
 
   <div class="pos-dialog__actions">

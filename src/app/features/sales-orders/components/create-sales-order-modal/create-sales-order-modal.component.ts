@@ -8,6 +8,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { SalesOrderService } from '../../services/sales-order.service';
+import { QuotationService } from '../../../quotations/services/quotation.service';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { BranchService } from '../../../settings/services/branch.service';
@@ -69,9 +70,14 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   private productSearch$ = new Subject<string>();
   private productsSub?: Subscription;
 
+  get asQuotation(): boolean {
+    return this.data?.asQuotation === true;
+  }
+
   constructor(
     private fb: FormBuilder,
     private salesOrderService: SalesOrderService,
+    private quotationService: QuotationService,
     private fiscalConfigService: FiscalConfigurationService,
     private branchService: BranchService,
     private customerService: CustomerService,
@@ -602,6 +608,40 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
 
     this.saving = true;
     const fv = this.form.getRawValue();
+    const lineItems = this.lineItems.map((li) => ({
+      product_id: li.product_id,
+      product_uom_id: li.product_uom_id,
+      quantity: Number(li.quantity),
+      unit_price: Number(li.unit_price),
+      discount_percentage: Number(li.discount_percentage || 0),
+      iva_percentage: Number(li.iva_percentage),
+      ieps_percentage: Number(li.ieps_percentage)
+    }));
+
+    if (this.asQuotation) {
+      this.quotationService.create({
+        fiscal_configuration_id: fv.fiscal_configuration_id,
+        billing_branch_id: fv.billing_branch_id,
+        customer_id: fv.customer_id,
+        expected_delivery_date: fv.expected_delivery_date,
+        notes: (fv.notes || '').trim() || undefined,
+        line_items: lineItems,
+      }).subscribe({
+        next: (quotation) => {
+          this.saving = false;
+          this.toast.success('Cotización creada. No se retuvo inventario.');
+          this.dialogRef.close(quotation);
+        },
+        error: (error) => {
+          this.saving = false;
+          this.cdr.detectChanges();
+          const msg = error.error?.message || error.message || 'Error al crear la cotización';
+          this.toast.error(msg);
+        }
+      });
+      return;
+    }
+
     const payload = {
       fiscal_configuration_id: fv.fiscal_configuration_id,
       billing_branch_id: fv.billing_branch_id,
@@ -609,15 +649,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       expected_delivery_date: fv.expected_delivery_date,
       requires_selection_assembly: !!fv.requires_selection_assembly,
       notes: (fv.notes || '').trim() || undefined,
-      line_items: this.lineItems.map((li) => ({
-        product_id: li.product_id,
-        product_uom_id: li.product_uom_id,
-        quantity: Number(li.quantity),
-        unit_price: Number(li.unit_price),
-        discount_percentage: Number(li.discount_percentage || 0),
-        iva_percentage: Number(li.iva_percentage),
-        ieps_percentage: Number(li.ieps_percentage)
-      }))
+      line_items: lineItems,
     };
 
     this.salesOrderService.createOrder(payload).subscribe({

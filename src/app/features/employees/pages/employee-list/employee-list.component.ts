@@ -20,11 +20,12 @@ import {
 import { EMPLOYEE_PERMISSIONS } from '../../config/permissions.config';
 import { LeaveReviewDialogComponent } from '../../components/leave-review-dialog/leave-review-dialog.component';
 import { LeaveRequestDialogComponent } from '../../components/leave-request-dialog/leave-request-dialog.component';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 @Component({
   selector: 'app-employee-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TabComponent],
+  imports: [CommonModule, FormsModule, TabComponent, EmptyStageComponent],
   templateUrl: './employee-list.component.html',
   styleUrls: ['./employee-list.component.scss'],
 })

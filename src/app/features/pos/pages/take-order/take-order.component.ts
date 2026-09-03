@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, signal, computed, ViewChild, ElementRef }
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil, tap } from 'rxjs';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -24,13 +24,20 @@ import {
   Info,
   ChevronDown,
   X,
+  MapPin,
 } from 'lucide-angular';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
+import { PosBranchSessionService } from '../../services/pos-branch-session.service';
+import { UnclosedDailyShiftDialogComponent } from '../../components/unclosed-daily-shift-dialog/unclosed-daily-shift-dialog.component';
+import {
+  PosCheckoutConfirmDialogComponent,
+  PosCheckoutConfirmDialogData,
+} from '../../components/pos-checkout-confirm-dialog/pos-checkout-confirm-dialog.component';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { POSService } from '../../services/pos.service';
 import { PosStateService } from '../../services/pos-state.service';
-import { POSCartItem } from '../../models/pos.model';
+import { POSCart, POSCartItem } from '../../models/pos.model';
 import {
   enrichPosInventorySummary,
   normalizePosInventorySummary,
@@ -55,9 +62,11 @@ import { isDiscountApiError, formatGlobalDiscountLabel, formatApplicableDiscount
 import { GlobalDiscountService } from '../../../global-discounts/services/global-discount.service';
 import { GlobalDiscount } from '../../../global-discounts/models/global-discount.model';
 import { GLOBAL_DISCOUNT_PERMISSIONS } from '../../../global-discounts/config/permissions.config';
+import { QUOTATION_PERMISSIONS } from '../../../quotations/config/permissions.config';
 import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
-import { dailyShiftIsOpen } from '../../models/pos-daily-shift.model';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { formatMeasureTotalsLine, hasMeasureTotals } from '../../../../core/utils/inventory-measure.util';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { formatInventoryNumber } from '../../../inventory/utils/inventory-list.util';
 
 @Component({
@@ -85,6 +94,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   readonly Info = Info;
   readonly ChevronDown = ChevronDown;
   readonly X = X;
+  readonly MapPin = MapPin;
 
   private static readonly CART_TOTALS_OPEN_KEY = 'pos_cart_totals_open';
   cartTotalsOpen = signal(TakeOrderComponent.readCartTotalsOpen());
@@ -95,6 +105,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   searchTerm = signal<string>('');
   loading = signal<boolean>(false);
   saving = signal<boolean>(false);
+  confirming = signal<boolean>(false);
 
   priceListError = signal<boolean>(false);
   isFullscreen = signal<boolean>(false);
@@ -131,6 +142,8 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   photoErrorStates = signal<Map<string, boolean>>(new Map());
 
   private sellerDialogOpen = false;
+  private unclosedDialogOpen = false;
+  private acknowledgedUnclosedIds = new Set<string>();
   private productPricingCache = new Map<string, PosPricingOption[]>();
   private readonly destroy$ = new Subject<void>();
   private readonly searchInput$ = new Subject<string>();
@@ -144,10 +157,16 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     private toast: ToastService,
     private dialog: MatDialog,
     private globalDiscountService: GlobalDiscountService,
-    private productService: ProductService
+    private productService: ProductService,
+    private posBranchSession: PosBranchSessionService
   ) {}
 
   readonly canSell = computed(() => this.posState.canCaptureSales());
+  readonly canQuote = computed(
+    () =>
+      this.posState.canCaptureSales() &&
+      this.authService.hasPermission(QUOTATION_PERMISSIONS.create),
+  );
 
   readonly cartProductsTabLabel = computed(() => {
     const count = this.posService.cart().items.length;
@@ -193,15 +212,25 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       void this.router.navigate(['/pos/cobranza'], { replaceUrl: true });
       return;
     }
-    resetPosWarehouseForBranch(this.authService.getBillingBranchId());
-    const fiscalFromLogin = this.authService.getFiscalConfigurationId();
-    if (fiscalFromLogin) {
-      this.posState.fiscalConfigurationId.set(fiscalFromLogin);
-    }
-    if (this.canUseGlobalDiscounts()) {
-      this.loadApplicableGlobalDiscounts();
-    }
-    this.loadData();
+    this.posBranchSession.ensureSelected().subscribe({
+      next: (ok) => {
+        if (!ok) {
+          return;
+        }
+        resetPosWarehouseForBranch(this.authService.getBillingBranchId());
+        const fiscalFromLogin = this.authService.getFiscalConfigurationId();
+        if (fiscalFromLogin) {
+          this.posState.fiscalConfigurationId.set(fiscalFromLogin);
+        }
+        if (this.canUseGlobalDiscounts()) {
+          this.loadApplicableGlobalDiscounts();
+        }
+        this.loadData();
+      },
+      error: (error) => {
+        this.notifyError(mapPosApiErrorMessage(error?.error?.message), 5000);
+      },
+    });
   }
 
   loadApplicableGlobalDiscounts(): void {
@@ -273,8 +302,36 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   branchLabel(): string {
-    const branch = this.posState.dailyShift()?.billing_branch;
-    return branch?.display_name || branch?.code || 'Sucursal';
+    return this.posBranchSession.label();
+  }
+
+  canSwitchBranch(): boolean {
+    return this.posBranchSession.canSwitch();
+  }
+
+  changeBranch(): void {
+    this.posBranchSession.pickBranch({ required: false }).subscribe({
+      next: (changed) => {
+        if (!changed) {
+          return;
+        }
+        this.posService.clearCart();
+        resetPosWarehouseForBranch(this.authService.getBillingBranchId());
+        const fiscal = this.authService.getFiscalConfigurationId();
+        if (fiscal) {
+          this.posState.fiscalConfigurationId.set(fiscal);
+        }
+        this.posState.setDailyShift(null);
+        this.refreshDailyShift(() => this.notifyBranchSwitchResult());
+        this.loadProducts(this.searchTerm());
+      },
+      error: (error) => {
+        this.notifyError(
+          mapPosApiErrorMessage(resolveHttpErrorMessage(error, 'No se pudo cambiar la sucursal')),
+          5000
+        );
+      },
+    });
   }
 
   loadData(): void {
@@ -352,37 +409,58 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     }
   }
 
-  refreshDailyShift(): void {
+  refreshDailyShift(onDone?: () => void): void {
     this.posState.checkingShift.set(true);
     this.posService.getCurrentDailyShift().subscribe({
-      next: ({ daily_shift }) => {
-        if (daily_shift) {
-          this.posState.setDailyShift(daily_shift);
-        }
+      next: (response) => {
+        const forActiveBranch = this.posState.applyCurrentDailyShift(
+          response,
+          this.authService.getBillingBranchId()
+        );
         this.posState.checkingShift.set(false);
-        const shift = this.posState.dailyShift();
-        if (dailyShiftIsOpen(shift)) {
-          this.ensureFiscalFromShift(shift!);
+        onDone?.();
+        if (forActiveBranch) {
+          this.ensureFiscalFromShift(forActiveBranch);
         }
         if (this.posState.seller()) {
           this.loadProducts();
         }
-        this.maybePromptSellerCode();
+        this.maybePromptUnclosedShift();
       },
       error: (error) => {
         this.posState.checkingShift.set(false);
-        if (!dailyShiftIsOpen(this.posState.dailyShift())) {
+        if (!this.posState.hasOpenShiftRecord()) {
           this.posState.setDailyShift(null);
         }
         if (this.posState.seller()) {
           this.loadProducts();
         }
-        this.maybePromptSellerCode();
+        this.maybePromptUnclosedShift();
+        onDone?.();
         if (error?.status !== 404) {
           this.notifyError(mapPosApiErrorMessage(error.error?.message), 5000);
         }
       },
     });
+  }
+
+  private notifyBranchSwitchResult(): void {
+    const name = this.posBranchSession.label();
+    if (this.posState.requiresPreviousClose()) {
+      this.notifyInfo(
+        `${name}: hay un corte de otro día. Cobranza debe cerrarlo. Las ventas quedan en cola.`,
+        6500
+      );
+      return;
+    }
+    if (this.posState.shiftOpen()) {
+      this.notifySuccess(`${name}: corte abierto. Las ventas van a cobranza.`, 4000);
+      return;
+    }
+    this.notifyInfo(
+      `${name}: sin corte. Las ventas quedan en cola hasta que cobranza abra el día.`,
+      5500
+    );
   }
 
   private ensureFiscalFromShift(shift: NonNullable<ReturnType<typeof this.posState.dailyShift>>): void {
@@ -395,7 +473,38 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
     }
   }
 
+  private maybePromptUnclosedShift(): void {
+    const alert = this.posState.unclosedShiftAlert();
+    if (!alert) {
+      this.maybePromptSellerCode();
+      return;
+    }
+    if (this.acknowledgedUnclosedIds.has(alert.daily_shift_id) || this.unclosedDialogOpen) {
+      this.maybePromptSellerCode();
+      return;
+    }
+
+    this.unclosedDialogOpen = true;
+    this.dialog
+      .open(UnclosedDailyShiftDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        disableClose: true,
+        panelClass: 'pos-dialog-panel',
+        data: { mode: 'ventas', alert },
+      })
+      .afterClosed()
+      .subscribe(() => {
+        this.unclosedDialogOpen = false;
+        this.acknowledgedUnclosedIds.add(alert.daily_shift_id);
+        this.maybePromptSellerCode();
+      });
+  }
+
   private maybePromptSellerCode(): void {
+    if (this.unclosedDialogOpen) {
+      return;
+    }
     if (this.authService.isPosCobranzaTerminal()) {
       return;
     }
@@ -576,7 +685,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       product_uom_id: productUomId,
       uom_id: product.uom_id || productUomId,
       uom_name: product.uom_name || 'Pieza',
-      quantity: Math.max(1, selection.quantity),
+      quantity: Math.max(0.001, selection.quantity),
       unit_price: Number(product.suggested_unit_price ?? product.cost ?? 0),
       iva_percentage: Number(product.suggested_iva_percentage ?? 16),
       ieps_percentage: Number(product.suggested_ieps_percentage ?? 0),
@@ -721,6 +830,9 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   saveOrder(): void {
+    if (this.saving() || this.confirming()) {
+      return;
+    }
     if (!this.canSell()) {
       this.notifyError('Identifica al vendedor con su código para registrar la venta', 4000);
       this.openSellerCodeDialog();
@@ -744,37 +856,149 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const payload = buildVentasPosOrderPayload(cart, {
-      warehouseId: ctx.warehouseId,
-      fiscalConfigurationId: ctx.fiscalConfigurationId,
-      sellerUserId: seller.id,
-      terminalLabel: this.terminalLabel(),
-    });
+    this.confirmCheckout({
+      kind: 'sale',
+      title: 'Registrar venta',
+      subtitle: this.posState.salesQueueMode()
+        ? 'Se registrará y quedará en cola hasta que cobranza cierre el corte anterior y abra el de hoy.'
+        : 'Se registrará la venta y el cliente pasará a cobranza para pagar.',
+      totalLabel: this.formatCurrency(cart.grand_total),
+      itemSummary: this.cartItemSummary(cart),
+      acceptLabel: 'Registrar venta',
+      queued: this.posState.salesQueueMode(),
+    }).subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
 
-    this.saving.set(true);
+      const payload = buildVentasPosOrderPayload(cart, {
+        warehouseId: ctx.warehouseId,
+        fiscalConfigurationId: ctx.fiscalConfigurationId,
+        sellerUserId: seller.id,
+        terminalLabel: this.terminalLabel(),
+      });
 
-    this.posService.createPosSalesOrder(payload).subscribe({
-      next: (order) => {
-        this.saving.set(false);
-        const folioLabel = order.folio ? order.folio : 'sin folio';
-        const queued = isPosOrderQueued(order) || this.posState.salesQueueMode();
-        const message = queued
-          ? `Venta en cola (${folioLabel}). El cliente debe pasar a cobranza cuando abran el corte del día.`
-          : `Venta registrada (${folioLabel}). El cliente debe pasar a cobranza para pagar.`;
-        this.notifySuccess(message, 6000);
-        this.posService.clearCart();
-        this.loadProducts(this.searchTerm());
-      },
-      error: (error) => {
-        this.saving.set(false);
-        const backendMessage = error?.error?.message;
-        const msg = mapPosApiErrorMessage(backendMessage) || 'Error al crear la orden de venta';
-        this.notifyError(msg, 6000);
-        if (error?.status === 400 && isDiscountApiError(backendMessage)) {
+      this.saving.set(true);
+
+      this.posService.createPosSalesOrder(payload).subscribe({
+        next: (order) => {
+          this.saving.set(false);
+          const folioLabel = order.folio ? order.folio : 'sin folio';
+          const queued = isPosOrderQueued(order) || this.posState.salesQueueMode();
+          const message = queued
+            ? `Venta en cola (${folioLabel}). El cliente debe pasar a cobranza cuando abran el corte del día.`
+            : `Venta registrada (${folioLabel}). El cliente debe pasar a cobranza para pagar.`;
+          this.notifySuccess(message, 6000);
+          this.posService.clearCart();
           this.loadProducts(this.searchTerm());
-        }
-      },
+        },
+        error: (error) => {
+          this.saving.set(false);
+          const backendMessage = error?.error?.message;
+          const msg = mapPosApiErrorMessage(backendMessage) || 'Error al crear la orden de venta';
+          this.notifyError(msg, 6000);
+          if (error?.status === 400 && isDiscountApiError(backendMessage)) {
+            this.loadProducts(this.searchTerm());
+          }
+        },
+      });
     });
+  }
+
+  saveQuotation(): void {
+    if (this.saving() || this.confirming()) {
+      return;
+    }
+    if (!this.canQuote()) {
+      this.notifyError('No tienes permiso para cotizar', 4000);
+      return;
+    }
+    if (!this.canSell()) {
+      this.notifyError('Identifica al vendedor con su código para cotizar', 4000);
+      this.openSellerCodeDialog();
+      return;
+    }
+
+    const cart = this.posService.cart();
+    if (cart.items.length === 0) {
+      this.notifyInfo('Agrega productos a la cotización', 3000);
+      return;
+    }
+
+    const seller = this.posState.seller();
+    if (!seller?.id) {
+      this.openSellerCodeDialog();
+      return;
+    }
+
+    const ctx = this.resolvePosSaleContext();
+    if (!ctx) {
+      return;
+    }
+
+    this.confirmCheckout({
+      kind: 'quote',
+      title: 'Guardar cotización',
+      subtitle: 'No se retiene inventario ni se cobra. Puedes convertirla en venta después.',
+      totalLabel: this.formatCurrency(cart.grand_total),
+      itemSummary: this.cartItemSummary(cart),
+      acceptLabel: 'Guardar cotización',
+    }).subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+
+      const payload = buildVentasPosOrderPayload(cart, {
+        warehouseId: ctx.warehouseId,
+        fiscalConfigurationId: ctx.fiscalConfigurationId,
+        sellerUserId: seller.id,
+        terminalLabel: this.terminalLabel(),
+      });
+
+      this.saving.set(true);
+      this.posService.createPosQuotation(payload).subscribe({
+        next: (quotation) => {
+          this.saving.set(false);
+          const folioLabel = quotation.folio ? quotation.folio : 'sin folio';
+          this.notifySuccess(`Cotización guardada (${folioLabel}). No se retuvo inventario.`, 6000);
+          this.posService.clearCart();
+          this.loadProducts(this.searchTerm());
+        },
+        error: (error) => {
+          this.saving.set(false);
+          const backendMessage = error?.error?.message;
+          const msg = mapPosApiErrorMessage(backendMessage) || 'Error al crear la cotización';
+          this.notifyError(msg, 6000);
+        },
+      });
+    });
+  }
+
+  private confirmCheckout(data: PosCheckoutConfirmDialogData) {
+    this.confirming.set(true);
+    return this.dialog
+      .open(PosCheckoutConfirmDialogComponent, {
+        width: '420px',
+        maxWidth: '95vw',
+        disableClose: true,
+        panelClass: 'pos-dialog-panel',
+        autoFocus: 'first-tabbable',
+        data,
+      })
+      .afterClosed()
+      .pipe(
+        tap(() => this.confirming.set(false)),
+      );
+  }
+
+  private cartItemSummary(cart: POSCart): string {
+    const lines = cart.items.length;
+    const qty = cart.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const lineLabel = lines === 1 ? '1 producto' : `${lines} productos`;
+    if (qty > 0 && qty !== lines) {
+      return `${lineLabel} · ${qty} pzas`;
+    }
+    return lineLabel;
   }
 
   cancel(): void {
@@ -785,10 +1009,7 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   }
 
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-    }).format(amount);
+    return formatUnitCurrency(amount);
   }
 
   /** Precio de lista con IVA e IEPS, para que el drop coincida con el total de línea. */
@@ -905,6 +1126,9 @@ export class TakeOrderComponent implements OnInit, OnDestroy {
   };
 
   cartQueueHint(): string {
+    if (this.posState.requiresPreviousClose()) {
+      return 'Hay un corte de otro día sin cerrar. La venta quedará en cola hasta que cobranza lo cierre y abra el de hoy.';
+    }
     if (this.posState.shiftOpen()) {
       return 'Corte activo — la venta irá directo a cobranza pendiente de pago.';
     }

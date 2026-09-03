@@ -28,6 +28,8 @@ export interface PurchaseOrderLotNode {
   uom?: { id?: string; name?: string } | null;
   measure_label?: string | null;
   unit_cost?: number | string | null;
+  real_unit_cost_usd?: number | string | null;
+  real_unit_cost_mxn?: number | string | null;
   amount?: number | string | null;
   ordered_quantity?: string | number | null;
   received_quantity?: string | number | null;

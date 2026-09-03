@@ -16,6 +16,7 @@ import {
   StampSalesOrderInvoicePayload,
 } from '../../models/sales-order-electronic-invoice.model';
 import type { FinkokEnvironment } from '../../models/sales-order-electronic-invoice.model';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { SalesOrder, SalesOrderLineItem, Customer } from '../../models/sales-order.model';
 import {
   buildCfdiXml,
@@ -186,8 +187,7 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
   }
 
   formatCurrency(value: number | string | undefined | null): string {
-    const n = Number(value);
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number.isFinite(n) ? n : 0);
+    return formatUnitCurrency(value);
   }
 
   getLineImport(item: SalesOrderLineItem): number {

@@ -1,7 +1,7 @@
 <div class="modal-container">
   <!-- Header -->
   <div class="modal-header">
-    <h2>Crear Orden de Venta</h2>
+    <h2>{{ asQuotation ? 'Crear Cotización' : 'Crear Orden de Venta' }}</h2>
     <button class="close-btn" (click)="cancel()" type="button">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
         <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
@@ -71,7 +71,7 @@
           <input type="date" class="form-input" formControlName="expected_delivery_date">
         </div>
 
-        <div class="form-field form-field--full">
+        <div class="form-field form-field--full" *ngIf="!asQuotation">
           <label class="assembly-checkbox">
             <input type="checkbox" formControlName="requires_selection_assembly" />
             <span>Necesita proceso de selección y armado</span>
@@ -150,12 +150,12 @@
 
               <div class="form-field">
                 <label class="form-label">Cantidad</label>
-                <input type="number" class="form-input form-input--inline" [(ngModel)]="item.quantity" [ngModelOptions]="{standalone: true}" min="0.01" step="0.01">
+                <input type="number" class="form-input form-input--inline" [(ngModel)]="item.quantity" [ngModelOptions]="{standalone: true}" min="0.001" step="any">
               </div>
 
               <div class="form-field">
                 <label class="form-label">Precio unit.</label>
-                <input type="number" class="form-input form-input--inline" [(ngModel)]="item.unit_price" [ngModelOptions]="{standalone: true}" min="0" step="0.01">
+                <input type="number" class="form-input form-input--inline" [(ngModel)]="item.unit_price" [ngModelOptions]="{standalone: true}" min="0" step="any">
               </div>
 
               <div class="form-field">
@@ -184,7 +184,7 @@
   <div class="modal-footer">
     <button class="btn btn--secondary" (click)="cancel()" type="button">Cancelar</button>
     <button class="btn btn--primary" (click)="save()" [disabled]="saving" type="button">
-      <span *ngIf="!saving">Crear Orden</span>
+      <span *ngIf="!saving">{{ asQuotation ? 'Crear Cotización' : 'Crear Orden' }}</span>
       <span *ngIf="saving">Creando...</span>
     </button>
   </div>
@@ -249,11 +249,11 @@
           </div>
           <div class="form-field">
             <label class="form-label">CANTIDAD *</label>
-            <input type="number" class="form-input" [(ngModel)]="selectedQuantity" [ngModelOptions]="{ standalone: true }" min="0.01" step="0.01">
+            <input type="number" class="form-input" [(ngModel)]="selectedQuantity" [ngModelOptions]="{ standalone: true }" min="0.001" step="any">
           </div>
           <div class="form-field">
             <label class="form-label">PRECIO UNITARIO</label>
-            <input type="number" class="form-input" [(ngModel)]="selectedUnitPrice" [ngModelOptions]="{ standalone: true }" min="0" step="0.01">
+            <input type="number" class="form-input" [(ngModel)]="selectedUnitPrice" [ngModelOptions]="{ standalone: true }" min="0" step="any">
           </div>
           <div class="form-field">
             <label class="form-label">DESCUENTO %</label>

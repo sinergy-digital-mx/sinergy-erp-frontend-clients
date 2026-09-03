@@ -6,6 +6,7 @@ export type PurchaseOrderMovementType =
   | 'line_removed'
   | 'notes_updated'
   | 'pedimento_updated'
+  | 'real_cost_updated'
   | 'header_replaced'
   | 'received'
   | 'lot_received'

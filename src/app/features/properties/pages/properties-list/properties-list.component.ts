@@ -25,6 +25,7 @@ import { ArrowRight, Plus, LucideAngularModule } from 'lucide-angular';
 import { CustomerGroupDropdownComponent } from '../../../customers/components/customer-group-dropdown/customer-group-dropdown.component';
 import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import {
   formatPolluxAmount,
@@ -37,6 +38,7 @@ import {
   imports: [
     CommonModule,
     DatatableWrapperComponent,
+    EmptyStageComponent,
     SearchComponent,
     PropertyStatusDropdownComponent,
     FilterClearButtonComponent,

@@ -1,0 +1,163 @@
+<div class="purchase-order-list-container">
+  <div class="purchase-content">
+    <div class="px-4 pb-8">
+      <div class="zn-report-header mb-5">
+        <div class="zn-report-header__titles">
+          <h2 class="zn-report-header__title">Reporte de ventas clientes</h2>
+          <p class="zn-report-header__subtitle">{{ subtitle }}</p>
+        </div>
+        <button
+          type="button"
+          class="zn-excel-btn"
+          [disabled]="exporting() || rangeIncomplete"
+          (click)="downloadExcel()">
+          @if (exporting()) {
+            <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+            Descargando...
+          } @else {
+            <i class="fi fi-rr-download" aria-hidden="true"></i>
+            Descargar Excel
+          }
+        </button>
+      </div>
+
+      <div class="zn-report-toolbar mb-5">
+        <div class="zn-report-toolbar__left">
+          <div class="zn-filters__panel">
+            <div class="zn-filters__field">
+              <label class="zn-filters__label" for="csr-fiscal-config">Razón social</label>
+              <select
+                id="csr-fiscal-config"
+                class="zn-filters__select"
+                [(ngModel)]="fiscalConfigurationId"
+                (change)="onFiscalConfigChange()"
+                aria-label="Filtrar por razón social">
+                <option value="">Todas las razones sociales</option>
+                @for (fc of fiscalConfigurations; track fc.id) {
+                  <option [value]="fc.id">{{ fc.razon_social }}</option>
+                }
+              </select>
+            </div>
+            <div class="zn-filters__field">
+              <label class="zn-filters__label" for="csr-branch">Sucursal</label>
+              <select
+                id="csr-branch"
+                class="zn-filters__select"
+                [(ngModel)]="billingBranchId"
+                (change)="loadReport()"
+                aria-label="Filtrar por sucursal">
+                <option value="">Todas las sucursales</option>
+                @for (b of branches; track b.id) {
+                  <option [value]="b.id">{{ branchLabel(b) }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <app-report-period-selector
+          [period]="datePreset"
+          [dateFrom]="customDateFrom"
+          [dateTo]="customDateTo"
+          [includeYear]="true"
+          [monthAsServerPreset]="true"
+          dateFromId="csr-date-from"
+          dateToId="csr-date-to"
+          ariaLabel="Periodo del reporte"
+          (periodChange)="onPeriodChange($event)"
+          (rangeChange)="onRangeChange($event)" />
+      </div>
+
+      <div class="zn-kpi-grid mb-4">
+        <div class="zn-kpi zn-kpi--people">
+          <p class="zn-kpi__label">Clientes</p>
+          <p class="zn-kpi__value">{{ summary()?.customers_count ?? 0 }}</p>
+        </div>
+        <div class="zn-kpi zn-kpi--sales">
+          <p class="zn-kpi__label">Ventas</p>
+          <p class="zn-kpi__value">{{ summary()?.total_sales_count ?? 0 }}</p>
+        </div>
+        <div class="zn-kpi zn-kpi--amount">
+          <p class="zn-kpi__label">Total comprado</p>
+          <p class="zn-kpi__value">{{ formatCurrency(summary()?.total_amount ?? 0) }}</p>
+        </div>
+        <div class="zn-kpi zn-kpi--ticket">
+          <p class="zn-kpi__label">Ticket promedio</p>
+          <p class="zn-kpi__value">{{ formatCurrency(summary()?.average_ticket ?? 0) }}</p>
+        </div>
+      </div>
+
+      @if (summary()?.top; as top) {
+        <div class="zn-leader-chip mb-4">
+          Líder: {{ top.name }} · {{ formatCurrency(top.amount) }}
+        </div>
+      }
+
+      @if (branchBars.length > 1) {
+        <div class="zn-branch-bars mb-5" aria-label="Ventas por sucursal">
+          @for (b of branchBars; track b.billing_branch_id) {
+            <div class="zn-branch-bars__row">
+              <span class="zn-branch-bars__name">{{ b.branch_name }}</span>
+              <div class="zn-branch-bars__track" aria-hidden="true">
+                <div class="zn-branch-bars__fill" [style.width.%]="branchBarWidth(b)"></div>
+              </div>
+              <span class="zn-branch-bars__meta">
+                {{ b.sales_count }} · {{ formatCurrency(b.amount) }}
+              </span>
+            </div>
+          }
+        </div>
+      }
+
+      <h3 class="zn-section-title mb-3">
+        Top de clientes por sucursal / razón social (Ventas y total comprado)
+      </h3>
+
+      @if (table_config().loading || table_config().rows.length > 0) {
+        <app-datatable-wrapper
+          [config]="table_config()"
+          [rowTemplate]="tableTemplate">
+        </app-datatable-wrapper>
+      } @else {
+        <div class="zn-empty">
+          <app-empty-stage
+            [message]="emptyTitle"
+            [sub_message]="emptySubtitle"
+            [params]="emptyParams">
+          </app-empty-stage>
+          <div class="zn-empty__actions">
+            <button type="button" class="zn-empty__btn" (click)="onTryAnotherRange()">
+              Prueba otro rango
+            </button>
+            @if (billingBranchId) {
+              <button type="button" class="zn-empty__btn zn-empty__btn--ghost" (click)="clearBranchFilter()">
+                Todas las sucursales
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="px-2 py-2">
+    <span class="zn-rank">{{ item.rank }}</span>
+  </td>
+  <td class="px-2 py-2">
+    <span class="zn-branch-cell__name">{{ item.customerName }}</span>
+  </td>
+  <td class="px-2 py-2">
+    <span class="zn-rfc">{{ item.customerRfc || '—' }}</span>
+  </td>
+  <td class="px-2 py-2">
+    <span class="zn-sales-pill">{{ item.salesCount }}</span>
+  </td>
+  <td class="px-2 py-2">
+    <p class="zn-amount m-0">{{ formatCurrency(item.totalPurchased) }}</p>
+  </td>
+  <td class="px-2 py-2">
+    <p class="zn-amount m-0">{{ formatCurrency(item.averageTicket) }}</p>
+  </td>
+</ng-template>

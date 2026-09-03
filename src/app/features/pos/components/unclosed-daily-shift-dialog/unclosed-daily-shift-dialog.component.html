@@ -1,0 +1,29 @@
+<div class="pos-dialog pos-unclosed-dialog">
+  <div class="pos-unclosed-dialog__mark" aria-hidden="true">
+    <lucide-icon [img]="AlertTriangle" />
+  </div>
+  <h2 class="pos-dialog__title">{{ data.alert.title }}</h2>
+  <p class="pos-dialog__subtitle">{{ data.alert.message }}</p>
+
+  @if (isCobranza()) {
+    <p class="pos-unclosed-dialog__note">
+      El corte debe cerrarse completo todos los días antes de abrir uno nuevo. Mientras tanto puedes
+      cobrar pendientes y registrar parciales de este corte.
+    </p>
+    <div class="pos-dialog__actions pos-dialog__actions--single">
+      <button type="button" class="pos-unclosed-dialog__cta" (click)="goToClose()">
+        Ir a cerrar corte
+      </button>
+    </div>
+  } @else {
+    <p class="pos-unclosed-dialog__note">
+      Pide a cobranza que cierre el corte de ayer. Mientras tanto las ventas quedan en cola y no se
+      ligan a ese corte.
+    </p>
+    <div class="pos-dialog__actions pos-dialog__actions--single">
+      <button type="button" class="pos-unclosed-dialog__cta" (click)="acknowledge()">
+        Entendido
+      </button>
+    </div>
+  }
+</div>

@@ -27,9 +27,9 @@ import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
 import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
 import { AUDIT_DETAIL_DIALOG_OPTIONS } from '../../config/audit-dialog.config';
-import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp, ArrowRightLeft, ArrowUpRight, ArrowDownLeft, Stamp, Ruler, Eye, ClipboardCheck } from 'lucide-angular';
+import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp, ArrowRightLeft, ArrowUpRight, ArrowDownLeft, Stamp, Ruler, Eye, ClipboardCheck, CircleDollarSign } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
-import { formatPedimentoDisplay } from '../../../purchase-orders/utils/purchase-order-display.util';
+import { formatPedimentoDisplay, formatPurchaseOrderUnitCost, parsePurchaseOrderDecimal } from '../../../purchase-orders/utils/purchase-order-display.util';
 import {
   auditStatusLabel,
   auditUserName,
@@ -55,6 +55,7 @@ export class BatchDetailDialogComponent implements OnInit {
   ImageUp = ImageUp; ArrowRightLeft = ArrowRightLeft;
   ArrowUpRight = ArrowUpRight; ArrowDownLeft = ArrowDownLeft; Stamp = Stamp; Ruler = Ruler; Eye = Eye;
   ClipboardCheck = ClipboardCheck;
+  CircleDollarSign = CircleDollarSign;
 
   batch = signal<InventoryBatch | null>(null);
   loading = signal(true);
@@ -315,6 +316,51 @@ export class BatchDetailDialogComponent implements OnInit {
 
   get purchaseOrderFolio(): string {
     return this.batch()?.purchase_order_folio ?? '—';
+  }
+
+  get showCostsCard(): boolean {
+    const batch = this.batch();
+    return !!batch?.purchase_order_id || batch?.suggested_unit_price != null;
+  }
+
+  get showVendorCost(): boolean {
+    return !!this.batch()?.purchase_order_id;
+  }
+
+  get hasRealCost(): boolean {
+    const batch = this.batch();
+    return batch?.real_unit_cost_usd != null || batch?.real_unit_cost_mxn != null;
+  }
+
+  vendorCostCurrency(): string {
+    return this.batch()?.payment_currency === 'USD' ? 'USD' : 'MXN';
+  }
+
+  formatBatchCost(value: number | string | null | undefined): string {
+    if (value === null || value === undefined || value === '') {
+      return '—';
+    }
+    return formatPurchaseOrderUnitCost(value);
+  }
+
+  formatBatchRate(value: number | string | null | undefined): string {
+    if (value === null || value === undefined || value === '') {
+      return '—';
+    }
+    return new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    }).format(parsePurchaseOrderDecimal(value));
+  }
+
+  formatSuggestedPrice(value: number | string | null | undefined): string {
+    if (value === null || value === undefined || value === '') {
+      return '—';
+    }
+    return new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(parsePurchaseOrderDecimal(value));
   }
 
   get pedimentoNumber(): string | null {

@@ -1,0 +1,45 @@
+<div class="pos-dialog">
+  <h2 class="pos-dialog__title">Sucursal POS</h2>
+  <p class="pos-dialog__subtitle">
+    Inventario y corte son de la sucursal que elijas. Si esa sucursal no tiene corte abierto, las
+    ventas quedan en cola. El corte de la sucursal anterior no se cierra.
+  </p>
+
+  <div class="pos-branch-list">
+    @for (branch of data.branches; track branch.id) {
+      <button
+        type="button"
+        class="pos-branch-option"
+        [class.pos-branch-option--on]="selectedId() === branch.id"
+        [disabled]="saving()"
+        (click)="selectBranch(branch)">
+        <span class="pos-branch-option__radio" [class.pos-branch-option__radio--on]="selectedId() === branch.id"></span>
+        <span>
+          {{ branchLabel(branch) }}
+          @if (branch.is_primary) {
+            <small>Principal</small>
+          }
+        </span>
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="pos-dialog__error">{{ error() }}</p>
+  }
+
+  <div class="pos-dialog__actions">
+    @if (!data.required) {
+      <app-button
+        text="Cancelar"
+        customClass="btn_secondary"
+        [disabled]="saving()"
+        (clicked)="cancel()"></app-button>
+    }
+    <app-button
+      text="Continuar"
+      customClass="btn_primary"
+      [loading]="saving()"
+      (clicked)="confirm()"></app-button>
+  </div>
+</div>

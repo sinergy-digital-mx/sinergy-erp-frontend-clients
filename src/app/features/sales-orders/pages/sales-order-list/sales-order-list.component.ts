@@ -13,6 +13,7 @@ import {
 } from '../../components/sales-order-export-dialog/sales-order-export-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -29,7 +30,7 @@ import { salesOrderListPaymentMetaLabel } from '../../utils/sales-order-collecti
 @Component({
   selector: 'app-sales-order-list',
   standalone: true,
-  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent],
+  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent],
   templateUrl: './sales-order-list.component.html',
   styleUrls: ['./sales-order-list.component.scss']
 })

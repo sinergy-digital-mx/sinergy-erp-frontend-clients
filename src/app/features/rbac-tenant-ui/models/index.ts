@@ -208,6 +208,9 @@ export interface User {
   last_login_at?: Date | string;
   billing_branch_id?: string | null;
   billing_branch?: UserBillingBranch | null;
+  primary_billing_branch_id?: string | null;
+  assigned_branches?: UserAssignedBranch[];
+  can_switch_branch?: boolean;
   has_all_branches_access?: boolean;
   is_pos_user?: boolean;
   pos_user_type?: PosUserType | null;
@@ -222,6 +225,15 @@ export interface User {
   status_id?: number | null;
   assigned_warehouses?: UserAssignedWarehouse[];
   [key: string]: any;
+}
+
+export interface UserAssignedBranch {
+  id: string;
+  code?: string;
+  city?: string;
+  display_name?: string;
+  is_primary?: boolean;
+  fiscal_configuration_id?: string | null;
 }
 
 export interface UserAssignedWarehouse {
@@ -250,6 +262,8 @@ export interface CreateUserDto {
   last_name: string;
   phone?: string;
   billing_branch_id?: string | null;
+  billing_branch_ids?: string[];
+  primary_billing_branch_id?: string | null;
   is_pos_user?: boolean;
   pos_user_type?: PosUserType | null;
   pos_user_code?: number | null;
@@ -267,6 +281,8 @@ export interface UpdateUserDto {
   last_name?: string;
   phone?: string;
   billing_branch_id?: string | null;
+  billing_branch_ids?: string[];
+  primary_billing_branch_id?: string | null;
   is_pos_user?: boolean;
   pos_user_type?: PosUserType | null;
   pos_user_code?: number | null;

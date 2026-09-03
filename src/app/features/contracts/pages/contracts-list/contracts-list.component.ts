@@ -33,6 +33,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { CustomerGroupDropdownComponent } from '../../../customers/components/customer-group-dropdown/customer-group-dropdown.component';
 import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
+import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 @Component({
   selector: 'app-contracts-list',
@@ -47,6 +48,7 @@ import { CustomerGroupFetchService } from '../../../customers/services/customer-
     MatTooltipModule,
     FilterClearButtonComponent,
     CustomerGroupDropdownComponent,
+    EmptyStageComponent,
   ],
   templateUrl: './contracts-list.component.html',
   styleUrl: './contracts-list.component.scss'

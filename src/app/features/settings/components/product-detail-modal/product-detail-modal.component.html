@@ -237,7 +237,7 @@
               <tr *ngFor="let price of product.prices">
                 <td>{{ price.product_uom?.uom?.name || '—' }}</td>
                 <td>{{ price.price_list?.name || '—' }}</td>
-                <td>${{ price.price | number:'1.2-2' }}</td>
+                <td>${{ formatUnitAmount(price.price) }}</td>
                 <td>{{ price.iva_percentage || 0 }}%</td>
                 <td>{{ price.ieps_percentage || 0 }}%</td>
                 <td [title]="'Precio: $' + (price.price | number:'1.2-2') + '\nIVA: $' + ((price.iva_unit_total || 0) | number:'1.2-2') + '\nIEPS: $' + ((price.ieps_unit_total || 0) | number:'1.2-2') + '\nTotal: $' + ((Number(price.price) + Number(price.iva_unit_total || 0) + Number(price.ieps_unit_total || 0)) | number:'1.2-2')" style="cursor: help;">
@@ -350,7 +350,7 @@
               <tr *ngFor="let cost of product.vendor_costs">
                 <td>{{ cost.product_uom?.uom?.name || '—' }}</td>
                 <td>{{ cost.vendor?.name || '—' }}</td>
-                <td>${{ cost.cost | number:'1.2-2' }}</td>
+                <td>${{ formatUnitAmount(cost.cost) }}</td>
                 <td>
                   <span class="currency-badge" [class.currency-badge--usd]="(cost.currency || 'MXN') === 'USD'">
                     {{ cost.currency || 'MXN' }}
@@ -615,7 +615,7 @@
 
         <div class="form-field">
           <label class="form-label">PRECIO *</label>
-          <input type="number" class="form-input" [(ngModel)]="priceForm.price" step="0.01" min="0">
+          <input type="number" class="form-input" [(ngModel)]="priceForm.price" step="any" min="0">
         </div>
 
         <div class="form-field">
@@ -708,7 +708,7 @@
 
         <div class="form-field">
           <label class="form-label">COSTO *</label>
-          <input type="number" class="form-input" [(ngModel)]="costForm.cost" step="0.01" min="0">
+          <input type="number" class="form-input" [(ngModel)]="costForm.cost" step="any" min="0">
         </div>
 
         <div class="form-field">

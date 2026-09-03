@@ -10,7 +10,7 @@
   <!-- Empty State -->
   <div *ngIf="!config?.loading && (!config?.rows || config?.rows.length === 0)" class="empty-state-container">
     <app-empty-stage
-      [message]="config?.emptyState?.title || 'No result found'"
+      [message]="config?.emptyState?.title || 'Sin resultados'"
       [sub_message]="config?.emptyState?.subtitle || ''"
       [params]="emptyStateParams"
     ></app-empty-stage>

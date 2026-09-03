@@ -3,7 +3,13 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Observable, from, throwError } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { Document, DocumentType, PurchaseOrder, RegenerateDocumentResponse } from '../models/purchase-order.model';
+import {
+  Document,
+  DocumentType,
+  PurchaseOrder,
+  RegenerateDocumentResponse,
+  UpdatePurchaseOrderRealCostPayload,
+} from '../models/purchase-order.model';
 import {
   PurchaseOrderMovementsResponse,
   normalizePurchaseOrderMovementsResponse,
@@ -183,6 +189,11 @@ export class PurchaseOrderService {
       unit_total: unitCost,
       iva_percentage: this.parseAmount(item.iva_percentage),
       ieps_percentage: this.parseAmount(item.ieps_percentage),
+      igi_percentage: item.igi_percentage == null || item.igi_percentage === ''
+        ? 0
+        : this.parseAmount(item.igi_percentage),
+      real_unit_cost_usd: this.parseOptionalAmount(item.real_unit_cost_usd),
+      real_unit_cost_mxn: this.parseOptionalAmount(item.real_unit_cost_mxn),
       uom,
       uom_id: uomId,
       subtotal: line_subtotal,
@@ -193,6 +204,24 @@ export class PurchaseOrderService {
       line_ieps,
       line_total
     };
+  }
+
+  private parseOptionalAmount(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    const n = this.parseAmount(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  /** Reemplaza el tab Costo real. La respuesta es la OC completa, igual que el GET. */
+  updateRealCost(orderId: string, payload: UpdatePurchaseOrderRealCostPayload): Observable<PurchaseOrder> {
+    return this.http
+      .put<unknown>(`${this.baseUrl}/${orderId}/real-cost`, payload)
+      .pipe(
+        map((raw) => this.normalizePurchaseOrderResponse(raw)),
+        catchError((error) => this.handleError(error))
+      );
   }
 
   /**

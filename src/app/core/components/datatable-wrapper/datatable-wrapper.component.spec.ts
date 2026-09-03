@@ -311,9 +311,9 @@ describe('DatatableWrapperComponent', () => {
 
       component.checkMobileView();
 
-      expect(component.emptyStateParams.width).toBe(40);
-      expect(component.emptyStateParams.height).toBe(40);
-      expect(component.emptyStateParams.icon_size).toBe(20);
+      expect(component.emptyStateParams.width).toBe(56);
+      expect(component.emptyStateParams.height).toBe(56);
+      expect(component.emptyStateParams.icon_size).toBe(24);
     });
   });
 

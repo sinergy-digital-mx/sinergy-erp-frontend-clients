@@ -11,16 +11,41 @@
       <div class="pos-session-bar__center">
         @if (posState.checkingShift()) {
           <span class="pos-session-bar__checking">Verificando corte…</span>
+        } @else if (requiresPreviousClose() && shift(); as currentShift) {
+          <div class="pos-pill pos-pill--warn">
+            <lucide-icon [img]="AlertTriangle" class="pos-ic pos-ic--sm" />
+            <span>Corte {{ currentShift.shift_date }} sin cerrar</span>
+          </div>
+          <span class="pos-session-meta">{{ branchLabel() }} · Total en corte {{ shiftSalesTotal(currentShift) }}</span>
+          @if (canSwitchBranch()) {
+            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
+              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
+              Cambiar
+            </button>
+          }
         } @else if (shiftOpen() && shift(); as currentShift) {
           <div class="pos-pill pos-pill--ok">
             <lucide-icon [img]="Package" class="pos-ic pos-ic--sm" />
             <span>Corte abierto</span>
           </div>
           <span class="pos-session-meta">{{ branchLabel() }} · Total en corte {{ shiftSalesTotal(currentShift) }}</span>
+          @if (canSwitchBranch()) {
+            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
+              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
+              Cambiar
+            </button>
+          }
         } @else {
           <div class="pos-pill pos-pill--warn">
             <span>Sin corte abierto</span>
           </div>
+          <span class="pos-session-meta">{{ branchLabel() }}</span>
+          @if (canSwitchBranch()) {
+            <button type="button" class="pos-btn pos-btn--ghost pos-session-branch-btn" (click)="changeBranch()">
+              <lucide-icon [img]="MapPin" class="pos-ic pos-ic--sm" />
+              Cambiar
+            </button>
+          }
         }
       </div>
 
@@ -39,7 +64,7 @@
     </div>
   </header>
 
-  @if (!shiftOpen() && !posState.checkingShift()) {
+  @if (!hasOpenShiftRecord() && !posState.checkingShift()) {
     <section class="cobranza-open-shift">
       <div class="cobranza-open-shift__card">
         <lucide-icon [img]="Wallet" class="cobranza-open-shift__icon" />
@@ -52,7 +77,16 @@
     </section>
   }
 
-  @if (shiftOpen() && shift(); as currentShift) {
+  @if (hasOpenShiftRecord() && shift(); as currentShift) {
+    @if (requiresPreviousClose()) {
+      <div class="cobranza-stale-banner">
+        <div>
+          <strong>Cierra el corte del {{ currentShift.shift_date }}</strong>
+          <span>No se puede abrir el corte de hoy mientras este siga abierto. Sí puedes cobrar pendientes y registrar parciales.</span>
+        </div>
+        <button type="button" class="pos-btn pos-btn--accent" (click)="closeDailyShift()">Cerrar corte</button>
+      </div>
+    }
     <section class="cobranza-toolbar">
       <div class="cobranza-stat-chip">
         <span>Efectivo inicial</span>
@@ -128,7 +162,8 @@
         </div>
 
         <p class="cobranza-shifts__hint">
-          El <strong>corte global</strong> es uno por sucursal por día. Los <strong>cortes parciales</strong> son retiros de efectivo dentro de ese mismo corte; al cerrar el día se cierra el global con todo su historial.
+          El <strong>corte global</strong> es uno por sucursal. Los <strong>cortes parciales</strong> retiran efectivo durante el día.
+          Al cerrar, cuentas lo que quedó en caja: el sistema compara contra inicial + efectivo cobrado − retiros y registra faltante o sobrante.
         </p>
 
         <div class="cobranza-shifts__summary">

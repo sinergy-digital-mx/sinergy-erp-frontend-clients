@@ -1,3 +1,4 @@
+import { formatUnitAmount } from '../../../core/utils/unit-money.util';
 import { PurchaseOrder } from '../models/purchase-order.model';
 import { formatTitleCase } from '../../sales-orders/utils/sales-order-display.util';
 
@@ -23,12 +24,9 @@ export function catalogInputNumber(value: unknown): number | null {
   return n;
 }
 
-/** Costo unitario persistido: no redondear a 2 decimales. */
+/** Costo unitario persistido: hasta 4 decimales. No redondear a 2. */
 export function formatPurchaseOrderUnitCost(value: number | string | null | undefined): string {
-  return new Intl.NumberFormat('es-MX', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 8,
-  }).format(parsePurchaseOrderDecimal(value));
+  return formatUnitAmount(value);
 }
 
 export function isInternationalPurchaseOrder(order: PurchaseOrder | null | undefined): boolean {

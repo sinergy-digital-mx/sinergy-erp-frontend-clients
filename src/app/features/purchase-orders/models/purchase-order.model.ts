@@ -232,6 +232,28 @@ export interface PurchaseOrderFiscalConfiguration {
   prefix?: string | null;
 }
 
+export interface PurchaseOrderExtraCost {
+  id?: string;
+  concept: string;
+  amount: number | string;
+  currency: PaymentCurrency;
+  sort_order?: number;
+}
+
+export interface UpdatePurchaseOrderRealCostPayload {
+  customs_date?: string | null;
+  customs_exchange_rate?: number | null;
+  extra_costs: Array<{
+    concept: string;
+    amount: number;
+    currency: PaymentCurrency;
+  }>;
+  line_items?: Array<{
+    line_item_id: string;
+    igi_percentage: number;
+  }>;
+}
+
 /**
  * Purchase Order main entity
  */
@@ -279,6 +301,15 @@ export interface PurchaseOrder {
   is_international_vendor?: boolean;
   /** Solo compras internacionales. Vacío / null si no hay pedimento. */
   pedimento_number?: string | null;
+  has_real_cost?: boolean;
+  can_edit_real_cost?: boolean;
+  customs_date?: string | null;
+  customs_exchange_rate?: number | string | null;
+  landed_increment_percentage?: number | string | null;
+  landed_merchandise_mxn?: number | string | null;
+  landed_extras_mxn?: number | string | null;
+  extra_costs_count?: number;
+  extra_costs?: PurchaseOrderExtraCost[];
   line_items: LineItem[];
   batches?: PurchaseOrderLotNode[];
   batches_summary?: PurchaseOrderBatchesSummary | null;

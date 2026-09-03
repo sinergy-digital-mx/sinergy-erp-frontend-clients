@@ -12,6 +12,7 @@ import {
   dailyShiftSalesTotal,
   dailyShiftStatusLabel,
   dailyShiftTerminalLabel,
+  expectedCashInDrawer,
   formatPosMoney,
   partialPerformedByLabel,
   partialShiftSequence,
@@ -23,6 +24,7 @@ import { mapPosApiErrorMessage } from '../../../pos/constants/pos-api-errors';
 import {
   CloseDailyShiftDialogComponent,
   CloseDailyShiftDialogData,
+  CloseDailyShiftDialogResult,
 } from '../../../pos/components/close-daily-shift-dialog/close-daily-shift-dialog.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
@@ -94,6 +96,21 @@ export class PosDailyShiftDetailModalComponent {
     return formatPosMoney(shift.opening_cash_usd);
   }
 
+  formatDrawer(value: number | string | null | undefined): string {
+    return formatPosMoney(value);
+  }
+
+  differenceLabel(value: number | string | null | undefined): string {
+    const diff = parsePosMoney(value);
+    if (diff > 0.009) {
+      return `Sobrante ${formatPosMoney(diff)}`;
+    }
+    if (diff < -0.009) {
+      return `Faltante ${formatPosMoney(Math.abs(diff))}`;
+    }
+    return `Cuadra ${formatPosMoney(0)}`;
+  }
+
   partialTotal(partial: Parameters<typeof partialShiftTotalLabel>[0]): string {
     return partialShiftTotalLabel(partial);
   }
@@ -126,28 +143,40 @@ export class PosDailyShiftDetailModalComponent {
       return;
     }
 
+    const drawer = shift.cash_drawer;
+    const openingMxn = parsePosMoney(drawer?.opening_cash_mxn ?? shift.opening_cash_mxn);
+    const openingUsd = parsePosMoney(drawer?.opening_cash_usd ?? shift.opening_cash_usd);
+    const collectedCashMxn = parsePosMoney(drawer?.collected_cash_mxn);
+    const collectedCashUsd = parsePosMoney(drawer?.collected_cash_usd);
+    const removedMxn = parsePosMoney(drawer?.removed_total_mxn ?? dailyShiftRemovedTotal(shift));
+    const removedUsd = parsePosMoney(drawer?.removed_total_usd);
+
     const dialogRef = this.dialog.open(CloseDailyShiftDialogComponent, {
-      width: '460px',
+      width: '520px',
       maxWidth: '95vw',
       disableClose: true,
       panelClass: 'pos-dialog-panel',
       data: {
         shiftDate: shift.shift_date,
         branchLabel: this.branchLabel(shift),
-        openingMxn: this.openingMxn(shift),
-        openingUsd:
-          parsePosMoney(shift.opening_cash_usd) > 0
-            ? `USD ${parsePosMoney(shift.opening_cash_usd).toFixed(2)}`
-            : undefined,
-        salesTotal: this.salesTotal(shift),
+        openingCashMxn: openingMxn,
+        openingCashUsd: openingUsd,
+        collectedCashMxn,
+        collectedCashUsd,
+        collectedTransferMxn: parsePosMoney(drawer?.collected_transfer_mxn),
+        collectedCardMxn: parsePosMoney(drawer?.collected_card_mxn),
+        collectedCreditMxn: parsePosMoney(drawer?.collected_credit_mxn),
+        removedMxn,
+        removedUsd,
+        expectedCashMxn: expectedCashInDrawer(openingMxn, collectedCashMxn, removedMxn),
+        expectedCashUsd: expectedCashInDrawer(openingUsd, collectedCashUsd, removedUsd),
         partialCount: this.partialCount(shift),
-        removedTotal: this.removedTotal(shift),
         pendingCount: 0,
         isHistorical: this.isHistoricalShift(shift),
       } satisfies CloseDailyShiftDialogData,
     });
 
-    dialogRef.afterClosed().subscribe((result: { notes?: string } | undefined) => {
+    dialogRef.afterClosed().subscribe((result: CloseDailyShiftDialogResult | undefined) => {
       if (!result) {
         return;
       }

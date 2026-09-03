@@ -1,0 +1,39 @@
+<div class="pos-dialog pos-checkout-dialog" [class.pos-checkout-dialog--quote]="isQuote()">
+  <div class="pos-checkout-dialog__mark" aria-hidden="true">
+    <lucide-icon [img]="icon()" />
+  </div>
+  <h2 class="pos-dialog__title">{{ data.title }}</h2>
+  <p class="pos-dialog__subtitle">{{ data.subtitle }}</p>
+
+  <div class="pos-checkout-dialog__total">
+    <span>Total</span>
+    <strong>{{ data.totalLabel }}</strong>
+    <small>{{ data.itemSummary }}</small>
+  </div>
+
+  @if (!isQuote()) {
+    <div
+      class="pos-checkout-dialog__chip"
+      [class.pos-checkout-dialog__chip--queue]="data.queued">
+      @if (data.queued) {
+        Sin corte de hoy — la venta queda en cola
+      } @else {
+        Corte activo — el cliente pasa a cobranza
+      }
+    </div>
+  }
+
+  <div class="pos-dialog__actions">
+    <button type="button" class="pos-checkout-dialog__btn pos-checkout-dialog__btn--ghost" (click)="cancel()">
+      Volver
+    </button>
+    <button
+      type="button"
+      class="pos-checkout-dialog__btn"
+      [class.pos-checkout-dialog__btn--accent]="!isQuote()"
+      [class.pos-checkout-dialog__btn--quote]="isQuote()"
+      (click)="confirm()">
+      {{ data.acceptLabel }}
+    </button>
+  </div>
+</div>

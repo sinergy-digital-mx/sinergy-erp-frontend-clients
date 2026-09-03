@@ -17,6 +17,14 @@
         <div><dt>Efectivo inicial USD</dt><dd>{{ openingUsd(item) }}</dd></div>
         <div><dt>Ventas totales</dt><dd>{{ salesTotal(item) }}</dd></div>
         <div><dt>Cortes parciales</dt><dd>{{ partialCount(item) }}</dd></div>
+        @if (item.cash_drawer; as drawer) {
+          <div><dt>Cobrado en efectivo</dt><dd>{{ formatDrawer(drawer.collected_cash_mxn) }}</dd></div>
+          <div><dt>Esperado en caja</dt><dd>{{ formatDrawer(drawer.expected_cash_mxn) }}</dd></div>
+          @if (drawer.closing_cash_mxn != null) {
+            <div><dt>Contado al cierre</dt><dd>{{ formatDrawer(drawer.closing_cash_mxn) }}</dd></div>
+            <div><dt>Diferencia</dt><dd>{{ differenceLabel(drawer.cash_difference_mxn) }}</dd></div>
+          }
+        }
       </dl>
 
       @if (item.partial_shifts?.length) {

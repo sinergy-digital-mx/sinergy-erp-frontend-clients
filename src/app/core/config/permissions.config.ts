@@ -20,6 +20,7 @@ export { MARKETING_PERMISSIONS } from '../../features/marketing/config/permissio
 export { POS_PERMISSIONS } from '../../features/pos/config/permissions.config';
 export { PURCHASE_ORDER_PERMISSIONS } from '../../features/purchase-orders/config/permissions.config';
 export { SALES_ORDER_PERMISSIONS } from '../../features/sales-orders/config/permissions.config';
+export { QUOTATION_PERMISSIONS } from '../../features/quotations/config/permissions.config';
 export { DIVINO_DASHBOARD_PERMISSIONS } from '../../features/divino-dashboard/config/permissions.config';
 export { DIVINO_RESERVATION_FORMAT_PERMISSIONS } from '../../features/divino-reservation-formats/config/permissions.config';
 export { ACCOUNTING_PERMISSIONS } from '../../features/accounting/config/permissions.config';
@@ -33,6 +34,7 @@ export {
 } from '../../features/logistics/config/permissions.config';
 export { WAREHOUSE_CONTROL_PERMISSIONS } from '../../features/warehouse-control/config/permissions.config';
 export { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../features/madereria-inventory-import/config/permissions.config';
+export { CUSTOMER_SALES_REPORT_PERMISSIONS } from '../../features/customer-sales-reports/config/permissions.config';
 
 /**
  * Grouped permissions for easier access
@@ -47,6 +49,7 @@ import { MARKETING_PERMISSIONS } from '../../features/marketing/config/permissio
 import { POS_PERMISSIONS } from '../../features/pos/config/permissions.config';
 import { PURCHASE_ORDER_PERMISSIONS } from '../../features/purchase-orders/config/permissions.config';
 import { SALES_ORDER_PERMISSIONS } from '../../features/sales-orders/config/permissions.config';
+import { QUOTATION_PERMISSIONS } from '../../features/quotations/config/permissions.config';
 import { DIVINO_DASHBOARD_PERMISSIONS } from '../../features/divino-dashboard/config/permissions.config';
 import { DIVINO_RESERVATION_FORMAT_PERMISSIONS } from '../../features/divino-reservation-formats/config/permissions.config';
 import { ACCOUNTING_PERMISSIONS } from '../../features/accounting/config/permissions.config';
@@ -60,6 +63,7 @@ import {
 } from '../../features/logistics/config/permissions.config';
 import { WAREHOUSE_CONTROL_PERMISSIONS } from '../../features/warehouse-control/config/permissions.config';
 import { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../features/madereria-inventory-import/config/permissions.config';
+import { CUSTOMER_SALES_REPORT_PERMISSIONS } from '../../features/customer-sales-reports/config/permissions.config';
 
 export const PERMISSIONS = {
   contracts: CONTRACT_PERMISSIONS,
@@ -72,6 +76,7 @@ export const PERMISSIONS = {
   pos: POS_PERMISSIONS,
   purchaseOrders: PURCHASE_ORDER_PERMISSIONS,
   salesOrders: SALES_ORDER_PERMISSIONS,
+  quotations: QUOTATION_PERMISSIONS,
   divinoDashboard: DIVINO_DASHBOARD_PERMISSIONS,
   divinoReservationFormats: DIVINO_RESERVATION_FORMAT_PERMISSIONS,
   accounting: ACCOUNTING_PERMISSIONS,
@@ -83,4 +88,5 @@ export const PERMISSIONS = {
   shippings: SHIPPING_PERMISSIONS,
   warehouseControl: WAREHOUSE_CONTROL_PERMISSIONS,
   madereriaInventoryImport: MADERERIA_INVENTORY_IMPORT_PERMISSIONS,
+  customerSalesReport: CUSTOMER_SALES_REPORT_PERMISSIONS,
 } as const;

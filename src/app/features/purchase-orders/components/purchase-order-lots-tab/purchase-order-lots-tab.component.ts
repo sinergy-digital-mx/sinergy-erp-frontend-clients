@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { inventoryMeasureLabel } from '../../../../core/utils/inventory-measure.util';
+import { formatUnitAmount } from '../../../../core/utils/unit-money.util';
 import {
   PurchaseOrderBatchesSummary,
   PurchaseOrderLotNode,
@@ -147,11 +148,23 @@ export class PurchaseOrderLotsTabComponent {
     return who || when;
   }
 
+  hasRealCostColumns(): boolean {
+    return this.receivedLots().some((lot) => this.hasRealCost(lot));
+  }
+
+  hasRealCost(lot: PurchaseOrderLotNode): boolean {
+    return lot.real_unit_cost_usd != null || lot.real_unit_cost_mxn != null;
+  }
+
+  formatOptionalUnitCost(value: number | string | null | undefined): string {
+    if (value === null || value === undefined || value === '') {
+      return '—';
+    }
+    return this.formatUnitCost(value);
+  }
+
   formatUnitCost(value: number | string | null | undefined): string {
-    return new Intl.NumberFormat('es-MX', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 4,
-    }).format(purchaseOrderQtyNumber(value));
+    return formatUnitAmount(value);
   }
 
   formatAmount(value: number | string | null | undefined): string {

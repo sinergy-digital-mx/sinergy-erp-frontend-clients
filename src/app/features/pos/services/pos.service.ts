@@ -7,12 +7,14 @@ import { POSCart, POSCartItem } from '../models/pos.model';
 import { PosApplicableDiscount } from '../models/pos-inventory-summary.model';
 import { previewLineDiscount, previewGlobalDiscount } from '../utils/pos-discount.util';
 import {
+  CurrentDailyShiftResponse,
   PosDailyShiftDetail,
   OpenDailyShiftResponse,
   PosDailyShiftListItem,
   PosDailyShiftListResponse,
   ValidateSellerCodeResponse,
   normalizeDailyShiftDetail,
+  parseUnclosedShiftAlert,
 } from '../models/pos-daily-shift.model';
 import { SalesOrder, SalesOrderFormData } from '../../sales-orders/models/sales-order.model';
 import { environment } from '../../../../environments/environment';
@@ -261,6 +263,16 @@ export class POSService {
   createPosSalesOrder(orderData: SalesOrderFormData): Observable<SalesOrder> {
     return this.http.post<SalesOrder | { data: SalesOrder }>(this.SALES_ORDERS_URL, orderData).pipe(
       map((res) => this.extractPayload(res) as SalesOrder)
+    );
+  }
+
+  createPosQuotation(orderData: SalesOrderFormData): Observable<{ folio?: string; id?: string }> {
+    const { sales_order_type: _salesOrderType, ...rest } = orderData as SalesOrderFormData & {
+      sales_order_type?: string;
+    };
+    return this.http.post<{ folio?: string; id?: string }>(
+      `${environment.api}/tenant/quotations`,
+      { ...rest, quotation_type: 'POS' },
     );
   }
 
@@ -535,6 +547,27 @@ export class POSService {
     return response;
   }
 
+  private extractCurrentDailyShiftResponse(response: unknown): CurrentDailyShiftResponse {
+    const payload = this.extractPayload(response);
+    const daily_shift = this.extractCurrentDailyShift(response);
+    if (!payload || typeof payload !== 'object') {
+      return {
+        daily_shift,
+        requires_previous_close: false,
+        unclosed_shift_alert: null,
+      };
+    }
+
+    const obj = payload as Record<string, unknown>;
+    const unclosed_shift_alert = parseUnclosedShiftAlert(obj['unclosed_shift_alert']);
+    return {
+      daily_shift,
+      requires_previous_close:
+        obj['requires_previous_close'] === true || Boolean(unclosed_shift_alert),
+      unclosed_shift_alert,
+    };
+  }
+
   private extractCurrentDailyShift(response: unknown): PosDailyShiftDetail | null {
     const payload = this.extractPayload(response);
     if (!payload || typeof payload !== 'object') {
@@ -604,14 +637,16 @@ export class POSService {
     );
   }
 
-  getCurrentDailyShift(): Observable<{ daily_shift: PosDailyShiftDetail | null }> {
+  getCurrentDailyShift(): Observable<CurrentDailyShiftResponse> {
     return this.http.get(`${this.API_URL}/daily-shift/current`).pipe(
-      map((res: any) => ({
-        daily_shift: this.extractCurrentDailyShift(res),
-      })),
+      map((res: any) => this.extractCurrentDailyShiftResponse(res)),
       catchError((error) => {
         if (error?.status === 404) {
-          return of({ daily_shift: null });
+          return of({
+            daily_shift: null,
+            requires_previous_close: false,
+            unclosed_shift_alert: null,
+          });
         }
         return throwError(() => error);
       })
@@ -639,8 +674,13 @@ export class POSService {
     );
   }
 
-  closeDailyShift(id: string, data?: { notes?: string }): Observable<PosDailyShiftDetail> {
-    return this.http.patch(`${this.API_URL}/daily-shift/${id}/close`, data ?? {}).pipe(
+  closeDailyShift(id: string, data: {
+    closing_cash_mxn: number;
+    closing_cash_usd?: number;
+    denominations?: Array<{ currency: 'MXN' | 'USD'; denomination: number; bill_count: number }>;
+    notes?: string;
+  }): Observable<PosDailyShiftDetail> {
+    return this.http.patch(`${this.API_URL}/daily-shift/${id}/close`, data).pipe(
       map((res: any) => {
         const payload = this.extractPayload(res);
         return normalizeDailyShiftDetail(payload?.daily_shift ?? payload) as PosDailyShiftDetail;

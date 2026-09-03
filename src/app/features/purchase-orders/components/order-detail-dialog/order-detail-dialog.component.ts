@@ -15,6 +15,7 @@ import {
 } from '../purchase-order-notes-dialog/purchase-order-notes-dialog.component';
 import { ReceiptModalComponent } from '../receipt-modal/receipt-modal.component';
 import { PurchaseOrderLotsTabComponent } from '../purchase-order-lots-tab/purchase-order-lots-tab.component';
+import { PurchaseOrderRealCostTabComponent } from '../purchase-order-real-cost-tab/purchase-order-real-cost-tab.component';
 import { PurchaseOrderMovementsTabComponent } from '../purchase-order-movements-tab/purchase-order-movements-tab.component';
 import { PaymentDialogComponent, PaymentFormData } from '../payment-dialog/payment-dialog.component';
 import { EditPurchaseOrderLineDialogComponent } from '../edit-purchase-order-line-dialog/edit-purchase-order-line-dialog.component';
@@ -58,6 +59,7 @@ import {
     RemoveTrailingZerosPipe,
     SpinnerComponent,
     PurchaseOrderLotsTabComponent,
+    PurchaseOrderRealCostTabComponent,
     PurchaseOrderMovementsTabComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -964,6 +966,28 @@ export class OrderDetailDialogComponent {
 
   getPaymentsCount(): number {
     return this.order()?.payments?.length ?? 0;
+  }
+
+  getExtraCostsCount(): number {
+    const order = this.order();
+    if (order?.extra_costs_count != null) {
+      return order.extra_costs_count;
+    }
+    return order?.extra_costs?.length ?? 0;
+  }
+
+  onRealCostSaved(updated: PurchaseOrder): void {
+    const current = this.order();
+    this.order.set({
+      ...(current ?? updated),
+      ...updated,
+      documents: current?.documents ?? updated.documents,
+      payments: current?.payments ?? updated.payments ?? [],
+      payments_summary: current?.payments_summary ?? updated.payments_summary,
+      movements: current?.movements ?? updated.movements,
+      movements_count: updated.movements_count ?? current?.movements_count,
+    });
+    this.loadOrder(true);
   }
 
   getStatusBadgeClass(): string {

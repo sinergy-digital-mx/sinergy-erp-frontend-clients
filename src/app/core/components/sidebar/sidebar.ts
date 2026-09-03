@@ -78,6 +78,7 @@ const MENU_SECTIONS: MenuSection[] = [
     itemIds: [
       'menu-purchase-orders',
       'menu-sales-orders',
+      'menu-quotations',
       'menu-warehouse-control',
       'menu-shippings',
       'menu-trucks',
@@ -94,7 +95,7 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     id: 'marketing-reports',
     title: 'Análisis',
-    itemIds: ['menu-marketing', 'menu-zona-norte', 'menu-divino-dashboard', 'menu-divino-reservation-formats'],
+    itemIds: ['menu-marketing', 'menu-zona-norte', 'menu-customer-sales-report', 'menu-divino-dashboard', 'menu-divino-reservation-formats'],
   },
   {
     id: 'hr',
@@ -167,6 +168,13 @@ export class Sidebar implements OnInit, OnDestroy {
       permission: PERMISSIONS.salesOrders.viewMenu
     },
     {
+      label: 'Cotizaciones',
+      route: '/quotations',
+      icon: FileText,
+      id: 'menu-quotations',
+      permission: PERMISSIONS.quotations.viewMenu
+    },
+    {
       label: 'Mesa de Control',
       route: '/warehouse-control',
       icon: ClipboardCheck,
@@ -222,6 +230,13 @@ export class Sidebar implements OnInit, OnDestroy {
       icon: FileText,
       id: 'menu-zona-norte',
       permission: 'zona_norte_custom_report:ViewMenu'
+    },
+    {
+      label: 'Reporte Clientes',
+      route: '/customer-sales-reports',
+      icon: FileText,
+      id: 'menu-customer-sales-report',
+      permission: PERMISSIONS.customerSalesReport.viewMenu
     },
     {
       label: 'Divino Dashboard',

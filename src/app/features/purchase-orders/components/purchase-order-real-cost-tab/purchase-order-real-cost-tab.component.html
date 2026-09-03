@@ -1,0 +1,227 @@
+<div class="real-cost">
+  <div class="real-cost__toolbar">
+    <div class="real-cost__fields">
+      <label class="po-rc-field po-rc-field--date">
+        <span class="po-rc-field__label">Fecha aduana</span>
+        <input
+          type="date"
+          class="po-rc-input"
+          [(ngModel)]="customsDate"
+          [disabled]="!canEdit()"
+          (ngModelChange)="onCustomsDateChange()" />
+      </label>
+      <label class="po-rc-field po-rc-field--rate">
+        <span class="po-rc-field__label">T.C. aduana</span>
+        <input
+          type="number"
+          class="po-rc-input po-rc-input--rate"
+          min="0"
+          step="0.0001"
+          [(ngModel)]="customsExchangeRate"
+          [disabled]="!canEdit()"
+          (ngModelChange)="onCustomsRateChange()"
+          placeholder="16.9593" />
+      </label>
+      <div class="po-rc-field po-rc-field--readonly">
+        <span class="po-rc-field__label">GTOS%</span>
+        <span class="po-rc-field__value">{{ formatPercent(incrementPercentage()) }}</span>
+      </div>
+    </div>
+
+    @if (canEdit()) {
+      <div class="real-cost__actions">
+        @if (order.has_real_cost) {
+          <button
+            type="button"
+            class="po-rc-btn po-rc-btn--ghost"
+            (click)="clearRealCost()"
+            [disabled]="saving() || clearing()">
+            Quitar costo real
+          </button>
+        }
+        <button
+          type="button"
+          class="po-rc-btn po-rc-btn--primary"
+          (click)="save()"
+          [disabled]="saving() || clearing()">
+          {{ saving() ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (!canEdit()) {
+    <p class="real-cost__hint">Solo lectura. No se puede editar el costo real de una orden cancelada.</p>
+  }
+
+  <section class="real-cost__block">
+    @if (lineItems().length === 0) {
+      <p class="empty-line">No hay productos en la orden.</p>
+    } @else {
+      <div class="table-wrap">
+        <table class="cost-table products-table">
+          <thead>
+            <tr>
+              <th class="col-product">Producto</th>
+              <th class="col-qty">Q</th>
+              <th class="col-money">Precio</th>
+              <th class="col-money">Importe</th>
+              <th class="col-igi">IGI</th>
+              <th class="col-gastos">GTOS%</th>
+              <th class="col-money">Cto. USD</th>
+              <th class="col-money">MN</th>
+              <th class="col-money">Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of lineItems(); track item.id) {
+              <tr>
+                <td class="col-product">
+                  <span class="product">
+                    <strong>{{ productName(item) }}</strong>
+                    @if (productSku(item)) {
+                      <small>{{ productSku(item) }}</small>
+                    }
+                  </span>
+                </td>
+                <td class="col-qty">{{ formatAmount(lineQuantity(item)) }}</td>
+                <td class="col-money">{{ formatUnitCost(vendorUnitCost(item)) }}</td>
+                <td class="col-money">{{ formatAmount(lineVendorImporte(item)) }}</td>
+                <td class="col-igi">
+                  @if (canEdit()) {
+                    <input
+                      type="number"
+                      class="po-rc-input po-rc-input--igi"
+                      min="0"
+                      step="0.01"
+                      [ngModel]="lineIgi(item)"
+                      (ngModelChange)="setLineIgi(item, $event)" />
+                  } @else {
+                    {{ formatPercent(lineIgi(item)) }}
+                  }
+                </td>
+                <td class="col-gastos">{{ formatPercent(incrementPercentage()) }}</td>
+                <td class="col-money">
+                  <span class="money-cell money-cell--usd">{{ formatUnitCost(previewLine(item)?.real_unit_cost_usd) }}</span>
+                </td>
+                <td class="col-money">
+                  <span class="money-cell money-cell--mxn">{{ formatUnitCost(previewLine(item)?.real_unit_cost_mxn) }}</span>
+                </td>
+                <td class="col-money">
+                  <span class="money-cell money-cell--mxn">{{ formatAmount(previewLine(item)?.real_importe_mxn) }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td class="lots-foot-label">Totales</td>
+              <td class="col-qty">{{ formatAmount(quantityTotal()) }}</td>
+              <td></td>
+              <td class="col-money">{{ formatAmount(vendorImporteTotal()) }}</td>
+              <td colspan="4"></td>
+              <td class="col-money">
+                <span class="money-cell money-cell--mxn">{{ formatAmount(realImporteTotalMxn()) }}</span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    }
+  </section>
+
+  <section class="sheet-bottom">
+    <div class="extras-panel">
+      <div class="block-head">
+        <h3>Gastos</h3>
+        @if (canEdit()) {
+          <button type="button" class="po-rc-btn po-rc-btn--add" (click)="addExtra()" [disabled]="extras().length >= 80">
+            <i class="fi fi-rr-plus"></i>
+            Agregar gasto
+          </button>
+        }
+      </div>
+
+      <table class="cost-table extras-table">
+        <thead>
+          <tr>
+            <th class="col-concept">Concepto</th>
+            <th class="col-money">MXN</th>
+            <th class="col-money">USD</th>
+            @if (canEdit()) {
+              <th class="col-actions"></th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of extras(); track row.uid) {
+            <tr>
+              <td class="col-concept">
+                @if (canEdit() && !row.preset) {
+                  <input
+                    type="text"
+                    class="po-rc-input po-rc-input--concept"
+                    maxlength="120"
+                    [ngModel]="row.concept"
+                    (ngModelChange)="setExtraConcept(row.uid, $event)"
+                    placeholder="Concepto" />
+                } @else {
+                  {{ row.concept }}
+                }
+              </td>
+              <td class="col-money">
+                @if (canEdit()) {
+                  <input
+                    type="number"
+                    class="po-rc-input po-rc-input--money"
+                    min="0"
+                    step="0.01"
+                    [ngModel]="row.mxn"
+                    (ngModelChange)="setExtraAmount(row.uid, 'MXN', $event)" />
+                } @else {
+                  {{ formatAmount(row.mxn) }}
+                }
+              </td>
+              <td class="col-money">
+                @if (canEdit()) {
+                  <input
+                    type="number"
+                    class="po-rc-input po-rc-input--money po-rc-input--usd"
+                    min="0"
+                    step="0.01"
+                    [ngModel]="row.usd"
+                    (ngModelChange)="setExtraAmount(row.uid, 'USD', $event)" />
+                } @else {
+                  <span class="money-cell money-cell--usd">{{ formatAmount(row.usd) }}</span>
+                }
+              </td>
+              @if (canEdit()) {
+                <td class="col-actions">
+                  @if (!row.preset) {
+                    <button type="button" class="po-rc-icon-btn" (click)="removeExtra(row.uid)" title="Quitar gasto">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>TOTAL</td>
+            <td class="col-money">{{ formatAmount(extrasMxn()) }}</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <aside class="aduana-card">
+      <span class="aduana-card__label">Valor aduana</span>
+      <strong class="aduana-card__usd">{{ formatAmount(merchandiseUsd()) }}</strong>
+      <strong class="aduana-card__mxn">{{ formatAmount(merchandiseMxn()) }}</strong>
+      <span class="aduana-card__note">USD × T.C. aduana</span>
+    </aside>
+  </section>
+</div>

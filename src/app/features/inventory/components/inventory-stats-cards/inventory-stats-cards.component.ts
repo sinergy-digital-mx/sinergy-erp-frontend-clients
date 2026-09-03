@@ -10,6 +10,7 @@ import {
   Tag,
   TrendingUp,
 } from 'lucide-angular';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { InventoryStats } from '../../models/inventory-stats.model';
 
 @Component({
@@ -57,10 +58,7 @@ export class InventoryStatsCardsComponent {
     if (this.failed) {
       return '—';
     }
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-    }).format(this.toNumber(value));
+    return formatUnitCurrency(this.toNumber(value));
   }
 
   formatQuantity(value: string | number | undefined): string {

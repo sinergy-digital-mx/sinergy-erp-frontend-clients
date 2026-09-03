@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { POSService } from '../../services/pos.service';
 
 export interface CloseShiftDialogData {
@@ -132,10 +133,7 @@ export class CloseShiftDialogComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(amount);
+    return formatUnitCurrency(amount);
   }
 
   formatDate(date: string): string {

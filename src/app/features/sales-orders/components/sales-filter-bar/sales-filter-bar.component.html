@@ -1,4 +1,4 @@
-<div class="filter-bar" role="search" aria-label="Filtros de órdenes de venta">
+<div class="filter-bar" role="search" [attr.aria-label]="mode === 'quotation' ? 'Filtros de cotizaciones' : 'Filtros de órdenes de venta'">
   <div class="filter-bar__container">
     <div class="filter-bar__field">
       <input type="text" [formControl]="searchControl" placeholder="Buscar..." class="filter-bar__input" />
@@ -25,29 +25,42 @@
     <div class="filter-bar__field">
       <select [formControl]="statusControl" class="filter-bar__select">
         <option [value]="null">Todos los estados</option>
-        @for (option of statusOptions; track option.value) {
+        @for (option of mode === 'quotation' ? quotationStatusOptions : statusOptions; track option.value) {
           <option [value]="option.value">{{ option.label }}</option>
         }
       </select>
     </div>
 
-    <div class="filter-bar__field">
-      <select [formControl]="paymentStatusControl" class="filter-bar__select">
-        <option value="">Todos los pagos</option>
-        @for (option of paymentStatusOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
-    </div>
+    @if (mode === 'sales') {
+      <div class="filter-bar__field">
+        <select [formControl]="paymentStatusControl" class="filter-bar__select">
+          <option value="">Todos los pagos</option>
+          @for (option of paymentStatusOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
 
-    <div class="filter-bar__field">
-      <select [formControl]="collectionChannelControl" class="filter-bar__select">
-        <option value="">Todos los orígenes</option>
-        @for (option of collectionChannelOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
-    </div>
+      <div class="filter-bar__field">
+        <select [formControl]="collectionChannelControl" class="filter-bar__select">
+          <option value="">Todos los orígenes</option>
+          @for (option of collectionChannelOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    @if (mode === 'quotation') {
+      <div class="filter-bar__field">
+        <select [formControl]="typeControl" class="filter-bar__select">
+          <option value="">Todos los tipos</option>
+          @for (option of typeOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+    }
 
     <div class="filter-bar__field">
       <select [formControl]="fiscalConfigurationControl" class="filter-bar__select">
@@ -67,12 +80,14 @@
       </select>
     </div>
 
-    <div class="filter-bar__field">
-      <select [formControl]="creditControl" class="filter-bar__select">
-        <option value="">Crédito: todos</option>
-        <option value="true">Solo crédito</option>
-      </select>
-    </div>
+    @if (mode === 'sales') {
+      <div class="filter-bar__field">
+        <select [formControl]="creditControl" class="filter-bar__select">
+          <option value="">Crédito: todos</option>
+          <option value="true">Solo crédito</option>
+        </select>
+      </div>
+    }
 
     <div class="filter-bar__field filter-bar__field--actions">
       <app-filter-clear-button

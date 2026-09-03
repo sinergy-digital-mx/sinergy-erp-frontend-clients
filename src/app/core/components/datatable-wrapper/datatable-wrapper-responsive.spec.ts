@@ -81,9 +81,9 @@ describe('DatatableWrapperComponent - Responsive Design', () => {
 
       // Assert
       expect(component.isMobile).toBe(true);
-      expect(component.emptyStateParams.width).toBe(40);
-      expect(component.emptyStateParams.height).toBe(40);
-      expect(component.emptyStateParams.icon_size).toBe(20);
+      expect(component.emptyStateParams.width).toBe(56);
+      expect(component.emptyStateParams.height).toBe(56);
+      expect(component.emptyStateParams.icon_size).toBe(24);
     });
 
     it('should adjust empty state params for desktop view', () => {
@@ -99,8 +99,8 @@ describe('DatatableWrapperComponent - Responsive Design', () => {
 
       // Assert
       expect(component.isMobile).toBe(false);
-      expect(component.emptyStateParams.width).toBe(52);
-      expect(component.emptyStateParams.height).toBe(52);
+      expect(component.emptyStateParams.width).toBe(72);
+      expect(component.emptyStateParams.height).toBe(72);
       expect(component.emptyStateParams.icon_size).toBe(28);
     });
 
@@ -225,8 +225,8 @@ describe('DatatableWrapperComponent - Responsive Design', () => {
 
       // Assert
       expect(component.isMobile).toBe(true);
-      expect(component.emptyStateParams.width).toBe(40);
-      expect(component.emptyStateParams.height).toBe(40);
+      expect(component.emptyStateParams.width).toBe(56);
+      expect(component.emptyStateParams.height).toBe(56);
     });
 
     it('should handle very large desktop viewports', () => {
@@ -242,8 +242,8 @@ describe('DatatableWrapperComponent - Responsive Design', () => {
 
       // Assert
       expect(component.isMobile).toBe(false);
-      expect(component.emptyStateParams.width).toBe(52);
-      expect(component.emptyStateParams.height).toBe(52);
+      expect(component.emptyStateParams.width).toBe(72);
+      expect(component.emptyStateParams.height).toBe(72);
     });
 
     it('should initialize with correct mobile state on component creation', () => {
