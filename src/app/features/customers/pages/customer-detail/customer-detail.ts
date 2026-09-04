@@ -2,9 +2,9 @@ import { Component, OnInit, OnDestroy, signal, NO_ERRORS_SCHEMA } from '@angular
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TagModule } from 'primeng/tag';
-import { ButtonModule } from 'primeng/button';
 import { MatCardModule } from '@angular/material/card';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
 import { MatDialog } from '@angular/material/dialog';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { PropertyService } from '../../../properties/services/property.service';
@@ -52,7 +52,6 @@ import { FormsModule } from '@angular/forms';
     CommonModule,
     FormsModule,
     TagModule,
-    ButtonModule,
     MatCardModule,
     PhoneComponent,
     CustomerDocumentsComponent,
@@ -65,6 +64,7 @@ import { FormsModule } from '@angular/forms';
     SlimSwitchComponent,
     CustomerFiscalCreditsComponent,
     SpinnerComponent,
+    PolluxErrorStateComponent,
     CustomerAssignmentHistoryComponent,
   ],
   templateUrl: 'customer-detail.html',

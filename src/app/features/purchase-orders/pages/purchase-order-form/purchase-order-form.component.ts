@@ -2,6 +2,8 @@ import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
@@ -33,7 +35,7 @@ import {
 @Component({
   selector: 'app-purchase-order-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SpinnerComponent],
+  imports: [CommonModule, ReactiveFormsModule, SpinnerComponent, PolluxErrorStateComponent],
   templateUrl: './purchase-order-form.component.html',
   styleUrls: ['./purchase-order-form.component.scss']
 })
@@ -254,7 +256,9 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (error) => {
-        this.loadError.set(error.message || 'No se pudo cargar la orden');
+        this.loadError.set(
+          resolveHttpErrorMessage(error, 'No se pudo cargar la orden')
+        );
         this.loading.set(false);
       }
     });

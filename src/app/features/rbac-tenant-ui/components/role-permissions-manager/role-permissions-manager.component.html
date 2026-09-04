@@ -1,0 +1,157 @@
+<div class="role-permissions-manager">
+  @if (loading) {
+    <div class="perm-loading" aria-busy="true" aria-label="Cargando permisos">
+      <div class="perm-toolbar perm-toolbar--skeleton">
+        <div class="perm-skel perm-skel--search"></div>
+        <div class="perm-skel perm-skel--btn"></div>
+      </div>
+      @for (slot of skeletonSlots; track slot) {
+        <div class="perm-category perm-category--skeleton" aria-hidden="true">
+          <div class="perm-category__header">
+            <div class="perm-skel perm-skel--cat-title"></div>
+            <div class="perm-skel perm-skel--cat-count"></div>
+          </div>
+          <div class="perm-category__body">
+            <div class="perm-module-card">
+              <div class="perm-skel perm-skel--mod-title"></div>
+              <div class="perm-skel perm-skel--mod-actions"></div>
+            </div>
+            <div class="perm-module-card">
+              <div class="perm-skel perm-skel--mod-title"></div>
+              <div class="perm-skel perm-skel--mod-actions"></div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="perm-toolbar">
+      <div class="perm-search" [class.perm-search--has-clear]="hasActiveSearch">
+        <svg class="perm-search__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          class="perm-search__input search-input"
+          placeholder="Buscar permisos, módulos o categorías..."
+          [(ngModel)]="permissionSearch"
+          autocomplete="off"
+        />
+        @if (hasActiveSearch) {
+          <button type="button" class="perm-search__clear" (click)="clearPermissionSearch()" title="Limpiar búsqueda">
+            ×
+          </button>
+        }
+      </div>
+
+      <div class="perm-toolbar__actions">
+        <span class="perm-toolbar__count">
+          <strong>{{ getTotalAssignedPermissions() }}</strong> permisos asignados
+        </span>
+        <app-button
+          text="Guardar Cambios"
+          custom_class="btn_primary"
+          [loading]="saving"
+          [disabled]="saving || !hasChanges"
+          (clicked)="savePermissions()">
+        </app-button>
+      </div>
+    </div>
+
+    <div class="perm-categories">
+      @for (category of filteredCategories; track category.code) {
+        <section class="perm-category">
+          <button
+            type="button"
+            class="perm-category__header"
+            (click)="toggleCategory(category)"
+            [attr.aria-expanded]="category.isExpanded">
+            <div class="perm-category__title-wrap">
+              <span class="perm-category__chevron" [class.perm-category__chevron--open]="category.isExpanded">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              </span>
+              <h2 class="perm-category__title">{{ category.label }}</h2>
+            </div>
+            <span class="perm-category__count">
+              {{ getCategoryAssignedCount(category) }}/{{ getCategoryTotalPermissions(category) }}
+            </span>
+          </button>
+
+          @if (category.isExpanded) {
+            <div class="perm-category__body">
+              @for (module of category.modules; track module.module_id) {
+                <div class="perm-module-card" [class.perm-module-card--open]="module.isExpanded || hasActiveSearch">
+                  <div class="perm-module-card__header">
+                    <button
+                      type="button"
+                      class="perm-module-card__toggle"
+                      (click)="toggleModule(module)">
+                      <span class="perm-module-card__name">{{ module.module_name }}</span>
+                      <span class="perm-module-card__progress">
+                        {{ getModuleAssignedCount(module) }}/{{ module.permissions.length }}
+                      </span>
+                    </button>
+
+                    <div class="perm-module-card__actions">
+                      <button
+                        type="button"
+                        class="perm-module-card__bulk"
+                        (click)="toggleAllModulePermissions(module)">
+                        {{ isModuleFullyAssigned(module) ? 'Desmarcar' : 'Marcar todo' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="perm-module-card__chevron"
+                        [class.perm-module-card__chevron--open]="module.isExpanded || hasActiveSearch"
+                        (click)="toggleModule(module)"
+                        [attr.aria-label]="(module.isExpanded || hasActiveSearch) ? 'Colapsar' : 'Expandir'">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (module.isExpanded || hasActiveSearch) {
+                    <div class="perm-module-card__perms">
+                      @for (permission of module.permissions; track permission.id) {
+                        <label class="perm-item" [class.perm-item--on]="permission.isAssigned">
+                          <input
+                            type="checkbox"
+                            [checked]="permission.isAssigned"
+                            (change)="togglePermission(permission)"
+                            class="perm-item__check">
+                          <span class="perm-item__text">
+                            <span class="perm-item__name">{{ permission.name }}</span>
+                            @if (permission.description) {
+                              <span class="perm-item__desc">{{ permission.description }}</span>
+                            }
+                          </span>
+                        </label>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </section>
+      }
+    </div>
+
+    @if (filteredCategories.length === 0) {
+      <div class="perm-empty">
+        @if (hasActiveSearch) {
+          <p class="perm-empty__title">Sin coincidencias</p>
+          <p class="perm-empty__sub">No hay permisos que coincidan con “{{ permissionSearch.trim() }}”</p>
+          <button type="button" class="perm-empty__clear" (click)="clearPermissionSearch()">Limpiar búsqueda</button>
+        } @else {
+          <p class="perm-empty__title">Sin módulos</p>
+          <p class="perm-empty__sub">No hay módulos disponibles.</p>
+        }
+      </div>
+    }
+  }
+</div>

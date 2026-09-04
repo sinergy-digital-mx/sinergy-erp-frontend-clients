@@ -32,7 +32,26 @@
 
       <!-- User List -->
       <div class="flex-1 overflow-y-auto min-h-0 user-cards-panel">
-        @if (filteredUsers$ | async; as users) {
+        @if (isLoadingUsers$ | async) {
+          <div class="user-cards" aria-busy="true" aria-label="Cargando usuarios">
+            @for (slot of skeletonSlots; track slot) {
+              <div class="user-card user-card--skeleton" aria-hidden="true">
+                <div class="user-skel user-skel--avatar"></div>
+                <div class="user-card__body">
+                  <div class="user-card__top">
+                    <div class="user-skel user-skel--name"></div>
+                    <div class="user-skel user-skel--badge"></div>
+                  </div>
+                  <div class="user-skel user-skel--email"></div>
+                  <div class="user-card__meta">
+                    <div class="user-skel user-skel--tag"></div>
+                    <div class="user-skel user-skel--tag user-skel--tag-wide"></div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else if (filteredUsers$ | async; as users) {
           @if (users.length === 0) {
             <app-empty-stage
               [compact]="true"

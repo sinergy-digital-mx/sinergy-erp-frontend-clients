@@ -199,3 +199,65 @@
   color: #b91c1c;
   background: #fee2e2;
 }
+
+.user-card--skeleton {
+  pointer-events: none;
+  border-color: #eef2f7;
+  box-shadow: none;
+
+  &:hover {
+    border-color: #eef2f7;
+    background: #fff;
+    box-shadow: none;
+  }
+}
+
+.user-skel {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: user-skel-pulse 1.2s ease-in-out infinite;
+}
+
+.user-skel--avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.user-skel--name {
+  width: 55%;
+  height: 14px;
+}
+
+.user-skel--badge {
+  width: 52px;
+  height: 18px;
+  border-radius: 999px;
+}
+
+.user-skel--email {
+  width: 72%;
+  height: 12px;
+  margin-top: 8px;
+}
+
+.user-skel--tag {
+  width: 64px;
+  height: 18px;
+  border-radius: 999px;
+}
+
+.user-skel--tag-wide {
+  width: 88px;
+}
+
+@keyframes user-skel-pulse {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}

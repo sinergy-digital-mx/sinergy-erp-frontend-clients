@@ -15,6 +15,18 @@
   .logo-section {
     background: rgba(0, 0, 0, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    &--compact {
+      padding-block: 1.25rem;
+      overflow: hidden;
+    }
+
+    &__brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+    }
     
     h1 {
       letter-spacing: 0.05em;

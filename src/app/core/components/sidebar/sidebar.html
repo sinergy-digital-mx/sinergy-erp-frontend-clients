@@ -21,8 +21,12 @@
 
     <div class="sidebar__nav-scroll flex flex-col flex-1 overflow-y-auto">
         <!-- Logo Section -->
-        <div class="logo-section px-6 py-6 border-b border-white/10">
-            <div class="text-center">
+        <div
+          class="logo-section py-6 border-b border-white/10"
+          [class.px-6]="!(isCollapsed() && !isMobileOpen())"
+          [class.px-2]="isCollapsed() && !isMobileOpen()"
+          [class.logo-section--compact]="isCollapsed() && !isMobileOpen()">
+            <div class="text-center logo-section__brand">
                 <app-pollux-brand-text [compact]="isCollapsed() && !isMobileOpen()" />
             </div>
         </div>

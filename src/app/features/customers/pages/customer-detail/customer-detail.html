@@ -9,15 +9,11 @@
 
     <!-- ERROR STATE -->
     @if (error() && !isLoading()) {
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p class="text-red-800">{{ error().message }}</p>
-        <button
-          pButton
-          label="Reintentar"
-          (click)="loadCustomer()"
-          class="p-button-sm mt-2">
-        </button>
-      </div>
+      <app-pollux-error-state
+        title="No se pudo cargar el cliente"
+        fallback="No pudimos cargar este cliente. Inténtalo de nuevo."
+        [error]="error()"
+        (retry)="loadCustomer()" />
     }
 
     <!-- CUSTOMER DETAILS -->

@@ -11,12 +11,12 @@
   </div>
 
   @if (loadError()) {
-    <div class="section load-error">
-      <p>{{ loadError() }}</p>
-      <button type="button" class="btn-cancel" (click)="goToPurchaseOrderList()">
-        Volver al listado
-      </button>
-    </div>
+    <app-pollux-error-state
+      title="No se pudo cargar la orden"
+      [message]="loadError()!"
+      fallback="No pudimos cargar esta orden de compra. Inténtalo de nuevo."
+      retryLabel="Volver al listado"
+      (retry)="goToPurchaseOrderList()" />
   } @else if (isEditMode() && loading()) {
     <div class="section loading-state">
       <app-spinner></app-spinner>

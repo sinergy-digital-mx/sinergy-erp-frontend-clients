@@ -31,6 +31,18 @@ export const INVENTORY_ROUTES: Routes = [
     }
   },
   {
+    path: 'existencia',
+    loadComponent: () =>
+      import('./components/inventory-stock-flow/inventory-stock-flow.component')
+        .then(m => m.InventoryStockFlowComponent),
+    canActivate: [permissionGuard],
+    data: {
+      permissions: [INVENTORY_PERMISSIONS.stockFlow, INVENTORY_PERMISSIONS.viewList],
+      permissionMode: 'any',
+      title: 'Existencia de inventarios'
+    }
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./components/inventory-batch-list/inventory-batch-list.component')

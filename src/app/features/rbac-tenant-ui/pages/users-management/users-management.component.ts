@@ -46,6 +46,8 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
   userStatusFilter$: Observable<string>;
   statuses: CatalogStatus[] = [];
   private statusesReady$ = new BehaviorSubject<boolean>(false);
+  readonly isLoadingUsers$ = new BehaviorSubject<boolean>(true);
+  readonly skeletonSlots = [0, 1, 2, 3, 4, 5];
 
   // Trigger for refreshing user roles
   private refreshUserRoles$ = new BehaviorSubject<number>(0);
@@ -129,16 +131,21 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
       .pipe(
         takeUntil(this.destroy$),
         filter(([, , , ready]) => ready),
-        switchMap(([search, status, roleId]) =>
-          this.userService.refreshUsers(this.buildListQuery(search, status, roleId)).pipe(
+        switchMap(([search, status, roleId]) => {
+          this.isLoadingUsers$.next(true);
+          return this.userService.refreshUsers(this.buildListQuery(search, status, roleId)).pipe(
             catchError((error) => {
               this.showApiError(error, 'No se pudieron cargar los usuarios');
+              this.isLoadingUsers$.next(false);
               return EMPTY;
             })
-          )
-        )
+          );
+        })
       )
-      .subscribe((users) => this.stateService.updateUsers(users));
+      .subscribe((users) => {
+        this.stateService.updateUsers(users);
+        this.isLoadingUsers$.next(false);
+      });
   }
 
   ngOnDestroy(): void {
@@ -212,6 +219,7 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
   }
 
   private reloadUsers(keepSelectedId?: string | null): void {
+    this.isLoadingUsers$.next(true);
     this.userService.refreshUsers(
       this.buildListQuery(this.currentSearch, this.currentStatus, this.currentRoleId)
     ).subscribe({
@@ -220,8 +228,12 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
         if (keepSelectedId && users.some((user) => user.id === keepSelectedId)) {
           this.stateService.selectUser(keepSelectedId);
         }
+        this.isLoadingUsers$.next(false);
       },
-      error: (error) => this.showApiError(error, 'No se pudieron cargar los usuarios'),
+      error: (error) => {
+        this.isLoadingUsers$.next(false);
+        this.showApiError(error, 'No se pudieron cargar los usuarios');
+      },
     });
   }
 

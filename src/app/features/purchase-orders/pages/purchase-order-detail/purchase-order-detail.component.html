@@ -8,10 +8,12 @@
 
   <!-- Error state -->
   @if (error()) {
-    <div class="error">
-      <p>{{ error() }}</p>
-      <button (click)="goBack()">Volver</button>
-    </div>
+    <app-pollux-error-state
+      title="No se pudo cargar la orden"
+      [message]="error()!"
+      fallback="No pudimos cargar esta orden de compra. Inténtalo de nuevo."
+      retryLabel="Volver"
+      (retry)="goBack()" />
   }
 
   <!-- Order detail -->

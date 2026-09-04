@@ -8,6 +8,8 @@ import { PurchaseOrder } from '../../models/purchase-order.model';
 import { OrderHeaderComponent } from '../../components/order-header/order-header.component';
 import { LineItemsTableComponent } from '../../components/line-items-table/line-items-table.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { PaymentsListComponent } from '../../components/payments-list/payments-list.component';
 import { PaymentDialogComponent, PaymentFormData } from '../../components/payment-dialog/payment-dialog.component';
 import { CancelDialogComponent } from '../../components/cancel-dialog/cancel-dialog.component';
@@ -15,7 +17,14 @@ import { CancelDialogComponent } from '../../components/cancel-dialog/cancel-dia
 @Component({
   selector: 'app-purchase-order-detail',
   standalone: true,
-  imports: [CommonModule, OrderHeaderComponent, LineItemsTableComponent, PaymentsListComponent, SpinnerComponent],
+  imports: [
+    CommonModule,
+    OrderHeaderComponent,
+    LineItemsTableComponent,
+    PaymentsListComponent,
+    SpinnerComponent,
+    PolluxErrorStateComponent,
+  ],
   templateUrl: './purchase-order-detail.component.html',
   styleUrls: ['./purchase-order-detail.component.scss']
 })
@@ -98,7 +107,9 @@ export class PurchaseOrderDetailComponent implements OnInit {
         this.loadingState.set(false);
       },
       error: (error) => {
-        this.errorState.set(error.message);
+        this.errorState.set(
+          resolveHttpErrorMessage(error, 'No se pudo cargar la orden de compra')
+        );
         this.loadingState.set(false);
       }
     });

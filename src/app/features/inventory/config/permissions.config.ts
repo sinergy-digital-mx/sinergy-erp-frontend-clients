@@ -13,7 +13,10 @@ export const INVENTORY_PERMISSIONS = {
   viewDetail: 'inventory:Read',
   viewStats: 'inventory:Read',
   viewBatches: 'inventory:Read',
-  
+
+  /** Reporte de existencia / kardex */
+  stockFlow: 'inventory:StockFlow',
+
   // CRUD operations
   create: 'inventory:Create',
   update: 'inventory:Update',

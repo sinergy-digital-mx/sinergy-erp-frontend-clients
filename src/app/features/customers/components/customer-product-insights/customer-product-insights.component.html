@@ -4,10 +4,11 @@
       <app-spinner></app-spinner>
     </div>
   } @else if (error()) {
-    <div class="insights__error">
-      <p>No se pudieron cargar los productos del cliente</p>
-      <button type="button" class="insights__retry" (click)="loadInsights()">Reintentar</button>
-    </div>
+    <app-pollux-error-state
+      [compact]="true"
+      title="No se pudieron cargar los productos"
+      fallback="No pudimos cargar los productos de este cliente. Inténtalo de nuevo."
+      (retry)="loadInsights()" />
   } @else {
     <div class="insights__grid">
       <section class="insights__panel">

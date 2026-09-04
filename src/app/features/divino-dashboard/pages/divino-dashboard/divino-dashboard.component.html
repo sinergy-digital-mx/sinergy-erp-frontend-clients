@@ -71,10 +71,12 @@
   </header>
 
   @if (error()) {
-    <div class="dd-error" role="alert">
-      <lucide-icon [img]="icons.AlertCircle" [size]="20"></lucide-icon>
-      <span>{{ error() }}</span>
-    </div>
+    <app-pollux-error-state
+      [compact]="true"
+      title="No se pudo cargar el dashboard"
+      [message]="error()!"
+      fallback="No pudimos cargar los datos. Inténtalo de nuevo."
+      (retry)="loadDashboard()" />
   }
 
   @if (loading()) {

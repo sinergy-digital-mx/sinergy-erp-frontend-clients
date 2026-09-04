@@ -1,65 +1,224 @@
 import { Component, computed, input } from '@angular/core';
 
-let gradientIdCounter = 0;
-
 @Component({
   selector: 'app-pollux-brand-text',
   standalone: true,
   template: `
-    <svg
-      class="pollux-brand-text"
-      [class.pollux-brand-text--lg]="size() === 'lg'"
-      [attr.viewBox]="viewBox()"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      [attr.aria-label]="label()">
-      <defs>
-        <linearGradient [attr.id]="gradientId" x1="0%" y1="0%" x2="100%" y2="0%">
-          @if (theme() === 'dark') {
-            <stop offset="0%" stop-color="#a8d4ff" />
-            <stop offset="20%" stop-color="#3b7ddd" />
-            <stop offset="45%" stop-color="#5eead4" />
-            <stop offset="65%" stop-color="#38bdf8" />
-            <stop offset="85%" stop-color="#2dd4bf" />
-            <stop offset="100%" stop-color="#a8d4ff" />
-          } @else {
-            <stop offset="0%" stop-color="#0a2540" />
-            <stop offset="20%" stop-color="#1e4a8c" />
-            <stop offset="45%" stop-color="#3b7ddd" />
-            <stop offset="65%" stop-color="#1ec8d4" />
-            <stop offset="85%" stop-color="#2b6fd4" />
-            <stop offset="100%" stop-color="#0a2540" />
-          }
-          <animate attributeName="x1" values="0%;100%;0%" dur="10s" repeatCount="indefinite" />
-          <animate attributeName="x2" values="100%;200%;100%" dur="10s" repeatCount="indefinite" />
-        </linearGradient>
-      </defs>
-      <text
-        x="2"
-        y="28"
-        [attr.fill]="'url(#' + gradientId + ')'"
-        font-family="Inter, sans-serif"
-        [attr.font-size]="fontSize()"
-        font-weight="700"
-        letter-spacing="0.06em">
+    @if (compact()) {
+      <h2
+        class="pollux-brand-text pollux-brand-text--compact"
+        [class.pollux-brand-text--light]="theme() === 'light'"
+        role="img"
+        aria-label="P">
+        P
+      </h2>
+    } @else {
+      <h2
+        class="pollux-brand-text"
+        [class.pollux-brand-text--lg]="size() === 'lg'"
+        [class.pollux-brand-text--light]="theme() === 'light'"
+        role="img"
+        [attr.aria-label]="label()">
         {{ label() }}
-      </text>
-    </svg>
+      </h2>
+    }
   `,
   styles: `
     :host {
-      display: inline-block;
-      line-height: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
     }
 
     .pollux-brand-text {
-      display: block;
-      height: 2rem;
-      width: auto;
+      margin: 0;
+      font-size: 1.85rem;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+      text-align: center;
+      text-transform: uppercase;
+      white-space: nowrap;
+      user-select: none;
+      color: hsl(214, 45%, 78%);
+      animation: pollux-lights 5s 750ms linear infinite;
     }
 
     .pollux-brand-text--lg {
-      height: 2.35rem;
+      font-size: 3rem;
+      letter-spacing: 0.08em;
+    }
+
+    /* Sidebar colapsado: solo la P, más chica, glow contenido */
+    .pollux-brand-text--compact {
+      font-size: 1.65rem;
+      letter-spacing: 0;
+      line-height: 1;
+      max-width: 100%;
+      overflow: hidden;
+      animation: pollux-lights-compact 5s 750ms linear infinite;
+    }
+
+    /* Login / fondos claros: base más profunda para que el glow se lea */
+    .pollux-brand-text--light {
+      color: hsl(214, 55%, 42%);
+      animation-name: pollux-lights-light;
+    }
+
+    .pollux-brand-text--light.pollux-brand-text--compact {
+      animation-name: pollux-lights-light;
+    }
+
+    @keyframes pollux-lights {
+      0% {
+        color: hsl(214, 40%, 78%);
+        text-shadow:
+          0 0 1em hsla(199, 95%, 55%, 0.25),
+          0 0 0.125em hsla(199, 90%, 65%, 0.35),
+          -1em -0.125em 0.5em hsla(172, 70%, 50%, 0),
+          1em 0.125em 0.5em hsla(214, 75%, 55%, 0);
+      }
+
+      30% {
+        color: hsl(199, 75%, 90%);
+        text-shadow:
+          0 0 1em hsla(199, 95%, 55%, 0.55),
+          0 0 0.125em hsla(172, 80%, 55%, 0.5),
+          -0.5em -0.125em 0.25em hsla(172, 70%, 50%, 0.25),
+          0.5em 0.125em 0.25em hsla(214, 80%, 60%, 0.45);
+      }
+
+      40% {
+        color: hsl(199, 100%, 96%);
+        text-shadow:
+          0 0 1em hsla(199, 95%, 55%, 0.55),
+          0 0 0.125em hsla(172, 90%, 70%, 0.55),
+          -0.25em -0.125em 0.125em hsla(172, 70%, 50%, 0.25),
+          0.25em 0.125em 0.125em hsla(214, 80%, 60%, 0.45);
+      }
+
+      70% {
+        color: hsl(199, 75%, 90%);
+        text-shadow:
+          0 0 1em hsla(199, 95%, 55%, 0.55),
+          0 0 0.125em hsla(172, 80%, 55%, 0.5),
+          0.5em -0.125em 0.25em hsla(172, 70%, 50%, 0.25),
+          -0.5em 0.125em 0.25em hsla(214, 80%, 60%, 0.45);
+      }
+
+      100% {
+        color: hsl(214, 40%, 78%);
+        text-shadow:
+          0 0 1em hsla(199, 95%, 55%, 0.25),
+          0 0 0.125em hsla(199, 90%, 65%, 0.35),
+          1em -0.125em 0.5em hsla(172, 70%, 50%, 0),
+          -1em 0.125em 0.5em hsla(214, 75%, 55%, 0);
+      }
+    }
+
+    /* Glow más corto para la P en sidebar estrecho */
+    @keyframes pollux-lights-compact {
+      0% {
+        color: hsl(214, 40%, 78%);
+        text-shadow:
+          0 0 0.45em hsla(199, 95%, 55%, 0.3),
+          0 0 0.08em hsla(199, 90%, 65%, 0.4);
+      }
+
+      30% {
+        color: hsl(199, 75%, 90%);
+        text-shadow:
+          0 0 0.55em hsla(199, 95%, 55%, 0.55),
+          0 0 0.1em hsla(172, 80%, 55%, 0.5),
+          -0.15em 0 0.2em hsla(172, 70%, 50%, 0.25),
+          0.15em 0 0.2em hsla(214, 80%, 60%, 0.4);
+      }
+
+      40% {
+        color: hsl(199, 100%, 96%);
+        text-shadow:
+          0 0 0.6em hsla(199, 95%, 55%, 0.6),
+          0 0 0.12em hsla(172, 90%, 70%, 0.55),
+          -0.1em 0 0.15em hsla(172, 70%, 50%, 0.25),
+          0.1em 0 0.15em hsla(214, 80%, 60%, 0.4);
+      }
+
+      70% {
+        color: hsl(199, 75%, 90%);
+        text-shadow:
+          0 0 0.55em hsla(199, 95%, 55%, 0.55),
+          0 0 0.1em hsla(172, 80%, 55%, 0.5),
+          0.15em 0 0.2em hsla(172, 70%, 50%, 0.25),
+          -0.15em 0 0.2em hsla(214, 80%, 60%, 0.4);
+      }
+
+      100% {
+        color: hsl(214, 40%, 78%);
+        text-shadow:
+          0 0 0.45em hsla(199, 95%, 55%, 0.3),
+          0 0 0.08em hsla(199, 90%, 65%, 0.4);
+      }
+    }
+
+    @keyframes pollux-lights-light {
+      0% {
+        color: hsl(214, 55%, 40%);
+        text-shadow:
+          0 0 0.85em hsla(199, 90%, 45%, 0.2),
+          0 0 0.1em hsla(214, 70%, 45%, 0.25),
+          -0.75em -0.1em 0.4em hsla(172, 65%, 40%, 0),
+          0.75em 0.1em 0.4em hsla(199, 80%, 45%, 0);
+      }
+
+      30% {
+        color: hsl(199, 70%, 38%);
+        text-shadow:
+          0 0 0.85em hsla(199, 90%, 45%, 0.4),
+          0 0 0.1em hsla(172, 70%, 40%, 0.35),
+          -0.4em -0.1em 0.2em hsla(172, 65%, 40%, 0.2),
+          0.4em 0.1em 0.2em hsla(214, 75%, 45%, 0.35);
+      }
+
+      40% {
+        color: hsl(199, 85%, 36%);
+        text-shadow:
+          0 0 1em hsla(199, 90%, 45%, 0.45),
+          0 0 0.12em hsla(172, 75%, 42%, 0.4),
+          -0.2em -0.1em 0.12em hsla(172, 65%, 40%, 0.2),
+          0.2em 0.1em 0.12em hsla(214, 75%, 45%, 0.35);
+      }
+
+      70% {
+        color: hsl(199, 70%, 38%);
+        text-shadow:
+          0 0 0.85em hsla(199, 90%, 45%, 0.4),
+          0 0 0.1em hsla(172, 70%, 40%, 0.35),
+          0.4em -0.1em 0.2em hsla(172, 65%, 40%, 0.2),
+          -0.4em 0.1em 0.2em hsla(214, 75%, 45%, 0.35);
+      }
+
+      100% {
+        color: hsl(214, 55%, 40%);
+        text-shadow:
+          0 0 0.85em hsla(199, 90%, 45%, 0.2),
+          0 0 0.1em hsla(214, 70%, 45%, 0.25),
+          0.75em -0.1em 0.4em hsla(172, 65%, 40%, 0),
+          -0.75em 0.1em 0.4em hsla(199, 80%, 45%, 0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pollux-brand-text {
+        animation: none;
+        color: #a8d4ff;
+        text-shadow: 0 0 0.6em hsla(199, 95%, 55%, 0.35);
+      }
+
+      .pollux-brand-text--light {
+        color: #1e4a8c;
+        text-shadow: none;
+      }
     }
   `,
 })
@@ -68,11 +227,5 @@ export class PolluxBrandTextComponent {
   theme = input<'dark' | 'light'>('dark');
   size = input<'md' | 'lg'>('md');
 
-  readonly gradientId = `pollux-grad-${++gradientIdCounter}`;
-
-  readonly label = computed(() => (this.compact() ? 'P' : 'Pollux'));
-  readonly fontSize = computed(() => (this.compact() ? 22 : this.size() === 'lg' ? 30 : 26));
-  readonly viewBox = computed(() =>
-    this.compact() ? '0 0 28 36' : this.size() === 'lg' ? '0 0 108 36' : '0 0 96 36'
-  );
+  readonly label = computed(() => (this.compact() ? 'P' : 'POLLUX'));
 }

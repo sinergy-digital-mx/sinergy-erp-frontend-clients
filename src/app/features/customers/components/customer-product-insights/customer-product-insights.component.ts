@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { LucideAngularModule, ChevronLeft, ChevronRight, Package } from 'lucide-angular';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { CustomerProductInsightsService } from '../../services/customer-product-insights.service';
@@ -21,7 +22,7 @@ const SCROLL_EDGE_PX = 8;
 @Component({
   selector: 'app-customer-product-insights',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, SpinnerComponent],
+  imports: [CommonModule, LucideAngularModule, SpinnerComponent, PolluxErrorStateComponent],
   templateUrl: './customer-product-insights.component.html',
   styleUrl: './customer-product-insights.component.scss',
 })

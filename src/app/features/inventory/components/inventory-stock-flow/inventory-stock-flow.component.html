@@ -1,0 +1,254 @@
+<div class="purchase-order-list-container">
+  <div class="purchase-content">
+    <div class="px-4 pb-8">
+      <div class="sf-header">
+        <div class="sf-header__left">
+          <app-back-button title="Volver a inventario" (clicked)="goBack()" />
+          <div class="sf-header__titles">
+            <h2 class="sf-header__title">Existencia de inventarios</h2>
+            <p class="sf-header__subtitle">{{ subtitle }}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="page-export-btn"
+          [disabled]="exporting() || rangeIncomplete || fiscalRequired || loading()"
+          (click)="downloadExcel()">
+          @if (exporting()) {
+            <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+            Descargando...
+          } @else {
+            <i class="fi fi-rr-download" aria-hidden="true"></i>
+            Descargar Excel
+          }
+        </button>
+      </div>
+
+      <div class="sf-panel">
+        <div class="sf-panel__top">
+          <div class="sf-view-toggle" role="group" aria-label="Vista del reporte">
+            <button
+              type="button"
+              class="sf-view-toggle__btn"
+              [class.sf-view-toggle__btn--active]="view === 'summary'"
+              [attr.aria-pressed]="view === 'summary'"
+              (click)="setView('summary')">
+              Resumen
+            </button>
+            <button
+              type="button"
+              class="sf-view-toggle__btn"
+              [class.sf-view-toggle__btn--active]="view === 'ledger'"
+              [attr.aria-pressed]="view === 'ledger'"
+              (click)="setView('ledger')">
+              Flujo
+            </button>
+          </div>
+
+          <app-report-period-selector
+            [period]="datePreset"
+            [dateFrom]="customDateFrom"
+            [dateTo]="customDateTo"
+            [includeYear]="true"
+            [monthAsServerPreset]="true"
+            dateFromId="sf-date-from"
+            dateToId="sf-date-to"
+            ariaLabel="Periodo del reporte"
+            (periodChange)="onPeriodChange($event)"
+            (rangeChange)="onRangeChange($event)" />
+        </div>
+
+        <div class="sf-filters" role="search" aria-label="Filtros de existencia">
+          <div class="sf-filters__field">
+            <label class="sf-filters__label" for="sf-fiscal">Razón social</label>
+            <select
+              id="sf-fiscal"
+              class="sf-filters__select"
+              [(ngModel)]="fiscalConfigurationId"
+              (change)="onFiscalChange()"
+              required>
+              <option value="" disabled>Selecciona…</option>
+              @for (fc of locations(); track fc.id) {
+                <option [value]="fc.id">{{ fc.razon_social }}</option>
+              }
+            </select>
+          </div>
+          <div class="sf-filters__field">
+            <label class="sf-filters__label" for="sf-branch">Sucursal</label>
+            <select
+              id="sf-branch"
+              class="sf-filters__select"
+              [(ngModel)]="billingBranchId"
+              [disabled]="!fiscalConfigurationId"
+              (change)="onBranchChange()">
+              <option value="">Todas</option>
+              @for (b of branchOptions(); track b.id) {
+                <option [value]="b.id">{{ b.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="sf-filters__field sf-filters__field--grow">
+            <label class="sf-filters__label" for="sf-search">Buscar</label>
+            <input
+              id="sf-search"
+              type="text"
+              class="sf-filters__input"
+              [(ngModel)]="search"
+              (keyup.enter)="onSearch()"
+              placeholder="SKU o producto" />
+          </div>
+        </div>
+      </div>
+
+      @if (productId) {
+        <div class="sf-product-chip" role="status">
+          <span>Filtrado por producto</span>
+          <button type="button" class="sf-product-chip__clear" (click)="clearProductFilter()">
+            Quitar filtro
+          </button>
+        </div>
+      }
+
+      <div class="sf-results">
+        @if (fiscalRequired) {
+          <app-empty-stage
+            [params]="emptyParams"
+            message="Selecciona una razón social"
+            sub_message="El reporte se calcula por sucursal dentro de esa razón social." />
+        } @else if (loading()) {
+          <div class="sf-loading" role="status">Cargando reporte…</div>
+        } @else if (view === 'summary') {
+          @if (summary().length === 0) {
+            <app-empty-stage
+              [params]="emptyParams"
+              message="Sin movimientos en el periodo"
+              sub_message="Prueba otro rango o cambia la sucursal." />
+          } @else {
+            <div class="sf-table-wrap">
+              <table class="sf-table">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Producto</th>
+                    <th>Sucursal</th>
+                    <th>UOM</th>
+                    <th class="sf-num">Inicial</th>
+                    <th class="sf-num">Compras</th>
+                    <th class="sf-num">Ventas</th>
+                    <th class="sf-num">Transf.+</th>
+                    <th class="sf-num">Transf.−</th>
+                    <th class="sf-num">Ajustes</th>
+                    <th class="sf-num">Final</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of summary(); track row.product_id + row.billing_branch_id + row.uom_id) {
+                    <tr class="sf-row--click" (click)="openLedgerForProduct(row)">
+                      <td>
+                        <span class="dt-folio-badge">{{ row.product_sku }}</span>
+                      </td>
+                      <td>
+                        <p class="dt-cell-primary sf-cell--wrap m-0">{{ row.product_name }}</p>
+                      </td>
+                      <td>
+                        <span class="dt-status-pill dt-status-pill--info">{{ row.billing_branch_name }}</span>
+                      </td>
+                      <td>
+                        <span class="dt-status-pill dt-status-pill--neutral">{{ row.uom_name }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="dt-cell-amount">{{ formatQty(row.opening_qty) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="dt-cell-amount">{{ formatQty(row.purchases_qty) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="dt-cell-amount">{{ formatQty(row.sales_qty) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="dt-cell-amount">{{ formatQty(row.transfer_in_qty) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="dt-cell-amount">{{ formatQty(row.transfer_out_qty) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="dt-cell-amount">{{ formatQty(row.adjustments_qty) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="dt-cell-amount sf-num--final">{{ formatQty(row.closing_qty) }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        } @else {
+          @if (ledger().length === 0) {
+            <app-empty-stage
+              [params]="emptyParams"
+              message="Sin flujo en el periodo"
+              sub_message="Prueba otro rango o selecciona un producto desde el resumen." />
+          } @else {
+            <div class="sf-table-wrap">
+              <table class="sf-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Producto</th>
+                    <th>Sucursal</th>
+                    <th>Concepto</th>
+                    <th class="sf-num">Entrada</th>
+                    <th class="sf-num">Salida</th>
+                    <th class="sf-num">Saldo</th>
+                    <th>Folio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of ledger(); track row.id) {
+                    <tr [class.sf-row--opening]="row.is_opening">
+                      <td>
+                        <span class="dt-cell-subtle">{{ formatDate(row.occurred_at) }}</span>
+                      </td>
+                      <td>
+                        <div class="sf-product-stack">
+                          <p class="dt-cell-primary sf-cell--wrap m-0">{{ row.product_name }}</p>
+                          <span class="dt-folio-badge">{{ row.product_sku }}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="dt-status-pill dt-status-pill--info">{{ row.billing_branch_name }}</span>
+                      </td>
+                      <td>
+                        <div class="sf-concept-stack">
+                          <span [class]="movementBadgeClass(row.movement_type)">{{ row.title }}</span>
+                          <p class="dt-cell-subtle sf-concept-desc m-0">{{ row.description }}</p>
+                        </div>
+                      </td>
+                      <td class="sf-num">
+                        <span class="dt-cell-amount" [class.sf-num--in]="row.quantity_in">{{ formatQty(row.quantity_in) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="dt-cell-amount" [class.sf-num--out]="row.quantity_out">{{ formatQty(row.quantity_out) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="dt-cell-amount sf-num--final">{{ formatQty(row.balance_after) }}</span>
+                      </td>
+                      <td>
+                        @if (row.reference_folio) {
+                          <span class="dt-folio-badge">{{ row.reference_folio }}</span>
+                        } @else {
+                          <span class="dt-cell-subtle">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</div>

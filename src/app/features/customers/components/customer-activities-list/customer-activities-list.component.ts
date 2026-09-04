@@ -6,6 +6,7 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
 import { CustomerActivityService } from '../../services/customer-activity.service';
 import { CustomerActivity } from '../../models/customer-group.model';
 import { CustomerActivityFormDialogComponent } from '../customer-activity-form-dialog/customer-activity-form-dialog.component';
@@ -23,6 +24,7 @@ import { takeUntil } from 'rxjs/operators';
     MatButtonModule,
     MatIconModule,
     SpinnerComponent,
+    PolluxErrorStateComponent,
   ],
   template: `<div class="activities-list">
   <div class="activities-header">
@@ -36,9 +38,13 @@ import { takeUntil } from 'rxjs/operators';
     <app-spinner></app-spinner>
   </div>
 
-  <div *ngIf="error && !isLoading" class="error-container">
-    <p class="error-message">{{ error.message }}</p>
-    <button mat-raised-button (click)="loadActivities()">Reintentar</button>
+  <div *ngIf="error && !isLoading">
+    <app-pollux-error-state
+      [compact]="true"
+      title="No se pudieron cargar las actividades"
+      [error]="error"
+      fallback="No pudimos cargar las actividades. Inténtalo de nuevo."
+      (retry)="loadActivities()" />
   </div>
 
   <div *ngIf="!isLoading && !error && activities.length === 0" class="empty-state">

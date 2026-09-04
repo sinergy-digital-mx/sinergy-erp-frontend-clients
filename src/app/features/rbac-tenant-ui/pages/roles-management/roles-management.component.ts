@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable, combineLatest, map, switchMap, of, BehaviorSubject } from 'rxjs';
+import { Observable, combineLatest, map, BehaviorSubject } from 'rxjs';
 import { Role, Module } from '../../models';
 import { StateService } from '../../services/state.service';
 import { RoleService } from '../../services/role.service';
@@ -18,7 +18,7 @@ import { EmptyStageComponent } from '../../../../core/components/empty-stage/emp
  * RolesManagementComponent
  * Container component for managing tenant roles and permissions
  * Displays a two-column layout with role list on the left and role details on the right
- * 
+ *
  * Requirements: 8.1, 9.1, 10.1
  */
 @Component({
@@ -26,236 +26,20 @@ import { EmptyStageComponent } from '../../../../core/components/empty-stage/emp
   standalone: true,
   imports: [CommonModule, BackButtonComponent, RolePermissionsManagerComponent, RoleEditFormComponent, RoleCreateDialogComponent, EmptyStageComponent],
   styleUrl: './roles-management.component.scss',
-  template: `
-    <!-- Roles Management Container with Two-Column Layout -->
-    <div class="h-screen flex flex-col overflow-hidden">
-      <!-- Header with Back Button -->
-      <div class="flex items-center gap-3 px-3 py-3 shrink-0 border-b border-gray-200">
-        <app-back-button (clicked)="goBackToSettings()"></app-back-button>
-        <h1 class="text-2xl font-bold text-gray-900">Gestión de Roles y Permisos</h1>
-      </div>
-
-      <!-- Main Content -->
-      <div class="flex gap-2 flex-1 min-h-0 px-2 py-2">
-        <!-- Left Panel: Role List -->
-        <div class="w-1/3 bg-white border border-gray-200 rounded-lg flex flex-col h-full shadow-sm">
-          <!-- Header -->
-          <div class="px-3 py-2 border-b border-gray-200 shrink-0">
-            <h2 class="text-base font-semibold text-gray-900">Roles</h2>
-          </div>
-
-          <!-- Search and Create Button Section -->
-          <div class="px-3 py-2 border-b border-gray-200 space-y-2 shrink-0">
-            <!-- Search and Create Row -->
-            <div class="roles-mgmt-search-row">
-              <input
-                type="text"
-                placeholder="Buscar roles..."
-                (input)="onRoleSearchChange($event)"
-                class="roles-mgmt-search-input search-input px-2 text-sm border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-              <button
-                type="button"
-                class="roles-mgmt-create-btn"
-                (click)="onCreateRoleClicked()">
-                Nuevo Rol
-              </button>
-            </div>
-          </div>
-
-          <!-- Role List -->
-          <div class="flex-1 overflow-y-auto min-h-0">
-            @if (filteredRoles$ | async; as roles) {
-              @if (roles.length === 0) {
-                <app-empty-stage
-                  [compact]="true"
-                  message="Sin resultados"
-                  sub_message="No se encontraron roles">
-                </app-empty-stage>
-              } @else {
-                @for (role of roles; track role.id) {
-                  <div class="border-b border-gray-100 last:border-b-0">
-                    <button
-                      (click)="onRoleSelected(role.id)"
-                      [class.bg-blue-50]="(selectedRoleId$ | async) === role.id"
-                      class="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                    >
-                      <div class="flex items-center justify-between">
-                        <div class="flex-1 min-w-0">
-                          <p class="text-sm font-medium text-gray-900 truncate">{{ role.name }}</p>
-                          <div class="flex items-center gap-2 mt-0.5">
-                            <span class="text-xs text-gray-500">
-                              {{ getPermissionCount(role) }} permiso{{ getPermissionCount(role) !== 1 ? 's' : '' }}
-                            </span>
-                            <span 
-                              [class]="getPermissionBadgeClass(role)"
-                              class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium">
-                              {{ getPermissionStatusText(role) }}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                }
-              }
-            }
-          </div>
-        </div>
-
-        <!-- Right Panel: Role Details -->
-        <div class="flex-1 bg-white border border-gray-200 rounded-lg flex flex-col h-full shadow-sm">
-          @if (selectedRole$ | async; as role) {
-            <!-- Role Details Header -->
-            <div class="px-3 py-2 border-b border-gray-200 shrink-0">
-              <app-role-edit-form
-                [role]="role"
-                (roleUpdated)="onRoleUpdated($event)"
-                (roleDeleted)="onRoleDeleted($event)">
-              </app-role-edit-form>
-              
-              <!-- Role Stats -->
-              <div class="flex items-center gap-3 mt-2">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm text-gray-500">Permisos:</span>
-                  <span 
-                    [class]="getPermissionBadgeClass(role)"
-                    class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium">
-                    {{ getPermissionCount(role) }}
-                  </span>
-                </div>
-                
-                <div class="flex items-center gap-2">
-                  <span class="text-sm text-gray-500">Estado:</span>
-                  <span 
-                    [class]="getPermissionBadgeClass(role)"
-                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium">
-                    {{ getPermissionStatusText(role) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Role Details Content -->
-            <div class="flex-1 overflow-y-auto p-3 min-h-0">
-              <app-role-permissions-manager
-                [role]="role"
-                (permissionsUpdated)="onPermissionsUpdated($event)">
-              </app-role-permissions-manager>
-            </div>
-          } @else {
-            <div class="flex items-center justify-center h-full">
-              <div class="text-center">
-                <p class="text-gray-500 text-lg">Selecciona un rol para ver detalles</p>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-
-      <!-- Create Role Dialog -->
-      @if (showCreateDialog) {
-        <app-role-create-dialog
-          (roleCreated)="onRoleCreated($event)"
-          (cancelled)="onCreateDialogCancelled()">
-        </app-role-create-dialog>
-      }
-    </div>
-  `,
-  styles: [`
-    :host {
-      display: block;
-      height: 100%;
-      overflow: hidden;
-    }
-
-    .w-1-3 {
-      flex: 0 0 33.333%;
-    }
-
-    .w-2-3 {
-      flex: 0 0 66.667%;
-    }
-
-    .overflow-y-auto {
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .overflow-y-auto::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .overflow-y-auto::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .overflow-y-auto::-webkit-scrollbar-thumb {
-      background: #d1d5db;
-      border-radius: 4px;
-    }
-
-    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-      background: #9ca3af;
-    }
-
-    .roles-mgmt-search-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) max-content;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .roles-mgmt-search-input {
-      width: auto !important;
-      min-width: 0;
-      height: 36px;
-    }
-
-    .roles-mgmt-create-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 36px;
-      padding: 0 1.25rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.8125rem;
-      font-family: inherit;
-      color: #fff;
-      white-space: nowrap;
-      width: max-content;
-      background: linear-gradient(135deg, #4338ca 0%, #6366f1 48%, #7c3aed 100%);
-      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.32);
-    }
-
-    .roles-mgmt-create-btn:hover {
-      filter: brightness(1.06);
-    }
-
-    button:hover:not(.roles-mgmt-create-btn) {
-      background-color: #f9fafb;
-    }
-
-    button:focus {
-      outline: none;
-    }
-  `]
+  templateUrl: './roles-management.component.html',
 })
 export class RolesManagementComponent implements OnInit {
-  // Observable streams from state service
   roles$: Observable<Role[]>;
   filteredRoles$: Observable<Role[]>;
   selectedRoleId$: Observable<string | null>;
   selectedRole$: Observable<Role | null>;
   modules$: Observable<Module[]>;
   roleSearchFilter$: Observable<string>;
-  
-  // Local component state
+
   showOnlyUnconfigurated = false;
   showCreateDialog = false;
+  readonly isLoadingRoles$ = new BehaviorSubject<boolean>(true);
+  readonly skeletonSlots = [0, 1, 2, 3, 4, 5];
   private showOnlyUnconfiguratedSubject = new BehaviorSubject<boolean>(false);
 
   constructor(
@@ -266,14 +50,12 @@ export class RolesManagementComponent implements OnInit {
     private router: Router,
     private activatedRoute: ActivatedRoute
   ) {
-    // Initialize observables from state service
     this.roles$ = this.stateService.roles$;
     this.filteredRoles$ = this.stateService.filteredRoles$;
     this.selectedRoleId$ = this.stateService.selectedRoleId$;
     this.modules$ = this.stateService.modules$;
     this.roleSearchFilter$ = this.stateService.roleSearchFilter$;
 
-    // Create selectedRole$ by combining selectedRoleId$ with roles$
     this.selectedRole$ = combineLatest([this.selectedRoleId$, this.roles$]).pipe(
       map(([selectedId, roles]) => {
         if (!selectedId) return null;
@@ -283,25 +65,10 @@ export class RolesManagementComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Fetch roles on component initialization
-    this.roleService.getRoles().subscribe(
-      roles => {
-        console.log('Roles loaded:', roles);
-        this.stateService.updateRoles(roles);
-      },
-      (error) => {
-        console.error('Failed to load roles:', error);
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: error.error?.message || 'Failed to load roles', type: 'error' },
-          duration: 5000
-        });
-      }
-    );
+    this.loadRoles();
 
-    // Fetch modules for permission selection
     this.moduleService.getModules().subscribe(
       modules => {
-        console.log('Modules loaded:', modules);
         this.stateService.updateModules(modules);
       },
       (error) => {
@@ -314,145 +81,106 @@ export class RolesManagementComponent implements OnInit {
     );
   }
 
-  /**
-   * Handles role selection from the left panel
-   * Updates the state service with the selected role ID
-   * @param roleId - The ID of the selected role
-   */
+  private loadRoles(selectRoleId?: string): void {
+    this.isLoadingRoles$.next(true);
+    this.roleService.getRoles().subscribe({
+      next: (roles) => {
+        this.stateService.updateRoles(roles);
+        if (selectRoleId) {
+          this.stateService.selectRole(selectRoleId);
+        }
+        this.isLoadingRoles$.next(false);
+      },
+      error: (error) => {
+        console.error('Failed to load roles:', error);
+        this.isLoadingRoles$.next(false);
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: error.error?.message || 'Failed to load roles', type: 'error' },
+          duration: 5000
+        });
+      }
+    });
+  }
+
   onRoleSelected(roleId: string): void {
     this.stateService.selectRole(roleId);
   }
 
-  /**
-   * Handles role search filter changes
-   * Updates the state service with the search filter
-   * @param event - The input event from the search field
-   */
   onRoleSearchChange(event: Event): void {
     const searchText = (event.target as HTMLInputElement).value;
     this.stateService.setRoleSearchFilter(searchText);
   }
 
-  /**
-   * Handles create new role button click
-   * Opens the create role dialog
-   */
   onCreateRoleClicked(): void {
     this.showCreateDialog = true;
   }
 
-  /**
-   * Handles role creation from the dialog
-   * Refreshes the roles list and selects the new role
-   */
   onRoleCreated(newRole: Role): void {
     this.showCreateDialog = false;
-    
-    // Refresh roles list
-    this.roleService.getRoles().subscribe(roles => {
-      this.stateService.updateRoles(roles);
-      
-      // Select the newly created role to show permissions manager
-      this.stateService.selectRole(newRole.id);
-    });
+    this.loadRoles(newRole.id);
   }
 
-  /**
-   * Handles create dialog cancellation
-   */
   onCreateDialogCancelled(): void {
     this.showCreateDialog = false;
   }
 
-  /**
-   * Navigates back to Settings
-   */
   goBackToSettings(): void {
     this.router.navigate(['../'], { relativeTo: this.activatedRoute });
   }
 
-  /**
-   * Handles role updates from the edit form
-   */
-  onRoleUpdated(updatedRole: Role) {
-    // Refresh roles list
-    this.roleService.getRoles().subscribe(roles => {
-      this.stateService.updateRoles(roles);
-    });
+  onRoleUpdated(_updatedRole: Role) {
+    this.loadRoles();
   }
 
-  /**
-   * Handles role deletion from the edit form
-   */
   onRoleDeleted(roleId: string) {
-    // Clear selection if the deleted role was selected
-    if (this.stateService.selectedRoleId$ && roleId) {
+    if (roleId) {
       this.stateService.clearRoleSelection();
     }
-    
-    // Refresh roles list
-    this.roleService.getRoles().subscribe(roles => {
-      this.stateService.updateRoles(roles);
+    this.loadRoles();
+  }
+
+  onPermissionsUpdated(updatedRole: Role) {
+    this.roleService.clearCache();
+    this.roleService.getRoles().subscribe({
+      next: (roles) => {
+        this.stateService.updateRoles(roles);
+      },
+      error: (error) => {
+        console.error('Error refreshing roles:', error);
+      }
     });
   }
 
-  /**
-   * Handles permission updates from the permissions manager
-   */
-  onPermissionsUpdated(updatedRole: Role) {
-    console.log('Permissions updated, refreshing roles list');
-    
-    // Clear the cache to force a fresh fetch
-    this.roleService.clearCache();
-    
-    // Refresh roles list to get updated permission counts
-    this.roleService.getRoles().subscribe(
-      roles => {
-        console.log('Roles refreshed after permission update:', roles);
-        console.log('Updated role:', roles.find(r => r.id === updatedRole.id));
-        
-        // Update the state service with fresh roles
-        this.stateService.updateRoles(roles);
-      },
-      (error) => {
-        console.error('Error refreshing roles:', error);
-      }
-    );
-  }
-
-  /**
-   * Gets the permission count from the role, preferring backend count over array length
-   */
   getPermissionCount(role: Role): number {
-    // Use permission_count from backend if available, otherwise fall back to array length
     return role.permission_count ?? role.permissions?.length ?? 0;
   }
 
-  /**
-   * Gets the CSS classes for the permission status badge
-   */
   getPermissionBadgeClass(role: Role): string {
     const count = this.getPermissionCount(role);
     if (count === 0) {
-      return 'bg-red-100 text-red-800'; // No permissions - red
+      return 'role-card__status role-card__status--empty';
     } else if (count <= 5) {
-      return 'bg-yellow-100 text-yellow-800'; // Few permissions - yellow
-    } else {
-      return 'bg-green-100 text-green-800'; // Many permissions - green
+      return 'role-card__status role-card__status--basic';
     }
+    return 'role-card__status role-card__status--full';
   }
 
-  /**
-   * Gets the status text for the permission badge
-   */
   getPermissionStatusText(role: Role): string {
     const count = this.getPermissionCount(role);
     if (count === 0) {
       return 'Sin configurar';
     } else if (count <= 5) {
       return 'Básico';
-    } else {
-      return 'Completo';
     }
+    return 'Completo';
+  }
+
+  getRoleInitials(role: Role): string {
+    const name = role.name?.trim() || '';
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+    }
+    return (name.slice(0, 2) || '?').toUpperCase();
   }
 }

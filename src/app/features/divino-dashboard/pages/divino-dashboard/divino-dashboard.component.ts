@@ -20,6 +20,7 @@ import {
 } from 'lucide-angular';
 import { forkJoin } from 'rxjs';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
+import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
 import { IDatatableConfig } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { DivinoDashboardService } from '../../services/divino-dashboard.service';
 import {
@@ -51,7 +52,14 @@ const MONTH_LABELS = [
 @Component({
   selector: 'app-divino-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChartModule, LucideAngularModule, DatatableWrapperComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ChartModule,
+    LucideAngularModule,
+    DatatableWrapperComponent,
+    PolluxErrorStateComponent,
+  ],
   templateUrl: './divino-dashboard.component.html',
   styleUrl: './divino-dashboard.component.scss',
 })
@@ -208,7 +216,7 @@ export class DivinoDashboardComponent implements OnInit {
         this.trendChartData.set(null);
         this.originChartData.set(null);
         const msg = err.status === 403
-          ? 'Divino Dashboard no está habilitado para este tenant.'
+          ? 'El dashboard no está habilitado para tu cuenta.'
           : 'No se pudieron cargar los datos del dashboard.';
         this.error.set(msg);
       },

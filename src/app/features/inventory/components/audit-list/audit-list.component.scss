@@ -1,4 +1,4 @@
-@import '../transfer-list/transfer-list.component.scss';
+@use '../transfer-list/transfer-list.component.scss';
 
 .filters-panel__grid {
   grid-template-columns: 1fr 1fr;
