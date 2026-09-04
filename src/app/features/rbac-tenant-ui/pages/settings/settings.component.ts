@@ -1,5 +1,6 @@
 import { Component, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import {
   ArrowLeftRight,
@@ -13,6 +14,7 @@ import {
   Mail,
   Monitor,
   Package,
+  Search,
   Send,
   Shield,
   Tag,
@@ -41,13 +43,25 @@ interface SettingsSection {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   template: `
     <div class="min-h-screen">
       <div class="px-2 py-2">
-        <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">Configuración</h1>
-          <p class="text-gray-600">Gestiona usuarios, roles y permisos de tu empresa</p>
+        <div class="settings-header mb-6">
+          <div class="settings-header__titles">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Configuración</h1>
+            <p class="text-gray-600">Gestiona usuarios, roles y permisos de tu empresa</p>
+          </div>
+          <div class="settings-search">
+            <lucide-icon class="settings-search__icon" [img]="Search" [size]="18"></lucide-icon>
+            <input
+              type="search"
+              class="settings-search__input"
+              [(ngModel)]="searchQuery"
+              placeholder="Buscar configuración…"
+              aria-label="Buscar en configuración"
+              autocomplete="off" />
+          </div>
         </div>
 
         <div class="mb-8" *ngIf="visibleAccessSections.length > 0">
@@ -96,6 +110,13 @@ interface SettingsSection {
             </ng-container>
           </div>
         </div>
+
+        <div
+          class="settings-empty"
+          *ngIf="hasActiveSearch && !hasAnyVisibleSection">
+          <p class="settings-empty__title">Sin resultados</p>
+          <p class="settings-empty__subtitle">No hay opciones que coincidan con “{{ searchQuery.trim() }}”.</p>
+        </div>
       </div>
     </div>
 
@@ -122,6 +143,57 @@ interface SettingsSection {
       height: 100%;
     }
 
+    .settings-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem 1.5rem;
+    }
+
+    .settings-header__titles {
+      min-width: 0;
+      flex: 1 1 16rem;
+    }
+
+    .settings-search {
+      position: relative;
+      flex: 0 1 20rem;
+      width: 100%;
+      max-width: 20rem;
+    }
+
+    .settings-search__icon {
+      position: absolute;
+      left: 0.85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      pointer-events: none;
+    }
+
+    .settings-search__input {
+      width: 100%;
+      height: 2.5rem;
+      padding: 0 0.9rem 0 2.5rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.625rem;
+      background: #fff;
+      font-size: 0.875rem;
+      color: #334155;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .settings-search__input::placeholder {
+      color: #9ca3af;
+    }
+
+    .settings-search__input:focus {
+      outline: none;
+      border-color: #a5b4fc;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+
     .settings-card__icon {
       display: inline-flex;
       align-items: center;
@@ -133,11 +205,36 @@ interface SettingsSection {
       background: #eef2ff;
       color: #4f46e5;
     }
+
+    .settings-empty {
+      margin-top: 2rem;
+      padding: 2.5rem 1rem;
+      text-align: center;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.75rem;
+    }
+
+    .settings-empty__title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .settings-empty__subtitle {
+      margin: 0.35rem 0 0;
+      font-size: 0.875rem;
+      color: #9ca3af;
+    }
   `]
 })
 export class SettingsComponent implements OnInit, OnDestroy {
   readonly ChevronRight = ChevronRight;
   readonly UserCog = UserCog;
+  readonly Search = Search;
+
+  searchQuery = '';
 
   accessSections: SettingsSection[] = [
     {
@@ -296,27 +393,58 @@ export class SettingsComponent implements OnInit, OnDestroy {
     return section.permissions.some(permission => this.authService.hasPermission(permission));
   }
 
+  get hasActiveSearch(): boolean {
+    return this.searchQuery.trim().length > 0;
+  }
+
+  get hasAnyVisibleSection(): boolean {
+    return (
+      this.visibleAccessSections.length > 0 ||
+      this.visibleCompanySections.length > 0 ||
+      this.visibleCommunicationSections.length > 0 ||
+      this.showEmployeePortal
+    );
+  }
+
   /**
    * Get filtered sections based on user permissions
    */
   get visibleAccessSections(): SettingsSection[] {
-    return this.accessSections.filter(section => this.hasAccess(section));
+    return this.filterSections(this.accessSections);
   }
 
   get visibleCompanySections(): SettingsSection[] {
-    return this.companySections.filter(section => this.hasAccess(section));
+    return this.filterSections(this.companySections);
   }
 
   get visibleCommunicationSections(): SettingsSection[] {
-    return this.communicationSections.filter(section => this.hasAccess(section));
+    return this.filterSections(this.communicationSections);
   }
 
   /** The employee self-service portal is only shown to employee users. */
   get showEmployeePortal(): boolean {
-    return this.authService.isEmployeeUser();
+    if (!this.authService.isEmployeeUser()) {
+      return false;
+    }
+    return this.matchesSearch(
+      'Portal de empleado',
+      'Consulta tu información, tus días de vacaciones y envía solicitudes de ausencia',
+    );
   }
 
   navigateTo(route: string): void {
     this.router.navigate([route], { relativeTo: this.activatedRoute });
+  }
+
+  private filterSections(sections: SettingsSection[]): SettingsSection[] {
+    return sections.filter(
+      (section) => this.hasAccess(section) && this.matchesSearch(section.title, section.description),
+    );
+  }
+
+  private matchesSearch(title: string, description: string): boolean {
+    const q = this.searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return title.toLowerCase().includes(q) || description.toLowerCase().includes(q);
   }
 }
