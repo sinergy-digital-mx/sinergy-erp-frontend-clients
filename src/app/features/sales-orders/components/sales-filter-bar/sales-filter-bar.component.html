@@ -33,6 +33,15 @@
 
     @if (mode === 'sales') {
       <div class="filter-bar__field">
+        <select [formControl]="saleScopeControl" class="filter-bar__select">
+          <option value="">Todos los tipos</option>
+          @for (option of saleScopeOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-bar__field">
         <select [formControl]="paymentStatusControl" class="filter-bar__select">
           <option value="">Todos los pagos</option>
           @for (option of paymentStatusOptions; track option.value) {

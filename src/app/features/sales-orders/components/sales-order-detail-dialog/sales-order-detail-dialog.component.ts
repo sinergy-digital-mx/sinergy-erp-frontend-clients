@@ -329,6 +329,7 @@ export class SalesOrderDetailDialogComponent {
           currency: this.getPaymentCurrency(),
           fiscal_configuration_id: fiscalId,
           billing_branch_id: branchId,
+          sale_scope: order.sale_scope || 'inventory',
         },
       })
       .afterClosed()
@@ -691,7 +692,7 @@ export class SalesOrderDetailDialogComponent {
   }
 
   getProductsColspan(): number {
-    let count = 5;
+    let count = this.order()?.sale_scope === 'services' ? 4 : 5;
     if (this.hasLineIvaColumn()) count += 1;
     if (this.hasLineIepsColumn()) count += 1;
     if (this.canEditLines()) count += 1;

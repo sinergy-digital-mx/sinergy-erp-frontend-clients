@@ -79,6 +79,9 @@ export class SalesOrderService {
     if (filters.sales_order_type) {
       params = params.set('sales_order_type', filters.sales_order_type);
     }
+    if (filters.sale_scope) {
+      params = params.set('sale_scope', filters.sale_scope);
+    }
     if (filters.customer_id) {
       params = params.set('customer_id', filters.customer_id.toString());
     }
@@ -358,6 +361,9 @@ export class SalesOrderService {
     if (params.page != null) {
       httpParams = httpParams.set('page', String(params.page));
     }
+    if (params.sale_scope) {
+      httpParams = httpParams.set('sale_scope', params.sale_scope);
+    }
 
     return this.http.get<any>(`${this.baseUrl}/products-summary`, { params: httpParams })
       .pipe(
@@ -444,6 +450,7 @@ export class SalesOrderService {
       ['payment_status', filters.payment_status],
       ['collection_channel', filters.collection_channel],
       ['sales_order_type', filters.sales_order_type],
+      ['sale_scope', filters.sale_scope],
       ['fiscal_configuration_id', filters.fiscal_configuration_id],
       ['billing_branch_id', filters.billing_branch_id],
       ['customer_id', filters.customer_id],

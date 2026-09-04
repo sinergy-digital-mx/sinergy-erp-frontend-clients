@@ -38,6 +38,14 @@
             <button
               type="button"
               class="sf-view-toggle__btn"
+              [class.sf-view-toggle__btn--active]="view === 'totalized'"
+              [attr.aria-pressed]="view === 'totalized'"
+              (click)="setView('totalized')">
+              Totalizado
+            </button>
+            <button
+              type="button"
+              class="sf-view-toggle__btn"
               [class.sf-view-toggle__btn--active]="view === 'ledger'"
               [attr.aria-pressed]="view === 'ledger'"
               (click)="setView('ledger')">
@@ -87,20 +95,28 @@
               }
             </select>
           </div>
-          <div class="sf-filters__field sf-filters__field--grow">
-            <label class="sf-filters__label" for="sf-search">Buscar</label>
-            <input
-              id="sf-search"
-              type="text"
-              class="sf-filters__input"
-              [(ngModel)]="search"
-              (keyup.enter)="onSearch()"
-              placeholder="SKU o producto" />
-          </div>
+          @if (view !== 'totalized') {
+            <div class="sf-filters__field sf-filters__field--grow">
+              <label class="sf-filters__label" for="sf-search">Buscar</label>
+              <input
+                id="sf-search"
+                type="text"
+                class="sf-filters__input"
+                [(ngModel)]="search"
+                (keyup.enter)="onSearch()"
+                placeholder="SKU o producto" />
+            </div>
+          }
         </div>
+        <p class="sf-money-hint">
+          MXN · columnas agrupadas: <strong>Cant</strong>,
+          <span class="sf-legend sf-legend--cost">Costo</span>,
+          <span class="sf-legend sf-legend--sale">Venta</span>
+          · valores congelados al movimiento
+        </p>
       </div>
 
-      @if (productId) {
+      @if (productId && view !== 'totalized') {
         <div class="sf-product-chip" role="status">
           <span>Filtrado por producto</span>
           <button type="button" class="sf-product-chip__clear" (click)="clearProductFilter()">
@@ -125,61 +141,153 @@
               sub_message="Prueba otro rango o cambia la sucursal." />
           } @else {
             <div class="sf-table-wrap">
-              <table class="sf-table">
+              <table class="sf-table sf-table--grouped">
                 <thead>
-                  <tr>
-                    <th>SKU</th>
-                    <th>Producto</th>
-                    <th>Sucursal</th>
-                    <th>UOM</th>
-                    <th class="sf-num">Inicial</th>
-                    <th class="sf-num">Compras</th>
-                    <th class="sf-num">Ventas</th>
-                    <th class="sf-num">Transf.+</th>
-                    <th class="sf-num">Transf.−</th>
-                    <th class="sf-num">Ajustes</th>
-                    <th class="sf-num">Final</th>
+                  <tr class="sf-head-groups">
+                    <th rowspan="2" class="sf-col-product sf-th-sticky">Producto</th>
+                    <th rowspan="2">Sucursal</th>
+                    <th rowspan="2">UOM</th>
+                    <th colspan="3" class="sf-group sf-group--ini">Inicial</th>
+                    <th colspan="2" class="sf-group sf-group--in">Compras</th>
+                    <th colspan="3" class="sf-group sf-group--out">Ventas</th>
+                    <th colspan="2" class="sf-group sf-group--xfer">Transf.</th>
+                    <th colspan="2" class="sf-group sf-group--adj">Ajustes</th>
+                    <th colspan="3" class="sf-group sf-group--fin">Final</th>
+                  </tr>
+                  <tr class="sf-head-subs">
+                    <th class="sf-num sf-group--ini">Cant</th>
+                    <th class="sf-num sf-group--ini">Costo</th>
+                    <th class="sf-num sf-group--ini">Venta</th>
+                    <th class="sf-num sf-group--in">Cant</th>
+                    <th class="sf-num sf-group--in">Costo</th>
+                    <th class="sf-num sf-group--out">Cant</th>
+                    <th class="sf-num sf-group--out">COGS</th>
+                    <th class="sf-num sf-group--out">Ingreso</th>
+                    <th class="sf-num sf-group--xfer">Ent.</th>
+                    <th class="sf-num sf-group--xfer">Sal.</th>
+                    <th class="sf-num sf-group--adj">Cant</th>
+                    <th class="sf-num sf-group--adj">Costo</th>
+                    <th class="sf-num sf-group--fin">Cant</th>
+                    <th class="sf-num sf-group--fin">Costo</th>
+                    <th class="sf-num sf-group--fin">Venta</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (row of summary(); track row.product_id + row.billing_branch_id + row.uom_id) {
                     <tr class="sf-row--click" (click)="openLedgerForProduct(row)">
-                      <td>
-                        <span class="dt-folio-badge">{{ row.product_sku }}</span>
+                      <td class="sf-col-product sf-th-sticky">
+                        <div class="sf-product-stack">
+                          <p class="dt-cell-primary sf-ellipsis m-0">{{ row.product_name }}</p>
+                          <span class="sf-sku">{{ row.product_sku }}</span>
+                        </div>
                       </td>
-                      <td>
-                        <p class="dt-cell-primary sf-cell--wrap m-0">{{ row.product_name }}</p>
-                      </td>
-                      <td>
-                        <span class="dt-status-pill dt-status-pill--info">{{ row.billing_branch_name }}</span>
-                      </td>
-                      <td>
-                        <span class="dt-status-pill dt-status-pill--neutral">{{ row.uom_name }}</span>
-                      </td>
-                      <td class="sf-num">
-                        <span class="dt-cell-amount">{{ formatQty(row.opening_qty) }}</span>
-                      </td>
-                      <td class="sf-num">
-                        <span class="dt-cell-amount">{{ formatQty(row.purchases_qty) }}</span>
-                      </td>
-                      <td class="sf-num">
-                        <span class="dt-cell-amount">{{ formatQty(row.sales_qty) }}</span>
-                      </td>
-                      <td class="sf-num">
-                        <span class="dt-cell-amount">{{ formatQty(row.transfer_in_qty) }}</span>
-                      </td>
-                      <td class="sf-num">
-                        <span class="dt-cell-amount">{{ formatQty(row.transfer_out_qty) }}</span>
-                      </td>
-                      <td class="sf-num">
-                        <span class="dt-cell-amount">{{ formatQty(row.adjustments_qty) }}</span>
-                      </td>
-                      <td class="sf-num">
-                        <span class="dt-cell-amount sf-num--final">{{ formatQty(row.closing_qty) }}</span>
-                      </td>
+                      <td><span class="dt-status-pill dt-status-pill--info">{{ row.billing_branch_name }}</span></td>
+                      <td><span class="dt-status-pill dt-status-pill--neutral">{{ row.uom_name }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty">{{ formatQty(row.opening_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.opening_cost_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale">{{ formatMoney(row.opening_sale_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty">{{ formatQty(row.purchases_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.purchases_cost_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty">{{ formatQty(row.sales_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.sales_cost_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale">{{ formatMoney(row.sales_revenue_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--in">{{ formatQty(row.transfer_in_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--out">{{ formatQty(row.transfer_out_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty">{{ formatQty(row.adjustments_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.adjustments_cost_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(row.closing_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(row.closing_cost_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(row.closing_sale_mxn) }}</span></td>
                     </tr>
                   }
                 </tbody>
+              </table>
+            </div>
+          }
+        } @else if (view === 'totalized') {
+          @if (totalized().length === 0) {
+            <app-empty-stage
+              [params]="emptyParams"
+              message="Sin totales en el periodo"
+              sub_message="Prueba otro rango o incluye más sucursales." />
+          } @else {
+            <div class="sf-table-wrap">
+              <table class="sf-table sf-table--grouped">
+                <thead>
+                  <tr class="sf-head-groups">
+                    <th rowspan="2" class="sf-th-sticky">Sucursal</th>
+                    <th colspan="3" class="sf-group sf-group--ini">Inv. inicial</th>
+                    <th colspan="2" class="sf-group sf-group--in">Compras</th>
+                    <th colspan="3" class="sf-group sf-group--out">Ventas</th>
+                    <th colspan="2" class="sf-group sf-group--xfer">Transf.</th>
+                    <th colspan="2" class="sf-group sf-group--adj">Ajustes</th>
+                    <th colspan="3" class="sf-group sf-group--fin">Inv. final</th>
+                  </tr>
+                  <tr class="sf-head-subs">
+                    <th class="sf-num sf-group--ini">Cant</th>
+                    <th class="sf-num sf-group--ini">Costo</th>
+                    <th class="sf-num sf-group--ini">Venta</th>
+                    <th class="sf-num sf-group--in">Cant</th>
+                    <th class="sf-num sf-group--in">Costo</th>
+                    <th class="sf-num sf-group--out">Cant</th>
+                    <th class="sf-num sf-group--out">COGS</th>
+                    <th class="sf-num sf-group--out">Ingreso</th>
+                    <th class="sf-num sf-group--xfer">Ent.</th>
+                    <th class="sf-num sf-group--xfer">Sal.</th>
+                    <th class="sf-num sf-group--adj">Cant</th>
+                    <th class="sf-num sf-group--adj">Costo</th>
+                    <th class="sf-num sf-group--fin">Cant</th>
+                    <th class="sf-num sf-group--fin">Costo</th>
+                    <th class="sf-num sf-group--fin">Venta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of totalized(); track row.billing_branch_id) {
+                    <tr>
+                      <td class="sf-th-sticky">
+                        <div class="sf-branch-cell">
+                          <span class="dt-status-pill dt-status-pill--info">{{ row.billing_branch_name }}</span>
+                          <span class="sf-branch-cell__fiscal">{{ row.fiscal_configuration_name }}</span>
+                        </div>
+                      </td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty">{{ formatQty(row.opening_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.opening_cost_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale">{{ formatMoney(row.opening_sale_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty">{{ formatQty(row.purchases_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.purchases_cost_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty">{{ formatQty(row.sales_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.sales_cost_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale">{{ formatMoney(row.sales_revenue_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--in">{{ formatQty(row.transfer_in_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--out">{{ formatQty(row.transfer_out_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty">{{ formatQty(row.adjustments_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.adjustments_cost_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(row.closing_qty) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(row.closing_cost_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(row.closing_sale_mxn) }}</span></td>
+                    </tr>
+                  }
+                </tbody>
+                <tfoot>
+                  <tr class="sf-totals">
+                    <td class="sf-th-sticky sf-totals__label">Total global</td>
+                    <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(totalizedTotals().opening_qty) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totalizedTotals().opening_cost_mxn) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(totalizedTotals().opening_sale_mxn) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(totalizedTotals().purchases_qty) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totalizedTotals().purchases_cost_mxn) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(totalizedTotals().sales_qty) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totalizedTotals().sales_cost_mxn) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(totalizedTotals().sales_revenue_mxn) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(totalizedTotals().transfer_in_qty) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(totalizedTotals().transfer_out_qty) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(totalizedTotals().adjustments_qty) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totalizedTotals().adjustments_cost_mxn) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(totalizedTotals().closing_qty) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totalizedTotals().closing_cost_mxn) }}</span></td>
+                    <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(totalizedTotals().closing_sale_mxn) }}</span></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           }
@@ -191,49 +299,49 @@
               sub_message="Prueba otro rango o selecciona un producto desde el resumen." />
           } @else {
             <div class="sf-table-wrap">
-              <table class="sf-table">
+              <table class="sf-table sf-table--ledger">
                 <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Producto</th>
-                    <th>Sucursal</th>
-                    <th>Concepto</th>
-                    <th class="sf-num">Entrada</th>
-                    <th class="sf-num">Salida</th>
-                    <th class="sf-num">Saldo</th>
-                    <th>Folio</th>
+                  <tr class="sf-head-groups">
+                    <th rowspan="2" class="sf-col-date">Fecha</th>
+                    <th rowspan="2" class="sf-col-product">Producto</th>
+                    <th rowspan="2">Sucursal</th>
+                    <th rowspan="2" class="sf-col-concept">Concepto</th>
+                    <th colspan="3" class="sf-group sf-group--qty">Cantidades</th>
+                    <th colspan="2" class="sf-group sf-group--out">Movimiento $</th>
+                    <th rowspan="2" class="sf-num sf-group--fin">Inv. costo</th>
+                    <th rowspan="2">Folio</th>
+                  </tr>
+                  <tr class="sf-head-subs">
+                    <th class="sf-num sf-group--qty">Entrada</th>
+                    <th class="sf-num sf-group--qty">Salida</th>
+                    <th class="sf-num sf-group--qty">Saldo</th>
+                    <th class="sf-num sf-group--out">Costo</th>
+                    <th class="sf-num sf-group--out">Venta</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (row of ledger(); track row.id) {
                     <tr [class.sf-row--opening]="row.is_opening">
-                      <td>
-                        <span class="dt-cell-subtle">{{ formatDate(row.occurred_at) }}</span>
-                      </td>
-                      <td>
+                      <td class="sf-col-date"><span class="sf-date">{{ formatDate(row.occurred_at, row.is_opening) }}</span></td>
+                      <td class="sf-col-product">
                         <div class="sf-product-stack">
-                          <p class="dt-cell-primary sf-cell--wrap m-0">{{ row.product_name }}</p>
-                          <span class="dt-folio-badge">{{ row.product_sku }}</span>
+                          <p class="dt-cell-primary sf-ellipsis m-0">{{ row.product_name }}</p>
+                          <span class="sf-sku">{{ row.product_sku }}</span>
                         </div>
                       </td>
-                      <td>
-                        <span class="dt-status-pill dt-status-pill--info">{{ row.billing_branch_name }}</span>
-                      </td>
-                      <td>
+                      <td><span class="dt-status-pill dt-status-pill--info">{{ row.billing_branch_name }}</span></td>
+                      <td class="sf-col-concept">
                         <div class="sf-concept-stack">
                           <span [class]="movementBadgeClass(row.movement_type)">{{ row.title }}</span>
-                          <p class="dt-cell-subtle sf-concept-desc m-0">{{ row.description }}</p>
+                          <p class="sf-concept-desc m-0" [title]="row.description">{{ row.description }}</p>
                         </div>
                       </td>
-                      <td class="sf-num">
-                        <span class="dt-cell-amount" [class.sf-num--in]="row.quantity_in">{{ formatQty(row.quantity_in) }}</span>
-                      </td>
-                      <td class="sf-num">
-                        <span class="dt-cell-amount" [class.sf-num--out]="row.quantity_out">{{ formatQty(row.quantity_out) }}</span>
-                      </td>
-                      <td class="sf-num">
-                        <span class="dt-cell-amount sf-num--final">{{ formatQty(row.balance_after) }}</span>
-                      </td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty" [class.sf-v--in]="!!row.quantity_in">{{ formatQty(row.quantity_in) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty" [class.sf-v--out]="!!row.quantity_out">{{ formatQty(row.quantity_out) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(row.balance_after) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.cost_amount_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale">{{ formatMoney(row.sale_amount_mxn) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(row.cost_balance_after_mxn) }}</span></td>
                       <td>
                         @if (row.reference_folio) {
                           <span class="dt-folio-badge">{{ row.reference_folio }}</span>

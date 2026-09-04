@@ -50,6 +50,7 @@ export class SalesOrderListComponent implements OnInit {
     rows: [],
     columns: [
       { name: 'Folio', prop: 'folio', sortable: true, canAutoResize: false, width: 140 },
+      { name: 'Tipo', prop: 'sale_scope', sortable: false, canAutoResize: false, width: 120 },
       { name: 'Cliente', prop: 'customer', sortable: true, canAutoResize: false, width: 140 },
       { name: 'Sucursal', prop: 'billing_branch', sortable: false, canAutoResize: false, width: 190 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 120 },
@@ -253,5 +254,11 @@ export class SalesOrderListComponent implements OnInit {
 
   getBranchLabel(order: SalesOrder): string {
     return getSalesOrderListBranchLabel(order);
+  }
+
+  getSaleScopeLabel(order: SalesOrder): string {
+    if (order.sale_scope === 'services') return 'Servicios';
+    if (order.sale_scope === 'combined') return 'Prod. y serv.';
+    return 'Inventario';
   }
 }

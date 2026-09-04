@@ -2,7 +2,7 @@
 <div class="product-detail-modal">
   <!-- Header -->
   <div class="modal-header">
-    <h2>{{ isPersistedProduct ? 'Editar Producto' : 'Crear Producto' }}</h2>
+    <h2>{{ isPersistedProduct ? (product?.item_kind === 'service' ? 'Editar Servicio' : 'Editar Producto') : (product?.item_kind === 'service' ? 'Crear Servicio' : 'Crear Producto') }}</h2>
     <button class="close-btn" (click)="hide()" type="button">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
         <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
@@ -27,12 +27,20 @@
           <div class="form-grid">
             <div class="form-field form-field--full">
               <label class="form-label">NOMBRE *</label>
-              <input type="text" class="form-input" [(ngModel)]="product.name" placeholder="Nombre del producto">
+              <input type="text" class="form-input" [(ngModel)]="product.name" placeholder="Nombre del producto o servicio">
             </div>
 
             <div class="form-field">
-              <label class="form-label">SKU *</label>
-              <input type="text" class="form-input" [(ngModel)]="product.sku" placeholder="SKU">
+              <label class="form-label">TIPO *</label>
+              <select class="form-select" [(ngModel)]="product.item_kind">
+                <option value="goods">Producto</option>
+                <option value="service">Servicio</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">SKU {{ product.item_kind === 'service' ? '' : '*' }}</label>
+              <input type="text" class="form-input" [(ngModel)]="product.sku" [placeholder]="product.item_kind === 'service' ? 'Opcional (se genera SRV-…)' : 'SKU'">
             </div>
 
             <div class="form-field">
@@ -47,12 +55,12 @@
 
             <div class="form-field">
               <label class="form-label">CÓDIGO SAT</label>
-              <input type="text" class="form-input" [(ngModel)]="product.sat_code" placeholder="Ej. 01010101">
+              <input type="text" class="form-input" [(ngModel)]="product.sat_code" [placeholder]="product.item_kind === 'service' ? 'Ej. 81111810' : 'Ej. 01010101'">
             </div>
 
             <div class="form-field form-field--full">
               <label class="form-label">DESCRIPCIÓN</label>
-              <textarea class="form-textarea" [(ngModel)]="product.description" placeholder="Descripción del producto" rows="3"></textarea>
+              <textarea class="form-textarea" [(ngModel)]="product.description" [placeholder]="product.item_kind === 'service' ? 'Qué incluye el servicio' : 'Descripción del producto'" rows="3"></textarea>
             </div>
 
             <div class="form-field">

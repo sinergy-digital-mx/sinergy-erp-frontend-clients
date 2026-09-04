@@ -150,6 +150,7 @@ export class ProductService {
       ['category_id', filters.category_id],
       ['subcategory_id', filters.subcategory_id],
       ['is_active', filters.is_active],
+      ['item_kind', filters.item_kind],
     ];
 
     for (const [key, value] of entries) {

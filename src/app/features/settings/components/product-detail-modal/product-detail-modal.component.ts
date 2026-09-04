@@ -255,6 +255,7 @@ export class ProductDetailModalComponent implements OnInit {
         name: '',
         description: '',
         sat_code: '',
+        item_kind: 'goods',
         category_id: '',
         subcategory_id: '',
         base_uom_id: '',
@@ -608,6 +609,7 @@ export class ProductDetailModalComponent implements OnInit {
   private normalizeProductSatFields(product: Product): Product {
     const p = product as Product & { sat_clave?: string | null; codigo_sat?: string | null };
     p.sat_code = p.sat_code || p.sat_clave || p.codigo_sat || '';
+    p.item_kind = p.item_kind === 'service' ? 'service' : 'goods';
     return p;
   }
 
@@ -897,14 +899,19 @@ export class ProductDetailModalComponent implements OnInit {
     });
   }
 
+  private isServiceProduct(): boolean {
+    return this.product?.item_kind === 'service';
+  }
+
   private buildProductPayload(): CreateProductDto {
     return {
-      sku: this.product!.sku.trim(),
+      sku: this.product!.sku?.trim() || undefined,
       external_sku: this.product!.external_sku?.trim() || undefined,
       name: this.product!.name.trim(),
       description: this.product!.description?.trim() || '',
       sat_clave: this.product!.sat_code?.trim() || undefined,
       sat_code: this.product!.sat_code?.trim() || undefined,
+      item_kind: this.isServiceProduct() ? 'service' : 'goods',
       category_id: this.product!.category_id || undefined,
       subcategory_id: this.product!.subcategory_id || undefined,
       base_uom_id: this.product!.base_uom_id || undefined
@@ -934,7 +941,7 @@ export class ProductDetailModalComponent implements OnInit {
       return;
     }
 
-    if (!this.product?.sku?.trim()) {
+    if (!this.isServiceProduct() && !this.product?.sku?.trim()) {
       this.showNotification('El SKU es requerido. Complétalo en Detalles antes de guardar UOMs.', 'error');
       return;
     }
@@ -975,7 +982,7 @@ export class ProductDetailModalComponent implements OnInit {
     if (!this.product) return;
 
     // Validar campos requeridos
-    if (!this.product.sku || !this.product.sku.trim()) {
+    if (!this.isServiceProduct() && !this.product.sku?.trim()) {
       this.showNotification('El SKU es requerido', 'error');
       return;
     }

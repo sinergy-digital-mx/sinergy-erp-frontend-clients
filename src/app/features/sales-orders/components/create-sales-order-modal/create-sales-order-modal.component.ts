@@ -9,6 +9,9 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { SalesOrderService } from '../../services/sales-order.service';
 import { QuotationService } from '../../../quotations/services/quotation.service';
+import { ProductService } from '../../../settings/services/product.service';
+import { SalesOrderSaleScope } from '../../models/sales-order.model';
+import { UoMCatalog } from '../../../settings/models/product.model';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { BranchService } from '../../../settings/services/branch.service';
@@ -20,6 +23,8 @@ interface LineItem {
   product_uom_id: string;
   product_name?: string;
   product_sku?: string;
+  description?: string;
+  item_kind?: 'goods' | 'service';
   available_quantity?: number;
   warehouse_names?: string[];
   uom_name?: string;
@@ -65,6 +70,18 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   selectedIva = 16;
   selectedIeps = 0;
   selectedPricingOptionId = '';
+  createServiceModalOpen = false;
+  savingService = false;
+  uomCatalog: UoMCatalog[] = [];
+  newService = {
+    name: '',
+    description: '',
+    sku: '',
+    sat_clave: '',
+    base_uom_catalog_id: '',
+    unit_price: 0,
+    iva_percentage: 16,
+  };
 
   private destroy$ = new Subject<void>();
   private productSearch$ = new Subject<string>();
@@ -81,6 +98,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     private fiscalConfigService: FiscalConfigurationService,
     private branchService: BranchService,
     private customerService: CustomerService,
+    private productService: ProductService,
     private dialog: MatDialog,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
@@ -93,6 +111,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       customer_search: [''],
       customer_id: ['', Validators.required],
       expected_delivery_date: ['', Validators.required],
+      sale_scope: ['inventory' as SalesOrderSaleScope, Validators.required],
       requires_selection_assembly: [false],
       notes: ['']
     });
@@ -104,6 +123,23 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.productSearch$
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((term) => this.loadProducts(term));
+    this.form.get('sale_scope')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((scope: SalesOrderSaleScope) => {
+        this.lineItems = [];
+        this.tabs = this.tabs.map((tab) =>
+          tab.id === 'products'
+            ? { ...tab, title: scope === 'services' ? 'Servicios' : 'Productos' }
+            : tab
+        );
+        if (scope === 'services') {
+          this.form.patchValue({ requires_selection_assembly: false }, { emitEvent: false });
+        }
+        if (this.hasBillingBranch) {
+          this.loadProducts();
+        }
+        this.cdr.detectChanges();
+      });
     this.form.get('customer_search')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((value) => {
@@ -124,14 +160,28 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     return !!this.form.get('billing_branch_id')?.value;
   }
 
+  get saleScope(): SalesOrderSaleScope {
+    return (this.form.get('sale_scope')?.value as SalesOrderSaleScope) || 'inventory';
+  }
+
+  get showAssemblyCheckbox(): boolean {
+    return !this.asQuotation && this.saleScope !== 'services';
+  }
+
+  get canCreateServiceInline(): boolean {
+    return this.saleScope === 'services' || this.saleScope === 'combined';
+  }
+
   get canConfirmAddProduct(): boolean {
     const quantity = Number(this.selectedQuantity || 0);
+    const hasStockOrService =
+      this.isServiceProduct(this.selectedProduct) || this.getAvailableQty(this.selectedProduct) > 0;
     return !!(
       this.selectedProduct &&
       this.selectedUomId &&
       Number.isFinite(quantity) &&
       quantity > 0 &&
-      this.getAvailableQty(this.selectedProduct) > 0
+      hasStockOrService
     );
   }
 
@@ -330,7 +380,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       fiscal_configuration_id: fiscalId,
       billing_branch_id: branchId,
       search: search.trim() || undefined,
-      limit: 100
+      limit: 100,
+      sale_scope: this.saleScope,
     }).subscribe({
       next: (res: any) => {
         this.products = this.normalizeWarehouseProducts(res);
@@ -370,8 +421,10 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
         name,
         product_sku: sku,
         sku,
+        description: row.product_description || row.description || '',
         available_quantity: available,
         warehouse_names: warehouseNames,
+        item_kind: row.item_kind === 'service' ? 'service' : 'goods',
         uoms
       };
     });
@@ -477,7 +530,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       return;
     }
     const available = this.getAvailableQty(this.selectedProduct);
-    if (available <= 0) {
+    const isService = this.isServiceProduct(this.selectedProduct);
+    if (!isService && available <= 0) {
       this.toast.warning('Este producto no tiene stock disponible en la sucursal');
       return;
     }
@@ -492,7 +546,9 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       product_uom_id: this.selectedUomId,
       product_name: this.selectedProduct.product_name,
       product_sku: this.selectedProduct.product_sku || this.selectedProduct.sku || '',
-      available_quantity: available,
+      description: this.selectedProduct.description || this.selectedProduct.product_description || '',
+      item_kind: isService ? 'service' : 'goods',
+      available_quantity: isService ? undefined : available,
       warehouse_names: Array.isArray(this.selectedProduct.warehouse_names)
         ? this.selectedProduct.warehouse_names
         : [],
@@ -523,10 +579,17 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   getProductOptionLabel(product: any): string {
     const name = product?.product_name || product?.name || 'Producto';
     const sku = product?.product_sku || product?.sku ? ` | SKU: ${product?.product_sku || product?.sku}` : '';
+    if (this.isServiceProduct(product)) {
+      return `${name}${sku} | Servicio`;
+    }
     const available = this.getAvailableQty(product);
     const warehouses = this.getWarehouseNamesLabel(product);
     const warehouseSuffix = warehouses ? ` | ${warehouses}` : '';
     return `${name}${sku} | Disp: ${available}${warehouseSuffix}`;
+  }
+
+  isServiceProduct(product: any): boolean {
+    return product?.item_kind === 'service' || this.saleScope === 'services';
   }
 
   getWarehouseNamesLabel(product: any): string {
@@ -602,7 +665,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
 
   save(): void {
     if (!this.form.valid || this.lineItems.length === 0) {
-      this.toast.warning('Por favor completa todos los campos y agrega al menos un producto');
+      this.toast.warning('Por favor completa todos los campos y agrega al menos un renglón');
       return;
     }
 
@@ -647,7 +710,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       billing_branch_id: fv.billing_branch_id,
       customer_id: fv.customer_id,
       expected_delivery_date: fv.expected_delivery_date,
-      requires_selection_assembly: !!fv.requires_selection_assembly,
+      sale_scope: fv.sale_scope || 'inventory',
+      requires_selection_assembly: fv.sale_scope === 'services' ? false : !!fv.requires_selection_assembly,
       notes: (fv.notes || '').trim() || undefined,
       line_items: lineItems,
     };
@@ -664,6 +728,88 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
         const msg = error.error?.message || error.message || 'Error al crear la orden de venta';
         this.toast.error(msg);
       }
+    });
+  }
+
+  openCreateServiceModal(): void {
+    this.createServiceModalOpen = true;
+    this.newService = {
+      name: '',
+      description: '',
+      sku: '',
+      sat_clave: '',
+      base_uom_catalog_id: '',
+      unit_price: 0,
+      iva_percentage: 16,
+    };
+    if (this.uomCatalog.length === 0) {
+      this.productService.getUOMCatalog({ limit: 100 }).subscribe({
+        next: (rows) => {
+          this.uomCatalog = rows ?? [];
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.toast.error('No se pudieron cargar las unidades');
+        },
+      });
+    }
+  }
+
+  closeCreateServiceModal(): void {
+    this.createServiceModalOpen = false;
+    this.savingService = false;
+  }
+
+  get canConfirmCreateService(): boolean {
+    return !!(
+      this.newService.name.trim() &&
+      this.newService.base_uom_catalog_id &&
+      Number(this.newService.unit_price) >= 0
+    );
+  }
+
+  confirmCreateService(): void {
+    if (!this.canConfirmCreateService || this.savingService) {
+      return;
+    }
+    this.savingService = true;
+    this.productService.createProduct({
+      name: this.newService.name.trim(),
+      description: this.newService.description.trim() || undefined,
+      sku: this.newService.sku.trim() || undefined,
+      sat_clave: this.newService.sat_clave.trim() || undefined,
+      sat_code: this.newService.sat_clave.trim() || undefined,
+      item_kind: 'service',
+      base_uom_catalog_id: this.newService.base_uom_catalog_id,
+    }).subscribe({
+      next: (created) => {
+        const productUomId = created.product_uom_id || created.base_product_uom_id || '';
+        const uom = this.uomCatalog.find((row) => row.id === this.newService.base_uom_catalog_id);
+        this.lineItems.push({
+          product_id: created.id,
+          product_uom_id: productUomId,
+          product_name: created.name,
+          product_sku: created.sku,
+          description: this.newService.description.trim() || created.description || '',
+          item_kind: 'service',
+          uom_name: uom?.name || uom?.abbreviation || '',
+          quantity: 1,
+          unit_price: Number(this.newService.unit_price || 0),
+          discount_percentage: 0,
+          iva_percentage: Number(this.newService.iva_percentage || 0),
+          ieps_percentage: 0,
+        });
+        this.savingService = false;
+        this.closeCreateServiceModal();
+        this.closeAddProductModal();
+        this.toast.success('Servicio creado y agregado a la orden');
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        this.savingService = false;
+        this.cdr.detectChanges();
+        this.toast.error(error.error?.message || error.message || 'No se pudo crear el servicio');
+      },
     });
   }
 

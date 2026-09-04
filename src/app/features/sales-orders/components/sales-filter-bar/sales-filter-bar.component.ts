@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, O
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
-import { SalesOrderFilters, SalesOrderStatus, SalesPaymentStatus, SalesOrderCollectionChannel } from '../../models/sales-order.model';
+import { SalesOrderFilters, SalesOrderStatus, SalesPaymentStatus, SalesOrderCollectionChannel, SalesOrderSaleScope } from '../../models/sales-order.model';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { BranchService } from '../../../settings/services/branch.service';
@@ -33,6 +33,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   fiscalConfigurationControl = new FormControl<string>('', { nonNullable: true });
   billingBranchControl = new FormControl<string>('', { nonNullable: true });
   creditControl = new FormControl<string>('', { nonNullable: true });
+  saleScopeControl = new FormControl<string>('', { nonNullable: true });
 
   fiscalConfigurations: FiscalConfiguration[] = [];
   branches: Branch[] = [];
@@ -68,6 +69,12 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
 
   typeControl = new FormControl<string>('', { nonNullable: true });
 
+  saleScopeOptions: { label: string; value: SalesOrderSaleScope }[] = [
+    { label: 'Inventario', value: 'inventory' },
+    { label: 'Servicios', value: 'services' },
+    { label: 'Productos y servicios', value: 'combined' },
+  ];
+
   paymentStatusOptions: { label: string; value: SalesPaymentStatus }[] = [
     { label: 'Pendiente', value: 'Pendiente' },
     { label: 'Pagado', value: 'Pagado' },
@@ -99,7 +106,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
       this.fiscalConfigurationControl.value ||
       this.billingBranchControl.value ||
       this.creditControl.value ||
-      this.typeControl.value
+      this.typeControl.value ||
+      this.saleScopeControl.value
     );
   }
 
@@ -118,6 +126,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.billingBranchControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.creditControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.typeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
+    this.saleScopeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
   }
 
   fiscalOptionLabel(fc: FiscalConfiguration): string {
@@ -185,6 +194,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.billingBranchControl.setValue('', { emitEvent: false });
     this.creditControl.setValue('', { emitEvent: false });
     this.typeControl.setValue('', { emitEvent: false });
+    this.saleScopeControl.setValue('', { emitEvent: false });
     this.billingBranchControl.disable({ emitEvent: false });
     this.branches = [];
     this.showCustomDateRange = false;
@@ -274,6 +284,10 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     const type = this.typeControl.value;
     if (type === 'POS' || type === 'MANUAL') {
       filters.sales_order_type = type;
+    }
+    const saleScope = this.saleScopeControl.value;
+    if (saleScope === 'inventory' || saleScope === 'services' || saleScope === 'combined') {
+      filters.sale_scope = saleScope;
     }
     this.filtersChange.emit(filters);
   }

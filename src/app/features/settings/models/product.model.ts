@@ -162,10 +162,15 @@ export interface ProductAttribute {
   values?: ProductAttributeValue[];
 }
 
+export type ProductItemKind = 'goods' | 'service';
+
 export interface Product {
   id: string;
   tenant_id?: string;
   sku: string;
+  item_kind?: ProductItemKind;
+  product_uom_id?: string;
+  base_product_uom_id?: string;
   external_sku?: string | null;
   name: string;
   description?: string | null;
@@ -194,7 +199,7 @@ export interface Product {
 }
 
 export interface CreateProductDto {
-  sku: string;
+  sku?: string;
   external_sku?: string;
   name: string;
   description?: string;
@@ -202,7 +207,9 @@ export interface CreateProductDto {
   sat_code?: string;
   category_id?: string;
   subcategory_id?: string;
+  item_kind?: ProductItemKind;
   base_uom_id?: string;
+  base_uom_catalog_id?: string;
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> {
@@ -229,6 +236,7 @@ export interface ProductQueryParams {
   category_id?: string;
   subcategory_id?: string;
   is_active?: boolean;
+  item_kind?: ProductItemKind;
   sort?: string;
   status?: string;
 }
@@ -239,6 +247,7 @@ export interface ProductCatalogExportFilters {
   category_id?: string;
   subcategory_id?: string;
   is_active?: boolean;
+  item_kind?: ProductItemKind;
 }
 
 export interface VendorCatalogImportPreview {

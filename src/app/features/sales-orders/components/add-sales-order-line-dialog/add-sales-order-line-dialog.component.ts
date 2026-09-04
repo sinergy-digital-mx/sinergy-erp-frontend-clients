@@ -17,6 +17,7 @@ export interface AddSalesOrderLineDialogData {
   currency: SalesOrderPaymentCurrency;
   fiscal_configuration_id: string;
   billing_branch_id: string;
+  sale_scope?: 'inventory' | 'services' | 'combined';
 }
 
 @Component({
@@ -67,7 +68,12 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
   }
 
   get dialogTitle(): string {
-    return this.data.folio ? `Agregar producto — #${this.data.folio}` : 'Agregar producto';
+    const noun = this.data.sale_scope === 'services' ? 'servicio' : 'producto';
+    return this.data.folio ? `Agregar ${noun} — #${this.data.folio}` : `Agregar ${noun}`;
+  }
+
+  get selectedProductDescription(): string {
+    return this.selectedProduct?.product_description || this.selectedProduct?.description || '';
   }
 
   get filteredProducts(): any[] {
@@ -97,8 +103,11 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
   getProductOptionLabel(product: any): string {
     const name = product?.product_name || product?.name || 'Producto';
     const sku = product?.product_sku || product?.sku || '';
-    const stock = Number(product?.available_quantity ?? 0);
     const skuPart = sku ? ` | SKU: ${sku}` : '';
+    if (product?.item_kind === 'service' || this.data.sale_scope === 'services') {
+      return `${name}${skuPart} · Servicio`;
+    }
+    const stock = Number(product?.available_quantity ?? 0);
     return `${name}${skuPart} · Stock ${stock}`;
   }
 
@@ -204,6 +213,7 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
         billing_branch_id: this.data.billing_branch_id,
         search: search.trim() || undefined,
         limit: 80,
+        sale_scope: this.data.sale_scope || 'inventory',
       })
       .subscribe({
         next: (res: any) => {
@@ -253,6 +263,9 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
         name: row.product_name || row.name || 'Producto',
         product_sku: row.product_sku || row.sku || '',
         sku: row.product_sku || row.sku || '',
+        description: row.product_description || row.description || '',
+        product_description: row.product_description || row.description || '',
+        item_kind: row.item_kind === 'service' ? 'service' : 'goods',
         available_quantity: Number(row.total_available_quantity ?? row.available_quantity ?? 0),
         uoms,
       };

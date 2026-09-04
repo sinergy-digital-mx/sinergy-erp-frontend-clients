@@ -157,41 +157,55 @@ interface SettingsSection {
     }
 
     .settings-search {
-      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
       flex: 0 1 20rem;
       width: 100%;
       max-width: 20rem;
+      height: 2.5rem;
+      padding: 0 0.9rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.625rem;
+      background: #fff;
+      box-sizing: border-box;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .settings-search:focus-within {
+      border-color: #a5b4fc;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
     }
 
     .settings-search__icon {
-      position: absolute;
-      left: 0.85rem;
-      top: 50%;
-      transform: translateY(-50%);
+      flex-shrink: 0;
+      display: inline-flex;
       color: #9ca3af;
       pointer-events: none;
     }
 
     .settings-search__input {
-      width: 100%;
-      height: 2.5rem;
-      padding: 0 0.9rem 0 2.5rem;
-      border: 1px solid #e5e7eb;
-      border-radius: 0.625rem;
-      background: #fff;
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      padding: 0;
+      border: none;
+      background: transparent;
       font-size: 0.875rem;
       color: #334155;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      outline: none;
+      box-shadow: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .settings-search__input::-webkit-search-decoration,
+    .settings-search__input::-webkit-search-cancel-button {
+      -webkit-appearance: none;
     }
 
     .settings-search__input::placeholder {
       color: #9ca3af;
-    }
-
-    .settings-search__input:focus {
-      outline: none;
-      border-color: #a5b4fc;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
     }
 
     .settings-card__icon {

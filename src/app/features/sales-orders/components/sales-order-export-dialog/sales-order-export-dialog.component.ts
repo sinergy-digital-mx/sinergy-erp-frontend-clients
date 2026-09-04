@@ -95,6 +95,9 @@ export class SalesOrderExportDialogComponent {
     if (listFilters.sales_order_type) {
       filters.sales_order_type = listFilters.sales_order_type;
     }
+    if (listFilters.sale_scope) {
+      filters.sale_scope = listFilters.sale_scope;
+    }
     if (listFilters.fiscal_configuration_id) {
       filters.fiscal_configuration_id = listFilters.fiscal_configuration_id;
     }

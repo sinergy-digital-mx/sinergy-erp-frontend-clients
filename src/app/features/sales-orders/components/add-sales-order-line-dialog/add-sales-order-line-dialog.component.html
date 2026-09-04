@@ -8,7 +8,7 @@
 
   <div class="add-line-dialog__body">
     <div class="form-field form-field--full">
-      <label class="form-label">Producto *</label>
+      <label class="form-label">{{ data.sale_scope === 'services' ? 'Servicio' : 'Producto' }} *</label>
       <div class="product-picker-row">
         <div class="product-picker-row__search">
           <input
@@ -59,6 +59,12 @@
         <label class="form-label">SKU</label>
         <input type="text" class="form-input" [value]="selectedProduct?.product_sku || selectedProduct?.sku || ''" readonly>
       </div>
+      @if (selectedProductDescription) {
+        <div class="form-field form-field--full">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-textarea" [value]="selectedProductDescription" rows="2" readonly></textarea>
+        </div>
+      }
       <div class="form-field">
         <label class="form-label">Cantidad *</label>
         <input

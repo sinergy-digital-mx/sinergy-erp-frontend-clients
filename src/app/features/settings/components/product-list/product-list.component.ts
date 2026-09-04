@@ -45,6 +45,7 @@ export class ProductListComponent implements OnDestroy {
     rows: [],
     columns: [
       { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true, width: 200 },
+      { name: 'Tipo', prop: 'item_kind', sortable: false, canAutoResize: true, width: 100 },
       { name: 'SKU', prop: 'sku', sortable: true, canAutoResize: true, width: 120 },
       { name: 'Categoría', prop: 'category', sortable: false, canAutoResize: true, width: 130 },
       { name: 'Subcategoría', prop: 'subcategory', sortable: false, canAutoResize: true, width: 130 },
@@ -64,6 +65,7 @@ export class ProductListComponent implements OnDestroy {
   ArrowRight = ArrowRight;
   Plus = Plus;
   search = '';
+  itemKindFilter = '';
   currentSort: ISortEvent | null = null;
   private destroy$ = new Subject<void>();
   private lastQueryParams = '';
@@ -89,6 +91,7 @@ export class ProductListComponent implements OnDestroy {
       }),
       tap((query) => {
         this.search = query?.['search'] ?? '';
+        this.itemKindFilter = query?.['item_kind'] ?? '';
 
         const page = query?.['page'] ? Number(query['page']) : 1;
         const limit = query?.['limit'] ? Number(query['limit']) : 20;
@@ -143,6 +146,10 @@ export class ProductListComponent implements OnDestroy {
       }
     }
 
+    if (this.itemKindFilter === 'goods' || this.itemKindFilter === 'service') {
+      params['item_kind'] = this.itemKindFilter;
+    }
+
     return params;
   }
 
@@ -180,6 +187,7 @@ export class ProductListComponent implements OnDestroy {
         page: event.page,
         limit: event.limit,
         search: this.search || undefined,
+        item_kind: this.itemKindFilter || undefined,
       },
       queryParamsHandling: 'merge',
     });
@@ -192,13 +200,31 @@ export class ProductListComponent implements OnDestroy {
       queryParams: {
         page: 1,
         search: searchTerm || undefined,
+        item_kind: this.itemKindFilter || undefined,
       },
       queryParamsHandling: 'merge',
     });
   }
 
   get hasActiveFilters(): boolean {
-    return !!this.search?.trim();
+    return !!this.search?.trim() || !!this.itemKindFilter;
+  }
+
+  itemKindLabel(kind: string | undefined): string {
+    return kind === 'service' ? 'Servicio' : 'Producto';
+  }
+
+  onItemKindChange(value: string): void {
+    this.itemKindFilter = value;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: 1,
+        search: this.search || undefined,
+        item_kind: value || undefined,
+      },
+      queryParamsHandling: 'merge',
+    });
   }
 
   get canExportCatalog(): boolean {
@@ -245,11 +271,24 @@ export class ProductListComponent implements OnDestroy {
     if (normalizedSearch && !normalizedSearch.toLowerCase().startsWith('ext:')) {
       filters.search = normalizedSearch;
     }
+    if (this.itemKindFilter === 'goods' || this.itemKindFilter === 'service') {
+      filters.item_kind = this.itemKindFilter;
+    }
     return filters;
   }
 
   clearFilters(): void {
-    this.onSearchChange('');
+    this.search = '';
+    this.itemKindFilter = '';
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: 1,
+        search: undefined,
+        item_kind: undefined,
+      },
+      queryParamsHandling: 'merge',
+    });
   }
 
   onSortChange(event: ISortEvent) {

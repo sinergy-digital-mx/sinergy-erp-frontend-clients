@@ -15,6 +15,8 @@ export type SalesOrderStatus =
   | 'Cancelada';
 export type SalesPaymentStatus = 'Pendiente' | 'Pagado';
 export type SalesOrderType = 'POS' | 'MANUAL';
+export type SalesOrderSaleScope = 'inventory' | 'services' | 'combined';
+export type SalesOrderItemKind = 'goods' | 'service';
 export type SalesOrderCollectionChannel = 'pos_cobranza' | 'manual' | 'mixed';
 
 export interface SalesOrderUserSummary {
@@ -70,7 +72,8 @@ export interface SalesOrderLineItem {
   line_total?: string | number;
   uom_name?: string;
   base_uom_name?: string;
-  product?: { id: string; name: string; sku: string };
+  item_kind?: SalesOrderItemKind;
+  product?: { id: string; name: string; sku: string; description?: string | null; item_kind?: SalesOrderItemKind };
   product_uom?: { id: string; factor: number; uom?: { id?: string; name?: string } };
   base_uom?: { id?: string; name?: string };
   batch_allocations?: any[];
@@ -227,6 +230,7 @@ export interface SalesOrder {
   // legacy compat
   grand_total?: number;
   notes?: string;
+  sale_scope?: SalesOrderSaleScope;
   requires_selection_assembly?: boolean;
   control_desk?: SalesOrderControlDesk | null;
   corroborated_at?: string | null;
@@ -301,6 +305,7 @@ export interface SalesOrderFilters {
   payment_status?: SalesPaymentStatus;
   collection_channel?: SalesOrderCollectionChannel;
   sales_order_type?: SalesOrderType;
+  sale_scope?: SalesOrderSaleScope;
   customer_id?: string | number;
   fiscal_configuration_id?: string;
   billing_branch_id?: string;
@@ -317,6 +322,7 @@ export interface SalesOrderExportFilters {
   payment_status?: string;
   collection_channel?: SalesOrderCollectionChannel;
   sales_order_type?: SalesOrderType;
+  sale_scope?: SalesOrderSaleScope;
   fiscal_configuration_id?: string;
   billing_branch_id?: string;
   customer_id?: number | string;
@@ -372,6 +378,7 @@ export interface SalesOrderFormData {
   assigned_seller_user_id?: string;
   payment_status?: string;
   notes?: string;
+  sale_scope?: SalesOrderSaleScope;
   requires_selection_assembly?: boolean;
   global_discount_id?: string;
   line_items: Array<{
@@ -392,6 +399,7 @@ export interface SalesOrderProductsSummaryParams {
   search?: string;
   page?: number;
   limit?: number;
+  sale_scope?: SalesOrderSaleScope;
 }
 
 export interface SalesOrderDetailPayload {

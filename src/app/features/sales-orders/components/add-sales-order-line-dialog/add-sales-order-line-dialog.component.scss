@@ -109,6 +109,20 @@
   letter-spacing: 0.04em;
 }
 
+.form-textarea {
+  width: 100%;
+  min-height: 64px;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #111827;
+  background: #f8fafc;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+}
+
 .form-input,
 .form-select {
   width: 100%;

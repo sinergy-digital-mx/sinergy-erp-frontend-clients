@@ -97,6 +97,7 @@ export class QuotationService {
     search?: string;
     page?: number;
     limit?: number;
+    sale_scope?: 'inventory' | 'services' | 'combined';
   }): Observable<any> {
     let httpParams = new HttpParams()
       .set('fiscal_configuration_id', params.fiscal_configuration_id)
@@ -104,6 +105,7 @@ export class QuotationService {
       .set('page', String(params.page ?? 1))
       .set('limit', String(params.limit ?? 40));
     if (params.search) httpParams = httpParams.set('search', params.search);
+    if (params.sale_scope) httpParams = httpParams.set('sale_scope', params.sale_scope);
     return this.http.get(`${this.baseUrl}/products-summary`, { params: httpParams });
   }
 }

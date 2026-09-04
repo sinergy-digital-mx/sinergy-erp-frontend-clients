@@ -133,6 +133,7 @@
                     }
                   </span>
                 </div>
+                <div><strong>Tipo:</strong> {{ getSaleScopeLabel(order) }}</div>
                 <div class="sales-order-list__mobile-billing">
                   <strong>Sucursal:</strong>
                   <span class="sales-orders-col-billing__stack">
@@ -161,6 +162,9 @@
 <ng-template #tableTemplate let-item="$implicit">
   <td class="sales-orders-col-folio">
     <span class="dt-folio-badge dt-folio-badge--odv">{{ item.folio || item.id.substring(0, 8) }}</span>
+  </td>
+  <td class="sales-orders-col-scope">
+    <span class="dt-status-pill" [class.dt-status-pill--sky]="item.sale_scope === 'services'" [class.dt-status-pill--info]="item.sale_scope !== 'services'">{{ getSaleScopeLabel(item) }}</span>
   </td>
   <td class="sales-orders-col-customer">
     <span class="sales-orders-col-customer__stack" [title]="getOrderCustomerName(item)">

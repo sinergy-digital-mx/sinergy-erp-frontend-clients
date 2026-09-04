@@ -61,6 +61,11 @@
     <div class="dialog-header">
       <div class="dialog-header-main">
         <span class="order-type-badge order-type-badge--sale">VENTA</span>
+        @if (order()!.sale_scope === 'services') {
+          <span class="order-type-badge">SERVICIOS</span>
+        } @else if (order()!.sale_scope === 'combined') {
+          <span class="order-type-badge">PRODUCTOS Y SERVICIOS</span>
+        }
         <h2 class="dialog-header__folio">#{{ order()!.folio || order()!.id.substring(0, 8) }}</h2>
       </div>
       <div class="dialog-header-actions">
@@ -559,7 +564,7 @@
               <table class="products-table">
                 <thead>
                   <tr>
-                    <th class="col-product">PRODUCTO</th>
+                    <th class="col-product">{{ order()!.sale_scope === 'services' ? 'SERVICIO' : 'PRODUCTO' }}</th>
                     <th class="col-money">PRECIO</th>
                     <th class="col-money">
                       IMPORTE
@@ -574,7 +579,9 @@
                       <th class="col-money">IEPS</th>
                     }
                     <th class="col-qty">SOLICITADAS</th>
-                    <th class="col-qty">ENTREGADAS</th>
+                    @if (order()!.sale_scope !== 'services') {
+                      <th class="col-qty">ENTREGADAS</th>
+                    }
                     @if (canEditLines()) {
                       <th class="col-actions">ACCIONES</th>
                     }
@@ -593,7 +600,10 @@
                           (keydown.enter)="canOpenProduct(item) && openProductDetail(item)"
                           (keydown.space)="$event.preventDefault(); canOpenProduct(item) && openProductDetail(item)">
                           <strong>{{ item.product?.name || item.product_id }}</strong>
-                          <small>{{ item.product?.sku || '-' }}</small>
+                          @if (item.product?.description) {
+                            <span class="product-info__description">{{ item.product?.description }}</span>
+                          }
+                          <small>{{ item.product?.sku || '-' }}{{ (item.item_kind === 'service' || item.product?.item_kind === 'service') ? ' · Servicio' : '' }}</small>
                         </div>
                       </td>
                       <td class="col-money">
@@ -631,14 +641,16 @@
                           <span class="uom-badge">{{ getLineUom(item) }}</span>
                         </span>
                       </td>
-                      <td class="col-qty">
-                        <span class="qty-cell">
-                          <span class="qty-cell__amount">{{ getDeliveredQuantity(item) | removeTrailingZeros }}</span>
-                          <span class="uom-badge" [class.uom-badge--muted]="getDeliveredQuantity(item) === 0">
-                            {{ getLineUom(item) }}
+                      @if (order()!.sale_scope !== 'services') {
+                        <td class="col-qty">
+                          <span class="qty-cell">
+                            <span class="qty-cell__amount">{{ getDeliveredQuantity(item) | removeTrailingZeros }}</span>
+                            <span class="uom-badge" [class.uom-badge--muted]="getDeliveredQuantity(item) === 0">
+                              {{ getLineUom(item) }}
+                            </span>
                           </span>
-                        </span>
-                      </td>
+                        </td>
+                      }
                       @if (canEditLines()) {
                         <td class="col-actions">
                           <div class="line-actions">

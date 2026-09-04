@@ -206,6 +206,12 @@
     color: #111827;
     margin: 0;
   }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 
 .empty-state {
@@ -310,6 +316,13 @@
 
 .product-cell__name {
   font-weight: 600;
+}
+
+.product-cell__description {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #475569;
 }
 
 .product-cell__meta {
