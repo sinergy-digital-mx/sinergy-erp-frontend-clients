@@ -1,0 +1,61 @@
+<div class="template-editor" [class.template-editor--compact]="compact">
+  @if (loading()) {
+    <p class="template-editor__status">Cargando plantilla…</p>
+  } @else {
+    <div class="template-editor__toolbar">
+      <div>
+        <h3>Plantilla de factura</h3>
+        @if (updatedAt()) {
+          <p class="template-editor__meta">
+            Última edición
+            @if (updatedBy()) {
+              por {{ updatedBy() }}
+            }
+            · {{ updatedAt() | date: 'short' }}
+          </p>
+        }
+      </div>
+      <div class="template-editor__actions">
+        <button type="button" class="btn-ghost" (click)="resetDefault()" [disabled]="resetting() || saving()">
+          {{ resetting() ? 'Restaurando…' : 'Restaurar predeterminada' }}
+        </button>
+        <button type="button" class="btn-primary" (click)="save()" [disabled]="saving() || resetting()">
+          {{ saving() ? 'Guardando…' : 'Guardar plantilla' }}
+        </button>
+      </div>
+    </div>
+
+    <label class="field">
+      <span>Asunto</span>
+      <input type="text" [ngModel]="subject()" (ngModelChange)="subject.set($event)" maxlength="255" />
+      <small>Vista: {{ previewSubject() }}</small>
+    </label>
+
+    <div class="variable-row">
+      <span>Variables</span>
+      <div class="variable-chips">
+        @for (variable of variables(); track variable.key) {
+          <button type="button" class="variable-chip" (click)="insertVariable(variable)">
+            {{ variable.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="template-editor__grid">
+      <label class="field field--editor">
+        <span>HTML</span>
+        <textarea
+          rows="16"
+          [ngModel]="bodyHtml()"
+          (ngModelChange)="bodyHtml.set($event)"
+          spellcheck="false"
+        ></textarea>
+      </label>
+      <div class="preview-pane">
+        <span>Vista previa</span>
+        <app-email-html-preview [srcdoc]="previewHtml()" />
+      </div>
+    </div>
+  }
+</div>

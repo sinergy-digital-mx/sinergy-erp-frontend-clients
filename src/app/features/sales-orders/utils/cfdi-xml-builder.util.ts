@@ -35,9 +35,34 @@ function parseNum(value: number | string | undefined | null): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function isServiceLine(item: SalesOrderLineItem): boolean {
+  return item.item_kind === 'service' || item.product?.item_kind === 'service';
+}
+
 function getProductSatClave(item: SalesOrderLineItem): string {
-  const product = item.product as { sat_code?: string; codigo_sat?: string } | undefined;
-  return product?.sat_code || product?.codigo_sat || '01010101';
+  const product = item.product;
+  const raw = String(product?.sat_clave || product?.sat_code || product?.codigo_sat || '').trim();
+  return /^\d{8}$/.test(raw) ? raw : '01010101';
+}
+
+function getClaveUnidad(item: SalesOrderLineItem): string {
+  const uom = String(item.uom_name || item.product_uom?.uom?.name || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\./g, '');
+  if (uom === 'E48' || uom === 'SERVICIO' || uom === 'SERVICIOS' || uom === 'SERVICE' || uom === 'SERV') {
+    return 'E48';
+  }
+  if (uom === 'H87' || uom === 'PZA' || uom === 'PZ' || uom === 'PIEZA' || uom === 'PIEZAS' || uom === 'UNIDAD') {
+    return 'H87';
+  }
+  return isServiceLine(item) ? 'E48' : 'H87';
+}
+
+function getUnidad(item: SalesOrderLineItem): string {
+  const name = item.uom_name || item.product_uom?.uom?.name;
+  if (name?.trim()) return name.trim();
+  return isServiceLine(item) ? 'Servicio' : 'Pieza';
 }
 
 export const SAT_GENERIC_PUBLIC_RFC = 'XAXX010101000';
@@ -151,7 +176,7 @@ ${taxes
       </cfdi:Impuestos>`;
 
   const xml = `
-    <cfdi:Concepto ClaveProdServ="${escapeXml(getProductSatClave(item))}" Cantidad="${qty.toFixed(6)}" ClaveUnidad="H87" Unidad="${escapeXml(item.uom_name || 'Pieza')}" Descripcion="${escapeXml(item.product?.name || 'Producto')}" ValorUnitario="${toMoney(unitPrice)}" Importe="${toMoney(importe)}"${discountAttr} ObjetoImp="${objetoImp}">${taxXml}
+    <cfdi:Concepto ClaveProdServ="${escapeXml(getProductSatClave(item))}" Cantidad="${qty.toFixed(6)}" ClaveUnidad="${escapeXml(getClaveUnidad(item))}" Unidad="${escapeXml(getUnidad(item))}" Descripcion="${escapeXml(item.product?.name || 'Producto')}" ValorUnitario="${toMoney(unitPrice)}" Importe="${toMoney(importe)}"${discountAttr} ObjetoImp="${objetoImp}">${taxXml}
     </cfdi:Concepto>`;
 
   return { xml, importe, discount, taxes };

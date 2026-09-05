@@ -547,6 +547,10 @@
               <span class="tab-count" [class.active]="activeTabIndex() === 5">{{ getShippingCount() }}</span>
             </button>
           }
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 6" (click)="activeTabIndex.set(6)">
+            Correo
+            <span class="tab-count" [class.active]="activeTabIndex() === 6">{{ getInvoiceEmailsCount() }}</span>
+          </button>
         </div>
 
         <div class="tabs-content">
@@ -1065,6 +1069,15 @@
                 [shipping]="shippingInfo()"
                 [active]="activeTabIndex() === 5"
               ></app-sales-order-shipping-tab>
+            </div>
+          }
+
+          @if (activeTabIndex() === 6 && order()) {
+            <div class="tab-content-wrapper">
+              <app-sales-order-invoice-email-tab
+                [orderId]="order()!.id"
+                (emailsChanged)="onInvoiceEmailsChanged($event)"
+              />
             </div>
           }
         </div>

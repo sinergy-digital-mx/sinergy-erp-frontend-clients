@@ -17,6 +17,12 @@ import {
   SalesOrderInvoicePdfResponse,
   StampSalesOrderInvoicePayload,
 } from '../models/sales-order-electronic-invoice.model';
+import {
+  InvoiceEmailCompose,
+  InvoiceEmailTemplate,
+  SalesOrderInvoiceEmail,
+  SendSalesOrderInvoiceEmailPayload,
+} from '../models/sales-order-invoice-email.model';
 
 
 
@@ -202,6 +208,51 @@ export class SalesOrderInvoiceService {
 
     return body;
 
+  }
+
+  getInvoiceEmailTemplate() {
+    return this.http.get<unknown>(`${this.baseUrl}/invoice-email-template`).pipe(
+      map((response) => this.unwrap(response) as unknown as InvoiceEmailTemplate)
+    );
+  }
+
+  updateInvoiceEmailTemplate(payload: {
+    subject?: string;
+    body_html?: string;
+    reset_default?: boolean;
+  }) {
+    return this.http
+      .patch<unknown>(`${this.baseUrl}/invoice-email-template`, payload)
+      .pipe(map((response) => this.unwrap(response) as unknown as InvoiceEmailTemplate));
+  }
+
+  getInvoiceEmailCompose(orderId: string, invoiceId: string) {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/${orderId}/invoices/${invoiceId}/email-compose`)
+      .pipe(map((response) => this.unwrap(response) as unknown as InvoiceEmailCompose));
+  }
+
+  sendInvoiceEmail(
+    orderId: string,
+    invoiceId: string,
+    payload: SendSalesOrderInvoiceEmailPayload
+  ) {
+    return this.http
+      .post<unknown>(`${this.baseUrl}/${orderId}/invoices/${invoiceId}/send-email`, payload)
+      .pipe(map((response) => this.unwrap(response) as unknown as SalesOrderInvoiceEmail));
+  }
+
+  listInvoiceEmails(orderId: string) {
+    return this.http.get<unknown>(`${this.baseUrl}/${orderId}/invoice-emails`).pipe(
+      map((response) => {
+        if (Array.isArray(response)) {
+          return response as SalesOrderInvoiceEmail[];
+        }
+        const body = this.unwrap(response);
+        const list = body['data'] ?? body['emails'] ?? response;
+        return Array.isArray(list) ? (list as SalesOrderInvoiceEmail[]) : [];
+      })
+    );
   }
 
 }

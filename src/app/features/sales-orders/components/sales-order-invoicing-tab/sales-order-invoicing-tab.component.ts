@@ -36,6 +36,10 @@ import {
   SalesOrderInvoiceStampDialogComponent,
   SalesOrderInvoiceStampDialogResult,
 } from '../sales-order-invoice-stamp-dialog/sales-order-invoice-stamp-dialog.component';
+import {
+  SalesOrderInvoiceEmailDialogComponent,
+  SalesOrderInvoiceEmailDialogResult,
+} from '../sales-order-invoice-email-dialog/sales-order-invoice-email-dialog.component';
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
@@ -411,6 +415,37 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     if (!uuid) return false;
     const stamp = (invoice.stamp_status || '').toLowerCase();
     return stamp === 'stamped' || stamp === 'cancel_pending' || stamp === 'cancelled';
+  }
+
+  canShowEmail(invoice: SalesOrderElectronicInvoice): boolean {
+    return this.canViewTab() && this.canShowPdf(invoice);
+  }
+
+  openSendEmail(invoice: SalesOrderElectronicInvoice): void {
+    const invoiceId = this.invoiceRecordId(invoice);
+    if (!invoiceId || !this.canShowEmail(invoice)) return;
+
+    this.dialog
+      .open(SalesOrderInvoiceEmailDialogComponent, {
+        width: '94vw',
+        maxWidth: '1440px',
+        height: '92vh',
+        maxHeight: '92vh',
+        autoFocus: 'first-tabbable',
+        panelClass: 'invoice-email-dialog-panel',
+        data: {
+          orderId: this.orderId,
+          invoiceId,
+          invoice,
+          orderFolio: this.order.folio,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: SalesOrderInvoiceEmailDialogResult | undefined) => {
+        if (result?.sent) {
+          this.invoicesChanged.emit();
+        }
+      });
   }
 
   openInvoicePdf(invoice: SalesOrderElectronicInvoice): void {

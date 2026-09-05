@@ -1,0 +1,82 @@
+.email-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.history {
+  border: 1px solid #e8edf4;
+  border-radius: 14px;
+  padding: 0.9rem 1rem 1rem;
+  background: #fff;
+}
+
+.history__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+
+  h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #0f172a;
+  }
+
+  span {
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+}
+
+.history__status {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.55rem 0.4rem;
+    border-bottom: 1px solid #eef2f7;
+    color: #334155;
+    vertical-align: top;
+  }
+
+  th {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 2rem 1rem;
+  color: #94a3b8;
+  text-align: center;
+
+  i {
+    font-size: 1.4rem;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+  }
+
+  &--compact {
+    padding: 1.2rem 0.5rem;
+  }
+}

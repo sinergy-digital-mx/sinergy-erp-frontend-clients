@@ -213,6 +213,16 @@
                     {{ downloadingXmlId() === invoiceRecordId(invoice) ? 'Descargando…' : 'XML' }}
                   </button>
                 }
+                @if (canShowEmail(invoice)) {
+                  <button
+                    type="button"
+                    class="action-btn action-btn--email"
+                    (click)="openSendEmail(invoice)"
+                  >
+                    <i class="fi fi-rr-envelope"></i>
+                    Enviar correo
+                  </button>
+                }
               </div>
             </footer>
           </article>

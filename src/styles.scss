@@ -226,6 +226,30 @@ main,
   height: min(860px, 92vh);
 }
 
+.cdk-overlay-pane.invoice-email-dialog-panel,
+.mat-mdc-dialog-panel.invoice-email-dialog-panel {
+  width: min(1440px, 94vw) !important;
+  max-width: 94vw !important;
+  height: 92vh !important;
+  max-height: 92vh !important;
+}
+
+.cdk-overlay-pane.invoice-email-dialog-panel .mat-mdc-dialog-container,
+.mat-mdc-dialog-panel.invoice-email-dialog-panel .mat-mdc-dialog-container {
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 16px !important;
+  height: 100% !important;
+  max-height: 92vh !important;
+}
+
+.cdk-overlay-pane.invoice-email-dialog-panel .mat-mdc-dialog-surface,
+.mat-mdc-dialog-panel.invoice-email-dialog-panel .mat-mdc-dialog-surface {
+  overflow: hidden !important;
+  border-radius: 16px !important;
+  height: 100% !important;
+}
+
 /* Modales editar / agregar línea de OC */
 .cdk-overlay-pane.po-line-dialog-panel .mat-mdc-dialog-container,
 .mat-mdc-dialog-panel.po-line-dialog-panel .mat-mdc-dialog-container {

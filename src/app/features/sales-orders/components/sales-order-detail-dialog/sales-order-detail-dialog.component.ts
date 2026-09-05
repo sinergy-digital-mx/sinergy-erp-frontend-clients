@@ -80,6 +80,7 @@ import {
 import { AuthService } from '../../../../core/services/auth.service';
 import { ELECTRONIC_INVOICING_PERMISSIONS } from '../../config/electronic-invoicing-permissions.config';
 import { SalesOrderInvoicingTabComponent } from '../sales-order-invoicing-tab/sales-order-invoicing-tab.component';
+import { SalesOrderInvoiceEmailTabComponent } from '../sales-order-invoice-email-tab/sales-order-invoice-email-tab.component';
 import { SalesOrderShippingTabComponent } from '../sales-order-shipping-tab/sales-order-shipping-tab.component';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
 import { countVigenteInvoices } from '../../utils/cfdi-xml-builder.util';
@@ -98,6 +99,7 @@ import { AddSalesOrderLineDialogComponent } from '../add-sales-order-line-dialog
     RemoveTrailingZerosPipe,
     SpinnerComponent,
     SalesOrderInvoicingTabComponent,
+    SalesOrderInvoiceEmailTabComponent,
     SalesOrderShippingTabComponent,
   ],
   templateUrl: './sales-order-detail-dialog.component.html',
@@ -185,6 +187,7 @@ export class SalesOrderDetailDialogComponent {
   uploadingPaymentDocId = signal<string | null>(null);
   invoiceSummary = signal<string | null>(null);
   invoicesCount = signal(0);
+  invoiceEmailsCount = signal(0);
 
   canViewInvoicingTab = computed(() =>
     this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.viewMenu) &&
@@ -1310,6 +1313,11 @@ export class SalesOrderDetailDialogComponent {
         this.invoiceSummary.set(null);
       },
     });
+
+    this.invoiceService.listInvoiceEmails(this.data.orderId).subscribe({
+      next: (rows) => this.invoiceEmailsCount.set(rows.length),
+      error: () => this.invoiceEmailsCount.set(0),
+    });
   }
 
   getLineItemsCount(): number {
@@ -1336,8 +1344,16 @@ export class SalesOrderDetailDialogComponent {
     return this.shippingInfo()?.has_shipping ? 1 : 0;
   }
 
+  getInvoiceEmailsCount(): number {
+    return this.invoiceEmailsCount();
+  }
+
   onInvoicingTabChanged(): void {
     this.loadInvoiceSummaryIfAllowed();
+  }
+
+  onInvoiceEmailsChanged(count: number): void {
+    this.invoiceEmailsCount.set(count);
   }
 
   canOpenCustomer(): boolean {

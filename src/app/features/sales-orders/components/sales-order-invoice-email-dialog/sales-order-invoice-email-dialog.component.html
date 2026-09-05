@@ -1,0 +1,122 @@
+<div class="email-dialog">
+  <header class="email-dialog__header">
+    <div>
+      <p class="eyebrow">Envío de CFDI</p>
+      <h2>Enviar factura {{ invoiceLabel() }}</h2>
+    </div>
+    <div class="header-actions">
+      <div class="view-toggle" role="tablist">
+        <button type="button" [class.active]="view() === 'compose'" (click)="view.set('compose')">Enviar</button>
+        <button type="button" [class.active]="view() === 'template'" (click)="view.set('template')">Plantilla</button>
+      </div>
+      <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar" [disabled]="sending()">
+        <i class="fi fi-rr-cross-small"></i>
+      </button>
+    </div>
+  </header>
+
+  @if (view() === 'template') {
+    <div class="email-dialog__body email-dialog__body--template">
+      <app-sales-order-invoice-email-template-editor
+        [compact]="true"
+        (saved)="onTemplateSaved()"
+      />
+    </div>
+  } @else if (loading()) {
+    <div class="email-dialog__empty">Preparando el correo y los adjuntos…</div>
+  } @else {
+    <div class="email-dialog__body">
+      <section class="compose-col">
+        @if (compose()?.block_reason) {
+          <p class="banner banner--warn">{{ compose()?.block_reason }}</p>
+        }
+
+        <label class="field">
+          <span>Para</span>
+          <input
+            type="email"
+            [ngModel]="toEmail()"
+            (ngModelChange)="toEmail.set($event)"
+            placeholder="cliente@correo.com"
+          />
+          @if (compose()?.customer_name) {
+            <small>Cliente: {{ compose()?.customer_name }} · {{ compose()?.customer_company }}</small>
+          }
+        </label>
+
+        <div class="field">
+          <span>CC</span>
+          <div class="cc-box">
+            @for (email of ccList(); track email) {
+              <span class="cc-chip">
+                {{ email }}
+                <button type="button" (click)="removeCc(email)" aria-label="Quitar CC">×</button>
+              </span>
+            }
+            <input
+              type="email"
+              [ngModel]="ccDraft()"
+              (ngModelChange)="ccDraft.set($event)"
+              (keydown)="onCcKeydown($event)"
+              placeholder="agregar@correo.com"
+            />
+          </div>
+          <div class="cc-actions">
+            <button type="button" class="link-btn" (click)="addCc()">+ Agregar otro CC</button>
+            @if (compose()?.additional_email) {
+              <button type="button" class="link-btn" (click)="addAdditionalAsCc()">
+                Usar {{ compose()?.additional_email }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Asunto</span>
+          <input type="text" [ngModel]="subject()" (ngModelChange)="subject.set($event)" maxlength="255" />
+        </label>
+
+        <label class="field">
+          <span>Nota (opcional)</span>
+          <textarea
+            rows="4"
+            [ngModel]="message()"
+            (ngModelChange)="message.set($event)"
+            placeholder="Un mensaje corto que se inserta en el correo."
+          ></textarea>
+        </label>
+
+        <div class="attachments">
+          <span>Adjuntos</span>
+          <div class="attachment-chips">
+            @for (file of compose()?.attachments || []; track file.fileName) {
+              <span class="file-chip" [class.file-chip--xml]="file.kind === 'xml'">
+                {{ file.kind === 'pdf' ? 'PDF' : 'XML' }} · {{ file.fileName }}
+              </span>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="preview-col">
+        <div class="preview-head">
+          <span>Vista previa</span>
+          <strong>{{ previewSubject() }}</strong>
+        </div>
+        <app-email-html-preview [srcdoc]="previewHtml()" />
+      </section>
+    </div>
+
+    <footer class="email-dialog__footer">
+      <button type="button" class="btn-secondary" (click)="close()" [disabled]="sending()">Cancelar</button>
+      <button type="button" class="btn-primary" (click)="send()" [disabled]="!canSubmit()">
+        @if (sending()) {
+          Enviando…
+        } @else {
+          <i class="fi fi-rr-envelope"></i>
+          Enviar factura
+        }
+      </button>
+    </footer>
+  }
+</div>

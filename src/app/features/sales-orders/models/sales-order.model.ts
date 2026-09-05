@@ -32,6 +32,7 @@ export interface Customer {
   lastname?: string;
   company_name?: string;
   email?: string;
+  additional_email?: string;
   phone?: string;
   fiscal_rfc?: string;
   fiscal_razon_social?: string;
@@ -73,7 +74,16 @@ export interface SalesOrderLineItem {
   uom_name?: string;
   base_uom_name?: string;
   item_kind?: SalesOrderItemKind;
-  product?: { id: string; name: string; sku: string; description?: string | null; item_kind?: SalesOrderItemKind };
+  product?: {
+    id: string;
+    name: string;
+    sku: string;
+    description?: string | null;
+    item_kind?: SalesOrderItemKind;
+    sat_clave?: string | null;
+    sat_code?: string | null;
+    codigo_sat?: string | null;
+  };
   product_uom?: { id: string; factor: number; uom?: { id?: string; name?: string } };
   base_uom?: { id?: string; name?: string };
   batch_allocations?: any[];

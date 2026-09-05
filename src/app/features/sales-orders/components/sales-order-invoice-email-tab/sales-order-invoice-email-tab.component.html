@@ -1,0 +1,49 @@
+<div class="email-tab">
+  @if (!canView) {
+    <div class="empty-state">
+      <i class="fi fi-rr-lock"></i>
+      <p>No tienes permisos para ver el correo de facturas.</p>
+    </div>
+  } @else {
+    <app-sales-order-invoice-email-template-editor />
+
+    <section class="history">
+      <div class="history__head">
+        <h3>Historial de envíos</h3>
+        <span>{{ emails().length }} envío{{ emails().length === 1 ? '' : 's' }}</span>
+      </div>
+
+      @if (loadingHistory()) {
+        <p class="history__status">Cargando historial…</p>
+      } @else if (emails().length === 0) {
+        <div class="empty-state empty-state--compact">
+          <i class="fi fi-rr-envelope"></i>
+          <p>Aún no se ha enviado ninguna factura de esta orden</p>
+        </div>
+      } @else {
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Para</th>
+              <th>CC</th>
+              <th>Asunto</th>
+              <th>Envió</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of emails(); track row.id) {
+              <tr>
+                <td>{{ row.sent_at | date: 'short' }}</td>
+                <td>{{ row.to_email }}</td>
+                <td>{{ row.cc?.length ? row.cc.join(', ') : '—' }}</td>
+                <td>{{ row.subject }}</td>
+                <td>{{ senderLabel(row) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+  }
+</div>
