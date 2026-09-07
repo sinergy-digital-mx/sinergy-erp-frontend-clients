@@ -181,6 +181,24 @@
   color: #9ca3af;
 }
 
+.sf-vendor-picker {
+  position: relative;
+}
+
+.sf-vendor-picker__input {
+  width: 100%;
+  padding-right: 2.25rem;
+}
+
+.sf-vendor-picker__chevron {
+  position: absolute;
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  pointer-events: none;
+}
+
 .sf-product-chip {
   display: inline-flex;
   align-items: center;

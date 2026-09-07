@@ -97,16 +97,36 @@
           </div>
           <div class="sf-filters__field">
             <label class="sf-filters__label" for="sf-vendor">Proveedor</label>
-            <select
-              id="sf-vendor"
-              class="sf-filters__select"
-              [(ngModel)]="vendorId"
-              (change)="onVendorChange()">
-              <option value="">Todos</option>
-              @for (v of vendors(); track v.id) {
-                <option [value]="v.id">{{ v.name }}</option>
+            <div class="sf-vendor-picker">
+              <input
+                id="sf-vendor"
+                type="text"
+                class="sf-filters__input sf-vendor-picker__input"
+                [(ngModel)]="vendorSearch"
+                [matAutocomplete]="autoVendor"
+                (ngModelChange)="onVendorSearchChange($event)"
+                (focus)="onVendorSearchFocus()"
+                (blur)="onVendorPickerBlur()"
+                placeholder="Buscar por nombre o RFC…"
+                autocomplete="off" />
+              <lucide-icon [img]="ChevronDown" [size]="16" class="sf-vendor-picker__chevron"></lucide-icon>
+            </div>
+            <mat-autocomplete
+              #autoVendor="matAutocomplete"
+              [displayWith]="displayVendor"
+              (optionSelected)="onVendorSelected($event.option.value)">
+              @if (loadingVendors && filteredVendors.length === 0) {
+                <mat-option disabled>Cargando proveedores...</mat-option>
+              } @else if (!loadingVendors && filteredVendors.length === 0 && vendorSearchTerm) {
+                <mat-option disabled>No se encontraron proveedores</mat-option>
+              } @else if (!loadingVendors && vendorOptions.length === 0) {
+                <mat-option disabled>No hay proveedores activos</mat-option>
               }
-            </select>
+              <mat-option [value]="null">Todos</mat-option>
+              @for (vendor of filteredVendors; track vendor.id) {
+                <mat-option [value]="vendor">{{ vendor.display_name }}</mat-option>
+              }
+            </mat-autocomplete>
           </div>
           @if (view !== 'totalized') {
             <div class="sf-filters__field sf-filters__field--grow">

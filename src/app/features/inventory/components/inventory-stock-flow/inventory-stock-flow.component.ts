@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { LucideAngularModule, ChevronDown } from 'lucide-angular';
 import {
   ReportPeriod,
   ReportPeriodSelectorComponent,
@@ -37,12 +39,16 @@ import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-
 import { AUDIT_DETAIL_DIALOG_OPTIONS } from '../../config/audit-dialog.config';
 import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 
+type StockFlowVendorOption = Vendor & { display_name: string };
+
 @Component({
   selector: 'app-inventory-stock-flow',
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
+    MatAutocompleteModule,
+    LucideAngularModule,
     ReportPeriodSelectorComponent,
     EmptyStageComponent,
     BackButtonComponent,
@@ -60,13 +66,17 @@ export class InventoryStockFlowComponent implements OnInit {
   fiscalConfigurationId = '';
   billingBranchId = '';
   vendorId = '';
+  vendorSearch = '';
+  vendorOptions: StockFlowVendorOption[] = [];
+  filteredVendors: StockFlowVendorOption[] = [];
+  loadingVendors = false;
+  readonly ChevronDown = ChevronDown;
   productId = '';
   search = '';
   page = 1;
   limit = 50;
 
   locations = signal<InventoryLocationFiscal[]>([]);
-  vendors = signal<Vendor[]>([]);
   summary = signal<StockFlowSummaryRow[]>([]);
   totalized = signal<StockFlowTotalizedRow[]>([]);
   ledger = signal<StockFlowLedgerRow[]>([]);
@@ -127,11 +137,18 @@ export class InventoryStockFlowComponent implements OnInit {
     private readonly dialog: MatDialog,
   ) {}
 
+  get vendorSearchTerm(): string {
+    return this.vendorSearch.trim().toLowerCase();
+  }
+
+  readonly displayVendor = (value: StockFlowVendorOption | string | null): string => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    return value.display_name || this.formatVendorLabel(value);
+  };
+
   ngOnInit(): void {
-    this.vendorService.getAllActiveVendors().subscribe({
-      next: (list) => this.vendors.set(list ?? []),
-      error: () => this.vendors.set([]),
-    });
+    this.loadVendorOptions();
 
     this.inventoryService.getLocations().subscribe({
       next: (data) => {
@@ -214,8 +231,50 @@ export class InventoryStockFlowComponent implements OnInit {
     this.resetPageAndLoad();
   }
 
-  onVendorChange(): void {
+  onVendorSearchFocus(): void {
+    this.filteredVendors = this.filterVendorsLocally(this.vendorSearch);
+    if (!this.vendorOptions.length && !this.loadingVendors) {
+      this.loadVendorOptions();
+    }
+  }
+
+  onVendorSearchChange(value: unknown): void {
+    if (value && typeof value === 'object') {
+      return;
+    }
+    const term = typeof value === 'string' ? value : '';
+    this.vendorSearch = term;
+    this.filteredVendors = this.filterVendorsLocally(term);
+    if (this.vendorId && term.trim() !== this.selectedVendorLabel) {
+      this.vendorId = '';
+    }
+  }
+
+  onVendorSelected(vendor: StockFlowVendorOption | null): void {
+    if (!vendor) {
+      this.vendorId = '';
+      this.vendorSearch = '';
+      this.filteredVendors = this.vendorOptions;
+      this.resetPageAndLoad();
+      return;
+    }
+    this.vendorId = vendor.id;
+    this.vendorSearch = vendor.display_name;
     this.resetPageAndLoad();
+  }
+
+  onVendorPickerBlur(): void {
+    // blur corre antes que optionSelected; esperar a que se aplique la opción.
+    setTimeout(() => {
+      if (this.vendorId) {
+        this.vendorSearch = this.selectedVendorLabel;
+        return;
+      }
+      if (this.vendorSearch.trim()) {
+        this.vendorSearch = '';
+        this.filteredVendors = this.vendorOptions;
+      }
+    }, 150);
   }
 
   onSearch(): void {
@@ -424,6 +483,44 @@ export class InventoryStockFlowComponent implements OnInit {
       month: '2-digit',
       year: 'numeric',
     });
+  }
+
+  private get selectedVendorLabel(): string {
+    return this.vendorOptions.find((v) => v.id === this.vendorId)?.display_name || '';
+  }
+
+  private loadVendorOptions(): void {
+    this.loadingVendors = true;
+    this.vendorService.getAllActiveVendors().subscribe({
+      next: (list) => {
+        this.vendorOptions = (list ?? []).map((vendor) => ({
+          ...vendor,
+          display_name: this.formatVendorLabel(vendor),
+        }));
+        this.filteredVendors = this.filterVendorsLocally(this.vendorSearch);
+        this.loadingVendors = false;
+      },
+      error: () => {
+        this.vendorOptions = [];
+        this.filteredVendors = [];
+        this.loadingVendors = false;
+      },
+    });
+  }
+
+  private filterVendorsLocally(term: string): StockFlowVendorOption[] {
+    const query = term.trim().toLowerCase();
+    if (!query) return this.vendorOptions;
+    return this.vendorOptions.filter((vendor) => {
+      const haystack = `${vendor.display_name || ''} ${vendor.name || ''} ${vendor.rfc || ''}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }
+
+  private formatVendorLabel(vendor: Vendor): string {
+    const name = (vendor.name || '').trim();
+    const rfc = (vendor.rfc || '').trim();
+    return rfc ? `${name} (${rfc})` : name;
   }
 
   private resetPageAndLoad(): void {
