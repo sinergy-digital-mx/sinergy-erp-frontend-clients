@@ -455,6 +455,37 @@ tbody tr:hover .sf-th-sticky {
   letter-spacing: 0.01em;
 }
 
+.sf-link-btn {
+  display: block;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #3730a3;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sf-link-btn:hover {
+  color: #312e81;
+  text-decoration: underline;
+}
+
+.folio-open-btn {
+  cursor: pointer;
+  border: 0;
+  font: inherit;
+}
+
+.folio-open-btn:hover {
+  filter: brightness(0.96);
+  text-decoration: underline;
+}
+
 .sf-date {
   font-variant-numeric: tabular-nums;
   font-size: 0.8125rem;

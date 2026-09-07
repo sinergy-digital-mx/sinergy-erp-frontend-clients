@@ -2,6 +2,7 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import {
   ReportPeriod,
   ReportPeriodSelectorComponent,
@@ -11,8 +12,13 @@ import { PaginationComponent } from '../../../../core/components/pagination/pagi
 import { BackButtonComponent } from '../../../rbac-tenant-ui/components/back-button/back-button.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
+import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { VendorService } from '../../../settings/services/vendor.service';
 import { Vendor } from '../../../settings/models/vendor.model';
+import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
+import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { OrderDetailDialogComponent } from '../../../purchase-orders/components/order-detail-dialog/order-detail-dialog.component';
 import { InventoryService } from '../../services/inventory.service';
 import { InventoryStockFlowService } from '../../services/inventory-stock-flow.service';
 import { InventoryLocationFiscal } from '../../models/inventory-location.model';
@@ -25,6 +31,11 @@ import {
   StockFlowTotalizedRow,
   StockFlowView,
 } from '../../models/inventory-stock-flow.model';
+import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
+import { AuditDetailDialogComponent } from '../audit-detail-dialog/audit-detail-dialog.component';
+import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
+import { AUDIT_DETAIL_DIALOG_OPTIONS } from '../../config/audit-dialog.config';
+import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 
 @Component({
   selector: 'app-inventory-stock-flow',
@@ -113,6 +124,7 @@ export class InventoryStockFlowComponent implements OnInit {
     private readonly vendorService: VendorService,
     private readonly toast: ToastService,
     private readonly router: Router,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -231,6 +243,61 @@ export class InventoryStockFlowComponent implements OnInit {
     this.billingBranchId = row.billing_branch_id;
     this.view = 'ledger';
     this.resetPageAndLoad();
+  }
+
+  openProductDetail(productId: string, event?: Event): void {
+    event?.stopPropagation();
+    if (!productId) return;
+    this.dialog.open(ProductDetailModalComponent, {
+      ...PRODUCT_DETAIL_DIALOG_CONFIG,
+      data: { product: { id: productId }, isNew: false },
+    });
+  }
+
+  canOpenReference(row: StockFlowLedgerRow): boolean {
+    return !!(row.reference_id && row.reference_type && row.reference_folio);
+  }
+
+  openReference(row: StockFlowLedgerRow, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.canOpenReference(row) || !row.reference_id) return;
+
+    switch (row.reference_type) {
+      case 'sales_order':
+        this.dialog.open(SalesOrderDetailDialogComponent, {
+          ...ORDER_DETAIL_DIALOG_OPTIONS,
+          data: { orderId: row.reference_id },
+        });
+        return;
+      case 'purchase_order':
+        this.dialog.open(OrderDetailDialogComponent, {
+          ...ORDER_DETAIL_DIALOG_OPTIONS,
+          data: { orderId: row.reference_id },
+        });
+        return;
+      case 'inventory_transfer':
+        this.dialog.open(TransferDetailDialogComponent, {
+          data: { transferId: row.reference_id },
+          width: 'min(1100px, 96vw)',
+          maxWidth: '96vw',
+          maxHeight: '92vh',
+        });
+        return;
+      case 'inventory_audit':
+        this.dialog.open(AuditDetailDialogComponent, {
+          ...AUDIT_DETAIL_DIALOG_OPTIONS,
+          data: { auditId: row.reference_id },
+        });
+        return;
+      case 'inventory_batch':
+        this.dialog.open(BatchDetailDialogComponent, {
+          ...BATCH_DETAIL_DIALOG_OPTIONS,
+          data: { batchId: row.reference_id },
+        });
+        return;
+      default:
+        this.toast.error('No se puede abrir este documento desde el flujo');
+    }
   }
 
   movementBadgeClass(type: string): string {

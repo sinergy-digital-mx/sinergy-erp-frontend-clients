@@ -190,7 +190,13 @@
                     <tr class="sf-row--click" (click)="openLedgerForProduct(row)">
                       <td class="sf-col-product sf-th-sticky">
                         <div class="sf-product-stack">
-                          <p class="dt-cell-primary sf-ellipsis m-0">{{ row.product_name }}</p>
+                          <button
+                            type="button"
+                            class="sf-link-btn sf-ellipsis"
+                            [title]="row.product_name"
+                            (click)="openProductDetail(row.product_id, $event)">
+                            {{ row.product_name }}
+                          </button>
                           <span class="sf-sku">{{ row.product_sku }}</span>
                         </div>
                       </td>
@@ -338,7 +344,13 @@
                       <td class="sf-col-date"><span class="sf-date">{{ formatDate(row.occurred_at, row.is_opening) }}</span></td>
                       <td class="sf-col-product">
                         <div class="sf-product-stack">
-                          <p class="dt-cell-primary sf-ellipsis m-0">{{ row.product_name }}</p>
+                          <button
+                            type="button"
+                            class="sf-link-btn sf-ellipsis"
+                            [title]="row.product_name"
+                            (click)="openProductDetail(row.product_id, $event)">
+                            {{ row.product_name }}
+                          </button>
                           <span class="sf-sku">{{ row.product_sku }}</span>
                         </div>
                       </td>
@@ -357,7 +369,16 @@
                       <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(row.cost_balance_after_mxn) }}</span></td>
                       <td>
                         @if (row.reference_folio) {
-                          <span class="dt-folio-badge">{{ row.reference_folio }}</span>
+                          @if (canOpenReference(row)) {
+                            <button
+                              type="button"
+                              class="dt-folio-badge folio-open-btn"
+                              (click)="openReference(row, $event)">
+                              {{ row.reference_folio }}
+                            </button>
+                          } @else {
+                            <span class="dt-folio-badge">{{ row.reference_folio }}</span>
+                          }
                         } @else {
                           <span class="dt-cell-subtle">—</span>
                         }

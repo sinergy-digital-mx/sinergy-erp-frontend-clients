@@ -94,6 +94,8 @@ export interface StockFlowLedgerRow {
   sale_amount_mxn: string | null;
   cost_balance_after_mxn: string | null;
   reference_folio: string | null;
+  reference_type: string | null;
+  reference_id: string | null;
   is_opening: boolean;
 }
 
