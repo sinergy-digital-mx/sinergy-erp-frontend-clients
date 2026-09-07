@@ -33,6 +33,9 @@ import {
 import { ToastService } from '../../../../core/services/toast.service';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
+import { AuthService } from '../../../../core/services/auth.service';
+import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
+import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
 
 @Component({
   selector: 'app-customers-list',
@@ -52,6 +55,7 @@ import { EmptyStageComponent } from '../../../../core/components/empty-stage/emp
     FilterClearButtonComponent,
     SpinnerComponent,
     EmptyStageComponent,
+    HasPermissionDirective,
   ],
   templateUrl: './customers-list.html',
   styleUrl: './customers-list.scss',
@@ -82,6 +86,7 @@ export class CustomersList implements OnInit, OnDestroy {
 
   ArrowRight = ArrowRight;
   Plus = Plus;
+  readonly permissions = CUSTOMER_PERMISSIONS;
   readonly Math = Math;
   search = '';
   selectedGroupId: string | null = null;
@@ -110,7 +115,8 @@ export class CustomersList implements OnInit, OnDestroy {
     public route: ActivatedRoute,
     public dialog: MatDialog,
     private filterStateService: FilterStateService,
-    private toast: ToastService
+    private toast: ToastService,
+    private authService: AuthService,
   ) {
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((query) => {
       const queryString = JSON.stringify(query);
@@ -320,6 +326,7 @@ export class CustomersList implements OnInit, OnDestroy {
   }
   
   createCustomer() {
+    if (!this.authService.hasEntityPermission('customers', 'Create')) return;
     this.dialog.open(CustomerEditModalComponent, {
       ...CUSTOMER_FORM_DIALOG_CONFIG,
       data: { customer: null },

@@ -7,6 +7,7 @@ import { LucideAngularModule, Plus, Pencil } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { CustomerActivityService } from '../../services/customer-activity.service';
 import {
   ActivitySummary,
@@ -56,8 +57,13 @@ export class CustomerActivitiesComponent implements OnInit, OnChanges, OnDestroy
   constructor(
     private activityService: CustomerActivityService,
     private dialog: MatDialog,
-    private interceptorService: InterceptorService
+    private interceptorService: InterceptorService,
+    private authService: AuthService,
   ) {}
+
+  get canUpdateCustomer(): boolean {
+    return this.authService.hasEntityPermission('customers', 'Update');
+  }
 
   ngOnInit(): void {
     this.reloadIfReady();
@@ -167,6 +173,7 @@ export class CustomerActivitiesComponent implements OnInit, OnChanges, OnDestroy
   }
 
   openCreateModal(): void {
+    if (!this.canUpdateCustomer) return;
     const dialogRef = this.dialog.open(CustomerActivityFormDialogComponent, {
       ...CUSTOMER_ACTIVITY_FORM_DIALOG_CONFIG,
       data: { customerId: this.numericCustomerId },
@@ -186,6 +193,7 @@ export class CustomerActivitiesComponent implements OnInit, OnChanges, OnDestroy
   }
 
   openEditModal(activity: CustomerActivity): void {
+    if (!this.canUpdateCustomer) return;
     const dialogRef = this.dialog.open(CustomerActivityFormDialogComponent, {
       ...CUSTOMER_ACTIVITY_FORM_DIALOG_CONFIG,
       data: { customerId: this.numericCustomerId, activity },

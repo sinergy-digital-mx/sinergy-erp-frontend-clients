@@ -43,6 +43,7 @@ import { CustomerFiscalCreditsComponent } from '../../components/customer-fiscal
 import { CustomerAssignmentHistoryComponent } from '../../components/customer-assignment-history/customer-assignment-history.component';
 import { unwrapCustomerPayload } from '../../utils/customer-credit.util';
 import { FormsModule } from '@angular/forms';
+import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
 
 @Component({
   selector: 'app-customer-detail',
@@ -91,6 +92,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
 
   readonly PencilIcon = Pencil;
   readonly MapPinIcon = MapPin;
+  readonly permissions = CUSTOMER_PERMISSIONS;
 
   constructor(
     private route: ActivatedRoute,
@@ -123,8 +125,12 @@ export class CustomerDetail implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  get canUpdateCustomer(): boolean {
+    return this.authService.hasEntityPermission('customers', 'Update');
+  }
+
   get canEditStatus(): boolean {
-    return this.authService.hasPermission('customers:Update');
+    return this.canUpdateCustomer;
   }
 
   loadStatuses(): void {
@@ -238,7 +244,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
    * Edit customer
    */
   editCustomer() {
-    if (!this.customer()) return;
+    if (!this.customer() || !this.canUpdateCustomer) return;
 
     const dialogRef = this.dialog.open(CustomerEditModalComponent, {
       ...CUSTOMER_FORM_DIALOG_CONFIG,
@@ -301,7 +307,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
 
   openAddressDialog(address?: CustomerAddress): void {
     const customer = this.customer();
-    if (!customer?.id) return;
+    if (!customer?.id || !this.canUpdateCustomer) return;
 
     this.dialog
       .open(CustomerAddressDialogComponent, {

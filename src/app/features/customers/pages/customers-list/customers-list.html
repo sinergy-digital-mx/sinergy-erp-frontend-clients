@@ -6,7 +6,11 @@
         <i class="fi fi-rr-download" aria-hidden="true"></i>
         <span>Descargar Excel</span>
       </button>
-      <button type="button" class="customers-page__create-btn" (click)="createCustomer()">
+      <button
+        *hasPermission="permissions.create"
+        type="button"
+        class="customers-page__create-btn"
+        (click)="createCustomer()">
         <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
         <span>Crear Cliente</span>
       </button>

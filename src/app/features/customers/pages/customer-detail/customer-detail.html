@@ -25,6 +25,7 @@
           <p class="text-sm text-gray-500 truncate">{{ customer()!.email }}</p>
         </div>
         <app-button
+          *hasPermission="permissions.update"
           text="Editar cliente"
           variant="primary"
           size="sm"
@@ -276,7 +277,7 @@
       </div>
 
       <app-customer-product-insights
-        *hasPermission="'customers:read'"
+        *hasPermission="permissions.viewDetail"
         [customerId]="customer()!.id">
       </app-customer-product-insights>
 
@@ -388,27 +389,29 @@
 
       <!-- SALES ORDERS SECTION (mismo acceso que documentos; API valida OV) -->
       <app-customer-sales-orders
-        *hasPermission="'customers:read'"
+        *hasPermission="permissions.viewDetail"
         [customerId]="customer()!.id">
       </app-customer-sales-orders>
 
       <!-- CUSTOMER DOCUMENTS SECTION -->
-      <app-customer-documents *hasPermission="'customers:read'" [customerId]="customer()!.id"></app-customer-documents>
+      <app-customer-documents *hasPermission="permissions.viewDetail" [customerId]="customer()!.id"></app-customer-documents>
 
       <!-- ADDRESSES SECTION -->
-      <div *hasPermission="'customers:read'" class="bg-white shadow-md rounded-xl p-4 sm:p-6 border border-gray-100">
+      <div *hasPermission="permissions.viewDetail" class="bg-white shadow-md rounded-xl p-4 sm:p-6 border border-gray-100">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <h3 class="text-lg font-semibold text-[#334155]">
             Direcciones
           </h3>
-          <app-button
-            text="Agregar dirección"
-            variant="primary"
-            size="sm"
-            [fullWidth]="true"
-            [icon]="MapPinIcon"
-            (clicked)="openAddressDialog()">
-          </app-button>
+          @if (canUpdateCustomer) {
+            <app-button
+              text="Agregar dirección"
+              variant="primary"
+              size="sm"
+              [fullWidth]="true"
+              [icon]="MapPinIcon"
+              (clicked)="openAddressDialog()">
+            </app-button>
+          }
         </div>
 
         @if (customer()!.addresses && customer()!.addresses.length > 0) {
@@ -433,12 +436,14 @@
                     }
                   </div>
                 </div>
-                <button
-                  type="button"
-                  class="address-edit-btn"
-                  (click)="openAddressDialog(address)">
-                  Editar
-                </button>
+                @if (canUpdateCustomer) {
+                  <button
+                    type="button"
+                    class="address-edit-btn"
+                    (click)="openAddressDialog(address)">
+                    Editar
+                  </button>
+                }
               </div>
             }
           </div>
@@ -450,7 +455,7 @@
       </div>
 
       <app-customer-activities
-        *hasPermission="'customers:read'"
+        *hasPermission="permissions.viewDetail"
         [customerId]="customer()!.id">
       </app-customer-activities>
     }

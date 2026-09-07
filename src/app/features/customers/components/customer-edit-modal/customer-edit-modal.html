@@ -201,7 +201,7 @@
         <div class="col-span-2" [hidden]="activeTab() !== 'credit'">
           <app-customer-fiscal-credits
             [customerId]="data.customer?.id ?? null"
-            [canEdit]="!isCreateMode() && !isWalkInCustomer()"
+            [canEdit]="canEditStatus && !isWalkInCustomer()"
             [walkIn]="isWalkInCustomer()"
             [showSaveButton]="false">
           </app-customer-fiscal-credits>

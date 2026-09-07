@@ -299,7 +299,7 @@
 
     /**
      * Check if the user has a specific permission.
-     * Performs case-insensitive entity matching.
+     * Performs case-insensitive entity matching. Admin bypasses like the API.
      * 
      * @param permission - Permission string in format "entity:Action"
      * @returns true if the permission exists in the permissions Set, false otherwise
@@ -312,6 +312,9 @@
     hasPermission(permission: string): boolean {
       if (!permission || typeof permission !== 'string') {
         return false;
+      }
+      if (this.hasAdminRole()) {
+        return true;
       }
       
       const normalizedPermission = this.normalizePermission(permission);

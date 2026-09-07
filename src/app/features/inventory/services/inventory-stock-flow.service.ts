@@ -66,11 +66,20 @@ export class InventoryStockFlowService {
     if (params.billing_branch_id) {
       httpParams = httpParams.set('billing_branch_id', params.billing_branch_id);
     }
+    if (params.vendor_id) {
+      httpParams = httpParams.set('vendor_id', params.vendor_id);
+    }
     if (params.product_id) {
       httpParams = httpParams.set('product_id', params.product_id);
     }
     if (params.search) {
       httpParams = httpParams.set('search', params.search);
+    }
+    if (params.page != null) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+    if (params.limit != null) {
+      httpParams = httpParams.set('limit', String(params.limit));
     }
 
     return httpParams;

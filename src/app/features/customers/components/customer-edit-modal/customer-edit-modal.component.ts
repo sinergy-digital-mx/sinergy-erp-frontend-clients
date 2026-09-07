@@ -242,7 +242,7 @@ export class CustomerEditModalComponent {
   }
 
   get canEditStatus(): boolean {
-    return this.isCreateMode() || this.authService.hasPermission('customers:Update');
+    return this.isCreateMode() || this.authService.hasEntityPermission('customers', 'Update');
   }
 
   private resolveStatusId(customer: Customer): number | null {
@@ -744,6 +744,9 @@ export class CustomerEditModalComponent {
   }
 
   updateCustomer(): void {
+    if (!this.authService.hasEntityPermission('customers', 'Update')) {
+      return;
+    }
     if (!this.validateFormBeforeSubmit()) {
       return;
     }

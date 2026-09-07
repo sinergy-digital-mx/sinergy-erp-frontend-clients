@@ -95,6 +95,19 @@
               }
             </select>
           </div>
+          <div class="sf-filters__field">
+            <label class="sf-filters__label" for="sf-vendor">Proveedor</label>
+            <select
+              id="sf-vendor"
+              class="sf-filters__select"
+              [(ngModel)]="vendorId"
+              (change)="onVendorChange()">
+              <option value="">Todos</option>
+              @for (v of vendors(); track v.id) {
+                <option [value]="v.id">{{ v.name }}</option>
+              }
+            </select>
+          </div>
           @if (view !== 'totalized') {
             <div class="sf-filters__field sf-filters__field--grow">
               <label class="sf-filters__label" for="sf-search">Buscar</label>
@@ -270,7 +283,7 @@
                 </tbody>
                 <tfoot>
                   <tr class="sf-totals">
-                    <td class="sf-th-sticky sf-totals__label">Total global</td>
+                    <td class="sf-th-sticky sf-totals__label">{{ totalizedFooterLabel }}</td>
                     <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatQty(totalizedTotals().opening_qty) }}</span></td>
                     <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totalizedTotals().opening_cost_mxn) }}</span></td>
                     <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(totalizedTotals().opening_sale_mxn) }}</span></td>
@@ -355,6 +368,17 @@
               </table>
             </div>
           }
+        }
+
+        @if (!fiscalRequired && !loading() && total() > 0) {
+          <div class="sf-pagination">
+            <app-pagination
+              [total_results]="total()"
+              [page]="page"
+              [limit]="limit"
+              [limit_array]="pageSizeOptions"
+              (goPage)="onPageChange($event)" />
+          </div>
         }
       </div>
     </div>

@@ -8,8 +8,11 @@ export interface StockFlowQueryParams {
   date_to?: string;
   fiscal_configuration_id: string;
   billing_branch_id?: string;
+  vendor_id?: string;
   product_id?: string;
   search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface StockFlowFiltersApplied {
@@ -20,6 +23,7 @@ export interface StockFlowFiltersApplied {
   fiscal_configuration_id: string;
   billing_branch_id: string | null;
   product_id: string | null;
+  vendor_id?: string | null;
   view: string;
   currency?: string;
 }
@@ -101,4 +105,8 @@ export interface StockFlowResponse {
   total_summary_rows: number;
   total_totalized_rows: number;
   total_ledger_rows: number;
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
 }

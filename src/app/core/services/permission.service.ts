@@ -62,6 +62,9 @@ export class PermissionService {
    * @returns true if user has permission
    */
   hasPermission(permission: string): boolean {
+    if (this.isAdmin()) {
+      return true;
+    }
     const flatPermissions = this.getFlatPermissions();
     // Case-insensitive comparison
     return flatPermissions.some(p => p.toLowerCase() === permission.toLowerCase());

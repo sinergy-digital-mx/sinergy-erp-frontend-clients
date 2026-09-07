@@ -7,9 +7,12 @@ import {
   ReportPeriodSelectorComponent,
 } from '../../../../core/components/report-period-selector/report-period-selector.component';
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
+import { PaginationComponent } from '../../../../core/components/pagination/pagination.component';
 import { BackButtonComponent } from '../../../rbac-tenant-ui/components/back-button/back-button.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import { VendorService } from '../../../settings/services/vendor.service';
+import { Vendor } from '../../../settings/models/vendor.model';
 import { InventoryService } from '../../services/inventory.service';
 import { InventoryStockFlowService } from '../../services/inventory-stock-flow.service';
 import { InventoryLocationFiscal } from '../../models/inventory-location.model';
@@ -32,6 +35,7 @@ import {
     ReportPeriodSelectorComponent,
     EmptyStageComponent,
     BackButtonComponent,
+    PaginationComponent,
   ],
   templateUrl: './inventory-stock-flow.component.html',
   styleUrl: './inventory-stock-flow.component.scss',
@@ -44,14 +48,20 @@ export class InventoryStockFlowComponent implements OnInit {
   customDateTo = '';
   fiscalConfigurationId = '';
   billingBranchId = '';
+  vendorId = '';
   productId = '';
   search = '';
+  page = 1;
+  limit = 50;
 
   locations = signal<InventoryLocationFiscal[]>([]);
+  vendors = signal<Vendor[]>([]);
   summary = signal<StockFlowSummaryRow[]>([]);
   totalized = signal<StockFlowTotalizedRow[]>([]);
   ledger = signal<StockFlowLedgerRow[]>([]);
   filtersApplied = signal<StockFlowFiltersApplied | null>(null);
+  total = signal(0);
+  totalPages = signal(0);
   loading = signal(false);
   exporting = signal(false);
 
@@ -63,12 +73,14 @@ export class InventoryStockFlowComponent implements OnInit {
     wrapper_icon_circle: true,
   };
 
+  readonly pageSizeOptions = [25, 50, 100];
+
   branchOptions = computed(() => {
     const fiscal = this.locations().find((f) => f.id === this.fiscalConfigurationId);
     return fiscal?.branches ?? [];
   });
 
-  /** Pie tipo TOTAL GLOBAL del totalizado */
+  /** Pie del totalizado (solo filas de la página actual) */
   totalizedTotals = computed(() => {
     const rows = this.totalized();
     const sum = (pick: (r: StockFlowTotalizedRow) => string) =>
@@ -98,11 +110,17 @@ export class InventoryStockFlowComponent implements OnInit {
   constructor(
     private readonly stockFlowService: InventoryStockFlowService,
     private readonly inventoryService: InventoryService,
+    private readonly vendorService: VendorService,
     private readonly toast: ToastService,
     private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
+    this.vendorService.getAllActiveVendors().subscribe({
+      next: (list) => this.vendors.set(list ?? []),
+      error: () => this.vendors.set([]),
+    });
+
     this.inventoryService.getLocations().subscribe({
       next: (data) => {
         const list = data ?? [];
@@ -141,6 +159,10 @@ export class InventoryStockFlowComponent implements OnInit {
     return viewLabel;
   }
 
+  get totalizedFooterLabel(): string {
+    return this.totalPages() > 1 ? 'Subtotal página' : 'Total global';
+  }
+
   goBack(): void {
     void this.router.navigate(['/inventory']);
   }
@@ -152,7 +174,7 @@ export class InventoryStockFlowComponent implements OnInit {
       this.productId = '';
       this.search = '';
     }
-    this.loadReport();
+    this.resetPageAndLoad();
   }
 
   onPeriodChange(period: ReportPeriod): void {
@@ -161,32 +183,46 @@ export class InventoryStockFlowComponent implements OnInit {
       this.customDateFrom = '';
       this.customDateTo = '';
     }
-    this.loadReport();
+    this.resetPageAndLoad();
   }
 
   onRangeChange(range: { dateFrom: string; dateTo: string }): void {
     this.datePreset = 'range';
     this.customDateFrom = range.dateFrom;
     this.customDateTo = range.dateTo;
-    this.loadReport();
+    this.resetPageAndLoad();
   }
 
   onFiscalChange(): void {
     this.billingBranchId = '';
-    this.loadReport();
+    this.resetPageAndLoad();
   }
 
   onBranchChange(): void {
-    this.loadReport();
+    this.resetPageAndLoad();
+  }
+
+  onVendorChange(): void {
+    this.resetPageAndLoad();
   }
 
   onSearch(): void {
     if (this.view === 'totalized') return;
-    this.loadReport();
+    this.resetPageAndLoad();
   }
 
   clearProductFilter(): void {
     this.productId = '';
+    this.resetPageAndLoad();
+  }
+
+  onPageChange(event: { page?: number; limit?: number }): void {
+    if (event.limit != null && event.limit !== this.limit) {
+      this.limit = event.limit;
+      this.page = 1;
+    } else if (event.page != null) {
+      this.page = event.page;
+    }
     this.loadReport();
   }
 
@@ -194,7 +230,7 @@ export class InventoryStockFlowComponent implements OnInit {
     this.productId = row.product_id;
     this.billingBranchId = row.billing_branch_id;
     this.view = 'ledger';
-    this.loadReport();
+    this.resetPageAndLoad();
   }
 
   movementBadgeClass(type: string): string {
@@ -222,6 +258,8 @@ export class InventoryStockFlowComponent implements OnInit {
       this.totalized.set([]);
       this.ledger.set([]);
       this.filtersApplied.set(null);
+      this.total.set(0);
+      this.totalPages.set(0);
       this.loading.set(false);
       return;
     }
@@ -233,6 +271,10 @@ export class InventoryStockFlowComponent implements OnInit {
         this.summary.set(res.summary ?? []);
         this.totalized.set(res.totalized ?? []);
         this.ledger.set(res.ledger ?? []);
+        this.total.set(Number(res.total ?? 0));
+        this.totalPages.set(Number(res.total_pages ?? 0));
+        this.page = Number(res.page ?? this.page);
+        this.limit = Number(res.limit ?? this.limit);
         this.loading.set(false);
       },
       error: (err) => {
@@ -240,6 +282,8 @@ export class InventoryStockFlowComponent implements OnInit {
         this.summary.set([]);
         this.totalized.set([]);
         this.ledger.set([]);
+        this.total.set(0);
+        this.totalPages.set(0);
         this.toast.error(resolveHttpErrorMessage(err, 'No se pudo cargar el reporte'));
       },
     });
@@ -248,7 +292,10 @@ export class InventoryStockFlowComponent implements OnInit {
   downloadExcel(): void {
     if (this.rangeIncomplete || this.fiscalRequired || this.exporting()) return;
     this.exporting.set(true);
-    this.stockFlowService.exportExcel(this.currentQuery()).subscribe({
+    const query = this.currentQuery();
+    delete query.page;
+    delete query.limit;
+    this.stockFlowService.exportExcel(query).subscribe({
       next: ({ blob, filename }) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -312,6 +359,11 @@ export class InventoryStockFlowComponent implements OnInit {
     });
   }
 
+  private resetPageAndLoad(): void {
+    this.page = 1;
+    this.loadReport();
+  }
+
   private currentQuery(): StockFlowQueryParams {
     return {
       period: this.datePreset,
@@ -320,8 +372,11 @@ export class InventoryStockFlowComponent implements OnInit {
       date_to: this.customDateTo || undefined,
       fiscal_configuration_id: this.fiscalConfigurationId,
       billing_branch_id: this.billingBranchId || undefined,
+      vendor_id: this.vendorId || undefined,
       product_id: this.view === 'totalized' ? undefined : this.productId || undefined,
       search: this.view === 'totalized' ? undefined : this.search.trim() || undefined,
+      page: this.page,
+      limit: this.limit,
     };
   }
 }
