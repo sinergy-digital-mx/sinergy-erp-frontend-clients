@@ -77,7 +77,7 @@ import { GlobalDiscount } from '../../../global-discounts/models/global-discount
 import { GLOBAL_DISCOUNT_PERMISSIONS } from '../../../global-discounts/config/permissions.config';
 import { GlobalDiscountFormDialogComponent } from '../../../global-discounts/components/global-discount-form-dialog/global-discount-form-dialog.component';
 import { QUOTATION_PERMISSIONS } from '../../../quotations/config/permissions.config';
-import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
+import { mapPosApiErrorMessage, posProductLabelsById } from '../../constants/pos-api-errors';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { formatMeasureTotalsLine, hasMeasureTotals } from '../../../../core/utils/inventory-measure.util';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
@@ -216,6 +216,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private notifyError(message: string, duration = 4500): void {
     this.toast.error(message, { duration });
+  }
+
+  private mapPosError(
+    backendMessage: string | string[] | undefined | null,
+    items?: POSCartItem[],
+  ): string {
+    return mapPosApiErrorMessage(backendMessage, posProductLabelsById(items));
   }
 
   private notifySuccess(message: string, duration = 3000): void {
@@ -955,7 +962,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         error: (error) => {
           this.saving.set(false);
           const backendMessage = error?.error?.message;
-          const msg = mapPosApiErrorMessage(backendMessage) || 'Error al crear la orden de venta';
+          const msg =
+            this.mapPosError(backendMessage, cart.items) || 'Error al crear la orden de venta';
           this.notifyError(msg, 6000);
           if (error?.status === 400 && isDiscountApiError(backendMessage)) {
             this.loadProducts(this.searchTerm());
@@ -1030,7 +1038,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         error: (error) => {
           this.saving.set(false);
           const backendMessage = error?.error?.message;
-          const msg = mapPosApiErrorMessage(backendMessage) || 'Error al crear la cotización';
+          const msg =
+            this.mapPosError(backendMessage, cart.items) || 'Error al crear la cotización';
           this.notifyError(msg, 6000);
         },
       });
