@@ -35,7 +35,7 @@ Orden: más reciente primero. Si `data` viene `[]`: *Sin movimientos.*
 | Cantidad | `quantity` + `direction` |
 | Usuario | `actor_name` (si null: `—`) |
 | Autorizó | `authorized_by_name` solo si no es null |
-| Fecha | `occurred_at` |
+| Fecha | `occurred_at` ISO UTC (`…Z`). Pintar en hora local. |
 | Diff | `changes[]` si `length > 0` (`field_label` de → a) |
 
 Cantidad: `in` → verde `+{quantity}`; `out` → rojo `−{quantity}`; `adjust` → el valor ya trae signo.

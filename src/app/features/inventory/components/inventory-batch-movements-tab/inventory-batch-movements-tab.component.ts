@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, injec
 import { CommonModule } from '@angular/common';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
+import { formatApiDateTime } from '../../../../core/utils/api-datetime.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import {
   InventoryBatchMovement,
@@ -131,21 +132,7 @@ export class InventoryBatchMovementsTabComponent implements OnChanges {
   }
 
   formatOccurredAt(value?: string | null): string {
-    if (!value) {
-      return '—';
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return '—';
-    }
-    return new Intl.DateTimeFormat('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(date);
+    return formatApiDateTime(value);
   }
 
   metaLinks(item: InventoryBatchMovement): Array<{ kind: BatchMovementReferenceKind; id: string; label: string }> {

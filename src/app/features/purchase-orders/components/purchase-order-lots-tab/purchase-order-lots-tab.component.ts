@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { inventoryMeasureLabel } from '../../../../core/utils/inventory-measure.util';
+import { formatApiDateTime } from '../../../../core/utils/api-datetime.util';
 import { formatUnitAmount } from '../../../../core/utils/unit-money.util';
 import {
   PurchaseOrderBatchesSummary,
@@ -175,24 +176,7 @@ export class PurchaseOrderLotsTabComponent {
   }
 
   formatDateTime(value?: string | null): string {
-    if (!value) {
-      return '—';
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return '—';
-    }
-    const day = new Intl.DateTimeFormat('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).format(date);
-    const time = new Intl.DateTimeFormat('es-MX', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(date);
-    return `${day} ${time}`;
+    return formatApiDateTime(value);
   }
 
   onOpenBatch(lot: PurchaseOrderLotNode, event?: Event): void {
