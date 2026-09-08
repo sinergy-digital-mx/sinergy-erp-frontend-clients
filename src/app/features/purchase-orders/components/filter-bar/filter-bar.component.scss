@@ -1,17 +1,27 @@
 @use '../../../../../base/filter-bar';
 
+.filter-bar__container {
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+}
+
 .filter-bar__field--vendor {
-  min-width: 220px;
+  min-width: 0;
 }
 
 .vendor-picker {
   position: relative;
+  width: 100%;
   min-width: 0;
 }
 
 .vendor-picker__input {
+  display: block;
   width: 100%;
+  max-width: 100%;
   padding-right: 2.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .vendor-picker__chevron {

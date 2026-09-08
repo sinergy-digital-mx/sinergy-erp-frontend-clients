@@ -88,27 +88,27 @@
           id="vendor"
           class="filter-bar__input vendor-picker__input"
           [formControl]="vendorSearchControl"
-          placeholder="Todos los proveedores"
+          placeholder="Proveedor"
           [matAutocomplete]="autoVendor"
           (focus)="onVendorSearchFocus()"
           aria-label="Filtrar por proveedor"
         />
         <lucide-icon [img]="ChevronDown" [size]="16" class="vendor-picker__chevron"></lucide-icon>
+        <mat-autocomplete
+          #autoVendor="matAutocomplete"
+          [displayWith]="displayVendor"
+          (optionSelected)="onVendorSelected($event.option.value)">
+          @if (!currentVendorSearchTerm() || vendorControl.value) {
+            <mat-option [value]="allVendorsOption">Todos los proveedores</mat-option>
+          }
+          @for (vendor of filteredVendors; track vendor.id) {
+            <mat-option [value]="vendor">{{ vendorLabel(vendor) }}</mat-option>
+          }
+          @if (filteredVendors.length === 0 && currentVendorSearchTerm() && !vendorControl.value) {
+            <mat-option disabled>No se encontraron proveedores</mat-option>
+          }
+        </mat-autocomplete>
       </div>
-      <mat-autocomplete
-        #autoVendor="matAutocomplete"
-        [displayWith]="displayVendor"
-        (optionSelected)="onVendorSelected($event.option.value)">
-        @if (!currentVendorSearchTerm() || vendorControl.value) {
-          <mat-option [value]="allVendorsOption">Todos los proveedores</mat-option>
-        }
-        @for (vendor of filteredVendors; track vendor.id) {
-          <mat-option [value]="vendor">{{ vendorLabel(vendor) }}</mat-option>
-        }
-        @if (filteredVendors.length === 0 && currentVendorSearchTerm() && !vendorControl.value) {
-          <mat-option disabled>No se encontraron proveedores</mat-option>
-        }
-      </mat-autocomplete>
     </div>
 
     <!-- Razón social -->
