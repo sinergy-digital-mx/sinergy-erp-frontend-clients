@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
@@ -14,7 +15,7 @@ import { EmailHtmlPreviewComponent } from '../email-html-preview/email-html-prev
 @Component({
   selector: 'app-sales-order-invoice-email-template-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, EmailHtmlPreviewComponent],
+  imports: [CommonModule, FormsModule, ApiDatePipe, EmailHtmlPreviewComponent],
   templateUrl: './sales-order-invoice-email-template-editor.component.html',
   styleUrl: './sales-order-invoice-email-template-editor.component.scss',
 })

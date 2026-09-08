@@ -9,6 +9,7 @@ El pedimento **no se guarda en el lote**. Vive en la orden de compra. El lote ya
 | Campo | Tipo | Cuándo viene |
 |-------|------|----------------|
 | `pedimento_number` | `string \| null` | Pedimento de la OC de origen. `null` si no hay OC, o la OC no tiene pedimento. |
+| `vendor_invoice_number` | `string \| null` | Factura del proveedor de la OC. `null` si no hay OC o no hay factura. |
 
 Sigue igual: `purchase_order_id`, `purchase_order_folio`.
 
@@ -16,7 +17,7 @@ No hace falta un GET extra a la OC: el detalle del lote ya trae el valor.
 
 ## Dónde
 
-Tab **General** del detalle de lote (`batch-detail-dialog`). Card **PEDIMENTO** al lado de **REQUISICIÓN**.
+Tab **General** del detalle de lote (`batch-detail-dialog`). Card **PEDIMENTO** y **NO. FACTURA DE PROVEEDOR** al lado de **REQUISICIÓN**.
 
 Solo lectura. El pedimento se cambia en la OC (`PATCH /purchase-orders/:id/pedimento`). Al cerrar el detalle de la OC se recarga el lote.
 

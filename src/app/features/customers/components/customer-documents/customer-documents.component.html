@@ -46,10 +46,10 @@
             <span>•</span>
             <span>{{ formatFileSize(doc.file_size) }}</span>
             <span>•</span>
-            <span>{{ doc.created_at | date:'mediumDate' }}</span>
+            <span>{{ doc.created_at | apiDate:'medium' }}</span>
             <span *ngIf="doc.expiration_date">
               <span>•</span>
-              <span class="text-orange-600">Vence: {{ doc.expiration_date | date:'mediumDate' }}</span>
+              <span class="text-orange-600">Vence: {{ doc.expiration_date | apiDate:'medium' }}</span>
             </span>
           </div>
 

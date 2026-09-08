@@ -1,5 +1,6 @@
 import { Component, signal, TemplateRef, ViewChild, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { FormsModule } from '@angular/forms';
 import { TagModule } from 'primeng/tag';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -42,6 +43,7 @@ import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
   standalone: true,
   imports: [
     CommonModule,
+    ApiDatePipe,
     FormsModule,
     TagModule,
     ButtonModule,

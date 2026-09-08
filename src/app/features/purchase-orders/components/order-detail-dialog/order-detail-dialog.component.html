@@ -214,6 +214,23 @@
           </div>
         }
 
+        <div class="section-card section-card--pedimento">
+          <div class="section-card__head">
+            <h3 class="section-title">NO. FACTURA DE PROVEEDOR</h3>
+            @if (canEditVendorInvoice()) {
+              <button
+                type="button"
+                class="notes-edit-btn"
+                title="Editar factura de proveedor"
+                aria-label="Editar factura de proveedor"
+                (click)="openVendorInvoiceEditor()">
+                <i class="fi fi-rr-pencil"></i>
+              </button>
+            }
+          </div>
+          <p class="notes-text">{{ formatVendorInvoice(order()!.vendor_invoice_number) }}</p>
+        </div>
+
         <div class="section-card">
           <h3 class="section-title">FECHAS</h3>
           <div class="section-item">
@@ -702,7 +719,7 @@
                     @for (payment of order()!.payments; track payment.id) {
                       <tr>
                         <td class="font-semibold">{{ formatPaymentCurrency(payment.amount) }}</td>
-                        <td>{{ payment.payment_date | date:'dd/MM/yyyy' }}</td>
+                        <td>{{ payment.payment_date | apiDate: 'date' }}</td>
                         <td>{{ payment.payment_method || '-' }}</td>
                         <td>{{ payment.reference_number || payment.reference || '-' }}</td>
                         <td>{{ payment.notes || '-' }}</td>

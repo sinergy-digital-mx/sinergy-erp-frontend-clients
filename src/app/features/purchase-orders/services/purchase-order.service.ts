@@ -729,6 +729,25 @@ export class PurchaseOrderService {
       );
   }
 
+  /**
+   * Actualiza solo la factura de proveedor (PATCH /purchase-orders/:id/vendor-invoice).
+   * Permitido en Creada y Recibida; bloqueado en Cancelada.
+   */
+  updateOrderVendorInvoice(
+    orderId: string,
+    vendorInvoiceNumber: string | null
+  ): Observable<{ vendor_invoice_number: string | null }> {
+    const value = vendorInvoiceNumber?.trim() ? vendorInvoiceNumber.trim() : null;
+    return this.http
+      .patch<unknown>(`${this.baseUrl}/${orderId}/vendor-invoice`, {
+        vendor_invoice_number: value,
+      })
+      .pipe(
+        map((response) => this.parseVendorInvoicePatchResponse(response, value)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
   private parseNotesPatchResponse(response: unknown, fallbackNotes: string | null): { notes: string | null } {
     if (!response || typeof response !== 'object') {
       return { notes: fallbackNotes };
@@ -798,6 +817,44 @@ export class PurchaseOrderService {
     }
 
     return { pedimento_number: fallback };
+  }
+
+  private parseVendorInvoicePatchResponse(
+    response: unknown,
+    fallback: string | null
+  ): { vendor_invoice_number: string | null } {
+    if (!response || typeof response !== 'object') {
+      return { vendor_invoice_number: fallback };
+    }
+
+    const body = response as Record<string, unknown>;
+    const data = body['data'];
+    const header =
+      data && typeof data === 'object' && !Array.isArray(data)
+        ? (data as Record<string, unknown>)['header']
+        : undefined;
+
+    const candidates = [
+      body['vendor_invoice_number'],
+      data && typeof data === 'object' && !Array.isArray(data)
+        ? (data as Record<string, unknown>)['vendor_invoice_number']
+        : undefined,
+      header && typeof header === 'object' && !Array.isArray(header)
+        ? (header as Record<string, unknown>)['vendor_invoice_number']
+        : undefined,
+    ];
+
+    for (const value of candidates) {
+      if (value === null) {
+        return { vendor_invoice_number: null };
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return { vendor_invoice_number: trimmed ? trimmed : null };
+      }
+    }
+
+    return { vendor_invoice_number: fallback };
   }
 
   /**

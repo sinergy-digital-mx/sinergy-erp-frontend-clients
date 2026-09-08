@@ -301,6 +301,8 @@ export interface PurchaseOrder {
   is_international_vendor?: boolean;
   /** Solo compras internacionales. Vacío / null si no hay pedimento. */
   pedimento_number?: string | null;
+  /** Número de factura del proveedor. Aplica a cualquier proveedor. */
+  vendor_invoice_number?: string | null;
   has_real_cost?: boolean;
   can_edit_real_cost?: boolean;
   customs_date?: string | null;

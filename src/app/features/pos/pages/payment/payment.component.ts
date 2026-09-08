@@ -107,6 +107,7 @@ import {
   posCustomerCompanySubtitle,
 } from '../../models/pos-collected-sales.model';
 import { PosSaleReceipt } from '../../models/pos-receipt.model';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { PosReceiptPrintService } from '../../services/pos-receipt-print.service';
 import { PosPrinterSettingsDialogComponent } from '../../components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
 import { PosReceiptPreviewDialogComponent } from '../../components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
@@ -1445,10 +1446,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   formatDate(value?: string): string {
-    if (!value) {
-      return '—';
-    }
-    return new Date(value).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+    return formatApiDate(value, 'short');
   }
 
   formatCurrency(amount: number): string {

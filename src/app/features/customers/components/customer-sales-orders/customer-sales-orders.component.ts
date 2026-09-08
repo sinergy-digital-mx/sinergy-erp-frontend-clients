@@ -1,5 +1,6 @@
 import { Component, Input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { MatDialog } from '@angular/material/dialog';
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import { SalesOrder, SalesOrderFilters, PaginationParams } from '../../../sales-orders/models/sales-order.model';
@@ -19,7 +20,7 @@ import { SpinnerComponent } from '../../../../core/components/spinner/spinner.co
 @Component({
   selector: 'app-customer-sales-orders',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, HasPermissionDirective, SpinnerComponent],
+  imports: [CommonModule, ApiDatePipe, ButtonComponent, HasPermissionDirective, SpinnerComponent],
   templateUrl: './customer-sales-orders.component.html',
   styleUrl: './customer-sales-orders.component.scss'
 })

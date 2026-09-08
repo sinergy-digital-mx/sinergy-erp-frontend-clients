@@ -1,3 +1,5 @@
+import { formatApiDate } from '../../../core/utils/api-datetime.util';
+
 export function inventoryLocationLabel(value?: string | null): string {
   const trimmed = value?.trim();
   return trimmed ? trimmed : '—';
@@ -5,12 +7,11 @@ export function inventoryLocationLabel(value?: string | null): string {
 
 export function formatInventoryDate(dateString: string): string {
   if (!dateString) return '-';
-  const d = new Date(dateString);
-  const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-  ];
-  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  const formatted = formatApiDate(dateString, 'human');
+  if (formatted === '—') return '-';
+  const parts = formatted.split(' ');
+  if (parts.length < 3) return formatted;
+  return `${parts[0]} ${parts[1]}, ${parts[2]}`;
 }
 
 export function formatInventoryNumber(value: string | number | undefined): string {

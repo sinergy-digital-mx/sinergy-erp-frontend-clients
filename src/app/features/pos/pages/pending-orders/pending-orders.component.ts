@@ -5,6 +5,7 @@ import { POSService } from '../../services/pos.service';
 import { formatPosMoney } from '../../models/pos-daily-shift.model';
 import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { ToastService } from '../../../../core/services/toast.service';
 
 interface PendingSale {
@@ -73,16 +74,7 @@ export class PendingOrdersComponent implements OnInit {
   }
 
   formatDate(date?: string): string {
-    if (!date) {
-      return '—';
-    }
-    return new Date(date).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatApiDate(date, 'short');
   }
 
   sellerLabel(sale: PendingSale): string {

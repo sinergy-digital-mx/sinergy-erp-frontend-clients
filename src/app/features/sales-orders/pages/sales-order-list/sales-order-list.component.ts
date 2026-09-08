@@ -17,6 +17,7 @@ import { EmptyStageComponent } from '../../../../core/components/empty-stage/emp
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import {
   getSalesOrderListBranchLabel,
   getSalesOrderListCompanyName,
@@ -227,9 +228,8 @@ export class SalesOrderListComponent implements OnInit {
 
   formatDateHuman(date: string | Date): string {
     if (!date) return '';
-    const d = new Date(date);
-    const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+    const formatted = formatApiDate(date, 'human');
+    return formatted === '—' ? '' : formatted;
   }
 
   getOrderTotal(order: SalesOrder): number {

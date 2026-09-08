@@ -13,6 +13,7 @@ import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { QUOTATION_PERMISSIONS } from '../../config/permissions.config';
 import {
   getSalesOrderListBranchLabel,
@@ -222,12 +223,8 @@ export class QuotationListComponent implements OnInit {
 
   formatDateHuman(date: string | Date | undefined): string {
     if (!date) return '';
-    const d = new Date(date);
-    const months = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-    ];
-    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+    const formatted = formatApiDate(date, 'human');
+    return formatted === '—' ? '' : formatted;
   }
 
   getTotal(row: Quotation): number {

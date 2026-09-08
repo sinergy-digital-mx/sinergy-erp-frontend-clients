@@ -1,5 +1,6 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { MatCardModule } from '@angular/material/card';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CustomerActivityService } from '../../services/customer-activity.service';
@@ -10,7 +11,7 @@ import { takeUntil } from 'rxjs/operators';
 @Component({
   selector: 'app-customer-activity-summary',
   standalone: true,
-  imports: [CommonModule, MatCardModule, SpinnerComponent],
+  imports: [CommonModule, ApiDatePipe, MatCardModule, SpinnerComponent],
   template: `<div class="activity-summary">
   <h3>Resumen de Actividades</h3>
 
@@ -32,14 +33,14 @@ import { takeUntil } from 'rxjs/operators';
 
     <mat-card class="summary-card">
       <mat-card-content>
-        <div class="card-value">{{ summary.last_activity_date | date:'mediumDate' }}</div>
+        <div class="card-value">{{ summary.last_activity_date | apiDate:'medium' }}</div>
         <div class="card-label">Última Actividad</div>
       </mat-card-content>
     </mat-card>
 
     <mat-card class="summary-card">
       <mat-card-content>
-        <div class="card-value">{{ summary.next_follow_up | date:'mediumDate' }}</div>
+        <div class="card-value">{{ summary.next_follow_up | apiDate:'medium' }}</div>
         <div class="card-label">Próximo Seguimiento</div>
       </mat-card-content>
     </mat-card>

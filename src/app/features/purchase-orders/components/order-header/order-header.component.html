@@ -28,11 +28,11 @@
     <div class="order-header__row">
       <div class="order-header__field">
         <span class="label">FECHA TENTATIVA DE RECEPCIÓN:</span>
-        <span class="value">{{ order.tentative_receipt_date | date: 'dd/MM/yyyy' }}</span>
+        <span class="value">{{ order.tentative_receipt_date | apiDate: 'date' }}</span>
       </div>
       <div class="order-header__field">
         <span class="label">FECHA DE CREACIÓN:</span>
-        <span class="value">{{ order.created_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+        <span class="value">{{ order.created_at | apiDate: 'datetime' }}</span>
       </div>
     </div>
 

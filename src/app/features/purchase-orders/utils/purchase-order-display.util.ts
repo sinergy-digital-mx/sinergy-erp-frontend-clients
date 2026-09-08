@@ -3,6 +3,7 @@ import { PurchaseOrder } from '../models/purchase-order.model';
 import { formatTitleCase } from '../../sales-orders/utils/sales-order-display.util';
 
 export const PEDIMENTO_MAX_LENGTH = 30;
+export const VENDOR_INVOICE_MAX_LENGTH = 60;
 
 export function parsePurchaseOrderDecimal(value: number | string | null | undefined): number {
   if (value === null || value === undefined || value === '') {
@@ -41,6 +42,11 @@ export function formatPedimentoDisplay(value?: string | null): string {
   return trimmed || 'Sin pedimento';
 }
 
+export function formatVendorInvoiceDisplay(value?: string | null): string {
+  const trimmed = value?.trim() ?? '';
+  return trimmed || 'Sin factura de proveedor';
+}
+
 export function getPurchaseOrderListFiscalLabel(order: PurchaseOrder): string {
   const label =
     order.razon_social ??
@@ -55,6 +61,29 @@ export function getPurchaseOrderListBranchLabel(order: PurchaseOrder): string {
     return '—';
   }
   return formatTitleCase(label.trim());
+}
+
+export function formatVendorPickerLabel(vendor: {
+  name?: string | null;
+  company_name?: string | null;
+  razon_social?: string | null;
+  rfc?: string | null;
+} | null | undefined): string {
+  if (!vendor) {
+    return '';
+  }
+  const name = (vendor.name || vendor.company_name || vendor.razon_social || '').trim();
+  const rfc = (vendor.rfc || '').trim();
+  if (!name && !rfc) {
+    return '';
+  }
+  return rfc ? `${name} (${rfc})` : name;
+}
+
+export function sortVendorsByLabel<T>(vendors: T[], label: (vendor: T) => string): T[] {
+  return [...vendors].sort((left, right) =>
+    label(left).localeCompare(label(right), 'es', { sensitivity: 'base', numeric: true }),
+  );
 }
 
 export function getPurchaseOrderListWarehouseLabel(order: PurchaseOrder): string {

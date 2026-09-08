@@ -34,7 +34,7 @@
           <tbody>
             @for (row of emails(); track row.id) {
               <tr>
-                <td>{{ row.sent_at | date: 'short' }}</td>
+                <td>{{ row.sent_at | apiDate: 'short' }}</td>
                 <td>{{ row.to_email }}</td>
                 <td>{{ row.cc?.length ? row.cc.join(', ') : '—' }}</td>
                 <td>{{ row.subject }}</td>

@@ -88,6 +88,8 @@ export interface InventoryBatch {
   purchase_order_folio: string | null;
   /** Pedimento de la OC de origen. null si no hay OC o la OC no tiene pedimento. */
   pedimento_number?: string | null;
+  /** Factura del proveedor de la OC de origen. */
+  vendor_invoice_number?: string | null;
   payment_currency?: 'MXN' | 'USD' | null;
   unit_cost?: number | string | null;
   real_unit_cost_usd?: number | string | null;

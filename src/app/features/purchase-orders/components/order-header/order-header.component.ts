@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { PurchaseOrder, OrderStatus } from '../../models/purchase-order.model';
 
 /**
@@ -9,7 +10,7 @@ import { PurchaseOrder, OrderStatus } from '../../models/purchase-order.model';
 @Component({
   selector: 'app-order-header',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ApiDatePipe],
   templateUrl: './order-header.component.html',
   styleUrls: ['./order-header.component.scss']
 })

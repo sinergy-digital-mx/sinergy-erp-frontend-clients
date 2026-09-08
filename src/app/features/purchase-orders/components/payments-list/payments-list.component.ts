@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { Payment } from '../../models/payment.model';
 
 /**
@@ -36,12 +37,7 @@ export class PaymentsListComponent {
    * Format date to Spanish locale
    */
   formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return formatApiDate(dateString, 'medium');
   }
 
   /**

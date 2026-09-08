@@ -15,6 +15,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { ToastService } from '../../../../core/services/toast.service';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 import { TransferLocationView } from '../../utils/transfer-location.util';
 import {
@@ -407,14 +408,7 @@ export class AuditDetailDialogComponent implements OnInit {
   }
 
   formatDate(value?: string | null): string {
-    if (!value) return '—';
-    return new Date(value).toLocaleString('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatApiDate(value, 'datetime');
   }
 
   close(): void {

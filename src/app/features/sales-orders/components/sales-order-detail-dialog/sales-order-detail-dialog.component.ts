@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { SalesOrderService } from '../../services/sales-order.service';
 import {
   SalesDocumentLanguage,
@@ -97,6 +99,7 @@ import { AddSalesOrderLineDialogComponent } from '../add-sales-order-line-dialog
     CommonModule,
     MatDialogModule,
     RemoveTrailingZerosPipe,
+    ApiDatePipe,
     SpinnerComponent,
     SalesOrderInvoicingTabComponent,
     SalesOrderInvoiceEmailTabComponent,
@@ -550,17 +553,11 @@ export class SalesOrderDetailDialogComponent {
   }
 
   formatLongDate(value?: string | null): string {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+    return formatApiDate(value, 'long');
   }
 
   formatShortDate(value?: string | null): string {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+    return formatApiDate(value, 'month-day');
   }
 
   hasLineDiscount(): boolean {
@@ -1193,10 +1190,7 @@ export class SalesOrderDetailDialogComponent {
   }
 
   formatPosCollectedAt(value?: string | null): string {
-    if (!value) {
-      return '—';
-    }
-    return new Date(value).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+    return formatApiDate(value, 'short');
   }
 
   isPosOrder(): boolean {
@@ -1602,12 +1596,7 @@ export class SalesOrderDetailDialogComponent {
   }
 
   formatDocumentDate(dateString?: string | null): string {
-    if (!dateString) return '—';
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) return dateString;
-    const day = date.getDate();
-    const month = date.toLocaleString('es-ES', { month: 'long' });
-    return `${day} de ${month}`;
+    return formatApiDate(dateString, 'month-day');
   }
 
   downloadDocument(doc: SalesOrderDocument): void {

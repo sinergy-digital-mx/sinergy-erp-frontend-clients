@@ -28,6 +28,7 @@ import {
 } from '../../../pos/components/close-daily-shift-dialog/close-daily-shift-dialog.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 
 export interface PosDailyShiftDetailModalResult {
@@ -124,17 +125,7 @@ export class PosDailyShiftDetailModalComponent {
   }
 
   formatPartialDate(value?: string): string {
-    if (!value) {
-      return '—';
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-    return new Intl.DateTimeFormat('es-MX', {
-      dateStyle: 'short',
-      timeStyle: 'short',
-    }).format(date);
+    return formatApiDate(value, 'short');
   }
 
   closeDailyShift(): void {

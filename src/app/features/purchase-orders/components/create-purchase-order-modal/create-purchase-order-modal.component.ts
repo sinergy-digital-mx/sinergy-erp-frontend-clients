@@ -19,7 +19,13 @@ import { Branch } from '../../../../features/settings/models/branch.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ProductDetailModalComponent } from '../../../../features/settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
-import { catalogInputNumber, PEDIMENTO_MAX_LENGTH } from '../../utils/purchase-order-display.util';
+import {
+  catalogInputNumber,
+  formatVendorPickerLabel,
+  PEDIMENTO_MAX_LENGTH,
+  sortVendorsByLabel,
+  VENDOR_INVOICE_MAX_LENGTH,
+} from '../../utils/purchase-order-display.util';
 import { VendorCatalogProduct, VendorCatalogUom } from '../../models/vendor-catalog.model';
 import {
   VendorCostCurrency,
@@ -84,6 +90,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   readonly Plus = Plus;
   readonly ChevronDown = ChevronDown;
   readonly pedimentoMaxLength = PEDIMENTO_MAX_LENGTH;
+  readonly vendorInvoiceMaxLength = VENDOR_INVOICE_MAX_LENGTH;
   selectedVendor: (Vendor & { display_name?: string }) | null = null;
 
   constructor(
@@ -108,6 +115,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       expected_delivery_date: ['', Validators.required],
       payment_status: ['Pendiente', Validators.required],
       pedimento_number: ['', [Validators.maxLength(PEDIMENTO_MAX_LENGTH)]],
+      vendor_invoice_number: ['', [Validators.maxLength(VENDOR_INVOICE_MAX_LENGTH)]],
       notes: ['']
     });
   }
@@ -210,10 +218,13 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     this.loadingVendors = true;
     this.vendorService.getAllActiveVendors().subscribe({
       next: (vendors) => {
-        this.vendorOptions = vendors.map((vendor) => ({
-          ...vendor,
-          display_name: this.formatVendorLabel(vendor),
-        }));
+        this.vendorOptions = sortVendorsByLabel(
+          vendors.map((vendor) => ({
+            ...vendor,
+            display_name: this.formatVendorLabel(vendor),
+          })),
+          (vendor) => vendor.display_name || '',
+        );
         this.filteredVendors = this.filterVendorsLocally(this.currentVendorSearchTerm());
         this.loadingVendors = false;
         this.cdr.detectChanges();
@@ -380,7 +391,10 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     this.form.patchValue(patch, { emitEvent: false });
     const exists = this.vendorOptions.some((row) => row.id === vendor.id);
     if (!exists) {
-      this.vendorOptions = [this.selectedVendor, ...this.vendorOptions];
+      this.vendorOptions = sortVendorsByLabel(
+        [this.selectedVendor, ...this.vendorOptions],
+        (row) => row.display_name || '',
+      );
     }
     this.filteredVendors = this.filterVendorsLocally('');
     if (reloadProducts) {
@@ -390,10 +404,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   }
 
   private formatVendorLabel(vendor: any): string {
-    if (!vendor) return '';
-    const name = (vendor.name || '').trim();
-    const rfc = (vendor.rfc || '').trim();
-    return rfc ? `${name} (${rfc})` : name;
+    return formatVendorPickerLabel(vendor);
   }
 
   get filteredProductsForModal(): VendorCatalogProduct[] {
@@ -755,6 +766,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       const pedimento = String(fv.pedimento_number || '').trim();
       payload.pedimento_number = pedimento || null;
     }
+    const vendorInvoice = String(fv.vendor_invoice_number || '').trim();
+    payload.vendor_invoice_number = vendorInvoice || null;
 
     this.purchaseOrderService.createOrder(payload).subscribe({
       next: (order) => {

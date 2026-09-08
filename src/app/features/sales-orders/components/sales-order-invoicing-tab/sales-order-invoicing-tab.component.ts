@@ -10,6 +10,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { ELECTRONIC_INVOICING_PERMISSIONS } from '../../config/electronic-invoicing-permissions.config';
 import {
   FinkokConfigurationsResponse,
@@ -476,9 +477,7 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   }
 
   formatDate(value?: string | null): string {
-    if (!value) return '—';
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? value : d.toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+    return formatApiDate(value, 'short');
   }
 
   getSeriesFolio(invoice: SalesOrderElectronicInvoice): string {

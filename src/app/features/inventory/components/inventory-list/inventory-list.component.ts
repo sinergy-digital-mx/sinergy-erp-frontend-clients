@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, computed, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { Router, ActivatedRoute } from '@angular/router';
 import { InventoryService } from '../../services/inventory.service';
 import { WarehouseService } from '../../../purchase-orders/services/warehouse.service';
@@ -12,7 +13,7 @@ import { EmptyStageComponent } from '../../../../core/components/empty-stage/emp
 @Component({
   selector: 'app-inventory-list',
   standalone: true,
-  imports: [CommonModule, SpinnerComponent, EmptyStageComponent],
+  imports: [CommonModule, ApiDatePipe, SpinnerComponent, EmptyStageComponent],
   templateUrl: './inventory-list.component.html',
   styleUrls: ['./inventory-list.component.scss']
 })

@@ -1,1 +1,24 @@
 @use '../../../../../base/filter-bar';
+
+.filter-bar__field--vendor {
+  min-width: 220px;
+}
+
+.vendor-picker {
+  position: relative;
+  min-width: 0;
+}
+
+.vendor-picker__input {
+  width: 100%;
+  padding-right: 2.25rem;
+}
+
+.vendor-picker__chevron {
+  position: absolute;
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  pointer-events: none;
+}

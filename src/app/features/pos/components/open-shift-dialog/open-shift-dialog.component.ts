@@ -20,6 +20,7 @@ import {
   PosConfigurationListResponse,
 } from '../../../settings/models/pos-equipment.model';
 import { POSService } from '../../services/pos.service';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import {
   OpenShiftDialogResult,
   PosSession,
@@ -281,16 +282,7 @@ export class OpenShiftDialogComponent implements OnInit {
   }
 
   formatOpenedAt(value?: string): string {
-    if (!value) {
-      return '—';
-    }
-    return new Date(value).toLocaleString('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatApiDate(value, 'datetime');
   }
 
   onConfirmOpen(): void {

@@ -1,3 +1,5 @@
+import { formatApiDate } from '../../../core/utils/api-datetime.util';
+
 export interface PosSessionUser {
   id: string;
   first_name?: string;
@@ -157,14 +159,5 @@ export function resolveSessionBranchLabel(
 }
 
 export function formatPosDateTime(value?: string): string {
-  if (!value) {
-    return '—';
-  }
-  return new Date(value).toLocaleString('es-MX', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatApiDate(value, 'datetime');
 }

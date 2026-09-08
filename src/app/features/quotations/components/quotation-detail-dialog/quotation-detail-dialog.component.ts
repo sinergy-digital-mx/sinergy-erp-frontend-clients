@@ -16,6 +16,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { QUOTATION_PERMISSIONS } from '../../config/permissions.config';
 import {
   formatTitleCase,
@@ -139,10 +140,7 @@ export class QuotationDetailDialogComponent implements OnInit {
   }
 
   formatShortDate(value?: string | null): string {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+    return formatApiDate(value, 'month-day');
   }
 
   getStatusBadgeClass(): string {
@@ -474,12 +472,7 @@ export class QuotationDetailDialogComponent implements OnInit {
   }
 
   formatDocumentDate(dateString?: string | null): string {
-    if (!dateString) return '—';
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) return dateString;
-    const day = date.getDate();
-    const month = date.toLocaleString('es-ES', { month: 'long' });
-    return `${day} de ${month}`;
+    return formatApiDate(dateString, 'month-day');
   }
 
   downloadDocument(doc: QuotationDocument): void {

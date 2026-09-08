@@ -22,7 +22,7 @@
       <div class="summary-card">
         <span class="summary-value summary-value--sm">
           @if (summary()!.last_activity_date) {
-            {{ summary()!.last_activity_date | date:'mediumDate' }}
+            {{ summary()!.last_activity_date | apiDate:'medium' }}
           } @else {
             —
           }
@@ -32,7 +32,7 @@
       <div class="summary-card">
         <span class="summary-value summary-value--sm">
           @if (summary()!.next_follow_up) {
-            {{ summary()!.next_follow_up | date:'mediumDate' }}
+            {{ summary()!.next_follow_up | apiDate:'medium' }}
           } @else {
             —
           }
@@ -113,7 +113,7 @@
                 <span [ngClass]="getStatusClass(activity.status)">{{ getStatusLabel(activity.status) }}</span>
               </td>
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                {{ activity.activity_date | date:'medium' }}
+                {{ activity.activity_date | apiDate:'medium' }}
               </td>
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                 @if (activity.duration_minutes) {

@@ -1,7 +1,9 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
+import { LucideAngularModule, ChevronDown } from 'lucide-angular';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { OrderFilters } from '../../models/filters.model';
 import { OrderStatus, PaymentStatus } from '../../models/purchase-order.model';
@@ -13,6 +15,7 @@ import { FiscalConfiguration } from '../../../settings/models/fiscal-configurati
 import { Branch } from '../../../settings/models/branch.model';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { Vendor } from '../../../settings/models/vendor.model';
+import { formatVendorPickerLabel, sortVendorsByLabel } from '../../utils/purchase-order-display.util';
 
 @Component({
   selector: 'app-filter-bar',
@@ -20,6 +23,8 @@ import { Vendor } from '../../../settings/models/vendor.model';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    MatAutocompleteModule,
+    LucideAngularModule,
     FilterClearButtonComponent
   ],
   templateUrl: './filter-bar.component.html',
@@ -39,6 +44,7 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   statusControl = new FormControl<string>('', { nonNullable: true });
   paymentStatusControl = new FormControl<string>('', { nonNullable: true });
   vendorControl = new FormControl<string>('', { nonNullable: true });
+  vendorSearchControl = new FormControl<string>('', { nonNullable: true });
   fiscalConfigurationControl = new FormControl<string>('', { nonNullable: true });
   billingBranchControl = new FormControl<string>('', { nonNullable: true });
   warehouseControl = new FormControl<string>('', { nonNullable: true });
@@ -47,6 +53,9 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   branches: Branch[] = [];
   warehouses: Warehouse[] = [];
   vendors: Vendor[] = [];
+  filteredVendors: Vendor[] = [];
+  readonly allVendorsOption = { id: '' } as Vendor;
+  readonly ChevronDown = ChevronDown;
 
   dateRangeOptions = [
     { label: 'Hoy', value: 'today' },
@@ -87,6 +96,7 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
       this.statusControl.value ||
       this.paymentStatusControl.value ||
       this.vendorControl.value ||
+      this.vendorSearchControl.value.trim() ||
       this.fiscalConfigurationControl.value ||
       this.billingBranchControl.value ||
       this.warehouseControl.value
@@ -137,6 +147,15 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.emitFilters());
 
+    this.vendorSearchControl.valueChanges
+      .pipe(debounceTime(120), takeUntil(this.destroy$))
+      .subscribe((value) => {
+        if (value && typeof value !== 'string') {
+          return;
+        }
+        this.onVendorSearchChange(value);
+      });
+
     this.fiscalConfigurationControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.onFiscalConfigurationChange());
@@ -161,7 +180,40 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   vendorLabel(vendor: Vendor): string {
-    return vendor.company_name?.trim() || vendor.name?.trim() || vendor.razon_social?.trim() || '—';
+    return formatVendorPickerLabel(vendor) || '—';
+  }
+
+  displayVendor = (vendor: Vendor | string | null): string => {
+    if (!vendor) {
+      return '';
+    }
+    if (typeof vendor === 'string') {
+      return vendor;
+    }
+    if (!vendor.id) {
+      return '';
+    }
+    return this.vendorLabel(vendor);
+  };
+
+  currentVendorSearchTerm(): string {
+    return this.vendorSearchControl.value.trim().toLowerCase();
+  }
+
+  onVendorSearchFocus(): void {
+    const selected = this.vendors.find((vendor) => vendor.id === this.vendorControl.value);
+    this.filteredVendors = this.filterVendorsLocally(selected ? '' : this.currentVendorSearchTerm());
+  }
+
+  onVendorSelected(vendor: Vendor | null): void {
+    if (!vendor?.id) {
+      this.vendorControl.setValue('');
+      this.vendorSearchControl.setValue('', { emitEvent: false });
+      this.filteredVendors = this.vendors;
+      return;
+    }
+    this.vendorControl.setValue(vendor.id);
+    this.vendorSearchControl.setValue(this.vendorLabel(vendor), { emitEvent: false });
   }
 
   onDateRangeChange(value: string): void {
@@ -221,6 +273,8 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     this.statusControl.setValue('', { emitEvent: false });
     this.paymentStatusControl.setValue('', { emitEvent: false });
     this.vendorControl.setValue('', { emitEvent: false });
+    this.vendorSearchControl.setValue('', { emitEvent: false });
+    this.filteredVendors = this.vendors;
     this.fiscalConfigurationControl.setValue('', { emitEvent: false });
     this.billingBranchControl.setValue('', { emitEvent: false });
     this.warehouseControl.setValue('', { emitEvent: false });
@@ -314,11 +368,14 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   private loadVendors(): void {
     this.vendorService.getAllActiveVendors().subscribe({
       next: (vendors) => {
-        this.vendors = vendors;
+        this.vendors = sortVendorsByLabel(vendors, (vendor) => formatVendorPickerLabel(vendor));
+        this.filteredVendors = this.filterVendorsLocally(this.currentVendorSearchTerm());
+        this.syncVendorSearchFromSelection();
         this.cdr.detectChanges();
       },
       error: () => {
         this.vendors = [];
+        this.filteredVendors = [];
         this.cdr.detectChanges();
       },
     });
@@ -401,6 +458,41 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     this.filtersChange.emit(filters);
+  }
+
+  private onVendorSearchChange(value: string): void {
+    const term = (value ?? '').trim();
+    const selected = this.vendors.find((vendor) => vendor.id === this.vendorControl.value);
+    if (selected && term !== this.vendorLabel(selected)) {
+      this.vendorControl.setValue('');
+    }
+    if (!term && this.vendorControl.value) {
+      this.vendorControl.setValue('');
+    }
+    this.filteredVendors = this.filterVendorsLocally(term);
+    this.cdr.detectChanges();
+  }
+
+  private filterVendorsLocally(term: string): Vendor[] {
+    const query = term.trim().toLowerCase();
+    if (!query) {
+      return this.vendors;
+    }
+    return this.vendors.filter((vendor) => {
+      const haystack = `${this.vendorLabel(vendor)} ${vendor.name || ''} ${vendor.company_name || ''} ${vendor.rfc || ''}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }
+
+  private syncVendorSearchFromSelection(): void {
+    const selected = this.vendors.find((vendor) => vendor.id === this.vendorControl.value);
+    if (!selected) {
+      return;
+    }
+    const label = this.vendorLabel(selected);
+    if (this.vendorSearchControl.value !== label) {
+      this.vendorSearchControl.setValue(label, { emitEvent: false });
+    }
   }
 
   private toQueryValue(value: string | null | undefined): string | undefined {

@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { POSService } from '../../services/pos.service';
 
 export interface CloseShiftDialogData {
@@ -137,13 +138,7 @@ export class CloseShiftDialogComponent implements OnInit {
   }
 
   formatDate(date: string): string {
-    return new Date(date).toLocaleString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatApiDate(date, 'short');
   }
 
   get openingCash(): number {

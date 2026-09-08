@@ -122,6 +122,7 @@ export interface WritePurchaseOrderDto {
   notes?: string;
   /** Solo si el proveedor es internacional. No enviar en compras nacionales. */
   pedimento_number?: string | null;
+  vendor_invoice_number?: string | null;
   line_items: PurchaseOrderApiLineItem[];
 }
 

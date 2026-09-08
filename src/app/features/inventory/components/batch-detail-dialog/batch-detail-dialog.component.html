@@ -127,6 +127,18 @@
               </div>
             </div>
           }
+
+          @if (vendorInvoiceNumber) {
+            <div class="info-card info-card--code info-card--vendor-invoice">
+              <div class="info-card__icon">
+                <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
+              </div>
+              <div class="info-card__content">
+                <span class="info-card__label">NO. FACTURA DE PROVEEDOR</span>
+                <span class="info-card__value">{{ formatVendorInvoice(vendorInvoiceNumber) }}</span>
+              </div>
+            </div>
+          }
         </div>
 
         @if (showCostsCard) {

@@ -4,6 +4,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { InventoryTransferService } from '../../services/inventory-transfer.service';
 import { InventoryTransfer } from '../../models/inventory-transfer.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
 import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
@@ -95,15 +96,7 @@ export class TransferDetailDialogComponent implements OnInit {
   }
 
   formatDate(dateString: string): string {
-    if (!dateString) return '-';
-    const d = new Date(dateString);
-    return d.toLocaleDateString('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatApiDate(dateString, 'datetime');
   }
 
   openBatchDetail(batchId: string | undefined, event: Event): void {

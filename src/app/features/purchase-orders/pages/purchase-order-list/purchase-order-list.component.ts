@@ -28,6 +28,7 @@ import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detai
 import { CreatePurchaseOrderModalComponent } from '../../components/create-purchase-order-modal/create-purchase-order-modal.component';
 import { PurchaseOrderExportDialogComponent } from '../../components/purchase-order-export-dialog/purchase-order-export-dialog.component';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 
 @Component({
   selector: 'app-purchase-order-list',
@@ -344,9 +345,8 @@ export class PurchaseOrderListComponent implements OnInit {
    */
   formatDateHuman(date: string | Date): string {
     if (!date) return '';
-    const d = new Date(date);
-    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+    const formatted = formatApiDate(date, 'human');
+    return formatted === '—' ? '' : formatted;
   }
 
   /**

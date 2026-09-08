@@ -15,6 +15,7 @@ import { DatatableWrapperComponent } from '../../../../core/components/datatable
 import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { ArrowLeft, Eye, ListFilter } from 'lucide-angular';
@@ -335,11 +336,6 @@ export class AuditListComponent implements OnInit {
   }
 
   formatDate(value?: string | null): string {
-    if (!value) return '—';
-    return new Date(value).toLocaleDateString('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    return formatApiDate(value, 'date');
   }
 }

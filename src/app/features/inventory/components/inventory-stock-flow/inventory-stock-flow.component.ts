@@ -14,6 +14,7 @@ import { PaginationComponent } from '../../../../core/components/pagination/pagi
 import { BackButtonComponent } from '../../../rbac-tenant-ui/components/back-button/back-button.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { VendorService } from '../../../settings/services/vendor.service';
@@ -466,23 +467,10 @@ export class InventoryStockFlowComponent implements OnInit {
 
   formatDate(iso: string, calendarDay = false): string {
     if (calendarDay) {
-      const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-      if (match) {
-        const d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-        return d.toLocaleDateString('es-MX', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-        });
-      }
+      const match = /^(\d{4}-\d{2}-\d{2})/.exec(iso);
+      return formatApiDate(match?.[1] ?? iso, 'date');
     }
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    return formatApiDate(iso, 'date');
   }
 
   private get selectedVendorLabel(): string {

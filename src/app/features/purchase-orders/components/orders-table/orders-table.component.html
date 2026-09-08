@@ -40,7 +40,7 @@
             </span>
           </td>
           <td role="cell" data-label="FECHA CREACIÓN" class="hide-on-tablet">
-            {{ order.created_at | date: 'dd/MM/yyyy' }}
+            {{ order.created_at | apiDate: 'date' }}
           </td>
         </tr>
         <tr *ngIf="orders.length === 0 && !loading" role="row">
@@ -100,7 +100,7 @@
         </div>
         <div class="order-card__row">
           <span class="label">FECHA:</span>
-          <span class="value">{{ order.created_at | date: 'dd/MM/yyyy' }}</span>
+          <span class="value">{{ order.created_at | apiDate: 'date' }}</span>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { Component, Input, OnChanges, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { MatDialog } from '@angular/material/dialog';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -28,7 +29,7 @@ import {
 @Component({
   selector: 'app-customer-activities',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, LucideAngularModule, SpinnerComponent],
+  imports: [CommonModule, ApiDatePipe, ButtonComponent, LucideAngularModule, SpinnerComponent],
   templateUrl: './customer-activities.component.html',
   styleUrl: './customer-activities.component.scss',
 })

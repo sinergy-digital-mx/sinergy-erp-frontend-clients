@@ -6,9 +6,9 @@
         type="text"
         id="search"
         [formControl]="searchControl"
-        placeholder="Folio, proveedor o pedimento"
+        placeholder="Folio, proveedor, pedimento o factura"
         class="filter-bar__input"
-        aria-label="Buscar órdenes por folio, proveedor o pedimento"
+        aria-label="Buscar órdenes por folio, proveedor, pedimento o factura"
       />
     </div>
 
@@ -81,18 +81,34 @@
     </div>
 
     <!-- Proveedor -->
-    <div class="filter-bar__field">
-      <select
-        id="vendor"
-        [formControl]="vendorControl"
-        class="filter-bar__select"
-        aria-label="Filtrar por proveedor"
-      >
-        <option value="">Todos los proveedores</option>
-        @for (vendor of vendors; track vendor.id) {
-          <option [value]="vendor.id">{{ vendorLabel(vendor) }}</option>
+    <div class="filter-bar__field filter-bar__field--vendor">
+      <div class="vendor-picker">
+        <input
+          type="text"
+          id="vendor"
+          class="filter-bar__input vendor-picker__input"
+          [formControl]="vendorSearchControl"
+          placeholder="Todos los proveedores"
+          [matAutocomplete]="autoVendor"
+          (focus)="onVendorSearchFocus()"
+          aria-label="Filtrar por proveedor"
+        />
+        <lucide-icon [img]="ChevronDown" [size]="16" class="vendor-picker__chevron"></lucide-icon>
+      </div>
+      <mat-autocomplete
+        #autoVendor="matAutocomplete"
+        [displayWith]="displayVendor"
+        (optionSelected)="onVendorSelected($event.option.value)">
+        @if (!currentVendorSearchTerm() || vendorControl.value) {
+          <mat-option [value]="allVendorsOption">Todos los proveedores</mat-option>
         }
-      </select>
+        @for (vendor of filteredVendors; track vendor.id) {
+          <mat-option [value]="vendor">{{ vendorLabel(vendor) }}</mat-option>
+        }
+        @if (filteredVendors.length === 0 && currentVendorSearchTerm() && !vendorControl.value) {
+          <mat-option disabled>No se encontraron proveedores</mat-option>
+        }
+      </mat-autocomplete>
     </div>
 
     <!-- Razón social -->

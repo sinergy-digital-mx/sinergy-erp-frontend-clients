@@ -1,5 +1,6 @@
 import { Component, Input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { MatDialog } from '@angular/material/dialog';
 import { CustomerDocumentService } from '../../services/customer-document.service';
 import { CustomerDocument, DocumentStatus } from '../../models/customer-document.model';
@@ -14,6 +15,7 @@ import { SpinnerComponent } from '../../../../core/components/spinner/spinner.co
   standalone: true,
   imports: [
     CommonModule,
+    ApiDatePipe,
     ButtonComponent,
     LucideAngularModule,
     SpinnerComponent,

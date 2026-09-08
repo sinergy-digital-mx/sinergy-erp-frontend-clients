@@ -131,6 +131,16 @@
           </div>
         }
 
+        <div class="form-field form-field--full">
+          <label class="form-label">NO. FACTURA DE PROVEEDOR</label>
+          <input
+            type="text"
+            class="form-input"
+            formControlName="vendor_invoice_number"
+            placeholder="No. factura de proveedor"
+            [attr.maxlength]="vendorInvoiceMaxLength">
+        </div>
+
         <!-- Notes -->
         <div class="form-field form-field--full">
           <label class="form-label">NOTAS</label>

@@ -17,6 +17,7 @@ import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfe
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
 import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { ArrowLeft, Download, Eye, ListFilter } from 'lucide-angular';
@@ -365,9 +366,7 @@ export class TransferListComponent implements OnInit {
   }
 
   formatDate(dateString: string): string {
-    if (!dateString) return '-';
-    const d = new Date(dateString);
-    return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return formatApiDate(dateString, 'date');
   }
 
   fiscalLabel(fiscal: InventoryLocationFiscal): string {

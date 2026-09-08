@@ -1,5 +1,6 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
@@ -19,6 +20,7 @@ import { takeUntil } from 'rxjs/operators';
   standalone: true,
   imports: [
     CommonModule,
+    ApiDatePipe,
     MatTableModule,
     MatPaginatorModule,
     MatButtonModule,
@@ -73,7 +75,7 @@ import { takeUntil } from 'rxjs/operators';
     <!-- Date Column -->
     <ng-container matColumnDef="activity_date">
       <th mat-header-cell *matHeaderCellDef>Fecha</th>
-      <td mat-cell *matCellDef="let element">{{ element.activity_date | date:'mediumDate' }}</td>
+      <td mat-cell *matCellDef="let element">{{ element.activity_date | apiDate:'medium' }}</td>
     </ng-container>
 
     <!-- Duration Column -->

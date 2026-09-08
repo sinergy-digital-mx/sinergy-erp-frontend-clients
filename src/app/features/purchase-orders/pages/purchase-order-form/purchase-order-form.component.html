@@ -66,6 +66,17 @@
             </div>
           }
 
+          <div class="form-field full-width">
+            <label for="vendor-invoice">No. Factura de Proveedor</label>
+            <input
+              type="text"
+              id="vendor-invoice"
+              formControlName="vendor_invoice_number"
+              placeholder="No. factura de proveedor"
+              [attr.maxlength]="vendorInvoiceMaxLength"
+            />
+          </div>
+
           <div class="form-field">
             <label for="warehouse">Almacén *</label>
             <select id="warehouse" formControlName="warehouse_id">

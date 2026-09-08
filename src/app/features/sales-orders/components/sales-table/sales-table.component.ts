@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { Customer, SalesOrder } from '../../models/sales-order.model';
 import { getCustomerDisplayName } from '../../utils/customer-display.util';
@@ -7,7 +8,7 @@ import { getCustomerDisplayName } from '../../utils/customer-display.util';
 @Component({
   selector: 'app-sales-table',
   standalone: true,
-  imports: [CommonModule, SpinnerComponent],
+  imports: [CommonModule, SpinnerComponent, ApiDatePipe],
   templateUrl: './sales-table.component.html',
   styleUrls: ['./sales-table.component.scss']
 })

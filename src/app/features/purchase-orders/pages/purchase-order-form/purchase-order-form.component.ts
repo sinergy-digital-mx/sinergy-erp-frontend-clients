@@ -25,7 +25,14 @@ import {
 } from '../../models/filters.model';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { validateQuantity, validatePrice, validateTaxPercentage, getErrorMessage } from '../../utils/order-validators';
-import { catalogInputNumber, isInternationalPurchaseOrder, PEDIMENTO_MAX_LENGTH } from '../../utils/purchase-order-display.util';
+import {
+  catalogInputNumber,
+  formatVendorPickerLabel,
+  isInternationalPurchaseOrder,
+  PEDIMENTO_MAX_LENGTH,
+  sortVendorsByLabel,
+  VENDOR_INVOICE_MAX_LENGTH,
+} from '../../utils/purchase-order-display.util';
 import {
   VendorCostCurrency,
   currencyMismatchMessage,
@@ -50,6 +57,7 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
   loadedOrderFolio = signal<string | null>(null);
   loadedOrder = signal<PurchaseOrder | null>(null);
   readonly pedimentoMaxLength = PEDIMENTO_MAX_LENGTH;
+  readonly vendorInvoiceMaxLength = VENDOR_INVOICE_MAX_LENGTH;
 
   vendors = signal<Vendor[]>([]);
   fiscalConfigurations = signal<FiscalConfiguration[]>([]);
@@ -121,6 +129,7 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       ],
       payment_status: [this.paymentStatusToForm(order?.payment_status)],
       pedimento_number: [order?.pedimento_number ?? '', [Validators.maxLength(PEDIMENTO_MAX_LENGTH)]],
+      vendor_invoice_number: [order?.vendor_invoice_number ?? '', [Validators.maxLength(VENDOR_INVOICE_MAX_LENGTH)]],
       line_items: this.fb.array([], Validators.minLength(1))
     });
 
@@ -217,7 +226,7 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
   loadDropdownData(): void {
     this.vendorService.getAllActiveVendors().subscribe({
       next: (vendors) => {
-        this.vendors.set(vendors);
+        this.vendors.set(sortVendorsByLabel(vendors, (vendor) => formatVendorPickerLabel(vendor)));
       },
       error: (error) => console.error('Error loading vendors:', error)
     });
@@ -461,6 +470,10 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       const pedimento = String(rawForm.pedimento_number || '').trim();
       body.pedimento_number = pedimento || null;
     }
+    const vendorInvoice = String(
+      (this.orderForm!.getRawValue() as { vendor_invoice_number?: string }).vendor_invoice_number || '',
+    ).trim();
+    body.vendor_invoice_number = vendorInvoice || null;
 
     return body;
   }

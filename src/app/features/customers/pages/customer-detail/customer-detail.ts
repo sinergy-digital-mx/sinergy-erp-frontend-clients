@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, signal, NO_ERRORS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import { MatCardModule } from '@angular/material/card';
@@ -51,6 +52,7 @@ import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
   schemas: [NO_ERRORS_SCHEMA],
   imports: [
     CommonModule,
+    ApiDatePipe,
     FormsModule,
     TagModule,
     MatCardModule,

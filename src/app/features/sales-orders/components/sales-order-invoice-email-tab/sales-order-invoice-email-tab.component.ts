@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
@@ -11,7 +12,7 @@ import { SalesOrderInvoiceEmailTemplateEditorComponent } from '../sales-order-in
 @Component({
   selector: 'app-sales-order-invoice-email-tab',
   standalone: true,
-  imports: [CommonModule, SalesOrderInvoiceEmailTemplateEditorComponent],
+  imports: [CommonModule, ApiDatePipe, SalesOrderInvoiceEmailTemplateEditorComponent],
   templateUrl: './sales-order-invoice-email-tab.component.html',
   styleUrl: './sales-order-invoice-email-tab.component.scss',
 })

@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { Document, DocumentLanguage, DocumentType, PurchaseOrder } from '../../models/purchase-order.model';
 import { purchaseOrderReceivedLots } from '../../models/purchase-order-lot.model';
@@ -40,6 +42,7 @@ import { formatTitleCase } from '../../../sales-orders/utils/sales-order-display
 import {
   formatPedimentoDisplay,
   formatPurchaseOrderUnitCost,
+  formatVendorInvoiceDisplay,
   isInternationalPurchaseOrder,
   parsePurchaseOrderDecimal,
 } from '../../utils/purchase-order-display.util';
@@ -47,6 +50,10 @@ import {
   PurchaseOrderPedimentoDialogComponent,
   PurchaseOrderPedimentoDialogResult,
 } from '../purchase-order-pedimento-dialog/purchase-order-pedimento-dialog.component';
+import {
+  PurchaseOrderVendorInvoiceDialogComponent,
+  PurchaseOrderVendorInvoiceDialogResult,
+} from '../purchase-order-vendor-invoice-dialog/purchase-order-vendor-invoice-dialog.component';
 
 @Component({
   selector: 'app-order-detail-dialog',
@@ -57,6 +64,7 @@ import {
     FormsModule,
     MatDialogModule,
     RemoveTrailingZerosPipe,
+    ApiDatePipe,
     SpinnerComponent,
     PurchaseOrderLotsTabComponent,
     PurchaseOrderRealCostTabComponent,
@@ -136,6 +144,11 @@ export class OrderDetailDialogComponent {
     if (!this.isInternationalVendor()) {
       return false;
     }
+    const status = this.order()?.general_status ?? this.order()?.status ?? '';
+    return status === 'Creada' || status === 'Recibida';
+  });
+
+  canEditVendorInvoice = computed(() => {
     const status = this.order()?.general_status ?? this.order()?.status ?? '';
     return status === 'Creada' || status === 'Recibida';
   });
@@ -366,6 +379,46 @@ export class OrderDetailDialogComponent {
       });
   }
 
+  formatVendorInvoice(value?: string | null): string {
+    return formatVendorInvoiceDisplay(value);
+  }
+
+  openVendorInvoiceEditor(): void {
+    const order = this.order();
+    if (!order || !this.canEditVendorInvoice()) {
+      return;
+    }
+
+    this.dialog
+      .open(PurchaseOrderVendorInvoiceDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        autoFocus: 'input',
+        data: {
+          orderId: order.id,
+          vendorInvoiceNumber: order.vendor_invoice_number ?? '',
+          folio: order.folio,
+        },
+      })
+      .afterClosed()
+      .subscribe((result: PurchaseOrderVendorInvoiceDialogResult | undefined) => {
+        if (!result?.saved) {
+          return;
+        }
+
+        this.order.update((current) =>
+          current
+            ? { ...current, vendor_invoice_number: result.vendor_invoice_number }
+            : current
+        );
+        this.toast.success(
+          result.vendor_invoice_number
+            ? 'Factura de proveedor actualizada'
+            : 'Factura de proveedor eliminada'
+        );
+      });
+  }
+
   toggleTotals(showReceived: boolean): void {
     this.showReceivedTotals.set(showReceived);
   }
@@ -558,17 +611,11 @@ export class OrderDetailDialogComponent {
   }
 
   formatLongDate(value?: string | null): string {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+    return formatApiDate(value, 'long');
   }
 
   formatShortDate(value?: string | null): string {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+    return formatApiDate(value, 'month-day');
   }
 
   getOrderTotalForPayments(): number {
@@ -865,11 +912,8 @@ export class OrderDetailDialogComponent {
   }
 
   formatDocumentDate(dateString: string): string {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const month = date.toLocaleString('es-ES', { month: 'long' });
-    return `${day} de ${month}`;
+    const formatted = formatApiDate(dateString, 'month-day');
+    return formatted === '—' ? '-' : formatted;
   }
 
   downloadDocument(doc: any): void {

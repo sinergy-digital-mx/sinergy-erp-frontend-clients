@@ -7,6 +7,7 @@ import {
   CustomerRegistrationSellerOption,
   CustomerRegistrationUserOption,
 } from '../models/customer-group.model';
+import { formatApiDate } from '../../../core/utils/api-datetime.util';
 
 export const DUPLICATE_MATCH_REASON_LABELS: Record<CustomerDuplicateMatchReason, string> = {
   email: 'Correo',
@@ -52,10 +53,7 @@ export function formatAssignedSellerLabel(
 }
 
 export function formatAssignmentOccurredAt(value?: string | null): string {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+  return formatApiDate(value, 'medium');
 }
 
 /** Código de estatus del catálogo de asignación (`active` / `inactive` / `deleted`). */

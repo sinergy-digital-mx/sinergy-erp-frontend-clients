@@ -11,7 +11,7 @@
             @if (updatedBy()) {
               por {{ updatedBy() }}
             }
-            · {{ updatedAt() | date: 'short' }}
+            · {{ updatedAt() | apiDate: 'short' }}
           </p>
         }
       </div>

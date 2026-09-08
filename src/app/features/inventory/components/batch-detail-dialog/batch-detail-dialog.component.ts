@@ -14,6 +14,7 @@ import { ProductService } from '../../../settings/services/product.service';
 import { BatchAuditHistoryEntry, InventoryAudit, InventoryAuditStatus } from '../../models/inventory-audit.model';
 import { BatchTransferHistoryEntry } from '../../models/inventory-transfer.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -29,7 +30,7 @@ import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfe
 import { AUDIT_DETAIL_DIALOG_OPTIONS } from '../../config/audit-dialog.config';
 import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp, ArrowRightLeft, ArrowUpRight, ArrowDownLeft, Stamp, Ruler, Eye, ClipboardCheck, CircleDollarSign } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
-import { formatPedimentoDisplay, formatPurchaseOrderUnitCost, parsePurchaseOrderDecimal } from '../../../purchase-orders/utils/purchase-order-display.util';
+import { formatPedimentoDisplay, formatPurchaseOrderUnitCost, formatVendorInvoiceDisplay, parsePurchaseOrderDecimal } from '../../../purchase-orders/utils/purchase-order-display.util';
 import {
   auditStatusLabel,
   auditUserName,
@@ -368,8 +369,17 @@ export class BatchDetailDialogComponent implements OnInit {
     return value || null;
   }
 
+  get vendorInvoiceNumber(): string | null {
+    const value = this.batch()?.vendor_invoice_number?.trim();
+    return value || null;
+  }
+
   formatPedimento(value?: string | null): string {
     return formatPedimentoDisplay(value);
+  }
+
+  formatVendorInvoice(value?: string | null): string {
+    return formatVendorInvoiceDisplay(value);
   }
 
   openPurchaseOrder(): void {
@@ -838,8 +848,6 @@ export class BatchDetailDialogComponent implements OnInit {
   }
 
   formatDate(dateString: string): string {
-    if (!dateString) return '-';
-    const d = new Date(dateString);
-    return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+    return formatApiDate(dateString, 'long');
   }
 }
