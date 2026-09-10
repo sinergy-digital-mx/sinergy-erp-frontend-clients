@@ -1443,10 +1443,21 @@ describe('AuthService - Property-Based Tests', () => {
     });
   });
 
+  it('hasGrantedPermission ignores Admin bypass used by hasPermission', () => {
+    const freshService = new AuthService(mockRouter, mockHttpClient, mockActivatedRoute);
+    freshService.user_info = { hasAdminRole: true } as any;
+    freshService.setPermissions(['customers:ViewMenu']);
+
+    expect(freshService.hasPermission('customers:Delete')).toBe(true);
+    expect(freshService.hasPermission('inventory:ViewMenu')).toBe(false);
+    expect(freshService.hasGrantedPermission('inventory:ViewMenu')).toBe(false);
+    expect(freshService.hasGrantedPermission('customers:ViewMenu')).toBe(true);
+  });
+
   /**
    * Helper function to create a valid JWT token with the given payload.
    * This creates a properly formatted JWT token that can be decoded by jwtDecode.
-   * 
+   *
    * @param payload - The payload object to encode in the JWT
    * @returns A valid JWT token string
    */
@@ -1454,7 +1465,7 @@ describe('AuthService - Property-Based Tests', () => {
     // Create a simple JWT token with proper structure
     // JWT format: header.payload.signature
     // For testing purposes, we don't need a valid signature since jwtDecode doesn't verify it
-    
+
     const header = {
       alg: 'HS256',
       typ: 'JWT'
@@ -1469,7 +1480,7 @@ describe('AuthService - Property-Based Tests', () => {
     // Base64 encode the header and payload
     const headerEncoded = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
     const payloadEncoded = btoa(JSON.stringify(tokenPayload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    
+
     // Create a dummy signature (not validated by jwtDecode in UI context)
     const signature = 'dummy_signature_not_validated';
 

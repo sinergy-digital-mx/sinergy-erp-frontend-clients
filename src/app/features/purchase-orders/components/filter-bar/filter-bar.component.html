@@ -1,193 +1,188 @@
 <div class="filter-bar" role="search" aria-label="Filtros de órdenes de compra">
   <div class="filter-bar__container">
-    <!-- Search Input -->
-    <div class="filter-bar__field">
-      <input
-        type="text"
-        id="search"
-        [formControl]="searchControl"
-        placeholder="Folio, proveedor, pedimento o factura"
-        class="filter-bar__input"
-        aria-label="Buscar órdenes por folio, proveedor, pedimento o factura"
-      />
-    </div>
-
-    <!-- Date Range Dropdown -->
-    <div class="filter-bar__field">
-      <select
-        id="dateRange"
-        [formControl]="dateRangeControl"
-        class="filter-bar__select"
-        aria-label="Filtrar por rango de fecha"
-      >
-        <option value="">Fecha</option>
-        @for (option of dateRangeOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
-    </div>
-
-    <!-- Custom Date Range (shown when "Rango" is selected) -->
-    @if (showCustomDateRange) {
-      <div class="filter-bar__field">
-        <input
-          type="date"
-          id="dateFrom"
-          [formControl]="dateFromControl"
-          class="filter-bar__input"
-          aria-label="Filtrar desde fecha"
-        />
-      </div>
-
-      <div class="filter-bar__field">
-        <input
-          type="date"
-          id="dateTo"
-          [formControl]="dateToControl"
-          class="filter-bar__input"
-          aria-label="Filtrar hasta fecha"
-        />
-      </div>
-    }
-
-    <!-- Status Dropdown -->
-    <div class="filter-bar__field">
-      <select
-        id="status"
-        [formControl]="statusControl"
-        class="filter-bar__select"
-        aria-label="Filtrar por estado de orden"
-      >
-        <option value="">Todos los estados</option>
-        @for (option of statusOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
-    </div>
-
-    <!-- Pago -->
-    <div class="filter-bar__field">
-      <select
-        id="paymentStatus"
-        [formControl]="paymentStatusControl"
-        class="filter-bar__select"
-        aria-label="Filtrar por estado de pago"
-      >
-        <option value="">Todos los pagos</option>
-        @for (option of paymentStatusOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
-    </div>
-
-    <!-- Proveedor -->
-    <div class="filter-bar__field filter-bar__field--vendor">
-      <div class="vendor-picker">
+    <div class="filter-bar__row filter-bar__row--primary">
+      <div class="filter-bar__field filter-bar__field--search">
         <input
           type="text"
-          id="vendor"
-          class="filter-bar__input vendor-picker__input"
-          [formControl]="vendorSearchControl"
-          placeholder="Proveedor"
-          [matAutocomplete]="autoVendor"
-          (focus)="onVendorSearchFocus()"
-          aria-label="Filtrar por proveedor"
+          id="search"
+          [formControl]="searchControl"
+          placeholder="Folio, proveedor, pedimento o factura"
+          class="filter-bar__input"
+          aria-label="Buscar órdenes por folio, proveedor, pedimento o factura"
         />
-        <lucide-icon [img]="ChevronDown" [size]="16" class="vendor-picker__chevron"></lucide-icon>
-        <mat-autocomplete
-          #autoVendor="matAutocomplete"
-          [displayWith]="displayVendor"
-          (optionSelected)="onVendorSelected($event.option.value)">
-          @if (!currentVendorSearchTerm() || vendorControl.value) {
-            <mat-option [value]="allVendorsOption">Todos los proveedores</mat-option>
+      </div>
+
+      <div class="filter-bar__field">
+        <select
+          id="dateRange"
+          [formControl]="dateRangeControl"
+          class="filter-bar__select"
+          aria-label="Filtrar por rango de fecha"
+        >
+          <option value="">Fecha</option>
+          @for (option of dateRangeOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
           }
-          @for (vendor of filteredVendors; track vendor.id) {
-            <mat-option [value]="vendor">{{ vendorLabel(vendor) }}</mat-option>
+        </select>
+      </div>
+
+      @if (showCustomDateRange) {
+        <div class="filter-bar__field">
+          <input
+            type="date"
+            id="dateFrom"
+            [formControl]="dateFromControl"
+            class="filter-bar__input"
+            aria-label="Filtrar desde fecha"
+          />
+        </div>
+
+        <div class="filter-bar__field">
+          <input
+            type="date"
+            id="dateTo"
+            [formControl]="dateToControl"
+            class="filter-bar__input"
+            aria-label="Filtrar hasta fecha"
+          />
+        </div>
+      }
+
+      <div class="filter-bar__field">
+        <select
+          id="status"
+          [formControl]="statusControl"
+          class="filter-bar__select"
+          aria-label="Filtrar por estado de orden"
+        >
+          <option value="">Todos los estados</option>
+          @for (option of statusOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
           }
-          @if (filteredVendors.length === 0 && currentVendorSearchTerm() && !vendorControl.value) {
-            <mat-option disabled>No se encontraron proveedores</mat-option>
+        </select>
+      </div>
+
+      <div class="filter-bar__field">
+        <select
+          id="paymentStatus"
+          [formControl]="paymentStatusControl"
+          class="filter-bar__select"
+          aria-label="Filtrar por estado de pago"
+        >
+          <option value="">Todos los pagos</option>
+          @for (option of paymentStatusOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
           }
-        </mat-autocomplete>
+        </select>
+      </div>
+
+      <div class="filter-bar__field filter-bar__field--actions">
+        <app-filter-clear-button
+          [active]="hasActiveFilters"
+          (clear)="clearFilters()">
+        </app-filter-clear-button>
+        <button
+          type="button"
+          class="filter-bar__refresh-button"
+          [disabled]="refreshing"
+          (click)="onRefresh()"
+          title="Actualizar lista"
+          aria-label="Actualizar lista">
+          <svg
+            class="filter-bar__refresh-icon"
+            [class.filter-bar__refresh-icon--spin]="refreshing"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true">
+            <path
+              d="M20 12A8 8 0 1 1 12 4"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round" />
+            <path
+              d="M20 4V9H15"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </button>
       </div>
     </div>
 
-    <!-- Razón social -->
-    <div class="filter-bar__field">
-      <select
-        id="fiscalConfiguration"
-        [formControl]="fiscalConfigurationControl"
-        class="filter-bar__select"
-        aria-label="Filtrar por razón social"
-      >
-        <option value="">Todas las razones sociales</option>
-        @for (fc of fiscalConfigurations; track fc.id) {
-          <option [value]="fc.id">{{ fiscalOptionLabel(fc) }}</option>
-        }
-      </select>
-    </div>
+    <div class="filter-bar__row filter-bar__row--secondary">
+      <div class="filter-bar__field filter-bar__field--vendor">
+        <div class="vendor-picker">
+          <input
+            type="text"
+            id="vendor"
+            class="filter-bar__input vendor-picker__input"
+            [formControl]="vendorSearchControl"
+            placeholder="Proveedor"
+            [matAutocomplete]="autoVendor"
+            (focus)="onVendorSearchFocus()"
+            aria-label="Filtrar por proveedor"
+          />
+          <lucide-icon [img]="ChevronDown" [size]="16" class="vendor-picker__chevron"></lucide-icon>
+          <mat-autocomplete
+            #autoVendor="matAutocomplete"
+            [displayWith]="displayVendor"
+            (optionSelected)="onVendorSelected($event.option.value)">
+            @if (!currentVendorSearchTerm() || vendorControl.value) {
+              <mat-option [value]="allVendorsOption">Todos los proveedores</mat-option>
+            }
+            @for (vendor of filteredVendors; track vendor.id) {
+              <mat-option [value]="vendor">{{ vendorLabel(vendor) }}</mat-option>
+            }
+            @if (filteredVendors.length === 0 && currentVendorSearchTerm() && !vendorControl.value) {
+              <mat-option disabled>No se encontraron proveedores</mat-option>
+            }
+          </mat-autocomplete>
+        </div>
+      </div>
 
-    <!-- Sucursal: cascada si hay razón; si no, catálogo global -->
-    <div class="filter-bar__field">
-      <select
-        id="billingBranch"
-        [formControl]="billingBranchControl"
-        class="filter-bar__select"
-        aria-label="Filtrar por sucursal"
-      >
-        <option value="">Todas las sucursales</option>
-        @for (branch of branches; track branch.id) {
-          <option [value]="branch.id">{{ branchLabel(branch) }}</option>
-        }
-      </select>
-    </div>
+      <div class="filter-bar__field">
+        <select
+          id="fiscalConfiguration"
+          [formControl]="fiscalConfigurationControl"
+          class="filter-bar__select"
+          aria-label="Filtrar por razón social"
+        >
+          <option value="">Todas las razones sociales</option>
+          @for (fc of fiscalConfigurations; track fc.id) {
+            <option [value]="fc.id">{{ fiscalOptionLabel(fc) }}</option>
+          }
+        </select>
+      </div>
 
-    <!-- Almacén: cascada si hay sucursal; si no, catálogo global -->
-    <div class="filter-bar__field">
-      <select
-        id="warehouse"
-        [formControl]="warehouseControl"
-        class="filter-bar__select"
-        aria-label="Filtrar por almacén"
-      >
-        <option value="">Todos los almacenes</option>
-        @for (warehouse of warehouses; track warehouse.id) {
-          <option [value]="warehouse.id">{{ warehouse.name }}</option>
-        }
-      </select>
-    </div>
+      <div class="filter-bar__field">
+        <select
+          id="billingBranch"
+          [formControl]="billingBranchControl"
+          class="filter-bar__select"
+          aria-label="Filtrar por sucursal"
+        >
+          <option value="">Todas las sucursales</option>
+          @for (branch of branches; track branch.id) {
+            <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+          }
+        </select>
+      </div>
 
-    <div class="filter-bar__field filter-bar__field--actions">
-      <app-filter-clear-button
-        [active]="hasActiveFilters"
-        (clear)="clearFilters()">
-      </app-filter-clear-button>
-      <button
-        type="button"
-        class="filter-bar__refresh-button"
-        [disabled]="refreshing"
-        (click)="onRefresh()"
-        title="Actualizar lista"
-        aria-label="Actualizar lista">
-        <svg
-          class="filter-bar__refresh-icon"
-          [class.filter-bar__refresh-icon--spin]="refreshing"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true">
-          <path
-            d="M20 12A8 8 0 1 1 12 4"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round" />
-          <path
-            d="M20 4V9H15"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-      </button>
+      <div class="filter-bar__field">
+        <select
+          id="warehouse"
+          [formControl]="warehouseControl"
+          class="filter-bar__select"
+          aria-label="Filtrar por almacén"
+        >
+          <option value="">Todos los almacenes</option>
+          @for (warehouse of warehouses; track warehouse.id) {
+            <option [value]="warehouse.id">{{ warehouse.name }}</option>
+          }
+        </select>
+      </div>
     </div>
   </div>
 </div>

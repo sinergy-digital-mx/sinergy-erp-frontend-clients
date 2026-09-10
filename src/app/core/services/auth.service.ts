@@ -298,29 +298,50 @@
     }
 
     /**
-     * Check if the user has a specific permission.
-     * Performs case-insensitive entity matching. Admin bypasses like the API.
-     * 
-     * @param permission - Permission string in format "entity:Action"
-     * @returns true if the permission exists in the permissions Set, false otherwise
-     * 
-     * Example:
-     * - If permissions contain "customers:Create", hasPermission("customers:Create") returns true
-     * - If permissions contain "customers:Create", hasPermission("Customers:Create") returns true (case-insensitive entity)
-     * - If permissions contain "customers:Create", hasPermission("leads:Create") returns false
+     * Permiso entity:Action. El JWT ya viene filtrado por módulos de ESTA organización.
+     * Admin tiene todas las acciones de esos módulos, no de módulos de otras organizaciones.
      */
     hasPermission(permission: string): boolean {
       if (!permission || typeof permission !== 'string') {
         return false;
       }
-      if (this.hasAdminRole()) {
+      if (this.hasGrantedPermission(permission)) {
         return true;
       }
-      
+      if (!this.hasAdminRole()) {
+        return false;
+      }
+      return this.hasGrantedEntity(permission);
+    }
+
+    /**
+     * Permiso presente en el JWT (módulos habilitados de la organización).
+     */
+    hasGrantedPermission(permission: string): boolean {
+      if (!permission || typeof permission !== 'string') {
+        return false;
+      }
+
       const normalizedPermission = this.normalizePermission(permission);
-      const currentPermissions = this.permissions$.getValue();
-      
-      return currentPermissions.has(normalizedPermission);
+      return this.permissions$.getValue().has(normalizedPermission);
+    }
+
+    /**
+     * Admin de esta organización: cualquier acción si el JWT ya trae esa entidad.
+     */
+    private hasGrantedEntity(permission: string): boolean {
+      const normalized = this.normalizePermission(permission);
+      const colon = normalized.indexOf(':');
+      if (colon <= 0) {
+        return false;
+      }
+      const prefix = normalized.slice(0, colon + 1);
+      for (const granted of this.permissions$.getValue()) {
+        if (granted.startsWith(prefix)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     /**
@@ -332,14 +353,10 @@
 
     /**
      * Check entity:action permission with case-insensitive entity matching.
-     * Admin users always pass.
      */
     hasEntityPermission(entity: string, action: string): boolean {
       if (!entity || !action) {
         return false;
-      }
-      if (this.hasAdminRole()) {
-        return true;
       }
       return this.hasPermission(`${entity}:${action}`);
     }
