@@ -12,6 +12,7 @@ import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calc
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { Plus } from 'lucide-angular';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
@@ -44,7 +45,8 @@ export class CustomerSalesOrdersComponent implements OnInit {
     private salesOrderService: SalesOrderService,
     private taxCalculator: TaxCalculatorService,
     private dialog: MatDialog,
-    private interceptorService: InterceptorService
+    private interceptorService: InterceptorService,
+    private authService: AuthService,
   ) {}
 
   ngOnInit(): void {
@@ -52,6 +54,13 @@ export class CustomerSalesOrdersComponent implements OnInit {
   }
 
   loadOrders(page = 1): void {
+    if (!this.authService.hasEntityAccess('sales_orders')) {
+      this.orders.set([]);
+      this.total.set(0);
+      this.loading.set(false);
+      return;
+    }
+
     this.loading.set(true);
     this.page.set(page);
 

@@ -1450,6 +1450,8 @@ describe('AuthService - Property-Based Tests', () => {
 
     expect(freshService.hasPermission('customers:Delete')).toBe(true);
     expect(freshService.hasPermission('inventory:ViewMenu')).toBe(false);
+    expect(freshService.hasEntityAccess('customers')).toBe(true);
+    expect(freshService.hasEntityAccess('sales_orders')).toBe(false);
     expect(freshService.hasGrantedPermission('inventory:ViewMenu')).toBe(false);
     expect(freshService.hasGrantedPermission('customers:ViewMenu')).toBe(true);
   });

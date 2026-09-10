@@ -6,6 +6,7 @@ import { CustomerProductInsightsComponent } from './customer-product-insights.co
 import { CustomerProductInsightsService } from '../../services/customer-product-insights.service';
 import { CustomerProductInsights } from '../../models/customer-product-insights.model';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
+import { AuthService } from '../../../../core/services/auth.service';
 
 describe('CustomerProductInsightsComponent', () => {
   let component: CustomerProductInsightsComponent;
@@ -57,6 +58,7 @@ describe('CustomerProductInsightsComponent', () => {
       providers: [
         { provide: CustomerProductInsightsService, useValue: mockService },
         { provide: MatDialog, useValue: mockDialog },
+        { provide: AuthService, useValue: { hasEntityAccess: () => true, permissions$: of(new Set()) } },
       ],
     }).compileComponents();
 
@@ -78,6 +80,16 @@ describe('CustomerProductInsightsComponent', () => {
     });
     expect(component.mostPurchased().length).toBe(1);
     expect(component.recommended().length).toBe(1);
+    expect(component.loading()).toBe(false);
+  });
+
+  it('should not fetch insights without sales_orders module', () => {
+    const auth = TestBed.inject(AuthService) as { hasEntityAccess: () => boolean };
+    auth.hasEntityAccess = () => false;
+
+    component.ngOnInit();
+
+    expect(mockService.getInsights).not.toHaveBeenCalled();
     expect(component.loading()).toBe(false);
   });
 

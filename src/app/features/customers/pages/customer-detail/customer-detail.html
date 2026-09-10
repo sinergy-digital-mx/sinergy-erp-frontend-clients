@@ -277,7 +277,7 @@
       </div>
 
       <app-customer-product-insights
-        *hasPermission="permissions.viewDetail"
+        *hasEntity="'sales_orders'"
         [customerId]="customer()!.id">
       </app-customer-product-insights>
 
@@ -387,9 +387,8 @@
         }
       </div>
 
-      <!-- SALES ORDERS SECTION (mismo acceso que documentos; API valida OV) -->
       <app-customer-sales-orders
-        *hasPermission="permissions.viewDetail"
+        *hasEntity="'sales_orders'"
         [customerId]="customer()!.id">
       </app-customer-sales-orders>
 

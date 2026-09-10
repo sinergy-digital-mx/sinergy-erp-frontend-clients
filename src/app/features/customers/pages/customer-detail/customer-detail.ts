@@ -23,6 +23,7 @@ import { catchError, takeUntil } from 'rxjs/operators';
 import { PhoneComponent } from '../../../../core/components/phone/phone.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
+import { HasEntityDirective } from '../../../../core/directives/has-entity.directive';
 import { Pencil, MapPin } from 'lucide-angular';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -63,6 +64,7 @@ import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
     CustomerActivitiesComponent,
     ButtonComponent,
     HasPermissionDirective,
+    HasEntityDirective,
     TabComponent,
     SlimSwitchComponent,
     CustomerFiscalCreditsComponent,

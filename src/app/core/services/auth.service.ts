@@ -345,6 +345,17 @@
     }
 
     /**
+     * La organización tiene este módulo: el JWT trae algún permiso de esa entidad.
+     * Usar para widgets de otro módulo (p. ej. OV en ficha de cliente).
+     */
+    hasEntityAccess(entity: string): boolean {
+      if (!entity || typeof entity !== 'string') {
+        return false;
+      }
+      return this.hasGrantedEntity(`${entity}:Read`);
+    }
+
+    /**
      * Whether the current user has the Admin role (bypasses permission checks in UI).
      */
     hasAdminRole(): boolean {

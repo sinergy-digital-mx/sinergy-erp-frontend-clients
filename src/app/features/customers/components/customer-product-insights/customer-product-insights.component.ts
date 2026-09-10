@@ -7,6 +7,7 @@ import { SpinnerComponent } from '../../../../core/components/spinner/spinner.co
 import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
+import { AuthService } from '../../../../core/services/auth.service';
 import { CustomerProductInsightsService } from '../../services/customer-product-insights.service';
 import {
   MostPurchasedProduct,
@@ -50,6 +51,7 @@ export class CustomerProductInsightsComponent implements OnInit {
   private readonly recommendedTrack = viewChild('recommendedTrack', { read: ElementRef });
 
   private readonly insightsService = inject(CustomerProductInsightsService);
+  private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
   private observers: ResizeObserver[] = [];
@@ -64,6 +66,13 @@ export class CustomerProductInsightsComponent implements OnInit {
 
   loadInsights(): void {
     if (this.customerId == null || this.customerId === '') return;
+    if (!this.authService.hasEntityAccess('sales_orders')) {
+      this.mostPurchased.set([]);
+      this.recommended.set([]);
+      this.loading.set(false);
+      this.error.set(false);
+      return;
+    }
 
     this.loading.set(true);
     this.error.set(false);
