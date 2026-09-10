@@ -1,0 +1,243 @@
+<div class="crm-page">
+  <div class="crm-header">
+    <div>
+      <h2 class="crm-header__title">CRM</h2>
+      <p class="crm-header__subtitle">
+        @if (isCrmAdmin()) {
+          Portal de seguimiento de todos los usuarios
+        } @else {
+          Tus actividades, llamadas y seguimientos pendientes
+        }
+      </p>
+    </div>
+    <app-report-period-selector
+      [period]="datePreset"
+      [dateFrom]="customDateFrom"
+      [dateTo]="customDateTo"
+      [includeYear]="true"
+      [monthAsServerPreset]="true"
+      dateFromId="crm-date-from"
+      dateToId="crm-date-to"
+      ariaLabel="Periodo de actividades"
+      (periodChange)="onPeriodChange($event)"
+      (rangeChange)="onRangeChange($event)" />
+  </div>
+
+  <div class="crm-kpi-grid">
+    <button
+      type="button"
+      class="crm-kpi"
+      [class.crm-kpi--active]="!attention()"
+      (click)="setAttention(null)">
+      <p class="crm-kpi__label">Actividades</p>
+      <p class="crm-kpi__value">{{ stats()?.totals?.activities ?? 0 }}</p>
+      <p class="crm-kpi__hint">{{ stats()?.period?.label || 'Periodo' }}</p>
+    </button>
+    <button
+      type="button"
+      class="crm-kpi crm-kpi--calls"
+      [class.crm-kpi--alert]="(stats()?.attention?.pending_calls ?? 0) > 0"
+      [class.crm-kpi--active]="attention() === 'call_pending'"
+      (click)="setAttention('call_pending')">
+      <p class="crm-kpi__label">Llamadas pendientes</p>
+      <p class="crm-kpi__value">{{ stats()?.attention?.pending_calls ?? 0 }}</p>
+      <p class="crm-kpi__hint">Programadas o en progreso</p>
+    </button>
+    <button
+      type="button"
+      class="crm-kpi crm-kpi--follow"
+      [class.crm-kpi--alert]="(stats()?.attention?.pending_follow_ups ?? 0) > 0"
+      [class.crm-kpi--active]="attention() === 'follow_up_pending'"
+      (click)="setAttention('follow_up_pending')">
+      <p class="crm-kpi__label">Seguimientos pendientes</p>
+      <p class="crm-kpi__value">{{ stats()?.attention?.pending_follow_ups ?? 0 }}</p>
+      <p class="crm-kpi__hint">{{ stats()?.attention?.upcoming_follow_ups ?? 0 }} próximos</p>
+    </button>
+    <button
+      type="button"
+      class="crm-kpi crm-kpi--overdue"
+      [class.crm-kpi--alert]="(stats()?.attention?.overdue_follow_ups ?? 0) > 0"
+      [class.crm-kpi--active]="attention() === 'follow_up_overdue'"
+      (click)="setAttention('follow_up_overdue')">
+      <p class="crm-kpi__label">Seguimientos vencidos</p>
+      <p class="crm-kpi__value">{{ stats()?.attention?.overdue_follow_ups ?? 0 }}</p>
+      <p class="crm-kpi__hint">Requieren atención hoy</p>
+    </button>
+  </div>
+
+  <div class="crm-filters">
+    <div class="crm-filters__field crm-filters__field--search">
+      <label class="crm-filters__label" for="crm-search">Buscar nota</label>
+      <input
+        id="crm-search"
+        type="search"
+        class="crm-filters__input"
+        [formControl]="searchControl"
+        placeholder="Nota, título o descripción"
+        autocomplete="off" />
+    </div>
+
+    <div class="crm-filters__field">
+      <label class="crm-filters__label" for="crm-type">Tipo</label>
+      <select id="crm-type" class="crm-filters__select" [formControl]="typeControl">
+        <option value="">Todos los tipos</option>
+        @for (type of activityTypes; track type) {
+          <option [value]="type">{{ getTypeLabel(type) }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="crm-filters__field">
+      <label class="crm-filters__label" for="crm-status">Estado</label>
+      <select id="crm-status" class="crm-filters__select" [formControl]="statusControl">
+        <option value="">Todos los estados</option>
+        @for (status of activityStatuses; track status) {
+          <option [value]="status">{{ getStatusLabel(status) }}</option>
+        }
+      </select>
+    </div>
+
+    @if (isCrmAdmin()) {
+      <div class="crm-filters__field crm-filters__field--author">
+        <label class="crm-filters__label" for="crm-author">Usuario</label>
+        <div class="author-picker">
+          <input
+            id="crm-author"
+            type="text"
+            class="crm-filters__input author-picker__input"
+            [formControl]="authorSearchControl"
+            placeholder="Buscar quien creó la actividad"
+            [matAutocomplete]="autoAuthor"
+            autocomplete="off" />
+          <lucide-icon [img]="ChevronDown" [size]="16" class="author-picker__chevron"></lucide-icon>
+          <mat-autocomplete
+            #autoAuthor="matAutocomplete"
+            [displayWith]="displayAuthor"
+            (optionSelected)="onAuthorSelected($event.option.value)">
+            <mat-option [value]="allAuthorsOption">Todos los usuarios</mat-option>
+            @for (author of filteredAuthors(); track author.id) {
+              <mat-option [value]="author">
+                {{ author.display_name }}
+                <span class="author-picker__count">{{ author.activity_count }}</span>
+              </mat-option>
+            }
+            @if (filteredAuthors().length === 0 && authorSearchControl.value && !selectedAuthor()) {
+              <mat-option disabled>No hay usuarios con actividades</mat-option>
+            }
+          </mat-autocomplete>
+        </div>
+      </div>
+    }
+
+    @if (hasActiveFilters) {
+      <button type="button" class="crm-filters__clear" (click)="clearFilters()">
+        Limpiar filtros
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="crm-loading">
+      <app-spinner></app-spinner>
+    </div>
+  } @else if (activities().length === 0) {
+    <div class="crm-empty">
+      <p class="crm-empty__title">No hay actividades en este filtro</p>
+      <p class="crm-empty__text">Cambia el periodo, el tipo o quita el pendiente seleccionado.</p>
+    </div>
+  } @else {
+    <div class="crm-table-wrap">
+      <table class="crm-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Actividad</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th>Seguimiento</th>
+            @if (isCrmAdmin()) {
+              <th>Usuario</th>
+            }
+            <th class="crm-table__actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (activity of activities(); track activity.id) {
+            <tr [class.crm-table__row--overdue]="activity.is_overdue_follow_up">
+              <td>
+                <button type="button" class="crm-customer" (click)="openCustomer(activity)">
+                  <span>{{ activity.customer?.display_name || ('#' + activity.customer_id) }}</span>
+                  <lucide-icon [img]="ExternalLinkIcon" [size]="12"></lucide-icon>
+                </button>
+              </td>
+              <td>
+                <span [ngClass]="getTypeClass(activity.type)">{{ getTypeLabel(activity.type) }}</span>
+              </td>
+              <td>
+                <div class="crm-title">{{ activity.title }}</div>
+                @if (activity.notes) {
+                  <div class="crm-notes">{{ activity.notes }}</div>
+                } @else if (activity.description) {
+                  <div class="crm-notes">{{ activity.description }}</div>
+                }
+              </td>
+              <td>
+                <span [ngClass]="getStatusClass(activity.status)">{{ getStatusLabel(activity.status) }}</span>
+              </td>
+              <td class="crm-muted">{{ activity.activity_date | apiDate:'medium' }}</td>
+              <td>
+                @if (activity.follow_up_date) {
+                  <span [class.crm-overdue]="activity.is_overdue_follow_up">
+                    {{ activity.follow_up_date | apiDate:'medium' }}
+                  </span>
+                } @else {
+                  <span class="crm-muted">—</span>
+                }
+              </td>
+              @if (isCrmAdmin()) {
+                <td class="crm-muted">{{ activity.user?.display_name || '—' }}</td>
+              }
+              <td class="crm-table__actions">
+                @if (canUpdate && activity.status !== 'completed' && activity.status !== 'cancelled') {
+                  <button
+                    type="button"
+                    class="crm-action crm-action--done"
+                    (click)="markCompleted(activity, $event)"
+                    title="Marcar completada">
+                    <lucide-icon [img]="CheckIcon" [size]="14"></lucide-icon>
+                  </button>
+                }
+                @if (canUpdate) {
+                  <button
+                    type="button"
+                    class="crm-action"
+                    (click)="openEdit(activity)"
+                    title="Editar">
+                    <lucide-icon [img]="PencilIcon" [size]="14"></lucide-icon>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="crm-pager">
+      <span>{{ total() }} actividad(es) · Página {{ page() }} de {{ totalPages }}</span>
+      <div class="crm-pager__btns">
+        <button type="button" class="crm-pager__btn" [disabled]="page() <= 1" (click)="goToPrevPage()">
+          Anterior
+        </button>
+        <button
+          type="button"
+          class="crm-pager__btn"
+          [disabled]="page() >= totalPages"
+          (click)="goToNextPage()">
+          Siguiente
+        </button>
+      </div>
+    </div>
+  }
+</div>

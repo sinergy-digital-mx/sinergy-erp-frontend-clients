@@ -48,6 +48,7 @@ export class DataMapperService {
       is_employee: backendUser.is_employee ?? backendUser.isEmployee,
       employee: backendUser.employee ?? null,
       is_manager: backendUser.is_manager ?? backendUser.isManager,
+      is_crm_admin: backendUser.is_crm_admin ?? backendUser.isCrmAdmin,
       manager: backendUser.manager ?? null,
       reports: Array.isArray(backendUser.reports) ? backendUser.reports : undefined,
       ...backendUser, // Include any additional fields

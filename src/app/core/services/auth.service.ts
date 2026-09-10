@@ -213,6 +213,7 @@
                 pos_can_sell: this.user_info?.pos_can_sell,
                 pos_can_collect: this.user_info?.pos_can_collect,
                 is_manager: this.user_info?.is_manager,
+                is_crm_admin: this.user_info?.is_crm_admin,
                 billing_branch_id: this.user_info?.billing_branch_id,
                 fiscal_configuration_id: this.user_info?.fiscal_configuration_id,
                 assigned_warehouses: this.user_info?.assigned_warehouses?.length ?? 0,
@@ -734,6 +735,15 @@
       return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
     }
 
+    /** True when the user can see all CRM activities (flag or Admin role). */
+    isCrmAdminUser(): boolean {
+      if (this.user_info?.hasAdminRole) {
+        return true;
+      }
+      const value = (this.user_info as { is_crm_admin?: unknown })?.is_crm_admin;
+      return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
+    }
+
     applySessionUser(source: Record<string, unknown>): void {
       if (!source || typeof source !== 'object') {
         return;
@@ -751,6 +761,7 @@
         pos_can_sell: capabilities.canSell,
         pos_can_collect: capabilities.canCollect,
         is_manager: this.normalizePosFlag(source['is_manager']),
+        is_crm_admin: this.normalizePosFlag(source['is_crm_admin']),
         billing_branch_id:
           source['billing_branch_id'] != null ? String(source['billing_branch_id']) : null,
         primary_billing_branch_id:
@@ -819,6 +830,7 @@
         'fiscal_configuration' in obj ||
         'is_employee' in obj ||
         'is_manager' in obj ||
+        'is_crm_admin' in obj ||
         'assigned_warehouses' in obj
       ) {
         return obj;
@@ -850,6 +862,7 @@
           'pos_can_sell',
           'pos_can_collect',
           'is_manager',
+          'is_crm_admin',
           'assigned_warehouses',
         ]) {
           if (merged[key] == null && row[key] != null) {
@@ -1032,6 +1045,9 @@
       if (source['is_manager'] != null) {
         this.user_info.is_manager = this.normalizePosFlag(source['is_manager']);
       }
+      if (source['is_crm_admin'] != null) {
+        this.user_info.is_crm_admin = this.normalizePosFlag(source['is_crm_admin']);
+      }
       if (source['assigned_warehouses'] !== undefined) {
         this.user_info.assigned_warehouses = this.normalizeAssignedWarehouses(
           source['assigned_warehouses']
@@ -1154,6 +1170,7 @@
     pos_can_sell?: boolean;
     pos_can_collect?: boolean;
     is_manager?: boolean;
+    is_crm_admin?: boolean;
     billing_branch_id?: string | null;
     primary_billing_branch_id?: string | null;
     assigned_branches?: AssignedBranch[];
@@ -1186,6 +1203,7 @@
     fiscal_configuration_id?: string | null;
     is_employee?: boolean;
     is_manager?: boolean;
+    is_crm_admin?: boolean;
     assigned_warehouses?: AssignedWarehouse[];
   }
 

@@ -12,6 +12,7 @@
 
 export { CONTRACT_PERMISSIONS } from '../../features/contracts/config/permissions.config';
 export { CUSTOMER_PERMISSIONS } from '../../features/customers/config/permissions.config';
+export { CRM_PERMISSIONS } from '../../features/crm/config/permissions.config';
 export { LEAD_PERMISSIONS } from '../../features/leads/config/permissions.config';
 export { PROPERTY_PERMISSIONS } from '../../features/properties/config/permissions.config';
 export { SETTINGS_PERMISSIONS } from '../../features/settings/config/permissions.config';
@@ -41,6 +42,7 @@ export { CUSTOMER_SALES_REPORT_PERMISSIONS } from '../../features/customer-sales
  */
 import { CONTRACT_PERMISSIONS } from '../../features/contracts/config/permissions.config';
 import { CUSTOMER_PERMISSIONS } from '../../features/customers/config/permissions.config';
+import { CRM_PERMISSIONS } from '../../features/crm/config/permissions.config';
 import { LEAD_PERMISSIONS } from '../../features/leads/config/permissions.config';
 import { PROPERTY_PERMISSIONS } from '../../features/properties/config/permissions.config';
 import { SETTINGS_PERMISSIONS } from '../../features/settings/config/permissions.config';
@@ -68,6 +70,7 @@ import { CUSTOMER_SALES_REPORT_PERMISSIONS } from '../../features/customer-sales
 export const PERMISSIONS = {
   contracts: CONTRACT_PERMISSIONS,
   customers: CUSTOMER_PERMISSIONS,
+  crm: CRM_PERMISSIONS,
   leads: LEAD_PERMISSIONS,
   properties: PROPERTY_PERMISSIONS,
   settings: SETTINGS_PERMISSIONS,

@@ -265,6 +265,7 @@ export class UserDetailModalComponent implements OnInit {
       // Employee (RH / nómina)
       is_employee: [user?.is_employee ?? false],
       is_manager: [user?.is_manager ?? false],
+      is_crm_admin: [user?.is_crm_admin ?? false],
       employee: this.fb.group({
         employee_code: [employee?.employee_code ?? ''],
         rfc: [employee?.rfc ?? ''],
@@ -526,6 +527,9 @@ export class UserDetailModalComponent implements OnInit {
         this.applyAssignedBranches(user);
         this.pruneWarehousesOutsideBranches();
         this.applyManagerState(user);
+        if (user.is_crm_admin != null) {
+          this.form.get('is_crm_admin')?.setValue(!!user.is_crm_admin, { emitEvent: false });
+        }
         const statusId = getUserStatusId(user);
         if (statusId != null) {
           this.originalStatusId = statusId;
@@ -1239,6 +1243,7 @@ export class UserDetailModalComponent implements OnInit {
       pos_user_code: posCode,
       is_employee: isEmployee,
       is_manager: isManager,
+      is_crm_admin: !!this.form.get('is_crm_admin')?.value,
     };
 
     if (isEmployee) {

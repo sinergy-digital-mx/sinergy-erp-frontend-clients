@@ -220,6 +220,7 @@ export interface User {
   is_employee?: boolean;
   employee?: UserEmployeeProfile | null;
   is_manager?: boolean;
+  is_crm_admin?: boolean;
   manager?: UserManagerSummary | null;
   reports?: ManagerReport[];
   status_id?: number | null;
@@ -272,6 +273,7 @@ export interface CreateUserDto {
   is_employee?: boolean;
   employee?: UserEmployeeProfile | null;
   is_manager?: boolean;
+  is_crm_admin?: boolean;
   warehouse_ids?: string[];
 }
 
@@ -291,6 +293,7 @@ export interface UpdateUserDto {
   is_employee?: boolean;
   employee?: UserEmployeeProfile | null;
   is_manager?: boolean;
+  is_crm_admin?: boolean;
   warehouse_ids?: string[];
 }
 

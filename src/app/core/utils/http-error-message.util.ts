@@ -3,7 +3,7 @@
  */
 
 const TECHNICAL_HTTP_RE =
-  /http failure response|unknown error|progressEventError|HttpErrorResponse/i;
+  /http failure response|unknown error|progressEventError|HttpErrorResponse|lacks the required permission/i;
 const URL_OR_API_PATH_RE = /https?:\/\/|\/api\/|\blocalhost\b/i;
 const TENANT_WORD_RE = /\btenant\b/i;
 

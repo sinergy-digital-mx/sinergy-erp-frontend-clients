@@ -124,6 +124,14 @@
           </dd>
         </div>
         <div class="info-list__item">
+          <dt>Admin CRM</dt>
+          <dd>
+            <span class="info-tag" [class.info-tag--manager]="user.is_crm_admin">
+              {{ user.is_crm_admin ? 'Sí' : 'No' }}
+            </span>
+          </dd>
+        </div>
+        <div class="info-list__item">
           <dt>Responsable</dt>
           <dd>{{ getManagerLabel() }}</dd>
         </div>
