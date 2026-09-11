@@ -97,32 +97,46 @@
       </select>
     </div>
 
-    @if (isCrmAdmin()) {
+    @if (showVendorFilter()) {
       <div class="crm-filters__field crm-filters__field--author">
-        <label class="crm-filters__label" for="crm-author">Usuario</label>
+        <label class="crm-filters__label" for="crm-author">Vendedor</label>
         <div class="author-picker">
           <input
             id="crm-author"
             type="text"
             class="crm-filters__input author-picker__input"
             [formControl]="authorSearchControl"
-            placeholder="Buscar quien creó la actividad"
+            placeholder="Buscar vendedor"
             [matAutocomplete]="autoAuthor"
-            autocomplete="off" />
-          <lucide-icon [img]="ChevronDown" [size]="16" class="author-picker__chevron"></lucide-icon>
+            (focus)="onAuthorSearchFocus()"
+            autocomplete="off"
+            aria-label="Filtrar por vendedor" />
+          @if (selectedAuthor()) {
+            <button
+              type="button"
+              class="author-picker__clear"
+              (click)="clearAuthor(); $event.stopPropagation()"
+              title="Quitar vendedor">
+              <lucide-icon [img]="XIcon" [size]="14"></lucide-icon>
+            </button>
+          } @else {
+            <lucide-icon [img]="ChevronDown" [size]="16" class="author-picker__chevron"></lucide-icon>
+          }
           <mat-autocomplete
             #autoAuthor="matAutocomplete"
             [displayWith]="displayAuthor"
             (optionSelected)="onAuthorSelected($event.option.value)">
-            <mat-option [value]="allAuthorsOption">Todos los usuarios</mat-option>
+            @if (!authorSearchTerm() || selectedAuthor()) {
+              <mat-option [value]="allAuthorsOption">Todos los vendedores</mat-option>
+            }
             @for (author of filteredAuthors(); track author.id) {
               <mat-option [value]="author">
                 {{ author.display_name }}
                 <span class="author-picker__count">{{ author.activity_count }}</span>
               </mat-option>
             }
-            @if (filteredAuthors().length === 0 && authorSearchControl.value && !selectedAuthor()) {
-              <mat-option disabled>No hay usuarios con actividades</mat-option>
+            @if (filteredAuthors().length === 0 && authorSearchTerm() && !selectedAuthor()) {
+              <mat-option disabled>No se encontraron vendedores</mat-option>
             }
           </mat-autocomplete>
         </div>
@@ -156,9 +170,6 @@
             <th>Estado</th>
             <th>Fecha</th>
             <th>Seguimiento</th>
-            @if (isCrmAdmin()) {
-              <th>Usuario</th>
-            }
             <th class="crm-table__actions">Acciones</th>
           </tr>
         </thead>
@@ -166,10 +177,17 @@
           @for (activity of activities(); track activity.id) {
             <tr [class.crm-table__row--overdue]="activity.is_overdue_follow_up">
               <td>
-                <button type="button" class="crm-customer" (click)="openCustomer(activity)">
-                  <span>{{ activity.customer?.display_name || ('#' + activity.customer_id) }}</span>
-                  <lucide-icon [img]="ExternalLinkIcon" [size]="12"></lucide-icon>
-                </button>
+                <div class="crm-party">
+                  <button type="button" class="crm-customer" (click)="openCustomer(activity)">
+                    <span>{{ activity.customer?.display_name || ('#' + activity.customer_id) }}</span>
+                    <lucide-icon [img]="ExternalLinkIcon" [size]="12"></lucide-icon>
+                  </button>
+                  @if (activity.user?.display_name; as creatorName) {
+                    <span class="crm-creator" [title]="'Creado por ' + creatorName">
+                      {{ creatorName }}
+                    </span>
+                  }
+                </div>
               </td>
               <td>
                 <span [ngClass]="getTypeClass(activity.type)">{{ getTypeLabel(activity.type) }}</span>
@@ -185,19 +203,21 @@
               <td>
                 <span [ngClass]="getStatusClass(activity.status)">{{ getStatusLabel(activity.status) }}</span>
               </td>
-              <td class="crm-muted">{{ activity.activity_date | apiDate:'medium' }}</td>
-              <td>
+              <td class="crm-date">{{ activity.activity_date | apiDate:'date' }}</td>
+              <td class="crm-date">
                 @if (activity.follow_up_date) {
-                  <span [class.crm-overdue]="activity.is_overdue_follow_up">
-                    {{ activity.follow_up_date | apiDate:'medium' }}
+                  <span
+                    class="crm-follow-up"
+                    [class.crm-follow-up--overdue]="activity.is_overdue_follow_up">
+                    {{ activity.follow_up_date | apiDate:'date' }}
                   </span>
+                  @if (activity.is_overdue_follow_up) {
+                    <span class="crm-follow-up__tag">Vencido</span>
+                  }
                 } @else {
                   <span class="crm-muted">—</span>
                 }
               </td>
-              @if (isCrmAdmin()) {
-                <td class="crm-muted">{{ activity.user?.display_name || '—' }}</td>
-              }
               <td class="crm-table__actions">
                 @if (canUpdate && activity.status !== 'completed' && activity.status !== 'cancelled') {
                   <button

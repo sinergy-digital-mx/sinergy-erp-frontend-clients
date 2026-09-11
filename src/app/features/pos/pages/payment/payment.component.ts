@@ -90,6 +90,11 @@ import {
   parseOrderTotal,
   PosCollectForm,
   mixedSelectedCount,
+  mixedRemainderMxn,
+  mixedRemainderTarget,
+  applyMixedRemainderToLast,
+  fillMixedMethodWithRemainder,
+  MixedPaymentType,
   sumCashDenominations,
   syncCashFormFromReceived,
   validateCollectForm,
@@ -293,6 +298,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly cashShortfallUsd = computed(() => collectCashShortfallUsd(this.collectForm()));
 
   readonly appliedDelta = computed(() => collectAppliedDelta(this.collectForm(), this.orderTotal()));
+
+  readonly mixedRemainder = computed(() => mixedRemainderMxn(this.collectForm(), this.orderTotal()));
+
+  readonly mixedAutoTarget = computed(() => mixedRemainderTarget(this.collectForm()));
 
   readonly appliedProgress = computed(() => {
     const total = this.orderTotal();
@@ -709,6 +718,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       collectedCashUsd,
       collectedTransferMxn: parsePosMoney(summary?.transfer_mxn ?? drawer?.collected_transfer_mxn),
       collectedCardMxn: parsePosMoney(summary?.card_mxn ?? drawer?.collected_card_mxn),
+      collectedCheckMxn: parsePosMoney(summary?.check_mxn ?? drawer?.collected_check_mxn),
       collectedCreditMxn: parsePosMoney(summary?.credit_mxn ?? drawer?.collected_credit_mxn),
       removedMxn,
       removedUsd,
@@ -804,30 +814,61 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       if (method === 'card') {
         next.amountCardMxn = total;
       }
+      if (method === 'check') {
+        next.amountCheckMxn = total;
+      }
       if (method === 'mixed') {
         next.mixedUsesCash = false;
         next.mixedUsesTransfer = false;
         next.mixedUsesCard = false;
+        next.mixedUsesCheck = false;
         next.mixedCashMxn = 0;
         next.mixedTransferMxn = 0;
         next.mixedReceivedMxn = 0;
         next.mixedCardMxn = 0;
+        next.mixedCheckMxn = 0;
         next.mixedTransferRef = '';
         next.mixedCardRef = '';
+        next.mixedCheckRef = '';
       }
       return next;
     });
     this.collectError.set(null);
   }
 
-  patchCollectForm(patch: Partial<PosCollectForm>): void {
+  patchCollectForm(patch: Partial<PosCollectForm>, editedMixed?: MixedPaymentType): void {
     this.collectForm.update((form) => {
-      const next = { ...form, ...patch };
+      let next = { ...form, ...patch };
       if (patch.mixedCashMxn != null && next.mixedReceivedMxn < next.mixedCashMxn) {
         next.mixedReceivedMxn = next.mixedCashMxn;
       }
+      if (next.paymentMethod === 'mixed' && editedMixed) {
+        next = applyMixedRemainderToLast(next, this.orderTotal(), editedMixed);
+      }
       return next;
     });
+    this.collectError.set(null);
+  }
+
+  onMixedAmountChange(type: MixedPaymentType, value: string | number): void {
+    const amount = this.parseMoneyInput(value);
+    if (type === 'cash') {
+      this.patchCollectForm({ mixedCashMxn: amount }, 'cash');
+      return;
+    }
+    if (type === 'transfer') {
+      this.patchCollectForm({ mixedTransferMxn: amount }, 'transfer');
+      return;
+    }
+    if (type === 'card') {
+      this.patchCollectForm({ mixedCardMxn: amount }, 'card');
+      return;
+    }
+    this.patchCollectForm({ mixedCheckMxn: amount }, 'check');
+  }
+
+  applyMixedRemainderTo(type: MixedPaymentType): void {
+    this.collectForm.update((form) => fillMixedMethodWithRemainder(form, this.orderTotal(), type));
     this.collectError.set(null);
   }
 
@@ -922,10 +963,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     return Number.isFinite(n) ? n : 0;
   }
 
-  toggleMixedType(type: 'cash' | 'transfer' | 'card', enabled: boolean): void {
+  toggleMixedType(type: MixedPaymentType, enabled: boolean): void {
     const total = this.orderTotal();
     this.collectForm.update((form) => {
-      const next = { ...form };
+      let next = { ...form };
       if (type === 'cash') {
         next.mixedUsesCash = enabled;
         next.mixedCashMxn = enabled ? next.mixedCashMxn : 0;
@@ -941,7 +982,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         next.mixedCardMxn = enabled ? next.mixedCardMxn : 0;
         next.mixedCardRef = enabled ? next.mixedCardRef : '';
       }
-      void total;
+      if (type === 'check') {
+        next.mixedUsesCheck = enabled;
+        next.mixedCheckMxn = enabled ? next.mixedCheckMxn : 0;
+        next.mixedCheckRef = enabled ? next.mixedCheckRef : '';
+      }
+      next = applyMixedRemainderToLast(next, total, null);
       return next;
     });
     this.collectError.set(null);

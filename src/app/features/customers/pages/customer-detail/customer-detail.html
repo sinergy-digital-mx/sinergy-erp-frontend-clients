@@ -277,7 +277,7 @@
       </div>
 
       <app-customer-product-insights
-        *hasEntity="'sales_orders'"
+        *hasPermission="permissions.viewFrequentPurchases"
         [customerId]="customer()!.id">
       </app-customer-product-insights>
 

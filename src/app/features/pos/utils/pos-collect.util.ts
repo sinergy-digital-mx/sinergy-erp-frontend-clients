@@ -1,4 +1,5 @@
-export type CollectPaymentMethod = 'cash' | 'card' | 'transfer' | 'mixed' | 'credit';
+export type CollectPaymentMethod = 'cash' | 'card' | 'transfer' | 'check' | 'mixed' | 'credit';
+export type MixedPaymentType = 'cash' | 'transfer' | 'card' | 'check';
 
 export const CASH_MXN_DENOMINATIONS = [1000, 500, 200, 100, 50, 20] as const;
 export const CASH_USD_DENOMINATIONS = [100, 50, 20, 10, 5, 1] as const;
@@ -16,15 +17,20 @@ export interface PosCollectForm {
   transferReference: string;
   amountCardMxn: number;
   cardReference: string;
+  amountCheckMxn: number;
+  checkReference: string;
   mixedUsesCash: boolean;
   mixedUsesTransfer: boolean;
   mixedUsesCard: boolean;
+  mixedUsesCheck: boolean;
   mixedCashMxn: number;
   mixedReceivedMxn: number;
   mixedTransferMxn: number;
   mixedTransferRef: string;
   mixedCardMxn: number;
   mixedCardRef: string;
+  mixedCheckMxn: number;
+  mixedCheckRef: string;
 }
 
 export interface CollectSalePayload {
@@ -38,6 +44,8 @@ export interface CollectSalePayload {
   transfer_reference?: string;
   amount_card_mxn?: number;
   card_reference?: string;
+  amount_check_mxn?: number;
+  check_reference?: string;
   amount_credit_mxn?: number;
   customer_id?: number | string;
   generate_invoice?: boolean;
@@ -72,15 +80,20 @@ export function defaultCollectForm(orderTotal: number, usdExchangeRate?: number)
     transferReference: '',
     amountCardMxn: orderTotal,
     cardReference: '',
+    amountCheckMxn: orderTotal,
+    checkReference: '',
     mixedUsesCash: false,
     mixedUsesTransfer: false,
     mixedUsesCard: false,
+    mixedUsesCheck: false,
     mixedCashMxn: 0,
     mixedReceivedMxn: 0,
     mixedTransferMxn: 0,
     mixedTransferRef: '',
     mixedCardMxn: 0,
     mixedCardRef: '',
+    mixedCheckMxn: 0,
+    mixedCheckRef: '',
   };
 }
 
@@ -170,6 +183,16 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
     return null;
   }
 
+  if (form.paymentMethod === 'check') {
+    if (!amountsMatch(orderTotal, form.amountCheckMxn)) {
+      return `Los montos deben cubrir exactamente ${formatMoney(orderTotal)}`;
+    }
+    if (!form.checkReference.trim()) {
+      return 'Ingresa el número de cheque';
+    }
+    return null;
+  }
+
   if (form.paymentMethod === 'credit') {
     return null;
   }
@@ -188,12 +211,18 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
     if (form.mixedUsesCard && form.mixedCardMxn <= 0) {
       return 'Ingresa el monto de tarjeta';
     }
+    if (form.mixedUsesCheck && form.mixedCheckMxn <= 0) {
+      return 'Ingresa el monto de cheque';
+    }
     const paid = mixedAppliedTotal(form);
     if (!amountsMatch(orderTotal, paid)) {
       return `Los montos deben cubrir exactamente ${formatMoney(orderTotal)}`;
     }
     if (form.mixedUsesTransfer && !form.mixedTransferRef.trim()) {
       return 'Ingresa referencia de transferencia';
+    }
+    if (form.mixedUsesCheck && !form.mixedCheckRef.trim()) {
+      return 'Ingresa el número de cheque';
     }
     if (form.mixedUsesCash && form.mixedReceivedMxn < form.mixedCashMxn) {
       return 'El efectivo recibido debe cubrir el monto en efectivo';
@@ -328,6 +357,14 @@ export function buildCollectPayload(
     };
   }
 
+  if (form.paymentMethod === 'check') {
+    return {
+      ...base,
+      amount_check_mxn: roundMoney(form.amountCheckMxn),
+      check_reference: form.checkReference.trim(),
+    };
+  }
+
   if (form.paymentMethod === 'credit') {
     return {
       ...base,
@@ -353,6 +390,10 @@ export function buildCollectPayload(
       single.amountCardMxn = form.mixedCardMxn;
       single.cardReference = form.mixedCardRef;
     }
+    if (method === 'check') {
+      single.amountCheckMxn = form.mixedCheckMxn;
+      single.checkReference = form.mixedCheckRef;
+    }
     return buildCollectPayload(single, orderTotal, customerId);
   }
 
@@ -377,14 +418,21 @@ export function buildCollectPayload(
           ...(form.mixedCardRef.trim() ? { card_reference: form.mixedCardRef.trim() } : {}),
         }
       : {}),
+    ...(form.mixedUsesCheck
+      ? {
+          amount_check_mxn: roundMoney(form.mixedCheckMxn),
+          check_reference: form.mixedCheckRef.trim(),
+        }
+      : {}),
   };
 }
 
-export function mixedSelectedMethods(form: PosCollectForm): Array<'cash' | 'transfer' | 'card'> {
-  const methods: Array<'cash' | 'transfer' | 'card'> = [];
+export function mixedSelectedMethods(form: PosCollectForm): MixedPaymentType[] {
+  const methods: MixedPaymentType[] = [];
   if (form.mixedUsesCash) methods.push('cash');
   if (form.mixedUsesTransfer) methods.push('transfer');
   if (form.mixedUsesCard) methods.push('card');
+  if (form.mixedUsesCheck) methods.push('check');
   return methods;
 }
 
@@ -392,12 +440,78 @@ export function mixedSelectedCount(form: PosCollectForm): number {
   return mixedSelectedMethods(form).length;
 }
 
+export function mixedAmountOf(form: PosCollectForm, method: MixedPaymentType): number {
+  if (method === 'cash') return form.mixedCashMxn;
+  if (method === 'transfer') return form.mixedTransferMxn;
+  if (method === 'card') return form.mixedCardMxn;
+  return form.mixedCheckMxn;
+}
+
+export function setMixedAmount(form: PosCollectForm, method: MixedPaymentType, amount: number): PosCollectForm {
+  const next = { ...form };
+  const value = roundMoney(Math.max(0, amount));
+  if (method === 'cash') {
+    next.mixedCashMxn = value;
+    if (next.mixedReceivedMxn < value) {
+      next.mixedReceivedMxn = value;
+    }
+  } else if (method === 'transfer') {
+    next.mixedTransferMxn = value;
+  } else if (method === 'card') {
+    next.mixedCardMxn = value;
+  } else {
+    next.mixedCheckMxn = value;
+  }
+  return next;
+}
+
 export function mixedAppliedTotal(form: PosCollectForm): number {
   return roundMoney(
     (form.mixedUsesCash ? form.mixedCashMxn : 0) +
       (form.mixedUsesTransfer ? form.mixedTransferMxn : 0) +
-      (form.mixedUsesCard ? form.mixedCardMxn : 0)
+      (form.mixedUsesCard ? form.mixedCardMxn : 0) +
+      (form.mixedUsesCheck ? form.mixedCheckMxn : 0)
   );
+}
+
+export function mixedRemainderMxn(form: PosCollectForm, orderTotal: number): number {
+  return roundMoney(orderTotal - mixedAppliedTotal(form));
+}
+
+export function mixedRemainderTarget(form: PosCollectForm): MixedPaymentType | null {
+  const selected = mixedSelectedMethods(form);
+  return selected.length >= 2 ? selected[selected.length - 1] : null;
+}
+
+/** Asigna al método el resto: total − suma de los demás métodos marcados. */
+export function fillMixedMethodWithRemainder(
+  form: PosCollectForm,
+  orderTotal: number,
+  method: MixedPaymentType
+): PosCollectForm {
+  if (!mixedSelectedMethods(form).includes(method)) {
+    return form;
+  }
+  const othersSum = mixedSelectedMethods(form)
+    .filter((item) => item !== method)
+    .reduce((sum, item) => sum + mixedAmountOf(form, item), 0);
+  return setMixedAmount(form, method, roundMoney(Math.max(0, orderTotal - othersSum)));
+}
+
+/**
+ * El último método marcado absorbe la diferencia.
+ * Si el cajero está editando ese último método, no se pisa su valor.
+ */
+export function applyMixedRemainderToLast(
+  form: PosCollectForm,
+  orderTotal: number,
+  editedMethod: MixedPaymentType | null
+): PosCollectForm {
+  const target = mixedRemainderTarget(form);
+  if (!target || editedMethod === target) {
+    return form;
+  }
+  return fillMixedMethodWithRemainder(form, orderTotal, target);
 }
 
 export function collectAppliedTotal(form: PosCollectForm): number {
@@ -409,6 +523,9 @@ export function collectAppliedTotal(form: PosCollectForm): number {
   }
   if (form.paymentMethod === 'card') {
     return form.amountCardMxn;
+  }
+  if (form.paymentMethod === 'check') {
+    return form.amountCheckMxn;
   }
   if (form.paymentMethod === 'credit') {
     return 0;

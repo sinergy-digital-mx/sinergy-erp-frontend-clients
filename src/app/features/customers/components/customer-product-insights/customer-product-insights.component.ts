@@ -66,7 +66,7 @@ export class CustomerProductInsightsComponent implements OnInit {
 
   loadInsights(): void {
     if (this.customerId == null || this.customerId === '') return;
-    if (!this.authService.hasEntityAccess('sales_orders')) {
+    if (!this.authService.hasPermission('customers:ComprasFrecuentes')) {
       this.mostPurchased.set([]);
       this.recommended.set([]);
       this.loading.set(false);

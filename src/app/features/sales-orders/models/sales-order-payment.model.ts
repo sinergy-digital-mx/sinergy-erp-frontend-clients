@@ -1,6 +1,6 @@
 import { SalesPaymentStatus } from './sales-order.model';
 
-export type SalesOrderPaymentMethod = 'cash' | 'card' | 'transfer' | 'mixed';
+export type SalesOrderPaymentMethod = 'cash' | 'card' | 'transfer' | 'check' | 'mixed';
 export type SalesOrderPaymentSource = 'manual' | 'pos_cobranza';
 export type SalesOrderPaymentCurrency = 'MXN' | 'USD';
 
@@ -77,6 +77,7 @@ export const SALES_ORDER_PAYMENT_METHOD_LABELS: Record<SalesOrderPaymentMethod, 
   cash: 'Efectivo',
   card: 'Tarjeta',
   transfer: 'Transferencia',
+  check: 'Cheque',
   mixed: 'Mixto',
 };
 
@@ -84,6 +85,7 @@ export function salesOrderPaymentMethodLabel(method?: string | null): string {
   if (!method) return '—';
   const key = method.toLowerCase();
   if (key === 'credit') return 'Crédito';
+  if (key === 'check') return 'Cheque';
   return SALES_ORDER_PAYMENT_METHOD_LABELS[key as SalesOrderPaymentMethod] ?? method;
 }
 

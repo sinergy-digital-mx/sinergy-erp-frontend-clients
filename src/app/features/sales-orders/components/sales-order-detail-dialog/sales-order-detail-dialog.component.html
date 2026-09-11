@@ -416,6 +416,18 @@
                   <span class="section-value">{{ posCollectionMoney(pay.amount_card_mxn) }}</span>
                 </div>
               }
+              @if (pay.amount_check_mxn != null && +pay.amount_check_mxn > 0) {
+                <div class="section-item">
+                  <span class="section-label">Cheque</span>
+                  <span class="section-value">{{ posCollectionMoney(pay.amount_check_mxn) }}</span>
+                </div>
+              }
+              @if (pay.check_reference) {
+                <div class="section-item">
+                  <span class="section-label">Ref. cheque</span>
+                  <span class="section-value">{{ pay.check_reference }}</span>
+                </div>
+              }
               @if (pay.amount_credit_mxn != null && +pay.amount_credit_mxn > 0) {
                 <div class="section-item">
                   <span class="section-label">Crédito</span>

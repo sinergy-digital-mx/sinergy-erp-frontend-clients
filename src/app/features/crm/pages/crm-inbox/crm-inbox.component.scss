@@ -148,19 +148,45 @@
 
 .author-picker {
   position: relative;
+  width: 100%;
+  min-width: 0;
 }
 
 .author-picker__input {
   padding-right: 2.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.author-picker__chevron {
+.author-picker__chevron,
+.author-picker__clear {
   position: absolute;
-  right: 0.7rem;
+  right: 0.55rem;
   top: 50%;
   transform: translateY(-50%);
   color: #6b7280;
+}
+
+.author-picker__chevron {
   pointer-events: none;
+}
+
+.author-picker__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.author-picker__clear:hover {
+  background: #f1f5f9;
+  color: #334155;
 }
 
 .author-picker__count {
@@ -222,6 +248,14 @@
   background: #fff7ed;
 }
 
+.crm-party {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
 .crm-customer {
   display: inline-flex;
   align-items: center;
@@ -233,6 +267,22 @@
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
+}
+
+.crm-creator {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .crm-title {
@@ -251,6 +301,33 @@
 .crm-muted {
   color: #64748b;
   font-size: 0.8125rem;
+}
+
+.crm-date {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.crm-follow-up {
+  display: inline-block;
+  font-weight: 500;
+}
+
+.crm-follow-up--overdue {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.crm-follow-up__tag {
+  display: block;
+  margin-top: 0.15rem;
+  color: #b91c1c;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .crm-overdue {

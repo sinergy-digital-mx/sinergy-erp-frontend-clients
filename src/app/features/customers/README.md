@@ -9,7 +9,7 @@ Secciones visibles según permisos RBAC:
 | Sección | Permiso | Fuente de datos |
 |---------|---------|-----------------|
 | Información / Crédito / Fiscal | `customers:read` | `GET /tenant/customers/:id` |
-| Productos más comprados / sugeridos | `customers:read` | `GET /tenant/customers/:id/product-insights` |
+| Productos más comprados / sugeridos | `customers:ComprasFrecuentes` | `GET /tenant/customers/:id/product-insights` |
 | Propiedades y contratos | `contracts:read` | `customer.contracts` en el detalle |
 | Órdenes de venta | `customers:read` (mismo que documentos) | `GET /tenant/sales-orders?customer_id=:id` |
 | Documentos | `customers:read` | API de documentos del cliente |

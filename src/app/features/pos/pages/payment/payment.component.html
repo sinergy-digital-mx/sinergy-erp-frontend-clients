@@ -509,7 +509,10 @@
             <section class="cobranza-block">
               <h3 class="cobranza-block__title">Método de pago</h3>
 
-              <div class="cobranza-pay-tabs" role="tablist" [class.cobranza-pay-tabs--with-credit]="showCreditTab()">
+              <div
+                class="cobranza-pay-tabs"
+                role="tablist"
+                [class.cobranza-pay-tabs--with-credit]="showCreditTab()">
                 <button
                   type="button"
                   class="cobranza-pay-tab"
@@ -530,6 +533,13 @@
                   [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'card'"
                   (click)="setPaymentMethod('card')">
                   Tarjeta
+                </button>
+                <button
+                  type="button"
+                  class="cobranza-pay-tab"
+                  [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'check'"
+                  (click)="setPaymentMethod('check')">
+                  Cheque
                 </button>
                 <button
                   type="button"
@@ -722,6 +732,26 @@
                   </label>
                 }
 
+                @if (collectForm().paymentMethod === 'check') {
+                  <label class="cobranza-field">
+                    <span>Monto MXN</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      [ngModel]="collectForm().amountCheckMxn"
+                      (ngModelChange)="patchCollectForm({ amountCheckMxn: parseMoneyInput($event) })" />
+                  </label>
+                  <label class="cobranza-field">
+                    <span>Número de cheque</span>
+                    <input
+                      type="text"
+                      placeholder="CH-45821"
+                      [ngModel]="collectForm().checkReference"
+                      (ngModelChange)="patchCollectForm({ checkReference: $event })" />
+                  </label>
+                }
+
                 @if (collectForm().paymentMethod === 'credit') {
                   <div class="cobranza-credit-panel">
                     <h4>{{ saleCreditRazonSocial() ? 'Crédito · ' + saleCreditRazonSocial() : 'Crédito' }}</h4>
@@ -757,6 +787,18 @@
                         <em>de {{ saleTotal(sale) }}</em>
                       </strong>
                     </div>
+                    @if (mixedTypeCount() >= 2 && mixedRemainder() > 0.009) {
+                      <p class="cobranza-mixed-remainder">
+                        Falta por aplicar <strong>{{ formatCurrency(mixedRemainder()) }}</strong>
+                        — se asigna al último método
+                      </p>
+                    } @else if (mixedRemainder() < -0.009) {
+                      <p class="cobranza-mixed-remainder cobranza-mixed-remainder--over">
+                        Te pasaste {{ formatCurrency(-mixedRemainder()) }}
+                      </p>
+                    } @else if (mixedTypeCount() >= 2 && amountsOk()) {
+                      <p class="cobranza-mixed-remainder cobranza-mixed-remainder--ok">Cubierto exactamente</p>
+                    }
                   </div>
 
                   <div class="cobranza-mixed-types">
@@ -781,21 +823,36 @@
                         (ngModelChange)="toggleMixedType('card', $event)" />
                       Tarjeta
                     </label>
+                    <label class="cobranza-mixed-check" [class.cobranza-mixed-check--on]="collectForm().mixedUsesCheck">
+                      <input
+                        type="checkbox"
+                        [ngModel]="collectForm().mixedUsesCheck"
+                        (ngModelChange)="toggleMixedType('check', $event)" />
+                      Cheque
+                    </label>
                   </div>
                   @if (mixedTypeCount() < 2) {
-                    <p class="cobranza-cash-hint">Selecciona al menos dos formas de pago.</p>
+                    <p class="cobranza-cash-hint">Selecciona al menos dos formas de pago. Al capturar un monto, el resto se calcula solo.</p>
                   }
 
                   @if (collectForm().mixedUsesCash) {
                     <div class="cobranza-field-grid cobranza-field-grid--2">
                       <label class="cobranza-field">
-                        <span>Efectivo MXN</span>
+                        <span>
+                          Efectivo MXN
+                          @if (mixedAutoTarget() === 'cash') {
+                            <em class="cobranza-mixed-auto">resto</em>
+                          }
+                        </span>
                         <input
                           type="number"
                           min="0"
                           step="0.01"
                           [ngModel]="collectForm().mixedCashMxn"
-                          (ngModelChange)="patchCollectForm({ mixedCashMxn: parseMoneyInput($event) })" />
+                          (ngModelChange)="onMixedAmountChange('cash', $event)" />
+                        <button type="button" class="cobranza-mixed-fill" (click)="applyMixedRemainderTo('cash')">
+                          Aplicar resto
+                        </button>
                       </label>
                       <label class="cobranza-field">
                         <span>Recibió MXN</span>
@@ -836,13 +893,21 @@
 
                   @if (collectForm().mixedUsesTransfer) {
                     <label class="cobranza-field">
-                      <span>Transferencia MXN</span>
+                      <span>
+                        Transferencia MXN
+                        @if (mixedAutoTarget() === 'transfer') {
+                          <em class="cobranza-mixed-auto">resto</em>
+                        }
+                      </span>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
                         [ngModel]="collectForm().mixedTransferMxn"
-                        (ngModelChange)="patchCollectForm({ mixedTransferMxn: parseMoneyInput($event) })" />
+                        (ngModelChange)="onMixedAmountChange('transfer', $event)" />
+                      <button type="button" class="cobranza-mixed-fill" (click)="applyMixedRemainderTo('transfer')">
+                        Aplicar resto
+                      </button>
                     </label>
                     <label class="cobranza-field">
                       <span>Referencia SPEI</span>
@@ -856,13 +921,21 @@
 
                   @if (collectForm().mixedUsesCard) {
                     <label class="cobranza-field">
-                      <span>Tarjeta MXN</span>
+                      <span>
+                        Tarjeta MXN
+                        @if (mixedAutoTarget() === 'card') {
+                          <em class="cobranza-mixed-auto">resto</em>
+                        }
+                      </span>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
                         [ngModel]="collectForm().mixedCardMxn"
-                        (ngModelChange)="patchCollectForm({ mixedCardMxn: parseMoneyInput($event) })" />
+                        (ngModelChange)="onMixedAmountChange('card', $event)" />
+                      <button type="button" class="cobranza-mixed-fill" (click)="applyMixedRemainderTo('card')">
+                        Aplicar resto
+                      </button>
                     </label>
                     <label class="cobranza-field">
                       <span>Referencia tarjeta</span>
@@ -871,6 +944,34 @@
                         placeholder="Últimos 4 dígitos"
                         [ngModel]="collectForm().mixedCardRef"
                         (ngModelChange)="patchCollectForm({ mixedCardRef: $event })" />
+                    </label>
+                  }
+
+                  @if (collectForm().mixedUsesCheck) {
+                    <label class="cobranza-field">
+                      <span>
+                        Cheque MXN
+                        @if (mixedAutoTarget() === 'check') {
+                          <em class="cobranza-mixed-auto">resto</em>
+                        }
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        [ngModel]="collectForm().mixedCheckMxn"
+                        (ngModelChange)="onMixedAmountChange('check', $event)" />
+                      <button type="button" class="cobranza-mixed-fill" (click)="applyMixedRemainderTo('check')">
+                        Aplicar resto
+                      </button>
+                    </label>
+                    <label class="cobranza-field">
+                      <span>Número de cheque</span>
+                      <input
+                        type="text"
+                        placeholder="CH-45821"
+                        [ngModel]="collectForm().mixedCheckRef"
+                        (ngModelChange)="patchCollectForm({ mixedCheckRef: $event })" />
                     </label>
                   }
                 }
@@ -1000,6 +1101,12 @@
                     @if (pay['amount_card_mxn'] != null && +pay['amount_card_mxn'] > 0) {
                       <div><dt>Tarjeta</dt><dd>{{ moneyLabel(pay['amount_card_mxn']) }}</dd></div>
                     }
+                    @if (pay['amount_check_mxn'] != null && +pay['amount_check_mxn'] > 0) {
+                      <div><dt>Cheque</dt><dd>{{ moneyLabel(pay['amount_check_mxn']) }}</dd></div>
+                    }
+                    @if (pay['check_reference']) {
+                      <div><dt>Ref. cheque</dt><dd>{{ pay['check_reference'] }}</dd></div>
+                    }
                     @if (pay['amount_credit_mxn'] != null && +pay['amount_credit_mxn'] > 0) {
                       <div><dt>Crédito</dt><dd>{{ moneyLabel(pay['amount_credit_mxn']) }}</dd></div>
                     }
@@ -1024,6 +1131,9 @@
                   <dl class="cobranza-detail-list">
                     @if (item.payment.amount_cash_mxn != null && +item.payment.amount_cash_mxn > 0) {
                       <div><dt>Efectivo MXN</dt><dd>{{ moneyLabel(item.payment.amount_cash_mxn) }}</dd></div>
+                    }
+                    @if (item.payment.amount_check_mxn != null && +item.payment.amount_check_mxn > 0) {
+                      <div><dt>Cheque</dt><dd>{{ moneyLabel(item.payment.amount_check_mxn) }}</dd></div>
                     }
                     @if (item.payment.amount_credit_mxn != null && +item.payment.amount_credit_mxn > 0) {
                       <div><dt>Crédito</dt><dd>{{ moneyLabel(item.payment.amount_credit_mxn) }}</dd></div>

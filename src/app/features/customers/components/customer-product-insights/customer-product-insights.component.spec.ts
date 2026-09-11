@@ -58,7 +58,10 @@ describe('CustomerProductInsightsComponent', () => {
       providers: [
         { provide: CustomerProductInsightsService, useValue: mockService },
         { provide: MatDialog, useValue: mockDialog },
-        { provide: AuthService, useValue: { hasEntityAccess: () => true, permissions$: of(new Set()) } },
+        {
+          provide: AuthService,
+          useValue: { hasPermission: () => true, permissions$: of(new Set()) },
+        },
       ],
     }).compileComponents();
 
@@ -83,9 +86,9 @@ describe('CustomerProductInsightsComponent', () => {
     expect(component.loading()).toBe(false);
   });
 
-  it('should not fetch insights without sales_orders module', () => {
-    const auth = TestBed.inject(AuthService) as { hasEntityAccess: () => boolean };
-    auth.hasEntityAccess = () => false;
+  it('should not fetch insights without customers:ComprasFrecuentes', () => {
+    const auth = TestBed.inject(AuthService) as { hasPermission: () => boolean };
+    auth.hasPermission = () => false;
 
     component.ngOnInit();
 

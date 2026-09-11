@@ -1248,6 +1248,53 @@
   margin-bottom: 0.75rem;
 }
 
+.cobranza-mixed-auto {
+  margin-left: 0.3rem;
+  font-style: normal;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6d28d9;
+  background: #ede9fe;
+  border-radius: 999px;
+  padding: 0.08rem 0.4rem;
+}
+
+.cobranza-mixed-fill {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #6b46c1;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.cobranza-mixed-remainder {
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b45309;
+
+  strong {
+    font-weight: 800;
+  }
+
+  &--ok {
+    color: #047857;
+  }
+
+  &--over {
+    color: #b91c1c;
+  }
+}
+
 .cobranza-mixed-check {
   display: inline-flex;
   align-items: center;
@@ -1313,7 +1360,7 @@
 
 .cobranza-pay-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.35rem;
   margin-bottom: 0.75rem;
   padding: 0.25rem;
@@ -1322,7 +1369,7 @@
 }
 
 .cobranza-pay-tabs--with-credit {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .cobranza-pay-tab {

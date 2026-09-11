@@ -20,7 +20,7 @@ export class CustomerProductInsightsService {
 
   /**
    * Productos más comprados y sugerencias del cliente.
-   * GET /tenant/customers/:id/product-insights — customers:Read.
+   * GET /tenant/customers/:id/product-insights — customers:ComprasFrecuentes.
    */
   getInsights(
     customerId: string | number,

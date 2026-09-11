@@ -10,7 +10,7 @@ Entre la card de información (tabs) y Órdenes de venta. Desktop: dos columnas.
 
 ## Endpoint
 
-`GET /tenant/customers/:id/product-insights` — permiso `customers:Read`.
+`GET /tenant/customers/:id/product-insights` — permiso `customers:ComprasFrecuentes`.
 
 Query: `most_purchased_limit` y `recommended_limit` (default 8, máx. 20).
 

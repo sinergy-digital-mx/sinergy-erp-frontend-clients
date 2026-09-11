@@ -84,7 +84,7 @@
         <div class="form-field">
           <label for="reference_number">
             Referencia
-            @if (isTransfer) {
+            @if (requiresReference) {
               <span>*</span>
             }
           </label>
@@ -93,10 +93,18 @@
             class="form-input"
             type="text"
             formControlName="reference_number"
-            [placeholder]="isTransfer ? 'SPEI / folio de transferencia' : 'Referencia (opcional)'"
+            [placeholder]="
+              isTransfer
+                ? 'SPEI / folio de transferencia'
+                : form.get('payment_method')?.value === 'check'
+                  ? 'Número de cheque'
+                  : 'Referencia (opcional)'
+            "
           />
-          @if (isTransfer && form.get('reference_number')?.invalid && form.get('reference_number')?.touched) {
-            <span class="error-message" role="alert">Indica la referencia de transferencia</span>
+          @if (requiresReference && form.get('reference_number')?.invalid && form.get('reference_number')?.touched) {
+            <span class="error-message" role="alert">
+              {{ isTransfer ? 'Indica la referencia de transferencia' : 'Indica el número de cheque' }}
+            </span>
           }
         </div>
 

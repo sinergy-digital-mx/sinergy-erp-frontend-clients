@@ -5,7 +5,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
-import { LucideAngularModule, Pencil, Check, ChevronDown, ExternalLink } from 'lucide-angular';
+import { LucideAngularModule, Pencil, Check, ChevronDown, ExternalLink, X } from 'lucide-angular';
 import {
   ReportPeriod,
   ReportPeriodSelectorComponent,
@@ -38,7 +38,7 @@ const ALL_AUTHORS: CrmActivityAuthor = {
   first_name: null,
   last_name: null,
   email: null,
-  display_name: 'Todos los usuarios',
+  display_name: 'Todos los vendedores',
   activity_count: 0,
 };
 
@@ -62,6 +62,7 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
   readonly CheckIcon = Check;
   readonly ChevronDown = ChevronDown;
   readonly ExternalLinkIcon = ExternalLink;
+  readonly XIcon = X;
   readonly activityTypes = Object.values(ActivityType);
   readonly activityStatuses = Object.values(ActivityStatus);
 
@@ -89,8 +90,12 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
+  readonly showVendorFilter = computed(() => this.isCrmAdmin() || this.authors().length > 0);
+
+  readonly authorSearchTerm = computed(() => this.authorTerm().trim().toLowerCase());
+
   readonly filteredAuthors = computed(() => {
-    const term = this.authorTerm().trim().toLowerCase();
+    const term = this.authorSearchTerm();
     const rows = this.authors();
     if (!term || this.selectedAuthor()) {
       return rows;
@@ -124,13 +129,15 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
     this.typeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.reload(1));
     this.statusControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.reload(1));
     this.authorSearchControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((value) => {
-      this.authorTerm.set(value);
+      if (value && typeof value !== 'string') {
+        return;
+      }
+      const text = value ?? '';
+      this.authorTerm.set(text);
       const selected = this.selectedAuthor();
-      if (selected && value !== selected.display_name) {
+      if (selected && text !== selected.display_name) {
         this.selectedAuthor.set(null);
-        if (!value.trim()) {
-          this.reload(1);
-        }
+        this.reload(1);
       }
     });
 
@@ -159,12 +166,16 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
     this.reload(1);
   }
 
+  onAuthorSearchFocus(): void {
+    const selected = this.selectedAuthor();
+    const raw = this.authorSearchControl.value;
+    const text = typeof raw === 'string' ? raw : '';
+    this.authorTerm.set(selected ? '' : text);
+  }
+
   onAuthorSelected(value: CrmActivityAuthor): void {
     if (!value?.id) {
-      this.selectedAuthor.set(null);
-      this.authorTerm.set('');
-      this.authorSearchControl.setValue('', { emitEvent: false });
-      this.reload(1);
+      this.clearAuthor();
       return;
     }
     this.selectedAuthor.set(value);

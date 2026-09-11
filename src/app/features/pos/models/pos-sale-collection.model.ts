@@ -20,6 +20,8 @@ export interface PosSaleCollection {
   transfer_reference?: string | null;
   amount_card_mxn?: number | string;
   card_reference?: string | null;
+  amount_check_mxn?: number | string;
+  check_reference?: string | null;
   amount_credit_mxn?: number | string;
   received_cash_mxn?: number | string;
   received_cash_usd?: number | string;

@@ -3,7 +3,7 @@
   <h2 class="pos-dialog__title">Cerrar corte del día</h2>
   <p class="pos-dialog__subtitle">
     Cuenta el efectivo que queda en caja de {{ data.branchLabel }} ({{ data.shiftDate }}).
-    Tarjeta, transferencia y crédito no se cuentan aquí.
+    Tarjeta, transferencia, cheque y crédito no se cuentan aquí.
   </p>
 
   @if (data.isHistorical) {
@@ -29,10 +29,11 @@
       <span>Esperado en caja</span>
       <strong>{{ formatMxn(expectedMxn()) }}</strong>
     </div>
-    @if (data.collectedTransferMxn > 0 || data.collectedCardMxn > 0 || data.collectedCreditMxn > 0) {
+    @if (data.collectedTransferMxn > 0 || data.collectedCardMxn > 0 || data.collectedCheckMxn > 0 || data.collectedCreditMxn > 0) {
       <p class="close-shift-summary__aside">
         Fuera de caja: transferencia {{ formatMxn(data.collectedTransferMxn) }}
         · tarjeta {{ formatMxn(data.collectedCardMxn) }}
+        · cheque {{ formatMxn(data.collectedCheckMxn) }}
         · crédito {{ formatMxn(data.collectedCreditMxn) }}
       </p>
     }

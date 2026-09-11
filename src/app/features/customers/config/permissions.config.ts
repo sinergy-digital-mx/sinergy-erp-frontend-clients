@@ -23,6 +23,7 @@ export const CUSTOMER_PERMISSIONS = {
   downloadDocument: 'customers:Read',
 
   viewActivities: 'customers:Read',
+  viewFrequentPurchases: 'customers:ComprasFrecuentes',
   createActivity: 'customers:Update',
   updateActivity: 'customers:Update',
 

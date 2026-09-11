@@ -18,6 +18,7 @@ export interface CloseDailyShiftDialogData {
   collectedCashUsd: number;
   collectedTransferMxn: number;
   collectedCardMxn: number;
+  collectedCheckMxn: number;
   collectedCreditMxn: number;
   removedMxn: number;
   removedUsd: number;

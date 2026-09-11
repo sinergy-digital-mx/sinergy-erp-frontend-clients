@@ -1,6 +1,6 @@
 import { formatPosMoney } from './pos-daily-shift.model';
 
-export type PosPaymentMethod = 'cash' | 'card' | 'transfer' | 'mixed' | string;
+export type PosPaymentMethod = 'cash' | 'card' | 'transfer' | 'check' | 'mixed' | string;
 
 export interface CollectedSalePayment {
   payment_method?: PosPaymentMethod;
@@ -12,6 +12,8 @@ export interface CollectedSalePayment {
   transfer_reference?: string | null;
   amount_card_mxn?: number | string;
   card_reference?: string | null;
+  amount_check_mxn?: number | string;
+  check_reference?: string | null;
   amount_credit_mxn?: number | string;
   received_cash_mxn?: number | string;
   received_cash_usd?: number | string;
@@ -54,6 +56,7 @@ export interface CollectedSalesSummary {
   cash_usd?: number | string;
   transfer_mxn?: number | string;
   card_mxn?: number | string;
+  check_mxn?: number | string;
   credit_mxn?: number | string;
 }
 
@@ -67,6 +70,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   cash: 'Efectivo',
   transfer: 'Transferencia',
   card: 'Tarjeta',
+  check: 'Cheque',
   mixed: 'Mixto',
   credit: 'Crédito',
 };

@@ -105,6 +105,7 @@ export interface PosDailyShiftCashDrawer {
   collected_cash_usd?: number | string;
   collected_transfer_mxn?: number | string;
   collected_card_mxn?: number | string;
+  collected_check_mxn?: number | string;
   collected_credit_mxn?: number | string;
   removed_total_mxn?: number | string;
   removed_total_usd?: number | string;

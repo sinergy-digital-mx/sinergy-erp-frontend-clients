@@ -50,6 +50,7 @@ export class SalesOrderPaymentDialogComponent {
     { value: 'cash', label: 'Efectivo' },
     { value: 'card', label: 'Tarjeta' },
     { value: 'transfer', label: 'Transferencia' },
+    { value: 'check', label: 'Cheque' },
     { value: 'mixed', label: 'Mixto' },
   ];
 
@@ -103,6 +104,11 @@ export class SalesOrderPaymentDialogComponent {
     return this.form.get('payment_method')?.value === 'transfer';
   }
 
+  get requiresReference(): boolean {
+    const method = this.form.get('payment_method')?.value;
+    return method === 'transfer' || method === 'check';
+  }
+
   closeDialog(): void {
     if (!this.loading()) {
       this.dialogRef.close(null);
@@ -121,7 +127,7 @@ export class SalesOrderPaymentDialogComponent {
     if (!Number.isFinite(amount) || amount < 0.01) return false;
     if (this.toCents(amount) > this.toCents(this.remainingAmount)) return false;
 
-    if (this.isTransfer) {
+    if (this.requiresReference) {
       const reference = String(this.form.get('reference_number')?.value ?? '').trim();
       if (!reference) return false;
     }
@@ -150,7 +156,7 @@ export class SalesOrderPaymentDialogComponent {
       notes: formValue.notes?.trim() || undefined,
     };
 
-    if (method === 'transfer' && !payload.reference_number) {
+    if (this.requiresReference && !payload.reference_number) {
       this.form.get('reference_number')?.setErrors({ required: true });
       this.form.get('reference_number')?.markAsTouched();
       return;
@@ -241,7 +247,7 @@ export class SalesOrderPaymentDialogComponent {
   private updateReferenceValidators(method: SalesOrderPaymentMethod): void {
     const control = this.form.get('reference_number');
     if (!control) return;
-    if (method === 'transfer') {
+    if (method === 'transfer' || method === 'check') {
       control.setValidators([Validators.required]);
     } else {
       control.clearValidators();
