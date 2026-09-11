@@ -74,7 +74,7 @@ export class RolesManagementComponent implements OnInit {
       (error) => {
         console.error('Failed to load modules:', error);
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: error.error?.message || 'Failed to load modules', type: 'error' },
+          data: { message: 'No se pudieron cargar los módulos', type: 'error' },
           duration: 5000
         });
       }

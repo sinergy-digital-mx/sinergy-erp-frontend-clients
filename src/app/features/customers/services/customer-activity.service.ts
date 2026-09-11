@@ -89,6 +89,11 @@ export class CustomerActivityService {
   }
 
   private extractActivitiesArray(response: unknown): CustomerActivity[] {
+    const rows = this.readActivitiesArray(response);
+    return rows.map((row) => this.normalizeActivity(row));
+  }
+
+  private readActivitiesArray(response: unknown): CustomerActivity[] {
     if (Array.isArray(response)) {
       return response as CustomerActivity[];
     }
@@ -98,8 +103,29 @@ export class CustomerActivityService {
       if (Array.isArray(nested)) {
         return nested as CustomerActivity[];
       }
+      if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+        const inner = (nested as Record<string, unknown>)['activities'];
+        if (Array.isArray(inner)) {
+          return inner as CustomerActivity[];
+        }
+      }
     }
     return [];
+  }
+
+  private normalizeActivity(row: CustomerActivity): CustomerActivity {
+    const user = row.user;
+    if (!user) {
+      return row;
+    }
+    const named = (user.display_name || [user.first_name, user.last_name].filter(Boolean).join(' ')).trim();
+    return {
+      ...row,
+      user: {
+        ...user,
+        display_name: named || user.email || '',
+      },
+    };
   }
 
   private normalizeActivitiesResponse(

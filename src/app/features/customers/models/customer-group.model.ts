@@ -375,9 +375,19 @@ export enum ActivityOutcome {
 /**
  * Customer Activity Model
  */
+export interface CustomerActivityUser {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  display_name?: string;
+}
+
 export interface CustomerActivity {
   id: string;
   customer_id: number;
+  user_id?: string | null;
+  user?: CustomerActivityUser | null;
   type: ActivityType;
   status: ActivityStatus;
   title: string;

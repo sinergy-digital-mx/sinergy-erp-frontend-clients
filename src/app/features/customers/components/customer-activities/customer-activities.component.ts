@@ -218,4 +218,13 @@ export class CustomerActivitiesComponent implements OnInit, OnChanges, OnDestroy
   getOutcomeLabel = getActivityOutcomeLabel;
   getStatusClass = getActivityStatusClass;
   getTypeClass = getActivityTypeClass;
+
+  creatorName(activity: CustomerActivity): string {
+    const user = activity.user;
+    if (!user) {
+      return '';
+    }
+    const named = (user.display_name || [user.first_name, user.last_name].filter(Boolean).join(' ')).trim();
+    return named || user.email || '';
+  }
 }
