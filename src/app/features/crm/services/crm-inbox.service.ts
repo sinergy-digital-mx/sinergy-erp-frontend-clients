@@ -37,7 +37,7 @@ export class CrmInboxService {
   getAuthors(): Observable<CrmActivityAuthorsResponse> {
     return this.http
       .get<CrmActivityAuthorsResponse>(`${this.api}/tenant/crm/activities/authors`)
-      .pipe(map((res) => this.unwrap(res)));
+      .pipe(map((res) => this.unwrapAuthors(res)));
   }
 
   private toParams(query: CrmInboxQuery, skipPaging = false): HttpParams {
@@ -71,5 +71,19 @@ export class CrmInboxService {
       return (response as { data: T }).data ?? (response as T);
     }
     return response as T;
+  }
+
+  private unwrapAuthors(response: unknown): CrmActivityAuthorsResponse {
+    const body = this.unwrap(response) as CrmActivityAuthorsResponse | CrmActivityAuthorsResponse['authors'];
+    if (Array.isArray(body)) {
+      return { is_crm_admin: false, authors: body };
+    }
+    if (body && typeof body === 'object') {
+      return {
+        is_crm_admin: Boolean(body.is_crm_admin),
+        authors: Array.isArray(body.authors) ? body.authors : [],
+      };
+    }
+    return { is_crm_admin: false, authors: [] };
   }
 }

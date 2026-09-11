@@ -740,6 +740,14 @@
       if (this.user_info?.hasAdminRole) {
         return true;
       }
+      const roles = this.user_info?.roles ?? [];
+      const isAdminRole = Array.isArray(roles) && roles.some((role) => {
+        const name = typeof role === 'string' ? role : (role as { name?: string })?.name;
+        return String(name).toLowerCase() === 'admin';
+      });
+      if (isAdminRole) {
+        return true;
+      }
       const value = (this.user_info as { is_crm_admin?: unknown })?.is_crm_admin;
       return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
     }

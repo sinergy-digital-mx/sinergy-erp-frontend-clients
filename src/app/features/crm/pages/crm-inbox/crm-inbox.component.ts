@@ -90,8 +90,6 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-  readonly showVendorFilter = computed(() => this.isCrmAdmin() || this.authors().length > 0);
-
   readonly authorSearchTerm = computed(() => this.authorTerm().trim().toLowerCase());
 
   readonly filteredAuthors = computed(() => {
@@ -301,6 +299,10 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
   getStatusClass = getActivityStatusClass;
   getTypeClass = getActivityTypeClass;
 
+  creatorName(activity: CrmActivity): string {
+    return this.userDisplayName(activity.user);
+  }
+
   private reload(page = this.page()): void {
     if (this.rangeIncomplete) {
       return;
@@ -349,9 +351,11 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          this.activities.set(response.activities ?? []);
+          const rows = (response.activities ?? []).map((row) => this.normalizeActivity(row));
+          this.activities.set(rows);
           this.total.set(response.total ?? 0);
           this.isCrmAdmin.set(response.is_crm_admin);
+          this.mergeAuthorsFromActivities(rows);
           this.loading.set(false);
         },
         error: () => {
@@ -376,6 +380,51 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
       date_to: this.datePreset === 'range' ? this.customDateTo : undefined,
       attention: this.attention() ?? undefined,
     };
+  }
+
+  private normalizeActivity(activity: CrmActivity): CrmActivity {
+    if (!activity.user) {
+      return activity;
+    }
+    return {
+      ...activity,
+      user: {
+        ...activity.user,
+        display_name: this.userDisplayName(activity.user),
+      },
+    };
+  }
+
+  private mergeAuthorsFromActivities(rows: CrmActivity[]): void {
+    if (this.authors().length > 0) {
+      return;
+    }
+    const byId = new Map<string, CrmActivityAuthor>();
+    for (const row of rows) {
+      if (!row.user?.id) {
+        continue;
+      }
+      const current = byId.get(row.user.id);
+      byId.set(row.user.id, {
+        id: row.user.id,
+        first_name: row.user.first_name,
+        last_name: row.user.last_name,
+        email: row.user.email,
+        display_name: this.userDisplayName(row.user),
+        activity_count: (current?.activity_count ?? 0) + 1,
+      });
+    }
+    if (byId.size > 0) {
+      this.authors.set([...byId.values()]);
+    }
+  }
+
+  private userDisplayName(user: CrmActivity['user'] | null | undefined): string {
+    if (!user) {
+      return '';
+    }
+    const named = (user.display_name || [user.first_name, user.last_name].filter(Boolean).join(' ')).trim();
+    return named || user.email || '';
   }
 
   private authorMatches(author: CrmActivityAuthor, term: string): boolean {
