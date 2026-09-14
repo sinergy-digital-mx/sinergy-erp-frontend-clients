@@ -5,6 +5,7 @@
   import { jwtDecode } from 'jwt-decode';
   import { ActivatedRoute, Router } from '@angular/router';
   import { environment } from '../../../environments/environment';
+  import { isMadereriaZonaNorte } from '../config/organizations.constants';
 
 
   @Injectable({
@@ -551,7 +552,11 @@
         { path: '/pos/cobranza', permissions: ['pos:Update', 'pos:Read', 'pos:ViewMenu'] },
       ];
 
+      const skipRealEstate = isMadereriaZonaNorte(this.user_info?.tenant_id);
       for (const route of routes) {
+        if (skipRealEstate && (route.path === '/properties' || route.path === '/contracts')) {
+          continue;
+        }
         const hasPermission = route.permissions.some(p => this.hasPermission(p));
         if (hasPermission) {
           return route.path;

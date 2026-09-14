@@ -282,6 +282,7 @@
       </app-customer-product-insights>
 
       <!-- CONTRACTS AND PROPERTIES SECTION -->
+      <ng-container *ngIf="showRealEstateSection">
       <div *hasPermission="'contracts:read'" class="bg-white shadow-md rounded-xl p-4 sm:p-6 border border-gray-100">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-[#334155]">
@@ -386,6 +387,7 @@
           </div>
         }
       </div>
+      </ng-container>
 
       <app-customer-sales-orders
         *hasEntity="'sales_orders'"

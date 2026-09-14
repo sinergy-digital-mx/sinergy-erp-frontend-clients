@@ -46,6 +46,7 @@ import { CustomerAssignmentHistoryComponent } from '../../components/customer-as
 import { unwrapCustomerPayload } from '../../utils/customer-credit.util';
 import { FormsModule } from '@angular/forms';
 import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
+import { isMadereriaZonaNorte } from '../../../../core/config/organizations.constants';
 
 @Component({
   selector: 'app-customer-detail',
@@ -97,6 +98,10 @@ export class CustomerDetail implements OnInit, OnDestroy {
   readonly PencilIcon = Pencil;
   readonly MapPinIcon = MapPin;
   readonly permissions = CUSTOMER_PERMISSIONS;
+
+  get showRealEstateSection(): boolean {
+    return !isMadereriaZonaNorte(this.authService.user_info?.tenant_id);
+  }
 
   constructor(
     private route: ActivatedRoute,

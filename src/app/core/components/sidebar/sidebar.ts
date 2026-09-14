@@ -31,6 +31,7 @@ import {
   ClipboardCheck,
   Phone,
 } from 'lucide-angular';
+import { MADERERIA_ZONA_NORTE_ORGANIZATION_ID } from '../../config/organizations.constants';
 import { DIVINO_DASHBOARD_TENANT_ID } from '../../../features/divino-dashboard/config/divino-dashboard.constants';
 import { DIVINO_DASHBOARD_PERMISSIONS } from '../../../features/divino-dashboard/config/permissions.config';
 import { DIVINO_RESERVATION_FORMAT_PERMISSIONS } from '../../../features/divino-reservation-formats/config/permissions.config';
@@ -51,6 +52,8 @@ interface MenuItem {
   permissions?: string[];
   /** Si se define, el ítem solo se muestra para este tenant. */
   tenantId?: string;
+  /** Organizaciones que no deben ver este ítem. */
+  hiddenForOrganizationIds?: string[];
   /** false = activo en rutas hijas (p. ej. /inventory/lotes). Default true. */
   exact?: boolean;
 }
@@ -152,14 +155,16 @@ export class Sidebar implements OnInit, OnDestroy {
       route: '/properties',
       icon: LandPlot,
       id: 'menu-properties',
-      permission: PERMISSIONS.properties.viewMenu
+      permission: PERMISSIONS.properties.viewMenu,
+      hiddenForOrganizationIds: [MADERERIA_ZONA_NORTE_ORGANIZATION_ID],
     },
     {
       label: 'Contratos',
       route: '/contracts',
       icon: FileCheck,
       id: 'menu-contracts',
-      permission: PERMISSIONS.contracts.viewMenu
+      permission: PERMISSIONS.contracts.viewMenu,
+      hiddenForOrganizationIds: [MADERERIA_ZONA_NORTE_ORGANIZATION_ID],
     },
     {
       label: 'Órdenes de Compra',
@@ -401,6 +406,9 @@ export class Sidebar implements OnInit, OnDestroy {
     const tenantId = this.auth_service.user_info?.tenant_id;
     const visibleItems = this.getMenuItems().filter(item => {
       if (item.tenantId && tenantId !== item.tenantId) {
+        return false;
+      }
+      if (tenantId && item.hiddenForOrganizationIds?.includes(tenantId)) {
         return false;
       }
       if (item.id === 'menu-pos-cobranza') {
