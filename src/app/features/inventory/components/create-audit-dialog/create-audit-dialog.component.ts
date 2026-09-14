@@ -131,10 +131,19 @@ export class CreateAuditDialogComponent implements OnInit {
       this.toast.error('Selecciona un almacén');
       return;
     }
+    const fiscalId = this.fiscalId();
+    const branchId = this.branchId();
+    if (!fiscalId || !branchId) {
+      this.toast.error('Selecciona razón social y sucursal antes de buscar productos');
+      return;
+    }
+
     this.searchingProducts.set(true);
     this.inventoryService
       .getSummary(
         {
+          fiscal_configuration_id: fiscalId,
+          billing_branch_id: branchId,
           warehouse_id: warehouseId,
           search: this.productSearch().trim() || undefined,
         },

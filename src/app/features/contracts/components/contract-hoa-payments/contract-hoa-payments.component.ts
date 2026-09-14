@@ -5,7 +5,19 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { LucideAngularModule, Plus, Edit, Trash2, DollarSign, RotateCcw, X } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { HoaPayment, HoaPaymentStats, getSuggestedHoaFirstPaymentDate, getSuggestedHoaMonthlyAmount } from '../../models/hoa-payment.model';
+import {
+  HoaPayment,
+  HoaPaymentStats,
+  getHoaDueDate,
+  getHoaOverdueAmount,
+  getHoaPaymentMonthLabel,
+  getHoaPaymentYear,
+  getSuggestedHoaFirstPaymentDate,
+  getSuggestedHoaMonthlyAmount,
+  isHoaUnpaidOverdue,
+  sortHoaPaymentsByDueDate,
+  summarizeHoaCoverage
+} from '../../models/hoa-payment.model';
 import { HoaPaymentService } from '../../services/hoa-payment.service';
 import { GenerateHoaDialogComponent } from '../generate-hoa-dialog/generate-hoa-dialog.component';
 import { EditHoaPaymentModalComponent } from '../edit-hoa-payment-modal/edit-hoa-payment-modal.component';
@@ -31,6 +43,7 @@ export class ContractHoaPaymentsComponent implements OnInit {
   loading = signal(false);
   generating = signal(false);
   currentPage = signal(1);
+  selectedYear = signal<number | null>(null);
   readonly pageSize = 20;
 
   readonly Plus = Plus;
@@ -61,13 +74,63 @@ export class ContractHoaPaymentsComponent implements OnInit {
     return !this.isContractCancelled;
   }
 
+  get sortedPayments(): HoaPayment[] {
+    return sortHoaPaymentsByDueDate(this.payments());
+  }
+
+  get availableYears(): number[] {
+    return [...new Set(this.sortedPayments.map((payment) => getHoaPaymentYear(payment)))]
+      .filter((year) => year > 0)
+      .sort((a, b) => a - b);
+  }
+
+  get filteredPayments(): HoaPayment[] {
+    const year = this.selectedYear();
+    if (year == null) return this.sortedPayments;
+    return this.sortedPayments.filter((payment) => getHoaPaymentYear(payment) === year);
+  }
+
   get totalPages(): number {
-    return Math.max(1, Math.ceil(this.payments().length / this.pageSize));
+    return Math.max(1, Math.ceil(this.filteredPayments.length / this.pageSize));
   }
 
   get paginatedPayments(): HoaPayment[] {
     const start = (this.currentPage() - 1) * this.pageSize;
-    return this.payments().slice(start, start + this.pageSize);
+    return this.filteredPayments.slice(start, start + this.pageSize);
+  }
+
+  get paginatedRows(): Array<{ kind: 'year'; year: number } | { kind: 'payment'; payment: HoaPayment }> {
+    const rows: Array<{ kind: 'year'; year: number } | { kind: 'payment'; payment: HoaPayment }> = [];
+    let lastYear: number | null = null;
+    for (const payment of this.paginatedPayments) {
+      const year = getHoaPaymentYear(payment);
+      if (year && year !== lastYear) {
+        rows.push({ kind: 'year', year });
+        lastYear = year;
+      }
+      rows.push({ kind: 'payment', payment });
+    }
+    return rows;
+  }
+
+  get calendarRangeLabel(): string | null {
+    return summarizeHoaCoverage(this.sortedPayments);
+  }
+
+  get overdueCount(): number {
+    const list = this.sortedPayments;
+    if (list.length) {
+      return list.filter(isHoaUnpaidOverdue).length;
+    }
+    return this.stats()?.overdue_count || 0;
+  }
+
+  get overdueAmount(): number {
+    const stats = this.stats();
+    if (stats?.overdue_amount != null) {
+      return Number(stats.overdue_amount);
+    }
+    return getHoaOverdueAmount(this.sortedPayments);
   }
 
   setPage(page: number): void {
@@ -75,12 +138,18 @@ export class ContractHoaPaymentsComponent implements OnInit {
     this.currentPage.set(page);
   }
 
+  setYearFilter(year: number | null): void {
+    this.selectedYear.set(year);
+    this.currentPage.set(1);
+  }
+
   loadPayments(): void {
     this.loading.set(true);
     this.hoaPaymentService.getPayments(this.contractId).subscribe({
       next: (payments) => {
-        this.payments.set(payments);
-        this.autoSelectProgressPage(payments);
+        const sorted = sortHoaPaymentsByDueDate(payments);
+        this.payments.set(sorted);
+        this.autoSelectProgressPage(this.filteredPayments);
         this.loading.set(false);
       },
       error: () => {
@@ -273,8 +342,11 @@ export class ContractHoaPaymentsComponent implements OnInit {
   }
 
   getPaymentMonthLabel(payment: HoaPayment): string {
-    const date = new Date(payment.due_date);
-    return new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' }).format(date);
+    return getHoaPaymentMonthLabel(payment);
+  }
+
+  isPaymentOverdue(payment: HoaPayment): boolean {
+    return isHoaUnpaidOverdue(payment);
   }
 
   canRegisterPayment(payment: HoaPayment): boolean {
@@ -311,7 +383,22 @@ export class ContractHoaPaymentsComponent implements OnInit {
         break;
       }
     }
-    const targetIndex = lastPaidIndex >= 0 ? lastPaidIndex : 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let currentMonthIndex = -1;
+    for (let i = 0; i < payments.length; i++) {
+      const due = getHoaDueDate(payments[i].due_date);
+      if (!due) continue;
+      if (
+        due.getFullYear() === today.getFullYear() &&
+        due.getMonth() === today.getMonth()
+      ) {
+        currentMonthIndex = i;
+        break;
+      }
+    }
+    const targetIndex =
+      lastPaidIndex >= 0 ? lastPaidIndex : currentMonthIndex >= 0 ? currentMonthIndex : 0;
     const targetPage = Math.floor(targetIndex / this.pageSize) + 1;
     this.currentPage.set(targetPage);
   }

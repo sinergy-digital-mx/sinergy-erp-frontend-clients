@@ -24,6 +24,7 @@ export interface DownPaymentStats {
   pending_count: number;
   partial_count: number;
   overdue_count: number;
+  overdue_amount?: number;
   cancelled_count: number;
   total_paid: number;
   total_pending: number;

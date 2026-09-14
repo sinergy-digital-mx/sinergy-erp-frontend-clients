@@ -20,6 +20,8 @@ describe('parseApiDateTime', () => {
     expect(date?.getMonth()).toBe(0);
     expect(date?.getDate()).toBe(15);
     expect(formatApiDate('2024-01-15T00:00:00Z', 'medium')).toContain('2024');
+    expect(formatApiDate('2026-01-01T00:00:00Z', 'month-year')).toMatch(/enero/i);
+    expect(formatApiDate('2026-01-01T00:00:00Z', 'month-year')).toContain('2026');
   });
 });
 

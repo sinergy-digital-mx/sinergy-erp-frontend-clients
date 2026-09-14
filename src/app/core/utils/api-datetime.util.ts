@@ -17,7 +17,15 @@ const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MIDNIGHT_RE = /^\d{4}-\d{2}-\d{2}[T ]00:00:00(\.0+)?(Z|[+-]00:?00)?$/i;
 const HAS_ZONE_RE = /[zZ]$|[+-]\d{2}:?\d{2}$/;
 
-export type ApiDateKind = 'date' | 'datetime' | 'human' | 'short' | 'long' | 'month-day' | 'medium';
+export type ApiDateKind =
+  | 'date'
+  | 'datetime'
+  | 'human'
+  | 'short'
+  | 'long'
+  | 'month-day'
+  | 'month-year'
+  | 'medium';
 
 /** Fecha de calendario (pago, entrega). No desplazar por UTC. */
 export function isApiCalendarDate(value: string): boolean {
@@ -86,6 +94,8 @@ export function formatApiDate(
       });
     case 'month-day':
       return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+    case 'month-year':
+      return date.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
     case 'short':
       return date.toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
     case 'datetime':

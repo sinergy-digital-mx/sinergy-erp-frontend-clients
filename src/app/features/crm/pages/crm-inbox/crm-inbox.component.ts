@@ -5,7 +5,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
-import { LucideAngularModule, Pencil, Check, ChevronDown, ExternalLink, X } from 'lucide-angular';
+import { LucideAngularModule, Pencil, Check, ChevronDown, Download, ExternalLink, X } from 'lucide-angular';
 import {
   ReportPeriod,
   ReportPeriodSelectorComponent,
@@ -62,6 +62,7 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
   readonly CheckIcon = Check;
   readonly ChevronDown = ChevronDown;
   readonly ExternalLinkIcon = ExternalLink;
+  readonly DownloadIcon = Download;
   readonly XIcon = X;
   readonly activityTypes = Object.values(ActivityType);
   readonly activityStatuses = Object.values(ActivityStatus);
@@ -83,6 +84,7 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
   attention = signal<CrmAttentionFilter | null>(null);
   isCrmAdmin = signal(false);
   loading = signal(false);
+  exporting = signal(false);
   statsLoading = signal(false);
   total = signal(0);
   page = signal(1);
@@ -197,6 +199,36 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
     this.authorTerm.set('');
     this.authorSearchControl.setValue('', { emitEvent: false });
     this.reload(1);
+  }
+
+  downloadExcel(): void {
+    if (this.exporting() || this.rangeIncomplete) {
+      return;
+    }
+
+    this.exporting.set(true);
+    this.crmInboxService
+      .downloadExcel(this.currentQuery())
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ blob, filename }) => {
+          triggerBrowserDownload(blob, filename);
+          this.exporting.set(false);
+          this.interceptorService.openSnackbar({
+            type: 'success',
+            title: 'Éxito',
+            message: 'Excel descargado',
+          });
+        },
+        error: (err: Error) => {
+          this.exporting.set(false);
+          this.interceptorService.openSnackbar({
+            type: 'error',
+            title: 'Error',
+            message: err.message || 'No se pudo descargar el Excel',
+          });
+        },
+      });
   }
 
   setAttention(filter: CrmAttentionFilter | null): void {
@@ -452,4 +484,13 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
   }
 
   readonly allAuthorsOption = ALL_AUTHORS;
+}
+
+function triggerBrowserDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }

@@ -318,10 +318,19 @@ export class CreateTransferDialogComponent implements OnInit {
       return;
     }
 
+    const fiscalId = this.originFiscalId();
+    const branchId = this.originBranchId();
+    if (!fiscalId || !branchId) {
+      this.toast.error('Selecciona razón social y sucursal antes de buscar stock');
+      return;
+    }
+
     this.searchingOrigin.set(true);
     this.inventoryService
       .getSummary(
         {
+          fiscal_configuration_id: fiscalId,
+          billing_branch_id: branchId,
           warehouse_id: warehouseId,
           search: this.originSearch().trim() || undefined,
           only_available: true,
@@ -333,9 +342,9 @@ export class CreateTransferDialogComponent implements OnInit {
           this.originCandidates.set(response.data || []);
           this.searchingOrigin.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.searchingOrigin.set(false);
-          this.toast.error('No se pudo buscar stock en el almacén');
+          this.toast.error(err?.message || 'No se pudo buscar stock en el almacén');
         },
       });
   }
