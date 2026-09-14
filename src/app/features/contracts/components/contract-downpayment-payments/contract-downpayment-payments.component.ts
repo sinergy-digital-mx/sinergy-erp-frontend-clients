@@ -67,13 +67,14 @@ export class ContractDownpaymentPaymentsComponent implements OnInit {
     return this.contract ? getDownPaymentTarget(this.contract) : null;
   }
 
-  get pendingAmount(): number | null {
-    const remaining = this.stats()?.down_payment_remaining;
-    if (remaining != null) return remaining;
+  get pendingAmount(): number {
+    const raw = this.stats()?.down_payment_remaining;
+    const remaining = Number(raw);
+    if (raw != null && Number.isFinite(remaining)) return remaining;
     if (this.targetAmount != null) {
       return Math.max(0, this.targetAmount - this.appliedAmount);
     }
-    return null;
+    return 0;
   }
 
   get financingStatusLabel(): string {

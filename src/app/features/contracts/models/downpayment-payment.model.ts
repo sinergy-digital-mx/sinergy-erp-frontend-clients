@@ -31,7 +31,7 @@ export interface DownPaymentStats {
   total_expected: number;
   down_payment_target?: number | null;
   down_payment_applied?: number;
-  down_payment_remaining?: number;
+  down_payment_remaining?: number | null;
   down_payment_target_defined?: boolean;
   downpayment_financing_complete?: boolean;
 }

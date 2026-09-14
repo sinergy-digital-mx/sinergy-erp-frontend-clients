@@ -45,9 +45,7 @@
     </article>
     <article class="stat-card stat-card--partial">
       <span class="stat-card__label">Pendiente de meta</span>
-      <span class="stat-card__value">
-        {{ pendingAmount != null ? (pendingAmount | currency:currency) : '—' }}
-      </span>
+      <span class="stat-card__value">{{ pendingAmount | currency:currency }}</span>
     </article>
     <article class="stat-card">
       <span class="stat-card__label">Estado</span>
