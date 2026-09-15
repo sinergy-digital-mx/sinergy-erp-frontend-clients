@@ -30,90 +30,129 @@
     <div class="filter-bar__field filter-bar__field--actions">
       <app-more-filters-panel
         [activeCount]="extraFilterCount"
-        [title]="mode === 'quotation' ? 'Más filtros de cotizaciones' : 'Más filtros de órdenes de venta'">
-      <div class="more-filters__grid">
-        <div class="more-filters__field">
-          <label class="more-filters__label" for="sales-filter-date">Fecha</label>
-          <select id="sales-filter-date" [formControl]="dateRangeControl" class="filter-bar__select" title="Fecha">
-            <option value="">Todas las fechas</option>
-            @for (option of dateRangeOptions; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
-            }
-          </select>
-        </div>
+        [title]="mode === 'quotation' ? 'Filtros de cotizaciones' : 'Filtros de órdenes de venta'">
+        <section class="more-filters__section">
+          <h3 class="more-filters__section-title">También en la barra</h3>
+          <div class="more-filters__grid">
+            <div class="more-filters__field more-filters__field--wide">
+              <label class="more-filters__label" for="sales-filter-search-modal">Búsqueda</label>
+              <input
+                type="text"
+                id="sales-filter-search-modal"
+                [formControl]="searchControl"
+                placeholder="Buscar…"
+                class="filter-bar__input"
+                [attr.aria-label]="mode === 'quotation' ? 'Buscar cotización por folio' : 'Buscar orden de venta por folio'" />
+            </div>
 
-        @if (showCustomDateRange) {
-          <div class="more-filters__field more-filters__field--wide">
-            <span class="more-filters__label">Rango</span>
-            <div class="more-filters__dates">
-              <input type="date" [formControl]="dateFromControl" class="filter-bar__input" aria-label="Desde" />
-              <input type="date" [formControl]="dateToControl" class="filter-bar__input" aria-label="Hasta" />
+            <div class="more-filters__field">
+              <label class="more-filters__label" for="sales-filter-fiscal-modal">Razón social</label>
+              <select id="sales-filter-fiscal-modal" [formControl]="fiscalConfigurationControl" class="filter-bar__select" title="Razón social">
+                <option value="">Todas las razones sociales</option>
+                @for (fc of fiscalConfigurations; track fc.id) {
+                  <option [value]="fc.id">{{ fiscalOptionLabel(fc) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="more-filters__field">
+              <label class="more-filters__label" for="sales-filter-branch-modal">Sucursal</label>
+              <select id="sales-filter-branch-modal" [formControl]="billingBranchControl" class="filter-bar__select" title="Sucursal">
+                <option value="">Todas las sucursales</option>
+                @for (branch of branches; track branch.id) {
+                  <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+                }
+              </select>
             </div>
           </div>
-        }
+        </section>
 
-        <div class="more-filters__field">
-          <label class="more-filters__label" for="sales-filter-status">Estado</label>
-          <select id="sales-filter-status" [formControl]="statusControl" class="filter-bar__select" title="Estado">
-            <option [value]="null">Todos los estados</option>
-            @for (option of mode === 'quotation' ? quotationStatusOptions : statusOptions; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
+        <section class="more-filters__section">
+          <h3 class="more-filters__section-title">Otros filtros</h3>
+          <div class="more-filters__grid">
+            <div class="more-filters__field">
+              <label class="more-filters__label" for="sales-filter-date">Fecha</label>
+              <select id="sales-filter-date" [formControl]="dateRangeControl" class="filter-bar__select" title="Fecha">
+                <option value="">Todas las fechas</option>
+                @for (option of dateRangeOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </div>
+
+            @if (showCustomDateRange) {
+              <div class="more-filters__field more-filters__field--wide">
+                <span class="more-filters__label">Rango</span>
+                <div class="more-filters__dates">
+                  <input type="date" [formControl]="dateFromControl" class="filter-bar__input" aria-label="Desde" />
+                  <input type="date" [formControl]="dateToControl" class="filter-bar__input" aria-label="Hasta" />
+                </div>
+              </div>
             }
-          </select>
-        </div>
 
-        @if (mode === 'sales') {
-          <div class="more-filters__field">
-            <label class="more-filters__label" for="sales-filter-scope">Tipo</label>
-            <select id="sales-filter-scope" [formControl]="saleScopeControl" class="filter-bar__select" title="Tipo">
-              <option value="">Todos los tipos</option>
-              @for (option of saleScopeOptions; track option.value) {
-                <option [value]="option.value">{{ option.label }}</option>
-              }
-            </select>
-          </div>
+            <div class="more-filters__field">
+              <label class="more-filters__label" for="sales-filter-status">Estado</label>
+              <select id="sales-filter-status" [formControl]="statusControl" class="filter-bar__select" title="Estado">
+                <option [value]="null">Todos los estados</option>
+                @for (option of mode === 'quotation' ? quotationStatusOptions : statusOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </div>
 
-          <div class="more-filters__field">
-            <label class="more-filters__label" for="sales-filter-payment">Pago</label>
-            <select id="sales-filter-payment" [formControl]="paymentStatusControl" class="filter-bar__select" title="Pago">
-              <option value="">Todos los pagos</option>
-              @for (option of paymentStatusOptions; track option.value) {
-                <option [value]="option.value">{{ option.label }}</option>
-              }
-            </select>
-          </div>
+            @if (mode === 'sales') {
+              <div class="more-filters__field">
+                <label class="more-filters__label" for="sales-filter-scope">Tipo</label>
+                <select id="sales-filter-scope" [formControl]="saleScopeControl" class="filter-bar__select" title="Tipo">
+                  <option value="">Todos los tipos</option>
+                  @for (option of saleScopeOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
 
-          <div class="more-filters__field">
-            <label class="more-filters__label" for="sales-filter-origin">Origen del cobro</label>
-            <select id="sales-filter-origin" [formControl]="collectionChannelControl" class="filter-bar__select" title="Origen del cobro">
-              <option value="">Todos los orígenes</option>
-              @for (option of collectionChannelOptions; track option.value) {
-                <option [value]="option.value">{{ option.label }}</option>
-              }
-            </select>
-          </div>
+              <div class="more-filters__field">
+                <label class="more-filters__label" for="sales-filter-payment">Pago</label>
+                <select id="sales-filter-payment" [formControl]="paymentStatusControl" class="filter-bar__select" title="Pago">
+                  <option value="">Todos los pagos</option>
+                  @for (option of paymentStatusOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
 
-          <div class="more-filters__field">
-            <label class="more-filters__label" for="sales-filter-credit">Crédito</label>
-            <select id="sales-filter-credit" [formControl]="creditControl" class="filter-bar__select" title="Crédito">
-              <option value="">Crédito: todos</option>
-              <option value="true">Solo crédito</option>
-            </select>
-          </div>
-        }
+              <div class="more-filters__field">
+                <label class="more-filters__label" for="sales-filter-origin">Origen del cobro</label>
+                <select id="sales-filter-origin" [formControl]="collectionChannelControl" class="filter-bar__select" title="Origen del cobro">
+                  <option value="">Todos los orígenes</option>
+                  @for (option of collectionChannelOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
 
-        @if (mode === 'quotation') {
-          <div class="more-filters__field">
-            <label class="more-filters__label" for="sales-filter-type">Tipo</label>
-            <select id="sales-filter-type" [formControl]="typeControl" class="filter-bar__select" title="Tipo">
-              <option value="">Todos los tipos</option>
-              @for (option of typeOptions; track option.value) {
-                <option [value]="option.value">{{ option.label }}</option>
-              }
-            </select>
+              <div class="more-filters__field">
+                <label class="more-filters__label" for="sales-filter-credit">Crédito</label>
+                <select id="sales-filter-credit" [formControl]="creditControl" class="filter-bar__select" title="Crédito">
+                  <option value="">Crédito: todos</option>
+                  <option value="true">Solo crédito</option>
+                </select>
+              </div>
+            }
+
+            @if (mode === 'quotation') {
+              <div class="more-filters__field">
+                <label class="more-filters__label" for="sales-filter-type">Tipo</label>
+                <select id="sales-filter-type" [formControl]="typeControl" class="filter-bar__select" title="Tipo">
+                  <option value="">Todos los tipos</option>
+                  @for (option of typeOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+            }
           </div>
-        }
-      </div>
+        </section>
       </app-more-filters-panel>
       <app-filter-clear-button
         [active]="hasActiveFilters"

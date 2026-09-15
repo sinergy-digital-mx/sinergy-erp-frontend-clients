@@ -105,7 +105,6 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     if (this.dateRangeControl.value || this.dateFromControl.value || this.dateToControl.value) count += 1;
     if (this.statusControl.value) count += 1;
     if (this.paymentStatusControl.value) count += 1;
-    if (this.vendorControl.value || this.vendorSearchControl.value.trim()) count += 1;
     if (this.warehouseControl.value) count += 1;
     return count;
   }
