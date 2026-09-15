@@ -1,12 +1,12 @@
 <div class="filter-bar" role="search" aria-label="Filtros de órdenes de compra">
-  <div class="filter-bar__container">
+  <div class="filter-bar__container filter-bar__container--stacked">
     <div class="filter-bar__row filter-bar__row--primary">
       <div class="filter-bar__field filter-bar__field--search">
         <input
           type="text"
           id="search"
           [formControl]="searchControl"
-          placeholder="Folio, proveedor, pedimento o factura"
+          placeholder="Folio, proveedor, pedimento…"
           class="filter-bar__input"
           aria-label="Buscar órdenes por folio, proveedor, pedimento o factura"
         />
@@ -17,6 +17,7 @@
           id="dateRange"
           [formControl]="dateRangeControl"
           class="filter-bar__select"
+          title="Fecha"
           aria-label="Filtrar por rango de fecha"
         >
           <option value="">Fecha</option>
@@ -53,6 +54,7 @@
           id="status"
           [formControl]="statusControl"
           class="filter-bar__select"
+          title="Estado"
           aria-label="Filtrar por estado de orden"
         >
           <option value="">Todos los estados</option>
@@ -67,6 +69,7 @@
           id="paymentStatus"
           [formControl]="paymentStatusControl"
           class="filter-bar__select"
+          title="Pago"
           aria-label="Filtrar por estado de pago"
         >
           <option value="">Todos los pagos</option>
@@ -147,6 +150,7 @@
           id="fiscalConfiguration"
           [formControl]="fiscalConfigurationControl"
           class="filter-bar__select"
+          title="Razón social"
           aria-label="Filtrar por razón social"
         >
           <option value="">Todas las razones sociales</option>
@@ -161,6 +165,7 @@
           id="billingBranch"
           [formControl]="billingBranchControl"
           class="filter-bar__select"
+          title="Sucursal"
           aria-label="Filtrar por sucursal"
         >
           <option value="">Todas las sucursales</option>
@@ -175,6 +180,7 @@
           id="warehouse"
           [formControl]="warehouseControl"
           class="filter-bar__select"
+          title="Almacén"
           aria-label="Filtrar por almacén"
         >
           <option value="">Todos los almacenes</option>

@@ -9,9 +9,42 @@
 
   &__container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 0.75rem;
     align-items: center;
+
+    &--stacked {
+      display: flex;
+      flex-direction: column;
+      grid-template-columns: none;
+    }
+  }
+
+  &__row {
+    display: grid;
+    gap: 0.75rem;
+    align-items: center;
+    min-width: 0;
+  }
+
+  &__row--primary {
+    display: flex;
+    flex-wrap: wrap;
+    grid-template-columns: none;
+  }
+
+  &__row--primary &__field:not(&__field--actions) {
+    flex: 1 1 200px;
+    min-width: 200px;
+  }
+
+  &__row--primary &__field--search {
+    flex: 2 1 260px;
+    min-width: 240px;
+  }
+
+  &__row--secondary {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 
   &__field {
@@ -30,6 +63,9 @@
       align-items: center;
       justify-content: flex-end;
       gap: 0.5rem;
+      flex: 0 0 auto;
+      margin-left: auto;
+      min-width: auto;
     }
 
     &--action {
@@ -48,6 +84,10 @@
 
   &__select {
     @include fc.pollux-select-field;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
     &:disabled {
       background-color: #f3f4f6 !important;
@@ -150,6 +190,10 @@
   .filter-bar__container {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .filter-bar__row--secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
@@ -160,6 +204,22 @@
 
   .filter-bar__field {
     width: 100%;
+  }
+
+  .filter-bar__row--primary .filter-bar__field:not(.filter-bar__field--actions),
+  .filter-bar__row--primary .filter-bar__field--search {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .filter-bar__row--secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-bar__row--primary .filter-bar__field--actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 

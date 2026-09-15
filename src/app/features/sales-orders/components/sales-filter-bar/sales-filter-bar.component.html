@@ -1,135 +1,141 @@
 <div class="filter-bar" role="search" [attr.aria-label]="mode === 'quotation' ? 'Filtros de cotizaciones' : 'Filtros de órdenes de venta'">
-  <div class="filter-bar__container">
-    <div class="filter-bar__field">
-      <input type="text" [formControl]="searchControl" placeholder="Buscar..." class="filter-bar__input" />
-    </div>
-
-    <div class="filter-bar__field">
-      <select [formControl]="dateRangeControl" class="filter-bar__select">
-        <option value="">Fecha</option>
-        @for (option of dateRangeOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
-    </div>
-
-    @if (showCustomDateRange) {
-      <div class="filter-bar__field">
-        <input type="date" [formControl]="dateFromControl" class="filter-bar__input" />
+  <div class="filter-bar__container filter-bar__container--stacked">
+    <div class="filter-bar__row filter-bar__row--primary">
+      <div class="filter-bar__field filter-bar__field--search">
+        <input type="text" [formControl]="searchControl" placeholder="Buscar..." class="filter-bar__input" />
       </div>
-      <div class="filter-bar__field">
-        <input type="date" [formControl]="dateToControl" class="filter-bar__input" />
-      </div>
-    }
 
-    <div class="filter-bar__field">
-      <select [formControl]="statusControl" class="filter-bar__select">
-        <option [value]="null">Todos los estados</option>
-        @for (option of mode === 'quotation' ? quotationStatusOptions : statusOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
-    </div>
-
-    @if (mode === 'sales') {
       <div class="filter-bar__field">
-        <select [formControl]="saleScopeControl" class="filter-bar__select">
-          <option value="">Todos los tipos</option>
-          @for (option of saleScopeOptions; track option.value) {
+        <select [formControl]="dateRangeControl" class="filter-bar__select" title="Fecha">
+          <option value="">Fecha</option>
+          @for (option of dateRangeOptions; track option.value) {
             <option [value]="option.value">{{ option.label }}</option>
           }
         </select>
       </div>
 
+      @if (showCustomDateRange) {
+        <div class="filter-bar__field">
+          <input type="date" [formControl]="dateFromControl" class="filter-bar__input" />
+        </div>
+        <div class="filter-bar__field">
+          <input type="date" [formControl]="dateToControl" class="filter-bar__input" />
+        </div>
+      }
+
       <div class="filter-bar__field">
-        <select [formControl]="paymentStatusControl" class="filter-bar__select">
-          <option value="">Todos los pagos</option>
-          @for (option of paymentStatusOptions; track option.value) {
+        <select [formControl]="statusControl" class="filter-bar__select" title="Estado">
+          <option [value]="null">Todos los estados</option>
+          @for (option of mode === 'quotation' ? quotationStatusOptions : statusOptions; track option.value) {
             <option [value]="option.value">{{ option.label }}</option>
           }
         </select>
       </div>
 
-      <div class="filter-bar__field">
-        <select [formControl]="collectionChannelControl" class="filter-bar__select">
-          <option value="">Todos los orígenes</option>
-          @for (option of collectionChannelOptions; track option.value) {
-            <option [value]="option.value">{{ option.label }}</option>
-          }
-        </select>
-      </div>
-    }
+      @if (mode === 'sales') {
+        <div class="filter-bar__field">
+          <select [formControl]="saleScopeControl" class="filter-bar__select" title="Tipo">
+            <option value="">Todos los tipos</option>
+            @for (option of saleScopeOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
 
-    @if (mode === 'quotation') {
-      <div class="filter-bar__field">
-        <select [formControl]="typeControl" class="filter-bar__select">
-          <option value="">Todos los tipos</option>
-          @for (option of typeOptions; track option.value) {
-            <option [value]="option.value">{{ option.label }}</option>
-          }
-        </select>
-      </div>
-    }
+        <div class="filter-bar__field">
+          <select [formControl]="paymentStatusControl" class="filter-bar__select" title="Pago">
+            <option value="">Todos los pagos</option>
+            @for (option of paymentStatusOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+      }
 
-    <div class="filter-bar__field">
-      <select [formControl]="fiscalConfigurationControl" class="filter-bar__select">
-        <option value="">Todas las razones sociales</option>
-        @for (fc of fiscalConfigurations; track fc.id) {
-          <option [value]="fc.id">{{ fiscalOptionLabel(fc) }}</option>
-        }
-      </select>
+      @if (mode === 'quotation') {
+        <div class="filter-bar__field">
+          <select [formControl]="typeControl" class="filter-bar__select" title="Tipo">
+            <option value="">Todos los tipos</option>
+            @for (option of typeOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      <div class="filter-bar__field filter-bar__field--actions">
+        <app-filter-clear-button
+          [active]="hasActiveFilters"
+          (clear)="clearFilters()">
+        </app-filter-clear-button>
+        <button
+          type="button"
+          class="filter-bar__refresh-button"
+          [disabled]="refreshing"
+          (click)="onRefresh()"
+          title="Actualizar lista"
+          aria-label="Actualizar lista">
+          <svg
+            class="filter-bar__refresh-icon"
+            [class.filter-bar__refresh-icon--spin]="refreshing"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true">
+            <path
+              d="M20 12A8 8 0 1 1 12 4"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round" />
+            <path
+              d="M20 4V9H15"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <div class="filter-bar__field">
-      <select [formControl]="billingBranchControl" class="filter-bar__select">
-        <option value="">Todas las sucursales</option>
-        @for (branch of branches; track branch.id) {
-          <option [value]="branch.id">{{ branchLabel(branch) }}</option>
-        }
-      </select>
-    </div>
+    <div class="filter-bar__row filter-bar__row--secondary">
+      @if (mode === 'sales') {
+        <div class="filter-bar__field">
+          <select [formControl]="collectionChannelControl" class="filter-bar__select" title="Origen">
+            <option value="">Todos los orígenes</option>
+            @for (option of collectionChannelOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+      }
 
-    @if (mode === 'sales') {
       <div class="filter-bar__field">
-        <select [formControl]="creditControl" class="filter-bar__select">
-          <option value="">Crédito: todos</option>
-          <option value="true">Solo crédito</option>
+        <select [formControl]="fiscalConfigurationControl" class="filter-bar__select" title="Razón social">
+          <option value="">Todas las razones sociales</option>
+          @for (fc of fiscalConfigurations; track fc.id) {
+            <option [value]="fc.id">{{ fiscalOptionLabel(fc) }}</option>
+          }
         </select>
       </div>
-    }
 
-    <div class="filter-bar__field filter-bar__field--actions">
-      <app-filter-clear-button
-        [active]="hasActiveFilters"
-        (clear)="clearFilters()">
-      </app-filter-clear-button>
-      <button
-        type="button"
-        class="filter-bar__refresh-button"
-        [disabled]="refreshing"
-        (click)="onRefresh()"
-        title="Actualizar lista"
-        aria-label="Actualizar lista">
-        <svg
-          class="filter-bar__refresh-icon"
-          [class.filter-bar__refresh-icon--spin]="refreshing"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true">
-          <path
-            d="M20 12A8 8 0 1 1 12 4"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round" />
-          <path
-            d="M20 4V9H15"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-      </button>
+      <div class="filter-bar__field">
+        <select [formControl]="billingBranchControl" class="filter-bar__select" title="Sucursal">
+          <option value="">Todas las sucursales</option>
+          @for (branch of branches; track branch.id) {
+            <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+          }
+        </select>
+      </div>
+
+      @if (mode === 'sales') {
+        <div class="filter-bar__field">
+          <select [formControl]="creditControl" class="filter-bar__select" title="Crédito">
+            <option value="">Crédito: todos</option>
+            <option value="true">Solo crédito</option>
+          </select>
+        </div>
+      }
     </div>
   </div>
 </div>

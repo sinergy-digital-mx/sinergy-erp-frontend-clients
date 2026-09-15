@@ -1,0 +1,54 @@
+<button
+  type="button"
+  class="more-filters__trigger"
+  [class.more-filters__trigger--active]="activeCount > 0"
+  [class.more-filters__trigger--open]="open"
+  (click)="toggle()"
+  [attr.aria-expanded]="open"
+  aria-haspopup="dialog"
+  [attr.aria-label]="activeCount > 0 ? 'Más filtros, ' + activeCount + ' activos' : 'Más filtros'">
+  <svg class="more-filters__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path
+      d="M4 6H20M7 12H17M10 18H14"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round" />
+  </svg>
+  <span>Filtros</span>
+  @if (activeCount > 0) {
+    <span class="more-filters__badge">{{ activeCount }}</span>
+  }
+</button>
+
+@if (open) {
+  <div class="more-filters__backdrop" (click)="close()" aria-hidden="true"></div>
+  <div
+    class="more-filters__dialog"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="title">
+    <header class="more-filters__header">
+      <div>
+        <h2 class="more-filters__title">{{ title }}</h2>
+        <p class="more-filters__subtitle">
+          @if (activeCount > 0) {
+            {{ activeCount }} {{ activeCount === 1 ? 'filtro activo' : 'filtros activos' }}
+          } @else {
+            Ajusta fecha, estado y el resto sin recortar la barra
+          }
+        </p>
+      </div>
+      <app-close-button title="Cerrar" (clicked)="close()"></app-close-button>
+    </header>
+
+    <div class="more-filters__body">
+      <ng-content></ng-content>
+    </div>
+
+    <footer class="more-filters__footer">
+      <button type="button" class="more-filters__done" (click)="close()">
+        Listo
+      </button>
+    </footer>
+  </div>
+}
