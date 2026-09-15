@@ -32,6 +32,8 @@ import {
   Eye,
   Landmark,
   Pencil,
+  FileText,
+  X,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -188,6 +190,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly Eye = Eye;
   readonly Landmark = Landmark;
   readonly Pencil = Pencil;
+  readonly FileText = FileText;
+  readonly X = X;
 
   pendingSales = signal<PendingSale[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);
@@ -226,6 +230,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly shiftOpen = computed(() => this.posState.shiftOpen());
   readonly hasOpenShiftRecord = computed(() => this.posState.hasOpenShiftRecord());
   readonly requiresPreviousClose = computed(() => this.posState.requiresPreviousClose());
+  readonly shiftDrawer = computed(() => {
+    const shift = this.shift();
+    return shift ? this.buildCloseDailyShiftData(shift) : null;
+  });
   private unclosedDialogRef: MatDialogRef<UnclosedDailyShiftDialogComponent> | null = null;
 
   readonly filteredPendingSales = computed(() => {
@@ -302,14 +310,6 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly mixedRemainder = computed(() => mixedRemainderMxn(this.collectForm(), this.orderTotal()));
 
   readonly mixedAutoTarget = computed(() => mixedRemainderTarget(this.collectForm()));
-
-  readonly appliedProgress = computed(() => {
-    const total = this.orderTotal();
-    if (total <= 0) {
-      return 0;
-    }
-    return Math.min(100, Math.round((this.appliedTotal() / total) * 100));
-  });
 
   readonly amountsOk = computed(() => {
     const form = this.collectForm();
@@ -850,7 +850,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.collectError.set(null);
   }
 
-  onMixedAmountChange(type: MixedPaymentType, value: string | number): void {
+  onMixedAmountChange(type: MixedPaymentType, value: string | number | null): void {
     const amount = this.parseMoneyInput(value);
     if (type === 'cash') {
       this.patchCollectForm({ mixedCashMxn: amount }, 'cash');
@@ -872,7 +872,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.collectError.set(null);
   }
 
-  onUsdExchangeRateChange(value: string | number): void {
+  onUsdExchangeRateChange(value: string | number | null): void {
     this.patchCollectForm({ usdExchangeRate: this.parseMoneyInput(value) });
     this.syncCashFromBillCounts();
   }
@@ -958,9 +958,17 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  parseMoneyInput(value: string | number): number {
+  parseMoneyInput(value: string | number | null | undefined): number {
+    if (value === null || value === undefined || value === '') {
+      return 0;
+    }
     const n = Number(String(value).replace(',', '.'));
     return Number.isFinite(n) ? n : 0;
+  }
+
+  /** Muestra vacío en vez de 0 para no obligar a borrar antes de teclear. */
+  moneyInputValue(value: number): number | null {
+    return value === 0 ? null : value;
   }
 
   toggleMixedType(type: MixedPaymentType, enabled: boolean): void {
@@ -995,6 +1003,66 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   mixedTypeCount(): number {
     return mixedSelectedCount(this.collectForm());
+  }
+
+  mixedPartIndex(type: MixedPaymentType): number {
+    const form = this.collectForm();
+    let index = 0;
+    if (form.mixedUsesCash) {
+      index += 1;
+      if (type === 'cash') {
+        return index;
+      }
+    }
+    if (form.mixedUsesTransfer) {
+      index += 1;
+      if (type === 'transfer') {
+        return index;
+      }
+    }
+    if (form.mixedUsesCard) {
+      index += 1;
+      if (type === 'card') {
+        return index;
+      }
+    }
+    if (form.mixedUsesCheck) {
+      index += 1;
+      if (type === 'check') {
+        return index;
+      }
+    }
+    return index;
+  }
+
+  mixedSummaryTone(): 'ok' | 'warn' | 'over' | '' {
+    if (this.mixedTypeCount() < 2) {
+      return '';
+    }
+    if (this.mixedRemainder() < -0.009) {
+      return 'over';
+    }
+    if (this.mixedRemainder() > 0.009) {
+      return 'warn';
+    }
+    return this.amountsOk() ? 'ok' : 'warn';
+  }
+
+  mixedStatusLabel(): string {
+    if (this.mixedTypeCount() < 2) {
+      return 'Elige dos formas';
+    }
+    if (this.mixedRemainder() > 0.009) {
+      return `Falta ${this.formatCurrency(this.mixedRemainder())}`;
+    }
+    if (this.mixedRemainder() < -0.009) {
+      return 'Te pasaste';
+    }
+    return 'Listo';
+  }
+
+  showMixedFill(): boolean {
+    return this.mixedTypeCount() >= 2 && this.mixedRemainder() > 0.009;
   }
 
   creditInsufficient(): boolean {
@@ -1376,11 +1444,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private initCustomerFromSale(sale: PendingSale): void {
     const customer = sale.customer;
-    if (customer?.is_walk_in || !customer?.id) {
+    if (isWalkInCollectCustomer(customer) || !customer?.id) {
       this.customerMode.set('walk_in');
       this.selectedCustomerId.set('');
       this.selectedCollectCustomerId.set(null);
-      this.selectedCustomerName.set(customer?.name || 'Público en General');
+      this.selectedCustomerName.set('Público en General');
       this.selectedCustomerDetail.set(null);
       this.generateInvoice.set(false);
       return;
@@ -1484,7 +1552,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!c?.name) {
       return 'Mostrador';
     }
-    return c.is_walk_in ? `${c.name} (mostrador)` : c.name;
+    return isWalkInCollectCustomer(c) ? 'Público en General' : c.name;
   }
 
   customerCompanyLabel(sale: PendingSale): string {
@@ -1585,4 +1653,30 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function normalizeWalkInLabel(value?: string | null): string {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function isWalkInCollectCustomer(
+  customer?: {
+    is_walk_in?: boolean;
+    name?: string;
+    company_name?: string;
+    fiscal_razon_social?: string;
+  } | null
+): boolean {
+  if (!customer) {
+    return true;
+  }
+  if (customer.is_walk_in === true) {
+    return true;
+  }
+  const labels = [customer.name, customer.company_name, customer.fiscal_razon_social].map(normalizeWalkInLabel);
+  return labels.some((label) => label === 'publico en general' || label === 'venta de mostrador');
 }

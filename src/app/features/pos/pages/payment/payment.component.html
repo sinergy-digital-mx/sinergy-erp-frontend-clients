@@ -83,156 +83,219 @@
         <button type="button" class="pos-btn pos-btn--accent" (click)="closeDailyShift()">Cerrar corte</button>
       </div>
     }
-    <section class="cobranza-toolbar">
-      <div class="cobranza-stat-chip">
-        <span>Efectivo inicial</span>
-        <strong>{{ shiftOpeningMxn(currentShift) }}</strong>
+    <div class="cobranza-chrome">
+      <nav class="cobranza-dashboard-tabs" aria-label="Secciones de cobranza">
+        <button
+          type="button"
+          class="cobranza-dashboard-tab"
+          [class.cobranza-dashboard-tab--active]="dashboardTab() === 'pending'"
+          (click)="setDashboardTab('pending')">
+          Por cobrar
+          @if (pendingSales().length > 0) {
+            <span class="cobranza-dashboard-tab__badge">{{ pendingSales().length }}</span>
+          }
+        </button>
+        <button
+          type="button"
+          class="cobranza-dashboard-tab"
+          [class.cobranza-dashboard-tab--active]="dashboardTab() === 'collected'"
+          (click)="setDashboardTab('collected')">
+          Órdenes cobradas
+          @if ((collectedSummary()?.count ?? collectedSales().length) > 0) {
+            <span class="cobranza-dashboard-tab__badge cobranza-dashboard-tab__badge--muted">
+              {{ collectedSummary()?.count ?? collectedSales().length }}
+            </span>
+          }
+        </button>
+        <button
+          type="button"
+          class="cobranza-dashboard-tab"
+          [class.cobranza-dashboard-tab--active]="dashboardTab() === 'shifts'"
+          (click)="setDashboardTab('shifts')">
+          Cortes
+          @if (shiftPartialCount(currentShift) > 0) {
+            <span class="cobranza-dashboard-tab__badge cobranza-dashboard-tab__badge--muted">
+              {{ shiftPartialCount(currentShift) }}
+            </span>
+          }
+        </button>
+      </nav>
+      <div class="cobranza-chrome__aside">
+        <dl class="cobranza-kpis">
+          <div>
+            <dt>Inicial</dt>
+            <dd>{{ shiftOpeningMxn(currentShift) }}</dd>
+          </div>
+          <div>
+            <dt>En corte</dt>
+            <dd>{{ shiftSalesTotal(currentShift) }}</dd>
+          </div>
+          <div>
+            <dt>Parciales</dt>
+            <dd>{{ shiftPartialCount(currentShift) }}</dd>
+          </div>
+          <div>
+            <dt>Retirado</dt>
+            <dd>{{ shiftRemovedTotal(currentShift) }}</dd>
+          </div>
+        </dl>
+        <div class="cobranza-chrome__actions">
+          <button type="button" class="pos-btn pos-btn--ghost" (click)="openPartialShift()">Corte parcial</button>
+          <button type="button" class="pos-btn pos-btn--muted" (click)="closeDailyShift()">Cerrar corte</button>
+        </div>
       </div>
-      <div class="cobranza-stat-chip">
-        <span>Total en corte</span>
-        <strong>{{ shiftSalesTotal(currentShift) }}</strong>
-      </div>
-      <div class="cobranza-stat-chip">
-        <span>Cortes parciales</span>
-        <strong>{{ shiftPartialCount(currentShift) }}</strong>
-      </div>
-      <div class="cobranza-stat-chip">
-        <span>Retirado en parciales</span>
-        <strong>{{ shiftRemovedTotal(currentShift) }}</strong>
-      </div>
-      <div class="cobranza-toolbar__actions">
-        <button type="button" class="pos-btn pos-btn--ghost" (click)="setDashboardTab('shifts')">Ver cortes</button>
-        <button type="button" class="pos-btn pos-btn--ghost" (click)="openPartialShift()">Corte parcial</button>
-        <button type="button" class="pos-btn pos-btn--muted" (click)="closeDailyShift()">Cerrar corte</button>
-      </div>
-    </section>
-
-    <nav class="cobranza-dashboard-tabs" aria-label="Secciones de cobranza">
-      <button
-        type="button"
-        class="cobranza-dashboard-tab"
-        [class.cobranza-dashboard-tab--active]="dashboardTab() === 'pending'"
-        (click)="setDashboardTab('pending')">
-        Por cobrar
-        @if (pendingSales().length > 0) {
-          <span class="cobranza-dashboard-tab__badge">{{ pendingSales().length }}</span>
-        }
-      </button>
-      <button
-        type="button"
-        class="cobranza-dashboard-tab"
-        [class.cobranza-dashboard-tab--active]="dashboardTab() === 'collected'"
-        (click)="setDashboardTab('collected')">
-        Órdenes cobradas
-        @if ((collectedSummary()?.count ?? collectedSales().length) > 0) {
-          <span class="cobranza-dashboard-tab__badge cobranza-dashboard-tab__badge--muted">
-            {{ collectedSummary()?.count ?? collectedSales().length }}
-          </span>
-        }
-      </button>
-      <button
-        type="button"
-        class="cobranza-dashboard-tab"
-        [class.cobranza-dashboard-tab--active]="dashboardTab() === 'shifts'"
-        (click)="setDashboardTab('shifts')">
-        Cortes
-        @if (shiftPartialCount(currentShift) > 0) {
-          <span class="cobranza-dashboard-tab__badge cobranza-dashboard-tab__badge--muted">
-            {{ shiftPartialCount(currentShift) }}
-          </span>
-        }
-      </button>
-    </nav>
+    </div>
 
     @if (dashboardTab() === 'shifts') {
-      <section class="cobranza-shifts">
-        <div class="cobranza-shifts__head">
-          <div>
-            <h2>Corte global del día</h2>
-            <p>{{ currentShift.shift_date }} · {{ branchLabel() }}</p>
-            <p class="cobranza-shifts__opened-by">Abierto por {{ shiftOpenedBy(currentShift) }}</p>
+    <div class="cobranza-body">
+      <aside class="cobranza-panel cobranza-panel--list">
+        <div class="cobranza-panel__head">
+          <div class="cobranza-panel__title">
+            <h2>Cortes parciales</h2>
+            @if (shiftPartialCount(currentShift) > 0) {
+              <span class="cobranza-count">{{ shiftPartialCount(currentShift) }}</span>
+            }
           </div>
           <button type="button" class="cobranza-refresh-btn" (click)="refreshListPanel()" title="Actualizar">
             <lucide-icon [img]="RefreshCw" />
           </button>
         </div>
-
-        <p class="cobranza-shifts__hint">
-          El <strong>corte global</strong> es uno por sucursal. Los <strong>cortes parciales</strong> retiran efectivo durante el día.
-          Al cerrar, cuentas lo que quedó en caja: el sistema compara contra inicial + efectivo cobrado − retiros y registra faltante o sobrante.
-        </p>
-
-        <div class="cobranza-shifts__summary">
-          <article class="cobranza-shifts__card">
-            <span>Efectivo inicial</span>
-            <strong>{{ shiftOpeningMxn(currentShift) }}</strong>
-          </article>
-          <article class="cobranza-shifts__card">
-            <span>Total en corte</span>
-            <strong>{{ shiftSalesTotal(currentShift) }}</strong>
-          </article>
-          <article class="cobranza-shifts__card">
-            <span>Parciales registrados</span>
-            <strong>{{ shiftPartialCount(currentShift) }}</strong>
-          </article>
-          <article class="cobranza-shifts__card">
-            <span>Total retirado</span>
-            <strong>{{ shiftRemovedTotal(currentShift) }}</strong>
-          </article>
-        </div>
-
-        <div class="cobranza-shifts__actions">
-          <button type="button" class="pos-btn pos-btn--primary" (click)="openPartialShift()">Registrar corte parcial</button>
-          <button type="button" class="pos-btn pos-btn--muted" (click)="closeDailyShift()">Cerrar corte del día</button>
-        </div>
-
-        <div class="cobranza-shifts__history">
-          <h3>Historial de parciales</h3>
-          @if (loadingShiftDetail()) {
-            <p class="cobranza-empty"><app-spinner size="sm"></app-spinner></p>
-          } @else if (partialShifts(currentShift).length === 0) {
-            <p class="cobranza-empty">Aún no hay cortes parciales en este turno.</p>
-          } @else {
-            <ul class="cobranza-shifts__list">
-              @for (partial of partialShifts(currentShift); track partial.id; let i = $index) {
-                <li class="cobranza-shifts__item">
-                  <div class="cobranza-shifts__item-head">
-                    <div class="cobranza-shifts__item-title">
-                      <strong>Corte parcial #{{ resolvePartialShiftSequence(partial, i) }}</strong>
-                      <div class="cobranza-shifts__item-meta">
-                        @if (partial.created_at) {
-                          <time>{{ formatDate(partial.created_at) }}</time>
-                        }
-                        <span class="cobranza-shifts__performer">
-                          {{ partialPerformedBy(partial, currentShift) }}
-                        </span>
-                      </div>
-                    </div>
-                    <span class="cobranza-shifts__item-amount">{{ partialShiftLabel(partial) }}</span>
-                  </div>
-                  @if (partial.notes) {
-                    <p class="cobranza-shifts__item-notes">{{ partial.notes }}</p>
-                  }
-                  @if (partial.denominations?.length) {
-                    <ul class="cobranza-shifts__denoms">
-                      @for (denom of partial.denominations; track denom.currency + '-' + denom.denomination) {
-                        <li>
-                          {{ denom.bill_count }} ×
-                          @if (denom.currency === 'USD') {
-                            USD {{ denom.denomination }}
-                          } @else {
-                            ${{ denom.denomination }}
+        <div class="cobranza-panel__content">
+          <div class="cobranza-sales-scroll">
+            @if (loadingShiftDetail()) {
+              <p class="cobranza-empty"><app-spinner size="sm"></app-spinner></p>
+            } @else if (partialShifts(currentShift).length === 0) {
+              <p class="cobranza-empty">No hay parciales. Usa <strong>Corte parcial</strong> en la barra.</p>
+            } @else {
+              <ul class="cobranza-sales">
+                @for (partial of partialShifts(currentShift); track partial.id; let i = $index) {
+                  <li>
+                    <article class="cobranza-sale cobranza-sale--collected">
+                      <div class="cobranza-sale__main">
+                        <div class="cobranza-sale__row">
+                          <strong>Parcial #{{ resolvePartialShiftSequence(partial, i) }}</strong>
+                          <span class="cobranza-sale__total">{{ partialShiftLabel(partial) }}</span>
+                        </div>
+                        <div class="cobranza-sale__row cobranza-sale__row--meta">
+                          @if (partial.created_at) {
+                            <time>{{ formatDate(partial.created_at) }}</time>
                           }
-                        </li>
-                      }
-                    </ul>
-                  }
-                </li>
-              }
-            </ul>
-          }
+                          <span>{{ partialPerformedBy(partial, currentShift) }}</span>
+                        </div>
+                        @if (partial.notes) {
+                          <p class="cobranza-shifts__item-notes">{{ partial.notes }}</p>
+                        }
+                        @if (partial.denominations?.length) {
+                          <ul class="cobranza-shifts__denoms">
+                            @for (denom of partial.denominations; track denom.currency + '-' + denom.denomination) {
+                              <li>
+                                {{ denom.bill_count }} ×
+                                @if (denom.currency === 'USD') {
+                                  USD {{ denom.denomination }}
+                                } @else {
+                                  ${{ denom.denomination }}
+                                }
+                              </li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                    </article>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
         </div>
-      </section>
+      </aside>
+
+      <main class="cobranza-panel cobranza-panel--collect">
+        @if (shiftDrawer(); as drawer) {
+          <div class="cobranza-collect-scroll">
+            <div class="cobranza-collect-body">
+              <section class="cobranza-total-card">
+                <div class="cobranza-total-card__top">
+                  <span class="cobranza-total-card__folio">Caja esperada</span>
+                  <time class="cobranza-total-card__date">{{ currentShift.shift_date }}</time>
+                </div>
+                <div class="cobranza-total-card__breakdown">
+                  <div class="cobranza-total-card__row">
+                    <span>Efectivo inicial</span>
+                    <strong>{{ formatCurrency(drawer.openingCashMxn) }}</strong>
+                  </div>
+                  <div class="cobranza-total-card__row">
+                    <span>Efectivo cobrado</span>
+                    <strong>{{ formatCurrency(drawer.collectedCashMxn) }}</strong>
+                  </div>
+                  <div class="cobranza-total-card__row">
+                    <span>Retiros</span>
+                    <strong>{{ formatCurrency(drawer.removedMxn) }}</strong>
+                  </div>
+                  <div class="cobranza-total-card__amount">
+                    <span>Esperado en caja</span>
+                    <strong>{{ formatCurrency(drawer.expectedCashMxn ?? 0) }}</strong>
+                  </div>
+                  @if ((drawer.expectedCashUsd ?? 0) > 0 || drawer.openingCashUsd > 0 || drawer.collectedCashUsd > 0) {
+                    <div class="cobranza-total-card__row">
+                      <span>Esperado USD</span>
+                      <strong>{{ formatCurrencyUsd(drawer.expectedCashUsd ?? 0) }}</strong>
+                    </div>
+                  }
+                </div>
+                <div class="cobranza-total-card__meta">
+                  <div>
+                    <span>Sucursal</span>
+                    <strong>{{ drawer.branchLabel }}</strong>
+                  </div>
+                  <div>
+                    <span>Abierto por</span>
+                    <strong>{{ shiftOpenedBy(currentShift) }}</strong>
+                  </div>
+                  @if (drawer.pendingCount > 0) {
+                    <div>
+                      <span>Por cobrar</span>
+                      <strong>{{ drawer.pendingCount }}</strong>
+                    </div>
+                  }
+                </div>
+              </section>
+
+              <section class="cobranza-block">
+                <h3 class="cobranza-block__title">Cobrado por método</h3>
+                <dl class="cobranza-detail-list">
+                  <div>
+                    <dt>Efectivo</dt>
+                    <dd>{{ formatCurrency(drawer.collectedCashMxn) }}</dd>
+                  </div>
+                  @if (drawer.collectedCashUsd > 0) {
+                    <div>
+                      <dt>Efectivo USD</dt>
+                      <dd>{{ formatCurrencyUsd(drawer.collectedCashUsd) }}</dd>
+                    </div>
+                  }
+                  <div>
+                    <dt>Transferencia</dt>
+                    <dd>{{ formatCurrency(drawer.collectedTransferMxn) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Tarjeta</dt>
+                    <dd>{{ formatCurrency(drawer.collectedCardMxn) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Cheque</dt>
+                    <dd>{{ formatCurrency(drawer.collectedCheckMxn) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Crédito</dt>
+                    <dd>{{ formatCurrency(drawer.collectedCreditMxn) }}</dd>
+                  </div>
+                </dl>
+              </section>
+            </div>
+          </div>
+        }
+      </main>
+    </div>
     } @else {
     <div class="cobranza-body">
       <aside class="cobranza-panel cobranza-panel--list">
@@ -398,19 +461,14 @@
       <main class="cobranza-panel cobranza-panel--collect">
         @if (selectedSale(); as sale) {
           <div class="cobranza-collect-scroll">
-            <div class="cobranza-panel__head cobranza-panel__head--collect">
-              <div>
-                <h2>Cobrar venta</h2>
-                <p class="cobranza-panel__sub">{{ sale.folio || sale.id }}</p>
-              </div>
-              <button type="button" class="cobranza-head-btn" (click)="clearSelectedSale()">Cancelar</button>
-            </div>
-
             <div class="cobranza-collect-body">
             <section class="cobranza-total-card">
               <div class="cobranza-total-card__top">
                 <span class="cobranza-total-card__folio">{{ sale.folio || sale.id }}</span>
-                <time class="cobranza-total-card__date">{{ formatDate(sale.created_at) }}</time>
+                <div class="cobranza-total-card__top-end">
+                  <time class="cobranza-total-card__date">{{ formatDate(sale.created_at) }}</time>
+                  <button type="button" class="cobranza-head-btn" (click)="clearSelectedSale()">Cancelar</button>
+                </div>
               </div>
               <div class="cobranza-total-card__breakdown">
                 <div class="cobranza-total-card__row">
@@ -518,6 +576,7 @@
                   class="cobranza-pay-tab"
                   [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'cash'"
                   (click)="setPaymentMethod('cash')">
+                  <lucide-icon [img]="Banknote" class="pos-ic pos-ic--sm" />
                   Efectivo
                 </button>
                 <button
@@ -525,6 +584,7 @@
                   class="cobranza-pay-tab"
                   [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'transfer'"
                   (click)="setPaymentMethod('transfer')">
+                  <lucide-icon [img]="ArrowRightLeft" class="pos-ic pos-ic--sm" />
                   Transferencia
                 </button>
                 <button
@@ -532,6 +592,7 @@
                   class="cobranza-pay-tab"
                   [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'card'"
                   (click)="setPaymentMethod('card')">
+                  <lucide-icon [img]="CreditCard" class="pos-ic pos-ic--sm" />
                   Tarjeta
                 </button>
                 <button
@@ -539,6 +600,7 @@
                   class="cobranza-pay-tab"
                   [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'check'"
                   (click)="setPaymentMethod('check')">
+                  <lucide-icon [img]="FileText" class="pos-ic pos-ic--sm" />
                   Cheque
                 </button>
                 <button
@@ -546,6 +608,7 @@
                   class="cobranza-pay-tab"
                   [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'mixed'"
                   (click)="setPaymentMethod('mixed')">
+                  <lucide-icon [img]="Layers" class="pos-ic pos-ic--sm" />
                   Mixto
                 </button>
                 @if (showCreditTab()) {
@@ -554,6 +617,7 @@
                     class="cobranza-pay-tab"
                     [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'credit'"
                     (click)="setPaymentMethod('credit')">
+                    <lucide-icon [img]="Wallet" class="pos-ic pos-ic--sm" />
                     Crédito
                   </button>
                 }
@@ -602,7 +666,7 @@
                           step="0.01"
                           class="cobranza-field__input cobranza-field__input--highlight"
                           placeholder="0.00"
-                          [ngModel]="cashManualMxn()"
+                          [ngModel]="moneyInputValue(cashManualMxn())"
                           (ngModelChange)="setManualCashReceived('MXN', parseMoneyInput($event))" />
                       </label>
                       <p class="cobranza-cash-total">Total recibido: <strong>{{ cashReceivedMxnLabel() }}</strong></p>
@@ -628,7 +692,8 @@
                                 min="0"
                                 step="0.0001"
                                 class="cobranza-tc-field__input"
-                                [ngModel]="collectForm().usdExchangeRate"
+                                placeholder="0.00"
+                                [ngModel]="moneyInputValue(collectForm().usdExchangeRate)"
                                 (ngModelChange)="onUsdExchangeRateChange($event)" />
                             </div>
                           }
@@ -658,7 +723,7 @@
                           step="0.01"
                           class="cobranza-field__input cobranza-field__input--highlight"
                           placeholder="0.00"
-                          [ngModel]="cashManualUsd()"
+                          [ngModel]="moneyInputValue(cashManualUsd())"
                           (ngModelChange)="setManualCashReceived('USD', parseMoneyInput($event))" />
                       </label>
                       <p class="cobranza-cash-total">Total recibido: <strong>{{ cashReceivedUsdLabel() }}</strong></p>
@@ -699,8 +764,9 @@
                       type="number"
                       min="0"
                       step="0.01"
-                      [ngModel]="collectForm().amountTransferMxn"
-                      (ngModelChange)="patchCollectForm({ amountTransferMxn: +$event })" />
+                      placeholder="0.00"
+                      [ngModel]="moneyInputValue(collectForm().amountTransferMxn)"
+                      (ngModelChange)="patchCollectForm({ amountTransferMxn: parseMoneyInput($event) })" />
                   </label>
                   <label class="cobranza-field">
                     <span>Referencia SPEI</span>
@@ -719,8 +785,9 @@
                       type="number"
                       min="0"
                       step="0.01"
-                      [ngModel]="collectForm().amountCardMxn"
-                      (ngModelChange)="patchCollectForm({ amountCardMxn: +$event })" />
+                      placeholder="0.00"
+                      [ngModel]="moneyInputValue(collectForm().amountCardMxn)"
+                      (ngModelChange)="patchCollectForm({ amountCardMxn: parseMoneyInput($event) })" />
                   </label>
                   <label class="cobranza-field">
                     <span>Referencia (opcional)</span>
@@ -739,7 +806,8 @@
                       type="number"
                       min="0"
                       step="0.01"
-                      [ngModel]="collectForm().amountCheckMxn"
+                      placeholder="0.00"
+                      [ngModel]="moneyInputValue(collectForm().amountCheckMxn)"
                       (ngModelChange)="patchCollectForm({ amountCheckMxn: parseMoneyInput($event) })" />
                   </label>
                   <label class="cobranza-field">
@@ -773,207 +841,295 @@
                 }
 
                 @if (collectForm().paymentMethod === 'mixed') {
-                  <div class="cobranza-pay-progress">
-                    <div class="cobranza-pay-progress__track">
-                      <div
-                        class="cobranza-pay-progress__fill"
-                        [class.cobranza-pay-progress__fill--ok]="amountsOk()"
-                        [style.width.%]="appliedProgress()"></div>
-                    </div>
-                    <div class="cobranza-pay-progress__labels">
-                      <span>Suma aplicada</span>
-                      <strong [class.cobranza-pay-progress__ok]="amountsOk()">
-                        {{ formatCurrency(appliedTotal()) }}
-                        <em>de {{ saleTotal(sale) }}</em>
-                      </strong>
-                    </div>
-                    @if (mixedTypeCount() >= 2 && mixedRemainder() > 0.009) {
-                      <p class="cobranza-mixed-remainder">
-                        Falta por aplicar <strong>{{ formatCurrency(mixedRemainder()) }}</strong>
-                        — se asigna al último método
-                      </p>
-                    } @else if (mixedRemainder() < -0.009) {
-                      <p class="cobranza-mixed-remainder cobranza-mixed-remainder--over">
-                        Te pasaste {{ formatCurrency(-mixedRemainder()) }}
-                      </p>
-                    } @else if (mixedTypeCount() >= 2 && amountsOk()) {
-                      <p class="cobranza-mixed-remainder cobranza-mixed-remainder--ok">Cubierto exactamente</p>
-                    }
-                  </div>
-
-                  <div class="cobranza-mixed-types">
-                    <label class="cobranza-mixed-check" [class.cobranza-mixed-check--on]="collectForm().mixedUsesCash">
-                      <input
-                        type="checkbox"
-                        [ngModel]="collectForm().mixedUsesCash"
-                        (ngModelChange)="toggleMixedType('cash', $event)" />
-                      Efectivo
-                    </label>
-                    <label class="cobranza-mixed-check" [class.cobranza-mixed-check--on]="collectForm().mixedUsesTransfer">
-                      <input
-                        type="checkbox"
-                        [ngModel]="collectForm().mixedUsesTransfer"
-                        (ngModelChange)="toggleMixedType('transfer', $event)" />
-                      Transferencia
-                    </label>
-                    <label class="cobranza-mixed-check" [class.cobranza-mixed-check--on]="collectForm().mixedUsesCard">
-                      <input
-                        type="checkbox"
-                        [ngModel]="collectForm().mixedUsesCard"
-                        (ngModelChange)="toggleMixedType('card', $event)" />
-                      Tarjeta
-                    </label>
-                    <label class="cobranza-mixed-check" [class.cobranza-mixed-check--on]="collectForm().mixedUsesCheck">
-                      <input
-                        type="checkbox"
-                        [ngModel]="collectForm().mixedUsesCheck"
-                        (ngModelChange)="toggleMixedType('check', $event)" />
-                      Cheque
-                    </label>
-                  </div>
-                  @if (mixedTypeCount() < 2) {
-                    <p class="cobranza-cash-hint">Selecciona al menos dos formas de pago. Al capturar un monto, el resto se calcula solo.</p>
-                  }
-
-                  @if (collectForm().mixedUsesCash) {
-                    <div class="cobranza-field-grid cobranza-field-grid--2">
-                      <label class="cobranza-field">
-                        <span>
-                          Efectivo MXN
-                          @if (mixedAutoTarget() === 'cash') {
-                            <em class="cobranza-mixed-auto">resto</em>
-                          }
-                        </span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          [ngModel]="collectForm().mixedCashMxn"
-                          (ngModelChange)="onMixedAmountChange('cash', $event)" />
-                        <button type="button" class="cobranza-mixed-fill" (click)="applyMixedRemainderTo('cash')">
-                          Aplicar resto
-                        </button>
-                      </label>
-                      <label class="cobranza-field">
-                        <span>Recibió MXN</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          class="cobranza-field__input--highlight"
-                          [ngModel]="collectForm().mixedReceivedMxn"
-                          (ngModelChange)="patchCollectForm({ mixedReceivedMxn: parseMoneyInput($event) })" />
-                      </label>
-                    </div>
-                    <div class="cobranza-quick-btns cobranza-quick-btns--inline">
-                      <button type="button" class="cobranza-quick-btn" (click)="setExactCashReceived()">Exacto</button>
-                      <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(50)">+$50</button>
-                      <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(100)">+$100</button>
-                      <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(200)">+$200</button>
-                      <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(500)">+$500</button>
-                    </div>
-                    @if (collectForm().mixedCashMxn > 0) {
-                      <div
-                        class="cobranza-cash-result"
-                        [class.cobranza-cash-result--change]="changeMxn() > 0"
-                        [class.cobranza-cash-result--short]="cashShortfallMxn() > 0">
-                        @if (cashShortfallMxn() > 0) {
-                          <div class="cobranza-cash-result__item cobranza-cash-result__item--warn">
-                            <span>Falta por recibir</span>
-                            <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
-                          </div>
-                        }
-                        <div class="cobranza-cash-result__item">
-                          <span>Cambio a entregar</span>
-                          <strong class="cobranza-cash-result__change">{{ formatCurrency(changeMxn()) }}</strong>
-                        </div>
+                  <div class="cobranza-mixed">
+                    <div
+                      class="cobranza-mixed__summary"
+                      [class.cobranza-mixed__summary--ok]="mixedSummaryTone() === 'ok'"
+                      [class.cobranza-mixed__summary--warn]="mixedSummaryTone() === 'warn'"
+                      [class.cobranza-mixed__summary--over]="mixedSummaryTone() === 'over'">
+                      <div>
+                        <span>Total</span>
+                        <strong>{{ saleTotal(sale) }}</strong>
                       </div>
+                      <div>
+                        <span>Aplicado</span>
+                        <strong>{{ formatCurrency(appliedTotal()) }}</strong>
+                      </div>
+                      <div>
+                        <span>Estado</span>
+                        <strong>{{ mixedStatusLabel() }}</strong>
+                      </div>
+                    </div>
+
+                    <p class="cobranza-mixed__pick-label">Formas de este cobro</p>
+                    <div class="cobranza-mixed__pick">
+                      <button
+                        type="button"
+                        class="cobranza-mixed__pick-btn"
+                        [class.is-on]="collectForm().mixedUsesCash"
+                        (click)="toggleMixedType('cash', !collectForm().mixedUsesCash)">
+                        <lucide-icon [img]="Banknote" [size]="16" />
+                        Efectivo
+                      </button>
+                      <button
+                        type="button"
+                        class="cobranza-mixed__pick-btn"
+                        [class.is-on]="collectForm().mixedUsesTransfer"
+                        (click)="toggleMixedType('transfer', !collectForm().mixedUsesTransfer)">
+                        <lucide-icon [img]="ArrowRightLeft" [size]="16" />
+                        Transferencia
+                      </button>
+                      <button
+                        type="button"
+                        class="cobranza-mixed__pick-btn"
+                        [class.is-on]="collectForm().mixedUsesCard"
+                        (click)="toggleMixedType('card', !collectForm().mixedUsesCard)">
+                        <lucide-icon [img]="CreditCard" [size]="16" />
+                        Tarjeta
+                      </button>
+                      <button
+                        type="button"
+                        class="cobranza-mixed__pick-btn"
+                        [class.is-on]="collectForm().mixedUsesCheck"
+                        (click)="toggleMixedType('check', !collectForm().mixedUsesCheck)">
+                        <lucide-icon [img]="FileText" [size]="16" />
+                        Cheque
+                      </button>
+                    </div>
+
+                    @if (mixedTypeCount() < 2) {
+                      <p class="cobranza-mixed__hint">
+                        Elige al menos dos. Cada una se captura en su propia tarjeta: Pago 1, Pago 2…
+                      </p>
                     }
-                  }
 
-                  @if (collectForm().mixedUsesTransfer) {
-                    <label class="cobranza-field">
-                      <span>
-                        Transferencia MXN
-                        @if (mixedAutoTarget() === 'transfer') {
-                          <em class="cobranza-mixed-auto">resto</em>
-                        }
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        [ngModel]="collectForm().mixedTransferMxn"
-                        (ngModelChange)="onMixedAmountChange('transfer', $event)" />
-                      <button type="button" class="cobranza-mixed-fill" (click)="applyMixedRemainderTo('transfer')">
-                        Aplicar resto
-                      </button>
-                    </label>
-                    <label class="cobranza-field">
-                      <span>Referencia SPEI</span>
-                      <input
-                        type="text"
-                        placeholder="SPEI-123456"
-                        [ngModel]="collectForm().mixedTransferRef"
-                        (ngModelChange)="patchCollectForm({ mixedTransferRef: $event })" />
-                    </label>
-                  }
+                    <div class="cobranza-mixed__parts">
+                      @if (collectForm().mixedUsesCash) {
+                        <article class="cobranza-mixed-card cobranza-mixed-card--cash">
+                          <header class="cobranza-mixed-card__head">
+                            <div class="cobranza-mixed-card__title">
+                              <span class="cobranza-mixed-card__index">Pago {{ mixedPartIndex('cash') }}</span>
+                              <lucide-icon [img]="Banknote" [size]="16" />
+                              <h4>Efectivo</h4>
+                              @if (mixedAutoTarget() === 'cash') {
+                                <span class="cobranza-mixed-card__badge">Resto</span>
+                              }
+                            </div>
+                            <div class="cobranza-mixed-card__actions">
+                              @if (showMixedFill()) {
+                                <button type="button" class="cobranza-mixed-card__fill" (click)="applyMixedRemainderTo('cash')">
+                                  Completar resto
+                                </button>
+                              }
+                              <button
+                                type="button"
+                                class="cobranza-mixed-card__remove"
+                                (click)="toggleMixedType('cash', false)"
+                                aria-label="Quitar efectivo">
+                                <lucide-icon [img]="X" [size]="16" />
+                              </button>
+                            </div>
+                          </header>
+                          <div class="cobranza-mixed-card__body">
+                            <div class="cobranza-field-grid cobranza-field-grid--2">
+                              <label class="cobranza-field">
+                                <span>Aplica a la venta</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  [ngModel]="moneyInputValue(collectForm().mixedCashMxn)"
+                                  (ngModelChange)="onMixedAmountChange('cash', $event)" />
+                              </label>
+                              <label class="cobranza-field">
+                                <span>Recibió MXN</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  class="cobranza-field__input--highlight"
+                                  [ngModel]="moneyInputValue(collectForm().mixedReceivedMxn)"
+                                  (ngModelChange)="patchCollectForm({ mixedReceivedMxn: parseMoneyInput($event) })" />
+                              </label>
+                            </div>
+                            <div class="cobranza-quick-btns">
+                              <button type="button" class="cobranza-quick-btn" (click)="setExactCashReceived()">Exacto</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(50)">+$50</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(100)">+$100</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(200)">+$200</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(500)">+$500</button>
+                            </div>
+                            @if (collectForm().mixedCashMxn > 0) {
+                              <div
+                                class="cobranza-cash-result"
+                                [class.cobranza-cash-result--change]="changeMxn() > 0"
+                                [class.cobranza-cash-result--short]="cashShortfallMxn() > 0">
+                                @if (cashShortfallMxn() > 0) {
+                                  <div class="cobranza-cash-result__item cobranza-cash-result__item--warn">
+                                    <span>Falta por recibir</span>
+                                    <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
+                                  </div>
+                                }
+                                <div class="cobranza-cash-result__item">
+                                  <span>Cambio a entregar</span>
+                                  <strong class="cobranza-cash-result__change">{{ formatCurrency(changeMxn()) }}</strong>
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        </article>
+                      }
 
-                  @if (collectForm().mixedUsesCard) {
-                    <label class="cobranza-field">
-                      <span>
-                        Tarjeta MXN
-                        @if (mixedAutoTarget() === 'card') {
-                          <em class="cobranza-mixed-auto">resto</em>
-                        }
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        [ngModel]="collectForm().mixedCardMxn"
-                        (ngModelChange)="onMixedAmountChange('card', $event)" />
-                      <button type="button" class="cobranza-mixed-fill" (click)="applyMixedRemainderTo('card')">
-                        Aplicar resto
-                      </button>
-                    </label>
-                    <label class="cobranza-field">
-                      <span>Referencia tarjeta</span>
-                      <input
-                        type="text"
-                        placeholder="Últimos 4 dígitos"
-                        [ngModel]="collectForm().mixedCardRef"
-                        (ngModelChange)="patchCollectForm({ mixedCardRef: $event })" />
-                    </label>
-                  }
+                      @if (collectForm().mixedUsesTransfer) {
+                        <article class="cobranza-mixed-card cobranza-mixed-card--transfer">
+                          <header class="cobranza-mixed-card__head">
+                            <div class="cobranza-mixed-card__title">
+                              <span class="cobranza-mixed-card__index">Pago {{ mixedPartIndex('transfer') }}</span>
+                              <lucide-icon [img]="ArrowRightLeft" [size]="16" />
+                              <h4>Transferencia</h4>
+                              @if (mixedAutoTarget() === 'transfer') {
+                                <span class="cobranza-mixed-card__badge">Resto</span>
+                              }
+                            </div>
+                            <div class="cobranza-mixed-card__actions">
+                              @if (showMixedFill()) {
+                                <button type="button" class="cobranza-mixed-card__fill" (click)="applyMixedRemainderTo('transfer')">
+                                  Completar resto
+                                </button>
+                              }
+                              <button
+                                type="button"
+                                class="cobranza-mixed-card__remove"
+                                (click)="toggleMixedType('transfer', false)"
+                                aria-label="Quitar transferencia">
+                                <lucide-icon [img]="X" [size]="16" />
+                              </button>
+                            </div>
+                          </header>
+                          <div class="cobranza-mixed-card__body">
+                            <label class="cobranza-field">
+                              <span>Monto MXN</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                [ngModel]="moneyInputValue(collectForm().mixedTransferMxn)"
+                                (ngModelChange)="onMixedAmountChange('transfer', $event)" />
+                            </label>
+                            <label class="cobranza-field">
+                              <span>Referencia SPEI</span>
+                              <input
+                                type="text"
+                                placeholder="SPEI-123456"
+                                [ngModel]="collectForm().mixedTransferRef"
+                                (ngModelChange)="patchCollectForm({ mixedTransferRef: $event })" />
+                            </label>
+                          </div>
+                        </article>
+                      }
 
-                  @if (collectForm().mixedUsesCheck) {
-                    <label class="cobranza-field">
-                      <span>
-                        Cheque MXN
-                        @if (mixedAutoTarget() === 'check') {
-                          <em class="cobranza-mixed-auto">resto</em>
-                        }
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        [ngModel]="collectForm().mixedCheckMxn"
-                        (ngModelChange)="onMixedAmountChange('check', $event)" />
-                      <button type="button" class="cobranza-mixed-fill" (click)="applyMixedRemainderTo('check')">
-                        Aplicar resto
-                      </button>
-                    </label>
-                    <label class="cobranza-field">
-                      <span>Número de cheque</span>
-                      <input
-                        type="text"
-                        placeholder="CH-45821"
-                        [ngModel]="collectForm().mixedCheckRef"
-                        (ngModelChange)="patchCollectForm({ mixedCheckRef: $event })" />
-                    </label>
-                  }
+                      @if (collectForm().mixedUsesCard) {
+                        <article class="cobranza-mixed-card cobranza-mixed-card--card">
+                          <header class="cobranza-mixed-card__head">
+                            <div class="cobranza-mixed-card__title">
+                              <span class="cobranza-mixed-card__index">Pago {{ mixedPartIndex('card') }}</span>
+                              <lucide-icon [img]="CreditCard" [size]="16" />
+                              <h4>Tarjeta</h4>
+                              @if (mixedAutoTarget() === 'card') {
+                                <span class="cobranza-mixed-card__badge">Resto</span>
+                              }
+                            </div>
+                            <div class="cobranza-mixed-card__actions">
+                              @if (showMixedFill()) {
+                                <button type="button" class="cobranza-mixed-card__fill" (click)="applyMixedRemainderTo('card')">
+                                  Completar resto
+                                </button>
+                              }
+                              <button
+                                type="button"
+                                class="cobranza-mixed-card__remove"
+                                (click)="toggleMixedType('card', false)"
+                                aria-label="Quitar tarjeta">
+                                <lucide-icon [img]="X" [size]="16" />
+                              </button>
+                            </div>
+                          </header>
+                          <div class="cobranza-mixed-card__body">
+                            <label class="cobranza-field">
+                              <span>Monto MXN</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                [ngModel]="moneyInputValue(collectForm().mixedCardMxn)"
+                                (ngModelChange)="onMixedAmountChange('card', $event)" />
+                            </label>
+                            <label class="cobranza-field">
+                              <span>Referencia tarjeta</span>
+                              <input
+                                type="text"
+                                placeholder="Últimos 4 dígitos"
+                                [ngModel]="collectForm().mixedCardRef"
+                                (ngModelChange)="patchCollectForm({ mixedCardRef: $event })" />
+                            </label>
+                          </div>
+                        </article>
+                      }
+
+                      @if (collectForm().mixedUsesCheck) {
+                        <article class="cobranza-mixed-card cobranza-mixed-card--check">
+                          <header class="cobranza-mixed-card__head">
+                            <div class="cobranza-mixed-card__title">
+                              <span class="cobranza-mixed-card__index">Pago {{ mixedPartIndex('check') }}</span>
+                              <lucide-icon [img]="FileText" [size]="16" />
+                              <h4>Cheque</h4>
+                              @if (mixedAutoTarget() === 'check') {
+                                <span class="cobranza-mixed-card__badge">Resto</span>
+                              }
+                            </div>
+                            <div class="cobranza-mixed-card__actions">
+                              @if (showMixedFill()) {
+                                <button type="button" class="cobranza-mixed-card__fill" (click)="applyMixedRemainderTo('check')">
+                                  Completar resto
+                                </button>
+                              }
+                              <button
+                                type="button"
+                                class="cobranza-mixed-card__remove"
+                                (click)="toggleMixedType('check', false)"
+                                aria-label="Quitar cheque">
+                                <lucide-icon [img]="X" [size]="16" />
+                              </button>
+                            </div>
+                          </header>
+                          <div class="cobranza-mixed-card__body">
+                            <label class="cobranza-field">
+                              <span>Monto MXN</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                [ngModel]="moneyInputValue(collectForm().mixedCheckMxn)"
+                                (ngModelChange)="onMixedAmountChange('check', $event)" />
+                            </label>
+                            <label class="cobranza-field">
+                              <span>Número de cheque</span>
+                              <input
+                                type="text"
+                                placeholder="CH-45821"
+                                [ngModel]="collectForm().mixedCheckRef"
+                                (ngModelChange)="patchCollectForm({ mixedCheckRef: $event })" />
+                            </label>
+                          </div>
+                        </article>
+                      }
+                    </div>
+                  </div>
                 }
 
                 @if (collectError()) {
@@ -1009,39 +1165,34 @@
       <main class="cobranza-panel cobranza-panel--collect">
         @if (selectedCollectedSale(); as item) {
           <div class="cobranza-collect-scroll">
-            <div class="cobranza-panel__head cobranza-panel__head--collect">
-              <div>
-                <h2>Detalle del cobro</h2>
-                <p class="cobranza-panel__sub">{{ collectedSaleFolio(item) }}</p>
-              </div>
-              <div class="cobranza-panel__head-actions">
-                <button
-                  type="button"
-                  class="cobranza-head-btn"
-                  (click)="previewTicket(item)">
-                  <lucide-icon [img]="Eye" class="pos-ic pos-ic--sm" />
-                  Ver ticket
-                </button>
-                <button
-                  type="button"
-                  class="cobranza-head-btn cobranza-head-btn--print"
-                  (click)="reprintTicket(item)"
-                  [disabled]="printingReceipt()">
-                  <lucide-icon [img]="Printer" class="pos-ic pos-ic--sm" />
-                  {{ printingReceipt() ? 'Imprimiendo…' : 'Reimprimir ticket' }}
-                </button>
-                <button type="button" class="cobranza-head-btn" (click)="clearSelectedCollected()">
-                  <lucide-icon [img]="ChevronLeft" class="pos-ic pos-ic--sm" />
-                  Volver
-                </button>
-              </div>
-            </div>
-
             <div class="cobranza-collect-body">
             <section class="cobranza-total-card">
               <div class="cobranza-total-card__top">
                 <span class="cobranza-total-card__folio">{{ collectedSaleFolio(item) }}</span>
-                <time class="cobranza-total-card__date">{{ formatDate(item.collected_at) }}</time>
+                <div class="cobranza-total-card__top-end">
+                  <time class="cobranza-total-card__date">{{ formatDate(item.collected_at) }}</time>
+                  <div class="cobranza-panel__head-actions">
+                    <button
+                      type="button"
+                      class="cobranza-head-btn"
+                      (click)="previewTicket(item)">
+                      <lucide-icon [img]="Eye" class="pos-ic pos-ic--sm" />
+                      Ver ticket
+                    </button>
+                    <button
+                      type="button"
+                      class="cobranza-head-btn cobranza-head-btn--print"
+                      (click)="reprintTicket(item)"
+                      [disabled]="printingReceipt()">
+                      <lucide-icon [img]="Printer" class="pos-ic pos-ic--sm" />
+                      {{ printingReceipt() ? 'Imprimiendo…' : 'Reimprimir ticket' }}
+                    </button>
+                    <button type="button" class="cobranza-head-btn" (click)="clearSelectedCollected()">
+                      <lucide-icon [img]="ChevronLeft" class="pos-ic pos-ic--sm" />
+                      Volver
+                    </button>
+                  </div>
+                </div>
               </div>
               <div class="cobranza-total-card__breakdown">
                 <div class="cobranza-total-card__amount">

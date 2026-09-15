@@ -96,6 +96,7 @@ export class PurchaseOrderListComponent implements OnInit {
   creadasPercent = computed(() => this.countPercent(this.creadasCount()));
   recibidasPercent = computed(() => this.countPercent(this.recibidasCount()));
   pagadasPercent = computed(() => this.countPercent(this.pagadasCount()));
+  pendientesPercent = computed(() => this.countPercent(this.pendientesCount()));
   hasAnyDebt = computed(() =>
     this.paymentAmount('Pendiente', 'MXN') > 0 || this.paymentAmount('Pendiente', 'USD') > 0
   );
