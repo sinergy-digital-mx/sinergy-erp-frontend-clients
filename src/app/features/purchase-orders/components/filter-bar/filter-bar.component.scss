@@ -1,5 +1,10 @@
 @use '../../../../../base/filter-bar';
 
+:host {
+  display: block;
+  width: 100%;
+}
+
 .filter-bar__field--vendor {
   min-width: 0;
 }

@@ -1,10 +1,11 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { LucideAngularModule, ChevronDown } from 'lucide-angular';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
+import { MoreFiltersPanelComponent } from '../../../../core/components/more-filters-panel/more-filters-panel.component';
 import { OrderFilters } from '../../models/filters.model';
 import { OrderStatus, PaymentStatus } from '../../models/purchase-order.model';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
@@ -25,7 +26,8 @@ import { formatVendorPickerLabel, sortVendorsByLabel } from '../../utils/purchas
     ReactiveFormsModule,
     MatAutocompleteModule,
     LucideAngularModule,
-    FilterClearButtonComponent
+    FilterClearButtonComponent,
+    MoreFiltersPanelComponent
   ],
   templateUrl: './filter-bar.component.html',
   styleUrl: './filter-bar.component.scss'
@@ -48,6 +50,8 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   fiscalConfigurationControl = new FormControl<string>('', { nonNullable: true });
   billingBranchControl = new FormControl<string>('', { nonNullable: true });
   warehouseControl = new FormControl<string>('', { nonNullable: true });
+
+  @ViewChild(MoreFiltersPanelComponent) moreFilters?: MoreFiltersPanelComponent;
 
   fiscalConfigurations: FiscalConfiguration[] = [];
   branches: Branch[] = [];
@@ -90,17 +94,20 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   get hasActiveFilters(): boolean {
     return Boolean(
       this.searchControl.value.trim() ||
-      this.dateRangeControl.value ||
-      this.dateFromControl.value ||
-      this.dateToControl.value ||
-      this.statusControl.value ||
-      this.paymentStatusControl.value ||
-      this.vendorControl.value ||
-      this.vendorSearchControl.value.trim() ||
       this.fiscalConfigurationControl.value ||
       this.billingBranchControl.value ||
-      this.warehouseControl.value
+      this.extraFilterCount
     );
+  }
+
+  get extraFilterCount(): number {
+    let count = 0;
+    if (this.dateRangeControl.value || this.dateFromControl.value || this.dateToControl.value) count += 1;
+    if (this.statusControl.value) count += 1;
+    if (this.paymentStatusControl.value) count += 1;
+    if (this.vendorControl.value || this.vendorSearchControl.value.trim()) count += 1;
+    if (this.warehouseControl.value) count += 1;
+    return count;
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -281,6 +288,7 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     this.loadAllBranches();
     this.loadAllWarehouses();
     this.showCustomDateRange = false;
+    this.moreFilters?.close();
     this.emitFilters();
   }
 

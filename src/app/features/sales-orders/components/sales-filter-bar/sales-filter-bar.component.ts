@@ -1,9 +1,10 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { SalesOrderFilters, SalesOrderStatus, SalesPaymentStatus, SalesOrderCollectionChannel, SalesOrderSaleScope } from '../../models/sales-order.model';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
+import { MoreFiltersPanelComponent } from '../../../../core/components/more-filters-panel/more-filters-panel.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { BranchService } from '../../../settings/services/branch.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
@@ -12,7 +13,7 @@ import { Branch } from '../../../settings/models/branch.model';
 @Component({
   selector: 'app-sales-filter-bar',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FilterClearButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, FilterClearButtonComponent, MoreFiltersPanelComponent],
   templateUrl: './sales-filter-bar.component.html',
   styleUrl: './sales-filter-bar.component.scss'
 })
@@ -34,6 +35,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   billingBranchControl = new FormControl<string>('', { nonNullable: true });
   creditControl = new FormControl<string>('', { nonNullable: true });
   saleScopeControl = new FormControl<string>('', { nonNullable: true });
+
+  @ViewChild(MoreFiltersPanelComponent) moreFilters?: MoreFiltersPanelComponent;
 
   fiscalConfigurations: FiscalConfiguration[] = [];
   branches: Branch[] = [];
@@ -97,23 +100,27 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   get hasActiveFilters(): boolean {
     return Boolean(
       this.searchControl.value.trim() ||
-      this.dateRangeControl.value ||
-      this.dateFromControl.value ||
-      this.dateToControl.value ||
-      this.statusControl.value ||
-      this.paymentStatusControl.value ||
-      this.collectionChannelControl.value ||
       this.fiscalConfigurationControl.value ||
       this.billingBranchControl.value ||
-      this.creditControl.value ||
-      this.typeControl.value ||
-      this.saleScopeControl.value
+      this.extraFilterCount
     );
   }
 
+  get extraFilterCount(): number {
+    let count = 0;
+    if (this.dateRangeControl.value || this.dateFromControl.value || this.dateToControl.value) count += 1;
+    if (this.statusControl.value) count += 1;
+    if (this.paymentStatusControl.value) count += 1;
+    if (this.collectionChannelControl.value) count += 1;
+    if (this.creditControl.value) count += 1;
+    if (this.typeControl.value) count += 1;
+    if (this.saleScopeControl.value) count += 1;
+    return count;
+  }
+
   ngOnInit(): void {
-    this.billingBranchControl.disable({ emitEvent: false });
     this.loadFiscalConfigurations();
+    this.loadAllBranches();
 
     this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.dateRangeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(v => this.onDateRangeChange(v));
@@ -168,6 +175,9 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
         return;
       default:
         this.showCustomDateRange = false;
+        this.dateFromControl.setValue('', { emitEvent: false });
+        this.dateToControl.setValue('', { emitEvent: false });
+        this.emitFilters();
         break;
     }
 
@@ -195,9 +205,10 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.creditControl.setValue('', { emitEvent: false });
     this.typeControl.setValue('', { emitEvent: false });
     this.saleScopeControl.setValue('', { emitEvent: false });
-    this.billingBranchControl.disable({ emitEvent: false });
     this.branches = [];
     this.showCustomDateRange = false;
+    this.loadAllBranches();
+    this.moreFilters?.close();
     this.emitFilters();
   }
 
@@ -216,14 +227,25 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.billingBranchControl.setValue('', { emitEvent: false });
 
     if (fiscalId) {
-      this.billingBranchControl.enable({ emitEvent: false });
       this.loadBranches(fiscalId);
     } else {
-      this.billingBranchControl.disable({ emitEvent: false });
-      this.branches = [];
+      this.loadAllBranches();
     }
 
     this.emitFilters();
+  }
+
+  private loadAllBranches(): void {
+    this.branchService.getAllBranches().subscribe({
+      next: (branches) => {
+        this.branches = Array.isArray(branches) ? branches : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.branches = [];
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   private loadFiscalConfigurations(): void {

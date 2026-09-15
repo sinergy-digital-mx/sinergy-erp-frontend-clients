@@ -14,13 +14,17 @@
       stroke-width="1.7"
       stroke-linecap="round" />
   </svg>
-  <span>Filtros</span>
+  <span>Más filtros</span>
   @if (activeCount > 0) {
     <span class="more-filters__badge">{{ activeCount }}</span>
   }
 </button>
 
-@if (open) {
+<div
+  class="more-filters__layer"
+  [class.more-filters__layer--open]="open"
+  [attr.aria-hidden]="!open"
+  [attr.inert]="open ? null : ''">
   <div class="more-filters__backdrop" (click)="close()" aria-hidden="true"></div>
   <div
     class="more-filters__dialog"
@@ -34,7 +38,7 @@
           @if (activeCount > 0) {
             {{ activeCount }} {{ activeCount === 1 ? 'filtro activo' : 'filtros activos' }}
           } @else {
-            Ajusta fecha, estado y el resto sin recortar la barra
+            Estos filtros no van en la barra
           }
         </p>
       </div>
@@ -51,4 +55,4 @@
       </button>
     </footer>
   </div>
-}
+</div>

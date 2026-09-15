@@ -62,16 +62,25 @@
   text-align: center;
 }
 
-.more-filters__backdrop {
+.more-filters__layer {
+  display: none;
   position: fixed;
   inset: 0;
   z-index: 40;
+}
+
+.more-filters__layer--open {
+  display: block;
+}
+
+.more-filters__backdrop {
+  position: absolute;
+  inset: 0;
   background: rgba(17, 24, 39, 0.38);
 }
 
 .more-filters__dialog {
-  position: fixed;
-  z-index: 41;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
