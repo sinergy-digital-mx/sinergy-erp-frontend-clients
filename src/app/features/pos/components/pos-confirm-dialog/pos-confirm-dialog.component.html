@@ -1,0 +1,18 @@
+<div class="pos-dialog pos-confirm-dialog">
+  <div class="pos-confirm-dialog__mark" aria-hidden="true">
+    <lucide-icon [img]="Undo2" />
+  </div>
+  <h2 class="pos-dialog__title">{{ data.title }}</h2>
+  <p class="pos-dialog__subtitle">{{ data.message }}</p>
+  @if (data.note) {
+    <p class="pos-confirm-dialog__note">{{ data.note }}</p>
+  }
+  <div class="pos-dialog__actions">
+    <button type="button" class="pos-confirm-dialog__btn pos-confirm-dialog__btn--ghost" (click)="cancel()">
+      {{ data.cancelLabel || 'Cancelar' }}
+    </button>
+    <button type="button" class="pos-confirm-dialog__btn pos-confirm-dialog__btn--accent" (click)="confirm()">
+      {{ data.acceptLabel }}
+    </button>
+  </div>
+</div>

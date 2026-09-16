@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil, tap } from 'rxjs';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -126,6 +126,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   loadingTickets = signal(false);
   editingSaleId = signal<string | null>(null);
   editingFolio = signal<string | null>(null);
+  private pendingResumeTicketId: string | null = null;
 
   selectedCustomerId = signal('');
   selectedCustomerName = signal('Público en General');
@@ -187,6 +188,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     public posState: PosStateService,
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private toast: ToastService,
     private dialog: MatDialog,
     private globalDiscountService: GlobalDiscountService,
@@ -248,6 +250,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((term) => this.applyCatalogSearch(term));
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
+    const resumeTicket = this.route.snapshot.queryParamMap.get('ticket');
+    if (resumeTicket) {
+      this.pendingResumeTicketId = resumeTicket;
+    }
     if (this.authService.isPosCobranzaTerminal()) {
       void this.router.navigate(['/pos/cobranza'], { replaceUrl: true });
     }
@@ -417,11 +423,45 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       next: ({ sales_in_progress }) => {
         this.salesInProgress.set(sales_in_progress ?? []);
         this.loadingTickets.set(false);
+        this.afterTicketsLoaded();
       },
-      error: () => {
+      error: (error) => {
         this.loadingTickets.set(false);
+        this.notifyError(
+          mapPosApiErrorMessage(error?.error?.message) || 'No se pudieron cargar los tickets en ventas',
+          5000,
+        );
       },
     });
+  }
+
+  private afterTicketsLoaded(): void {
+    if (this.tryResumeReturnedTicket()) {
+      return;
+    }
+    if (this.canSell() && this.salesInProgress().length > 0) {
+      this.ticketsPanelOpen.set(true);
+    }
+  }
+
+  private tryResumeReturnedTicket(): boolean {
+    const resumeId = this.pendingResumeTicketId;
+    if (!resumeId || !this.canSell()) {
+      return false;
+    }
+    const ticket = this.salesInProgress().find((item) => item.id === resumeId);
+    if (!ticket) {
+      this.ticketsPanelOpen.set(true);
+      return false;
+    }
+    this.pendingResumeTicketId = null;
+    this.openReturnedTicket(ticket);
+    void this.router.navigate([], {
+      queryParams: { ticket: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    return true;
   }
 
   toggleTicketsPanel(): void {
@@ -449,6 +489,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.editingSaleId.set(ticket.id);
     this.editingFolio.set(ticket.folio || ticket.id);
     this.ticketsPanelOpen.set(false);
+    this.notifySuccess(`${ticket.folio || ticket.id} cargado. Edita y pulsa Enviar a caja.`, 4500);
 
     if (ticket.customer?.is_walk_in || ticket.customer_id == null) {
       this.clearSelectedCustomer();

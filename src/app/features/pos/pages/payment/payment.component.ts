@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import {
   LucideAngularModule,
@@ -38,7 +38,7 @@ import {
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
+import { PosConfirmDialogComponent } from '../../components/pos-confirm-dialog/pos-confirm-dialog.component';
 import { POS_PERMISSIONS } from '../../config/permissions.config';
 import { ExchangeRateService } from '../../../../core/services/exchange-rate.service';
 import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
@@ -365,6 +365,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     public posState: PosStateService,
     private authService: AuthService,
     private route: ActivatedRoute,
+    private router: Router,
     private toast: ToastService,
     private dialog: MatDialog,
     private exchangeRateService: ExchangeRateService,
@@ -1255,14 +1256,21 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const folio = sale.folio || sale.id;
+    const canOpenVentas = this.authService.canPosSell();
     this.dialog
-      .open(AlertDialogComponent, {
+      .open(PosConfirmDialogComponent, {
+        width: '420px',
+        maxWidth: '95vw',
+        panelClass: 'pos-dialog-panel',
+        autoFocus: 'first-tabbable',
         data: {
-          type: 'warning',
           title: 'Regresar a ventas',
-          message: `El folio ${folio} saldrá de caja. Ventas podrá editar productos y reenviarlo.`,
-          text_cancel: 'Cancelar',
-          text_accept: 'Regresar a ventas',
+          message: `El folio ${folio} saldrá de caja. No se puede cobrar hasta que Ventas lo reenvíe.`,
+          note: canOpenVentas
+            ? 'Después se abre POS Ventas con este folio para editar productos y reenviarlo a caja.'
+            : 'En POS Ventas, abre Tickets en ventas, carga el folio, edita y pulsa Enviar a caja.',
+          cancelLabel: 'Cancelar',
+          acceptLabel: 'Regresar a ventas',
         },
       })
       .afterClosed()
@@ -1274,9 +1282,21 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         this.posService.returnSaleToVentas(sale.id).subscribe({
           next: () => {
             this.returningToSales.set(false);
-            this.toast.success(`${folio} regresó a ventas`, { duration: 4500 });
             this.clearSelectedSale();
             this.loadPendingSales();
+            if (canOpenVentas) {
+              this.toast.success(`${folio} está en ventas. Ábrelo, edita y envíalo a caja.`, {
+                duration: 5000,
+              });
+              void this.router.navigate(['/pos/ventas'], {
+                queryParams: { ticket: sale.id },
+              });
+              return;
+            }
+            this.toast.success(
+              `${folio} está en POS Ventas → Tickets en ventas. Ahí se edita y se reenvía a caja.`,
+              { duration: 7000 },
+            );
           },
           error: (error) => {
             this.returningToSales.set(false);

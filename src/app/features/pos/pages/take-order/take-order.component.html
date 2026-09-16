@@ -6,6 +6,13 @@
           <lucide-icon [img]="User" class="pos-lock-card__icon" />
           <h3>Identifica al vendedor</h3>
           <p>Ingresa el código del vendedor POS para cargar el catálogo y registrar ventas.</p>
+          @if (salesInProgress().length > 0) {
+            <p class="pos-lock-card__tickets">
+              Hay {{ salesInProgress().length }}
+              {{ salesInProgress().length === 1 ? 'ticket regresado' : 'tickets regresados' }}
+              de caja. Con el código podrás abrirlos.
+            </p>
+          }
           <button type="button" class="pos-btn pos-btn--primary pos-btn--lg" (click)="openSellerCodeDialog()">
             <span>Ingresar código</span>
           </button>
@@ -65,10 +72,12 @@
         <button
           type="button"
           class="pos-session-bar__icon-btn pos-tickets-btn"
+          [class.pos-tickets-btn--active]="salesInProgress().length > 0"
           (click)="toggleTicketsPanel()"
           title="Tickets en ventas"
           aria-label="Tickets en ventas">
           <lucide-icon [img]="Ticket" class="pos-ic pos-ic--btn" />
+          <span class="pos-tickets-btn__label">Tickets</span>
           @if (salesInProgress().length > 0) {
             <span class="pos-tickets-btn__badge">{{ salesInProgress().length }}</span>
           }
@@ -101,6 +110,14 @@
     </div>
   }
 
+  @if (salesInProgress().length > 0) {
+    <button type="button" class="pos-tickets-banner" (click)="ticketsPanelOpen.set(true); loadSalesInProgress()">
+      Hay {{ salesInProgress().length }}
+      {{ salesInProgress().length === 1 ? 'ticket regresado' : 'tickets regresados' }}
+      de caja. Ábrelo, edita productos y pulsa Enviar a caja.
+    </button>
+  }
+
   @if (ticketsPanelOpen()) {
     <div class="pos-tickets-panel" role="dialog" aria-label="Tickets en ventas">
       <div class="pos-tickets-panel__head">
@@ -118,7 +135,10 @@
           @for (ticket of salesInProgress(); track ticket.id) {
             <li>
               <button type="button" class="pos-tickets-panel__item" (click)="openReturnedTicket(ticket)">
-                <span>{{ ticket.folio || ticket.id }}</span>
+                <span>
+                  <strong>{{ ticket.folio || ticket.id }}</strong>
+                  <small>Tocar para cargar el carrito</small>
+                </span>
                 <strong>{{ formatCurrency(ticket.total ?? 0) }}</strong>
               </button>
             </li>
