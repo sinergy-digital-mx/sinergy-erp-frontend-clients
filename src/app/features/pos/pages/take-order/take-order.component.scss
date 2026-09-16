@@ -18,6 +18,12 @@
   user-select: none;
 }
 
+.pos-take-layout--locked .pos-session-bar {
+  pointer-events: auto;
+  filter: none;
+  opacity: 1;
+}
+
 .pos-take-main {
   min-width: 0;
   min-height: 0;
@@ -1558,11 +1564,26 @@
   border-bottom: 1px solid var(--pos-border);
 }
 
+.pos-tickets-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
 .pos-tickets-panel__close {
   border: none;
   background: transparent;
   color: #64748b;
   cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.pos-tickets-panel__spin {
+  animation: pos-spin 0.8s linear infinite;
 }
 
 .pos-tickets-panel__empty {

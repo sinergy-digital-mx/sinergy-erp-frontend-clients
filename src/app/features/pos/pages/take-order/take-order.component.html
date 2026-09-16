@@ -71,6 +71,16 @@
         </div>
         <button
           type="button"
+          class="pos-session-bar__icon-btn"
+          (click)="refreshFromHeader()"
+          [disabled]="loadingTickets() || loading() || posState.checkingShift()"
+          [class.pos-session-bar__icon-btn--spinning]="loadingTickets() || loading() || posState.checkingShift()"
+          title="Actualizar"
+          aria-label="Actualizar">
+          <lucide-icon [img]="RefreshCw" class="pos-ic pos-ic--btn" />
+        </button>
+        <button
+          type="button"
           class="pos-session-bar__icon-btn pos-tickets-btn"
           [class.pos-tickets-btn--active]="salesInProgress().length > 0"
           (click)="toggleTicketsPanel()"
@@ -122,9 +132,20 @@
     <div class="pos-tickets-panel" role="dialog" aria-label="Tickets en ventas">
       <div class="pos-tickets-panel__head">
         <strong>Tickets en ventas</strong>
-        <button type="button" class="pos-tickets-panel__close" (click)="ticketsPanelOpen.set(false)" aria-label="Cerrar">
-          <lucide-icon [img]="X" [size]="16" />
-        </button>
+        <div class="pos-tickets-panel__actions">
+          <button
+            type="button"
+            class="pos-tickets-panel__close"
+            (click)="loadSalesInProgress()"
+            [disabled]="loadingTickets()"
+            title="Actualizar"
+            aria-label="Actualizar tickets">
+            <lucide-icon [img]="RefreshCw" [size]="16" [class.pos-tickets-panel__spin]="loadingTickets()" />
+          </button>
+          <button type="button" class="pos-tickets-panel__close" (click)="ticketsPanelOpen.set(false)" aria-label="Cerrar">
+            <lucide-icon [img]="X" [size]="16" />
+          </button>
+        </div>
       </div>
       @if (loadingTickets()) {
         <p class="pos-tickets-panel__empty"><app-spinner size="sm"></app-spinner></p>

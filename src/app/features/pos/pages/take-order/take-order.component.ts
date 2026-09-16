@@ -33,6 +33,7 @@ import {
   ChevronRight,
   X,
   Ticket,
+  RefreshCw,
 } from 'lucide-angular';
 import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
@@ -110,6 +111,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly ChevronRight = ChevronRight;
   readonly X = X;
   readonly Ticket = Ticket;
+  readonly RefreshCw = RefreshCw;
 
   private static readonly CART_TOTALS_OPEN_KEY = 'pos_cart_totals_open';
   cartTotalsOpen = signal(TakeOrderComponent.readCartTotalsOpen());
@@ -412,6 +414,16 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   loadData(): void {
     this.refreshDailyShift();
     this.loadSalesInProgress();
+  }
+
+  refreshFromHeader(): void {
+    if (this.loadingTickets() || this.loading() || this.posState.checkingShift()) {
+      return;
+    }
+    this.loadData();
+    if (this.posState.seller()) {
+      this.loadProducts(this.searchTerm());
+    }
   }
 
   loadSalesInProgress(): void {

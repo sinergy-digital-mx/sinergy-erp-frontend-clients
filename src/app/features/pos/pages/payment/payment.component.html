@@ -43,6 +43,16 @@
         <button
           type="button"
           class="pos-session-bar__icon-btn"
+          (click)="refreshFromHeader()"
+          [disabled]="posState.checkingShift() || loading()"
+          [class.pos-session-bar__icon-btn--spinning]="posState.checkingShift() || loading()"
+          title="Actualizar"
+          aria-label="Actualizar">
+          <lucide-icon [img]="RefreshCw" class="pos-ic pos-ic--btn" />
+        </button>
+        <button
+          type="button"
+          class="pos-session-bar__icon-btn"
           (click)="openPrinterSettings()"
           title="Impresora térmica"
           aria-label="Impresora térmica">

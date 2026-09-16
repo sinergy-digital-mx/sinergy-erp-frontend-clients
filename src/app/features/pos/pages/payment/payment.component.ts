@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import {
   LucideAngularModule,
@@ -365,7 +365,6 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     public posState: PosStateService,
     private authService: AuthService,
     private route: ActivatedRoute,
-    private router: Router,
     private toast: ToastService,
     private dialog: MatDialog,
     private exchangeRateService: ExchangeRateService,
@@ -645,6 +644,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     this.loadPendingSales();
+  }
+
+  refreshFromHeader(): void {
+    if (this.posState.checkingShift()) {
+      return;
+    }
+    this.refreshDailyShift();
   }
 
   openPartialShift(): void {
@@ -1256,7 +1262,6 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const folio = sale.folio || sale.id;
-    const canOpenVentas = this.authService.canPosSell();
     this.dialog
       .open(PosConfirmDialogComponent, {
         width: '420px',
@@ -1266,9 +1271,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         data: {
           title: 'Regresar a ventas',
           message: `El folio ${folio} saldrá de caja. No se puede cobrar hasta que Ventas lo reenvíe.`,
-          note: canOpenVentas
-            ? 'Después se abre POS Ventas con este folio para editar productos y reenviarlo a caja.'
-            : 'En POS Ventas, abre Tickets en ventas, carga el folio, edita y pulsa Enviar a caja.',
+          note: 'En POS Ventas aparece en Tickets. Ahí se edita y se pulsa Enviar a caja.',
           cancelLabel: 'Cancelar',
           acceptLabel: 'Regresar a ventas',
         },
@@ -1284,18 +1287,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
             this.returningToSales.set(false);
             this.clearSelectedSale();
             this.loadPendingSales();
-            if (canOpenVentas) {
-              this.toast.success(`${folio} está en ventas. Ábrelo, edita y envíalo a caja.`, {
-                duration: 5000,
-              });
-              void this.router.navigate(['/pos/ventas'], {
-                queryParams: { ticket: sale.id },
-              });
-              return;
-            }
             this.toast.success(
-              `${folio} está en POS Ventas → Tickets en ventas. Ahí se edita y se reenvía a caja.`,
-              { duration: 7000 },
+              `${folio} regresó a ventas. En POS Ventas recarga Tickets para abrirlo.`,
+              { duration: 6000 },
             );
           },
           error: (error) => {
