@@ -256,9 +256,9 @@ export function partialPerformedByLabel(
     return posUserDisplayLabel(partial.performed_by_user);
   }
   if (terminalFallback) {
-    return posUserDisplayLabel(terminalFallback, 'Terminal cobranza');
+    return posUserDisplayLabel(terminalFallback, 'Terminal caja');
   }
-  return 'Terminal cobranza';
+  return 'Terminal caja';
 }
 
 export function normalizeDailyShiftStatus(status: unknown): PosDailyShiftStatus | string | null {
@@ -350,7 +350,7 @@ export function unclosedAlertFromShift(shift: PosDailyShiftListItem): UnclosedSh
     today: '',
     days_open: 1,
     title: 'Corte del día anterior sin cerrar',
-    message: `No se cerró el corte del ${shiftDate || 'día anterior'}. Cobranza debe cerrarlo para continuar.`,
+    message: `No se cerró el corte del ${shiftDate || 'día anterior'}. Caja debe cerrarlo para continuar.`,
     severity: 'blocking',
   };
 }

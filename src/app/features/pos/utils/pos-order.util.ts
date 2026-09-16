@@ -58,7 +58,7 @@ export function buildCobranzaPosOrderPayload(
   cartItems: POSCartItem[],
   ctx: VentasPosOrderContext
 ): SalesOrderFormData {
-  const terminal = ctx.terminalLabel?.trim() || 'POS Cobranza';
+  const terminal = ctx.terminalLabel?.trim() || 'POS Caja';
   return {
     fiscal_configuration_id: ctx.fiscalConfigurationId,
     warehouse_id: ctx.warehouseId,
@@ -67,8 +67,50 @@ export function buildCobranzaPosOrderPayload(
     sales_order_type: 'POS',
     seller_user_id: ctx.sellerUserId,
     payment_status: 'Pagado',
-    notes: `POS Cobranza - ${terminal}`,
+    notes: `POS Caja - ${terminal}`,
     line_items: cartItems.map(mapCartLineToOrderLine),
+  };
+}
+
+export function mapInProgressLineToCartItem(line: {
+  product_id: string;
+  product_name?: string;
+  product_sku?: string;
+  product_uom_id: string;
+  uom_id?: string;
+  uom_name?: string;
+  quantity: number;
+  unit_price: number;
+  iva_percentage?: number;
+  ieps_percentage?: number;
+  product_discount_id?: string | null;
+  selected_discount?: POSCartItem['selected_discount'];
+}): POSCartItem {
+  return {
+    product_id: line.product_id,
+    product_name: line.product_name || 'Producto',
+    product_sku: line.product_sku || '',
+    product_uom_id: line.product_uom_id,
+    uom_id: line.uom_id || line.product_uom_id,
+    uom_name: line.uom_name || 'Pieza',
+    quantity: Number(line.quantity),
+    unit_price: Number(line.unit_price),
+    iva_percentage: Number(line.iva_percentage ?? 0),
+    ieps_percentage: Number(line.ieps_percentage ?? 0),
+    subtotal: 0,
+    line_gross_subtotal: 0,
+    line_discount_amount: 0,
+    iva_amount: 0,
+    ieps_amount: 0,
+    line_total: 0,
+    product_discount_id: line.product_discount_id ?? null,
+    selected_discount: line.selected_discount ?? null,
+    pricing_options: [],
+    selected_price_list_id: '',
+    suggested_unit_price: Number(line.unit_price),
+    suggested_iva_percentage: Number(line.iva_percentage ?? 0),
+    suggested_ieps_percentage: Number(line.ieps_percentage ?? 0),
+    applicable_discounts: line.selected_discount ? [line.selected_discount] : [],
   };
 }
 

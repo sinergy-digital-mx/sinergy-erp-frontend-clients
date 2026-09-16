@@ -67,19 +67,19 @@ export const POS_USER_TYPE_OPTIONS: ReadonlyArray<{
   },
   {
     value: 'COBRANZA',
-    label: 'Cobranza',
+    label: 'Caja',
     description: 'Abre/cierra corte, cortes parciales y cobra ventas',
   },
 ];
 
-/** Solo gerentes (`is_manager`). Un POS normal es Ventas o Cobranza, nunca los dos. */
+/** Solo gerentes (`is_manager`). Un POS normal es Ventas o Caja, nunca los dos. */
 export const POS_USER_TYPE_AMBOS_OPTION: {
   value: PosUserType;
   label: string;
   description: string;
 } = {
   value: 'AMBOS',
-  label: 'Ventas y cobranza',
+  label: 'Ventas y caja',
   description: 'Ve ambas apps en el menú POS. Solo gerentes.',
 };
 
@@ -126,10 +126,10 @@ export function getPosUserTypeBadgeLabel(
     return 'POS Ventas';
   }
   if (posUserType === 'COBRANZA') {
-    return 'POS Cobranza';
+    return 'POS Caja';
   }
   if (posUserType === 'AMBOS') {
-    return 'POS Ventas y cobranza';
+    return 'POS Ventas y caja';
   }
   return 'POS';
 }

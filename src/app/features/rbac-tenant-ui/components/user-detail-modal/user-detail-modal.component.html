@@ -137,7 +137,7 @@
             </label>
             <p class="field-hint">
               Las terminales POS requieren sucursal asignada. <strong>Ventas</strong> solo captura pedidos;
-              <strong>Cobranza</strong> maneja el corte del día y el cobro. Un <strong>gerente</strong> puede operar ambos.
+              <strong>Caja</strong> maneja el corte del día y el cobro. Un <strong>gerente</strong> puede operar ambos.
             </p>
           </div>
 
@@ -165,10 +165,10 @@
               Selecciona un tipo de terminal
             </p>
             <p *ngIf="!form.get('is_manager')?.value" class="field-hint">
-              Un POS normal es Ventas o Cobranza. Si además es gerente, puede elegir Ventas y cobranza.
+              Un POS normal es Ventas o Caja. Si además es gerente, puede elegir Ventas y caja.
             </p>
             <p *ngIf="showPosTypeChangeWarning()" class="field-hint field-hint--warning">
-              Cambiar el tipo de terminal afecta el menú al iniciar sesión (Ventas, Cobranza, o ambas).
+              Cambiar el tipo de terminal afecta el menú al iniciar sesión (Ventas, Caja, o ambas).
             </p>
           </div>
 

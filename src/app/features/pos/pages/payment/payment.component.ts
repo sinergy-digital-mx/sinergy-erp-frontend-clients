@@ -34,9 +34,12 @@ import {
   Pencil,
   FileText,
   X,
+  Undo2,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
+import { POS_PERMISSIONS } from '../../config/permissions.config';
 import { ExchangeRateService } from '../../../../core/services/exchange-rate.service';
 import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
 import { POSService } from '../../services/pos.service';
@@ -192,6 +195,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly Pencil = Pencil;
   readonly FileText = FileText;
   readonly X = X;
+  readonly Undo2 = Undo2;
 
   pendingSales = signal<PendingSale[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);
@@ -204,6 +208,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   loadingShiftDetail = signal(false);
   loadingCollectionDetail = signal(false);
   collecting = signal(false);
+  returningToSales = signal(false);
   printingReceipt = signal(false);
   isFullscreen = signal(false);
   dashboardTab = signal<DashboardTab>('pending');
@@ -345,6 +350,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly creditAvailable = computed(() => Number(this.selectedCustomerDetail()?.credit_available ?? 0));
 
+  readonly canReturnToSales = computed(() =>
+    this.authService.hasPermission(POS_PERMISSIONS.returnToSales)
+  );
+
   readonly fiscalReadyForInvoice = computed(() => this.selectedCustomerDetail()?.fiscal_ready_for_invoice === true);
 
   readonly showInvoiceSwitch = computed(() => this.customerMode() === 'registered');
@@ -396,7 +405,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   terminalLabel(): string {
     const email = this.authService.user_info?.email ?? '';
-    return email.split('@')[0] || 'Cobranza';
+    return email.split('@')[0] || 'Caja';
   }
 
   branchLabel(): string {
@@ -1237,6 +1246,44 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       this.selectedCustomerName.set(name);
       this.loadRegisteredCustomer(result.customerId);
     });
+  }
+
+  returnSelectedToVentas(): void {
+    const sale = this.selectedSale();
+    if (!sale?.id || !this.canReturnToSales() || this.returningToSales()) {
+      return;
+    }
+
+    const folio = sale.folio || sale.id;
+    this.dialog
+      .open(AlertDialogComponent, {
+        data: {
+          type: 'warning',
+          title: 'Regresar a ventas',
+          message: `El folio ${folio} saldrá de caja. Ventas podrá editar productos y reenviarlo.`,
+          text_cancel: 'Cancelar',
+          text_accept: 'Regresar a ventas',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.returningToSales.set(true);
+        this.posService.returnSaleToVentas(sale.id).subscribe({
+          next: () => {
+            this.returningToSales.set(false);
+            this.toast.success(`${folio} regresó a ventas`, { duration: 4500 });
+            this.clearSelectedSale();
+            this.loadPendingSales();
+          },
+          error: (error) => {
+            this.returningToSales.set(false);
+            this.toast.error(mapPosApiErrorMessage(error.error?.message), { duration: 5000 });
+          },
+        });
+      });
   }
 
   collectSelected(): void {

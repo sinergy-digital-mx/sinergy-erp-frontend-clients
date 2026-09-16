@@ -82,7 +82,7 @@ export class PosSummaryTabComponent implements OnChanges {
   }
 
   terminalTypeLabel(type: PosTerminalType): string {
-    return type === 'COBRANZA' ? 'Cobranza' : 'Ventas';
+    return type === 'COBRANZA' ? 'Caja' : 'Ventas';
   }
 
   isCollectionTerminal(terminal: SalesTerminalSummary): boolean {

@@ -113,7 +113,7 @@ export class PosReceiptPreviewDialogComponent implements OnInit {
     }
 
     if (!this.printService.getPrinterName()) {
-      this.error.set('Configura la impresora térmica en Cobranza POS antes de imprimir.');
+      this.error.set('Configura la impresora térmica en POS Caja antes de imprimir.');
       return;
     }
 

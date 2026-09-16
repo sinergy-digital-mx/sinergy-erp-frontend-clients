@@ -1160,7 +1160,7 @@ export class UserDetailModalComponent implements OnInit {
       this.interceptorService.openSnackbar({
         type: 'warning',
         title: 'Advertencia',
-        message: 'Ventas y cobranza solo aplica a gerentes. Marca Es gerente o elige Ventas o Cobranza.'
+        message: 'Ventas y caja solo aplica a gerentes. Marca Es gerente o elige Ventas o Caja.'
       });
       this.activeTab = 'pos';
       return;
@@ -1496,7 +1496,7 @@ export class UserDetailModalComponent implements OnInit {
 
     const knownMessages: Record<string, string> = {
       'pos_user_type es requerido cuando is_pos_user es true':
-        'Selecciona el tipo de terminal POS (Ventas, Cobranza, o ambos si es gerente).',
+        'Selecciona el tipo de terminal POS (Ventas, Caja, o ambos si es gerente).',
       'pos_user_type solo aplica cuando el usuario es de tipo POS':
         'El tipo de terminal solo aplica para usuarios POS.',
       'El usuario POS debe tener una sucursal asignada':

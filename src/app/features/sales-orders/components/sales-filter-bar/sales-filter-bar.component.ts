@@ -84,9 +84,9 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   ];
 
   collectionChannelOptions: { label: string; value: SalesOrderCollectionChannel }[] = [
-    { label: 'POS cobranza', value: 'pos_cobranza' },
+    { label: 'POS Caja', value: 'pos_cobranza' },
     { label: 'Cobrada manual', value: 'manual' },
-    { label: 'POS cobranza + Manual', value: 'mixed' },
+    { label: 'POS Caja + Manual', value: 'mixed' },
   ];
 
   private destroy$ = new Subject<void>();

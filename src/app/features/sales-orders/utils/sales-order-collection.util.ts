@@ -9,9 +9,9 @@ export const SALES_ORDER_COLLECTION_CHANNEL_LABELS: Record<
   SalesOrderCollectionChannel,
   string
 > = {
-  pos_cobranza: 'POS cobranza',
+  pos_cobranza: 'POS Caja',
   manual: 'Cobrada manual',
-  mixed: 'POS cobranza + Manual',
+  mixed: 'POS Caja + Manual',
 };
 
 export function salesOrderCollectionChannel(

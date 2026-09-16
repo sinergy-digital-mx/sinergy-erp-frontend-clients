@@ -1505,3 +1505,73 @@
     min-height: 280px;
   }
 }
+
+.pos-tickets-panel {
+  position: absolute;
+  top: 56px;
+  right: 12px;
+  z-index: 20;
+  width: min(360px, calc(100% - 24px));
+  max-height: min(420px, 70vh);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--pos-border);
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+}
+
+.pos-tickets-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--pos-border);
+}
+
+.pos-tickets-panel__close {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.pos-tickets-panel__empty {
+  margin: 0;
+  padding: 1rem;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.pos-tickets-panel__list {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem;
+}
+
+.pos-tickets-panel__item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #0f172a;
+
+  &:hover {
+    background: #f8fafc;
+  }
+}
+
+.pos-cart__editing {
+  margin: 0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.7rem;
+  font-weight: 700;
+}

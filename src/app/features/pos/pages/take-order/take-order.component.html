@@ -57,11 +57,22 @@
         </div>
       </nav>
 
-      <div class="pos-session-bar__tools">
+        <div class="pos-session-bar__tools">
         <div class="pos-meta">
           <span class="pos-meta__k">Terminal</span>
           <span class="pos-meta__v">{{ terminalLabel() }}</span>
         </div>
+        <button
+          type="button"
+          class="pos-session-bar__icon-btn pos-tickets-btn"
+          (click)="toggleTicketsPanel()"
+          title="Tickets en ventas"
+          aria-label="Tickets en ventas">
+          <lucide-icon [img]="Ticket" class="pos-ic pos-ic--btn" />
+          @if (salesInProgress().length > 0) {
+            <span class="pos-tickets-btn__badge">{{ salesInProgress().length }}</span>
+          }
+        </button>
         <button
           type="button"
           class="pos-session-bar__icon-btn"
@@ -81,11 +92,38 @@
       [class.pos-shift-banner--queue]="posState.salesQueueMode() && !posState.requiresPreviousClose()"
       [class.pos-shift-banner--alert]="posState.requiresPreviousClose()">
       @if (posState.requiresPreviousClose()) {
-        <span>Hay un corte de otro día sin cerrar. Cobranza debe cerrarlo; las ventas quedan en cola.</span>
+        <span>Hay un corte de otro día sin cerrar. Caja debe cerrarlo; las ventas quedan en cola.</span>
       } @else if (posState.shiftOpen()) {
-        <span>Corte activo — las ventas van directo a cobranza.</span>
+        <span>Corte activo — las ventas van directo a caja.</span>
       } @else {
-        <span>Sin corte abierto — las ventas quedan en cola hasta que cobranza abra el día.</span>
+        <span>Sin corte abierto — las ventas quedan en cola hasta que caja abra el día.</span>
+      }
+    </div>
+  }
+
+  @if (ticketsPanelOpen()) {
+    <div class="pos-tickets-panel" role="dialog" aria-label="Tickets en ventas">
+      <div class="pos-tickets-panel__head">
+        <strong>Tickets en ventas</strong>
+        <button type="button" class="pos-tickets-panel__close" (click)="ticketsPanelOpen.set(false)" aria-label="Cerrar">
+          <lucide-icon [img]="X" [size]="16" />
+        </button>
+      </div>
+      @if (loadingTickets()) {
+        <p class="pos-tickets-panel__empty"><app-spinner size="sm"></app-spinner></p>
+      } @else if (salesInProgress().length === 0) {
+        <p class="pos-tickets-panel__empty">No hay tickets regresados de caja.</p>
+      } @else {
+        <ul class="pos-tickets-panel__list">
+          @for (ticket of salesInProgress(); track ticket.id) {
+            <li>
+              <button type="button" class="pos-tickets-panel__item" (click)="openReturnedTicket(ticket)">
+                <span>{{ ticket.folio || ticket.id }}</span>
+                <strong>{{ formatCurrency(ticket.total ?? 0) }}</strong>
+              </button>
+            </li>
+          }
+        </ul>
       }
     </div>
   }
@@ -217,6 +255,9 @@
         <div class="pos-cart__head-title">
           <lucide-icon [img]="ShoppingCart" class="pos-ic" />
           <h2>{{ cartProductsTabLabel() }}</h2>
+          @if (editingFolio(); as folio) {
+            <span class="pos-cart__editing">{{ folio }}</span>
+          }
         </div>
       </div>
 
@@ -456,7 +497,7 @@
         <button type="button" class="pos-btn pos-btn--muted" (click)="cancel()" [disabled]="saving() || confirming()">
           Cancelar
         </button>
-        @if (canQuote()) {
+        @if (canQuote() && !isEditingReturnedTicket()) {
           <button
             type="button"
             class="pos-btn pos-btn--muted"
@@ -480,7 +521,7 @@
             !canSell() ||
             posService.cart().items.length === 0
           ">
-          {{ saving() ? 'Guardando…' : 'Registrar venta' }}
+          {{ saving() ? 'Guardando…' : isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta' }}
         </button>
       </div>
     </aside>

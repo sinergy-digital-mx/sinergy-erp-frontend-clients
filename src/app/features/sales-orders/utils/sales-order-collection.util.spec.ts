@@ -18,7 +18,7 @@ describe('salesOrderCollectionChannel', () => {
     expect(
       salesOrderCollectionChannelLabel({
         collection_channel: null,
-        collection_channel_label: 'POS cobranza',
+        collection_channel_label: 'POS Caja',
       })
     ).toBe('');
   });
@@ -41,10 +41,10 @@ describe('salesOrderCollectionChannel', () => {
   it('cae a labels conocidos si el API no manda collection_channel_label', () => {
     expect(
       salesOrderCollectionChannelLabel({ collection_channel: 'pos_cobranza' })
-    ).toBe('POS cobranza');
+    ).toBe('POS Caja');
     expect(
       salesOrderCollectionChannelLabel({ collection_channel: 'mixed' })
-    ).toBe('POS cobranza + Manual');
+    ).toBe('POS Caja + Manual');
   });
 
   it('resume el origen en el listado', () => {

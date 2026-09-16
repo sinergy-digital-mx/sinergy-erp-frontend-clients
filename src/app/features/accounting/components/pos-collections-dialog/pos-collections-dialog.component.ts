@@ -88,7 +88,7 @@ export class PosCollectionsDialogComponent implements OnInit {
   }
 
   get terminalTitle(): string {
-    return this.data.collection.terminal_name?.trim() || 'Cobranza';
+    return this.data.collection.terminal_name?.trim() || 'Caja';
   }
 
   ngOnInit(): void {

@@ -1,4 +1,4 @@
-# UI — Cobranza POS: método de pago
+# UI — POS Caja: método de pago
 
 Contrato de API en `sinergy-erp-backend-clients/src/api/pos-shifts/docs/UI_POS_FLOW.md`.
 

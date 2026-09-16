@@ -167,7 +167,7 @@ export const routes: Routes = [
             .then(m => m.PaymentComponent),
         data: {
           permission: 'pos:Update',
-          title: 'Cobranza POS'
+          title: 'POS Caja'
         }
       },
       {

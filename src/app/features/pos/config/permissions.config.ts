@@ -17,6 +17,7 @@ export const POS_PERMISSIONS = {
   createSale: 'pos:CreateSale',
   voidSale: 'pos:VoidSale',
   refund: 'pos:Refund',
+  returnToSales: 'pos:ReturnToSales',
   
   // Cash management
   openCashDrawer: 'pos:OpenCashDrawer',

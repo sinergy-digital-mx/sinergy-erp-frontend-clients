@@ -2,7 +2,7 @@
   <header class="pos-session-bar">
     <div class="pos-session-bar__content">
       <div class="pos-session-bar__brand">
-        <span>Cobranza POS</span>
+        <span>POS Caja</span>
       </div>
 
       <nav class="pos-session-bar__meta" aria-label="Sesión POS">
@@ -84,7 +84,7 @@
       </div>
     }
     <div class="cobranza-chrome">
-      <nav class="cobranza-dashboard-tabs" aria-label="Secciones de cobranza">
+      <nav class="cobranza-dashboard-tabs" aria-label="Secciones de caja">
         <button
           type="button"
           class="cobranza-dashboard-tab"
@@ -468,6 +468,15 @@
                 <div class="cobranza-total-card__top-end">
                   <time class="cobranza-total-card__date">{{ formatDate(sale.created_at) }}</time>
                   <button type="button" class="cobranza-head-btn" (click)="clearSelectedSale()">Cancelar</button>
+                  @if (canReturnToSales()) {
+                    <button
+                      type="button"
+                      class="cobranza-head-btn"
+                      (click)="returnSelectedToVentas()"
+                      [disabled]="collecting() || returningToSales()">
+                      {{ returningToSales() ? 'Regresando…' : 'Regresar a ventas' }}
+                    </button>
+                  }
                 </div>
               </div>
               <div class="cobranza-total-card__breakdown">
@@ -1140,14 +1149,24 @@
             </div>
 
             <div class="cobranza-collect-actions">
-              <button type="button" class="cobranza-action cobranza-action--ghost" (click)="clearSelectedSale()" [disabled]="collecting()">
+              <button type="button" class="cobranza-action cobranza-action--ghost" (click)="clearSelectedSale()" [disabled]="collecting() || returningToSales()">
                 Cancelar
               </button>
+              @if (canReturnToSales()) {
+                <button
+                  type="button"
+                  class="cobranza-action cobranza-action--return"
+                  (click)="returnSelectedToVentas()"
+                  [disabled]="collecting() || returningToSales()">
+                  <lucide-icon [img]="Undo2" [size]="16" />
+                  {{ returningToSales() ? 'Regresando…' : 'Regresar a ventas' }}
+                </button>
+              }
               <button
                 type="button"
                 class="cobranza-action cobranza-action--primary"
                 (click)="collectSelected()"
-                [disabled]="collecting() || printingReceipt() || !amountsOk() || creditInsufficient()">
+                [disabled]="collecting() || printingReceipt() || returningToSales() || !amountsOk() || creditInsufficient()">
                 {{ collecting() || printingReceipt() ? 'Cobrando…' : 'Confirmar cobro' }}
                 <span class="cobranza-action__amount">{{ saleTotal(sale) }}</span>
               </button>

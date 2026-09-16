@@ -60,6 +60,52 @@ export interface POSCart {
   grand_total: number;
 }
 
+export interface PosSaleInProgressLine {
+  id?: string;
+  product_id: string;
+  product_name?: string;
+  product_sku?: string;
+  product_uom_id: string;
+  uom_id?: string;
+  uom_name?: string;
+  quantity: number;
+  unit_price: number;
+  iva_percentage?: number;
+  ieps_percentage?: number;
+  discount_percentage?: number;
+  product_discount_id?: string | null;
+  selected_discount?: PosApplicableDiscount | null;
+}
+
+export interface PosSaleInProgress {
+  id: string;
+  folio?: string;
+  total?: number;
+  subtotal?: number;
+  created_at?: string;
+  updated_at?: string;
+  general_status?: string;
+  payment_status?: string;
+  pos_stage?: 'caja' | 'ventas' | null;
+  customer_id?: number | null;
+  customer?: {
+    id?: number;
+    name?: string;
+    lastname?: string;
+    company_name?: string;
+    is_walk_in?: boolean;
+  } | null;
+  seller_user?: {
+    id?: string;
+    first_name?: string;
+    last_name?: string;
+    pos_user_code?: number | null;
+  } | null;
+  global_discount_id?: string | null;
+  global_discount?: GlobalDiscount | null;
+  line_items?: PosSaleInProgressLine[];
+}
+
 /**
  * Payment Method
  */

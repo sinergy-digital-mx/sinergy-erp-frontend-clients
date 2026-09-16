@@ -32,6 +32,7 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  Ticket,
 } from 'lucide-angular';
 import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
@@ -49,7 +50,7 @@ import { ProductDetailModalComponent } from '../../../settings/components/produc
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { POSService } from '../../services/pos.service';
 import { PosStateService } from '../../services/pos-state.service';
-import { POSCart, POSCartItem } from '../../models/pos.model';
+import { POSCart, POSCartItem, PosSaleInProgress } from '../../models/pos.model';
 import {
   enrichPosInventorySummary,
   normalizePosInventorySummary,
@@ -68,6 +69,7 @@ import { ProductService } from '../../../settings/services/product.service';
 import {
   buildVentasPosOrderPayload,
   isPosOrderQueued,
+  mapInProgressLineToCartItem,
   resolveFiscalConfigurationIdFromBranch,
 } from '../../utils/pos-order.util';
 import { resolvePosCollectCustomerId } from '../../utils/pos-collect.util';
@@ -107,6 +109,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly ChevronDown = ChevronDown;
   readonly ChevronRight = ChevronRight;
   readonly X = X;
+  readonly Ticket = Ticket;
 
   private static readonly CART_TOTALS_OPEN_KEY = 'pos_cart_totals_open';
   cartTotalsOpen = signal(TakeOrderComponent.readCartTotalsOpen());
@@ -118,6 +121,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   loading = signal<boolean>(false);
   saving = signal<boolean>(false);
   confirming = signal<boolean>(false);
+  salesInProgress = signal<PosSaleInProgress[]>([]);
+  ticketsPanelOpen = signal(false);
+  loadingTickets = signal(false);
+  editingSaleId = signal<string | null>(null);
+  editingFolio = signal<string | null>(null);
 
   selectedCustomerId = signal('');
   selectedCustomerName = signal('Público en General');
@@ -143,6 +151,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   cartHasGlobalDiscount = computed(() => this.posService.cart().global_discount_amount > 0);
 
   cartHasItems = computed(() => this.posService.cart().items.length > 0);
+
+  readonly isEditingReturnedTicket = computed(() => Boolean(this.editingSaleId()));
 
   canUseGlobalDiscounts = computed(() =>
     GLOBAL_DISCOUNT_PERMISSIONS.viewList.some((permission) =>
@@ -373,6 +383,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         this.posService.clearCart();
         this.clearSelectedCustomer();
+        this.clearEditingTicket();
         resetPosWarehouseForBranch(branchId);
         const fiscal = this.authService.getFiscalConfigurationId();
         if (fiscal) {
@@ -381,6 +392,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         this.posState.setDailyShift(null);
         this.refreshDailyShift(() => this.notifyBranchSwitchResult(), branchId);
         this.loadProducts(this.searchTerm());
+        this.loadSalesInProgress();
       },
       error: (error) => {
         this.notifyError(
@@ -393,6 +405,77 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   loadData(): void {
     this.refreshDailyShift();
+    this.loadSalesInProgress();
+  }
+
+  loadSalesInProgress(): void {
+    if (this.isCobranzaTerminal()) {
+      return;
+    }
+    this.loadingTickets.set(true);
+    this.posService.getSalesInProgress().subscribe({
+      next: ({ sales_in_progress }) => {
+        this.salesInProgress.set(sales_in_progress ?? []);
+        this.loadingTickets.set(false);
+      },
+      error: () => {
+        this.loadingTickets.set(false);
+      },
+    });
+  }
+
+  toggleTicketsPanel(): void {
+    this.ticketsPanelOpen.update((open) => !open);
+    if (!this.ticketsPanelOpen()) {
+      return;
+    }
+    this.loadSalesInProgress();
+  }
+
+  openReturnedTicket(ticket: PosSaleInProgress): void {
+    if (!ticket?.id) {
+      return;
+    }
+    if (this.posService.cart().items.length > 0 && this.editingSaleId() !== ticket.id) {
+      if (!confirm('Hay productos en el carrito. ¿Cargar este ticket y descartar el carrito actual?')) {
+        return;
+      }
+    }
+
+    const lines = (ticket.line_items ?? []).map((line) =>
+      this.posService.recalculateItem(mapInProgressLineToCartItem(line))
+    );
+    this.posService.replaceCart(lines, ticket.global_discount ?? null);
+    this.editingSaleId.set(ticket.id);
+    this.editingFolio.set(ticket.folio || ticket.id);
+    this.ticketsPanelOpen.set(false);
+
+    if (ticket.customer?.is_walk_in || ticket.customer_id == null) {
+      this.clearSelectedCustomer();
+    } else {
+      const nameParts = [ticket.customer?.name, ticket.customer?.lastname]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      this.selectedCustomerId.set(String(ticket.customer.id ?? ticket.customer_id));
+      this.selectedOrderCustomerId.set(ticket.customer_id);
+      this.selectedCustomerName.set(
+        ticket.customer.company_name
+          ? nameParts
+            ? `${nameParts} · ${ticket.customer.company_name}`
+            : ticket.customer.company_name
+          : nameParts || 'Cliente'
+      );
+    }
+
+    for (const item of this.posService.cart().items) {
+      this.hydrateCartItemPricing(item.product_id, item.product_uom_id);
+    }
+  }
+
+  private clearEditingTicket(): void {
+    this.editingSaleId.set(null);
+    this.editingFolio.set(null);
   }
 
   private applyInventorySummaryMeta(summary: PosInventorySummaryResponse): void {
@@ -503,13 +586,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     const name = this.posBranchSession.label();
     if (this.posState.requiresPreviousClose()) {
       this.notifyInfo(
-        `${name}: hay un corte de otro día. Cobranza debe cerrarlo. Las ventas quedan en cola.`,
+        `${name}: hay un corte de otro día. Caja debe cerrarlo. Las ventas quedan en cola.`,
         6500
       );
       return;
     }
     if (this.posState.shiftOpen()) {
-      this.notifySuccess(`${name}: corte abierto. Las ventas van a cobranza.`, 4000);
+      this.notifySuccess(`${name}: corte abierto. Las ventas van a caja.`, 4000);
       return;
     }
     this.notifyInfo(
@@ -598,6 +681,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           this.notifySuccess(`Vendedor: ${this.posState.sellerDisplayName()}`, 3000);
           this.loadApplicableGlobalDiscounts();
           this.loadProducts();
+          this.loadSalesInProgress();
         },
         error: (error) => {
           this.notifyError(mapPosApiErrorMessage(error.error?.message), 5000);
@@ -922,14 +1006,16 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.confirmCheckout({
       kind: 'sale',
-      title: 'Registrar venta',
-      subtitle: this.posState.salesQueueMode()
-        ? 'Se registrará y quedará en cola hasta que cobranza cierre el corte anterior y abra el de hoy.'
-        : 'Se registrará la venta y el cliente pasará a cobranza para pagar.',
+      title: this.isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta',
+      subtitle: this.isEditingReturnedTicket()
+        ? `Se actualizará el folio ${this.editingFolio()} y volverá a caja.`
+        : this.posState.salesQueueMode()
+        ? 'Se registrará y quedará en cola hasta que caja cierre el corte anterior y abra el de hoy.'
+        : 'Se registrará la venta y el cliente pasará a caja para pagar.',
       totalLabel: this.formatCurrency(cart.grand_total),
       itemSummary: this.cartItemSummary(cart),
       customerLabel: this.selectedCustomerName(),
-      acceptLabel: 'Registrar venta',
+      acceptLabel: this.isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta',
       queued: this.posState.salesQueueMode(),
     }).subscribe((confirmed) => {
       if (!confirmed) {
@@ -945,6 +1031,48 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       });
 
       this.saving.set(true);
+      const editingId = this.editingSaleId();
+      if (editingId) {
+        this.posService.replacePosSaleCart(editingId, {
+          line_items: payload.line_items,
+          customer_id: payload.customer_id,
+          global_discount_id: payload.global_discount_id,
+        }).subscribe({
+          next: () => {
+            this.posService.sendSaleToCaja(editingId).subscribe({
+              next: (response) => {
+                this.saving.set(false);
+                const folioLabel = response.sales_order?.folio || this.editingFolio() || 'sin folio';
+                const queued = isPosOrderQueued(response.sales_order) || this.posState.salesQueueMode();
+                const message = queued
+                  ? `Venta en cola (${folioLabel}). El cliente debe pasar a caja cuando abran el corte del día.`
+                  : `Venta enviada a caja (${folioLabel}). El cliente debe pasar a caja para pagar.`;
+                this.notifySuccess(message, 6000);
+                this.posService.clearCart();
+                this.clearSelectedCustomer();
+                this.clearEditingTicket();
+                this.loadProducts(this.searchTerm());
+                this.loadSalesInProgress();
+              },
+              error: (error) => {
+                this.saving.set(false);
+                const backendMessage = error?.error?.message;
+                const msg =
+                  this.mapPosError(backendMessage, cart.items) || 'Error al enviar a caja';
+                this.notifyError(msg, 6000);
+              },
+            });
+          },
+          error: (error) => {
+            this.saving.set(false);
+            const backendMessage = error?.error?.message;
+            const msg =
+              this.mapPosError(backendMessage, cart.items) || 'Error al actualizar el ticket';
+            this.notifyError(msg, 6000);
+          },
+        });
+        return;
+      }
 
       this.posService.createPosSalesOrder(payload).subscribe({
         next: (order) => {
@@ -952,8 +1080,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           const folioLabel = order.folio ? order.folio : 'sin folio';
           const queued = isPosOrderQueued(order) || this.posState.salesQueueMode();
           const message = queued
-            ? `Venta en cola (${folioLabel}). El cliente debe pasar a cobranza cuando abran el corte del día.`
-            : `Venta registrada (${folioLabel}). El cliente debe pasar a cobranza para pagar.`;
+            ? `Venta en cola (${folioLabel}). El cliente debe pasar a caja cuando abran el corte del día.`
+            : `Venta registrada (${folioLabel}). El cliente debe pasar a caja para pagar.`;
           this.notifySuccess(message, 6000);
           this.posService.clearCart();
           this.clearSelectedCustomer();
@@ -1126,10 +1254,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   cancel(): void {
-    if (confirm('¿Descartar orden actual?')) {
+    const discardMessage = this.isEditingReturnedTicket()
+      ? `¿Descartar cambios de ${this.editingFolio()}? El ticket sigue en ventas.`
+      : '¿Descartar orden actual?';
+    if (confirm(discardMessage)) {
       this.posService.clearCart();
       this.clearSelectedCustomer();
-      this.router.navigate(['/pos/ventas']);
+      this.clearEditingTicket();
     }
   }
 

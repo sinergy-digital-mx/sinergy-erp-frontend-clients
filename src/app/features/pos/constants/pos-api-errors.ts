@@ -4,14 +4,16 @@ const UUID_PATTERN =
 export const POS_API_ERROR_MESSAGES: Record<string, string> = {
   'Código de vendedor no válido': 'El código no existe o pertenece a un usuario POS.',
   'No hay corte global abierto en la sucursal':
-    'No hay corte abierto en esta sucursal. La terminal de cobranza debe abrir el corte del día.',
+    'No hay corte abierto en esta sucursal. La terminal de caja debe abrir el corte del día.',
   'Solo terminales de tipo COBRANZA pueden abrir el corte global':
-    'Solo la terminal de cobranza puede abrir el corte del día.',
+    'Solo la terminal de caja puede abrir el corte del día.',
   'La orden no está pendiente de cobro': 'Esta venta ya fue cobrada o no está pendiente.',
   'No se puede cobrar una orden en cola':
-    'Esta venta está en cola. Cobranza debe abrir el corte del día para asignarla antes de cobrar.',
+    'Esta venta está en cola. Caja debe abrir el corte del día para asignarla antes de cobrar.',
   'No se puede cambiar el tipo POS de un usuario con corte global abierto':
-    'No se puede modificar este usuario COBRANZA mientras tenga un corte abierto.',
+    'No se puede modificar este usuario de caja mientras tenga un corte abierto.',
+  'La orden está en ventas. Debe enviarse a caja antes de cobrar':
+    'Esta venta está en ventas. Debe enviarse a caja antes de cobrar.',
   'No se puede cambiar el tipo POS ni la sucursal mientras hay un corte global abierto. Cierra el corte primero.':
     'Cierra el corte de esta sucursal antes de cambiar.',
   'Este cliente no tiene crédito activo con esta razón social':

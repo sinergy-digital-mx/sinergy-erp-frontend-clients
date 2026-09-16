@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { GlobalDiscount } from '../../global-discounts/models/global-discount.model';
-import { POSCart, POSCartItem } from '../models/pos.model';
+import { POSCart, POSCartItem, PosSaleInProgress } from '../models/pos.model';
 import { PosApplicableDiscount } from '../models/pos-inventory-summary.model';
 import { previewLineDiscount, previewGlobalDiscount } from '../utils/pos-discount.util';
 import {
@@ -193,6 +193,10 @@ export class POSService {
       global_discount_amount: 0,
       grand_total: 0
     });
+  }
+
+  replaceCart(items: POSCartItem[], globalDiscount?: GlobalDiscount | null): void {
+    this.updateCart(items, globalDiscount);
   }
 
   /**
@@ -766,6 +770,44 @@ export class POSService {
           (Array.isArray(payload) ? payload : []);
         return { pending_sales: Array.isArray(pending) ? pending : [] };
       })
+    );
+  }
+
+  getSalesInProgress(): Observable<{ sales_in_progress: PosSaleInProgress[] }> {
+    return this.http.get(`${this.API_URL}/sales-in-progress`).pipe(
+      map((res: any) => {
+        const payload = this.extractPayload(res);
+        const sales =
+          payload?.sales_in_progress ??
+          payload?.data ??
+          (Array.isArray(payload) ? payload : []);
+        return { sales_in_progress: Array.isArray(sales) ? sales : [] };
+      })
+    );
+  }
+
+  returnSaleToVentas(salesOrderId: string): Observable<{ sales_order?: unknown; message?: string }> {
+    return this.http.post(`${this.API_URL}/sales/${salesOrderId}/return-to-sales`, {}).pipe(
+      map((res: any) => this.extractPayload(res) ?? res)
+    );
+  }
+
+  replacePosSaleCart(
+    salesOrderId: string,
+    data: {
+      line_items: SalesOrderFormData['line_items'];
+      customer_id?: number | string;
+      global_discount_id?: string;
+    }
+  ): Observable<PosSaleInProgress> {
+    return this.http.put(`${this.API_URL}/sales/${salesOrderId}/cart`, data).pipe(
+      map((res: any) => (this.extractPayload(res) ?? res) as PosSaleInProgress)
+    );
+  }
+
+  sendSaleToCaja(salesOrderId: string): Observable<{ sales_order?: { folio?: string; general_status?: string }; message?: string }> {
+    return this.http.post(`${this.API_URL}/sales/${salesOrderId}/send-to-caja`, {}).pipe(
+      map((res: any) => this.extractPayload(res) ?? res)
     );
   }
 

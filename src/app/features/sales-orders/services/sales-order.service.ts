@@ -810,7 +810,7 @@ export class SalesOrderService {
       lower.includes('cobranza pos') ||
       (lower.includes('cobranza') && lower.includes('eliminar'))
     ) {
-      return 'No se puede eliminar un pago de cobranza POS';
+      return 'No se puede eliminar un pago de POS Caja';
     }
     return message;
   }

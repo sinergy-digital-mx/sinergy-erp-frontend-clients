@@ -79,7 +79,7 @@ export class PosReceiptPrintService {
 
     const printerName = this.getPrinterName();
     if (!printerName) {
-      throw new Error('Configura el nombre de la impresora térmica en Cobranza POS');
+      throw new Error('Configura el nombre de la impresora térmica en POS Caja');
     }
 
     const qz = await this.ensureQz();

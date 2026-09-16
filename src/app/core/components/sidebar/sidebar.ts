@@ -370,7 +370,7 @@ export class Sidebar implements OnInit, OnDestroy {
         items.push({
           ...item,
           id: 'menu-pos-cobranza',
-          label: 'POS Cobranza',
+          label: 'POS Caja',
           route: '/pos/cobranza',
           icon: Banknote,
           permission: PERMISSIONS.pos.viewMenu,
@@ -381,7 +381,7 @@ export class Sidebar implements OnInit, OnDestroy {
       if (canCollect) {
         items.push({
           ...item,
-          label: 'POS Cobranza',
+          label: 'POS Caja',
           route: '/pos/cobranza',
         });
         continue;
