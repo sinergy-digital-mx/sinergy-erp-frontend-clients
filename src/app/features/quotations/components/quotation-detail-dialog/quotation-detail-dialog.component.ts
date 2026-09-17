@@ -350,7 +350,10 @@ export class QuotationDetailDialogComponent implements OnInit {
   }
 
   canEditNotes(): boolean {
-    return this.canUpdate && this.header()?.general_status === 'Creada';
+    const header = this.header();
+    if (!this.canUpdate || !header) return false;
+    if (header.can_edit_notes != null) return header.can_edit_notes;
+    return header.general_status !== 'Cancelada';
   }
 
   openNotesEditor(): void {
@@ -374,7 +377,12 @@ export class QuotationDetailDialogComponent implements OnInit {
         this.header.update((current) =>
           current ? { ...current, notes: result.notes ?? undefined } : current,
         );
-        this.toast.success(result.notes ? 'Notas actualizadas' : 'Notas eliminadas');
+        this.toast.success(
+          result.notes
+            ? 'Observaciones actualizadas. El PDF se regeneró.'
+            : 'Observaciones eliminadas. El PDF se regeneró.',
+        );
+        this.reload(true);
       });
   }
 

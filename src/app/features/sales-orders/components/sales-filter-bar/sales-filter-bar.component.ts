@@ -2,13 +2,14 @@ import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, O
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
-import { SalesOrderFilters, SalesOrderStatus, SalesPaymentStatus, SalesOrderCollectionChannel, SalesOrderSaleScope } from '../../models/sales-order.model';
+import { SalesOrderFilters, SalesOrderStatus, SalesPaymentStatus, SalesOrderCollectionChannel, SalesOrderSaleScope, PosUserSummary } from '../../models/sales-order.model';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { MoreFiltersPanelComponent } from '../../../../core/components/more-filters-panel/more-filters-panel.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { BranchService } from '../../../settings/services/branch.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { Branch } from '../../../settings/models/branch.model';
+import { formatPosUser } from '../../utils/pos-user-display.util';
 
 @Component({
   selector: 'app-sales-filter-bar',
@@ -21,6 +22,8 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   @Input() refreshing = false;
   /** `quotation` oculta pago/crédito y usa estados de cotización. */
   @Input() mode: 'sales' | 'quotation' = 'sales';
+  @Input() showSellerFilter = false;
+  @Input() sellers: PosUserSummary[] = [];
   @Output() filtersChange = new EventEmitter<SalesOrderFilters>();
   @Output() refresh = new EventEmitter<void>();
 
@@ -71,6 +74,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   ];
 
   typeControl = new FormControl<string>('', { nonNullable: true });
+  sellerControl = new FormControl<string>('', { nonNullable: true });
 
   saleScopeOptions: { label: string; value: SalesOrderSaleScope }[] = [
     { label: 'Inventario', value: 'inventory' },
@@ -115,6 +119,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     if (this.creditControl.value) count += 1;
     if (this.typeControl.value) count += 1;
     if (this.saleScopeControl.value) count += 1;
+    if (this.sellerControl.value) count += 1;
     return count;
   }
 
@@ -134,6 +139,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.creditControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.typeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.saleScopeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
+    this.sellerControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
   }
 
   fiscalOptionLabel(fc: FiscalConfiguration): string {
@@ -205,6 +211,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.creditControl.setValue('', { emitEvent: false });
     this.typeControl.setValue('', { emitEvent: false });
     this.saleScopeControl.setValue('', { emitEvent: false });
+    this.sellerControl.setValue('', { emitEvent: false });
     this.branches = [];
     this.showCustomDateRange = false;
     this.loadAllBranches();
@@ -311,6 +318,12 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     if (saleScope === 'inventory' || saleScope === 'services' || saleScope === 'combined') {
       filters.sale_scope = saleScope;
     }
+    const sellerId = this.sellerControl.value;
+    if (sellerId) filters.assigned_seller_user_id = sellerId;
     this.filtersChange.emit(filters);
+  }
+
+  sellerOptionLabel(seller: PosUserSummary): string {
+    return formatPosUser(seller);
   }
 }

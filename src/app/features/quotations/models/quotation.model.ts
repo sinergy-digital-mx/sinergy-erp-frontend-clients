@@ -67,6 +67,7 @@ export interface Quotation {
   can_convert?: boolean;
   can_cancel?: boolean;
   can_edit?: boolean;
+  can_edit_notes?: boolean;
   can_send?: boolean;
   customer_email?: string | null;
   converted_to_sales_order_id?: string | null;
@@ -119,6 +120,7 @@ export interface QuotationFilters {
   billing_branch_id?: string;
   created_from?: string;
   created_to?: string;
+  assigned_seller_user_id?: string;
 }
 
 export interface QuotationFormData {

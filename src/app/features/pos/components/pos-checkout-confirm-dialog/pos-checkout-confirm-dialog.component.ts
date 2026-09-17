@@ -1,5 +1,6 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, FileText, ShoppingCart } from 'lucide-angular';
 
@@ -16,20 +17,23 @@ export interface PosCheckoutConfirmDialogData {
   queued?: boolean;
 }
 
+export type PosCheckoutConfirmResult = boolean | { notes: string };
+
 @Component({
   selector: 'app-pos-checkout-confirm-dialog',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './pos-checkout-confirm-dialog.component.html',
   styleUrl: './pos-checkout-confirm-dialog.component.scss',
 })
 export class PosCheckoutConfirmDialogComponent {
   readonly ShoppingCart = ShoppingCart;
   readonly FileText = FileText;
+  notesText = signal('');
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: PosCheckoutConfirmDialogData,
-    private dialogRef: MatDialogRef<PosCheckoutConfirmDialogComponent, boolean>
+    private dialogRef: MatDialogRef<PosCheckoutConfirmDialogComponent, PosCheckoutConfirmResult>
   ) {}
 
   isQuote(): boolean {
@@ -45,6 +49,10 @@ export class PosCheckoutConfirmDialogComponent {
   }
 
   confirm(): void {
+    if (this.isQuote()) {
+      this.dialogRef.close({ notes: this.notesText().trim() });
+      return;
+    }
     this.dialogRef.close(true);
   }
 }

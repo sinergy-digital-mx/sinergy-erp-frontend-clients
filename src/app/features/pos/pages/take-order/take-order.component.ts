@@ -46,6 +46,7 @@ import { UnclosedDailyShiftDialogComponent } from '../../components/unclosed-dai
 import {
   PosCheckoutConfirmDialogComponent,
   PosCheckoutConfirmDialogData,
+  PosCheckoutConfirmResult,
 } from '../../components/pos-checkout-confirm-dialog/pos-checkout-confirm-dialog.component';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
@@ -1205,6 +1206,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         terminalLabel: this.terminalLabel(),
         customerId: this.selectedOrderCustomerId() ?? undefined,
       });
+      const quoteNotes =
+        typeof confirmed === 'object' && 'notes' in confirmed ? confirmed.notes.trim() : '';
+      if (quoteNotes) {
+        payload.notes = quoteNotes;
+      }
 
       this.saving.set(true);
       this.posService.createPosQuotation(payload).subscribe({
@@ -1230,14 +1236,17 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   private confirmCheckout(data: PosCheckoutConfirmDialogData) {
     this.confirming.set(true);
     return this.dialog
-      .open(PosCheckoutConfirmDialogComponent, {
-        width: '420px',
-        maxWidth: '95vw',
-        disableClose: true,
-        panelClass: 'pos-dialog-panel',
-        autoFocus: 'first-tabbable',
-        data,
-      })
+      .open<PosCheckoutConfirmDialogComponent, PosCheckoutConfirmDialogData, PosCheckoutConfirmResult>(
+        PosCheckoutConfirmDialogComponent,
+        {
+          width: '420px',
+          maxWidth: '95vw',
+          disableClose: true,
+          panelClass: 'pos-dialog-panel',
+          autoFocus: 'first-tabbable',
+          data,
+        },
+      )
       .afterClosed()
       .pipe(
         tap(() => this.confirming.set(false)),

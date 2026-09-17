@@ -100,8 +100,12 @@
         </div>
 
         <div class="form-field form-field--full">
-          <label class="form-label">NOTAS</label>
-          <textarea class="form-textarea" formControlName="notes" placeholder="Notas opcionales" rows="2"></textarea>
+          <label class="form-label">{{ asQuotation ? 'OBSERVACIONES' : 'NOTAS' }}</label>
+          <textarea
+            class="form-textarea"
+            formControlName="notes"
+            [placeholder]="asQuotation ? 'Texto que aparece en el PDF de la cotización' : 'Notas opcionales'"
+            rows="2"></textarea>
         </div>
       </div>
       }

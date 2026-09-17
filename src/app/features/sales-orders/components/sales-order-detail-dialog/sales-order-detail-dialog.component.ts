@@ -403,7 +403,11 @@ export class SalesOrderDetailDialogComponent {
         this.order.update((current) =>
           current ? { ...current, notes: result.notes ?? undefined } : current
         );
-        this.toast.success(result.notes ? 'Notas actualizadas' : 'Notas eliminadas');
+        this.toast.success(
+          result.notes
+            ? 'Notas actualizadas. Se regeneró el PDF y el ticket si existía.'
+            : 'Notas eliminadas. Se regeneró el PDF y el ticket si existía.',
+        );
       });
   }
 

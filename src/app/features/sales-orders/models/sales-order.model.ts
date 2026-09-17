@@ -322,6 +322,7 @@ export interface SalesOrderFilters {
   dateFrom?: string;
   dateTo?: string;
   is_credit?: boolean;
+  assigned_seller_user_id?: string;
 }
 
 export type SalesOrderExportType = 'headers' | 'details';

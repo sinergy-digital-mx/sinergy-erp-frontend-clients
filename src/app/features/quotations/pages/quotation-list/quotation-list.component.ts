@@ -15,6 +15,8 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { QUOTATION_PERMISSIONS } from '../../config/permissions.config';
+import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
+import { PosUserSummary } from '../../../sales-orders/models/sales-order.model';
 import {
   getSalesOrderListBranchLabel,
   getSalesOrderListCompanyName,
@@ -41,17 +43,20 @@ export class QuotationListComponent implements OnInit {
   private totalResults = signal(0);
   loading = signal(false);
   canCreate = false;
+  isAdmin = false;
+  sellers: PosUserSummary[] = [];
 
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
       { name: 'Folio', prop: 'folio', sortable: true, canAutoResize: false, width: 140 },
       { name: 'Cliente', prop: 'customer', sortable: true, canAutoResize: false, width: 140 },
-      { name: 'Sucursal', prop: 'billing_branch', sortable: false, canAutoResize: false, width: 190 },
-      { name: 'Estado', prop: 'general_status', sortable: true, canAutoResize: false, width: 120 },
-      { name: 'Total', prop: 'total', sortable: true, canAutoResize: false, width: 120 },
-      { name: 'Tipo', prop: 'quotation_type', sortable: false, canAutoResize: false, width: 186 },
-      { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
+      { name: 'Vendedor', prop: 'assigned_seller_user', sortable: false, canAutoResize: false, width: 150 },
+      { name: 'Sucursal', prop: 'billing_branch', sortable: false, canAutoResize: false, width: 170 },
+      { name: 'Estado', prop: 'general_status', sortable: true, canAutoResize: false, width: 110 },
+      { name: 'Total', prop: 'total', sortable: true, canAutoResize: false, width: 110 },
+      { name: 'Tipo', prop: 'quotation_type', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 150 },
     ],
     externalPaging: true,
     externalSorting: true,
@@ -104,6 +109,23 @@ export class QuotationListComponent implements OnInit {
 
   ngOnInit(): void {
     this.canCreate = this.auth.hasPermission(QUOTATION_PERMISSIONS.create);
+    this.isAdmin = this.auth.hasAdminRole();
+    if (this.isAdmin) {
+      this.quotationService.getSellers().subscribe({
+        next: (res) => {
+          this.sellers = (res.sellers ?? []).map((seller) => ({
+            id: seller.id,
+            first_name: seller.first_name,
+            last_name: seller.last_name,
+            pos_user_code:
+              seller.pos_user_code == null ? null : Number(seller.pos_user_code),
+          }));
+        },
+        error: () => {
+          this.sellers = [];
+        },
+      });
+    }
     this.load();
   }
 
@@ -141,6 +163,7 @@ export class QuotationListComponent implements OnInit {
       created_from: filters.dateFrom,
       created_to: filters.dateTo,
       quotation_type: type === 'POS' || type === 'MANUAL' ? (type as QuotationType) : undefined,
+      assigned_seller_user_id: filters.assigned_seller_user_id,
     });
     this.pagination.set({ page: 1, limit: 15 });
     this.load();
@@ -192,6 +215,10 @@ export class QuotationListComponent implements OnInit {
 
   branchLabel(row: Quotation): string {
     return getSalesOrderListBranchLabel(row as any);
+  }
+
+  sellerLabel(row: Quotation): string {
+    return formatPosUser(row.assigned_seller_user ?? row.seller_user ?? undefined);
   }
 
   statusClass(status: string): string {

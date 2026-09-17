@@ -1,3 +1,14 @@
 :host {
   display: block;
 }
+
+.sales-orders-col-seller__name {
+  display: block;
+  min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

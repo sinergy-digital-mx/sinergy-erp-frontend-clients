@@ -152,14 +152,14 @@
 
         <div class="section-card section-card--notes">
           <div class="section-card__head">
-            <h3 class="section-title">NOTAS</h3>
+            <h3 class="section-title">OBSERVACIONES</h3>
             @if (canEditNotes()) {
-              <button type="button" class="notes-edit-btn" title="Editar notas" aria-label="Editar notas" (click)="openNotesEditor()">
+              <button type="button" class="notes-edit-btn" title="Editar observaciones" aria-label="Editar observaciones" (click)="openNotesEditor()">
                 <i class="fi fi-rr-pencil"></i>
               </button>
             }
           </div>
-          <p class="notes-text">{{ header()!.notes || 'Sin notas' }}</p>
+          <p class="notes-text">{{ header()!.notes || 'Sin observaciones' }}</p>
         </div>
 
         <div class="action-buttons">

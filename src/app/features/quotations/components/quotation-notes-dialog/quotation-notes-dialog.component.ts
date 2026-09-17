@@ -19,7 +19,7 @@ export interface QuotationNotesDialogResult {
   selector: 'app-quotation-notes-dialog',
   standalone: true,
   imports: [CommonModule, FormsModule, MatDialogModule],
-  templateUrl: '../../../sales-orders/components/sales-order-notes-dialog/sales-order-notes-dialog.component.html',
+  templateUrl: './quotation-notes-dialog.component.html',
   styleUrl: '../../../sales-orders/components/sales-order-notes-dialog/sales-order-notes-dialog.component.scss',
 })
 export class QuotationNotesDialogComponent {
@@ -36,7 +36,7 @@ export class QuotationNotesDialogComponent {
   }
 
   get dialogTitle(): string {
-    return this.data.folio ? `Notas — #${this.data.folio}` : 'Editar notas';
+    return this.data.folio ? `Observaciones — #${this.data.folio}` : 'Editar observaciones';
   }
 
   cancel(): void {
@@ -54,7 +54,7 @@ export class QuotationNotesDialogComponent {
         this.dialogRef.close({ saved: true, notes: res.header?.notes ?? payload });
       },
       error: (err) => {
-        this.errorMessage.set(err?.error?.message || 'No se pudieron guardar las notas');
+        this.errorMessage.set(err?.error?.message || 'No se pudieron guardar las observaciones');
         this.saving.set(false);
       },
     });

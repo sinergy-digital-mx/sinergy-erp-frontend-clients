@@ -19,6 +19,15 @@ interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
+  is_admin?: boolean;
+}
+
+export interface QuotationSellerOption {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  pos_user_code?: number | string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -53,8 +62,17 @@ export class QuotationService {
     }
     if (filters.created_from) params = params.set('created_from', filters.created_from);
     if (filters.created_to) params = params.set('created_to', filters.created_to);
+    if (filters.assigned_seller_user_id) {
+      params = params.set('assigned_seller_user_id', filters.assigned_seller_user_id);
+    }
 
     return this.http.get<PaginatedResponse<Quotation>>(this.baseUrl, { params });
+  }
+
+  getSellers(): Observable<{ is_admin: boolean; sellers: QuotationSellerOption[] }> {
+    return this.http.get<{ is_admin: boolean; sellers: QuotationSellerOption[] }>(
+      `${this.baseUrl}/sellers`,
+    );
   }
 
   getDetail(id: string): Observable<QuotationDetailPayload> {

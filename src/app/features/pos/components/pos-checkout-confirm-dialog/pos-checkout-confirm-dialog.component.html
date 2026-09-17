@@ -26,6 +26,17 @@
     </div>
   }
 
+  @if (isQuote()) {
+    <label class="pos-checkout-dialog__notes">
+      <span>Observaciones</span>
+      <textarea
+        rows="2"
+        [ngModel]="notesText()"
+        (ngModelChange)="notesText.set($event)"
+        placeholder="Opcional. Sale en el PDF de la cotización."></textarea>
+    </label>
+  }
+
   <div class="pos-dialog__actions">
     <button type="button" class="pos-checkout-dialog__btn pos-checkout-dialog__btn--ghost" (click)="cancel()">
       Volver

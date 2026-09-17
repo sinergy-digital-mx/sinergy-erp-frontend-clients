@@ -2,7 +2,12 @@
   <div class="purchase-content">
     <div class="px-4">
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-        <h2 class="text-2xl font-semibold text-gray-800">Cotizaciones</h2>
+        <div>
+          <h2 class="text-2xl font-semibold text-gray-800">Cotizaciones</h2>
+          @if (!isAdmin) {
+            <p class="text-sm text-gray-500 mt-1">Tus cotizaciones como vendedor o comisionado</p>
+          }
+        </div>
         <div class="flex items-center gap-2 flex-wrap">
           @if (canCreate) {
             <button type="button" class="page-create-btn" (click)="openCreate()">
@@ -15,6 +20,8 @@
       <div class="mb-4">
         <app-sales-filter-bar
           mode="quotation"
+          [showSellerFilter]="isAdmin"
+          [sellers]="sellers"
           [refreshing]="loading()"
           (filtersChange)="applyFilters($event)"
           (refresh)="load()">
@@ -119,6 +126,7 @@
                     }
                   </span>
                 </div>
+                <div><strong>Vendedor:</strong> {{ sellerLabel(row) }}</div>
                 <div class="sales-order-list__mobile-billing">
                   <strong>Sucursal:</strong>
                   <span class="sales-orders-col-billing__stack">
@@ -152,6 +160,9 @@
         <span class="sales-orders-col-customer__company">{{ companyName(item) }}</span>
       }
     </span>
+  </td>
+  <td class="sales-orders-col-seller">
+    <span class="sales-orders-col-seller__name" [title]="sellerLabel(item)">{{ sellerLabel(item) }}</span>
   </td>
   <td class="sales-orders-col-billing">
     <span class="sales-orders-col-billing__stack" [title]="branchLabel(item) + ' · ' + fiscalLabel(item)">

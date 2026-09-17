@@ -527,9 +527,7 @@ export class UserDetailModalComponent implements OnInit {
         this.applyAssignedBranches(user);
         this.pruneWarehousesOutsideBranches();
         this.applyManagerState(user);
-        if (user.is_crm_admin != null) {
-          this.form.get('is_crm_admin')?.setValue(!!user.is_crm_admin, { emitEvent: false });
-        }
+        this.form.get('is_crm_admin')?.setValue(!!user.is_crm_admin, { emitEvent: false });
         const statusId = getUserStatusId(user);
         if (statusId != null) {
           this.originalStatusId = statusId;

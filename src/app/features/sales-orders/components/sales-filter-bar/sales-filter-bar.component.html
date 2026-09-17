@@ -151,6 +151,22 @@
                 </select>
               </div>
             }
+
+            @if (mode === 'quotation' && showSellerFilter) {
+              <div class="more-filters__field">
+                <label class="more-filters__label" for="sales-filter-seller">Vendedor</label>
+                <select
+                  id="sales-filter-seller"
+                  [formControl]="sellerControl"
+                  class="filter-bar__select"
+                  title="Vendedor">
+                  <option value="">Todos los vendedores</option>
+                  @for (seller of sellers; track seller.id) {
+                    <option [value]="seller.id">{{ sellerOptionLabel(seller) }}</option>
+                  }
+                </select>
+              </div>
+            }
           </div>
         </section>
       </app-more-filters-panel>
