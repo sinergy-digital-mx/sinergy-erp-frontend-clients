@@ -8,7 +8,12 @@ import { rewriteSelfInvoiceEscPos, uint8ToBase64 } from '../utils/self-invoice-e
 
 const LS_PRINTER = 'pos_printer_name';
 const LS_AUTO_PRINT = 'pos_auto_print_on_collect';
+const LS_COPIES = 'pos_ticket_copies';
 const QZ_SCRIPT = 'https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js';
+
+export const POS_TICKET_COPY_OPTIONS = [1, 2, 3, 4, 5] as const;
+export const POS_TICKET_COPIES_MIN = 1;
+export const POS_TICKET_COPIES_MAX = 5;
 
 type QzSecurityApi = {
   setSignatureAlgorithm: (algorithm: string) => void;
@@ -56,6 +61,14 @@ export class PosReceiptPrintService {
     localStorage.setItem(LS_AUTO_PRINT, enabled ? 'true' : 'false');
   }
 
+  getTicketCopies(): number {
+    return clampTicketCopies(Number(localStorage.getItem(LS_COPIES)));
+  }
+
+  setTicketCopies(copies: number): void {
+    localStorage.setItem(LS_COPIES, String(clampTicketCopies(copies)));
+  }
+
   isQzSigningEnabled(): boolean {
     const cfg = environment.qzTray;
     return !!(cfg?.signingEnabled && cfg.certificateUrl?.trim() && cfg.signUrl?.trim());
@@ -71,7 +84,7 @@ export class PosReceiptPrintService {
     return qz.printers.find();
   }
 
-  async printReceipt(receipt: PosSaleReceipt): Promise<void> {
+  async printReceipt(receipt: PosSaleReceipt, copies = 1): Promise<void> {
     const base64 = receipt?.escpos_base64?.trim();
     if (!base64) {
       throw new Error('El ticket no incluye datos ESC/POS para imprimir');
@@ -89,15 +102,20 @@ export class PosReceiptPrintService {
       url: receipt.self_invoice_url?.trim() || undefined,
       folio: receipt.public_invoice_code?.trim() || undefined,
     });
-
-    await qz.print(config, [
+    const payload = [
       {
         type: 'raw',
         format: 'command',
         flavor: 'base64',
         data: uint8ToBase64(rewritten),
       },
-    ]);
+    ];
+
+    const count = clampTicketCopies(copies);
+    this.setTicketCopies(count);
+    for (let i = 0; i < count; i += 1) {
+      await qz.print(config, payload);
+    }
   }
 
   private setupQzSecurity(qz: QzApi): void {
@@ -203,4 +221,11 @@ export class PosReceiptPrintService {
       document.head.appendChild(script);
     });
   }
+}
+
+export function clampTicketCopies(value: number): number {
+  if (!Number.isFinite(value)) {
+    return POS_TICKET_COPIES_MIN;
+  }
+  return Math.min(POS_TICKET_COPIES_MAX, Math.max(POS_TICKET_COPIES_MIN, Math.trunc(value)));
 }

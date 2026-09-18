@@ -10,7 +10,7 @@
   max-width: 480px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .modal-header {
@@ -196,10 +196,119 @@
 
 .modal-footer {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   padding: 0.85rem 1.15rem 1rem;
   border-top: 1px solid #e5e7eb;
+  position: relative;
+  overflow: visible;
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-left: auto;
+  }
+}
+
+.copies {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 10.5rem;
+
+  &__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  &__dropdown {
+    position: relative;
+    flex: 1;
+    min-width: 7.5rem;
+  }
+
+  &__trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid #dbe2ea;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #0f172a;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: #c7d2fe;
+      background: #eef2ff;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &__chevron {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-right: 2px solid #64748b;
+    border-bottom: 2px solid #64748b;
+    transform: rotate(45deg);
+    margin-top: -0.2rem;
+  }
+
+  &--open &__chevron {
+    transform: rotate(-135deg);
+    margin-top: 0.15rem;
+  }
+
+  &__menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 6px);
+    margin: 0;
+    padding: 0.3rem;
+    list-style: none;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+    z-index: 5;
+  }
+
+  &__option {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+    padding: 0.48rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+
+    &:hover {
+      background: #f1f5f9;
+    }
+
+    &--active {
+      background: #eef2ff;
+      color: #4338ca;
+    }
+  }
 }
 
 .btn {

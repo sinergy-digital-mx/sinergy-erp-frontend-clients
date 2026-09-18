@@ -6,7 +6,10 @@ import { LucideAngularModule, Eye, Printer, X } from 'lucide-angular';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { PosSaleReceipt, normalizePosSaleReceipt } from '../../models/pos-receipt.model';
 import { POSService } from '../../services/pos.service';
-import { PosReceiptPrintService } from '../../services/pos-receipt-print.service';
+import {
+  POS_TICKET_COPY_OPTIONS,
+  PosReceiptPrintService,
+} from '../../services/pos-receipt-print.service';
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import {
   EscPosPreviewLine,
@@ -45,13 +48,18 @@ export class PosReceiptPreviewDialogComponent implements OnInit {
   readonly Printer = Printer;
   readonly X = X;
 
+  readonly copyOptions = POS_TICKET_COPY_OPTIONS;
+
   loading = signal(true);
   error = signal<string | null>(null);
   receipt = signal<PosSaleReceipt | null>(null);
   previewLines = signal<ReceiptPreviewLine[]>([]);
   printing = signal(false);
+  copies = signal(1);
+  copiesOpen = signal(false);
 
   ngOnInit(): void {
+    this.copies.set(this.printService.getTicketCopies());
     const initial = normalizePosSaleReceipt(this.data.receipt);
     if (initial && hasReceiptPreview(initial)) {
       this.applyReceipt(initial);
@@ -102,6 +110,32 @@ export class PosReceiptPreviewDialogComponent implements OnInit {
     return this.printService.hasPrintableReceipt(this.receipt());
   }
 
+  copiesLabel(): string {
+    const count = this.copies();
+    return count === 1 ? '1 copia' : `${count} copias`;
+  }
+
+  printLabel(): string {
+    if (this.printing()) {
+      return 'Imprimiendo…';
+    }
+    const count = this.copies();
+    return count === 1 ? 'Imprimir' : `Imprimir ${count} copias`;
+  }
+
+  toggleCopiesMenu(): void {
+    if (this.printing()) {
+      return;
+    }
+    this.copiesOpen.update((open) => !open);
+  }
+
+  selectCopies(count: number): void {
+    this.copies.set(count);
+    this.copiesOpen.set(false);
+    this.printService.setTicketCopies(count);
+  }
+
   close(): void {
     this.dialogRef.close();
   }
@@ -117,10 +151,11 @@ export class PosReceiptPreviewDialogComponent implements OnInit {
       return;
     }
 
+    this.copiesOpen.set(false);
     this.printing.set(true);
     this.error.set(null);
     try {
-      await this.printService.printReceipt(receipt!);
+      await this.printService.printReceipt(receipt!, this.copies());
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo imprimir el ticket';
       this.error.set(message);

@@ -51,12 +51,50 @@
   </div>
 
   <div class="modal-footer">
-    <button type="button" class="btn btn--ghost" (click)="close()">Cerrar</button>
     @if (canPrint()) {
-      <button type="button" class="btn btn--primary" (click)="printTicket()" [disabled]="printing()">
-        <lucide-icon [img]="Printer" />
-        {{ printing() ? 'Imprimiendo…' : 'Imprimir' }}
-      </button>
+      <div class="copies" [class.copies--open]="copiesOpen()">
+        <span class="copies__label" id="ticket-copies-label">Copias</span>
+        <div class="copies__dropdown">
+          <button
+            type="button"
+            class="copies__trigger"
+            aria-labelledby="ticket-copies-label"
+            aria-haspopup="listbox"
+            [attr.aria-expanded]="copiesOpen()"
+            [disabled]="printing()"
+            (click)="toggleCopiesMenu()">
+            <span>{{ copiesLabel() }}</span>
+            <span class="copies__chevron" aria-hidden="true"></span>
+          </button>
+          @if (copiesOpen()) {
+            <ul class="copies__menu" role="listbox">
+              @for (option of copyOptions; track option) {
+                <li>
+                  <button
+                    type="button"
+                    role="option"
+                    class="copies__option"
+                    [class.copies__option--active]="copies() === option"
+                    [attr.aria-selected]="copies() === option"
+                    (click)="selectCopies(option)">
+                    {{ option === 1 ? '1 copia' : option + ' copias' }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
     }
+
+    <div class="modal-footer__actions">
+      <button type="button" class="btn btn--ghost" (click)="close()">Cerrar</button>
+      @if (canPrint()) {
+        <button type="button" class="btn btn--primary" (click)="printTicket()" [disabled]="printing()">
+          <lucide-icon [img]="Printer" />
+          {{ printLabel() }}
+        </button>
+      }
+    </div>
   </div>
 </div>

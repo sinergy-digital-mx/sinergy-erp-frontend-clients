@@ -1429,23 +1429,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   reprintTicket(item: CollectedSaleItem): void {
-    const saleId = item.sales_order?.id;
-    if (!saleId || this.printingReceipt()) {
-      return;
-    }
-
-    this.printingReceipt.set(true);
-    this.posService.getSaleReceipt(saleId).subscribe({
-      next: (receipt) => {
-        void this.printReceiptOrPrompt(receipt, collectedSaleFolio(item)).finally(() => {
-          this.printingReceipt.set(false);
-        });
-      },
-      error: () => {
-        this.printingReceipt.set(false);
-        this.toast.error('No se pudo obtener el ticket para reimpresión');
-      },
-    });
+    this.previewTicket(item);
   }
 
   previewTicket(item: CollectedSaleItem): void {
@@ -1454,15 +1438,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    this.dialog.open(PosReceiptPreviewDialogComponent, {
-      width: '480px',
-      maxWidth: '95vw',
-      panelClass: 'pos-dialog-panel',
-      autoFocus: false,
-      data: {
-        salesOrderId: saleId,
-        title: `Ticket ${collectedSaleFolio(item)}`,
-      },
+    this.openTicketPrintDialog(`Ticket ${collectedSaleFolio(item)}`, {
+      salesOrderId: saleId,
     });
   }
 
@@ -1482,39 +1459,27 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    await this.printReceiptOrPrompt(receipt, folio, salesOrderId);
+    this.openTicketPrintDialog(`Ticket ${folio}`, {
+      receipt,
+      salesOrderId,
+    });
   }
 
-  private async printReceiptOrPrompt(
-    receipt: PosSaleReceipt | null | undefined,
-    folio: string,
-    salesOrderId?: string
-  ): Promise<void> {
-    if (!this.receiptPrintService.hasPrintableReceipt(receipt)) {
-      this.toast.warning('No hay ticket ESC/POS disponible para esta venta');
-      return;
-    }
-
-    if (!this.receiptPrintService.getPrinterName()) {
-      this.toast.warning('Configura la impresora térmica antes de imprimir', { duration: 5000 });
-      this.openPrinterSettings();
-      return;
-    }
-
-    this.printingReceipt.set(true);
-    try {
-      await this.receiptPrintService.printReceipt(receipt!);
-      this.toast.success(`Ticket de ${folio} enviado a la impresora`);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'No se pudo imprimir el ticket';
-      this.toast.error(`Cobro registrado. ${message}`, { duration: 6000 });
-      if (salesOrderId) {
-        this.toast.info('Usa "Reimprimir ticket" en Órdenes cobradas', { duration: 5000 });
-      }
-    } finally {
-      this.printingReceipt.set(false);
-    }
+  private openTicketPrintDialog(
+    title: string,
+    data: { receipt?: PosSaleReceipt | null; salesOrderId?: string }
+  ): void {
+    this.dialog.open(PosReceiptPreviewDialogComponent, {
+      width: '480px',
+      maxWidth: '95vw',
+      panelClass: 'pos-dialog-panel',
+      autoFocus: false,
+      data: {
+        title,
+        receipt: data.receipt ?? null,
+        salesOrderId: data.salesOrderId,
+      },
+    });
   }
 
   async toggleFullscreen(): Promise<void> {
