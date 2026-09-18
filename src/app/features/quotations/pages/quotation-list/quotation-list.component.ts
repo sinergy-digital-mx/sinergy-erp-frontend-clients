@@ -43,7 +43,9 @@ export class QuotationListComponent implements OnInit {
   private totalResults = signal(0);
   loading = signal(false);
   canCreate = false;
-  isAdmin = false;
+  canViewAll = false;
+  canViewAllBranches = false;
+  restrictBranchIds: string[] | null = null;
   sellers: PosUserSummary[] = [];
 
   table_config = signal<IDatatableConfig>({
@@ -57,6 +59,7 @@ export class QuotationListComponent implements OnInit {
       { name: 'Total', prop: 'total', sortable: true, canAutoResize: false, width: 110 },
       { name: 'Tipo', prop: 'quotation_type', sortable: false, canAutoResize: false, width: 110 },
       { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 150 },
+      { name: 'Vence', prop: 'expires_at', sortable: false, canAutoResize: false, width: 120 },
     ],
     externalPaging: true,
     externalSorting: true,
@@ -109,8 +112,14 @@ export class QuotationListComponent implements OnInit {
 
   ngOnInit(): void {
     this.canCreate = this.auth.hasPermission(QUOTATION_PERMISSIONS.create);
-    this.isAdmin = this.auth.hasAdminRole();
-    if (this.isAdmin) {
+    this.canViewAll = this.auth.hasGrantedPermission(QUOTATION_PERMISSIONS.viewAll);
+    this.canViewAllBranches = this.auth.hasGrantedPermission(
+      QUOTATION_PERMISSIONS.viewAllBranches,
+    );
+    this.restrictBranchIds = this.canViewAllBranches
+      ? null
+      : this.auth.getAssignedBranches().map((branch) => branch.id);
+    if (this.canViewAll) {
       this.quotationService.getSellers().subscribe({
         next: (res) => {
           this.sellers = (res.sellers ?? []).map((seller) => ({

@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
+import { resolveHttpErrorMessage } from '../../../core/utils/http-error-message.util';
 import {
   ConvertQuotationResponse,
   Quotation,
@@ -19,7 +20,8 @@ interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
-  is_admin?: boolean;
+  can_view_all?: boolean;
+  can_view_all_branches?: boolean;
 }
 
 export interface QuotationSellerOption {
@@ -69,8 +71,8 @@ export class QuotationService {
     return this.http.get<PaginatedResponse<Quotation>>(this.baseUrl, { params });
   }
 
-  getSellers(): Observable<{ is_admin: boolean; sellers: QuotationSellerOption[] }> {
-    return this.http.get<{ is_admin: boolean; sellers: QuotationSellerOption[] }>(
+  getSellers(): Observable<{ can_view_all: boolean; sellers: QuotationSellerOption[] }> {
+    return this.http.get<{ can_view_all: boolean; sellers: QuotationSellerOption[] }>(
       `${this.baseUrl}/sellers`,
     );
   }
@@ -78,11 +80,63 @@ export class QuotationService {
   getDetail(id: string): Observable<QuotationDetailPayload> {
     return this.http
       .get<{ data: QuotationDetailPayload } | QuotationDetailPayload>(`${this.baseUrl}/${id}`)
-      .pipe(map((res) => ('data' in res && res.data ? res.data : (res as QuotationDetailPayload))));
+      .pipe(map((res) => this.unwrapDetail(res)));
   }
 
   create(payload: QuotationFormData): Observable<Quotation> {
     return this.http.post<Quotation>(this.baseUrl, payload);
+  }
+
+  update(id: string, payload: QuotationFormData): Observable<Quotation> {
+    return this.http.put<Quotation>(`${this.baseUrl}/${id}`, payload);
+  }
+
+  createLineItem(
+    quotationId: string,
+    body: QuotationFormData['line_items'][number],
+  ): Observable<QuotationDetailPayload> {
+    return this.http
+      .post<{ data: QuotationDetailPayload } | QuotationDetailPayload>(
+        `${this.baseUrl}/${quotationId}/line-items`,
+        body,
+      )
+      .pipe(
+        map((res) => this.unwrapDetail(res)),
+        catchError((error) =>
+          throwError(() => new Error(resolveHttpErrorMessage(error, 'No se pudo agregar el producto'))),
+        ),
+      );
+  }
+
+  patchLineItem(
+    quotationId: string,
+    lineItemId: string,
+    body: Partial<QuotationFormData['line_items'][number]>,
+  ): Observable<QuotationDetailPayload> {
+    return this.http
+      .patch<{ data: QuotationDetailPayload } | QuotationDetailPayload>(
+        `${this.baseUrl}/${quotationId}/line-items/${lineItemId}`,
+        body,
+      )
+      .pipe(
+        map((res) => this.unwrapDetail(res)),
+        catchError((error) =>
+          throwError(() => new Error(resolveHttpErrorMessage(error, 'No se pudo actualizar la línea'))),
+        ),
+      );
+  }
+
+  deleteLineItem(quotationId: string, lineItemId: string): Observable<QuotationDetailPayload> {
+    return this.http
+      .delete<{ data: QuotationDetailPayload } | QuotationDetailPayload>(
+        `${this.baseUrl}/${quotationId}/line-items/${lineItemId}`,
+      )
+      .pipe(
+        map((res) => this.unwrapDetail(res)),
+        catchError((error) =>
+          throwError(() => new Error(resolveHttpErrorMessage(error, 'No se pudo eliminar la línea'))),
+        ),
+      );
   }
 
   convert(id: string, body: { customer_id?: number; notes?: string } = {}): Observable<ConvertQuotationResponse> {
@@ -98,7 +152,7 @@ export class QuotationService {
       .patch<{ data: QuotationDetailPayload } | QuotationDetailPayload>(`${this.baseUrl}/${id}/notes`, {
         notes,
       })
-      .pipe(map((res) => ('data' in res && res.data ? res.data : (res as QuotationDetailPayload))));
+      .pipe(map((res) => this.unwrapDetail(res)));
   }
 
   regenerateDocumentoOriginal(id: string, language: 'es' | 'en' = 'es'): Observable<unknown> {
@@ -125,5 +179,11 @@ export class QuotationService {
     if (params.search) httpParams = httpParams.set('search', params.search);
     if (params.sale_scope) httpParams = httpParams.set('sale_scope', params.sale_scope);
     return this.http.get(`${this.baseUrl}/products-summary`, { params: httpParams });
+  }
+
+  private unwrapDetail(
+    res: { data: QuotationDetailPayload } | QuotationDetailPayload,
+  ): QuotationDetailPayload {
+    return 'data' in res && res.data ? res.data : (res as QuotationDetailPayload);
   }
 }

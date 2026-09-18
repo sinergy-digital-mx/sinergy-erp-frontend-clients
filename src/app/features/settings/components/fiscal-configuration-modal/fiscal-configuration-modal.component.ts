@@ -152,6 +152,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
       razon_social: config.razon_social,
       rfc: config.rfc,
       prefix: config.prefix ?? '',
+      quotation_expiration_days: config.quotation_expiration_days ?? '',
       persona_type: config.persona_type,
       fiscal_regime: config.fiscal_regime ?? '',
       status: config.status,
@@ -329,6 +330,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
       razon_social: ['', [Validators.required, Validators.minLength(2)]],
       rfc: ['', [Validators.required, Validators.pattern(/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/)]],
       prefix: ['', [documentPrefixValidator()]],
+      quotation_expiration_days: ['', [Validators.min(1), Validators.max(3650)]],
       persona_type: ['Persona Moral', [Validators.required]],
       fiscal_regime: [''],
       digital_seal: [''],
@@ -454,6 +456,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
       razon_social: String(formValue.razon_social).trim(),
       rfc: String(formValue.rfc).trim().toUpperCase(),
       prefix: normalizeDocumentPrefix(formValue.prefix),
+      quotation_expiration_days: this.normalizeExpirationDays(formValue.quotation_expiration_days),
       persona_type: formValue.persona_type,
       fiscal_regime: formValue.fiscal_regime || undefined,
       status: formValue.status,
@@ -474,6 +477,17 @@ export class FiscalConfigurationModalComponent implements OnInit {
     }
 
     return payload;
+  }
+
+  private normalizeExpirationDays(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    const days = Number(value);
+    if (!Number.isFinite(days) || days <= 0) {
+      return null;
+    }
+    return Math.trunc(days);
   }
 
   checkFinkokStatus(): void {

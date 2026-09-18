@@ -1343,6 +1343,33 @@
   padding: 0.9rem 0.85rem 1rem;
 }
 
+.cobranza-mixed__add-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  border: 1px dashed #c4b5fd;
+  background: #faf8ff;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  color: #5b21b6;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+
+  lucide-icon {
+    color: #7c3aed;
+  }
+
+  &:hover {
+    background: #f5f3ff;
+    border-color: #8b5cf6;
+  }
+}
+
 .cobranza-credit-panel {
   display: flex;
   flex-direction: column;

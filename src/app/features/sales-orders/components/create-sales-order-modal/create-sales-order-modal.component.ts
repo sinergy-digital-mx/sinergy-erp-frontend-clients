@@ -30,6 +30,7 @@ interface LineItem {
   uom_name?: string;
   pricing_options?: any[];
   selected_pricing_option_id?: string;
+  product_discount_id?: string;
   quantity: number;
   unit_price: number;
   discount_percentage: number;
@@ -86,9 +87,28 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private productSearch$ = new Subject<string>();
   private productsSub?: Subscription;
+  private hydrating = false;
+  private editingWarehouseId: string | null = null;
+  private editingSellerUserId: string | null = null;
+  private editingGlobalDiscountId: string | null = null;
+  private editingQuotationType: 'POS' | 'MANUAL' | null = null;
+  editingFolio: string | null = null;
 
   get asQuotation(): boolean {
     return this.data?.asQuotation === true;
+  }
+
+  get quotationId(): string | null {
+    const id = this.data?.quotationId;
+    return typeof id === 'string' && id.trim() ? id.trim() : null;
+  }
+
+  get isEditingQuotation(): boolean {
+    return this.asQuotation && !!this.quotationId;
+  }
+
+  get lockLocation(): boolean {
+    return this.isEditingQuotation && this.editingQuotationType === 'POS';
   }
 
   constructor(
@@ -118,7 +138,6 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadDropdownData();
     this.setupLocationCascade();
     this.productSearch$
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
@@ -126,7 +145,9 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.form.get('sale_scope')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((scope: SalesOrderSaleScope) => {
-        this.lineItems = [];
+        if (!this.hydrating) {
+          this.lineItems = [];
+        }
         this.tabs = this.tabs.map((tab) =>
           tab.id === 'products'
             ? { ...tab, title: scope === 'services' ? 'Servicios' : 'Productos' }
@@ -135,7 +156,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
         if (scope === 'services') {
           this.form.patchValue({ requires_selection_assembly: false }, { emitEvent: false });
         }
-        if (this.hasBillingBranch) {
+        if (this.hasBillingBranch && !this.hydrating) {
           this.loadProducts();
         }
         this.cdr.detectChanges();
@@ -148,6 +169,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       }
       this.filterCustomers(value ?? '');
     });
+    void this.initForm();
   }
 
   ngOnDestroy(): void {
@@ -193,10 +215,10 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     return branch.code?.trim() || branch.display_name?.trim() || '—';
   }
 
-  loadDropdownData(): void {
+  loadDropdownData(): Promise<void> {
     this.loading = true;
 
-    Promise.all([
+    return Promise.all([
       this.fiscalConfigService.listFiscalConfigurations({ status: 'active', limit: 100 }).toPromise(),
       this.customerService.getCustomers({ limit: 100 }).toPromise()
     ]).then(([fiscalConfigs, customers]) => {
@@ -218,10 +240,123 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     });
   }
 
+  private async initForm(): Promise<void> {
+    await this.loadDropdownData();
+    if (this.isEditingQuotation) {
+      await this.hydrateQuotation();
+    }
+  }
+
+  private hydrateQuotation(): Promise<void> {
+    const id = this.quotationId;
+    if (!id) {
+      return Promise.resolve();
+    }
+
+    this.loading = true;
+    this.hydrating = true;
+
+    return new Promise((resolve) => {
+      this.quotationService.getDetail(id).subscribe({
+        next: (payload) => {
+          const header = payload.header;
+          this.editingFolio = header.folio || null;
+          this.editingQuotationType = header.quotation_type === 'POS' ? 'POS' : 'MANUAL';
+          this.editingWarehouseId = header.warehouse_id ?? null;
+          this.editingSellerUserId = header.seller_user_id ?? header.seller_user?.id ?? null;
+          this.editingGlobalDiscountId = header.global_discount_id ?? null;
+
+          const fiscalId =
+            header.fiscal_configuration_id || header.fiscal_configuration?.id || '';
+          const branchId = header.billing_branch_id || header.billing_branch?.id || '';
+          const customerId = header.customer_id ?? header.customer?.id ?? '';
+          const customerLabel =
+            header.customer_display_name ||
+            this.formatCustomerLabel(header.customer) ||
+            this.formatCustomerLabel(header.customer_summary);
+
+          this.form.patchValue(
+            {
+              fiscal_configuration_id: fiscalId,
+              expected_delivery_date: this.toDateInput(header.expected_delivery_date),
+              notes: header.notes || '',
+              customer_id: customerId,
+              customer_search: customerLabel,
+            },
+            { emitEvent: false },
+          );
+          this.form.get('sale_scope')?.disable({ emitEvent: false });
+
+          this.lineItems = (payload.line_items || []).map((item) => ({
+            product_id: item.product_id,
+            product_uom_id: item.product_uom_id,
+            product_name: item.product?.name || 'Producto',
+            product_sku: item.product?.sku || '',
+            item_kind: item.product?.item_kind === 'service' ? 'service' : 'goods',
+            uom_name: item.uom_name || '',
+            product_discount_id: item.product_discount_id || item.applied_product_discount?.id,
+            quantity: Number(item.quantity || 0),
+            unit_price: Number(item.unit_price || 0),
+            discount_percentage: Number(item.discount_percentage || 0),
+            iva_percentage: Number(item.iva_percentage || 0),
+            ieps_percentage: Number(item.ieps_percentage || 0),
+          }));
+
+          if (fiscalId) {
+            this.form.get('billing_branch_id')?.enable({ emitEvent: false });
+            this.loadBranches(fiscalId, () => {
+              this.form.patchValue({ billing_branch_id: branchId }, { emitEvent: false });
+              if (this.lockLocation) {
+                this.form.get('fiscal_configuration_id')?.disable({ emitEvent: false });
+                this.form.get('billing_branch_id')?.disable({ emitEvent: false });
+              }
+              this.setProductsTabEnabled(!!branchId);
+              this.loadProducts();
+              this.hydrating = false;
+              this.loading = false;
+              this.cdr.detectChanges();
+              resolve();
+            });
+            return;
+          }
+
+          this.hydrating = false;
+          this.loading = false;
+          this.cdr.detectChanges();
+          resolve();
+        },
+        error: () => {
+          this.hydrating = false;
+          this.loading = false;
+          this.toast.error('No se pudo cargar la cotización');
+          this.cdr.detectChanges();
+          resolve();
+        },
+      });
+    });
+  }
+
+  private toDateInput(value?: string | null): string {
+    if (!value) return '';
+    const raw = String(value);
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+      return raw.slice(0, 10);
+    }
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return '';
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   private setupLocationCascade(): void {
     this.form.get('fiscal_configuration_id')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((fiscalId) => {
+        if (this.hydrating) {
+          return;
+        }
         this.form.patchValue({ billing_branch_id: '' }, { emitEvent: false });
         this.branches = [];
         this.form.get('billing_branch_id')?.disable({ emitEvent: false });
@@ -237,6 +372,9 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.form.get('billing_branch_id')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((branchId) => {
+        if (this.hydrating) {
+          return;
+        }
         this.resetProductsState();
         if (branchId) {
           this.setProductsTabEnabled(true);
@@ -246,10 +384,11 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       });
   }
 
-  private loadBranches(fiscalConfigurationId: string): void {
+  private loadBranches(fiscalConfigurationId: string, then?: () => void): void {
     this.branchService.getBranches(fiscalConfigurationId).subscribe({
       next: (branches) => {
         this.branches = Array.isArray(branches) ? branches : [];
+        then?.();
         this.cdr.detectChanges();
       },
       error: (error) => {
@@ -376,13 +515,22 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
 
     this.productsSub?.unsubscribe();
     this.loadingProducts = true;
-    this.productsSub = this.salesOrderService.getProductsSummary({
-      fiscal_configuration_id: fiscalId,
-      billing_branch_id: branchId,
-      search: search.trim() || undefined,
-      limit: 100,
-      sale_scope: this.saleScope,
-    }).subscribe({
+    const request = this.asQuotation
+      ? this.quotationService.getProductsSummary({
+          fiscal_configuration_id: fiscalId,
+          billing_branch_id: branchId,
+          search: search.trim() || undefined,
+          limit: 100,
+          sale_scope: this.saleScope,
+        })
+      : this.salesOrderService.getProductsSummary({
+          fiscal_configuration_id: fiscalId,
+          billing_branch_id: branchId,
+          search: search.trim() || undefined,
+          limit: 100,
+          sale_scope: this.saleScope,
+        });
+    this.productsSub = request.subscribe({
       next: (res: any) => {
         this.products = this.normalizeWarehouseProducts(res);
         this.loadingProducts = false;
@@ -678,27 +826,53 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       unit_price: Number(li.unit_price),
       discount_percentage: Number(li.discount_percentage || 0),
       iva_percentage: Number(li.iva_percentage),
-      ieps_percentage: Number(li.ieps_percentage)
+      ieps_percentage: Number(li.ieps_percentage),
+      ...(li.product_discount_id ? { product_discount_id: li.product_discount_id } : {}),
     }));
 
     if (this.asQuotation) {
-      this.quotationService.create({
+      const payload = {
         fiscal_configuration_id: fv.fiscal_configuration_id,
         billing_branch_id: fv.billing_branch_id,
         customer_id: fv.customer_id,
         expected_delivery_date: fv.expected_delivery_date,
-        notes: (fv.notes || '').trim() || undefined,
+        notes: (fv.notes || '').trim(),
         line_items: lineItems,
-      }).subscribe({
+        ...(this.editingGlobalDiscountId
+          ? { global_discount_id: this.editingGlobalDiscountId }
+          : {}),
+        ...(this.editingQuotationType === 'POS'
+          ? {
+              quotation_type: 'POS' as const,
+              warehouse_id: this.editingWarehouseId || undefined,
+              seller_user_id: this.editingSellerUserId || undefined,
+            }
+          : {}),
+      };
+
+      const request = this.isEditingQuotation && this.quotationId
+        ? this.quotationService.update(this.quotationId, payload)
+        : this.quotationService.create(payload);
+
+      request.subscribe({
         next: (quotation) => {
           this.saving = false;
-          this.toast.success('Cotización creada. No se retuvo inventario.');
+          this.toast.success(
+            this.isEditingQuotation
+              ? 'Cotización actualizada. El PDF se regeneró.'
+              : 'Cotización creada. No se retuvo inventario.',
+          );
           this.dialogRef.close(quotation);
         },
         error: (error) => {
           this.saving = false;
           this.cdr.detectChanges();
-          const msg = error.error?.message || error.message || 'Error al crear la cotización';
+          const msg =
+            error.error?.message ||
+            error.message ||
+            (this.isEditingQuotation
+              ? 'Error al actualizar la cotización'
+              : 'Error al crear la cotización');
           this.toast.error(msg);
         }
       });

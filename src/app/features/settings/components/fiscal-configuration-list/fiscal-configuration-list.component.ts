@@ -46,6 +46,7 @@ export class FiscalConfigurationListComponent implements OnInit {
       { name: 'Razón Social', prop: 'razon_social', sortable: true, canAutoResize: true, width: 200 },
       { name: 'RFC', prop: 'rfc', sortable: false, canAutoResize: true, width: 120 },
       { name: 'Prefijo', prop: 'prefix', sortable: false, canAutoResize: true, width: 90 },
+      { name: 'Vigencia cotiz.', prop: 'quotation_expiration_days', sortable: false, canAutoResize: true, width: 120 },
       { name: 'Sucursales', prop: 'branches_count', sortable: false, canAutoResize: true, width: 110 },
       { name: 'Status', prop: 'status', sortable: true, canAutoResize: true, width: 100 },
     ],
@@ -195,5 +196,13 @@ export class FiscalConfigurationListComponent implements OnInit {
 
   getStatusLabel(status: string): string {
     return status === 'active' ? 'Activo' : 'Inactivo';
+  }
+
+  expirationLabel(item: FiscalConfiguration): string {
+    const days = Number(item.quotation_expiration_days);
+    if (!Number.isFinite(days) || days <= 0) {
+      return '—';
+    }
+    return `${Math.trunc(days)} d`;
   }
 }

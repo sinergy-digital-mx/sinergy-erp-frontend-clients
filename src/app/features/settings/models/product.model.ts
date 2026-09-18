@@ -269,6 +269,9 @@ export interface VendorCatalogImportResult {
   updated: number;
   created: number;
   skipped: number;
+  costs_updated?: number;
+  prices_updated?: number;
+  prices_created?: number;
   errors: VendorCatalogImportError[];
 }
 

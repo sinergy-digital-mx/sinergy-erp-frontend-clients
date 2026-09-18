@@ -918,7 +918,7 @@
 
                     @if (mixedTypeCount() < 2) {
                       <p class="cobranza-mixed__hint">
-                        Elige al menos dos. Cada una se captura en su propia tarjeta: Pago 1, Pago 2…
+                        Elige al menos dos pagos. En tarjeta puedes dividir en dos o más plásticos.
                       </p>
                     }
 
@@ -1050,27 +1050,36 @@
                         </article>
                       }
 
-                      @if (collectForm().mixedUsesCard) {
+                      @for (card of collectForm().mixedCardPayments; track $index) {
                         <article class="cobranza-mixed-card cobranza-mixed-card--card">
                           <header class="cobranza-mixed-card__head">
                             <div class="cobranza-mixed-card__title">
-                              <span class="cobranza-mixed-card__index">Pago {{ mixedPartIndex('card') }}</span>
+                              <span class="cobranza-mixed-card__index">Pago {{ mixedPartIndex(mixedCardPart($index)) }}</span>
                               <lucide-icon [img]="CreditCard" [size]="16" />
-                              <h4>Tarjeta</h4>
-                              @if (mixedAutoTarget() === 'card') {
+                              <h4>
+                                @if (collectForm().mixedCardPayments.length > 1) {
+                                  Tarjeta {{ $index + 1 }}
+                                } @else {
+                                  Tarjeta
+                                }
+                              </h4>
+                              @if (mixedAutoTarget() === mixedCardPart($index)) {
                                 <span class="cobranza-mixed-card__badge">Resto</span>
                               }
                             </div>
                             <div class="cobranza-mixed-card__actions">
                               @if (showMixedFill()) {
-                                <button type="button" class="cobranza-mixed-card__fill" (click)="applyMixedRemainderTo('card')">
+                                <button
+                                  type="button"
+                                  class="cobranza-mixed-card__fill"
+                                  (click)="applyMixedRemainderTo(mixedCardPart($index))">
                                   Completar resto
                                 </button>
                               }
                               <button
                                 type="button"
                                 class="cobranza-mixed-card__remove"
-                                (click)="toggleMixedType('card', false)"
+                                (click)="removeMixedCard($index)"
                                 aria-label="Quitar tarjeta">
                                 <lucide-icon [img]="X" [size]="16" />
                               </button>
@@ -1084,19 +1093,26 @@
                                 min="0"
                                 step="0.01"
                                 placeholder="0.00"
-                                [ngModel]="moneyInputValue(collectForm().mixedCardMxn)"
-                                (ngModelChange)="onMixedAmountChange('card', $event)" />
+                                [ngModel]="moneyInputValue(card.amountMxn)"
+                                (ngModelChange)="onMixedCardAmountChange($index, $event)" />
                             </label>
                             <label class="cobranza-field">
                               <span>Referencia tarjeta</span>
                               <input
                                 type="text"
                                 placeholder="Últimos 4 dígitos"
-                                [ngModel]="collectForm().mixedCardRef"
-                                (ngModelChange)="patchCollectForm({ mixedCardRef: $event })" />
+                                [ngModel]="card.reference"
+                                (ngModelChange)="onMixedCardRefChange($index, $event)" />
                             </label>
                           </div>
                         </article>
+                      }
+
+                      @if (canAddMixedCard()) {
+                        <button type="button" class="cobranza-mixed__add-card" (click)="addMixedCard()">
+                          <lucide-icon [img]="Plus" [size]="16" />
+                          Agregar otra tarjeta
+                        </button>
                       }
 
                       @if (collectForm().mixedUsesCheck) {
@@ -1278,8 +1294,21 @@
                     @if (pay['transfer_reference']) {
                       <div><dt>Ref. SPEI</dt><dd>{{ pay['transfer_reference'] }}</dd></div>
                     }
-                    @if (pay['amount_card_mxn'] != null && +pay['amount_card_mxn'] > 0) {
-                      <div><dt>Tarjeta</dt><dd>{{ moneyLabel(pay['amount_card_mxn']) }}</dd></div>
+                    @if (cardPaymentRows(pay); as cards) {
+                      @if (cards.length > 0) {
+                        @for (card of cards; track $index) {
+                          <div>
+                            <dt>{{ cards.length > 1 ? 'Tarjeta ' + ($index + 1) : 'Tarjeta' }}</dt>
+                            <dd>{{ moneyLabel(card.amount_mxn) }}</dd>
+                          </div>
+                          @if (card.reference) {
+                            <div>
+                              <dt>{{ cards.length > 1 ? 'Ref. tarjeta ' + ($index + 1) : 'Ref. tarjeta' }}</dt>
+                              <dd>{{ card.reference }}</dd>
+                            </div>
+                          }
+                        }
+                      }
                     }
                     @if (pay['amount_check_mxn'] != null && +pay['amount_check_mxn'] > 0) {
                       <div><dt>Cheque</dt><dd>{{ moneyLabel(pay['amount_check_mxn']) }}</dd></div>
@@ -1289,9 +1318,6 @@
                     }
                     @if (pay['amount_credit_mxn'] != null && +pay['amount_credit_mxn'] > 0) {
                       <div><dt>Crédito</dt><dd>{{ moneyLabel(pay['amount_credit_mxn']) }}</dd></div>
-                    }
-                    @if (pay['card_reference']) {
-                      <div><dt>Ref. tarjeta</dt><dd>{{ pay['card_reference'] }}</dd></div>
                     }
                     @if (pay['received_cash_mxn'] != null && +pay['received_cash_mxn'] > 0) {
                       <div><dt>Recibió MXN</dt><dd>{{ moneyLabel(pay['received_cash_mxn']) }}</dd></div>

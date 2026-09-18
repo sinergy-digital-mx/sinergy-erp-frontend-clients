@@ -410,11 +410,19 @@
                   <span class="section-value">{{ posCollectionMoney(pay.amount_transfer_mxn) }}</span>
                 </div>
               }
-              @if (pay.amount_card_mxn != null && +pay.amount_card_mxn > 0) {
-                <div class="section-item">
-                  <span class="section-label">Tarjeta</span>
-                  <span class="section-value">{{ posCollectionMoney(pay.amount_card_mxn) }}</span>
-                </div>
+              @if (posCollectionCardRows(pay); as cards) {
+                @for (card of cards; track $index) {
+                  <div class="section-item">
+                    <span class="section-label">{{ cards.length > 1 ? 'Tarjeta ' + ($index + 1) : 'Tarjeta' }}</span>
+                    <span class="section-value">{{ posCollectionMoney(card.amount_mxn) }}</span>
+                  </div>
+                  @if (card.reference) {
+                    <div class="section-item">
+                      <span class="section-label">{{ cards.length > 1 ? 'Ref. tarjeta ' + ($index + 1) : 'Ref. tarjeta' }}</span>
+                      <span class="section-value">{{ card.reference }}</span>
+                    </div>
+                  }
+                }
               }
               @if (pay.amount_check_mxn != null && +pay.amount_check_mxn > 0) {
                 <div class="section-item">
@@ -540,6 +548,9 @@
           <button type="button" class="tab-button" [class.active]="activeTabIndex() === 1" (click)="activeTabIndex.set(1)">
             Pagos
             <span class="tab-count" [class.active]="activeTabIndex() === 1">{{ getPaymentsCount() }}</span>
+          </button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 7" (click)="activeTabIndex.set(7)">
+            Crédito
           </button>
           <button type="button" class="tab-button" [class.active]="activeTabIndex() === 2" (click)="activeTabIndex.set(2)">
             Documentos
@@ -1090,6 +1101,12 @@
                 [orderId]="order()!.id"
                 (emailsChanged)="onInvoiceEmailsChanged($event)"
               />
+            </div>
+          }
+
+          @if (activeTabIndex() === 7 && order()) {
+            <div class="tab-content-wrapper">
+              <app-sales-order-credit-tab [order]="order()!" />
             </div>
           }
         </div>

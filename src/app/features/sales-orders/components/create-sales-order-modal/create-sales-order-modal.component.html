@@ -1,7 +1,15 @@
 <div class="modal-container">
   <!-- Header -->
   <div class="modal-header">
-    <h2>{{ asQuotation ? 'Crear Cotización' : 'Crear Orden de Venta' }}</h2>
+    <h2>
+      @if (isEditingQuotation) {
+        Editar Cotización{{ editingFolio ? ' · ' + editingFolio : '' }}
+      } @else if (asQuotation) {
+        Crear Cotización
+      } @else {
+        Crear Orden de Venta
+      }
+    </h2>
     <button class="close-btn" (click)="cancel()" type="button">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
         <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
@@ -163,6 +171,9 @@
                   [ngModelOptions]="{standalone: true}"
                   (change)="onLineUomChange(i)">
                   <option value="">Seleccionar...</option>
+                  <option *ngIf="item.product_uom_id && getProductUoms(i).length === 0" [value]="item.product_uom_id">
+                    {{ item.uom_name || 'UOM' }}
+                  </option>
                   <option *ngFor="let uom of getProductUoms(i)" [value]="uom.id || uom.product_uom_id || uom.uom_id">
                     {{ uom.name || uom.uom_name }}
                   </option>
@@ -219,8 +230,8 @@
   <div class="modal-footer">
     <button class="btn btn--secondary" (click)="cancel()" type="button">Cancelar</button>
     <button class="btn btn--primary" (click)="save()" [disabled]="saving" type="button">
-      <span *ngIf="!saving">{{ asQuotation ? 'Crear Cotización' : 'Crear Orden' }}</span>
-      <span *ngIf="saving">Creando...</span>
+      <span *ngIf="!saving">{{ isEditingQuotation ? 'Guardar cambios' : asQuotation ? 'Crear Cotización' : 'Crear Orden' }}</span>
+      <span *ngIf="saving">{{ isEditingQuotation ? 'Guardando...' : 'Creando...' }}</span>
     </button>
   </div>
 </div>

@@ -566,53 +566,14 @@ export class ProductService {
     return this.http.delete<void>(`${this.api}/tenant/products/${productId}/vendor-costs/${costId}`);
   }
 
-  // ─── Importación masiva de costos / precios por proveedor ───
+  // ─── Importación masiva de costos y precios por proveedor ───
 
-  previewVendorCosts(vendorId: string): Observable<VendorCatalogImportPreview> {
-    return this.http
-      .get<unknown>(`${this.api}/tenant/products/import/vendor-costs/preview`, {
-        params: { vendor_id: vendorId },
-      })
-      .pipe(
-        map((response) => this.unwrapVendorImportPreview(response)),
-        catchError((error) =>
-          this.mapVendorCatalogImportError(
-            error,
-            'Este proveedor no tiene productos con costo.'
-          )
-        )
-      );
-  }
-
-  downloadVendorCostTemplate(vendorId: string): Observable<{ blob: Blob; filename: string }> {
-    return this.downloadVendorImportTemplate(
-      `${this.api}/tenant/products/import/vendor-costs/template`,
-      { vendor_id: vendorId },
-      'costos-proveedor.xlsx',
-      'Este proveedor no tiene productos con costo.'
-    );
-  }
-
-  importVendorCosts(vendorId: string, file: File): Observable<VendorCatalogImportResult> {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('vendor_id', vendorId);
-    return this.http
-      .post<unknown>(`${this.api}/tenant/products/import/vendor-costs`, form)
-      .pipe(
-        map((response) => this.unwrapVendorImportResult(response)),
-        catchError((error) =>
-          this.mapVendorCatalogImportError(error, 'No se pudo importar el archivo')
-        )
-      );
-  }
-
-  previewVendorPrices(
+  previewVendorCatalog(
     vendorId: string,
     priceListId: string
   ): Observable<VendorCatalogImportPreview> {
     return this.http
-      .get<unknown>(`${this.api}/tenant/products/import/vendor-prices/preview`, {
+      .get<unknown>(`${this.api}/tenant/products/import/vendor-catalog/preview`, {
         params: { vendor_id: vendorId, price_list_id: priceListId },
       })
       .pipe(
@@ -626,19 +587,19 @@ export class ProductService {
       );
   }
 
-  downloadVendorPriceTemplate(
+  downloadVendorCatalogTemplate(
     vendorId: string,
     priceListId: string
   ): Observable<{ blob: Blob; filename: string }> {
     return this.downloadVendorImportTemplate(
-      `${this.api}/tenant/products/import/vendor-prices/template`,
+      `${this.api}/tenant/products/import/vendor-catalog/template`,
       { vendor_id: vendorId, price_list_id: priceListId },
-      'precios-proveedor.xlsx',
+      'costos-precios-proveedor.xlsx',
       'Este proveedor no tiene productos con costo.'
     );
   }
 
-  importVendorPrices(
+  importVendorCatalog(
     vendorId: string,
     priceListId: string,
     file: File
@@ -648,7 +609,7 @@ export class ProductService {
     form.append('vendor_id', vendorId);
     form.append('price_list_id', priceListId);
     return this.http
-      .post<unknown>(`${this.api}/tenant/products/import/vendor-prices`, form)
+      .post<unknown>(`${this.api}/tenant/products/import/vendor-catalog`, form)
       .pipe(
         map((response) => this.unwrapVendorImportResult(response)),
         catchError((error) =>
@@ -699,6 +660,9 @@ export class ProductService {
       updated: this.toFiniteNumber(raw['updated']),
       created: this.toFiniteNumber(raw['created']),
       skipped: this.toFiniteNumber(raw['skipped']),
+      costs_updated: this.toFiniteNumber(raw['costs_updated']),
+      prices_updated: this.toFiniteNumber(raw['prices_updated']),
+      prices_created: this.toFiniteNumber(raw['prices_created']),
       errors: this.unwrapVendorImportErrors(raw['errors']),
     };
   }

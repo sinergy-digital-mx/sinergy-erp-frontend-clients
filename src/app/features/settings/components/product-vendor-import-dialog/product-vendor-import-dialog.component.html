@@ -12,34 +12,7 @@
   </div>
 
   <div class="import-dialog__body">
-    <span class="import-dialog__label" id="vendor-import-type-label">Tipo</span>
-    <div
-      class="import-dialog__type"
-      role="radiogroup"
-      aria-labelledby="vendor-import-type-label">
-      <button
-        type="button"
-        role="radio"
-        class="import-dialog__type-btn"
-        [class.import-dialog__type-btn--active]="!isPrices()"
-        [attr.aria-checked]="!isPrices()"
-        [disabled]="fieldsLocked()"
-        (click)="setMode('costs')">
-        Costos
-      </button>
-      <button
-        type="button"
-        role="radio"
-        class="import-dialog__type-btn"
-        [class.import-dialog__type-btn--active]="isPrices()"
-        [attr.aria-checked]="isPrices()"
-        [disabled]="fieldsLocked()"
-        (click)="setMode('prices')">
-        Precios
-      </button>
-    </div>
-
-    <p class="import-dialog__disclaimer">{{ disclaimer() }}</p>
+    <p class="import-dialog__disclaimer">{{ disclaimer }}</p>
 
     <label class="import-dialog__label" for="vendor-import-search">Proveedor</label>
     <div class="import-dialog__picker">
@@ -67,21 +40,19 @@
       </mat-autocomplete>
     </div>
 
-    @if (isPrices()) {
-      <label class="import-dialog__label" for="vendor-import-price-list">Lista de precios</label>
-      <select
-        id="vendor-import-price-list"
-        class="import-dialog__input import-dialog__select"
-        [formControl]="priceListCtrl"
-        [attr.disabled]="fieldsLocked() || loadingPriceLists() ? true : null">
-        <option value="">
-          {{ loadingPriceLists() ? 'Cargando...' : 'Selecciona una lista de precios' }}
-        </option>
-        @for (list of priceLists(); track list.id) {
-          <option [value]="list.id">{{ list.name }}</option>
-        }
-      </select>
-    }
+    <label class="import-dialog__label" for="vendor-import-price-list">Lista de precios</label>
+    <select
+      id="vendor-import-price-list"
+      class="import-dialog__input import-dialog__select"
+      [formControl]="priceListCtrl"
+      [attr.disabled]="fieldsLocked() || loadingPriceLists() ? true : null">
+      <option value="">
+        {{ loadingPriceLists() ? 'Cargando...' : 'Selecciona una lista de precios' }}
+      </option>
+      @for (list of priceLists(); track list.id) {
+        <option [value]="list.id">{{ list.name }}</option>
+      }
+    </select>
 
     @if (previewLoading()) {
       <p class="import-dialog__preview import-dialog__preview--muted">Consultando productos...</p>
@@ -198,7 +169,7 @@
         Importando...
       } @else {
         <i class="fi fi-rr-upload" aria-hidden="true"></i>
-        {{ importLabel() }}
+        {{ importLabel }}
       }
     </button>
   </div>

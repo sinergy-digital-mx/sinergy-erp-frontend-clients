@@ -2,12 +2,16 @@ import { Component, Inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { Observable } from 'rxjs';
 import { SalesOrderDetailPayload, SalesOrderLineItem } from '../../models/sales-order.model';
 import { SalesOrderPaymentCurrency } from '../../models/sales-order-payment.model';
 import { SalesOrderService } from '../../services/sales-order.service';
+import { QuotationDetailPayload } from '../../../quotations/models/quotation.model';
+import { QuotationService } from '../../../quotations/services/quotation.service';
 
 export interface EditSalesOrderLineDialogData {
-  orderId: string;
+  orderId?: string;
+  quotationId?: string;
   folio?: string;
   currency: SalesOrderPaymentCurrency;
   lineItem: SalesOrderLineItem;
@@ -31,8 +35,12 @@ export class EditSalesOrderLineDialogComponent {
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: EditSalesOrderLineDialogData,
-    private dialogRef: MatDialogRef<EditSalesOrderLineDialogComponent, SalesOrderDetailPayload | undefined>,
-    private salesOrderService: SalesOrderService
+    private dialogRef: MatDialogRef<
+      EditSalesOrderLineDialogComponent,
+      SalesOrderDetailPayload | QuotationDetailPayload | undefined
+    >,
+    private salesOrderService: SalesOrderService,
+    private quotationService: QuotationService,
   ) {
     const item = data.lineItem;
     this.quantity = Number(item.quantity || 0);
@@ -98,21 +106,34 @@ export class EditSalesOrderLineDialogComponent {
     this.saving.set(true);
     this.errorMessage.set('');
 
-    this.salesOrderService
-      .patchLineItem(this.data.orderId, String(this.data.lineItem.id), {
-        quantity,
-        unit_price: unitPrice,
-        iva_percentage: iva,
-        ieps_percentage: ieps,
-      })
-      .subscribe({
-        next: (payload) => {
-          this.dialogRef.close(payload);
-        },
-        error: (err: Error) => {
-          this.errorMessage.set(err.message || 'No se pudo actualizar la línea');
-          this.saving.set(false);
-        },
-      });
+    const body = {
+      quantity,
+      unit_price: unitPrice,
+      iva_percentage: iva,
+      ieps_percentage: ieps,
+    };
+    const request$ = (
+      this.data.quotationId
+        ? this.quotationService.patchLineItem(
+            this.data.quotationId,
+            String(this.data.lineItem.id),
+            body,
+          )
+        : this.salesOrderService.patchLineItem(
+            String(this.data.orderId),
+            String(this.data.lineItem.id),
+            body,
+          )
+    ) as Observable<SalesOrderDetailPayload | QuotationDetailPayload>;
+
+    request$.subscribe({
+      next: (payload) => {
+        this.dialogRef.close(payload);
+      },
+      error: (err: Error) => {
+        this.errorMessage.set(err.message || 'No se pudo actualizar la línea');
+        this.saving.set(false);
+      },
+    });
   }
 }

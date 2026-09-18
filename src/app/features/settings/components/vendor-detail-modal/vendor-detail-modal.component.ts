@@ -8,15 +8,33 @@ import {
   AbstractControl,
   ValidatorFn,
 } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
 import { Subject, takeUntil } from 'rxjs';
 import { VendorService } from '../../services/vendor.service';
-import { Vendor, CreateVendorDto, VendorType } from '../../models/vendor.model';
+import {
+  CheckVendorDuplicatesDto,
+  Vendor,
+  CreateVendorDto,
+  VendorType,
+} from '../../models/vendor.model';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { X } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
+import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
+import { SETTINGS_PERMISSIONS } from '../../config/permissions.config';
+import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
+import { VENDOR_DUPLICATE_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import {
+  VendorDuplicateWarningDialogComponent,
+  VendorDuplicateWarningResult,
+} from '../vendor-duplicate-warning-dialog/vendor-duplicate-warning-dialog.component';
+import {
+  completenessLevel as completenessTone,
+  computeVendorCompleteness,
+  VENDOR_MATCH_REASON_LABELS,
+} from '../../utils/vendor-profile.util';
 
 type VendorTabId = 'general' | 'direccion' | 'bancaria';
 
@@ -26,7 +44,14 @@ const MEXICAN_RFC_PATTERN = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/i;
 @Component({
   selector: 'app-vendor-detail-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ButtonComponent, LucideAngularModule, TabComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    ButtonComponent,
+    LucideAngularModule,
+    TabComponent,
+    HasPermissionDirective,
+  ],
   templateUrl: './vendor-detail-modal.component.html',
   styleUrl: './vendor-detail-modal.component.scss',
 })
@@ -34,8 +59,11 @@ export class VendorDetailModalComponent implements OnDestroy {
   X = X;
   form: FormGroup;
   saving = signal(false);
+  deleting = signal(false);
   activeTab = signal<VendorTabId>('general');
   isNew = true;
+  readonly vendorDeletePermission = SETTINGS_PERMISSIONS.vendors.delete;
+  private duplicateWarningAccepted = false;
 
   tabs: TabItem[] = [
     { id: 'general', title: 'General' },
@@ -86,6 +114,7 @@ export class VendorDetailModalComponent implements OnDestroy {
     private fb: FormBuilder,
     private vendorService: VendorService,
     private toast: ToastService,
+    private dialog: MatDialog,
     public dialogRef: MatDialogRef<VendorDetailModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { vendor: Vendor | null },
   ) {
@@ -117,6 +146,26 @@ export class VendorDetailModalComponent implements OnDestroy {
 
   get isNational(): boolean {
     return this.form.get('vendor_type')?.value === 'NATIONAL';
+  }
+
+  get profileCompleteness(): number {
+    return computeVendorCompleteness(this.form?.getRawValue() ?? this.data.vendor ?? {});
+  }
+
+  get completenessLevel(): 'high' | 'mid' | 'low' {
+    return completenessTone(this.profileCompleteness);
+  }
+
+  get similarVendors() {
+    return this.data.vendor?.similar_vendors ?? [];
+  }
+
+  similarReasons(): string {
+    const reasons = this.similarVendors
+      .flatMap((item) => item.match_reasons ?? [])
+      .map((reason) => VENDOR_MATCH_REASON_LABELS[reason])
+      .filter(Boolean);
+    return [...new Set(reasons)].join(', ');
   }
 
   setActiveTab(tabId: string): void {
@@ -215,6 +264,31 @@ export class VendorDetailModalComponent implements OnDestroy {
       return;
     }
 
+    if (this.isNew && !this.duplicateWarningAccepted) {
+      const duplicatesPayload = this.buildDuplicatesPayload();
+      if (duplicatesPayload) {
+        this.saving.set(true);
+        this.vendorService.checkVendorDuplicates(duplicatesPayload).subscribe({
+          next: (response) => {
+            if (response?.found && response.matches?.length) {
+              this.saving.set(false);
+              this.openDuplicateWarning(response.matches);
+              return;
+            }
+            this.persistVendor();
+          },
+          error: () => {
+            this.persistVendor();
+          },
+        });
+        return;
+      }
+    }
+
+    this.persistVendor();
+  }
+
+  private persistVendor(): void {
     this.saving.set(true);
     const payload = this.buildPayload();
 
@@ -238,6 +312,91 @@ export class VendorDetailModalComponent implements OnDestroy {
         this.saving.set(false);
       },
     });
+  }
+
+  private buildDuplicatesPayload(): CheckVendorDuplicatesDto | null {
+    const v = this.form.getRawValue();
+    const trim = (s: string | null | undefined) => s?.trim() || '';
+    const payload: CheckVendorDuplicatesDto = {};
+    if (trim(v.name)) payload.name = trim(v.name);
+    if (trim(v.company_name)) payload.company_name = trim(v.company_name);
+    if (trim(v.razon_social)) payload.razon_social = trim(v.razon_social);
+    if (trim(v.legal_name)) payload.legal_name = trim(v.legal_name);
+    if (trim(v.rfc)) payload.rfc = trim(v.rfc);
+    if (trim(v.tax_id)) payload.tax_id = trim(v.tax_id);
+    if (trim(v.bank_clabe)) payload.bank_clabe = trim(v.bank_clabe);
+    if (trim(v.bank_iban)) payload.bank_iban = trim(v.bank_iban);
+    if (trim(v.bank_account_number)) payload.bank_account_number = trim(v.bank_account_number);
+    return Object.keys(payload).length > 0 ? payload : null;
+  }
+
+  private openDuplicateWarning(matches: Vendor['similar_vendors']): void {
+    this.dialog
+      .open(VendorDuplicateWarningDialogComponent, {
+        ...VENDOR_DUPLICATE_DIALOG_CONFIG,
+        data: { matches: matches ?? [] },
+      })
+      .afterClosed()
+      .subscribe((result: VendorDuplicateWarningResult | undefined) => {
+        if (result?.action === 'continue') {
+          this.duplicateWarningAccepted = true;
+          this.persistVendor();
+          return;
+        }
+        if (result?.action === 'view' && result.vendorId) {
+          this.vendorService.getVendor(result.vendorId).subscribe({
+            next: (vendor) => {
+              this.dialog.open(VendorDetailModalComponent, {
+                width: '80vw',
+                maxWidth: '1000px',
+                data: { vendor },
+              });
+            },
+          });
+        }
+      });
+  }
+
+  deleteVendor(): void {
+    if (this.isNew || !this.data.vendor || this.deleting()) {
+      return;
+    }
+
+    const vendor = this.data.vendor;
+    const similarName = vendor.similar_vendors?.[0]?.name;
+    const message = similarName
+      ? `¿Eliminar "${vendor.name}"? Si tiene compras, se conservarán en "${similarName}".`
+      : `¿Eliminar "${vendor.name}"? Si tiene compras y no hay otro parecido, se desactivará para conservar el historial.`;
+
+    this.dialog
+      .open(AlertDialogComponent, {
+        width: '400px',
+        data: {
+          title: 'Eliminar proveedor',
+          message,
+          confirmText: 'Eliminar',
+          cancelText: 'Cancelar',
+          type: 'danger',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.deleting.set(true);
+        this.vendorService.deleteVendor(vendor.id).subscribe({
+          next: (response) => {
+            this.toast.success(response?.message || 'Proveedor eliminado correctamente');
+            this.deleting.set(false);
+            this.dialogRef.close({ deleted: true, result: response });
+          },
+          error: (error) => {
+            this.toast.error(error.error?.message || 'Error al eliminar proveedor');
+            this.deleting.set(false);
+          },
+        });
+      });
   }
 
   private buildPayload(): CreateVendorDto {

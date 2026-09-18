@@ -1,10 +1,34 @@
 <div class="vendor-modal">
   <div class="vendor-modal__header">
-    <h2>{{ isNew ? 'Nuevo Proveedor' : 'Editar Proveedor' }}</h2>
+    <div class="vendor-modal__title">
+      <h2>{{ isNew ? 'Nuevo Proveedor' : 'Editar Proveedor' }}</h2>
+      <div class="vendor-completeness" [attr.data-level]="completenessLevel">
+        <div class="vendor-completeness__bar" aria-hidden="true">
+          <span [style.width.%]="profileCompleteness"></span>
+        </div>
+        <span class="vendor-completeness__value">Ficha {{ profileCompleteness }}%</span>
+      </div>
+    </div>
     <lucide-icon [img]="X" class="close cursor-pointer" (click)="close()"></lucide-icon>
   </div>
 
   <div class="vendor-modal__body">
+    @if (!isNew && similarVendors.length) {
+      <div class="vendor-similar-banner">
+        <p class="vendor-similar-banner__title">Parece otro proveedor</p>
+        <p class="vendor-similar-banner__text">
+          Similar a
+          {{ similarVendors[0].name }}{{ similarVendors.length > 1 ? ' y otros' : '' }}
+          @if (similarReasons()) {
+            · coincidió {{ similarReasons() }}
+          }
+        </p>
+        <p class="vendor-similar-banner__hint">
+          Puedes eliminarlo cuando quieras. Si tiene compras, se mueven al registro parecido.
+        </p>
+      </div>
+    }
+
     <form [formGroup]="form">
       <div class="col-span-2">
         <app-tab
@@ -166,10 +190,22 @@
   </div>
 
   <div class="vendor-modal__footer">
-    <app-button text="Cancelar" custom_class="btn_secondary" (clicked)="close()"></app-button>
+    @if (!isNew) {
+      <button
+        *hasPermission="vendorDeletePermission"
+        type="button"
+        class="vendor-modal__delete"
+        [disabled]="deleting()"
+        (click)="deleteVendor()">
+        {{ deleting() ? 'Eliminando…' : 'Eliminar' }}
+      </button>
+    }
+    <span class="vendor-modal__footer-spacer"></span>
+    <app-button text="Cancelar" customClass="btn_secondary" [fullWidth]="false" (clicked)="close()"></app-button>
     <app-button
       [text]="isNew ? 'Crear Proveedor' : 'Guardar Cambios'"
-      custom_class="btn_primary"
+      customClass="btn_primary"
+      [fullWidth]="false"
       [loading]="saving()"
       [disabled]="form.invalid || saving()"
       (clicked)="save()">

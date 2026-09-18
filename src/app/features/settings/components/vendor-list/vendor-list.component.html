@@ -13,7 +13,7 @@
 
       <app-button
         text="Nuevo Proveedor"
-        custom_class="btn_primary"
+        customClass="btn_primary"
         [fullWidth]="false"
         (clicked)="openCreateVendorModal()">
       </app-button>
@@ -36,6 +36,14 @@
       [default_value]="search"
       (searchChange)="onSearchChange($event)">
     </app-search>
+
+    <button
+      type="button"
+      class="vendor-similar-filter"
+      [class.vendor-similar-filter--on]="similarOnly"
+      (click)="toggleSimilarOnly()">
+      Solo parecidos
+    </button>
 
     <app-filter-clear-button
       [active]="hasActiveFilters"
@@ -72,17 +80,36 @@
     </span>
   </td>
   <td>
-    <span [class]="item.city ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.city || '—' }}</span>
+    <div class="vendor-completeness" [attr.data-level]="completenessLevel(item.profile_completeness)">
+      <div class="vendor-completeness__bar" aria-hidden="true">
+        <span [style.width.%]="item.profile_completeness || 0"></span>
+      </div>
+      <span class="vendor-completeness__value">{{ item.profile_completeness || 0 }}%</span>
+    </div>
   </td>
   <td>
-    <span [class]="item.state ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.state || '—' }}</span>
-  </td>
-  <td>
-    <span [class]="item.country ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.country || '—' }}</span>
+    @if (item.looks_similar) {
+      <span class="settings-badge settings-badge--similar" [title]="similarLabel(item)">
+        Parecido
+      </span>
+    } @else {
+      <span class="settings-cell-empty">—</span>
+    }
   </td>
   <td>
     <span class="settings-badge" [ngClass]="getStatusClass(item.status)">
       {{ getStatusLabel(item.status) }}
     </span>
+  </td>
+  <td>
+    <div class="settings-table-actions">
+      <button
+        *hasPermission="vendorDeletePermission"
+        type="button"
+        class="settings-table-action settings-table-action--danger"
+        (click)="deleteVendor(item, $event)">
+        Eliminar
+      </button>
+    </div>
   </td>
 </ng-template>

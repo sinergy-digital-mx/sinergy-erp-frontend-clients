@@ -34,6 +34,7 @@ import {
   Pencil,
   FileText,
   X,
+  Plus,
   Undo2,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -97,9 +98,17 @@ import {
   mixedSelectedCount,
   mixedRemainderMxn,
   mixedRemainderTarget,
+  mixedSelectedParts,
   applyMixedRemainderToLast,
   fillMixedMethodWithRemainder,
   MixedPaymentType,
+  MixedPartId,
+  addMixedCardPayment,
+  enableMixedCard,
+  disableMixedCard,
+  removeMixedCardPayment,
+  setMixedCardReference,
+  MAX_MIXED_CARD_PAYMENTS,
   sumCashDenominations,
   syncCashFormFromReceived,
   validateCollectForm,
@@ -118,6 +127,7 @@ import {
 } from '../../models/pos-collected-sales.model';
 import { PosSaleReceipt } from '../../models/pos-receipt.model';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
+import { posCollectionCardRows } from '../../models/pos-sale-collection.model';
 import { PosReceiptPrintService } from '../../services/pos-receipt-print.service';
 import { PosPrinterSettingsDialogComponent } from '../../components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
 import { PosReceiptPreviewDialogComponent } from '../../components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
@@ -196,6 +206,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly FileText = FileText;
   readonly X = X;
   readonly Undo2 = Undo2;
+  readonly Plus = Plus;
 
   pendingSales = signal<PendingSale[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);
@@ -841,10 +852,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         next.mixedCashMxn = 0;
         next.mixedTransferMxn = 0;
         next.mixedReceivedMxn = 0;
-        next.mixedCardMxn = 0;
+        next.mixedCardPayments = [];
         next.mixedCheckMxn = 0;
         next.mixedTransferRef = '';
-        next.mixedCardRef = '';
         next.mixedCheckRef = '';
       }
       return next;
@@ -852,7 +862,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.collectError.set(null);
   }
 
-  patchCollectForm(patch: Partial<PosCollectForm>, editedMixed?: MixedPaymentType): void {
+  patchCollectForm(patch: Partial<PosCollectForm>, editedMixed?: MixedPartId): void {
     this.collectForm.update((form) => {
       let next = { ...form, ...patch };
       if (patch.mixedCashMxn != null && next.mixedReceivedMxn < next.mixedCashMxn) {
@@ -877,14 +887,37 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     if (type === 'card') {
-      this.patchCollectForm({ mixedCardMxn: amount }, 'card');
+      this.onMixedCardAmountChange(0, value);
       return;
     }
     this.patchCollectForm({ mixedCheckMxn: amount }, 'check');
   }
 
-  applyMixedRemainderTo(type: MixedPaymentType): void {
-    this.collectForm.update((form) => fillMixedMethodWithRemainder(form, this.orderTotal(), type));
+  onMixedCardAmountChange(index: number, value: string | number | null): void {
+    const amount = this.parseMoneyInput(value);
+    const part: MixedPartId = `card:${index}`;
+    this.collectForm.update((form) =>
+      applyMixedRemainderToLast(
+        {
+          ...form,
+          mixedCardPayments: form.mixedCardPayments.map((card, cardIndex) =>
+            cardIndex === index ? { ...card, amountMxn: amount } : card,
+          ),
+        },
+        this.orderTotal(),
+        part,
+      ),
+    );
+    this.collectError.set(null);
+  }
+
+  onMixedCardRefChange(index: number, value: string): void {
+    this.collectForm.update((form) => setMixedCardReference(form, index, value));
+    this.collectError.set(null);
+  }
+
+  applyMixedRemainderTo(part: MixedPartId): void {
+    this.collectForm.update((form) => fillMixedMethodWithRemainder(form, this.orderTotal(), part));
     this.collectError.set(null);
   }
 
@@ -1002,9 +1035,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         next.mixedTransferRef = enabled ? next.mixedTransferRef : '';
       }
       if (type === 'card') {
-        next.mixedUsesCard = enabled;
-        next.mixedCardMxn = enabled ? next.mixedCardMxn : 0;
-        next.mixedCardRef = enabled ? next.mixedCardRef : '';
+        next = enabled ? enableMixedCard(next) : disableMixedCard(next);
       }
       if (type === 'check') {
         next.mixedUsesCheck = enabled;
@@ -1017,38 +1048,41 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.collectError.set(null);
   }
 
+  addMixedCard(): void {
+    this.collectForm.update((form) =>
+      applyMixedRemainderToLast(addMixedCardPayment(form), this.orderTotal(), null),
+    );
+    this.collectError.set(null);
+  }
+
+  removeMixedCard(index: number): void {
+    const onlyOne = this.collectForm().mixedCardPayments.length <= 1;
+    if (index === 0 && onlyOne) {
+      this.toggleMixedType('card', false);
+      return;
+    }
+    this.collectForm.update((form) =>
+      applyMixedRemainderToLast(removeMixedCardPayment(form, index), this.orderTotal(), null),
+    );
+    this.collectError.set(null);
+  }
+
+  canAddMixedCard(): boolean {
+    const form = this.collectForm();
+    return form.mixedUsesCard && form.mixedCardPayments.length < MAX_MIXED_CARD_PAYMENTS;
+  }
+
   mixedTypeCount(): number {
     return mixedSelectedCount(this.collectForm());
   }
 
-  mixedPartIndex(type: MixedPaymentType): number {
-    const form = this.collectForm();
-    let index = 0;
-    if (form.mixedUsesCash) {
-      index += 1;
-      if (type === 'cash') {
-        return index;
-      }
-    }
-    if (form.mixedUsesTransfer) {
-      index += 1;
-      if (type === 'transfer') {
-        return index;
-      }
-    }
-    if (form.mixedUsesCard) {
-      index += 1;
-      if (type === 'card') {
-        return index;
-      }
-    }
-    if (form.mixedUsesCheck) {
-      index += 1;
-      if (type === 'check') {
-        return index;
-      }
-    }
-    return index;
+  mixedPartIndex(part: MixedPartId): number {
+    const index = mixedSelectedParts(this.collectForm()).indexOf(part);
+    return index >= 0 ? index + 1 : 0;
+  }
+
+  mixedCardPart(index: number): MixedPartId {
+    return `card:${index}`;
   }
 
   mixedSummaryTone(): 'ok' | 'warn' | 'over' | '' {
@@ -1066,7 +1100,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   mixedStatusLabel(): string {
     if (this.mixedTypeCount() < 2) {
-      return 'Elige dos formas';
+      return 'Elige dos pagos';
     }
     if (this.mixedRemainder() > 0.009) {
       return `Falta ${this.formatCurrency(this.mixedRemainder())}`;
@@ -1647,6 +1681,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     const collection = (detail['collection'] ?? detail) as Record<string, unknown>;
     return collection && typeof collection === 'object' ? collection : null;
+  }
+
+  cardPaymentRows(pay: Record<string, unknown> | null | undefined) {
+    return posCollectionCardRows(pay);
   }
 
   moneyLabel(value: unknown): string {

@@ -19,12 +19,16 @@ export interface QuotationLineItem {
   quantity: number | string;
   unit_price: number | string;
   discount_percentage?: number | string;
+  product_discount_id?: string | null;
   line_subtotal?: number;
   line_discount_amount?: number;
+  line_iva?: number;
+  line_ieps?: number;
+  line_total?: number;
   iva_percentage?: number | string;
   ieps_percentage?: number | string;
   uom_name?: string;
-  product?: { id: string; name: string; sku?: string };
+  product?: { id: string; name: string; sku?: string; item_kind?: string };
   applied_product_discount?: { id: string; name?: string } | null;
 }
 
@@ -50,10 +54,18 @@ export interface Quotation {
   global_discount_amount?: number | string;
   notes?: string | null;
   created_at?: string;
+  expires_at?: string | null;
+  quotation_expiration_days?: number | null;
   expected_delivery_date?: string;
   razon_social?: string | null;
   sucursal?: string | null;
   fiscal_razon_social?: string | null;
+  fiscal_configuration_id?: string;
+  billing_branch_id?: string;
+  warehouse_id?: string | null;
+  customer_id?: number;
+  seller_user_id?: string | null;
+  global_discount_id?: string | null;
   customer?: QuotationCustomer;
   customer_display_name?: string;
   customer_summary?: QuotationCustomer;
@@ -67,6 +79,7 @@ export interface Quotation {
   can_convert?: boolean;
   can_cancel?: boolean;
   can_edit?: boolean;
+  can_edit_lines?: boolean;
   can_edit_notes?: boolean;
   can_send?: boolean;
   customer_email?: string | null;

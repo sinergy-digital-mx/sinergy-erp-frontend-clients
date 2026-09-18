@@ -11,6 +11,9 @@ import {
   VendorListResponse,
   VendorQueryParams,
   VendorsExportFilters,
+  CheckVendorDuplicatesDto,
+  VendorDuplicatesResponse,
+  DeleteVendorResult,
 } from '../models/vendor.model';
 
 @Injectable({
@@ -22,7 +25,15 @@ export class VendorService {
   private router = inject(Router);
 
   getVendors(params?: VendorQueryParams): Observable<VendorListResponse> {
-    return this.http.get<VendorListResponse>(`${this.api}/tenant/vendors`, { params: params as any });
+    let httpParams = new HttpParams();
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null && value !== '') {
+          httpParams = httpParams.set(key, String(value));
+        }
+      }
+    }
+    return this.http.get<VendorListResponse>(`${this.api}/tenant/vendors`, { params: httpParams });
   }
 
   /**
@@ -64,8 +75,12 @@ export class VendorService {
     return this.http.put<Vendor>(`${this.api}/tenant/vendors/${id}`, data);
   }
 
-  deleteVendor(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/tenant/vendors/${id}`);
+  deleteVendor(id: string): Observable<DeleteVendorResult> {
+    return this.http.delete<DeleteVendorResult>(`${this.api}/tenant/vendors/${id}`);
+  }
+
+  checkVendorDuplicates(payload: CheckVendorDuplicatesDto): Observable<VendorDuplicatesResponse> {
+    return this.http.post<VendorDuplicatesResponse>(`${this.api}/tenant/vendors/duplicates`, payload);
   }
 
   exportVendorsExcel(

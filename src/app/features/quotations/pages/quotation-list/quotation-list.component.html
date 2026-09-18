@@ -4,8 +4,18 @@
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
         <div>
           <h2 class="text-2xl font-semibold text-gray-800">Cotizaciones</h2>
-          @if (!isAdmin) {
-            <p class="text-sm text-gray-500 mt-1">Tus cotizaciones como vendedor o comisionado</p>
+          @if (!canViewAll || !canViewAllBranches) {
+            <p class="text-sm text-gray-500 mt-1">
+              @if (!canViewAll) {
+                Tus cotizaciones como vendedor o comisionado
+              }
+              @if (!canViewAll && !canViewAllBranches) {
+                ·
+              }
+              @if (!canViewAllBranches) {
+                Solo sucursales asignadas
+              }
+            </p>
           }
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -20,7 +30,8 @@
       <div class="mb-4">
         <app-sales-filter-bar
           mode="quotation"
-          [showSellerFilter]="isAdmin"
+          [showSellerFilter]="canViewAll"
+          [restrictBranchIds]="restrictBranchIds"
           [sellers]="sellers"
           [refreshing]="loading()"
           (filtersChange)="applyFilters($event)"
@@ -140,6 +151,9 @@
                   <span [ngClass]="typeClass(row.quotation_type)">{{ typeLabel(row.quotation_type) }}</span>
                 </div>
                 <div class="text-xs text-gray-500">{{ formatDateHuman(row.created_at) }}</div>
+                @if (row.expires_at && row.general_status === 'Creada') {
+                  <div class="text-xs text-gray-500">Vence: {{ formatDateHuman(row.expires_at) }}</div>
+                }
               </div>
             </div>
           }
@@ -181,5 +195,8 @@
   </td>
   <td class="w-[160px]">
     <p class="dt-cell-subtle m-0">{{ formatDateHuman(item.created_at) }}</p>
+  </td>
+  <td class="w-[120px]">
+    <p class="dt-cell-subtle m-0">{{ item.expires_at ? formatDateHuman(item.expires_at) : '—' }}</p>
   </td>
 </ng-template>

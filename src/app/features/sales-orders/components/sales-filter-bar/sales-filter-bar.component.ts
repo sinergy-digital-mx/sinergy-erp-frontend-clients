@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
@@ -18,12 +18,14 @@ import { formatPosUser } from '../../utils/pos-user-display.util';
   templateUrl: './sales-filter-bar.component.html',
   styleUrl: './sales-filter-bar.component.scss'
 })
-export class SalesFilterBarComponent implements OnInit, OnDestroy {
+export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() refreshing = false;
   /** `quotation` oculta pago/crédito y usa estados de cotización. */
   @Input() mode: 'sales' | 'quotation' = 'sales';
   @Input() showSellerFilter = false;
   @Input() sellers: PosUserSummary[] = [];
+  /** `null` = todas. Array = solo esas sucursales (cotizaciones sin ViewAllBranches). */
+  @Input() restrictBranchIds: string[] | null = null;
   @Output() filtersChange = new EventEmitter<SalesOrderFilters>();
   @Output() refresh = new EventEmitter<void>();
 
@@ -43,6 +45,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
 
   fiscalConfigurations: FiscalConfiguration[] = [];
   branches: Branch[] = [];
+  private allLoadedBranches: Branch[] = [];
 
   dateRangeOptions = [
     { label: 'Hoy', value: 'today' },
@@ -142,6 +145,16 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.sellerControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['restrictBranchIds'] && !changes['restrictBranchIds'].firstChange) {
+      this.applyBranchRestriction();
+    }
+  }
+
+  get allBranchesOptionLabel(): string {
+    return this.restrictBranchIds ? 'Tus sucursales' : 'Todas las sucursales';
+  }
+
   fiscalOptionLabel(fc: FiscalConfiguration): string {
     const name = fc.razon_social?.trim() || 'Sin razón social';
     const rfc = fc.rfc?.trim();
@@ -213,6 +226,7 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
     this.saleScopeControl.setValue('', { emitEvent: false });
     this.sellerControl.setValue('', { emitEvent: false });
     this.branches = [];
+    this.allLoadedBranches = [];
     this.showCustomDateRange = false;
     this.loadAllBranches();
     this.moreFilters?.close();
@@ -245,12 +259,10 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   private loadAllBranches(): void {
     this.branchService.getAllBranches().subscribe({
       next: (branches) => {
-        this.branches = Array.isArray(branches) ? branches : [];
-        this.cdr.detectChanges();
+        this.setLoadedBranches(Array.isArray(branches) ? branches : []);
       },
       error: () => {
-        this.branches = [];
-        this.cdr.detectChanges();
+        this.setLoadedBranches([]);
       },
     });
   }
@@ -273,14 +285,29 @@ export class SalesFilterBarComponent implements OnInit, OnDestroy {
   private loadBranches(fiscalConfigurationId: string): void {
     this.branchService.getBranches(fiscalConfigurationId).subscribe({
       next: (branches) => {
-        this.branches = Array.isArray(branches) ? branches : [];
-        this.cdr.detectChanges();
+        this.setLoadedBranches(Array.isArray(branches) ? branches : []);
       },
       error: () => {
-        this.branches = [];
-        this.cdr.detectChanges();
+        this.setLoadedBranches([]);
       },
     });
+  }
+
+  private setLoadedBranches(branches: Branch[]): void {
+    this.allLoadedBranches = branches;
+    this.applyBranchRestriction();
+  }
+
+  private applyBranchRestriction(): void {
+    const allowed = this.restrictBranchIds;
+    this.branches = allowed
+      ? this.allLoadedBranches.filter((branch) => allowed.includes(branch.id))
+      : this.allLoadedBranches;
+    const selected = this.billingBranchControl.value;
+    if (selected && this.branches.every((branch) => branch.id !== selected)) {
+      this.billingBranchControl.setValue('', { emitEvent: false });
+    }
+    this.cdr.detectChanges();
   }
 
   private emitFilters(): void {

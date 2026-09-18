@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -15,9 +15,14 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
+import { formatUnitAmount } from '../../../../core/utils/unit-money.util';
 import { QUOTATION_PERMISSIONS } from '../../config/permissions.config';
+import { EditSalesOrderLineDialogComponent } from '../../../sales-orders/components/edit-sales-order-line-dialog/edit-sales-order-line-dialog.component';
+import { AddSalesOrderLineDialogComponent } from '../../../sales-orders/components/add-sales-order-line-dialog/add-sales-order-line-dialog.component';
+import { SalesOrderLineItem } from '../../../sales-orders/models/sales-order.model';
 import {
   formatTitleCase,
   getSalesOrderListCompanyName,
@@ -329,20 +334,210 @@ export class QuotationDetailDialogComponent implements OnInit {
     return this.parseNumber(item.quantity);
   }
 
-  getLineTotal(item: QuotationLineItem): number {
-    const qty = this.parseNumber(item.quantity);
-    const unit = this.parseNumber(item.unit_price);
-    const discountPct = this.parseNumber(item.discount_percentage);
-    const taxable = unit * qty;
-    const discount = taxable * (discountPct / 100);
-    const discounted = Math.max(taxable - discount, 0);
-    const iva = discounted * (this.parseNumber(item.iva_percentage) / 100);
-    const ieps = discounted * (this.parseNumber(item.ieps_percentage) / 100);
-    return discounted + iva + ieps;
-  }
-
   canShowConvert(): boolean {
     return this.canConvertPerm && !!this.header()?.can_convert;
+  }
+
+  canEditLines = computed(() => {
+    const header = this.header();
+    if (!this.canUpdate || !header) return false;
+    if (typeof header.can_edit_lines === 'boolean') return header.can_edit_lines;
+    return !!header.can_edit;
+  });
+
+  getPaymentCurrency(): 'MXN' | 'USD' {
+    return 'MXN';
+  }
+
+  formatAmount(value: number | string | null | undefined): string {
+    return new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(this.parseNumber(value));
+  }
+
+  formatUnitPrice(value: number | string | null | undefined): string {
+    return formatUnitAmount(value);
+  }
+
+  hasLineIvaColumn(): boolean {
+    return this.lineItems().some(
+      (item) => this.parseNumber(item.iva_percentage) > 0 || this.parseNumber(item.line_iva) > 0,
+    );
+  }
+
+  hasLineIepsColumn(): boolean {
+    return this.lineItems().some(
+      (item) => this.parseNumber(item.ieps_percentage) > 0 || this.parseNumber(item.line_ieps) > 0,
+    );
+  }
+
+  hasLineTax(item: QuotationLineItem): boolean {
+    return this.getLineIvaAmount(item) > 0 || this.getLineIepsAmount(item) > 0;
+  }
+
+  getLineUnitPrice(item: QuotationLineItem): number {
+    return this.parseNumber(item.unit_price);
+  }
+
+  getLineSubtotal(item: QuotationLineItem): number {
+    if (item.line_subtotal != null) {
+      return this.parseNumber(item.line_subtotal);
+    }
+    return this.parseNumber(item.quantity) * this.parseNumber(item.unit_price);
+  }
+
+  getLineIvaPercent(item: QuotationLineItem): number {
+    return this.parseNumber(item.iva_percentage);
+  }
+
+  getLineIvaAmount(item: QuotationLineItem): number {
+    if (item.line_iva != null) {
+      return this.parseNumber(item.line_iva);
+    }
+    const taxable = Math.max(
+      this.getLineSubtotal(item) - this.parseNumber(item.line_discount_amount),
+      0,
+    );
+    return taxable * (this.getLineIvaPercent(item) / 100);
+  }
+
+  getLineIepsPercent(item: QuotationLineItem): number {
+    return this.parseNumber(item.ieps_percentage);
+  }
+
+  getLineIepsAmount(item: QuotationLineItem): number {
+    if (item.line_ieps != null) {
+      return this.parseNumber(item.line_ieps);
+    }
+    const taxable = Math.max(
+      this.getLineSubtotal(item) - this.parseNumber(item.line_discount_amount),
+      0,
+    );
+    return taxable * (this.getLineIepsPercent(item) / 100);
+  }
+
+  getLineGross(item: QuotationLineItem): number {
+    if (item.line_total != null) {
+      return this.parseNumber(item.line_total);
+    }
+    const taxable = Math.max(
+      this.getLineSubtotal(item) - this.parseNumber(item.line_discount_amount),
+      0,
+    );
+    return taxable + this.getLineIvaAmount(item) + this.getLineIepsAmount(item);
+  }
+
+  getProductsColspan(): number {
+    let count = 4;
+    if (this.hasLineIvaColumn()) count += 1;
+    if (this.hasLineIepsColumn()) count += 1;
+    if (this.canEditLines()) count += 1;
+    return count;
+  }
+
+  getTotalsSnapshot(): { subtotal: number; iva: number; ieps: number; total: number } {
+    const header = this.header();
+    return {
+      subtotal: this.parseNumber(header?.subtotal),
+      iva: this.parseNumber(header?.iva_total),
+      ieps: this.parseNumber(header?.ieps_total),
+      total: this.parseNumber(header?.total),
+    };
+  }
+
+  private applyLineMutation(updated: QuotationDetailPayload): void {
+    this.applyPayload(updated);
+  }
+
+  openEditLineItem(item: QuotationLineItem): void {
+    const q = this.header();
+    if (!q || !item.id || !this.canEditLines()) return;
+
+    this.dialog
+      .open(EditSalesOrderLineDialogComponent, {
+        width: '460px',
+        maxWidth: '95vw',
+        panelClass: 'po-line-dialog-panel',
+        autoFocus: 'first-tabbable',
+        data: {
+          quotationId: q.id,
+          folio: q.folio,
+          currency: this.getPaymentCurrency(),
+          lineItem: item as SalesOrderLineItem,
+        },
+      })
+      .afterClosed()
+      .subscribe((updated: QuotationDetailPayload | undefined) => {
+        if (!updated) return;
+        this.applyLineMutation(updated);
+        this.toast.success('Línea actualizada');
+      });
+  }
+
+  confirmDeleteLineItem(item: QuotationLineItem): void {
+    const q = this.header();
+    if (!q || !item.id || !this.canEditLines()) return;
+
+    const name = item.product?.name || 'este producto';
+    this.dialog
+      .open(AlertDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Eliminar producto',
+          message: `¿Eliminar ${name} de esta cotización? Se recalcularán los totales.`,
+          type: 'warning',
+          text_accept: 'Eliminar',
+          text_cancel: 'Cancelar',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.quotationService.deleteLineItem(q.id, String(item.id)).subscribe({
+          next: (updated) => {
+            this.applyLineMutation(updated);
+            this.toast.success('Producto eliminado');
+          },
+          error: (error: Error) => {
+            this.toast.error(error?.message || 'No se pudo eliminar la línea');
+          },
+        });
+      });
+  }
+
+  openAddLineItem(): void {
+    const q = this.header();
+    if (!q || !this.canEditLines()) return;
+
+    const fiscalId = q.fiscal_configuration_id || q.fiscal_configuration?.id;
+    const branchId = q.billing_branch_id || q.billing_branch?.id;
+    if (!fiscalId || !branchId) {
+      this.toast.error('La cotización no tiene razón social o sucursal');
+      return;
+    }
+
+    this.dialog
+      .open(AddSalesOrderLineDialogComponent, {
+        width: '760px',
+        maxWidth: '95vw',
+        panelClass: 'po-line-dialog-panel',
+        autoFocus: 'first-tabbable',
+        data: {
+          quotationId: q.id,
+          folio: q.folio,
+          currency: this.getPaymentCurrency(),
+          fiscal_configuration_id: fiscalId,
+          billing_branch_id: branchId,
+          sale_scope: 'combined',
+        },
+      })
+      .afterClosed()
+      .subscribe((updated: QuotationDetailPayload | undefined) => {
+        if (!updated) return;
+        this.applyLineMutation(updated);
+        this.toast.success('Producto agregado');
+      });
   }
 
   canShowCancel(): boolean {

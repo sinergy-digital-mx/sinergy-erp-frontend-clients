@@ -50,6 +50,11 @@
     <span [class]="item.prefix ? 'settings-cell-mono' : 'settings-cell-empty'">{{ item.prefix || '—' }}</span>
   </td>
   <td>
+    <span [class]="item.quotation_expiration_days ? 'settings-cell-mono' : 'settings-cell-empty'">
+      {{ expirationLabel(item) }}
+    </span>
+  </td>
+  <td>
     <span
       class="settings-badge"
       [class.settings-badge--count]="getBranchCount(item) > 0"

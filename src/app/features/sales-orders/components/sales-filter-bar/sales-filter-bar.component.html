@@ -58,7 +58,7 @@
             <div class="more-filters__field">
               <label class="more-filters__label" for="sales-filter-branch-modal">Sucursal</label>
               <select id="sales-filter-branch-modal" [formControl]="billingBranchControl" class="filter-bar__select" title="Sucursal">
-                <option value="">Todas las sucursales</option>
+                <option value="">{{ allBranchesOptionLabel }}</option>
                 @for (branch of branches; track branch.id) {
                   <option [value]="branch.id">{{ branchLabel(branch) }}</option>
                 }

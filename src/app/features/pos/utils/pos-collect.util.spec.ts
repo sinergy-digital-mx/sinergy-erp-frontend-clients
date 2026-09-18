@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addMixedCardPayment,
   applyMixedRemainderToLast,
+  buildCollectPayload,
   defaultCollectForm,
+  enableMixedCard,
   fillMixedMethodWithRemainder,
   mixedRemainderMxn,
   mixedRemainderTarget,
+  mixedSelectedCount,
   validateCollectForm,
 } from './pos-collect.util';
 
@@ -14,14 +18,15 @@ describe('pago mixto — resto automático', () => {
     let form = defaultCollectForm(total);
     form.paymentMethod = 'mixed';
     form.mixedUsesCash = true;
-    form.mixedUsesCard = true;
+    form = enableMixedCard(form);
+    form.mixedCardPayments = [{ amountMxn: 0, reference: '' }];
     form.mixedCashMxn = 12000;
 
     form = applyMixedRemainderToLast(form, total, 'cash');
 
-    expect(form.mixedCardMxn).toBe(904.99);
+    expect(form.mixedCardPayments[0].amountMxn).toBe(904.99);
     expect(mixedRemainderMxn(form, total)).toBe(0);
-    expect(mixedRemainderTarget(form)).toBe('card');
+    expect(mixedRemainderTarget(form)).toBe('card:0');
   });
 
   it('si el cajero edita el último método, no pisa ese monto', () => {
@@ -45,14 +50,14 @@ describe('pago mixto — resto automático', () => {
     form.paymentMethod = 'mixed';
     form.mixedUsesCash = true;
     form.mixedUsesTransfer = true;
-    form.mixedUsesCard = true;
+    form = enableMixedCard(form);
+    form.mixedCardPayments = [{ amountMxn: 0, reference: '' }];
     form.mixedCashMxn = 400;
     form.mixedTransferMxn = 150;
-    form.mixedCardMxn = 0;
 
-    form = fillMixedMethodWithRemainder(form, total, 'card');
+    form = fillMixedMethodWithRemainder(form, total, 'card:0');
 
-    expect(form.mixedCardMxn).toBe(450);
+    expect(form.mixedCardPayments[0].amountMxn).toBe(450);
   });
 
   it('exige número de cheque en mixto', () => {
@@ -69,5 +74,40 @@ describe('pago mixto — resto automático', () => {
 
     form.mixedCheckRef = 'CH-1';
     expect(validateCollectForm(form, total)).toBeNull();
+  });
+
+  it('dos tarjetas cubren el mixto sin otra forma', () => {
+    const total = 830.5;
+    let form = defaultCollectForm(total);
+    form.paymentMethod = 'mixed';
+    form = enableMixedCard(form);
+    expect(form.mixedCardPayments).toHaveLength(2);
+    expect(mixedSelectedCount(form)).toBe(2);
+
+    form.mixedCardPayments = [
+      { amountMxn: 400, reference: '4242' },
+      { amountMxn: 430.5, reference: '1111' },
+    ];
+
+    expect(validateCollectForm(form, total)).toBeNull();
+
+    const payload = buildCollectPayload(form, total);
+    expect(payload.payment_method).toBe('mixed');
+    expect(payload.amount_card_mxn).toBe(830.5);
+    expect(payload.card_payments).toEqual([
+      { amount_mxn: 400, reference: '4242' },
+      { amount_mxn: 430.5, reference: '1111' },
+    ]);
+  });
+
+  it('agregar otra tarjeta cuenta como un pago más', () => {
+    let form = defaultCollectForm(1000);
+    form.paymentMethod = 'mixed';
+    form.mixedUsesCash = true;
+    form = enableMixedCard(form);
+    expect(form.mixedCardPayments).toHaveLength(1);
+    form = addMixedCardPayment(form);
+    expect(form.mixedCardPayments).toHaveLength(2);
+    expect(mixedSelectedCount(form)).toBe(3);
   });
 });

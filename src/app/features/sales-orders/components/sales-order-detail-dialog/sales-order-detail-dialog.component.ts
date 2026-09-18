@@ -36,6 +36,7 @@ import {
 } from '../../utils/sales-order-document.util';
 import {
   PosSaleCollection,
+  posCollectionCardRows as buildPosCollectionCardRows,
   posCollectionMethodLabel,
   posCollectionMoneyLabel,
   posCollectionUsdLabel,
@@ -84,6 +85,7 @@ import { ELECTRONIC_INVOICING_PERMISSIONS } from '../../config/electronic-invoic
 import { SalesOrderInvoicingTabComponent } from '../sales-order-invoicing-tab/sales-order-invoicing-tab.component';
 import { SalesOrderInvoiceEmailTabComponent } from '../sales-order-invoice-email-tab/sales-order-invoice-email-tab.component';
 import { SalesOrderShippingTabComponent } from '../sales-order-shipping-tab/sales-order-shipping-tab.component';
+import { SalesOrderCreditTabComponent } from '../sales-order-credit-tab/sales-order-credit-tab.component';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
 import { countVigenteInvoices } from '../../utils/cfdi-xml-builder.util';
 import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
@@ -104,6 +106,7 @@ import { AddSalesOrderLineDialogComponent } from '../add-sales-order-line-dialog
     SalesOrderInvoicingTabComponent,
     SalesOrderInvoiceEmailTabComponent,
     SalesOrderShippingTabComponent,
+    SalesOrderCreditTabComponent,
   ],
   templateUrl: './sales-order-detail-dialog.component.html',
   styleUrl: './sales-order-detail-dialog.component.scss',
@@ -1187,6 +1190,10 @@ export class SalesOrderDetailDialogComponent {
 
   posCollectionMoney(value: unknown): string {
     return posCollectionMoneyLabel(value);
+  }
+
+  posCollectionCardRows(pay: PosSaleCollection) {
+    return buildPosCollectionCardRows(pay);
   }
 
   posCollectionUsd(value: unknown): string {

@@ -13,10 +13,11 @@
   &__header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     padding: 1rem;
     border-bottom: 1px solid #e5e7eb;
     flex-shrink: 0;
+    gap: 1rem;
 
     h2 {
       margin: 0;
@@ -36,6 +37,13 @@
         color: #1f2937;
       }
     }
+  }
+
+  &__title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
   }
 
   &__body {
@@ -58,12 +66,103 @@
   &__footer {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 0.75rem;
     padding: 1rem;
     border-top: 1px solid #e5e7eb;
     background-color: #f9fafb;
     flex-shrink: 0;
   }
+
+  &__footer-spacer {
+    flex: 1 1 auto;
+  }
+
+  &__delete {
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #dc2626;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      color: #b91c1c;
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+  }
+}
+
+.vendor-completeness {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 160px;
+  max-width: 240px;
+}
+
+.vendor-completeness__bar {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #ef4444;
+  }
+}
+
+.vendor-completeness[data-level='mid'] .vendor-completeness__bar span {
+  background: #f59e0b;
+}
+
+.vendor-completeness[data-level='high'] .vendor-completeness__bar span {
+  background: #16a34a;
+}
+
+.vendor-completeness__value {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.vendor-similar-banner {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #fdba74;
+  background: #fff7ed;
+}
+
+.vendor-similar-banner__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #c2410c;
+}
+
+.vendor-similar-banner__text,
+.vendor-similar-banner__hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: #9a3412;
+}
+
+.vendor-similar-banner__hint {
+  color: #c2410c;
+  opacity: 0.85;
 }
 
 @media (max-width: 640px) {

@@ -3,16 +3,19 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, Observable, takeUntil } from 'rxjs';
 import { LucideAngularModule, ExternalLink } from 'lucide-angular';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { SalesOrderDetailPayload } from '../../models/sales-order.model';
 import { SalesOrderPaymentCurrency } from '../../models/sales-order-payment.model';
 import { SalesOrderService } from '../../services/sales-order.service';
+import { QuotationDetailPayload } from '../../../quotations/models/quotation.model';
+import { QuotationService } from '../../../quotations/services/quotation.service';
 
 export interface AddSalesOrderLineDialogData {
-  orderId: string;
+  orderId?: string;
+  quotationId?: string;
   folio?: string;
   currency: SalesOrderPaymentCurrency;
   fiscal_configuration_id: string;
@@ -49,8 +52,12 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddSalesOrderLineDialogData,
-    private dialogRef: MatDialogRef<AddSalesOrderLineDialogComponent, SalesOrderDetailPayload | undefined>,
+    private dialogRef: MatDialogRef<
+      AddSalesOrderLineDialogComponent,
+      SalesOrderDetailPayload | QuotationDetailPayload | undefined
+    >,
     private salesOrderService: SalesOrderService,
+    private quotationService: QuotationService,
     private dialog: MatDialog,
     private cdr: ChangeDetectorRef
   ) {}
@@ -187,35 +194,43 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     this.errorMessage.set('');
 
-    this.salesOrderService
-      .createLineItem(this.data.orderId, {
-        product_id: this.selectedProduct.product_id || this.selectedProduct.id,
-        product_uom_id: this.selectedUomId,
-        quantity,
-        unit_price: unitPrice,
-        iva_percentage: iva,
-        ieps_percentage: ieps,
-      })
-      .subscribe({
-        next: (payload) => this.dialogRef.close(payload),
-        error: (err: Error) => {
-          this.errorMessage.set(err.message || 'No se pudo agregar el producto');
-          this.saving.set(false);
-        },
-      });
+    const body = {
+      product_id: this.selectedProduct.product_id || this.selectedProduct.id,
+      product_uom_id: this.selectedUomId,
+      quantity,
+      unit_price: unitPrice,
+      iva_percentage: iva,
+      ieps_percentage: ieps,
+    };
+    const request$ = (
+      this.data.quotationId
+        ? this.quotationService.createLineItem(this.data.quotationId, body)
+        : this.salesOrderService.createLineItem(String(this.data.orderId), body)
+    ) as Observable<SalesOrderDetailPayload | QuotationDetailPayload>;
+
+    request$.subscribe({
+      next: (payload) => this.dialogRef.close(payload),
+      error: (err: Error) => {
+        this.errorMessage.set(err.message || 'No se pudo agregar el producto');
+        this.saving.set(false);
+      },
+    });
   }
 
   private loadProducts(search = ''): void {
     this.loadingProducts.set(true);
-    this.salesOrderService
-      .getProductsSummary({
-        fiscal_configuration_id: this.data.fiscal_configuration_id,
-        billing_branch_id: this.data.billing_branch_id,
-        search: search.trim() || undefined,
-        limit: 80,
-        sale_scope: this.data.sale_scope || 'inventory',
-      })
-      .subscribe({
+    const params = {
+      fiscal_configuration_id: this.data.fiscal_configuration_id,
+      billing_branch_id: this.data.billing_branch_id,
+      search: search.trim() || undefined,
+      limit: 80,
+      sale_scope: this.data.sale_scope || 'inventory',
+    };
+    const request$ = this.data.quotationId
+      ? this.quotationService.getProductsSummary(params)
+      : this.salesOrderService.getProductsSummary(params);
+
+    request$.subscribe({
         next: (res: any) => {
           this.products = this.normalizeProducts(res);
           this.loadingProducts.set(false);

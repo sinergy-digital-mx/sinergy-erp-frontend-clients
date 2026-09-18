@@ -12,6 +12,7 @@ export interface CollectedSalePayment {
   transfer_reference?: string | null;
   amount_card_mxn?: number | string;
   card_reference?: string | null;
+  card_payments?: Array<{ amount_mxn?: number | string; reference?: string | null }>;
   amount_check_mxn?: number | string;
   check_reference?: string | null;
   amount_credit_mxn?: number | string;

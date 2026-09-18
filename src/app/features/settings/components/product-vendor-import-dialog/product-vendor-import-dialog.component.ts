@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { EMPTY, Subject, of } from 'rxjs';
 import {
@@ -21,12 +21,6 @@ import {
   VendorCatalogImportPreview,
   VendorCatalogImportResult,
 } from '../../models/product.model';
-
-export type ProductVendorImportMode = 'costs' | 'prices';
-
-export interface ProductVendorImportDialogData {
-  mode?: ProductVendorImportMode;
-}
 
 const XLSX_ACCEPT =
   '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -65,25 +59,12 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
   private readonly productService = inject(ProductService);
   private readonly vendorService = inject(VendorService);
   private readonly toast = inject(ToastService);
-  private readonly data = inject<ProductVendorImportDialogData | null>(MAT_DIALOG_DATA, {
-    optional: true,
-  });
 
-  readonly mode = signal<ProductVendorImportMode>(this.data?.mode ?? 'costs');
-  readonly isPrices = computed(() => this.mode() === 'prices');
   readonly acceptTypes = XLSX_ACCEPT;
-
   readonly title = 'Importar';
-
-  readonly disclaimer = computed(() =>
-    this.isPrices()
-      ? 'Solo cambia el precio de venta en la lista. No afecta órdenes de compra ni de venta pasadas.'
-      : 'Solo cambia el costo actual del producto. No afecta órdenes de compra ni de venta pasadas.'
-  );
-
-  readonly importLabel = computed(() =>
-    this.isPrices() ? 'Importar precios' : 'Importar costos'
-  );
+  readonly importLabel = 'Importar';
+  readonly disclaimer =
+    'Llena Nuevo costo y/o Nuevo precio en el mismo Excel. Vacío = no cambia esa columna. No afecta órdenes de compra ni de venta pasadas.';
 
   readonly previewText = computed(() => {
     const preview = this.preview();
@@ -95,12 +76,13 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
 
   readonly fieldsLocked = computed(() => this.importing() || this.downloading());
 
-  readonly canDownloadTemplate = computed(() => {
-    if (this.importing() || this.downloading() || !this.selectedVendor()) {
-      return false;
-    }
-    return !this.isPrices() || !!this.selectedPriceListId();
-  });
+  readonly canDownloadTemplate = computed(
+    () =>
+      !this.importing() &&
+      !this.downloading() &&
+      !!this.selectedVendor() &&
+      !!this.selectedPriceListId()
+  );
 
   readonly canImport = computed(() => this.canDownloadTemplate() && !!this.selectedFile());
 
@@ -123,26 +105,7 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
       this.clearImportState();
       this.preview$.next();
     });
-    if (this.isPrices()) {
-      this.loadPriceLists();
-    }
-  }
-
-  setMode(mode: ProductVendorImportMode): void {
-    if (this.fieldsLocked() || this.mode() === mode) {
-      return;
-    }
-    this.mode.set(mode);
-    if (mode === 'prices') {
-      this.ensurePriceListsLoaded();
-    } else {
-      this.priceListCtrl.setValue('', { emitEvent: false });
-      this.selectedPriceListId.set('');
-    }
-    this.clearImportState();
-    this.preview.set(null);
-    this.previewError.set('');
-    this.preview$.next();
+    this.loadPriceLists();
   }
 
   ngOnDestroy(): void {
@@ -179,27 +142,27 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
       return;
     }
     const vendorId = this.selectedVendor()?.id;
-    if (!vendorId) {
+    const priceListId = this.selectedPriceListId();
+    if (!vendorId || !priceListId) {
       return;
     }
 
     this.downloading.set(true);
     this.errorMessage.set('');
 
-    const request$ = this.isPrices()
-      ? this.productService.downloadVendorPriceTemplate(vendorId, this.selectedPriceListId())
-      : this.productService.downloadVendorCostTemplate(vendorId);
-
-    request$.pipe(takeUntil(this.destroy$)).subscribe({
-      next: ({ blob, filename }) => {
-        triggerBrowserDownload(blob, filename);
-        this.downloading.set(false);
-      },
-      error: (err: Error) => {
-        this.downloading.set(false);
-        this.errorMessage.set(err.message || 'No se pudo descargar el archivo');
-      },
-    });
+    this.productService
+      .downloadVendorCatalogTemplate(vendorId, priceListId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ blob, filename }) => {
+          triggerBrowserDownload(blob, filename);
+          this.downloading.set(false);
+        },
+        error: (err: Error) => {
+          this.downloading.set(false);
+          this.errorMessage.set(err.message || 'No se pudo descargar el archivo');
+        },
+      });
   }
 
   onDragOver(event: DragEvent): void {
@@ -249,8 +212,9 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
       return;
     }
     const vendorId = this.selectedVendor()?.id;
+    const priceListId = this.selectedPriceListId();
     const file = this.selectedFile();
-    if (!vendorId || !file) {
+    if (!vendorId || !priceListId || !file) {
       return;
     }
 
@@ -258,17 +222,16 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
     this.errorMessage.set('');
     this.result.set(null);
 
-    const request$ = this.isPrices()
-      ? this.productService.importVendorPrices(vendorId, this.selectedPriceListId(), file)
-      : this.productService.importVendorCosts(vendorId, file);
-
-    request$.pipe(takeUntil(this.destroy$)).subscribe({
-      next: (result) => this.handleImportResult(result),
-      error: (err: Error) => {
-        this.importing.set(false);
-        this.errorMessage.set(err.message || 'No se pudo importar el archivo');
-      },
-    });
+    this.productService
+      .importVendorCatalog(vendorId, priceListId, file)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => this.handleImportResult(result),
+        error: (err: Error) => {
+          this.importing.set(false);
+          this.errorMessage.set(err.message || 'No se pudo importar el archivo');
+        },
+      });
   }
 
   cancel(): void {
@@ -300,12 +263,8 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
       .pipe(
         switchMap(() => {
           const vendor = this.selectedVendor();
-          if (!vendor?.id) {
-            this.preview.set(null);
-            this.previewLoading.set(false);
-            return EMPTY;
-          }
-          if (this.isPrices() && !this.selectedPriceListId()) {
+          const priceListId = this.selectedPriceListId();
+          if (!vendor?.id || !priceListId) {
             this.preview.set(null);
             this.previewLoading.set(false);
             return EMPTY;
@@ -314,11 +273,7 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
           this.previewLoading.set(true);
           this.previewError.set('');
 
-          const request$ = this.isPrices()
-            ? this.productService.previewVendorPrices(vendor.id, this.selectedPriceListId())
-            : this.productService.previewVendorCosts(vendor.id);
-
-          return request$.pipe(
+          return this.productService.previewVendorCatalog(vendor.id, priceListId).pipe(
             catchError((err: Error) => {
               this.preview.set(null);
               this.previewError.set(
@@ -361,13 +316,6 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
       });
   }
 
-  private ensurePriceListsLoaded(): void {
-    if (this.priceLists().length || this.loadingPriceLists()) {
-      return;
-    }
-    this.loadPriceLists();
-  }
-
   private loadPriceLists(): void {
     this.loadingPriceLists.set(true);
     this.productService
@@ -377,6 +325,12 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
         next: (lists) => {
           this.priceLists.set(lists ?? []);
           this.loadingPriceLists.set(false);
+          if (!this.priceListCtrl.value) {
+            const preferred = lists.find((list) => list.is_default) ?? lists[0];
+            if (preferred?.id) {
+              this.priceListCtrl.setValue(preferred.id);
+            }
+          }
         },
         error: () => {
           this.priceLists.set([]);
@@ -427,6 +381,19 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
 }
 
 export function formatImportSummary(result: VendorCatalogImportResult): string {
+  if (result.costs_updated != null || result.prices_updated != null) {
+    const parts = [
+      `${result.costs_updated ?? 0} costos actualizados`,
+      `${result.prices_updated ?? 0} precios actualizados`,
+    ];
+    const created = result.prices_created ?? result.created;
+    if (created > 0) {
+      parts.push(`${created} precios creados`);
+    }
+    parts.push(`${result.skipped} sin cambios`);
+    return parts.join(', ');
+  }
+
   const parts = [`${result.updated} actualizados`];
   if (result.created > 0) {
     parts.push(`${result.created} creados`);

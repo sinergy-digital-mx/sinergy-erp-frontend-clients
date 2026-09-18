@@ -2,6 +2,18 @@ export type VendorType = 'NATIONAL' | 'INTERNATIONAL';
 
 export type VendorPersonaType = 'Persona Física' | 'Persona Moral';
 
+export type VendorMatchReason = 'rfc' | 'tax_id' | 'name' | 'company' | 'bank';
+
+export interface VendorSimilarMatch {
+  id: string;
+  name: string;
+  company_name?: string | null;
+  rfc?: string | null;
+  tax_id?: string | null;
+  match_reasons: VendorMatchReason[];
+  score: number;
+}
+
 export interface Vendor {
   id: string;
   tenant_id: string;
@@ -33,6 +45,34 @@ export interface Vendor {
   credit_limit?: string | number;
   created_at: string;
   updated_at: string;
+  profile_completeness?: number;
+  looks_similar?: boolean;
+  similar_vendors?: VendorSimilarMatch[];
+}
+
+export interface VendorDuplicatesResponse {
+  found: boolean;
+  matches: VendorSimilarMatch[];
+}
+
+export interface CheckVendorDuplicatesDto {
+  name?: string;
+  company_name?: string;
+  razon_social?: string;
+  legal_name?: string;
+  rfc?: string;
+  tax_id?: string;
+  bank_clabe?: string;
+  bank_iban?: string;
+  bank_account_number?: string;
+}
+
+export interface DeleteVendorResult {
+  action: 'deleted' | 'merged' | 'deactivated';
+  vendor_id: string;
+  merged_into?: { id: string; name: string };
+  purchase_orders_reassigned: number;
+  message: string;
 }
 
 export interface CreateVendorDto {
@@ -81,6 +121,7 @@ export interface VendorQueryParams {
   state?: string;
   country?: string;
   vendor_type?: VendorType;
+  similar_only?: boolean;
 }
 
 /** Filtros del listado reutilizados en GET /tenant/vendors/export/excel */

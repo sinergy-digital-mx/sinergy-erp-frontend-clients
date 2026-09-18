@@ -20,6 +20,7 @@ export interface PosSaleCollection {
   transfer_reference?: string | null;
   amount_card_mxn?: number | string;
   card_reference?: string | null;
+  card_payments?: Array<{ amount_mxn?: number | string; reference?: string | null }>;
   amount_check_mxn?: number | string;
   check_reference?: string | null;
   amount_credit_mxn?: number | string;
@@ -28,6 +29,47 @@ export interface PosSaleCollection {
   change_cash_mxn?: number | string;
   change_cash_usd?: number | string;
   collected_at?: string;
+}
+
+export type PosCardPaymentRow = {
+  amount_mxn: number;
+  reference: string | null;
+};
+
+export function posCollectionCardRows(
+  pay:
+    | Pick<PosSaleCollection, 'amount_card_mxn' | 'card_reference' | 'card_payments'>
+    | Record<string, unknown>
+    | null
+    | undefined,
+): PosCardPaymentRow[] {
+  if (!pay) {
+    return [];
+  }
+  const record = pay as Record<string, unknown>;
+  const raw = record['card_payments'];
+  if (Array.isArray(raw) && raw.length > 0) {
+    return raw
+      .map((item) => {
+        const row = (item ?? {}) as Record<string, unknown>;
+        return {
+          amount_mxn: Number(row['amount_mxn'] ?? 0),
+          reference: row['reference'] != null && String(row['reference']).trim()
+            ? String(row['reference']).trim()
+            : null,
+        };
+      })
+      .filter((item) => item.amount_mxn > 0);
+  }
+  const amount = Number(record['amount_card_mxn'] ?? 0);
+  if (!(amount > 0)) {
+    return [];
+  }
+  const reference =
+    record['card_reference'] != null && String(record['card_reference']).trim()
+      ? String(record['card_reference']).trim()
+      : null;
+  return [{ amount_mxn: amount, reference }];
 }
 
 export function normalizePosSaleCollection(raw: unknown): PosSaleCollection | null {

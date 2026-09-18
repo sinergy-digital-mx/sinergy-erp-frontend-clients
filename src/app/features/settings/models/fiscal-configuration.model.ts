@@ -5,6 +5,7 @@ export interface FiscalConfiguration {
   razon_social: string;
   rfc: string;
   prefix?: string | null;
+  quotation_expiration_days?: number | null;
   persona_type: 'Persona Física' | 'Persona Moral';
   branches_count?: number;
   branch_count?: number;
@@ -30,6 +31,7 @@ export interface CreateFiscalConfigurationDto {
   razon_social: string;
   rfc: string;
   prefix?: string | null;
+  quotation_expiration_days?: number | null;
   persona_type: 'Persona Física' | 'Persona Moral';
   fiscal_regime?: string;
   digital_seal?: string;

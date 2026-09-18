@@ -53,3 +53,43 @@ export function creditsFromCustomer(customer?: Customer | null): CustomerFiscalC
   }
   return [];
 }
+
+/** Crédito de una razón social: fila de `credits[]` o campos aplanados del GET. */
+export function pickCustomerCreditForFiscal(
+  customer: Customer | null | undefined,
+  fiscalConfigurationId: string | null | undefined,
+): CustomerFiscalCredit | null {
+  if (!customer) {
+    return null;
+  }
+
+  const fiscalId = fiscalConfigurationId?.trim() || '';
+  const rows = creditsFromCustomer(customer);
+  if (fiscalId) {
+    const match = rows.find((row) => String(row.fiscal_configuration_id) === fiscalId);
+    if (match) {
+      return match;
+    }
+  }
+
+  if (
+    customer.credit_enabled == null &&
+    customer.credit_amount == null &&
+    customer.credit_used == null &&
+    !fiscalId
+  ) {
+    return rows[0] ?? null;
+  }
+
+  return {
+    fiscal_configuration_id: fiscalId || String(rows[0]?.fiscal_configuration_id || ''),
+    razon_social: rows[0]?.razon_social,
+    rfc: rows[0]?.rfc,
+    credit_enabled: customer.credit_enabled,
+    credit_days: customer.credit_days,
+    credit_amount: customer.credit_amount,
+    credit_used: customer.credit_used,
+    credit_available: customer.credit_available,
+    credit_usage_percent: customer.credit_usage_percent,
+  };
+}
