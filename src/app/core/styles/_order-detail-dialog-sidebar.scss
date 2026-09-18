@@ -266,6 +266,15 @@
     word-break: break-word;
   }
 
+  .invoice-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
   .toggle-container {
     display: inline-flex;
     gap: 0.125rem;

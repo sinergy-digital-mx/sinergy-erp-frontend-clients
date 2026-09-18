@@ -67,14 +67,34 @@
           }
 
           <div class="form-field full-width">
-            <label for="vendor-invoice">No. Factura de Proveedor</label>
-            <input
-              type="text"
-              id="vendor-invoice"
-              formControlName="vendor_invoice_number"
-              placeholder="No. factura de proveedor"
-              [attr.maxlength]="vendorInvoiceMaxLength"
-            />
+            <label>No. Factura de Proveedor</label>
+            @for (invoice of vendorInvoiceInputs(); track $index) {
+              <div class="invoice-row">
+                <input
+                  type="text"
+                  [attr.id]="'vendor-invoice-' + $index"
+                  placeholder="No. factura de proveedor"
+                  [attr.maxlength]="vendorInvoiceMaxLength"
+                  [ngModel]="invoice"
+                  (ngModelChange)="updateVendorInvoice($index, $event)"
+                  [ngModelOptions]="{standalone: true}"
+                />
+                @if (vendorInvoiceInputs().length > 1) {
+                  <button
+                    type="button"
+                    class="invoice-row__remove"
+                    aria-label="Quitar factura"
+                    (click)="removeVendorInvoice($index)">
+                    ×
+                  </button>
+                }
+              </div>
+            }
+            @if (canAddVendorInvoice()) {
+              <button type="button" class="invoice-add" (click)="addVendorInvoice()">
+                + Agregar factura
+              </button>
+            }
           </div>
 
           <div class="form-field">

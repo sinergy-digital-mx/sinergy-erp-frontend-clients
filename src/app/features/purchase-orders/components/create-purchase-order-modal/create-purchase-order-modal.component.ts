@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, ChangeDetectorRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -22,8 +22,10 @@ import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialo
 import {
   catalogInputNumber,
   formatVendorPickerLabel,
+  collectVendorInvoiceInputs,
   PEDIMENTO_MAX_LENGTH,
   sortVendorsByLabel,
+  VENDOR_INVOICE_MAX_COUNT,
   VENDOR_INVOICE_MAX_LENGTH,
 } from '../../utils/purchase-order-display.util';
 import { VendorCatalogProduct, VendorCatalogUom } from '../../models/vendor-catalog.model';
@@ -91,6 +93,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   readonly ChevronDown = ChevronDown;
   readonly pedimentoMaxLength = PEDIMENTO_MAX_LENGTH;
   readonly vendorInvoiceMaxLength = VENDOR_INVOICE_MAX_LENGTH;
+  readonly vendorInvoiceMaxCount = VENDOR_INVOICE_MAX_COUNT;
+  vendorInvoiceInputs = signal<string[]>(['']);
   selectedVendor: (Vendor & { display_name?: string }) | null = null;
 
   constructor(
@@ -115,7 +119,6 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       expected_delivery_date: ['', Validators.required],
       payment_status: ['Pendiente', Validators.required],
       pedimento_number: ['', [Validators.maxLength(PEDIMENTO_MAX_LENGTH)]],
-      vendor_invoice_number: ['', [Validators.maxLength(VENDOR_INVOICE_MAX_LENGTH)]],
       notes: ['']
     });
   }
@@ -329,6 +332,30 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
 
   get isInternationalVendor(): boolean {
     return this.selectedVendor?.vendor_type === 'INTERNATIONAL';
+  }
+
+  canAddVendorInvoice(): boolean {
+    return this.vendorInvoiceInputs().length < this.vendorInvoiceMaxCount;
+  }
+
+  addVendorInvoice(): void {
+    if (!this.canAddVendorInvoice()) {
+      return;
+    }
+    this.vendorInvoiceInputs.update((current) => [...current, '']);
+  }
+
+  removeVendorInvoice(index: number): void {
+    this.vendorInvoiceInputs.update((current) => {
+      const next = current.filter((_, i) => i !== index);
+      return next.length ? next : [''];
+    });
+  }
+
+  updateVendorInvoice(index: number, value: string): void {
+    this.vendorInvoiceInputs.update((current) =>
+      current.map((item, i) => (i === index ? value : item))
+    );
   }
 
   openCreateVendor(): void {
@@ -766,8 +793,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       const pedimento = String(fv.pedimento_number || '').trim();
       payload.pedimento_number = pedimento || null;
     }
-    const vendorInvoice = String(fv.vendor_invoice_number || '').trim();
-    payload.vendor_invoice_number = vendorInvoice || null;
+    payload.vendor_invoice_numbers = collectVendorInvoiceInputs(this.vendorInvoiceInputs());
 
     this.purchaseOrderService.createOrder(payload).subscribe({
       next: (order) => {

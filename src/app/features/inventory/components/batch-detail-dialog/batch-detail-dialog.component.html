@@ -128,14 +128,18 @@
             </div>
           }
 
-          @if (vendorInvoiceNumber) {
+          @if (vendorInvoiceNumbers.length) {
             <div class="info-card info-card--code info-card--vendor-invoice">
               <div class="info-card__icon">
                 <lucide-icon [img]="FileText" class="w-5 h-5"></lucide-icon>
               </div>
               <div class="info-card__content">
                 <span class="info-card__label">NO. FACTURA DE PROVEEDOR</span>
-                <span class="info-card__value">{{ formatVendorInvoice(vendorInvoiceNumber) }}</span>
+                <span class="info-card__value">
+                  @for (invoice of vendorInvoiceNumbers; track invoice) {
+                    <span class="info-card__invoice">{{ invoice }}</span>
+                  }
+                </span>
               </div>
             </div>
           }

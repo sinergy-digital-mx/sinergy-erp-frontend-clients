@@ -730,20 +730,22 @@ export class PurchaseOrderService {
   }
 
   /**
-   * Actualiza solo la factura de proveedor (PATCH /purchase-orders/:id/vendor-invoice).
+   * Actualiza las facturas de proveedor (PATCH /purchase-orders/:id/vendor-invoice).
    * Permitido en Creada y Recibida; bloqueado en Cancelada.
    */
   updateOrderVendorInvoice(
     orderId: string,
-    vendorInvoiceNumber: string | null
-  ): Observable<{ vendor_invoice_number: string | null }> {
-    const value = vendorInvoiceNumber?.trim() ? vendorInvoiceNumber.trim() : null;
+    vendorInvoiceNumbers: string[]
+  ): Observable<{ vendor_invoice_number: string | null; vendor_invoice_numbers: string[] }> {
+    const numbers = vendorInvoiceNumbers
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
     return this.http
       .patch<unknown>(`${this.baseUrl}/${orderId}/vendor-invoice`, {
-        vendor_invoice_number: value,
+        vendor_invoice_numbers: numbers,
       })
       .pipe(
-        map((response) => this.parseVendorInvoicePatchResponse(response, value)),
+        map((response) => this.parseVendorInvoicePatchResponse(response, numbers)),
         catchError((error) => this.handleError(error))
       );
   }
@@ -821,10 +823,22 @@ export class PurchaseOrderService {
 
   private parseVendorInvoicePatchResponse(
     response: unknown,
-    fallback: string | null
-  ): { vendor_invoice_number: string | null } {
+    fallback: string[]
+  ): { vendor_invoice_number: string | null; vendor_invoice_numbers: string[] } {
+    const fromList = (value: unknown): string[] | null => {
+      if (!Array.isArray(value)) {
+        return null;
+      }
+      return value
+        .map((item) => String(item ?? '').trim())
+        .filter((item) => item.length > 0);
+    };
+
     if (!response || typeof response !== 'object') {
-      return { vendor_invoice_number: fallback };
+      return {
+        vendor_invoice_number: fallback[0] ?? null,
+        vendor_invoice_numbers: fallback,
+      };
     }
 
     const body = response as Record<string, unknown>;
@@ -834,27 +848,30 @@ export class PurchaseOrderService {
         ? (data as Record<string, unknown>)['header']
         : undefined;
 
-    const candidates = [
-      body['vendor_invoice_number'],
+    const listCandidates = [
+      body['vendor_invoice_numbers'],
       data && typeof data === 'object' && !Array.isArray(data)
-        ? (data as Record<string, unknown>)['vendor_invoice_number']
+        ? (data as Record<string, unknown>)['vendor_invoice_numbers']
         : undefined,
       header && typeof header === 'object' && !Array.isArray(header)
-        ? (header as Record<string, unknown>)['vendor_invoice_number']
+        ? (header as Record<string, unknown>)['vendor_invoice_numbers']
         : undefined,
     ];
 
-    for (const value of candidates) {
-      if (value === null) {
-        return { vendor_invoice_number: null };
-      }
-      if (typeof value === 'string') {
-        const trimmed = value.trim();
-        return { vendor_invoice_number: trimmed ? trimmed : null };
+    for (const value of listCandidates) {
+      const parsed = fromList(value);
+      if (parsed) {
+        return {
+          vendor_invoice_number: parsed[0] ?? null,
+          vendor_invoice_numbers: parsed,
+        };
       }
     }
 
-    return { vendor_invoice_number: fallback };
+    return {
+      vendor_invoice_number: fallback[0] ?? null,
+      vendor_invoice_numbers: fallback,
+    };
   }
 
   /**

@@ -374,6 +374,17 @@ export class BatchDetailDialogComponent implements OnInit {
     return value || null;
   }
 
+  get vendorInvoiceNumbers(): string[] {
+    const batch = this.batch();
+    if (Array.isArray(batch?.vendor_invoice_numbers) && batch.vendor_invoice_numbers.length) {
+      return batch.vendor_invoice_numbers
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
+    }
+    const single = this.vendorInvoiceNumber;
+    return single ? [single] : [];
+  }
+
   formatPedimento(value?: string | null): string {
     return formatPedimentoDisplay(value);
   }

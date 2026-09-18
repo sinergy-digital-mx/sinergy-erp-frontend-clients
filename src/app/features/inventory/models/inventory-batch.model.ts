@@ -90,6 +90,7 @@ export interface InventoryBatch {
   pedimento_number?: string | null;
   /** Factura del proveedor de la OC de origen. */
   vendor_invoice_number?: string | null;
+  vendor_invoice_numbers?: string[] | null;
   payment_currency?: 'MXN' | 'USD' | null;
   unit_cost?: number | string | null;
   real_unit_cost_usd?: number | string | null;

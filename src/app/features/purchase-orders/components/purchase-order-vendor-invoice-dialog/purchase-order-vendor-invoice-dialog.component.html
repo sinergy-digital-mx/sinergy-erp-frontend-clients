@@ -12,19 +12,43 @@
   </div>
 
   <div class="pedimento-dialog__body">
-    <label class="pedimento-dialog__label" for="purchase-order-vendor-invoice-input">
-      No. factura de proveedor
-    </label>
-    <input
-      id="purchase-order-vendor-invoice-input"
-      type="text"
-      class="pedimento-dialog__input"
-      placeholder="No. factura de proveedor"
-      [attr.maxlength]="maxLength"
-      [ngModel]="invoiceText()"
-      (ngModelChange)="invoiceText.set($event)"
-      [disabled]="saving()">
-    <p class="pedimento-dialog__hint">Máximo {{ maxLength }} caracteres. Deja vacío y guarda para borrar la factura.</p>
+    <p class="pedimento-dialog__label">No. factura de proveedor</p>
+    @for (invoice of invoiceInputs(); track $index) {
+      <div class="invoice-row">
+        <input
+          type="text"
+          class="pedimento-dialog__input"
+          [attr.id]="'purchase-order-vendor-invoice-input-' + $index"
+          placeholder="No. factura de proveedor"
+          [attr.maxlength]="maxLength"
+          [ngModel]="invoice"
+          (ngModelChange)="updateInvoice($index, $event)"
+          [disabled]="saving()">
+        @if (invoiceInputs().length > 1) {
+          <button
+            type="button"
+            class="invoice-row__remove"
+            aria-label="Quitar factura"
+            [disabled]="saving()"
+            (click)="removeInvoice($index)">
+            <i class="fi fi-rr-trash"></i>
+          </button>
+        }
+      </div>
+    }
+    @if (canAddMore()) {
+      <button
+        type="button"
+        class="invoice-add"
+        [disabled]="saving()"
+        (click)="addInvoice()">
+        + Agregar factura
+      </button>
+    }
+    <p class="pedimento-dialog__hint">
+      Máximo {{ maxLength }} caracteres por factura. Puedes registrar hasta {{ maxCount }}.
+      Deja todas vacías y guarda para borrarlas.
+    </p>
     @if (errorMessage()) {
       <p class="pedimento-dialog__error" role="alert">{{ errorMessage() }}</p>
     }

@@ -44,6 +44,7 @@ import {
   formatPurchaseOrderUnitCost,
   formatVendorInvoiceDisplay,
   isInternationalPurchaseOrder,
+  resolveVendorInvoiceNumbers,
   parsePurchaseOrderDecimal,
 } from '../../utils/purchase-order-display.util';
 import {
@@ -383,6 +384,10 @@ export class OrderDetailDialogComponent {
     return formatVendorInvoiceDisplay(value);
   }
 
+  vendorInvoiceNumbers(): string[] {
+    return resolveVendorInvoiceNumbers(this.order());
+  }
+
   openVendorInvoiceEditor(): void {
     const order = this.order();
     if (!order || !this.canEditVendorInvoice()) {
@@ -391,11 +396,12 @@ export class OrderDetailDialogComponent {
 
     this.dialog
       .open(PurchaseOrderVendorInvoiceDialogComponent, {
-        width: '440px',
+        width: '480px',
         maxWidth: '95vw',
         autoFocus: 'input',
         data: {
           orderId: order.id,
+          vendorInvoiceNumbers: order.vendor_invoice_numbers,
           vendorInvoiceNumber: order.vendor_invoice_number ?? '',
           folio: order.folio,
         },
@@ -408,13 +414,19 @@ export class OrderDetailDialogComponent {
 
         this.order.update((current) =>
           current
-            ? { ...current, vendor_invoice_number: result.vendor_invoice_number }
+            ? {
+                ...current,
+                vendor_invoice_number: result.vendor_invoice_number,
+                vendor_invoice_numbers: result.vendor_invoice_numbers,
+              }
             : current
         );
         this.toast.success(
-          result.vendor_invoice_number
-            ? 'Factura de proveedor actualizada'
-            : 'Factura de proveedor eliminada'
+          result.vendor_invoice_numbers.length
+            ? result.vendor_invoice_numbers.length > 1
+              ? 'Facturas de proveedor actualizadas'
+              : 'Factura de proveedor actualizada'
+            : 'Facturas de proveedor eliminadas'
         );
       });
   }

@@ -4,6 +4,7 @@ import { formatTitleCase } from '../../sales-orders/utils/sales-order-display.ut
 
 export const PEDIMENTO_MAX_LENGTH = 30;
 export const VENDOR_INVOICE_MAX_LENGTH = 60;
+export const VENDOR_INVOICE_MAX_COUNT = 20;
 
 export function parsePurchaseOrderDecimal(value: number | string | null | undefined): number {
   if (value === null || value === undefined || value === '') {
@@ -45,6 +46,47 @@ export function formatPedimentoDisplay(value?: string | null): string {
 export function formatVendorInvoiceDisplay(value?: string | null): string {
   const trimmed = value?.trim() ?? '';
   return trimmed || 'Sin factura de proveedor';
+}
+
+export function resolveVendorInvoiceNumbers(order?: {
+  vendor_invoice_numbers?: string[] | null;
+  vendor_invoice_number?: string | null;
+} | null): string[] {
+  if (Array.isArray(order?.vendor_invoice_numbers)) {
+    return order.vendor_invoice_numbers
+      .map((value) => String(value ?? '').trim())
+      .filter((value) => value.length > 0);
+  }
+  const single = order?.vendor_invoice_number?.trim() ?? '';
+  return single ? [single] : [];
+}
+
+export function collectVendorInvoiceInputs(
+  values: Array<string | null | undefined>,
+): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const trimmed = String(value ?? '').trim();
+    if (!trimmed) {
+      continue;
+    }
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(trimmed);
+  }
+  return result;
+}
+
+export function vendorInvoiceDraftFromOrder(order?: {
+  vendor_invoice_numbers?: string[] | null;
+  vendor_invoice_number?: string | null;
+} | null): string[] {
+  const numbers = resolveVendorInvoiceNumbers(order);
+  return numbers.length ? [...numbers] : [''];
 }
 
 export function getPurchaseOrderListFiscalLabel(order: PurchaseOrder): string {

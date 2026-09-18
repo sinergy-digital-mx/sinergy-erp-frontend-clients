@@ -9,7 +9,8 @@ El pedimento **no se guarda en el lote**. Vive en la orden de compra. El lote ya
 | Campo | Tipo | Cuándo viene |
 |-------|------|----------------|
 | `pedimento_number` | `string \| null` | Pedimento de la OC de origen. `null` si no hay OC, o la OC no tiene pedimento. |
-| `vendor_invoice_number` | `string \| null` | Factura del proveedor de la OC. `null` si no hay OC o no hay factura. |
+| `vendor_invoice_number` | `string \| null` | Primera factura del proveedor de la OC. `null` si no hay OC o no hay factura. |
+| `vendor_invoice_numbers` | `string[]` | Todas las facturas de la OC. Vacío si no hay OC o no hay facturas. |
 
 Sigue igual: `purchase_order_id`, `purchase_order_folio`.
 

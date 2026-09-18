@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
@@ -29,8 +29,11 @@ import {
   catalogInputNumber,
   formatVendorPickerLabel,
   isInternationalPurchaseOrder,
+  collectVendorInvoiceInputs,
   PEDIMENTO_MAX_LENGTH,
   sortVendorsByLabel,
+  vendorInvoiceDraftFromOrder,
+  VENDOR_INVOICE_MAX_COUNT,
   VENDOR_INVOICE_MAX_LENGTH,
 } from '../../utils/purchase-order-display.util';
 import {
@@ -42,7 +45,7 @@ import {
 @Component({
   selector: 'app-purchase-order-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SpinnerComponent, PolluxErrorStateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, SpinnerComponent, PolluxErrorStateComponent],
   templateUrl: './purchase-order-form.component.html',
   styleUrls: ['./purchase-order-form.component.scss']
 })
@@ -58,6 +61,8 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
   loadedOrder = signal<PurchaseOrder | null>(null);
   readonly pedimentoMaxLength = PEDIMENTO_MAX_LENGTH;
   readonly vendorInvoiceMaxLength = VENDOR_INVOICE_MAX_LENGTH;
+  readonly vendorInvoiceMaxCount = VENDOR_INVOICE_MAX_COUNT;
+  vendorInvoiceInputs = signal<string[]>(['']);
 
   vendors = signal<Vendor[]>([]);
   fiscalConfigurations = signal<FiscalConfiguration[]>([]);
@@ -118,6 +123,8 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       order?.fiscal_configuration?.id ??
       '';
 
+    this.vendorInvoiceInputs.set(vendorInvoiceDraftFromOrder(order));
+
     this.orderForm = this.fb.group({
       fiscal_configuration_id: [fiscalId, Validators.required],
       vendor_id: [order?.vendor_id || '', Validators.required],
@@ -129,7 +136,6 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       ],
       payment_status: [this.paymentStatusToForm(order?.payment_status)],
       pedimento_number: [order?.pedimento_number ?? '', [Validators.maxLength(PEDIMENTO_MAX_LENGTH)]],
-      vendor_invoice_number: [order?.vendor_invoice_number ?? '', [Validators.maxLength(VENDOR_INVOICE_MAX_LENGTH)]],
       line_items: this.fb.array([], Validators.minLength(1))
     });
 
@@ -326,6 +332,30 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     return this.vendors().some((vendor) => vendor.id === vendorId && vendor.vendor_type === 'INTERNATIONAL');
   }
 
+  canAddVendorInvoice(): boolean {
+    return this.vendorInvoiceInputs().length < this.vendorInvoiceMaxCount;
+  }
+
+  addVendorInvoice(): void {
+    if (!this.canAddVendorInvoice()) {
+      return;
+    }
+    this.vendorInvoiceInputs.update((current) => [...current, '']);
+  }
+
+  removeVendorInvoice(index: number): void {
+    this.vendorInvoiceInputs.update((current) => {
+      const next = current.filter((_, i) => i !== index);
+      return next.length ? next : [''];
+    });
+  }
+
+  updateVendorInvoice(index: number, value: string): void {
+    this.vendorInvoiceInputs.update((current) =>
+      current.map((item, i) => (i === index ? value : item))
+    );
+  }
+
   onProductSelect(index: number, productId: string): void {
     const vp = this.getVendorProduct(productId);
     if (vp?.uoms?.length) {
@@ -470,10 +500,7 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       const pedimento = String(rawForm.pedimento_number || '').trim();
       body.pedimento_number = pedimento || null;
     }
-    const vendorInvoice = String(
-      (this.orderForm!.getRawValue() as { vendor_invoice_number?: string }).vendor_invoice_number || '',
-    ).trim();
-    body.vendor_invoice_number = vendorInvoice || null;
+    body.vendor_invoice_numbers = collectVendorInvoiceInputs(this.vendorInvoiceInputs());
 
     return body;
   }

@@ -1,7 +1,7 @@
 .pedimento-dialog {
   display: flex;
   flex-direction: column;
-  min-width: min(100%, 22rem);
+  min-width: min(100%, 24rem);
 }
 
 .pedimento-dialog__header {
@@ -79,6 +79,63 @@
 
   &:disabled {
     background: #f8fafc;
+    cursor: not-allowed;
+  }
+}
+
+.invoice-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .pedimento-dialog__input {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.invoice-row__remove {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.invoice-add {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: #1d4ed8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
   }
 }

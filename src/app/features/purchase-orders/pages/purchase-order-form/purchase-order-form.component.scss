@@ -342,4 +342,50 @@
       }
     }
   }
+
+  .invoice-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+
+    input {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  .invoice-row__remove {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+    color: #6b7280;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 1.1rem;
+    line-height: 1;
+
+    &:hover {
+      background: #fef2f2;
+      color: #dc2626;
+      border-color: #fecaca;
+    }
+  }
+
+  .invoice-add {
+    margin-top: 0.45rem;
+    border: none;
+    background: transparent;
+    color: #2563eb;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+
+    &:hover {
+      color: #1d4ed8;
+    }
+  }
 }
