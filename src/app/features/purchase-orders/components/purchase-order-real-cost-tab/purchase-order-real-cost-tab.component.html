@@ -222,6 +222,14 @@
       <strong class="aduana-card__usd">{{ formatAmount(merchandiseUsd()) }}</strong>
       <strong class="aduana-card__mxn">{{ formatAmount(merchandiseMxn()) }}</strong>
       <span class="aduana-card__note">USD × T.C. aduana</span>
+
+      <span class="aduana-card__label aduana-card__label--spaced">Gastos</span>
+      <strong class="aduana-card__usd">{{ formatAmount(extrasUsd()) }}</strong>
+      <strong class="aduana-card__mxn">{{ formatAmount(extrasMxn()) }}</strong>
+
+      <span class="aduana-card__label aduana-card__label--spaced">Total final</span>
+      <strong class="aduana-card__usd aduana-card__total">{{ formatAmount(totalUsd()) }}</strong>
+      <strong class="aduana-card__mxn aduana-card__total">{{ formatAmount(totalMxn()) }}</strong>
     </aside>
   </section>
 </div>

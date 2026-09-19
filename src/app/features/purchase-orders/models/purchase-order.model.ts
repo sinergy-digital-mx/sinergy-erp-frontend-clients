@@ -312,6 +312,9 @@ export interface PurchaseOrder {
   landed_increment_percentage?: number | string | null;
   landed_merchandise_mxn?: number | string | null;
   landed_extras_mxn?: number | string | null;
+  landed_extras_usd?: number | string | null;
+  landed_total_usd?: number | string | null;
+  landed_total_mxn?: number | string | null;
   extra_costs_count?: number;
   extra_costs?: PurchaseOrderExtraCost[];
   line_items: LineItem[];

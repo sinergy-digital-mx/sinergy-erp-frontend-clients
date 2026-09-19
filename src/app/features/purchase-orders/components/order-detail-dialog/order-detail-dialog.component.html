@@ -301,6 +301,21 @@
               <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedTotalAmount() }" />
             </span>
           </div>
+          @if (hasLandedExpenseTotals()) {
+            <div class="totals-divider"></div>
+            <div class="totals-row">
+              <span class="totals-label">Gastos</span>
+              <span class="totals-value">
+                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedExtrasAmount() }" />
+              </span>
+            </div>
+            <div class="totals-row totals-row-total totals-row-final">
+              <span class="totals-label-total">Total final</span>
+              <span class="totals-value-total">
+                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedLandedTotalAmount() }" />
+              </span>
+            </div>
+          }
         </div>
 
         <div class="section-card section-card--notes">
@@ -671,7 +686,8 @@
             <div class="tab-content-wrapper tab-content-wrapper--dense">
               <app-purchase-order-real-cost-tab
                 [order]="order()!"
-                (saved)="onRealCostSaved($event)">
+                (saved)="onRealCostSaved($event)"
+                (previewChange)="onRealCostPreview($event)">
               </app-purchase-order-real-cost-tab>
             </div>
           }

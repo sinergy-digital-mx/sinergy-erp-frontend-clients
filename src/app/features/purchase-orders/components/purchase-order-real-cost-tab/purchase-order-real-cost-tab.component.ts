@@ -59,6 +59,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
 
   @Input({ required: true }) order!: PurchaseOrder;
   @Output() saved = new EventEmitter<PurchaseOrder>();
+  @Output() previewChange = new EventEmitter<RealCostPreview>();
 
   readonly extras = signal<ExtraCostDraft[]>([]);
   readonly igiByLineId = signal<Record<string, number | null>>({});
@@ -71,6 +72,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['order'] && this.order) {
       this.hydrate(this.order);
+      this.emitPreview();
     }
   }
 
@@ -111,8 +113,12 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
     return this.preview().increment_percentage;
   }
 
-  extrasMxn(): number {
+  extrasMxn(): number | null {
     return this.preview().extras_mxn;
+  }
+
+  extrasUsd(): number | null {
+    return this.preview().extras_usd;
   }
 
   merchandiseUsd(): number | null {
@@ -121,6 +127,14 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
 
   merchandiseMxn(): number | null {
     return this.preview().merchandise_mxn;
+  }
+
+  totalUsd(): number | null {
+    return this.preview().total_usd;
+  }
+
+  totalMxn(): number | null {
+    return this.preview().total_mxn;
   }
 
   realImporteTotalMxn(): number {
@@ -169,6 +183,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
 
   setLineIgi(item: LineItem, value: number | null): void {
     this.igiByLineId.update((current) => ({ ...current, [item.id]: value }));
+    this.emitPreview();
   }
 
   addExtra(): void {
@@ -186,6 +201,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
         preset: false,
       },
     ]);
+    this.emitPreview();
   }
 
   removeExtra(uid: string): void {
@@ -193,6 +209,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
       return;
     }
     this.extras.update((rows) => rows.filter((row) => row.uid !== uid || row.preset));
+    this.emitPreview();
   }
 
   setExtraConcept(uid: string, concept: string): void {
@@ -224,6 +241,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
         };
       })
     );
+    this.emitPreview();
   }
 
   onCustomsRateChange(): void {
@@ -236,6 +254,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
         return { ...row, usd: convertExtraAmount(row.mxn, 'MXN', 'USD', rate) };
       })
     );
+    this.emitPreview();
   }
 
   save(): void {
@@ -343,9 +362,14 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
           this.customsExchangeRate = rate.exchange_rate;
           this.onCustomsRateChange();
         }
+        this.emitPreview();
       },
       error: () => undefined,
     });
+  }
+
+  private emitPreview(): void {
+    queueMicrotask(() => this.previewChange.emit(this.preview()));
   }
 
   private extraForPreview(
@@ -376,12 +400,8 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
       if (amount == null || amount === 0) {
         continue;
       }
-      if (!concept) {
-        this.toast.error('Cada gasto necesita un concepto');
-        return null;
-      }
       extras.push({
-        concept: concept.slice(0, 120),
+        concept: (concept || 'Gasto').slice(0, 120),
         amount,
         currency: row.lastEdited,
       });

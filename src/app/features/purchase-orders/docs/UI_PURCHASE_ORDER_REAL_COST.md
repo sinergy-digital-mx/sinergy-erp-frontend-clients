@@ -14,4 +14,12 @@ T.C. de aduana (`customs_exchange_rate`), no el del día al facturar.
 
 USD rojo = `real_unit_cost_usd`. MXN verde = `real_unit_cost_mxn`.
 
+Totales de análisis (no cambian pagos ni `requested_total`):
+
+- GET: `landed_extras_usd`, `landed_total_usd`, `landed_total_mxn`
+- Sidebar **TOTALES**: Gastos + Total final si hay gastos
+- Recuadro valor aduana: mercancía, Gastos y Total final (preview en vivo)
+
+Si un gasto tiene monto y el concepto va vacío, se guarda como `Gasto`.
+
 Lote: `src/app/features/inventory/docs/UI_INVENTORY_BATCH_COST.md`

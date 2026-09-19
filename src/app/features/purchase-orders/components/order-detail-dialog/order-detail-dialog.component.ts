@@ -47,6 +47,7 @@ import {
   resolveVendorInvoiceNumbers,
   parsePurchaseOrderDecimal,
 } from '../../utils/purchase-order-display.util';
+import { RealCostPreview } from '../../utils/purchase-order-real-cost-preview.util';
 import {
   PurchaseOrderPedimentoDialogComponent,
   PurchaseOrderPedimentoDialogResult,
@@ -83,6 +84,7 @@ export class OrderDetailDialogComponent {
   loading = signal<boolean>(true);
   refreshing = signal(false);
   activeTabIndex = signal<number>(0);
+  liveRealCostPreview = signal<RealCostPreview | null>(null);
   showReceivedTotals = signal<boolean>(false);
   regeneratingPDF = signal<boolean>(false);
   regeneratingReceipt = signal<boolean>(false);
@@ -475,6 +477,19 @@ export class OrderDetailDialogComponent {
     return this.parseNumber(this.showReceivedTotals() ? order.received_total : order.requested_total);
   }
 
+  displayedExtrasAmount(): number {
+    return this.parseNumber(this.landedAmountInPaymentCurrency('extras'));
+  }
+
+  displayedLandedTotalAmount(): number {
+    return this.parseNumber(this.landedAmountInPaymentCurrency('total'));
+  }
+
+  hasLandedExpenseTotals(): boolean {
+    const extras = this.landedAmountInPaymentCurrency('extras');
+    return extras != null && extras > 0;
+  }
+
   hasDisplayedIva(): boolean {
     return this.displayedIvaAmount() > 0;
   }
@@ -679,6 +694,37 @@ export class OrderDetailDialogComponent {
     if (value === null || value === undefined) return 0;
     const parsed = typeof value === 'string' ? parseFloat(value) : value;
     return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
+  }
+
+  private landedAmountInPaymentCurrency(kind: 'extras' | 'total'): number | null {
+    const currency = this.getPaymentCurrency();
+    const preview = this.activeTabIndex() === 3 ? this.liveRealCostPreview() : null;
+    if (preview) {
+      const live = currency === 'USD'
+        ? (kind === 'extras' ? preview.extras_usd : preview.total_usd)
+        : (kind === 'extras' ? preview.extras_mxn : preview.total_mxn);
+      return live;
+    }
+    const order = this.order();
+    if (!order) {
+      return null;
+    }
+    if (currency === 'USD') {
+      return this.parseNullableNumber(
+        kind === 'extras' ? order.landed_extras_usd : order.landed_total_usd,
+      );
+    }
+    return this.parseNullableNumber(
+      kind === 'extras' ? order.landed_extras_mxn : order.landed_total_mxn,
+    );
+  }
+
+  private parseNullableNumber(value: number | string | null | undefined): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    const parsed = typeof value === 'string' ? parseFloat(value) : value;
+    return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : null;
   }
 
   getPaymentCurrency(): 'MXN' | 'USD' {
@@ -1030,6 +1076,10 @@ export class OrderDetailDialogComponent {
       return order.extra_costs_count;
     }
     return order?.extra_costs?.length ?? 0;
+  }
+
+  onRealCostPreview(preview: RealCostPreview): void {
+    this.liveRealCostPreview.set(preview);
   }
 
   onRealCostSaved(updated: PurchaseOrder): void {

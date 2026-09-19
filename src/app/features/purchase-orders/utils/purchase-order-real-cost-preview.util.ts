@@ -23,9 +23,12 @@ export interface RealCostPreviewLine {
 
 export interface RealCostPreview {
   increment_percentage: number;
-  extras_mxn: number;
+  extras_mxn: number | null;
+  extras_usd: number | null;
   merchandise_usd: number | null;
   merchandise_mxn: number | null;
+  total_usd: number | null;
+  total_mxn: number | null;
   lines: RealCostPreviewLine[];
 }
 
@@ -42,6 +45,26 @@ function convert(
     return null;
   }
   return from === 'USD' ? amount * rate : amount / rate;
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function sumConvertedExtras(
+  extras: RealCostPreviewExtraInput[],
+  to: PaymentCurrency,
+  rate: number | null
+): number | null {
+  let sum = 0;
+  for (const extra of extras) {
+    const converted = convert(extra.amount, extra.currency, to, rate);
+    if (converted == null) {
+      return null;
+    }
+    sum += converted;
+  }
+  return roundMoney(sum);
 }
 
 /** Misma fórmula que la hoja / el backend, para pintar en vivo. */
@@ -62,18 +85,32 @@ export function previewPurchaseOrderRealCost(input: {
   );
   const merchandiseMxn = convert(merchandiseVendor, input.payment_currency, 'MXN', rate);
   const merchandiseUsd = convert(merchandiseVendor, input.payment_currency, 'USD', rate);
-  const extrasMxn = extras.reduce((sum, extra) => {
-    const converted = convert(extra.amount, extra.currency, 'MXN', rate);
-    return converted == null ? sum : sum + converted;
-  }, 0);
-  const merchandiseForRatio = merchandiseMxn ?? merchandiseVendor;
-  const incrementRatio = merchandiseForRatio > 0 && extrasMxn > 0 ? extrasMxn / merchandiseForRatio : 0;
+  const extrasMxn = sumConvertedExtras(extras, 'MXN', rate);
+  const extrasUsd =
+    extrasMxn != null && rate != null
+      ? roundMoney(extrasMxn / rate)
+      : sumConvertedExtras(extras, 'USD', rate);
+  const merchandiseMxnRounded = merchandiseMxn == null ? null : roundMoney(merchandiseMxn);
+  const merchandiseUsdRounded = merchandiseUsd == null ? null : roundMoney(merchandiseUsd);
+  const extrasMxnForRatio = extrasMxn ?? 0;
+  const merchandiseForRatio = merchandiseMxnRounded ?? merchandiseVendor;
+  const incrementRatio =
+    merchandiseForRatio > 0 && extrasMxnForRatio > 0 ? extrasMxnForRatio / merchandiseForRatio : 0;
 
   return {
     increment_percentage: incrementRatio * 100,
     extras_mxn: extrasMxn,
-    merchandise_usd: merchandiseUsd,
-    merchandise_mxn: merchandiseMxn,
+    extras_usd: extrasUsd,
+    merchandise_usd: merchandiseUsdRounded,
+    merchandise_mxn: merchandiseMxnRounded,
+    total_usd:
+      merchandiseUsdRounded != null && extrasUsd != null
+        ? roundMoney(merchandiseUsdRounded + extrasUsd)
+        : null,
+    total_mxn:
+      merchandiseMxnRounded != null && extrasMxn != null
+        ? roundMoney(merchandiseMxnRounded + extrasMxn)
+        : null,
     lines: input.lines.map((line) => {
       const taxed = line.vendor_unit_cost * (1 + Math.max(line.igi_percentage, 0) / 100);
       const landed = taxed * (1 + incrementRatio);
