@@ -211,25 +211,47 @@
           <tr>
             <td>TOTAL</td>
             <td class="col-money">{{ formatAmount(extrasMxn()) }}</td>
-            <td colspan="2"></td>
+            <td class="col-money">{{ formatAmount(extrasUsd()) }}</td>
+            <td></td>
           </tr>
         </tfoot>
       </table>
     </div>
 
-    <aside class="aduana-card">
-      <span class="aduana-card__label">Valor aduana</span>
-      <strong class="aduana-card__usd">{{ formatAmount(merchandiseUsd()) }}</strong>
-      <strong class="aduana-card__mxn">{{ formatAmount(merchandiseMxn()) }}</strong>
-      <span class="aduana-card__note">USD × T.C. aduana</span>
-
-      <span class="aduana-card__label aduana-card__label--spaced">Gastos</span>
-      <strong class="aduana-card__usd">{{ formatAmount(extrasUsd()) }}</strong>
-      <strong class="aduana-card__mxn">{{ formatAmount(extrasMxn()) }}</strong>
-
-      <span class="aduana-card__label aduana-card__label--spaced">Total final</span>
-      <strong class="aduana-card__usd aduana-card__total">{{ formatAmount(totalUsd()) }}</strong>
-      <strong class="aduana-card__mxn aduana-card__total">{{ formatAmount(totalMxn()) }}</strong>
+    <aside class="landed-summary">
+      <table class="landed-summary__table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>
+              <span class="currency-badge currency-badge--usd">USD</span>
+            </th>
+            <th>
+              <span class="currency-badge">MXN</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Valor aduana</td>
+            <td class="col-money">{{ formatAmount(merchandiseUsd()) }}</td>
+            <td class="col-money">{{ formatAmount(merchandiseMxn()) }}</td>
+          </tr>
+          <tr>
+            <td>Gastos</td>
+            <td class="col-money">{{ formatAmount(extrasUsd()) }}</td>
+            <td class="col-money">{{ formatAmount(extrasMxn()) }}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total final</td>
+            <td class="col-money">{{ formatAmount(totalUsd()) }}</td>
+            <td class="col-money">{{ formatAmount(totalMxn()) }}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <p class="landed-summary__note">USD × T.C. aduana</p>
     </aside>
   </section>
 </div>

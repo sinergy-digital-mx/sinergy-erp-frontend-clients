@@ -18,7 +18,7 @@ Totales de análisis (no cambian pagos ni `requested_total`):
 
 - GET: `landed_extras_usd`, `landed_total_usd`, `landed_total_mxn`
 - Sidebar **TOTALES**: Gastos + Total final si hay gastos
-- Recuadro valor aduana: mercancía, Gastos y Total final (preview en vivo)
+- Resumen al lado de Gastos: Valor aduana, Gastos y Total final, con badge USD / MXN (preview en vivo)
 
 Si un gasto tiene monto y el concepto va vacío, se guarda como `Gasto`.
 
