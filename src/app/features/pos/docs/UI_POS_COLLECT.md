@@ -19,6 +19,8 @@ Al escribir un monto, el último método marcado recibe la diferencia. Crédito 
 
 Inputs de monto (efectivo manual, mixto, TC, etc.): vacíos si el valor es 0. Nunca mostrar `0` para no obligar a borrar antes de teclear. Placeholder `0.00`.
 
+En tarjeta, el campo opcional es **Número de voucher** (referencia del ticket de la terminal). No pedir últimos 4 dígitos.
+
 ## Ticket
 
 Al cobrar (si está activo “Imprimir ticket al confirmar cobro”) se abre el modal de vista previa. Ahí eliges **Copias** (1–5) y pulsas Imprimir. Recuerda la última cantidad.

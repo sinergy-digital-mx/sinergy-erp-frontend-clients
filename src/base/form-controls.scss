@@ -23,13 +23,14 @@ $pollux-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   color: $pollux-control-text;
   background: $pollux-control-bg;
   box-sizing: border-box;
+  cursor: text;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &::placeholder {
     color: $pollux-control-placeholder;
   }
 
-  &:hover:not(:disabled):not(:read-only) {
+  &:hover:not(:disabled):not([readonly]) {
     border-color: $pollux-control-border-hover;
   }
 
@@ -39,10 +40,14 @@ $pollux-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     box-shadow: 0 0 0 3px $pollux-control-focus-ring;
   }
 
-  &:disabled,
-  &:read-only:not(:focus) {
+  &:disabled {
     background: #f9fafb;
     cursor: not-allowed;
+  }
+
+  &[readonly] {
+    background: #f9fafb;
+    cursor: default;
   }
 }
 

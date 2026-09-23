@@ -131,8 +131,9 @@ export function deriveCashPaymentSplit(
 ): { amountCashMxn: number; amountCashUsd: number } {
   const amountCashMxn = roundMoney(Math.min(receivedMxn, orderTotal));
   const remainderMxn = roundMoney(orderTotal - amountCashMxn);
-  const amountCashUsd =
-    remainderMxn > 0 && rate > 0 ? roundMoney(Math.min(receivedUsd, remainderMxn / rate)) : 0;
+  const usdCoversRemainder =
+    remainderMxn > 0.001 && receivedUsd > 0 && rate > 0 && receivedUsd * rate + 0.01 >= remainderMxn;
+  const amountCashUsd = usdCoversRemainder ? roundMoney(receivedUsd) : 0;
   return { amountCashMxn, amountCashUsd };
 }
 
@@ -667,15 +668,16 @@ export function collectAppliedTotal(form: PosCollectForm): number {
   return mixedAppliedTotal(form);
 }
 
+export function collectUsdReceivedMxn(form: PosCollectForm): number {
+  if (form.receivedCashUsd <= 0 || form.usdExchangeRate <= 0) {
+    return 0;
+  }
+  return roundMoney(form.receivedCashUsd * form.usdExchangeRate);
+}
+
 export function collectChangeMxn(form: PosCollectForm, orderTotal = 0): number {
   if (form.paymentMethod === 'cash') {
-    const split = deriveCashPaymentSplit(
-      orderTotal,
-      form.receivedCashMxn,
-      form.receivedCashUsd,
-      form.usdExchangeRate
-    );
-    return Math.max(0, roundMoney(form.receivedCashMxn - split.amountCashMxn));
+    return Math.max(0, roundMoney(collectReceivedTotalMxn(form) - orderTotal));
   }
   if (form.paymentMethod === 'mixed' && form.mixedUsesCash && form.mixedCashMxn > 0) {
     return Math.max(0, roundMoney(form.mixedReceivedMxn - form.mixedCashMxn));
@@ -683,16 +685,8 @@ export function collectChangeMxn(form: PosCollectForm, orderTotal = 0): number {
   return 0;
 }
 
-export function collectChangeUsd(form: PosCollectForm, orderTotal = 0): number {
-  if (form.paymentMethod === 'cash') {
-    const split = deriveCashPaymentSplit(
-      orderTotal,
-      form.receivedCashMxn,
-      form.receivedCashUsd,
-      form.usdExchangeRate
-    );
-    return Math.max(0, roundMoney(form.receivedCashUsd - split.amountCashUsd));
-  }
+/** El cambio de efectivo se entrega en pesos. */
+export function collectChangeUsd(_form: PosCollectForm, _orderTotal = 0): number {
   return 0;
 }
 

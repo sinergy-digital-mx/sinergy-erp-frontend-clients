@@ -36,6 +36,16 @@ body {
   --pollux-control-border: #{fc.$pollux-control-border};
 }
 
+/* Edge/Chrome: oculta el botón de autocompletar (círculo/candado) dentro del input */
+input:not([type='password'])::-webkit-credentials-auto-fill-button,
+input:not([type='password'])::-webkit-contacts-auto-fill-button,
+input::-ms-clear,
+input::-ms-reveal {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 main,
 .mat-mdc-dialog-container,
 .dialog {

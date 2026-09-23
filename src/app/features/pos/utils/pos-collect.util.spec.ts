@@ -3,6 +3,9 @@ import {
   addMixedCardPayment,
   applyMixedRemainderToLast,
   buildCollectPayload,
+  collectChangeMxn,
+  collectChangeUsd,
+  collectReceivedTotalMxn,
   defaultCollectForm,
   enableMixedCard,
   fillMixedMethodWithRemainder,
@@ -98,6 +101,26 @@ describe('pago mixto — resto automático', () => {
       { amount_mxn: 400, reference: '4242' },
       { amount_mxn: 430.5, reference: '1111' },
     ]);
+  });
+
+  it('100 USD a 16.80 sobre 1079.65 da cambio 600.35 MXN y no traba el cobro', () => {
+    const total = 1079.65;
+    const form = defaultCollectForm(total, 16.8);
+    form.paymentMethod = 'cash';
+    form.receivedCashMxn = 0;
+    form.receivedCashUsd = 100;
+    form.usdExchangeRate = 16.8;
+
+    expect(collectReceivedTotalMxn(form)).toBe(1680);
+    expect(collectChangeMxn(form, total)).toBe(600.35);
+    expect(collectChangeUsd(form, total)).toBe(0);
+    expect(validateCollectForm(form, total)).toBeNull();
+
+    const payload = buildCollectPayload(form, total);
+    expect(payload.amount_cash_mxn).toBe(0);
+    expect(payload.amount_cash_usd).toBe(100);
+    expect(payload.received_cash_usd).toBe(100);
+    expect(payload.usd_exchange_rate).toBe(16.8);
   });
 
   it('agregar otra tarjeta cuenta como un pago más', () => {

@@ -759,18 +759,17 @@
                         <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
                       </div>
                     }
+                    @if (usdReceivedMxn() > 0) {
+                      <p class="cobranza-cash-fx">
+                        {{ formatCurrencyUsd(collectForm().receivedCashUsd) }}
+                        × {{ collectForm().usdExchangeRate }}
+                        = {{ formatCurrency(usdReceivedMxn()) }}
+                      </p>
+                    }
                     <div class="cobranza-cash-result__item">
-                      <span>Cambio a entregar</span>
+                      <span>Cambio a entregar (MXN)</span>
                       <div class="cobranza-cash-result__values">
-                        @if (changeMxn() > 0) {
-                          <strong class="cobranza-cash-result__change">{{ formatCurrency(changeMxn()) }}</strong>
-                        }
-                        @if (changeUsd() > 0) {
-                          <strong class="cobranza-cash-result__change">{{ formatCurrencyUsd(changeUsd()) }}</strong>
-                        }
-                        @if (changeMxn() <= 0 && changeUsd() <= 0) {
-                          <strong class="cobranza-cash-result__change">{{ formatCurrency(0) }}</strong>
-                        }
+                        <strong class="cobranza-cash-result__change">{{ formatCurrency(changeMxn()) }}</strong>
                       </div>
                     </div>
                   </div>
@@ -809,10 +808,10 @@
                       (ngModelChange)="patchCollectForm({ amountCardMxn: parseMoneyInput($event) })" />
                   </label>
                   <label class="cobranza-field">
-                    <span>Referencia (opcional)</span>
+                    <span>Número de voucher (opcional)</span>
                     <input
                       type="text"
-                      placeholder="Últimos 4 dígitos"
+                      placeholder="Ticket de la terminal"
                       [ngModel]="collectForm().cardReference"
                       (ngModelChange)="patchCollectForm({ cardReference: $event })" />
                   </label>
@@ -1097,10 +1096,10 @@
                                 (ngModelChange)="onMixedCardAmountChange($index, $event)" />
                             </label>
                             <label class="cobranza-field">
-                              <span>Referencia tarjeta</span>
+                              <span>Número de voucher</span>
                               <input
                                 type="text"
-                                placeholder="Últimos 4 dígitos"
+                                placeholder="Ticket de la terminal"
                                 [ngModel]="card.reference"
                                 (ngModelChange)="onMixedCardRefChange($index, $event)" />
                             </label>
@@ -1303,7 +1302,7 @@
                           </div>
                           @if (card.reference) {
                             <div>
-                              <dt>{{ cards.length > 1 ? 'Ref. tarjeta ' + ($index + 1) : 'Ref. tarjeta' }}</dt>
+                              <dt>{{ cards.length > 1 ? 'Núm. voucher ' + ($index + 1) : 'Núm. voucher' }}</dt>
                               <dd>{{ card.reference }}</dd>
                             </div>
                           }

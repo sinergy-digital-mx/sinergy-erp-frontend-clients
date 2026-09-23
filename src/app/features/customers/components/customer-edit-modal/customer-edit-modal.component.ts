@@ -116,7 +116,7 @@ export class CustomerEditModalComponent {
     this.form = this.fb.group({
       name: ['', [Validators.required]],
       lastname: [''],
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', [Validators.email]],
       phone: ['', [Validators.pattern(/^$|^\d{1,10}$/)]],
       phone_code: ['+52', [Validators.required]],
       phone_country: ['MX', [Validators.required]],
@@ -507,16 +507,60 @@ export class CustomerEditModalComponent {
     const e = c.errors;
     if (e['required']) return 'Este campo es obligatorio';
     if (e['email']) return 'Ingresa un email válido';
+    if (e['pattern'] && controlName === 'fiscal_postal_code') {
+      return 'El código postal debe ser de 5 dígitos';
+    }
+    if (e['pattern'] && controlName === 'fiscal_country') {
+      return 'El país fiscal debe ser clave SAT de 3 letras (ej. MEX)';
+    }
     if (e['pattern']) return 'Solo números, hasta 10 dígitos';
     return 'Este campo tiene un error';
   }
 
+  private trimTextControls(): void {
+    const keys = [
+      'name',
+      'lastname',
+      'email',
+      'phone',
+      'company_name',
+      'fiscal_rfc',
+      'fiscal_razon_social',
+      'fiscal_postal_code',
+      'fiscal_street',
+      'fiscal_exterior_number',
+      'fiscal_interior_number',
+      'fiscal_colonia',
+      'fiscal_localidad',
+      'fiscal_municipio',
+      'fiscal_state',
+      'fiscal_country',
+      'additional_name',
+      'additional_lastname',
+      'additional_email',
+      'additional_phone',
+    ];
+    for (const key of keys) {
+      const control = this.form.get(key);
+      const value = control?.value;
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed !== value) {
+          control?.setValue(trimmed, { emitEvent: false });
+        }
+      }
+    }
+  }
+
   private validateFormBeforeSubmit(): boolean {
+    this.trimTextControls();
     if (this.form.valid) return true;
     this.form.markAllAsTouched();
-    const fiscalKeys = ['fiscal_postal_code', 'fiscal_country'];
-    if (fiscalKeys.some((key) => !!this.form.get(key)?.invalid)) {
-      this.activeTab.set('fiscal');
+
+    const invalid = this.collectInvalidFieldLabels();
+    const tab = this.firstTabWithInvalidControl();
+    if (tab) {
+      this.activeTab.set(tab);
     }
     if (!this.additionalPersonExpanded()) {
       const keys = ['additional_email', 'additional_phone', 'additional_name', 'additional_lastname'];
@@ -524,7 +568,94 @@ export class CustomerEditModalComponent {
         this.additionalPersonExpanded.set(true);
       }
     }
+
+    this.interceptor_service.openSnackbar({
+      type: 'error',
+      title: 'Faltan datos',
+      message: invalid.length
+        ? `Revisa: ${invalid.join(', ')}.`
+        : 'Revisa los campos marcados en rojo.',
+    });
     return false;
+  }
+
+  private collectInvalidFieldLabels(): string[] {
+    const labels = this.fieldLabels();
+    const names: string[] = [];
+    for (const key of Object.keys(this.form.controls)) {
+      if (this.form.get(key)?.invalid) {
+        names.push(labels[key] ?? key);
+      }
+    }
+    return names;
+  }
+
+  private firstTabWithInvalidControl(): 'customer' | 'credit' | 'fiscal' | 'registration' | null {
+    const customerKeys = [
+      'name',
+      'lastname',
+      'email',
+      'phone',
+      'phone_code',
+      'phone_country',
+      'company_name',
+      'fiscal_razon_social',
+      'status_id',
+      'additional_name',
+      'additional_lastname',
+      'additional_email',
+      'additional_phone',
+    ];
+    const fiscalKeys = [
+      'fiscal_rfc',
+      'fiscal_person_type',
+      'fiscal_postal_code',
+      'fiscal_country',
+      'fiscal_street',
+      'fiscal_exterior_number',
+      'fiscal_interior_number',
+      'fiscal_colonia',
+      'fiscal_localidad',
+      'fiscal_municipio',
+      'fiscal_state',
+    ];
+    const registrationKeys = [
+      'registered_fiscal_configuration_id',
+      'registered_billing_branch_id',
+      'registered_by_user_id',
+      'assigned_seller_user_id',
+    ];
+    if (customerKeys.some((key) => !!this.form.get(key)?.invalid)) {
+      return 'customer';
+    }
+    if (fiscalKeys.some((key) => !!this.form.get(key)?.invalid)) {
+      return 'fiscal';
+    }
+    if (registrationKeys.some((key) => !!this.form.get(key)?.invalid)) {
+      return 'registration';
+    }
+    return null;
+  }
+
+  private fieldLabels(): Record<string, string> {
+    return {
+      name: 'Nombre',
+      lastname: 'Apellido',
+      email: 'Email',
+      phone: 'Teléfono',
+      phone_code: 'Código de teléfono',
+      phone_country: 'País',
+      company_name: 'Empresa',
+      fiscal_rfc: 'RFC',
+      fiscal_razon_social: 'Razón social',
+      fiscal_person_type: 'Tipo de persona',
+      fiscal_postal_code: 'Código postal',
+      fiscal_country: 'País fiscal',
+      fiscal_street: 'Calle / vialidad',
+      additional_email: 'Email adicional',
+      additional_phone: 'Teléfono adicional',
+      status_id: 'Estatus',
+    };
   }
 
   onGroupSelected(event: { groupId: string | null; groupName: string | null }): void {
@@ -565,9 +696,28 @@ export class CustomerEditModalComponent {
   private resolveApiErrorMessage(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse && error.error?.message != null) {
       const msg = error.error.message;
-      return Array.isArray(msg) ? msg.join(', ') : String(msg);
+      const raw = Array.isArray(msg) ? msg.join(', ') : String(msg);
+      return this.translateApiFieldMessage(raw) || fallback;
     }
     return fallback;
+  }
+
+  private translateApiFieldMessage(raw: string): string {
+    const labels = this.fieldLabels();
+    const mapped = raw
+      .split(',')
+      .map((part) => part.trim())
+      .map((part) => {
+        const field = Object.keys(labels).find((key) => part.startsWith(key));
+        if (!field) return part;
+        if (/must be an email/i.test(part)) return `${labels[field]} no es un email válido`;
+        if (/must be one of the following/i.test(part)) return `${labels[field]} no es válido`;
+        if (/must match/i.test(part)) return `${labels[field]} no tiene el formato correcto`;
+        if (/should not be empty/i.test(part)) return `${labels[field]} es obligatorio`;
+        return `${labels[field]}: ${part}`;
+      })
+      .filter(Boolean);
+    return mapped.join('. ');
   }
 
   /**
@@ -688,16 +838,16 @@ export class CustomerEditModalComponent {
     const v = this.form.getRawValue();
     const trim = (s: string | null | undefined) => (typeof s === 'string' ? s.trim() : '');
     const payload: Record<string, unknown> = {
-      name: v.name,
-      lastname: v.lastname,
-      email: v.email,
-      phone: v.phone,
+      name: trim(v.name),
+      lastname: trim(v.lastname) || undefined,
+      email: trim(v.email) || undefined,
+      phone: trim(v.phone) || undefined,
       phone_code: v.phone_code,
       phone_country: v.phone_country,
-      company_name: v.company_name,
+      company_name: trim(v.company_name) || undefined,
       auto_generate_invoice: !!v.auto_generate_invoice,
       ...this.buildFiscalApiFields('create'),
-      group_id: this.selectedGroup()?.id ?? null,
+      group_id: this.selectedGroup()?.id ?? undefined,
       registered_fiscal_configuration_id: this.emptyToNull(v.registered_fiscal_configuration_id),
       registered_billing_branch_id: this.emptyToNull(v.registered_billing_branch_id),
       registered_by_user_id: this.emptyToNull(v.registered_by_user_id),

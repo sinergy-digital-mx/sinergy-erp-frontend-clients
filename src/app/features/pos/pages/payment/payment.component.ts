@@ -91,6 +91,7 @@ import {
   collectCashShortfallUsd,
   collectChangeMxn,
   collectChangeUsd,
+  collectUsdReceivedMxn,
   CollectPaymentMethod,
   defaultCollectForm,
   parseOrderTotal,
@@ -316,6 +317,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly changeMxn = computed(() => collectChangeMxn(this.collectForm(), this.orderTotal()));
 
   readonly changeUsd = computed(() => collectChangeUsd(this.collectForm(), this.orderTotal()));
+
+  readonly usdReceivedMxn = computed(() => collectUsdReceivedMxn(this.collectForm()));
 
   readonly cashShortfallMxn = computed(() => collectCashShortfallMxn(this.collectForm(), this.orderTotal()));
 
