@@ -56,6 +56,8 @@ export interface CollectSalePayload {
   amount_credit_mxn?: number;
   customer_id?: number | string;
   generate_invoice?: boolean;
+  walk_in_name?: string;
+  walk_in_rfc?: string;
   /** Desglose de billetes (para ticket/corte). El total recibido sigue en received_cash_* */
   cash_denominations?: Array<{
     currency: 'MXN' | 'USD';

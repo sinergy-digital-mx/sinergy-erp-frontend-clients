@@ -10,10 +10,7 @@ import { distinctUntilChanged } from 'rxjs/operators';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 import { VendorService } from '../../../settings/services/vendor.service';
-import { WarehouseService } from '../../services/warehouse.service';
-import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { Vendor } from '../../../settings/models/vendor.model';
-import { Warehouse } from '../../models/warehouse.model';
 import { VendorCatalogProduct, VendorCatalogUom } from '../../models/vendor-catalog.model';
 import { PurchaseOrder } from '../../models/purchase-order.model';
 import { LineItem } from '../../models/line-item.model';
@@ -24,6 +21,16 @@ import {
   PurchaseOrderFormData
 } from '../../models/filters.model';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
+import {
+  PurchaseOrderLocationBranch,
+  PurchaseOrderLocationFiscal,
+  PurchaseOrderLocationWarehouse,
+} from '../../models/purchase-order-location.model';
+import {
+  activePurchaseOrderBranches,
+  activePurchaseOrderFiscals,
+  activePurchaseOrderWarehouses,
+} from '../../utils/purchase-order-location.util';
 import { validateQuantity, validatePrice, validateTaxPercentage, getErrorMessage } from '../../utils/order-validators';
 import {
   catalogInputNumber,
@@ -65,10 +72,13 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
   vendorInvoiceInputs = signal<string[]>(['']);
 
   vendors = signal<Vendor[]>([]);
+  locationTree = signal<PurchaseOrderLocationFiscal[]>([]);
   fiscalConfigurations = signal<FiscalConfiguration[]>([]);
+  branches = signal<PurchaseOrderLocationBranch[]>([]);
   /** Productos del proveedor seleccionado (misma API que el modal de creación OC). */
   vendorProducts = signal<VendorCatalogProduct[]>([]);
-  warehouses = signal<Warehouse[]>([]);
+  warehouses = signal<PurchaseOrderLocationWarehouse[]>([]);
+  locationHint = signal('');
 
   totalCalculations = signal({
     total_subtotal: 0,
@@ -94,8 +104,6 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     private purchaseOrderService: PurchaseOrderService,
     private taxCalculator: TaxCalculatorService,
     private vendorService: VendorService,
-    private warehouseService: WarehouseService,
-    private fiscalConfigurationService: FiscalConfigurationService
   ) {}
 
   ngOnInit(): void {
@@ -122,11 +130,16 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       (order as PurchaseOrder & { fiscal_configuration_id?: string })?.fiscal_configuration_id ??
       order?.fiscal_configuration?.id ??
       '';
+    const branchId =
+      (order as PurchaseOrder & { billing_branch_id?: string })?.billing_branch_id ??
+      order?.billing_branch?.id ??
+      '';
 
     this.vendorInvoiceInputs.set(vendorInvoiceDraftFromOrder(order));
 
     this.orderForm = this.fb.group({
       fiscal_configuration_id: [fiscalId, Validators.required],
+      billing_branch_id: [branchId, Validators.required],
       vendor_id: [order?.vendor_id || '', Validators.required],
       purpose: [order?.notes ?? order?.purpose ?? '', this.isEditMode() ? [] : [Validators.required]],
       warehouse_id: [order?.warehouse_id || '', Validators.required],
@@ -166,6 +179,22 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     } else {
       this.vendorProducts.set([]);
     }
+
+    this.orderForm.get('fiscal_configuration_id')?.valueChanges
+      .pipe(distinctUntilChanged())
+      .subscribe((value) => {
+        this.syncLocationOptions(String(value || ''), '', true);
+      });
+    this.orderForm.get('billing_branch_id')?.valueChanges
+      .pipe(distinctUntilChanged())
+      .subscribe((value) => {
+        this.syncLocationOptions(
+          String(this.orderForm?.get('fiscal_configuration_id')?.value || ''),
+          String(value || ''),
+          true,
+        );
+      });
+    this.syncLocationOptions(fiscalId, branchId, false);
   }
 
   /**
@@ -237,22 +266,60 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       error: (error) => console.error('Error loading vendors:', error)
     });
 
-    this.fiscalConfigurationService.listFiscalConfigurations({ limit: 100 }).subscribe({
+    this.purchaseOrderService.getLocations().subscribe({
       next: (res) => {
-        this.fiscalConfigurations.set(res.data || []);
+        this.locationTree.set(res.data ?? []);
+        this.fiscalConfigurations.set(
+          activePurchaseOrderFiscals(res.data ?? []).map((fiscal) => ({
+            id: fiscal.id,
+            razon_social: fiscal.razon_social,
+            rfc: fiscal.rfc,
+            status: fiscal.status,
+          })) as FiscalConfiguration[],
+        );
+        const fiscalId = String(this.orderForm?.get('fiscal_configuration_id')?.value || '');
+        const branchId = String(this.orderForm?.get('billing_branch_id')?.value || '');
+        this.syncLocationOptions(fiscalId, branchId, false);
       },
-      error: (e) => console.error('Error loading fiscal configurations:', e)
+      error: () => {
+        this.locationTree.set([]);
+        this.fiscalConfigurations.set([]);
+        this.branches.set([]);
+        this.warehouses.set([]);
+      },
     });
+  }
 
-    this.warehouseService.getWarehouses().subscribe({
-      next: (warehouses) => {
-        const warehouseArray = Array.isArray(warehouses)
-          ? warehouses
-          : (warehouses as { data?: Warehouse[] }).data || [];
-        this.warehouses.set(warehouseArray);
-      },
-      error: (error) => console.error('Error loading warehouses:', error)
-    });
+  private syncLocationOptions(fiscalId: string, branchId: string, resetChildren: boolean): void {
+    const fiscal = this.locationTree().find((item) => item.id === fiscalId);
+    const nextBranches = activePurchaseOrderBranches(fiscal);
+    this.branches.set(nextBranches);
+
+    const selectedBranch = nextBranches.find((branch) => branch.id === branchId);
+    const nextWarehouses = activePurchaseOrderWarehouses(selectedBranch);
+    this.warehouses.set(nextWarehouses);
+
+    if (!this.orderForm) {
+      return;
+    }
+
+    if (resetChildren) {
+      if (!selectedBranch) {
+        this.orderForm.patchValue({ billing_branch_id: '', warehouse_id: '' }, { emitEvent: false });
+      } else {
+        this.orderForm.patchValue({ warehouse_id: '' }, { emitEvent: false });
+      }
+    }
+
+    if (!fiscalId) {
+      this.locationHint.set('');
+    } else if (!nextBranches.length) {
+      this.locationHint.set('Esta razón social no tiene sucursales activas.');
+    } else if (branchId && !nextWarehouses.length) {
+      this.locationHint.set('Esta sucursal no tiene almacenes activos. Revisa que el CEDIS / bodega tenga sucursal asignada.');
+    } else {
+      this.locationHint.set('');
+    }
   }
 
   loadOrder(id: string): void {
@@ -478,6 +545,7 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
 
     const body: WritePurchaseOrderDto = {
       fiscal_configuration_id: raw.fiscal_configuration_id,
+      billing_branch_id: raw.billing_branch_id,
       warehouse_id: raw.warehouse_id,
       vendor_id: raw.vendor_id,
       expected_delivery_date: this.dateOnlyForInput(raw.tentative_receipt_date),

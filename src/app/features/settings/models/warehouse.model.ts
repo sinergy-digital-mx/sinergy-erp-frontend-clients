@@ -14,6 +14,15 @@ export interface Warehouse {
   longitude?: number | null;
   fiscal_configuration_id?: string;
   billing_branch_id?: string;
+  billing_branch?: {
+    id: string;
+    code?: string;
+    fiscal_configuration?: {
+      id: string;
+      razon_social?: string;
+      rfc?: string;
+    } | null;
+  } | null;
   status: 'active' | 'inactive';
   metadata?: Record<string, any>;
   created_at: string;

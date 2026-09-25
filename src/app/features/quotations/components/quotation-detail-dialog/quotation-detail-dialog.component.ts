@@ -584,19 +584,52 @@ export class QuotationDetailDialogComponent implements OnInit {
   convert(): void {
     const q = this.header();
     if (!q?.can_convert) return;
-    this.converting.set(true);
-    this.quotationService.convert(q.id).subscribe({
-      next: (res) => {
-        this.converting.set(false);
-        const folio = res.sales_order?.folio || 'OV';
-        this.toast.success(`Convertida a ${folio}. Se retuvo inventario.`);
-        this.dialogRef.close({ converted: true, salesOrderId: res.sales_order?.id });
-      },
-      error: (err) => {
-        this.converting.set(false);
-        this.toast.error(err?.error?.message || 'No se pudo convertir');
-      },
-    });
+
+    const branchName = this.getSucursalDisplayName();
+    if (branchName === '—') {
+      this.toast.error('La cotización no tiene sucursal para enviar a caja');
+      return;
+    }
+
+    this.dialog
+      .open(AlertDialogComponent, {
+        width: '440px',
+        data: {
+          title: 'Convertir a venta',
+          message: `¿Enviar a caja POS de ${branchName} para cobrar? Si no, se crea la orden de venta sin pasar por caja.`,
+          type: 'warning',
+          text_accept: 'Sí, enviar a caja',
+          text_cancel: 'No, solo crear la orden',
+        },
+      })
+      .afterClosed()
+      .subscribe((sendToCaja: boolean | undefined) => {
+        if (sendToCaja === undefined) {
+          return;
+        }
+        this.converting.set(true);
+        this.quotationService.convert(q.id, { send_to_pos_caja: sendToCaja === true }).subscribe({
+          next: (res) => {
+            this.converting.set(false);
+            const folio = res.sales_order?.folio || 'OV';
+            if (res.sales_order?.sent_to_pos_caja) {
+              const queued = res.sales_order.general_status === 'En cola';
+              this.toast.success(
+                queued
+                  ? `Convertida a ${folio}. Quedó en cola de caja de ${branchName} hasta que abran el corte.`
+                  : `Convertida a ${folio}. En caja POS de ${branchName} para cobrar.`,
+              );
+            } else {
+              this.toast.success(`Convertida a ${folio}.`);
+            }
+            this.dialogRef.close({ converted: true, salesOrderId: res.sales_order?.id });
+          },
+          error: (err) => {
+            this.converting.set(false);
+            this.toast.error(err?.error?.message || 'No se pudo convertir');
+          },
+        });
+      });
   }
 
   cancelQuotation(): void {

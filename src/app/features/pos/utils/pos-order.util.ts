@@ -7,6 +7,8 @@ export interface VentasPosOrderContext {
   customerId?: number | string;
   sellerUserId: string;
   terminalLabel?: string;
+  walkInName?: string | null;
+  walkInRfc?: string | null;
 }
 
 export function todayIsoDate(): string {
@@ -39,18 +41,23 @@ export function buildVentasPosOrderPayload(
   ctx: VentasPosOrderContext
 ): SalesOrderFormData {
   const terminal = ctx.terminalLabel?.trim() || 'POS Ventas';
+  const hasRegisteredCustomer = ctx.customerId != null && ctx.customerId !== '';
   return {
     fiscal_configuration_id: ctx.fiscalConfigurationId,
     warehouse_id: ctx.warehouseId,
-    ...(ctx.customerId != null && ctx.customerId !== ''
-      ? { customer_id: ctx.customerId }
-      : {}),
+    ...(hasRegisteredCustomer ? { customer_id: ctx.customerId } : {}),
     expected_delivery_date: todayIsoDate(),
     sales_order_type: 'POS',
     seller_user_id: ctx.sellerUserId,
     notes: `POS Ventas - ${terminal}`,
     line_items: cart.items.map(mapCartLineToOrderLine),
     ...(cart.global_discount_id ? { global_discount_id: cart.global_discount_id } : {}),
+    ...(hasRegisteredCustomer
+      ? {}
+      : {
+          ...(ctx.walkInName?.trim() ? { walk_in_name: ctx.walkInName.trim() } : {}),
+          ...(ctx.walkInRfc?.trim() ? { walk_in_rfc: ctx.walkInRfc.trim() } : {}),
+        }),
   } as SalesOrderFormData;
 }
 

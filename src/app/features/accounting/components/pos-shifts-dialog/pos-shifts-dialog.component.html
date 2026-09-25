@@ -1,0 +1,73 @@
+<div class="shifts-dialog">
+  <div class="shifts-dialog__header">
+    <div>
+      <h2>Cortes de la sucursal</h2>
+      <p>
+        {{ shifts().length }}
+        {{ shifts().length === 1 ? 'corte global' : 'cortes globales' }}
+        · {{ partialsConfig().totalResults }}
+        {{ partialsConfig().totalResults === 1 ? 'parcial' : 'parciales' }}
+      </p>
+    </div>
+    <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="shifts-dialog__filters" role="tablist" aria-label="Tipo de corte">
+    <button
+      type="button"
+      role="tab"
+      class="filter-chip"
+      [class.filter-chip--active]="view() === 'globals'"
+      [attr.aria-selected]="view() === 'globals'"
+      (click)="setView('globals')">
+      Cortes globales
+      <span class="filter-chip__count">{{ shifts().length }}</span>
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="filter-chip"
+      [class.filter-chip--active]="view() === 'partials'"
+      [attr.aria-selected]="view() === 'partials'"
+      (click)="setView('partials')">
+      Cortes parciales
+      <span class="filter-chip__count">{{ partialsConfig().totalResults }}</span>
+    </button>
+  </div>
+
+  <div class="shifts-dialog__body">
+    @if (view() === 'globals') {
+      <app-datatable-wrapper [config]="globalsConfig()" [rowTemplate]="globalsTemplate">
+      </app-datatable-wrapper>
+    } @else {
+      <app-datatable-wrapper [config]="partialsConfig()" [rowTemplate]="partialsTemplate">
+      </app-datatable-wrapper>
+    }
+  </div>
+</div>
+
+<ng-template #globalsTemplate let-item="$implicit">
+  <td class="px-2 py-2">{{ formatDate(item.shift_date) }}</td>
+  <td class="px-2 py-2">
+    <span class="status-pill" [class.status-pill--open]="isOpen(item.status)">
+      {{ statusLabel(item.status) }}
+    </span>
+  </td>
+  <td class="px-2 py-2">{{ item.terminal_name || '—' }}</td>
+  <td class="px-2 py-2">{{ item.partial_shifts_count }}</td>
+  <td class="px-2 py-2">{{ formatCurrency(item.removed_total_mxn) }}</td>
+  <td class="px-2 py-2">
+    <button type="button" class="folio-link" (click)="openShift(item.id)">Ver corte</button>
+  </td>
+</ng-template>
+
+<ng-template #partialsTemplate let-item="$implicit">
+  <td class="px-2 py-2">{{ formatDate(item.shift_date) }}</td>
+  <td class="px-2 py-2">#{{ item.partial_number }}</td>
+  <td class="px-2 py-2">{{ formatDateTime(item.created_at) }}</td>
+  <td class="px-2 py-2">{{ item.performed_by || '—' }}</td>
+  <td class="px-2 py-2">{{ formatCurrency(item.removed_total_mxn) }}</td>
+  <td class="px-2 py-2">
+    <button type="button" class="folio-link" (click)="openShift(item.daily_shift_id)">Ver corte</button>
+  </td>
+</ng-template>

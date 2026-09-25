@@ -8,15 +8,19 @@ import { FilterClearButtonComponent } from '../../../../core/components/filter-c
 import { MoreFiltersPanelComponent } from '../../../../core/components/more-filters-panel/more-filters-panel.component';
 import { OrderFilters } from '../../models/filters.model';
 import { OrderStatus, PaymentStatus } from '../../models/purchase-order.model';
-import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
-import { BranchService } from '../../../settings/services/branch.service';
-import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { VendorService } from '../../../settings/services/vendor.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { Branch } from '../../../settings/models/branch.model';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { Vendor } from '../../../settings/models/vendor.model';
 import { formatVendorPickerLabel, sortVendorsByLabel } from '../../utils/purchase-order-display.util';
+import { PurchaseOrderService } from '../../services/purchase-order.service';
+import { PurchaseOrderLocationFiscal } from '../../models/purchase-order-location.model';
+import {
+  activePurchaseOrderBranches,
+  activePurchaseOrderFiscals,
+  activePurchaseOrderWarehouses,
+} from '../../utils/purchase-order-location.util';
 
 @Component({
   selector: 'app-filter-bar',
@@ -53,6 +57,7 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
 
   @ViewChild(MoreFiltersPanelComponent) moreFilters?: MoreFiltersPanelComponent;
 
+  locationTree: PurchaseOrderLocationFiscal[] = [];
   fiscalConfigurations: FiscalConfiguration[] = [];
   branches: Branch[] = [];
   warehouses: Warehouse[] = [];
@@ -84,9 +89,7 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   private destroy$ = new Subject<void>();
 
   constructor(
-    private fiscalConfigurationService: FiscalConfigurationService,
-    private branchService: BranchService,
-    private warehouseService: WarehouseService,
+    private purchaseOrderService: PurchaseOrderService,
     private vendorService: VendorService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -120,9 +123,7 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadFiscalConfigurations();
-    this.loadAllBranches();
-    this.loadAllWarehouses();
+    this.loadLocations();
     this.loadVendors();
 
     this.searchControl.valueChanges
@@ -284,8 +285,7 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     this.fiscalConfigurationControl.setValue('', { emitEvent: false });
     this.billingBranchControl.setValue('', { emitEvent: false });
     this.warehouseControl.setValue('', { emitEvent: false });
-    this.loadAllBranches();
-    this.loadAllWarehouses();
+    this.syncLocationOptions('', '');
     this.showCustomDateRange = false;
     this.moreFilters?.close();
     this.emitFilters();
@@ -305,71 +305,63 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
     const fiscalId = this.toQueryValue(this.fiscalConfigurationControl.value);
     this.billingBranchControl.setValue('', { emitEvent: false });
     this.warehouseControl.setValue('', { emitEvent: false });
-
-    if (fiscalId) {
-      this.loadBranches(fiscalId);
-    } else {
-      this.loadAllBranches();
-    }
-    this.loadAllWarehouses();
-
+    this.syncLocationOptions(fiscalId, '');
     this.emitFilters();
   }
 
   private onBillingBranchChange(): void {
     const branchId = this.toQueryValue(this.billingBranchControl.value);
     this.warehouseControl.setValue('', { emitEvent: false });
-
-    if (branchId) {
-      this.loadWarehouses(branchId);
-    } else {
-      this.loadAllWarehouses();
-    }
-
+    this.syncLocationOptions(this.toQueryValue(this.fiscalConfigurationControl.value), branchId);
     this.emitFilters();
   }
 
-  private loadFiscalConfigurations(): void {
-    this.fiscalConfigurationService
-      .listFiscalConfigurations({ status: 'active', limit: 100 })
-      .subscribe({
-        next: (res) => {
-          this.fiscalConfigurations = Array.isArray(res) ? res : (res.data ?? []);
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.fiscalConfigurations = [];
-          this.cdr.detectChanges();
-        },
-      });
-  }
-
-  private loadAllBranches(): void {
-    this.branchService.getAllBranches().subscribe({
-      next: (branches) => {
-        this.branches = Array.isArray(branches) ? branches : [];
+  private loadLocations(): void {
+    this.purchaseOrderService.getLocations().subscribe({
+      next: (res) => {
+        this.locationTree = res.data ?? [];
+        this.fiscalConfigurations = activePurchaseOrderFiscals(this.locationTree).map((fiscal) => ({
+          id: fiscal.id,
+          razon_social: fiscal.razon_social,
+          rfc: fiscal.rfc,
+          status: fiscal.status,
+        })) as FiscalConfiguration[];
+        this.syncLocationOptions(
+          this.toQueryValue(this.fiscalConfigurationControl.value),
+          this.toQueryValue(this.billingBranchControl.value),
+        );
         this.cdr.detectChanges();
       },
       error: () => {
+        this.locationTree = [];
+        this.fiscalConfigurations = [];
         this.branches = [];
+        this.warehouses = [];
         this.cdr.detectChanges();
       },
     });
   }
 
-  private loadAllWarehouses(): void {
-    this.warehouseService
-      .getWarehouses({ status: 'active', limit: 100 })
-      .subscribe({
-        next: (res) => {
-          this.warehouses = res.data ?? [];
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.warehouses = [];
-          this.cdr.detectChanges();
-        },
-      });
+  private syncLocationOptions(fiscalId: string, branchId: string): void {
+    const fiscal = this.locationTree.find((item) => item.id === fiscalId);
+    const sourceBranches = fiscal
+      ? activePurchaseOrderBranches(fiscal)
+      : this.locationTree.flatMap((item) => activePurchaseOrderBranches(item));
+    this.branches = sourceBranches.map((branch) => ({
+      id: branch.id,
+      code: branch.name,
+      display_name: branch.name,
+    })) as Branch[];
+
+    const selectedBranch = sourceBranches.find((branch) => branch.id === branchId);
+    const sourceWarehouses = selectedBranch
+      ? activePurchaseOrderWarehouses(selectedBranch)
+      : sourceBranches.flatMap((branch) => activePurchaseOrderWarehouses(branch));
+    this.warehouses = sourceWarehouses.map((warehouse) => ({
+      id: warehouse.id,
+      name: warehouse.name,
+      status: warehouse.status,
+    })) as Warehouse[];
   }
 
   private loadVendors(): void {
@@ -386,34 +378,6 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
         this.cdr.detectChanges();
       },
     });
-  }
-
-  private loadBranches(fiscalConfigurationId: string): void {
-    this.branchService.getBranches(fiscalConfigurationId).subscribe({
-      next: (branches) => {
-        this.branches = Array.isArray(branches) ? branches : [];
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.branches = [];
-        this.cdr.detectChanges();
-      },
-    });
-  }
-
-  private loadWarehouses(billingBranchId: string): void {
-    this.warehouseService
-      .getWarehouses({ billing_branch_id: billingBranchId, status: 'active', limit: 100 })
-      .subscribe({
-        next: (res) => {
-          this.warehouses = res.data ?? [];
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.warehouses = [];
-          this.cdr.detectChanges();
-        },
-      });
   }
 
   private emitFilters(): void {

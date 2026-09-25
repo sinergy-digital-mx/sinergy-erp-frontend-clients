@@ -75,7 +75,7 @@
   <div class="shift-detail-modal__footer">
     <app-button text="Cerrar ventana" custom_class="btn_secondary" (clicked)="dismiss()"></app-button>
     @if (shift(); as item) {
-      @if (isOpen(item)) {
+      @if (isOpen(item) && !data.readOnly) {
         <app-button
           text="Cerrar corte del día"
           custom_class="btn_primary"

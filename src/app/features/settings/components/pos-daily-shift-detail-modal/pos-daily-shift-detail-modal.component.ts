@@ -20,6 +20,7 @@ import {
   parsePosMoney,
 } from '../../../pos/models/pos-daily-shift.model';
 import { POSService } from '../../../pos/services/pos.service';
+import { AccountingService } from '../../../accounting/services/accounting.service';
 import { mapPosApiErrorMessage } from '../../../pos/constants/pos-api-errors';
 import {
   CloseDailyShiftDialogComponent,
@@ -48,9 +49,10 @@ export class PosDailyShiftDetailModalComponent {
   shift = signal<PosDailyShiftDetail | null>(null);
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { shiftId: string },
+    @Inject(MAT_DIALOG_DATA) public data: { shiftId: string; readOnly?: boolean; source?: 'pos' | 'accounting' },
     private dialogRef: MatDialogRef<PosDailyShiftDetailModalComponent, PosDailyShiftDetailModalResult>,
     private posService: POSService,
+    private accountingService: AccountingService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {
@@ -190,7 +192,11 @@ export class PosDailyShiftDetailModalComponent {
 
   private loadShift(): void {
     this.loading.set(true);
-    this.posService.getDailyShift(this.data.shiftId).subscribe({
+    const request =
+      this.data.source === 'accounting'
+        ? this.accountingService.getPosDailyShift(this.data.shiftId)
+        : this.posService.getDailyShift(this.data.shiftId);
+    request.subscribe({
       next: (shift) => {
         this.shift.set(shift);
         this.loading.set(false);

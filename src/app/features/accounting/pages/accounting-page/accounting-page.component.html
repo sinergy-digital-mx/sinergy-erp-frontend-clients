@@ -3,7 +3,7 @@
     <div class="accounting-header">
       <div>
         <h2 class="accounting-title">Cobranza / Contabilidad</h2>
-        <p class="accounting-subtitle">Resumen POS, cuentas por pagar y cuentas por cobrar</p>
+        <p class="accounting-subtitle">Resumen POS, cobranza por sucursal, cuentas por pagar y por cobrar</p>
       </div>
 
       @if (showPeriodFilters()) {
@@ -66,6 +66,15 @@
     <div class="accounting-tab-panel" role="tabpanel">
       @if (activeTab() === 'pos') {
         <app-pos-summary-tab
+          [billingBranchId]="billingBranchId()"
+          [period]="period()"
+          [dateFrom]="dateFrom()"
+          [dateTo]="dateTo()"
+          [reloadToken]="reloadToken()" />
+      }
+
+      @if (activeTab() === 'pos-collections') {
+        <app-pos-collections-tab
           [billingBranchId]="billingBranchId()"
           [period]="period()"
           [dateFrom]="dateFrom()"

@@ -45,6 +45,9 @@
           <label>Sucursal</label>
           <app-select [config]="branchSelectConfig" (changeOption)="onBranchChange($event)">
           </app-select>
+          <p *ngIf="!form.get('billing_branch_id')?.value" class="hint hint--warn">
+            Sin sucursal no se puede usar en órdenes de compra (no aparece razón social).
+          </p>
         </div>
       </div>
 

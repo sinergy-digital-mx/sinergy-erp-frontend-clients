@@ -28,6 +28,32 @@
       @if (activeTab === 'info') {
       <!-- Form Grid -->
       <div class="form-grid">
+        <div class="form-field form-field--full">
+          <label class="form-label">BUSCAR ALMACÉN</label>
+          <div class="vendor-picker">
+            <input
+              type="text"
+              class="form-input vendor-picker__input"
+              formControlName="warehouse_search"
+              placeholder="Ej. CEDIS Bodega Ensenada"
+              [matAutocomplete]="autoWarehouse"
+              (focus)="onWarehouseLookupFocus()">
+            <lucide-icon [img]="ChevronDown" [size]="16" class="vendor-picker__chevron"></lucide-icon>
+          </div>
+          <mat-autocomplete
+            #autoWarehouse="matAutocomplete"
+            [displayWith]="displayWarehouseLookup"
+            (optionSelected)="onWarehouseLookupSelected($event.option.value)">
+            <mat-option *ngIf="filteredWarehouseLookups.length === 0" disabled>
+              No se encontraron almacenes
+            </mat-option>
+            <mat-option *ngFor="let warehouse of filteredWarehouseLookups" [value]="warehouse">
+              {{ displayWarehouseLookup(warehouse) }}
+            </mat-option>
+          </mat-autocomplete>
+          <p class="field-hint">Si conoces el CEDIS, búscalo aquí: se llena razón social y sucursal.</p>
+        </div>
+
         <!-- Razón social -->
         <div class="form-field form-field--full">
           <label class="form-label">RAZÓN SOCIAL *</label>
@@ -60,6 +86,10 @@
             </option>
           </select>
         </div>
+
+        @if (locationHint) {
+          <p class="field-hint field-hint--warn form-field--full">{{ locationHint }}</p>
+        }
 
         <!-- Vendor -->
         <div class="form-field">

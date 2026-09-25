@@ -545,6 +545,36 @@
                 </label>
               </div>
 
+              @if (customerMode() === 'walk_in') {
+                <div class="cobranza-field-grid cobranza-field-grid--2 cobranza-walk-in-fields">
+                  <label class="cobranza-field">
+                    <span>Nombre <em class="cobranza-field__hint">opcional</em></span>
+                    <input
+                      type="text"
+                      maxlength="120"
+                      placeholder="Nombre en el ticket"
+                      autocomplete="off"
+                      [ngModel]="walkInName()"
+                      (ngModelChange)="walkInName.set($event)" />
+                  </label>
+                  <label class="cobranza-field">
+                    <span>RFC <em class="cobranza-field__hint">opcional</em></span>
+                    <input
+                      type="text"
+                      maxlength="13"
+                      placeholder="XAXX010101000"
+                      autocomplete="off"
+                      [class.cobranza-field__input--invalid]="walkInRfcInvalid()"
+                      [ngModel]="walkInRfc()"
+                      (ngModelChange)="onWalkInRfcChange($event)" />
+                    @if (walkInRfcInvalid()) {
+                      <small class="cobranza-walk-in-error">El RFC debe tener 12 o 13 caracteres</small>
+                    }
+                  </label>
+                </div>
+                <p class="cobranza-walk-in-hint">Solo para el ticket. No crea cliente.</p>
+              }
+
               @if (customerMode() === 'registered') {
                 <div class="cobranza-customer-selected">
                   <button type="button" class="cobranza-customer-pick" (click)="openCustomerPicker()">

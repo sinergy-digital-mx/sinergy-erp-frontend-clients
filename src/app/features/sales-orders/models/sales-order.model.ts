@@ -240,6 +240,8 @@ export interface SalesOrder {
   // legacy compat
   grand_total?: number;
   notes?: string;
+  walk_in_name?: string | null;
+  walk_in_rfc?: string | null;
   sale_scope?: SalesOrderSaleScope;
   requires_selection_assembly?: boolean;
   control_desk?: SalesOrderControlDesk | null;
@@ -389,6 +391,8 @@ export interface SalesOrderFormData {
   assigned_seller_user_id?: string;
   payment_status?: string;
   notes?: string;
+  walk_in_name?: string;
+  walk_in_rfc?: string;
   sale_scope?: SalesOrderSaleScope;
   requires_selection_assembly?: boolean;
   global_discount_id?: string;

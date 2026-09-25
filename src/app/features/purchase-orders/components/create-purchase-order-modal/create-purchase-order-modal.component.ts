@@ -9,13 +9,18 @@ import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 import { WritePurchaseOrderDto } from '../../models/filters.model';
-import { FiscalConfigurationService } from '../../../../features/settings/services/fiscal-configuration.service';
-import { BranchService } from '../../../../features/settings/services/branch.service';
-import { WarehouseService } from '../../../../features/settings/services/warehouse.service';
 import { VendorService } from '../../../../features/settings/services/vendor.service';
 import { Vendor } from '../../../../features/settings/models/vendor.model';
 import { VendorDetailModalComponent } from '../../../../features/settings/components/vendor-detail-modal/vendor-detail-modal.component';
-import { Branch } from '../../../../features/settings/models/branch.model';
+import { PurchaseOrderLocationBranch, PurchaseOrderLocationFiscal, PurchaseOrderLocationWarehouse, PurchaseOrderWarehouseLookup } from '../../models/purchase-order-location.model';
+import {
+  activePurchaseOrderBranches,
+  activePurchaseOrderFiscals,
+  activePurchaseOrderWarehouses,
+  filterWarehouseLookups,
+  flattenPurchaseOrderWarehouses,
+  warehouseLookupLabel,
+} from '../../utils/purchase-order-location.util';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ProductDetailModalComponent } from '../../../../features/settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
@@ -65,12 +70,16 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   loadingProducts = false;
 
   // Dropdowns data
-  fiscalConfigurations: any[] = [];
-  branches: Branch[] = [];
-  warehouses: any[] = [];
+  locationTree: PurchaseOrderLocationFiscal[] = [];
+  fiscalConfigurations: PurchaseOrderLocationFiscal[] = [];
+  branches: PurchaseOrderLocationBranch[] = [];
+  warehouses: PurchaseOrderLocationWarehouse[] = [];
+  warehouseLookups: PurchaseOrderWarehouseLookup[] = [];
+  filteredWarehouseLookups: PurchaseOrderWarehouseLookup[] = [];
   vendorOptions: any[] = [];
   filteredVendors: any[] = [];
   loadingVendors = false;
+  locationHint = '';
   private destroy$ = new Subject<void>();
   tabs: TabItem[] = [
     { id: 'info', title: 'Información' },
@@ -100,9 +109,6 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private purchaseOrderService: PurchaseOrderService,
-    private fiscalConfigService: FiscalConfigurationService,
-    private branchService: BranchService,
-    private warehouseService: WarehouseService,
     private vendorService: VendorService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
@@ -114,6 +120,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       fiscal_configuration_id: ['', Validators.required],
       billing_branch_id: [{ value: '', disabled: true }, Validators.required],
       warehouse_id: [{ value: '', disabled: true }, Validators.required],
+      warehouse_search: [''],
       vendor_search: [''],
       vendor_id: ['', Validators.required],
       expected_delivery_date: ['', Validators.required],
@@ -124,97 +131,146 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadFiscalConfigurations();
+    this.loadLocations();
     this.setupLocationCascade();
     this.loadVendorOptions();
     this.setupVendorSearch();
+    this.setupWarehouseSearch();
+  }
+
+  private loadLocations(): void {
+    this.loading = true;
+    this.purchaseOrderService.getLocations().subscribe({
+      next: (res) => {
+        this.locationTree = res.data ?? [];
+        this.fiscalConfigurations = activePurchaseOrderFiscals(this.locationTree);
+        this.warehouseLookups = flattenPurchaseOrderWarehouses(
+          this.locationTree,
+          res.unassigned_warehouses ?? [],
+        );
+        this.filteredWarehouseLookups = this.warehouseLookups;
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.toast.error('Error al cargar razones sociales y almacenes');
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   private setupLocationCascade(): void {
     this.form.get('fiscal_configuration_id')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((fiscalId) => {
-        this.form.patchValue({ billing_branch_id: '', warehouse_id: '' }, { emitEvent: false });
-        this.branches = [];
-        this.warehouses = [];
-        this.form.get('billing_branch_id')?.disable({ emitEvent: false });
-        this.form.get('warehouse_id')?.disable({ emitEvent: false });
-
-        if (fiscalId) {
-          this.loadBranches(fiscalId);
-          this.form.get('billing_branch_id')?.enable({ emitEvent: false });
-        }
+        this.applyFiscal(fiscalId, { resetChildren: true });
         this.cdr.detectChanges();
       });
 
     this.form.get('billing_branch_id')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((branchId) => {
-        this.form.patchValue({ warehouse_id: '' }, { emitEvent: false });
-        this.warehouses = [];
-        this.form.get('warehouse_id')?.disable({ emitEvent: false });
-
-        if (branchId) {
-          this.loadWarehouses(branchId);
-          this.form.get('warehouse_id')?.enable({ emitEvent: false });
-        }
+        this.applyBranch(branchId, { resetWarehouse: true });
         this.cdr.detectChanges();
       });
   }
 
-  branchLabel(branch: Branch): string {
-    return branch.code?.trim() || branch.display_name?.trim() || '—';
+  private setupWarehouseSearch(): void {
+    this.form.get('warehouse_search')?.valueChanges
+      .pipe(debounceTime(120), takeUntil(this.destroy$))
+      .subscribe((value) => {
+        if (value && typeof value !== 'string') {
+          return;
+        }
+        this.filteredWarehouseLookups = filterWarehouseLookups(this.warehouseLookups, value || '');
+        this.cdr.detectChanges();
+      });
   }
 
-  private loadFiscalConfigurations(): void {
-    this.loading = true;
-    this.fiscalConfigService.listFiscalConfigurations({ status: 'active', limit: 100 }).subscribe({
-      next: (res) => {
-        this.fiscalConfigurations = res.data ?? [];
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error loading fiscal configurations:', error);
-        this.toast.error('Error al cargar razones sociales');
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-    });
+  private applyFiscal(fiscalId: string, options: { resetChildren: boolean }): void {
+    const fiscal = this.fiscalConfigurations.find((item) => item.id === fiscalId);
+    if (options.resetChildren) {
+      this.form.patchValue({ billing_branch_id: '', warehouse_id: '' }, { emitEvent: false });
+    }
+    this.branches = activePurchaseOrderBranches(fiscal);
+    this.warehouses = [];
+    this.locationHint = '';
+
+    if (fiscalId) {
+      this.form.get('billing_branch_id')?.enable({ emitEvent: false });
+      if (!this.branches.length) {
+        this.locationHint = 'Esta razón social no tiene sucursales activas.';
+      }
+    } else {
+      this.form.get('billing_branch_id')?.disable({ emitEvent: false });
+    }
+    this.form.get('warehouse_id')?.disable({ emitEvent: false });
   }
 
-  private loadBranches(fiscalConfigurationId: string): void {
-    this.branchService.getBranches(fiscalConfigurationId).subscribe({
-      next: (branches) => {
-        this.branches = Array.isArray(branches) ? branches : [];
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error loading branches:', error);
-        this.toast.error('Error al cargar sucursales');
-        this.branches = [];
-        this.cdr.detectChanges();
-      },
-    });
+  private applyBranch(branchId: string, options: { resetWarehouse: boolean }): void {
+    const fiscalId = this.form.get('fiscal_configuration_id')?.value;
+    const fiscal = this.fiscalConfigurations.find((item) => item.id === fiscalId);
+    const branch = this.branches.find((item) => item.id === branchId)
+      ?? fiscal?.branches.find((item) => item.id === branchId);
+    if (options.resetWarehouse) {
+      this.form.patchValue({ warehouse_id: '' }, { emitEvent: false });
+    }
+    this.warehouses = activePurchaseOrderWarehouses(branch);
+    this.locationHint = '';
+
+    if (branchId) {
+      this.form.get('warehouse_id')?.enable({ emitEvent: false });
+      if (!this.warehouses.length) {
+        this.locationHint = 'Esta sucursal no tiene almacenes activos. Revisa que el CEDIS / bodega tenga sucursal asignada.';
+      }
+    } else {
+      this.form.get('warehouse_id')?.disable({ emitEvent: false });
+    }
   }
 
-  private loadWarehouses(billingBranchId: string): void {
-    this.warehouseService.getWarehouses({
-      billing_branch_id: billingBranchId,
-      status: 'active',
-      limit: 100,
-    }).subscribe({
-      next: (res) => {
-        this.warehouses = res.data ?? [];
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error loading warehouses:', error);
-        this.toast.error('Error al cargar almacenes');
-        this.warehouses = [];
-        this.cdr.detectChanges();
-      },
-    });
+  branchLabel(branch: PurchaseOrderLocationBranch): string {
+    return branch.name?.trim() || '—';
+  }
+
+  displayWarehouseLookup = (item: PurchaseOrderWarehouseLookup | string | null): string => {
+    if (!item) {
+      return '';
+    }
+    if (typeof item === 'string') {
+      return item;
+    }
+    return warehouseLookupLabel(item);
+  };
+
+  onWarehouseLookupFocus(): void {
+    const term = String(this.form.get('warehouse_search')?.value || '');
+    this.filteredWarehouseLookups = filterWarehouseLookups(
+      this.warehouseLookups,
+      typeof term === 'string' ? term : '',
+    );
+  }
+
+  onWarehouseLookupSelected(item: PurchaseOrderWarehouseLookup): void {
+    if (!item?.id) {
+      return;
+    }
+    if (!item.assigned || !item.fiscalId || !item.branchId) {
+      this.toast.warning(
+        `${item.name} no tiene sucursal ni razón social. Asígnasela en Configuración → Almacenes.`,
+      );
+      this.form.patchValue({ warehouse_search: '' }, { emitEvent: false });
+      this.filteredWarehouseLookups = this.warehouseLookups;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.form.patchValue({ fiscal_configuration_id: item.fiscalId }, { emitEvent: false });
+    this.applyFiscal(item.fiscalId, { resetChildren: false });
+    this.form.patchValue({ billing_branch_id: item.branchId }, { emitEvent: false });
+    this.applyBranch(item.branchId, { resetWarehouse: false });
+    this.form.patchValue({ warehouse_id: item.id, warehouse_search: item.name }, { emitEvent: false });
+    this.cdr.detectChanges();
   }
 
   private loadVendorOptions(): void {

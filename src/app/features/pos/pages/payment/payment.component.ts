@@ -114,6 +114,7 @@ import {
   syncCashFormFromReceived,
   validateCollectForm,
 } from '../../utils/pos-collect.util';
+import { isValidWalkInRfc, normalizeWalkInRfc } from '../../utils/walk-in-ticket.util';
 import {
   CollectedSaleItem,
   CollectedSalesSummary,
@@ -171,6 +172,8 @@ interface PendingSale {
   customer?: PendingSaleCustomer;
   seller_user?: { first_name?: string; last_name?: string; pos_user_code?: number | null };
   terminal_user?: { first_name?: string; last_name?: string; pos_user_type?: string };
+  walk_in_name?: string | null;
+  walk_in_rfc?: string | null;
 }
 
 type CustomerMode = 'walk_in' | 'registered';
@@ -232,6 +235,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   /** ID enviado en POST collect (legacy numérico o UUID). */
   selectedCollectCustomerId = signal<number | string | null>(null);
   selectedCustomerName = signal('Público en General');
+  walkInName = signal('');
+  walkInRfc = signal('');
+  readonly walkInRfcInvalid = computed(() => this.customerMode() === 'walk_in' && !isValidWalkInRfc(this.walkInRfc()));
   selectedCustomerDetail = signal<Customer | null>(null);
   generateInvoice = signal(false);
   collectError = signal<string | null>(null);
@@ -264,7 +270,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       const seller = this.sellerLabel(sale).toLowerCase();
       const customer = this.customerLabel(sale).toLowerCase();
       const company = this.customerCompanyLabel(sale).toLowerCase();
-      return folio.includes(term) || seller.includes(term) || customer.includes(term) || company.includes(term) || sale.id.toLowerCase().includes(term);
+      const rfc = (sale.walk_in_rfc || '').toLowerCase();
+      return folio.includes(term) || seller.includes(term) || customer.includes(term) || company.includes(term) || rfc.includes(term) || sale.id.toLowerCase().includes(term);
     });
   });
 
@@ -1240,14 +1247,17 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.customerMode.set(mode);
     if (mode === 'walk_in') {
       const sale = this.selectedSale();
-      const walkInName = sale?.customer?.is_walk_in
-        ? sale.customer.name || 'Público en General'
-        : 'Público en General';
-      this.selectedCustomerName.set(walkInName);
+      this.selectedCustomerName.set('Público en General');
       this.selectedCustomerId.set('');
       this.selectedCollectCustomerId.set(null);
       this.selectedCustomerDetail.set(null);
       this.generateInvoice.set(false);
+      if (!this.walkInName().trim()) {
+        this.walkInName.set(sale?.walk_in_name ?? '');
+      }
+      if (!this.walkInRfc().trim()) {
+        this.walkInRfc.set(sale?.walk_in_rfc ?? '');
+      }
       if (this.collectForm().paymentMethod === 'credit') {
         this.setPaymentMethod('cash');
       }
@@ -1356,6 +1366,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if (this.customerMode() === 'walk_in' && !isValidWalkInRfc(this.walkInRfc())) {
+      this.collectError.set('El RFC debe tener 12 o 13 caracteres');
+      return;
+    }
+
     if (form.paymentMethod === 'credit' && this.creditInsufficient()) {
       this.collectError.set(`Crédito insuficiente. Disponible: ${this.formatCurrency(this.creditAvailable())}`);
       return;
@@ -1365,6 +1380,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const payload = {
       ...buildCollectPayload(form, total, customerId),
+      ...(this.customerMode() === 'walk_in'
+        ? {
+            walk_in_name: this.walkInName().trim(),
+            walk_in_rfc: normalizeWalkInRfc(this.walkInRfc()) ?? '',
+          }
+        : {}),
       ...(this.generateInvoice() && this.customerMode() === 'registered' && this.fiscalReadyForInvoice()
         ? { generate_invoice: true }
         : {}),
@@ -1514,6 +1535,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       this.selectedCustomerName.set('Público en General');
       this.selectedCustomerDetail.set(null);
       this.generateInvoice.set(false);
+      this.walkInName.set(sale.walk_in_name ?? '');
+      this.walkInRfc.set(sale.walk_in_rfc ?? '');
       return;
     }
     this.customerMode.set('registered');
@@ -1522,6 +1545,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       resolvePosCollectCustomerId(customer) ?? (customer.id != null ? customer.id : null)
     );
     this.selectedCustomerName.set(customer.name || 'Cliente');
+    this.walkInName.set('');
+    this.walkInRfc.set('');
     this.loadRegisteredCustomer(String(customer.id));
   }
 
@@ -1611,6 +1636,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   customerLabel(sale: PendingSale): string {
+    const walkInName = sale.walk_in_name?.trim();
+    if (walkInName) {
+      return walkInName;
+    }
     const c = sale.customer;
     if (!c?.name) {
       return 'Mostrador';
@@ -1619,7 +1648,15 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   customerCompanyLabel(sale: PendingSale): string {
+    const rfc = sale.walk_in_rfc?.trim();
+    if (rfc && (sale.customer?.is_walk_in || !sale.customer?.id)) {
+      return rfc;
+    }
     return posCustomerCompanySubtitle(sale.customer);
+  }
+
+  onWalkInRfcChange(value: string): void {
+    this.walkInRfc.set((value ?? '').toUpperCase().replace(/[\s-]/g, ''));
   }
 
   formatDate(value?: string): string {

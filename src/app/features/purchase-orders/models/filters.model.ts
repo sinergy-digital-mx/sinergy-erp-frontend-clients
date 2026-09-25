@@ -99,6 +99,7 @@ export interface PaymentStatusDistribution {
  */
 export interface PurchaseOrderFormData {
   fiscal_configuration_id: string;
+  billing_branch_id: string;
   vendor_id: string;
   purpose: string;
   warehouse_id: string;

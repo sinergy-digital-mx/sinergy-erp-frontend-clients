@@ -33,11 +33,11 @@ export class WarehouseListComponent implements OnDestroy {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true, width: 150 },
-      { name: 'Prefijo', prop: 'prefix', sortable: false, canAutoResize: true, width: 120 },
-      { name: 'País', prop: 'country', sortable: true, canAutoResize: true, width: 100 },
-      { name: 'Estado', prop: 'state', sortable: true, canAutoResize: true, width: 100 },
-      { name: 'Status', prop: 'status', sortable: true, canAutoResize: true, width: 100 },
+      { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true, width: 160 },
+      { name: 'Prefijo', prop: 'prefix', sortable: false, canAutoResize: true, width: 90 },
+      { name: 'Razón social', prop: 'fiscal_razon_social', sortable: false, canAutoResize: true, width: 180 },
+      { name: 'Sucursal', prop: 'billing_branch_code', sortable: false, canAutoResize: true, width: 140 },
+      { name: 'Status', prop: 'status', sortable: true, canAutoResize: true, width: 90 },
     ],
     externalPaging: false,
     externalSorting: false,
@@ -76,7 +76,7 @@ export class WarehouseListComponent implements OnDestroy {
       params.search = this.search;
     }
     
-    this.warehouseService.getWarehouses(params).subscribe({
+    this.warehouseService.getWarehouses({ ...params, limit: 100 }).subscribe({
       next: (res) => {
         this.table_config.update(c => ({
           ...c,
@@ -139,5 +139,13 @@ export class WarehouseListComponent implements OnDestroy {
 
   getStatusLabel(status: string): string {
     return status === 'active' ? 'Activo' : 'Inactivo';
+  }
+
+  warehouseFiscalName(warehouse: Warehouse): string {
+    return warehouse.billing_branch?.fiscal_configuration?.razon_social?.trim() || '—';
+  }
+
+  warehouseBranchName(warehouse: Warehouse): string {
+    return warehouse.billing_branch?.code?.trim() || '—';
   }
 }

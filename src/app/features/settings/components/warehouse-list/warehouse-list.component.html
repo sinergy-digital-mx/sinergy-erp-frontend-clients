@@ -38,10 +38,10 @@
     <span [class]="item.prefix ? 'settings-badge settings-badge--code' : 'settings-cell-empty'">{{ item.prefix || '—' }}</span>
   </td>
   <td>
-    <span [class]="item.country ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.country || '—' }}</span>
+    <span [class]="warehouseFiscalName(item) !== '—' ? 'settings-cell-text' : 'settings-cell-empty'">{{ warehouseFiscalName(item) }}</span>
   </td>
   <td>
-    <span [class]="item.state ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.state || '—' }}</span>
+    <span [class]="warehouseBranchName(item) !== '—' ? 'settings-cell-text' : 'settings-cell-empty'">{{ warehouseBranchName(item) }}</span>
   </td>
   <td>
     <span class="settings-badge" [ngClass]="getStatusClass(item.status)">

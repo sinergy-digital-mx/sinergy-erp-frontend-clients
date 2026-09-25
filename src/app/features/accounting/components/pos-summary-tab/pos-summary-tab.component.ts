@@ -15,6 +15,7 @@ import {
 import { dailyShiftIsOpen } from '../../../pos/models/pos-daily-shift.model';
 import { PosTerminalSalesDialogComponent } from '../pos-terminal-sales-dialog/pos-terminal-sales-dialog.component';
 import { PosCollectionsDialogComponent } from '../pos-collections-dialog/pos-collections-dialog.component';
+import { PosShiftsDialogComponent, PosShiftsDialogView } from '../pos-shifts-dialog/pos-shifts-dialog.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 
 @Component({
@@ -138,6 +139,26 @@ export class PosSummaryTabComponent implements OnChanges {
         period: this.period,
         dateFrom: this.dateFrom,
         dateTo: this.dateTo,
+      },
+    });
+  }
+
+  openShifts(view: PosShiftsDialogView, initialShiftId?: string): void {
+    if (!this.billingBranchId) {
+      return;
+    }
+
+    this.dialog.open(PosShiftsDialogComponent, {
+      width: '96vw',
+      maxWidth: '1100px',
+      maxHeight: '90vh',
+      data: {
+        billingBranchId: this.billingBranchId,
+        period: this.period,
+        dateFrom: this.dateFrom,
+        dateTo: this.dateTo,
+        view,
+        initialShiftId,
       },
     });
   }

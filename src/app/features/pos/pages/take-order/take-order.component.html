@@ -158,7 +158,7 @@
               <button type="button" class="pos-tickets-panel__item" (click)="openReturnedTicket(ticket)">
                 <span>
                   <strong>{{ ticket.folio || ticket.id }}</strong>
-                  <small>Tocar para cargar el carrito</small>
+                  <small>{{ ticket.walk_in_name || 'Tocar para cargar el carrito' }}</small>
                 </span>
                 <strong>{{ formatCurrency(ticket.total ?? 0) }}</strong>
               </button>
@@ -331,6 +331,35 @@
             </button>
           }
         </div>
+        @if (!hasSelectedCustomer()) {
+          <div class="pos-customer__ticket-fields">
+            <label class="pos-customer__field">
+              <span>Nombre</span>
+              <input
+                type="text"
+                maxlength="120"
+                placeholder="Opcional"
+                autocomplete="off"
+                [ngModel]="walkInName()"
+                (ngModelChange)="walkInName.set($event)" />
+            </label>
+            <label class="pos-customer__field">
+              <span>RFC</span>
+              <input
+                type="text"
+                maxlength="13"
+                placeholder="Opcional"
+                autocomplete="off"
+                [class.pos-customer__input--invalid]="walkInRfcInvalid()"
+                [ngModel]="walkInRfc()"
+                (ngModelChange)="onWalkInRfcChange($event)" />
+              @if (walkInRfcInvalid()) {
+                <small class="pos-customer__field-error">12 o 13 caracteres</small>
+              }
+            </label>
+            <p class="pos-customer__ticket-hint">Solo para el ticket. No crea cliente.</p>
+          </div>
+        }
       </div>
 
       <div class="pos-cart__body">

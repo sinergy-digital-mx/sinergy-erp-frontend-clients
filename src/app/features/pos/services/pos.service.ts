@@ -798,6 +798,8 @@ export class POSService {
       line_items: SalesOrderFormData['line_items'];
       customer_id?: number | string;
       global_discount_id?: string;
+      walk_in_name?: string;
+      walk_in_rfc?: string;
     }
   ): Observable<PosSaleInProgress> {
     return this.http.put(`${this.API_URL}/sales/${salesOrderId}/cart`, data).pipe(

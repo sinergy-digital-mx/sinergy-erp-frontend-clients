@@ -30,6 +30,8 @@ import {
 import { Payment } from '../models/payment.model';
 import { environment } from '../../../../environments/environment';
 import { VendorCatalogProduct, VendorProductsQuery } from '../models/vendor-catalog.model';
+import { PurchaseOrderLocationsResponse } from '../models/purchase-order-location.model';
+import { unwrapPurchaseOrderLocations } from '../utils/purchase-order-location.util';
 
 @Injectable({
   providedIn: 'root'
@@ -244,6 +246,13 @@ export class PurchaseOrderService {
           return this.handleError(error);
         })
       );
+  }
+
+  getLocations(): Observable<PurchaseOrderLocationsResponse> {
+    return this.http.get<unknown>(`${this.baseUrl}/locations`).pipe(
+      map((response) => unwrapPurchaseOrderLocations(response)),
+      catchError((error) => this.handleError(error)),
+    );
   }
 
   /**

@@ -74,6 +74,7 @@ import {
   mapInProgressLineToCartItem,
   resolveFiscalConfigurationIdFromBranch,
 } from '../../utils/pos-order.util';
+import { isValidWalkInRfc, normalizeWalkInRfc } from '../../utils/walk-in-ticket.util';
 import { resolvePosCollectCustomerId } from '../../utils/pos-collect.util';
 import { isDiscountApiError, formatGlobalDiscountLabel, formatApplicableDiscountLabel } from '../../utils/pos-discount.util';
 import { GlobalDiscountService } from '../../../global-discounts/services/global-discount.service';
@@ -134,7 +135,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedCustomerId = signal('');
   selectedCustomerName = signal('Público en General');
   selectedOrderCustomerId = signal<number | string | null>(null);
+  walkInName = signal('');
+  walkInRfc = signal('');
   readonly hasSelectedCustomer = computed(() => Boolean(this.selectedCustomerId()));
+  readonly walkInRfcInvalid = computed(() => !isValidWalkInRfc(this.walkInRfc()));
 
   priceListError = signal<boolean>(false);
   isFullscreen = signal<boolean>(false);
@@ -391,7 +395,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
         this.posService.clearCart();
-        this.clearSelectedCustomer();
+        this.resetCustomerSelection();
         this.clearEditingTicket();
         resetPosWarehouseForBranch(branchId);
         const fiscal = this.authService.getFiscalConfigurationId();
@@ -506,7 +510,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (ticket.customer?.is_walk_in || ticket.customer_id == null) {
       this.clearSelectedCustomer();
+      this.walkInName.set(ticket.walk_in_name ?? '');
+      this.walkInRfc.set(ticket.walk_in_rfc ?? '');
     } else {
+      this.walkInName.set('');
+      this.walkInRfc.set('');
       const nameParts = [ticket.customer?.name, ticket.customer?.lastname]
         .filter(Boolean)
         .join(' ')
@@ -1058,6 +1066,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if (!this.validateWalkInTicketFields()) {
+      return;
+    }
+
     this.confirmCheckout({
       kind: 'sale',
       title: this.isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta',
@@ -1068,7 +1080,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         : 'Se registrará la venta y el cliente pasará a caja para pagar.',
       totalLabel: this.formatCurrency(cart.grand_total),
       itemSummary: this.cartItemSummary(cart),
-      customerLabel: this.selectedCustomerName(),
+      customerLabel: this.ticketCustomerLabel(),
       acceptLabel: this.isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta',
       queued: this.posState.salesQueueMode(),
     }).subscribe((confirmed) => {
@@ -1082,6 +1094,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         sellerUserId: seller.id,
         terminalLabel: this.terminalLabel(),
         customerId: this.selectedOrderCustomerId() ?? undefined,
+        walkInName: this.walkInName(),
+        walkInRfc: normalizeWalkInRfc(this.walkInRfc()),
       });
 
       this.saving.set(true);
@@ -1091,6 +1105,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           line_items: payload.line_items,
           customer_id: payload.customer_id,
           global_discount_id: payload.global_discount_id,
+          walk_in_name: payload.walk_in_name,
+          walk_in_rfc: payload.walk_in_rfc,
         }).subscribe({
           next: () => {
             this.posService.sendSaleToCaja(editingId).subscribe({
@@ -1103,7 +1119,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
                   : `Venta enviada a caja (${folioLabel}). El cliente debe pasar a caja para pagar.`;
                 this.notifySuccess(message, 6000);
                 this.posService.clearCart();
-                this.clearSelectedCustomer();
+                this.resetCustomerSelection();
                 this.clearEditingTicket();
                 this.loadProducts(this.searchTerm());
                 this.loadSalesInProgress();
@@ -1138,7 +1154,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
             : `Venta registrada (${folioLabel}). El cliente debe pasar a caja para pagar.`;
           this.notifySuccess(message, 6000);
           this.posService.clearCart();
-          this.clearSelectedCustomer();
+          this.resetCustomerSelection();
           this.loadProducts(this.searchTerm());
         },
         error: (error) => {
@@ -1219,7 +1235,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           const folioLabel = quotation.folio ? quotation.folio : 'sin folio';
           this.notifySuccess(`Cotización guardada (${folioLabel}). No se retuvo inventario.`, 6000);
           this.posService.clearCart();
-          this.clearSelectedCustomer();
+          this.resetCustomerSelection();
           this.loadProducts(this.searchTerm());
         },
         error: (error) => {
@@ -1295,6 +1311,45 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedCustomerName.set('Público en General');
   }
 
+  private resetCustomerSelection(): void {
+    this.clearSelectedCustomer();
+    this.walkInName.set('');
+    this.walkInRfc.set('');
+  }
+
+  onWalkInRfcChange(value: string): void {
+    this.walkInRfc.set((value ?? '').toUpperCase().replace(/[\s-]/g, ''));
+  }
+
+  ticketCustomerLabel(): string {
+    if (this.hasSelectedCustomer()) {
+      return this.selectedCustomerName();
+    }
+    const name = this.walkInName().trim();
+    const rfc = this.walkInRfc().trim();
+    if (name && rfc) {
+      return `${name} · ${rfc}`;
+    }
+    if (name) {
+      return name;
+    }
+    if (rfc) {
+      return `Público en General · ${rfc}`;
+    }
+    return 'Público en General';
+  }
+
+  private validateWalkInTicketFields(): boolean {
+    if (this.hasSelectedCustomer()) {
+      return true;
+    }
+    if (!isValidWalkInRfc(this.walkInRfc())) {
+      this.notifyError('El RFC debe tener 12 o 13 caracteres', 4000);
+      return false;
+    }
+    return true;
+  }
+
   customerInitials(): string {
     const name = this.selectedCustomerName();
     const words = name.split(/\s+/).filter(Boolean);
@@ -1321,7 +1376,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       : '¿Descartar orden actual?';
     if (confirm(discardMessage)) {
       this.posService.clearCart();
-      this.clearSelectedCustomer();
+      this.resetCustomerSelection();
       this.clearEditingTicket();
     }
   }

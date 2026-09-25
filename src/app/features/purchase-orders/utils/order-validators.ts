@@ -155,6 +155,7 @@ function getRequiredErrorMessage(fieldName: string): string {
   const messages: Record<string, string> = {
     'vendor_id': 'Proveedor es requerido',
     'fiscal_configuration_id': 'Configuración fiscal es requerida',
+    'billing_branch_id': 'Sucursal es requerida',
     'warehouse_id': 'Almacén es requerido',
     'tentative_receipt_date': 'Fecha tentativa de recepción es requerida',
     'purpose': 'Propósito es requerido',

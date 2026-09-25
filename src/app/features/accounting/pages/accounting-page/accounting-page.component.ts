@@ -6,10 +6,11 @@ import { BranchService } from '../../../settings/services/branch.service';
 import { Branch } from '../../../settings/models/branch.model';
 import { AccountingPeriod } from '../../models/accounting.model';
 import { PosSummaryTabComponent } from '../../components/pos-summary-tab/pos-summary-tab.component';
+import { PosCollectionsTabComponent } from '../../components/pos-collections-tab/pos-collections-tab.component';
 import { AccountsPayableTabComponent } from '../../components/accounts-payable-tab/accounts-payable-tab.component';
 import { AccountsReceivableTabComponent } from '../../components/accounts-receivable-tab/accounts-receivable-tab.component';
 
-export type AccountingTab = 'pos' | 'payable' | 'receivable';
+export type AccountingTab = 'pos' | 'pos-collections' | 'payable' | 'receivable';
 
 @Component({
   selector: 'app-accounting-page',
@@ -19,6 +20,7 @@ export type AccountingTab = 'pos' | 'payable' | 'receivable';
     FormsModule,
     ReportPeriodSelectorComponent,
     PosSummaryTabComponent,
+    PosCollectionsTabComponent,
     AccountsPayableTabComponent,
     AccountsReceivableTabComponent,
   ],
@@ -41,6 +43,7 @@ export class AccountingPageComponent implements OnInit {
 
   readonly tabs: { id: AccountingTab; label: string }[] = [
     { id: 'pos', label: 'Puntos de venta' },
+    { id: 'pos-collections', label: 'Cobranza POS' },
     { id: 'payable', label: 'Cuentas por pagar' },
     { id: 'receivable', label: 'Cuentas por cobrar' },
   ];
@@ -60,7 +63,7 @@ export class AccountingPageComponent implements OnInit {
   }
 
   branchRequired(): boolean {
-    return this.activeTab() === 'pos';
+    return this.activeTab() === 'pos' || this.activeTab() === 'pos-collections';
   }
 
   branchOptional(): boolean {

@@ -139,7 +139,10 @@ export class QuotationService {
       );
   }
 
-  convert(id: string, body: { customer_id?: number; notes?: string } = {}): Observable<ConvertQuotationResponse> {
+  convert(
+    id: string,
+    body: { customer_id?: number; notes?: string; send_to_pos_caja?: boolean } = {},
+  ): Observable<ConvertQuotationResponse> {
     return this.http.post<ConvertQuotationResponse>(`${this.baseUrl}/${id}/convert`, body);
   }
 

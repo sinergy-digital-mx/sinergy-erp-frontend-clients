@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { Observable, catchError, map, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   AccountingPaginatedResponse,
@@ -13,6 +13,7 @@ import {
   AccountsReceivableListSummary,
   AccountsReceivableOrderRow,
   AccountsReceivableRow,
+  AccountingDailyShiftRow,
   CollectionCustomerType,
   CollectionTerminalSummary,
   PosCollectionRow,
@@ -22,6 +23,7 @@ import {
   PosTerminalType,
   SalesTerminalSummary,
 } from '../models/accounting.model';
+import { PosDailyShiftDetail, normalizeDailyShiftDetail } from '../../pos/models/pos-daily-shift.model';
 
 @Injectable({ providedIn: 'root' })
 export class AccountingService {
@@ -54,16 +56,75 @@ export class AccountingService {
     query: AccountingPeriodQuery,
     customerType: CollectionCustomerType = 'all',
     page = 1,
-    limit = 20
+    limit = 20,
+    search?: string
   ): Observable<AccountingPaginatedResponse<PosCollectionRow>> {
-    const params = this.buildPeriodParams(query)
+    let params = this.buildPeriodParams(query)
       .set('customer_type', customerType)
       .set('page', String(page))
       .set('limit', String(limit));
+    if (search?.trim()) {
+      params = params.set('search', search.trim());
+    }
 
     return this.http
       .get<unknown>(`${this.api}/pos-collections`, { params })
       .pipe(map((raw) => this.parsePaginated<PosCollectionRow>(raw)));
+  }
+
+  exportPosCollectionsExcel(
+    query: AccountingPeriodQuery,
+    customerType: CollectionCustomerType = 'all',
+    search?: string
+  ): Observable<{ blob: Blob; filename: string }> {
+    let params = this.buildPeriodParams(query).set('customer_type', customerType);
+    if (search?.trim()) {
+      params = params.set('search', search.trim());
+    }
+
+    return this.http
+      .get(`${this.api}/pos-collections/export/excel`, {
+        params,
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((response) => {
+          const disposition = response.headers.get('content-disposition') ?? undefined;
+          return {
+            blob: response.body as Blob,
+            filename:
+              this.parseFilenameFromDisposition(disposition) ??
+              `cobranza-pos-${new Date().toISOString().slice(0, 10)}.xlsx`,
+          };
+        }),
+        catchError((error: HttpErrorResponse) => {
+          const fallback = 'No se pudo descargar el Excel';
+          if (error.error instanceof Blob) {
+            return throwError(() => new Error(fallback));
+          }
+          return throwError(() => new Error(fallback));
+        })
+      );
+  }
+
+  getPosDailyShifts(query: AccountingPeriodQuery): Observable<AccountingDailyShiftRow[]> {
+    return this.http
+      .get<unknown>(`${this.api}/pos-daily-shifts`, { params: this.buildPeriodParams(query) })
+      .pipe(map((raw) => this.asArray<AccountingDailyShiftRow>(this.asRecord(raw)['data'])));
+  }
+
+  getPosDailyShift(id: string): Observable<PosDailyShiftDetail> {
+    return this.http.get<unknown>(`${this.api}/pos-daily-shifts/${id}`).pipe(
+      map((raw) => {
+        const body = this.asRecord(raw);
+        const shift = normalizeDailyShiftDetail(body['daily_shift'] ?? body['data'] ?? body);
+        if (!shift) {
+          throw new Error('No se pudo cargar el corte');
+        }
+        return shift;
+      })
+    );
   }
 
   getAccountsPayable(
@@ -273,5 +334,21 @@ export class AccountingService {
 
   private asArray<T>(raw: unknown): T[] {
     return Array.isArray(raw) ? (raw as T[]) : [];
+  }
+
+  private parseFilenameFromDisposition(header?: string): string | null {
+    if (!header) {
+      return null;
+    }
+    const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(header);
+    if (utfMatch?.[1]) {
+      try {
+        return decodeURIComponent(utfMatch[1].trim());
+      } catch {
+        return utfMatch[1].trim();
+      }
+    }
+    const match = /filename="([^"]+)"/i.exec(header) ?? /filename=([^;]+)/i.exec(header);
+    return match?.[1]?.trim().replace(/^["']|["']$/g, '') ?? null;
   }
 }

@@ -167,5 +167,7 @@ export interface ConvertQuotationResponse {
     payment_status?: string;
     sales_order_type?: string;
     total?: number | string;
+    sent_to_pos_caja?: boolean;
+    pos_daily_shift_id?: string | null;
   };
 }

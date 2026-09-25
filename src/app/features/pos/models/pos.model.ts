@@ -88,6 +88,8 @@ export interface PosSaleInProgress {
   payment_status?: string;
   pos_stage?: 'caja' | 'ventas' | null;
   customer_id?: number | null;
+  walk_in_name?: string | null;
+  walk_in_rfc?: string | null;
   customer?: {
     id?: number;
     name?: string;

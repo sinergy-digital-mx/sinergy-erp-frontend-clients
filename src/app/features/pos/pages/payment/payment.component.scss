@@ -2169,6 +2169,25 @@
   margin-bottom: 0;
 }
 
+.cobranza-walk-in-fields {
+  margin-top: 0.75rem;
+}
+
+.cobranza-walk-in-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.cobranza-walk-in-error {
+  font-size: 0.68rem;
+  color: #dc2626;
+}
+
+.cobranza-field__input--invalid {
+  border-color: #fca5a5 !important;
+}
+
 .cobranza-radio {
   display: flex;
   align-items: flex-start;

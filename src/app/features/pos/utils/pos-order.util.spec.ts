@@ -45,4 +45,25 @@ describe('buildVentasPosOrderPayload', () => {
     });
     expect(payload.customer_id).toBeUndefined();
   });
+
+  it('incluye nombre y RFC de mostrador si no hay cliente registrado', () => {
+    const payload = buildVentasPosOrderPayload(cart as any, {
+      ...ctx,
+      walkInName: ' Juan Pérez ',
+      walkInRfc: 'XAXX010101000',
+    });
+    expect(payload.walk_in_name).toBe('Juan Pérez');
+    expect(payload.walk_in_rfc).toBe('XAXX010101000');
+  });
+
+  it('omite nombre y RFC de mostrador si hay cliente registrado', () => {
+    const payload = buildVentasPosOrderPayload(cart as any, {
+      ...ctx,
+      customerId: 42,
+      walkInName: 'Juan Pérez',
+      walkInRfc: 'XAXX010101000',
+    });
+    expect(payload.walk_in_name).toBeUndefined();
+    expect(payload.walk_in_rfc).toBeUndefined();
+  });
 });

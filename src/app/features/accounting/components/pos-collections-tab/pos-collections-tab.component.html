@@ -1,0 +1,91 @@
+@if (branchMissing()) {
+  <div class="accounting-empty">
+    <p>Selecciona una sucursal para ver las órdenes cobradas en POS.</p>
+  </div>
+} @else {
+  <div class="pos-collections-tab">
+    <div class="pos-collections-tab__toolbar">
+      <div>
+        <h3 class="pos-collections-tab__title">Órdenes cobradas en punto de venta</h3>
+        <p class="pos-collections-tab__subtitle">
+          {{ listTotal() }}
+          {{ listTotal() === 1 ? 'orden cobrada' : 'órdenes cobradas' }}
+          en el periodo · {{ formatCurrency(collectionTerminal().amount_collected) }}
+        </p>
+      </div>
+      <button
+        type="button"
+        class="pos-collections-tab__export"
+        [disabled]="exporting() || tableConfig().loading"
+        (click)="downloadExcel()">
+        {{ exporting() ? 'Descargando…' : 'Descargar Excel' }}
+      </button>
+    </div>
+
+    <div class="pos-collections-tab__filters">
+      <div class="pos-collections-tab__chips" role="tablist" aria-label="Tipo de cliente">
+        @for (chip of filterChips(); track chip.type) {
+          <button
+            type="button"
+            role="tab"
+            class="filter-chip"
+            [class.filter-chip--active]="customerType() === chip.type"
+            [attr.aria-selected]="customerType() === chip.type"
+            [disabled]="tableConfig().loading"
+            (click)="setCustomerType(chip.type)">
+            {{ chip.label }}
+            <span class="filter-chip__count">{{ chip.count }}</span>
+          </button>
+        }
+      </div>
+      <input
+        type="search"
+        class="pos-collections-tab__search"
+        placeholder="Buscar folio, cliente o RFC"
+        [ngModel]="search()"
+        (ngModelChange)="onSearchChange($event)"
+        autocomplete="off" />
+    </div>
+
+    <app-datatable-wrapper
+      [config]="tableConfig()"
+      [rowTemplate]="tableTemplate"
+      (pageChange)="onPageChange($event)">
+    </app-datatable-wrapper>
+  </div>
+}
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td class="px-2 py-2">
+    <button type="button" class="folio-link" (click)="openSalesOrder(item)">
+      {{ item.folio || item.id?.substring(0, 8) }}
+    </button>
+  </td>
+  <td class="px-2 py-2">{{ formatDate(item.created_at) }}</td>
+  <td class="px-2 py-2">{{ formatDate(item.collected_at) }}</td>
+  <td class="px-2 py-2">
+    <div class="customer-cell">
+      <div class="customer-cell__names">
+        <span class="customer-cell__company">{{ customerPrimary(item) }}</span>
+        @if (customerSecondary(item)) {
+          <span class="customer-cell__person">{{ customerSecondary(item) }}</span>
+        }
+      </div>
+      @if (item.is_walk_in) {
+        <span class="walk-in-chip">Mostrador</span>
+      }
+      @if (item.has_stamped_invoice) {
+        <span class="invoice-chip">CFDI timbrado</span>
+      }
+    </div>
+  </td>
+  <td class="px-2 py-2">{{ sellerLabel(item) }}</td>
+  <td class="px-2 py-2">{{ cashierLabel(item) }}</td>
+  <td class="px-2 py-2">{{ methodLabel(item) }}</td>
+  <td class="px-2 py-2">{{ formatCurrency(item.total) }}</td>
+  <td class="px-2 py-2">
+    <span class="payment-pill" [class.payment-pill--paid]="item.payment_status === 'Pagado'">
+      {{ item.payment_status || '—' }}
+    </span>
+  </td>
+</ng-template>

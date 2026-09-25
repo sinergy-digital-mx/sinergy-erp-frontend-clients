@@ -80,11 +80,14 @@ export interface PosCollectionRow {
   customer_company_name?: string | null;
   customer_person_name?: string | null;
   customer_display_name?: string;
+  walk_in_name?: string | null;
+  walk_in_rfc?: string | null;
   is_walk_in?: boolean;
   has_stamped_invoice?: boolean;
   seller_user?: PosUserSummary | null;
   collected_by_user?: PosUserSummary | null;
   payment_method?: string | null;
+  payment_method_label?: string | null;
   total?: number | string;
   payment_status?: string;
 }
@@ -146,6 +149,31 @@ export interface AccountsReceivableOrderRow {
   total?: number | string;
   expected_delivery_date?: string;
   delivery_date?: string;
+}
+
+export interface AccountingDailyShiftPartial {
+  id: string;
+  partial_number?: number;
+  removed_total_mxn?: number;
+  removed_total_usd?: number;
+  created_at?: string;
+  notes?: string | null;
+  performed_by_user?: PosUserSummary | null;
+}
+
+export interface AccountingDailyShiftRow {
+  id: string;
+  shift_date: string;
+  status: string;
+  is_previous_day?: boolean;
+  opening_cash_mxn?: number;
+  opening_cash_usd?: number;
+  terminal_name?: string | null;
+  terminal_user?: PosUserSummary | null;
+  billing_branch?: { id?: string; code?: string; display_name?: string } | null;
+  partial_shifts_count: number;
+  removed_total_mxn?: number;
+  partial_shifts?: AccountingDailyShiftPartial[];
 }
 
 export interface AccountingPaginatedResponse<T, S = undefined> {

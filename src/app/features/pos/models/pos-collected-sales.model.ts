@@ -30,6 +30,8 @@ export interface CollectedSaleItem {
     id?: string;
     folio?: string;
     total?: number | string;
+    walk_in_name?: string | null;
+    walk_in_rfc?: string | null;
   };
   customer?: {
     id?: number;
@@ -114,6 +116,10 @@ export function posCustomerCompanySubtitle(customer?: {
 }
 
 export function collectedSaleCustomerLabel(item: CollectedSaleItem): string {
+  const walkInName = item.sales_order?.walk_in_name?.trim();
+  if (walkInName) {
+    return walkInName;
+  }
   const c = item.customer;
   if (!c?.name) {
     return 'Mostrador';
@@ -122,6 +128,10 @@ export function collectedSaleCustomerLabel(item: CollectedSaleItem): string {
 }
 
 export function collectedSaleCustomerCompany(item: CollectedSaleItem): string {
+  const rfc = item.sales_order?.walk_in_rfc?.trim();
+  if (rfc) {
+    return rfc;
+  }
   return posCustomerCompanySubtitle(item.customer);
 }
 

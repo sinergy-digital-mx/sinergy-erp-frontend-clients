@@ -69,20 +69,26 @@
       </div>
 
       <div class="collection-card__shifts">
-        <div class="collection-shift-stat">
+        <button type="button" class="collection-shift-stat collection-shift-stat--btn" (click)="openShifts('globals')">
           <span class="collection-shift-stat__label">Cortes globales</span>
           <span class="collection-shift-stat__value">{{ collectionTerminal().daily_shifts_count }}</span>
-        </div>
-        <div class="collection-shift-stat">
+          <span class="collection-shift-stat__hint">Consultar</span>
+        </button>
+        <button type="button" class="collection-shift-stat collection-shift-stat--btn" (click)="openShifts('partials')">
           <span class="collection-shift-stat__label">Cortes parciales</span>
           <span class="collection-shift-stat__value">{{ collectionTerminal().partial_shifts_count }}</span>
-        </div>
-        <div class="collection-shift-stat collection-shift-stat--wide">
+          <span class="collection-shift-stat__hint">Consultar</span>
+        </button>
+        <button
+          type="button"
+          class="collection-shift-stat collection-shift-stat--wide collection-shift-stat--btn"
+          [disabled]="!collectionTerminal().open_daily_shift"
+          (click)="openShifts('globals', collectionTerminal().open_daily_shift?.id)">
           <span class="collection-shift-stat__label">Corte abierto</span>
           <span class="collection-shift-stat__value collection-shift-stat__value--text">
             {{ collectionOpenShiftLabel() }}
           </span>
-        </div>
+        </button>
       </div>
 
       <p class="collection-card__hint">
