@@ -128,6 +128,13 @@ export interface PosDailyShiftDetail extends PosDailyShiftListItem {
   closed_at?: string | null;
   partial_shifts?: PosDailyShiftPartial[];
   cash_drawer?: PosDailyShiftCashDrawer | null;
+  advance_payments?: Array<{
+    id: string;
+    folio: string;
+    payment_method: string;
+    payment_method_label: string;
+    amount_mxn: number;
+  }>;
 }
 
 export interface OpenDailyShiftResponse {

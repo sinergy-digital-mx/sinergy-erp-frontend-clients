@@ -41,10 +41,22 @@ export interface AdvanceInvoiceDialogData {
         Uso CFDI
         <input type="text" formControlName="uso_cfdi" />
       </label>
-      <label>
-        Forma de pago
-        <input type="text" formControlName="forma_pago" />
-      </label>
+      @if (data.mode === 'stamp') {
+        <label>
+          Cómo pagó
+          <select formControlName="forma_pago">
+            <option value="01">Efectivo</option>
+            <option value="04">Tarjeta</option>
+            <option value="03">Transferencia</option>
+            <option value="02">Cheque</option>
+          </select>
+        </label>
+      } @else {
+        <label>
+          Forma de pago
+          <input type="text" formControlName="forma_pago" />
+        </label>
+      }
       <label>
         Régimen del receptor
         <input type="text" formControlName="regimen_fiscal_receptor" />
@@ -64,7 +76,7 @@ export interface AdvanceInvoiceDialogData {
     .advance-dialog { display: flex; flex-direction: column; gap: 12px; padding: 8px 4px 4px; min-width: 320px; }
     h2 { margin: 0; font-size: 18px; }
     label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-    input { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; }
+    input, select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; background: #fff; }
     .advance-dialog__hint { margin: 0; color: #475569; font-size: 13px; }
     .advance-dialog__error { margin: 0; color: #b91c1c; font-size: 13px; }
     .advance-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; }
@@ -87,7 +99,7 @@ export class AdvanceInvoiceDialogComponent {
       base_amount: [data.defaultBase ?? null, data.mode === 'stamp' ? [Validators.required, Validators.min(0.01)] : []],
       iva_percentage: [data.defaultIva ?? 8, data.mode === 'stamp' ? [Validators.required, Validators.min(0), Validators.max(16)] : []],
       uso_cfdi: [data.mode === 'apply' ? 'G01' : 'G01', Validators.required],
-      forma_pago: ['03', Validators.required],
+      forma_pago: ['01', Validators.required],
       regimen_fiscal_receptor: ['601', Validators.required],
     });
   }
@@ -100,7 +112,14 @@ export class AdvanceInvoiceDialogComponent {
     if (this.data.mode === 'apply') {
       return `Se timbran dos comprobantes ligados al anticipo ${this.data.advanceUuid || ''}: la factura de la mercancía y la nota de crédito.`;
     }
-    return `Un solo concepto SAT (84111506, unidad ACT) por el anticipo de ${this.data.folio}.`;
+    return `El cliente paga ${this.chargeTotal.toFixed(2)} MXN. Ese dinero entra al corte abierto de la sucursal.`;
+  }
+
+  get chargeTotal(): number {
+    const base = Number(this.form.get('base_amount')?.value ?? 0);
+    const iva = Number(this.form.get('iva_percentage')?.value ?? 0);
+    if (!Number.isFinite(base) || !Number.isFinite(iva)) return 0;
+    return Math.round(base * (1 + iva / 100) * 100) / 100;
   }
 
   close(): void {

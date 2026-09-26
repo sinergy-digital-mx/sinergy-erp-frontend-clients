@@ -27,6 +27,22 @@
         }
       </dl>
 
+      @if (item.advance_payments?.length) {
+        <section class="shift-detail-modal__section">
+          <h3>Anticipos cobrados</h3>
+          <ul class="shift-detail-modal__partials">
+            @for (payment of item.advance_payments; track payment.id) {
+              <li class="shift-detail-modal__partial">
+                <div class="shift-detail-modal__partial-head">
+                  <span class="shift-detail-modal__partial-title">{{ payment.folio }} · {{ payment.payment_method_label }}</span>
+                  <span class="shift-detail-modal__partial-amount">{{ formatDrawer(payment.amount_mxn) }}</span>
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
       @if (item.partial_shifts?.length) {
         <section class="shift-detail-modal__section">
           <h3>Historial de parciales</h3>

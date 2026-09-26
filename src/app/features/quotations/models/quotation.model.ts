@@ -94,6 +94,12 @@ export interface Quotation {
     total?: number;
     applied?: boolean;
   } | null;
+  advance_payment?: {
+    amount_mxn: number;
+    payment_method: string;
+    payment_method_label: string;
+    shift_date: string | null;
+  } | null;
   seller_user?: PosUserSummary | null;
   assigned_seller_user?: PosUserSummary | null;
   terminal_user?: PosUserSummary | null;

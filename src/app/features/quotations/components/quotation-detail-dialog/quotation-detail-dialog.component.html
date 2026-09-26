@@ -203,6 +203,13 @@
           <p class="notes-text">{{ header()!.notes || 'Sin observaciones' }}</p>
         </div>
 
+        @if (header()!.advance_payment; as payment) {
+          <p class="advance-payment-note">
+            Cobrado en el corte{{ payment.shift_date ? ' del ' + payment.shift_date : '' }}:
+            {{ payment.amount_mxn | number:'1.2-2' }} MXN en {{ payment.payment_method_label }}.
+          </p>
+        }
+
         <div class="action-buttons">
           @if (header()!.can_stamp_advance) {
             <button type="button" class="btn-convert-order" (click)="openAdvanceInvoice()">
