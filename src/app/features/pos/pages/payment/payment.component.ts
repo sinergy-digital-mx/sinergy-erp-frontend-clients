@@ -588,6 +588,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.collectionDetail.set(null);
     this.collectError.set(null);
     this.loadShiftDetail();
+    this.loadCollectedSales();
   }
 
   loadShiftDetail(): void {
@@ -661,6 +662,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     if (this.dashboardTab() === 'shifts') {
       this.loadShiftDetail();
+      this.loadCollectedSales();
       return;
     }
     this.loadPendingSales();

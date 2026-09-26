@@ -192,6 +192,24 @@
   }
 }
 
+.cobranza-section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1.1rem 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #71717a;
+
+  span {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+}
+
 .cobranza-shifts__item-notes {
   margin: 0.5rem 0 0;
   padding: 0.45rem 0.55rem;

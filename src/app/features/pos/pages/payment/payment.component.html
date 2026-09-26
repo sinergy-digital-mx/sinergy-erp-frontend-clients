@@ -161,9 +161,9 @@
       <aside class="cobranza-panel cobranza-panel--list">
         <div class="cobranza-panel__head">
           <div class="cobranza-panel__title">
-            <h2>Cortes parciales</h2>
-            @if (shiftPartialCount(currentShift) > 0) {
-              <span class="cobranza-count">{{ shiftPartialCount(currentShift) }}</span>
+            <h2>Órdenes del corte</h2>
+            @if ((collectedSummary()?.count ?? collectedSales().length) > 0) {
+              <span class="cobranza-count">{{ collectedSummary()?.count ?? collectedSales().length }}</span>
             }
           </div>
           <button type="button" class="cobranza-refresh-btn" (click)="refreshListPanel()" title="Actualizar">
@@ -172,10 +172,44 @@
         </div>
         <div class="cobranza-panel__content">
           <div class="cobranza-sales-scroll">
+            @if (loadingCollected()) {
+              <p class="cobranza-empty"><app-spinner size="sm"></app-spinner></p>
+            } @else if (filteredCollectedSales().length === 0) {
+              <p class="cobranza-empty">No hay órdenes cobradas en este corte.</p>
+            } @else {
+              <ul class="cobranza-sales">
+                @for (item of filteredCollectedSales(); track item.collection_id || item.sales_order?.id) {
+                  <li>
+                    <article class="cobranza-sale cobranza-sale--collected">
+                      <button type="button" class="cobranza-sale__main" (click)="selectCollectedSale(item); setDashboardTab('collected')">
+                        <div class="cobranza-sale__row">
+                          <strong>{{ collectedSaleFolio(item) }}</strong>
+                          <span class="cobranza-sale__total">{{ collectedSaleTotal(item) }}</span>
+                        </div>
+                        <div class="cobranza-sale__row cobranza-sale__row--meta">
+                          <span>{{ formatDate(item.collected_at) }}</span>
+                          <span class="cobranza-pay-chip">{{ paymentMethodLabel(item.payment?.payment_method) }}</span>
+                        </div>
+                        <div class="cobranza-sale__row cobranza-sale__row--customer">
+                          <span>{{ collectedSaleCustomerLabel(item) }}</span>
+                        </div>
+                      </button>
+                    </article>
+                  </li>
+                }
+              </ul>
+            }
+
+            <h3 class="cobranza-section-label">
+              Cortes parciales
+              @if (shiftPartialCount(currentShift) > 0) {
+                <span>{{ shiftPartialCount(currentShift) }}</span>
+              }
+            </h3>
             @if (loadingShiftDetail()) {
               <p class="cobranza-empty"><app-spinner size="sm"></app-spinner></p>
             } @else if (partialShifts(currentShift).length === 0) {
-              <p class="cobranza-empty">No hay parciales. Usa <strong>Corte parcial</strong> en la barra.</p>
+              <p class="cobranza-empty">No hay parciales. Usa <strong>Corte parcial</strong> en la barra. El parcial no quita las órdenes cobradas.</p>
             } @else {
               <ul class="cobranza-sales">
                 @for (partial of partialShifts(currentShift); track partial.id; let i = $index) {
