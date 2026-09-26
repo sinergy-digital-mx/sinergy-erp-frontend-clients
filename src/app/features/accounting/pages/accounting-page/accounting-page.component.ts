@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ReportPeriod, ReportPeriodSelectorComponent } from '../../../../core/components/report-period-selector/report-period-selector.component';
 import { BranchService } from '../../../settings/services/branch.service';
 import { Branch } from '../../../settings/models/branch.model';
@@ -18,6 +19,7 @@ export type AccountingTab = 'pos' | 'pos-collections' | 'payable' | 'receivable'
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     ReportPeriodSelectorComponent,
     PosSummaryTabComponent,
     PosCollectionsTabComponent,

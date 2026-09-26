@@ -777,6 +777,17 @@
   font-weight: 500;
 }
 
+.pos-line__was {
+  color: #94a3b8;
+  font-weight: 500;
+  font-size: 0.78em;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: #fb7185;
+  margin-right: 0.28rem;
+  letter-spacing: -0.01em;
+}
+
 .pos-line__pricing-select {
   width: auto;
   max-width: 10.25rem;
@@ -960,6 +971,21 @@
     box-shadow: none;
     background: #fafafa;
   }
+}
+
+.pos-line__price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.12rem;
+  flex-shrink: 0;
+}
+
+.pos-line__price .pos-line__was {
+  margin-right: 0;
+  font-size: 0.68rem;
+  line-height: 1;
 }
 
 .pos-line__total {
@@ -1224,8 +1250,37 @@
       background: #f8fafc;
     }
 
+    &--open {
+      background: #f8fafc;
+    }
+
     &--selected {
       background: #eef2ff;
+    }
+  }
+
+  &__search {
+    border: 1px solid #c7d2fe;
+    border-radius: 999px;
+    background: #fff;
+    color: #4338ca;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    white-space: nowrap;
+
+    &:hover {
+      background: #eef2ff;
+    }
+
+    .pos-customer__chevron {
+      color: currentColor;
     }
   }
 

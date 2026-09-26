@@ -2,12 +2,19 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
-import { InterceptorService } from '../services/interceptor.service';
 import { isPublicApiRequest } from '../http/skip-auth.context';
+
+function isPermissionsChanged(error: HttpErrorResponse): boolean {
+  return (
+    error.status === 401 &&
+    (error.error?.error === 'PERMISSIONS_CHANGED' ||
+      error.error?.code === 'PERMISSIONS_CHANGED' ||
+      error.error?.message === 'PERMISSIONS_CHANGED')
+  );
+}
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
-  const interceptorService = inject(InterceptorService);
   const publicRequest = isPublicApiRequest(req);
 
   // Portal público: sin Bearer. El resto anexa token si existe.
@@ -28,28 +35,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      const permissionsChanged =
-        error.status === 401 &&
-        (error.error?.error === 'PERMISSIONS_CHANGED' ||
-          error.error?.code === 'PERMISSIONS_CHANGED' ||
-          error.error?.message === 'PERMISSIONS_CHANGED');
-
-      if (permissionsChanged && !publicRequest) {
+      if (isPermissionsChanged(error) && !publicRequest) {
         console.log('🔄 Permissions changed detected, refreshing token...');
         
         // Call refresh endpoint to get new token
         return authService.refresh().pipe(
-          switchMap((response: any) => {
-            console.log('✅ Token refreshed successfully');
-            
-            // Show notification to user
-            interceptorService.openSnackbar({
-              type: 'info',
-              title: 'Permisos Actualizados',
-              message: 'Tus permisos han sido actualizados'
-            });
-            
-            // Retry the original request with new token
+          switchMap(() => {
             const newToken = authService.token;
             const clonedRequest = req.clone({
               setHeaders: {

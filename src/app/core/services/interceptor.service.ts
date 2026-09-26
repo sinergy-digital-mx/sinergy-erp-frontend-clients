@@ -52,7 +52,13 @@ export class InterceptorService implements HttpInterceptor {
         }
       }),
       catchError((error: HttpErrorResponse) => {
-        if (error.status === 401 && !publicRequest) {
+        const permissionsChanged =
+          error.status === 401 &&
+          (error.error?.error === 'PERMISSIONS_CHANGED' ||
+            error.error?.code === 'PERMISSIONS_CHANGED' ||
+            error.error?.message === 'PERMISSIONS_CHANGED');
+
+        if (error.status === 401 && !publicRequest && !permissionsChanged) {
           this.auth_service.logout();
         }
         // ✅ RxJS 7+

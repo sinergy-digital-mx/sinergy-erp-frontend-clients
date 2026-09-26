@@ -16,7 +16,6 @@ import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/
 import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
 import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
-import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
@@ -40,7 +39,6 @@ import {
     RouterLink,
     DatatableWrapperComponent,
     TransferLocationPathComponent,
-    RemoveTrailingZerosPipe,
     LucideAngularModule,
     FilterClearButtonComponent,
   ],
@@ -99,8 +97,8 @@ export class TransferListComponent implements OnInit {
     rows: [],
     columns: [
       { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 120 },
-      { name: 'Producto', prop: 'product_name', sortable: false, canAutoResize: false, width: 180 },
-      { name: 'Cantidad', prop: 'total_quantity', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Producto', prop: 'product_name', sortable: false, canAutoResize: false, width: 220 },
+      { name: 'Cantidad', prop: 'total_quantity', sortable: false, canAutoResize: false, width: 150 },
       { name: 'Origen', prop: 'source_warehouse', sortable: false, canAutoResize: false, width: 210 },
       { name: 'Destino', prop: 'destination_warehouse', sortable: false, canAutoResize: false, width: 220 },
       { name: 'Usuario', prop: 'created_by_user', sortable: false, canAutoResize: false, width: 140 },
@@ -323,8 +321,8 @@ export class TransferListComponent implements OnInit {
   openCreate(): void {
     this.dialog.open(CreateTransferDialogComponent, {
       data: {},
-      width: 'min(1100px, 96vw)',
-      height: '720px',
+      width: 'min(1120px, 96vw)',
+      height: 'min(860px, 92vh)',
       maxWidth: '96vw',
       maxHeight: '92vh',
       panelClass: 'transfer-dialog-panel',
@@ -391,5 +389,36 @@ export class TransferListComponent implements OnInit {
 
   fiscalRelation(transfer: InventoryTransfer): boolean | null {
     return isSameFiscal(this.sourceView(transfer), this.destView(transfer));
+  }
+
+  productTitle(item: InventoryTransfer): string {
+    const products = item.products ?? [];
+    if (products.length > 1) return `${products.length} productos`;
+    return products[0]?.product_name || item.product_name || '—';
+  }
+
+  productSubtitle(item: InventoryTransfer): string {
+    const products = item.products ?? [];
+    if (products.length > 1) return products.map((product) => product.product_name).join(', ');
+    return products[0]?.product_sku || item.product_sku || '';
+  }
+
+  quantityLabel(item: InventoryTransfer): string {
+    const products = item.products ?? [];
+    if (products.length > 1) {
+      const preview = products
+        .slice(0, 2)
+        .map((product) => `${this.formatQty(product.quantity)} ${product.uom_name}`)
+        .join(' · ');
+      return products.length > 2 ? `${preview} +${products.length - 2}` : preview;
+    }
+    const uom = item.uom_name || products[0]?.uom_name || '';
+    return `${this.formatQty(item.total_quantity)} ${uom}`.trim();
+  }
+
+  private formatQty(value: string | number | undefined): string {
+    const amount = parseFloat(String(value ?? 0));
+    if (!Number.isFinite(amount)) return '0';
+    return new Intl.NumberFormat('es-MX', { maximumFractionDigits: 3 }).format(amount);
   }
 }

@@ -87,6 +87,7 @@ import { SalesOrderInvoiceEmailTabComponent } from '../sales-order-invoice-email
 import { SalesOrderShippingTabComponent } from '../sales-order-shipping-tab/sales-order-shipping-tab.component';
 import { SalesOrderCreditTabComponent } from '../sales-order-credit-tab/sales-order-credit-tab.component';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
+import { AdvanceInvoiceDialogComponent } from '../advance-invoice-dialog/advance-invoice-dialog.component';
 import { countVigenteInvoices } from '../../utils/cfdi-xml-builder.util';
 import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
 import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
@@ -414,6 +415,57 @@ export class SalesOrderDetailDialogComponent {
       });
   }
 
+  sendOrderToCollection(): void {
+    const order = this.order();
+    if (!order?.can_send_to_collection) return;
+    this.salesOrderService.sendToCollection(order.id).subscribe({
+      next: () => {
+        this.toast.success('La orden quedó en el corte abierto para cobro');
+        this.loadOrder(true);
+      },
+      error: (err) => this.toast.error(err?.error?.message || err?.message || 'No se pudo enviar a cobranza'),
+    });
+  }
+
+  withdrawOrderFromCollection(): void {
+    const order = this.order();
+    if (!order?.can_withdraw_from_collection) return;
+    this.salesOrderService.withdrawFromCollection(order.id).subscribe({
+      next: () => {
+        this.toast.success('La orden salió de cobranza. Sigue sin cobro.');
+        this.loadOrder(true);
+      },
+      error: (err) => this.toast.error(err?.error?.message || err?.message || 'No se pudo quitar de cobranza'),
+    });
+  }
+
+  openAdvanceInvoice(): void {
+    const order = this.order();
+    if (!order?.can_stamp_advance) return;
+    const base = Math.max(
+      Number(order.subtotal || 0) - Number(order.discount_total || 0) - Number(order.global_discount_amount || 0),
+      0,
+    );
+    this.dialog
+      .open(AdvanceInvoiceDialogComponent, {
+        width: '440px',
+        data: {
+          mode: 'stamp',
+          source: 'sales_order',
+          documentId: order.id,
+          folio: order.folio,
+          defaultBase: Number(base.toFixed(2)),
+          defaultIva: 8,
+        },
+      })
+      .afterClosed()
+      .subscribe((stamped) => {
+        if (!stamped) return;
+        this.toast.success('Factura de anticipo timbrada');
+        this.loadOrder(true);
+      });
+  }
+
   openCancelOrderDialog(): void {
     const order = this.order();
     if (!order || !this.showCancelOrderButton() || !this.canCancelOrder()) {
@@ -428,6 +480,7 @@ export class SalesOrderDetailDialogComponent {
         data: {
           orderId: order.id,
           folio: order.folio,
+          restoresQuotation: !!order.converted_from_quotation_id,
         },
       })
       .afterClosed()

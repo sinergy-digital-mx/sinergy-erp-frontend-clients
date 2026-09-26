@@ -37,6 +37,7 @@ import {
   QuotationNotesDialogComponent,
   QuotationNotesDialogResult,
 } from '../quotation-notes-dialog/quotation-notes-dialog.component';
+import { AdvanceInvoiceDialogComponent } from '../../../sales-orders/components/advance-invoice-dialog/advance-invoice-dialog.component';
 
 @Component({
   selector: 'app-quotation-detail-dialog',
@@ -586,41 +587,45 @@ export class QuotationDetailDialogComponent implements OnInit {
     if (!q?.can_convert) return;
 
     const branchName = this.getSucursalDisplayName();
-    if (branchName === '—') {
-      this.toast.error('La cotización no tiene sucursal para enviar a caja');
-      return;
-    }
+    this.quotationService.collectionPreview(q.id).subscribe({
+      next: (preview) => this.confirmConvert(q, preview.sucursal || branchName, preview.open_shift),
+      error: () => this.confirmConvert(q, branchName, null),
+    });
+  }
 
+  private confirmConvert(
+    q: Quotation,
+    branchName: string,
+    openShift: { id: string; shift_date: string } | null,
+  ): void {
+    const hasShift = !!openShift;
     this.dialog
       .open(AlertDialogComponent, {
         width: '440px',
         data: {
           title: 'Convertir a venta',
-          message: `¿Enviar a caja POS de ${branchName} para cobrar? Si no, se crea la orden de venta sin pasar por caja.`,
+          message: hasShift
+            ? `Hay un corte abierto del ${openShift.shift_date} en ${branchName}. ¿Generar el cobro en ese corte?`
+            : `No hay corte abierto en ${branchName}. La orden se crea sin cobro. Cuando abran el corte podrás enviarla a cobranza desde la orden.`,
           type: 'warning',
-          text_accept: 'Sí, enviar a caja',
-          text_cancel: 'No, solo crear la orden',
+          text_accept: hasShift ? 'Sí, generar cobro' : 'Crear orden sin cobro',
+          text_cancel: hasShift ? 'No, crear sin cobro' : 'Volver',
         },
       })
       .afterClosed()
-      .subscribe((sendToCaja: boolean | undefined) => {
-        if (sendToCaja === undefined) {
-          return;
-        }
+      .subscribe((answer: boolean | undefined) => {
+        if (answer === undefined) return;
+        if (!hasShift && answer === false) return;
+        const sendToCaja = hasShift && answer === true;
         this.converting.set(true);
-        this.quotationService.convert(q.id, { send_to_pos_caja: sendToCaja === true }).subscribe({
+        this.quotationService.convert(q.id, { send_to_pos_caja: sendToCaja }).subscribe({
           next: (res) => {
             this.converting.set(false);
             const folio = res.sales_order?.folio || 'OV';
             if (res.sales_order?.sent_to_pos_caja) {
-              const queued = res.sales_order.general_status === 'En cola';
-              this.toast.success(
-                queued
-                  ? `Convertida a ${folio}. Quedó en cola de caja de ${branchName} hasta que abran el corte.`
-                  : `Convertida a ${folio}. En caja POS de ${branchName} para cobrar.`,
-              );
+              this.toast.success(`Convertida a ${folio}. En caja de ${branchName} para cobrar.`);
             } else {
-              this.toast.success(`Convertida a ${folio}.`);
+              this.toast.success(`Convertida a ${folio}. Sin cobro en caja. Puedes enviarla después desde la orden.`);
             }
             this.dialogRef.close({ converted: true, salesOrderId: res.sales_order?.id });
           },
@@ -630,6 +635,48 @@ export class QuotationDetailDialogComponent implements OnInit {
           },
         });
       });
+  }
+
+  openAdvanceInvoice(): void {
+    const q = this.header();
+    if (!q?.can_stamp_advance) return;
+    const base = Math.max(
+      Number(q.subtotal || 0) - Number(q.discount_total || 0) - Number(q.global_discount_amount || 0),
+      0,
+    );
+    const taxable = base || Number(q.total || 0);
+    const iva = taxable > 0 ? Math.round((Number(q.iva_total || 0) / taxable) * 10000) / 100 : 8;
+    this.dialog
+      .open(AdvanceInvoiceDialogComponent, {
+        width: '440px',
+        data: {
+          mode: 'stamp',
+          source: 'quotation',
+          documentId: q.id,
+          folio: q.folio,
+          defaultBase: Number(base.toFixed(2)),
+          defaultIva: Math.abs(iva - 8) < 0.3 ? 8 : Math.abs(iva - 16) < 0.3 ? 16 : iva,
+        },
+      })
+      .afterClosed()
+      .subscribe((stamped) => {
+        if (!stamped) return;
+        this.toast.success('Factura de anticipo timbrada');
+        this.reload(true);
+      });
+  }
+
+  cancelAdvanceInvoice(): void {
+    const q = this.header();
+    const invoiceId = q?.advance_invoice?.id;
+    if (!q || !invoiceId || q.advance_invoice?.applied) return;
+    this.quotationService.cancelAdvance(q.id, invoiceId).subscribe({
+      next: () => {
+        this.toast.success('Factura de anticipo cancelada');
+        this.reload(true);
+      },
+      error: (err) => this.toast.error(err?.error?.message || 'No se pudo cancelar el anticipo'),
+    });
   }
 
   cancelQuotation(): void {

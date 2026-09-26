@@ -1,0 +1,297 @@
+<div class="purchase-order-list-container">
+  <div class="purchase-content">
+    <div class="px-4 pb-8">
+      <div class="sf-header">
+        <div class="sf-header__left">
+          <app-back-button title="Volver a cobranza" (clicked)="goBack()" />
+          <div class="sf-header__titles">
+            <h2 class="sf-header__title">Flujo de deuda</h2>
+            <p class="sf-header__subtitle">{{ subtitle }}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="page-export-btn"
+          [disabled]="exporting() || rangeIncomplete || fiscalRequired || loading()"
+          (click)="downloadExcel()">
+          @if (exporting()) {
+            <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+            Descargando...
+          } @else {
+            <i class="fi fi-rr-download" aria-hidden="true"></i>
+            Descargar Excel
+          }
+        </button>
+      </div>
+
+      <div class="sf-panel">
+        <div class="sf-panel__top">
+          <div class="sf-view-toggle" role="group" aria-label="Vista del reporte">
+            <button
+              type="button"
+              class="sf-view-toggle__btn"
+              [class.sf-view-toggle__btn--active]="view === 'aging'"
+              [attr.aria-pressed]="view === 'aging'"
+              (click)="setView('aging')">
+              Antigüedad
+            </button>
+            <button
+              type="button"
+              class="sf-view-toggle__btn"
+              [class.sf-view-toggle__btn--active]="view === 'ledger'"
+              [attr.aria-pressed]="view === 'ledger'"
+              (click)="setView('ledger')">
+              Flujo
+            </button>
+          </div>
+
+          <app-report-period-selector
+            [period]="datePreset"
+            [dateFrom]="customDateFrom"
+            [dateTo]="customDateTo"
+            [includeYear]="true"
+            [monthAsServerPreset]="true"
+            dateFromId="debt-date-from"
+            dateToId="debt-date-to"
+            ariaLabel="Periodo del flujo de deuda"
+            (periodChange)="onPeriodChange($event)"
+            (rangeChange)="onRangeChange($event)" />
+        </div>
+
+        <div class="sf-filters" role="search" aria-label="Filtros de deuda">
+          <div class="sf-filters__field">
+            <label class="sf-filters__label" for="debt-fiscal">Razón social</label>
+            <select
+              id="debt-fiscal"
+              class="sf-filters__select"
+              [(ngModel)]="fiscalConfigurationId"
+              (change)="onFiscalChange()"
+              required>
+              <option value="" disabled>Selecciona…</option>
+              @for (fc of locations(); track fc.id) {
+                <option [value]="fc.id">{{ fc.razon_social }}</option>
+              }
+            </select>
+          </div>
+          <div class="sf-filters__field">
+            <label class="sf-filters__label" for="debt-branch">Sucursal</label>
+            <select
+              id="debt-branch"
+              class="sf-filters__select"
+              [(ngModel)]="billingBranchId"
+              [disabled]="!fiscalConfigurationId"
+              (change)="onBranchChange()">
+              <option value="">Todas</option>
+              @for (branch of branchOptions(); track branch.id) {
+                <option [value]="branch.id">{{ branch.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="sf-filters__field">
+            <label class="sf-filters__label" for="debt-search">Buscar</label>
+            <input
+              id="debt-search"
+              type="text"
+              class="sf-filters__input"
+              [(ngModel)]="search"
+              (keyup.enter)="onSearch()"
+              placeholder="Cliente, RFC o folio de OV" />
+          </div>
+        </div>
+        <p class="sf-money-hint">
+          MXN · cada cargo y abono queda <strong>congelado</strong> al capturarse.
+          Antigüedad al corte del periodo. Flujo: saldo de cada OV y abonos del rango.
+        </p>
+      </div>
+
+      @if (customerId) {
+        <div class="sf-product-chip" role="status">
+          <span>Cliente: {{ customerName }}</span>
+          <button type="button" class="sf-product-chip__clear" (click)="clearCustomerFilter()">
+            Quitar filtro
+          </button>
+        </div>
+      }
+
+      <div class="sf-results">
+        @if (fiscalRequired) {
+          <app-empty-stage
+            [params]="emptyParams"
+            message="Selecciona una razón social"
+            sub_message="La deuda se calcula por cliente contra esa razón social." />
+        } @else if (loading()) {
+          <div class="sf-loading" role="status">Cargando reporte…</div>
+        } @else if (view === 'aging') {
+          @if (aging().length === 0) {
+            <app-empty-stage
+              [params]="emptyParams"
+              message="Sin saldos al corte"
+              sub_message="No hay clientes con deuda abierta en esta razón social." />
+          } @else {
+            <div class="sf-table-wrap">
+              <table class="sf-table sf-table--grouped">
+                <thead>
+                  <tr class="sf-head-groups">
+                    <th rowspan="2" class="sf-col-product sf-th-sticky">Cliente</th>
+                    <th rowspan="2">Sucursal</th>
+                    <th rowspan="2">Órdenes</th>
+                    <th colspan="5" class="sf-group sf-group--out">Antigüedad</th>
+                    <th rowspan="2" class="sf-num sf-group--fin">Total</th>
+                    <th rowspan="2" class="sf-num">Límite</th>
+                  </tr>
+                  <tr class="sf-head-subs">
+                    <th class="sf-num sf-group--ini">Por vencer</th>
+                    <th class="sf-num sf-group--in">1–30</th>
+                    <th class="sf-num sf-group--xfer">31–60</th>
+                    <th class="sf-num sf-group--adj">61–90</th>
+                    <th class="sf-num sf-group--out">+90</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of aging(); track row.customer_id) {
+                    <tr class="sf-row--click" (click)="openCustomerFlow(row)">
+                      <td class="sf-col-product sf-th-sticky">
+                        <div class="sf-product-stack">
+                          <span class="sf-ellipsis" [title]="row.customer_name">{{ row.customer_name }}</span>
+                          <span class="sf-sku">{{ row.customer_rfc || 'Sin RFC' }}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="dt-status-pill dt-status-pill--info">
+                          {{ row.billing_branch_name || '—' }}
+                        </span>
+                      </td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty">{{ row.open_order_count }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale">{{ formatMoney(row.current) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.d1_30) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.d31_60) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.d61_90) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--out">{{ formatMoney(row.d91_plus) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(row.total) }}</span></td>
+                      <td class="sf-num">
+                        <span class="sf-v sf-v--qty">
+                          {{ row.credit_limit != null ? formatMoney(row.credit_limit) : '—' }}
+                        </span>
+                        @if (row.credit_days != null) {
+                          <span class="sf-sku">{{ row.credit_days }} días</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+                @if (agingTotals(); as totals) {
+                  <tfoot>
+                    <tr class="sf-totals">
+                      <td class="sf-th-sticky sf-totals__label">Total</td>
+                      <td></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ totals.open_order_count }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(totals.current) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totals.d1_30) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totals.d31_60) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totals.d61_90) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatMoney(totals.d91_plus) }}</span></td>
+                      <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(totals.total) }}</span></td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                }
+              </table>
+            </div>
+          }
+        } @else {
+          @if (ledger().length === 0) {
+            <app-empty-stage
+              [params]="emptyParams"
+              message="Sin flujo en el periodo"
+              sub_message="Prueba otro rango o revisa la antigüedad de saldos." />
+          } @else {
+            <div class="sf-table-wrap">
+              <table class="sf-table sf-table--ledger">
+                <thead>
+                  <tr class="sf-head-groups">
+                    <th rowspan="2" class="sf-col-date">Fecha</th>
+                    <th rowspan="2" class="sf-col-product">Cliente</th>
+                    <th rowspan="2">Sucursal</th>
+                    <th rowspan="2" class="sf-col-concept">Concepto</th>
+                    <th rowspan="2">OV</th>
+                    <th colspan="2" class="sf-group sf-group--out">Movimiento</th>
+                    <th rowspan="2" class="sf-num sf-group--fin">Saldo OV</th>
+                    <th rowspan="2" class="sf-num sf-group--qty">Saldo cliente</th>
+                  </tr>
+                  <tr class="sf-head-subs">
+                    <th class="sf-num sf-group--out">Cargo</th>
+                    <th class="sf-num sf-group--in">Abono</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of ledger(); track row.id) {
+                    <tr [class.sf-row--opening]="row.is_opening">
+                      <td class="sf-col-date">
+                        <span class="sf-date">{{ formatDate(row.occurred_at, row.is_opening) }}</span>
+                        @if (row.due_date && !row.is_opening) {
+                          <span class="sf-sku">Vence {{ formatDate(row.due_date, true) }}</span>
+                        }
+                      </td>
+                      <td class="sf-col-product">
+                        <div class="sf-product-stack">
+                          <span class="sf-ellipsis" [title]="row.customer_name">{{ row.customer_name }}</span>
+                          <span class="sf-sku">{{ row.customer_rfc || 'Sin RFC' }}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="dt-status-pill dt-status-pill--info">
+                          {{ row.billing_branch_name || '—' }}
+                        </span>
+                      </td>
+                      <td class="sf-col-concept">
+                        <div class="sf-concept-stack">
+                          <span [class]="movementBadgeClass(row.movement_type)">{{ row.title }}</span>
+                          <p class="sf-concept-desc m-0" [title]="row.description">{{ row.description }}</p>
+                        </div>
+                      </td>
+                      <td>
+                        @if (row.folio && row.sales_order_id) {
+                          <button
+                            type="button"
+                            class="dt-folio-badge folio-open-btn"
+                            (click)="openOrder(row, $event)">
+                            {{ row.folio }}
+                          </button>
+                        } @else {
+                          <span class="dt-cell-subtle">—</span>
+                        }
+                      </td>
+                      <td class="sf-num">
+                        <span class="sf-v sf-v--qty sf-v--out">{{ formatMoney(row.charge_amount) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="sf-v sf-v--qty sf-v--in">{{ formatMoney(row.payment_amount) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(row.order_balance_after) }}</span>
+                      </td>
+                      <td class="sf-num">
+                        <span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(row.balance_after) }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        @if (!fiscalRequired && !loading() && total() > 0) {
+          <div class="sf-pagination">
+            <app-pagination
+              [total_results]="total()"
+              [page]="page"
+              [limit]="limit"
+              [limit_array]="pageSizeOptions"
+              (goPage)="onPageChange($event)" />
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

@@ -191,11 +191,26 @@
                 <span [ngClass]="getTypeClass(activity.type)">{{ getTypeLabel(activity.type) }}</span>
               </td>
               <td>
-                <div class="crm-title">{{ activity.title }}</div>
-                @if (activity.notes) {
-                  <div class="crm-notes">{{ activity.notes }}</div>
-                } @else if (activity.description) {
-                  <div class="crm-notes">{{ activity.description }}</div>
+                @if (canUpdate) {
+                  <button
+                    type="button"
+                    class="crm-activity-open"
+                    (click)="openEdit(activity)"
+                    title="Ver y editar actividad">
+                    <div class="crm-title">{{ activity.title }}</div>
+                    @if (activity.notes) {
+                      <div class="crm-notes">{{ activity.notes }}</div>
+                    } @else if (activity.description) {
+                      <div class="crm-notes">{{ activity.description }}</div>
+                    }
+                  </button>
+                } @else {
+                  <div class="crm-title">{{ activity.title }}</div>
+                  @if (activity.notes) {
+                    <div class="crm-notes">{{ activity.notes }}</div>
+                  } @else if (activity.description) {
+                    <div class="crm-notes">{{ activity.description }}</div>
+                  }
                 }
               </td>
               <td>

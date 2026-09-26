@@ -1,12 +1,15 @@
-import { Component, Inject, OnInit, computed, signal } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { forkJoin } from 'rxjs';
 import {
   ArrowRight,
   ArrowRightLeft,
-  Check,
+  Package,
+  Plus,
   Search,
+  Trash2,
   X,
 } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
@@ -16,469 +19,392 @@ import {
   CreateTransferDialogData,
   TransferContext,
   TransferContextBatch,
-  TransferDestinationBranch,
-  TransferDestinationWarehouse,
 } from '../../models/inventory-transfer.model';
 import { InventorySummaryItem } from '../../models/inventory-item.model';
 import {
-  InventoryLocationFiscal,
   InventoryLocationBranch,
+  InventoryLocationFiscal,
   InventoryLocationWarehouse,
 } from '../../models/inventory-location.model';
 import { ToastService } from '../../../../core/services/toast.service';
-import {
-  TransferLocationView,
-  branchLine,
-  destinationBranchLabel,
-  destinationToLocationView,
-  fiscalOptionLabel,
-  fromContextWarehouse,
-  isSameFiscal,
-  shortFiscalLabel,
-} from '../../utils/transfer-location.util';
-import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
+import { fiscalOptionLabel } from '../../utils/transfer-location.util';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
-interface BatchLineState {
+interface CartLot {
   batch: TransferContextBatch;
   selected: boolean;
   quantity: number;
 }
 
-type TransferStep = 1 | 2 | 3;
+interface CartItem {
+  key: string;
+  product_id: string;
+  product_name: string;
+  product_sku: string;
+  uom_id: string;
+  uom_name: string;
+  total_available: number;
+  lots: CartLot[];
+}
 
 @Component({
   selector: 'app-create-transfer-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, TransferLocationPathComponent, SpinnerComponent],
+  imports: [CommonModule, FormsModule, LucideAngularModule, SpinnerComponent],
   templateUrl: './create-transfer-dialog.component.html',
   styleUrl: './create-transfer-dialog.component.scss',
 })
-export class CreateTransferDialogComponent implements OnInit {
+export class CreateTransferDialogComponent implements OnInit, OnDestroy {
   readonly X = X;
   readonly ArrowRightLeft = ArrowRightLeft;
   readonly ArrowRight = ArrowRight;
   readonly Search = Search;
-  readonly Check = Check;
+  readonly Plus = Plus;
+  readonly Trash2 = Trash2;
+  readonly Package = Package;
 
-  /** false = elegir producto/almacén origen; true = flujo de transferencia */
-  stepReady = signal(false);
-  activeStep = signal<TransferStep>(1);
-
-  context = signal<TransferContext | null>(null);
-  batchLines = signal<BatchLineState[]>([]);
-  loading = signal(false);
+  bootstrapping = signal(false);
+  searching = signal(false);
+  searched = signal(false);
+  addingKey = signal<string | null>(null);
   submitting = signal(false);
-  searchingOrigin = signal(false);
 
   locations = signal<InventoryLocationFiscal[]>([]);
-  originCandidates = signal<InventorySummaryItem[]>([]);
+  candidates = signal<InventorySummaryItem[]>([]);
+  cart = signal<CartItem[]>([]);
+  search = signal('');
+  notes = signal('');
 
   originFiscalId = signal('');
   originBranchId = signal('');
   originWarehouseId = signal('');
-  originSearch = signal('');
+  destFiscalId = signal('');
+  destBranchId = signal('');
+  destWarehouseId = signal('');
 
-  selectedFiscalId = signal('');
-  selectedBranchId = signal('');
-  selectedWarehouseId = signal('');
-  notes = signal('');
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly preset: CreateTransferDialogData;
 
-  private productId = '';
-  private warehouseId = '';
-  /** UOM del stock a transferir (lote / totalizado), no el default del producto */
-  private uomId = '';
+  activeLocations = computed(() => this.onlyActive(this.locations()));
 
-  originFiscal = computed(() =>
-    this.locations().find(f => f.id === this.originFiscalId()) ?? null
+  originBranches = computed(
+    () => this.activeLocations().find((fiscal) => fiscal.id === this.originFiscalId())?.branches ?? []
   );
 
-  originBranches = computed(() => this.originFiscal()?.branches ?? []);
-
-  originWarehouses = computed(() =>
-    this.originBranches().find(b => b.id === this.originBranchId())?.warehouses ?? []
+  originWarehouses = computed(
+    () => this.originBranches().find((branch) => branch.id === this.originBranchId())?.warehouses ?? []
   );
 
-  destinations = computed(() => this.context()?.destinations ?? []);
-
-  selectedFiscal = computed(() =>
-    this.destinations().find(f => f.id === this.selectedFiscalId()) ?? null
-  );
-
-  destinationBranches = computed(() => this.selectedFiscal()?.branches ?? []);
-
-  selectedBranch = computed(() =>
-    this.destinationBranches().find(b => b.id === this.selectedBranchId()) ?? null
-  );
-
-  destinationWarehouses = computed(() => this.selectedBranch()?.warehouses ?? []);
-
-  selectedWarehouse = computed(() =>
-    this.destinationWarehouses().find(w => w.id === this.selectedWarehouseId()) ?? null
-  );
-
-  sourceLocation = computed<TransferLocationView | null>(() => {
-    const wh = this.context()?.source_warehouse;
-    return wh ? fromContextWarehouse(wh) : null;
+  destinationTree = computed(() => {
+    const sourceId = this.originWarehouseId();
+    return this.activeLocations()
+      .map((fiscal) => ({
+        ...fiscal,
+        branches: fiscal.branches
+          .map((branch) => ({
+            ...branch,
+            warehouses: branch.warehouses.filter((warehouse) => warehouse.id !== sourceId),
+          }))
+          .filter((branch) => branch.warehouses.length > 0),
+      }))
+      .filter((fiscal) => fiscal.branches.length > 0);
   });
 
-  destinationLocation = computed<TransferLocationView | null>(() => {
-    const fiscal = this.selectedFiscal();
-    const branch = this.selectedBranch();
-    const warehouse = this.selectedWarehouse();
-    if (!fiscal && !branch && !warehouse) return null;
-    return destinationToLocationView(
-      fiscal,
-      branch,
-      warehouse?.name ?? '',
-      warehouse?.id ?? '',
-      warehouse?.code ?? ''
-    );
-  });
-
-  crossingFiscal = computed(() => {
-    const source = this.sourceLocation();
-    const dest = this.destinationLocation();
-    if (!source || !dest || !this.selectedWarehouseId()) return false;
-    const same = isSameFiscal(source, dest);
-    return same === false;
-  });
-
-  totalToTransfer = computed(() =>
-    this.batchLines()
-      .filter(l => l.selected)
-      .reduce((sum, l) => sum + (l.quantity || 0), 0)
+  destBranches = computed(
+    () => this.destinationTree().find((fiscal) => fiscal.id === this.destFiscalId())?.branches ?? []
   );
 
-  selectedLinesCount = computed(() =>
-    this.batchLines().filter(l => l.selected && l.quantity > 0).length
+  destWarehouses = computed(
+    () => this.destBranches().find((branch) => branch.id === this.destBranchId())?.warehouses ?? []
   );
 
-  linesValid = computed(() => {
-    const selected = this.batchLines().filter(l => l.selected);
-    if (selected.length === 0) return false;
-    return selected.every(l => l.quantity > 0 && l.quantity <= this.toNum(l.batch.available_quantity));
+  originWarehouseName = computed(
+    () => this.originWarehouses().find((warehouse) => warehouse.id === this.originWarehouseId())?.name ?? ''
+  );
+
+  destWarehouseName = computed(
+    () => this.destWarehouses().find((warehouse) => warehouse.id === this.destWarehouseId())?.name ?? ''
+  );
+
+  readyItems = computed(() =>
+    this.cart().filter((item) => this.itemQuantity(item) > 0 && this.itemLotsValid(item))
+  );
+
+  linesValid = computed(() =>
+    this.cart().every((item) => item.lots.every((lot) => this.lotValid(lot)))
+  );
+
+  sameUomTotal = computed(() => {
+    const items = this.readyItems();
+    if (items.length === 0) return null;
+    const uom = items[0].uom_name;
+    if (items.some((item) => item.uom_name !== uom)) return null;
+    const total = items.reduce((sum, item) => sum + this.itemQuantity(item), 0);
+    return { total, uom };
   });
 
-  canGoToDestination = computed(() => this.totalToTransfer() > 0 && this.linesValid());
-
-  canGoToConfirm = computed(
-    () => this.canGoToDestination() && !!this.selectedWarehouseId()
-  );
+  payloadReady = computed(() => {
+    const origin = this.originWarehouseId();
+    const dest = this.destWarehouseId();
+    if (!origin || !dest || origin === dest) return false;
+    if (this.readyItems().length === 0 || !this.linesValid()) return false;
+    return true;
+  });
 
   canSubmit = computed(() => {
-    if (this.submitting() || this.loading() || !this.stepReady()) return false;
-    if (!this.selectedWarehouseId()) return false;
-    if (!this.canGoToDestination()) return false;
-    const sourceId = this.context()?.source_warehouse.id ?? this.warehouseId;
-    return this.selectedWarehouseId() !== sourceId;
+    if (this.submitting() || this.bootstrapping() || this.addingKey()) return false;
+    return this.payloadReady();
+  });
+
+  submitHint = computed(() => {
+    if (!this.originWarehouseId()) return 'Elige el almacén de origen';
+    if (!this.destWarehouseId()) return 'Elige el almacén de destino';
+    if (this.originWarehouseId() === this.destWarehouseId()) return 'Origen y destino deben ser distintos';
+    if (!this.linesValid()) return 'Revisa las cantidades marcadas';
+    if (this.readyItems().length === 0) return 'Agrega al menos un producto con cantidad';
+    return '';
   });
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: CreateTransferDialogData,
+    @Inject(MAT_DIALOG_DATA) data: CreateTransferDialogData | null,
     private dialogRef: MatDialogRef<CreateTransferDialogComponent>,
     private transferService: InventoryTransferService,
     private inventoryService: InventoryService,
     private toast: ToastService
-  ) {}
+  ) {
+    this.preset = data ?? {};
+  }
 
   ngOnInit(): void {
-    this.loadLocations();
-
-    if (this.data.product_id && this.data.warehouse_id) {
-      this.productId = this.data.product_id;
-      this.warehouseId = this.data.warehouse_id;
-      this.uomId = this.data.uom_id || '';
-      this.stepReady.set(true);
-      this.loadContext();
-    } else {
-      this.stepReady.set(false);
-      this.loading.set(false);
+    if (this.preset.product_id && this.preset.warehouse_id) {
+      this.bootstrapping.set(true);
     }
-  }
 
-  private loadLocations(): void {
     this.inventoryService.getLocations().subscribe({
-      next: (locations) => this.locations.set(locations),
-      error: () => this.toast.error('No se pudo cargar el catálogo de ubicaciones'),
-    });
-  }
-
-  private loadContext(): void {
-    this.loading.set(true);
-    this.transferService.getContext(this.productId, this.warehouseId, this.uomId || undefined).subscribe({
-      next: (ctx) => {
-        this.applyContext(ctx);
-        this.initBatchLines(ctx);
-        this.resetDestination();
-        this.activeStep.set(1);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.toast.error(err.message || 'No se pudo cargar el contexto de transferencia');
-        if (this.data.product_id) {
-          this.dialogRef.close(false);
-        } else {
-          this.stepReady.set(false);
+      next: (locations) => {
+        this.locations.set(locations);
+        if (this.preset.product_id && this.preset.warehouse_id) {
+          this.loadPreset();
         }
       },
+      error: () => {
+        this.bootstrapping.set(false);
+        this.toast.error('No se pudo cargar el catálogo de ubicaciones');
+      },
     });
   }
 
-  private applyContext(ctx: TransferContext): void {
-    if (this.uomId) {
-      ctx = { ...ctx, uom_id: this.uomId };
-    } else if (ctx.uom_id) {
-      this.uomId = ctx.uom_id;
-    }
-    this.context.set({
-      ...ctx,
-      destinations: ctx.destinations ?? [],
-    });
-  }
-
-  private initBatchLines(ctx: TransferContext): void {
-    const preselectedId = this.data.preselected_batch_id;
-    const preselectedQty = this.data.preselected_quantity;
-
-    const lines: BatchLineState[] = ctx.batches.map(batch => {
-      const isPreselected = preselectedId === batch.batch_id;
-      const available = this.toNum(batch.available_quantity);
-      return {
-        batch,
-        selected: isPreselected || (!preselectedId && available > 0 && ctx.batches.length === 1),
-        quantity: isPreselected
-          ? (preselectedQty ?? available)
-          : (!preselectedId && ctx.batches.length === 1 ? available : 0),
-      };
-    });
-
-    this.batchLines.set(lines);
-  }
-
-  toNum(val: string | number | undefined): number {
-    if (val === undefined || val === null) return 0;
-    const n = typeof val === 'string' ? parseFloat(val) : val;
-    return isNaN(n) ? 0 : n;
-  }
-
-  formatQty(val: string | number | undefined): string {
-    return new Intl.NumberFormat('es-MX', {
-      minimumFractionDigits: 3,
-      maximumFractionDigits: 3,
-    }).format(this.toNum(val));
+  ngOnDestroy(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
   }
 
   fiscalLabel(fiscal: { razon_social?: string; rfc?: string }): string {
     return fiscalOptionLabel(fiscal);
   }
 
-  originBranchLabel(branch: InventoryLocationBranch): string {
+  branchLabel(branch: InventoryLocationBranch): string {
     return branch.name;
   }
 
-  originWarehouseLabel(wh: InventoryLocationWarehouse): string {
-    return wh.name;
+  warehouseLabel(warehouse: InventoryLocationWarehouse): string {
+    return warehouse.name;
   }
 
-  destBranchLabel(branch: TransferDestinationBranch): string {
-    return destinationBranchLabel(branch);
+  toNum(val: string | number | undefined): number {
+    if (val === undefined || val === null) return 0;
+    const n = typeof val === 'string' ? parseFloat(val) : val;
+    return Number.isFinite(n) ? n : 0;
   }
 
-  destWarehouseLabel(wh: TransferDestinationWarehouse): string {
-    return wh.name;
+  formatQty(val: string | number | undefined): string {
+    return new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3,
+    }).format(this.toNum(val));
+  }
+
+  itemKey(item: { product_id: string; uom_id: string }): string {
+    return `${item.product_id}:${item.uom_id}`;
+  }
+
+  isInCart(item: InventorySummaryItem): boolean {
+    return this.cart().some((entry) => entry.key === this.itemKey(item));
+  }
+
+  itemQuantity(item: CartItem): number {
+    return item.lots.filter((lot) => lot.selected).reduce((sum, lot) => sum + (lot.quantity || 0), 0);
+  }
+
+  itemSelectedLots(item: CartItem): number {
+    return item.lots.filter((lot) => lot.selected && lot.quantity > 0).length;
+  }
+
+  lotError(lot: CartLot): string | null {
+    if (!lot.selected) return null;
+    const available = this.toNum(lot.batch.available_quantity);
+    if (lot.quantity <= 0) return 'Indica una cantidad mayor a 0';
+    if (lot.quantity > available) return `Máximo ${this.formatQty(available)}`;
+    return null;
+  }
+
+  onSearchInput(value: string): void {
+    this.search.set(value);
+    this.scheduleSearch();
   }
 
   onOriginFiscalChange(fiscalId: string): void {
+    const hadStock = !!this.originWarehouseId() && this.cart().length > 0;
     this.originFiscalId.set(fiscalId);
     this.originBranchId.set('');
     this.originWarehouseId.set('');
-    this.originCandidates.set([]);
+    this.resetSearch();
+    if (hadStock) this.clearCartBecauseOriginChanged();
   }
 
   onOriginBranchChange(branchId: string): void {
+    const hadStock = !!this.originWarehouseId() && this.cart().length > 0;
     this.originBranchId.set(branchId);
     this.originWarehouseId.set('');
-    this.originCandidates.set([]);
+    this.resetSearch();
+    if (hadStock) this.clearCartBecauseOriginChanged();
   }
 
   onOriginWarehouseChange(warehouseId: string): void {
+    const previous = this.originWarehouseId();
     this.originWarehouseId.set(warehouseId);
-    this.originCandidates.set([]);
-    if (warehouseId) {
-      this.searchOriginProducts();
+    if (previous && previous !== warehouseId && this.cart().length > 0) {
+      this.clearCartBecauseOriginChanged();
     }
+    if (warehouseId && warehouseId === this.destWarehouseId()) {
+      this.destWarehouseId.set('');
+      this.toast.info('El destino no puede ser el mismo almacén de origen');
+    }
+    this.scheduleSearch();
   }
 
-  searchOriginProducts(): void {
-    const warehouseId = this.originWarehouseId();
-    if (!warehouseId) {
-      this.toast.error('Selecciona el almacén origen');
-      return;
-    }
+  onDestFiscalChange(fiscalId: string): void {
+    this.destFiscalId.set(fiscalId);
+    this.destBranchId.set('');
+    this.destWarehouseId.set('');
+  }
 
+  onDestBranchChange(branchId: string): void {
+    this.destBranchId.set(branchId);
+    this.destWarehouseId.set('');
+  }
+
+  onDestWarehouseChange(warehouseId: string): void {
+    this.destWarehouseId.set(warehouseId);
+  }
+
+  searchProducts(): void {
+    const warehouseId = this.originWarehouseId();
     const fiscalId = this.originFiscalId();
     const branchId = this.originBranchId();
-    if (!fiscalId || !branchId) {
-      this.toast.error('Selecciona razón social y sucursal antes de buscar stock');
+    if (!warehouseId || !fiscalId || !branchId) {
+      this.candidates.set([]);
+      this.searched.set(false);
+      this.searching.set(false);
       return;
     }
 
-    this.searchingOrigin.set(true);
+    this.searching.set(true);
     this.inventoryService
       .getSummary(
         {
           fiscal_configuration_id: fiscalId,
           billing_branch_id: branchId,
           warehouse_id: warehouseId,
-          search: this.originSearch().trim() || undefined,
+          search: this.search().trim() || undefined,
           only_available: true,
         },
-        { page: 1, limit: 50 }
+        { page: 1, limit: 20 }
       )
       .subscribe({
         next: (response) => {
-          this.originCandidates.set(response.data || []);
-          this.searchingOrigin.set(false);
+          this.candidates.set(response.data || []);
+          this.searched.set(true);
+          this.searching.set(false);
         },
         error: (err) => {
-          this.searchingOrigin.set(false);
+          this.searching.set(false);
           this.toast.error(err?.message || 'No se pudo buscar stock en el almacén');
         },
       });
   }
 
-  selectOrigin(item: InventorySummaryItem): void {
-    this.productId = item.product_id;
-    this.warehouseId = item.warehouse_id;
-    this.uomId = item.uom_id;
-    this.stepReady.set(true);
-    this.loadContext();
-  }
+  addProduct(item: InventorySummaryItem): void {
+    const key = this.itemKey(item);
+    if (this.cart().some((entry) => entry.key === key)) {
+      this.toast.info('Ese producto ya está en la transferencia');
+      return;
+    }
+    if (!this.originWarehouseId()) {
+      this.toast.error('Selecciona el almacén de origen');
+      return;
+    }
 
-  backToOrigin(): void {
-    this.stepReady.set(false);
-    this.context.set(null);
-    this.batchLines.set([]);
-    this.resetDestination();
-    this.notes.set('');
-    this.activeStep.set(1);
-    this.productId = '';
-    this.warehouseId = '';
-    this.uomId = '';
-  }
-
-  toggleBatch(index: number, selected: boolean): void {
-    this.batchLines.update(lines => {
-      const updated = [...lines];
-      const line = { ...updated[index] };
-      line.selected = selected;
-      if (selected && line.quantity <= 0) {
-        line.quantity = this.toNum(line.batch.available_quantity);
-      }
-      if (!selected) {
-        line.quantity = 0;
-      }
-      updated[index] = line;
-      return updated;
+    this.addingKey.set(key);
+    this.transferService.getContext(item.product_id, item.warehouse_id, item.uom_id).subscribe({
+      next: (ctx) => {
+        this.cart.update((items) => [this.toCartItem(ctx, false), ...items]);
+        this.addingKey.set(null);
+        this.search.set('');
+        this.scheduleSearch();
+      },
+      error: (err) => {
+        this.addingKey.set(null);
+        this.toast.error(err.message || 'No se pudo cargar el stock de ese producto');
+      },
     });
   }
 
-  updateQuantity(index: number, value: number): void {
-    this.batchLines.update(lines => {
-      const updated = [...lines];
-      updated[index] = { ...updated[index], quantity: value };
-      return updated;
+  removeProduct(key: string): void {
+    this.cart.update((items) => items.filter((item) => item.key !== key));
+  }
+
+  toggleLot(key: string, index: number, selected: boolean): void {
+    this.updateLot(key, index, (lot) => {
+      const available = this.toNum(lot.batch.available_quantity);
+      return {
+        ...lot,
+        selected,
+        quantity: selected ? (lot.quantity > 0 ? lot.quantity : available) : 0,
+      };
     });
   }
 
-  fillBatchAvailable(index: number): void {
-    const available = this.toNum(this.batchLines()[index].batch.available_quantity);
-    this.batchLines.update(lines => {
-      const updated = [...lines];
-      updated[index] = { ...updated[index], selected: true, quantity: available };
-      return updated;
-    });
+  updateQuantity(key: string, index: number, value: number | string | null): void {
+    const quantity = value === null || value === '' ? 0 : Number(value);
+    this.updateLot(key, index, (lot) => ({
+      ...lot,
+      quantity: Number.isFinite(quantity) ? quantity : 0,
+      selected: true,
+    }));
   }
 
-  transferAll(): void {
-    this.batchLines.update(lines =>
-      lines.map(line => ({
-        ...line,
-        selected: this.toNum(line.batch.available_quantity) > 0,
-        quantity: this.toNum(line.batch.available_quantity),
-      }))
+  fillLot(key: string, index: number): void {
+    this.updateLot(key, index, (lot) => ({
+      ...lot,
+      selected: true,
+      quantity: this.toNum(lot.batch.available_quantity),
+    }));
+  }
+
+  fillProduct(key: string): void {
+    this.cart.update((items) =>
+      items.map((item) => {
+        if (item.key !== key) return item;
+        return {
+          ...item,
+          lots: item.lots.map((lot) => ({
+            ...lot,
+            selected: this.toNum(lot.batch.available_quantity) > 0,
+            quantity: this.toNum(lot.batch.available_quantity),
+          })),
+        };
+      })
     );
-  }
-
-  onFiscalChange(fiscalId: string): void {
-    this.selectedFiscalId.set(fiscalId);
-    this.selectedBranchId.set('');
-    this.selectedWarehouseId.set('');
-  }
-
-  onBranchChange(branchId: string): void {
-    this.selectedBranchId.set(branchId);
-    this.selectedWarehouseId.set('');
-  }
-
-  onWarehouseChange(warehouseId: string): void {
-    this.selectedWarehouseId.set(warehouseId);
-  }
-
-  private resetDestination(): void {
-    this.selectedFiscalId.set('');
-    this.selectedBranchId.set('');
-    this.selectedWarehouseId.set('');
-  }
-
-  getLineError(line: BatchLineState): string | null {
-    if (!line.selected) return null;
-    const available = this.toNum(line.batch.available_quantity);
-    if (line.quantity <= 0) return 'Cantidad debe ser mayor a 0';
-    if (line.quantity > available) return `Máximo ${this.formatQty(available)}`;
-    return null;
-  }
-
-  goToStep(step: TransferStep): void {
-    if (step === 1) {
-      this.activeStep.set(1);
-      return;
-    }
-    if (step === 2 && this.canGoToDestination()) {
-      this.activeStep.set(2);
-      return;
-    }
-    if (step === 3 && this.canGoToConfirm()) {
-      this.activeStep.set(3);
-    }
-  }
-
-  continue(): void {
-    if (this.activeStep() === 1 && this.canGoToDestination()) {
-      this.activeStep.set(2);
-      return;
-    }
-    if (this.activeStep() === 2 && this.canGoToConfirm()) {
-      this.activeStep.set(3);
-    }
-  }
-
-  back(): void {
-    if (this.activeStep() === 3) {
-      this.activeStep.set(2);
-      return;
-    }
-    if (this.activeStep() === 2) {
-      this.activeStep.set(1);
-    }
-  }
-
-  isStepUnlocked(step: TransferStep): boolean {
-    if (step === 1) return true;
-    if (step === 2) return this.canGoToDestination();
-    return this.canGoToConfirm();
   }
 
   close(): void {
@@ -488,21 +414,27 @@ export class CreateTransferDialogComponent implements OnInit {
   confirm(): void {
     if (!this.canSubmit()) return;
 
-    const ctx = this.context();
-    if (!ctx) return;
-
-    const destId = this.selectedWarehouseId();
-    if (destId === ctx.source_warehouse.id) {
+    const origin = this.originWarehouseId();
+    const dest = this.destWarehouseId();
+    if (origin === dest) {
       this.toast.error('El almacén de origen y destino deben ser diferentes');
       return;
     }
 
+    const items = this.cart().filter((item) => this.itemQuantity(item) > 0);
     this.submitting.set(true);
 
-    this.transferService.getContext(this.productId, this.warehouseId, this.uomId || undefined).subscribe({
-      next: (freshCtx) => {
-        this.applyContext(freshCtx);
-        this.submitTransfer(this.context()!);
+    forkJoin(
+      items.map((item) => this.transferService.getContext(item.product_id, origin, item.uom_id))
+    ).subscribe({
+      next: (contexts) => {
+        const stockError = this.applyFreshStock(contexts);
+        if (stockError || !this.payloadReady()) {
+          this.submitting.set(false);
+          this.toast.error(stockError || 'Revisa las cantidades antes de transferir');
+          return;
+        }
+        this.submitTransfer();
       },
       error: (err) => {
         this.submitting.set(false);
@@ -511,71 +443,187 @@ export class CreateTransferDialogComponent implements OnInit {
     });
   }
 
-  private submitTransfer(ctx: TransferContext): void {
-    const lines = this.batchLines()
-      .filter(l => l.selected && l.quantity > 0)
-      .map(l => ({
-        inventory_batch_id: l.batch.batch_id,
-        quantity: l.quantity,
-      }));
+  private submitTransfer(): void {
+    const lines = this.cart().flatMap((item) =>
+      item.lots
+        .filter((lot) => lot.selected && lot.quantity > 0)
+        .map((lot) => ({
+          inventory_batch_id: lot.batch.batch_id,
+          quantity: lot.quantity,
+        }))
+    );
 
-    const uomId = this.uomId || ctx.uom_id;
-    if (!uomId) {
-      this.submitting.set(false);
-      this.toast.error('No se pudo determinar la unidad de medida del lote');
+    this.transferService
+      .createTransfer({
+        source_warehouse_id: this.originWarehouseId(),
+        destination_warehouse_id: this.destWarehouseId(),
+        notes: this.notes().trim() || undefined,
+        lines,
+      })
+      .subscribe({
+        next: (result) => {
+          this.submitting.set(false);
+          const count = this.readyItems().length;
+          const detail = count > 1 ? ` · ${count} productos` : '';
+          this.toast.success(`Transferencia ${result.folio} creada${detail}`);
+          this.dialogRef.close(true);
+        },
+        error: (err) => {
+          this.submitting.set(false);
+          this.toast.error(err.message || 'No se pudo crear la transferencia');
+        },
+      });
+  }
+
+  private loadPreset(): void {
+    const productId = this.preset.product_id;
+    const warehouseId = this.preset.warehouse_id;
+    if (!productId || !warehouseId) {
+      this.bootstrapping.set(false);
       return;
     }
 
-    const payload = {
-      product_id: ctx.product_id,
-      uom_id: uomId,
-      source_warehouse_id: ctx.source_warehouse.id,
-      destination_warehouse_id: this.selectedWarehouseId(),
-      notes: this.notes().trim() || undefined,
-      lines,
-    };
-
-    this.transferService.createTransfer(payload).subscribe({
-      next: (result) => {
-        this.submitting.set(false);
-        this.toast.success(`Transferencia ${result.folio} creada correctamente`);
-        this.dialogRef.close(true);
+    this.transferService.getContext(productId, warehouseId, this.preset.uom_id).subscribe({
+      next: (ctx) => {
+        const branch = ctx.source_warehouse.billing_branch;
+        this.originFiscalId.set(branch?.fiscal_configuration?.id ?? '');
+        this.originBranchId.set(branch?.id ?? '');
+        this.originWarehouseId.set(ctx.source_warehouse.id);
+        this.cart.set([this.toCartItem(ctx, true)]);
+        this.bootstrapping.set(false);
+        this.searchProducts();
       },
       error: (err) => {
-        this.submitting.set(false);
-        this.toast.error(err.message || 'No se pudo crear la transferencia');
+        this.bootstrapping.set(false);
+        this.toast.error(err.message || 'No se pudo cargar el producto de origen');
+        this.dialogRef.close(false);
       },
     });
   }
 
-  footerRoute = computed(() => {
-    const source = this.sourceLocation();
-    const dest = this.destinationLocation();
-    const fromWarehouse = source?.warehouseName || 'Origen';
+  private toCartItem(ctx: TransferContext, fromPreset: boolean): CartItem {
+    const preselectedId = fromPreset ? this.preset.preselected_batch_id : undefined;
+    const preselectedQty = this.preset.preselected_quantity;
 
-    if (!this.selectedWarehouseId() || !dest) {
-      return { from: fromWarehouse, to: '' };
-    }
+    const availableLots = ctx.batches.filter((batch) => this.toNum(batch.available_quantity) > 0);
+    const selectSingleLot = !preselectedId && availableLots.length === 1;
 
-    if (this.crossingFiscal() && source) {
-      return {
-        from: `${shortFiscalLabel(source)} / ${source.branchCode || '—'} / ${source.warehouseName}`,
-        to: `${shortFiscalLabel(dest)} / ${dest.branchCode || '—'} / ${dest.warehouseName}`,
-      };
-    }
+    const lots: CartLot[] = ctx.batches.map((batch) => {
+      const available = this.toNum(batch.available_quantity);
+      const isPreselected = !!preselectedId && preselectedId === batch.batch_id;
+      const selected = isPreselected || (selectSingleLot && available > 0);
+      let quantity = 0;
+      if (isPreselected) {
+        quantity = Math.min(preselectedQty ?? available, available);
+      } else if (selected) {
+        quantity = available;
+      }
+      return { batch, selected, quantity };
+    });
 
     return {
-      from: fromWarehouse,
-      to: `${dest.branchCode || '—'} / ${dest.warehouseName}`,
+      key: `${ctx.product_id}:${ctx.uom_id}`,
+      product_id: ctx.product_id,
+      product_name: ctx.product_name,
+      product_sku: ctx.product_sku,
+      uom_id: ctx.uom_id,
+      uom_name: ctx.uom_name,
+      total_available: this.toNum(ctx.total_available_quantity),
+      lots,
     };
-  });
-
-  sourceBranchLine(withState = true): string {
-    const loc = this.sourceLocation();
-    return loc ? branchLine(loc, withState) : '';
   }
 
-  get openedFromList(): boolean {
-    return !this.data.product_id || !this.data.warehouse_id;
+  private applyFreshStock(contexts: TransferContext[]): string | null {
+    const byKey = new Map(contexts.map((ctx) => [`${ctx.product_id}:${ctx.uom_id}`, ctx]));
+    let error: string | null = null;
+
+    this.cart.update((items) =>
+      items.map((item) => {
+        const ctx = byKey.get(item.key);
+        if (!ctx) return item;
+
+        const lots = item.lots.map((lot) => {
+          const fresh = ctx.batches.find((batch) => batch.batch_id === lot.batch.batch_id);
+          if (!fresh) {
+            if (lot.selected && lot.quantity > 0) {
+              error = `El lote ${lot.batch.batch_number} ya no tiene stock`;
+            }
+            return {
+              ...lot,
+              selected: false,
+              quantity: 0,
+              batch: { ...lot.batch, available_quantity: '0.000' },
+            };
+          }
+
+          const available = this.toNum(fresh.available_quantity);
+          if (lot.selected && lot.quantity > available) {
+            error = `Stock insuficiente en lote ${fresh.batch_number}. Disponible: ${this.formatQty(available)}`;
+            return { ...lot, batch: fresh, quantity: available };
+          }
+          return { ...lot, batch: fresh };
+        });
+
+        return {
+          ...item,
+          lots,
+          total_available: this.toNum(ctx.total_available_quantity),
+        };
+      })
+    );
+
+    return error;
+  }
+
+  private updateLot(key: string, index: number, mapLot: (lot: CartLot) => CartLot): void {
+    this.cart.update((items) =>
+      items.map((item) => {
+        if (item.key !== key) return item;
+        const lots = item.lots.map((lot, lotIndex) => (lotIndex === index ? mapLot(lot) : lot));
+        return { ...item, lots };
+      })
+    );
+  }
+
+  private lotValid(lot: CartLot): boolean {
+    if (!lot.selected) return true;
+    const available = this.toNum(lot.batch.available_quantity);
+    return lot.quantity > 0 && lot.quantity <= available;
+  }
+
+  private itemLotsValid(item: CartItem): boolean {
+    return item.lots.every((lot) => this.lotValid(lot));
+  }
+
+  private scheduleSearch(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.searchProducts(), 280);
+  }
+
+  private resetSearch(): void {
+    this.candidates.set([]);
+    this.searched.set(false);
+    this.searching.set(false);
+  }
+
+  private clearCartBecauseOriginChanged(): void {
+    this.cart.set([]);
+    this.toast.info('Se vació la lista porque cambió el almacén de origen');
+  }
+
+  private onlyActive(fiscals: InventoryLocationFiscal[]): InventoryLocationFiscal[] {
+    return fiscals
+      .filter((fiscal) => fiscal.status === 'active')
+      .map((fiscal) => ({
+        ...fiscal,
+        branches: (fiscal.branches ?? [])
+          .filter((branch) => branch.status === 1 || branch.status === '1')
+          .map((branch) => ({
+            ...branch,
+            warehouses: (branch.warehouses ?? []).filter((warehouse) => warehouse.status === 'active'),
+          }))
+          .filter((branch) => branch.warehouses.length > 0),
+      }))
+      .filter((fiscal) => fiscal.branches.length > 0);
   }
 }

@@ -210,6 +210,18 @@ export interface SalesOrder {
   general_status?: SalesOrderStatus;
   can_cancel?: boolean;
   cancel_blocked_reason?: string | null;
+  can_send_to_collection?: boolean;
+  can_withdraw_from_collection?: boolean;
+  advance_invoicing_enabled?: boolean;
+  can_stamp_advance?: boolean;
+  can_apply_advance?: boolean;
+  advance_invoice?: {
+    id: string;
+    uuid?: string | null;
+    total?: number;
+    applied?: boolean;
+  } | null;
+  converted_from_quotation_id?: string | null;
   can_edit_lines?: boolean;
   payment_status: SalesPaymentStatus;
   payment_method?: string | null;

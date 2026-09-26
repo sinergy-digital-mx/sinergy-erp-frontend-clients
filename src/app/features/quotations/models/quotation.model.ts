@@ -84,6 +84,16 @@ export interface Quotation {
   can_send?: boolean;
   customer_email?: string | null;
   converted_to_sales_order_id?: string | null;
+  cancel_blocked_reason?: string | null;
+  advance_invoicing_enabled?: boolean;
+  can_stamp_advance?: boolean;
+  advance_invoice?: {
+    id: string;
+    uuid?: string | null;
+    subtotal?: number;
+    total?: number;
+    applied?: boolean;
+  } | null;
   seller_user?: PosUserSummary | null;
   assigned_seller_user?: PosUserSummary | null;
   terminal_user?: PosUserSummary | null;

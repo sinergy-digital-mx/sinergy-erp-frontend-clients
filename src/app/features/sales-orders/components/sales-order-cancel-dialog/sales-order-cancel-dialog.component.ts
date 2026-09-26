@@ -6,6 +6,7 @@ import { SalesOrderService } from '../../services/sales-order.service';
 export interface SalesOrderCancelDialogData {
   orderId: string;
   folio?: string;
+  restoresQuotation?: boolean;
 }
 
 export type SalesOrderCancelDialogResult =

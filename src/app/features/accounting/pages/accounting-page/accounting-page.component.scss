@@ -33,6 +33,24 @@
   color: #64748b;
 }
 
+.accounting-debt-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.65rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.accounting-debt-link:hover {
+  background: #e0e7ff;
+}
+
 .accounting-filters {
   margin-bottom: 1.25rem;
   max-width: 22rem;

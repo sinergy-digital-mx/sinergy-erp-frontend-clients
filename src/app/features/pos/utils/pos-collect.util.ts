@@ -125,18 +125,66 @@ export function collectReceivedTotalMxn(form: PosCollectForm): number {
   return roundMoney(form.receivedCashMxn + usdMxn);
 }
 
+export interface CashPaymentSplit {
+  amountCashMxn: number;
+  amountCashUsd: number;
+  changeCashMxn: number;
+  changeCashUsd: number;
+  covers: boolean;
+}
+
+/** Un centavo de dólar en pesos. Ahí cabe 64.26 × 16.80 = 1079.57 frente a 1079.65. */
+function usdCentToleranceMxn(rate: number): number {
+  const fx = Number(rate) || 0;
+  if (fx <= 0) {
+    return 0.01;
+  }
+  return Math.max(0.01, roundMoney(0.01 * fx));
+}
+
+/**
+ * Pesos cubren primero. El sobrante se devuelve en la misma moneda.
+ * 100 USD a 16.80 sobre 1079.65 → aplican 64.26 USD, cambio 35.74 USD.
+ */
+export function splitCashPayment(
+  orderTotal: number,
+  receivedMxn: number,
+  receivedUsd: number,
+  rate: number
+): CashPaymentSplit {
+  const total = roundMoney(Math.max(0, orderTotal));
+  const mxnIn = roundMoney(Math.max(0, receivedMxn));
+  const usdIn = roundMoney(Math.max(0, receivedUsd));
+  const fx = Number(rate) || 0;
+
+  const amountCashMxn = roundMoney(Math.min(mxnIn, total));
+  const remainderMxn = roundMoney(total - amountCashMxn);
+
+  let amountCashUsd = 0;
+  if (remainderMxn > 0.001 && usdIn > 0 && fx > 0) {
+    amountCashUsd = roundMoney(Math.min(usdIn, remainderMxn / fx));
+  }
+
+  const appliedMxn = roundMoney(amountCashMxn + (amountCashUsd > 0 && fx > 0 ? amountCashUsd * fx : 0));
+  const gap = roundMoney(total - appliedMxn);
+
+  return {
+    amountCashMxn,
+    amountCashUsd,
+    changeCashMxn: roundMoney(Math.max(0, mxnIn - amountCashMxn)),
+    changeCashUsd: roundMoney(Math.max(0, usdIn - amountCashUsd)),
+    covers: gap <= usdCentToleranceMxn(amountCashUsd > 0 ? fx : 0) + 0.001,
+  };
+}
+
 export function deriveCashPaymentSplit(
   orderTotal: number,
   receivedMxn: number,
   receivedUsd: number,
   rate: number
 ): { amountCashMxn: number; amountCashUsd: number } {
-  const amountCashMxn = roundMoney(Math.min(receivedMxn, orderTotal));
-  const remainderMxn = roundMoney(orderTotal - amountCashMxn);
-  const usdCoversRemainder =
-    remainderMxn > 0.001 && receivedUsd > 0 && rate > 0 && receivedUsd * rate + 0.01 >= remainderMxn;
-  const amountCashUsd = usdCoversRemainder ? roundMoney(receivedUsd) : 0;
-  return { amountCashMxn, amountCashUsd };
+  const split = splitCashPayment(orderTotal, receivedMxn, receivedUsd, rate);
+  return { amountCashMxn: split.amountCashMxn, amountCashUsd: split.amountCashUsd };
 }
 
 export function syncCashFormFromReceived(
@@ -169,7 +217,13 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
     if (form.receivedCashUsd > 0 && form.usdExchangeRate <= 0) {
       return 'Ingresa tipo de cambio';
     }
-    if (collectReceivedTotalMxn(form) + 0.01 < orderTotal) {
+    const split = splitCashPayment(
+      orderTotal,
+      form.receivedCashMxn,
+      form.receivedCashUsd,
+      form.usdExchangeRate
+    );
+    if (!split.covers) {
       return `El efectivo recibido no cubre ${formatMoney(orderTotal)}`;
     }
     return null;
@@ -679,7 +733,12 @@ export function collectUsdReceivedMxn(form: PosCollectForm): number {
 
 export function collectChangeMxn(form: PosCollectForm, orderTotal = 0): number {
   if (form.paymentMethod === 'cash') {
-    return Math.max(0, roundMoney(collectReceivedTotalMxn(form) - orderTotal));
+    return splitCashPayment(
+      orderTotal,
+      form.receivedCashMxn,
+      form.receivedCashUsd,
+      form.usdExchangeRate
+    ).changeCashMxn;
   }
   if (form.paymentMethod === 'mixed' && form.mixedUsesCash && form.mixedCashMxn > 0) {
     return Math.max(0, roundMoney(form.mixedReceivedMxn - form.mixedCashMxn));
@@ -687,9 +746,17 @@ export function collectChangeMxn(form: PosCollectForm, orderTotal = 0): number {
   return 0;
 }
 
-/** El cambio de efectivo se entrega en pesos. */
-export function collectChangeUsd(_form: PosCollectForm, _orderTotal = 0): number {
-  return 0;
+/** Sobrante en dólares: 100 USD − (1079.65 / 16.80) = 35.74 USD. */
+export function collectChangeUsd(form: PosCollectForm, orderTotal = 0): number {
+  if (form.paymentMethod !== 'cash') {
+    return 0;
+  }
+  return splitCashPayment(
+    orderTotal,
+    form.receivedCashMxn,
+    form.receivedCashUsd,
+    form.usdExchangeRate
+  ).changeCashUsd;
 }
 
 export function collectCashShortfallMxn(form: PosCollectForm, orderTotal = 0): number {

@@ -303,8 +303,15 @@
       </div>
 
       <div class="pos-customer">
-        <div class="pos-customer__toggle" [class.pos-customer__toggle--selected]="hasSelectedCustomer()">
-          <button type="button" class="pos-customer__pick" (click)="openCustomerPicker()">
+        <div
+          class="pos-customer__toggle"
+          [class.pos-customer__toggle--selected]="hasSelectedCustomer()"
+          [class.pos-customer__toggle--open]="walkInTicketOpen() && !hasSelectedCustomer()">
+          <button
+            type="button"
+            class="pos-customer__pick"
+            [attr.aria-expanded]="!hasSelectedCustomer() && walkInTicketOpen()"
+            (click)="onCustomerRowClick()">
             <span class="pos-customer__toggle-left">
               <span class="pos-customer__avatar" [class.pos-customer__avatar--filled]="hasSelectedCustomer()">
                 {{ customerInitials() }}
@@ -314,11 +321,21 @@
                 @if (hasSelectedCustomer()) {
                   <span class="pos-customer__name">{{ selectedCustomerName() }}</span>
                 } @else {
-                  <span class="pos-customer__hint">Público en General · opcional</span>
+                  <span class="pos-customer__hint">{{ walkInCustomerHint() }}</span>
                 }
               </span>
             </span>
-            <lucide-icon [img]="ChevronRight" class="pos-customer__chevron pos-ic pos-ic--sm" />
+          </button>
+          <button
+            type="button"
+            class="pos-customer__search"
+            (click)="openCustomerPicker()">
+            @if (hasSelectedCustomer()) {
+              Cambiar
+            } @else {
+              Existente
+              <lucide-icon [img]="ChevronRight" class="pos-customer__chevron pos-ic pos-ic--sm" />
+            }
           </button>
           @if (hasSelectedCustomer()) {
             <button
@@ -331,7 +348,7 @@
             </button>
           }
         </div>
-        @if (!hasSelectedCustomer()) {
+        @if (!hasSelectedCustomer() && walkInTicketOpen()) {
           <div class="pos-customer__ticket-fields">
             <label class="pos-customer__field">
               <span>Nombre</span>
@@ -373,7 +390,15 @@
                 <p class="pos-line__meta">
                   <span class="pos-line__sku">{{ item.product_sku }}</span>
                   <span class="pos-line__meta-sep" aria-hidden="true">·</span>
-                  <span class="pos-line__unit">{{ formatCurrency(item.unit_price) }} · {{ item.uom_name }}</span>
+                  <span class="pos-line__unit">
+                    @if (hasLineDiscount(item)) {
+                      <span class="pos-line__was">{{ formatCurrency(item.unit_price) }}</span>
+                      {{ formatCurrency(discountedUnitPrice(item)) }}
+                    } @else {
+                      {{ formatCurrency(item.unit_price) }}
+                    }
+                    · {{ item.uom_name }}
+                  </span>
                 </p>
               </div>
               <button
@@ -444,7 +469,12 @@
                   </button>
                 </div>
               </div>
-              <span class="pos-line__total">{{ formatCurrency(item.line_total) }}</span>
+              <div class="pos-line__price">
+                @if (hasLineDiscount(item)) {
+                  <span class="pos-line__was">{{ formatCurrency(lineTotalBeforeDiscount(item)) }}</span>
+                }
+                <span class="pos-line__total">{{ formatCurrency(item.line_total) }}</span>
+              </div>
             </div>
           </article>
         }

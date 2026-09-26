@@ -14,7 +14,12 @@
   <div class="cancel-dialog__body">
     <p class="cancel-dialog__text">
       Se cancelará la orden <strong>#{{ folioLabel }}</strong>.
-      Si hay lotes asignados, se liberan al inventario. Esta acción no se puede deshacer.
+      Si hay lotes asignados, se liberan al inventario.
+      @if (data.restoresQuotation) {
+        La cotización vuelve a Creada y se puede convertir de nuevo.
+      } @else {
+        Esta acción no se puede deshacer.
+      }
     </p>
     @if (errorMessage()) {
       <p class="cancel-dialog__error" role="alert">{{ errorMessage() }}</p>

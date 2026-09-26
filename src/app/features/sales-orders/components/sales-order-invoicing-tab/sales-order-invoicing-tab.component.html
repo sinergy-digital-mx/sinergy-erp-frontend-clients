@@ -21,6 +21,11 @@
 
     <div class="invoicing-summary-row">
       <p class="invoicing-summary">{{ summaryText() }}</p>
+      @if (canStamp() && order.can_apply_advance) {
+        <button type="button" class="btn-primary" (click)="openApplyAdvance()">
+          Aplicar anticipo
+        </button>
+      }
       @if (canStamp()) {
         <button
           type="button"

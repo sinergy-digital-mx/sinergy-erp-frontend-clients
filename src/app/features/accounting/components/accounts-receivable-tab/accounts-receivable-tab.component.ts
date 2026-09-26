@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -13,7 +14,7 @@ import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calc
 @Component({
   selector: 'app-accounts-receivable-tab',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatatableWrapperComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DatatableWrapperComponent],
   templateUrl: './accounts-receivable-tab.component.html',
   styleUrl: './accounts-receivable-tab.component.scss',
 })

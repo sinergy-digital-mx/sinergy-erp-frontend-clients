@@ -146,6 +146,34 @@ export class QuotationService {
     return this.http.post<ConvertQuotationResponse>(`${this.baseUrl}/${id}/convert`, body);
   }
 
+  collectionPreview(id: string): Observable<{
+    sucursal: string | null;
+    open_shift: { id: string; shift_date: string } | null;
+  }> {
+    return this.http.get<{
+      sucursal: string | null;
+      open_shift: { id: string; shift_date: string } | null;
+    }>(`${this.baseUrl}/${id}/collection-preview`);
+  }
+
+  stampAdvance(
+    id: string,
+    body: {
+      base_amount: number;
+      iva_percentage: number;
+      uso_cfdi: string;
+      forma_pago: string;
+      regimen_fiscal_receptor: string;
+      metodo_pago: 'PUE' | 'PPD';
+    },
+  ): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/${id}/invoices/stamp-advance`, body);
+  }
+
+  cancelAdvance(id: string, invoiceId: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/${id}/invoices/${invoiceId}/cancel`, { motivo: '02' });
+  }
+
   cancel(id: string): Observable<Quotation> {
     return this.http.post<Quotation>(`${this.baseUrl}/${id}/cancel`, {});
   }

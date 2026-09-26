@@ -228,7 +228,8 @@ export class Sidebar implements OnInit, OnDestroy {
       route: '/accounting',
       icon: Landmark,
       id: 'menu-accounting',
-      permission: PERMISSIONS.accounting.viewMenu
+      permission: PERMISSIONS.accounting.viewMenu,
+      exact: false,
     },
     {
       label: 'Marketing',

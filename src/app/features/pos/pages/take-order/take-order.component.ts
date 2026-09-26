@@ -136,6 +136,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedCustomerName = signal('Público en General');
   selectedOrderCustomerId = signal<number | string | null>(null);
   walkInName = signal('');
+  walkInTicketOpen = signal(false);
   walkInRfc = signal('');
   readonly hasSelectedCustomer = computed(() => Boolean(this.selectedCustomerId()));
   readonly walkInRfcInvalid = computed(() => !isValidWalkInRfc(this.walkInRfc()));
@@ -512,9 +513,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       this.clearSelectedCustomer();
       this.walkInName.set(ticket.walk_in_name ?? '');
       this.walkInRfc.set(ticket.walk_in_rfc ?? '');
+      this.walkInTicketOpen.set(false);
     } else {
       this.walkInName.set('');
       this.walkInRfc.set('');
+      this.walkInTicketOpen.set(false);
       const nameParts = [ticket.customer?.name, ticket.customer?.lastname]
         .filter(Boolean)
         .join(' ')
@@ -1309,6 +1312,15 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedCustomerId.set('');
     this.selectedOrderCustomerId.set(null);
     this.selectedCustomerName.set('Público en General');
+    this.walkInTicketOpen.set(false);
+  }
+
+  onCustomerRowClick(): void {
+    if (this.hasSelectedCustomer()) {
+      this.openCustomerPicker();
+      return;
+    }
+    this.walkInTicketOpen.update((open) => !open);
   }
 
   private resetCustomerSelection(): void {
@@ -1319,6 +1331,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onWalkInRfcChange(value: string): void {
     this.walkInRfc.set((value ?? '').toUpperCase().replace(/[\s-]/g, ''));
+  }
+
+  walkInCustomerHint(): string {
+    const label = this.ticketCustomerLabel();
+    return label === 'Público en General' ? 'Público en General · toca para el ticket' : label;
   }
 
   ticketCustomerLabel(): string {
@@ -1344,6 +1361,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return true;
     }
     if (!isValidWalkInRfc(this.walkInRfc())) {
+      this.walkInTicketOpen.set(true);
       this.notifyError('El RFC debe tener 12 o 13 caracteres', 4000);
       return false;
     }
@@ -1383,6 +1401,23 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   formatCurrency(amount: number): string {
     return formatUnitCurrency(amount);
+  }
+
+  hasLineDiscount(item: POSCartItem): boolean {
+    return Number(item.line_discount_amount) > 0.009;
+  }
+
+  /** Precio unitario neto, después del descuento de línea. */
+  discountedUnitPrice(item: POSCartItem): number {
+    const qty = Number(item.quantity) || 1;
+    const discountUnit = Number(item.line_discount_amount) / qty;
+    return Math.max(Number(item.unit_price) - discountUnit, 0);
+  }
+
+  /** Importe de la línea con impuestos, antes del descuento. */
+  lineTotalBeforeDiscount(item: POSCartItem): number {
+    const unitGross = this.unitPriceWithTaxes(item.unit_price, item.iva_percentage, item.ieps_percentage);
+    return unitGross * (Number(item.quantity) || 0);
   }
 
   /** Precio de lista con IVA e IEPS, para que el drop coincida con el total de línea. */

@@ -6,6 +6,7 @@ export interface FiscalConfiguration {
   rfc: string;
   prefix?: string | null;
   quotation_expiration_days?: number | null;
+  advance_invoicing_enabled?: boolean;
   persona_type: 'Persona Física' | 'Persona Moral';
   branches_count?: number;
   branch_count?: number;
@@ -32,6 +33,7 @@ export interface CreateFiscalConfigurationDto {
   rfc: string;
   prefix?: string | null;
   quotation_expiration_days?: number | null;
+  advance_invoicing_enabled?: boolean;
   persona_type: 'Persona Física' | 'Persona Moral';
   fiscal_regime?: string;
   digital_seal?: string;

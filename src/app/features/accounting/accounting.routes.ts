@@ -13,4 +13,16 @@ export const ACCOUNTING_ROUTES: Routes = [
       title: 'Cobranza / Contabilidad',
     },
   },
+  {
+    path: 'flujo-deuda',
+    loadComponent: () =>
+      import('./components/customer-debt-flow/customer-debt-flow.component').then(
+        (m) => m.CustomerDebtFlowComponent,
+      ),
+    canActivate: [permissionGuard],
+    data: {
+      permissions: [ACCOUNTING_PERMISSIONS.read],
+      title: 'Flujo de deuda',
+    },
+  },
 ];

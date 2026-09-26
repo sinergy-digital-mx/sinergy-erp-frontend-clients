@@ -20,11 +20,11 @@ export class PermissionSyncService implements OnDestroy {
 
   private readonly onVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
-      this.syncIfNeeded();
+      this.syncIfNeeded(false, { silent: true });
     }
   };
 
-  private readonly onWindowFocus = () => this.syncIfNeeded();
+  private readonly onWindowFocus = () => this.syncIfNeeded(false, { silent: true });
 
   private readonly onStorageChange = (event: StorageEvent) => {
     if (event.key !== this.authService.name_token) {
@@ -51,7 +51,7 @@ export class PermissionSyncService implements OnDestroy {
 
     this.routerSubscription = this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd)
-    ).subscribe(() => this.syncIfNeeded());
+    ).subscribe(() => this.syncIfNeeded(false, { silent: true }));
   }
 
   ngOnDestroy(): void {
@@ -69,7 +69,7 @@ export class PermissionSyncService implements OnDestroy {
       console.log('[PermissionSync] Login reciente — se usa el token de /auth/login sin llamar /auth/refresh');
       return;
     }
-    this.syncIfNeeded(true);
+    this.syncIfNeeded(true, { silent: true });
   }
 
   /** Call after admin saves role permissions or assigns/replaces roles. */
@@ -77,7 +77,7 @@ export class PermissionSyncService implements OnDestroy {
     this.syncIfNeeded(true);
   }
 
-  syncIfNeeded(force = false): Observable<boolean> {
+  syncIfNeeded(force = false, options?: { silent?: boolean }): Observable<boolean> {
     if (!this.authService.token || this.refreshInFlight) {
       return of(false);
     }
@@ -109,11 +109,13 @@ export class PermissionSyncService implements OnDestroy {
             console.log(
               `[PermissionSync] Token actualizado: v${beforeVersion} → v${newVersion} (${newCount} permisos)`
             );
-            this.interceptorService.openSnackbar({
-              type: 'info',
-              title: 'Permisos actualizados',
-              message: 'Tu sesión refleja los permisos más recientes'
-            });
+            if (!options?.silent) {
+              this.interceptorService.openSnackbar({
+                type: 'info',
+                title: 'Permisos actualizados',
+                message: 'Tu sesión refleja los permisos más recientes'
+              });
+            }
           }
 
           observer.next(changed);
@@ -134,7 +136,11 @@ export class PermissionSyncService implements OnDestroy {
     beforePermissions: Set<string>
   ): boolean {
     const afterVersion = this.authService.user_info?.permissions_version;
-    if (beforeVersion !== undefined && afterVersion !== undefined && beforeVersion !== afterVersion) {
+    if (
+      beforeVersion !== undefined &&
+      afterVersion !== undefined &&
+      Number(beforeVersion) !== Number(afterVersion)
+    ) {
       return true;
     }
 

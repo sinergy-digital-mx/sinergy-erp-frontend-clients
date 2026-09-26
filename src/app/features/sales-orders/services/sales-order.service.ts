@@ -622,6 +622,18 @@ export class SalesOrderService {
     );
   }
 
+  sendToCollection(id: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/${id}/send-to-collection`, {}).pipe(
+      catchError((error) => this.handleError(error)),
+    );
+  }
+
+  withdrawFromCollection(id: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/${id}/withdraw-from-collection`, {}).pipe(
+      catchError((error) => this.handleError(error)),
+    );
+  }
+
   /**
    * Delete order (cancels and releases inventory)
    */

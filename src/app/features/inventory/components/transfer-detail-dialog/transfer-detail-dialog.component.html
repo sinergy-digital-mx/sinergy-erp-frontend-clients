@@ -58,13 +58,23 @@
 
       <div class="info-grid">
         <div class="info-item">
-          <span class="info-item__label">Producto</span>
-          <span class="info-item__value">{{ t.product_name }} ({{ t.product_sku }})</span>
+          <span class="info-item__label">Productos</span>
+          <span class="info-item__value">
+            @if (productGroups().length > 1) {
+              {{ productGroups().length }} productos
+            } @else {
+              {{ t.product_name }} ({{ t.product_sku }})
+            }
+          </span>
         </div>
         <div class="info-item">
           <span class="info-item__label">Cantidad total</span>
           <span class="info-item__value info-item__value--highlight">
-            {{ t.total_quantity | removeTrailingZeros }} {{ t.uom_name }}
+            @if (productGroups().length > 1) {
+              {{ productGroups().length }} productos
+            } @else {
+              {{ t.total_quantity | removeTrailingZeros }} {{ t.uom_name }}
+            }
           </span>
         </div>
         <div class="info-item">
@@ -83,52 +93,53 @@
         }
       </div>
 
-      @if (t.lines && t.lines.length > 0) {
+      @for (group of productGroups(); track group.product_id + group.uom_id) {
         <section class="lines-section">
-          <h3 class="lines-section__title">Líneas de transferencia</h3>
-          <table class="lines-table">
-            <thead>
-              <tr>
-                <th>Lote origen</th>
-                <th class="text-right">Cantidad</th>
-                <th>Lote destino creado</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (line of t.lines; track line.source_batch_number + line.destination_batch_number) {
+          <div class="product-block__head">
+            <h3 class="lines-section__title">{{ group.product_name }}</h3>
+            <span class="product-block__meta">
+              {{ group.product_sku }} · {{ group.quantity | removeTrailingZeros }} {{ group.uom_name }}
+            </span>
+          </div>
+          @if (group.lines.length > 0) {
+            <table class="lines-table">
+              <thead>
                 <tr>
-                  <td>
-                    @if (line.source_batch_id) {
-                      <button
-                        type="button"
-                        class="batch-link"
-                        (click)="openBatchDetail(line.source_batch_id, $event)">
-                        {{ line.source_batch_number }}
-                      </button>
-                    } @else {
-                      {{ line.source_batch_number }}
-                    }
-                    @if (line.measure_label) {
-                      <span class="text-xs text-gray-500"> · {{ line.measure_label }}</span>
-                    }
-                  </td>
-                  <td class="text-right">{{ line.quantity | removeTrailingZeros }}</td>
-                  <td>
-                    @if (line.destination_batch_id) {
-                      <button
-                        type="button"
-                        class="batch-link"
-                        (click)="openBatchDetail(line.destination_batch_id, $event)">
-                        {{ line.destination_batch_number }}
-                      </button>
-                    } @else {
-                      {{ line.destination_batch_number }}
-                    }
-                  </td>
+                  <th>Lote origen</th>
+                  <th class="text-right">Cantidad</th>
+                  <th>Lote destino creado</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (line of group.lines; track line.source_batch_number + line.destination_batch_number) {
+                  <tr>
+                    <td>
+                      @if (sourceBatchId(line); as batchId) {
+                        <button type="button" class="batch-link" (click)="openBatchDetail(batchId, $event)">
+                          {{ line.source_batch_number }}
+                        </button>
+                      } @else {
+                        {{ line.source_batch_number }}
+                      }
+                      @if (line.measure_label) {
+                        <span class="text-xs text-gray-500"> · {{ line.measure_label }}</span>
+                      }
+                    </td>
+                    <td class="text-right">{{ line.quantity | removeTrailingZeros }} {{ line.uom_name || group.uom_name }}</td>
+                    <td>
+                      @if (destinationBatchId(line); as batchId) {
+                        <button type="button" class="batch-link" (click)="openBatchDetail(batchId, $event)">
+                          {{ line.destination_batch_number }}
+                        </button>
+                      } @else {
+                        {{ line.destination_batch_number }}
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
         </section>
       }
     </div>

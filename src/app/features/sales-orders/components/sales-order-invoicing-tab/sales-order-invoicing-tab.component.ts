@@ -37,6 +37,7 @@ import {
   SalesOrderInvoiceStampDialogComponent,
   SalesOrderInvoiceStampDialogResult,
 } from '../sales-order-invoice-stamp-dialog/sales-order-invoice-stamp-dialog.component';
+import { AdvanceInvoiceDialogComponent } from '../advance-invoice-dialog/advance-invoice-dialog.component';
 import {
   SalesOrderInvoiceEmailDialogComponent,
   SalesOrderInvoiceEmailDialogResult,
@@ -222,6 +223,27 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     }
 
     return issues;
+  }
+
+  openApplyAdvance(): void {
+    this.dialog
+      .open(AdvanceInvoiceDialogComponent, {
+        width: '440px',
+        data: {
+          mode: 'apply',
+          source: 'sales_order',
+          documentId: this.orderId,
+          folio: this.order.folio,
+          advanceUuid: this.order.advance_invoice?.uuid,
+          advanceTotal: this.order.advance_invoice?.total,
+        },
+      })
+      .afterClosed()
+      .subscribe((stamped) => {
+        if (!stamped) return;
+        this.toast.success('Anticipo aplicado. Quedaron la factura de mercancía y la nota de crédito.');
+        this.loadTabData(true);
+      });
   }
 
   openNewInvoice(): void {

@@ -91,7 +91,6 @@ import {
   collectCashShortfallUsd,
   collectChangeMxn,
   collectChangeUsd,
-  collectUsdReceivedMxn,
   CollectPaymentMethod,
   defaultCollectForm,
   parseOrderTotal,
@@ -162,6 +161,7 @@ interface PendingSaleCustomer {
 interface PendingSale {
   id: string;
   folio?: string;
+  quotation_folio?: string | null;
   total?: number | string;
   /** Saldo real por cobrar (considera anticipos registrados en detalle OV). */
   amount_pending?: number | string;
@@ -236,6 +236,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedCollectCustomerId = signal<number | string | null>(null);
   selectedCustomerName = signal('Público en General');
   walkInName = signal('');
+  walkInTicketOpen = signal(false);
   walkInRfc = signal('');
   readonly walkInRfcInvalid = computed(() => this.customerMode() === 'walk_in' && !isValidWalkInRfc(this.walkInRfc()));
   selectedCustomerDetail = signal<Customer | null>(null);
@@ -324,8 +325,6 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly changeMxn = computed(() => collectChangeMxn(this.collectForm(), this.orderTotal()));
 
   readonly changeUsd = computed(() => collectChangeUsd(this.collectForm(), this.orderTotal()));
-
-  readonly usdReceivedMxn = computed(() => collectUsdReceivedMxn(this.collectForm()));
 
   readonly cashShortfallMxn = computed(() => collectCashShortfallMxn(this.collectForm(), this.orderTotal()));
 
@@ -1263,9 +1262,31 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       return;
     }
+    this.walkInTicketOpen.set(false);
     if (!this.selectedCustomerId()) {
       this.openCustomerPicker();
     }
+  }
+
+  onWalkInCardClick(event: MouseEvent): void {
+    if ((event.target as HTMLElement).tagName === 'INPUT') {
+      return;
+    }
+    if (this.customerMode() !== 'walk_in') {
+      this.walkInTicketOpen.set(false);
+      this.setCustomerMode('walk_in');
+      return;
+    }
+    this.walkInTicketOpen.update((open) => !open);
+  }
+
+  walkInTicketSummary(): string {
+    const name = this.walkInName().trim();
+    const rfc = this.walkInRfc().trim();
+    if (name && rfc) return `${name} · ${rfc}`;
+    if (name) return name;
+    if (rfc) return rfc;
+    return 'Toca para nombre y RFC';
   }
 
   openCustomerPicker(): void {
@@ -1367,6 +1388,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     if (this.customerMode() === 'walk_in' && !isValidWalkInRfc(this.walkInRfc())) {
+      this.walkInTicketOpen.set(true);
       this.collectError.set('El RFC debe tener 12 o 13 caracteres');
       return;
     }
@@ -1405,16 +1427,21 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (response) => {
         this.collecting.set(false);
         const collection = response.collection;
-        const change = collection?.change_cash_mxn;
+        const changeMxn = Number(collection?.change_cash_mxn ?? 0);
+        const changeUsd = Number(collection?.change_cash_usd ?? 0);
         const folio = sale.folio || response.sales_order?.folio || sale.id;
         const customerName =
           collection?.customer?.display_name ||
           collection?.customer?.name ||
           response.sales_order?.customer?.display_name ||
           response.sales_order?.customer?.name;
-        if (change != null && Number(change) > 0) {
+        const changeParts = [
+          changeUsd > 0 ? this.formatCurrencyUsd(changeUsd) : '',
+          changeMxn > 0 ? formatPosMoney(changeMxn) : '',
+        ].filter(Boolean);
+        if (changeParts.length > 0) {
           this.toast.success(
-            `Venta ${folio} cobrada. Cambio: ${formatPosMoney(change)}`,
+            `Venta ${folio} cobrada. Cambio: ${changeParts.join(' + ')}`,
             { duration: 5000 }
           );
         } else if (customerName) {
@@ -1537,9 +1564,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       this.generateInvoice.set(false);
       this.walkInName.set(sale.walk_in_name ?? '');
       this.walkInRfc.set(sale.walk_in_rfc ?? '');
+      this.walkInTicketOpen.set(false);
       return;
     }
     this.customerMode.set('registered');
+    this.walkInTicketOpen.set(false);
     this.selectedCustomerId.set(String(customer.id));
     this.selectedCollectCustomerId.set(
       resolvePosCollectCustomerId(customer) ?? (customer.id != null ? customer.id : null)

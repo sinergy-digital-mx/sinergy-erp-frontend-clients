@@ -352,6 +352,9 @@
                         (click)="selectSale(sale)">
                         <div class="cobranza-sale__row">
                           <strong>{{ sale.folio || sale.id.substring(0, 8) }}</strong>
+                          @if (sale.quotation_folio) {
+                            <span>Desde {{ sale.quotation_folio }}</span>
+                          }
                           <span class="cobranza-sale__total">{{ saleTotal(sale) }}</span>
                         </div>
                         <div class="cobranza-sale__row cobranza-sale__row--meta">
@@ -514,7 +517,11 @@
             <section class="cobranza-block">
               <h3 class="cobranza-block__title">Cliente</h3>
               <div class="cobranza-customer-options">
-                <label class="cobranza-radio" [class.cobranza-radio--on]="customerMode() === 'walk_in'">
+                <label
+                  class="cobranza-radio"
+                  [class.cobranza-radio--on]="customerMode() === 'walk_in'"
+                  [class.cobranza-radio--open]="customerMode() === 'walk_in' && walkInTicketOpen()"
+                  (click)="onWalkInCardClick($event)">
                   <input
                     type="radio"
                     name="customerMode"
@@ -525,7 +532,7 @@
                   </span>
                   <span class="cobranza-radio__text">
                     <strong>Público en General</strong>
-                    <span>Venta mostrador</span>
+                    <span>{{ walkInTicketSummary() }}</span>
                   </span>
                 </label>
 
@@ -545,7 +552,7 @@
                 </label>
               </div>
 
-              @if (customerMode() === 'walk_in') {
+              @if (customerMode() === 'walk_in' && walkInTicketOpen()) {
                 <div class="cobranza-field-grid cobranza-field-grid--2 cobranza-walk-in-fields">
                   <label class="cobranza-field">
                     <span>Nombre <em class="cobranza-field__hint">opcional</em></span>
@@ -789,17 +796,21 @@
                         <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
                       </div>
                     }
-                    @if (usdReceivedMxn() > 0) {
+                    @if (collectForm().amountCashUsd > 0) {
                       <p class="cobranza-cash-fx">
-                        {{ formatCurrencyUsd(collectForm().receivedCashUsd) }}
-                        × {{ collectForm().usdExchangeRate }}
-                        = {{ formatCurrency(usdReceivedMxn()) }}
+                        Aplican {{ formatCurrencyUsd(collectForm().amountCashUsd) }}
+                        a TC {{ collectForm().usdExchangeRate }}
                       </p>
                     }
                     <div class="cobranza-cash-result__item">
-                      <span>Cambio a entregar (MXN)</span>
+                      <span>Cambio a entregar</span>
                       <div class="cobranza-cash-result__values">
-                        <strong class="cobranza-cash-result__change">{{ formatCurrency(changeMxn()) }}</strong>
+                        @if (changeUsd() > 0) {
+                          <strong class="cobranza-cash-result__change">{{ formatCurrencyUsd(changeUsd()) }}</strong>
+                        }
+                        @if (changeMxn() > 0 || changeUsd() === 0) {
+                          <strong class="cobranza-cash-result__change">{{ formatCurrency(changeMxn()) }}</strong>
+                        }
                       </div>
                     </div>
                   </div>
@@ -1376,6 +1387,11 @@
                     @if (item.payment.change_cash_mxn != null && +item.payment.change_cash_mxn > 0) {
                       <div class="cobranza-detail-list__highlight">
                         <dt>Cambio MXN</dt><dd>{{ moneyLabel(item.payment.change_cash_mxn) }}</dd>
+                      </div>
+                    }
+                    @if (item.payment.change_cash_usd != null && +item.payment.change_cash_usd > 0) {
+                      <div class="cobranza-detail-list__highlight">
+                        <dt>Cambio USD</dt><dd>{{ formatCurrencyUsd(+item.payment.change_cash_usd) }}</dd>
                       </div>
                     }
                   </dl>

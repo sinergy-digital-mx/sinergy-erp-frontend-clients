@@ -78,12 +78,22 @@ export interface CreateTransferLineDto {
 }
 
 export interface CreateTransferDto {
-  product_id: string;
-  uom_id: string;
+  product_id?: string;
+  uom_id?: string;
   source_warehouse_id: string;
   destination_warehouse_id: string;
   notes?: string;
   lines: CreateTransferLineDto[];
+}
+
+export interface TransferProductSummary {
+  product_id: string;
+  product_name: string;
+  product_sku: string;
+  uom_id: string;
+  uom_name: string;
+  quantity: string;
+  lines_count: number;
 }
 
 export interface TransferWarehouseSummary {
@@ -100,8 +110,15 @@ export interface TransferWarehouseSummary {
 }
 
 export interface TransferLine {
+  product_id?: string;
+  product_name?: string;
+  product_sku?: string;
+  uom_id?: string;
+  uom_name?: string;
+  source_inventory_batch_id?: string;
   source_batch_id?: string;
   source_batch_number: string;
+  destination_inventory_batch_id?: string;
   destination_batch_id?: string;
   destination_batch_number: string;
   quantity: string;
@@ -111,11 +128,13 @@ export interface TransferLine {
 export interface InventoryTransfer {
   id: string;
   folio: string;
-  product_id: string;
+  product_id: string | null;
   product_name: string;
   product_sku: string;
-  uom_id?: string;
+  uom_id?: string | null;
   uom_name: string;
+  products?: TransferProductSummary[];
+  products_count?: number;
   total_quantity: string;
   notes?: string | null;
   source_warehouse: TransferWarehouseSummary;

@@ -36,11 +36,28 @@
 }
 
 .receivable-search {
-  max-width: 28rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 40rem;
+}
+
+.receivable-flow-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #4338ca;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.receivable-flow-link:hover {
+  text-decoration: underline;
 }
 
 .receivable-search__input {
   width: 100%;
+  max-width: 28rem;
   min-height: 2.75rem;
   padding: 0.65rem 0.85rem;
   border: 1px solid #e2e8f0;

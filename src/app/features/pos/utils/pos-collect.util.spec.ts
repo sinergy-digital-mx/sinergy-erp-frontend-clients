@@ -103,7 +103,7 @@ describe('pago mixto — resto automático', () => {
     ]);
   });
 
-  it('100 USD a 16.80 sobre 1079.65 da cambio 600.35 MXN y no traba el cobro', () => {
+  it('100 USD a 16.80 sobre 1079.65 da cambio 35.74 USD y no traba el cobro', () => {
     const total = 1079.65;
     const form = defaultCollectForm(total, 16.8);
     form.paymentMethod = 'cash';
@@ -112,13 +112,13 @@ describe('pago mixto — resto automático', () => {
     form.usdExchangeRate = 16.8;
 
     expect(collectReceivedTotalMxn(form)).toBe(1680);
-    expect(collectChangeMxn(form, total)).toBe(600.35);
-    expect(collectChangeUsd(form, total)).toBe(0);
+    expect(collectChangeMxn(form, total)).toBe(0);
+    expect(collectChangeUsd(form, total)).toBe(35.74);
     expect(validateCollectForm(form, total)).toBeNull();
 
     const payload = buildCollectPayload(form, total);
     expect(payload.amount_cash_mxn).toBe(0);
-    expect(payload.amount_cash_usd).toBe(100);
+    expect(payload.amount_cash_usd).toBe(64.26);
     expect(payload.received_cash_usd).toBe(100);
     expect(payload.usd_exchange_rate).toBe(16.8);
   });

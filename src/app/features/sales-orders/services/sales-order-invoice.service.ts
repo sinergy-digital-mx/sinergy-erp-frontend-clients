@@ -74,6 +74,26 @@ export class SalesOrderInvoiceService {
 
   }
 
+  stampAdvance(orderId: string, payload: {
+    base_amount: number;
+    iva_percentage: number;
+    uso_cfdi: string;
+    forma_pago: string;
+    regimen_fiscal_receptor: string;
+    metodo_pago: 'PUE' | 'PPD';
+  }): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/${orderId}/invoices/stamp-advance`, payload);
+  }
+
+  applyAdvance(orderId: string, payload: {
+    uso_cfdi: string;
+    forma_pago: string;
+    regimen_fiscal_receptor: string;
+    metodo_pago: 'PUE' | 'PPD';
+  }): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/${orderId}/invoices/apply-advance`, payload);
+  }
+
 
 
   cancelInvoice(

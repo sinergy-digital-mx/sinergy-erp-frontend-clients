@@ -204,6 +204,17 @@
         </div>
 
         <div class="action-buttons">
+          @if (header()!.can_stamp_advance) {
+            <button type="button" class="btn-convert-order" (click)="openAdvanceInvoice()">
+              <i class="fi fi-rr-file-invoice"></i>
+              Factura de anticipo
+            </button>
+          }
+          @if (header()!.advance_invoice && !header()!.advance_invoice!.applied) {
+            <button type="button" class="btn-cancel-order" (click)="cancelAdvanceInvoice()">
+              Cancelar anticipo
+            </button>
+          }
           @if (canShowConvert()) {
             <button
               type="button"
@@ -224,12 +235,12 @@
               Ir a la orden de venta
             </button>
           }
-          @if (canShowCancel()) {
-            <span class="btn-cancel-order-wrap">
+          @if (canShowCancel() || header()!.cancel_blocked_reason) {
+            <span class="btn-cancel-order-wrap" [attr.title]="header()!.cancel_blocked_reason || null">
               <button
                 type="button"
                 class="btn-cancel-order"
-                [disabled]="cancelling()"
+                [disabled]="cancelling() || !canShowCancel()"
                 (click)="cancelQuotation()">
                 @if (cancelling()) {
                   <i class="fi fi-rr-spinner animate-spin"></i>
