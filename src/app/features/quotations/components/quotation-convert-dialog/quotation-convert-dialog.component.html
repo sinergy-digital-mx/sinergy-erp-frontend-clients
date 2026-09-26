@@ -1,0 +1,44 @@
+<div class="convert-dialog">
+  <div class="convert-dialog__header">
+    <h3 class="convert-dialog__title">Convertir a venta</h3>
+    <button type="button" class="convert-dialog__close" aria-label="Cerrar" (click)="close()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </div>
+
+  <div class="convert-dialog__body">
+    @if (hasShift) {
+      <p class="convert-dialog__lead">
+        Hay un corte abierto en <strong>{{ data.branchName }}</strong> del {{ shiftLabel }}.
+      </p>
+      <p class="convert-dialog__note">
+        El cobro puede entrar a ese corte ahora, o la orden se crea y se envía a caja después.
+      </p>
+    } @else {
+      <p class="convert-dialog__lead">
+        <strong>{{ data.branchName }}</strong> no tiene un corte abierto.
+      </p>
+      <p class="convert-dialog__note">
+        La orden se crea ahora. El cobro se envía a caja cuando abran el corte.
+      </p>
+    }
+  </div>
+
+  <div class="convert-dialog__footer">
+    @if (hasShift) {
+      <button type="button" class="convert-dialog__btn convert-dialog__btn--ghost" (click)="close('skip')">
+        Crear sin cobro
+      </button>
+      <button type="button" class="convert-dialog__btn convert-dialog__btn--primary" (click)="close('send')">
+        Enviar a cobranza
+      </button>
+    } @else {
+      <button type="button" class="convert-dialog__btn convert-dialog__btn--ghost" (click)="close()">
+        Volver
+      </button>
+      <button type="button" class="convert-dialog__btn convert-dialog__btn--primary" (click)="close('skip')">
+        Crear orden
+      </button>
+    }
+  </div>
+</div>

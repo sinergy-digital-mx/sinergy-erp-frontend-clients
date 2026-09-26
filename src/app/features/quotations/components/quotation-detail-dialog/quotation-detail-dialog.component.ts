@@ -38,6 +38,10 @@ import {
   QuotationNotesDialogResult,
 } from '../quotation-notes-dialog/quotation-notes-dialog.component';
 import { AdvanceInvoiceDialogComponent } from '../../../sales-orders/components/advance-invoice-dialog/advance-invoice-dialog.component';
+import {
+  QuotationConvertDialogComponent,
+  QuotationConvertDialogResult,
+} from '../quotation-convert-dialog/quotation-convert-dialog.component';
 
 @Component({
   selector: 'app-quotation-detail-dialog',
@@ -598,25 +602,21 @@ export class QuotationDetailDialogComponent implements OnInit {
     branchName: string,
     openShift: { id: string; shift_date: string } | null,
   ): void {
-    const hasShift = !!openShift;
     this.dialog
-      .open(AlertDialogComponent, {
-        width: '440px',
+      .open(QuotationConvertDialogComponent, {
+        width: '420px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        panelClass: 'quotation-convert-dialog',
         data: {
-          title: 'Convertir a venta',
-          message: hasShift
-            ? `Hay un corte abierto del ${openShift.shift_date} en ${branchName}. ¿Generar el cobro en ese corte?`
-            : `No hay corte abierto en ${branchName}. La orden se crea sin cobro. Cuando abran el corte podrás enviarla a cobranza desde la orden.`,
-          type: 'warning',
-          text_accept: hasShift ? 'Sí, generar cobro' : 'Crear orden sin cobro',
-          text_cancel: hasShift ? 'No, crear sin cobro' : 'Volver',
+          branchName,
+          openShift,
         },
       })
       .afterClosed()
-      .subscribe((answer: boolean | undefined) => {
-        if (answer === undefined) return;
-        if (!hasShift && answer === false) return;
-        const sendToCaja = hasShift && answer === true;
+      .subscribe((answer: QuotationConvertDialogResult | undefined) => {
+        if (!answer) return;
+        const sendToCaja = answer === 'send';
         this.converting.set(true);
         this.quotationService.convert(q.id, { send_to_pos_caja: sendToCaja }).subscribe({
           next: (res) => {
