@@ -808,6 +808,28 @@ main,
     z-index: 30;
   }
 
+  /* El detalle OV va en fixed al viewport y el menú (z-index 1100) tapa la izquierda. */
+  .cdk-overlay-container:has(.order-detail-dialog-container),
+  .cdk-overlay-container:has(.batch-detail-dialog-container) {
+    z-index: 1200;
+  }
+
+  .cdk-overlay-pane.order-detail-dialog-container,
+  .mat-mdc-dialog-panel.order-detail-dialog-container,
+  .cdk-overlay-pane.batch-detail-dialog-container,
+  .mat-mdc-dialog-panel.batch-detail-dialog-container {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: min(1680px, calc(100% - 1.5rem)) !important;
+    max-width: calc(100% - 1.5rem) !important;
+    height: min(94%, calc(100% - 1.5rem)) !important;
+    max-height: calc(100% - 1.5rem) !important;
+  }
+
   .cdk-overlay-popover {
     pointer-events: none;
   }
