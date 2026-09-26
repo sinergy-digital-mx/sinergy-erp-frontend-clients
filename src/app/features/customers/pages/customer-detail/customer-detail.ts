@@ -434,6 +434,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
 
   getAddressTypeLabel(type: string | null | undefined): string {
     const map: Record<string, string> = {
+      shipping: 'Entrega',
       delivery: 'Entrega',
       billing: 'Facturación',
       other: 'Otra',

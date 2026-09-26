@@ -85,6 +85,8 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
   private resizeObserver: ResizeObserver | null = null;
   private initScheduled = false;
   private initializing = false;
+  private mapPainted = false;
+  private relayoutTimers: ReturnType<typeof setTimeout>[] = [];
 
   private mapsLoader = inject(GoogleMapsLoaderService);
   private ngZone = inject(NgZone);
@@ -100,7 +102,11 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['mapActive'] && this.mapActive) {
-      this.scheduleInitMap();
+      if (this.map) {
+        this.scheduleRelayout();
+      } else {
+        this.scheduleInitMap();
+      }
     }
     if (changes['formGroup'] && this.formGroup) {
       this.bindLatLngWatch();
@@ -110,6 +116,7 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.clearRelayoutTimers();
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     if (this.maps && this.marker) {
@@ -263,10 +270,13 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
       const zoom = this.readCoords() ? LOCATED_ZOOM : DEFAULT_ZOOM;
       const { Map, Marker, Geocoder } = this.maps;
 
+      const renderingType = window.google?.maps?.RenderingType?.RASTER ?? 'RASTER';
+
       this.ngZone.runOutsideAngular(() => {
         this.map = new Map(el, {
           center,
           zoom,
+          renderingType,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
@@ -282,6 +292,10 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
 
         this.geocoder = new Geocoder();
 
+        const paint = () => this.markMapPainted();
+        this.map.addListener?.('idle', paint);
+        this.map.addListener?.('tilesloaded', paint);
+
         this.marker.addListener('dragend', () => {
           const pos = this.marker?.getPosition();
           if (!pos) return;
@@ -289,10 +303,10 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
         });
       });
 
-      this.ngZone.run(() => this.mapLoading.set(false));
-      this.refreshMapSize();
-      setTimeout(() => this.refreshMapSize(), 80);
-      setTimeout(() => this.refreshMapSize(), 280);
+      this.scheduleRelayout();
+      this.queueRelayout(() => {
+        if (!this.mapPainted) this.markMapPainted();
+      }, 1500);
 
       if (!this.readCoords() && this.buildAddressQuery()) {
         this.locateOnMap();
@@ -307,14 +321,48 @@ export class LocationMapFieldsComponent implements AfterViewInit, OnChanges, OnD
     }
   }
 
-  private refreshMapSize(): void {
+  private scheduleRelayout(): void {
+    this.relayoutMap(true);
+    for (const delay of [80, 240, 500]) {
+      this.queueRelayout(() => this.relayoutMap(true), delay);
+    }
+  }
+
+  private queueRelayout(fn: () => void, delay: number): void {
+    const timer = setTimeout(() => {
+      this.relayoutTimers = this.relayoutTimers.filter((item) => item !== timer);
+      fn();
+    }, delay);
+    this.relayoutTimers.push(timer);
+  }
+
+  private clearRelayoutTimers(): void {
+    for (const timer of this.relayoutTimers) clearTimeout(timer);
+    this.relayoutTimers = [];
+  }
+
+  private markMapPainted(): void {
+    if (this.mapPainted) return;
+    this.mapPainted = true;
+    this.ngZone.run(() => this.mapLoading.set(false));
+    this.relayoutMap(true);
+  }
+
+  private relayoutMap(resetZoom = false): void {
     if (!this.maps || !this.map) return;
     const coords = this.readCoords() ?? DEFAULT_CENTER;
     this.maps.event.trigger(this.map, 'resize');
     this.map.setCenter(coords);
+    if (resetZoom) {
+      this.map.setZoom(this.readCoords() ? LOCATED_ZOOM : DEFAULT_ZOOM);
+    }
     if (this.marker) {
       this.marker.setPosition(coords);
     }
+  }
+
+  private refreshMapSize(): void {
+    this.relayoutMap();
   }
 
   private buildAddressQuery(): string {

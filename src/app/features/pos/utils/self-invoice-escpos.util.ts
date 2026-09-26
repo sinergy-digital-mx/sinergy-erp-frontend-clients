@@ -3,6 +3,29 @@ import { encode } from 'uqr';
 const FACTURA_HEADER = 'FACTURA TU COMPRA';
 const FOLIO_PREFIX = 'Folio:';
 const PAPER_DOTS = 576;
+const TICKET_TIME_ZONE = 'America/Tijuana';
+
+/** Días que faltan para cerrar el mes (el 25 de un mes de 30 → 5). Sin acentos: ASCII. */
+export function invoiceMonthDeadlineLine(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TICKET_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const year = Number(parts.find((part) => part.type === 'year')?.value);
+  const month = Number(parts.find((part) => part.type === 'month')?.value);
+  const day = Number(parts.find((part) => part.type === 'day')?.value);
+  const lastDay = new Date(year, month, 0).getDate();
+  const remaining = Math.max(0, lastDay - day);
+  if (remaining <= 0) {
+    return 'Solo este mes. Ultimo dia.';
+  }
+  if (remaining === 1) {
+    return 'Solo este mes. Te queda 1 dia.';
+  }
+  return `Solo este mes. Te quedan ${remaining} dias.`;
+}
 
 export interface SelfInvoiceEscPosContext {
   url?: string;
@@ -64,6 +87,8 @@ function buildSelfInvoiceBlock(url: string, folio: string): Uint8Array {
     0x1b, 0x61, 0x01,
     0x1b, 0x45, 0x01,
     ...ascii(FACTURA_HEADER),
+    0x0a,
+    ...ascii(invoiceMonthDeadlineLine()),
     0x0a,
     0x1b, 0x45, 0x00,
     ...ascii('Escanea el QR o entra a:'),

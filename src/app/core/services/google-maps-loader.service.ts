@@ -17,6 +17,7 @@ export interface GoogleMap {
   setZoom(zoom: number): void;
   panTo(latLng: GoogleLatLngLiteral | GoogleLatLng): void;
   fitBounds?(bounds: unknown, padding?: number | unknown): void;
+  addListener?(eventName: string, handler: () => void): { remove: () => void };
 }
 
 export interface GoogleMarker {
@@ -50,6 +51,8 @@ export type GoogleMapConstructor = new (
     streetViewControl?: boolean;
     fullscreenControl?: boolean;
     zoomControl?: boolean;
+    /** RASTER evita el mapa en blanco dentro de diálogos con transform. */
+    renderingType?: string;
   }
 ) => GoogleMap;
 
@@ -83,6 +86,7 @@ interface GoogleMapsNamespace {
   Map?: GoogleMapConstructor | object;
   Marker?: GoogleMarkerConstructor | object;
   Geocoder?: GoogleGeocoderConstructor | object;
+  RenderingType?: { RASTER?: string };
   event?: GoogleMapsModules['event'];
   importLibrary?: (name: string) => Promise<Record<string, unknown>>;
 }

@@ -27,6 +27,44 @@ import {
   DebtMovementType,
 } from '../../models/customer-debt-flow.model';
 
+const MEXICO_TIME_ZONE = 'America/Tijuana';
+
+function isCalendarDay(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
+}
+
+function formatCalendarDay(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+  if (!match) return value;
+  const label = MONTHS[Number(match[2]) - 1];
+  return label ? `${Number(match[3])} ${label} ${match[1]}` : value;
+}
+
+function mexicoParts(value: string): { day: string; time: string } | null {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: MEXICO_TIME_ZONE,
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).formatToParts(parsed);
+  const pick = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  const month = MONTHS[Number(pick('month')) - 1] ?? pick('month');
+  const minute = pick('minute').padStart(2, '0');
+  const period = pick('dayPeriod').toLowerCase().startsWith('p') ? 'p.m.' : 'a.m.';
+  return {
+    day: `${Number(pick('day'))} ${month} ${pick('year')}`,
+    time: `${Number(pick('hour'))}:${minute} ${period}`,
+  };
+}
+
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
 @Component({
   selector: 'app-customer-debt-flow',
   standalone: true,
@@ -209,27 +247,15 @@ export class CustomerDebtFlowComponent implements OnInit {
     }).format(value);
   }
 
-  formatDate(value: string | null, dateOnly = false): string {
+  formatDay(value: string | null, dateOnly = false): string {
     if (!value) return '—';
-    const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
-    const parsed = day
-      ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3]))
-      : new Date(value);
-    if (Number.isNaN(parsed.getTime())) return value.slice(0, 10);
-    if (dateOnly || day) {
-      return parsed.toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    }
-    return parsed.toLocaleString('es-MX', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    if (dateOnly || isCalendarDay(value)) return formatCalendarDay(value);
+    return mexicoParts(value)?.day ?? '—';
+  }
+
+  formatTime(value: string | null): string {
+    if (!value || isCalendarDay(value)) return '';
+    return mexicoParts(value)?.time ?? '';
   }
 
   loadReport(): void {

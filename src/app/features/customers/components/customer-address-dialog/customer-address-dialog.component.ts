@@ -10,6 +10,15 @@ import { LocationMapFieldsComponent } from '../../../../core/components/location
 import { CustomerService } from '../../../../core/services/customer.service';
 import { CustomerAddress } from '../../models/customer-group.model';
 
+/** Alinea el tipo guardado con las opciones del select (delivery y shipping = Entrega). */
+export function normalizeCustomerAddressType(value: string | null | undefined, fallback = 'shipping'): string {
+  const key = (value ?? '').trim().toLowerCase();
+  if (key === 'shipping' || key === 'delivery' || key === 'entrega') return 'shipping';
+  if (key === 'billing' || key === 'facturacion' || key === 'facturación') return 'billing';
+  if (key === 'other' || key === 'otra') return 'other';
+  return fallback;
+}
+
 export interface CustomerAddressDialogData {
   customerId: string;
   address?: CustomerAddress | null;
@@ -45,8 +54,9 @@ export class CustomerAddressDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: CustomerAddressDialogData
   ) {
     this.isNew = !data.address;
+    const initialType = normalizeCustomerAddressType(data.address?.type || data.defaultType);
     this.form = this.fb.group({
-      type: [data.defaultType || data.address?.type || 'shipping', Validators.required],
+      type: [initialType, Validators.required],
       street_address: ['', Validators.required],
       city: ['', Validators.required],
       state: [''],
@@ -60,14 +70,16 @@ export class CustomerAddressDialogComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.data.address) {
-      this.form.patchValue(this.data.address);
+      this.form.patchValue({
+        ...this.data.address,
+        type: normalizeCustomerAddressType(this.data.address.type || this.data.defaultType),
+      });
     }
     this.dialogRef.afterOpened().subscribe(() => {
-      this.mapActive = true;
+      requestAnimationFrame(() => {
+        this.mapActive = true;
+      });
     });
-    setTimeout(() => {
-      this.mapActive = true;
-    }, 200);
   }
 
   close(): void {

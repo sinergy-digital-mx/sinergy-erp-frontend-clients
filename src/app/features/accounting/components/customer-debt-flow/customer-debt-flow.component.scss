@@ -639,3 +639,52 @@ tbody tr:hover .sf-th-sticky {
 .m-0 {
   margin: 0;
 }
+
+.debt-when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 7.5rem;
+}
+
+.debt-when__day {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.debt-when__time,
+.debt-when__due {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.debt-order {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+  }
+}
+
+.debt-order__folio {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.debt-order__action {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #1e40af;
+}

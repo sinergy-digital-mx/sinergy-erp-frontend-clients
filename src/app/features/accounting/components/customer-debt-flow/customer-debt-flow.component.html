@@ -208,58 +208,55 @@
             <div class="sf-table-wrap">
               <table class="sf-table sf-table--ledger">
                 <thead>
-                  <tr class="sf-head-groups">
-                    <th rowspan="2" class="sf-col-date">Fecha</th>
-                    <th rowspan="2" class="sf-col-product">Cliente</th>
-                    <th rowspan="2">Sucursal</th>
-                    <th rowspan="2" class="sf-col-concept">Concepto</th>
-                    <th rowspan="2">OV</th>
-                    <th colspan="2" class="sf-group sf-group--out">Movimiento</th>
-                    <th rowspan="2" class="sf-num sf-group--fin">Saldo OV</th>
-                    <th rowspan="2" class="sf-num sf-group--qty">Saldo cliente</th>
-                  </tr>
-                  <tr class="sf-head-subs">
-                    <th class="sf-num sf-group--out">Cargo</th>
-                    <th class="sf-num sf-group--in">Abono</th>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Orden</th>
+                    <th>Movimiento</th>
+                    <th class="sf-num">Cargo</th>
+                    <th class="sf-num">Abono</th>
+                    <th class="sf-num">Saldo de la orden</th>
+                    <th class="sf-num">Saldo del cliente</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (row of ledger(); track row.id) {
-                    <tr [class.sf-row--opening]="row.is_opening">
-                      <td class="sf-col-date">
-                        <span class="sf-date">{{ formatDate(row.occurred_at, row.is_opening) }}</span>
-                        @if (row.due_date && !row.is_opening) {
-                          <span class="sf-sku">Vence {{ formatDate(row.due_date, true) }}</span>
-                        }
-                      </td>
-                      <td class="sf-col-product">
-                        <div class="sf-product-stack">
-                          <span class="sf-ellipsis" [title]="row.customer_name">{{ row.customer_name }}</span>
-                          <span class="sf-sku">{{ row.customer_rfc || 'Sin RFC' }}</span>
+                    <tr [class.sf-row--opening]="row.is_opening" [class.debt-row--order]="!!row.sales_order_id">
+                      <td>
+                        <div class="debt-when">
+                          <span class="debt-when__day">{{ formatDay(row.occurred_at, row.is_opening) }}</span>
+                          @if (!row.is_opening && formatTime(row.occurred_at)) {
+                            <span class="debt-when__time">{{ formatTime(row.occurred_at) }}</span>
+                          }
+                          @if (row.due_date && !row.is_opening) {
+                            <span class="debt-when__due">Vence {{ formatDay(row.due_date, true) }}</span>
+                          }
                         </div>
                       </td>
                       <td>
-                        <span class="dt-status-pill dt-status-pill--info">
-                          {{ row.billing_branch_name || '—' }}
-                        </span>
+                        <div class="sf-product-stack">
+                          <span class="sf-ellipsis" [title]="row.customer_name">{{ row.customer_name }}</span>
+                          <span class="sf-sku">{{ row.customer_rfc || 'Sin RFC' }}</span>
+                          @if (row.billing_branch_name) {
+                            <span class="sf-sku">{{ row.billing_branch_name }}</span>
+                          }
+                        </div>
+                      </td>
+                      <td>
+                        @if (row.sales_order_id) {
+                          <button type="button" class="debt-order" (click)="openOrder(row, $event)">
+                            <span class="debt-order__folio">{{ row.folio || 'Orden' }}</span>
+                            <span class="debt-order__action">Ver detalle</span>
+                          </button>
+                        } @else {
+                          <span class="dt-cell-subtle">—</span>
+                        }
                       </td>
                       <td class="sf-col-concept">
                         <div class="sf-concept-stack">
                           <span [class]="movementBadgeClass(row.movement_type)">{{ row.title }}</span>
                           <p class="sf-concept-desc m-0" [title]="row.description">{{ row.description }}</p>
                         </div>
-                      </td>
-                      <td>
-                        @if (row.folio && row.sales_order_id) {
-                          <button
-                            type="button"
-                            class="dt-folio-badge folio-open-btn"
-                            (click)="openOrder(row, $event)">
-                            {{ row.folio }}
-                          </button>
-                        } @else {
-                          <span class="dt-cell-subtle">—</span>
-                        }
                       </td>
                       <td class="sf-num">
                         <span class="sf-v sf-v--qty sf-v--out">{{ formatMoney(row.charge_amount) }}</span>
