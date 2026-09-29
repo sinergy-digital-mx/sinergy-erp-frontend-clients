@@ -11,7 +11,21 @@
       </div>
     </div>
 
-    <div class="dd-filter" role="search" aria-label="Filtro de periodo">
+    <div class="dd-filter" role="search" aria-label="Filtros del dashboard">
+      <select
+        id="dd-project"
+        class="dd-filter__select dd-filter__select--project"
+        aria-label="Proyecto"
+        [(ngModel)]="selectedProjectId"
+        (ngModelChange)="onProjectChange()">
+        <option value="">Todos los proyectos</option>
+        @for (group of projectGroups; track group.id) {
+          <option [value]="group.id">{{ group.name }}</option>
+        }
+      </select>
+
+      <span class="dd-filter__divider" aria-hidden="true"></span>
+
       <div class="dd-filter__toggle" role="group" aria-label="Modo de periodo">
         <button
           type="button"

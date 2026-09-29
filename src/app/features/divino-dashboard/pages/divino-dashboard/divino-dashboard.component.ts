@@ -23,6 +23,7 @@ import { DatatableWrapperComponent } from '../../../../core/components/datatable
 import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
 import { IDatatableConfig } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { DivinoDashboardService } from '../../services/divino-dashboard.service';
+import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
 import {
   DashboardFilterMode,
   DashboardKpis,
@@ -98,6 +99,8 @@ export class DivinoDashboardComponent implements OnInit {
   filterMode = signal<DashboardFilterMode>('month');
   selectedYear = new Date().getFullYear();
   selectedMonth = new Date().getMonth() + 1;
+  selectedProjectId = '';
+  projectGroups: { id: string; name: string }[] = [];
   revenuePeriod = signal<RevenueSeriesPeriod>('monthly');
 
   loading = signal(false);
@@ -152,10 +155,21 @@ export class DivinoDashboardComponent implements OnInit {
       : 'Ingresos y lotes vendidos por periodo',
   );
 
-  constructor(private dashboardService: DivinoDashboardService) {}
+  constructor(
+    private dashboardService: DivinoDashboardService,
+    private groupFetchService: CustomerGroupFetchService,
+  ) {}
 
   ngOnInit(): void {
     this.initChartOptions();
+    this.groupFetchService.fetchGroups().subscribe({
+      next: (groups) => {
+        this.projectGroups = [...groups].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+      },
+      error: () => {
+        this.projectGroups = [];
+      },
+    });
     this.loadDashboard();
   }
 
@@ -170,6 +184,10 @@ export class DivinoDashboardComponent implements OnInit {
   }
 
   onMonthChange(): void {
+    this.loadDashboard();
+  }
+
+  onProjectChange(): void {
     this.loadDashboard();
   }
 
@@ -231,14 +249,15 @@ export class DivinoDashboardComponent implements OnInit {
   }
 
   private buildQueryParams(): DashboardQueryParams {
+    const group_id = this.selectedProjectId || undefined;
     if (this.filterMode() === 'all_time') {
-      return { scope: 'all_time' };
+      return { scope: 'all_time', group_id };
     }
     const year = this.selectedYear;
     if (this.filterMode() === 'month') {
-      return { scope: 'period', year, month: this.selectedMonth };
+      return { scope: 'period', year, month: this.selectedMonth, group_id };
     }
-    return { scope: 'period', year };
+    return { scope: 'period', year, group_id };
   }
 
   private buildRevenueParams(): DashboardQueryParams {

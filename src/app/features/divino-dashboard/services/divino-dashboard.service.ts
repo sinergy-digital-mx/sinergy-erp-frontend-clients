@@ -56,6 +56,10 @@ export class DivinoDashboardService {
       httpParams = httpParams.set('period', params.period);
     }
 
+    if (params.group_id) {
+      httpParams = httpParams.set('group_id', params.group_id);
+    }
+
     return httpParams;
   }
 }

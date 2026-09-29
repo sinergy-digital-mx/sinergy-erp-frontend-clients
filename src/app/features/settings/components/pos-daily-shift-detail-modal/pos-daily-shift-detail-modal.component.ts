@@ -14,6 +14,7 @@ import {
   dailyShiftTerminalLabel,
   expectedCashInDrawer,
   formatPosMoney,
+  formatPosShiftDate,
   partialPerformedByLabel,
   partialShiftSequence,
   partialShiftTotalLabel,
@@ -205,6 +206,10 @@ export class PosDailyShiftDetailModalComponent {
         this.loading.set(false);
       },
     });
+  }
+
+  shiftDateLabel(value: string): string {
+    return formatPosShiftDate(value, true);
   }
 
   private isHistoricalShift(shift: PosDailyShiftDetail): boolean {

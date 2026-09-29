@@ -291,7 +291,9 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     // Recalcular pago mensual cuando cambia saldo pendiente o meses
     combineLatest([
       this.form.get('remaining_balance')!.valueChanges.pipe(startWith(this.form.get('remaining_balance')!.value)),
-      this.form.get('payment_months')!.valueChanges.pipe(startWith(this.form.get('payment_months')!.value))
+      this.form.get('payment_months')!.valueChanges.pipe(startWith(this.form.get('payment_months')!.value)),
+      this.form.get('down_payment')!.valueChanges.pipe(startWith(this.form.get('down_payment')!.value)),
+      this.form.get('down_payment_financed')!.valueChanges.pipe(startWith(this.form.get('down_payment_financed')!.value)),
     ]).subscribe(() => {
       this.calculateMonthlyPayment();
     });
@@ -558,10 +560,9 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     const totalPrice = parseContractAmount(this.form.get('total_price')!.value);
     const downPayment = parseContractAmount(this.form.get('down_payment')!.value);
     const isFinanced = !!this.form.get('down_payment_financed')!.value;
-    const remainingBalance = isFinanced
-      ? (downPayment > 0 ? totalPrice - downPayment : totalPrice)
-      : totalPrice - downPayment;
-    
+    // Financiado: el abono inicial es 0, así que el saldo al crear es el precio total.
+    const remainingBalance = isFinanced ? totalPrice : totalPrice - downPayment;
+
     this.form.get('remaining_balance')!.setValue(remainingBalance, { emitEvent: true });
     this.formattedRemainingBalance.set(this.formatNumber(remainingBalance));
   }
@@ -573,10 +574,15 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   calculateMonthlyPayment(): void {
     const remainingBalance = parseContractAmount(this.form.get('remaining_balance')!.value);
     const paymentMonths = Math.max(1, Math.round(parseContractAmount(this.form.get('payment_months')!.value) || 1));
-    
-    // Validar payment_months > 0 para evitar división por cero
-    const monthlyPayment = paymentMonths > 0 ? remainingBalance / paymentMonths : 0;
-    
+    const isFinanced = !!this.form.get('down_payment_financed')!.value;
+    const target = parseContractAmount(this.form.get('down_payment')!.value);
+
+    const monthlyPayment = !paymentMonths
+      ? 0
+      : isFinanced
+        ? (target > 0 ? target / paymentMonths : 0)
+        : remainingBalance / paymentMonths;
+
     this.form.get('monthly_payment')!.setValue(monthlyPayment, { emitEvent: false });
     this.formattedMonthlyPayment.set(this.formatNumber(monthlyPayment));
   }

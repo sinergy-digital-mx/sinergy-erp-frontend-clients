@@ -21,7 +21,8 @@ import { PropertyStatusDropdownComponent } from '../../components/property-statu
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { PropertyFilterIndicatorComponent } from '../../components/property-filter-indicator/property-filter-indicator.component';
 import { PropertyStatsCardsComponent } from '../../components/property-stats-cards/property-stats-cards.component';
-import { ArrowRight, Plus, LucideAngularModule } from 'lucide-angular';
+import { ArrowRight, Plus, Upload, LucideAngularModule } from 'lucide-angular';
+import { PropertyImportModalComponent } from '../../components/property-import-modal/property-import-modal.component';
 import { CustomerGroupDropdownComponent } from '../../../customers/components/customer-group-dropdown/customer-group-dropdown.component';
 import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -80,6 +81,7 @@ export class PropertiesListComponent implements OnDestroy {
 
   ArrowRight = ArrowRight;
   Plus = Plus;
+  Upload = Upload;
   readonly Math = Math;
   readonly displayCadastralKey = displayCadastralKey;
   search = '';
@@ -288,6 +290,19 @@ export class PropertiesListComponent implements OnDestroy {
     if (type === 'status') {
       this.onStatusSelect({ status: null });
     }
+  }
+
+  importProperties() {
+    this.dialog.open(PropertyImportModalComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+      autoFocus: false,
+    }).afterClosed().subscribe((created) => {
+      if (created) {
+        this.getProperties();
+        this.loadStats();
+      }
+    });
   }
 
   createProperty() {

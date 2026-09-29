@@ -135,6 +135,15 @@ export function displayCadastralKey(value?: string | null): string {
   return value?.trim() || '—';
 }
 
+export interface PropertyImportRowError {
+  row: number;
+  message: string;
+}
+
+export interface PropertyImportResult {
+  created: number;
+}
+
 /** Vacío / no numérico → null. */
 export function parseOptionalNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') {

@@ -1,5 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { AuthService } from '../../../core/services/auth.service';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { GlobalDiscount } from '../../global-discounts/models/global-discount.model';
@@ -48,6 +49,7 @@ export interface PosSessionInventoryParams {
   providedIn: 'root'
 })
 export class POSService {
+  private readonly auth = inject(AuthService);
   private readonly API_URL = `${environment.api}/tenant/pos`;
   private readonly POS_SESSIONS_URL = `${environment.api}/tenant/pos-sessions`;
   private readonly INVENTORY_URL = `${environment.api}/tenant/inventory`;
@@ -644,7 +646,7 @@ export class POSService {
   }
 
   getCurrentDailyShift(billingBranchId?: string | null): Observable<CurrentDailyShiftResponse> {
-    const branchId = billingBranchId?.trim() || '';
+    const branchId = billingBranchId?.trim() || this.auth.getBillingBranchId() || '';
     let params = new HttpParams();
     if (branchId) {
       params = params.set('billing_branch_id', branchId);
@@ -710,8 +712,13 @@ export class POSService {
     opening_cash_mxn: number;
     opening_cash_usd?: number;
     notes?: string;
+    billing_branch_id?: string;
   }): Observable<OpenDailyShiftResponse> {
-    return this.http.post(`${this.API_URL}/daily-shift/open`, data).pipe(
+    const branchId = data.billing_branch_id?.trim() || this.auth.getBillingBranchId() || undefined;
+    return this.http.post(`${this.API_URL}/daily-shift/open`, {
+      ...data,
+      ...(branchId ? { billing_branch_id: branchId } : {}),
+    }).pipe(
       map((res: any) => {
         const payload = this.extractPayload(res);
         const daily_shift = normalizeDailyShiftDetail(payload?.daily_shift ?? payload) as PosDailyShiftDetail;
@@ -755,13 +762,17 @@ export class POSService {
   }
 
   validateSellerCode(code: number): Observable<ValidateSellerCodeResponse> {
-    return this.http.post(`${this.API_URL}/validate-seller-code`, { code }).pipe(
+    const branchId = this.auth.getBillingBranchId();
+    return this.http.post(`${this.API_URL}/validate-seller-code`, {
+      code,
+      ...(branchId ? { billing_branch_id: branchId } : {}),
+    }).pipe(
       map((res: any) => this.extractPayload(res) as ValidateSellerCodeResponse)
     );
   }
 
   getPendingSales(): Observable<{ pending_sales: unknown[] }> {
-    return this.http.get(`${this.API_URL}/pending-sales`).pipe(
+    return this.http.get(`${this.API_URL}/pending-sales`, { params: this.branchParams() }).pipe(
       map((res: any) => {
         const payload = this.extractPayload(res);
         const pending =
@@ -774,7 +785,7 @@ export class POSService {
   }
 
   getSalesInProgress(): Observable<{ sales_in_progress: PosSaleInProgress[] }> {
-    return this.http.get(`${this.API_URL}/sales-in-progress`).pipe(
+    return this.http.get(`${this.API_URL}/sales-in-progress`, { params: this.branchParams() }).pipe(
       map((res: any) => {
         const payload = this.extractPayload(res);
         const sales =
@@ -814,7 +825,11 @@ export class POSService {
   }
 
   collectSale(salesOrderId: string, data?: CollectSalePayload): Observable<CollectSaleResponse> {
-    return this.http.post(`${this.API_URL}/sales/${salesOrderId}/collect`, data ?? {}).pipe(
+    const branchId = this.auth.getBillingBranchId();
+    return this.http.post(`${this.API_URL}/sales/${salesOrderId}/collect`, {
+      ...(data ?? {}),
+      ...(branchId ? { billing_branch_id: branchId } : {}),
+    }).pipe(
       map((res: unknown) => {
         const payload = this.extractPayload(res) ?? res;
         return normalizeCollectSaleResponse(payload);
@@ -829,7 +844,7 @@ export class POSService {
   }
 
   getCollectedSales(params?: { daily_shift_id?: string }): Observable<CollectedSalesResponse> {
-    let httpParams = new HttpParams();
+    let httpParams = this.branchParams();
     if (params?.daily_shift_id?.trim()) {
       httpParams = httpParams.set('daily_shift_id', params.daily_shift_id.trim());
     }
@@ -864,9 +879,19 @@ export class POSService {
       httpParams = httpParams.set('limit', String(params.limit));
     }
 
+    const branchId = this.auth.getBillingBranchId();
+    if (branchId) {
+      httpParams = httpParams.set('billing_branch_id', branchId);
+    }
+
     return this.http.get(`${this.INVENTORY_URL}/pos/summary`, { params: httpParams }).pipe(
       map((res: unknown) => normalizePosInventorySummary(this.unwrapPosSummaryEnvelope(res)))
     );
+  }
+
+  private branchParams(): HttpParams {
+    const branchId = this.auth.getBillingBranchId();
+    return branchId ? new HttpParams().set('billing_branch_id', branchId) : new HttpParams();
   }
 
   private unwrapPosSummaryEnvelope(response: unknown): unknown {

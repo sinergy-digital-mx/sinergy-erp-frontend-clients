@@ -44,15 +44,16 @@ export class ReservationFormatModalComponent implements OnInit {
   };
 
   fiscalSelectConfig: ISelect = {
-    placeholder: 'Valdetierra SA de CV (por defecto)',
+    placeholder: 'Selecciona una razón social',
     data: [],
     value: 'id',
     option: 'razon_social',
     form_control: null,
     loading: true,
-    all: true,
-    all_message: 'Valdetierra SA de CV (por defecto)',
+    all: false,
   };
+
+  private appliedFiscalName: string | null = null;
 
   currencySelectConfig: ISelect = {
     placeholder: 'Selecciona una moneda',
@@ -237,12 +238,34 @@ export class ReservationFormatModalComponent implements OnInit {
   private loadFiscalConfigurations(): void {
     this.fiscalService.listFiscalConfigurations({ status: 'active', limit: 100 }).subscribe({
       next: (res) => {
-        this.fiscalSelectConfig = { ...this.fiscalSelectConfig, data: res?.data ?? [], loading: false };
+        const rows = res?.data ?? [];
+        this.fiscalSelectConfig = { ...this.fiscalSelectConfig, data: rows, loading: false };
+        const currentId = this.form.get('fiscal_configuration_id')?.value;
+        if (!currentId && rows[0]?.id) {
+          this.form.patchValue({ fiscal_configuration_id: rows[0].id });
+          this.applyFiscalName(rows[0].razon_social);
+        }
       },
       error: () => {
         this.fiscalSelectConfig = { ...this.fiscalSelectConfig, loading: false };
       },
     });
+  }
+
+  onFiscalChange(event: { data?: { razon_social?: string } }): void {
+    this.applyFiscalName(event?.data?.razon_social);
+  }
+
+  private applyFiscalName(name?: string | null): void {
+    const next = name?.trim();
+    if (!next) {
+      return;
+    }
+    const current = String(this.form.get('payable_to')?.value ?? '').trim();
+    if (!current || current === 'Valdetierra SA de CV' || current === this.appliedFiscalName) {
+      this.form.patchValue({ payable_to: next });
+    }
+    this.appliedFiscalName = next;
   }
 
   /** Rellena el formulario con datos de prueba (excepto el LOTE). Solo en localhost. */
@@ -256,7 +279,7 @@ export class ReservationFormatModalComponent implements OnInit {
     };
 
     this.form.patchValue({
-      payable_to: 'Valdetierra SA de CV',
+      payable_to: this.appliedFiscalName || '',
       received_from: 'Juan Pérez López',
       amount_in_words: 'Cincuenta mil pesos 00/100 M.N.',
       evidenced_by: 'Transferencia SPEI ref. 998877',

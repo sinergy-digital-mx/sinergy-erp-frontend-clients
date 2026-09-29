@@ -12,7 +12,7 @@ import {
   PosTerminalType,
   SalesTerminalSummary,
 } from '../../models/accounting.model';
-import { dailyShiftIsOpen } from '../../../pos/models/pos-daily-shift.model';
+import { dailyShiftIsOpen, formatPosShiftDate } from '../../../pos/models/pos-daily-shift.model';
 import { PosTerminalSalesDialogComponent } from '../pos-terminal-sales-dialog/pos-terminal-sales-dialog.component';
 import { PosCollectionsDialogComponent } from '../pos-collections-dialog/pos-collections-dialog.component';
 import { PosShiftsDialogComponent, PosShiftsDialogView } from '../pos-shifts-dialog/pos-shifts-dialog.component';
@@ -243,9 +243,6 @@ export class PosSummaryTabComponent implements OnChanges {
   }
 
   private formatShiftDate(value: string): string {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+    return formatPosShiftDate(value);
   }
 }

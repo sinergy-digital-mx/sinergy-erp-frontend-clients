@@ -4,6 +4,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { LoggedGuard } from './core/guards/logged.guard';
 import { AdminGuard } from './core/guards/admin.guard';
 import { defaultRouteGuard } from './core/guards/default-route.guard';
+import { divinoInventoryGuard } from './core/guards/divino-inventory.guard';
 import { posCobranzaGuard, posEntryRedirectGuard, posVentasGuard } from './core/guards/pos-user-type.guard';
 
 export const routes: Routes = [
@@ -27,7 +28,7 @@ export const routes: Routes = [
   // POS - Tomar Orden y Cobrar Orden (pantalla completa, sin layout)
   {
     path: 'pos/pending-orders',
-    canActivate: [AuthGuard],
+    canActivate: [AuthGuard, divinoInventoryGuard],
     loadComponent: () =>
       import('./features/pos/pages/pending-orders/pending-orders.component')
         .then(m => m.PendingOrdersComponent),
@@ -98,6 +99,7 @@ export const routes: Routes = [
       },
       {
         path: 'inventory',
+        canActivate: [divinoInventoryGuard],
         loadChildren: () =>
           import('./features/inventory/inventory.routes')
             .then(m => m.INVENTORY_ROUTES),
@@ -110,6 +112,7 @@ export const routes: Routes = [
       },
       {
         path: 'quotations',
+        canActivate: [divinoInventoryGuard],
         loadChildren: () =>
           import('./features/quotations/quotations.routes')
             .then(m => m.QUOTATIONS_ROUTES),
@@ -150,7 +153,7 @@ export const routes: Routes = [
       },
       {
         path: 'pos/ventas',
-        canActivate: [posVentasGuard],
+        canActivate: [divinoInventoryGuard, posVentasGuard],
         loadComponent: () =>
           import('./features/pos/pages/take-order/take-order.component')
             .then(m => m.TakeOrderComponent),
@@ -161,7 +164,7 @@ export const routes: Routes = [
       },
       {
         path: 'pos/cobranza',
-        canActivate: [posCobranzaGuard],
+        canActivate: [divinoInventoryGuard, posCobranzaGuard],
         loadComponent: () =>
           import('./features/pos/pages/payment/payment.component')
             .then(m => m.PaymentComponent),
@@ -173,7 +176,7 @@ export const routes: Routes = [
       {
         path: 'pos',
         pathMatch: 'full',
-        canActivate: [posEntryRedirectGuard],
+        canActivate: [divinoInventoryGuard, posEntryRedirectGuard],
         loadComponent: () =>
           import('./features/pos/pages/pos-home/pos-home.component')
             .then(m => m.POSHomeComponent),

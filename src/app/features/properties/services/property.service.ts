@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import {
   Property,
@@ -9,6 +10,7 @@ import {
   MeasurementUnit,
   PropertyListFilters,
   PropertyStats,
+  PropertyImportResult,
 } from '../models/property.model';
 
 @Injectable({
@@ -50,6 +52,26 @@ export class PropertyService {
 
   deleteProperty(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/properties/${id}`);
+  }
+
+  downloadImportTemplate(): Observable<{ blob: Blob; filename: string }> {
+    return this.http
+      .get(`${this.api}/tenant/properties/import/template`, {
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((response) => ({
+          blob: response.body as Blob,
+          filename: 'plantilla-lotes.xlsx',
+        })),
+      );
+  }
+
+  importProperties(file: File): Observable<PropertyImportResult> {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http.post<PropertyImportResult>(`${this.api}/tenant/properties/import`, body);
   }
 
   getMeasurementUnits(): Observable<MeasurementUnit[]> {

@@ -8,9 +8,10 @@ import { AccountingDailyShiftRow, AccountingPeriod } from '../../models/accounti
 import {
   PosDailyShiftDetailModalComponent,
 } from '../../../settings/components/pos-daily-shift-detail-modal/pos-daily-shift-detail-modal.component';
-import { dailyShiftStatusLabel } from '../../../pos/models/pos-daily-shift.model';
+import { dailyShiftStatusLabel, formatPosShiftDate } from '../../../pos/models/pos-daily-shift.model';
 import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 
 export type PosShiftsDialogView = 'globals' | 'partials';
 
@@ -134,22 +135,11 @@ export class PosShiftsDialogComponent implements OnInit {
   }
 
   formatDate(value?: string): string {
-    if (!value) return '—';
-    const d = new Date(value.includes('T') ? value : `${value}T00:00:00`);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatPosShiftDate(value, true);
   }
 
   formatDateTime(value?: string): string {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleString('es-MX', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatApiDate(value, 'short');
   }
 
   statusLabel(status: string): string {

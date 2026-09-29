@@ -166,102 +166,21 @@
         </div>
       </div>
 
-      <!-- Sección: Datos del Contrato -->
       <div class="section">
-        <h3>Datos del Contrato</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <h3>Precio</h3>
+        <p class="section-lead">Fecha, precio de cierre y moneda del contrato.</p>
+        <div class="field-grid">
           <app-input
-            [label]="'Fecha de Contrato *'"
+            [label]="'Fecha de contrato *'"
             [form_control]="form.get('contract_date')"
             [type]="'date'">
           </app-input>
 
           <app-input
-            [label]="'Precio Total *'"
+            [label]="'Precio total *'"
             [placeholder]="'Ej. 36000 o 36,000'"
             [form_control]="form.get('total_price')"
             [type]="'text'">
-          </app-input>
-
-          <div class="w-full p-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Precio lista del lote</label>
-            <div class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-              {{ formattedPropertyListPrice }}
-            </div>
-            <p class="mt-1 text-xs text-gray-500">Desde el lote seleccionado; editable abajo.</p>
-          </div>
-
-          <app-input
-            [label]="'Precio lista (override)'"
-            [placeholder]="'Opcional — sobreescribe precio del lote'"
-            [form_control]="form.get('list_price')"
-            [type]="'text'">
-          </app-input>
-
-          <div class="col-span-1 sm:col-span-2 downpayment-financing">
-            <label class="financing-checkbox-label">
-              <input type="checkbox" formControlName="down_payment_financed" class="financing-checkbox" />
-              <span>Financiar enganche en pagos</span>
-            </label>
-            <p class="financing-hint">
-              @if (isDownPaymentFinanced) {
-                Habilita la pestaña de enganche en el detalle. Puedes registrar abonos y generar cuotas después; no hace falta definir meses ni fechas aquí.
-              } @else {
-                El enganche se descuenta del precio total al crear el contrato.
-              }
-            </p>
-          </div>
-
-          @if (!isDownPaymentFinanced) {
-            <app-input
-              [label]="'Enganche *'"
-              [placeholder]="'Ej. 0 o 36,000'"
-              [form_control]="form.get('down_payment')"
-              [type]="'text'">
-            </app-input>
-          } @else {
-            <app-input
-              [label]="'Meta de enganche (opcional)'"
-              [placeholder]="'Dejar en 0 si aún no la conocen'"
-              [form_control]="form.get('down_payment')"
-              [type]="'text'">
-            </app-input>
-          }
-
-          <div class="w-full p-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              {{ isDownPaymentFinanced ? 'Saldo para pagos normales' : 'Saldo Pendiente' }}
-            </label>
-            <div class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-              {{ formattedRemainingBalance() }}
-            </div>
-            @if (isDownPaymentFinanced) {
-              <p class="mt-1 text-xs text-gray-500">
-                Diferencia del lote después de liquidar el enganche. Si la meta es 0, equivale al precio total.
-              </p>
-            }
-          </div>
-
-          <app-input
-            [label]="'Meses de Pago *'"
-            [placeholder]="'1'"
-            [form_control]="form.get('payment_months')"
-            [type]="'number'">
-          </app-input>
-
-          <div class="w-full p-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Pago Mensual
-            </label>
-            <div class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-              {{ formattedMonthlyPayment() }}
-            </div>
-          </div>
-
-          <app-input
-            [label]="'Fecha Primer Pago *'"
-            [form_control]="form.get('first_payment_date')"
-            [type]="'date'">
           </app-input>
 
           <app-select
@@ -273,16 +192,106 @@
             [label]="'Estado *'"
             [config]="statusSelectConfig">
           </app-select>
-        </div>
 
-        <div class="mt-4">
+          <div class="readonly-field">
+            <span class="readonly-field__label">Precio lista del lote</span>
+            <div class="readonly-field__value">{{ formattedPropertyListPrice }}</div>
+          </div>
+
           <app-input
-            [label]="'Notas'"
-            [placeholder]="'Notas adicionales (opcional)'"
-            [form_control]="form.get('notes')"
-            [type]="'textarea'">
+            [label]="'Precio lista (opcional)'"
+            [placeholder]="'Solo si debe ser distinto al del lote'"
+            [form_control]="form.get('list_price')"
+            [type]="'text'">
           </app-input>
         </div>
+      </div>
+
+      <div class="section">
+        <h3>Enganche</h3>
+        <p class="section-lead">
+          @if (isDownPaymentFinanced) {
+            La meta queda guardada en el contrato y se ve en el detalle. Los abonos y las cuotas se registran después.
+          } @else {
+            Se descuenta del precio total al crear el contrato.
+          }
+        </p>
+        <label class="financing-checkbox-label">
+          <input type="checkbox" formControlName="down_payment_financed" class="financing-checkbox" />
+          <span>Financiar enganche en pagos</span>
+        </label>
+        <div class="field-grid field-grid--single">
+          @if (!isDownPaymentFinanced) {
+            <app-input
+              [label]="'Enganche *'"
+              [placeholder]="'Ej. 0 o 36,000'"
+              [form_control]="form.get('down_payment')"
+              [type]="'text'">
+            </app-input>
+          } @else {
+            <app-input
+              [label]="'Meta de enganche'"
+              [placeholder]="'Monto pactado. Déjalo en 0 si aún no lo conocen'"
+              [form_control]="form.get('down_payment')"
+              [type]="'text'">
+            </app-input>
+          }
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Pagos del contrato</h3>
+        <p class="section-lead">
+          @if (isDownPaymentFinanced) {
+            La mensualidad es la meta de enganche dividida entre los meses. El saldo pendiente al crear es el precio total, porque todavía no hay abonos.
+          } @else {
+            Mensualidades del saldo que queda después del enganche.
+          }
+        </p>
+        <div class="field-grid">
+          <app-input
+            [label]="'Meses de pago *'"
+            [placeholder]="'1'"
+            [form_control]="form.get('payment_months')"
+            [type]="'number'">
+          </app-input>
+
+          <app-input
+            [label]="'Fecha del primer pago *'"
+            [form_control]="form.get('first_payment_date')"
+            [type]="'date'">
+          </app-input>
+        </div>
+        <div class="money-summary">
+          <div class="money-summary__item">
+            <span>Saldo pendiente</span>
+            <strong>{{ formattedRemainingBalance() }} {{ form.get('currency')?.value }}</strong>
+            @if (isDownPaymentFinanced) {
+              <small>Baja conforme se abona el enganche y las mensualidades.</small>
+            }
+          </div>
+          <div class="money-summary__item">
+            <span>Pago mensual</span>
+            <strong>{{ formattedMonthlyPayment() }} {{ form.get('currency')?.value }}</strong>
+            <small>
+              @if (isDownPaymentFinanced) {
+                Meta de enganche entre los meses. Si la meta es 0, queda en 0 hasta definirla.
+              } @else {
+                Saldo dividido entre los meses.
+              }
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Notas</h3>
+        <app-input
+          [label]="'Notas'"
+          [placeholder]="'Notas adicionales (opcional)'"
+          [form_control]="form.get('notes')"
+          [type]="'textarea'">
+        </app-input>
       </div>
     </form>
   </div>

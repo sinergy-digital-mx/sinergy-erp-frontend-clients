@@ -1,10 +1,16 @@
 <div class="properties-page">
   <div class="properties-page__header">
     <h1 class="properties-page__title">Lotes</h1>
-    <button type="button" class="properties-page__create-btn" (click)="createProperty()">
-      <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
-      <span>Crear Lote</span>
-    </button>
+    <div class="properties-page__actions">
+      <button type="button" class="properties-page__import-btn" (click)="importProperties()">
+        <lucide-icon [img]="Upload" [size]="16"></lucide-icon>
+        <span>Importar lotes</span>
+      </button>
+      <button type="button" class="properties-page__create-btn" (click)="createProperty()">
+        <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
+        <span>Crear Lote</span>
+      </button>
+    </div>
   </div>
 
   <div class="properties-page__filters filter-bar">

@@ -142,6 +142,10 @@
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
+.dd-filter__select--project {
+  max-width: 220px;
+}
+
 .dd-filter__select--month {
   min-width: 7.25rem;
 }
@@ -560,6 +564,7 @@
   .dd-filter__select {
     flex: 1;
     min-width: 0;
+    max-width: none;
   }
 
   .dd-kpi-grid {

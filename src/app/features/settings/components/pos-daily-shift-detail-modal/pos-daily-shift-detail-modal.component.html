@@ -9,7 +9,7 @@
   } @else if (shift(); as item) {
     <div class="shift-detail-modal__body">
       <dl class="shift-detail-modal__grid">
-        <div><dt>Fecha</dt><dd>{{ item.shift_date }}</dd></div>
+        <div><dt>Fecha</dt><dd>{{ shiftDateLabel(item.shift_date) }}</dd></div>
         <div><dt>Estado</dt><dd><span class="shift-badge" [class.shift-badge--open]="isOpen(item)">{{ statusLabel(item) }}</span></dd></div>
         <div><dt>Terminal cobranza</dt><dd>{{ terminalLabel(item) }}</dd></div>
         <div><dt>Sucursal</dt><dd>{{ branchLabel(item) }}</dd></div>

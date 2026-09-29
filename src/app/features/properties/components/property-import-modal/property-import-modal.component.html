@@ -1,0 +1,33 @@
+<div class="import-modal">
+  <div class="import-modal__header">
+    <h2>Importar lotes</h2>
+    <app-close-button title="Cerrar" (clicked)="close()"></app-close-button>
+  </div>
+
+  <p class="import-modal__lead">
+    Descarga la plantilla, llena una fila por lote y súbela. La fila con código EJEMPLO no se importa.
+    Si alguna fila falla, no se crea ningún lote.
+  </p>
+
+  <button type="button" class="import-modal__download" (click)="downloadTemplate()" [disabled]="downloading">
+    <lucide-icon [img]="Download" [size]="16"></lucide-icon>
+    {{ downloading ? 'Descargando…' : 'Descargar plantilla' }}
+  </button>
+
+  <label class="import-modal__file">
+    <input type="file" accept=".xlsx,.xls" (change)="onFileSelected($event)" />
+    <span>{{ file ? file.name : 'Seleccionar archivo Excel' }}</span>
+  </label>
+
+  <ul class="import-modal__errors" *ngIf="errors.length">
+    <li *ngFor="let error of errors">Fila {{ error.row }}: {{ error.message }}</li>
+  </ul>
+
+  <div class="import-modal__actions">
+    <button type="button" class="import-modal__cancel" (click)="close()" [disabled]="importing">Cancelar</button>
+    <button type="button" class="import-modal__submit" (click)="importFile()" [disabled]="!file || importing">
+      <lucide-icon [img]="Upload" [size]="16"></lucide-icon>
+      {{ importing ? 'Importando…' : 'Importar' }}
+    </button>
+  </div>
+</div>

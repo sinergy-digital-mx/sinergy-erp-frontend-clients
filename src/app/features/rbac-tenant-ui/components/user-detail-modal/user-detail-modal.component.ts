@@ -235,6 +235,7 @@ export class UserDetailModalComponent implements OnInit {
     this.setupBranchFieldBehavior();
     this.setupEmployeeFieldBehavior();
     this.setupManagerFieldBehavior();
+    this.loadEmployeeProfile();
     this.loadData();
   }
 
@@ -263,7 +264,7 @@ export class UserDetailModalComponent implements OnInit {
       pos_user_code: [user?.pos_user_code ?? null],
 
       // Employee (RH / nómina)
-      is_employee: [user?.is_employee ?? false],
+      is_employee: [this.asEmployeeFlag(user)],
       is_manager: [user?.is_manager ?? false],
       is_crm_admin: [user?.is_crm_admin ?? false],
       employee: this.fb.group({
@@ -493,7 +494,6 @@ export class UserDetailModalComponent implements OnInit {
         this.originalBillingBranchId = billingBranchId ?? null;
         this.applyOpenCutEditLock();
         this.applyStatusFieldState();
-        this.loadEmployeeProfile();
         this.loadManagerData();
         this.loading.set(false);
       },
@@ -512,16 +512,19 @@ export class UserDetailModalComponent implements OnInit {
    * When editing an existing user, fetch the full record so the employee
    * profile (is_employee + employee object + photo_url) is preloaded.
    */
+  private employeeProfileLoaded = false;
+
   private loadEmployeeProfile(): void {
     if (this.isNew || !this.data.user?.id) {
+      this.employeeProfileLoaded = true;
       return;
     }
 
-    // Preload from the row we already have (list may already include it).
     this.applyEmployeeProfile(this.data.user);
 
     this.userService.getUserById(this.data.user.id).subscribe({
       next: (user) => {
+        this.employeeProfileLoaded = true;
         this.applyEmployeeProfile(user);
         this.applyAssignedWarehouses(user);
         this.applyAssignedBranches(user);
@@ -539,7 +542,7 @@ export class UserDetailModalComponent implements OnInit {
         }
       },
       error: () => {
-        /* keep whatever we already have from the list row */
+        this.employeeProfileLoaded = true;
       },
     });
   }
@@ -549,11 +552,10 @@ export class UserDetailModalComponent implements OnInit {
       return;
     }
 
-    if (user.is_employee != null) {
-      this.form.get('is_employee')?.setValue(!!user.is_employee, { emitEvent: true });
-    }
-
     const employee = user.employee;
+    const isEmployee = this.asEmployeeFlag(user) || !!employee?.id;
+    this.form.get('is_employee')?.setValue(isEmployee, { emitEvent: true });
+
     if (!employee) {
       return;
     }
@@ -572,7 +574,10 @@ export class UserDetailModalComponent implements OnInit {
         hire_date: this.toDateInput(employee.hire_date),
         birth_date: this.toDateInput(employee.birth_date),
         vacation_carryover_days: this.resolveCarryoverDays(employee),
-        monthly_salary: employee.monthly_salary ?? null,
+        monthly_salary:
+          employee.monthly_salary != null && String(employee.monthly_salary) !== ''
+            ? Number(employee.monthly_salary)
+            : null,
         payment_frequency: employee.payment_frequency ?? 'biweekly',
         bank_name: employee.bank_name ?? '',
         clabe: employee.clabe ?? '',
@@ -582,11 +587,25 @@ export class UserDetailModalComponent implements OnInit {
     );
   }
 
-  private toDateInput(value: string | undefined | null): string {
+  private asEmployeeFlag(user: User | null | undefined): boolean {
+    const value = user?.is_employee as unknown;
+    return value === true || value === 1 || value === '1' || value === 'true' || !!user?.employee?.id;
+  }
+
+  private toDateInput(value: string | Date | undefined | null): string {
     if (!value) {
       return '';
     }
-    return value.length >= 10 ? value.slice(0, 10) : value;
+    if (value instanceof Date) {
+      if (Number.isNaN(value.getTime())) {
+        return '';
+      }
+      const month = String(value.getMonth() + 1).padStart(2, '0');
+      const day = String(value.getDate()).padStart(2, '0');
+      return `${value.getFullYear()}-${month}-${day}`;
+    }
+    const text = String(value);
+    return text.length >= 10 ? text.slice(0, 10) : text;
   }
 
   /** Agregar/quitar gente a cargo usa endpoints propios; requiere gerente ya persistido. */
@@ -1239,13 +1258,15 @@ export class UserDetailModalComponent implements OnInit {
       is_pos_user: isPosUser,
       pos_user_type: isPosUser ? posUserType : null,
       pos_user_code: posCode,
-      is_employee: isEmployee,
       is_manager: isManager,
       is_crm_admin: !!this.form.get('is_crm_admin')?.value,
     };
 
-    if (isEmployee) {
-      commonPayload['employee'] = this.buildEmployeePayload();
+    if (this.employeeProfileLoaded || this.isNew) {
+      commonPayload['is_employee'] = isEmployee;
+      if (isEmployee) {
+        commonPayload['employee'] = this.buildEmployeePayload();
+      }
     }
 
     if (this.shouldLockPosEditByOpenCut()) {

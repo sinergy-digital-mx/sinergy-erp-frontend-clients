@@ -261,7 +261,7 @@ export class AccountingService {
 
     return {
       id: String(shift['id']),
-      shift_date: String(shift['shift_date'] ?? ''),
+      shift_date: String(shift['shift_date'] ?? '').slice(0, 10),
       status: String(shift['status'] ?? ''),
       partial_shifts_count:
         shift['partial_shifts_count'] != null

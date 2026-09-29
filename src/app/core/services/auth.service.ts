@@ -5,7 +5,7 @@
   import { jwtDecode } from 'jwt-decode';
   import { ActivatedRoute, Router } from '@angular/router';
   import { environment } from '../../../environments/environment';
-  import { isMadereriaZonaNorte } from '../config/organizations.constants';
+  import { isCostaCampestreDivino, isMadereriaZonaNorte } from '../config/organizations.constants';
 
 
   @Injectable({
@@ -553,8 +553,19 @@
       ];
 
       const skipRealEstate = isMadereriaZonaNorte(this.user_info?.tenant_id);
+      const skipDivinoOperations = isCostaCampestreDivino(this.user_info?.tenant_id);
       for (const route of routes) {
         if (skipRealEstate && (route.path === '/properties' || route.path === '/contracts')) {
+          continue;
+        }
+        if (
+          skipDivinoOperations &&
+          (route.path === '/inventory' ||
+            route.path === '/quotations' ||
+            route.path === '/pos' ||
+            route.path === '/pos/ventas' ||
+            route.path === '/pos/cobranza')
+        ) {
           continue;
         }
         const hasPermission = route.permissions.some(p => this.hasPermission(p));
@@ -572,7 +583,7 @@
      * Si puede vender y cobrar (gerente AMBOS), va al hub `/pos` — no a una sola app.
      */
     getPosEntryRoute(): string | null {
-      if (!this.isPosTerminalUser()) {
+      if (!this.isPosTerminalUser() || isCostaCampestreDivino(this.user_info?.tenant_id)) {
         return null;
       }
 

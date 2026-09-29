@@ -31,7 +31,10 @@ import {
   ClipboardCheck,
   Phone,
 } from 'lucide-angular';
-import { MADERERIA_ZONA_NORTE_ORGANIZATION_ID } from '../../config/organizations.constants';
+import {
+  COSTA_CAMPESTRE_DIVINO_ORGANIZATION_ID,
+  MADERERIA_ZONA_NORTE_ORGANIZATION_ID,
+} from '../../config/organizations.constants';
 import { DIVINO_DASHBOARD_TENANT_ID } from '../../../features/divino-dashboard/config/divino-dashboard.constants';
 import { DIVINO_DASHBOARD_PERMISSIONS } from '../../../features/divino-dashboard/config/permissions.config';
 import { DIVINO_RESERVATION_FORMAT_PERMISSIONS } from '../../../features/divino-reservation-formats/config/permissions.config';
@@ -185,7 +188,8 @@ export class Sidebar implements OnInit, OnDestroy {
       route: '/quotations',
       icon: FileText,
       id: 'menu-quotations',
-      permission: PERMISSIONS.quotations.viewMenu
+      permission: PERMISSIONS.quotations.viewMenu,
+      hiddenForOrganizationIds: [COSTA_CAMPESTRE_DIVINO_ORGANIZATION_ID],
     },
     {
       label: 'Mesa de Control',
@@ -215,13 +219,15 @@ export class Sidebar implements OnInit, OnDestroy {
       id: 'menu-inventory',
       permission: PERMISSIONS.inventory.viewMenu,
       exact: false,
+      hiddenForOrganizationIds: [COSTA_CAMPESTRE_DIVINO_ORGANIZATION_ID],
     },
     {
       label: 'Punto de Venta',
       route: '/pos',
       icon: Monitor,
       id: 'menu-pos',
-      permission: PERMISSIONS.pos.viewMenu
+      permission: PERMISSIONS.pos.viewMenu,
+      hiddenForOrganizationIds: [COSTA_CAMPESTRE_DIVINO_ORGANIZATION_ID],
     },
     {
       label: 'Cobranza',

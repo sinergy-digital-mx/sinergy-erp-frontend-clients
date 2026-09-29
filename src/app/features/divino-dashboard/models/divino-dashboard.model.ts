@@ -83,4 +83,6 @@ export interface DashboardQueryParams {
   year?: number;
   month?: number;
   period?: RevenueSeriesPeriod;
+  /** Grupo de proyecto. Vacío = todos. */
+  group_id?: string;
 }

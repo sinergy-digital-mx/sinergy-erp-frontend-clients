@@ -311,6 +311,26 @@ export function dailyShiftStatusLabel(status: string | undefined): string {
   return normalized === 'open' ? 'Abierto' : normalized === 'closed' ? 'Cerrado' : status ?? '—';
 }
 
+/** Día de corte tal como viene (`YYYY-MM-DD`). No usar `new Date('YYYY-MM-DD')`: eso es medianoche UTC y en esta zona se ve un día antes. */
+export function formatPosShiftDate(
+  value: string | null | undefined,
+  withYear = false,
+): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value ?? '').trim());
+  if (!match) {
+    return String(value ?? '').trim() || '—';
+  }
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (Number.isNaN(date.getTime())) {
+    return match[0];
+  }
+  return date.toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'short',
+    ...(withYear ? { year: 'numeric' as const } : {}),
+  });
+}
+
 export function dailyShiftIsOpen(shift: PosDailyShiftListItem | null | undefined): boolean {
   if (!shift) {
     return false;

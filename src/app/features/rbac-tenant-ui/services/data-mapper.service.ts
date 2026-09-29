@@ -15,7 +15,11 @@ export class DataMapperService {
    * Handles status as both string and object
    */
   mapUser(backendUser: any): User {
+    const employee = backendUser.employee ?? backendUser.employeeProfile ?? null;
+    const isEmployee = this.asBoolean(backendUser.is_employee ?? backendUser.isEmployee) || !!employee?.id;
+
     return {
+      ...backendUser,
       id: backendUser.id,
       email: backendUser.email,
       status: backendUser.status ?? this.normalizeStatus(backendUser.status),
@@ -27,7 +31,7 @@ export class DataMapperService {
       phone: backendUser.phone || '',
       tenant_id: backendUser.tenant_id || backendUser.tenantId || '',
       last_login_at: backendUser.last_login_at || backendUser.lastLoginAt,
-      is_pos_user: backendUser.is_pos_user ?? backendUser.isPosUser,
+      is_pos_user: this.asBoolean(backendUser.is_pos_user ?? backendUser.isPosUser),
       pos_user_type: backendUser.pos_user_type ?? backendUser.posUserType ?? null,
       pos_user_code: backendUser.pos_user_code ?? backendUser.posUserCode ?? null,
       has_open_global_cut:
@@ -45,17 +49,20 @@ export class DataMapperService {
       can_switch_branch: !!backendUser.can_switch_branch,
       has_all_branches_access:
         backendUser.has_all_branches_access ?? backendUser.hasAllBranchesAccess,
-      is_employee: backendUser.is_employee ?? backendUser.isEmployee,
-      employee: backendUser.employee ?? null,
-      is_manager: backendUser.is_manager ?? backendUser.isManager,
-      is_crm_admin: backendUser.is_crm_admin ?? backendUser.isCrmAdmin,
+      is_employee: isEmployee,
+      employee,
+      is_manager: this.asBoolean(backendUser.is_manager ?? backendUser.isManager),
+      is_crm_admin: this.asBoolean(backendUser.is_crm_admin ?? backendUser.isCrmAdmin),
       manager: backendUser.manager ?? null,
       reports: Array.isArray(backendUser.reports) ? backendUser.reports : undefined,
-      ...backendUser, // Include any additional fields
       assigned_warehouses: Array.isArray(backendUser.assigned_warehouses)
         ? backendUser.assigned_warehouses
         : [],
     };
+  }
+
+  private asBoolean(value: unknown): boolean {
+    return value === true || value === 1 || value === '1' || value === 'true';
   }
 
   /**
