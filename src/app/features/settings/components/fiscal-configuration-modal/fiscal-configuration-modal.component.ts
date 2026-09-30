@@ -31,6 +31,7 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
 import { BranchModalComponent } from '../branch-modal/branch-modal.component';
 import { X } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
+import { SystemLogoService } from '../../../../core/services/system-logo.service';
 
 @Component({
   selector: 'app-fiscal-configuration-modal',
@@ -45,8 +46,10 @@ export class FiscalConfigurationModalComponent implements OnInit {
   saving = signal(false);
   loading = signal(false);
   uploadingLogo = signal(false);
+  savingSystemLogo = signal(false);
   isNew = true;
   logoUrl: string | null = null;
+  useAsSystemLogo = false;
   logoFileName: string | null = null;
   digitalSealFileName: string | null = null;
   privateKeyFileName: string | null = null;
@@ -101,6 +104,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
     private dialog: MatDialog,
     private cdr: ChangeDetectorRef,
     private authService: AuthService,
+    private systemLogoService: SystemLogoService,
     public dialogRef: MatDialogRef<FiscalConfigurationModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { fiscalConfig: FiscalConfiguration | null }
   ) {
@@ -120,6 +124,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
     if (this.data.fiscalConfig) {
       this.applyFiscalConfigToForm(this.data.fiscalConfig);
       this.logoUrl = this.data.fiscalConfig.logo || null;
+      this.useAsSystemLogo = this.isEnabledFlag(this.data.fiscalConfig.use_as_system_logo);
       this.clearStaleFinkokError();
       this.loadBranches();
       this.refreshFiscalConfigFromApi();
@@ -135,6 +140,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
         this.data.fiscalConfig = config;
         this.applyFiscalConfigToForm(config);
         this.logoUrl = config.logo || null;
+        this.useAsSystemLogo = this.isEnabledFlag(config.use_as_system_logo);
         this.clearStaleFinkokError();
         this.cdr.detectChanges();
       },
@@ -210,7 +216,11 @@ export class FiscalConfigurationModalComponent implements OnInit {
           next: (updatedConfig) => {
             this.data.fiscalConfig = updatedConfig;
             this.logoUrl = updatedConfig.logo || null;
+            this.useAsSystemLogo = this.isEnabledFlag(updatedConfig.use_as_system_logo);
             this.uploadingLogo.set(false);
+            if (this.useAsSystemLogo) {
+              this.systemLogoService.refresh(true);
+            }
             input.value = '';
             this.cdr.detectChanges();
             this.snackBar.openFromComponent(CustomSnackbarComponent, {
@@ -237,6 +247,69 @@ export class FiscalConfigurationModalComponent implements OnInit {
         });
       }
     });
+  }
+
+  onUseAsSystemLogoChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const fiscalConfig = this.data.fiscalConfig;
+    const next = input.checked;
+
+    if (!fiscalConfig || this.savingSystemLogo()) {
+      input.checked = this.useAsSystemLogo;
+      return;
+    }
+
+    if (next && !this.logoUrl) {
+      input.checked = false;
+      this.snackBar.openFromComponent(CustomSnackbarComponent, {
+        data: { message: 'Sube un logo antes de usarlo como logo del sistema', type: 'error' },
+        duration: 4000,
+      });
+      return;
+    }
+
+    this.savingSystemLogo.set(true);
+    this.fiscalConfigService
+      .updateFiscalConfiguration(fiscalConfig.id, { use_as_system_logo: next })
+      .subscribe({
+        next: (updated) => {
+          this.useAsSystemLogo = this.isEnabledFlag(updated?.use_as_system_logo ?? next);
+          input.checked = this.useAsSystemLogo;
+          this.data.fiscalConfig = {
+            ...fiscalConfig,
+            ...updated,
+            use_as_system_logo: this.useAsSystemLogo,
+          };
+          this.savingSystemLogo.set(false);
+          this.systemLogoService.refresh(true);
+          this.cdr.detectChanges();
+          this.snackBar.openFromComponent(CustomSnackbarComponent, {
+            data: {
+              message: this.useAsSystemLogo
+                ? 'Este logo se usa en el menú del sistema'
+                : 'El menú vuelve a mostrar POLLUX',
+              type: 'success',
+            },
+            duration: 3000,
+          });
+        },
+        error: (error) => {
+          input.checked = this.useAsSystemLogo;
+          this.savingSystemLogo.set(false);
+          this.cdr.detectChanges();
+          this.snackBar.openFromComponent(CustomSnackbarComponent, {
+            data: {
+              message: error.error?.message || 'No se pudo actualizar el logo del sistema',
+              type: 'error',
+            },
+            duration: 4000,
+          });
+        },
+      });
+  }
+
+  private isEnabledFlag(value: unknown): boolean {
+    return value === true || value === 1 || value === '1' || value === 'true';
   }
 
   loadBranches(): void {

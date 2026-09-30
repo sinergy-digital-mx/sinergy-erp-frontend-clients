@@ -1,10 +1,20 @@
-import { Component, computed, input } from '@angular/core';
+import { booleanAttribute, Component, computed, inject, input } from '@angular/core';
+import { SystemLogoService } from '../../services/system-logo.service';
 
 @Component({
   selector: 'app-pollux-brand-text',
   standalone: true,
   template: `
-    @if (compact()) {
+    @if (useSystemLogo() && systemLogo.dataUrl(); as src) {
+      <span
+        class="system-logo"
+        [class.system-logo--compact]="compact()"
+        [class.system-logo--lg]="size() === 'lg'"
+        role="img"
+        aria-label="Logo del sistema">
+        <img [src]="src" alt="" />
+      </span>
+    } @else if (compact()) {
       <h2
         class="pollux-brand-text pollux-brand-text--compact"
         [class.pollux-brand-text--light]="theme() === 'light'"
@@ -208,6 +218,46 @@ import { Component, computed, input } from '@angular/core';
       }
     }
 
+    .system-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+      background: rgba(255, 255, 255, 0.94);
+      border-radius: 8px;
+      padding: 0.35rem 0.65rem;
+      line-height: 0;
+    }
+
+    .system-logo img {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 148px;
+      max-height: 36px;
+      object-fit: contain;
+    }
+
+    .system-logo--compact {
+      padding: 0.25rem;
+      border-radius: 6px;
+    }
+
+    .system-logo--compact img {
+      max-width: 32px;
+      max-height: 32px;
+    }
+
+    .system-logo--lg {
+      background: transparent;
+      padding: 0;
+    }
+
+    .system-logo--lg img {
+      max-width: 220px;
+      max-height: 72px;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .pollux-brand-text {
         animation: none;
@@ -223,9 +273,13 @@ import { Component, computed, input } from '@angular/core';
   `,
 })
 export class PolluxBrandTextComponent {
+  readonly systemLogo = inject(SystemLogoService);
+
   compact = input(false);
   theme = input<'dark' | 'light'>('dark');
   size = input<'md' | 'lg'>('md');
+  /** Muestra el logo de la razón social cuando está activo. */
+  useSystemLogo = input(false, { transform: booleanAttribute });
 
   readonly label = computed(() => (this.compact() ? 'P' : 'POLLUX'));
 }

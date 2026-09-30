@@ -5,6 +5,7 @@ import { Sidebar } from '../../core/components/sidebar/sidebar';
 import { PermissionSyncService } from '../../core/services/permission-sync.service';
 import { SidebarService } from '../../core/services/sidebar.service';
 import { PolluxBrandTextComponent } from '../../core/components/pollux-brand-text/pollux-brand-text.component';
+import { SystemLogoService } from '../../core/services/system-logo.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -17,11 +18,13 @@ export class MainLayout implements OnInit {
 
   constructor(
     private permissionSyncService: PermissionSyncService,
-    private sidebarService: SidebarService
+    private sidebarService: SidebarService,
+    private systemLogoService: SystemLogoService,
   ) {}
 
   ngOnInit(): void {
     this.permissionSyncService.initialize();
+    this.systemLogoService.refresh();
   }
 
   openMobileMenu(): void {

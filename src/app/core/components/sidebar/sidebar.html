@@ -27,7 +27,7 @@
           [class.px-2]="isCollapsed() && !isMobileOpen()"
           [class.logo-section--compact]="isCollapsed() && !isMobileOpen()">
             <div class="text-center logo-section__brand">
-                <app-pollux-brand-text [compact]="isCollapsed() && !isMobileOpen()" />
+                <app-pollux-brand-text [useSystemLogo]="true" [compact]="isCollapsed() && !isMobileOpen()" />
             </div>
         </div>
         

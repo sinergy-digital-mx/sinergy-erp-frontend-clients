@@ -168,6 +168,29 @@
       max-width: 420px;
     }
 
+    .logo-system-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.35rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      text-align: left;
+
+      input {
+        width: 1rem;
+        height: 1rem;
+        accent-color: #4f46e5;
+      }
+
+      &--disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+    }
+
     .logo-upload-btn {
       min-width: 180px;
       padding: 0.55rem 1rem;

@@ -19,6 +19,7 @@ export interface FiscalConfiguration {
   has_private_key?: boolean | number;
   has_digital_seal_password?: boolean | number;
   logo?: string;
+  use_as_system_logo?: boolean | number;
   status: 'active' | 'inactive';
   certificate_serial_number?: string;
   finkok_registration_status?: 'pending' | 'registered' | 'failed' | string;
@@ -39,6 +40,7 @@ export interface CreateFiscalConfigurationDto {
   digital_seal?: string;
   digital_seal_password?: string;
   private_key?: string;
+  use_as_system_logo?: boolean;
   status?: 'active' | 'inactive';
   metadata?: Record<string, any>;
 }

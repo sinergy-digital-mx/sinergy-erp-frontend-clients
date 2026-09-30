@@ -404,7 +404,21 @@
               {{ uploadingLogo() ? 'Subiendo...' : 'Subir logo' }}
             </button>
             <p *ngIf="logoFileName" class="logo-file-name">{{ logoFileName }}</p>
-            <small class="logo-help">Formatos recomendados: PNG o JPG. Si el logo expira, vuelve a abrir esta configuración.</small>
+            <label
+              class="logo-system-toggle"
+              [class.logo-system-toggle--disabled]="!logoUrl || savingSystemLogo()">
+              <input
+                type="checkbox"
+                [checked]="useAsSystemLogo"
+                [disabled]="!logoUrl || savingSystemLogo()"
+                (change)="onUseAsSystemLogoChange($event)"
+              />
+              <span>Utilizar como logo del sistema</span>
+            </label>
+            <small class="logo-help">
+              Si lo activas, este logo reemplaza POLLUX en el menú. Solo una razón social puede tenerlo activo.
+              Se guarda en este navegador y no se vuelve a descargar hasta que cambies el archivo.
+            </small>
           </div>
         </div>
       </div>
