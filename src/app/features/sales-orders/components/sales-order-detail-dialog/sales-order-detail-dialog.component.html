@@ -527,6 +527,7 @@
           <div class="action-buttons">
             @if (order()!.can_stamp_advance) {
               <button type="button" class="btn-convert-order" (click)="openAdvanceInvoice()">
+                <i class="fi fi-rr-file-invoice"></i>
                 Factura de anticipo
               </button>
             }
@@ -590,6 +591,9 @@
           <button type="button" class="tab-button" [class.active]="activeTabIndex() === 6" (click)="activeTabIndex.set(6)">
             Correo
             <span class="tab-count" [class.active]="activeTabIndex() === 6">{{ getInvoiceEmailsCount() }}</span>
+          </button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 8" (click)="activeTabIndex.set(8)">
+            Instrucciones
           </button>
         </div>
 
@@ -917,42 +921,6 @@
           @if (activeTabIndex() === 2) {
             <div class="tab-content-wrapper">
               <div class="tab-header">
-                @if (canTicketReciboActions()) {
-                  <button
-                    type="button"
-                    class="btn-secondary btn-secondary--ticket"
-                    (click)="openTicketPreview()"
-                    title="Vista previa del ticket guardado">
-                    <i class="fi fi-rr-eye"></i>
-                    Ver ticket
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    (click)="reprintTicketRecibo()"
-                    [disabled]="reprintingTicket() || printingTicket()"
-                    title="Reimprime el ticket existente en S3 (no regenera)">
-                    @if (reprintingTicket() || printingTicket()) {
-                      <i class="fi fi-rr-spinner animate-spin"></i>
-                    } @else {
-                      <i class="fi fi-rr-print"></i>
-                    }
-                    Imprimir ticket
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-secondary btn-secondary--ticket"
-                    (click)="regenerateTicketRecibo()"
-                    [disabled]="regeneratingTicket()"
-                    title="[Admin] Borra el ticket anterior y genera uno nuevo">
-                    @if (regeneratingTicket()) {
-                      <i class="fi fi-rr-spinner animate-spin"></i>
-                    } @else {
-                      <i class="fi fi-rr-refresh"></i>
-                    }
-                    Regenerar ticket
-                  </button>
-                }
                 <button class="btn-secondary" (click)="regeneratePDF()" [disabled]="regeneratingPDF()">
                   @if (regeneratingPDF()) {
                     <i class="fi fi-rr-spinner animate-spin"></i>
@@ -969,7 +937,7 @@
                 </p>
               }
 
-              @if (hasDocuments()) {
+              @if (hasDocuments() || canTicketReciboActions()) {
                 <table class="documents-table">
                   <thead>
                     <tr>
@@ -981,6 +949,34 @@
                     </tr>
                   </thead>
                   <tbody>
+                    @if (canTicketReciboActions() && !hasTicketDocument()) {
+                      <tr>
+                        <td>
+                          <div class="document-type-cell">
+                            <span class="document-badge badge-gray">Ticket</span>
+                          </div>
+                        </td>
+                        <td><span class="document-language-empty">—</span></td>
+                        <td><span class="document-name">Sin ticket</span></td>
+                        <td><span class="document-language-empty">—</span></td>
+                        <td>
+                          <div class="document-actions">
+                            <button
+                              class="action-btn preview-btn"
+                              type="button"
+                              (click)="regenerateTicketRecibo()"
+                              [disabled]="regeneratingTicket()"
+                              title="Generar ticket">
+                              @if (regeneratingTicket()) {
+                                <i class="fi fi-rr-spinner animate-spin"></i>
+                              } @else {
+                                <i class="fi fi-rr-plus"></i>
+                              }
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
                     @for (doc of documents(); track doc.id + '|' + (doc.uploaded_at || '') + '|' + (doc.document_name || '')) {
                       <tr>
                         <td>
@@ -1007,16 +1003,53 @@
                           <div class="document-actions">
                             @if (isTicketDocument(doc)) {
                               <button
+                                class="action-btn download-btn"
+                                type="button"
+                                (click)="downloadTicketPdf()"
+                                [disabled]="downloadingTicketPdf()"
+                                title="PDF del ticket">
+                                @if (downloadingTicketPdf()) {
+                                  <i class="fi fi-rr-spinner animate-spin"></i>
+                                } @else {
+                                  <i class="fi fi-rr-file-pdf"></i>
+                                }
+                              </button>
+                              <button
                                 class="action-btn preview-btn"
                                 type="button"
                                 (click)="openTicketPreview()"
                                 title="Ver ticket">
                                 <i class="fi fi-rr-eye"></i>
                               </button>
+                              <button
+                                class="action-btn print-btn"
+                                type="button"
+                                (click)="reprintTicketRecibo()"
+                                [disabled]="reprintingTicket() || printingTicket()"
+                                title="Imprimir ticket">
+                                @if (reprintingTicket() || printingTicket()) {
+                                  <i class="fi fi-rr-spinner animate-spin"></i>
+                                } @else {
+                                  <i class="fi fi-rr-print"></i>
+                                }
+                              </button>
+                              <button
+                                class="action-btn print-btn"
+                                type="button"
+                                (click)="regenerateTicketRecibo()"
+                                [disabled]="regeneratingTicket()"
+                                title="Regenerar ticket">
+                                @if (regeneratingTicket()) {
+                                  <i class="fi fi-rr-spinner animate-spin"></i>
+                                } @else {
+                                  <i class="fi fi-rr-refresh"></i>
+                                }
+                              </button>
+                            } @else {
+                              <button class="action-btn download-btn" (click)="downloadDocument(doc)" title="Descargar">
+                                <i class="fi fi-rr-download"></i>
+                              </button>
                             }
-                            <button class="action-btn download-btn" (click)="downloadDocument(doc)" title="Descargar">
-                              <i class="fi fi-rr-download"></i>
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1124,6 +1157,36 @@
           @if (activeTabIndex() === 7 && order()) {
             <div class="tab-content-wrapper">
               <app-sales-order-credit-tab [order]="order()!" />
+            </div>
+          }
+
+          @if (activeTabIndex() === 8) {
+            <div class="tab-content-wrapper instructions">
+              <section>
+                <h3>Lotes</h3>
+                <p>Al crear una orden manual, o al convertir una cotización sin mandarla a caja, el sistema aparta lotes solo: los más antiguos primero, de todos los almacenes de la sucursal. Baja la existencia y deja la salida en el kardex. La orden queda en Creada. Este detalle, tab Lotes, muestra cuáles tomó.</p>
+                <p>Si marcaste selección y armado, no aparta al crear. Mesa de Control aparta al surtir, almacén por almacén.</p>
+                <p>En POS aparta al registrar la venta y la orden queda Surtida. Los servicios no usan lotes. Si no hay existencia, la orden no se guarda.</p>
+                <p>Cambiar la cantidad o quitar una línea suelta esos lotes y, si la orden sigue manual y sin selección, los vuelve a apartar. Mandarla a cobranza o quitarla del corte no suelta el inventario.</p>
+              </section>
+              <section>
+                <h3>Facturación</h3>
+                <p>Timbrar no mueve inventario. Los lotes siguen apartados.</p>
+                <p>No se puede cancelar la orden mientras haya una factura vigente. Primero se cancela el CFDI. Cancelar la factura no devuelve la mercancía: la orden sigue viva y los lotes siguen sujetos.</p>
+                <p>La factura de esa venta es del mes de la orden.</p>
+              </section>
+              <section>
+                <h3>Cierres</h3>
+                <p>El corte de caja es el cierre del dinero de la sucursal. No aparta ni suelta lotes.</p>
+                <p>Enviar a cobranza mete la orden al corte abierto para que caja la cobre. Si por algún motivo no tenía lotes, ahí se apartan. Quitar de cobranza la saca del corte y la regresa a manual; los lotes se quedan.</p>
+                <p>Cerrar el corte no cancela ventas ni regresa inventario.</p>
+              </section>
+              <section>
+                <h3>Cancelaciones</h3>
+                <p>Cancelar la orden devuelve la cantidad a cada lote y escribe en el kardex la entrada de reversa, con la fecha de la cancelación. La salida original se queda en el historial. La orden pasa a Cancelada.</p>
+                <p>No se puede si hay una factura vigente, si ya se cobró una orden que vino de cotización, o si esa orden tiene pagos. En ese último caso hay que quitar los pagos antes.</p>
+                <p>Si estaba en selección, también se cancela el trabajo de Mesa de Control.</p>
+              </section>
             </div>
           }
         </div>

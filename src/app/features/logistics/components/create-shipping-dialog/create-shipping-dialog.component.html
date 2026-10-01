@@ -211,7 +211,35 @@
                     }
                   </div>
                   <p>{{ o.customer_name || 'Cliente' }}</p>
-                  <p class="stop-card__addr">{{ o.address_summary || 'Sin dirección' }}</p>
+                  @if (o.customer_addresses?.length) {
+                    <ul class="addr-list">
+                      @for (addr of o.customer_addresses; track addr.id) {
+                        <li>
+                          <label class="addr-option">
+                            <input
+                              type="radio"
+                              [name]="'addr-' + o.sales_order_id"
+                              [checked]="isSelectedAddress(o, addr.id)"
+                              [disabled]="previewing()"
+                              (change)="selectStopAddress(o, addr.id)"
+                            />
+                            <span>
+                              <strong>{{ addr.type_label || 'Dirección' }}</strong>
+                              @if (addr.is_primary) {
+                                <span class="addr-primary">Principal</span>
+                              }
+                              {{ addr.address_summary || 'Sin calle' }}
+                              @if (!addr.has_gps) {
+                                <em>sin GPS</em>
+                              }
+                            </span>
+                          </label>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="stop-card__addr">Sin dirección</p>
+                  }
                   @if (o.distance_from_previous_km != null) {
                     <span class="stop-card__leg"
                       >Desde anterior: {{ formatKm(o.distance_from_previous_km) }}</span
@@ -219,13 +247,15 @@
                   }
                   @if (stopNeedsAddress(o)) {
                     <p class="warn-text">Este cliente no tiene dirección de entrega registrada</p>
-                    <button type="button" class="link-btn" (click)="openAddCustomerAddress(o)">
-                      Agregar dirección
-                    </button>
                   } @else if (stopNeedsGps(o)) {
                     <p class="warn-text">La dirección de entrega no tiene coordenadas</p>
                     <button type="button" class="link-btn" (click)="openEditCustomerAddress(o)">
                       Editar dirección
+                    </button>
+                  }
+                  @if (o.customer_id != null) {
+                    <button type="button" class="link-btn" (click)="openAddCustomerAddress(o)">
+                      Nueva dirección
                     </button>
                   }
                 </div>

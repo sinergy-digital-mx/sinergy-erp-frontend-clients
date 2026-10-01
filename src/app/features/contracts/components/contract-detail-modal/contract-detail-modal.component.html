@@ -72,10 +72,10 @@
         <div>
           <span class="flex items-center gap-1 text-gray-500 font-medium">
             Saldo Pendiente
-            <span 
-              *ngIf="paymentStats()"
+            <span
               class="cursor-help text-gray-400 hover:text-gray-600"
               [matTooltip]="getPendingBreakdown()"
+              matTooltipClass="contract-pending-tooltip"
               matTooltipPosition="above"
               matTooltipShowDelay="100">
               ⓘ

@@ -7,11 +7,12 @@ import { MatCardModule } from '@angular/material/card';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
 import { MatDialog } from '@angular/material/dialog';
-import { CustomerService } from '../../../../core/services/customer.service';
+import { CustomerService, CustomerSalesStats } from '../../../../core/services/customer.service';
 import { PropertyService } from '../../../properties/services/property.service';
 import { CustomerEditModalComponent } from '../../components/customer-edit-modal/customer-edit-modal.component';
 import { CustomerDocumentsComponent } from '../../components/customer-documents/customer-documents.component';
 import { CustomerSalesOrdersComponent } from '../../components/customer-sales-orders/customer-sales-orders.component';
+import { CustomerPurchaseTrendComponent } from '../../components/customer-purchase-trend/customer-purchase-trend.component';
 import { CustomerProductInsightsComponent } from '../../components/customer-product-insights/customer-product-insights.component';
 import { CustomerActivitiesComponent } from '../../components/customer-activities/customer-activities.component';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
@@ -29,6 +30,7 @@ import { TabComponent, TabItem } from '../../../../core/components/tab/tab.compo
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import {
+  getCustomerFullName,
   getCustomerStatusLabel,
   getCustomerStatusPillClass,
 } from '../../utils/customer-status.util';
@@ -61,6 +63,7 @@ import { isMadereriaZonaNorte } from '../../../../core/config/organizations.cons
     PhoneComponent,
     CustomerDocumentsComponent,
     CustomerSalesOrdersComponent,
+    CustomerPurchaseTrendComponent,
     CustomerProductInsightsComponent,
     CustomerActivitiesComponent,
     ButtonComponent,
@@ -78,6 +81,7 @@ import { isMadereriaZonaNorte } from '../../../../core/config/organizations.cons
 })
 export class CustomerDetail implements OnInit, OnDestroy {
   customer = signal<Customer | null>(null);
+  salesStats = signal<CustomerSalesStats | null>(null);
   isLoading = signal(true);
   error = signal<any>(null);
   /** Persona adicional en detalle: colapsable (mismo criterio que el modal). */
@@ -217,15 +221,19 @@ export class CustomerDetail implements OnInit, OnDestroy {
       addresses: this.customerService.getCustomerAddresses(id).pipe(
         catchError(() => of([] as CustomerAddress[]))
       ),
+      stats: this.customerService.getCustomerSalesStats(id).pipe(
+        catchError(() => of(null as CustomerSalesStats | null))
+      ),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ customer, addresses }) => {
+        next: ({ customer, addresses, stats }) => {
           const unwrapped = unwrapCustomerPayload(customer) ?? (customer as Customer);
           this.customer.set({
             ...unwrapped,
             addresses: this.normalizeAddresses(addresses),
           });
+          this.salesStats.set(stats);
           this.additionalPersonExpanded.set(false);
           this.isLoading.set(false);
         },
@@ -384,6 +392,34 @@ export class CustomerDetail implements OnInit, OnDestroy {
 
   registeredByLabel(customer: Customer): string {
     return formatRegisteredByUserLabel(customer.registered_by_user);
+  }
+
+  customerDisplayName(customer: Customer): string {
+    const full = getCustomerFullName(customer);
+    if (full !== '—') return full;
+    return this.customerCompany(customer) || 'Cliente';
+  }
+
+  customerCompany(customer: Customer): string {
+    return customer.company_name?.trim() || customer.fiscal_razon_social?.trim() || '';
+  }
+
+  customerInitials(customer: Customer): string {
+    const first = (customer.name || '').trim().charAt(0);
+    const last = (customer.lastname || '').trim().charAt(0);
+    const letters = `${first}${last}`.toUpperCase();
+    if (letters) return letters;
+    const company = this.customerCompany(customer);
+    return company.slice(0, 2).toUpperCase() || 'CL';
+  }
+
+  formatMoney(value: number | null | undefined): string {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(value ?? 0));
   }
 
   assignedSellerLabel(customer: Customer): string {

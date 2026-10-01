@@ -80,7 +80,14 @@
             aria-valuemin="0"
             (keydown)="onDenomKeydown($event, 'MXN', d)">
             <button type="button" class="denom-stepper__btn" tabindex="-1" [disabled]="getCount('MXN', d) <= 0" (click)="adjustCount('MXN', d, -1)">−</button>
-            <span class="denom-stepper__value">{{ getCount('MXN', d) }}</span>
+            <input
+              type="number"
+              class="denom-stepper__value"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              [ngModel]="getCount('MXN', d)"
+              (ngModelChange)="setCount('MXN', d, $event)" />
             <button type="button" class="denom-stepper__btn" tabindex="-1" (click)="adjustCount('MXN', d, 1)">+</button>
           </div>
         </div>
@@ -111,7 +118,14 @@
             aria-valuemin="0"
             (keydown)="onDenomKeydown($event, 'USD', d)">
             <button type="button" class="denom-stepper__btn" tabindex="-1" [disabled]="getCount('USD', d) <= 0" (click)="adjustCount('USD', d, -1)">−</button>
-            <span class="denom-stepper__value">{{ getCount('USD', d) }}</span>
+            <input
+              type="number"
+              class="denom-stepper__value"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              [ngModel]="getCount('USD', d)"
+              (ngModelChange)="setCount('USD', d, $event)" />
             <button type="button" class="denom-stepper__btn" tabindex="-1" (click)="adjustCount('USD', d, 1)">+</button>
           </div>
         </div>

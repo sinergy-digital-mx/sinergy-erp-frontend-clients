@@ -19,6 +19,9 @@
           }
         </div>
       </div>
+      <button type="button" class="batch-detail__close" (click)="refreshBatch()" aria-label="Refrescar lote" title="Refrescar lote">
+        <lucide-icon [img]="RefreshCw" class="w-5 h-5"></lucide-icon>
+      </button>
       <button type="button" class="batch-detail__close" (click)="close()" aria-label="Cerrar">
         <lucide-icon [img]="X" class="w-5 h-5"></lucide-icon>
       </button>

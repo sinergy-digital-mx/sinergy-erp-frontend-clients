@@ -1,9 +1,10 @@
-import { Component, OnInit, signal, computed, ViewChild, TemplateRef } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { SalesOrder, SalesOrderFilters, PaginationParams } from '../../models/sales-order.model';
+import { SalesOrder, SalesOrderFilters, SalesOrderTrend, PaginationParams } from '../../models/sales-order.model';
+import { SalesOrderTrendComponent } from '../../components/sales-order-trend/sales-order-trend.component';
 import { SalesFilterBarComponent } from '../../components/sales-filter-bar/sales-filter-bar.component';
 import { CreateSalesOrderModalComponent } from '../../components/create-sales-order-modal/create-sales-order-modal.component';
 import { SalesOrderDetailDialogComponent } from '../../components/sales-order-detail-dialog/sales-order-detail-dialog.component';
@@ -31,11 +32,11 @@ import { salesOrderListPaymentMetaLabel } from '../../utils/sales-order-collecti
 @Component({
   selector: 'app-sales-order-list',
   standalone: true,
-  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent],
+  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, SalesOrderTrendComponent],
   templateUrl: './sales-order-list.component.html',
   styleUrls: ['./sales-order-list.component.scss']
 })
-export class SalesOrderListComponent implements OnInit {
+export class SalesOrderListComponent implements OnInit, OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
 
   readonly Math = Math;
@@ -46,6 +47,15 @@ export class SalesOrderListComponent implements OnInit {
   private loadingState = signal<boolean>(false);
   private totalResultsState = signal<number>(0);
   private hasMoreState = signal<boolean>(true);
+  private loadSeq = 0;
+  private trendSeq = 0;
+  private glanceTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** 0 = tarjetas de estado y pago. 1 = ventas de 12 meses. */
+  glancePanel = signal<0 | 1>(0);
+  trend = signal<SalesOrderTrend | null>(null);
+  trendLoading = signal(false);
+  trendError = signal(false);
 
   table_config = signal<IDatatableConfig>({
     rows: [],
@@ -63,6 +73,7 @@ export class SalesOrderListComponent implements OnInit {
     externalSorting: true,
     page: 1,
     limit: 15,
+    pageSizeOptions: [15, 30, 50, 100],
     totalResults: 0,
     loading: false,
     emptyState: { title: 'Sin resultados', subtitle: 'No se encontraron órdenes de venta' },
@@ -107,17 +118,53 @@ export class SalesOrderListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadOrders();
+    this.loadTrend();
+    this.startGlance();
+  }
+
+  ngOnDestroy(): void {
+    this.stopGlance();
+  }
+
+  /** Un clic fija la vista y detiene el cambio automático. */
+  selectGlance(panel: 0 | 1): void {
+    this.glancePanel.set(panel);
+    this.stopGlance();
+  }
+
+  private startGlance(): void {
+    this.stopGlance();
+    this.glanceTimer = setInterval(() => {
+      this.glancePanel.update((panel) => (panel === 0 ? 1 : 0));
+    }, 10_000);
+  }
+
+  private stopGlance(): void {
+    if (this.glanceTimer == null) return;
+    clearInterval(this.glanceTimer);
+    this.glanceTimer = null;
   }
 
   loadOrders(): void {
+    const seq = ++this.loadSeq;
+    const requested = this.paginationState();
     this.loadingState.set(true);
-    this.table_config.update(c => ({ ...c, loading: true }));
+    this.table_config.update(c => ({
+      ...c,
+      loading: true,
+      page: requested.page,
+      limit: requested.limit,
+    }));
 
-    this.salesOrderService.getOrders(this.filtersState(), this.paginationState()).subscribe({
+    this.salesOrderService.getOrders(this.filtersState(), requested).subscribe({
       next: (response) => {
-        const orders = response.data || [];
-        const total = response.total || 0;
-        const hasNext = response.page < response.totalPages;
+        if (seq !== this.loadSeq) return;
+        const orders = Array.isArray(response.data) ? response.data : [];
+        const limit = Number(response.limit) || requested.limit;
+        const total = Number(response.total) || 0;
+        const page = Number(response.page) || requested.page;
+        const totalPages = Number(response.totalPages) || Math.ceil(total / Math.max(limit, 1));
+        const hasNext = page < totalPages;
 
         this.ordersData.set(orders);
         this.totalResultsState.set(total);
@@ -127,6 +174,8 @@ export class SalesOrderListComponent implements OnInit {
           ...c,
           rows: orders,
           totalResults: total,
+          page,
+          limit,
           hasNext,
           loading: false,
         }));
@@ -134,6 +183,7 @@ export class SalesOrderListComponent implements OnInit {
         this.loadingState.set(false);
       },
       error: (error) => {
+        if (seq !== this.loadSeq) return;
         console.error('Error loading sales orders:', error);
         this.loadingState.set(false);
         this.table_config.update(c => ({ ...c, loading: false }));
@@ -143,12 +193,35 @@ export class SalesOrderListComponent implements OnInit {
 
   applyFilters(filters: SalesOrderFilters): void {
     this.filtersState.set(filters);
-    this.paginationState.set({ page: 1, limit: 15 });
+    this.paginationState.set({ page: 1, limit: this.paginationState().limit || 15 });
     this.loadOrders();
+    this.loadTrend();
+  }
+
+  loadTrend(): void {
+    const seq = ++this.trendSeq;
+    this.trendLoading.set(true);
+    this.trendError.set(false);
+    this.salesOrderService.getSalesTrend(this.filtersState()).subscribe({
+      next: (trend) => {
+        if (seq !== this.trendSeq) return;
+        this.trend.set(trend);
+        this.trendLoading.set(false);
+      },
+      error: () => {
+        if (seq !== this.trendSeq) return;
+        this.trend.set(null);
+        this.trendError.set(true);
+        this.trendLoading.set(false);
+      },
+    });
   }
 
   onPageChange(event: IPaginationEvent): void {
-    this.paginationState.set({ page: event.page, limit: event.limit });
+    const page = Number(event.page) || 1;
+    const limit = Number(event.limit) || this.paginationState().limit || 15;
+    this.paginationState.set({ page, limit });
+    this.table_config.update(c => ({ ...c, page, limit }));
     this.loadOrders();
   }
 
@@ -163,7 +236,10 @@ export class SalesOrderListComponent implements OnInit {
       maxHeight: '90vh',
       panelClass: 'create-purchase-order-modal'
     }).afterClosed().subscribe(result => {
-      if (result) this.loadOrders();
+      if (result) {
+        this.loadOrders();
+        this.loadTrend();
+      }
     });
   }
 
@@ -192,6 +268,7 @@ export class SalesOrderListComponent implements OnInit {
       .afterClosed()
       .subscribe(() => {
         this.loadOrders();
+        this.loadTrend();
       });
   }
 

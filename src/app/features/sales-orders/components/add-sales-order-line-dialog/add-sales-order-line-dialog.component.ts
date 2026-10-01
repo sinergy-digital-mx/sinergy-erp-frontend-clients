@@ -44,7 +44,7 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
   selectedUomId = '';
   selectedQuantity: number | null = null;
   selectedUnitPrice: number | null = null;
-  selectedIva: number | null = 16;
+  selectedIva: number | null = 8;
   selectedIeps: number | null = 0;
 
   private readonly destroy$ = new Subject<void>();
@@ -77,6 +77,35 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
   get dialogTitle(): string {
     const noun = this.data.sale_scope === 'services' ? 'servicio' : 'producto';
     return this.data.folio ? `Agregar ${noun} — #${this.data.folio}` : `Agregar ${noun}`;
+  }
+
+  get lineNet(): number {
+    const quantity = Number(this.selectedQuantity);
+    const unitPrice = Number(this.selectedUnitPrice);
+    if (!Number.isFinite(quantity) || !Number.isFinite(unitPrice)) {
+      return 0;
+    }
+    return quantity * unitPrice;
+  }
+
+  get lineIvaAmount(): number {
+    const iva = Number(this.selectedIva);
+    if (!Number.isFinite(iva)) {
+      return 0;
+    }
+    return (this.lineNet * iva) / 100;
+  }
+
+  get lineIepsAmount(): number {
+    const ieps = Number(this.selectedIeps);
+    if (!Number.isFinite(ieps)) {
+      return 0;
+    }
+    return (this.lineNet * ieps) / 100;
+  }
+
+  get lineTotal(): number {
+    return this.lineNet + this.lineIvaAmount + this.lineIepsAmount;
   }
 
   get selectedProductDescription(): string {
@@ -254,7 +283,7 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
       return;
     }
     this.selectedUnitPrice = Number(uom.cost ?? 0);
-    this.selectedIva = Number(uom.iva_percentage ?? 16);
+    this.selectedIva = Number(uom.iva_percentage ?? 8);
     this.selectedIeps = Number(uom.ieps_percentage ?? 0);
   }
 
@@ -298,7 +327,7 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
         name: u.name || u.uom_name || 'UOM',
         uom_name: u.uom_name || u.name || 'UOM',
         cost: Number(u.suggested_unit_price ?? u.cost ?? u.unit_price ?? 0),
-        iva_percentage: Number(u.suggested_iva_percentage ?? u.iva_percentage ?? 16),
+        iva_percentage: Number(u.suggested_iva_percentage ?? u.iva_percentage ?? 8),
         ieps_percentage: Number(u.suggested_ieps_percentage ?? u.ieps_percentage ?? 0),
       }));
     }
@@ -312,7 +341,7 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
       name: product.uom_name || 'UOM',
       uom_name: product.uom_name || 'UOM',
       cost: Number(product.suggested_unit_price ?? product.cost ?? product.unit_price ?? 0),
-      iva_percentage: Number(product.suggested_iva_percentage ?? product.iva_percentage ?? 16),
+      iva_percentage: Number(product.suggested_iva_percentage ?? product.iva_percentage ?? 8),
       ieps_percentage: Number(product.suggested_ieps_percentage ?? product.ieps_percentage ?? 0),
     }];
   }

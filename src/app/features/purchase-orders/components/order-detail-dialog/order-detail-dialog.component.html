@@ -341,7 +341,19 @@
           @if (canCancel()) {
             <button class="btn-cancel" (click)="cancelOrder()">
               <i class="fi fi-rr-cross-circle"></i>
-              Cancelar requisición
+              Cancelar orden
+            </button>
+          }
+          @if (canReopen()) {
+            <button class="btn-reopen" (click)="reopenOrder()">
+              <i class="fi fi-rr-rotate-left"></i>
+              Volver a creada
+            </button>
+          }
+          @if (canCorrectReceipt()) {
+            <button class="btn-correct" (click)="openReceiptCorrection()">
+              <i class="fi fi-rr-pencil"></i>
+              Corregir recibo
             </button>
           }
         </div>

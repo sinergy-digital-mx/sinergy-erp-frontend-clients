@@ -1,0 +1,47 @@
+<section class="purchase-trend" aria-label="Compras de los últimos 12 meses">
+  <header class="purchase-trend__head">
+    <div>
+      <h3 class="purchase-trend__title">Compras</h3>
+      <p class="purchase-trend__subtitle">Últimos 12 meses</p>
+    </div>
+
+    @if (trend(); as series) {
+      <div class="purchase-trend__summary">
+        <p class="purchase-trend__amount">{{ formatMoney(series.total) }}</p>
+        <p class="purchase-trend__meta">
+          {{ ordersLabel(series.orders_count) }}
+          @if (peakLabel(); as peak) {
+            <span> · pico {{ peak }}</span>
+          }
+        </p>
+        @if (monthDelta(); as delta) {
+          <p
+            class="purchase-trend__delta"
+            [class.purchase-trend__delta--up]="delta.up"
+            [class.purchase-trend__delta--down]="!delta.up">
+            {{ delta.text }}
+          </p>
+        }
+      </div>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="purchase-trend__skeleton" aria-hidden="true"></div>
+  } @else if (error()) {
+    <div class="purchase-trend__empty">
+      <p>No se pudo cargar la gráfica.</p>
+      <button type="button" class="purchase-trend__retry" (click)="load()">Reintentar</button>
+    </div>
+  } @else if (chartData(); as data) {
+    <div class="purchase-trend__canvas">
+      <p-chart
+        type="line"
+        [data]="data"
+        [options]="chartOptions()"
+        [plugins]="chartPlugins"
+        height="156px">
+      </p-chart>
+    </div>
+  }
+</section>

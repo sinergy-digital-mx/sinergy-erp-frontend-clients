@@ -41,6 +41,10 @@ export interface PaymentSchedule {
 export interface PaymentSchedulePreview extends PaymentSchedule {
   payments_count: number;
   monthly_payment: number;
+  last_installment_amount?: number;
+  total_price?: number;
+  down_payment_basis?: number;
+  balance_after_down_payment?: number;
 }
 
 /**

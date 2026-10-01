@@ -28,7 +28,7 @@ import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
 import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
 import { AUDIT_DETAIL_DIALOG_OPTIONS } from '../../config/audit-dialog.config';
-import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp, ArrowRightLeft, ArrowUpRight, ArrowDownLeft, Stamp, Ruler, Eye, ClipboardCheck, CircleDollarSign } from 'lucide-angular';
+import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp, ArrowRightLeft, ArrowUpRight, ArrowDownLeft, Stamp, Ruler, Eye, ClipboardCheck, CircleDollarSign, RefreshCw } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { formatPedimentoDisplay, formatPurchaseOrderUnitCost, formatVendorInvoiceDisplay, parsePurchaseOrderDecimal } from '../../../purchase-orders/utils/purchase-order-display.util';
 import {
@@ -51,7 +51,7 @@ import {
   },
 })
 export class BatchDetailDialogComponent implements OnInit {
-  X = X; Package = Package; MapPin = MapPin; FileText = FileText;
+  X = X; Package = Package; MapPin = MapPin; FileText = FileText; RefreshCw = RefreshCw;
   Calendar = Calendar; ShoppingCart = ShoppingCart; ArrowRight = ArrowRight; Edit = Edit;
   ImageUp = ImageUp; ArrowRightLeft = ArrowRightLeft;
   ArrowUpRight = ArrowUpRight; ArrowDownLeft = ArrowDownLeft; Stamp = Stamp; Ruler = Ruler; Eye = Eye;
@@ -527,6 +527,10 @@ export class BatchDetailDialogComponent implements OnInit {
     if (b?.transferred_from_batch_id) {
       this.openRelatedBatch(b.transferred_from_batch_id);
     }
+  }
+
+  refreshBatch(): void {
+    this.reloadBatch();
   }
 
   private reloadBatch(): void {

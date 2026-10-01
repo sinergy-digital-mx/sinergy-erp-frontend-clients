@@ -216,6 +216,36 @@
   }
 }
 
+.add-line-dialog__totals {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 0.8125rem;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: #475569;
+  }
+
+  strong {
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.add-line-dialog__totals-total {
+  margin-top: 0.25rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #e2e8f0;
+  font-weight: 700;
+}
+
 .add-line-dialog__error {
   margin: 0.75rem 0 0;
   font-size: 0.8125rem;

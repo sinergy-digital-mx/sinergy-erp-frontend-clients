@@ -22,6 +22,7 @@ import { InterceptorService } from '../../../../core/services/interceptor.servic
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { ContractLotSectionComponent } from '../../components/contract-lot-section/contract-lot-section.component';
+import { buildPendingBalanceTooltip } from '../../utils/pending-balance-tooltip.util';
 
 @Component({
   selector: 'app-contract-detail-page',
@@ -249,23 +250,9 @@ export class ContractDetailPageComponent implements OnInit {
   }
 
   getPendingBreakdown(): string {
-    const stats = this.paymentStats();
     const current = this.contract();
-    if (!stats || !current) return '';
-    const currency = current.currency || 'USD';
-    const monthlyPayment = this.formatCurrency(current.monthly_payment, currency);
-    const partialAmount = stats.partial_payment ? this.formatCurrency(stats.partial_payment.remaining_amount, currency) : '';
-    const total = this.formatCurrency(stats.total_pending_amount, currency);
-    let breakdown = `${stats.pending_full_payments} pagos × ${monthlyPayment}`;
-    if (stats.partial_payment) {
-      breakdown += ` + ${partialAmount} (pago parcial #${stats.partial_payment.installment_number})`;
-    }
-    breakdown += ` = ${total}`;
-    return breakdown;
-  }
-
-  formatCurrency(amount: number, currency: string): string {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
+    if (!current) return '';
+    return buildPendingBalanceTooltip(current, this.paymentStats());
   }
 
   setActiveTab(tab: 'edit' | 'payments' | 'down_payments' | 'hoa' | 'documents' | 'statement'): void {

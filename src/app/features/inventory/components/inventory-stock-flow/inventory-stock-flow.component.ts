@@ -369,6 +369,7 @@ export class InventoryStockFlowComponent implements OnInit {
         return 'dt-status-pill dt-status-pill--success';
       case 'sale':
       case 'transfer_out':
+      case 'purchase_reversal':
         return 'dt-status-pill dt-status-pill--danger';
       case 'audit_adjustment':
         return 'dt-status-pill dt-status-pill--warning';

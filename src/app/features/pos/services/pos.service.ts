@@ -219,8 +219,9 @@ export class POSService {
       item.selected_discount
     );
     const iva_amount = preview.lineNetSubtotal * (item.iva_percentage / 100);
-    const ieps_amount = preview.lineNetSubtotal * (item.ieps_percentage / 100);
-    const line_total = preview.lineNetSubtotal + iva_amount + ieps_amount;
+    const ieps_amount = 0;
+    const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+    const line_total = round2(preview.lineNetSubtotal + iva_amount + ieps_amount);
 
     return {
       ...item,
@@ -249,7 +250,8 @@ export class POSService {
     const total_iva = recalculated.reduce((sum, item) => sum + item.iva_amount, 0);
     const total_ieps = recalculated.reduce((sum, item) => sum + item.ieps_amount, 0);
     const global_discount_amount = previewGlobalDiscount(total_subtotal, selectedGlobalDiscount).amount;
-    const grand_total = total_subtotal - global_discount_amount + total_iva + total_ieps;
+    const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+    const grand_total = round2(total_subtotal - global_discount_amount + total_iva + total_ieps);
 
     this.cartState.set({
       items: recalculated,
@@ -862,12 +864,16 @@ export class POSService {
   getPosInventorySummary(params?: {
     search?: string;
     product_id?: string;
+    warehouse_id?: string;
     page?: number;
     limit?: number;
   }): Observable<PosInventorySummaryResponse> {
     let httpParams = new HttpParams();
     if (params?.search?.trim()) {
       httpParams = httpParams.set('search', params.search.trim());
+    }
+    if (params?.warehouse_id?.trim()) {
+      httpParams = httpParams.set('warehouse_id', params.warehouse_id.trim());
     }
     if (params?.product_id?.trim()) {
       httpParams = httpParams.set('product_id', params.product_id.trim());

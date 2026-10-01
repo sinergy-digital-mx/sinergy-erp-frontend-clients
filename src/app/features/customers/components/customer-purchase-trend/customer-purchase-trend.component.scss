@@ -1,0 +1,125 @@
+:host {
+  display: block;
+}
+
+.purchase-trend {
+  background:
+    radial-gradient(90% 70% at 100% 0%, rgba(99, 102, 241, 0.08), transparent 55%),
+    #fff;
+  border: 1px solid #f3f4f6;
+  border-radius: 0.75rem;
+  padding: 1.1rem 1.15rem 1.5rem;
+}
+
+.purchase-trend__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.purchase-trend__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #334155;
+}
+
+.purchase-trend__subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.purchase-trend__summary {
+  text-align: right;
+}
+
+.purchase-trend__amount {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #312e81;
+}
+
+.purchase-trend__meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.purchase-trend__delta {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.purchase-trend__delta--up {
+  color: #059669;
+}
+
+.purchase-trend__delta--down {
+  color: #e11d48;
+}
+
+.purchase-trend__canvas {
+  height: 156px;
+  margin-top: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.purchase-trend__skeleton {
+  height: 156px;
+  margin: 0.85rem 0 0.75rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(90deg, #f8fafc 0%, #eef2ff 45%, #f8fafc 100%);
+  background-size: 200% 100%;
+  animation: purchase-trend-shimmer 1.4s ease-in-out infinite;
+}
+
+.purchase-trend__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  height: 160px;
+  margin-top: 0.75rem;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.purchase-trend__retry {
+  border: 0;
+  background: transparent;
+  color: #4f46e5;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+@keyframes purchase-trend-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (max-width: 639px) {
+  .purchase-trend__head {
+    flex-direction: column;
+  }
+
+  .purchase-trend__summary {
+    text-align: left;
+  }
+}

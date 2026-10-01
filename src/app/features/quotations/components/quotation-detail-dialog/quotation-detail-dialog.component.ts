@@ -648,7 +648,10 @@ export class QuotationDetailDialogComponent implements OnInit {
     const iva = taxable > 0 ? Math.round((Number(q.iva_total || 0) / taxable) * 10000) / 100 : 8;
     this.dialog
       .open(AdvanceInvoiceDialogComponent, {
-        width: '440px',
+        width: '480px',
+        maxWidth: '95vw',
+        panelClass: 'advance-invoice-dialog-panel',
+        autoFocus: false,
         data: {
           mode: 'stamp',
           source: 'quotation',

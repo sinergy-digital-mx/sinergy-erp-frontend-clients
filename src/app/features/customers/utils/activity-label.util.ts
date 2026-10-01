@@ -3,7 +3,10 @@ import { ActivityOutcome, ActivityStatus, ActivityType } from '../models/custome
 const TYPE_LABELS: Record<ActivityType, string> = {
   [ActivityType.NOTE]: 'Nota',
   [ActivityType.CALL]: 'Llamada',
+  [ActivityType.WHATSAPP]: 'WhatsApp',
   [ActivityType.EMAIL]: 'Correo',
+  [ActivityType.HOME_VISIT]: 'Visita a domicilio',
+  [ActivityType.STORE_VISIT]: 'Visita en tienda',
   [ActivityType.MEETING]: 'Reunión',
   [ActivityType.TASK]: 'Tarea',
   [ActivityType.FOLLOW_UP]: 'Seguimiento',
@@ -57,11 +60,17 @@ export function getActivityTypeClass(type: ActivityType | string): string {
   const base = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize';
   switch (type) {
     case ActivityType.CALL:
-      return `${base} bg-indigo-100 text-indigo-800`;
+      return `${base} bg-sky-100 text-sky-900`;
+    case ActivityType.WHATSAPP:
+      return `${base} bg-teal-100 text-teal-900`;
     case ActivityType.EMAIL:
-      return `${base} bg-sky-100 text-sky-800`;
+      return `${base} bg-indigo-100 text-indigo-900`;
+    case ActivityType.HOME_VISIT:
+      return `${base} bg-orange-100 text-orange-900`;
+    case ActivityType.STORE_VISIT:
+      return `${base} bg-amber-100 text-amber-900`;
     case ActivityType.MEETING:
-      return `${base} bg-violet-100 text-violet-800`;
+      return `${base} bg-violet-100 text-violet-900`;
     case ActivityType.NOTE:
       return `${base} bg-slate-100 text-slate-800`;
     case ActivityType.TASK:

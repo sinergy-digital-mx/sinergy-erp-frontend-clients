@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatApiDate, formatApiDateTime, isApiCalendarDate, parseApiDateTime } from './api-datetime.util';
+import { formatApiDate, formatApiDateTime, formatBusinessDateTime, isApiCalendarDate, parseApiDateTime } from './api-datetime.util';
 
 describe('parseApiDateTime', () => {
   it('trata el datetime de MySQL sin zona como UTC', () => {
@@ -22,6 +22,15 @@ describe('parseApiDateTime', () => {
     expect(formatApiDate('2024-01-15T00:00:00Z', 'medium')).toContain('2024');
     expect(formatApiDate('2026-01-01T00:00:00Z', 'month-year')).toMatch(/enero/i);
     expect(formatApiDate('2026-01-01T00:00:00Z', 'month-year')).toContain('2026');
+  });
+});
+
+describe('formatBusinessDateTime', () => {
+  it('muestra el reloj de Tijuana, no el de UTC', () => {
+    expect(formatBusinessDateTime('2026-09-01 22:00:00')).toEqual({
+      date: '1 sep 2026',
+      time: '3:00 p.m.',
+    });
   });
 });
 

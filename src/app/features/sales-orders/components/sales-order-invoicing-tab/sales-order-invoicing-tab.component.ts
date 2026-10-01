@@ -228,7 +228,10 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   openApplyAdvance(): void {
     this.dialog
       .open(AdvanceInvoiceDialogComponent, {
-        width: '440px',
+        width: '480px',
+        maxWidth: '95vw',
+        panelClass: 'advance-invoice-dialog-panel',
+        autoFocus: false,
         data: {
           mode: 'apply',
           source: 'sales_order',

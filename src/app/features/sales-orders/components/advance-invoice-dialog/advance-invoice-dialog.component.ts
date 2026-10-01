@@ -23,64 +23,8 @@ export interface AdvanceInvoiceDialogData {
   selector: 'app-advance-invoice-dialog',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatDialogModule],
-  template: `
-    <form class="advance-dialog" [formGroup]="form" (ngSubmit)="submit()">
-      <h2>{{ title }}</h2>
-      <p class="advance-dialog__hint">{{ hint }}</p>
-      @if (data.mode === 'stamp') {
-        <label>
-          Base sin IVA
-          <input type="number" min="0.01" step="0.01" formControlName="base_amount" />
-        </label>
-        <label>
-          IVA %
-          <input type="number" min="0" max="16" step="0.01" formControlName="iva_percentage" />
-        </label>
-      }
-      <label>
-        Uso CFDI
-        <input type="text" formControlName="uso_cfdi" />
-      </label>
-      @if (data.mode === 'stamp') {
-        <label>
-          Cómo pagó
-          <select formControlName="forma_pago">
-            <option value="01">Efectivo</option>
-            <option value="04">Tarjeta</option>
-            <option value="03">Transferencia</option>
-            <option value="02">Cheque</option>
-          </select>
-        </label>
-      } @else {
-        <label>
-          Forma de pago
-          <input type="text" formControlName="forma_pago" />
-        </label>
-      }
-      <label>
-        Régimen del receptor
-        <input type="text" formControlName="regimen_fiscal_receptor" />
-      </label>
-      @if (error()) {
-        <p class="advance-dialog__error">{{ error() }}</p>
-      }
-      <div class="advance-dialog__actions">
-        <button type="button" (click)="close()" [disabled]="saving()">Volver</button>
-        <button type="submit" [disabled]="saving() || form.invalid">
-          {{ saving() ? 'Timbrando…' : 'Timbrar' }}
-        </button>
-      </div>
-    </form>
-  `,
-  styles: [`
-    .advance-dialog { display: flex; flex-direction: column; gap: 12px; padding: 8px 4px 4px; min-width: 320px; }
-    h2 { margin: 0; font-size: 18px; }
-    label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-    input, select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; background: #fff; }
-    .advance-dialog__hint { margin: 0; color: #475569; font-size: 13px; }
-    .advance-dialog__error { margin: 0; color: #b91c1c; font-size: 13px; }
-    .advance-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; }
-  `],
+  templateUrl: './advance-invoice-dialog.component.html',
+  styleUrl: './advance-invoice-dialog.component.scss',
 })
 export class AdvanceInvoiceDialogComponent {
   saving = signal(false);
@@ -96,11 +40,19 @@ export class AdvanceInvoiceDialogComponent {
     private readonly invoices: SalesOrderInvoiceService,
   ) {
     this.form = this.fb.group({
+      percent: [100, data.mode === 'stamp' ? [Validators.required, Validators.min(1), Validators.max(100)] : []],
       base_amount: [data.defaultBase ?? null, data.mode === 'stamp' ? [Validators.required, Validators.min(0.01)] : []],
       iva_percentage: [data.defaultIva ?? 8, data.mode === 'stamp' ? [Validators.required, Validators.min(0), Validators.max(16)] : []],
-      uso_cfdi: [data.mode === 'apply' ? 'G01' : 'G01', Validators.required],
+      uso_cfdi: ['G01', Validators.required],
       forma_pago: ['01', Validators.required],
       regimen_fiscal_receptor: ['601', Validators.required],
+    });
+    this.form.get('percent')?.valueChanges.subscribe((percent) => {
+      const full = Number(this.data.defaultBase ?? 0);
+      const pct = Number(percent);
+      if (!Number.isFinite(full) || full <= 0 || !Number.isFinite(pct)) return;
+      const base = Math.round(full * (pct / 100) * 100) / 100;
+      this.form.patchValue({ base_amount: Math.max(base, 0.01) }, { emitEvent: false });
     });
   }
 
@@ -108,11 +60,19 @@ export class AdvanceInvoiceDialogComponent {
     return this.data.mode === 'apply' ? 'Aplicar anticipo' : 'Factura de anticipo';
   }
 
+  get submitLabel(): string {
+    return this.data.mode === 'apply' ? 'Aplicar' : 'Timbrar';
+  }
+
+  formatMoney(amount: number): string {
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount || 0);
+  }
+
   get hint(): string {
     if (this.data.mode === 'apply') {
       return `Se timbran dos comprobantes ligados al anticipo ${this.data.advanceUuid || ''}: la factura de la mercancía y la nota de crédito.`;
     }
-    return `El cliente paga ${this.chargeTotal.toFixed(2)} MXN. Ese dinero entra al corte abierto de la sucursal.`;
+    return `Anticipo del ${Number(this.form.get('percent')?.value ?? 100)}% de la cotización ${this.data.folio}. El total con IVA entra al corte de la sucursal.`;
   }
 
   get chargeTotal(): number {

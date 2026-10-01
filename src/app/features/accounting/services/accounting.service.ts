@@ -17,6 +17,8 @@ import {
   CollectionCustomerType,
   CollectionTerminalSummary,
   PosCollectionRow,
+  PosDaySummary,
+  PosEnteredOrder,
   PosOpenDailyShiftSummary,
   PosSummaryResponse,
   PosTerminalSaleRow,
@@ -201,12 +203,53 @@ export class AccountingService {
     const body = this.asRecord(raw);
     const source = this.hasPosSummaryShape(body) ? body : this.asRecord(body['data']);
 
+    const collection = this.parseCollectionTerminal(source['collection_terminal']);
+    const enteredOrders = this.asArray<unknown>(source['entered_orders']).map((row) =>
+      this.parseEnteredOrder(row)
+    );
+
     return {
       filters_applied: (source['filters_applied'] ?? {}) as PosSummaryResponse['filters_applied'],
+      summary: this.parseDaySummary(source['summary'], enteredOrders, collection),
+      entered_orders: enteredOrders,
       sales_terminals: this.asArray<unknown>(source['sales_terminals']).map((row) =>
         this.parseSalesTerminal(row)
       ),
-      collection_terminal: this.parseCollectionTerminal(source['collection_terminal']),
+      collection_terminal: collection,
+    };
+  }
+
+  private parseDaySummary(
+    raw: unknown,
+    orders: PosEnteredOrder[],
+    collection: CollectionTerminalSummary | null
+  ): PosDaySummary {
+    const summary = this.asRecord(raw);
+    const pending = orders.filter((order) => order.payment_status === 'Pendiente');
+    const amountEntered = orders.reduce((sum, order) => sum + order.total, 0);
+    const amountPending = pending.reduce((sum, order) => sum + order.total, 0);
+
+    return {
+      orders_entered: Number(summary['orders_entered'] ?? orders.length),
+      amount_entered: Number(summary['amount_entered'] ?? amountEntered),
+      orders_collected: Number(summary['orders_collected'] ?? collection?.orders_collected ?? 0),
+      amount_collected: Number(summary['amount_collected'] ?? collection?.amount_collected ?? 0),
+      orders_pending: Number(summary['orders_pending'] ?? pending.length),
+      amount_pending: Number(summary['amount_pending'] ?? amountPending),
+    };
+  }
+
+  private parseEnteredOrder(raw: unknown): PosEnteredOrder {
+    const row = this.asRecord(raw);
+    return {
+      id: String(row['id'] ?? ''),
+      folio: (row['folio'] as string | null) ?? null,
+      created_at: String(row['created_at'] ?? ''),
+      total: Number(row['total'] ?? 0),
+      payment_status: (row['payment_status'] as string | null) ?? null,
+      terminal_name: (row['terminal_name'] as string | null) ?? null,
+      customer_display_name: (row['customer_display_name'] as string | null) ?? null,
+      amount_collected: Number(row['amount_collected'] ?? 0),
     };
   }
 

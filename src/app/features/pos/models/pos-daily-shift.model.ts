@@ -183,7 +183,7 @@ export function formatPosMoney(value: unknown): string {
     style: 'currency',
     currency: 'MXN',
     minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
+    maximumFractionDigits: 2,
   }).format(parsePosMoney(value));
 }
 
@@ -227,7 +227,7 @@ export function dailyShiftMatchesBranch(
   }
   const shiftBranchId = dailyShiftBranchId(shift);
   if (!shiftBranchId) {
-    return true;
+    return false;
   }
   return shiftBranchId === sessionBranchId;
 }
@@ -335,11 +335,15 @@ export function dailyShiftIsOpen(shift: PosDailyShiftListItem | null | undefined
   if (!shift) {
     return false;
   }
+  const status = normalizeDailyShiftStatus(shift.status);
+  if (status === 'closed') {
+    return false;
+  }
   const record = shift as PosDailyShiftListItem & { is_open?: boolean };
   if (typeof record.is_open === 'boolean') {
     return record.is_open;
   }
-  return normalizeDailyShiftStatus(shift.status) === 'open';
+  return status === 'open';
 }
 
 export function parseUnclosedShiftAlert(raw: unknown): UnclosedShiftAlert | null {

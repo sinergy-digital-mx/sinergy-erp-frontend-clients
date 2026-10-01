@@ -17,8 +17,10 @@
   </div>
 
   <!-- Data Table -->
-  <div *ngIf="!config?.loading && config?.rows && config?.rows.length > 0" class="datatable-container">
-    <table class="datatable-table">
+  <div
+    class="datatable-container"
+    *ngIf="(config?.totalResults ?? 0) > 0 || (!config?.loading && (config?.rows?.length ?? 0) > 0)">
+    <table class="datatable-table" *ngIf="!config?.loading && (config?.rows?.length ?? 0) > 0">
       <thead>
         <tr>
           <th *ngFor="let column of config?.columns; trackBy: trackByIndex" 
@@ -84,7 +86,7 @@
             type="button"
             class="pagination-nav__btn"
             aria-label="Página siguiente"
-            [disabled]="!config?.hasNext"
+            [disabled]="!canGoNext"
             (click)="onNextPage()">
             ›
           </button>

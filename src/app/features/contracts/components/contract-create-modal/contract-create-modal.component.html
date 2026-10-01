@@ -243,7 +243,7 @@
         <h3>Pagos del contrato</h3>
         <p class="section-lead">
           @if (isDownPaymentFinanced) {
-            La mensualidad es la meta de enganche dividida entre los meses. El saldo pendiente al crear es el precio total, porque todavía no hay abonos.
+            La mensualidad es el saldo que queda después de la meta de enganche, dividido entre los meses. El saldo pendiente al crear es el precio total, porque todavía no hay abonos.
           } @else {
             Mensualidades del saldo que queda después del enganche.
           }
@@ -275,7 +275,7 @@
             <strong>{{ formattedMonthlyPayment() }} {{ form.get('currency')?.value }}</strong>
             <small>
               @if (isDownPaymentFinanced) {
-                Meta de enganche entre los meses. Si la meta es 0, queda en 0 hasta definirla.
+                Precio menos la meta, dividido entre los meses. Si la meta es 0, queda en 0 hasta definirla.
               } @else {
                 Saldo dividido entre los meses.
               }

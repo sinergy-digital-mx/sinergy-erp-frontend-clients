@@ -572,16 +572,16 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   }
 
   calculateMonthlyPayment(): void {
+    const totalPrice = parseContractAmount(this.form.get('total_price')!.value);
     const remainingBalance = parseContractAmount(this.form.get('remaining_balance')!.value);
     const paymentMonths = Math.max(1, Math.round(parseContractAmount(this.form.get('payment_months')!.value) || 1));
     const isFinanced = !!this.form.get('down_payment_financed')!.value;
     const target = parseContractAmount(this.form.get('down_payment')!.value);
+    const balanceAfterDownPayment = isFinanced
+      ? (target > 0 ? Math.max(0, totalPrice - target) : 0)
+      : remainingBalance;
 
-    const monthlyPayment = !paymentMonths
-      ? 0
-      : isFinanced
-        ? (target > 0 ? target / paymentMonths : 0)
-        : remainingBalance / paymentMonths;
+    const monthlyPayment = !paymentMonths ? 0 : balanceAfterDownPayment / paymentMonths;
 
     this.form.get('monthly_payment')!.setValue(monthlyPayment, { emitEvent: false });
     this.formattedMonthlyPayment.set(this.formatNumber(monthlyPayment));

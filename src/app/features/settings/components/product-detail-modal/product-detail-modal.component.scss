@@ -80,8 +80,9 @@
 // Modal Header
 .modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
   padding: 12px 16px;
   border-bottom: 1px solid #e5e7eb;
 
@@ -91,6 +92,43 @@
     color: #111827;
     margin: 0;
   }
+}
+
+.modal-header__titles {
+  min-width: 0;
+}
+
+.modal-header__product {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  min-width: 0;
+}
+
+.modal-header__name {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-header__sku {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
 }
 
 .close-btn {

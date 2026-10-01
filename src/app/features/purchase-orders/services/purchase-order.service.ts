@@ -380,6 +380,19 @@ export class PurchaseOrderService {
       );
   }
 
+  reopenOrder(id: string): Observable<PurchaseOrder> {
+    return this.http.post<PurchaseOrder>(`${this.baseUrl}/${id}/reopen`, {})
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
+  correctReceipt(
+    id: string,
+    lines: Array<{ line_item_id: string; quantity?: number; unit_total?: number }>,
+  ): Observable<PurchaseOrder> {
+    return this.http.patch<PurchaseOrder>(`${this.baseUrl}/${id}/receipt-correction`, { lines })
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
   /**
    * Delete order
    */

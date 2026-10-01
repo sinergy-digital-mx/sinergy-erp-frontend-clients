@@ -75,9 +75,9 @@
             <span class="flex items-center gap-1 text-slate-500 font-medium">
               Saldo pendiente
               <span
-                *ngIf="paymentStats()"
                 class="cursor-help text-slate-400 hover:text-slate-600"
                 [matTooltip]="getPendingBreakdown()"
+                matTooltipClass="contract-pending-tooltip"
                 matTooltipPosition="above"
                 matTooltipShowDelay="100">
                 <lucide-icon [img]="InfoIcon" [size]="14"></lucide-icon>

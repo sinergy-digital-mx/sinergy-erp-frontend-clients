@@ -300,6 +300,7 @@ export interface SalesOrder {
   };
   invoices?: SalesOrderInvoice[];
   documents?: SalesOrderDocument[];
+  downloads?: SalesOrderDownloads;
   payments?: SalesOrderPayment[];
   payments_summary?: SalesOrderPaymentsSummary;
   shipping?: SalesOrderShippingInfo;
@@ -322,7 +323,52 @@ export interface SalesOrderShippingInfo {
   };
 }
 
+export interface SalesOrderInvoiceShortcut {
+  id: string;
+  series: string | null;
+  folio: string | null;
+  uuid: string | null;
+  tipo_comprobante: string | null;
+  stamp_status: string;
+  sat_status: string | null;
+  total: number;
+  currency: string;
+  rfc_receptor: string | null;
+  receptor_nombre: string | null;
+  stamped_at: string | null;
+  updated_at: string | null;
+  sat_last_sync_at: string | null;
+}
+
+export interface SalesOrderDownloads {
+  invoice: SalesOrderInvoiceShortcut | null;
+  ticket: { id: string; file_name: string } | null;
+  order_document: {
+    id: string;
+    file_name: string;
+    kind: 'original' | 'delivery';
+    url: string | null;
+  } | null;
+}
+
+export interface SalesOrderTrendMonth {
+  month: string;
+  label: string;
+  total: number;
+  orders_count: number;
+}
+
+export interface SalesOrderTrend {
+  currency: string;
+  from: string;
+  to: string;
+  total: number;
+  orders_count: number;
+  months: SalesOrderTrendMonth[];
+}
+
 export interface SalesOrderFilters {
+  with_downloads?: boolean;
   search?: string;
   status?: SalesOrderStatus;
   general_status?: SalesOrderStatus | SalesOrderStatus[] | string;

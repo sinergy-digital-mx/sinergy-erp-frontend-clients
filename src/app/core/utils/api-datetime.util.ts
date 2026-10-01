@@ -1,3 +1,8 @@
+/** Reloj de la operación (Baja California). Las fechas del API llegan en UTC. */
+export const BUSINESS_TIME_ZONE = 'America/Tijuana';
+
+const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
+
 const MONTHS_ES = [
   'Enero',
   'Febrero',
@@ -113,4 +118,33 @@ export function formatApiDate(
 
 export function formatApiDateTime(value: string | Date | null | undefined): string {
   return formatApiDate(value, 'datetime');
+}
+
+/** Día y hora legibles en el reloj de la operación, nunca en UTC. */
+export function formatBusinessDateTime(
+  value: string | Date | null | undefined,
+): { date: string; time: string } | null {
+  const instant = parseApiDateTime(value);
+  if (!instant) return null;
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: BUSINESS_TIME_ZONE,
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hourCycle: 'h12',
+  }).formatToParts(instant);
+  const pick = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  const monthIndex = Number(pick('month')) - 1;
+  const month = MONTHS_SHORT[monthIndex] ?? pick('month');
+  const minute = pick('minute').padStart(2, '0');
+  const period = pick('dayPeriod').toLowerCase().startsWith('a') ? 'a.m.' : 'p.m.';
+
+  return {
+    date: `${Number(pick('day'))} ${month} ${pick('year')}`,
+    time: `${Number(pick('hour'))}:${minute} ${period}`,
+  };
 }

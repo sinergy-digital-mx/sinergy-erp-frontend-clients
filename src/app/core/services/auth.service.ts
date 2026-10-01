@@ -647,7 +647,8 @@
 
     getBillingBranchId(): string | null {
       const stored = this.readStoredPosBranchId();
-      if (stored && this.isAssignedBranch(stored)) {
+      const assigned = this.getAssignedBranches();
+      if (stored && (assigned.length === 0 || this.isAssignedBranch(stored))) {
         return stored;
       }
       const id = this.user_info?.billing_branch_id;

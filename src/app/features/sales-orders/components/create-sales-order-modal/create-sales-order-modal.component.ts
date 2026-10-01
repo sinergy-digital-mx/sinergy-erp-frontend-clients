@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -121,6 +122,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     private productService: ProductService,
     private dialog: MatDialog,
     private toast: ToastService,
+    private auth: AuthService,
     private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<CreateSalesOrderModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
@@ -197,7 +199,9 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   get canConfirmAddProduct(): boolean {
     const quantity = Number(this.selectedQuantity || 0);
     const hasStockOrService =
-      this.isServiceProduct(this.selectedProduct) || this.getAvailableQty(this.selectedProduct) > 0;
+      this.asQuotation ||
+      this.isServiceProduct(this.selectedProduct) ||
+      this.getAvailableQty(this.selectedProduct) > 0;
     return !!(
       this.selectedProduct &&
       this.selectedUomId &&
@@ -230,6 +234,9 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       }));
       this.filteredCustomers = [...this.customers];
       this.prefillCustomerIfProvided();
+      if (!this.isEditingQuotation) {
+        this.prefillFiscalAndBranch();
+      }
       this.loading = false;
       this.cdr.detectChanges();
     }).catch((error) => {
@@ -388,6 +395,16 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.branchService.getBranches(fiscalConfigurationId).subscribe({
       next: (branches) => {
         this.branches = Array.isArray(branches) ? branches : [];
+        const current = this.form.get('billing_branch_id')?.value;
+        if (!current && !this.hydrating) {
+          const preferred = this.auth.getBillingBranchId();
+          const match = this.branches.find((branch) => branch.id === preferred);
+          const pick = match || (this.branches.length === 1 ? this.branches[0] : null);
+          if (pick) {
+            this.form.get('billing_branch_id')?.enable({ emitEvent: false });
+            this.form.patchValue({ billing_branch_id: pick.id });
+          }
+        }
         then?.();
         this.cdr.detectChanges();
       },
@@ -481,6 +498,18 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.filteredCustomers = this.customers.filter((customer) =>
       String(customer.display_name || '').toLowerCase().includes(term)
     );
+  }
+
+  private prefillFiscalAndBranch(): void {
+    if (this.form.get('fiscal_configuration_id')?.value) {
+      return;
+    }
+    const activeFiscal = this.auth.getFiscalConfigurationId();
+    const match = this.fiscalConfigurations.find((row) => row.id === activeFiscal);
+    const pick = match || (this.fiscalConfigurations.length === 1 ? this.fiscalConfigurations[0] : null);
+    if (pick?.id) {
+      this.form.patchValue({ fiscal_configuration_id: pick.id });
+    }
   }
 
   private prefillCustomerIfProvided(): void {
@@ -679,7 +708,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     }
     const available = this.getAvailableQty(this.selectedProduct);
     const isService = this.isServiceProduct(this.selectedProduct);
-    if (!isService && available <= 0) {
+    if (!isService && !this.asQuotation && available <= 0) {
       this.toast.warning('Este producto no tiene stock disponible en la sucursal');
       return;
     }

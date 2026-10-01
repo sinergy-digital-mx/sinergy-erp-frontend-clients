@@ -1,31 +1,19 @@
 <div class="accounting-page">
   <div class="accounting-content">
     <div class="accounting-header">
-      <div>
-        <h2 class="accounting-title">Cobranza / Contabilidad</h2>
-        <p class="accounting-subtitle">Resumen POS, cobranza por sucursal, cuentas por pagar y por cobrar</p>
-        <a routerLink="/accounting/flujo-deuda" class="accounting-debt-link">
-          Flujo de deuda
-        </a>
-      </div>
-
-      @if (showPeriodFilters()) {
-        <app-report-period-selector
-          [period]="period()"
-          [dateFrom]="dateFrom()"
-          [dateTo]="dateTo()"
-          [includeYear]="false"
-          [dayOnly]="posDayOnlyFilters()"
-          dateFromId="accounting-date-from"
-          dateToId="accounting-date-to"
-          ariaLabel="Periodo contable"
-          (periodChange)="onPeriodChange($event)"
-          (rangeChange)="onRangeChange($event)" />
-      }
+      <h2 class="accounting-title">Cobranza</h2>
     </div>
 
+    <nav class="accounting-nav" aria-label="Secciones de cobranza">
+      <app-tab
+        [tabs]="menuTabs"
+        [activeTabId]="activeTab()"
+        (tabChange)="onTabChange($event)">
+      </app-tab>
+    </nav>
+
     @if (showPeriodFilters()) {
-      <div class="accounting-filters">
+      <div class="accounting-toolbar">
         <div class="accounting-filters__field">
           <label class="accounting-filters__label" for="accounting-branch">
             Sucursal
@@ -49,22 +37,40 @@
             }
           </select>
         </div>
+
+        <app-report-period-selector
+          [period]="period()"
+          [dateFrom]="dateFrom()"
+          [dateTo]="dateTo()"
+          [includeYear]="false"
+          [dayOnly]="posDayOnlyFilters()"
+          dateFromId="accounting-date-from"
+          dateToId="accounting-date-to"
+          ariaLabel="Periodo contable"
+          (periodChange)="onPeriodChange($event)"
+          (rangeChange)="onRangeChange($event)" />
       </div>
     }
 
-    <div class="accounting-tabs" role="tablist" aria-label="Secciones de contabilidad">
-      @for (tab of tabs; track tab.id) {
-        <button
-          type="button"
-          class="accounting-tabs__btn"
-          role="tab"
-          [class.accounting-tabs__btn--active]="activeTab() === tab.id"
-          [attr.aria-selected]="activeTab() === tab.id"
-          (click)="onTabChange(tab.id)">
-          {{ tab.label }}
-        </button>
-      }
-    </div>
+    @if (showPosSummary()) {
+      <div class="accounting-summary" aria-label="Resumen del día">
+        <article class="summary-card">
+          <span class="summary-card__label">Entraron</span>
+          <strong class="summary-card__value">{{ posSummary().orders_entered }}</strong>
+          <span class="summary-card__meta">{{ formatMoney(posSummary().amount_entered) }}</span>
+        </article>
+        <article class="summary-card">
+          <span class="summary-card__label">Cobrado</span>
+          <strong class="summary-card__value">{{ formatMoney(posSummary().amount_collected) }}</strong>
+          <span class="summary-card__meta">{{ posSummary().orders_collected }} órdenes</span>
+        </article>
+        <article class="summary-card">
+          <span class="summary-card__label">Por cobrar</span>
+          <strong class="summary-card__value">{{ formatMoney(posSummary().amount_pending) }}</strong>
+          <span class="summary-card__meta">{{ posSummary().orders_pending }} órdenes</span>
+        </article>
+      </div>
+    }
 
     <div class="accounting-tab-panel" role="tabpanel">
       @if (activeTab() === 'pos') {
@@ -73,7 +79,8 @@
           [period]="period()"
           [dateFrom]="dateFrom()"
           [dateTo]="dateTo()"
-          [reloadToken]="reloadToken()" />
+          [reloadToken]="reloadToken()"
+          (summaryChange)="onPosSummary($event)" />
       }
 
       @if (activeTab() === 'pos-collections') {
@@ -93,6 +100,10 @@
         <app-accounts-receivable-tab
           [billingBranchId]="billingBranchId() || undefined"
           [reloadToken]="reloadToken()" />
+      }
+
+      @if (activeTab() === 'debt-flow') {
+        <app-customer-debt-flow [embedded]="true" />
       }
     </div>
   </div>

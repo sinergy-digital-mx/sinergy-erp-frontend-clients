@@ -1809,7 +1809,7 @@ export class ProductDetailModalComponent implements OnInit {
       product_id: '',
       product_uom_id: '',
       price: null,
-      iva_percentage: null,
+      iva_percentage: 8,
       ieps_percentage: null
     };
   }

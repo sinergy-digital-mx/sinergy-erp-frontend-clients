@@ -213,38 +213,45 @@
   }
 
   &--active {
-    background-color: #ecfdf5;
-    color: #047857;
+    background-color: #e8f1fa;
+    color: #0072b2;
+    border: 1px solid #0072b2;
 
     .status-pill__dot {
-      background-color: #10b981;
+      background-color: #0072b2;
+      border-radius: 2px;
     }
   }
 
   &--inactive {
-    background-color: #f3f4f6;
-    color: #6b7280;
+    background-color: #f4f4f5;
+    color: #3f3f46;
+    border: 1px dashed #71717a;
 
     .status-pill__dot {
-      background-color: #9ca3af;
+      background-color: #71717a;
     }
   }
 
   &--suspended {
-    background-color: #fef9c3;
-    color: #a16207;
+    background-color: #fff4e0;
+    color: #b86e00;
+    border: 1px solid #e69f00;
 
     .status-pill__dot {
-      background-color: #eab308;
+      background-color: #e69f00;
+      transform: rotate(45deg);
     }
   }
 
   &--deleted {
-    background-color: #fee2e2;
-    color: #b91c1c;
+    background-color: #fde8dc;
+    color: #9a3412;
+    border: 1px solid #d55e00;
 
     .status-pill__dot {
-      background-color: #ef4444;
+      background-color: transparent;
+      border: 2px solid #d55e00;
     }
   }
 

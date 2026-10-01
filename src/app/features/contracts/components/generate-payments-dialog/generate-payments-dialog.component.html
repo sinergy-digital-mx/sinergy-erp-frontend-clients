@@ -9,8 +9,34 @@
   <div class="dialog-content" [formGroup]="form">
     <p class="text-sm text-gray-600 mb-4">
       Indica la fecha de <strong>inicio</strong> de las cuotas. El <strong>fin</strong> se calcula solo con los
-      {{ paymentMonths || '—' }} meses del contrato.
+      {{ paymentMonths || '—' }} meses del contrato. La cuota sale del saldo que queda después del enganche.
     </p>
+
+    <div class="balance-note">
+      <p class="balance-note__title">Saldo de las mensualidades</p>
+      <div class="balance-note__row">
+        <span>Precio total</span>
+        <strong>{{ totalPrice | currency:data.currency }}</strong>
+      </div>
+      <div class="balance-note__row">
+        <span>Enganche</span>
+        <strong>{{ downPaymentBasis | currency:data.currency }}</strong>
+      </div>
+      <div class="balance-note__row balance-note__row--total">
+        <span>Pendiente a financiar</span>
+        <strong>{{ balanceAfterDownPayment | currency:data.currency }}</strong>
+      </div>
+      <p class="balance-note__hint">
+        @if (paymentMonths && balanceAfterDownPayment > 0) {
+          {{ balanceAfterDownPayment | currency:data.currency }} ÷ {{ paymentMonths }} meses.
+        } @else if (data.contract?.down_payment_financed && downPaymentBasis <= 0) {
+          La cuota queda en 0 hasta definir la meta de enganche.
+        }
+        @if (lastInstallmentDiffers && lastInstallmentAmount != null) {
+          La última cuota es {{ lastInstallmentAmount | currency:data.currency }} para cerrar el saldo.
+        }
+      </p>
+    </div>
 
     <p class="field-label">Fecha de inicio</p>
     <div class="date-grid">

@@ -108,6 +108,17 @@
       transform: translateY(-1px);
     }
   }
+
+  .btn-reopen,
+  .btn-correct {
+    background: #eef2ff;
+    color: #3730a3;
+
+    &:hover {
+      background: #e0e7ff;
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .main-content {

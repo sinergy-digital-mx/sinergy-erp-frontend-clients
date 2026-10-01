@@ -26,11 +26,12 @@
         <thead class="bg-gray-50">
           <tr>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Folio</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Almacén</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sucursal</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pago</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Archivos</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -42,7 +43,12 @@
                   {{ order.folio || order.id.substring(0, 8) }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-900">{{ order.warehouse?.name || '—' }}</td>
+              <td class="px-4 py-3">
+                <span class="order-place" [title]="branchLabel(order) + ' · ' + fiscalLabel(order)">
+                  <span class="order-place__branch">{{ branchLabel(order) }}</span>
+                  <span class="order-place__fiscal">{{ fiscalLabel(order) }}</span>
+                </span>
+              </td>
               <td class="px-4 py-3 whitespace-nowrap">
                 <span [ngClass]="getStatusClass(getOrderStatus(order))">{{ getOrderStatus(order) }}</span>
               </td>
@@ -53,16 +59,64 @@
                   <span class="sales-order-pay-cell__meta">{{ paymentMetaLabel(order) }}</span>
                 </span>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-600">{{ order.created_at | apiDate:'short' }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                @if (orderWhen(order.created_at); as when) {
+                  <span class="order-when">
+                    <span class="order-when__date">{{ when.date }}</span>
+                    <span class="order-when__time">{{ when.time }}</span>
+                  </span>
+                } @else {
+                  —
+                }
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap" (click)="$event.stopPropagation()">
+                <div class="order-files">
+                  @if (order.downloads?.invoice; as invoice) {
+                    <button
+                      type="button"
+                      class="order-file order-file--invoice"
+                      [disabled]="downloadingKey() === 'invoice:' + order.id"
+                      (mouseenter)="showInvoiceTip($event, invoice)"
+                      (mouseleave)="hideInvoiceTip()"
+                      (click)="downloadInvoice(order, invoice, $event)">
+                      Factura
+                    </button>
+                  }
+                  @if (order.downloads?.ticket) {
+                    <button
+                      type="button"
+                      class="order-file"
+                      [disabled]="downloadingKey() === 'ticket:' + order.id"
+                      (click)="downloadTicket(order, $event)">
+                      Ticket
+                    </button>
+                  }
+                  @if (order.downloads?.order_document; as doc) {
+                    @if (doc.url) {
+                      <a
+                        class="order-file"
+                        [href]="doc.url"
+                        target="_blank"
+                        rel="noopener"
+                        (click)="$event.stopPropagation()">
+                        {{ orderDocumentLabel(doc.kind) }}
+                      </a>
+                    }
+                  }
+                  @if (!order.downloads?.invoice && !order.downloads?.ticket && !order.downloads?.order_document?.url) {
+                    <span class="order-files__empty">—</span>
+                  }
+                </div>
+              </td>
             </tr>
           }
         </tbody>
       </table>
     </div>
 
-    @if (totalPages > 1) {
+    @if (total() > 0) {
       <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 text-sm text-gray-600">
-        <span>{{ total() }} orden(es) · Página {{ page() }} de {{ totalPages }}</span>
+        <span>{{ total() }} órdenes · Página {{ page() }} de {{ totalPages }}</span>
         <div class="flex gap-2">
           <button
             type="button"
@@ -83,3 +137,22 @@
     }
   }
 </div>
+
+@if (invoiceTip(); as tip) {
+  <div
+    class="invoice-tip"
+    [class.invoice-tip--above]="tip.above"
+    [style.left.px]="tip.x"
+    [style.top.px]="tip.y"
+    role="tooltip">
+    <p class="invoice-tip__title">{{ invoiceFolio(tip.invoice) }}</p>
+    <p class="invoice-tip__row"><span>CFDI</span>{{ tip.invoice.sat_status || 'Sin verificar' }}</p>
+    <p class="invoice-tip__row"><span>Timbrado</span>{{ stampLabel(tip.invoice.stamp_status) }}</p>
+    <p class="invoice-tip__row"><span>Tipo</span>{{ invoiceTipo(tip.invoice) }}</p>
+    <p class="invoice-tip__row"><span>Total</span>{{ formatCurrency(tip.invoice.total) }}</p>
+    <p class="invoice-tip__row"><span>Receptor</span>{{ tip.invoice.receptor_nombre || tip.invoice.rfc_receptor || '—' }}</p>
+    <p class="invoice-tip__row"><span>UUID</span>{{ tip.invoice.uuid || '—' }}</p>
+    <p class="invoice-tip__row"><span>Actualización</span>{{ whenLabel(tip.invoice.updated_at) }}</p>
+    <p class="invoice-tip__row"><span>Timbrada</span>{{ whenLabel(tip.invoice.stamped_at) }}</p>
+  </div>
+}

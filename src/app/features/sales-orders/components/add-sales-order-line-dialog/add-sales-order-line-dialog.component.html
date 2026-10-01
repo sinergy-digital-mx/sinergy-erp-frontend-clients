@@ -77,7 +77,7 @@
           [disabled]="saving()">
       </div>
       <div class="form-field">
-        <label class="form-label">Precio unitario</label>
+        <label class="form-label">Precio sin IVA</label>
         <div class="cost-with-currency">
           <input
             type="number"
@@ -139,6 +139,27 @@
             step="0.01"
             [disabled]="saving()">
         </div>
+      </div>
+    </div>
+
+    <div class="add-line-dialog__totals">
+      <div>
+        <span>Sin IVA</span>
+        <strong>{{ lineNet | number:'1.2-2' }} {{ data.currency }}</strong>
+      </div>
+      <div>
+        <span>IVA {{ selectedIva || 0 }}%</span>
+        <strong>{{ lineIvaAmount | number:'1.2-2' }} {{ data.currency }}</strong>
+      </div>
+      @if (lineIepsAmount > 0) {
+        <div>
+          <span>IEPS {{ selectedIeps || 0 }}%</span>
+          <strong>{{ lineIepsAmount | number:'1.2-2' }} {{ data.currency }}</strong>
+        </div>
+      }
+      <div class="add-line-dialog__totals-total">
+        <span>Total con IVA</span>
+        <strong>{{ lineTotal | number:'1.2-2' }} {{ data.currency }}</strong>
       </div>
     </div>
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, Input, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -80,6 +80,8 @@ const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', '
   styleUrl: './customer-debt-flow.component.scss',
 })
 export class CustomerDebtFlowComponent implements OnInit {
+  /** Dentro del menú de Cobranza: sin título ni botón de volver. */
+  @Input() embedded = false;
   view: DebtFlowView = 'aging';
   datePreset: DebtFlowPeriod = 'month';
   customDateFrom = '';

@@ -97,6 +97,50 @@
   }
 }
 
+.balance-note {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e0e7ff;
+  border-radius: 0.75rem;
+  background: #f8faff;
+
+  &__title {
+    margin: 0 0 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #4338ca;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.2rem 0;
+    font-size: 0.875rem;
+    color: #374151;
+
+    strong {
+      color: #111827;
+    }
+
+    &--total {
+      margin-top: 0.25rem;
+      padding-top: 0.45rem;
+      border-top: 1px solid #e0e7ff;
+      font-weight: 600;
+    }
+  }
+
+  &__hint {
+    margin: 0.55rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #4b5563;
+  }
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -1,14 +1,16 @@
 <div class="purchase-order-list-container">
   <div class="purchase-content">
-    <div class="px-4 pb-8">
-      <div class="sf-header">
-        <div class="sf-header__left">
-          <app-back-button title="Volver a cobranza" (clicked)="goBack()" />
-          <div class="sf-header__titles">
-            <h2 class="sf-header__title">Flujo de deuda</h2>
-            <p class="sf-header__subtitle">{{ subtitle }}</p>
+    <div [class.px-4]="!embedded" class="pb-8">
+      <div class="sf-header" [class.sf-header--embedded]="embedded">
+        @if (!embedded) {
+          <div class="sf-header__left">
+            <app-back-button title="Volver a cobranza" (clicked)="goBack()" />
+            <div class="sf-header__titles">
+              <h2 class="sf-header__title">Flujo de deuda</h2>
+              <p class="sf-header__subtitle">{{ subtitle }}</p>
+            </div>
           </div>
-        </div>
+        }
         <button
           type="button"
           class="page-export-btn"

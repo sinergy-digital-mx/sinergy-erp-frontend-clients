@@ -8,10 +8,9 @@
 }
 
 .pos-summary-layout {
-  display: grid;
-  grid-template-columns: 1fr minmax(280px, 340px);
-  gap: 1.25rem;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .pos-summary-section {
@@ -20,6 +19,28 @@
   border-radius: 14px;
   padding: 1rem;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.pos-summary-error {
+  margin: 0 0 0.75rem;
+  color: #b91c1c;
+  font-size: 0.8125rem;
+}
+
+.payment-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.payment-pill--paid {
+  background: #ecfdf5;
+  color: #047857;
 }
 
 .pos-summary-section__title {
@@ -31,17 +52,34 @@
 
 .pos-summary-table-wrap {
   overflow: hidden;
+
+  ::ng-deep .datatable-row {
+    cursor: pointer;
+  }
 }
 
 .collection-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 0.875rem 1.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #0f172a 0%, #1e1b4b 42%, #312e81 100%);
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(49, 46, 129, 0.22);
+}
+
+.collection-card__lead {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
-  padding: 1rem;
-  border-radius: 16px;
-  background: linear-gradient(165deg, #0f172a 0%, #1e1b4b 48%, #312e81 100%);
-  color: #fff;
-  box-shadow: 0 12px 28px rgba(49, 46, 129, 0.28);
+  gap: 0.75rem;
+}
+
+.collection-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 .collection-card__head {
@@ -127,7 +165,7 @@
 
 .collection-card__metrics {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
 }
 
@@ -178,7 +216,7 @@
 
 .collection-card__shifts {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
 }
 
@@ -190,10 +228,6 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.18);
-}
-
-.collection-shift-stat--wide {
-  grid-column: 1 / -1;
 }
 
 .collection-shift-stat--btn {
@@ -306,7 +340,9 @@
 }
 
 @media (max-width: 960px) {
-  .pos-summary-layout {
+  .collection-card,
+  .collection-card__metrics,
+  .collection-card__shifts {
     grid-template-columns: 1fr;
   }
 }

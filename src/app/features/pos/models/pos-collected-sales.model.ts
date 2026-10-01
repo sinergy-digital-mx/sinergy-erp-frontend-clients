@@ -115,16 +115,43 @@ export function posCustomerCompanySubtitle(customer?: {
   return company;
 }
 
+export function posRegisteredCustomerLabel(customer?: {
+  name?: string | null;
+  lastname?: string | null;
+  company_name?: string | null;
+  fiscal_razon_social?: string | null;
+  display_name?: string | null;
+  is_walk_in?: boolean;
+} | null, walkInName?: string | null): string {
+  const ticketName = walkInName?.trim();
+  if (ticketName && !isGenericPosCustomerLabel(ticketName)) {
+    return ticketName;
+  }
+  if (!customer || customer.is_walk_in) {
+    return ticketName || 'Público en General';
+  }
+  const person = [customer.name, customer.lastname].filter(Boolean).join(' ').trim();
+  const company = (customer.company_name || customer.display_name || customer.fiscal_razon_social || '').trim();
+  if (person && !isGenericPosCustomerLabel(person)) {
+    return person;
+  }
+  if (company && !isGenericPosCustomerLabel(company)) {
+    return company;
+  }
+  return person || company || 'Mostrador';
+}
+
+function isGenericPosCustomerLabel(value: string): boolean {
+  const normalized = value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+  return normalized === 'publico en general' || normalized === 'venta de mostrador' || normalized === 'mostrador';
+}
+
 export function collectedSaleCustomerLabel(item: CollectedSaleItem): string {
-  const walkInName = item.sales_order?.walk_in_name?.trim();
-  if (walkInName) {
-    return walkInName;
-  }
-  const c = item.customer;
-  if (!c?.name) {
-    return 'Mostrador';
-  }
-  return c.is_walk_in ? `${c.name} (mostrador)` : c.name;
+  return posRegisteredCustomerLabel(item.customer, item.sales_order?.walk_in_name);
 }
 
 export function collectedSaleCustomerCompany(item: CollectedSaleItem): string {

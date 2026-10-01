@@ -25,6 +25,7 @@ import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { GroupSelectComponent } from '../../../../core/components/group-select/group-select.component';
 import { LeadService } from '../../../../core/services/leads.service';
 import { Property } from '../../../properties/models/property.model';
+import { buildPendingBalanceTooltip } from '../../utils/pending-balance-tooltip.util';
 
 @Component({
   selector: 'app-contract-detail-modal',
@@ -347,24 +348,7 @@ export class ContractDetailModalComponent implements OnInit {
   }
 
   getPendingBreakdown(): string {
-    const stats = this.paymentStats();
-    if (!stats) return '';
-    
-    const currency = this.data.contract.currency || 'USD';
-    const monthlyPayment = this.formatCurrency(this.data.contract.monthly_payment, currency);
-    const partialAmount = stats.partial_payment ? this.formatCurrency(stats.partial_payment.remaining_amount, currency) : '';
-    const total = this.formatCurrency(stats.total_pending_amount, currency);
-    
-    let breakdown = `${stats.pending_full_payments} pagos × ${monthlyPayment}`;
-    if (stats.partial_payment) {
-      breakdown += ` + ${partialAmount} (pago parcial #${stats.partial_payment.installment_number})`;
-    }
-    breakdown += ` = ${total}`;
-    return breakdown;
-  }
-
-  formatCurrency(amount: number, currency: string): string {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: currency }).format(amount);
+    return buildPendingBalanceTooltip(this.data.contract, this.paymentStats());
   }
 
   setActiveTab(tab: 'edit' | 'payments' | 'down_payments' | 'hoa' | 'documents' | 'statement') {

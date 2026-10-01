@@ -154,7 +154,44 @@
                   </div>
                 </div>
                 <p>{{ stop.customer_name || 'Cliente' }}</p>
-                <p class="stop__muted">{{ stop.address_summary || 'Sin dirección' }}</p>
+                @if (stop.customer_addresses?.length) {
+                  <ul class="addr-list">
+                    @for (addr of stop.customer_addresses; track addr.id) {
+                      <li>
+                        <label class="addr-option">
+                          <input
+                            type="radio"
+                            [name]="'stop-addr-' + stop.sales_order_id"
+                            [checked]="isSelectedAddress(stop, addr.id)"
+                            [disabled]="!isCreado() || addressUpdating()"
+                            (change)="selectStopAddress(stop, addr.id)"
+                          />
+                          <span>
+                            <strong>{{ addr.type_label || 'Dirección' }}</strong>
+                            @if (addr.is_primary) {
+                              <span class="addr-primary">Principal</span>
+                            }
+                            {{ addr.address_summary || 'Sin calle' }}
+                            @if (addr.has_gps === false) {
+                              <em>sin GPS</em>
+                            }
+                          </span>
+                        </label>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="stop__muted">{{ stop.address_summary || 'Sin dirección' }}</p>
+                }
+                @if (isCreado() && stop.customer_id != null) {
+                  <button
+                    type="button"
+                    class="link-btn"
+                    *hasPermission="permissions.update"
+                    (click)="openAddStopAddress(stop)">
+                    Nueva dirección
+                  </button>
+                }
                 @if (stop.legDistanceLabel) {
                   <span class="stop__leg">Desde anterior: {{ stop.legDistanceLabel }}</span>
                 }

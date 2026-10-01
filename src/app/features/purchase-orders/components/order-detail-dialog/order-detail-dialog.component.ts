@@ -38,6 +38,9 @@ import { WarehouseService } from '../../../settings/services/warehouse.service';
 import { Warehouse } from '../../../settings/models/warehouse.model';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG, WAREHOUSE_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import { AuthService } from '../../../../core/services/auth.service';
+import { PURCHASE_ORDER_PERMISSIONS } from '../../config/permissions.config';
+import { ReceiptCorrectionDialogComponent } from '../receipt-correction-dialog/receipt-correction-dialog.component';
 import { formatTitleCase } from '../../../sales-orders/utils/sales-order-display.util';
 import {
   formatPedimentoDisplay,
@@ -102,12 +105,24 @@ export class OrderDetailDialogComponent {
 
   canReceive = computed(() => {
     const order = this.order();
-    return order && order.general_status !== 'Recibida';
+    return (order?.general_status ?? order?.status) === 'Creada';
   });
 
   canCancel = computed(() => {
     const order = this.order();
-    return order && order.general_status !== 'Recibida';
+    const status = order?.general_status ?? order?.status;
+    return status === 'Creada' || status === 'Recibida';
+  });
+
+  canReopen = computed(() => {
+    const order = this.order();
+    return (order?.general_status ?? order?.status) === 'Cancelada';
+  });
+
+  canCorrectReceipt = computed(() => {
+    const order = this.order();
+    return (order?.general_status ?? order?.status) === 'Recibida'
+      && this.authService.hasPermission(PURCHASE_ORDER_PERMISSIONS.correctReceipt);
   });
 
   canAddPayment = computed(() => {
@@ -166,7 +181,8 @@ export class OrderDetailDialogComponent {
     private dialog: MatDialog,
     private fiscalConfigService: FiscalConfigurationService,
     private vendorService: VendorService,
-    private warehouseService: WarehouseService
+    private warehouseService: WarehouseService,
+    private authService: AuthService,
   ) {
     this.loadDocumentTypes();
     this.loadOrder();
@@ -781,7 +797,89 @@ export class OrderDetailDialogComponent {
   }
 
   cancelOrder(): void {
-    console.log('Cancelar orden');
+    const order = this.order();
+    if (!order) return;
+    const received = (order.general_status ?? order.status) === 'Recibida';
+    this.dialog
+      .open(AlertDialogComponent, {
+        width: '460px',
+        data: {
+          title: received ? 'Cancelar y sacar inventario' : 'Cancelar orden',
+          message: received
+            ? 'Se cancela la orden y se da salida a lo que se ingresó. La entrada queda en el historial con su fecha, y la salida queda hoy. Si un lote ya no tiene toda la existencia, primero hay que auditarlo y reponerla.'
+            : 'La orden pasará a Cancelada. No se movió inventario.',
+          type: 'warning',
+          text_accept: 'Cancelar orden',
+          text_cancel: 'Volver',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.purchaseOrderService.cancelOrder(order.id, {
+          reason: received ? 'Cancelación con salida de inventario' : 'Cancelación',
+        }).subscribe({
+          next: () => {
+            this.toast.success('Orden cancelada');
+            this.loadOrder();
+          },
+          error: (error) => {
+            this.dialog.open(AlertDialogComponent, {
+              width: '480px',
+              data: {
+                title: 'No se puede cancelar',
+                message: error?.message || 'No se pudo cancelar',
+                type: 'error',
+                text_cancel: 'Entendido',
+              },
+            });
+          },
+        });
+      });
+  }
+
+  reopenOrder(): void {
+    const order = this.order();
+    if (!order) return;
+    this.dialog
+      .open(AlertDialogComponent, {
+        width: '460px',
+        data: {
+          title: 'Volver a Creada',
+          message: 'La orden vuelve a Creada. Si ya se había recibido, el inventario que salió al cancelar no regresa: hay que recibirla de nuevo.',
+          type: 'warning',
+          text_accept: 'Reabrir',
+          text_cancel: 'Volver',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.purchaseOrderService.reopenOrder(order.id).subscribe({
+          next: () => {
+            this.toast.success('Orden reabierta');
+            this.loadOrder();
+          },
+          error: (error) => this.toast.error(error?.message || 'No se pudo reabrir'),
+        });
+      });
+  }
+
+  openReceiptCorrection(): void {
+    const order = this.order();
+    if (!order) return;
+    this.dialog
+      .open(ReceiptCorrectionDialogComponent, {
+        width: '480px',
+        maxWidth: '95vw',
+        data: { orderId: order.id, lines: order.line_items ?? [] },
+      })
+      .afterClosed()
+      .subscribe((saved: boolean) => {
+        if (!saved) return;
+        this.toast.success('Recibo corregido');
+        this.loadOrder();
+      });
   }
 
   registerPayment(): void {

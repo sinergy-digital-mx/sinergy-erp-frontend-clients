@@ -31,7 +31,15 @@
               (click)="adjustCount('MXN', d, -1)">
               −
             </button>
-            <span class="denom-stepper__value" aria-hidden="true">{{ getCount('MXN', d) }}</span>
+            <input
+              type="number"
+              class="denom-stepper__value"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              [attr.aria-label]="'Cantidad de billetes de ' + d"
+              [ngModel]="getCount('MXN', d)"
+              (ngModelChange)="setCount('MXN', d, $event)" />
             <button
               type="button"
               class="denom-stepper__btn"
@@ -67,7 +75,15 @@
               (click)="adjustCount('USD', d, -1)">
               −
             </button>
-            <span class="denom-stepper__value" aria-hidden="true">{{ getCount('USD', d) }}</span>
+            <input
+              type="number"
+              class="denom-stepper__value"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              [attr.aria-label]="'Cantidad de billetes de ' + d + ' dólares'"
+              [ngModel]="getCount('USD', d)"
+              (ngModelChange)="setCount('USD', d, $event)" />
             <button
               type="button"
               class="denom-stepper__btn"

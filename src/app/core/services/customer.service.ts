@@ -21,6 +21,37 @@ import {
   UpdateCustomerDto,
 } from '../../features/customers/models/customer-group.model';
 
+export interface CustomerPurchaseTrendMonth {
+  month: string;
+  label: string;
+  total: number;
+  orders_count: number;
+}
+
+export interface CustomerPurchaseTrend {
+  currency: string;
+  from: string;
+  to: string;
+  total: number;
+  orders_count: number;
+  months: CustomerPurchaseTrendMonth[];
+}
+
+export interface CustomerSalesStats {
+  orders_count: number;
+  active_orders_count: number;
+  cancelled_count: number;
+  sales_total: number;
+  paid_total: number;
+  paid_count: number;
+  pending_total: number;
+  pending_count: number;
+  invoiced_count: number;
+  average_order: number;
+  last_order_at: string | null;
+  last_order_folio: string | null;
+}
+
 export interface CustomersExportFilters {
   search?: string;
   status_id?: number | string;
@@ -67,6 +98,14 @@ export class CustomerService {
       params = params.set('fiscal_configuration_id', options.fiscal_configuration_id);
     }
     return this.http.get(`${this.api}/tenant/customers/${id}`, { params });
+  }
+
+  getCustomerSalesStats(id: string): Observable<CustomerSalesStats> {
+    return this.http.get<CustomerSalesStats>(`${this.api}/tenant/customers/${id}/sales-stats`);
+  }
+
+  getCustomerPurchaseTrend(id: string): Observable<CustomerPurchaseTrend> {
+    return this.http.get<CustomerPurchaseTrend>(`${this.api}/tenant/customers/${id}/purchase-trend`);
   }
 
   getCustomerCredits(id: string): Observable<CustomerFiscalCredit[]> {

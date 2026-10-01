@@ -51,8 +51,30 @@ export interface CollectionTerminalSummary {
   open_daily_shift: PosOpenDailyShiftSummary | null;
 }
 
+export interface PosDaySummary {
+  orders_entered: number;
+  amount_entered: number;
+  orders_collected: number;
+  amount_collected: number;
+  orders_pending: number;
+  amount_pending: number;
+}
+
+export interface PosEnteredOrder {
+  id: string;
+  folio?: string | null;
+  created_at: string;
+  total: number;
+  payment_status?: string | null;
+  terminal_name?: string | null;
+  customer_display_name?: string | null;
+  amount_collected: number;
+}
+
 export interface PosSummaryResponse {
   filters_applied: AccountingFiltersApplied;
+  summary: PosDaySummary;
+  entered_orders: PosEnteredOrder[];
   sales_terminals: SalesTerminalSummary[];
   collection_terminal: CollectionTerminalSummary | null;
 }

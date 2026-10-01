@@ -55,6 +55,7 @@ export class PosReceiptPreviewDialogComponent implements OnInit {
   receipt = signal<PosSaleReceipt | null>(null);
   previewLines = signal<ReceiptPreviewLine[]>([]);
   printing = signal(false);
+  downloadingPdf = signal(false);
   copies = signal(1);
   copiesOpen = signal(false);
 
@@ -162,6 +163,28 @@ export class PosReceiptPreviewDialogComponent implements OnInit {
     } finally {
       this.printing.set(false);
     }
+  }
+
+  downloadPdf(): void {
+    const orderId = this.data.salesOrderId?.trim();
+    if (!orderId || this.downloadingPdf()) return;
+    this.downloadingPdf.set(true);
+    this.error.set(null);
+    this.salesOrderService.downloadTicketPdf(orderId).subscribe({
+      next: (blob) => {
+        this.downloadingPdf.set(false);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `TICKET-${orderId}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.downloadingPdf.set(false);
+        this.error.set('No hay ticket guardado para generar el PDF.');
+      },
+    });
   }
 
   private applyReceipt(receipt: PosSaleReceipt): void {

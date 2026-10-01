@@ -30,8 +30,32 @@
         </app-sales-filter-bar>
       </div>
 
-      <!-- Stats Dashboard -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <!-- Resumen o gráfica. Las bolitas rotan solas; un clic las detiene. -->
+      <section class="sales-glance" aria-label="Resumen de ventas">
+        <div class="sales-glance__dots" role="tablist" aria-label="Cambiar vista">
+          <button
+            type="button"
+            class="sales-glance__dot"
+            role="tab"
+            [class.is-active]="glancePanel() === 0"
+            [attr.aria-selected]="glancePanel() === 0"
+            aria-label="Por estado y pago"
+            (click)="selectGlance(0)">
+            <span></span>
+          </button>
+          <button
+            type="button"
+            class="sales-glance__dot"
+            role="tab"
+            [class.is-active]="glancePanel() === 1"
+            [attr.aria-selected]="glancePanel() === 1"
+            aria-label="Ventas de los últimos 12 meses"
+            (click)="selectGlance(1)">
+            <span></span>
+          </button>
+        </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6" [hidden]="glancePanel() !== 0">
         <!-- Por Estado -->
         <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div class="flex justify-between items-center mb-3">
@@ -95,6 +119,16 @@
         </div>
       </div>
 
+        @if (glancePanel() === 1) {
+          <app-sales-order-trend
+            [trend]="trend()"
+            [loading]="trendLoading()"
+            [error]="trendError()"
+            (retry)="loadTrend()">
+          </app-sales-order-trend>
+        }
+      </section>
+
       <!-- Table -->
       <div class="hidden md:block">
         <app-datatable-wrapper
@@ -154,6 +188,30 @@
             </div>
           }
         </div>
+
+        @if ((table_config().totalResults || 0) > (table_config().limit || 15)) {
+          <div class="mt-4 flex justify-center">
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                [disabled]="(table_config().page || 1) <= 1 || loading()"
+                (click)="onPageChange({ page: (table_config().page || 1) - 1, limit: table_config().limit })"
+                class="px-3 py-1 text-sm border rounded disabled:opacity-50">
+                Anterior
+              </button>
+              <span class="text-sm text-gray-600">
+                Página {{ table_config().page }} de {{ Math.ceil(table_config().totalResults / table_config().limit) }}
+              </span>
+              <button
+                type="button"
+                [disabled]="!table_config().hasNext || loading()"
+                (click)="onPageChange({ page: (table_config().page || 1) + 1, limit: table_config().limit })"
+                class="px-3 py-1 text-sm border rounded disabled:opacity-50">
+                Siguiente
+              </button>
+            </div>
+          </div>
+        }
       </div>
     </div>
   </div>

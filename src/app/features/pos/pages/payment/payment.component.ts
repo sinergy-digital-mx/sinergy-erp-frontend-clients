@@ -125,6 +125,7 @@ import {
   collectedSaleTotal,
   paymentMethodLabel,
   posCustomerCompanySubtitle,
+  posRegisteredCustomerLabel,
 } from '../../models/pos-collected-sales.model';
 import { PosSaleReceipt } from '../../models/pos-receipt.model';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
@@ -236,6 +237,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedCollectCustomerId = signal<number | string | null>(null);
   selectedCustomerName = signal('Público en General');
   walkInName = signal('');
+  walkInPhone = signal('');
   walkInTicketOpen = signal(false);
   walkInRfc = signal('');
   readonly walkInRfcInvalid = computed(() => this.customerMode() === 'walk_in' && !isValidWalkInRfc(this.walkInRfc()));
@@ -328,7 +330,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly cashShortfallMxn = computed(() => collectCashShortfallMxn(this.collectForm(), this.orderTotal()));
 
-  readonly cashShortfallUsd = computed(() => collectCashShortfallUsd(this.collectForm()));
+  readonly cashShortfallUsd = computed(() =>
+    collectCashShortfallUsd(this.collectForm(), this.orderTotal())
+  );
 
   readonly appliedDelta = computed(() => collectAppliedDelta(this.collectForm(), this.orderTotal()));
 
@@ -340,6 +344,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     const form = this.collectForm();
     const total = this.orderTotal();
     if (form.paymentMethod === 'credit') {
+      if (this.allowCreditExceed()) {
+        return total > 0;
+      }
       return this.creditAvailable() + 0.01 >= total && total > 0;
     }
     return validateCollectForm(form, total) === null;
@@ -369,6 +376,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   });
 
   readonly creditAvailable = computed(() => Number(this.selectedCustomerDetail()?.credit_available ?? 0));
+
+  readonly allowCreditExceed = computed(() =>
+    this.selectedCustomerDetail()?.allow_credit_exceed === true,
+  );
 
   readonly canReturnToSales = computed(() =>
     this.authService.hasPermission(POS_PERMISSIONS.returnToSales)
@@ -1126,8 +1137,23 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.mixedTypeCount() >= 2 && this.mixedRemainder() > 0.009;
   }
 
+  walkInNeedsContact(method: string): boolean {
+    return method === 'card' || method === 'transfer' || method === 'check' || method === 'mixed';
+  }
+
   creditInsufficient(): boolean {
+    if (this.allowCreditExceed()) {
+      return false;
+    }
     return this.collectForm().paymentMethod === 'credit' && this.creditAvailable() + 0.01 < this.orderTotal();
+  }
+
+  creditExceedAuthorized(): boolean {
+    return (
+      this.collectForm().paymentMethod === 'credit' &&
+      this.allowCreditExceed() &&
+      this.creditAvailable() + 0.01 < this.orderTotal()
+    );
   }
 
   openCustomerCreditSettings(): void {
@@ -1189,6 +1215,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     if (document.visibilityState !== 'visible') {
       return;
     }
+    this.refreshDailyShift();
     const id = this.selectedCustomerId();
     if (this.customerMode() === 'registered' && id) {
       this.loadRegisteredCustomer(id);
@@ -1389,6 +1416,14 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if (this.customerMode() === 'walk_in' && this.walkInNeedsContact(form.paymentMethod)) {
+      if (!this.walkInName().trim() || this.walkInPhone().replace(/\D/g, '').length < 10) {
+        this.walkInTicketOpen.set(true);
+        this.collectError.set('En público en general, tarjeta, transferencia y cheque piden nombre y teléfono');
+        return;
+      }
+    }
+
     if (this.customerMode() === 'walk_in' && !isValidWalkInRfc(this.walkInRfc())) {
       this.walkInTicketOpen.set(true);
       this.collectError.set('El RFC debe tener 12 o 13 caracteres');
@@ -1407,6 +1442,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       ...(this.customerMode() === 'walk_in'
         ? {
             walk_in_name: this.walkInName().trim(),
+            walk_in_phone: this.walkInPhone().replace(/\D/g, ''),
             walk_in_rfc: normalizeWalkInRfc(this.walkInRfc()) ?? '',
           }
         : {}),
@@ -1667,15 +1703,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   customerLabel(sale: PendingSale): string {
-    const walkInName = sale.walk_in_name?.trim();
-    if (walkInName) {
-      return walkInName;
-    }
-    const c = sale.customer;
-    if (!c?.name) {
-      return 'Mostrador';
-    }
-    return isWalkInCollectCustomer(c) ? 'Público en General' : c.name;
+    return posRegisteredCustomerLabel(
+      sale.customer ? { ...sale.customer, is_walk_in: isWalkInCollectCustomer(sale.customer) } : null,
+      sale.walk_in_name,
+    );
   }
 
   customerCompanyLabel(sale: PendingSale): string {

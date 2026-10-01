@@ -589,7 +589,7 @@
               @if (customerMode() === 'walk_in' && walkInTicketOpen()) {
                 <div class="cobranza-field-grid cobranza-field-grid--2 cobranza-walk-in-fields">
                   <label class="cobranza-field">
-                    <span>Nombre <em class="cobranza-field__hint">opcional</em></span>
+                    <span>Nombre</span>
                     <input
                       type="text"
                       maxlength="120"
@@ -597,6 +597,16 @@
                       autocomplete="off"
                       [ngModel]="walkInName()"
                       (ngModelChange)="walkInName.set($event)" />
+                  </label>
+                  <label class="cobranza-field">
+                    <span>Teléfono</span>
+                    <input
+                      type="tel"
+                      maxlength="15"
+                      placeholder="10 dígitos"
+                      autocomplete="off"
+                      [ngModel]="walkInPhone()"
+                      (ngModelChange)="walkInPhone.set($event)" />
                   </label>
                   <label class="cobranza-field">
                     <span>RFC <em class="cobranza-field__hint">opcional</em></span>
@@ -742,7 +752,7 @@
                             (click)="tapBill('MXN', denom)">
                             ${{ denom }}
                             @if (getBillCount('MXN', denom) > 0) {
-                              <span class="cobranza-bill-btn__count">×{{ getBillCount('MXN', denom) }}</span>
+                              <span class="cobranza-bill-btn__count">{{ getBillCount('MXN', denom) }}</span>
                             }
                           </button>
                         }
@@ -799,7 +809,7 @@
                             (click)="tapBill('USD', denom)">
                             USD {{ denom }}
                             @if (getBillCount('USD', denom) > 0) {
-                              <span class="cobranza-bill-btn__count">×{{ getBillCount('USD', denom) }}</span>
+                              <span class="cobranza-bill-btn__count">{{ getBillCount('USD', denom) }}</span>
                             }
                           </button>
                         }
@@ -821,31 +831,46 @@
                   </div>
 
                   <div
-                    class="cobranza-cash-result"
+                    class="cobranza-cash-result cobranza-cash-result--band"
                     [class.cobranza-cash-result--change]="changeMxn() > 0 || changeUsd() > 0"
                     [class.cobranza-cash-result--short]="cashShortfallMxn() > 0">
-                    @if (cashShortfallMxn() > 0) {
-                      <div class="cobranza-cash-result__item cobranza-cash-result__item--warn">
-                        <span>Falta por recibir</span>
-                        <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
-                      </div>
-                    }
                     @if (collectForm().amountCashUsd > 0) {
                       <p class="cobranza-cash-fx">
                         Aplican {{ formatCurrencyUsd(collectForm().amountCashUsd) }}
                         a TC {{ collectForm().usdExchangeRate }}
                       </p>
                     }
-                    <div class="cobranza-cash-result__item">
+                    <div class="cobranza-cash-result__copy">
+                      @if (cashShortfallMxn() > 0) {
+                        <span>Falta por recibir</span>
+                      }
                       <span>Cambio a entregar</span>
-                      <div class="cobranza-cash-result__values">
-                        @if (changeUsd() > 0) {
-                          <strong class="cobranza-cash-result__change">{{ formatCurrencyUsd(changeUsd()) }}</strong>
+                    </div>
+                    <div class="cobranza-cash-result__values">
+                      @if (cashShortfallMxn() > 0) {
+                        <strong class="cobranza-cash-result__amount">
+                          {{ formatCurrency(cashShortfallMxn()) }}
+                          <span>MXN</span>
+                        </strong>
+                        @if (cashShortfallUsd() > 0) {
+                          <strong class="cobranza-cash-result__amount cobranza-cash-result__amount--sub">
+                            {{ formatCurrencyUsd(cashShortfallUsd()) }}
+                            <span>USD</span>
+                          </strong>
                         }
-                        @if (changeMxn() > 0 || changeUsd() === 0) {
-                          <strong class="cobranza-cash-result__change">{{ formatCurrency(changeMxn()) }}</strong>
-                        }
-                      </div>
+                      }
+                      @if (changeUsd() > 0) {
+                        <strong class="cobranza-cash-result__change">
+                          {{ formatCurrencyUsd(changeUsd()) }}
+                          <span>USD</span>
+                        </strong>
+                      }
+                      @if (changeMxn() > 0 || changeUsd() === 0) {
+                        <strong class="cobranza-cash-result__change">
+                          {{ formatCurrency(changeMxn()) }}
+                          <span>MXN</span>
+                        </strong>
+                      }
                     </div>
                   </div>
                 }
@@ -926,6 +951,8 @@
                     </app-credit-usage-bar>
                     @if (creditInsufficient()) {
                       <p class="cobranza-form-error">Crédito insuficiente. Disponible: {{ formatCurrency(creditAvailable()) }}</p>
+                    } @else if (creditExceedAuthorized()) {
+                      <p class="cobranza-credit-note">Excepción autorizada para esta venta. Al cobrar se apaga.</p>
                     }
                     <button type="button" class="cobranza-credit-link" (click)="openCustomerCreditSettings()">
                       Configurar crédito del cliente →

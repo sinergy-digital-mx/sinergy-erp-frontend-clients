@@ -21,6 +21,7 @@ export interface CrmActivityCustomer {
   lastname: string | null;
   company_name: string | null;
   display_name: string;
+  created_by?: CrmActivityUser | null;
 }
 
 export interface CrmActivity {

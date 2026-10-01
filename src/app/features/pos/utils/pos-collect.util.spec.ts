@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  resolvePosCollectCustomerId,
   addMixedCardPayment,
   applyMixedRemainderToLast,
   buildCollectPayload,
+  collectCashShortfallMxn,
+  collectCashShortfallUsd,
   collectChangeMxn,
   collectChangeUsd,
   collectReceivedTotalMxn,
@@ -14,6 +17,16 @@ import {
   mixedSelectedCount,
   validateCollectForm,
 } from './pos-collect.util';
+
+describe('resolvePosCollectCustomerId', () => {
+  it('usa el id del cliente y no el id legado', () => {
+    expect(resolvePosCollectCustomerId({ id: 1500, legacy_customer_id: 42 })).toBe(1500);
+  });
+
+  it('usa el id legado solo si no hay id', () => {
+    expect(resolvePosCollectCustomerId({ legacy_customer_id: 42 })).toBe(42);
+  });
+});
 
 describe('pago mixto — resto automático', () => {
   it('al capturar efectivo asigna la diferencia al último método', () => {
@@ -101,6 +114,17 @@ describe('pago mixto — resto automático', () => {
       { amount_mxn: 400, reference: '4242' },
       { amount_mxn: 430.5, reference: '1111' },
     ]);
+  });
+
+  it('el faltante en pesos se convierte a dólares con el tipo de cambio', () => {
+    const total = 4215.3;
+    const form = defaultCollectForm(total, 16.6);
+    form.paymentMethod = 'cash';
+    form.usdExchangeRate = 16.6;
+    form.receivedCashMxn = 1000;
+
+    expect(collectCashShortfallMxn(form, total)).toBe(3215.3);
+    expect(collectCashShortfallUsd(form, total)).toBe(193.69);
   });
 
   it('100 USD a 16.80 sobre 1079.65 da cambio 35.74 USD y no traba el cobro', () => {

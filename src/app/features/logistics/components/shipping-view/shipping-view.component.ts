@@ -74,6 +74,7 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   loading = signal(false);
   statusUpdating = signal(false);
   recalculating = signal(false);
+  addressUpdating = signal(false);
   errorMessage = signal<string | null>(null);
 
   private destroy$ = new Subject<void>();
@@ -262,6 +263,35 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
     });
   }
 
+  isSelectedAddress(stop: ShippingStop, addressId: number): boolean {
+    return String(stop.customer_address_id ?? '') === String(addressId);
+  }
+
+  selectStopAddress(stop: ShippingStop, addressId: number): void {
+    if (!this.isCreado() || this.addressUpdating() || this.isSelectedAddress(stop, addressId)) {
+      return;
+    }
+    this.addressUpdating.set(true);
+    this.shippingService.setStopAddress(this.shippingId, stop.sales_order_id, addressId).subscribe({
+      next: (res) => {
+        this.addressUpdating.set(false);
+        this.applyShipping(res.shipping);
+        this.shippingUpdated.emit(res.shipping);
+      },
+      error: (err) => {
+        this.addressUpdating.set(false);
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: {
+            message: err?.error?.message || 'No se pudo cambiar la dirección',
+            type: 'error',
+          },
+          duration: 5000,
+        });
+        this.load();
+      },
+    });
+  }
+
   private afterGpsFixed(): void {
     this.shippingService.recalculateDistance(this.shippingId).subscribe({
       next: (res) => {
@@ -289,6 +319,60 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
     ref.afterClosed().subscribe((ok) => {
       if (ok) this.afterGpsFixed();
     });
+  }
+
+  openAddStopAddress(stop: ShippingStop): void {
+    const customerId = stop.customer_id;
+    if (customerId == null) {
+      this.snackBar.openFromComponent(CustomSnackbarComponent, {
+        data: { message: 'Esta parada no tiene cliente asociado', type: 'error' },
+        duration: 4000,
+      });
+      return;
+    }
+    const ref = this.dialog.open(CustomerAddressDialogComponent, {
+      width: '960px',
+      maxWidth: '96vw',
+      data: {
+        customerId: String(customerId),
+        address: null,
+        defaultType: 'shipping',
+      },
+    });
+    ref.afterClosed().subscribe((created) => {
+      const addressId = this.createdAddressId(created);
+      if (addressId == null) {
+        if (created) this.afterGpsFixed();
+        return;
+      }
+      this.addressUpdating.set(true);
+      this.shippingService.setStopAddress(this.shippingId, stop.sales_order_id, addressId).subscribe({
+        next: (res) => {
+          this.addressUpdating.set(false);
+          this.applyShipping(res.shipping);
+          this.shippingUpdated.emit(res.shipping);
+        },
+        error: (err) => {
+          this.addressUpdating.set(false);
+          this.snackBar.openFromComponent(CustomSnackbarComponent, {
+            data: {
+              message: err?.error?.message || 'No se pudo usar la dirección nueva',
+              type: 'error',
+            },
+            duration: 5000,
+          });
+          this.load();
+        },
+      });
+    });
+  }
+
+  private createdAddressId(created: unknown): number | null {
+    if (!created || created === true || typeof created !== 'object') return null;
+    const id = (created as { id?: number | string }).id;
+    if (id == null || id === '') return null;
+    const parsed = Number(id);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   openFixStopGps(stop: ShippingStop): void {

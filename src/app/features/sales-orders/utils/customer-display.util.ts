@@ -32,6 +32,16 @@ export function getCustomerSummaryDisplayName(
   return withWalkInSuffix(name, summary.is_walk_in);
 }
 
+function isGenericCustomerLabel(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === 'público en general' ||
+    normalized === 'publico en general' ||
+    normalized === 'venta de mostrador' ||
+    normalized === 'mostrador'
+  );
+}
+
 export function resolveSalesOrderCustomerName(
   order?: SalesOrder | null,
   fallback = 'N/A',
@@ -40,25 +50,34 @@ export function resolveSalesOrderCustomerName(
     return fallback;
   }
 
+  const walkInTicket = (order as { walk_in_name?: string | null }).walk_in_name?.trim();
+  if (walkInTicket && !isGenericCustomerLabel(walkInTicket)) {
+    return walkInTicket;
+  }
+
+  const fiscalName = (
+    order.customer?.fiscal_razon_social ||
+    order.customer_summary?.company_name ||
+    order.customer?.company_name ||
+    ''
+  ).trim();
   const personName =
     joinPersonName(order.customer_summary?.name, order.customer_summary?.lastname) ||
     joinPersonName(order.customer?.name, order.customer?.lastname);
+
+  if (personName && !isGenericCustomerLabel(personName)) {
+    return withWalkInSuffix(personName, order.customer_summary?.is_walk_in);
+  }
+  if (fiscalName && !isGenericCustomerLabel(fiscalName)) {
+    return fiscalName;
+  }
+  if (order.customer_display_name?.trim() && !isGenericCustomerLabel(order.customer_display_name)) {
+    return order.customer_display_name.trim();
+  }
   if (personName) {
     return withWalkInSuffix(personName, order.customer_summary?.is_walk_in);
   }
-
-  if (order.customer_display_name?.trim()) {
-    return withWalkInSuffix(
-      order.customer_display_name.trim(),
-      order.customer_summary?.is_walk_in,
-    );
-  }
-
-  const summaryName = getCustomerSummaryDisplayName(order.customer_summary, '');
-  if (summaryName) {
-    return summaryName;
-  }
-  return getCustomerDisplayName(order.customer, fallback);
+  return fallback;
 }
 
 export function getSalesOrderCompanyName(order?: SalesOrder | null): string {

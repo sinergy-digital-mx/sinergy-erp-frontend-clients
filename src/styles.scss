@@ -52,7 +52,7 @@ main,
   input[type='text']:not(.mat-mdc-input-element):not(.mdc-text-field__input):not(.p-inputtext):not(.search-input):not(.zn-date-range__input):not(.form-input):not(.po-rc-input),
   input[type='search']:not(.mat-mdc-input-element):not(.search-input):not(.form-input):not(.cobranza-search__input):not(.pos-search__input):not(.pos-customer-search__input):not(.settings-search__input),
   input[type='email']:not(.mat-mdc-input-element):not(.p-inputtext):not(.form-input),
-  input[type='number']:not(.mat-mdc-input-element):not(.p-inputtext):not(.form-input):not(.pos-qty__input):not(.wc-ctrl):not(.wc-qty-input):not(.po-rc-input),
+  input[type='number']:not(.mat-mdc-input-element):not(.p-inputtext):not(.form-input):not(.pos-qty__input):not(.wc-ctrl):not(.wc-qty-input):not(.po-rc-input):not(.cobranza-tc-field__input),
   input[type='password']:not(.mat-mdc-input-element):not(.form-input),
   input[type='date']:not(.mat-mdc-input-element):not(.zn-date-range__input):not(.form-input):not(.po-rc-input),
   input[type='time']:not(.mat-mdc-input-element):not(.form-input) {
@@ -651,6 +651,21 @@ main,
   box-shadow: none !important;
 }
 
+.mat-mdc-tooltip.contract-pending-tooltip,
+.contract-pending-tooltip.mat-mdc-tooltip {
+  max-width: 380px !important;
+  white-space: pre-line !important;
+  line-height: 1.45 !important;
+  text-align: left !important;
+}
+
+.mat-mdc-tooltip.contract-pending-tooltip .mdc-tooltip__surface,
+.contract-pending-tooltip .mdc-tooltip__surface {
+  white-space: pre-line !important;
+  overflow: visible !important;
+  max-width: none !important;
+}
+
 .mat-mdc-tooltip.wc-status-tooltip,
 .wc-status-tooltip.mat-mdc-tooltip {
   max-width: 360px !important;
@@ -836,6 +851,17 @@ main,
 }
 
 // POS — modales con .modal-container (elegir cliente, turno, etc.)
+.cdk-overlay-pane.advance-invoice-dialog-panel,
+.mat-mdc-dialog-panel.advance-invoice-dialog-panel {
+  .mat-mdc-dialog-container,
+  .mat-mdc-dialog-surface {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible;
+  }
+}
+
 .cdk-overlay-pane.pos-dialog-panel,
 .mat-mdc-dialog-panel.pos-dialog-panel {
   .mat-mdc-dialog-container {

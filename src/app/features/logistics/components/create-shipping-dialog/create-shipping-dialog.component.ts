@@ -304,12 +304,25 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     this.step.set('form');
   }
 
-  /** Hint inicial; el back reordena por distancia. */
+  /** Hint inicial; el back reordena por distancia. Conserva la dirección ya elegida. */
   private buildOrdersPayloadFromSelection(): ShippingOrderInput[] {
-    return Array.from(this.selectedOrderIds).map((sales_order_id, index) => ({
-      sales_order_id,
-      stop_sequence: index + 1,
-    }));
+    const chosen = new Map(
+      (this.preview()?.orders ?? []).map((order) => [
+        order.sales_order_id,
+        order.customer_address_id,
+      ])
+    );
+    return Array.from(this.selectedOrderIds).map((sales_order_id, index) => {
+      const item: ShippingOrderInput = {
+        sales_order_id,
+        stop_sequence: index + 1,
+      };
+      const addressId = chosen.get(sales_order_id);
+      if (addressId != null && addressId !== '') {
+        item.customer_address_id = Number(addressId);
+      }
+      return item;
+    });
   }
 
   /** Usa orden y customer_address_id del preview enriquecido. */
@@ -411,6 +424,25 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     return !!p?.origin_missing_location || p?.origin?.location_status === 'without_location';
   }
 
+  isSelectedAddress(order: ShippingPreviewOrder, addressId: number): boolean {
+    return String(order.customer_address_id ?? '') === String(addressId);
+  }
+
+  selectStopAddress(order: ShippingPreviewOrder, addressId: number): void {
+    if (this.isSelectedAddress(order, addressId) || this.previewing()) return;
+    const current = this.preview();
+    if (!current) return;
+    this.preview.set({
+      ...current,
+      orders: current.orders.map((item) =>
+        item.sales_order_id === order.sales_order_id
+          ? { ...item, customer_address_id: addressId }
+          : item
+      ),
+    });
+    this.fetchPreview(false);
+  }
+
   stopNeedsAddress(order: ShippingPreviewOrder): boolean {
     return order.location_status === 'without_location' && !order.customer_address_id;
   }
@@ -471,9 +503,33 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
         defaultType: 'shipping',
       },
     });
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) this.refreshPreview();
+    ref.afterClosed().subscribe((created) => {
+      const addressId = this.createdAddressId(created);
+      if (addressId == null) {
+        if (created) this.refreshPreview();
+        return;
+      }
+      const current = this.preview();
+      if (current) {
+        this.preview.set({
+          ...current,
+          orders: current.orders.map((item) =>
+            item.sales_order_id === order.sales_order_id
+              ? { ...item, customer_address_id: addressId }
+              : item
+          ),
+        });
+      }
+      this.refreshPreview();
     });
+  }
+
+  private createdAddressId(created: unknown): number | null {
+    if (!created || created === true || typeof created !== 'object') return null;
+    const id = (created as { id?: number | string }).id;
+    if (id == null || id === '') return null;
+    const parsed = Number(id);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   openEditCustomerAddress(order: ShippingPreviewOrder): void {

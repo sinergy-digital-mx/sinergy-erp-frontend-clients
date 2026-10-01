@@ -76,6 +76,7 @@ import {
 } from '../../utils/pos-order.util';
 import { isValidWalkInRfc, normalizeWalkInRfc } from '../../utils/walk-in-ticket.util';
 import { resolvePosCollectCustomerId } from '../../utils/pos-collect.util';
+import { posRegisteredCustomerLabel } from '../../models/pos-collected-sales.model';
 import { isDiscountApiError, formatGlobalDiscountLabel, formatApplicableDiscountLabel } from '../../utils/pos-discount.util';
 import { GlobalDiscountService } from '../../../global-discounts/services/global-discount.service';
 import { GlobalDiscount } from '../../../global-discounts/models/global-discount.model';
@@ -122,6 +123,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   filteredProducts = signal<any[]>([]);
 
   searchTerm = signal<string>('');
+  catalogWarehouseId = signal('');
   loading = signal<boolean>(false);
   saving = signal<boolean>(false);
   confirming = signal<boolean>(false);
@@ -136,6 +138,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedCustomerName = signal('Público en General');
   selectedOrderCustomerId = signal<number | string | null>(null);
   walkInName = signal('');
+  readonly saleIvaPercent = signal<8 | 16>(8);
   walkInTicketOpen = signal(false);
   walkInRfc = signal('');
   readonly hasSelectedCustomer = computed(() => Boolean(this.selectedCustomerId()));
@@ -399,6 +402,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         this.resetCustomerSelection();
         this.clearEditingTicket();
         resetPosWarehouseForBranch(branchId);
+        this.catalogWarehouseId.set('');
         const fiscal = this.authService.getFiscalConfigurationId();
         if (fiscal) {
           this.posState.fiscalConfigurationId.set(fiscal);
@@ -766,6 +770,19 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.searchInput$.next(term);
   }
 
+  catalogWarehouses() {
+    return this.lastInventorySummary()?.warehouses ?? [];
+  }
+
+  onWarehouseFilter(warehouseId: string): void {
+    const nextId = String(warehouseId ?? '').trim();
+    if (nextId === this.catalogWarehouseId()) {
+      return;
+    }
+    this.catalogWarehouseId.set(nextId);
+    this.loadProducts(this.searchTerm());
+  }
+
   clearSearch(): void {
     if (!this.searchTerm()) {
       this.catalogSearchRef?.nativeElement.focus();
@@ -900,8 +917,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       uom_name: product.uom_name || 'Pieza',
       quantity: Math.max(0.001, selection.quantity),
       unit_price: Number(product.suggested_unit_price ?? product.cost ?? 0),
-      iva_percentage: Number(product.suggested_iva_percentage ?? 16),
-      ieps_percentage: Number(product.suggested_ieps_percentage ?? 0),
+      iva_percentage: this.saleIvaPercent(),
+      ieps_percentage: 0,
       subtotal: 0,
       line_gross_subtotal: 0,
       line_discount_amount: 0,
@@ -913,7 +930,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       pricing_options: normalizePosPricingOptions(collectPosPricingOptions(product)),
       selected_price_list_id: '',
       suggested_unit_price: Number(product.suggested_unit_price ?? product.cost ?? 0),
-      suggested_iva_percentage: Number(product.suggested_iva_percentage ?? 16),
+      suggested_iva_percentage: Number(product.suggested_iva_percentage ?? 8),
       suggested_ieps_percentage: Number(product.suggested_ieps_percentage ?? 0),
       applicable_discounts: Array.isArray(product.applicable_discounts) ? product.applicable_discounts : [],
     };
@@ -968,8 +985,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!optionId) {
       this.posService.updateItemPricing(index, {
         unit_price: Number(item.suggested_unit_price ?? item.unit_price ?? 0),
-        iva_percentage: Number(item.suggested_iva_percentage ?? item.iva_percentage ?? 0),
-        ieps_percentage: Number(item.suggested_ieps_percentage ?? item.ieps_percentage ?? 0),
+        iva_percentage: this.saleIvaPercent(),
+        ieps_percentage: 0,
         selected_price_list_id: '',
       });
       return;
@@ -984,8 +1001,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     const unitPrice = Number(selected.price);
     this.posService.updateItemPricing(index, {
       unit_price: Number.isFinite(unitPrice) ? unitPrice : Number(item.unit_price ?? 0),
-      iva_percentage: Number(selected.iva_percentage ?? item.iva_percentage ?? 0),
-      ieps_percentage: Number(selected.ieps_percentage ?? item.ieps_percentage ?? 0),
+      iva_percentage: this.saleIvaPercent(),
+      ieps_percentage: 0,
       selected_price_list_id: String(selected.price_list_id),
     });
   }
@@ -1117,9 +1134,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
                 this.saving.set(false);
                 const folioLabel = response.sales_order?.folio || this.editingFolio() || 'sin folio';
                 const queued = isPosOrderQueued(response.sales_order) || this.posState.salesQueueMode();
+                const customerLabel = this.ticketCustomerLabel();
                 const message = queued
-                  ? `Venta en cola (${folioLabel}). El cliente debe pasar a caja cuando abran el corte del día.`
-                  : `Venta enviada a caja (${folioLabel}). El cliente debe pasar a caja para pagar.`;
+                  ? `Venta en cola (${folioLabel}) para ${customerLabel}. El cliente debe pasar a caja cuando abran el corte del día.`
+                  : `Venta enviada a caja (${folioLabel}) para ${customerLabel}. El cliente debe pasar a caja para pagar.`;
                 this.notifySuccess(message, 6000);
                 this.posService.clearCart();
                 this.resetCustomerSelection();
@@ -1152,9 +1170,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           this.saving.set(false);
           const folioLabel = order.folio ? order.folio : 'sin folio';
           const queued = isPosOrderQueued(order) || this.posState.salesQueueMode();
+          const customerLabel = this.ticketCustomerLabel();
           const message = queued
-            ? `Venta en cola (${folioLabel}). El cliente debe pasar a caja cuando abran el corte del día.`
-            : `Venta registrada (${folioLabel}). El cliente debe pasar a caja para pagar.`;
+            ? `Venta en cola (${folioLabel}) para ${customerLabel}. El cliente debe pasar a caja cuando abran el corte del día.`
+            : `Venta registrada (${folioLabel}) para ${customerLabel}. El cliente debe pasar a caja para pagar.`;
           this.notifySuccess(message, 6000);
           this.posService.clearCart();
           this.resetCustomerSelection();
@@ -1338,6 +1357,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return label === 'Público en General' ? 'Público en General · toca para el ticket' : label;
   }
 
+  ticketCustomerName(ticket: PosSaleInProgress): string {
+    return posRegisteredCustomerLabel(ticket.customer, ticket.walk_in_name);
+  }
+
   ticketCustomerLabel(): string {
     if (this.hasSelectedCustomer()) {
       return this.selectedCustomerName();
@@ -1403,6 +1426,15 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return formatUnitCurrency(amount);
   }
 
+  formatCatalogPrice(amount: number): string {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(amount) || 0);
+  }
+
   hasLineDiscount(item: POSCartItem): boolean {
     return Number(item.line_discount_amount) > 0.009;
   }
@@ -1420,32 +1452,59 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return unitGross * (Number(item.quantity) || 0);
   }
 
-  /** Precio de lista con IVA e IEPS, para que el drop coincida con el total de línea. */
-  pricingOptionGross(opt: { price?: number | string; iva_percentage?: number | string; ieps_percentage?: number | string }): number {
-    return this.unitPriceWithTaxes(opt.price, opt.iva_percentage, opt.ieps_percentage);
+  /** Precio de lista neto más el IVA elegido en el punto de venta. */
+  pricingOptionGross(opt: { price?: number | string }): number {
+    return this.unitPriceWithTaxes(opt.price, this.saleIvaPercent(), 0);
   }
 
   suggestedPricingGross(item: POSCartItem): number {
     return this.unitPriceWithTaxes(
       item.suggested_unit_price ?? item.unit_price,
-      item.suggested_iva_percentage ?? item.iva_percentage,
-      item.suggested_ieps_percentage ?? item.ieps_percentage
+      this.saleIvaPercent(),
+      0,
     );
   }
 
   catalogPriceGross(product: {
     cost?: number | string;
     suggested_unit_price?: number | string;
-    suggested_iva_percentage?: number | string | null;
-    suggested_ieps_percentage?: number | string | null;
-    iva_percentage?: number | string | null;
-    ieps_percentage?: number | string | null;
   }): number {
     return this.unitPriceWithTaxes(
       product.suggested_unit_price ?? product.cost,
-      product.suggested_iva_percentage ?? product.iva_percentage ?? 16,
-      product.suggested_ieps_percentage ?? product.ieps_percentage ?? 0
+      this.saleIvaPercent(),
+      0,
     );
+  }
+
+  canChangeSaleIva(): boolean {
+    return this.authService.user_info?.is_manager === true;
+  }
+
+  setSaleIva(percent: 8 | 16): void {
+    this.saleIvaPercent.set(percent);
+    const items = this.posService.cart().items.map((item) => ({
+      ...item,
+      iva_percentage: percent,
+      ieps_percentage: 0,
+    }));
+    this.posService.replaceCart(items);
+  }
+
+  stockWarehouseLabel(product: {
+    warehouse_names?: string[] | string | null;
+    warehouse_name?: string | null;
+    batches?: Array<{ warehouse_name?: string | null }> | null;
+  }): string {
+    const fromList = Array.isArray(product?.warehouse_names)
+      ? product.warehouse_names
+      : typeof product?.warehouse_names === 'string'
+        ? product.warehouse_names.split(',')
+        : [];
+    const fromBatches = (product?.batches ?? []).map((batch) => batch?.warehouse_name);
+    const names = [...fromList, product?.warehouse_name, ...fromBatches]
+      .map((name) => String(name ?? '').trim())
+      .filter(Boolean);
+    return [...new Set(names)].join(', ');
   }
 
   private unitPriceWithTaxes(
@@ -1540,6 +1599,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.searchTerm().trim()) {
       return 'No hay productos que coincidan con tu búsqueda.';
     }
+    if (this.catalogWarehouseId()) {
+      return 'No hay productos en esta bodega.';
+    }
     return 'No hay productos disponibles en esta sucursal.';
   }
 
@@ -1556,6 +1618,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.posService
       .getPosInventorySummary({
         search: search.trim() || undefined,
+        warehouse_id: this.catalogWarehouseId() || undefined,
         limit: 200,
       })
       .subscribe({
@@ -1569,7 +1632,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
             sku: row.product_sku || row.sku || '',
             primary_photo_url: row.product_photo || row.primary_photo_url || null,
             cost: Number(row.suggested_unit_price ?? row.cost ?? 0),
-            suggested_iva_percentage: Number(row.suggested_iva_percentage ?? 16),
+            suggested_iva_percentage: Number(row.suggested_iva_percentage ?? 8),
             suggested_ieps_percentage: Number(row.suggested_ieps_percentage ?? 0),
             has_price: row.suggested_unit_price != null || row.cost != null,
             total_available_quantity: Number(row.total_available_quantity ?? row.available_quantity ?? 0),

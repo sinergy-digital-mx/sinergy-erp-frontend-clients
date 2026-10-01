@@ -269,30 +269,43 @@ export class DatatableWrapperComponent implements OnInit, OnChanges {
   }
 
   get pageSizeOptions(): number[] {
-    const options = this.config?.pageSizeOptions;
-    return options?.length ? options : this.defaultPageSizeOptions;
+    const options = this.config?.pageSizeOptions?.length
+      ? [...this.config.pageSizeOptions]
+      : [...this.defaultPageSizeOptions];
+    const limit = Number(this.config?.limit);
+    if (limit > 0 && !options.includes(limit)) {
+      options.push(limit);
+      options.sort((a, b) => a - b);
+    }
+    return options;
   }
 
   get totalPages(): number {
-    const limit = this.config?.limit || 20;
-    const total = this.config?.totalResults ?? 0;
+    const limit = Number(this.config?.limit) || 20;
+    const total = Number(this.config?.totalResults) || 0;
     if (total <= 0) return 1;
     return Math.ceil(total / limit);
   }
 
+  get canGoNext(): boolean {
+    const page = Number(this.config?.page) || 1;
+    const byTotal = (Number(this.config?.totalResults) || 0) > 0 && page < this.totalPages;
+    return this.config?.hasNext === true || byTotal;
+  }
+
   get rangeStart(): number {
-    const total = this.config?.totalResults ?? 0;
+    const total = Number(this.config?.totalResults) || 0;
     if (total <= 0) return 0;
-    const page = this.config?.page || 1;
-    const limit = this.config?.limit || 20;
+    const page = Number(this.config?.page) || 1;
+    const limit = Number(this.config?.limit) || 20;
     return (page - 1) * limit + 1;
   }
 
   get rangeEnd(): number {
-    const total = this.config?.totalResults ?? 0;
+    const total = Number(this.config?.totalResults) || 0;
     if (total <= 0) return 0;
-    const page = this.config?.page || 1;
-    const limit = this.config?.limit || 20;
+    const page = Number(this.config?.page) || 1;
+    const limit = Number(this.config?.limit) || 20;
     return Math.min(page * limit, total);
   }
 
@@ -308,27 +321,19 @@ export class DatatableWrapperComponent implements OnInit, OnChanges {
    * Handle next page
    */
   onNextPage(): void {
-    if (this.config?.hasNext) {
-      const nextPage = (this.config.page || 1) + 1;
-      const paginationEvent: IPaginationEvent = {
-        page: nextPage,
-        limit: this.config.limit,
-      };
-      this.pageChange.emit(paginationEvent);
-    }
+    if (!this.canGoNext) return;
+    const page = Number(this.config?.page) || 1;
+    const limit = Number(this.config?.limit) || 15;
+    this.pageChange.emit({ page: page + 1, limit });
   }
 
   /**
    * Handle previous page
    */
   onPrevPage(): void {
-    if ((this.config?.page || 1) > 1) {
-      const prevPage = (this.config.page || 1) - 1;
-      const paginationEvent: IPaginationEvent = {
-        page: prevPage,
-        limit: this.config.limit,
-      };
-      this.pageChange.emit(paginationEvent);
-    }
+    const page = Number(this.config?.page) || 1;
+    if (page <= 1) return;
+    const limit = Number(this.config?.limit) || 15;
+    this.pageChange.emit({ page: page - 1, limit });
   }
 }

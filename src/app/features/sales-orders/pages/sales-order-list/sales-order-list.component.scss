@@ -33,6 +33,46 @@
   }
 }
 
+.sales-glance {
+  margin-bottom: 1.5rem;
+}
+
+.sales-glance__dots {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  margin-bottom: 0.35rem;
+}
+
+.sales-glance__dot {
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+
+  span {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+
+  &:hover span {
+    background: #94a3b8;
+  }
+
+  &.is-active span {
+    background: #4f46e5;
+    transform: scale(1.15);
+  }
+}
+
 .sales-order-list__table {
   ::ng-deep {
     .datatable-table {

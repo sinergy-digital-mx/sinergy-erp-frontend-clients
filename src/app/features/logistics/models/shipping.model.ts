@@ -22,6 +22,17 @@ export interface ShippingPreviewDto {
   orders: ShippingOrderInput[];
 }
 
+export interface ShippingCustomerAddress {
+  id: number;
+  type?: string | null;
+  type_label?: string;
+  address_summary?: string;
+  is_primary?: boolean;
+  has_gps?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 export interface ShippingStop {
   sales_order_id: string;
   order_number?: string;
@@ -30,6 +41,7 @@ export interface ShippingStop {
   customer_id?: string | number;
   customer_address_id?: number | string | null;
   customer_name?: string;
+  customer_addresses?: ShippingCustomerAddress[];
   address_summary?: string;
   location_status?: LocationStatus;
   delivery_latitude?: number | null;
@@ -73,6 +85,7 @@ export interface ShippingPreviewOrder {
   location_status: LocationStatus;
   address_summary?: string;
   address_type?: string;
+  customer_addresses?: ShippingCustomerAddress[];
   customer_id?: string | number;
   customer_address_id?: number | string | null;
   latitude?: number | null;
@@ -332,6 +345,7 @@ export function normalizeShipping(raw: any): Shipping {
       stop_sequence: s.stop_sequence ?? idx + 1,
       customer_id: s.customer_id ?? customer?.id ?? so?.customer_id,
       customer_address_id: s.customer_address_id ?? address?.id ?? null,
+      customer_addresses: Array.isArray(s.customer_addresses) ? s.customer_addresses : [],
       customer_name: customerName,
       address_summary:
         s.address_summary ||

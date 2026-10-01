@@ -332,7 +332,7 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
   getTypeClass = getActivityTypeClass;
 
   creatorName(activity: CrmActivity): string {
-    return this.userDisplayName(activity.user);
+    return this.userDisplayName(activity.customer?.created_by);
   }
 
   private reload(page = this.page()): void {

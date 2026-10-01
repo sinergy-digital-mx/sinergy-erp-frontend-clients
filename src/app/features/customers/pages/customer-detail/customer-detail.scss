@@ -1,3 +1,100 @@
+.customer-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  padding: 1.15rem 1.25rem;
+  background: #fff;
+  border: 1px solid #f3f4f6;
+  border-radius: 0.75rem;
+}
+
+.customer-hero__lead {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.customer-hero__mark {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.8rem;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.customer-hero__body {
+  min-width: 0;
+}
+
+.customer-hero__name {
+  margin: 0.15rem 0 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #1e293b;
+}
+
+.customer-hero__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.5rem;
+  margin: 0.7rem 0 0;
+}
+
+.customer-hero__fact {
+  min-width: 0;
+
+  dt {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+
+  dd {
+    margin: 0.12rem 0 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #334155;
+    overflow-wrap: anywhere;
+  }
+
+  a {
+    color: #4f46e5;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.customer-hero__rfc {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 639px) {
+  .customer-hero {
+    flex-direction: column;
+  }
+
+  .customer-hero__name {
+    font-size: 1.25rem;
+  }
+}
+
 /* Mismo patrón visual que el toggle del modal Crear/Editar cliente */
 .customer-detail__expand-additional {
   display: flex;
@@ -129,38 +226,47 @@
   }
 
   &--active {
-    background-color: #ecfdf5;
-    color: #047857;
+    background-color: #e8f1fa;
+    color: #0072b2;
+    border: 1px solid #0072b2;
 
     .status-pill__dot {
-      background-color: #10b981;
+      background-color: #0072b2;
+      border-radius: 2px;
     }
   }
 
   &--inactive {
-    background-color: #f3f4f6;
-    color: #6b7280;
+    background-color: #f4f4f5;
+    color: #3f3f46;
+    border: 1px dashed #71717a;
 
     .status-pill__dot {
-      background-color: #9ca3af;
+      background-color: #71717a;
     }
   }
 
   &--suspended {
-    background-color: #fef9c3;
-    color: #a16207;
+    background-color: #fff4e0;
+    color: #b86e00;
+    border: 1px solid #e69f00;
 
     .status-pill__dot {
-      background-color: #eab308;
+      background-color: #e69f00;
+      border-radius: 1px;
+      transform: rotate(45deg);
     }
   }
 
   &--deleted {
-    background-color: #fee2e2;
-    color: #b91c1c;
+    background-color: #fde8dc;
+    color: #9a3412;
+    border: 1px solid #d55e00;
 
     .status-pill__dot {
-      background-color: #ef4444;
+      background-color: transparent;
+      border: 2px solid #d55e00;
+      border-radius: 9999px;
     }
   }
 

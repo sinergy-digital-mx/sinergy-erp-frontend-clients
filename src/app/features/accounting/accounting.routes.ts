@@ -16,13 +16,14 @@ export const ACCOUNTING_ROUTES: Routes = [
   {
     path: 'flujo-deuda',
     loadComponent: () =>
-      import('./components/customer-debt-flow/customer-debt-flow.component').then(
-        (m) => m.CustomerDebtFlowComponent,
+      import('./pages/accounting-page/accounting-page.component').then(
+        (m) => m.AccountingPageComponent,
       ),
     canActivate: [permissionGuard],
     data: {
       permissions: [ACCOUNTING_PERMISSIONS.read],
       title: 'Flujo de deuda',
+      tab: 'debt-flow',
     },
   },
 ];

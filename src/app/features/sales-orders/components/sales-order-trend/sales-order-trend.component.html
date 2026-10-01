@@ -1,0 +1,47 @@
+<section class="sales-trend" aria-label="Ventas de los últimos 12 meses">
+  <header class="sales-trend__head">
+    <div>
+      <h3 class="sales-trend__title">Ventas</h3>
+      <p class="sales-trend__subtitle">Últimos 12 meses</p>
+    </div>
+
+    @if (trend) {
+      <div class="sales-trend__summary">
+        <p class="sales-trend__amount">{{ formatMoney(trend.total) }}</p>
+        <p class="sales-trend__meta">
+          {{ ordersLabel(trend.orders_count) }}
+          @if (peakLabel(); as peak) {
+            <span> · pico {{ peak }}</span>
+          }
+        </p>
+        @if (monthDelta(); as delta) {
+          <p
+            class="sales-trend__delta"
+            [class.sales-trend__delta--up]="delta.up"
+            [class.sales-trend__delta--down]="!delta.up">
+            {{ delta.text }}
+          </p>
+        }
+      </div>
+    }
+  </header>
+
+  @if (loading) {
+    <div class="sales-trend__skeleton" aria-hidden="true"></div>
+  } @else if (error) {
+    <div class="sales-trend__empty">
+      <p>No se pudo cargar la gráfica.</p>
+      <button type="button" class="sales-trend__retry" (click)="retry.emit()">Reintentar</button>
+    </div>
+  } @else if (chartData(); as data) {
+    <div class="sales-trend__canvas">
+      <p-chart
+        type="line"
+        [data]="data"
+        [options]="chartOptions()"
+        [plugins]="chartPlugins"
+        height="128px">
+      </p-chart>
+    </div>
+  }
+</section>

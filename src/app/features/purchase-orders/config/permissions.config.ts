@@ -24,6 +24,7 @@ export const PURCHASE_ORDER_PERMISSIONS = {
   reject: 'purchase_orders:Reject',
   receive: 'purchase_orders:Receive',
   cancel: 'purchase_orders:Cancel',
+  correctReceipt: 'purchase_orders:CorrectReceipt',
   
   // Document management
   uploadDocument: 'purchase_orders:UploadDocument',

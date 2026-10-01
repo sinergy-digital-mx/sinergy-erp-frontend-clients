@@ -3,3 +3,129 @@
 :host {
   display: block;
 }
+
+.order-place {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.order-place__branch,
+.order-place__fiscal {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-place__branch {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.order-place__fiscal {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+.order-when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  line-height: 1.25;
+}
+
+.order-when__date {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.order-when__time {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.order-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.order-files__empty {
+  color: #94a3b8;
+  font-size: 0.8125rem;
+}
+
+.order-file {
+  display: inline-flex;
+  align-items: center;
+  height: 1.75rem;
+  padding: 0 0.55rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: #c7d2fe;
+    background: #eef2ff;
+    color: #3730a3;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+}
+
+.order-file--invoice {
+  border-color: #c7d2fe;
+  color: #4338ca;
+}
+
+.invoice-tip {
+  position: fixed;
+  z-index: 80;
+  width: min(17.5rem, calc(100vw - 16px));
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #e0e7ff;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+  pointer-events: none;
+}
+
+.invoice-tip--above {
+  transform: translateY(-100%);
+}
+
+.invoice-tip__title {
+  margin: 0 0 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #312e81;
+}
+
+.invoice-tip__row {
+  display: grid;
+  grid-template-columns: 6.4rem minmax(0, 1fr);
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #1e293b;
+  word-break: break-word;
+
+  span {
+    color: #64748b;
+  }
+}

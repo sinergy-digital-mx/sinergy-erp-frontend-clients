@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -8,15 +8,16 @@ import {
   AccountingPeriod,
   CollectionCustomerType,
   CollectionTerminalSummary,
+  PosDaySummary,
+  PosEnteredOrder,
   PosOpenDailyShiftSummary,
-  PosTerminalType,
-  SalesTerminalSummary,
 } from '../../models/accounting.model';
 import { dailyShiftIsOpen, formatPosShiftDate } from '../../../pos/models/pos-daily-shift.model';
-import { PosTerminalSalesDialogComponent } from '../pos-terminal-sales-dialog/pos-terminal-sales-dialog.component';
 import { PosCollectionsDialogComponent } from '../pos-collections-dialog/pos-collections-dialog.component';
 import { PosShiftsDialogComponent, PosShiftsDialogView } from '../pos-shifts-dialog/pos-shifts-dialog.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
+import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 
 @Component({
   selector: 'app-pos-summary-tab',
@@ -33,21 +34,21 @@ export class PosSummaryTabComponent implements OnChanges {
   @Input() dateFrom = '';
   @Input() dateTo = '';
   @Input() reloadToken = 0;
+  @Output() summaryChange = new EventEmitter<PosDaySummary>();
 
   branchMissing = signal(false);
+  loadError = signal(false);
   collectionTerminal = signal<CollectionTerminalSummary>(this.emptyCollectionTerminal());
 
   tableConfig = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Terminal', prop: 'terminal_name', sortable: false, canAutoResize: false, width: 180 },
-      { name: 'Tipo', prop: 'terminal_type', sortable: false, canAutoResize: false, width: 90 },
-      { name: '# Ventas/Cobros', prop: 'sales_count', sortable: false, canAutoResize: false, width: 110 },
-      { name: 'Monto', prop: 'amount_sold', sortable: false, canAutoResize: false, width: 120 },
-      { name: 'Cortes globales', prop: 'daily_shifts_count', sortable: false, canAutoResize: false, width: 110 },
-      { name: 'Cortes parciales', prop: 'partial_shifts_count', sortable: false, canAutoResize: false, width: 115 },
-      { name: 'Corte abierto', prop: 'open_daily_shift', sortable: false, canAutoResize: false, width: 140 },
-      { name: 'Acción', prop: 'action', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Hora', prop: 'created_at', sortable: false, canAutoResize: false, width: 90 },
+      { name: 'Cliente', prop: 'customer_display_name', sortable: false, canAutoResize: false, width: 200 },
+      { name: 'Terminal', prop: 'terminal_name', sortable: false, canAutoResize: false, width: 160 },
+      { name: 'Total', prop: 'total', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Cobro', prop: 'payment_status', sortable: false, canAutoResize: false, width: 120 },
     ],
     externalPaging: false,
     externalSorting: false,
@@ -55,7 +56,7 @@ export class PosSummaryTabComponent implements OnChanges {
     limit: 50,
     totalResults: 0,
     loading: false,
-    emptyState: { title: 'Sin terminales', subtitle: 'No hay ventas POS en el periodo seleccionado' },
+    emptyState: { title: 'Sin órdenes', subtitle: 'No entraron ventas POS en el día seleccionado' },
     columnMode: 'force',
     reorderable: false,
   });
@@ -82,26 +83,48 @@ export class PosSummaryTabComponent implements OnChanges {
     return this.taxCalculator.formatCurrency(value);
   }
 
-  terminalTypeLabel(type: PosTerminalType): string {
-    return type === 'COBRANZA' ? 'Caja' : 'Ventas';
-  }
-
-  isCollectionTerminal(terminal: SalesTerminalSummary): boolean {
-    return terminal.terminal_type === 'COBRANZA';
-  }
-
-  transactionCount(terminal: SalesTerminalSummary): number {
-    if (this.isCollectionTerminal(terminal)) {
-      return terminal.orders_collected ?? terminal.sales_count;
+  formatTime(value?: string): string {
+    if (!value) {
+      return '—';
     }
-    return terminal.sales_count;
+    const hasZone = /[zZ]|[+-]\d{2}:\d{2}$/.test(value);
+    const normalized = hasZone ? value : `${value.replace(' ', 'T')}Z`;
+    const parsed = new Date(normalized);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return parsed.toLocaleTimeString('es-MX', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Mexico_City',
+    });
   }
 
-  transactionAmount(terminal: SalesTerminalSummary): number {
-    if (this.isCollectionTerminal(terminal)) {
-      return terminal.amount_collected ?? terminal.amount_sold;
+  paymentLabel(order: PosEnteredOrder): string {
+    if ((order.amount_collected ?? 0) > 0 || order.payment_status === 'Pagado') {
+      return 'Cobrado';
     }
-    return terminal.amount_sold;
+    return 'Por cobrar';
+  }
+
+  isCollected(order: PosEnteredOrder): boolean {
+    return (order.amount_collected ?? 0) > 0 || order.payment_status === 'Pagado';
+  }
+
+  onOrderRow(event: { data?: PosEnteredOrder }): void {
+    if (event?.data) {
+      this.openOrder(event.data);
+    }
+  }
+
+  openOrder(order: PosEnteredOrder): void {
+    if (!order.id) {
+      return;
+    }
+    this.dialog.open(SalesOrderDetailDialogComponent, {
+      ...ORDER_DETAIL_DIALOG_OPTIONS,
+      data: { orderId: order.id },
+    });
   }
 
   openShiftLabel(shift: PosOpenDailyShiftSummary | null | undefined): string {
@@ -118,29 +141,6 @@ export class PosSummaryTabComponent implements OnChanges {
 
   collectionOpenShiftLabel(): string {
     return this.openShiftLabel(this.collectionTerminal().open_daily_shift);
-  }
-
-  openTerminalAction(terminal: SalesTerminalSummary): void {
-    if (this.isCollectionTerminal(terminal)) {
-      this.openCollections('all');
-      return;
-    }
-    this.openTerminalDetail(terminal);
-  }
-
-  openTerminalDetail(terminal: SalesTerminalSummary): void {
-    this.dialog.open(PosTerminalSalesDialogComponent, {
-      width: '92vw',
-      maxWidth: '1200px',
-      maxHeight: '90vh',
-      data: {
-        terminal,
-        billingBranchId: this.billingBranchId,
-        period: this.period,
-        dateFrom: this.dateFrom,
-        dateTo: this.dateTo,
-      },
-    });
   }
 
   openShifts(view: PosShiftsDialogView, initialShiftId?: string): void {
@@ -186,7 +186,9 @@ export class PosSummaryTabComponent implements OnChanges {
   private loadSummary(): void {
     if (!this.billingBranchId) {
       this.branchMissing.set(true);
+      this.loadError.set(false);
       this.collectionTerminal.set(this.emptyCollectionTerminal());
+      this.publishSummary(this.emptySummary());
       this.tableConfig.update((cfg) => ({ ...cfg, rows: [], loading: false, totalResults: 0 }));
       return;
     }
@@ -196,6 +198,7 @@ export class PosSummaryTabComponent implements OnChanges {
     }
 
     this.branchMissing.set(false);
+    this.loadError.set(false);
     this.tableConfig.update((cfg) => ({ ...cfg, loading: true }));
 
     this.accountingService
@@ -207,17 +210,20 @@ export class PosSummaryTabComponent implements OnChanges {
       })
       .subscribe({
         next: (res) => {
-          const salesTerminals = res.sales_terminals ?? [];
+          const orders = res.entered_orders ?? [];
           this.collectionTerminal.set(res.collection_terminal ?? this.emptyCollectionTerminal());
+          this.publishSummary(res.summary ?? this.emptySummary());
           this.tableConfig.update((cfg) => ({
             ...cfg,
-            rows: salesTerminals,
-            totalResults: salesTerminals.length,
+            rows: orders,
+            totalResults: orders.length,
             loading: false,
           }));
         },
         error: () => {
+          this.loadError.set(true);
           this.collectionTerminal.set(this.emptyCollectionTerminal());
+          this.publishSummary(this.emptySummary());
           this.tableConfig.update((cfg) => ({
             ...cfg,
             rows: [],
@@ -226,6 +232,21 @@ export class PosSummaryTabComponent implements OnChanges {
           }));
         },
       });
+  }
+
+  private publishSummary(summary: PosDaySummary): void {
+    this.summaryChange.emit(summary);
+  }
+
+  private emptySummary(): PosDaySummary {
+    return {
+      orders_entered: 0,
+      amount_entered: 0,
+      orders_collected: 0,
+      amount_collected: 0,
+      orders_pending: 0,
+      amount_pending: 0,
+    };
   }
 
   private emptyCollectionTerminal(): CollectionTerminalSummary {

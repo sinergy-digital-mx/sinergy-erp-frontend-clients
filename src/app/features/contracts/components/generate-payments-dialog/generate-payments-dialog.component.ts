@@ -10,7 +10,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { PaymentService } from '../../services/payment.service';
-import { Contract } from '../../models/contract.model';
+import { Contract, getDownPaymentTarget } from '../../models/contract.model';
 import { PaymentSchedulePreview } from '../../models/payment.model';
 
 export interface GeneratePaymentsDialogData {
@@ -121,6 +121,39 @@ export class GeneratePaymentsDialogComponent {
   get monthlyPayment(): number | null {
     const amount = this.preview()?.monthly_payment ?? this.data.contract?.monthly_payment;
     return amount != null ? Number(amount) : null;
+  }
+
+  get totalPrice(): number {
+    return Number(this.preview()?.total_price ?? this.data.contract?.total_price ?? 0);
+  }
+
+  get downPaymentBasis(): number {
+    const fromPreview = this.preview()?.down_payment_basis;
+    if (fromPreview != null) return Number(fromPreview);
+    const contract = this.data.contract;
+    if (!contract) return 0;
+    if (contract.down_payment_financed) {
+      return getDownPaymentTarget(contract) ?? 0;
+    }
+    return Number(contract.down_payment) || 0;
+  }
+
+  get balanceAfterDownPayment(): number {
+    const fromPreview = this.preview()?.balance_after_down_payment;
+    if (fromPreview != null) return Number(fromPreview);
+    if (this.data.contract?.down_payment_financed && this.downPaymentBasis <= 0) return 0;
+    return Math.max(0, Math.round((this.totalPrice - this.downPaymentBasis) * 100) / 100);
+  }
+
+  get lastInstallmentAmount(): number | null {
+    const amount = this.preview()?.last_installment_amount;
+    return amount != null ? Number(amount) : null;
+  }
+
+  get lastInstallmentDiffers(): boolean {
+    const last = this.lastInstallmentAmount;
+    const monthly = this.monthlyPayment;
+    return last != null && monthly != null && Math.abs(last - monthly) >= 0.01;
   }
 
   private get localEndDate(): string | null {

@@ -18,22 +18,47 @@
 
     <!-- CUSTOMER DETAILS -->
     @if (customer() && !isLoading() && !error()) {
-      <!-- HEADER -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="min-w-0">
-          <h2 class="text-2xl sm:text-3xl font-bold text-[#334155] truncate">{{ customer()!.name }}</h2>
-          <p class="text-sm text-gray-500 truncate">{{ customer()!.email }}</p>
+      <header class="customer-hero">
+        <div class="customer-hero__lead">
+          <div class="customer-hero__mark" aria-hidden="true">{{ customerInitials(customer()!) }}</div>
+          <div class="customer-hero__body">
+            <h2 class="customer-hero__name">{{ customerDisplayName(customer()!) }}</h2>
+            <dl class="customer-hero__facts">
+              @if (customerCompany(customer()!); as company) {
+                @if (company !== customerDisplayName(customer()!)) {
+                  <div class="customer-hero__fact">
+                    <dt>Empresa</dt>
+                    <dd>{{ company }}</dd>
+                  </div>
+                }
+              }
+              @if (customer()!.email) {
+                <div class="customer-hero__fact">
+                  <dt>Correo</dt>
+                  <dd>
+                    <a [href]="'mailto:' + customer()!.email">{{ customer()!.email }}</a>
+                  </dd>
+                </div>
+              }
+              @if (customer()!.fiscal_rfc) {
+                <div class="customer-hero__fact">
+                  <dt>RFC</dt>
+                  <dd class="customer-hero__rfc">{{ customer()!.fiscal_rfc }}</dd>
+                </div>
+              }
+            </dl>
+          </div>
         </div>
         <app-button
           *hasPermission="permissions.update"
           text="Editar cliente"
           variant="primary"
           size="sm"
-          [fullWidth]="true"
+          [fullWidth]="false"
           [icon]="PencilIcon"
           (clicked)="editCustomer()">
         </app-button>
-      </div>
+      </header>
 
       <!-- CUSTOMER INFORMATION -->
       <div class="bg-white shadow-md rounded-xl p-4 sm:p-6 border border-gray-100">
@@ -388,6 +413,56 @@
         }
       </div>
       </ng-container>
+
+      @if (salesStats(); as stats) {
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div class="bg-white border border-gray-100 rounded-xl p-4">
+            <p class="text-xs font-semibold text-gray-500">Órdenes</p>
+            <p class="text-xl font-bold text-[#334155]">{{ stats.active_orders_count }}</p>
+            <p class="text-xs text-gray-400 mt-1 truncate">
+              {{ formatMoney(stats.sales_total) }}
+              @if (stats.cancelled_count) {
+                · {{ stats.cancelled_count }} canceladas
+              }
+            </p>
+          </div>
+          <div class="bg-white border border-gray-100 rounded-xl p-4">
+            <p class="text-xs font-semibold text-gray-500">Última orden</p>
+            <p class="text-xl font-bold text-[#334155]">
+              @if (stats.last_order_at) {
+                {{ stats.last_order_at | apiDate:'date' }}
+              } @else {
+                —
+              }
+            </p>
+            <p class="text-xs text-gray-400 mt-1 truncate">{{ stats.last_order_folio || 'Sin órdenes' }}</p>
+          </div>
+          <div class="bg-white border border-gray-100 rounded-xl p-4">
+            <p class="text-xs font-semibold text-gray-500">Facturadas</p>
+            <p class="text-xl font-bold text-[#334155]">{{ stats.invoiced_count }}</p>
+            <p class="text-xs text-gray-400 mt-1">Con CFDI vigente</p>
+          </div>
+          <div class="bg-white border border-gray-100 rounded-xl p-4">
+            <p class="text-xs font-semibold text-gray-500">Pagadas</p>
+            <p class="text-xl font-bold text-[#1d4ed8]">{{ stats.paid_count }}</p>
+            <p class="text-xs text-[#1d4ed8] mt-1 truncate">{{ formatMoney(stats.paid_total) }}</p>
+          </div>
+          <div class="bg-white border border-gray-100 rounded-xl p-4">
+            <p class="text-xs font-semibold text-gray-500">Debe</p>
+            <p class="text-xl font-bold text-[#c2410c]">{{ formatMoney(stats.pending_total) }}</p>
+            <p class="text-xs text-[#c2410c] mt-1">
+              {{ stats.pending_count }} {{ stats.pending_count === 1 ? 'orden' : 'órdenes' }}
+            </p>
+          </div>
+          <div class="bg-white border border-gray-100 rounded-xl p-4">
+            <p class="text-xs font-semibold text-gray-500">Promedio</p>
+            <p class="text-xl font-bold text-[#334155]">{{ formatMoney(stats.average_order) }}</p>
+            <p class="text-xs text-gray-400 mt-1">Por orden activa</p>
+          </div>
+        </div>
+      }
+
+      <app-customer-purchase-trend [customerId]="customer()!.id"></app-customer-purchase-trend>
 
       <app-customer-sales-orders
         *hasEntity="'sales_orders'"

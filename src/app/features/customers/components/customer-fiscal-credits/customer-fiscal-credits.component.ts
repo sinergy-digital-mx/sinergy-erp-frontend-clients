@@ -26,6 +26,7 @@ interface CreditCardDraft {
   razon_social: string;
   rfc: string;
   credit_enabled: boolean;
+  allow_credit_exceed: boolean;
   credit_days: string;
   credit_amount: string;
   credit_used: number;
@@ -61,6 +62,18 @@ interface CreditCardDraft {
               [disabled]="!canEdit || saving()"
               (checkedChange)="setEnabled(item.fiscal_configuration_id, $event)">
             </app-slim-switch>
+
+            @if (item.credit_enabled) {
+              <app-slim-switch
+                label="Permitir exceder crédito"
+                [checked]="item.allow_credit_exceed"
+                [disabled]="!canEdit || saving()"
+                (checkedChange)="patchCard(item.fiscal_configuration_id, { allow_credit_exceed: $event })">
+              </app-slim-switch>
+              <p class="fiscal-credits__hint">
+                Una venta. Se apaga al cobrar si el monto supera el disponible.
+              </p>
+            }
 
             @if (!item.credit_enabled) {
               <div class="fiscal-credits__dash">
@@ -157,6 +170,13 @@ interface CreditCardDraft {
       color: #64748b;
     }
 
+    .fiscal-credits__hint {
+      margin: -0.35rem 0 0;
+      font-size: 0.75rem;
+      line-height: 1.35;
+      color: #64748b;
+    }
+
     .fiscal-credits__dash,
     .fiscal-credits__fields {
       display: grid;
@@ -245,6 +265,7 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
     return this.credits().map((item) => ({
       fiscal_configuration_id: item.fiscal_configuration_id,
       credit_enabled: item.credit_enabled,
+      allow_credit_exceed: item.credit_enabled ? item.allow_credit_exceed : false,
       credit_days: item.credit_enabled ? Number(item.credit_days) : null,
       credit_amount: item.credit_enabled ? Number(item.credit_amount) : null,
     }));
@@ -350,6 +371,7 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
       razon_social: credit.razon_social || 'Razón social',
       rfc: credit.rfc || '',
       credit_enabled: enabled,
+      allow_credit_exceed: enabled && isTruthyFlag(credit.allow_credit_exceed),
       credit_days: credit.credit_days != null ? String(credit.credit_days) : '',
       credit_amount: credit.credit_amount != null ? String(credit.credit_amount) : '',
       credit_used: Number(credit.credit_used ?? 0),

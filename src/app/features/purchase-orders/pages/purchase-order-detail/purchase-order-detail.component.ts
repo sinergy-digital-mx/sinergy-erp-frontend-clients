@@ -159,9 +159,9 @@ export class PurchaseOrderDetailComponent implements OnInit {
     const order = this.orderData();
     if (!order) return;
     
-    // Validate order is in "En Proceso" status
-    if (order.status !== 'En Proceso') {
-      alert('Solo se pueden cancelar órdenes en proceso');
+    const status = order.general_status ?? order.status;
+    if (status !== 'Creada' && status !== 'Recibida') {
+      alert('Solo se pueden cancelar órdenes creadas o recibidas');
       return;
     }
     

@@ -52,6 +52,11 @@
   margin-bottom: 1.25rem;
 }
 
+.sf-header--embedded {
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
 .sf-header__left {
   display: flex;
   align-items: flex-start;

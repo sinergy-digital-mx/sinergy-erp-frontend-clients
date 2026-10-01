@@ -347,6 +347,57 @@
   color: #94a3b8 !important;
 }
 
+.addr-list {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.addr-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: #475569;
+  cursor: pointer;
+
+  input {
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+  }
+
+  strong {
+    color: #1e3a5f;
+    font-weight: 700;
+    margin-right: 0.25rem;
+  }
+
+  em {
+    margin-left: 0.25rem;
+    font-style: normal;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #b45309;
+  }
+}
+
+.addr-primary {
+  display: inline-block;
+  margin-right: 0.25rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #1e40af;
+  background: #dbeafe;
+  padding: 0.02rem 0.3rem;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
 .stop-card__leg {
   display: inline-block;
   margin-top: 0.2rem;

@@ -448,7 +448,10 @@ export class SalesOrderDetailDialogComponent {
     );
     this.dialog
       .open(AdvanceInvoiceDialogComponent, {
-        width: '440px',
+        width: '480px',
+        maxWidth: '95vw',
+        panelClass: 'advance-invoice-dialog-panel',
+        autoFocus: false,
         data: {
           mode: 'stamp',
           source: 'sales_order',
@@ -1538,6 +1541,38 @@ export class SalesOrderDetailDialogComponent {
     });
   }
 
+  downloadingTicketPdf = signal(false);
+
+  downloadTicketPdf(): void {
+    const orderId = this.order()?.id;
+    const folio = this.order()?.folio || 'ticket';
+    if (!orderId || !this.canTicketReciboActions() || this.downloadingTicketPdf()) {
+      return;
+    }
+
+    this.downloadingTicketPdf.set(true);
+    this.salesOrderService.downloadTicketPdf(orderId).subscribe({
+      next: (blob) => {
+        this.downloadingTicketPdf.set(false);
+        this.cdr.detectChanges();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `TICKET-${folio}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+        if (!this.hasTicketDocument()) {
+          this.loadOrder();
+        }
+      },
+      error: () => {
+        this.downloadingTicketPdf.set(false);
+        this.cdr.detectChanges();
+        this.toast.error('No se pudo generar el PDF del ticket');
+      },
+    });
+  }
+
   reprintTicketRecibo(): void {
     const orderId = this.order()?.id;
     if (!orderId || !this.canTicketReciboActions() || this.reprintingTicket()) {
@@ -1671,6 +1706,10 @@ export class SalesOrderDetailDialogComponent {
 
   isTicketDocument(doc: SalesOrderDocument): boolean {
     return isSalesOrderTicketDocument(doc.document_type_name);
+  }
+
+  hasTicketDocument(): boolean {
+    return this.documents().some((doc) => this.isTicketDocument(doc));
   }
 
   openTicketPreview(): void {

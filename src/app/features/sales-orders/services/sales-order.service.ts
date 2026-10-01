@@ -5,7 +5,8 @@ import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { 
   SalesOrder, 
-  SalesOrderFilters, 
+  SalesOrderFilters,
+  SalesOrderTrend, 
   SalesOrderExportFilters,
   SalesOrderExportType,
   PaginationParams, 
@@ -53,9 +54,27 @@ export class SalesOrderService {
     filters: SalesOrderFilters,
     pagination: PaginationParams
   ): Observable<PaginatedResponse<SalesOrder>> {
-    let params = new HttpParams()
+    const params = this.listFilterParams(filters)
       .set('page', pagination.page.toString())
       .set('limit', pagination.limit.toString());
+
+    return this.http.get<PaginatedResponse<SalesOrder>>(this.baseUrl, { params })
+      .pipe(
+        catchError(error => this.handleError(error))
+      );
+  }
+
+  /** Últimos 12 meses. Usa los mismos filtros del listado, sin paginar. */
+  getSalesTrend(filters: SalesOrderFilters): Observable<SalesOrderTrend> {
+    return this.http
+      .get<SalesOrderTrend>(`${this.baseUrl}/sales-trend`, {
+        params: this.listFilterParams(filters),
+      })
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  private listFilterParams(filters: SalesOrderFilters): HttpParams {
+    let params = new HttpParams();
 
     if (filters.search) {
       params = params.set('search', filters.search);
@@ -85,6 +104,9 @@ export class SalesOrderService {
     if (filters.customer_id) {
       params = params.set('customer_id', filters.customer_id.toString());
     }
+    if (filters.with_downloads) {
+      params = params.set('with_downloads', 'true');
+    }
     if (filters.fiscal_configuration_id) {
       params = params.set('fiscal_configuration_id', filters.fiscal_configuration_id);
     }
@@ -101,10 +123,7 @@ export class SalesOrderService {
       params = params.set('is_credit', 'true');
     }
 
-    return this.http.get<PaginatedResponse<SalesOrder>>(this.baseUrl, { params })
-      .pipe(
-        catchError(error => this.handleError(error))
-      );
+    return params;
   }
 
   /**
@@ -664,6 +683,13 @@ export class SalesOrderService {
         return this.handleError(error);
       })
     );
+  }
+
+  /** PDF de 80 mm con el texto del ticket térmico guardado. */
+  downloadTicketPdf(orderId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${orderId}/ticket-recibo/pdf`, {
+      responseType: 'blob',
+    });
   }
 
   /** Lee el TICKET / RECIBO guardado (no regenera). */

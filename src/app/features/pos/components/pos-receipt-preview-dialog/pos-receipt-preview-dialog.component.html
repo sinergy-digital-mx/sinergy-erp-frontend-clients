@@ -89,6 +89,15 @@
 
     <div class="modal-footer__actions">
       <button type="button" class="btn btn--ghost" (click)="close()">Cerrar</button>
+      @if (data.salesOrderId) {
+        <button
+          type="button"
+          class="btn btn--ghost"
+          (click)="downloadPdf()"
+          [disabled]="downloadingPdf() || loading()">
+          {{ downloadingPdf() ? 'Generando PDF…' : 'PDF' }}
+        </button>
+      }
       @if (canPrint()) {
         <button type="button" class="btn btn--primary" (click)="printTicket()" [disabled]="printing()">
           <lucide-icon [img]="Printer" />

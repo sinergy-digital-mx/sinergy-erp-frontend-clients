@@ -144,13 +144,19 @@ export class QuotationListComponent implements OnInit {
     this.quotationService.getQuotations(this.filters(), this.pagination()).subscribe({
       next: (res) => {
         const data = res.data || [];
+        const page = Number(res.page) || this.pagination().page;
+        const limit = Number(res.limit) || this.pagination().limit;
+        const total = res.total || 0;
+        const totalPages = Number(res.totalPages) || Math.ceil(total / Math.max(limit, 1));
         this.rows.set(data);
-        this.totalResults.set(res.total || 0);
+        this.totalResults.set(total);
         this.table_config.update((c) => ({
           ...c,
           rows: data,
-          totalResults: res.total || 0,
-          hasNext: res.page < res.totalPages,
+          totalResults: total,
+          page,
+          limit,
+          hasNext: page < totalPages,
           loading: false,
         }));
         this.loading.set(false);

@@ -158,7 +158,7 @@
               <button type="button" class="pos-tickets-panel__item" (click)="openReturnedTicket(ticket)">
                 <span>
                   <strong>{{ ticket.folio || ticket.id }}</strong>
-                  <small>{{ ticket.walk_in_name || 'Tocar para cargar el carrito' }}</small>
+                  <small>{{ ticketCustomerName(ticket) }}</small>
                 </span>
                 <strong>{{ formatCurrency(ticket.total ?? 0) }}</strong>
               </button>
@@ -172,6 +172,7 @@
   <div class="pos-take-body">
     <section class="pos-catalog">
       <div class="pos-catalog__toolbar">
+        <div class="pos-catalog__filters">
         <div class="pos-search">
           <lucide-icon [img]="Search" class="pos-search__icon" />
           <input
@@ -193,6 +194,17 @@
               <lucide-icon [img]="X" [size]="14" class="pos-search__clear-icon" />
             </button>
           }
+        </div>
+        <select
+          class="pos-warehouse-filter"
+          aria-label="Filtrar por bodega"
+          [ngModel]="catalogWarehouseId()"
+          (ngModelChange)="onWarehouseFilter($event)">
+          <option value="">Todas las bodegas</option>
+          @for (warehouse of catalogWarehouses(); track warehouse.id) {
+            <option [value]="warehouse.id">{{ warehouse.name }}</option>
+          }
+        </select>
         </div>
         <p class="pos-catalog__hint">{{ filteredProducts().length }} productos</p>
       </div>
@@ -239,19 +251,25 @@
             </div>
             <div class="pos-card__body">
               <h3 class="pos-card__name" [attr.title]="product.name">{{ product.name }}</h3>
+              <div class="pos-card__facts">
+                <span class="pos-card__sku" [attr.title]="product.sku">{{ product.sku }}</span>
+                <span
+                  class="pos-card__stock"
+                  [class.pos-card__stock--empty]="!(product.total_available_quantity > 0)">
+                  Stock {{ product.total_available_quantity || 0 }}
+                </span>
+              </div>
+              @if (stockWarehouseLabel(product); as warehouse) {
+                <p class="pos-card__warehouse" [attr.title]="warehouse">{{ warehouse }}</p>
+              }
               <div class="pos-card__row">
                 <span class="pos-card__uom" [attr.title]="catalogUomLabel(product)">{{ catalogUomLabel(product) }}</span>
                 @if (product.has_price) {
-                  <span class="pos-card__price">{{ formatCurrency(catalogPriceGross(product)) }}</span>
+                  <span class="pos-card__price">{{ formatCatalogPrice(catalogPriceGross(product)) }}</span>
                 } @else {
                   <span class="pos-card__no-price">Sin precio</span>
                 }
               </div>
-              <p class="pos-card__meta">
-                <span>{{ product.sku }}</span>
-                <span class="pos-card__meta-dot" aria-hidden="true">·</span>
-                <span>Stock {{ product.total_available_quantity || 0 }}</span>
-              </p>
               <div class="pos-card__extra">
                 @if (productMeasureLine(product)) {
                   <p class="pos-card__measures">{{ productMeasureLine(product) }}</p>
@@ -397,8 +415,10 @@
                     } @else {
                       {{ formatCurrency(item.unit_price) }}
                     }
-                    · {{ item.uom_name }}
                   </span>
+                  <span class="pos-tax-tag pos-tax-tag--net">Sin IVA</span>
+                  <span class="pos-line__meta-sep" aria-hidden="true">·</span>
+                  <span class="pos-line__uom">{{ item.uom_name }}</span>
                 </p>
               </div>
               <button
@@ -474,6 +494,7 @@
                   <span class="pos-line__was">{{ formatCurrency(lineTotalBeforeDiscount(item)) }}</span>
                 }
                 <span class="pos-line__total">{{ formatCurrency(item.line_total) }}</span>
+                <span class="pos-tax-tag pos-tax-tag--gross">IVA {{ saleIvaPercent() }}%</span>
               </div>
             </div>
           </article>
@@ -574,13 +595,15 @@
             </div>
           }
           <div class="pos-sum-row">
-            <span>IVA</span>
+            <span>IVA {{ saleIvaPercent() }}%</span>
             <strong>{{ formatCurrency(posService.cart().total_iva) }}</strong>
           </div>
-          <div class="pos-sum-row">
-            <span>IEPS</span>
-            <strong>{{ formatCurrency(posService.cart().total_ieps) }}</strong>
-          </div>
+          @if (canChangeSaleIva()) {
+            <div class="pos-iva-switch">
+              <button type="button" [class.pos-iva-switch__btn--on]="saleIvaPercent() === 8" (click)="setSaleIva(8)">8%</button>
+              <button type="button" [class.pos-iva-switch__btn--on]="saleIvaPercent() === 16" (click)="setSaleIva(16)">16%</button>
+            </div>
+          }
         }
 
         <div

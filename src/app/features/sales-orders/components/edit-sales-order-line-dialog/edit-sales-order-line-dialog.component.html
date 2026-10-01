@@ -29,7 +29,7 @@
       </div>
 
       <div class="field">
-        <label for="so-line-price">Precio unitario</label>
+        <label for="so-line-price">Precio sin IVA</label>
         <div class="field__with-badge">
           <input
             id="so-line-price"
@@ -93,6 +93,27 @@
             [(ngModel)]="iepsPercentage"
             [disabled]="saving()">
         </div>
+      </div>
+    </div>
+
+    <div class="line-dialog__totals">
+      <div>
+        <span>Sin IVA</span>
+        <strong>{{ lineNet | number:'1.2-2' }} {{ data.currency }}</strong>
+      </div>
+      <div>
+        <span>IVA {{ ivaPercentage || 0 }}%</span>
+        <strong>{{ lineIvaAmount | number:'1.2-2' }} {{ data.currency }}</strong>
+      </div>
+      @if (lineIepsAmount > 0) {
+        <div>
+          <span>IEPS {{ iepsPercentage || 0 }}%</span>
+          <strong>{{ lineIepsAmount | number:'1.2-2' }} {{ data.currency }}</strong>
+        </div>
+      }
+      <div class="line-dialog__totals-total">
+        <span>Total con IVA</span>
+        <strong>{{ lineTotal | number:'1.2-2' }} {{ data.currency }}</strong>
       </div>
     </div>
 

@@ -53,6 +53,35 @@ export class EditSalesOrderLineDialogComponent {
     return this.data.lineItem.product?.name || 'Producto';
   }
 
+  get lineNet(): number {
+    const quantity = Number(this.quantity);
+    const unitPrice = Number(this.unitPrice);
+    if (!Number.isFinite(quantity) || !Number.isFinite(unitPrice)) {
+      return 0;
+    }
+    return quantity * unitPrice;
+  }
+
+  get lineIvaAmount(): number {
+    const iva = Number(this.ivaPercentage);
+    if (!Number.isFinite(iva)) {
+      return 0;
+    }
+    return (this.lineNet * iva) / 100;
+  }
+
+  get lineIepsAmount(): number {
+    const ieps = Number(this.iepsPercentage);
+    if (!Number.isFinite(ieps)) {
+      return 0;
+    }
+    return (this.lineNet * ieps) / 100;
+  }
+
+  get lineTotal(): number {
+    return this.lineNet + this.lineIvaAmount + this.lineIepsAmount;
+  }
+
   get dialogTitle(): string {
     return this.data.folio ? `Editar línea — #${this.data.folio}` : 'Editar línea';
   }

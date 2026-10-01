@@ -126,6 +126,23 @@ export class ShippingService {
     );
   }
 
+  setStopAddress(
+    id: string,
+    salesOrderId: string,
+    customerAddressId: number
+  ): Observable<{ shipping: Shipping; message?: string }> {
+    return this.http
+      .patch<any>(`${this.baseUrl}/${id}/stops/${salesOrderId}/address`, {
+        customer_address_id: customerAddressId,
+      })
+      .pipe(
+        map((response) => ({
+          shipping: normalizeShipping(response?.data ?? response),
+          message: response?.message,
+        }))
+      );
+  }
+
   recalculateDistance(id: string): Observable<{ shipping: Shipping; message?: string }> {
     return this.http.post<any>(`${this.baseUrl}/${id}/recalculate-distance`, {}).pipe(
       map((response) => ({

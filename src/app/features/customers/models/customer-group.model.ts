@@ -48,6 +48,7 @@ export interface CustomerFiscalCredit {
   rfc?: string;
   fiscal_status?: string;
   credit_enabled?: boolean;
+  allow_credit_exceed?: boolean;
   credit_days?: number | null;
   credit_amount?: number | null;
   credit_used?: number | null;
@@ -58,6 +59,7 @@ export interface CustomerFiscalCredit {
 export interface CustomerCreditsUpdateItem {
   fiscal_configuration_id: string;
   credit_enabled: boolean;
+  allow_credit_exceed?: boolean;
   credit_days?: number | null;
   credit_amount?: number | null;
 }
@@ -79,6 +81,7 @@ export interface Customer {
   company_name?: string;
   /** Crédito aplanado de una razón (GET ?fiscal_configuration_id=). No es global. */
   credit_enabled?: boolean;
+  allow_credit_exceed?: boolean;
   credit_days?: number | null;
   credit_amount?: number | null;
   credit_used?: number | null;
@@ -343,7 +346,10 @@ export interface CustomerEditFormState {
  */
 export enum ActivityType {
   CALL = 'call',
+  WHATSAPP = 'whatsapp',
   EMAIL = 'email',
+  HOME_VISIT = 'home_visit',
+  STORE_VISIT = 'store_visit',
   MEETING = 'meeting',
   NOTE = 'note',
   TASK = 'task',

@@ -57,6 +57,7 @@ export interface CollectSalePayload {
   customer_id?: number | string;
   generate_invoice?: boolean;
   walk_in_name?: string;
+  walk_in_phone?: string;
   walk_in_rfc?: string;
   /** Desglose de billetes (para ticket/corte). El total recibido sigue en received_cash_* */
   cash_denominations?: Array<{
@@ -333,29 +334,32 @@ export function buildCashBreakdownPayload(
   };
 }
 
-/** ID numérico o UUID que el API de cobro acepta en `customer_id`. */
+/** Id de `customers.id` que la orden y el cobro guardan en `customer_id`. */
 export function resolvePosCollectCustomerId(customer: unknown): number | string | undefined {
   if (!customer || typeof customer !== 'object') {
     return undefined;
   }
   const record = customer as Record<string, unknown>;
-  const legacy = record['legacy_customer_id'];
-  if (legacy != null && legacy !== '') {
-    const legacyNum = Number(legacy);
-    if (Number.isFinite(legacyNum) && legacyNum > 0) {
-      return Math.floor(legacyNum);
-    }
+  const primary = numericCustomerId(record['id']);
+  if (primary != null) {
+    return primary;
   }
   const id = record['id'];
-  if (id == null || id === '') {
+  if (typeof id === 'string' && id.trim()) {
+    return id.trim();
+  }
+  return numericCustomerId(record['legacy_customer_id']);
+}
+
+function numericCustomerId(value: unknown): number | undefined {
+  if (value == null || value === '') {
     return undefined;
   }
-  const idNum = Number(id);
-  if (Number.isFinite(idNum) && idNum > 0) {
-    return Math.floor(idNum);
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return Math.floor(numeric);
   }
-  const idStr = String(id).trim();
-  return idStr || undefined;
+  return undefined;
 }
 
 export function isValidCollectCustomerId(
@@ -769,8 +773,17 @@ export function collectCashShortfallMxn(form: PosCollectForm, orderTotal = 0): n
   return 0;
 }
 
-export function collectCashShortfallUsd(form: PosCollectForm): number {
-  return 0;
+/** Equivalente en dólares del faltante en pesos, con el tipo de cambio del cobro. */
+export function collectCashShortfallUsd(form: PosCollectForm, orderTotal = 0): number {
+  const rate = Number(form.usdExchangeRate) || 0;
+  if (rate <= 0) {
+    return 0;
+  }
+  const shortfallMxn = collectCashShortfallMxn(form, orderTotal);
+  if (shortfallMxn <= 0) {
+    return 0;
+  }
+  return roundMoney(shortfallMxn / rate);
 }
 
 export function collectAppliedDelta(form: PosCollectForm, orderTotal: number): number {
