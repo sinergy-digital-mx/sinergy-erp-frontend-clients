@@ -46,6 +46,7 @@ export class PosSummaryTabComponent implements OnChanges {
       { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 120 },
       { name: 'Hora', prop: 'created_at', sortable: false, canAutoResize: false, width: 90 },
       { name: 'Cliente', prop: 'customer_display_name', sortable: false, canAutoResize: false, width: 200 },
+      { name: 'Origen', prop: 'channel', sortable: false, canAutoResize: false, width: 110 },
       { name: 'Terminal', prop: 'terminal_name', sortable: false, canAutoResize: false, width: 160 },
       { name: 'Total', prop: 'total', sortable: false, canAutoResize: false, width: 120 },
       { name: 'Cobro', prop: 'payment_status', sortable: false, canAutoResize: false, width: 120 },
@@ -56,7 +57,7 @@ export class PosSummaryTabComponent implements OnChanges {
     limit: 50,
     totalResults: 0,
     loading: false,
-    emptyState: { title: 'Sin órdenes', subtitle: 'No entraron ventas POS en el día seleccionado' },
+    emptyState: { title: 'Sin órdenes', subtitle: 'No entraron ventas de caja ni de sucursal en el día seleccionado' },
     columnMode: 'force',
     reorderable: false,
   });
@@ -98,6 +99,10 @@ export class PosSummaryTabComponent implements OnChanges {
       minute: '2-digit',
       timeZone: 'America/Mexico_City',
     });
+  }
+
+  originLabel(order: PosEnteredOrder): string {
+    return order.channel === 'branch' ? 'Sucursal' : 'Caja';
   }
 
   paymentLabel(order: PosEnteredOrder): string {

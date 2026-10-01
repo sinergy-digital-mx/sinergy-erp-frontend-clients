@@ -66,6 +66,7 @@ export interface PosEnteredOrder {
   created_at: string;
   total: number;
   payment_status?: string | null;
+  channel?: 'caja' | 'branch' | null;
   terminal_name?: string | null;
   customer_display_name?: string | null;
   amount_collected: number;

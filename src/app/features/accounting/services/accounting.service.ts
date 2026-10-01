@@ -247,6 +247,7 @@ export class AccountingService {
       created_at: String(row['created_at'] ?? ''),
       total: Number(row['total'] ?? 0),
       payment_status: (row['payment_status'] as string | null) ?? null,
+      channel: row['channel'] === 'branch' ? 'branch' : row['channel'] === 'caja' ? 'caja' : null,
       terminal_name: (row['terminal_name'] as string | null) ?? null,
       customer_display_name: (row['customer_display_name'] as string | null) ?? null,
       amount_collected: Number(row['amount_collected'] ?? 0),

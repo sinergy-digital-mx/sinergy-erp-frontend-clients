@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ReportPeriod, ReportPeriodSelectorComponent } from '../../../../core/components/report-period-selector/report-period-selector.component';
+import { AuthService } from '../../../../core/services/auth.service';
 import { BranchService } from '../../../settings/services/branch.service';
 import { Branch } from '../../../settings/models/branch.model';
 import { AccountingPeriod, PosDaySummary } from '../../models/accounting.model';
@@ -57,6 +58,7 @@ export class AccountingPageComponent implements OnInit {
 
   constructor(
     private branchService: BranchService,
+    private authService: AuthService,
     private route: ActivatedRoute,
     private router: Router,
   ) {}
@@ -150,9 +152,16 @@ export class AccountingPageComponent implements OnInit {
   private loadBranches(): void {
     this.branchService.getAllBranches().subscribe({
       next: (branches) => {
-        this.branches.set(branches ?? []);
-        if (this.branches().length === 1 && !this.billingBranchId()) {
-          this.billingBranchId.set(this.branches()[0].id);
+        const list = branches ?? [];
+        this.branches.set(list);
+        if (this.billingBranchId() || !list.length) {
+          return;
+        }
+        const sessionBranchId = this.authService.getBillingBranchId();
+        const sessionBranch = list.find((branch) => branch.id === sessionBranchId);
+        const selected = sessionBranch ?? (list.length === 1 ? list[0] : null);
+        if (selected) {
+          this.billingBranchId.set(selected.id);
           this.reloadActiveTab();
         }
       },
