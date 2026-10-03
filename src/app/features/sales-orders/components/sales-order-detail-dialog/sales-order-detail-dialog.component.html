@@ -660,8 +660,8 @@
                           (keydown.enter)="canOpenProduct(item) && openProductDetail(item)"
                           (keydown.space)="$event.preventDefault(); canOpenProduct(item) && openProductDetail(item)">
                           <strong>{{ item.product?.name || item.product_id }}</strong>
-                          @if (item.product?.description) {
-                            <span class="product-info__description">{{ item.product?.description }}</span>
+                          @if (lineProductDescription(item); as description) {
+                            <span class="product-info__description">{{ description }}</span>
                           }
                           <small>{{ item.product?.sku || '-' }}{{ (item.item_kind === 'service' || item.product?.item_kind === 'service') ? ' · Servicio' : '' }}</small>
                         </div>

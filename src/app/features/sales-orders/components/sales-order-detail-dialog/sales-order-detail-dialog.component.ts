@@ -713,6 +713,16 @@ export class SalesOrderDetailDialogComponent {
     return this.getLineIvaAmount(item) > 0 || this.getLineIepsAmount(item) > 0;
   }
 
+  /** La descripción del catálogo a veces copia el nombre. No se muestra si es el mismo texto. */
+  lineProductDescription(item: SalesOrderLineItem): string {
+    const name = String(item.product?.name || '').trim();
+    const description = String(item.product?.description || '').trim();
+    if (!description || description.toLowerCase() === name.toLowerCase()) {
+      return '';
+    }
+    return description;
+  }
+
   getLineUnitPrice(item: SalesOrderLineItem): number {
     return this.parseNumber(item.unit_price);
   }
