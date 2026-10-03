@@ -1,42 +1,40 @@
 <div class="order-detail-dialog">
-  <ng-template #moneyCell let-amount>
+  <ng-template #moneyCell let-amount let-withCurrency="withCurrency">
     <span class="money-cell">
-      <span
-        class="currency-badge"
-        [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
-        [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
-        {{ getPaymentCurrency() }}
-      </span>
-      <span class="money-cell__amount">{{ formatAmount(amount) }}</span>
-    </span>
-  </ng-template>
-  <ng-template #costCell let-amount>
-    <span class="money-cell">
-      <span
-        class="currency-badge"
-        [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
-        [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
-        {{ getPaymentCurrency() }}
-      </span>
-      <span class="money-cell__amount">{{ formatUnitCost(amount) }}</span>
-    </span>
-  </ng-template>
-  <ng-template #importeCell let-net let-gross="gross" let-hasTax="hasTax">
-    @if (hasTax) {
-      <div class="importe-stack">
+      @if (withCurrency) {
         <span
           class="currency-badge"
           [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
           [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
           {{ getPaymentCurrency() }}
         </span>
+      }
+      <span class="money-cell__amount">{{ formatAmount(amount) }}</span>
+    </span>
+  </ng-template>
+  <ng-template #costCell let-amount>
+    <span class="money-cell">
+      <span class="money-cell__amount">{{ formatUnitCost(amount) }}</span>
+    </span>
+  </ng-template>
+  <ng-template #importeCell let-net let-gross="gross" let-hasTax="hasTax" let-withCurrency="withCurrency">
+    @if (hasTax) {
+      <div class="importe-stack">
+        @if (withCurrency) {
+          <span
+            class="currency-badge"
+            [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
+            [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
+            {{ getPaymentCurrency() }}
+          </span>
+        }
         <div class="importe-stack__values">
           <span class="importe-stack__net">{{ formatAmount(net) }}</span>
           <span class="importe-stack__gross">{{ formatAmount(gross) }}</span>
         </div>
       </div>
     } @else {
-      <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: net }" />
+      <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: net, withCurrency: withCurrency }" />
     }
   </ng-template>
   <ng-template #taxCell let-percent let-amount="amount">
@@ -70,6 +68,12 @@
         }
       </div>
       <div class="dialog-header-actions">
+        <span
+          class="currency-badge"
+          [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
+          [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
+          {{ getPaymentCurrency() }}
+        </span>
         <span class="status-badge" [ngClass]="getStatusBadgeClass()">
           {{ order()!.general_status || order()!.status }}
         </span>
@@ -277,20 +281,20 @@
           <div class="totals-row">
             <span class="totals-label">Subtotal</span>
             <span class="totals-value">
-              <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedSubtotalAmount() }" />
+              <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedSubtotalAmount(), withCurrency: true }" />
             </span>
           </div>
           <div class="totals-row">
             <span class="totals-label">IVA</span>
             <span class="totals-value">
-              <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIvaAmount() }" />
+              <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIvaAmount(), withCurrency: true }" />
             </span>
           </div>
           @if (hasDisplayedIeps()) {
             <div class="totals-row">
               <span class="totals-label">IEPS</span>
               <span class="totals-value">
-                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIepsAmount() }" />
+                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIepsAmount(), withCurrency: true }" />
               </span>
             </div>
           }
@@ -298,7 +302,7 @@
           <div class="totals-row totals-row-total">
             <span class="totals-label-total">Total</span>
             <span class="totals-value-total" [ngClass]="getTotalColor()">
-              <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedTotalAmount() }" />
+              <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedTotalAmount(), withCurrency: true }" />
             </span>
           </div>
           @if (hasLandedExpenseTotals()) {
@@ -306,13 +310,13 @@
             <div class="totals-row">
               <span class="totals-label">Gastos</span>
               <span class="totals-value">
-                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedExtrasAmount() }" />
+                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedExtrasAmount(), withCurrency: true }" />
               </span>
             </div>
             <div class="totals-row totals-row-total totals-row-final">
               <span class="totals-label-total">Total final</span>
               <span class="totals-value-total">
-                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedLandedTotalAmount() }" />
+                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedLandedTotalAmount(), withCurrency: true }" />
               </span>
             </div>
           }
@@ -564,20 +568,21 @@
                           *ngTemplateOutlet="importeCell; context: {
                             $implicit: displayedSubtotalAmount(),
                             gross: displayedTotalAmount(),
-                            hasTax: hasDisplayedIva() || hasDisplayedIeps()
+                            hasTax: hasDisplayedIva() || hasDisplayedIeps(),
+                            withCurrency: true
                           }" />
                       </td>
                       @if (hasLineIvaColumn()) {
                         <td class="col-money">
                           @if (hasDisplayedIva()) {
-                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIvaAmount() }" />
+                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIvaAmount(), withCurrency: true }" />
                           }
                         </td>
                       }
                       @if (hasLineIepsColumn()) {
                         <td class="col-money">
                           @if (hasDisplayedIeps()) {
-                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIepsAmount() }" />
+                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIepsAmount(), withCurrency: true }" />
                           }
                         </td>
                       }
