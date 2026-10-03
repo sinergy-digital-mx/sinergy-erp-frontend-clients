@@ -114,7 +114,7 @@ export interface InventorySummaryFilters {
   product_id?: string;
   only_available?: boolean;
   sort_by?: string;
-  sort_order?: 'asc' | 'desc';
+  sort_order?: 'ASC' | 'DESC';
 }
 
 export type InventoryExportType = 'batches' | 'summary';

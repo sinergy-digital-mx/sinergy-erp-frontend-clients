@@ -43,7 +43,7 @@
                 <div class="measure-chips">{{ measureTotalsLine(item) }}</div>
               }
             </td>
-            <td class="px-4 py-3 text-sm text-gray-500 text-center">{{ item.total_batches }}</td>
+            <td class="px-4 py-3 text-sm text-gray-500 text-center">{{ stockedBatches(item).length }}</td>
             <td class="px-4 py-3 text-right">
               <button
                 type="button"
@@ -76,7 +76,7 @@
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                      @for (batch of item.batches; track batch.batch_id) {
+                      @for (batch of stockedBatches(item); track batch.batch_id) {
                         <tr>
                           <td class="px-3 py-2 whitespace-nowrap">
                             <button

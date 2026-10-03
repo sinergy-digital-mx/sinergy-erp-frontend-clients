@@ -1,0 +1,100 @@
+<div class="purchase-order-list-container">
+  <div class="purchase-content">
+    <div class="px-4 pb-10">
+      <a routerLink="/service-subscriptions" class="text-sm text-blue-600">Volver</a>
+
+      @if (loading()) {
+        <div class="flex justify-center py-12"><app-spinner></app-spinner></div>
+      } @else if (detail(); as item) {
+        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mt-2 mb-6">
+          <div>
+            <h2 class="text-2xl font-semibold text-gray-800">{{ item.title }}</h2>
+            <p class="text-sm text-gray-600">{{ item.customer_name }}</p>
+            <p class="text-sm text-gray-500">
+              {{ item.start_label }} — {{ item.end_label }} · día {{ item.billing_day }} ·
+              {{ money(item.monthly_amount) }} + {{ item.iva_percentage }}% IVA
+            </p>
+            <p class="text-sm text-gray-500">{{ statusLabel(item.status) }} · {{ item.months_covered }} de {{ item.months_total }} meses con orden</p>
+          </div>
+          <div class="flex gap-2">
+            @if (canCreate && item.status !== 'cancelled') {
+              <button type="button" class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50" [disabled]="busy()" (click)="renew()">Renovar</button>
+            }
+            @if (canUpdate && item.status === 'active') {
+              <button type="button" class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50" [disabled]="busy()" (click)="cancel()">Cancelar</button>
+            }
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mes</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orden</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              @for (period of item.periods; track period.id) {
+                <tr>
+                  <td class="px-4 py-3 text-sm text-gray-900">{{ period.label }}</td>
+                  <td class="px-4 py-3 text-sm text-right">{{ money(period.amount) }}</td>
+                  <td class="px-4 py-3 text-sm">
+                    {{ statusLabel(period.status) }}
+                    @if (period.invoice_error) {
+                      <div class="text-xs text-amber-700 mt-1">{{ period.invoice_error }}</div>
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-sm">
+                    @if (period.sales_order_id) {
+                      <a class="text-blue-600" [routerLink]="['/sales-orders', period.sales_order_id, 'edit']">
+                        {{ period.sales_order_folio || 'Orden' }}
+                      </a>
+                    } @else {
+                      <span class="text-gray-400">Sin orden</span>
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
+                    @if (canUpdate && item.status === 'active') {
+                      @if (period.status === 'pending') {
+                        <button type="button" class="text-blue-600 mr-3" [disabled]="busy()" (click)="generate(period)">Generar</button>
+                        <button type="button" class="text-blue-600 mr-3" [disabled]="busy()" (click)="openLink(period)">Vincular</button>
+                        <button type="button" class="text-gray-500" [disabled]="busy()" (click)="skip(period)">Omitir</button>
+                      }
+                      @if (period.status === 'linked') {
+                        <button type="button" class="text-blue-600 mr-3" [disabled]="busy()" (click)="invoice(period)">Facturar</button>
+                        <button type="button" class="text-gray-500" [disabled]="busy()" (click)="unlink(period)">Quitar</button>
+                      }
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (linkingPeriod(); as period) {
+          <div class="mt-4 bg-white rounded-lg shadow-sm p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-medium">Vincular orden a {{ period.label }}</h3>
+              <button type="button" class="text-sm text-gray-500" (click)="linkingPeriod.set(null)">Cerrar</button>
+            </div>
+            <p class="text-sm text-gray-500 mb-3">La fecha de la orden pasa al día de cobro de ese mes. Si ya está facturada, el mes queda facturado.</p>
+            @if (orders().length === 0) {
+              <p class="text-sm text-gray-500">Este cliente no tiene órdenes recientes.</p>
+            }
+            @for (order of orders(); track order.id) {
+              <button type="button" class="flex w-full justify-between text-left text-sm px-2 py-2 hover:bg-gray-50" (click)="confirmLink(order)">
+                <span>{{ order.folio }}</span>
+                <span>{{ money(order.total) }}</span>
+              </button>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>

@@ -30,12 +30,15 @@ import {
   CalendarDays,
   ClipboardCheck,
   Phone,
+  Repeat,
 } from 'lucide-angular';
 import {
   COSTA_CAMPESTRE_DIVINO_ORGANIZATION_ID,
   MADERERIA_ZONA_NORTE_ORGANIZATION_ID,
 } from '../../config/organizations.constants';
 import { DIVINO_DASHBOARD_TENANT_ID } from '../../../features/divino-dashboard/config/divino-dashboard.constants';
+import { VEXIA_TENANT_ID } from '../../../features/service-subscriptions/config/service-subscription.constants';
+import { SERVICE_SUBSCRIPTION_PERMISSIONS } from '../../../features/service-subscriptions/config/permissions.config';
 import { DIVINO_DASHBOARD_PERMISSIONS } from '../../../features/divino-dashboard/config/permissions.config';
 import { DIVINO_RESERVATION_FORMAT_PERMISSIONS } from '../../../features/divino-reservation-formats/config/permissions.config';
 import { AuthService } from '../../services/auth.service';
@@ -77,7 +80,7 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     id: 'commercial',
     title: 'Comercial',
-    itemIds: ['menu-leads', 'menu-customers', 'menu-crm', 'menu-properties', 'menu-contracts'],
+    itemIds: ['menu-leads', 'menu-customers', 'menu-crm', 'menu-properties', 'menu-contracts', 'menu-service-subscriptions'],
   },
   {
     id: 'operation',
@@ -168,6 +171,14 @@ export class Sidebar implements OnInit, OnDestroy {
       id: 'menu-contracts',
       permission: PERMISSIONS.contracts.viewMenu,
       hiddenForOrganizationIds: [MADERERIA_ZONA_NORTE_ORGANIZATION_ID],
+    },
+    {
+      label: 'Suscripciones',
+      route: '/service-subscriptions',
+      icon: Repeat,
+      id: 'menu-service-subscriptions',
+      permission: SERVICE_SUBSCRIPTION_PERMISSIONS.viewMenu,
+      tenantId: VEXIA_TENANT_ID,
     },
     {
       label: 'Órdenes de Compra',

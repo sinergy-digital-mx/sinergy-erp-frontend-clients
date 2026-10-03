@@ -225,6 +225,12 @@ export const routes: Routes = [
       },
 
       {
+        path: 'service-subscriptions',
+        loadChildren: () =>
+          import('./features/service-subscriptions/service-subscriptions.routes')
+            .then(m => m.SERVICE_SUBSCRIPTION_ROUTES),
+      },
+      {
         path: 'divino-dashboard',
         loadChildren: () =>
           import('./features/divino-dashboard/divino-dashboard.routes')

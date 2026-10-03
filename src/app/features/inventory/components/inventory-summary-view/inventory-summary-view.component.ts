@@ -11,6 +11,7 @@ import {
   formatInventoryDate,
   formatInventoryNumber,
   inventoryLocationLabel,
+  stockedSummaryBatches,
 } from '../../utils/inventory-list.util';
 import {
   formatMeasureTotalsLine,
@@ -64,6 +65,10 @@ export class InventorySummaryViewComponent {
   formatNumber = formatInventoryNumber;
   measureLabel = inventoryMeasureLabel;
 
+  stockedBatches(item: InventorySummaryItem) {
+    return stockedSummaryBatches(item.batches);
+  }
+
   hasMeasureBreakdown(item: InventorySummaryItem): boolean {
     return hasMeasureTotals(item.measure_totals);
   }
@@ -106,6 +111,8 @@ export class InventorySummaryViewComponent {
     const filters: InventorySummaryFilters = {
       search: this.state.searchTerm() || undefined,
       only_available: true,
+      sort_by: 'total_available_quantity',
+      sort_order: 'DESC',
       ...this.state.locationFilters(),
     };
 

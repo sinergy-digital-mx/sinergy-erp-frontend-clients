@@ -380,6 +380,44 @@ const MONTH_LABELS = [
           display: none;
         }
       }
+
+      /* El bloque de fecha sale hacia abajo, anclado al toggle, sin empujar la fila. */
+      :host(.zn-period-drop) .zn-period-panel {
+        position: relative;
+      }
+      :host(.zn-period-drop) .zn-period-panel--range {
+        padding: 0.25rem;
+        min-width: 0;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+      :host(.zn-period-drop) .zn-date-range {
+        position: absolute;
+        top: calc(100% + 0.25rem - 1px);
+        left: -0.25rem;
+        z-index: 30;
+        width: calc(100% + 0.5rem);
+        margin: 0;
+        padding: 0.55rem 0.7rem 0.7rem;
+        background: #fff;
+        border-radius: 0 0 16px 16px;
+        border-top: 1px solid #f1f5f9;
+        box-shadow:
+          0 12px 20px rgba(15, 23, 42, 0.1),
+          -1px 0 0 #e2e8f0,
+          1px 0 0 #e2e8f0,
+          0 1px 0 #e2e8f0;
+      }
+      :host(.zn-period-drop) .zn-date-range:not(.zn-date-range--single) {
+        min-width: 22rem;
+      }
+      @media (max-width: 640px) {
+        :host(.zn-period-drop) .zn-date-range,
+        :host(.zn-period-drop) .zn-date-range:not(.zn-date-range--single) {
+          min-width: 0;
+          width: calc(100% + 0.5rem);
+        }
+      }
     `,
   ],
 })
