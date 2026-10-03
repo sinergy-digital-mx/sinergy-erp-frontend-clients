@@ -41,6 +41,8 @@ export interface POSCartItem {
   suggested_iva_percentage?: number;
   suggested_ieps_percentage?: number;
   applicable_discounts?: PosApplicableDiscount[];
+  /** Agregado con existencia 0. Bloquea registrar venta; la cotización sí se guarda. */
+  without_inventory?: boolean;
 }
 
 /**

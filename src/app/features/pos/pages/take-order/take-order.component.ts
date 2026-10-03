@@ -124,6 +124,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   searchTerm = signal<string>('');
   catalogWarehouseId = signal('');
+  /** Permite agregar productos con existencia 0. Esos renglones solo se pueden cotizar. */
+  allowWithoutInventory = signal(false);
   loading = signal<boolean>(false);
   saving = signal<boolean>(false);
   confirming = signal<boolean>(false);
@@ -163,6 +165,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   cartHasGlobalDiscount = computed(() => this.posService.cart().global_discount_amount > 0);
 
   cartHasItems = computed(() => this.posService.cart().items.length > 0);
+  cartHasWithoutInventory = computed(() =>
+    this.posService.cart().items.some((item) => item.without_inventory),
+  );
 
   readonly isEditingReturnedTicket = computed(() => Boolean(this.editingSaleId()));
 
@@ -896,7 +901,12 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     const cartItem = this.buildCartItem(product, selection);
     this.posService.addItem(cartItem);
     this.hydrateCartItemPricing(cartItem.product_id, cartItem.product_uom_id);
-    this.notifySuccess(`${cartItem.product_name} agregado`, 2000);
+    this.notifySuccess(
+      cartItem.without_inventory
+        ? `${cartItem.product_name} agregado sin inventario`
+        : `${cartItem.product_name} agregado`,
+      2000,
+    );
   }
 
   private buildCartItem(
@@ -933,6 +943,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       suggested_iva_percentage: Number(product.suggested_iva_percentage ?? 8),
       suggested_ieps_percentage: Number(product.suggested_ieps_percentage ?? 0),
       applicable_discounts: Array.isArray(product.applicable_discounts) ? product.applicable_discounts : [],
+      without_inventory: Number(product.total_available_quantity ?? 0) <= 0,
     };
 
     return this.posService.recalculateItem(base);
@@ -1072,6 +1083,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     const cart = this.posService.cart();
     if (cart.items.length === 0) {
       this.notifyInfo('Agrega productos a la orden', 3000);
+      return;
+    }
+    if (cart.items.some((item) => item.without_inventory)) {
+      this.notifyError('Hay productos sin inventario. Solo se puede cotizar.', 4000);
       return;
     }
 
@@ -1549,6 +1564,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.photoLoadingStates.set(loadingStates);
   }
 
+  toggleAllowWithoutInventory(): void {
+    this.allowWithoutInventory.update((on) => !on);
+  }
+
   canAddToCart(product: any): boolean {
     if (!this.canSell()) {
       return false;
@@ -1556,20 +1575,23 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.priceListError()) {
       return false;
     }
-    const stock = Number(product.total_available_quantity ?? 0);
     const hasPrice = product.suggested_unit_price != null || product.cost != null;
-    return stock > 0 && hasPrice;
+    if (!hasPrice) {
+      return false;
+    }
+    const stock = Number(product.total_available_quantity ?? 0);
+    return stock > 0 || this.allowWithoutInventory();
   }
 
   getDisabledTooltip(product: any): string {
     if (!this.posState.seller()) {
       return 'Identifica al vendedor con su código';
     }
-    if (Number(product.total_available_quantity ?? 0) <= 0) {
-      return 'Sin stock disponible';
-    }
     if (product.suggested_unit_price == null && product.cost == null) {
       return 'Producto sin precio configurado';
+    }
+    if (Number(product.total_available_quantity ?? 0) <= 0 && !this.allowWithoutInventory()) {
+      return 'Sin inventario. Activa el botón para cotizarlo';
     }
     return '';
   }

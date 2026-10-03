@@ -91,7 +91,11 @@ export class POSService {
       updatedItems = currentCart.items.map((i, index) => {
         if (index === existingItemIndex) {
           const newQuantity = i.quantity + item.quantity;
-          return this.recalculateItem({ ...i, quantity: newQuantity });
+          return this.recalculateItem({
+            ...i,
+            quantity: newQuantity,
+            without_inventory: Boolean(i.without_inventory || item.without_inventory),
+          });
         }
         return i;
       });

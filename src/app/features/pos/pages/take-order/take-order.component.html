@@ -205,6 +205,15 @@
             <option [value]="warehouse.id">{{ warehouse.name }}</option>
           }
         </select>
+        <button
+          type="button"
+          class="pos-no-stock-toggle"
+          [class.pos-no-stock-toggle--on]="allowWithoutInventory()"
+          [attr.aria-pressed]="allowWithoutInventory()"
+          title="Agregar productos sin inventario. Esos renglones solo se pueden cotizar."
+          (click)="toggleAllowWithoutInventory()">
+          Sin inventario
+        </button>
         </div>
         <p class="pos-catalog__hint">{{ filteredProducts().length }} productos</p>
       </div>
@@ -406,6 +415,10 @@
               <div class="pos-line__info">
                 <h4 class="pos-line__name">{{ item.product_name }}</h4>
                 <p class="pos-line__meta">
+                  @if (item.without_inventory) {
+                    <span class="pos-line__no-stock">Sin inventario</span>
+                    <span class="pos-line__meta-sep" aria-hidden="true">·</span>
+                  }
                   <span class="pos-line__sku">{{ item.product_sku }}</span>
                   <span class="pos-line__meta-sep" aria-hidden="true">·</span>
                   <span class="pos-line__unit">
@@ -524,6 +537,12 @@
             aria-hidden="true" />
         </button>
 
+        @if (cartHasWithoutInventory()) {
+          <p class="pos-cart__quote-only">
+            Solo se puede cotizar: hay un producto sin inventario en el carrito.
+          </p>
+        }
+
         @if (cartTotalsOpen()) {
           @if (canUseGlobalDiscounts()) {
             <div class="pos-cart__global-discount">
@@ -623,7 +642,9 @@
         @if (canQuote() && !isEditingReturnedTicket()) {
           <button
             type="button"
-            class="pos-btn pos-btn--muted"
+            class="pos-btn"
+            [class.pos-btn--accent]="cartHasWithoutInventory()"
+            [class.pos-btn--muted]="!cartHasWithoutInventory()"
             (click)="saveQuotation()"
             [disabled]="
               saving() ||
@@ -636,14 +657,18 @@
         }
         <button
           type="button"
-          class="pos-btn pos-btn--accent"
+          class="pos-btn"
+          [class.pos-btn--accent]="!cartHasWithoutInventory()"
+          [class.pos-btn--muted]="cartHasWithoutInventory()"
           (click)="saveOrder()"
           [disabled]="
             saving() ||
             confirming() ||
             !canSell() ||
-            posService.cart().items.length === 0
-          ">
+            posService.cart().items.length === 0 ||
+            cartHasWithoutInventory()
+          "
+          [attr.title]="cartHasWithoutInventory() ? 'Hay productos sin inventario. Solo se puede cotizar.' : null">
           {{ saving() ? 'Guardando…' : isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta' }}
         </button>
       </div>
