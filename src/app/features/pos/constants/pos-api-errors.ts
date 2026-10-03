@@ -3,6 +3,10 @@ const UUID_PATTERN =
 
 export const POS_API_ERROR_MESSAGES: Record<string, string> = {
   'Código de vendedor no válido': 'El código no existe o pertenece a un usuario POS.',
+  'User lacks the required permission for this action':
+    'No tienes permiso para realizar esta acción',
+  "You don't have permission to perform this action":
+    'No tienes permiso para realizar esta acción',
   'No hay corte global abierto en la sucursal':
     'No hay corte abierto en esta sucursal. La terminal de caja debe abrir el corte del día.',
   'Solo terminales de tipo COBRANZA pueden abrir el corte global':
@@ -53,6 +57,9 @@ export function mapPosApiErrorMessage(
   }
   const withoutIds = hideProductIdsInPosMessage(String(raw), productLabelsById);
   const stockMessage = rewriteInsufficientStockMessage(withoutIds);
+  if (/lacks the required permission|don't have permission to perform this action/i.test(stockMessage)) {
+    return 'No tienes permiso para realizar esta acción';
+  }
   const mapped = POS_API_ERROR_MESSAGES[stockMessage] ?? POS_API_ERROR_MESSAGES[withoutIds];
   if (mapped) {
     return mapped;
