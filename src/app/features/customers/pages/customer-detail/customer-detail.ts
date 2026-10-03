@@ -25,7 +25,7 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { HasEntityDirective } from '../../../../core/directives/has-entity.directive';
-import { Pencil, MapPin } from 'lucide-angular';
+import { Pencil, MapPin, FileUp } from 'lucide-angular';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
@@ -46,6 +46,7 @@ import { SlimSwitchComponent } from '../../../../core/components/slim-switch/sli
 import { CustomerFiscalCreditsComponent } from '../../components/customer-fiscal-credits/customer-fiscal-credits.component';
 import { CustomerAssignmentHistoryComponent } from '../../components/customer-assignment-history/customer-assignment-history.component';
 import { unwrapCustomerPayload } from '../../utils/customer-credit.util';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { FormsModule } from '@angular/forms';
 import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
 import { isMadereriaZonaNorte } from '../../../../core/config/organizations.constants';
@@ -96,11 +97,13 @@ export class CustomerDetail implements OnInit, OnDestroy {
     { id: 'registration', title: 'Registro' }
   ];
   invoicePrefSaving = signal(false);
+  satConstanciaUploading = signal(false);
   customerId: number | null = null;
   private destroy$ = new Subject<void>();
 
   readonly PencilIcon = Pencil;
   readonly MapPinIcon = MapPin;
+  readonly FileUpIcon = FileUp;
   readonly permissions = CUSTOMER_PERMISSIONS;
 
   get showRealEstateSection(): boolean {
@@ -355,6 +358,79 @@ export class CustomerDetail implements OnInit, OnDestroy {
 
   isWalkInCustomer(customer: Customer): boolean {
     return customer.is_walk_in === true;
+  }
+
+  openSatConstanciaPicker(): void {
+    if (!this.canEditStatus || this.satConstanciaUploading()) {
+      return;
+    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf,.pdf';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file) {
+        this.uploadSatConstancia(file);
+      }
+    };
+    input.click();
+  }
+
+  uploadSatConstancia(file: File): void {
+    const customer = this.customer();
+    if (!customer || !this.canEditStatus || this.satConstanciaUploading()) {
+      return;
+    }
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      this.interceptorService.openSnackbar({
+        type: 'error',
+        title: 'Archivo',
+        message: 'Selecciona el PDF de la constancia del SAT',
+      });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      this.interceptorService.openSnackbar({
+        type: 'error',
+        title: 'Archivo',
+        message: 'El PDF no puede superar 10 MB',
+      });
+      return;
+    }
+
+    this.satConstanciaUploading.set(true);
+    this.customerService
+      .applySatConstancia(String(customer.id), file)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          const updated = unwrapCustomerPayload(response);
+          this.satConstanciaUploading.set(false);
+          if (updated) {
+            this.customer.set({
+              ...customer,
+              ...updated,
+              addresses: customer.addresses,
+            });
+          } else {
+            this.loadCustomer();
+          }
+          this.interceptorService.openSnackbar({
+            type: 'success',
+            title: 'Listo',
+            message: 'Se actualizó la información fiscal con la constancia del SAT',
+          });
+        },
+        error: (error) => {
+          this.satConstanciaUploading.set(false);
+          this.interceptorService.openSnackbar({
+            type: 'error',
+            title: 'Error',
+            message: resolveHttpErrorMessage(error, 'No se pudo leer la constancia del SAT'),
+          });
+        },
+      });
   }
 
   onAutoGenerateInvoiceChange(enabled: boolean): void {

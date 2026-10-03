@@ -6,6 +6,7 @@ import {
   IDatatableConfig,
   IPaginationEvent,
 } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+import { formatBusinessDateTime } from '../../../../core/utils/api-datetime.util';
 import { AccountingService } from '../../services/accounting.service';
 import { AccountingPeriod, PosTerminalSaleRow, SalesTerminalSummary } from '../../models/accounting.model';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
@@ -74,10 +75,7 @@ export class PosTerminalSalesDialogComponent implements OnInit {
   }
 
   formatDate(value?: string): string {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatBusinessDateTime(value)?.date ?? '—';
   }
 
   sellerLabel(row: PosTerminalSaleRow): string {

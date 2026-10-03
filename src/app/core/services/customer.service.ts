@@ -162,6 +162,12 @@ export class CustomerService {
     return this.http.put(`${this.api}/tenant/customers/${id}`, data);
   }
 
+  applySatConstancia(id: string, file: File): Observable<unknown> {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http.post(`${this.api}/tenant/customers/${id}/fiscal-constancia`, body);
+  }
+
   createCustomer(data: any): Observable<any> {
     return this.http.post(`${this.api}/tenant/customers`, data);
   }

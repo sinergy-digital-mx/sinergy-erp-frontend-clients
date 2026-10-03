@@ -6,6 +6,7 @@ import {
   IDatatableConfig,
   IPaginationEvent,
 } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+import { formatBusinessDateTime } from '../../../../core/utils/api-datetime.util';
 import { AccountingService } from '../../services/accounting.service';
 import {
   AccountingPeriod,
@@ -113,10 +114,7 @@ export class PosCollectionsDialogComponent implements OnInit {
   }
 
   formatDate(value?: string): string {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatBusinessDateTime(value)?.date ?? '—';
   }
 
   sellerLabel(row: PosCollectionRow): string {

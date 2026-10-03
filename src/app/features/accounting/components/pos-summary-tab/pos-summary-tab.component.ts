@@ -8,10 +8,12 @@ import {
   AccountingPeriod,
   CollectionCustomerType,
   CollectionTerminalSummary,
+  PosCollectionRow,
   PosDaySummary,
   PosEnteredOrder,
   PosOpenDailyShiftSummary,
 } from '../../models/accounting.model';
+import { formatBusinessDateTime } from '../../../../core/utils/api-datetime.util';
 import { dailyShiftIsOpen, formatPosShiftDate } from '../../../pos/models/pos-daily-shift.model';
 import { PosCollectionsDialogComponent } from '../pos-collections-dialog/pos-collections-dialog.component';
 import { PosShiftsDialogComponent, PosShiftsDialogView } from '../pos-shifts-dialog/pos-shifts-dialog.component';
@@ -38,6 +40,7 @@ export class PosSummaryTabComponent implements OnChanges {
 
   branchMissing = signal(false);
   loadError = signal(false);
+  consultedDay = signal('');
   collectionTerminal = signal<CollectionTerminalSummary>(this.emptyCollectionTerminal());
 
   tableConfig = signal<IDatatableConfig>({
@@ -85,20 +88,7 @@ export class PosSummaryTabComponent implements OnChanges {
   }
 
   formatTime(value?: string): string {
-    if (!value) {
-      return '—';
-    }
-    const hasZone = /[zZ]|[+-]\d{2}:\d{2}$/.test(value);
-    const normalized = hasZone ? value : `${value.replace(' ', 'T')}Z`;
-    const parsed = new Date(normalized);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-    return parsed.toLocaleTimeString('es-MX', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'America/Mexico_City',
-    });
+    return formatBusinessDateTime(value)?.time ?? '—';
   }
 
   originLabel(order: PosEnteredOrder): string {
@@ -192,6 +182,7 @@ export class PosSummaryTabComponent implements OnChanges {
     if (!this.billingBranchId) {
       this.branchMissing.set(true);
       this.loadError.set(false);
+      this.consultedDay.set('');
       this.collectionTerminal.set(this.emptyCollectionTerminal());
       this.publishSummary(this.emptySummary());
       this.tableConfig.update((cfg) => ({ ...cfg, rows: [], loading: false, totalResults: 0 }));
@@ -216,17 +207,20 @@ export class PosSummaryTabComponent implements OnChanges {
       .subscribe({
         next: (res) => {
           const orders = res.entered_orders ?? [];
+          const collected = res.collection_terminal?.orders_collected ?? 0;
+          this.consultedDay.set(
+            this.formatConsultedDay(res.filters_applied?.date_from, res.filters_applied?.date_to),
+          );
           this.collectionTerminal.set(res.collection_terminal ?? this.emptyCollectionTerminal());
-          this.publishSummary(res.summary ?? this.emptySummary());
-          this.tableConfig.update((cfg) => ({
-            ...cfg,
-            rows: orders,
-            totalResults: orders.length,
-            loading: false,
-          }));
+          if (!orders.length && collected > 0) {
+            this.fillEnteredFromCollections(res.summary ?? this.emptySummary());
+            return;
+          }
+          this.showEnteredOrders(orders, res.summary ?? this.emptySummary());
         },
         error: () => {
           this.loadError.set(true);
+          this.consultedDay.set('');
           this.collectionTerminal.set(this.emptyCollectionTerminal());
           this.publishSummary(this.emptySummary());
           this.tableConfig.update((cfg) => ({
@@ -237,6 +231,59 @@ export class PosSummaryTabComponent implements OnChanges {
           }));
         },
       });
+  }
+
+  private showEnteredOrders(orders: PosEnteredOrder[], summary: PosDaySummary): void {
+    this.publishSummary(summary);
+    this.tableConfig.update((cfg) => ({
+      ...cfg,
+      rows: orders,
+      totalResults: orders.length,
+      loading: false,
+    }));
+  }
+
+  /** El API viejo manda el conteo de caja y no la lista. Esas órdenes cobradas sí se pintan. */
+  private fillEnteredFromCollections(summary: PosDaySummary): void {
+    this.accountingService
+      .getPosCollections(
+        {
+          period: this.period,
+          billing_branch_id: this.billingBranchId,
+          date_from: this.period === 'range' ? this.dateFrom : undefined,
+          date_to: this.period === 'range' ? this.dateTo : undefined,
+        },
+        'all',
+        1,
+        100,
+      )
+      .subscribe({
+        next: (page) => {
+          const orders = (page.data ?? []).map((row) => this.collectionAsEntered(row));
+          const amount = orders.reduce((sum, order) => sum + order.total, 0);
+          this.showEnteredOrders(orders, {
+            ...summary,
+            orders_entered: summary.orders_entered || orders.length,
+            amount_entered: summary.amount_entered || Number(amount.toFixed(2)),
+          });
+        },
+        error: () => this.showEnteredOrders([], summary),
+      });
+  }
+
+  private collectionAsEntered(row: PosCollectionRow): PosEnteredOrder {
+    const total = Number(row.total ?? 0);
+    return {
+      id: row.id,
+      folio: row.folio ?? null,
+      created_at: row.created_at,
+      total: Number.isFinite(total) ? total : 0,
+      payment_status: row.payment_status ?? 'Pagado',
+      channel: 'caja',
+      terminal_name: null,
+      customer_display_name: row.customer_display_name ?? row.customer_company_name ?? null,
+      amount_collected: Number.isFinite(total) ? total : 0,
+    };
   }
 
   private publishSummary(summary: PosDaySummary): void {
@@ -270,5 +317,18 @@ export class PosSummaryTabComponent implements OnChanges {
 
   private formatShiftDate(value: string): string {
     return formatPosShiftDate(value);
+  }
+
+  /** Día que resolvió el API. `YYYY-MM-DD` se pinta tal cual, sin pasarlo por UTC. */
+  private formatConsultedDay(dateFrom?: string | null, dateTo?: string | null): string {
+    const from = formatPosShiftDate(dateFrom, true);
+    if (!dateFrom || from === '—') {
+      return '';
+    }
+    const to = formatPosShiftDate(dateTo, true);
+    if (!dateTo || dateTo.slice(0, 10) === dateFrom.slice(0, 10) || to === '—') {
+      return from;
+    }
+    return `${from} – ${to}`;
   }
 }

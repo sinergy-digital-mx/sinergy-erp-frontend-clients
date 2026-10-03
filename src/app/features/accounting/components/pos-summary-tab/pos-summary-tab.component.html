@@ -85,13 +85,23 @@
         </div>
 
         <p class="collection-card__hint">
-          Total del corte de este día. No incluye dinero de otro corte.
+          Total del corte
+          @if (consultedDay()) {
+            del {{ consultedDay() }}
+          } @else {
+            de este día
+          }. No incluye dinero de otro corte.
         </p>
       </div>
     </aside>
 
     <div class="pos-summary-section">
-      <h3 class="pos-summary-section__title">Órdenes que entraron</h3>
+      <h3 class="pos-summary-section__title">
+        Órdenes que entraron
+        @if (consultedDay()) {
+          <span class="pos-summary-section__day">{{ consultedDay() }}</span>
+        }
+      </h3>
       @if (loadError()) {
         <p class="pos-summary-error">No se pudo cargar el resumen de este día. Recarga la página.</p>
       }
