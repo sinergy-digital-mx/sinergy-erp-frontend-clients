@@ -35,6 +35,24 @@
   font-size: 0.85rem;
 }
 
+.sent-when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.sent-when__date {
+  font-weight: 600;
+  color: #334155;
+}
+
+.sent-when__time {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
 .history-table {
   width: 100%;
   border-collapse: collapse;

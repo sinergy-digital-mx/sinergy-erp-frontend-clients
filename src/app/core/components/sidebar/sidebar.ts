@@ -44,6 +44,7 @@ import { DIVINO_RESERVATION_FORMAT_PERMISSIONS } from '../../../features/divino-
 import { AuthService } from '../../services/auth.service';
 import { SidebarService } from '../../services/sidebar.service';
 import { PERMISSIONS } from '../../config/permissions.config';
+import { canShowSettings } from '../../../features/settings/guards/settings-access.guard';
 import { ExchangeRateService } from '../../services/exchange-rate.service';
 import { PolluxBrandTextComponent } from '../pollux-brand-text/pollux-brand-text.component';
 import { Subscription } from 'rxjs';
@@ -303,6 +304,7 @@ export class Sidebar implements OnInit, OnDestroy {
       route: '/settings',
       icon: Settings,
       id: 'menu-settings',
+      permission: PERMISSIONS.settings.viewMenu,
     },
   ];
 
@@ -428,6 +430,9 @@ export class Sidebar implements OnInit, OnDestroy {
       }
       if (tenantId && item.hiddenForOrganizationIds?.includes(tenantId)) {
         return false;
+      }
+      if (item.id === 'menu-settings') {
+        return canShowSettings(this.auth_service);
       }
       if (item.id === 'menu-pos-cobranza') {
         return this.auth_service.hasPermission(PERMISSIONS.pos.viewMenu) ||

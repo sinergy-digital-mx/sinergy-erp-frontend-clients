@@ -6,6 +6,7 @@
   import { ActivatedRoute, Router } from '@angular/router';
   import { environment } from '../../../environments/environment';
   import { isCostaCampestreDivino, isMadereriaZonaNorte } from '../config/organizations.constants';
+  import { SETTINGS_PERMISSIONS } from '../config/permissions.config';
 
 
   @Injectable({
@@ -556,6 +557,9 @@
       const skipDivinoOperations = isCostaCampestreDivino(this.user_info?.tenant_id);
       for (const route of routes) {
         if (skipRealEstate && (route.path === '/properties' || route.path === '/contracts')) {
+          continue;
+        }
+        if (route.path.startsWith('/settings') && !this.hasPermission(SETTINGS_PERMISSIONS.viewMenu)) {
           continue;
         }
         if (

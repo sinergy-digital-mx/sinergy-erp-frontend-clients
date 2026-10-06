@@ -364,9 +364,13 @@ export class BatchDetailDialogComponent implements OnInit {
     }).format(parsePurchaseOrderDecimal(value));
   }
 
-  get pedimentoNumber(): string | null {
-    const value = this.batch()?.pedimento_number?.trim();
-    return value || null;
+  get pedimentoNumbers(): string[] {
+    const listed = this.batch()?.pedimento_numbers;
+    if (Array.isArray(listed) && listed.length) {
+      return listed.map((value) => value.trim()).filter((value) => value.length > 0);
+    }
+    const single = this.batch()?.pedimento_number?.trim();
+    return single ? [single] : [];
   }
 
   get vendorInvoiceNumber(): string | null {

@@ -34,7 +34,16 @@
           <tbody>
             @for (row of emails(); track row.id) {
               <tr>
-                <td>{{ row.sent_at | apiDate: 'short' }}</td>
+                <td>
+                  @if (sentWhen(row.sent_at); as when) {
+                    <span class="sent-when">
+                      <span class="sent-when__date">{{ when.date }}</span>
+                      <span class="sent-when__time">{{ when.time }}</span>
+                    </span>
+                  } @else {
+                    —
+                  }
+                </td>
                 <td>{{ row.to_email }}</td>
                 <td>{{ row.cc?.length ? row.cc.join(', ') : '—' }}</td>
                 <td>{{ row.subject }}</td>

@@ -119,14 +119,18 @@
             }
           </div>
 
-          @if (pedimentoNumber) {
+          @if (pedimentoNumbers.length) {
             <div class="info-card info-card--code info-card--pedimento">
               <div class="info-card__icon">
                 <lucide-icon [img]="Stamp" class="w-5 h-5"></lucide-icon>
               </div>
               <div class="info-card__content">
                 <span class="info-card__label">PEDIMENTO</span>
-                <span class="info-card__value">{{ formatPedimento(pedimentoNumber) }}</span>
+                <span class="info-card__value">
+                  @for (number of pedimentoNumbers; track number) {
+                    <span class="info-card__invoice">{{ formatPedimento(number) }}</span>
+                  }
+                </span>
               </div>
             </div>
           }

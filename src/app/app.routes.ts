@@ -5,6 +5,7 @@ import { LoggedGuard } from './core/guards/logged.guard';
 import { AdminGuard } from './core/guards/admin.guard';
 import { defaultRouteGuard } from './core/guards/default-route.guard';
 import { divinoInventoryGuard } from './core/guards/divino-inventory.guard';
+import { settingsAccessGuard } from './features/settings/guards/settings-access.guard';
 import { posCobranzaGuard, posEntryRedirectGuard, posVentasGuard } from './core/guards/pos-user-type.guard';
 
 export const routes: Routes = [
@@ -81,6 +82,7 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
+        canActivate: [settingsAccessGuard],
         loadChildren: () =>
           import('./features/rbac-tenant-ui/rbac-tenant-ui.routes')
             .then(m => m.RBAC_TENANT_UI_ROUTES),

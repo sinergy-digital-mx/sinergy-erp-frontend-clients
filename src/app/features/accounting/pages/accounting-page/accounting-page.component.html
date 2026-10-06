@@ -13,10 +13,7 @@
     </nav>
 
     @if (showPeriodFilters()) {
-      <div
-        class="accounting-toolbar"
-        [class.accounting-toolbar--range]="period() === 'range'"
-        [class.accounting-toolbar--day]="posDayOnlyFilters()">
+      <div class="accounting-toolbar">
         <div class="accounting-filters__field">
           <label class="accounting-filters__label" for="accounting-branch">
             Sucursal

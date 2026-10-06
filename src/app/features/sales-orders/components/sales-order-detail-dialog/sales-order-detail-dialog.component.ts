@@ -95,6 +95,66 @@ import { formatUnitAmount } from '../../../../core/utils/unit-money.util';
 import { EditSalesOrderLineDialogComponent } from '../edit-sales-order-line-dialog/edit-sales-order-line-dialog.component';
 import { AddSalesOrderLineDialogComponent } from '../add-sales-order-line-dialog/add-sales-order-line-dialog.component';
 
+type InstructionFilter = 'all' | 'lots' | 'billing' | 'closings' | 'cancellations';
+
+interface InstructionSection {
+  id: Exclude<InstructionFilter, 'all'>;
+  label: string;
+  icon: string;
+  tone: 'blue' | 'violet' | 'amber' | 'rose';
+  points: string[];
+}
+
+const INSTRUCTION_SECTIONS: InstructionSection[] = [
+  {
+    id: 'lots',
+    label: 'Lotes',
+    icon: 'fi fi-rr-layers',
+    tone: 'blue',
+    points: [
+      'Al crear una orden manual, o al convertir una cotización sin mandarla a caja, el sistema aparta lotes solo: los más antiguos primero, de todos los almacenes de la sucursal. Baja la existencia y deja la salida en el kardex. La orden queda en Creada. Este detalle, tab Lotes, muestra cuáles tomó.',
+      'Si marcaste selección y armado, no aparta al crear. Mesa de Control aparta al surtir, almacén por almacén.',
+      'En POS aparta al registrar la venta y la orden queda Surtida. Los servicios no usan lotes. Si no hay existencia, la orden no se guarda.',
+      'Cambiar la cantidad o quitar una línea suelta esos lotes y, si la orden sigue manual y sin selección, los vuelve a apartar. Mandarla a cobranza o quitarla del corte no suelta el inventario.',
+    ],
+  },
+  {
+    id: 'billing',
+    label: 'Facturación',
+    icon: 'fi fi-rr-file-invoice',
+    tone: 'violet',
+    points: [
+      'Timbrar no mueve inventario. Los lotes siguen apartados.',
+      'No se puede cancelar la orden mientras haya una factura vigente. Primero se cancela el CFDI.',
+      'Cancelar la factura no devuelve la mercancía: la orden sigue viva y los lotes siguen sujetos.',
+      'La factura de esa venta es del mes de la orden.',
+    ],
+  },
+  {
+    id: 'closings',
+    label: 'Cierres',
+    icon: 'fi fi-rr-receipt',
+    tone: 'amber',
+    points: [
+      'El corte de caja es el cierre del dinero de la sucursal. No aparta ni suelta lotes.',
+      'Enviar a cobranza mete la orden al corte abierto para que caja la cobre. Si por algún motivo no tenía lotes, ahí se apartan.',
+      'Quitar de cobranza la saca del corte y la regresa a manual; los lotes se quedan.',
+      'Cerrar el corte no cancela ventas ni regresa inventario.',
+    ],
+  },
+  {
+    id: 'cancellations',
+    label: 'Cancelaciones',
+    icon: 'fi fi-rr-cross-circle',
+    tone: 'rose',
+    points: [
+      'Cancelar la orden devuelve la cantidad a cada lote y escribe en el kardex la entrada de reversa, con la fecha de la cancelación. La salida original se queda en el historial. La orden pasa a Cancelada.',
+      'No se puede si hay una factura vigente, si ya se cobró una orden que vino de cotización, o si esa orden tiene pagos. En ese último caso hay que quitar los pagos antes.',
+      'Si estaba en selección, también se cancela el trabajo de Mesa de Control.',
+    ],
+  },
+];
+
 @Component({
   selector: 'app-sales-order-detail-dialog',
   standalone: true,
@@ -125,6 +185,22 @@ export class SalesOrderDetailDialogComponent {
   loading = signal(true);
   refreshing = signal(false);
   activeTabIndex = signal(0);
+  instructionSection = signal<InstructionFilter>('all');
+  readonly instructionFilters: { id: InstructionFilter; label: string; icon: string }[] = [
+    { id: 'all', label: 'Todas', icon: 'fi fi-rr-apps' },
+    ...INSTRUCTION_SECTIONS.map((section) => ({
+      id: section.id,
+      label: section.label,
+      icon: section.icon,
+    })),
+  ];
+  visibleInstructions = computed(() => {
+    const selected = this.instructionSection();
+    if (selected === 'all') {
+      return INSTRUCTION_SECTIONS;
+    }
+    return INSTRUCTION_SECTIONS.filter((section) => section.id === selected);
+  });
   showDeliveredTotals = signal(false);
   regeneratingPDF = signal(false);
   reprintingTicket = signal(false);

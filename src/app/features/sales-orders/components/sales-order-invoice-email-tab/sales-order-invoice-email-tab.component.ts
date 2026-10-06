@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '
 import { CommonModule } from '@angular/common';
 import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { AuthService } from '../../../../core/services/auth.service';
+import { formatBusinessDateTime } from '../../../../core/utils/api-datetime.util';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { ELECTRONIC_INVOICING_PERMISSIONS } from '../../config/electronic-invoicing-permissions.config';
@@ -60,5 +61,9 @@ export class SalesOrderInvoiceEmailTabComponent implements OnInit {
 
   senderLabel(row: SalesOrderInvoiceEmail): string {
     return row.sent_by?.display_name || '—';
+  }
+
+  sentWhen(value: string | Date | null | undefined): { date: string; time: string } | null {
+    return formatBusinessDateTime(value);
   }
 }

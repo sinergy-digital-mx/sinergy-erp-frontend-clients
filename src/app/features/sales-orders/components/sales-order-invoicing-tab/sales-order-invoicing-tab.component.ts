@@ -16,7 +16,6 @@ import {
   FinkokConfigurationsResponse,
   InvoiceValidationIssue,
   SalesOrderElectronicInvoice,
-  isLocalStampHost,
 } from '../../models/sales-order-electronic-invoice.model';
 import { SalesOrder, SalesOrderLineItem, Customer } from '../../models/sales-order.model';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
@@ -99,25 +98,8 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   validationIssues = computed(() => this.buildValidationIssues());
   canStampInvoice = computed(() => this.canStamp() && this.validationIssues().length === 0);
 
-  activeInvoiceWarning = computed(() => {
-    const vigentesProd = this.visibleInvoices().filter((invoice) => {
-      if (this.getInvoiceEnvironment(invoice) !== 'production') return false;
-      const stamp = (invoice.stamp_status || '').toLowerCase();
-      const sat = (invoice.sat_status || '').toLowerCase();
-      return stamp === 'stamped' && !/\bcancelad[oa]\b/.test(sat);
-    });
-    if (vigentesProd.length > 0 && this.canStamp()) {
-      return 'Ya existe una factura activa en producción. Cancela la anterior antes de timbrar otra factura en PROD.';
-    }
-    return null;
-  });
-
-  demoStampedCount = computed(() =>
-    this.visibleInvoices().filter((invoice) => !!String(invoice.uuid || '').trim() && this.isStamped(invoice)).length
-  );
-
-  demoCancelledCount = computed(() =>
-    this.visibleInvoices().filter((invoice) => this.isCancelledStatus(invoice)).length
+  hasActiveProductionInvoice = computed(() =>
+    this.visibleInvoices().some((invoice) => this.isActiveProductionInvoice(invoice))
   );
 
   visibleInvoices = computed(() =>
@@ -338,6 +320,7 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
         finkokConfig: this.finkokConfig(),
         validationIssues: this.validationIssues(),
         canStamp: this.canStampInvoice(),
+        hasActiveProductionInvoice: this.hasActiveProductionInvoice(),
       },
     });
 
@@ -523,10 +506,6 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   getInvoiceXmlFileName(invoice: SalesOrderElectronicInvoice): string {
     const uuid = String(invoice.uuid || '').trim();
     return uuid ? `${uuid}.xml` : 'factura.xml';
-  }
-
-  showDemoAltaBanner(): boolean {
-    return isLocalStampHost() || this.finkokConfig()?.stamping_environment === 'demo';
   }
 
   getInvoiceEnvironment(invoice: SalesOrderElectronicInvoice): 'demo' | 'production' | null {
@@ -735,14 +714,11 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     return stamp === 'stamp_error' || (!String(invoice.uuid || '').trim() && stamp !== 'cancel_pending' && stamp !== 'cancelled');
   }
 
-  private isStamped(invoice: SalesOrderElectronicInvoice): boolean {
-    return (invoice.stamp_status || '').toLowerCase() === 'stamped';
-  }
-
-  private isCancelledStatus(invoice: SalesOrderElectronicInvoice): boolean {
+  private isActiveProductionInvoice(invoice: SalesOrderElectronicInvoice): boolean {
+    if (this.getInvoiceEnvironment(invoice) !== 'production') return false;
     const stamp = (invoice.stamp_status || '').toLowerCase();
     const sat = (invoice.sat_status || '').toLowerCase();
-    return stamp === 'cancelled' || stamp === 'cancel_pending' || /\bcancelad[oa]\b/.test(sat);
+    return stamp === 'stamped' && !/\bcancelad[oa]\b/.test(sat);
   }
 
   invoiceRecordId(invoice: SalesOrderElectronicInvoice): string {

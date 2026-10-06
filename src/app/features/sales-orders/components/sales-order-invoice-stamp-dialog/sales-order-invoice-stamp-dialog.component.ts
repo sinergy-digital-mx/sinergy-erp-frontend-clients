@@ -41,6 +41,7 @@ export interface SalesOrderInvoiceStampDialogData {
   finkokConfig: FinkokConfigurationsResponse | null;
   validationIssues: InvoiceValidationIssue[];
   canStamp: boolean;
+  hasActiveProductionInvoice?: boolean;
 }
 
 export interface SalesOrderInvoiceStampDialogResult {
@@ -76,8 +77,19 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
 
   selectedFinkokUsername = computed(() => this.selectedEnvConfig()?.finkok_username?.trim() || '');
 
+  blocksProductionStamp = computed(
+    () => this.stampEnvironment() === 'production' && this.data.hasActiveProductionInvoice
+  );
+
+  readonly activeProductionMessage =
+    'Ya existe una factura activa en producción. Cancela la anterior antes de timbrar otra factura en PROD.';
+
   canSubmitStamp = computed(
-    () => this.data.canStamp && this.hasSelectedEnvCredentials() && !this.stamping()
+    () =>
+      this.data.canStamp &&
+      this.hasSelectedEnvCredentials() &&
+      !this.stamping() &&
+      !this.blocksProductionStamp()
   );
 
   generatedXml = computed(() => {
@@ -204,6 +216,10 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
   }
 
   submit(): void {
+    if (this.blocksProductionStamp()) {
+      this.stampError.set(this.activeProductionMessage);
+      return;
+    }
     if (!this.canSubmitStamp() || this.form.invalid) return;
 
     const value = this.form.getRawValue();

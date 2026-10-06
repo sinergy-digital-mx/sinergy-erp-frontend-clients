@@ -10,15 +10,6 @@
       <app-spinner></app-spinner>
     </div>
   } @else {
-    @if (showDemoAltaBanner()) {
-      <div class="demo-banner">
-        <strong>Alta Finkok (demo):</strong>
-        3 facturas timbradas con UUID y 2 cancelaciones (motivo 02).
-        En esta OV: {{ demoStampedCount() }}/3 timbradas · {{ demoCancelledCount() }}/2 canceladas.
-        Las de error no cuentan.
-      </div>
-    }
-
     <div class="invoicing-summary-row">
       <p class="invoicing-summary">{{ summaryText() }}</p>
       @if (canStamp() && order.can_apply_advance) {
@@ -57,10 +48,6 @@
           </div>
         }
       </div>
-    }
-
-    @if (activeInvoiceWarning()) {
-      <div class="prod-warning-banner">{{ activeInvoiceWarning() }}</div>
     }
 
     @if (visibleInvoices().length > 0) {

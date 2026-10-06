@@ -1,1 +1,0 @@
-var e={viewMenu:"Employee:ViewMenu",viewList:"Employee:Read",viewDetail:"Employee:Read",create:"Employee:Create",update:"Employee:Update",delete:"Employee:Delete",manageLeave:"Employee:ManageLeave"};export{e as a};

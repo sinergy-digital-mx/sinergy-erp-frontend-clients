@@ -86,8 +86,10 @@ export interface InventoryBatch {
   purchase_order_id: string | null;
   purchase_order_detail_id: string | null;
   purchase_order_folio: string | null;
-  /** Pedimento de la OC de origen. null si no hay OC o la OC no tiene pedimento. */
+  /** Pedimento principal: el de la OC, o el más reciente del lote importado. */
   pedimento_number?: string | null;
+  /** Todos los pedimentos del lote. */
+  pedimento_numbers?: string[] | null;
   /** Factura del proveedor de la OC de origen. */
   vendor_invoice_number?: string | null;
   vendor_invoice_numbers?: string[] | null;

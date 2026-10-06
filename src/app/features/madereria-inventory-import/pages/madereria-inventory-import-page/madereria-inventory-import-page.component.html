@@ -2,9 +2,10 @@
   <div class="mb-5">
     <h2 class="text-2xl font-semibold text-gray-800">Importación de inventario</h2>
     <p class="text-sm text-gray-600 mt-1">
-      Carga el Excel de inventario (CODIGO, DESCRIPCION, ALTERNO, PRECIO1, COSTO PROM, CANTIDAD).
-      Si el producto no existe se crea; el precio solo se agrega cuando no hay uno activo;
-      el costo queda en PROVEEDOR IMPORTACION; cantidad mayor a 0 genera lote en el almacén elegido.
+      Carga el reporte de artículos (CODIGO, DESCRIPCION, CLAVE SAT, PEDIMENTO/FECHA/ADUANA/PROVEEDOR, PRECIO1, COSTO PROM, CANTIDAD).
+      Si el producto no existe se crea; la clave SAT se guarda o se actualiza;
+      el precio solo se agrega cuando no hay uno activo;
+      el costo queda en PROVEEDOR IMPORTACION; cantidad mayor a 0 genera lote con sus pedimentos.
     </p>
   </div>
 
@@ -133,10 +134,14 @@
         {{ result.warehouse_name }} · {{ result.file_rows }} filas en el archivo
       </p>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
         <div class="madereria-import__stat">
           <p class="madereria-import__stat-label">Lotes</p>
           <p class="madereria-import__stat-value">{{ result.batches_created }}</p>
+        </div>
+        <div class="madereria-import__stat">
+          <p class="madereria-import__stat-label">Claves SAT</p>
+          <p class="madereria-import__stat-value">{{ result.sat_claves_saved ?? 0 }}</p>
         </div>
         <div class="madereria-import__stat">
           <p class="madereria-import__stat-label">Precios nuevos</p>

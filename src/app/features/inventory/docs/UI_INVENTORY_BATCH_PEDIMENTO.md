@@ -1,6 +1,8 @@
 # UI — Pedimento en detalle de lote
 
-El pedimento **no se guarda en el lote**. Vive en la orden de compra. El lote ya apunta a esa OC (`purchase_order_batch_id`); al recibir se copia esa relación, y al transferir se conserva.
+Si el lote viene de una orden de compra, el pedimento vive en la OC. El lote apunta a esa OC (`purchase_order_batch_id`); al recibir se copia esa relación, y al transferir se conserva.
+
+Si el lote se creó con **Importación de inventario** (reporte CLAVE SAT / pedimentos), el pedimento se guarda en el lote: `pedimento_number` (el de fecha más reciente) y la lista completa. Al transferir se copian esos campos.
 
 ## Endpoint
 
@@ -8,7 +10,8 @@ El pedimento **no se guarda en el lote**. Vive en la orden de compra. El lote ya
 
 | Campo | Tipo | Cuándo viene |
 |-------|------|----------------|
-| `pedimento_number` | `string \| null` | Pedimento de la OC de origen. `null` si no hay OC, o la OC no tiene pedimento. |
+| `pedimento_number` | `string \| null` | Pedimento principal. El de la OC si existe. Si no hay OC, el más reciente guardado en el lote. |
+| `pedimento_numbers` | `string[]` | Todos los pedimentos a mostrar. Uno si viene de la OC; todos los del reporte si el lote se importó. |
 | `vendor_invoice_number` | `string \| null` | Primera factura del proveedor de la OC. `null` si no hay OC o no hay factura. |
 | `vendor_invoice_numbers` | `string[]` | Todas las facturas de la OC. Vacío si no hay OC o no hay facturas. |
 
@@ -26,13 +29,13 @@ Solo lectura. El pedimento se cambia en la OC (`PATCH /purchase-orders/:id/pedim
 
 ```ts
 const folio = batch.purchase_order_folio ?? '—';
-const pedimento = batch.pedimento_number?.trim() || null;
+const pedimentos = batch.pedimento_numbers?.filter((value) => value.trim()) ?? [];
 ```
 
 | Condición | UI |
 |-----------|-----|
-| `pedimento_number` con valor | Mostrar el número (mismo formato que en OC; no validar SAT) |
-| `pedimento_number` null / vacío | No mostrar la card |
-| Sin OC (`purchase_order_folio` vacío) | No hay pedimento |
+| `pedimento_numbers` con valores | Mostrar cada número (mismo formato que en OC; no validar SAT) |
+| Lista vacía y `pedimento_number` vacío | No mostrar la card |
+| Sin OC y sin pedimento en el lote | No hay pedimento |
 
-Lote de transferencia: mismo `pedimento_number` que el lote origen (misma OC).
+Lote de transferencia: mismos pedimentos que el lote origen (la OC, o los copiados del lote importado).

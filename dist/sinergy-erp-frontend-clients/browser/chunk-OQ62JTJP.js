@@ -1,1 +1,0 @@
-var e={viewMenu:"DivinoReservationFormat:ViewMenu",create:"DivinoReservationFormat:Create",read:"DivinoReservationFormat:Read",update:"DivinoReservationFormat:Update",delete:"DivinoReservationFormat:Delete",send:"DivinoReservationFormat:Send"};export{e as a};

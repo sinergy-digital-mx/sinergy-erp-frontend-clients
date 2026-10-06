@@ -1175,31 +1175,37 @@
 
           @if (activeTabIndex() === 8) {
             <div class="tab-content-wrapper instructions">
-              <section>
-                <h3>Lotes</h3>
-                <p>Al crear una orden manual, o al convertir una cotización sin mandarla a caja, el sistema aparta lotes solo: los más antiguos primero, de todos los almacenes de la sucursal. Baja la existencia y deja la salida en el kardex. La orden queda en Creada. Este detalle, tab Lotes, muestra cuáles tomó.</p>
-                <p>Si marcaste selección y armado, no aparta al crear. Mesa de Control aparta al surtir, almacén por almacén.</p>
-                <p>En POS aparta al registrar la venta y la orden queda Surtida. Los servicios no usan lotes. Si no hay existencia, la orden no se guarda.</p>
-                <p>Cambiar la cantidad o quitar una línea suelta esos lotes y, si la orden sigue manual y sin selección, los vuelve a apartar. Mandarla a cobranza o quitarla del corte no suelta el inventario.</p>
-              </section>
-              <section>
-                <h3>Facturación</h3>
-                <p>Timbrar no mueve inventario. Los lotes siguen apartados.</p>
-                <p>No se puede cancelar la orden mientras haya una factura vigente. Primero se cancela el CFDI. Cancelar la factura no devuelve la mercancía: la orden sigue viva y los lotes siguen sujetos.</p>
-                <p>La factura de esa venta es del mes de la orden.</p>
-              </section>
-              <section>
-                <h3>Cierres</h3>
-                <p>El corte de caja es el cierre del dinero de la sucursal. No aparta ni suelta lotes.</p>
-                <p>Enviar a cobranza mete la orden al corte abierto para que caja la cobre. Si por algún motivo no tenía lotes, ahí se apartan. Quitar de cobranza la saca del corte y la regresa a manual; los lotes se quedan.</p>
-                <p>Cerrar el corte no cancela ventas ni regresa inventario.</p>
-              </section>
-              <section>
-                <h3>Cancelaciones</h3>
-                <p>Cancelar la orden devuelve la cantidad a cada lote y escribe en el kardex la entrada de reversa, con la fecha de la cancelación. La salida original se queda en el historial. La orden pasa a Cancelada.</p>
-                <p>No se puede si hay una factura vigente, si ya se cobró una orden que vino de cotización, o si esa orden tiene pagos. En ese último caso hay que quitar los pagos antes.</p>
-                <p>Si estaba en selección, también se cancela el trabajo de Mesa de Control.</p>
-              </section>
+              <div class="instructions__filters" role="tablist" aria-label="Secciones de instrucciones">
+                @for (filter of instructionFilters; track filter.id) {
+                  <button
+                    type="button"
+                    class="instructions__filter"
+                    role="tab"
+                    [class.is-active]="instructionSection() === filter.id"
+                    [attr.aria-selected]="instructionSection() === filter.id"
+                    (click)="instructionSection.set(filter.id)">
+                    <i [class]="filter.icon" aria-hidden="true"></i>
+                    {{ filter.label }}
+                  </button>
+                }
+              </div>
+              <div class="instructions__grid" [class.instructions__grid--single]="instructionSection() !== 'all'">
+                @for (section of visibleInstructions(); track section.id) {
+                  <article class="instructions__card" [attr.data-tone]="section.tone">
+                    <header class="instructions__card-head">
+                      <span class="instructions__icon" aria-hidden="true">
+                        <i [class]="section.icon"></i>
+                      </span>
+                      <h3>{{ section.label }}</h3>
+                    </header>
+                    <ul class="instructions__points">
+                      @for (point of section.points; track point) {
+                        <li>{{ point }}</li>
+                      }
+                    </ul>
+                  </article>
+                }
+              </div>
             </div>
           }
         </div>

@@ -430,9 +430,10 @@
       </div>
       </ng-container>
 
+      <div class="sales-panel">
       @if (salesStats(); as stats) {
-        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-          <div class="bg-white border border-gray-100 rounded-xl p-4">
+        <div class="sales-panel__stats grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div class="sales-stat bg-white border border-gray-100 rounded-xl p-4">
             <p class="text-xs font-semibold text-gray-500">Órdenes</p>
             <p class="text-xl font-bold text-[#334155]">{{ stats.active_orders_count }}</p>
             <p class="text-xs text-gray-400 mt-1 truncate">
@@ -442,7 +443,7 @@
               }
             </p>
           </div>
-          <div class="bg-white border border-gray-100 rounded-xl p-4">
+          <div class="sales-stat bg-white border border-gray-100 rounded-xl p-4">
             <p class="text-xs font-semibold text-gray-500">Última orden</p>
             <p class="text-xl font-bold text-[#334155]">
               @if (stats.last_order_at) {
@@ -453,24 +454,24 @@
             </p>
             <p class="text-xs text-gray-400 mt-1 truncate">{{ stats.last_order_folio || 'Sin órdenes' }}</p>
           </div>
-          <div class="bg-white border border-gray-100 rounded-xl p-4">
+          <div class="sales-stat bg-white border border-gray-100 rounded-xl p-4">
             <p class="text-xs font-semibold text-gray-500">Facturadas</p>
             <p class="text-xl font-bold text-[#334155]">{{ stats.invoiced_count }}</p>
             <p class="text-xs text-gray-400 mt-1">Con CFDI vigente</p>
           </div>
-          <div class="bg-white border border-gray-100 rounded-xl p-4">
+          <div class="sales-stat bg-white border border-gray-100 rounded-xl p-4">
             <p class="text-xs font-semibold text-gray-500">Pagadas</p>
             <p class="text-xl font-bold text-[#1d4ed8]">{{ stats.paid_count }}</p>
             <p class="text-xs text-[#1d4ed8] mt-1 truncate">{{ formatMoney(stats.paid_total) }}</p>
           </div>
-          <div class="bg-white border border-gray-100 rounded-xl p-4">
+          <div class="sales-stat bg-white border border-gray-100 rounded-xl p-4">
             <p class="text-xs font-semibold text-gray-500">Debe</p>
             <p class="text-xl font-bold text-[#c2410c]">{{ formatMoney(stats.pending_total) }}</p>
             <p class="text-xs text-[#c2410c] mt-1">
               {{ stats.pending_count }} {{ stats.pending_count === 1 ? 'orden' : 'órdenes' }}
             </p>
           </div>
-          <div class="bg-white border border-gray-100 rounded-xl p-4">
+          <div class="sales-stat bg-white border border-gray-100 rounded-xl p-4">
             <p class="text-xs font-semibold text-gray-500">Promedio</p>
             <p class="text-xl font-bold text-[#334155]">{{ formatMoney(stats.average_order) }}</p>
             <p class="text-xs text-gray-400 mt-1">Por orden activa</p>
@@ -479,6 +480,7 @@
       }
 
       <app-customer-purchase-trend [customerId]="customer()!.id"></app-customer-purchase-trend>
+      </div>
 
       <app-customer-sales-orders
         *hasEntity="'sales_orders'"

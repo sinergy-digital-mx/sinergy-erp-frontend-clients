@@ -14,10 +14,15 @@ const MONTH_LABELS = [
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="zn-period-bar" role="search" [attr.aria-label]="ariaLabel">
+    <div
+      class="zn-period-bar"
+      [class.zn-period-bar--drop]="dropsDown"
+      [class.zn-period-bar--open]="dropsDown && period === 'range'"
+      role="search"
+      [attr.aria-label]="ariaLabel">
       <div
         class="zn-period-panel"
-        [class.zn-period-panel--range]="period === 'range'">
+        [class.zn-period-panel--range]="period === 'range' && !dropsDown">
         <div class="zn-period-toggle" role="group">
           @for (opt of visibleOptions; track opt.value) {
             @if (opt.value === 'month' && !monthAsServerPreset) {
@@ -118,58 +123,68 @@ const MONTH_LABELS = [
           }
         </div>
 
-        @if (period === 'range' && dayOnly) {
-          <div class="zn-date-range zn-date-range--single" aria-label="Seleccionar día">
-            <div class="zn-date-range__field">
-              <label class="zn-date-range__label" [for]="dateFromId">Fecha</label>
-              <div class="zn-date-range__control">
-                <input
-                  [id]="dateFromId"
-                  type="date"
-                  class="zn-date-range__input"
-                  [(ngModel)]="dateFrom"
-                  (change)="onSingleDayInputChange()"
-                  aria-label="Fecha" />
-              </div>
-            </div>
-          </div>
-        } @else if (period === 'range') {
-          <div class="zn-date-range" aria-label="Rango de fechas personalizado">
-            <div class="zn-date-range__field">
-              <label class="zn-date-range__label" [for]="dateFromId">Inicio</label>
-              <div class="zn-date-range__control">
-                <input
-                  [id]="dateFromId"
-                  type="date"
-                  class="zn-date-range__input"
-                  [(ngModel)]="dateFrom"
-                  (change)="onRangeInputChange()"
-                  [max]="dateTo || undefined"
-                  aria-label="Fecha de inicio" />
-              </div>
-            </div>
-            <span class="zn-date-range__sep" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </span>
-            <div class="zn-date-range__field">
-              <label class="zn-date-range__label" [for]="dateToId">Fin</label>
-              <div class="zn-date-range__control">
-                <input
-                  [id]="dateToId"
-                  type="date"
-                  class="zn-date-range__input"
-                  [(ngModel)]="dateTo"
-                  (change)="onRangeInputChange()"
-                  [min]="dateFrom || undefined"
-                  aria-label="Fecha de fin" />
-              </div>
-            </div>
-          </div>
+        @if (period === 'range' && !dropsDown) {
+          <ng-container [ngTemplateOutlet]="dateFields" />
         }
       </div>
+
+      @if (period === 'range' && dropsDown) {
+        <ng-container [ngTemplateOutlet]="dateFields" />
+      }
     </div>
+
+    <ng-template #dateFields>
+      @if (dayOnly) {
+        <div class="zn-date-range zn-date-range--single" aria-label="Seleccionar día">
+          <div class="zn-date-range__field">
+            <label class="zn-date-range__label" [for]="dateFromId">Fecha</label>
+            <div class="zn-date-range__control">
+              <input
+                [id]="dateFromId"
+                type="date"
+                class="zn-date-range__input"
+                [(ngModel)]="dateFrom"
+                (change)="onSingleDayInputChange()"
+                aria-label="Fecha" />
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div class="zn-date-range" aria-label="Rango de fechas personalizado">
+          <div class="zn-date-range__field">
+            <label class="zn-date-range__label" [for]="dateFromId">Inicio</label>
+            <div class="zn-date-range__control">
+              <input
+                [id]="dateFromId"
+                type="date"
+                class="zn-date-range__input"
+                [(ngModel)]="dateFrom"
+                (change)="onRangeInputChange()"
+                [max]="dateTo || undefined"
+                aria-label="Fecha de inicio" />
+            </div>
+          </div>
+          <span class="zn-date-range__sep" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </span>
+          <div class="zn-date-range__field">
+            <label class="zn-date-range__label" [for]="dateToId">Fin</label>
+            <div class="zn-date-range__control">
+              <input
+                [id]="dateToId"
+                type="date"
+                class="zn-date-range__input"
+                [(ngModel)]="dateTo"
+                (change)="onRangeInputChange()"
+                [min]="dateFrom || undefined"
+                aria-label="Fecha de fin" />
+            </div>
+          </div>
+        </div>
+      }
+    </ng-template>
   `,
   styles: [
     `
@@ -381,22 +396,40 @@ const MONTH_LABELS = [
         }
       }
 
-      /* El bloque de fecha sale hacia abajo, anclado al toggle, sin empujar la fila. */
-      :host(.zn-period-drop) .zn-period-panel {
+      /*
+       * El toggle no cambia de lugar. La fecha es hermana del panel (no ítem flex)
+       * y sale en absoluto hacia abajo, encima del contenido.
+       */
+      :host(.zn-period-drop) {
+        display: inline-block;
         position: relative;
+        align-self: flex-end;
+        z-index: 40;
+        overflow: visible;
+        vertical-align: bottom;
       }
-      :host(.zn-period-drop) .zn-period-panel--range {
-        padding: 0.25rem;
-        min-width: 0;
+      .zn-period-bar--drop {
+        display: inline-block;
+        position: relative;
+        overflow: visible;
+        vertical-align: bottom;
+      }
+      .zn-period-bar--drop .zn-period-panel {
+        position: relative;
+        overflow: visible;
+      }
+      .zn-period-bar--open .zn-period-panel {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
       }
-      :host(.zn-period-drop) .zn-date-range {
+      .zn-period-bar--open .zn-date-range {
         position: absolute;
-        top: calc(100% + 0.25rem - 1px);
-        left: -0.25rem;
-        z-index: 30;
-        width: calc(100% + 0.5rem);
+        top: 100%;
+        bottom: auto;
+        left: 0;
+        right: auto;
+        z-index: 40;
+        width: 100%;
         margin: 0;
         padding: 0.55rem 0.7rem 0.7rem;
         background: #fff;
@@ -408,14 +441,19 @@ const MONTH_LABELS = [
           1px 0 0 #e2e8f0,
           0 1px 0 #e2e8f0;
       }
-      :host(.zn-period-drop) .zn-date-range:not(.zn-date-range--single) {
+      .zn-period-bar--open .zn-date-range:not(.zn-date-range--single) {
         min-width: 22rem;
       }
       @media (max-width: 640px) {
-        :host(.zn-period-drop) .zn-date-range,
-        :host(.zn-period-drop) .zn-date-range:not(.zn-date-range--single) {
+        :host(.zn-period-drop),
+        .zn-period-bar--drop {
+          display: block;
+          width: 100%;
+        }
+        .zn-period-bar--open .zn-date-range,
+        .zn-period-bar--open .zn-date-range:not(.zn-date-range--single) {
           min-width: 0;
-          width: calc(100% + 0.5rem);
+          width: 100%;
         }
       }
     `,
@@ -437,6 +475,12 @@ export class ReportPeriodSelectorComponent {
   @Output() rangeChange = new EventEmitter<{ dateFrom: string; dateTo: string }>();
 
   monthDropdownOpen = false;
+  /** La fecha cuelga hacia abajo sin empujar la fila (clase del host). */
+  readonly dropsDown: boolean;
+
+  constructor(private elementRef: ElementRef<HTMLElement>) {
+    this.dropsDown = elementRef.nativeElement.classList.contains('zn-period-drop');
+  }
 
   readonly monthOptions = MONTH_LABELS.map((label, index) => ({ label, index }));
 
@@ -445,8 +489,6 @@ export class ReportPeriodSelectorComponent {
     { label: 'Semana', value: 'week' },
     { label: 'Mes', value: 'month' },
   ];
-
-  constructor(private elementRef: ElementRef<HTMLElement>) {}
 
   get visibleOptions(): { label: string; value: Exclude<ReportPeriod, 'range'> }[] {
     if (this.dayOnly) {
