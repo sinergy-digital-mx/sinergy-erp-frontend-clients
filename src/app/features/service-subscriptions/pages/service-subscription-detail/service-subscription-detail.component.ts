@@ -1,7 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostListener, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { LucideAngularModule, ArrowLeft, X } from 'lucide-angular';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { ServiceSubscriptionService } from '../../services/service-subscription.service';
@@ -14,6 +15,18 @@ import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-messa
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { SERVICE_SUBSCRIPTION_PERMISSIONS } from '../../config/permissions.config';
+import {
+  CFDI_FORMA_PAGO_OPTIONS,
+  CFDI_REGIMEN_RECEPTOR_OPTIONS,
+  CFDI_USO_OPTIONS,
+  PAYMENT_METHOD_OPTIONS,
+  catalogLabel,
+  coveragePercent,
+  formatShortDate,
+  moneyMx,
+  subscriptionStatusLabel,
+  withTax,
+} from '../../utils/service-subscription-display.util';
 
 interface OrderOption {
   id: string;
@@ -25,8 +38,9 @@ interface OrderOption {
 @Component({
   selector: 'app-service-subscription-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, SpinnerComponent],
+  imports: [CommonModule, RouterLink, SpinnerComponent, LucideAngularModule],
   templateUrl: './service-subscription-detail.component.html',
+  styleUrl: '../../styles/service-subscriptions.scss',
 })
 export class ServiceSubscriptionDetailComponent {
   private readonly route = inject(ActivatedRoute);
@@ -36,8 +50,18 @@ export class ServiceSubscriptionDetailComponent {
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
 
+  readonly ArrowLeft = ArrowLeft;
+  readonly X = X;
+  readonly money = moneyMx;
+  readonly statusLabel = subscriptionStatusLabel;
+  readonly coverage = coveragePercent;
+  readonly withTax = withTax;
+  readonly shortDate = formatShortDate;
+
   readonly loading = signal(true);
   readonly busy = signal(false);
+  readonly confirmingCancel = signal(false);
+  readonly ordersLoading = signal(false);
   readonly detail = signal<ServiceSubscriptionDetail | null>(null);
   readonly linkingPeriod = signal<ServiceSubscriptionPeriod | null>(null);
   readonly orders = signal<OrderOption[]>([]);
@@ -48,10 +72,17 @@ export class ServiceSubscriptionDetailComponent {
     this.route.paramMap.subscribe(() => this.reload());
   }
 
+  @HostListener('document:keydown.escape')
+  closeLink(): void {
+    this.linkingPeriod.set(null);
+  }
+
   reload(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
     this.loading.set(true);
+    this.confirmingCancel.set(false);
+    this.linkingPeriod.set(null);
     this.api.get(id).subscribe({
       next: (detail) => {
         this.detail.set(detail);
@@ -64,21 +95,14 @@ export class ServiceSubscriptionDetailComponent {
     });
   }
 
-  money(value: number): string {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value || 0);
-  }
-
-  statusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      active: 'Activa',
-      completed: 'Terminada',
-      cancelled: 'Cancelada',
-      pending: 'Pendiente',
-      linked: 'Con orden',
-      invoiced: 'Facturado',
-      skipped: 'Omitido',
-    };
-    return labels[status] ?? status;
+  catalog(kind: 'uso' | 'forma' | 'metodo' | 'regimen', id: string): string {
+    const options = {
+      uso: CFDI_USO_OPTIONS,
+      forma: CFDI_FORMA_PAGO_OPTIONS,
+      metodo: PAYMENT_METHOD_OPTIONS,
+      regimen: CFDI_REGIMEN_RECEPTOR_OPTIONS,
+    }[kind];
+    return catalogLabel(options, id);
   }
 
   generate(period: ServiceSubscriptionPeriod): void {
@@ -109,6 +133,8 @@ export class ServiceSubscriptionDetailComponent {
     const detail = this.detail();
     if (!detail) return;
     this.linkingPeriod.set(period);
+    this.orders.set([]);
+    this.ordersLoading.set(true);
     const params = new HttpParams()
       .set('customer_id', String(detail.customer_id))
       .set('page', '1')
@@ -116,7 +142,7 @@ export class ServiceSubscriptionDetailComponent {
     this.http.get<unknown>(`${environment.api}/tenant/sales-orders`, { params }).subscribe({
       next: (response) => {
         const rows = Array.isArray((response as { data?: unknown }).data)
-          ? ((response as { data: Array<Record<string, unknown>> }).data)
+          ? (response as { data: Array<Record<string, unknown>> }).data
           : [];
         this.orders.set(
           rows.map((row) => ({
@@ -126,8 +152,12 @@ export class ServiceSubscriptionDetailComponent {
             created_at: String(row['created_at'] ?? ''),
           })),
         );
+        this.ordersLoading.set(false);
       },
-      error: (err) => this.toast.error(resolveHttpErrorMessage(err, 'No se pudieron cargar las órdenes')),
+      error: (err) => {
+        this.ordersLoading.set(false);
+        this.toast.error(resolveHttpErrorMessage(err, 'No se pudieron cargar las órdenes'));
+      },
     });
   }
 
@@ -135,8 +165,8 @@ export class ServiceSubscriptionDetailComponent {
     const detail = this.detail();
     const period = this.linkingPeriod();
     if (!detail || !period) return;
-    this.run(this.api.link(detail.id, period.id, order.id), 'Orden vinculada a ese mes');
     this.linkingPeriod.set(null);
+    this.run(this.api.link(detail.id, period.id, order.id), 'Orden vinculada a ese mes');
   }
 
   renew(): void {
@@ -159,7 +189,7 @@ export class ServiceSubscriptionDetailComponent {
   cancel(): void {
     const detail = this.detail();
     if (!detail || this.busy()) return;
-    if (!confirm('¿Cancelar esta suscripción? Los meses ya facturados se quedan.')) return;
+    this.confirmingCancel.set(false);
     this.run(this.api.cancel(detail.id), 'Suscripción cancelada');
   }
 

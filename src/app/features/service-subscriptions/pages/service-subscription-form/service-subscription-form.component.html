@@ -1,105 +1,298 @@
 <div class="purchase-order-list-container">
   <div class="purchase-content">
-    <div class="px-4 pb-10 max-w-3xl">
-      <a routerLink="/service-subscriptions" class="text-sm text-blue-600">Volver</a>
-      <h2 class="text-2xl font-semibold text-gray-800 mt-2">Nueva suscripción</h2>
-      <p class="text-sm text-gray-500 mb-6">De un mes a otro, máximo 12. El monto es sin IVA.</p>
+    <div class="sub-page">
+      <a routerLink="/service-subscriptions" class="sub-back">
+        <lucide-icon [img]="ArrowLeft" [size]="16"></lucide-icon>
+        Suscripciones
+      </a>
+      <div class="sub-head">
+        <div>
+          <h1>Nueva suscripción</h1>
+          <p>De un mes a otro, máximo 12. El monto es sin IVA.</p>
+        </div>
+      </div>
 
-      <form class="grid grid-cols-1 md:grid-cols-2 gap-4" [formGroup]="form" (ngSubmit)="save()">
-        <label class="block md:col-span-2">
-          <span class="text-sm text-gray-600">Cliente</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" formControlName="customer_search" (keyup.enter)="searchCustomers()" placeholder="Nombre, RFC o razón social" />
-          @for (item of customers(); track item.id) {
-            <button type="button" class="block w-full text-left text-sm px-2 py-1 hover:bg-gray-100" (click)="pickCustomer(item)">{{ item.label }}</button>
+      <form class="sub-layout" [formGroup]="form" (ngSubmit)="save()">
+        <div>
+          <section class="sub-section">
+            <h2>Cliente y servicio</h2>
+            <p class="sub-lead">A quién se le cobra y qué servicio se factura cada mes.</p>
+            <div class="sub-grid">
+              <div class="sub-field sub-span" [class.is-open]="customerLookup() !== 'idle'">
+                <label for="customer-search">Cliente</label>
+                @if (selectedCustomer(); as customer) {
+                  <div class="sub-picked">
+                    <div>
+                      <strong>{{ customer.label }}</strong>
+                      <span class="sub-meta">Cliente de la suscripción</span>
+                    </div>
+                    <button type="button" class="sub-linkish" (click)="clearCustomer()">Cambiar</button>
+                  </div>
+                } @else {
+                  <input
+                    id="customer-search"
+                    class="sub-input"
+                    type="search"
+                    formControlName="customer_search"
+                    placeholder="Nombre, RFC o razón social"
+                    autocomplete="off"
+                    (keydown.enter)="$event.preventDefault()"
+                    (blur)="closeLookup('customer')" />
+                  @if (customerLookup() !== 'idle') {
+                    <div class="sub-menu">
+                      @if (customerLookup() === 'loading') {
+                        <div class="sub-menu__empty">Buscando…</div>
+                      } @else if (customers().length === 0) {
+                        <div class="sub-menu__empty">Sin coincidencias</div>
+                      } @else {
+                        @for (item of customers(); track item.id) {
+                          <button type="button" (mousedown)="pickCustomer(item)">{{ item.label }}</button>
+                        }
+                      }
+                    </div>
+                  }
+                }
+                @if (fieldError('customer_id'); as message) {
+                  <span class="sub-error">{{ message }}</span>
+                } @else if (!selectedCustomer()) {
+                  <span class="sub-hint">Escribe al menos 2 letras y elige de la lista.</span>
+                }
+              </div>
+
+              <div class="sub-field sub-span">
+                <label for="subscription-title">Nombre del servicio</label>
+                <input id="subscription-title" class="sub-input" formControlName="title" maxlength="160" placeholder="Ej. Renta de software" />
+                @if (fieldError('title'); as message) {
+                  <span class="sub-error">{{ message }}</span>
+                }
+              </div>
+
+              <div class="sub-field sub-span" [class.is-open]="productLookup() !== 'idle'">
+                <label for="product-search">Producto de servicio</label>
+                @if (selectedProduct(); as product) {
+                  <div class="sub-picked">
+                    <div>
+                      <strong>{{ product.label }}</strong>
+                      <span class="sub-meta">Se usa en la orden de cada mes</span>
+                    </div>
+                    <button type="button" class="sub-linkish" (click)="clearProduct()">Cambiar</button>
+                  </div>
+                } @else {
+                  <input
+                    id="product-search"
+                    class="sub-input"
+                    type="search"
+                    formControlName="product_search"
+                    placeholder="Nombre o SKU"
+                    autocomplete="off"
+                    (keydown.enter)="$event.preventDefault()"
+                    (blur)="closeLookup('product')" />
+                  @if (productLookup() !== 'idle') {
+                    <div class="sub-menu">
+                      @if (productLookup() === 'loading') {
+                        <div class="sub-menu__empty">Buscando…</div>
+                      } @else if (products().length === 0) {
+                        <div class="sub-menu__empty">Sin servicios con ese nombre</div>
+                      } @else {
+                        @for (item of products(); track item.id) {
+                          <button type="button" (mousedown)="pickProduct(item)">{{ item.label }}</button>
+                        }
+                      }
+                    </div>
+                  }
+                }
+                @if (fieldError('product_id'); as message) {
+                  <span class="sub-error">{{ message }}</span>
+                } @else if (!selectedProduct()) {
+                  <span class="sub-hint">Escribe al menos 2 letras y elige de la lista.</span>
+                }
+              </div>
+
+              @if (selectedProduct()) {
+                <div class="sub-field sub-span">
+                  <label for="product-uom">Unidad</label>
+                  <select id="product-uom" class="sub-input" formControlName="product_uom_id">
+                    <option value="">Selecciona</option>
+                    @for (item of uoms(); track item.id) {
+                      <option [value]="item.id">{{ item.label }}</option>
+                    }
+                  </select>
+                  @if (uoms().length === 0) {
+                    <span class="sub-hint">Este servicio no tiene unidades.</span>
+                  }
+                  @if (fieldError('product_uom_id'); as message) {
+                    <span class="sub-error">{{ message }}</span>
+                  }
+                </div>
+              }
+            </div>
+          </section>
+
+          <section class="sub-section">
+            <h2>Cobro</h2>
+            <p class="sub-lead">El mismo monto se repite en cada mes del rango.</p>
+            <div class="sub-grid">
+              <div class="sub-field">
+                <label for="monthly-amount">Monto mensual sin IVA</label>
+                <div class="sub-affix" [class.is-invalid]="!!fieldError('monthly_amount')">
+                  <span>$</span>
+                  <input id="monthly-amount" type="number" min="0" step="0.01" formControlName="monthly_amount" />
+                </div>
+                @if (fieldError('monthly_amount'); as message) {
+                  <span class="sub-error">{{ message }}</span>
+                }
+              </div>
+              <div class="sub-field">
+                <span id="iva-label">IVA</span>
+                <div class="sub-choice" role="group" aria-labelledby="iva-label">
+                  @for (rate of ivaRates; track rate) {
+                    <button type="button" [class.is-on]="sameRate(rate)" (click)="setIva(rate)">{{ rate }}%</button>
+                  }
+                </div>
+              </div>
+              <div class="sub-field">
+                <span id="start-label">Mes inicial</span>
+                <div class="sub-pair" role="group" aria-labelledby="start-label">
+                  <select class="sub-input" [value]="monthOf(form.controls.start_month.value)" (change)="onMonthChange('start_month', 'month', $event)">
+                    @for (item of monthOptions; track item.value) {
+                      <option [value]="item.value">{{ item.label }}</option>
+                    }
+                  </select>
+                  <select class="sub-input" [value]="yearOf(form.controls.start_month.value)" (change)="onMonthChange('start_month', 'year', $event)">
+                    @for (year of yearOptions; track year) {
+                      <option [value]="year">{{ year }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <div class="sub-field">
+                <span id="end-label">Mes final</span>
+                <div class="sub-pair" role="group" aria-labelledby="end-label">
+                  <select class="sub-input" [value]="monthOf(form.controls.end_month.value)" (change)="onMonthChange('end_month', 'month', $event)">
+                    @for (item of monthOptions; track item.value) {
+                      <option [value]="item.value">{{ item.label }}</option>
+                    }
+                  </select>
+                  <select class="sub-input" [value]="yearOf(form.controls.end_month.value)" (change)="onMonthChange('end_month', 'year', $event)">
+                    @for (year of yearOptions; track year) {
+                      <option [value]="year">{{ year }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <div class="sub-field">
+                <label for="billing-day">Día de cobro</label>
+                <select id="billing-day" class="sub-input" formControlName="billing_day">
+                  @for (day of billingDays; track day) {
+                    <option [ngValue]="day">{{ day }}</option>
+                  }
+                </select>
+                <span class="sub-hint">Del 1 al 28, para que el día exista en todos los meses.</span>
+              </div>
+              @if (monthIssue(); as issue) {
+                <p class="sub-error sub-span">{{ issue }}</p>
+              }
+            </div>
+          </section>
+
+          <section class="sub-section">
+            <h2>Factura</h2>
+            <p class="sub-lead">Estos datos se usan al timbrar cada mes.</p>
+            <div class="sub-grid">
+              <div class="sub-field">
+                <label for="fiscal">Razón social</label>
+                <select id="fiscal" class="sub-input" formControlName="fiscal_configuration_id">
+                  <option value="">Selecciona</option>
+                  @for (item of fiscals(); track item.id) {
+                    <option [value]="item.id">{{ item.label }}</option>
+                  }
+                </select>
+                @if (fieldError('fiscal_configuration_id'); as message) {
+                  <span class="sub-error">{{ message }}</span>
+                }
+              </div>
+              <div class="sub-field">
+                <label for="branch">Sucursal</label>
+                <select id="branch" class="sub-input" formControlName="billing_branch_id">
+                  <option value="">Selecciona</option>
+                  @for (item of visibleBranches(); track item.id) {
+                    <option [value]="item.id">{{ item.label }}</option>
+                  }
+                </select>
+                @if (form.controls.fiscal_configuration_id.value && visibleBranches().length === 0) {
+                  <span class="sub-hint">Esta razón social no tiene sucursales.</span>
+                }
+                @if (fieldError('billing_branch_id'); as message) {
+                  <span class="sub-error">{{ message }}</span>
+                }
+              </div>
+              <div class="sub-field">
+                <label for="uso">Uso CFDI</label>
+                <select id="uso" class="sub-input" formControlName="uso_cfdi">
+                  @for (item of usoOptions; track item.id) {
+                    <option [value]="item.id">{{ item.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="sub-field">
+                <label for="forma">Forma de pago</label>
+                <select id="forma" class="sub-input" formControlName="forma_pago">
+                  @for (item of formaOptions; track item.id) {
+                    <option [value]="item.id">{{ item.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="sub-field">
+                <label for="metodo">Método de pago</label>
+                <select id="metodo" class="sub-input" formControlName="metodo_pago">
+                  @for (item of metodoOptions; track item.id) {
+                    <option [value]="item.id">{{ item.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="sub-field">
+                <label for="regimen">Régimen del cliente</label>
+                <select id="regimen" class="sub-input" formControlName="regimen_fiscal_receptor">
+                  @for (item of regimenOptions; track item.id) {
+                    <option [value]="item.id">{{ item.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="sub-field sub-span">
+                <label for="notes">Notas</label>
+                <textarea id="notes" class="sub-textarea" rows="2" formControlName="notes" placeholder="Opcional"></textarea>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="sub-summary">
+          <h2>Resumen</h2>
+          @if (monthIssue(); as issue) {
+            <p class="sub-alert">{{ issue }}</p>
+          } @else {
+            <p class="sub-total">{{ money(monthlyWithTax()) }}</p>
+            <p class="sub-total-label">cada mes, con IVA</p>
           }
-        </label>
-
-        <label class="block md:col-span-2">
-          <span class="text-sm text-gray-600">Servicio</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" formControlName="title" placeholder="Ej. Renta de software" />
-        </label>
-
-        <label class="block">
-          <span class="text-sm text-gray-600">Monto mensual sin IVA</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" type="number" min="0" step="0.01" formControlName="monthly_amount" />
-        </label>
-        <label class="block">
-          <span class="text-sm text-gray-600">IVA %</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" type="number" min="0" step="0.01" formControlName="iva_percentage" />
-        </label>
-        <label class="block">
-          <span class="text-sm text-gray-600">Mes inicial</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" type="month" formControlName="start_month" />
-        </label>
-        <label class="block">
-          <span class="text-sm text-gray-600">Mes final</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" type="month" formControlName="end_month" />
-        </label>
-        <label class="block">
-          <span class="text-sm text-gray-600">Día de cobro</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" type="number" min="1" max="28" formControlName="billing_day" />
-        </label>
-        <label class="block">
-          <span class="text-sm text-gray-600">Razón social</span>
-          <select class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" formControlName="fiscal_configuration_id">
-            <option value="">Selecciona</option>
-            @for (item of fiscals(); track item.id) {
-              <option [value]="item.id">{{ item.label }}</option>
-            }
-          </select>
-        </label>
-        <label class="block md:col-span-2">
-          <span class="text-sm text-gray-600">Sucursal</span>
-          <select class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" formControlName="billing_branch_id">
-            <option value="">Selecciona</option>
-            @for (item of branches(); track item.id) {
-              <option [value]="item.id">{{ item.label }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="block md:col-span-2">
-          <span class="text-sm text-gray-600">Producto de servicio</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" formControlName="product_search" (keyup.enter)="searchProducts()" placeholder="Buscar servicio" />
-          @for (item of products(); track item.id) {
-            <button type="button" class="block w-full text-left text-sm px-2 py-1 hover:bg-gray-100" (click)="pickProduct(item)">{{ item.label }}</button>
+          <div class="sub-lines">
+            <div><span>Cliente</span><strong>{{ selectedCustomer()?.label || 'Sin elegir' }}</strong></div>
+            <div><span>Servicio</span><strong>{{ serviceLabel() }}</strong></div>
+            <div><span>Sin IVA</span><strong>{{ money(preview().monthly_amount) }}</strong></div>
+            <div><span>IVA</span><strong>{{ preview().iva_percentage }}%</strong></div>
+            <div><span>Meses</span><strong>{{ monthCountLabel() }}</strong></div>
+            <div><span>Total del plazo</span><strong>{{ monthIssue() ? '—' : money(termTotal()) }}</strong></div>
+          </div>
+          @if (monthLabels().length) {
+            <div class="sub-months">
+              @for (label of monthLabels(); track label) {
+                <span class="sub-month">{{ label }}</span>
+              }
+            </div>
           }
-        </label>
-        <label class="block">
-          <span class="text-sm text-gray-600">Unidad</span>
-          <select class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" formControlName="product_uom_id">
-            <option value="">Selecciona</option>
-            @for (item of uoms(); track item.id) {
-              <option [value]="item.id">{{ item.label }}</option>
-            }
-          </select>
-        </label>
-        <label class="block">
-          <span class="text-sm text-gray-600">Régimen del cliente</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" formControlName="regimen_fiscal_receptor" />
-        </label>
-        <label class="block">
-          <span class="text-sm text-gray-600">Uso CFDI</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" formControlName="uso_cfdi" />
-        </label>
-        <label class="block">
-          <span class="text-sm text-gray-600">Forma de pago</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" formControlName="forma_pago" />
-        </label>
-        <label class="block">
-          <span class="text-sm text-gray-600">Método de pago</span>
-          <input class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" formControlName="metodo_pago" />
-        </label>
-        <label class="block md:col-span-2">
-          <span class="text-sm text-gray-600">Notas</span>
-          <textarea class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" rows="2" formControlName="notes"></textarea>
-        </label>
-
-        <div class="md:col-span-2">
-          <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50" [disabled]="saving()">
+          <button type="submit" class="page-create-btn sub-submit" [disabled]="saving()">
             {{ saving() ? 'Guardando…' : 'Crear suscripción' }}
           </button>
-        </div>
+        </aside>
       </form>
     </div>
   </div>

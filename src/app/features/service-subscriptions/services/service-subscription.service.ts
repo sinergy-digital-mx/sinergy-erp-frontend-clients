@@ -21,9 +21,11 @@ export class ServiceSubscriptionService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.api}/tenant/service-subscriptions`;
 
-  list(search = '', page = 1): Observable<ServiceSubscriptionPage> {
+  list(search = '', page = 1, status = ''): Observable<ServiceSubscriptionPage> {
     let params = new HttpParams().set('page', String(page)).set('limit', '20');
-    if (search.trim()) params = params.set('search', search.trim());
+    const term = search.trim();
+    if (term) params = params.set('search', term);
+    if (status) params = params.set('status', status);
     return this.http.get<ServiceSubscriptionPage>(this.baseUrl, { params });
   }
 

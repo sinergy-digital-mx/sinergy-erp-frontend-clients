@@ -1,97 +1,188 @@
 <div class="purchase-order-list-container">
   <div class="purchase-content">
-    <div class="px-4 pb-10">
-      <a routerLink="/service-subscriptions" class="text-sm text-blue-600">Volver</a>
+    <div class="sub-page">
+      <a routerLink="/service-subscriptions" class="sub-back">
+        <lucide-icon [img]="ArrowLeft" [size]="16"></lucide-icon>
+        Suscripciones
+      </a>
 
       @if (loading()) {
-        <div class="flex justify-center py-12"><app-spinner></app-spinner></div>
+        <div class="sub-loading"><app-spinner></app-spinner></div>
       } @else if (detail(); as item) {
-        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mt-2 mb-6">
+        <div class="sub-hero">
           <div>
-            <h2 class="text-2xl font-semibold text-gray-800">{{ item.title }}</h2>
-            <p class="text-sm text-gray-600">{{ item.customer_name }}</p>
-            <p class="text-sm text-gray-500">
-              {{ item.start_label }} — {{ item.end_label }} · día {{ item.billing_day }} ·
-              {{ money(item.monthly_amount) }} + {{ item.iva_percentage }}% IVA
-            </p>
-            <p class="text-sm text-gray-500">{{ statusLabel(item.status) }} · {{ item.months_covered }} de {{ item.months_total }} meses con orden</p>
+            <span class="sub-pill" [attr.data-status]="item.status">{{ statusLabel(item.status) }}</span>
+            <h1>{{ item.title }}</h1>
+            <p class="sub-lead">{{ item.customer_name }}</p>
+            @if (item.renewed_from_id) {
+              <a class="sub-order-link" [routerLink]="['/service-subscriptions', item.renewed_from_id]">Ver suscripción anterior</a>
+            }
           </div>
-          <div class="flex gap-2">
+          <div class="sub-actions">
             @if (canCreate && item.status !== 'cancelled') {
-              <button type="button" class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50" [disabled]="busy()" (click)="renew()">Renovar</button>
+              <button type="button" class="page-create-btn" [disabled]="busy()" (click)="renew()">Renovar</button>
             }
             @if (canUpdate && item.status === 'active') {
-              <button type="button" class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50" [disabled]="busy()" (click)="cancel()">Cancelar</button>
+              <button type="button" class="sub-btn sub-btn--danger" [disabled]="busy()" (click)="confirmingCancel.set(true)">Cancelar</button>
             }
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mes</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orden</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              @for (period of item.periods; track period.id) {
-                <tr>
-                  <td class="px-4 py-3 text-sm text-gray-900">{{ period.label }}</td>
-                  <td class="px-4 py-3 text-sm text-right">{{ money(period.amount) }}</td>
-                  <td class="px-4 py-3 text-sm">
-                    {{ statusLabel(period.status) }}
-                    @if (period.invoice_error) {
-                      <div class="text-xs text-amber-700 mt-1">{{ period.invoice_error }}</div>
-                    }
-                  </td>
-                  <td class="px-4 py-3 text-sm">
-                    @if (period.sales_order_id) {
-                      <a class="text-blue-600" [routerLink]="['/sales-orders', period.sales_order_id, 'edit']">
-                        {{ period.sales_order_folio || 'Orden' }}
-                      </a>
-                    } @else {
-                      <span class="text-gray-400">Sin orden</span>
-                    }
-                  </td>
-                  <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
-                    @if (canUpdate && item.status === 'active') {
-                      @if (period.status === 'pending') {
-                        <button type="button" class="text-blue-600 mr-3" [disabled]="busy()" (click)="generate(period)">Generar</button>
-                        <button type="button" class="text-blue-600 mr-3" [disabled]="busy()" (click)="openLink(period)">Vincular</button>
-                        <button type="button" class="text-gray-500" [disabled]="busy()" (click)="skip(period)">Omitir</button>
-                      }
-                      @if (period.status === 'linked') {
-                        <button type="button" class="text-blue-600 mr-3" [disabled]="busy()" (click)="invoice(period)">Facturar</button>
-                        <button type="button" class="text-gray-500" [disabled]="busy()" (click)="unlink(period)">Quitar</button>
-                      }
-                    }
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        @if (confirmingCancel()) {
+          <div class="sub-confirm">
+            <p>Los meses ya facturados se quedan. ¿Cancelar esta suscripción?</p>
+            <button type="button" class="sub-btn sub-btn--ghost" [disabled]="busy()" (click)="confirmingCancel.set(false)">No</button>
+            <button type="button" class="sub-btn sub-btn--danger" [disabled]="busy()" (click)="cancel()">Sí, cancelar</button>
+          </div>
+        }
+
+        <section class="sub-stats">
+          <article class="sub-stat">
+            <p class="sub-stat__label">Cada mes</p>
+            <p class="sub-stat__value">{{ money(withTax(item.monthly_amount, item.iva_percentage)) }}</p>
+            <p class="sub-stat__hint">{{ money(item.monthly_amount) }} + {{ item.iva_percentage }}% IVA</p>
+          </article>
+          <article class="sub-stat">
+            <p class="sub-stat__label">Vigencia</p>
+            <p class="sub-stat__value">{{ item.months_total }} meses</p>
+            <p class="sub-stat__hint">{{ item.start_label }} — {{ item.end_label }}</p>
+          </article>
+          <article class="sub-stat">
+            <p class="sub-stat__label">Avance</p>
+            <p class="sub-stat__value">{{ item.months_covered }} / {{ item.months_total }}</p>
+            <div class="sub-progress" aria-hidden="true">
+              <span [style.width.%]="coverage(item.months_covered, item.months_total)"></span>
+            </div>
+          </article>
+          <article class="sub-stat">
+            <p class="sub-stat__label">Día de cobro</p>
+            <p class="sub-stat__value">{{ item.billing_day }}</p>
+            <p class="sub-stat__hint">De cada mes</p>
+          </article>
+        </section>
+
+        <div class="sub-split">
+          <section class="sub-panel">
+            <div class="sub-panel__head">
+              <h2>Meses</h2>
+              <p>{{ item.months_covered }} con orden</p>
+            </div>
+            <div class="sub-table-wrap sub-table-wrap--open">
+              <table class="sub-table">
+                <thead>
+                  <tr>
+                    <th>Mes</th>
+                    <th>Estado</th>
+                    <th>Orden</th>
+                    <th class="is-right">Monto</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (period of item.periods; track period.id) {
+                    <tr>
+                      <td>
+                        <span class="sub-strong">{{ period.label }}</span>
+                        @if (period.linked_manually) {
+                          <span class="sub-meta">Vinculada a mano</span>
+                        }
+                      </td>
+                      <td>
+                        <span class="sub-pill" [attr.data-status]="period.status">{{ statusLabel(period.status) }}</span>
+                        @if (period.invoice_error) {
+                          <div class="sub-warn">{{ period.invoice_error }}</div>
+                        }
+                      </td>
+                      <td>
+                        @if (period.sales_order_id) {
+                          <a class="sub-order-link" [routerLink]="['/sales-orders', period.sales_order_id, 'edit']">
+                            {{ period.sales_order_folio || 'Orden' }}
+                          </a>
+                        } @else {
+                          <span class="sub-meta">Sin orden</span>
+                        }
+                      </td>
+                      <td class="is-right">{{ money(period.amount) }}</td>
+                      <td>
+                        @if (canUpdate && item.status === 'active') {
+                          <div class="sub-actions">
+                            @if (period.status === 'pending') {
+                              <button type="button" class="sub-btn sub-btn--primary" [disabled]="busy()" (click)="generate(period)">Generar orden</button>
+                              <button type="button" class="sub-btn sub-btn--ghost" [disabled]="busy()" (click)="openLink(period)">Vincular</button>
+                              <button type="button" class="sub-btn sub-btn--ghost" [disabled]="busy()" (click)="skip(period)">Omitir</button>
+                            }
+                            @if (period.status === 'linked') {
+                              <button type="button" class="sub-btn sub-btn--primary" [disabled]="busy()" (click)="invoice(period)">Facturar</button>
+                              <button type="button" class="sub-btn sub-btn--ghost" [disabled]="busy()" (click)="unlink(period)">Quitar</button>
+                            }
+                          </div>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside class="sub-side">
+            <h2>Factura</h2>
+            <dl class="sub-dl">
+              <div>
+                <dt>Uso CFDI</dt>
+                <dd>{{ catalog('uso', item.uso_cfdi) }}</dd>
+              </div>
+              <div>
+                <dt>Forma de pago</dt>
+                <dd>{{ catalog('forma', item.forma_pago) }}</dd>
+              </div>
+              <div>
+                <dt>Método de pago</dt>
+                <dd>{{ catalog('metodo', item.metodo_pago) }}</dd>
+              </div>
+              <div>
+                <dt>Régimen del cliente</dt>
+                <dd>{{ catalog('regimen', item.regimen_fiscal_receptor) }}</dd>
+              </div>
+            </dl>
+            @if (item.notes) {
+              <p class="sub-note">{{ item.notes }}</p>
+            }
+          </aside>
         </div>
 
         @if (linkingPeriod(); as period) {
-          <div class="mt-4 bg-white rounded-lg shadow-sm p-4">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="font-medium">Vincular orden a {{ period.label }}</h3>
-              <button type="button" class="text-sm text-gray-500" (click)="linkingPeriod.set(null)">Cerrar</button>
+          <div class="sub-modal" (click)="closeLink()">
+            <div class="sub-dialog" role="dialog" aria-modal="true" aria-labelledby="link-title" (click)="$event.stopPropagation()">
+              <div class="sub-dialog__head">
+                <div>
+                  <h2 id="link-title">Vincular orden · {{ period.label }}</h2>
+                  <p class="sub-lead">La fecha de la orden pasa al día de cobro de ese mes. Si ya está facturada, el mes queda facturado.</p>
+                </div>
+                <button type="button" class="sub-icon-btn" aria-label="Cerrar" (click)="closeLink()">
+                  <lucide-icon [img]="X" [size]="16"></lucide-icon>
+                </button>
+              </div>
+              @if (ordersLoading()) {
+                <div class="sub-loading"><app-spinner></app-spinner></div>
+              } @else if (orders().length === 0) {
+                <p class="sub-lead">Este cliente no tiene órdenes recientes.</p>
+              } @else {
+                <div class="sub-orders">
+                  @for (order of orders(); track order.id) {
+                    <button type="button" class="sub-order" (click)="confirmLink(order)">
+                      <span>
+                        <strong>{{ order.folio || 'Orden' }}</strong>
+                        @if (shortDate(order.created_at)) {
+                          <span class="sub-meta">{{ shortDate(order.created_at) }}</span>
+                        }
+                      </span>
+                      <strong>{{ money(order.total) }}</strong>
+                    </button>
+                  }
+                </div>
+              }
             </div>
-            <p class="text-sm text-gray-500 mb-3">La fecha de la orden pasa al día de cobro de ese mes. Si ya está facturada, el mes queda facturado.</p>
-            @if (orders().length === 0) {
-              <p class="text-sm text-gray-500">Este cliente no tiene órdenes recientes.</p>
-            }
-            @for (order of orders(); track order.id) {
-              <button type="button" class="flex w-full justify-between text-left text-sm px-2 py-2 hover:bg-gray-50" (click)="confirmLink(order)">
-                <span>{{ order.folio }}</span>
-                <span>{{ money(order.total) }}</span>
-              </button>
-            }
           </div>
         }
       }
