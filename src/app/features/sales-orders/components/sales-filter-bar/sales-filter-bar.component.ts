@@ -32,6 +32,10 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() sellers: PosUserSummary[] = [];
   /** `null` = todas. Array = solo esas sucursales (cotizaciones sin ViewAllBranches). */
   @Input() restrictBranchIds: string[] | null = null;
+  @Input() initialCustomerId = '';
+  @Input() initialCustomerLabel = '';
+  @Input() initialFiscalConfigurationId = '';
+  @Input() initialBillingBranchId = '';
   @Output() filtersChange = new EventEmitter<SalesOrderFilters>();
   @Output() refresh = new EventEmitter<void>();
 
@@ -56,6 +60,7 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   fiscalConfigurations: FiscalConfiguration[] = [];
   branches: Branch[] = [];
   private allLoadedBranches: Branch[] = [];
+  private pendingBranchId = '';
 
   dateRangeOptions = [
     { label: 'Hoy', value: 'today' },
@@ -139,8 +144,13 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.restoreInitialFilters();
     this.loadFiscalConfigurations();
-    this.loadAllBranches();
+    if (this.fiscalConfigurationControl.value) {
+      this.loadBranches(this.fiscalConfigurationControl.value);
+    } else {
+      this.loadAllBranches();
+    }
 
     this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.customerSearchControl.valueChanges
@@ -342,8 +352,26 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
+  private restoreInitialFilters(): void {
+    const customerId = this.initialCustomerId.trim();
+    if (customerId) {
+      const label = this.initialCustomerLabel.trim() || customerId;
+      this.selectedCustomer = { id: customerId, label };
+      this.customerSearchControl.setValue(label, { emitEvent: false });
+    }
+    const fiscalId = this.initialFiscalConfigurationId.trim();
+    if (fiscalId) {
+      this.fiscalConfigurationControl.setValue(fiscalId, { emitEvent: false });
+    }
+    this.pendingBranchId = this.initialBillingBranchId.trim();
+  }
+
   private setLoadedBranches(branches: Branch[]): void {
     this.allLoadedBranches = branches;
+    if (this.pendingBranchId) {
+      this.billingBranchControl.setValue(this.pendingBranchId, { emitEvent: false });
+      this.pendingBranchId = '';
+    }
     this.applyBranchRestriction();
   }
 
@@ -363,7 +391,10 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
     const filters: SalesOrderFilters = {};
     const search = this.searchControl.value.trim();
     if (search) filters.search = search;
-    if (this.selectedCustomer) filters.customer_id = this.selectedCustomer.id;
+    if (this.selectedCustomer) {
+      filters.customer_id = this.selectedCustomer.id;
+      filters.customer_label = this.selectedCustomer.label;
+    }
     const dateFrom = this.dateFromControl.value;
     if (dateFrom) filters.dateFrom = new Date(dateFrom).toISOString();
     const dateTo = this.dateToControl.value;

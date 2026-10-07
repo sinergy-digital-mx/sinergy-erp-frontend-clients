@@ -52,6 +52,8 @@ if (!baseHref.endsWith('/')) {
   baseHref = `${baseHref}/`;
 }
 
+run('npm version patch --no-git-tag-version');
+
 const { version, buildId } = require('./generate-app-version.js');
 
 run(`npx ng build --configuration production --base-href ${baseHref}`);

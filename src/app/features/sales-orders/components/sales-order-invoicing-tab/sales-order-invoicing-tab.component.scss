@@ -349,6 +349,13 @@
       color: #9ca3af;
     }
   }
+
+  &--manual {
+    border-color: #fcd34d;
+    background: #fffbeb;
+    color: #92400e;
+    font-weight: 600;
+  }
 }
 
 .invoice-card__uuid {

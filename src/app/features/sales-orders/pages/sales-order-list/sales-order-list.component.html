@@ -25,6 +25,10 @@
       <div class="mb-4">
         <app-sales-filter-bar
           [refreshing]="loading()"
+          [initialCustomerId]="initialCustomerId"
+          [initialCustomerLabel]="initialCustomerLabel"
+          [initialFiscalConfigurationId]="initialFiscalConfigurationId"
+          [initialBillingBranchId]="initialBillingBranchId"
           (filtersChange)="applyFilters($event)"
           (refresh)="loadOrders()">
         </app-sales-filter-bar>

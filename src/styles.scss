@@ -15,14 +15,33 @@
 // Import Inter font
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-// Global font family
-* {
+// Global font family. Los iconos de fuente quedan fuera: este selector las pisaba.
+*:not(.pi):not(.fi):not([class^='fi-']):not([class*=' fi-']):not(.ti):not(.material-icons) {
   font-family: Inter, sans-serif !important;
 }
 
-// PrimeIcons usa su propia fuente; el selector global anterior la pisaba
 .pi {
   font-family: 'primeicons' !important;
+}
+
+.fi::before,
+i[class*='fi-rr-']::before,
+span[class*='fi-rr-']::before {
+  font-family: 'uicons-regular-rounded' !important;
+}
+
+i[class*='fi-sr-']::before,
+span[class*='fi-sr-']::before {
+  font-family: 'uicons-solid-rounded' !important;
+}
+
+.ti,
+.ti::before {
+  font-family: 'tabler-icons' !important;
+}
+
+.material-icons {
+  font-family: 'Material Icons' !important;
 }
 
 body {

@@ -380,6 +380,8 @@ export interface SalesOrderFilters {
   sales_order_type?: SalesOrderType;
   sale_scope?: SalesOrderSaleScope;
   customer_id?: string | number;
+  /** Solo para restaurar el texto del filtro en la URL. No se envía al API. */
+  customer_label?: string;
   fiscal_configuration_id?: string;
   billing_branch_id?: string;
   dateFrom?: string;

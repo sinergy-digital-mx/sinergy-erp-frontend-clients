@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, signal, computed, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SalesOrderService } from '../../services/sales-order.service';
@@ -111,13 +112,33 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
   pagadasPercent = computed(() => this.totalOrders() > 0 ? (this.pagadasCount() / this.totalOrders()) * 100 : 0);
   pendientesPercent = computed(() => this.totalOrders() > 0 ? (this.pendientesCount() / this.totalOrders()) * 100 : 0);
 
+  readonly initialCustomerId: string;
+  readonly initialCustomerLabel: string;
+  readonly initialFiscalConfigurationId: string;
+  readonly initialBillingBranchId: string;
+
   constructor(
     private salesOrderService: SalesOrderService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private taxCalculator: TaxCalculatorService,
-    private toast: ToastService
-  ) {}
+    private toast: ToastService,
+    private route: ActivatedRoute,
+    private router: Router,
+  ) {
+    const params = this.route.snapshot.queryParamMap;
+    this.initialCustomerId = params.get('customer_id')?.trim() || '';
+    this.initialCustomerLabel = params.get('customer')?.trim() || '';
+    this.initialFiscalConfigurationId = params.get('fiscal_configuration_id')?.trim() || '';
+    this.initialBillingBranchId = params.get('billing_branch_id')?.trim() || '';
+    this.filtersState.set({
+      ...(this.initialCustomerId ? { customer_id: this.initialCustomerId } : {}),
+      ...(this.initialFiscalConfigurationId
+        ? { fiscal_configuration_id: this.initialFiscalConfigurationId }
+        : {}),
+      ...(this.initialBillingBranchId ? { billing_branch_id: this.initialBillingBranchId } : {}),
+    });
+  }
 
   ngOnInit(): void {
     this.loadOrders();
@@ -195,8 +216,20 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
   }
 
   applyFilters(filters: SalesOrderFilters): void {
-    this.filtersState.set(filters);
+    const { customer_label: customerLabel, ...apiFilters } = filters;
+    this.filtersState.set(apiFilters);
     this.paginationState.set({ page: 1, limit: this.paginationState().limit || 15 });
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        customer_id: apiFilters.customer_id ?? null,
+        customer: customerLabel ?? null,
+        fiscal_configuration_id: apiFilters.fiscal_configuration_id ?? null,
+        billing_branch_id: apiFilters.billing_branch_id ?? null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
     this.loadOrders();
     this.loadTrend();
   }

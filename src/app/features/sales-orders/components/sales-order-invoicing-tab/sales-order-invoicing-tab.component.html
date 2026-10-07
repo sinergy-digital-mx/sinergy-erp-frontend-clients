@@ -100,6 +100,11 @@
                 </div>
               </div>
               <div class="invoice-card__status-group">
+                @if (invoice.metadata?.registered_existing === true) {
+                  <span class="status-pill status-pill--manual" title="Se registró subiendo XML o PDF, sin timbrar desde aquí">
+                    Subida manual
+                  </span>
+                }
                 <span class="status-pill" [ngClass]="getSystemStatusClass(invoice)" [title]="invoice.stamp_error_message || ''">
                   <span class="status-pill__label">SISTEMA</span>
                   {{ getSystemStatusLabel(invoice) }}
