@@ -152,6 +152,29 @@ export class ServiceSubscriptionDetailComponent {
     this.run(this.api.generate(detail.id, period.id), 'Orden generada');
   }
 
+  sendSummary(): void {
+    const detail = this.detail();
+    if (!detail || this.busy()) return;
+    const email = window.prompt('Correo para el resumen del servicio', detail.customer_email || '');
+    if (email == null) return;
+    const to = email.trim();
+    if (!to) {
+      this.toast.error('Indica un correo');
+      return;
+    }
+    this.busy.set(true);
+    this.api.sendSummary(detail.id, to).subscribe({
+      next: (result) => {
+        this.busy.set(false);
+        this.toast.success(`Resumen enviado a ${result.sent_to}`);
+      },
+      error: (error) => {
+        this.busy.set(false);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo enviar el resumen'));
+      },
+    });
+  }
+
   invoice(period: ServiceSubscriptionPeriod): void {
     const detail = this.detail();
     if (!detail || this.busy()) return;

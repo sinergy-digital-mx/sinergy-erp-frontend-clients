@@ -6,6 +6,8 @@ export interface ServiceSubscriptionListItem {
   title: string;
   customer_id: number;
   customer_name: string;
+  fiscal_razon_social?: string | null;
+  fiscal_rfc?: string | null;
   monthly_amount: number;
   iva_percentage: number;
   start_month: string;
@@ -33,8 +35,7 @@ export interface ServiceSubscriptionPeriod {
 
 export interface ServiceSubscriptionDetail extends ServiceSubscriptionListItem {
   fiscal_configuration_id: string;
-  fiscal_razon_social: string | null;
-  fiscal_rfc: string | null;
+  customer_email?: string | null;
   billing_branch_id: string;
   billing_branch_code: string | null;
   product_id: string;

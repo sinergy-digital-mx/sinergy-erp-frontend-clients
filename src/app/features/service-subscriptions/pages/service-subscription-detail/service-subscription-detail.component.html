@@ -14,11 +14,17 @@
             <span class="sub-pill" [attr.data-status]="item.status">{{ statusLabel(item.status) }}</span>
             <h1>{{ item.title }}</h1>
             <p class="sub-lead">{{ item.customer_name }}</p>
+            @if (item.fiscal_razon_social) {
+              <p class="sub-lead">{{ item.fiscal_razon_social }}</p>
+            }
             @if (item.renewed_from_id) {
               <a class="sub-order-link" [routerLink]="['/service-subscriptions', item.renewed_from_id]">Ver suscripción anterior</a>
             }
           </div>
           <div class="sub-actions">
+            <button type="button" class="sub-btn sub-btn--ghost" [disabled]="busy()" (click)="sendSummary()">
+              Enviar resumen
+            </button>
             @if (canUpdate && item.status === 'active' && pendingCount() > 0) {
               <button type="button" class="page-create-btn" [disabled]="busy()" (click)="generateAll()">
                 Generar todas

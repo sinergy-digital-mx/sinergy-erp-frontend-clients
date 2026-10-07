@@ -38,6 +38,12 @@ export class ServiceSubscriptionService {
     return this.http.get<ServiceSubscriptionPage>(this.baseUrl, { params });
   }
 
+  sendSummary(id: string, toEmail?: string): Observable<{ sent_to: string }> {
+    return this.http.post<{ sent_to: string }>(`${this.baseUrl}/${id}/summary-email`, {
+      to_email: toEmail || undefined,
+    });
+  }
+
   get(id: string): Observable<ServiceSubscriptionDetail> {
     return this.http.get<ServiceSubscriptionDetail>(`${this.baseUrl}/${id}`);
   }
