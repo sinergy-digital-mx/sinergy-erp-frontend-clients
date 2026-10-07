@@ -64,10 +64,30 @@ export class SalesOrderInvoiceService {
 
 
 
-  registerExistingInvoice(orderId: string, file: File | null, uuid: string): Observable<SalesOrderElectronicInvoice> {
-    if (file) {
+  attachManualFiles(orderId: string, invoiceId: string, files: { xml?: File | null; pdf?: File | null }): Observable<SalesOrderElectronicInvoice> {
+    const body = new FormData();
+    if (files.xml) body.append('xml', files.xml);
+    if (files.pdf) body.append('pdf', files.pdf);
+    return this.http
+      .post<unknown>(`${this.baseUrl}/${orderId}/invoices/${invoiceId}/files`, body)
+      .pipe(map((response) => this.normalizeInvoice(response)));
+  }
+
+  unlinkManualInvoice(orderId: string, invoiceId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${orderId}/invoices/${invoiceId}/manual`);
+  }
+
+  registerExistingInvoice(
+    orderId: string,
+    files: { xml?: File | null; pdf?: File | null },
+    uuid: string,
+  ): Observable<SalesOrderElectronicInvoice> {
+    const xml = files.xml ?? null;
+    const pdf = files.pdf ?? null;
+    if (xml || pdf) {
       const body = new FormData();
-      body.append('file', file);
+      if (xml) body.append('xml', xml);
+      if (pdf) body.append('pdf', pdf);
       const typed = uuid.trim();
       if (typed) body.append('uuid', typed);
       return this.http

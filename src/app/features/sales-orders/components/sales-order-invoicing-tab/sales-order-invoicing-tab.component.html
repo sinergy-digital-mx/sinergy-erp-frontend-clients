@@ -36,11 +36,23 @@
 
     @if (showExistingForm()) {
       <div class="existing-invoice">
-        <p>Sube el XML o el PDF de un CFDI ya emitido. Si el PDF no trae el UUID, escríbelo.</p>
-        <label class="existing-invoice__file">
-          XML o PDF
-          <input type="file" accept=".xml,.pdf,application/pdf,text/xml,application/xml" (change)="onExistingFile($event)" />
-        </label>
+        <p>Sube el XML, el PDF o los dos. Si solo va el PDF y no trae el UUID, escríbelo.</p>
+        <div class="existing-invoice__files">
+          <label class="existing-invoice__file">
+            XML
+            <input type="file" accept=".xml,text/xml,application/xml" (change)="onExistingXml($event)" />
+            @if (existingXml()) {
+              <span>{{ existingXml()!.name }}</span>
+            }
+          </label>
+          <label class="existing-invoice__file">
+            PDF
+            <input type="file" accept=".pdf,application/pdf" (change)="onExistingPdf($event)" />
+            @if (existingPdf()) {
+              <span>{{ existingPdf()!.name }}</span>
+            }
+          </label>
+        </div>
         <label class="existing-invoice__uuid">
           UUID
           <input type="text" [value]="existingUuid()" (input)="existingUuid.set($any($event.target).value)" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" />
@@ -171,6 +183,21 @@
                 }
               </span>
               <div class="invoice-card__actions">
+                @if (canAttachManualFiles(invoice)) {
+                  <button type="button" class="action-btn action-btn--neutral" (click)="openAttach(invoice)">
+                    Subir XML o PDF
+                  </button>
+                }
+                @if (canUnlinkManual(invoice)) {
+                  <button
+                    type="button"
+                    class="action-btn action-btn--danger"
+                    (click)="unlinkManual(invoice)"
+                    [disabled]="unlinkingId() === invoiceRecordId(invoice)"
+                  >
+                    {{ unlinkingId() === invoiceRecordId(invoice) ? 'Quitando…' : 'Quitar de la orden' }}
+                  </button>
+                }
                 @if (canShowCancel(invoice)) {
                   <button
                     type="button"
@@ -233,6 +260,18 @@
                 }
               </div>
             </footer>
+            @if (attachOpenId() === invoiceRecordId(invoice)) {
+              <div class="existing-invoice existing-invoice--attach">
+                <p>Puedes agregar el XML, el PDF o los dos. Tienen que ser de este UUID.</p>
+                <div class="existing-invoice__files">
+                  <label>XML <input type="file" accept=".xml,text/xml,application/xml" (change)="onAttachXml($event)" /></label>
+                  <label>PDF <input type="file" accept=".pdf,application/pdf" (change)="onAttachPdf($event)" /></label>
+                </div>
+                <button type="button" class="btn-primary" [disabled]="attachingId() === invoiceRecordId(invoice)" (click)="saveAttach(invoice)">
+                  {{ attachingId() === invoiceRecordId(invoice) ? 'Guardando…' : 'Guardar archivos' }}
+                </button>
+              </div>
+            }
           </article>
         }
       </div>

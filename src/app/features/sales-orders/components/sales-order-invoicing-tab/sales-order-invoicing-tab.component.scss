@@ -69,6 +69,12 @@
     color: #52525b;
   }
 
+  &__files {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+
   label {
     display: grid;
     gap: 0.3rem;

@@ -149,6 +149,18 @@
             <h2>Factura</h2>
             <dl class="sub-dl">
               <div>
+                <dt>Razón social</dt>
+                <dd>
+                  {{ item.fiscal_razon_social || '—' }}
+                  @if (item.fiscal_rfc) {
+                    <span class="sub-meta">{{ item.fiscal_rfc }}</span>
+                  }
+                  @if (item.billing_branch_code) {
+                    <span class="sub-meta">{{ item.billing_branch_code }}</span>
+                  }
+                </dd>
+              </div>
+              <div>
                 <dt>Uso CFDI</dt>
                 <dd>{{ catalog('uso', item.uso_cfdi) }}</dd>
               </div>

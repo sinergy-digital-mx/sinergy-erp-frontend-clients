@@ -74,12 +74,18 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   stamping = signal(false);
   syncingId = signal<string | null>(null);
   cancellingId = signal<string | null>(null);
+  unlinkingId = signal<string | null>(null);
+  attachingId = signal<string | null>(null);
+  attachOpenId = signal<string | null>(null);
+  attachXml = signal<File | null>(null);
+  attachPdf = signal<File | null>(null);
   previewingPdfId = signal<string | null>(null);
   downloadingXmlId = signal<string | null>(null);
   registeringExisting = signal(false);
   showExistingForm = signal(false);
   existingUuid = signal('');
-  existingFile = signal<File | null>(null);
+  existingXml = signal<File | null>(null);
+  existingPdf = signal<File | null>(null);
 
   canViewTab = computed(() =>
     this.hasInvoicePermission(ELECTRONIC_INVOICING_PERMISSIONS.viewMenu) &&
@@ -126,24 +132,31 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     }
   }
 
-  onExistingFile(event: Event): void {
+  onExistingXml(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.existingFile.set(input.files?.[0] ?? null);
+    this.existingXml.set(input.files?.[0] ?? null);
+  }
+
+  onExistingPdf(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.existingPdf.set(input.files?.[0] ?? null);
   }
 
   registerExisting(): void {
-    const file = this.existingFile();
+    const xml = this.existingXml();
+    const pdf = this.existingPdf();
     const uuid = this.existingUuid().trim();
-    if (!file && !uuid) {
-      this.toast.error('Sube el XML o el PDF, o escribe el UUID');
+    if (!xml && !pdf && !uuid) {
+      this.toast.error('Sube el XML, el PDF o ambos, o escribe el UUID');
       return;
     }
     this.registeringExisting.set(true);
-    this.invoiceService.registerExistingInvoice(this.orderId, file, uuid).subscribe({
+    this.invoiceService.registerExistingInvoice(this.orderId, { xml, pdf }, uuid).subscribe({
       next: () => {
         this.registeringExisting.set(false);
         this.showExistingForm.set(false);
-        this.existingFile.set(null);
+        this.existingXml.set(null);
+        this.existingPdf.set(null);
         this.existingUuid.set('');
         this.toast.success('Factura registrada');
         this.loadTabData(true);
@@ -719,6 +732,76 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
       if (inc.message) parts.push(inc.message);
     }
     return parts.filter(Boolean).join(' · ') || 'Error de timbrado';
+  }
+
+  canAttachManualFiles(invoice: SalesOrderElectronicInvoice): boolean {
+    return this.canUnlinkManual(invoice);
+  }
+
+  openAttach(invoice: SalesOrderElectronicInvoice): void {
+    const id = this.invoiceRecordId(invoice);
+    this.attachXml.set(null);
+    this.attachPdf.set(null);
+    this.attachOpenId.set(this.attachOpenId() === id ? null : id);
+  }
+
+  onAttachXml(event: Event): void {
+    this.attachXml.set((event.target as HTMLInputElement).files?.[0] ?? null);
+  }
+
+  onAttachPdf(event: Event): void {
+    this.attachPdf.set((event.target as HTMLInputElement).files?.[0] ?? null);
+  }
+
+  saveAttach(invoice: SalesOrderElectronicInvoice): void {
+    const invoiceId = this.invoiceRecordId(invoice);
+    const xml = this.attachXml();
+    const pdf = this.attachPdf();
+    if (!invoiceId || (!xml && !pdf) || this.attachingId()) return;
+    this.attachingId.set(invoiceId);
+    this.invoiceService.attachManualFiles(this.orderId, invoiceId, { xml, pdf }).subscribe({
+      next: () => {
+        this.attachingId.set(null);
+        this.attachOpenId.set(null);
+        this.attachXml.set(null);
+        this.attachPdf.set(null);
+        this.toast.success('Archivos guardados');
+        this.loadTabData(true);
+      },
+      error: (error) => {
+        this.attachingId.set(null);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudieron guardar los archivos'), {
+          duration: 12000,
+        });
+      },
+    });
+  }
+
+  canUnlinkManual(invoice: SalesOrderElectronicInvoice): boolean {
+    return invoice.metadata?.registered_existing === true && !!this.invoiceRecordId(invoice);
+  }
+
+  unlinkManual(invoice: SalesOrderElectronicInvoice): void {
+    const invoiceId = this.invoiceRecordId(invoice);
+    if (!invoiceId || !this.canUnlinkManual(invoice) || this.unlinkingId()) return;
+    const ok = window.confirm(
+      'Se quita el registro de esta orden. El CFDI en el SAT no se cancela.',
+    );
+    if (!ok) return;
+    this.unlinkingId.set(invoiceId);
+    this.invoiceService.unlinkManualInvoice(this.orderId, invoiceId).subscribe({
+      next: () => {
+        this.unlinkingId.set(null);
+        this.toast.success('Factura quitada de la orden');
+        this.loadTabData(true);
+      },
+      error: (error) => {
+        this.unlinkingId.set(null);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo quitar la factura'), {
+          duration: 12000,
+        });
+      },
+    });
   }
 
   canShowCancel(invoice: SalesOrderElectronicInvoice): boolean {

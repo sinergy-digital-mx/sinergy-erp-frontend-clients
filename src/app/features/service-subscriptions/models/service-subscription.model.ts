@@ -33,7 +33,10 @@ export interface ServiceSubscriptionPeriod {
 
 export interface ServiceSubscriptionDetail extends ServiceSubscriptionListItem {
   fiscal_configuration_id: string;
+  fiscal_razon_social: string | null;
+  fiscal_rfc: string | null;
   billing_branch_id: string;
+  billing_branch_code: string | null;
   product_id: string;
   product_uom_id: string;
   uso_cfdi: string;
