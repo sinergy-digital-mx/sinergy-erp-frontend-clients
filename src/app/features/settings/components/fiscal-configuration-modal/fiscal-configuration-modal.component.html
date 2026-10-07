@@ -82,87 +82,90 @@
             </app-select>
           </div>
 
-          <!-- CSD — Certificado .cer -->
-          <div class="col-span-2 csd-field">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Certificado digital (.cer)</label>
-            <p class="csd-field-hint">Sube el archivo .cer del SAT. Se guarda en base64 en el ERP.</p>
+          <section class="csd-panel col-span-2" aria-label="Sello digital">
+            <header class="csd-panel__head">
+              <h3>Sello digital (CSD)</h3>
+              <p>Certificado, contraseña y llave del SAT. Los archivos no se vuelven a mostrar después de guardar.</p>
+            </header>
 
-            @if (hasDigitalSealStored && !digitalSealFileName) {
-              <p class="csd-stored-badge">Certificado guardado en el ERP</p>
-            }
+            <div class="csd-panel__grid">
+              <article class="csd-card" [class.csd-card--ready]="!!digitalSealFileName || hasDigitalSealStored">
+                <span class="csd-card__kicker">.cer</span>
+                <h4>Certificado</h4>
+                <p class="csd-card__hint">Archivo público del sello.</p>
+                <input
+                  #cerFileInput
+                  type="file"
+                  accept=".cer,application/x-x509-ca-cert,application/pkix-cert"
+                  class="hidden-file-input"
+                  (change)="onDigitalSealSelected($event)"
+                />
+                <button type="button" class="csd-card__pick" (click)="openCerPicker(cerFileInput)">
+                  {{ digitalSealFileName || hasDigitalSealStored ? 'Cambiar .cer' : 'Elegir .cer' }}
+                </button>
+                <p class="csd-card__file">
+                  @if (digitalSealFileName) {
+                    {{ digitalSealFileName }}
+                  } @else if (hasDigitalSealStored) {
+                    Certificado guardado
+                  } @else {
+                    Sin archivo
+                  }
+                </p>
+              </article>
 
-            <input
-              #cerFileInput
-              type="file"
-              accept=".cer,application/x-x509-ca-cert,application/pkix-cert"
-              class="hidden-file-input"
-              (change)="onDigitalSealSelected($event)"
-            />
+              <article class="csd-card" [class.csd-card--ready]="!!form.get('digital_seal_password')?.value || hasDigitalSealPasswordStored">
+                <span class="csd-card__kicker">CSD</span>
+                <h4>Contraseña</h4>
+                <p class="csd-card__hint">
+                  @if (hasDigitalSealPasswordStored) {
+                    En blanco conserva la actual.
+                  } @else {
+                    No se vuelve a mostrar al guardar.
+                  }
+                </p>
+                <div class="csd-card__secret">
+                  <input
+                    [type]="showCsdPassword ? 'text' : 'password'"
+                    formControlName="digital_seal_password"
+                    autocomplete="new-password"
+                    [placeholder]="hasDigitalSealPasswordStored ? 'Conservar actual' : 'Contraseña'" />
+                  <button
+                    type="button"
+                    class="csd-card__eye"
+                    (click)="showCsdPassword = !showCsdPassword"
+                    [attr.aria-label]="showCsdPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                    <lucide-icon [img]="showCsdPassword ? EyeOff : Eye" [size]="16"></lucide-icon>
+                  </button>
+                </div>
+              </article>
 
-            <div class="csd-upload-row">
-              <app-button
-                text="Seleccionar .cer"
-                variant="secondary"
-                size="sm"
-                [fullWidth]="false"
-                type="button"
-                (clicked)="openCerPicker(cerFileInput)">
-              </app-button>
-              @if (digitalSealFileName) {
-                <span class="csd-file-name">{{ digitalSealFileName }}</span>
-              }
+              <article class="csd-card" [class.csd-card--ready]="!!privateKeyFileName || hasPrivateKeyStored">
+                <span class="csd-card__kicker">.key</span>
+                <h4>Llave privada</h4>
+                <p class="csd-card__hint">Archivo privado del sello.</p>
+                <input
+                  #keyFileInput
+                  type="file"
+                  accept=".key,.pem"
+                  class="hidden-file-input"
+                  (change)="onPrivateKeySelected($event)"
+                />
+                <button type="button" class="csd-card__pick" (click)="openKeyPicker(keyFileInput)">
+                  {{ privateKeyFileName || hasPrivateKeyStored ? 'Cambiar .key' : 'Elegir .key' }}
+                </button>
+                <p class="csd-card__file">
+                  @if (privateKeyFileName) {
+                    {{ privateKeyFileName }}
+                  } @else if (hasPrivateKeyStored) {
+                    Llave guardada
+                  } @else {
+                    Sin archivo
+                  }
+                </p>
+              </article>
             </div>
-          </div>
-
-          <!-- Contraseña del Sello -->
-          <div class="col-span-2 csd-field">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña del CSD</label>
-            <input
-              type="password"
-              formControlName="digital_seal_password"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-              autocomplete="new-password"
-              [placeholder]="hasDigitalSealPasswordStored ? 'Dejar en blanco para conservar la actual' : 'Contraseña del certificado'">
-            <p class="csd-field-hint">
-              @if (hasDigitalSealPasswordStored) {
-                Ya hay una contraseña guardada. Solo complétala si deseas reemplazarla.
-              } @else {
-                Texto plano; nunca se muestra después de guardar.
-              }
-            </p>
-          </div>
-
-          <!-- Llave privada .key -->
-          <div class="col-span-2 csd-field">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Llave privada (.key)</label>
-            <p class="csd-field-hint">Sube el archivo .key del SAT. Se guarda en base64 en el ERP.</p>
-
-            @if (hasPrivateKeyStored && !privateKeyFileName) {
-              <p class="csd-stored-badge">Llave privada guardada en el ERP</p>
-            }
-
-            <input
-              #keyFileInput
-              type="file"
-              accept=".key,.pem"
-              class="hidden-file-input"
-              (change)="onPrivateKeySelected($event)"
-            />
-
-            <div class="csd-upload-row">
-              <app-button
-                text="Seleccionar .key"
-                variant="secondary"
-                size="sm"
-                [fullWidth]="false"
-                type="button"
-                (clicked)="openKeyPicker(keyFileInput)">
-              </app-button>
-              @if (privateKeyFileName) {
-                <span class="csd-file-name">{{ privateKeyFileName }}</span>
-              }
-            </div>
-          </div>
+          </section>
 
           <!-- Status -->
           <div class="col-span-2">

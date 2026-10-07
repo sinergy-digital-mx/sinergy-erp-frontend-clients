@@ -29,7 +29,7 @@ import { SelectComponent } from '../../../../core/components/select/select.compo
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { BranchModalComponent } from '../branch-modal/branch-modal.component';
-import { X } from 'lucide-angular';
+import { Eye, EyeOff, X } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { SystemLogoService } from '../../../../core/services/system-logo.service';
 
@@ -77,7 +77,10 @@ export class FiscalConfigurationModalComponent implements OnInit {
   finkokRegisterMode: 'add' | 'link_only' | null = null;
   finkokStatusResult: FinkokStatusResponse | null = null;
   readonly canUpdateFinkok: boolean;
+  readonly Eye = Eye;
+  readonly EyeOff = EyeOff;
   readonly prefixMaxLength = DOCUMENT_PREFIX_MAX_LENGTH;
+  showCsdPassword = false;
   readonly prefixErrorMessage = DOCUMENT_PREFIX_ERROR;
 
   personaTypeOptions = [
