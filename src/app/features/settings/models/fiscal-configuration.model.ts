@@ -64,27 +64,38 @@ export interface FiscalConfigurationQueryParams {
   status?: 'active' | 'inactive';
 }
 
-export const FISCAL_REGIMES = [
-  { id: '601', name: '601 - Régimen General de Ley Personas Morales' },
-  { id: '603', name: '603 - Personas Morales con Régimen de Intereses' },
-  { id: '605', name: '605 - Personas Morales con Régimen de Actividades Agrícolas' },
-  { id: '606', name: '606 - Personas Morales con Régimen de Actividades Ganaderas' },
-  { id: '607', name: '607 - Personas Morales con Régimen de Actividades Pesqueras' },
-  { id: '608', name: '608 - Personas Morales con Régimen de Actividades Silvícolas' },
-  { id: '609', name: '609 - Personas Morales con Régimen de Actividades Forestales' },
-  { id: '610', name: '610 - Personas Morales con Régimen de Actividades Mineras' },
-  { id: '611', name: '611 - Personas Morales con Régimen de Actividades Petroleras' },
-  { id: '614', name: '614 - Personas Morales con Régimen de Actividades de Transporte' },
-  { id: '616', name: '616 - Personas Morales con Régimen de Actividades de Telecomunicaciones' },
-  { id: '620', name: '620 - Personas Morales con Régimen de Actividades de Servicios Financieros' },
-  { id: '621', name: '621 - Personas Morales con Régimen de Actividades de Seguros' },
-  { id: '622', name: '622 - Personas Morales con Régimen de Actividades de Fianzas' },
-  { id: '623', name: '623 - Personas Morales con Régimen de Actividades de Fondos de Pensiones' },
-  { id: '624', name: '624 - Personas Morales con Régimen de Actividades de Administración de Fondos' },
-  { id: '625', name: '625 - Personas Morales con Régimen de Actividades de Sociedades de Inversión' },
-  { id: '626', name: '626 - Personas Morales con Régimen de Actividades de Sociedades de Crédito' },
-  { id: '627', name: '627 - Personas Morales con Régimen de Actividades de Uniones de Crédito' },
-  { id: '628', name: '628 - Personas Morales con Régimen de Actividades de Instituciones de Crédito' },
-  { id: '629', name: '629 - Personas Morales con Régimen de Actividades de Casas de Bolsa' },
-  { id: '630', name: '630 - Personas Morales con Régimen de Actividades de Mercados de Futuros' }
+export type FiscalRegimeAppliesTo = 'fisica' | 'moral' | 'both';
+
+export interface FiscalRegimeOption {
+  id: string;
+  name: string;
+  appliesTo: FiscalRegimeAppliesTo;
+}
+
+/** Catálogo SAT c_RegimenFiscal, filtrable por tipo de persona. */
+export const FISCAL_REGIMES: FiscalRegimeOption[] = [
+  { id: '601', name: '601 - General de Ley Personas Morales', appliesTo: 'moral' },
+  { id: '603', name: '603 - Personas Morales con Fines no Lucrativos', appliesTo: 'moral' },
+  { id: '605', name: '605 - Sueldos y Salarios e Ingresos Asimilados a Salarios', appliesTo: 'fisica' },
+  { id: '606', name: '606 - Arrendamiento', appliesTo: 'fisica' },
+  { id: '607', name: '607 - Régimen de Enajenación o Adquisición de Bienes', appliesTo: 'both' },
+  { id: '608', name: '608 - Demás ingresos', appliesTo: 'fisica' },
+  { id: '610', name: '610 - Residentes en el Extranjero sin Establecimiento Permanente en México', appliesTo: 'both' },
+  { id: '611', name: '611 - Ingresos por Dividendos (socios y accionistas)', appliesTo: 'fisica' },
+  { id: '612', name: '612 - Personas Físicas con Actividades Empresariales y Profesionales', appliesTo: 'fisica' },
+  { id: '614', name: '614 - Ingresos por intereses', appliesTo: 'fisica' },
+  { id: '615', name: '615 - Régimen de los ingresos por obtención de premios', appliesTo: 'fisica' },
+  { id: '616', name: '616 - Sin obligaciones fiscales', appliesTo: 'fisica' },
+  { id: '620', name: '620 - Sociedades Cooperativas de Producción que optan por diferir sus ingresos', appliesTo: 'moral' },
+  { id: '621', name: '621 - Incorporación Fiscal', appliesTo: 'fisica' },
+  { id: '622', name: '622 - Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras', appliesTo: 'moral' },
+  { id: '623', name: '623 - Opcional para Grupos de Sociedades', appliesTo: 'moral' },
+  { id: '624', name: '624 - Coordinados', appliesTo: 'moral' },
+  { id: '625', name: '625 - Actividades Empresariales con ingresos a través de Plataformas Tecnológicas', appliesTo: 'fisica' },
+  { id: '626', name: '626 - Régimen Simplificado de Confianza', appliesTo: 'both' },
 ];
+
+export function fiscalRegimesForPersona(personaType: string | null | undefined): FiscalRegimeOption[] {
+  const key: FiscalRegimeAppliesTo = personaType === 'Persona Física' ? 'fisica' : 'moral';
+  return FISCAL_REGIMES.filter((regime) => regime.appliesTo === key || regime.appliesTo === 'both');
+}

@@ -7,7 +7,7 @@ import { finalize } from 'rxjs/operators';
 import { FiscalConfigurationService } from '../../services/fiscal-configuration.service';
 import { BranchService } from '../../services/branch.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { FiscalConfiguration, CreateFiscalConfigurationDto, FISCAL_REGIMES } from '../../models/fiscal-configuration.model';
+import { FiscalConfiguration, CreateFiscalConfigurationDto, fiscalRegimesForPersona } from '../../models/fiscal-configuration.model';
 import {
   FinkokEnvironment,
   FinkokStatusResponse,
@@ -60,6 +60,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
   // Tabs
   tabs: TabItem[] = [
     { id: 'configuracion', title: 'Configuración' },
+    { id: 'cotizaciones', title: 'Cotizaciones' },
     { id: 'sucursales', title: 'Sucursales' },
     { id: 'logo', title: 'Logo' }
   ];
@@ -89,7 +90,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
     { id: 'inactive', name: 'Inactivo' }
   ];
 
-  fiscalRegimes = FISCAL_REGIMES;
+  fiscalRegimes = fiscalRegimesForPersona('Persona Moral');
 
   // Select configurations
   personaTypeSelectConfig: any;
@@ -167,6 +168,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
       private_key: '',
       digital_seal_password: '',
     });
+    this.refreshFiscalRegimeSelect();
   }
 
   private hasStoredCsdField(
@@ -380,14 +382,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
       name_select: 'persona_type'
     };
 
-    this.fiscalRegimeSelectConfig = {
-      placeholder: 'Selecciona un régimen fiscal',
-      data: this.fiscalRegimes,
-      value: 'id',
-      option: 'name',
-      form_control: this.form.get('fiscal_regime'),
-      name_select: 'fiscal_regime'
-    };
+    this.refreshFiscalRegimeSelect();
 
     this.statusSelectConfig = {
       placeholder: 'Selecciona status',
@@ -764,6 +759,30 @@ export class FiscalConfigurationModalComponent implements OnInit {
 
   onPersonaTypeChange(event: any): void {
     this.form.get('persona_type')?.setValue(event.value, { emitEvent: false });
+    const allowed = fiscalRegimesForPersona(event.value);
+    const current = this.form.get('fiscal_regime')?.value;
+    if (current && !allowed.some((regime) => regime.id === current)) {
+      this.form.get('fiscal_regime')?.setValue('', { emitEvent: false });
+    }
+    this.refreshFiscalRegimeSelect();
+  }
+
+  private refreshFiscalRegimeSelect(): void {
+    const persona = this.form.get('persona_type')?.value;
+    const allowed = fiscalRegimesForPersona(persona);
+    const current = String(this.form.get('fiscal_regime')?.value || '');
+    const data = current && !allowed.some((regime) => regime.id === current)
+      ? [{ id: current, name: `${current} - Régimen guardado`, appliesTo: 'both' as const }, ...allowed]
+      : allowed;
+    this.fiscalRegimes = data;
+    this.fiscalRegimeSelectConfig = {
+      placeholder: 'Selecciona un régimen fiscal',
+      data,
+      value: 'id',
+      option: 'name',
+      form_control: this.form.get('fiscal_regime'),
+      name_select: 'fiscal_regime',
+    };
   }
 
   onFiscalRegimeChange(event: any): void {

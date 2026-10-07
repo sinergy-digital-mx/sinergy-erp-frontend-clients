@@ -17,7 +17,7 @@ const MONTH_LABELS = [
     <div
       class="zn-period-bar"
       [class.zn-period-bar--drop]="dropsDown"
-      [class.zn-period-bar--open]="dropsDown && period === 'range'"
+      [class.zn-period-bar--open]="dropsDown && dayPanelOpen"
       role="search"
       [attr.aria-label]="ariaLabel">
       <div
@@ -128,7 +128,7 @@ const MONTH_LABELS = [
         }
       </div>
 
-      @if (period === 'range' && dropsDown) {
+      @if (dayPanelOpen && dropsDown) {
         <ng-container [ngTemplateOutlet]="dateFields" />
       }
     </div>
@@ -475,6 +475,8 @@ export class ReportPeriodSelectorComponent {
   @Output() rangeChange = new EventEmitter<{ dateFrom: string; dateTo: string }>();
 
   monthDropdownOpen = false;
+  /** Panel de “Otro día”. Se cierra al clic afuera sin perder la fecha. */
+  dayPanelOpen = false;
   /** La fecha cuelga hacia abajo sin empujar la fila (clase del host). */
   readonly dropsDown: boolean;
 
@@ -515,13 +517,12 @@ export class ReportPeriodSelectorComponent {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (!this.monthDropdownOpen) {
+    const target = event.target as Node | null;
+    if (target && this.elementRef.nativeElement.contains(target)) {
       return;
     }
-    const target = event.target as Node | null;
-    if (target && !this.elementRef.nativeElement.contains(target)) {
-      this.monthDropdownOpen = false;
-    }
+    this.monthDropdownOpen = false;
+    this.dayPanelOpen = false;
   }
 
   toggleMonthDropdown(event: MouseEvent): void {
@@ -563,6 +564,10 @@ export class ReportPeriodSelectorComponent {
   onSelectPeriod(preset: ReportPeriod): void {
     this.monthDropdownOpen = false;
 
+    if (preset !== 'range') {
+      this.dayPanelOpen = false;
+    }
+
     if (preset === 'month') {
       if (this.monthAsServerPreset) {
         this.dateFrom = '';
@@ -576,15 +581,24 @@ export class ReportPeriodSelectorComponent {
     }
 
     if (preset === 'range' && this.dayOnly) {
+      if (this.period === 'range' && this.dropsDown) {
+        this.dayPanelOpen = !this.dayPanelOpen;
+        return;
+      }
       if (!this.dateFrom) {
         const yesterday = this.startOfDay(new Date());
         yesterday.setDate(yesterday.getDate() - 1);
         this.dateFrom = this.toInputDate(yesterday);
       }
       this.dateTo = this.dateFrom;
+      this.dayPanelOpen = true;
       this.periodChange.emit('range');
       this.rangeChange.emit({ dateFrom: this.dateFrom, dateTo: this.dateFrom });
       return;
+    }
+
+    if (preset === 'range' && this.dropsDown) {
+      this.dayPanelOpen = true;
     }
 
     if (preset === 'range' && (!this.dateFrom || !this.dateTo)) {
