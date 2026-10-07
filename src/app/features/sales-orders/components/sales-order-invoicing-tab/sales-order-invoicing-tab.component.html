@@ -38,19 +38,15 @@
       <div class="existing-invoice">
         <p>Sube el XML, el PDF o los dos. Si solo va el PDF y no trae el UUID, escríbelo.</p>
         <div class="existing-invoice__files">
-          <label class="existing-invoice__file">
-            XML
+          <label class="file-pick" [class.file-pick--ready]="existingXml()">
             <input type="file" accept=".xml,text/xml,application/xml" (change)="onExistingXml($event)" />
-            @if (existingXml()) {
-              <span>{{ existingXml()!.name }}</span>
-            }
+            <span class="file-pick__kind">XML</span>
+            <span class="file-pick__name">{{ existingXml()?.name || 'Elegir XML' }}</span>
           </label>
-          <label class="existing-invoice__file">
-            PDF
+          <label class="file-pick" [class.file-pick--ready]="existingPdf()">
             <input type="file" accept=".pdf,application/pdf" (change)="onExistingPdf($event)" />
-            @if (existingPdf()) {
-              <span>{{ existingPdf()!.name }}</span>
-            }
+            <span class="file-pick__kind">PDF</span>
+            <span class="file-pick__name">{{ existingPdf()?.name || 'Elegir PDF' }}</span>
           </label>
         </div>
         <label class="existing-invoice__uuid">
@@ -264,8 +260,16 @@
               <div class="existing-invoice existing-invoice--attach">
                 <p>Puedes agregar el XML, el PDF o los dos. Tienen que ser de este UUID.</p>
                 <div class="existing-invoice__files">
-                  <label>XML <input type="file" accept=".xml,text/xml,application/xml" (change)="onAttachXml($event)" /></label>
-                  <label>PDF <input type="file" accept=".pdf,application/pdf" (change)="onAttachPdf($event)" /></label>
+                  <label class="file-pick" [class.file-pick--ready]="attachXml()">
+                    <input type="file" accept=".xml,text/xml,application/xml" (change)="onAttachXml($event)" />
+                    <span class="file-pick__kind">XML</span>
+                    <span class="file-pick__name">{{ attachXml()?.name || 'Elegir XML' }}</span>
+                  </label>
+                  <label class="file-pick" [class.file-pick--ready]="attachPdf()">
+                    <input type="file" accept=".pdf,application/pdf" (change)="onAttachPdf($event)" />
+                    <span class="file-pick__kind">PDF</span>
+                    <span class="file-pick__name">{{ attachPdf()?.name || 'Elegir PDF' }}</span>
+                  </label>
                 </div>
                 <button type="button" class="btn-primary" [disabled]="attachingId() === invoiceRecordId(invoice)" (click)="saveAttach(invoice)">
                   {{ attachingId() === invoiceRecordId(invoice) ? 'Guardando…' : 'Guardar archivos' }}
