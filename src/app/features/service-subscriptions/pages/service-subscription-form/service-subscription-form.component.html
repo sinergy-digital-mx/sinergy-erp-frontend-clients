@@ -135,8 +135,8 @@
               <div class="sub-field">
                 <label for="monthly-amount">Monto mensual sin IVA</label>
                 <div class="sub-affix" [class.is-invalid]="!!fieldError('monthly_amount')">
-                  <span>$</span>
-                  <input id="monthly-amount" type="number" min="0" step="0.01" formControlName="monthly_amount" />
+                  <span aria-hidden="true">$</span>
+                  <input id="monthly-amount" class="sub-affix__input" type="number" min="0" step="0.01" formControlName="monthly_amount" />
                 </div>
                 @if (fieldError('monthly_amount'); as message) {
                   <span class="sub-error">{{ message }}</span>
