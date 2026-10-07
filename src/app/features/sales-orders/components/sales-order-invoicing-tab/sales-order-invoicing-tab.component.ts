@@ -456,7 +456,7 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     const uuid = String(invoice.uuid || '').trim();
     if (!uuid) return false;
     const stamp = (invoice.stamp_status || '').toLowerCase();
-    return stamp === 'stamped' || stamp === 'cancel_pending' || stamp === 'cancelled';
+    return stamp === 'stamped' || stamp === 'cancel_pending' || stamp === 'cancelled' || stamp === 'cancel_error';
   }
 
   canShowEmail(invoice: SalesOrderElectronicInvoice): boolean {
@@ -726,7 +726,9 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     const uuid = String(invoice.uuid || '').trim();
     if (!uuid) return false;
     const stamp = (invoice.stamp_status || '').toLowerCase();
-    return stamp === 'stamped' || stamp === 'cancel_pending';
+    const sat = (invoice.sat_status || '').toLowerCase();
+    if (sat.includes('cancelad')) return false;
+    return stamp === 'stamped' || stamp === 'cancel_pending' || stamp === 'cancel_error';
   }
 
   canShowSyncSat(invoice: SalesOrderElectronicInvoice): boolean {

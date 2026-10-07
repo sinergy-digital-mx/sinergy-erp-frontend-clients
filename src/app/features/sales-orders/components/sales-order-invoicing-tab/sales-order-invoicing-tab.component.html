@@ -92,7 +92,7 @@
                 </div>
               </div>
               <div class="invoice-card__status-group">
-                <span class="status-pill" [ngClass]="getSystemStatusClass(invoice)">
+                <span class="status-pill" [ngClass]="getSystemStatusClass(invoice)" [title]="invoice.stamp_error_message || ''">
                   <span class="status-pill__label">SISTEMA</span>
                   {{ getSystemStatusLabel(invoice) }}
                 </span>
@@ -111,8 +111,8 @@
               <span class="field-label">UUID</span>
               <div class="invoice-card__uuid-value">{{ invoice.uuid || '—' }}</div>
             </div>
-            @if (isStampError(invoice)) {
-              <div class="invoice-card__error">{{ getInvoiceErrorTooltip(invoice) }}</div>
+            @if (isStampError(invoice) || invoice.stamp_status === 'cancel_error') {
+              <div class="invoice-card__error">{{ invoice.stamp_error_message || getInvoiceErrorTooltip(invoice) }}</div>
             }
 
             <div class="invoice-card__grid">
