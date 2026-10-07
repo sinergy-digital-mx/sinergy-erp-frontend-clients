@@ -58,6 +58,7 @@ export interface SalesOrderInvoiceStampDialogResult {
 export class SalesOrderInvoiceStampDialogComponent implements OnInit {
   form: FormGroup;
   showXml = signal(false);
+  conceptDescriptions = signal<string[]>([]);
   stamping = signal(false);
   stampError = signal<string | null>(null);
   finkokConfig = signal<FinkokConfigurationsResponse | null>(null);
@@ -95,9 +96,11 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
   generatedXml = computed(() => {
     const values = this.form?.getRawValue() as CfdiWizardFormValues;
     if (!values) return '';
+    const descriptions = this.conceptDescriptions();
     return buildCfdiXml({
       order: this.data.order,
       lineItems: this.data.lineItems,
+      descriptions,
       form: {
         ...values,
         domicilioFiscalReceptor: getReceptorDomicilioFiscal(this.data.order) || values.domicilioFiscalReceptor,
@@ -115,6 +118,9 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
   ) {
     const defaults = defaultCfdiWizardForm(data.order);
     this.finkokConfig.set(data.finkokConfig);
+    this.conceptDescriptions.set(
+      data.lineItems.map((item) => item.product?.name?.trim() || 'Producto'),
+    );
     this.form = this.fb.group({
       series: [defaults.series],
       folio: [defaults.folio, Validators.required],
@@ -202,6 +208,13 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
     return formatUnitCurrency(value);
   }
 
+  setConceptDescription(index: number, value: string): void {
+    this.conceptDescriptions.update((current) =>
+      current.map((item, itemIndex) => (itemIndex === index ? value : item)),
+    );
+    this.syncXmlFromForm();
+  }
+
   getLineImport(item: SalesOrderLineItem): number {
     const qty = Number(item.quantity) || 0;
     const unit = Number(item.unit_price) || 0;
@@ -221,6 +234,10 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
       return;
     }
     if (!this.canSubmitStamp() || this.form.invalid) return;
+    if (this.conceptDescriptions().some((description) => !description.trim())) {
+      this.stampError.set('Cada concepto necesita una descripción');
+      return;
+    }
 
     const value = this.form.getRawValue();
     const payload: StampSalesOrderInvoicePayload = {
@@ -228,6 +245,7 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
         buildCfdiXml({
           order: this.data.order,
           lineItems: this.data.lineItems,
+          descriptions: this.conceptDescriptions(),
           form: {
             series: value.series,
             folio: value.folio,

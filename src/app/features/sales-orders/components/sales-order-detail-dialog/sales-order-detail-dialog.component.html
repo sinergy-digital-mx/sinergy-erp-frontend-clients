@@ -65,6 +65,7 @@
           <span class="order-type-badge">PRODUCTOS Y SERVICIOS</span>
         }
         <h2 class="dialog-header__folio">#{{ order()!.folio || order()!.id.substring(0, 8) }}</h2>
+        <app-sales-order-subscription-link [orderId]="order()!.id" />
       </div>
       <div class="dialog-header-actions">
         <span

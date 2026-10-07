@@ -89,8 +89,10 @@ export class ServiceSubscriptionFormComponent {
     title: ['', [Validators.required, Validators.maxLength(160)]],
     monthly_amount: [0, [Validators.required, Validators.min(0.01)]],
     iva_percentage: [16, [Validators.required, Validators.min(0), Validators.max(100)]],
-    start_month: [this.initialRange.start, Validators.required],
-    end_month: [this.initialRange.end, Validators.required],
+    start_month_num: [monthOf(this.initialRange.start), Validators.required],
+    start_year: [yearOf(this.initialRange.start), Validators.required],
+    end_month_num: [monthOf(this.initialRange.end), Validators.required],
+    end_year: [yearOf(this.initialRange.end), Validators.required],
     billing_day: [1, [Validators.required, Validators.min(1), Validators.max(28)]],
     fiscal_configuration_id: ['', Validators.required],
     billing_branch_id: ['', Validators.required],
@@ -119,21 +121,14 @@ export class ServiceSubscriptionFormComponent {
     this.loadBranches();
   }
 
-  yearOf(value: string): string {
-    return yearOf(value);
+  rangeStart(): string {
+    const value = this.preview();
+    return joinYearMonth(value.start_year, value.start_month_num);
   }
 
-  monthOf(value: string): string {
-    return monthOf(value);
-  }
-
-  onMonthChange(control: 'start_month' | 'end_month', part: 'year' | 'month', event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    const current = this.form.controls[control].value;
-    const year = part === 'year' ? value : yearOf(current);
-    const month = part === 'month' ? value : monthOf(current);
-    this.form.controls[control].setValue(joinYearMonth(year, month));
-    this.form.controls[control].markAsTouched();
+  rangeEnd(): string {
+    const value = this.preview();
+    return joinYearMonth(value.end_year, value.end_month_num);
   }
 
   setIva(rate: number): void {
@@ -145,8 +140,7 @@ export class ServiceSubscriptionFormComponent {
   }
 
   monthCount(): number | null {
-    const value = this.preview();
-    return countMonths(value.start_month, value.end_month);
+    return countMonths(this.rangeStart(), this.rangeEnd());
   }
 
   monthCountLabel(): string {
@@ -159,13 +153,11 @@ export class ServiceSubscriptionFormComponent {
   }
 
   monthIssue(): string | null {
-    const value = this.preview();
-    return monthRangeIssue(value.start_month, value.end_month);
+    return monthRangeIssue(this.rangeStart(), this.rangeEnd());
   }
 
   monthLabels(): string[] {
-    const value = this.preview();
-    return listMonthLabels(value.start_month, value.end_month);
+    return listMonthLabels(this.rangeStart(), this.rangeEnd());
   }
 
   monthlyWithTax(): number {
@@ -263,8 +255,8 @@ export class ServiceSubscriptionFormComponent {
         billing_branch_id: value.billing_branch_id,
         product_id: value.product_id,
         product_uom_id: value.product_uom_id,
-        start_month: value.start_month,
-        end_month: value.end_month,
+        start_month: this.rangeStart(),
+        end_month: this.rangeEnd(),
         billing_day: Number(value.billing_day),
         uso_cfdi: value.uso_cfdi,
         forma_pago: value.forma_pago,

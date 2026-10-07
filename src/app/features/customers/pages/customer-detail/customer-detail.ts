@@ -50,6 +50,7 @@ import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-messa
 import { FormsModule } from '@angular/forms';
 import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
 import { isMadereriaZonaNorte } from '../../../../core/config/organizations.constants';
+import { CustomerSubscriptionsComponent } from '../../components/customer-subscriptions/customer-subscriptions.component';
 
 @Component({
   selector: 'app-customer-detail',
@@ -76,6 +77,7 @@ import { isMadereriaZonaNorte } from '../../../../core/config/organizations.cons
     SpinnerComponent,
     PolluxErrorStateComponent,
     CustomerAssignmentHistoryComponent,
+    CustomerSubscriptionsComponent,
   ],
   templateUrl: 'customer-detail.html',
   styleUrl: 'customer-detail.scss'

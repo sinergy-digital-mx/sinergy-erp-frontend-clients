@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject, switchMap, takeUntil, of, catchError, map } from 'rxjs';
 import { SalesOrderFilters, SalesOrderStatus, SalesPaymentStatus, SalesOrderCollectionChannel, SalesOrderSaleScope, PosUserSummary } from '../../models/sales-order.model';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { MoreFiltersPanelComponent } from '../../../../core/components/more-filters-panel/more-filters-panel.component';
@@ -10,6 +10,12 @@ import { BranchService } from '../../../settings/services/branch.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { Branch } from '../../../settings/models/branch.model';
 import { formatPosUser } from '../../utils/pos-user-display.util';
+import { CustomerService } from '../../../../core/services/customer.service';
+
+interface CustomerFilterOption {
+  id: string;
+  label: string;
+}
 
 @Component({
   selector: 'app-sales-filter-bar',
@@ -30,6 +36,10 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   @Output() refresh = new EventEmitter<void>();
 
   searchControl = new FormControl<string>('', { nonNullable: true });
+  customerSearchControl = new FormControl<string>('', { nonNullable: true });
+  customerOptions: CustomerFilterOption[] = [];
+  customerLookupOpen = false;
+  private selectedCustomer: CustomerFilterOption | null = null;
   dateRangeControl = new FormControl<string>('', { nonNullable: true });
   dateFromControl = new FormControl<string>('', { nonNullable: true });
   dateToControl = new FormControl<string>('', { nonNullable: true });
@@ -101,12 +111,14 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   constructor(
     private fiscalConfigurationService: FiscalConfigurationService,
     private branchService: BranchService,
+    private customerService: CustomerService,
     private cdr: ChangeDetectorRef
   ) {}
 
   get hasActiveFilters(): boolean {
     return Boolean(
       this.searchControl.value.trim() ||
+      this.selectedCustomer ||
       this.fiscalConfigurationControl.value ||
       this.billingBranchControl.value ||
       this.extraFilterCount
@@ -131,6 +143,24 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
     this.loadAllBranches();
 
     this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
+    this.customerSearchControl.valueChanges
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((value) => this.lookupCustomers(value)),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((options) => {
+        const search = this.customerSearchControl.value.trim();
+        const kept = !!this.selectedCustomer && search === this.selectedCustomer.label;
+        if (this.selectedCustomer && !kept) {
+          this.selectedCustomer = null;
+          this.emitFilters();
+        }
+        this.customerOptions = kept ? [] : options;
+        this.customerLookupOpen = !kept && search.length >= 2;
+        this.cdr.detectChanges();
+      });
     this.dateRangeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(v => this.onDateRangeChange(v));
     this.dateFromControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
     this.dateToControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.emitFilters());
@@ -211,8 +241,27 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
 
+  pickCustomer(option: CustomerFilterOption): void {
+    this.selectedCustomer = option;
+    this.customerOptions = [];
+    this.customerLookupOpen = false;
+    this.customerSearchControl.setValue(option.label, { emitEvent: false });
+    this.emitFilters();
+  }
+
+  closeCustomerLookup(): void {
+    setTimeout(() => {
+      this.customerLookupOpen = false;
+      this.cdr.detectChanges();
+    }, 150);
+  }
+
   clearFilters(): void {
     this.searchControl.setValue('', { emitEvent: false });
+    this.customerSearchControl.setValue('', { emitEvent: false });
+    this.selectedCustomer = null;
+    this.customerOptions = [];
+    this.customerLookupOpen = false;
     this.dateRangeControl.setValue('', { emitEvent: false });
     this.dateFromControl.setValue('', { emitEvent: false });
     this.dateToControl.setValue('', { emitEvent: false });
@@ -314,6 +363,7 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
     const filters: SalesOrderFilters = {};
     const search = this.searchControl.value.trim();
     if (search) filters.search = search;
+    if (this.selectedCustomer) filters.customer_id = this.selectedCustomer.id;
     const dateFrom = this.dateFromControl.value;
     if (dateFrom) filters.dateFrom = new Date(dateFrom).toISOString();
     const dateTo = this.dateToControl.value;
@@ -353,4 +403,38 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   sellerOptionLabel(seller: PosUserSummary): string {
     return formatPosUser(seller);
   }
+
+  private lookupCustomers(value: string) {
+    const search = value.trim();
+    if (search.length < 2 || (this.selectedCustomer && search === this.selectedCustomer.label)) {
+      this.customerLookupOpen = false;
+      return of([] as CustomerFilterOption[]);
+    }
+    return this.customerService.getCustomers({ search, limit: 8 }).pipe(
+      map((response) => unwrapCustomerList(response).map((row) => ({
+        id: String(row['id']),
+        label: customerFilterLabel(row),
+      }))),
+      catchError(() => of([] as CustomerFilterOption[])),
+    );
+  }
+}
+
+function customerFilterLabel(row: Record<string, unknown>): string {
+  const person = [asText(row['name']), asText(row['lastname'])].filter(Boolean).join(' ');
+  const company = asText(row['fiscal_razon_social']) || asText(row['company_name']) || person || 'Cliente';
+  const rfc = asText(row['fiscal_rfc']);
+  return rfc ? `${company} · ${rfc}` : company;
+}
+
+function asText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function unwrapCustomerList(response: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(response)) return response as Array<Record<string, unknown>>;
+  if (response && typeof response === 'object' && Array.isArray((response as { data?: unknown }).data)) {
+    return (response as { data: Array<Record<string, unknown>> }).data;
+  }
+  return [];
 }

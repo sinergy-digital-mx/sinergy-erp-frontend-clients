@@ -153,12 +153,12 @@
               <div class="sub-field">
                 <span id="start-label">Mes inicial</span>
                 <div class="sub-pair" role="group" aria-labelledby="start-label">
-                  <select class="sub-input" [value]="monthOf(form.controls.start_month.value)" (change)="onMonthChange('start_month', 'month', $event)">
+                  <select class="sub-input" formControlName="start_month_num" aria-label="Mes inicial">
                     @for (item of monthOptions; track item.value) {
                       <option [value]="item.value">{{ item.label }}</option>
                     }
                   </select>
-                  <select class="sub-input" [value]="yearOf(form.controls.start_month.value)" (change)="onMonthChange('start_month', 'year', $event)">
+                  <select class="sub-input" formControlName="start_year" aria-label="Año inicial">
                     @for (year of yearOptions; track year) {
                       <option [value]="year">{{ year }}</option>
                     }
@@ -168,12 +168,12 @@
               <div class="sub-field">
                 <span id="end-label">Mes final</span>
                 <div class="sub-pair" role="group" aria-labelledby="end-label">
-                  <select class="sub-input" [value]="monthOf(form.controls.end_month.value)" (change)="onMonthChange('end_month', 'month', $event)">
+                  <select class="sub-input" formControlName="end_month_num" aria-label="Mes final">
                     @for (item of monthOptions; track item.value) {
                       <option [value]="item.value">{{ item.label }}</option>
                     }
                   </select>
-                  <select class="sub-input" [value]="yearOf(form.controls.end_month.value)" (change)="onMonthChange('end_month', 'year', $event)">
+                  <select class="sub-input" formControlName="end_year" aria-label="Año final">
                     @for (year of yearOptions; track year) {
                       <option [value]="year">{{ year }}</option>
                     }
@@ -275,8 +275,8 @@
             <p class="sub-total-label">cada mes, con IVA</p>
           }
           <div class="sub-lines">
-            <div><span>Cliente</span><strong>{{ selectedCustomer()?.label || 'Sin elegir' }}</strong></div>
-            <div><span>Servicio</span><strong>{{ serviceLabel() }}</strong></div>
+            <div><span>Cliente</span><strong [attr.title]="selectedCustomer()?.label || null">{{ selectedCustomer()?.label || 'Sin elegir' }}</strong></div>
+            <div><span>Servicio</span><strong [attr.title]="serviceLabel()">{{ serviceLabel() }}</strong></div>
             <div><span>Sin IVA</span><strong>{{ money(preview().monthly_amount) }}</strong></div>
             <div><span>IVA</span><strong>{{ preview().iva_percentage }}%</strong></div>
             <div><span>Meses</span><strong>{{ monthCountLabel() }}</strong></div>

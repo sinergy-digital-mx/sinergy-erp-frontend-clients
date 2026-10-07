@@ -86,6 +86,7 @@ import { SalesOrderInvoicingTabComponent } from '../sales-order-invoicing-tab/sa
 import { SalesOrderInvoiceEmailTabComponent } from '../sales-order-invoice-email-tab/sales-order-invoice-email-tab.component';
 import { SalesOrderShippingTabComponent } from '../sales-order-shipping-tab/sales-order-shipping-tab.component';
 import { SalesOrderCreditTabComponent } from '../sales-order-credit-tab/sales-order-credit-tab.component';
+import { SalesOrderSubscriptionLinkComponent } from '../sales-order-subscription-link/sales-order-subscription-link.component';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
 import { AdvanceInvoiceDialogComponent } from '../advance-invoice-dialog/advance-invoice-dialog.component';
 import { countVigenteInvoices } from '../../utils/cfdi-xml-builder.util';
@@ -168,6 +169,7 @@ const INSTRUCTION_SECTIONS: InstructionSection[] = [
     SalesOrderInvoiceEmailTabComponent,
     SalesOrderShippingTabComponent,
     SalesOrderCreditTabComponent,
+    SalesOrderSubscriptionLinkComponent,
   ],
   templateUrl: './sales-order-detail-dialog.component.html',
   styleUrl: './sales-order-detail-dialog.component.scss',

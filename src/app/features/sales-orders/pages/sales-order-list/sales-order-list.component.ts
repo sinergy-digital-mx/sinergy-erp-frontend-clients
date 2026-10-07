@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { SalesOrder, SalesOrderFilters, SalesOrderTrend, PaginationParams } from '../../models/sales-order.model';
+import { SalesOrder, SalesOrderFilters, SalesOrderInvoiceShortcut, SalesOrderTrend, PaginationParams } from '../../models/sales-order.model';
 import { SalesOrderTrendComponent } from '../../components/sales-order-trend/sales-order-trend.component';
 import { SalesFilterBarComponent } from '../../components/sales-filter-bar/sales-filter-bar.component';
 import { CreateSalesOrderModalComponent } from '../../components/create-sales-order-modal/create-sales-order-modal.component';
@@ -28,6 +28,7 @@ import {
   getSalesOrderTotal,
 } from '../../utils/sales-order-display.util';
 import { salesOrderListPaymentMetaLabel } from '../../utils/sales-order-collection.util';
+import { getInvoiceStatusLabel } from '../../utils/cfdi-xml-builder.util';
 
 @Component({
   selector: 'app-sales-order-list',
@@ -56,6 +57,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
   trend = signal<SalesOrderTrend | null>(null);
   trendLoading = signal(false);
   trendError = signal(false);
+  invoicePop = signal<{ top: number; left: number; invoice: SalesOrderInvoiceShortcut } | null>(null);
 
   table_config = signal<IDatatableConfig>({
     rows: [],
@@ -67,6 +69,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 120 },
       { name: 'Total', prop: 'requested_total', sortable: true, canAutoResize: false, width: 120 },
       { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 186 },
+      { name: 'Factura', prop: 'invoice', sortable: false, canAutoResize: false, width: 148 },
       { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
     ],
     externalPaging: true,
@@ -331,6 +334,57 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
 
   getBranchLabel(order: SalesOrder): string {
     return getSalesOrderListBranchLabel(order);
+  }
+
+  orderInvoice(order: SalesOrder): SalesOrderInvoiceShortcut | null {
+    return order.invoice ?? order.downloads?.invoice ?? null;
+  }
+
+  invoiceBadgeLabel(invoice: SalesOrderInvoiceShortcut): string {
+    const folio = [invoice.series, invoice.folio].filter(Boolean).join('-');
+    return folio || 'CFDI';
+  }
+
+  invoiceStatusLabel(invoice: SalesOrderInvoiceShortcut): string {
+    return getInvoiceStatusLabel(invoice);
+  }
+
+  invoiceTone(invoice: SalesOrderInvoiceShortcut): 'ok' | 'warn' | 'bad' | 'muted' {
+    const label = `${invoice.sat_status || ''} ${invoice.stamp_status || ''}`.toLowerCase();
+    if (label.includes('vigente') || invoice.stamp_status === 'stamped') return 'ok';
+    if (label.includes('error')) return 'bad';
+    if (label.includes('cancel') && !label.includes('pending')) return 'bad';
+    if (label.includes('pending') || label.includes('pendiente')) return 'warn';
+    return 'muted';
+  }
+
+  showInvoicePop(event: MouseEvent, invoice: SalesOrderInvoiceShortcut): void {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const width = 280;
+    const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
+    this.invoicePop.set({ top: rect.bottom - 2, left, invoice });
+  }
+
+  hideInvoicePop(): void {
+    this.invoicePop.set(null);
+  }
+
+  openInvoiceInSat(event: MouseEvent, invoice: SalesOrderInvoiceShortcut): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const uuid = invoice.uuid?.trim();
+    if (!uuid) return;
+    const params = new URLSearchParams({
+      id: uuid,
+      re: invoice.rfc_emisor?.trim() || '',
+      rr: invoice.rfc_receptor?.trim() || '',
+      tt: (Number(invoice.total) || 0).toFixed(6),
+    });
+    window.open(
+      `https://verificacfdi.facturaelectronica.sat.gob.mx/default.aspx?${params.toString()}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
   }
 
   getSaleScopeLabel(order: SalesOrder): string {

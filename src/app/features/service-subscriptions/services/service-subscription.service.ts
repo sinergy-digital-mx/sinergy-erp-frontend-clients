@@ -21,11 +21,20 @@ export class ServiceSubscriptionService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.api}/tenant/service-subscriptions`;
 
-  list(search = '', page = 1, status = ''): Observable<ServiceSubscriptionPage> {
-    let params = new HttpParams().set('page', String(page)).set('limit', '20');
+  bySalesOrder(salesOrderId: string): Observable<{
+    subscription: { id: string; title: string; period_label: string } | null;
+  }> {
+    return this.http.get<{
+      subscription: { id: string; title: string; period_label: string } | null;
+    }>(`${this.baseUrl}/by-sales-order/${salesOrderId}`);
+  }
+
+  list(search = '', page = 1, status = '', customerId?: number): Observable<ServiceSubscriptionPage> {
+    let params = new HttpParams().set('page', String(page)).set('limit', customerId ? '50' : '20');
     const term = search.trim();
     if (term) params = params.set('search', term);
     if (status) params = params.set('status', status);
+    if (customerId) params = params.set('customer_id', String(customerId));
     return this.http.get<ServiceSubscriptionPage>(this.baseUrl, { params });
   }
 

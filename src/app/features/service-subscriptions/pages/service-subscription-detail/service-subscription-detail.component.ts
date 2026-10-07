@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule, ArrowLeft, X } from 'lucide-angular';
-import { Observable } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { ServiceSubscriptionService } from '../../services/service-subscription.service';
 import {
@@ -103,6 +103,47 @@ export class ServiceSubscriptionDetailComponent {
       regimen: CFDI_REGIMEN_RECEPTOR_OPTIONS,
     }[kind];
     return catalogLabel(options, id);
+  }
+
+  readonly batch = signal<{
+    total: number;
+    done: number;
+    current: string;
+    errors: string[];
+  } | null>(null);
+
+  pendingCount(): number {
+    return (this.detail()?.periods ?? []).filter((period) => period.status === 'pending').length;
+  }
+
+  async generateAll(): Promise<void> {
+    const detail = this.detail();
+    if (!detail || this.busy()) return;
+    const pending = detail.periods.filter((period) => period.status === 'pending');
+    if (!pending.length) return;
+    const queue = pending.map((period) => ({ id: period.id, label: period.label }));
+    this.busy.set(true);
+    this.batch.set({ total: queue.length, done: 0, current: queue[0].label, errors: [] });
+    for (const period of queue) {
+      this.batch.update((state) => (state ? { ...state, current: period.label } : state));
+      try {
+        const updated = await firstValueFrom(this.api.generate(detail.id, period.id));
+        this.detail.set(updated);
+      } catch (err) {
+        const message = resolveHttpErrorMessage(err, 'No se pudo generar');
+        this.batch.update((state) =>
+          state ? { ...state, errors: [...state.errors, `${period.label}: ${message}`] } : state,
+        );
+      }
+      this.batch.update((state) => (state ? { ...state, done: state.done + 1 } : state));
+    }
+    this.busy.set(false);
+    const errors = this.batch()?.errors.length ?? 0;
+    if (errors) {
+      this.toast.error(`${errors} mes${errors === 1 ? '' : 'es'} no se generó`);
+    } else {
+      this.toast.success('Órdenes generadas');
+    }
   }
 
   generate(period: ServiceSubscriptionPeriod): void {

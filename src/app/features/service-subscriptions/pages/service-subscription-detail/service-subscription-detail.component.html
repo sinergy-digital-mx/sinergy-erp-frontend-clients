@@ -19,6 +19,11 @@
             }
           </div>
           <div class="sub-actions">
+            @if (canUpdate && item.status === 'active' && pendingCount() > 0) {
+              <button type="button" class="page-create-btn" [disabled]="busy()" (click)="generateAll()">
+                Generar todas
+              </button>
+            }
             @if (canCreate && item.status !== 'cancelled') {
               <button type="button" class="page-create-btn" [disabled]="busy()" (click)="renew()">Renovar</button>
             }
@@ -27,6 +32,21 @@
             }
           </div>
         </div>
+
+        @if (batch(); as progress) {
+          <div class="sub-batch">
+            <div class="sub-batch__row">
+              <strong>{{ progress.done >= progress.total ? 'Listo' : 'Generando ' + progress.current }}</strong>
+              <span>{{ progress.done }} de {{ progress.total }}</span>
+            </div>
+            <div class="sub-batch__track">
+              <span class="sub-batch__bar" [style.width.%]="progress.total ? (progress.done / progress.total) * 100 : 0"></span>
+            </div>
+            @for (error of progress.errors; track $index) {
+              <p class="sub-batch__error">{{ error }}</p>
+            }
+          </div>
+        }
 
         @if (confirmingCancel()) {
           <div class="sub-confirm">

@@ -12,28 +12,44 @@
   } @else {
     <div class="invoicing-summary-row">
       <p class="invoicing-summary">{{ summaryText() }}</p>
-      @if (canStamp() && order.can_apply_advance) {
-        <button type="button" class="btn-primary" (click)="openApplyAdvance()">
-          Aplicar anticipo
+      <div class="invoicing-summary-row__actions">
+        @if (canStamp() && order.can_apply_advance) {
+          <button type="button" class="btn-secondary" (click)="openApplyAdvance()">
+            Aplicar anticipo
+          </button>
+        }
+        <button type="button" class="btn-secondary" (click)="showExistingForm.set(!showExistingForm())">
+          Registrar factura existente
         </button>
-      }
-      @if (canStamp()) {
-        <button
-          type="button"
-          class="btn-primary"
-          (click)="openNewInvoice()"
-          [disabled]="!canStampInvoice() || stamping()"
-        >
-          @if (stamping()) {
-            <i class="fi fi-rr-spinner animate-spin"></i>
-            Abriendo…
-          } @else {
-            <i class="fi fi-rr-plus"></i>
-            Nueva factura
-          }
-        </button>
-      }
+        @if (canStamp() && visibleInvoices().length > 0) {
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="openNewInvoice()"
+            [disabled]="!canStampInvoice() || stamping()"
+          >
+            {{ stamping() ? 'Abriendo…' : 'Nueva factura' }}
+          </button>
+        }
+      </div>
     </div>
+
+    @if (showExistingForm()) {
+      <div class="existing-invoice">
+        <p>Sube el XML o el PDF de un CFDI ya emitido. Si el PDF no trae el UUID, escríbelo.</p>
+        <label class="existing-invoice__file">
+          XML o PDF
+          <input type="file" accept=".xml,.pdf,application/pdf,text/xml,application/xml" (change)="onExistingFile($event)" />
+        </label>
+        <label class="existing-invoice__uuid">
+          UUID
+          <input type="text" [value]="existingUuid()" (input)="existingUuid.set($any($event.target).value)" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" />
+        </label>
+        <button type="button" class="btn-primary" [disabled]="registeringExisting()" (click)="registerExisting()">
+          {{ registeringExisting() ? 'Registrando…' : 'Registrar' }}
+        </button>
+      </div>
+    }
 
     @if (validationIssues().length > 0 && canStamp()) {
       <div class="validation-box">
@@ -221,17 +237,15 @@
         }
       </div>
     } @else {
-      <div class="empty-state">
-        <i class="fi fi-rr-receipt"></i>
-        <p>Sin facturas emitidas para esta orden</p>
-        @if (canStamp() && canStampInvoice()) {
-          <button type="button" class="btn-primary" (click)="openNewInvoice()" [disabled]="stamping()">
-            @if (stamping()) {
-              <i class="fi fi-rr-spinner animate-spin"></i>
-              Abriendo…
-            } @else {
-              + Nueva factura
-            }
+      <div class="empty-state empty-state--invoices">
+        <span class="empty-state__icon" aria-hidden="true">
+          <i class="fi fi-rr-receipt"></i>
+        </span>
+        <p>Sin facturas para esta orden</p>
+        <small>Timbra una nueva o registra un CFDI que ya emitiste.</small>
+        @if (canStamp()) {
+          <button type="button" class="empty-state__cta" (click)="openNewInvoice()" [disabled]="!canStampInvoice() || stamping()">
+            {{ stamping() ? 'Abriendo…' : 'Nueva factura' }}
           </button>
         }
       </div>

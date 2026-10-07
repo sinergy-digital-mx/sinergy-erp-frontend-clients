@@ -185,7 +185,8 @@
         </div>
 
         <div class="concepts-section">
-          <h3>Conceptos (desde la orden)</h3>
+          <h3>Conceptos</h3>
+          <p class="form-hint">La descripción es solo de esta factura. El producto no cambia.</p>
           <table class="concepts-table">
             <thead>
               <tr>
@@ -198,7 +199,14 @@
             <tbody>
               @for (item of data.lineItems; track item.id || $index) {
                 <tr>
-                  <td>{{ item.product?.name || 'Producto' }}</td>
+                  <td>
+                    <input
+                      class="concept-input"
+                      type="text"
+                      maxlength="1000"
+                      [value]="conceptDescriptions()[$index]"
+                      (input)="setConceptDescription($index, $any($event.target).value)" />
+                  </td>
                   <td>{{ item.quantity }}</td>
                   <td>{{ formatCurrency(item.unit_price) }}</td>
                   <td>{{ formatCurrency(getLineImport(item)) }}</td>

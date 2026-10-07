@@ -64,6 +64,21 @@ export class SalesOrderInvoiceService {
 
 
 
+  registerExistingInvoice(orderId: string, file: File | null, uuid: string): Observable<SalesOrderElectronicInvoice> {
+    if (file) {
+      const body = new FormData();
+      body.append('file', file);
+      const typed = uuid.trim();
+      if (typed) body.append('uuid', typed);
+      return this.http
+        .post<unknown>(`${this.baseUrl}/${orderId}/invoices/register`, body)
+        .pipe(map((response) => this.normalizeInvoice(response)));
+    }
+    return this.http
+      .post<unknown>(`${this.baseUrl}/${orderId}/invoices/register`, { uuid: uuid.trim() })
+      .pipe(map((response) => this.normalizeInvoice(response)));
+  }
+
   stampInvoice(orderId: string, payload: StampSalesOrderInvoicePayload): Observable<SalesOrderElectronicInvoice> {
 
     return this.http

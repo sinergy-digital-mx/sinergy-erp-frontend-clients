@@ -301,6 +301,8 @@ export interface SalesOrder {
   invoices?: SalesOrderInvoice[];
   documents?: SalesOrderDocument[];
   downloads?: SalesOrderDownloads;
+  /** Factura principal cuando el listado no pide archivos firmados. */
+  invoice?: SalesOrderInvoiceShortcut | null;
   payments?: SalesOrderPayment[];
   payments_summary?: SalesOrderPaymentsSummary;
   shipping?: SalesOrderShippingInfo;
@@ -329,6 +331,7 @@ export interface SalesOrderInvoiceShortcut {
   folio: string | null;
   uuid: string | null;
   tipo_comprobante: string | null;
+  rfc_emisor?: string | null;
   stamp_status: string;
   sat_status: string | null;
   total: number;

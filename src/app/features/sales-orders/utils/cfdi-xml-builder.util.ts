@@ -14,6 +14,8 @@ export interface CfdiBuildContext {
   order: SalesOrder;
   lineItems: SalesOrderLineItem[];
   form: CfdiWizardFormValues;
+  /** Descripción por renglón. Si falta, se usa el nombre del producto. */
+  descriptions?: string[];
 }
 
 function escapeXml(value: string): string {
@@ -131,7 +133,7 @@ interface BuiltConcepto {
   taxes: LineTax[];
 }
 
-function buildConcepto(item: SalesOrderLineItem): BuiltConcepto {
+function buildConcepto(item: SalesOrderLineItem, description?: string): BuiltConcepto {
   const qty = parseNum(item.quantity);
   const unitPrice = parseNum(item.unit_price);
   const discountPct = parseNum(item.discount_percentage);
@@ -175,8 +177,9 @@ ${taxes
         </cfdi:Traslados>
       </cfdi:Impuestos>`;
 
+  const descripcion = description?.trim() || item.product?.name?.trim() || 'Producto';
   const xml = `
-    <cfdi:Concepto ClaveProdServ="${escapeXml(getProductSatClave(item))}" Cantidad="${qty.toFixed(6)}" ClaveUnidad="${escapeXml(getClaveUnidad(item))}" Unidad="${escapeXml(getUnidad(item))}" Descripcion="${escapeXml(item.product?.name || 'Producto')}" ValorUnitario="${toMoney(unitPrice)}" Importe="${toMoney(importe)}"${discountAttr} ObjetoImp="${objetoImp}">${taxXml}
+    <cfdi:Concepto ClaveProdServ="${escapeXml(getProductSatClave(item))}" Cantidad="${qty.toFixed(6)}" ClaveUnidad="${escapeXml(getClaveUnidad(item))}" Unidad="${escapeXml(getUnidad(item))}" Descripcion="${escapeXml(descripcion)}" ValorUnitario="${toMoney(unitPrice)}" Importe="${toMoney(importe)}"${discountAttr} ObjetoImp="${objetoImp}">${taxXml}
     </cfdi:Concepto>`;
 
   return { xml, importe, discount, taxes };
@@ -216,7 +219,7 @@ ${trasladosXml}
 export function buildCfdiXml(context: CfdiBuildContext): string {
   const { order, lineItems, form } = context;
   const fiscal = order.fiscal_configuration;
-  const built = lineItems.map((item) => buildConcepto(item));
+  const built = lineItems.map((item, index) => buildConcepto(item, context.descriptions?.[index]));
   const subtotalNum = built.reduce((sum, row) => sum + row.importe, 0);
   const discountNum = built.reduce((sum, row) => sum + row.discount, 0);
   const taxesNum = built.reduce((sum, row) => sum + row.taxes.reduce((s, tax) => s + tax.importe, 0), 0);

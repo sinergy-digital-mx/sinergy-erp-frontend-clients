@@ -76,6 +76,10 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   cancellingId = signal<string | null>(null);
   previewingPdfId = signal<string | null>(null);
   downloadingXmlId = signal<string | null>(null);
+  registeringExisting = signal(false);
+  showExistingForm = signal(false);
+  existingUuid = signal('');
+  existingFile = signal<File | null>(null);
 
   canViewTab = computed(() =>
     this.hasInvoicePermission(ELECTRONIC_INVOICING_PERMISSIONS.viewMenu) &&
@@ -120,6 +124,35 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     } else {
       this.loading.set(false);
     }
+  }
+
+  onExistingFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.existingFile.set(input.files?.[0] ?? null);
+  }
+
+  registerExisting(): void {
+    const file = this.existingFile();
+    const uuid = this.existingUuid().trim();
+    if (!file && !uuid) {
+      this.toast.error('Sube el XML o el PDF, o escribe el UUID');
+      return;
+    }
+    this.registeringExisting.set(true);
+    this.invoiceService.registerExistingInvoice(this.orderId, file, uuid).subscribe({
+      next: () => {
+        this.registeringExisting.set(false);
+        this.showExistingForm.set(false);
+        this.existingFile.set(null);
+        this.existingUuid.set('');
+        this.toast.success('Factura registrada');
+        this.loadTabData(true);
+      },
+      error: (error) => {
+        this.registeringExisting.set(false);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo registrar la factura'));
+      },
+    });
   }
 
   loadTabData(silent = false): void {

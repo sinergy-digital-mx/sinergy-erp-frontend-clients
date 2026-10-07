@@ -4,3 +4,41 @@
   display: block;
   width: 100%;
 }
+
+.filter-bar__field--customer {
+  position: relative;
+}
+
+.customer-lookup {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.customer-lookup button,
+.customer-lookup__empty {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  font-size: 0.8125rem;
+  color: #18181b;
+  background: transparent;
+  border: 0;
+}
+
+.customer-lookup button:hover {
+  background: #f4f4f5;
+}
+
+.customer-lookup__empty {
+  color: #71717a;
+}

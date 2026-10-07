@@ -183,6 +183,10 @@
                     <span class="sales-order-pay-cell__meta">{{ paymentMetaLabel(order) }}</span>
                   </span>
                 </div>
+                <div class="sales-order-list__mobile-pay">
+                  <strong>Factura:</strong>
+                  <ng-container *ngTemplateOutlet="invoiceBadge; context: { $implicit: order }"></ng-container>
+                </div>
                 <div class="text-xs text-gray-500">{{ formatDateHuman(order.created_at) }}</div>
               </div>
             </div>
@@ -250,7 +254,55 @@
       <span class="sales-order-pay-cell__meta">{{ paymentMetaLabel(item) }}</span>
     </span>
   </td>
+  <td class="sales-orders-col-invoice" (click)="$event.stopPropagation()">
+    <ng-container *ngTemplateOutlet="invoiceBadge; context: { $implicit: item }"></ng-container>
+  </td>
   <td class="w-[160px]">
     <p class="dt-cell-subtle m-0">{{ formatDateHuman(item.created_at) }}</p>
   </td>
+</ng-template>
+
+<ng-template #invoiceBadge let-order>
+  @if (orderInvoice(order); as invoice) {
+    <span
+      class="ov-cfdi"
+      role="button"
+      [class.ov-cfdi--ok]="invoiceTone(invoice) === 'ok'"
+      [class.ov-cfdi--warn]="invoiceTone(invoice) === 'warn'"
+      [class.ov-cfdi--bad]="invoiceTone(invoice) === 'bad'"
+      (mouseenter)="showInvoicePop($event, invoice)"
+      (mouseleave)="hideInvoicePop()"
+      (click)="$event.stopPropagation()">
+      <span class="ov-cfdi__badge">
+        <span class="ov-cfdi__folio">{{ invoiceBadgeLabel(invoice) }}</span>
+        <span class="ov-cfdi__status">{{ invoiceStatusLabel(invoice) }}</span>
+      </span>
+      @if (invoicePop(); as pop) {
+        @if (pop.invoice.id === invoice.id) {
+          <span class="ov-cfdi__card" [style.top.px]="pop.top" [style.left.px]="pop.left">
+            <span class="ov-cfdi__card-head">
+              <span>{{ invoiceBadgeLabel(invoice) }}</span>
+              <span class="ov-cfdi__pill">{{ invoiceStatusLabel(invoice) }}</span>
+            </span>
+            <span class="ov-cfdi__row"><span>UUID</span><strong>{{ invoice.uuid || 'Sin timbrar' }}</strong></span>
+            <span class="ov-cfdi__row"><span>Receptor</span><strong>{{ invoice.rfc_receptor || '—' }}</strong></span>
+            @if (invoice.receptor_nombre) {
+              <span class="ov-cfdi__name">{{ invoice.receptor_nombre }}</span>
+            }
+            <span class="ov-cfdi__row"><span>Total</span><strong>{{ formatCurrency(invoice.total) }} {{ invoice.currency || 'MXN' }}</strong></span>
+            @if (invoice.stamped_at) {
+              <span class="ov-cfdi__row"><span>Timbrada</span><strong>{{ formatDateHuman(invoice.stamped_at) }}</strong></span>
+            }
+            @if (invoice.uuid) {
+              <button type="button" class="ov-cfdi__sat" (click)="openInvoiceInSat($event, invoice)">
+                Abrir en SAT
+              </button>
+            }
+          </span>
+        }
+      }
+    </span>
+  } @else {
+    <span class="ov-cfdi__none">Sin factura</span>
+  }
 </ng-template>

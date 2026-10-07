@@ -222,6 +222,22 @@
   }
 }
 
+.concept-input {
+  width: 100%;
+  min-width: 12rem;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.8125rem;
+  color: #18181b;
+  background: #fff;
+
+  &:focus {
+    outline: none;
+    border-color: #a5b4fc;
+  }
+}
+
 .xml-section {
   margin-top: 0.85rem;
 }

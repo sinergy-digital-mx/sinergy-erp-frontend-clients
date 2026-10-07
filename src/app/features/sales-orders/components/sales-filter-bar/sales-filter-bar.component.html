@@ -9,6 +9,31 @@
         [attr.aria-label]="mode === 'quotation' ? 'Buscar cotización por folio' : 'Buscar orden de venta por folio'" />
     </div>
 
+    @if (mode === 'sales') {
+      <div class="filter-bar__field filter-bar__field--key filter-bar__field--customer">
+        <input
+          type="search"
+          [formControl]="customerSearchControl"
+          placeholder="Cliente"
+          class="filter-bar__input"
+          title="Cliente"
+          aria-label="Filtrar por cliente"
+          autocomplete="off"
+          (blur)="closeCustomerLookup()" />
+        @if (customerLookupOpen) {
+          <div class="customer-lookup" role="listbox">
+            @if (customerOptions.length === 0) {
+              <div class="customer-lookup__empty">Sin coincidencias</div>
+            } @else {
+              @for (option of customerOptions; track option.id) {
+                <button type="button" role="option" (mousedown)="pickCustomer(option)">{{ option.label }}</button>
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+
     <div class="filter-bar__field filter-bar__field--key">
       <select [formControl]="fiscalConfigurationControl" class="filter-bar__select" title="Razón social" aria-label="Filtrar por razón social">
         <option value="">Razón social</option>

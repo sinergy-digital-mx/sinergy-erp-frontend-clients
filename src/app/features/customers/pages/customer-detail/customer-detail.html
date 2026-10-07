@@ -482,6 +482,11 @@
       <app-customer-purchase-trend [customerId]="customer()!.id"></app-customer-purchase-trend>
       </div>
 
+      <app-customer-subscriptions
+        *hasEntity="'service_subscriptions'"
+        [customerId]="customer()!.id">
+      </app-customer-subscriptions>
+
       <app-customer-sales-orders
         *hasEntity="'sales_orders'"
         [customerId]="customer()!.id">
