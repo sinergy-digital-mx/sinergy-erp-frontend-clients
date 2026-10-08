@@ -77,6 +77,7 @@ export class ServiceSubscriptionDetailComponent {
   @HostListener('document:keydown.escape')
   closeLink(): void {
     this.linkingPeriod.set(null);
+    this.summaryOpen.set(false);
   }
 
   reload(): void {
@@ -153,6 +154,30 @@ export class ServiceSubscriptionDetailComponent {
     const detail = this.detail();
     if (!detail || this.busy()) return;
     this.run(this.api.generate(detail.id, period.id), 'Orden generada');
+  }
+
+  downloadSummary(): void {
+    const detail = this.detail();
+    if (!detail || this.busy()) return;
+    this.busy.set(true);
+    this.api.summaryPdf(detail.id).subscribe({
+      next: (blob) => {
+        this.busy.set(false);
+        const url = URL.createObjectURL(blob);
+        const opened = window.open(url, '_blank');
+        if (!opened) {
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `resumen-${detail.title}.pdf`;
+          link.click();
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: (error) => {
+        this.busy.set(false);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo generar el PDF'));
+      },
+    });
   }
 
   openSummary(): void {

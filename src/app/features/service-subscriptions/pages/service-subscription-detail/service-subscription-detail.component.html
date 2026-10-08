@@ -22,6 +22,9 @@
             }
           </div>
           <div class="sub-actions">
+            <button type="button" class="sub-btn sub-btn--outline" [disabled]="busy()" (click)="downloadSummary()">
+              PDF
+            </button>
             <button type="button" class="sub-btn sub-btn--outline" [disabled]="busy()" (click)="openSummary()">
               Enviar resumen
             </button>
@@ -52,23 +55,6 @@
               <p class="sub-batch__error">{{ error }}</p>
             }
           </div>
-        }
-
-        @if (summaryOpen()) {
-          <form class="sub-mail" (submit)="$event.preventDefault(); sendSummary()">
-            <label>
-              Correo
-              <input
-                class="sub-input"
-                type="email"
-                autocomplete="email"
-                placeholder="cliente@correo.com"
-                [value]="summaryEmail()"
-                (input)="summaryEmail.set($any($event.target).value)" />
-            </label>
-            <button type="submit" class="page-create-btn" [disabled]="busy()">Enviar</button>
-            <button type="button" class="sub-btn sub-btn--ghost" [disabled]="busy()" (click)="summaryOpen.set(false)">Cerrar</button>
-          </form>
         }
 
         @if (confirmingCancel()) {
@@ -205,6 +191,36 @@
             }
           </aside>
         </div>
+
+        @if (summaryOpen()) {
+          <div class="sub-modal" (click)="summaryOpen.set(false)">
+            <form class="sub-dialog" role="dialog" aria-modal="true" aria-labelledby="summary-title" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); sendSummary()">
+              <div class="sub-dialog__head">
+                <div>
+                  <h2 id="summary-title">Enviar resumen</h2>
+                  <p class="sub-lead">El correo lleva el detalle del servicio y el ZIP con los PDF.</p>
+                </div>
+                <button type="button" class="sub-icon-btn" aria-label="Cerrar" (click)="summaryOpen.set(false)">
+                  <lucide-icon [img]="X" [size]="16"></lucide-icon>
+                </button>
+              </div>
+              <label class="sub-mail-field">
+                Correo
+                <input
+                  class="sub-input"
+                  type="email"
+                  autocomplete="email"
+                  placeholder="cliente@correo.com"
+                  [value]="summaryEmail()"
+                  (input)="summaryEmail.set($any($event.target).value)" />
+              </label>
+              <div class="sub-dialog__actions">
+                <button type="button" class="sub-btn sub-btn--ghost" [disabled]="busy()" (click)="summaryOpen.set(false)">Cancelar</button>
+                <button type="submit" class="page-create-btn" [disabled]="busy()">Enviar</button>
+              </div>
+            </form>
+          </div>
+        }
 
         @if (linkingPeriod(); as period) {
           <div class="sub-modal" (click)="closeLink()">
