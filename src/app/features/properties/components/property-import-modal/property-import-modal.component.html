@@ -5,9 +5,17 @@
   </div>
 
   <p class="import-modal__lead">
-    Descarga la plantilla, llena una fila por lote y súbela. La fila con código EJEMPLO no se importa.
-    Si alguna fila falla, no se crea ningún lote.
+    Descarga la plantilla, llena una fila por lote y súbela. La fila «Lote ejemplo» no se importa.
+    El código se crea como LOT-manzana-número. Si alguna fila falla, no se crea ningún lote.
   </p>
+
+  <label class="import-modal__group">
+    Grupo
+    <select [(ngModel)]="groupId" [disabled]="importing">
+      <option value="">Selecciona un grupo</option>
+      <option *ngFor="let group of groups" [value]="group.id">{{ group.name }}</option>
+    </select>
+  </label>
 
   <button type="button" class="import-modal__download" (click)="downloadTemplate()" [disabled]="downloading">
     <lucide-icon [img]="Download" [size]="16"></lucide-icon>
@@ -25,7 +33,7 @@
 
   <div class="import-modal__actions">
     <button type="button" class="import-modal__cancel" (click)="close()" [disabled]="importing">Cancelar</button>
-    <button type="button" class="import-modal__submit" (click)="importFile()" [disabled]="!file || importing">
+    <button type="button" class="import-modal__submit" (click)="importFile()" [disabled]="!file || !groupId || importing">
       <lucide-icon [img]="Upload" [size]="16"></lucide-icon>
       {{ importing ? 'Importando…' : 'Importar' }}
     </button>

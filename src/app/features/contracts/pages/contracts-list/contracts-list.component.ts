@@ -90,6 +90,7 @@ export class ContractsListComponent implements OnDestroy {
   readonly skeletonSlots = [0, 1, 2, 3];
   search = '';
   selectedGroupId: string | null = null;
+  downPaymentFinanced = false;
   selectedGroupName: string | null = null;
   currentSort: ISortEvent | null = null;
   stats = signal<ContractStats>(EMPTY_CONTRACT_STATS);
@@ -129,6 +130,7 @@ export class ContractsListComponent implements OnDestroy {
       this.lastQueryParams = queryString;
 
       this.search = query?.search ?? '';
+      this.downPaymentFinanced = query?.downPaymentFinanced === 'true';
       this.selectedGroupId = query?.group_id ?? null;
       if (!this.selectedGroupId) {
         this.selectedGroupName = null;
@@ -215,6 +217,7 @@ export class ContractsListComponent implements OnDestroy {
       limit: this.table_config().limit,
       ...(this.search && { search: this.search }),
       ...(this.selectedGroupId && { group_id: this.selectedGroupId }),
+      ...(this.downPaymentFinanced && { downPaymentFinanced: 'true' }),
     };
 
     const snapshot = this.route.snapshot.queryParams;
@@ -317,6 +320,14 @@ export class ContractsListComponent implements OnDestroy {
     this.navigateWithParams({ page: 1, search: searchTerm || undefined });
   }
 
+  toggleDownPaymentFinanced(): void {
+    this.downPaymentFinanced = !this.downPaymentFinanced;
+    this.navigateWithParams({
+      page: 1,
+      downPaymentFinanced: this.downPaymentFinanced ? 'true' : undefined,
+    });
+  }
+
   onGroupSelect(event: { groupId: string | null; groupName: string | null }) {
     this.selectedGroupId = event.groupId;
     this.selectedGroupName = event.groupName;
@@ -325,6 +336,7 @@ export class ContractsListComponent implements OnDestroy {
 
   clearFilters() {
     this.search = '';
+    this.downPaymentFinanced = false;
     this.selectedGroupId = null;
     this.selectedGroupName = null;
     this.activeFilter.set(null);
@@ -336,10 +348,10 @@ export class ContractsListComponent implements OnDestroy {
 
   get hasActiveFilters(): boolean {
     const query = this.route.snapshot.queryParams;
-    return !!(this.search || this.selectedGroupId || query['status'] || query['hasOverdue']);
+    return !!(this.search || this.selectedGroupId || this.downPaymentFinanced || query['status'] || query['hasOverdue']);
   }
 
-  onFilterClear(filterType: 'search' | 'status' | 'group' | 'all') {
+  onFilterClear(filterType: 'search' | 'status' | 'group' | 'financed' | 'all') {
     if (filterType === 'all') {
       this.clearFilters();
       return;
@@ -355,6 +367,9 @@ export class ContractsListComponent implements OnDestroy {
       this.selectedGroupId = null;
       this.selectedGroupName = null;
     }
+    if (filterType === 'financed') {
+      this.downPaymentFinanced = false;
+    }
 
     this.navigateWithParams({
       page: 1,
@@ -362,6 +377,7 @@ export class ContractsListComponent implements OnDestroy {
       group_id: filterType === 'group' ? undefined : this.selectedGroupId || undefined,
       status: filterType === 'status' ? undefined : this.route.snapshot.queryParams['status'],
       hasOverdue: filterType === 'status' ? undefined : this.route.snapshot.queryParams['hasOverdue'],
+      downPaymentFinanced: filterType === 'financed' ? undefined : (this.downPaymentFinanced ? 'true' : undefined),
     });
   }
 
@@ -473,6 +489,7 @@ export class ContractsListComponent implements OnDestroy {
       ...(this.selectedGroupId && { group_id: this.selectedGroupId }),
       ...(query['status'] && { status: query['status'] }),
       ...(query['hasOverdue'] && { hasOverdue: query['hasOverdue'] }),
+      ...(query['downPaymentFinanced'] === 'true' && { downPaymentFinanced: 'true' }),
       ...(query['customerId'] && { customerId: query['customerId'] }),
       ...(query['propertyId'] && { propertyId: query['propertyId'] }),
     };
@@ -485,6 +502,9 @@ export class ContractsListComponent implements OnDestroy {
     const groupId = 'group_id' in overrides ? overrides['group_id'] : this.selectedGroupId || undefined;
     const status = 'status' in overrides ? overrides['status'] : query['status'];
     const hasOverdue = 'hasOverdue' in overrides ? overrides['hasOverdue'] : query['hasOverdue'];
+    const downPaymentFinanced = 'downPaymentFinanced' in overrides
+      ? overrides['downPaymentFinanced']
+      : (query['downPaymentFinanced'] === 'true' ? 'true' : undefined);
     const customerId = 'customerId' in overrides ? overrides['customerId'] : query['customerId'];
     const propertyId = 'propertyId' in overrides ? overrides['propertyId'] : query['propertyId'];
 
@@ -495,6 +515,7 @@ export class ContractsListComponent implements OnDestroy {
       ...(groupId && { group_id: groupId }),
       ...(status && { status }),
       ...(hasOverdue && { hasOverdue }),
+      ...(downPaymentFinanced && { downPaymentFinanced }),
       ...(customerId && { customerId }),
       ...(propertyId && { propertyId }),
     };

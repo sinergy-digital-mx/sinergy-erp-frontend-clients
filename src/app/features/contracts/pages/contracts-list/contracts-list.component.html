@@ -18,6 +18,19 @@
         (groupSelect)="onGroupSelect($event)">
       </app-customer-group-dropdown>
 
+      <button
+        type="button"
+        class="h-10 px-3 rounded-lg border text-sm font-medium whitespace-nowrap"
+        [class.bg-white]="!downPaymentFinanced"
+        [class.text-gray-700]="!downPaymentFinanced"
+        [class.border-gray-300]="!downPaymentFinanced"
+        [class.bg-indigo-600]="downPaymentFinanced"
+        [class.text-white]="downPaymentFinanced"
+        [class.border-indigo-600]="downPaymentFinanced"
+        (click)="toggleDownPaymentFinanced()">
+        Enganche financiado
+      </button>
+
       <app-filter-clear-button
         [active]="hasActiveFilters"
         (clear)="clearFilters()">
@@ -48,6 +61,7 @@
     [activeStatusFilter]="getActiveStatusFilter()"
     [activeGroupId]="selectedGroupId"
     [activeGroupName]="selectedGroupName"
+    [activeDownPaymentFinanced]="downPaymentFinanced"
     (filterClear)="onFilterClear($event)">
   </app-contract-filter-indicator>
 

@@ -68,9 +68,10 @@ export class PropertyService {
       );
   }
 
-  importProperties(file: File): Observable<PropertyImportResult> {
+  importProperties(file: File, groupId: string): Observable<PropertyImportResult> {
     const body = new FormData();
     body.append('file', file);
+    body.append('group_id', groupId);
     return this.http.post<PropertyImportResult>(`${this.api}/tenant/properties/import`, body);
   }
 

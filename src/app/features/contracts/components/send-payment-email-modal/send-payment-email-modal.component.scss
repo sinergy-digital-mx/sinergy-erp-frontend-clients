@@ -53,3 +53,17 @@
   flex-shrink: 0;
   background-color: #f9fafb;
 }
+
+.receipt-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: 1rem;
+}
+
+.receipt-preview {
+  width: 100%;
+  min-height: 420px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}

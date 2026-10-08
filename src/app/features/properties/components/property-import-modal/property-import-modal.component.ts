@@ -1,33 +1,53 @@
-import { Component } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { FormsModule } from '@angular/forms';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Download, LucideAngularModule, Upload } from 'lucide-angular';
 import { CloseButtonComponent } from '../../../../core/components/close-button/close-button.component';
 import { PropertyService } from '../../services/property.service';
 import { PropertyImportRowError } from '../../models/property.model';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
+import { CustomerGroup } from '../../../customers/models/customer-group.model';
 
 @Component({
   selector: 'app-property-import-modal',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, LucideAngularModule, CloseButtonComponent],
+  imports: [CommonModule, FormsModule, MatDialogModule, LucideAngularModule, CloseButtonComponent],
   templateUrl: './property-import-modal.component.html',
   styleUrl: './property-import-modal.component.scss',
 })
-export class PropertyImportModalComponent {
+export class PropertyImportModalComponent implements OnInit {
   Download = Download;
   Upload = Upload;
   file: File | null = null;
   downloading = false;
   importing = false;
   errors: PropertyImportRowError[] = [];
+  groups: CustomerGroup[] = [];
+  groupId = '';
 
   constructor(
     private dialogRef: MatDialogRef<PropertyImportModalComponent, number | undefined>,
     private propertyService: PropertyService,
     private toast: ToastService,
-  ) {}
+    private customerGroupFetch: CustomerGroupFetchService,
+    @Inject(MAT_DIALOG_DATA) data: { groupId?: string | null } | null,
+  ) {
+    this.groupId = data?.groupId ?? '';
+  }
+
+  ngOnInit(): void {
+    this.customerGroupFetch.fetchGroups().subscribe({
+      next: (groups) => {
+        this.groups = groups;
+      },
+      error: () => {
+        this.toast.error('No pudimos cargar los grupos de cliente.');
+      },
+    });
+  }
 
   close(): void {
     if (this.importing) {
@@ -63,12 +83,12 @@ export class PropertyImportModalComponent {
   }
 
   importFile(): void {
-    if (!this.file || this.importing) {
+    if (!this.file || !this.groupId || this.importing) {
       return;
     }
     this.importing = true;
     this.errors = [];
-    this.propertyService.importProperties(this.file).subscribe({
+    this.propertyService.importProperties(this.file, this.groupId).subscribe({
       next: (result) => {
         this.importing = false;
         const count = result?.created ?? 0;

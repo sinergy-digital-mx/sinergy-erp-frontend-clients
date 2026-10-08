@@ -14,6 +14,24 @@ import {
 } from '../models/payment.model';
 import { PaymentDocument } from '../models/payment-document.model';
 
+export interface PaymentReceiptCompose {
+  to_email: string;
+  additional_email?: string | null;
+  customer_name: string;
+  subject: string;
+  preview_html: string;
+  attachment_name: string;
+}
+
+export interface PaymentReceiptTemplate {
+  id: string;
+  subject: string;
+  body_html: string;
+  variables: { key: string; label: string }[];
+  sample_subject: string;
+  sample_html: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -68,6 +86,46 @@ export class PaymentService {
 
   registerPartialPayment(contractId: string, paymentId: string, data: RegisterPartialPaymentDto): Observable<Payment> {
     return this.http.post<Payment>(`${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/pay`, data);
+  }
+
+  downloadReceipt(contractId: string, paymentId: string): Observable<Blob> {
+    return this.http.get(
+      `${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/receipt.pdf`,
+      { responseType: 'blob' },
+    );
+  }
+
+  composeReceipt(contractId: string, paymentId: string): Observable<PaymentReceiptCompose> {
+    return this.http.get<PaymentReceiptCompose>(
+      `${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/receipt/compose`,
+    );
+  }
+
+  sendReceipt(
+    contractId: string,
+    paymentId: string,
+    body: { to_email?: string; cc?: string[]; extra_message?: string },
+  ): Observable<{ sent: boolean }> {
+    return this.http.post<{ sent: boolean }>(
+      `${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/receipt/send`,
+      body,
+    );
+  }
+
+  getReceiptTemplate(contractId: string): Observable<PaymentReceiptTemplate> {
+    return this.http.get<PaymentReceiptTemplate>(
+      `${this.api}/tenant/contracts/${contractId}/payments/receipt-template`,
+    );
+  }
+
+  updateReceiptTemplate(
+    contractId: string,
+    body: { subject?: string; body_html?: string; reset_default?: boolean },
+  ): Observable<PaymentReceiptTemplate> {
+    return this.http.patch<PaymentReceiptTemplate>(
+      `${this.api}/tenant/contracts/${contractId}/payments/receipt-template`,
+      body,
+    );
   }
 
   resetPayment(contractId: string, paymentId: string): Observable<Payment> {

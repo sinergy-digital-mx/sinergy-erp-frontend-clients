@@ -297,6 +297,7 @@ export class PropertiesListComponent implements OnDestroy {
       width: '560px',
       maxWidth: '95vw',
       autoFocus: false,
+      data: { groupId: this.selectedGroupId },
     }).afterClosed().subscribe((created) => {
       if (created) {
         this.getProperties();

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Filter, Search, X } from 'lucide-angular';
 
 interface ActiveFilter {
-  type: 'search' | 'status' | 'group';
+  type: 'search' | 'status' | 'group' | 'financed';
   value: string;
   label: string;
 }
@@ -143,7 +143,8 @@ export class ContractFilterIndicatorComponent {
   @Input() activeStatusFilter: string | null = null;
   @Input() activeGroupId: string | null = null;
   @Input() activeGroupName: string | null = null;
-  @Output() filterClear = new EventEmitter<'search' | 'status' | 'group' | 'all'>();
+  @Input() activeDownPaymentFinanced = false;
+  @Output() filterClear = new EventEmitter<'search' | 'status' | 'group' | 'financed' | 'all'>();
 
   activeFilters: ActiveFilter[] = [];
 
@@ -171,6 +172,14 @@ export class ContractFilterIndicatorComponent {
       });
     }
 
+    if (this.activeDownPaymentFinanced) {
+      this.activeFilters.push({
+        type: 'financed',
+        value: 'true',
+        label: 'Enganche financiado',
+      });
+    }
+
     if (this.activeSearchTerm) {
       this.activeFilters.push({
         type: 'search',
@@ -184,7 +193,7 @@ export class ContractFilterIndicatorComponent {
     return this.activeFilters.length > 0;
   }
 
-  clearFilter(filterType: 'search' | 'status' | 'group') {
+  clearFilter(filterType: 'search' | 'status' | 'group' | 'financed') {
     this.filterClear.emit(filterType);
   }
 
@@ -192,7 +201,7 @@ export class ContractFilterIndicatorComponent {
     this.filterClear.emit('all');
   }
 
-  getFilterIcon(filterType: 'search' | 'status' | 'group') {
+  getFilterIcon(filterType: 'search' | 'status' | 'group' | 'financed') {
     switch (filterType) {
       case 'status':
       case 'group':

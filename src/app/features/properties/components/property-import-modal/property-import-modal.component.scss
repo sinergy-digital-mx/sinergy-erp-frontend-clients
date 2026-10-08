@@ -38,6 +38,25 @@
     border-radius: 10px;
   }
 
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+
+    select {
+      height: 40px;
+      padding: 0 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      background: #fff;
+    }
+  }
+
   &__file {
     display: flex;
     align-items: center;

@@ -9,7 +9,7 @@ import { DownPaymentStats } from '../../models/downpayment-payment.model';
 import { DownpaymentPaymentService } from '../../services/downpayment-payment.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail, Check, AlertTriangle } from 'lucide-angular';
+import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail, Check, AlertTriangle, FileDown } from 'lucide-angular';
 import { PartialPaymentModalComponent } from '../partial-payment-modal/partial-payment-modal.component';
 import { EditPaymentModalComponent } from '../edit-payment-modal/edit-payment-modal.component';
 import { SendPaymentEmailModalComponent } from '../send-payment-email-modal/send-payment-email-modal.component';
@@ -51,6 +51,7 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
   readonly DollarSign = DollarSign;
   readonly RotateCcw = RotateCcw;
   readonly Mail = Mail;
+  readonly FileDown = FileDown;
   readonly Math = Math;
   readonly Check = Check;
   readonly AlertTriangle = AlertTriangle;
@@ -288,11 +289,32 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
     });
   }
 
+  downloadReceipt(payment: Payment) {
+    this.paymentService.downloadReceipt(this.contractId, payment.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `recibo-${payment.payment_number}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.interceptorService.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: 'No se pudo descargar el recibo'
+        });
+      }
+    });
+  }
+
   sendPaymentEmail(payment: Payment) {
     const dialogRef = this.dialog.open(SendPaymentEmailModalComponent, {
-      width: '640px',
+      width: '960px',
+      maxWidth: '96vw',
       disableClose: false,
-      data: { payment }
+      data: { payment, contractId: this.contractId }
     });
 
     dialogRef.afterClosed().subscribe(result => {

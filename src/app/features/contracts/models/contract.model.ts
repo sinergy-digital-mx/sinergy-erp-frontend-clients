@@ -113,6 +113,7 @@ export interface ContractListFilters {
   search?: string;
   status?: string;
   hasOverdue?: string | boolean;
+  downPaymentFinanced?: string | boolean;
   customerId?: number | string;
   propertyId?: string;
   page?: number;

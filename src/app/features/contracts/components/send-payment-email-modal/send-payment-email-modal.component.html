@@ -1,84 +1,57 @@
 <div class="modal-container">
   <div class="modal-header">
-    <h2>Enviar Recordatorio de Pago</h2>
+    <h2>{{ showTemplate ? 'Plantilla del recibo' : 'Enviar recibo' }}</h2>
     <button (click)="close()" class="close-button" type="button">
       <span class="text-2xl">&times;</span>
     </button>
   </div>
 
-  <div class="modal-body">
-    <form [formGroup]="form" class="space-y-4">
-      <div class="bg-blue-50 p-3 rounded border border-blue-200">
-        <p class="text-xs text-blue-700">
-          El correo se enviará usando los datos reales del pago #{{ data.payment.payment_number }}. Si no capturas destinatario, se usará el email del cliente.
-        </p>
-      </div>
+  <div class="modal-body" *ngIf="loading()">Cargando recibo…</div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Template</label>
-        <select
-          formControlName="templateId"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          [class.border-red-500]="form.get('templateId')?.invalid && form.get('templateId')?.touched">
-          <option value="">{{ loadingTemplates ? 'Cargando templates...' : 'Selecciona un template activo' }}</option>
-          <option *ngFor="let template of templates" [value]="template.id">
-            {{ template.name }}
-          </option>
-        </select>
-        <p *ngIf="!loadingTemplates && templates.length === 0" class="text-xs text-red-500 mt-1">
-          No hay templates activos disponibles.
-        </p>
-      </div>
+  <div class="modal-body receipt-layout" *ngIf="!loading() && !showTemplate">
+    <div class="receipt-form">
+      <p class="text-sm text-slate-600">
+        Pago {{ data.payment.payment_number }}. El correo lleva el PDF del recibo y usa la razón social de la organización.
+      </p>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Para</label>
+      <input class="w-full px-3 py-2 border border-gray-300 rounded-md" type="email" [(ngModel)]="toEmail" />
+      <label class="block text-sm font-medium text-gray-700 mb-1 mt-3">CC</label>
+      <input class="w-full px-3 py-2 border border-gray-300 rounded-md" [(ngModel)]="cc" placeholder="correo1, correo2" />
+      <label class="block text-sm font-medium text-gray-700 mb-1 mt-3">Nota</label>
+      <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md" rows="3" [(ngModel)]="note"></textarea>
+      <p class="text-xs text-slate-500 mt-2">Asunto: {{ compose()?.subject }}</p>
+      <p class="text-xs text-slate-500">Adjunto: {{ compose()?.attachment_name }}</p>
+      <button type="button" class="text-sm text-indigo-700 mt-3" (click)="openTemplate()">Editar plantilla</button>
+    </div>
+    <iframe class="receipt-preview" title="Vista previa del recibo" [srcdoc]="preview()"></iframe>
+  </div>
 
-      <div *ngIf="selectedTemplate" class="bg-gray-50 p-3 rounded border border-gray-200">
-        <p class="text-xs font-medium text-gray-600 mb-1">Asunto</p>
-        <p class="text-sm text-gray-900">{{ selectedTemplate.subject }}</p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Enviar A (Opcional)</label>
-        <input
-          type="email"
-          formControlName="toEmail"
-          placeholder="cliente@email.com"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          [class.border-red-500]="form.get('toEmail')?.invalid && form.get('toEmail')?.touched">
-        <p class="text-xs text-gray-500 mt-1">Déjalo vacío para enviar al email del cliente del contrato.</p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">CC (Opcional)</label>
-        <input
-          type="text"
-          formControlName="cc"
-          placeholder="admin@empresa.com, gerente@empresa.com"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">BCC (Opcional)</label>
-        <input
-          type="text"
-          formControlName="bcc"
-          placeholder="auditoria@empresa.com"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-      </div>
-    </form>
+  <div class="modal-body receipt-layout" *ngIf="showTemplate && template() as current">
+    <div class="receipt-form">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Asunto</label>
+      <input class="w-full px-3 py-2 border border-gray-300 rounded-md" [(ngModel)]="subject" />
+      <label class="block text-sm font-medium text-gray-700 mb-1 mt-3">HTML</label>
+      <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-xs" rows="12" [(ngModel)]="bodyHtml"></textarea>
+      <p class="text-xs text-slate-500 mt-2">
+        Variables:
+        <span *ngFor="let variable of current.variables"> {{ '{{' + variable.key + '}}' }}</span>
+      </p>
+    </div>
+    <iframe class="receipt-preview" title="Vista previa de la plantilla" [srcdoc]="samplePreview()"></iframe>
   </div>
 
   <div class="modal-footer">
-    <button
-      (click)="close()"
-      type="button"
-      class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors">
-      Cancelar
+    <button type="button" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md" (click)="showTemplate ? showTemplate = false : close()">
+      {{ showTemplate ? 'Volver' : 'Cancelar' }}
     </button>
-    <button
-      (click)="send()"
-      [disabled]="sending || loadingTemplates || form.invalid || templates.length === 0"
-      type="button"
-      class="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-      {{ sending ? 'Enviando...' : 'Enviar' }}
+    <button *ngIf="showTemplate" type="button" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md" [disabled]="savingTemplate" (click)="saveTemplate(true)">
+      Restaurar
+    </button>
+    <button *ngIf="showTemplate" type="button" class="px-4 py-2 bg-indigo-600 text-white rounded-md" [disabled]="savingTemplate" (click)="saveTemplate()">
+      Guardar plantilla
+    </button>
+    <button *ngIf="!showTemplate" type="button" class="px-4 py-2 bg-indigo-600 text-white rounded-md disabled:opacity-50" [disabled]="sending || loading()" (click)="send()">
+      {{ sending ? 'Enviando…' : 'Enviar recibo' }}
     </button>
   </div>
 </div>

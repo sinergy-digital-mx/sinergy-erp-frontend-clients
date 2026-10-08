@@ -76,6 +76,9 @@ export class ContractService {
     if (filters.hasOverdue === true || filters.hasOverdue === 'true') {
       params = params.set('hasOverdue', 'true');
     }
+    if (filters.downPaymentFinanced === true || filters.downPaymentFinanced === 'true') {
+      params = params.set('downPaymentFinanced', 'true');
+    }
     params = this.setIfPresent(params, 'customerId', filters.customerId);
     params = this.setIfPresent(params, 'propertyId', filters.propertyId);
 

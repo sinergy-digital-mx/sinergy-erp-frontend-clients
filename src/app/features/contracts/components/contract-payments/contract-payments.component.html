@@ -166,8 +166,16 @@
               <button
                 type="button"
                 class="row-action"
+                (click)="downloadReceipt(payment)"
+                [matTooltip]="'Descargar recibo PDF'"
+                matTooltipPosition="above">
+                <lucide-icon [img]="FileDown" [size]="16"></lucide-icon>
+              </button>
+              <button
+                type="button"
+                class="row-action"
                 (click)="sendPaymentEmail(payment)"
-                [matTooltip]="'Enviar por correo'"
+                [matTooltip]="'Enviar recibo por correo'"
                 matTooltipPosition="above">
                 <lucide-icon [img]="Mail" [size]="16"></lucide-icon>
               </button>
