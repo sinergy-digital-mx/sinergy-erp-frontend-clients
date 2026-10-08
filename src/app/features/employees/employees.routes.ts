@@ -11,7 +11,8 @@ export const EMPLOYEES_ROUTES: Routes = [
       ),
     canActivate: [permissionGuard],
     data: {
-      permissions: [EMPLOYEE_PERMISSIONS.viewList],
+      permissions: [EMPLOYEE_PERMISSIONS.viewList, EMPLOYEE_PERMISSIONS.viewOwn],
+      permissionMode: 'any',
       title: 'Empleados',
     },
   },
@@ -23,7 +24,8 @@ export const EMPLOYEES_ROUTES: Routes = [
       ),
     canActivate: [permissionGuard],
     data: {
-      permissions: [EMPLOYEE_PERMISSIONS.viewDetail],
+      permissions: [EMPLOYEE_PERMISSIONS.viewDetail, EMPLOYEE_PERMISSIONS.viewOwn],
+      permissionMode: 'any',
       title: 'Detalle de Empleado',
     },
   },

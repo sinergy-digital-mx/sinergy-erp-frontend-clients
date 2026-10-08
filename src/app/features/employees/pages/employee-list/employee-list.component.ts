@@ -77,7 +77,31 @@ export class EmployeeListComponent implements OnInit {
         this.page.set(1);
         this.loadEmployees();
       });
+    if (!this.canSeeAll) {
+      this.openOwnRecord();
+      return;
+    }
     this.loadEmployees();
+  }
+
+  private openOwnRecord(): void {
+    this.loading.set(true);
+    this.employeeService.getEmployees({}, { page: 1, limit: 1 }).subscribe({
+      next: (res) => {
+        const own = res.data?.[0];
+        if (own?.id) {
+          this.router.navigate(['/employees', own.id], { replaceUrl: true });
+          return;
+        }
+        this.loading.set(false);
+        this.employees.set([]);
+      },
+      error: () => this.loading.set(false),
+    });
+  }
+
+  get canSeeAll(): boolean {
+    return this.auth.hasPermission(this.permissions.viewList) || this.auth.hasAdminRole();
   }
 
   get canManageLeave(): boolean {

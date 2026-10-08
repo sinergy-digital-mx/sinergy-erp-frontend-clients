@@ -14,6 +14,8 @@ export const EMPLOYEE_PERMISSIONS = {
   // Views
   viewList: 'Employee:Read',
   viewDetail: 'Employee:Read',
+  /** Solo el expediente ligado al usuario: salario, días y solicitudes propias. */
+  viewOwn: 'Employee:ViewOwn',
 
   // CRUD operations
   create: 'Employee:Create',

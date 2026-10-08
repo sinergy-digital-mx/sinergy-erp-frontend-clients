@@ -54,12 +54,26 @@ export class EmployeeDetailComponent implements OnInit {
     }
   }
 
+  get canSeeAll(): boolean {
+    return this.auth.hasPermission(this.permissions.viewList) || this.auth.hasAdminRole();
+  }
+
   get canManageLeave(): boolean {
     return this.auth.hasPermission(this.permissions.manageLeave) || this.auth.hasAdminRole();
   }
 
   get canUpdate(): boolean {
     return this.auth.hasPermission(this.permissions.update) || this.auth.hasAdminRole();
+  }
+
+  get isOwnRecord(): boolean {
+    const emp = this.employee();
+    const userId = this.auth.user_info?.sub;
+    return !!emp && !!userId && emp.user_id === userId;
+  }
+
+  get canRequestLeave(): boolean {
+    return this.canUpdate || this.isOwnRecord;
   }
 
   load(): void {
@@ -92,6 +106,9 @@ export class EmployeeDetailComponent implements OnInit {
   }
 
   goBack(): void {
+    if (!this.canSeeAll) {
+      return;
+    }
     this.router.navigate(['/employees']);
   }
 
