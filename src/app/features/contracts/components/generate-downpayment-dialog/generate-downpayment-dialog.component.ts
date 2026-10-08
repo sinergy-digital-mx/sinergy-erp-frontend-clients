@@ -29,16 +29,17 @@ import { Contract } from '../../models/contract.model';
                 <label for="down_payment_target" class="block text-sm font-medium text-gray-700 mb-1">
                   Meta total de enganche *
                 </label>
-                <div class="relative">
-                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                <div
+                  class="money-field"
+                  [class.money-field--invalid]="form.get('down_payment_target')?.invalid && form.get('down_payment_target')?.touched">
+                  <span>$</span>
                   <input
                     id="down_payment_target"
                     type="number"
                     step="0.01"
                     min="0.01"
                     formControlName="down_payment_target"
-                    class="w-full rounded-lg border border-gray-300 pl-7 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                    [class.border-red-500]="form.get('down_payment_target')?.invalid && form.get('down_payment_target')?.touched">
+                    class="money-field__input">
                 </div>
                 <p *ngIf="remainingToSchedule > 0" class="mt-1 text-xs text-blue-700">
                   Saldo a cuotizar: {{ remainingToSchedule | currency:data.contract.currency }}
@@ -100,6 +101,27 @@ import { Contract } from '../../models/contract.model';
     .dialog-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-bottom: 1px solid #e5e7eb; }
     .dialog-body { padding: 1.5rem; }
     .dialog-footer { display: flex; justify-content: flex-end; gap: .75rem; padding: 1.5rem; border-top: 1px solid #e5e7eb; }
+    .money-field {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      background: #fff;
+      padding-left: 0.75rem;
+    }
+    .money-field span { color: #6b7280; font-size: 0.875rem; line-height: 1; }
+    .money-field__input, .money-field input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      padding: 0.5rem 0.75rem 0.5rem 0;
+      font-size: 0.875rem;
+      outline: none;
+    }
+    .money-field:focus-within { border-color: #3b82f6; }
+    .money-field--invalid { border-color: #ef4444; }
   `]
 })
 export class GenerateDownpaymentDialogComponent {
