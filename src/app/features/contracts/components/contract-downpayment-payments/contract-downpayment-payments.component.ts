@@ -2,12 +2,14 @@ import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { LucideAngularModule, DollarSign, Edit, RotateCcw, Trash2, Plus, Pencil } from 'lucide-angular';
+import { LucideAngularModule, DollarSign, Edit, RotateCcw, Trash2, Plus, Pencil, FileDown, Mail } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { Contract, getDownPaymentTarget } from '../../models/contract.model';
 import { DownPaymentPayment, DownPaymentStats } from '../../models/downpayment-payment.model';
 import { DownpaymentPaymentService } from '../../services/downpayment-payment.service';
+import { PaymentService } from '../../services/payment.service';
+import { SendPaymentEmailModalComponent } from '../send-payment-email-modal/send-payment-email-modal.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { PartialDownpaymentModalComponent } from '../partial-downpayment-modal/partial-downpayment-modal.component';
 import { EditDownpaymentPaymentModalComponent } from '../edit-downpayment-payment-modal/edit-downpayment-payment-modal.component';
@@ -41,12 +43,43 @@ export class ContractDownpaymentPaymentsComponent implements OnInit {
   readonly Trash2 = Trash2;
   readonly Plus = Plus;
   readonly Pencil = Pencil;
+  readonly FileDown = FileDown;
+  readonly Mail = Mail;
 
   constructor(
     private downpaymentService: DownpaymentPaymentService,
+    private paymentService: PaymentService,
     private interceptorService: InterceptorService,
     private dialog: MatDialog
   ) {}
+
+  downloadReceipt(payment: DownPaymentPayment): void {
+    this.paymentService.downloadReceipt(this.contractId, payment.id, 'downpayment').subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `recibo-enganche-${payment.payment_number}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.interceptorService.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: 'No se pudo descargar el recibo',
+        });
+      },
+    });
+  }
+
+  sendReceipt(payment: DownPaymentPayment): void {
+    this.dialog.open(SendPaymentEmailModalComponent, {
+      width: '960px',
+      maxWidth: '96vw',
+      data: { payment, contractId: this.contractId, kind: 'downpayment' },
+    });
+  }
 
   ngOnInit(): void {
     this.loadPayments();

@@ -30,17 +30,18 @@ export class SendPaymentEmailModalComponent implements OnInit {
   note = '';
   subject = '';
   bodyHtml = '';
+  fiscalConfigurationId = '';
 
   constructor(
     private paymentService: PaymentService,
     private interceptorService: InterceptorService,
     private sanitizer: DomSanitizer,
     public dialogRef: MatDialogRef<SendPaymentEmailModalComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { payment: Payment; contractId: string },
+    @Inject(MAT_DIALOG_DATA) public data: { payment: Payment; contractId: string; kind?: 'payment' | 'downpayment' },
   ) {}
 
   ngOnInit() {
-    this.paymentService.composeReceipt(this.data.contractId, this.data.payment.id).subscribe({
+    this.paymentService.composeReceipt(this.data.contractId, this.data.payment.id, this.data.kind || 'payment').subscribe({
       next: (compose) => {
         this.compose.set(compose);
         this.toEmail = compose.to_email || '';
@@ -73,6 +74,7 @@ export class SendPaymentEmailModalComponent implements OnInit {
         this.template.set(template);
         this.subject = template.subject;
         this.bodyHtml = template.body_html;
+        this.fiscalConfigurationId = template.fiscal_configuration_id || '';
       },
       error: (err) => {
         this.interceptorService.openSnackbar({
@@ -89,12 +91,13 @@ export class SendPaymentEmailModalComponent implements OnInit {
     this.paymentService
       .updateReceiptTemplate(this.data.contractId, reset
         ? { reset_default: true }
-        : { subject: this.subject, body_html: this.bodyHtml })
+        : { subject: this.subject, body_html: this.bodyHtml, fiscal_configuration_id: this.fiscalConfigurationId || null })
       .subscribe({
         next: (template) => {
           this.template.set(template);
           this.subject = template.subject;
           this.bodyHtml = template.body_html;
+          this.fiscalConfigurationId = template.fiscal_configuration_id || '';
           this.savingTemplate = false;
           this.refreshCompose();
         },
@@ -118,7 +121,7 @@ export class SendPaymentEmailModalComponent implements OnInit {
         to_email: this.toEmail,
         cc,
         extra_message: this.note,
-      })
+      }, this.data.kind || 'payment')
       .subscribe({
         next: () => {
           this.sending = false;
@@ -145,7 +148,7 @@ export class SendPaymentEmailModalComponent implements OnInit {
   }
 
   private refreshCompose() {
-    this.paymentService.composeReceipt(this.data.contractId, this.data.payment.id).subscribe({
+    this.paymentService.composeReceipt(this.data.contractId, this.data.payment.id, this.data.kind || 'payment').subscribe({
       next: (compose) => this.compose.set(compose),
     });
   }

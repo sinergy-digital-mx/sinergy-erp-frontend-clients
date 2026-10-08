@@ -27,10 +27,14 @@ export interface PaymentReceiptTemplate {
   id: string;
   subject: string;
   body_html: string;
+  fiscal_configuration_id: string | null;
+  fiscal_configurations: { id: string; razon_social: string; rfc: string; has_logo: boolean }[];
   variables: { key: string; label: string }[];
   sample_subject: string;
   sample_html: string;
 }
+
+export type ReceiptKind = 'payment' | 'downpayment';
 
 @Injectable({
   providedIn: 'root',
@@ -88,28 +92,26 @@ export class PaymentService {
     return this.http.post<Payment>(`${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/pay`, data);
   }
 
-  downloadReceipt(contractId: string, paymentId: string): Observable<Blob> {
-    return this.http.get(
-      `${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/receipt.pdf`,
-      { responseType: 'blob' },
-    );
+  downloadReceipt(contractId: string, paymentId: string, kind: ReceiptKind = 'payment'): Observable<Blob> {
+    return this.http.get(`${this.api}${this.receiptBase(contractId, paymentId, kind)}.pdf`, { responseType: 'blob' });
   }
 
-  composeReceipt(contractId: string, paymentId: string): Observable<PaymentReceiptCompose> {
-    return this.http.get<PaymentReceiptCompose>(
-      `${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/receipt/compose`,
-    );
+  composeReceipt(contractId: string, paymentId: string, kind: ReceiptKind = 'payment'): Observable<PaymentReceiptCompose> {
+    return this.http.get<PaymentReceiptCompose>(`${this.api}${this.receiptBase(contractId, paymentId, kind)}/compose`);
   }
 
   sendReceipt(
     contractId: string,
     paymentId: string,
     body: { to_email?: string; cc?: string[]; extra_message?: string },
+    kind: ReceiptKind = 'payment',
   ): Observable<{ sent: boolean }> {
-    return this.http.post<{ sent: boolean }>(
-      `${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/receipt/send`,
-      body,
-    );
+    return this.http.post<{ sent: boolean }>(`${this.api}${this.receiptBase(contractId, paymentId, kind)}/send`, body);
+  }
+
+  private receiptBase(contractId: string, paymentId: string, kind: ReceiptKind): string {
+    const segment = kind === 'downpayment' ? 'downpayment-payments' : 'payments';
+    return `/tenant/contracts/${contractId}/${segment}/${paymentId}/receipt`;
   }
 
   getReceiptTemplate(contractId: string): Observable<PaymentReceiptTemplate> {
@@ -120,7 +122,7 @@ export class PaymentService {
 
   updateReceiptTemplate(
     contractId: string,
-    body: { subject?: string; body_html?: string; reset_default?: boolean },
+    body: { subject?: string; body_html?: string; reset_default?: boolean; fiscal_configuration_id?: string | null },
   ): Observable<PaymentReceiptTemplate> {
     return this.http.patch<PaymentReceiptTemplate>(
       `${this.api}/tenant/contracts/${contractId}/payments/receipt-template`,
