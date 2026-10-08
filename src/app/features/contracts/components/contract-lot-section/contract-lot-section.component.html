@@ -21,6 +21,12 @@
         <dt>Lote</dt>
         <dd>{{ property.lot_number?.trim() || '—' }}</dd>
       </div>
+      @if (property.cadastral_key?.trim()) {
+        <div class="lot-strip__fact">
+          <dt>Clave catastral</dt>
+          <dd>{{ property.cadastral_key }}</dd>
+        </div>
+      }
       <div class="lot-strip__fact">
         <dt>Área</dt>
         <dd>{{ formatAreaValue(property) }} {{ formatAreaUnit(property) }}</dd>
@@ -37,8 +43,5 @@
       }
     </dl>
 
-    @if (property.cadastral_key?.trim()) {
-      <p class="lot-strip__cadastral">Clave catastral {{ property.cadastral_key }}</p>
-    }
   }
 </section>
