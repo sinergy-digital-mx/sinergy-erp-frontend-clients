@@ -1,127 +1,115 @@
 <div class="detail-page">
-  <button class="back-link" (click)="goBack()">&larr; Volver a empleados</button>
+  <button *ngIf="canSeeAll" class="back-link" (click)="goBack()">&larr; Volver a empleados</button>
 
   <div *ngIf="loading()" class="state-message">Cargando...</div>
 
   <ng-container *ngIf="!loading() && employee() as emp">
-    <!-- Header -->
-    <div class="detail-header">
-      <div class="detail-header__identity">
+    <section class="hero">
+      <div class="hero__identity">
         <div class="avatar avatar--lg">
           <img *ngIf="emp.photo_url" [src]="emp.photo_url" [alt]="fullName(emp)">
           <span *ngIf="!emp.photo_url">{{ initials(emp) }}</span>
         </div>
         <div>
+          <p class="hero__eyebrow">{{ isOwnRecord ? 'Mi expediente' : 'Expediente' }}</p>
           <h1>{{ fullName(emp) }}</h1>
-          <p class="detail-header__meta">{{ emp.position || 'Sin puesto' }}<span *ngIf="emp.department"> · {{ emp.department }}</span></p>
-          <p class="detail-header__email">{{ emp.email }}</p>
+          <p class="hero__meta">{{ emp.position || 'Sin puesto' }}<span *ngIf="emp.department"> · {{ emp.department }}</span></p>
+          <p class="hero__email">{{ emp.email }}</p>
         </div>
       </div>
-      <div class="detail-header__actions">
-        <label *ngIf="canUpdate" class="btn btn--secondary" [class.btn--disabled]="uploadingPhoto()">
-          <input type="file" accept="image/*" (change)="onPhotoSelected($event)" [disabled]="uploadingPhoto()" hidden>
-          {{ uploadingPhoto() ? 'Subiendo...' : 'Cambiar foto' }}
-        </label>
-        <button *ngIf="canUpdate" class="btn btn--primary" (click)="openLeaveRequest()">Registrar solicitud</button>
-      </div>
-    </div>
 
-    <!-- Summary cards -->
-    <div class="cards-grid">
-      <div class="info-card info-card--highlight">
-        <span class="info-card__label">Antigüedad</span>
-        <span class="info-card__value">{{ emp.vacation?.years_of_service ?? emp.years_of_service ?? 0 }} año(s)</span>
-      </div>
-      <div class="info-card info-card--highlight">
-        <span class="info-card__label">Vacaciones disponibles</span>
-        <span class="info-card__value">{{ emp.vacation?.available_days ?? 0 }} días</span>
-        <span class="info-card__hint">
+      <div class="hero__balance">
+        <span class="hero__days">{{ emp.vacation?.available_days ?? 0 }}</span>
+        <span class="hero__days-label">días disponibles</span>
+        <span class="hero__days-hint">
           {{ emp.vacation?.entitled_days ?? 0 }} de ley
           <ng-container *ngIf="(emp.vacation?.carryover_days ?? 0) > 0"> + {{ emp.vacation?.carryover_days }} arrastre</ng-container>
-          · {{ emp.vacation?.taken_days ?? 0 }} tomados · {{ emp.vacation?.pending_days ?? 0 }} pendientes
         </span>
+        <button *ngIf="canRequestLeave" class="btn btn--primary" (click)="openLeaveRequest()">Solicitar vacaciones</button>
       </div>
-      <div class="info-card">
-        <span class="info-card__label">Salario mensual</span>
-        <span class="info-card__value">{{ (emp.payroll?.monthly_salary ?? emp.monthly_salary ?? 0) | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
-        <span class="info-card__hint">{{ getPaymentFrequencyLabel(emp.payment_frequency) }}</span>
+    </section>
+
+    <div class="stat-row">
+      <div class="stat">
+        <span class="stat__label">Antigüedad</span>
+        <span class="stat__value">{{ emp.vacation?.years_of_service ?? emp.years_of_service ?? 0 }} año(s)</span>
       </div>
-      <div class="info-card">
-        <span class="info-card__label">Pago quincenal</span>
-        <span class="info-card__value">{{ (emp.payroll?.biweekly_salary ?? 0) | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
-        <span class="info-card__hint">Diario {{ (emp.payroll?.daily_salary ?? 0) | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+      <div class="stat">
+        <span class="stat__label">Tomados</span>
+        <span class="stat__value">{{ emp.vacation?.taken_days ?? 0 }} días</span>
+      </div>
+      <div class="stat">
+        <span class="stat__label">En revisión</span>
+        <span class="stat__value">{{ emp.vacation?.pending_days ?? 0 }} días</span>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Salario mensual</span>
+        <span class="stat__value">{{ (emp.payroll?.monthly_salary ?? emp.monthly_salary ?? 0) | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+        <span class="stat__hint">{{ getPaymentFrequencyLabel(emp.payment_frequency) }}</span>
       </div>
     </div>
 
-    <!-- Info sections -->
     <div class="detail-columns">
       <div class="detail-section">
-        <h3>Datos generales</h3>
+        <h3>Mis datos</h3>
         <dl class="info-list">
           <div><dt>Código</dt><dd>{{ emp.employee_code || '—' }}</dd></div>
           <div><dt>RFC</dt><dd>{{ emp.rfc || '—' }}</dd></div>
           <div><dt>CURP</dt><dd>{{ emp.curp || '—' }}</dd></div>
           <div><dt>NSS</dt><dd>{{ emp.nss || '—' }}</dd></div>
-          <div><dt>Fecha de ingreso</dt><dd>{{ emp.hire_date || '—' }}</dd></div>
-          <div><dt>Fecha de nacimiento</dt><dd>{{ emp.birth_date || '—' }}</dd></div>
+          <div><dt>Ingreso</dt><dd>{{ emp.hire_date || '—' }}</dd></div>
+          <div><dt>Nacimiento</dt><dd>{{ emp.birth_date || '—' }}</dd></div>
         </dl>
       </div>
 
       <div class="detail-section">
-        <h3>Nómina y banco</h3>
+        <h3>Nómina</h3>
         <dl class="info-list">
+          <div><dt>Pago quincenal</dt><dd>{{ (emp.payroll?.biweekly_salary ?? 0) | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
+          <div><dt>Salario diario</dt><dd>{{ (emp.payroll?.daily_salary ?? 0) | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
           <div><dt>Salario anual</dt><dd>{{ (emp.payroll?.annual_salary ?? 0) | currency:'MXN':'symbol-narrow':'1.0-0' }}</dd></div>
-          <div><dt>Salario semanal</dt><dd>{{ (emp.payroll?.weekly_salary ?? 0) | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
           <div *ngIf="emp.payroll?.integrated_daily_salary"><dt>SDI</dt><dd>{{ emp.payroll?.integrated_daily_salary | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
           <div><dt>Banco</dt><dd>{{ emp.bank_name || '—' }}</dd></div>
           <div><dt>CLABE</dt><dd>{{ emp.clabe || '—' }}</dd></div>
-          <div><dt>Cuenta</dt><dd>{{ emp.bank_account || '—' }}</dd></div>
         </dl>
+        <label *ngIf="canUpdate" class="btn btn--ghost">
+          <input type="file" accept="image/*" (change)="onPhotoSelected($event)" [disabled]="uploadingPhoto()" hidden>
+          {{ uploadingPhoto() ? 'Subiendo foto...' : 'Cambiar foto' }}
+        </label>
       </div>
     </div>
 
-    <!-- Leave requests -->
-    <div class="detail-section">
-      <h3>Solicitudes de vacaciones y ausencias</h3>
-
-      <div *ngIf="leaveRequests().length === 0" class="state-message state-message--sm">
-        Sin solicitudes registradas.
+    <section class="detail-section">
+      <div class="section-head">
+        <h3>Solicitudes</h3>
+        <button *ngIf="canRequestLeave" class="btn btn--primary" (click)="openLeaveRequest()">Nueva solicitud</button>
       </div>
 
-      <div *ngIf="leaveRequests().length > 0" class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Tipo</th>
-              <th>Periodo</th>
-              <th>Días</th>
-              <th>Estatus</th>
-              <th>Motivo</th>
-              <th *ngIf="canManageLeave || canUpdate">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let req of leaveRequests()">
-              <td>{{ getLeaveTypeLabel(req.type) }}</td>
-              <td>{{ req.start_date }} → {{ req.end_date }}</td>
-              <td>{{ req.days }}</td>
-              <td><span class="status-badge" [ngClass]="'status-badge--' + req.status">{{ getLeaveStatusLabel(req.status) }}</span></td>
-              <td class="reason-cell">{{ req.reason || '—' }}</td>
-              <td *ngIf="canManageLeave || canUpdate">
-                <div class="row-actions" *ngIf="req.status === 'pending' || (canUpdate && canCorrectLeaveRequest(req.status))">
-                  <button *ngIf="canUpdate && canCorrectLeaveRequest(req.status)" class="action-btn" (click)="correct(req)">Corregir</button>
-                  <ng-container *ngIf="canManageLeave && req.status === 'pending'">
-                    <button class="action-btn action-btn--approve" (click)="review(req, 'approved')">Aprobar</button>
-                    <button class="action-btn action-btn--reject" (click)="review(req, 'rejected')">Rechazar</button>
-                    <button class="action-btn" (click)="cancel(req)">Cancelar</button>
-                  </ng-container>
-                </div>
-                <span *ngIf="req.status !== 'pending' && !(canUpdate && canCorrectLeaveRequest(req.status))" class="muted">—</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div *ngIf="leaveRequests().length === 0" class="empty-requests">
+        <p>Todavía no hay solicitudes.</p>
+        <button *ngIf="canRequestLeave" class="btn btn--primary" (click)="openLeaveRequest()">Pedir vacaciones</button>
       </div>
-    </div>
+
+      <ul *ngIf="leaveRequests().length > 0" class="request-list">
+        <li *ngFor="let req of leaveRequests()" class="request-card">
+          <div>
+            <p class="request-card__type">{{ getLeaveTypeLabel(req.type) }}</p>
+            <p class="request-card__dates">{{ req.start_date }} → {{ req.end_date }} · {{ req.days }} día(s)</p>
+            <p class="request-card__reason" *ngIf="req.reason">{{ req.reason }}</p>
+          </div>
+          <div class="request-card__side">
+            <span class="status-badge" [ngClass]="'status-badge--' + req.status">{{ getLeaveStatusLabel(req.status) }}</span>
+            <div class="row-actions">
+              <button *ngIf="canUpdate && canCorrectLeaveRequest(req.status)" class="action-btn" (click)="correct(req)">Corregir</button>
+              <ng-container *ngIf="canManageLeave && req.status === 'pending'">
+                <button class="action-btn action-btn--approve" (click)="review(req, 'approved')">Aprobar</button>
+                <button class="action-btn action-btn--reject" (click)="review(req, 'rejected')">Rechazar</button>
+              </ng-container>
+              <button *ngIf="req.status === 'pending' && (canManageLeave || isOwnRecord)" class="action-btn" (click)="cancel(req)">Cancelar</button>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
   </ng-container>
 </div>
