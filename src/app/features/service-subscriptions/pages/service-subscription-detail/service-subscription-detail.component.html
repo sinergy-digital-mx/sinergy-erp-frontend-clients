@@ -22,7 +22,7 @@
             }
           </div>
           <div class="sub-actions">
-            <button type="button" class="sub-btn sub-btn--ghost" [disabled]="busy()" (click)="sendSummary()">
+            <button type="button" class="sub-btn sub-btn--outline" [disabled]="busy()" (click)="openSummary()">
               Enviar resumen
             </button>
             @if (canUpdate && item.status === 'active' && pendingCount() > 0) {
@@ -52,6 +52,23 @@
               <p class="sub-batch__error">{{ error }}</p>
             }
           </div>
+        }
+
+        @if (summaryOpen()) {
+          <form class="sub-mail" (submit)="$event.preventDefault(); sendSummary()">
+            <label>
+              Correo
+              <input
+                class="sub-input"
+                type="email"
+                autocomplete="email"
+                placeholder="cliente@correo.com"
+                [value]="summaryEmail()"
+                (input)="summaryEmail.set($any($event.target).value)" />
+            </label>
+            <button type="submit" class="page-create-btn" [disabled]="busy()">Enviar</button>
+            <button type="button" class="sub-btn sub-btn--ghost" [disabled]="busy()" (click)="summaryOpen.set(false)">Cerrar</button>
+          </form>
         }
 
         @if (confirmingCancel()) {

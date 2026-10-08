@@ -61,6 +61,8 @@ export class ServiceSubscriptionDetailComponent {
   readonly loading = signal(true);
   readonly busy = signal(false);
   readonly confirmingCancel = signal(false);
+  readonly summaryOpen = signal(false);
+  readonly summaryEmail = signal('');
   readonly ordersLoading = signal(false);
   readonly detail = signal<ServiceSubscriptionDetail | null>(null);
   readonly linkingPeriod = signal<ServiceSubscriptionPeriod | null>(null);
@@ -82,6 +84,7 @@ export class ServiceSubscriptionDetailComponent {
     if (!id) return;
     this.loading.set(true);
     this.confirmingCancel.set(false);
+    this.summaryOpen.set(false);
     this.linkingPeriod.set(null);
     this.api.get(id).subscribe({
       next: (detail) => {
@@ -152,12 +155,17 @@ export class ServiceSubscriptionDetailComponent {
     this.run(this.api.generate(detail.id, period.id), 'Orden generada');
   }
 
+  openSummary(): void {
+    const detail = this.detail();
+    if (!detail || this.busy()) return;
+    this.summaryEmail.set(detail.customer_email || '');
+    this.summaryOpen.set(true);
+  }
+
   sendSummary(): void {
     const detail = this.detail();
     if (!detail || this.busy()) return;
-    const email = window.prompt('Correo para el resumen del servicio', detail.customer_email || '');
-    if (email == null) return;
-    const to = email.trim();
+    const to = this.summaryEmail().trim();
     if (!to) {
       this.toast.error('Indica un correo');
       return;
@@ -166,6 +174,7 @@ export class ServiceSubscriptionDetailComponent {
     this.api.sendSummary(detail.id, to).subscribe({
       next: (result) => {
         this.busy.set(false);
+        this.summaryOpen.set(false);
         this.toast.success(`Resumen enviado a ${result.sent_to}`);
       },
       error: (error) => {
