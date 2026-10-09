@@ -1,0 +1,60 @@
+<section class="customer-stats" aria-label="Resumen de clientes">
+  @if (loading && !stats) {
+    <div class="customer-stats__panel" aria-hidden="true">
+      @for (item of skeletons; track item) {
+        <div class="customer-stat customer-stat--skeleton"></div>
+      }
+    </div>
+  } @else if (error && !stats) {
+    <p class="customer-stats__error" role="alert">No se pudo cargar el resumen.</p>
+  } @else {
+    <div class="customer-stats__panel" [class.is-refreshing]="loading">
+      @for (card of cards; track card.key) {
+        <article
+          class="customer-stat"
+          [attr.data-tone]="card.tone"
+          [class.is-on]="cardIsOn(card)">
+          <div class="customer-stat__top">
+            <span class="customer-stat__icon">
+              <lucide-icon [img]="card.icon" [size]="15"></lucide-icon>
+            </span>
+            <span class="customer-stat__label">{{ card.label }}</span>
+          </div>
+
+          <button
+            type="button"
+            class="customer-stat__value"
+            [class.is-on]="!!card.positive && isOn(card.positive)"
+            [attr.title]="card.hint"
+            [attr.aria-pressed]="!!card.positive && isOn(card.positive)"
+            (click)="select(card.positive)">
+            {{ formatCount(card.value) }}
+          </button>
+
+          <div class="customer-stat__meter" aria-hidden="true">
+            <span [style.width.%]="card.share"></span>
+          </div>
+          <span class="customer-stat__share">{{ card.share }}%</span>
+
+          @if (card.negative) {
+            <button
+              type="button"
+              class="customer-stat__gap"
+              [class.is-on]="isOn(card.negative)"
+              [attr.aria-pressed]="isOn(card.negative)"
+              (click)="select(card.negative)">
+              <span>{{ card.negativeLabel }}</span>
+              <strong>{{ formatCount(card.negativeValue) }}</strong>
+            </button>
+          } @else if (activeInsight) {
+            <button type="button" class="customer-stat__gap" (click)="select(null)">
+              <span>Ver todos</span>
+            </button>
+          } @else {
+            <p class="customer-stat__quiet">{{ scoped ? 'Del filtro actual' : 'De la organización' }}</p>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>

@@ -5,7 +5,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
-import { LucideAngularModule, Pencil, Check, ChevronDown, Download, ExternalLink, X } from 'lucide-angular';
+import { LucideAngularModule, ChevronDown, Download, ExternalLink, X } from 'lucide-angular';
 import {
   ReportPeriod,
   ReportPeriodSelectorComponent,
@@ -17,7 +17,6 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { CustomerActivityFormDialogComponent } from '../../../customers/components/customer-activity-form-dialog/customer-activity-form-dialog.component';
 import { ActivityStatus, ActivityType, CustomerActivity } from '../../../customers/models/customer-group.model';
-import { CustomerActivityService } from '../../../customers/services/customer-activity.service';
 import {
   getActivityStatusClass,
   getActivityStatusLabel,
@@ -58,8 +57,6 @@ const ALL_AUTHORS: CrmActivityAuthor = {
   styleUrl: './crm-inbox.component.scss',
 })
 export class CrmInboxComponent implements OnInit, OnDestroy {
-  readonly PencilIcon = Pencil;
-  readonly CheckIcon = Check;
   readonly ChevronDown = ChevronDown;
   readonly ExternalLinkIcon = ExternalLink;
   readonly DownloadIcon = Download;
@@ -109,7 +106,6 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly crmInboxService: CrmInboxService,
-    private readonly activityService: CustomerActivityService,
     private readonly dialog: MatDialog,
     private readonly interceptorService: InterceptorService,
     private readonly authService: AuthService,
@@ -296,34 +292,6 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
         this.reload();
       }
     });
-  }
-
-  markCompleted(activity: CrmActivity, event: Event): void {
-    event.stopPropagation();
-    if (!this.canUpdate || activity.status === ActivityStatus.COMPLETED) {
-      return;
-    }
-
-    this.activityService
-      .updateActivity(activity.customer_id, activity.id, { status: ActivityStatus.COMPLETED })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.interceptorService.openSnackbar({
-            type: 'success',
-            title: 'Éxito',
-            message: 'Seguimiento marcado como completado',
-          });
-          this.reload();
-        },
-        error: () => {
-          this.interceptorService.openSnackbar({
-            type: 'error',
-            title: 'Error',
-            message: 'No se pudo completar la actividad',
-          });
-        },
-      });
   }
 
   getTypeLabel = getActivityTypeLabel;

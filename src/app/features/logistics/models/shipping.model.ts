@@ -116,12 +116,23 @@ export interface Shipping {
   truck_id?: string;
   truck_name?: string;
   truck_placa?: string;
+  truck_trailer_type?: string | null;
+  truck_trailer_placa?: string | null;
   origin_billing_branch_id?: string;
   origin_billing_branch_name?: string;
   origin_warehouse_id?: string;
   origin_warehouse_name?: string;
   notes?: string | null;
   distance_km?: number | null;
+  carta_porte_uuid?: string | null;
+  carta_porte_idccp?: string | null;
+  carta_porte_stamped_at?: string | null;
+  carta_porte_error?: string | null;
+  carta_porte_peso_kg?: number | null;
+  driver_carta_porte_ready?: boolean;
+  driver_carta_porte_missing?: string[];
+  truck_carta_porte_ready?: boolean;
+  truck_carta_porte_missing?: string[];
   stops?: ShippingStop[];
   origin?: ShippingOrigin;
   origin_missing_location?: boolean;
@@ -318,6 +329,10 @@ export function normalizeShipping(raw: any): Shipping {
 
   const truckName = raw.truck_name || truck?.name || undefined;
   const truckPlaca = raw.truck_placa || truck?.placa || undefined;
+  const truckTrailerType =
+    raw.truck_trailer_type || truck?.subtipo_remolque1 || null;
+  const truckTrailerPlaca =
+    raw.truck_trailer_placa || truck?.placa_remolque1 || null;
 
   const stopsRaw = raw.stops ?? raw.orders ?? [];
   const stops: ShippingStop[] = (Array.isArray(stopsRaw) ? stopsRaw : []).map((s: any, idx: number) => {
@@ -373,6 +388,8 @@ export function normalizeShipping(raw: any): Shipping {
     driver_name: driverName,
     truck_name: truckName,
     truck_placa: truckPlaca,
+    truck_trailer_type: truckTrailerType,
+    truck_trailer_placa: truckTrailerPlaca,
     origin_billing_branch_id:
       raw.origin_billing_branch_id || branch?.id || origin?.billing_branch_id,
     origin_billing_branch_name:

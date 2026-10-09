@@ -89,17 +89,30 @@
   </div>
 
   <div class="dialog__footer">
-    <app-button
-      text="Cancelar"
-      custom_class="btn_secondary"
-      [disabled]="saving()"
-      (clicked)="close()">
-    </app-button>
-    <app-button
-      [text]="isEdit ? 'Guardar cambios' : 'Guardar actividad'"
-      custom_class="btn_primary"
-      [loading]="saving()"
-      (clicked)="save()">
-    </app-button>
+    @if (canMarkCompleted) {
+      <button
+        type="button"
+        class="complete-btn"
+        title="Marcar completada"
+        aria-label="Marcar completada"
+        [disabled]="saving()"
+        (click)="markCompleted()">
+        <lucide-icon [img]="Check" [size]="16"></lucide-icon>
+      </button>
+    }
+    <div class="dialog__footer-actions">
+      <app-button
+        text="Cancelar"
+        custom_class="btn_secondary"
+        [disabled]="saving()"
+        (clicked)="close()">
+      </app-button>
+      <app-button
+        [text]="isEdit ? 'Guardar cambios' : 'Guardar actividad'"
+        custom_class="btn_primary"
+        [loading]="saving()"
+        (clicked)="save()">
+      </app-button>
+    </div>
   </div>
 </div>

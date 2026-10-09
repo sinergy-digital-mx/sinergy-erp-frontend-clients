@@ -5,9 +5,15 @@
 } @else if (shipping(); as s) {
   <div class="sv" [class.sv--embedded]="embedded">
     <div class="sv__header">
-      <div class="sv__title">
-        <h2>Envío{{ s.short_id ? ' #' + s.short_id : '' }}</h2>
-        <span class="sv__date">{{ formatDate(s.shipping_date) }}</span>
+      <div class="sv__ident">
+        <div class="sv__dateblock" [title]="formatDate(s.shipping_date)">
+          <strong>{{ dateDay(s.shipping_date) }}</strong>
+          <small>{{ dateMonth(s.shipping_date) }}</small>
+        </div>
+        <div class="sv__title">
+          <h2>Viaje{{ s.short_id ? ' #' + s.short_id : '' }}</h2>
+          <p>{{ distanceLabel() }}</p>
+        </div>
         <span
           class="sv__badge"
           [style.background]="statusColors(s.status).background"
@@ -15,7 +21,6 @@
         >
           {{ s.status }}
         </span>
-        <span class="sv__km">{{ distanceLabel() }}</span>
       </div>
       <div class="sv__actions">
         @if (nextStatuses().length) {
@@ -67,6 +72,54 @@
       }
     </div>
 
+    <div class="sv__tabs" role="tablist">
+      <button type="button" role="tab" [class.is-on]="panel() === 'route'" (click)="panel.set('route')">
+        Ruta
+      </button>
+      <button type="button" role="tab" [class.is-on]="panel() === 'carta'" (click)="panel.set('carta')">
+        Carta porte
+      </button>
+    </div>
+
+    @if (panel() === 'carta') {
+      <section class="sv__carta">
+        <div class="sv__carta-head">
+          <h3>Carta porte</h3>
+          @if (s.carta_porte_uuid) {
+            <span class="dt-status-pill dt-status-pill--success">Timbrada</span>
+          } @else if (s.driver_carta_porte_ready && s.truck_carta_porte_ready) {
+            <span class="dt-status-pill dt-status-pill--info">Lista para timbrar</span>
+          } @else {
+            <span class="dt-status-pill dt-status-pill--warning">Faltan datos</span>
+          }
+        </div>
+        @if (s.carta_porte_uuid) {
+          <p class="sv__carta-uuid">{{ s.carta_porte_uuid }}</p>
+          <button type="button" class="page-create-btn" (click)="downloadCartaPorte()">Descargar PDF</button>
+        } @else {
+          @if (!s.driver_carta_porte_ready && s.driver_carta_porte_missing?.length) {
+            <p>{{ s.driver_carta_porte_missing.join('. ') }}</p>
+          }
+          @if (!s.truck_carta_porte_ready && s.truck_carta_porte_missing?.length) {
+            <p>{{ s.truck_carta_porte_missing.join('. ') }}</p>
+          }
+          <label for="carta-porte-peso">Peso bruto de la carga (kg)</label>
+          <input id="carta-porte-peso" type="number" min="0.001" step="0.001" [(ngModel)]="pesoKg" />
+          <button
+            *hasPermission="permissions.update"
+            type="button"
+            class="page-create-btn"
+            [disabled]="stamping()"
+            (click)="stampCartaPorte()"
+          >
+            {{ stamping() ? 'Timbrando…' : 'Generar carta porte' }}
+          </button>
+          @if (s.carta_porte_error) {
+            <p class="sv__carta-error">{{ s.carta_porte_error }}</p>
+          }
+        }
+      </section>
+    } @else {
     @if (gpsSummary(); as gps) {
       @if (gps.total > 0) {
         <div class="sv__banner">
@@ -142,54 +195,18 @@
                     @if (isCurrentStop(stop)) {
                       <span class="chip">Esta OV</span>
                     }
-                    <button
-                      type="button"
-                      class="loc-edit-btn"
-                      *hasPermission="permissions.update"
-                      [title]="stop.needsAddress ? 'Agregar dirección' : 'Editar ubicación'"
-                      [attr.aria-label]="stop.needsAddress ? 'Agregar dirección' : 'Editar ubicación de la parada'"
-                      (click)="openFixStopGps(stop)">
-                      <lucide-icon [img]="MapPin" [size]="14" [strokeWidth]="2"></lucide-icon>
-                    </button>
                   </div>
                 </div>
-                <p>{{ stop.customer_name || 'Cliente' }}</p>
-                @if (stop.customer_addresses?.length) {
-                  <ul class="addr-list">
-                    @for (addr of stop.customer_addresses; track addr.id) {
-                      <li>
-                        <label class="addr-option">
-                          <input
-                            type="radio"
-                            [name]="'stop-addr-' + stop.sales_order_id"
-                            [checked]="isSelectedAddress(stop, addr.id)"
-                            [disabled]="!isCreado() || addressUpdating()"
-                            (change)="selectStopAddress(stop, addr.id)"
-                          />
-                          <span>
-                            <strong>{{ addr.type_label || 'Dirección' }}</strong>
-                            @if (addr.is_primary) {
-                              <span class="addr-primary">Principal</span>
-                            }
-                            {{ addr.address_summary || 'Sin calle' }}
-                            @if (addr.has_gps === false) {
-                              <em>sin GPS</em>
-                            }
-                          </span>
-                        </label>
-                      </li>
-                    }
-                  </ul>
-                } @else {
-                  <p class="stop__muted">{{ stop.address_summary || 'Sin dirección' }}</p>
-                }
-                @if (isCreado() && stop.customer_id != null) {
+                <p class="stop__name">{{ stop.customer_name || 'Cliente' }}</p>
+                <p class="stop__addr">{{ selectedAddressLine(stop) }}</p>
+                @if (stop.customer_id != null) {
                   <button
                     type="button"
-                    class="link-btn"
+                    class="stop__tool"
                     *hasPermission="permissions.update"
-                    (click)="openAddStopAddress(stop)">
-                    Nueva dirección
+                    [disabled]="addressUpdating()"
+                    (click)="openAddressPicker(stop)">
+                    Dirección
                   </button>
                 }
                 @if (stop.legDistanceLabel) {
@@ -224,8 +241,10 @@
           [active]="active"
           [origin]="s.origin || null"
           [stops]="stops()"
+          [vehicle]="vehicle()"
         ></app-shipping-map>
       </div>
     </div>
+    }
   </div>
 }

@@ -221,6 +221,11 @@ export interface User {
   employee?: UserEmployeeProfile | null;
   is_manager?: boolean;
   is_crm_admin?: boolean;
+  is_driver?: boolean;
+  driver_license_number?: string | null;
+  driver_rfc?: string | null;
+  carta_porte_ready?: boolean;
+  carta_porte_missing?: string[];
   manager?: UserManagerSummary | null;
   reports?: ManagerReport[];
   status_id?: number | null;

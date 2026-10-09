@@ -113,6 +113,33 @@
 
           <div class="form-field form-field--full">
             <label class="toggle-row">
+              <input type="checkbox" class="toggle-checkbox" formControlName="is_driver">
+              <span class="toggle-label">Es chofer</span>
+            </label>
+            <p class="field-hint">
+              Pide licencia y RFC. Sin esos datos no se puede timbrar la carta porte del viaje.
+            </p>
+          </div>
+
+          <ng-container *ngIf="form.get('is_driver')?.value">
+            <div class="form-field">
+              <label class="form-label">Número de licencia *</label>
+              <input type="text" class="form-input" formControlName="driver_license_number" placeholder="A1234567" maxlength="30">
+              <p *ngIf="form.get('driver_license_number')?.invalid && form.get('driver_license_number')?.touched" class="field-error">
+                La licencia es obligatoria
+              </p>
+            </div>
+            <div class="form-field">
+              <label class="form-label">RFC *</label>
+              <input type="text" class="form-input" formControlName="driver_rfc" placeholder="XAXX010101000" maxlength="13">
+              <p *ngIf="form.get('driver_rfc')?.invalid && form.get('driver_rfc')?.touched" class="field-error">
+                El RFC es obligatorio (12 o 13 caracteres)
+              </p>
+            </div>
+          </ng-container>
+
+          <div class="form-field form-field--full">
+            <label class="toggle-row">
               <input type="checkbox" class="toggle-checkbox" formControlName="is_crm_admin">
               <span class="toggle-label">Administrador de CRM</span>
             </label>

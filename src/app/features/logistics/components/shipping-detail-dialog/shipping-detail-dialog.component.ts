@@ -28,9 +28,11 @@ export interface ShippingDetailDialogData {
       .shipping-detail-dialog {
         display: flex;
         flex-direction: column;
+        width: 100%;
+        height: 92vh;
         max-height: 94vh;
-        width: min(1280px, 98vw);
-        padding: 0.85rem 1.1rem 1rem;
+        padding: 0.7rem 1rem 0.85rem;
+        box-sizing: border-box;
       }
     `,
   ],

@@ -1,0 +1,95 @@
+@use '../../styles/logistics-page';
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.logistics-page__header {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.logistics-page__actions {
+  flex-wrap: wrap;
+}
+
+.view-switch {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 3px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  box-sizing: border-box;
+
+  button {
+    height: 100%;
+    padding: 0 0.8rem;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #4b5563;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &.is-active {
+      background: #eef2ff;
+      color: #3730a3;
+    }
+  }
+}
+
+.trip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trip-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  padding: 1.25rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.trip-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  color: #6b7280;
+  font-size: 0.8125rem;
+}
+
+.trip-pager__nav {
+  display: flex;
+  gap: 0.4rem;
+
+  button {
+    height: 32px;
+    padding: 0 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    color: #374151;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+  }
+}

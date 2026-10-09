@@ -46,3 +46,12 @@ Vista default: `assigned_warehouses` vacío o Admin → tablero admin. Uno o má
 - Configurar: `WarehouseControl:Create` → `/warehouse-control/positions`.
 
 Hay que correr la migración nueva en API antes de usar el módulo.
+
+## Cambios
+
+### 2026-10-09
+Panel de la orden compacto y en bloques: folio arriba, datos en una fila de cuatro columnas, faltantes en una línea y tabla con producto, SKU y cantidades alineadas. Las celdas del mapa de piso quedan como estaban. Se quitó el subtítulo bajo el título de Mesa de Control.
+
+Vista jefe: badges de estado (Pendientes, En curso, Surtidas, Faltante) y de posición filtran la lista. La card no lista productos; **Ver productos** abre un modal centrado para agregar cantidades y confirmar. La lista de surtido scrollea dentro de la pantalla.
+
+Admin: pestaña **Avance** junto a Mesa. Totales de `stats` (en mesa, tareas pendientes, en curso, listos para armar, surtidas hoy, faltante, piso), embudo por etapa, carga por almacén y pedidos con almacenes que faltan.

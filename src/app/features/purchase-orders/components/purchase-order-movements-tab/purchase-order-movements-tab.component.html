@@ -1,16 +1,25 @@
-<div class="movements">
-  <div class="movements__bar">
-    <label class="movements__filter">
-      <span>Tipo</span>
-      <select
-        [ngModel]="selectedType()"
-        (ngModelChange)="setType($event)">
-        <option value="">Todos</option>
-        @for (item of filterTypes(); track item.type) {
-          <option [value]="item.type">{{ item.label }}</option>
-        }
-      </select>
-    </label>
+<div class="history">
+  <div class="history__bar">
+    <div class="history__filters" role="group" aria-label="Filtrar por tipo">
+      <button
+        type="button"
+        class="filter-chip"
+        [class.is-active]="selectedType() === ''"
+        (click)="setType('')">
+        Todos
+        <span class="filter-chip__count">{{ visibleCount() }}</span>
+      </button>
+      @for (item of filterTypes(); track item.type) {
+        <button
+          type="button"
+          class="filter-chip"
+          [class.is-active]="selectedType() === item.type"
+          (click)="setType(item.type)">
+          {{ item.label }}
+          <span class="filter-chip__count">{{ item.count }}</span>
+        </button>
+      }
+    </div>
     <button type="button" class="btn-refresh" (click)="refresh()" [disabled]="loading()">
       <i class="fi fi-rr-refresh" [class.animate-spin]="loading()"></i>
       Actualizar
@@ -22,44 +31,46 @@
   } @else if (displayedItems().length === 0) {
     <div class="empty-state">
       <i class="fi fi-rr-time-past"></i>
-      <p>Sin movimientos.</p>
+      <p>{{ selectedType() ? 'Nada de este tipo.' : 'Sin movimientos.' }}</p>
     </div>
   } @else {
-    <div class="movements-table-wrap">
-      <table class="movements-table">
-        <thead>
-          <tr>
-            <th class="col-when">Fecha</th>
-            <th class="col-type">Tipo</th>
-            <th class="col-what">Movimiento</th>
-            <th class="col-who">Usuario</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of displayedItems(); track item.id) {
-            <tr>
-              <td class="col-when">{{ formatOccurredAt(item.occurred_at) }}</td>
-              <td class="col-type">{{ item.type_label }}</td>
-              <td class="col-what">
-                <p class="movements-text">{{ movementText(item) }}</p>
-                @if (hasChanges(item)) {
-                  <ul class="changes">
-                    @for (change of item.changes; track change.field || change.field_label) {
-                      <li>
-                        <span class="changes__field">{{ changeLabel(change) }}</span>
-                        <span class="changes__from">{{ change.from ?? '—' }}</span>
-                        <span class="changes__arrow" aria-hidden="true">→</span>
-                        <span class="changes__to">{{ change.to ?? '—' }}</span>
-                      </li>
-                    }
-                  </ul>
-                }
-              </td>
-              <td class="col-who">{{ actorName(item) }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
+    <div class="history__days">
+      @for (group of dayGroups(); track group.key) {
+        <section class="day">
+          <h3 class="day__label">{{ group.label }}</h3>
+          <ol class="day__list">
+            @for (item of group.items; track item.id) {
+              <li class="event" [attr.data-tone]="chipTone(item)">
+                <time class="event__time" [attr.datetime]="item.occurred_at" [attr.title]="fullWhen(item)">
+                  {{ timeLabel(item) }}
+                </time>
+                <div class="event__body">
+                  <span class="type-badge" [attr.data-tone]="chipTone(item)">{{ item.type_label || item.type }}</span>
+                  <p class="event__text">{{ movementText(item) }}</p>
+                  @if (hasChanges(item)) {
+                    <ul class="changes">
+                      @for (change of item.changes; track change.field || change.field_label) {
+                        <li>
+                          <span class="changes__field">{{ changeLabel(change) }}</span>
+                          <span class="changes__from">{{ change.from ?? '—' }}</span>
+                          <span class="changes__arrow" aria-hidden="true">→</span>
+                          <span class="changes__to">{{ change.to ?? '—' }}</span>
+                        </li>
+                      }
+                    </ul>
+                  }
+                  @if (actorName(item)) {
+                    <p class="event__who">
+                      <span class="event__avatar" aria-hidden="true">{{ initials(item) }}</span>
+                      {{ actorName(item) }}
+                    </p>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        </section>
+      }
     </div>
   }
 </div>

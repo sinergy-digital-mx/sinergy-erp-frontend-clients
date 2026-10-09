@@ -1,0 +1,84 @@
+<div class="logistics-page">
+  <header class="logistics-page__header">
+    <div class="logistics-page__titles">
+      <h2>Viajes</h2>
+      <p>Calendario de salidas. La lista muestra cada viaje con su unidad y chofer.</p>
+    </div>
+    <div class="logistics-page__actions">
+      <div class="view-switch" role="tablist" aria-label="Vista de viajes">
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="view() === 'calendar'"
+          [class.is-active]="view() === 'calendar'"
+          (click)="setView('calendar')"
+        >
+          Calendario
+        </button>
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="view() === 'list'"
+          [class.is-active]="view() === 'list'"
+          (click)="setView('list')"
+        >
+          Lista
+        </button>
+      </div>
+      <button
+        *hasPermission="permissions.create"
+        type="button"
+        class="page-create-btn"
+        (click)="openCreate()"
+      >
+        Nuevo viaje
+      </button>
+    </div>
+  </header>
+
+  @if (view() === 'calendar') {
+    <app-shippings-calendar [embedded]="true"></app-shippings-calendar>
+  } @else {
+    <div class="logistics-toolbar">
+      <select
+        class="logistics-select logistics-toolbar__select"
+        [ngModel]="status()"
+        (ngModelChange)="onStatusChange($event)"
+        aria-label="Filtrar por estado"
+      >
+        <option value="">Todos los estados</option>
+        <option value="Creado">Creado</option>
+        <option value="En Ruta">En ruta</option>
+        <option value="Completado">Completado</option>
+        <option value="Cancelado">Cancelado</option>
+      </select>
+    </div>
+
+    @if (loading()) {
+      <div class="trip-state"><app-spinner></app-spinner></div>
+    } @else if (!rows().length) {
+      <div class="trip-state">No hay viajes con este filtro.</div>
+    } @else {
+      <div class="trip-list">
+        @for (trip of rows(); track trip.id) {
+          <app-trip-card [shipping]="trip" (selected)="openDetail($event)"></app-trip-card>
+        }
+      </div>
+      @if (total() > limit()) {
+        <div class="trip-pager">
+          <span>{{ rangeLabel() }}</span>
+          <div class="trip-pager__nav">
+            <button type="button" (click)="goPage(page() - 1)" [disabled]="page() <= 1">Anterior</button>
+            <button
+              type="button"
+              (click)="goPage(page() + 1)"
+              [disabled]="page() * limit() >= total()"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      }
+    }
+  }
+</div>

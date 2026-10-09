@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import {
   LucideAngularModule,
@@ -396,6 +396,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     public posState: PosStateService,
     private authService: AuthService,
     private route: ActivatedRoute,
+    private router: Router,
     private toast: ToastService,
     private dialog: MatDialog,
     private exchangeRateService: ExchangeRateService,
@@ -1157,10 +1158,14 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   openCustomerCreditSettings(): void {
-    this.openCustomerEditModal('credit');
+    const customerId = this.selectedCustomerId();
+    if (!customerId) {
+      return;
+    }
+    void this.router.navigate(['/customers/detail', customerId], { queryParams: { tab: 'credit' } });
   }
 
-  openCustomerEditModal(tab: 'customer' | 'credit' | 'fiscal' | 'registration' = 'customer'): void {
+  openCustomerEditModal(tab: 'customer' | 'fiscal' | 'registration' = 'customer'): void {
     const customer = this.selectedCustomerDetail();
     if (!customer) {
       return;

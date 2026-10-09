@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -26,6 +26,7 @@ import {
   WarehouseControlView,
 } from '../../models/warehouse-control.model';
 import { WarehouseControlService } from '../../services/warehouse-control.service';
+import { AddToShippingDialogComponent } from '../add-to-shipping-dialog/add-to-shipping-dialog.component';
 
 export interface WarehouseControlDetailPanelData {
   jobId: string;
@@ -51,6 +52,7 @@ export class WarehouseControlDetailPanelComponent implements OnInit {
   job = signal<WarehouseControlJob | null>(null);
   loading = signal(true);
   acting = signal(false);
+  missingOpen = signal(false);
   notes = '';
   selectedPositionId = '';
   freePositions = signal<WarehouseControlPosition[]>([]);
@@ -95,11 +97,17 @@ export class WarehouseControlDetailPanelComponent implements OnInit {
     const status = this.job()?.status;
     return status === 'waiting_assembly' || status === 'assembling';
   });
-  canCorroborate = computed(() => {
-    if (!this.canManageDesk()) return false;
+  canFinishAssembly = computed(() => {
+    if (!this.canManageDesk() || !this.allClosed()) return false;
     const status = this.job()?.status;
-    if (status === 'assembled' || status === 'assembling') return true;
-    return status === 'waiting_assembly' && !this.hasPositionsCatalog();
+    return status === 'assembling' || status === 'waiting_assembly';
+  });
+  canCorroborate = computed(() => this.canFinishAssembly());
+  canAddToShipping = computed(() => {
+    const job = this.job();
+    if (!job) return false;
+    const orderStatus = job.sales_order?.general_status;
+    return job.status === 'assembled' || orderStatus === 'Lista para entrega';
   });
 
   constructor(
@@ -107,7 +115,8 @@ export class WarehouseControlDetailPanelComponent implements OnInit {
     private dialogRef: MatDialogRef<WarehouseControlDetailPanelComponent, boolean>,
     private warehouseControlService: WarehouseControlService,
     private toast: ToastService,
-    private authService: AuthService
+    private authService: AuthService,
+    private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -223,7 +232,21 @@ export class WarehouseControlDetailPanelComponent implements OnInit {
   }
 
   missingLabel(item: { product_name?: string; warehouse_name?: string }): string {
-    return `Falta ${item.product_name || 'producto'} — ${item.warehouse_name || 'almacén'}`;
+    return `${item.product_name || 'Producto'} · ${item.warehouse_name || 'Almacén'}`;
+  }
+
+  missingPreview(): string {
+    const items = this.missing();
+    if (!items.length) return '';
+    if (items.length === 1) return this.missingLabel(items[0]);
+    const shown = items.slice(0, 2).map((item) => item.product_name || 'Producto');
+    const extra = items.length - shown.length;
+    return extra > 0 ? `${shown.join(', ')} +${extra}` : shown.join(', ');
+  }
+
+  toggleMissing(): void {
+    if (this.missing().length < 2) return;
+    this.missingOpen.update((open) => !open);
   }
 
   close(): void {
@@ -253,9 +276,22 @@ export class WarehouseControlDetailPanelComponent implements OnInit {
     const payload = this.notes.trim() ? { notes: this.notes.trim() } : undefined;
     this.run(
       () => this.warehouseControlService.corroborate(this.data.jobId, payload),
-      'Orden corroborada. Lista para entrega.',
-      true
+      'Orden armada. Ya se puede agregar a un viaje en Creado.',
     );
+  }
+
+  addToShipping(): void {
+    const job = this.job();
+    const salesOrderId = job?.sales_order_id || job?.sales_order?.id;
+    if (!salesOrderId) return;
+    this.dialog.open(AddToShippingDialogComponent, {
+      width: '440px',
+      maxWidth: '96vw',
+      data: {
+        salesOrderId,
+        billingBranchId: this.data.billingBranchId || job?.billing_branch?.id,
+      },
+    });
   }
 
   private run(

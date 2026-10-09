@@ -75,6 +75,21 @@ export function fiveDigitPostalCode(value?: string | null): string {
   return digits.length >= 5 ? digits.slice(0, 5) : '';
 }
 
+export type CfdiPersonKind = 'fisica' | 'moral';
+
+/** 13 caracteres = física, 12 = moral. El SAT usa esa longitud para CFDI40158. */
+export function receptorPersonKind(rfc: string | null | undefined): CfdiPersonKind | null {
+  const clean = String(rfc ?? '').replace(/[\s-]/g, '').toUpperCase();
+  if (clean.length === 13) return 'fisica';
+  if (clean.length === 12) return 'moral';
+  return null;
+}
+
+export function defaultRegimenReceptor(order: SalesOrder): string {
+  if (isGenericPublicReceptor(order)) return '616';
+  return receptorPersonKind(order.customer?.fiscal_rfc) === 'fisica' ? '612' : '601';
+}
+
 export function isGenericPublicReceptor(order: SalesOrder): boolean {
   const rfc = String(order.customer?.fiscal_rfc ?? '')
     .replace(/[\s-]/g, '')
@@ -234,7 +249,8 @@ export function buildCfdiXml(context: CfdiBuildContext): string {
     ? SAT_GENERIC_PUBLIC_NAME
     : getCustomerField(order, 'fiscal_razon_social');
   const regimenEmisor = satCatalogCode(fiscal?.fiscal_regime, '601');
-  const regimenReceptor = satCatalogCode(form.regimenReceptor, '601');
+  const regimenReceptor = genericPublic ? '616' : satCatalogCode(form.regimenReceptor, defaultRegimenReceptor(order));
+  const usoCfdi = genericPublic ? 'S01' : form.usoCfdi;
   const series = form.series?.trim() || '';
   const serieAttr = series ? ` Serie="${escapeXml(series)}"` : '';
   const discountAttr = parseNum(discount) > 0 ? ` Descuento="${discount}"` : '';
@@ -245,7 +261,7 @@ export function buildCfdiXml(context: CfdiBuildContext): string {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0"${serieAttr} Folio="${escapeXml(form.folio)}" Fecha="${cfdiFechaLocal()}" SubTotal="${subtotal}"${discountAttr} Total="${total}" Moneda="MXN" TipoDeComprobante="I" Exportacion="01" MetodoPago="${form.metodoPago}" FormaPago="${escapeXml(form.formaPago)}" LugarExpedicion="${escapeXml(lugarExpedicion)}">
   <cfdi:Emisor Rfc="${escapeXml(emisorRfc)}" Nombre="${escapeXml(emisorNombre)}" RegimenFiscal="${escapeXml(regimenEmisor)}"/>
-  <cfdi:Receptor Rfc="${escapeXml(receptorRfc)}" Nombre="${escapeXml(receptorNombre)}" DomicilioFiscalReceptor="${escapeXml(domicilioReceptor)}" RegimenFiscalReceptor="${escapeXml(regimenReceptor)}" UsoCFDI="${escapeXml(form.usoCfdi)}"/>
+  <cfdi:Receptor Rfc="${escapeXml(receptorRfc)}" Nombre="${escapeXml(receptorNombre)}" DomicilioFiscalReceptor="${escapeXml(domicilioReceptor)}" RegimenFiscalReceptor="${escapeXml(regimenReceptor)}" UsoCFDI="${escapeXml(usoCfdi)}"/>
   <cfdi:Conceptos>${built.map((row) => row.xml).join('')}
   </cfdi:Conceptos>${buildComprobanteImpuestos(built)}
 </cfdi:Comprobante>`;
@@ -289,10 +305,10 @@ export function defaultCfdiWizardForm(order: SalesOrder): CfdiWizardFormValues {
   return {
     series: fiscalPrefixAsSeries(order),
     folio: String(order.folio || ''),
-    usoCfdi: 'G03',
+    usoCfdi: isGenericPublicReceptor(order) ? 'S01' : 'G03',
     formaPago: paymentStatus === 'pagado' ? '03' : '99',
     metodoPago: paymentStatus === 'pagado' ? 'PUE' : 'PPD',
-    regimenReceptor: '601',
+    regimenReceptor: defaultRegimenReceptor(order),
     domicilioFiscalReceptor: getReceptorDomicilioFiscal(order),
   };
 }

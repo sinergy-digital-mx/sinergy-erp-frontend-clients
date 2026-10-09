@@ -5,8 +5,8 @@ import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import {
   CFDI_FORMA_PAGO_OPTIONS,
-  CFDI_REGIMEN_RECEPTOR_OPTIONS,
   CFDI_USO_OPTIONS,
+  regimenOptionsForPerson,
   defaultStampEnvironment,
   FinkokConfigurationsResponse,
   getFinkokEnvironmentConfig,
@@ -27,6 +27,7 @@ import {
   getLugarExpedicion,
   getReceptorDomicilioFiscal,
   isGenericPublicReceptor,
+  receptorPersonKind,
   SAT_GENERIC_PUBLIC_NAME,
   SAT_GENERIC_PUBLIC_RFC,
 } from '../../utils/cfdi-xml-builder.util';
@@ -66,7 +67,6 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
 
   readonly usoOptions = CFDI_USO_OPTIONS;
   readonly formaPagoOptions = CFDI_FORMA_PAGO_OPTIONS;
-  readonly regimenOptions = CFDI_REGIMEN_RECEPTOR_OPTIONS;
 
   selectedEnvConfig = computed(() =>
     getFinkokEnvironmentConfig(this.finkokConfig(), this.stampEnvironment())
@@ -124,10 +124,13 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
     this.form = this.fb.group({
       series: [defaults.series],
       folio: [defaults.folio, Validators.required],
-      usoCfdi: [defaults.usoCfdi, Validators.required],
+      usoCfdi: [{ value: defaults.usoCfdi, disabled: isGenericPublicReceptor(data.order) }, Validators.required],
       formaPago: [defaults.formaPago, Validators.required],
       metodoPago: [defaults.metodoPago, Validators.required],
-      regimenReceptor: [defaults.regimenReceptor, Validators.required],
+      regimenReceptor: [
+        { value: defaults.regimenReceptor, disabled: isGenericPublicReceptor(data.order) },
+        Validators.required,
+      ],
       domicilioFiscalReceptor: [{ value: defaults.domicilioFiscalReceptor, disabled: true }],
       xml: ['', Validators.required],
     });
@@ -202,6 +205,22 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
     return this.isGenericPublic
       ? SAT_GENERIC_PUBLIC_NAME
       : this.customer?.fiscal_razon_social?.trim() || '';
+  }
+
+  get receptorKind() {
+    if (this.isGenericPublic) return 'fisica' as const;
+    return receptorPersonKind(this.receptorRfc);
+  }
+
+  get regimenOptions() {
+    return regimenOptionsForPerson(this.receptorKind);
+  }
+
+  get receptorPersonLabel(): string {
+    if (this.isGenericPublic) return 'Público en general';
+    if (this.receptorKind === 'fisica') return 'Persona física';
+    if (this.receptorKind === 'moral') return 'Persona moral';
+    return '';
   }
 
   formatCurrency(value: number | string | undefined | null): string {

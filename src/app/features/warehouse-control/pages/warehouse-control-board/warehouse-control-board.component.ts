@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -11,17 +11,24 @@ import { SpinnerComponent } from '../../../../core/components/spinner/spinner.co
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { BranchService } from '../../../settings/services/branch.service';
+import { AddToShippingDialogComponent } from '../../components/add-to-shipping-dialog/add-to-shipping-dialog.component';
 import { WarehouseControlDetailPanelComponent } from '../../components/warehouse-control-detail-panel/warehouse-control-detail-panel.component';
+import { WarehouseControlProgressComponent } from '../../components/warehouse-control-progress/warehouse-control-progress.component';
+import { WarehousePickLinesDialogComponent } from '../../components/warehouse-pick-lines-dialog/warehouse-pick-lines-dialog.component';
 import { WAREHOUSE_CONTROL_PERMISSIONS } from '../../config/permissions.config';
 import {
   AssignedWarehouse,
+  allTasksClosed,
   jobCustomerName,
   EMPTY_WAREHOUSE_CONTROL_STATS,
+  matchesPickPosition,
+  matchesPickStatus,
   readCachedWarehouseControlBranchId,
   resolveWarehouseControlView,
   writeCachedWarehouseControlBranchId,
-  taskLineOrderedQty,
+  taskLineSalesOrderedQty,
   taskProgress,
+  WarehousePickStatusFilter,
   warehouseControlJobStatusLabel,
   warehouseControlJobStatusTooltip,
   warehouseKindFromLabel,
@@ -31,11 +38,9 @@ import {
   warehouseNameOf,
   WarehouseControlBoardResponse,
   WarehouseControlJob,
-  WarehouseControlJobStatus,
   WarehouseControlPosition,
   WarehouseControlStats,
   WarehouseControlTask,
-  WarehouseControlTaskLine,
   WarehouseControlView,
 } from '../../models/warehouse-control.model';
 import { WarehouseControlService } from '../../services/warehouse-control.service';
@@ -57,13 +62,13 @@ interface PickRow {
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     ReactiveFormsModule,
     RouterLink,
     EmptyStageComponent,
     FilterClearButtonComponent,
     SpinnerComponent,
     MatTooltipModule,
+    WarehouseControlProgressComponent,
   ],
   templateUrl: './warehouse-control-board.component.html',
   styleUrl: './warehouse-control-board.component.scss',
@@ -81,22 +86,14 @@ export class WarehouseControlBoardComponent implements OnInit, OnDestroy {
   positions = signal<WarehouseControlPosition[]>([]);
   queue = signal<WarehouseControlJob[]>([]);
   view = signal<WarehouseControlView>('admin');
+  adminPane = signal<'desk' | 'progress'>('desk');
   assignedWarehouses = signal<AssignedWarehouse[]>([]);
-  partialTaskId = signal<string | null>(null);
-  partialQty: Record<string, number> = {};
+  pickStatusFilter = signal<WarehousePickStatusFilter>('all');
+  pickPositionFilter = signal('all');
 
   searchControl = new FormControl('', { nonNullable: true });
   branchControl = new FormControl('', { nonNullable: true });
   statusControl = new FormControl('', { nonNullable: true });
-
-  readonly jobStatuses: Array<{ value: WarehouseControlJobStatus | ''; label: string }> = [
-    { value: '', label: 'Todos los estados' },
-    { value: 'released', label: 'Por surtir' },
-    { value: 'picking', label: 'Picking' },
-    { value: 'waiting_assembly', label: 'Esperando armado' },
-    { value: 'assembling', label: 'Armando' },
-    { value: 'assembled', label: 'Armada' },
-  ];
 
   floorGrid = computed(() => this.buildFloorGrid(this.positions()));
   pickRows = computed<PickRow[]>(() => {
@@ -107,6 +104,49 @@ export class WarehouseControlBoardComponent implements OnInit, OnDestroy {
       }
     }
     return rows;
+  });
+  filteredPickRows = computed(() =>
+    this.pickRows().filter(
+      (row) =>
+        matchesPickStatus(row.task.status, this.pickStatusFilter()) &&
+        matchesPickPosition(row.job.position?.code, this.pickPositionFilter())
+    )
+  );
+  pickStatusCounts = computed(() => {
+    const counts: Record<WarehousePickStatusFilter, number> = {
+      all: 0,
+      pending: 0,
+      in_progress: 0,
+      picked: 0,
+      short: 0,
+    };
+    for (const row of this.pickRows()) {
+      if (!matchesPickPosition(row.job.position?.code, this.pickPositionFilter())) continue;
+      counts.all += 1;
+      if (row.task.status === 'pending') counts.pending += 1;
+      else if (row.task.status === 'in_progress') counts.in_progress += 1;
+      else if (row.task.status === 'picked') counts.picked += 1;
+      else if (row.task.status === 'short') counts.short += 1;
+    }
+    return counts;
+  });
+  pickPositionOptions = computed(() => {
+    const counts = new Map<string, number>();
+    const known = new Set<string>();
+    let none = 0;
+    let all = 0;
+    let hasUnassigned = false;
+    for (const row of this.pickRows()) {
+      const code = row.job.position?.code?.trim() || '';
+      if (!code) hasUnassigned = true;
+      else known.add(code);
+      if (!matchesPickStatus(row.task.status, this.pickStatusFilter())) continue;
+      all += 1;
+      if (!code) none += 1;
+      else counts.set(code, (counts.get(code) ?? 0) + 1);
+    }
+    const codes = [...known].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+    return { all, none, codes, counts, hasUnassigned };
   });
   freePositions = computed(() => this.positions().filter((p) => !p.occupied));
   hasPositionsCatalog = computed(() => this.positions().length > 0);
@@ -148,17 +188,16 @@ export class WarehouseControlBoardComponent implements OnInit, OnDestroy {
     fill: string;
     status: string;
   }> = [
-    { key: 'released', label: 'Por surtir', fill: 'slate', status: 'released' },
+    { key: 'queue', label: 'Por surtir', fill: 'slate', status: 'queue' },
     { key: 'picking', label: 'Picking', fill: 'amber', status: 'picking' },
-    { key: 'waiting_assembly', label: 'Esperando armado', fill: 'sky', status: 'waiting_assembly' },
     { key: 'assembling', label: 'Armando', fill: 'violet', status: 'assembling' },
     { key: 'assembled', label: 'Armadas', fill: 'emerald', status: 'assembled' },
+    { key: 'assembled_today', label: 'Hoy', fill: 'slate', status: 'today' },
   ];
 
   readonly statusLegend: Array<{ status: string; label: string; dot: string }> = [
     { status: 'released', label: 'Por surtir', dot: 'released' },
     { status: 'picking', label: 'Picking', dot: 'picking' },
-    { status: 'waiting_assembly', label: 'Esperando armado', dot: 'waiting_assembly' },
     { status: 'assembling', label: 'Armando', dot: 'assembling' },
     { status: 'assembled', label: 'Armada', dot: 'assembled' },
   ];
@@ -258,10 +297,10 @@ export class WarehouseControlBoardComponent implements OnInit, OnDestroy {
       .getBoard({
         billing_branch_id: this.branchControl.value || undefined,
         search: this.searchControl.value.trim() || undefined,
-        status: this.statusControl.value || undefined,
+        stage: this.statusControl.value || undefined,
         view: this.view(),
         page: 1,
-        limit: 50,
+        limit: 200,
       })
       .subscribe({
         next: (board) => {
@@ -319,6 +358,47 @@ export class WarehouseControlBoardComponent implements OnInit, OnDestroy {
       });
   }
 
+  canMarkAssembled(job: WarehouseControlJob): boolean {
+    const status = job.status;
+    return (
+      (status === 'assembling' || status === 'waiting_assembly') && allTasksClosed(job.tasks)
+    );
+  }
+
+  canAddToShipping(job: WarehouseControlJob): boolean {
+    return job.status === 'assembled' || job.sales_order?.general_status === 'Lista para entrega';
+  }
+
+  markAssembled(job: WarehouseControlJob, event?: Event): void {
+    event?.stopPropagation();
+    this.runAction(
+      () => this.warehouseControlService.corroborate(job.id),
+      'Orden armada. Ya se puede agregar a un viaje en Creado.',
+    );
+  }
+
+  addToShipping(job: WarehouseControlJob, event?: Event): void {
+    event?.stopPropagation();
+    const salesOrderId = job.sales_order_id || job.sales_order?.id;
+    if (!salesOrderId) return;
+    this.dialog
+      .open(AddToShippingDialogComponent, {
+        width: '440px',
+        maxWidth: '96vw',
+        data: {
+          salesOrderId,
+          billingBranchId: this.branchControl.value || job.billing_branch?.id,
+        },
+      })
+      .afterClosed()
+      .subscribe((added) => {
+        if (added) {
+          this.toast.success('Orden agregada al viaje');
+          this.loadBoard();
+        }
+      });
+  }
+
   assignNextFree(jobId: string, event?: Event): void {
     event?.stopPropagation();
     this.runAction(() => this.warehouseControlService.assignPosition(jobId), 'Posición asignada');
@@ -346,41 +426,52 @@ export class WarehouseControlBoardComponent implements OnInit, OnDestroy {
     );
   }
 
-  togglePartial(task: WarehouseControlTask, event?: Event): void {
+  openPickLines(job: WarehouseControlJob, task: WarehouseControlTask, event?: Event): void {
     event?.stopPropagation();
-    if (this.partialTaskId() === task.id) {
-      this.partialTaskId.set(null);
-      return;
-    }
-    this.partialTaskId.set(task.id);
-    this.partialQty = {};
-    for (const line of task.lines ?? []) {
-      this.partialQty[line.id] = taskLineOrderedQty(line);
-    }
+    this.dialog
+      .open(WarehousePickLinesDialogComponent, {
+        width: '720px',
+        maxWidth: 'calc(100vw - 1.5rem)',
+        maxHeight: '86vh',
+        panelClass: 'wc-pick-lines-panel',
+        autoFocus: false,
+        data: { job, task },
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed) this.loadBoard();
+      });
   }
 
-  completePartial(job: WarehouseControlJob, task: WarehouseControlTask, event?: Event): void {
-    event?.stopPropagation();
-    const lines = (task.lines ?? [])
-      .filter((line) => !!line.id)
-      .map((line) => ({
-        id: line.id,
-        quantity_base_picked: Number(this.partialQty[line.id] ?? 0),
-      }));
-    const hasShort = lines.some((line, index) => {
-      const ordered = taskLineOrderedQty(task.lines?.[index] ?? { id: line.id });
-      return line.quantity_base_picked < ordered;
-    });
-    this.runAction(
-      () => this.warehouseControlService.completeTask(job.id, task.id, { lines }),
-      hasShort ? 'Surtido con faltante' : 'Almacén surtido'
-    );
+  setPickStatus(status: WarehousePickStatusFilter): void {
+    this.pickStatusFilter.set(status);
   }
 
-  isPartialShort(task: WarehouseControlTask): boolean {
-    return (task.lines ?? []).some(
-      (line) => Number(this.partialQty[line.id] ?? 0) < taskLineOrderedQty(line)
-    );
+  setPickPosition(code: string): void {
+    this.pickPositionFilter.set(code);
+  }
+
+  positionCount(code: string): number {
+    return this.pickPositionOptions().counts.get(code) ?? 0;
+  }
+
+  setAdminPane(pane: 'desk' | 'progress'): void {
+    this.adminPane.set(pane);
+  }
+
+  activeStageLabel(): string {
+    const value = this.statusControl.value;
+    return this.statusRows.find((row) => row.status === value)?.label || '';
+  }
+
+  pickSummary(task: WarehouseControlTask): string {
+    const lines = task.lines ?? [];
+    const count = lines.length || Number(task.lines_count ?? task.lines_total ?? 0);
+    const qty = lines.length
+      ? lines.reduce((sum, line) => sum + taskLineSalesOrderedQty(line), 0)
+      : Number(task.quantity_requested_total ?? 0);
+    const products = count === 1 ? '1 producto' : `${count} productos`;
+    return `${products} · Pedido ${this.formatLineQty(qty)}`;
   }
 
   customerName(job: WarehouseControlJob): string {
@@ -469,6 +560,23 @@ export class WarehouseControlBoardComponent implements OnInit, OnDestroy {
     }
   }
 
+  listTitle(): string {
+    switch (this.statusControl.value) {
+      case 'queue':
+        return 'Por surtir';
+      case 'picking':
+        return 'En picking';
+      case 'assembling':
+        return 'Armando';
+      case 'assembled':
+        return 'Armadas';
+      case 'today':
+        return 'Armadas hoy';
+      default:
+        return 'Órdenes en mesa';
+    }
+  }
+
   filterByStatus(status: string): void {
     const next = this.statusControl.value === status ? '' : status;
     this.statusControl.setValue(next);
@@ -492,10 +600,6 @@ export class WarehouseControlBoardComponent implements OnInit, OnDestroy {
     return new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(n);
   }
 
-  lineOrdered(line: WarehouseControlTaskLine): string {
-    return this.formatLineQty(taskLineOrderedQty(line));
-  }
-
   isKpiActive(status: string): boolean {
     return !!status && this.statusControl.value === status;
   }
@@ -512,6 +616,19 @@ export class WarehouseControlBoardComponent implements OnInit, OnDestroy {
       customer_name: full.customer_name || job.customer_name,
       customer_display_name: full.customer_display_name || job.customer_display_name,
     };
+  }
+
+  bayFocused(cell: FloorCell): boolean {
+    const filter = this.pickPositionFilter();
+    return this.view() === 'warehouse' && filter !== 'all' && filter !== 'none' && cell.position?.code === filter;
+  }
+
+  bayDimmed(cell: FloorCell): boolean {
+    if (this.view() !== 'warehouse') return false;
+    const filter = this.pickPositionFilter();
+    if (!filter || filter === 'all') return false;
+    if (filter === 'none') return Boolean(cell.position?.occupied);
+    return cell.position?.code !== filter;
   }
 
   onCellClick(cell: FloorCell): void {

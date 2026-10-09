@@ -11,11 +11,19 @@ export interface Truck {
   tipo_auto_transporte?: string | null;
   aseguradora_rc?: string | null;
   poliza_rc?: string | null;
+  peso_bruto_vehicular?: number | null;
+  carta_porte_ready?: boolean;
+  carta_porte_missing?: string[];
   subtipo_remolque1?: string | null;
   placa_remolque1?: string | null;
   /** URL firmada (~15 min); null si no hay foto */
   photo?: string | null;
   status: TruckStatus;
+  gps_unit_uid?: string | null;
+  gps_unit_name?: string | null;
+  /** Envío Creado o En Ruta que ya usa esta unidad. */
+  active_shipping_id?: string | null;
+  active_shipping_status?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -30,8 +38,11 @@ export interface CreateTruckDto {
   tipo_auto_transporte?: string;
   aseguradora_rc?: string;
   poliza_rc?: string;
+  peso_bruto_vehicular?: number;
   subtipo_remolque1?: string;
   placa_remolque1?: string;
+  gps_unit_uid?: string | null;
+  gps_unit_name?: string | null;
 }
 
 export type UpdateTruckDto = Partial<CreateTruckDto>;

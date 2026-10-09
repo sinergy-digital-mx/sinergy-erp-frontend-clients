@@ -51,6 +51,7 @@ import {
   parsePurchaseOrderDecimal,
 } from '../../utils/purchase-order-display.util';
 import { RealCostPreview } from '../../utils/purchase-order-real-cost-preview.util';
+import { canViewPurchaseOrderRealCost } from '../../utils/purchase-order-real-cost-access.util';
 import {
   PurchaseOrderPedimentoDialogComponent,
   PurchaseOrderPedimentoDialogResult,
@@ -124,6 +125,8 @@ export class OrderDetailDialogComponent {
     return (order?.general_status ?? order?.status) === 'Recibida'
       && this.authService.hasPermission(PURCHASE_ORDER_PERMISSIONS.correctReceipt);
   });
+
+  canViewRealCost = computed(() => canViewPurchaseOrderRealCost(this.authService));
 
   canAddPayment = computed(() => {
     const order = this.order();
@@ -502,6 +505,9 @@ export class OrderDetailDialogComponent {
   }
 
   hasLandedExpenseTotals(): boolean {
+    if (!this.canViewRealCost()) {
+      return false;
+    }
     const extras = this.landedAmountInPaymentCurrency('extras');
     return extras != null && extras > 0;
   }
@@ -1158,10 +1164,14 @@ export class OrderDetailDialogComponent {
 
   getMovementsCount(): number {
     const order = this.order();
+    const movements = order?.movements;
+    if (Array.isArray(movements) && !this.canViewRealCost()) {
+      return movements.filter((item) => item.type !== 'real_cost_updated').length;
+    }
     if (order?.movements_count != null) {
       return order.movements_count;
     }
-    return order?.movements?.length ?? 0;
+    return movements?.length ?? 0;
   }
 
   getPaymentsCount(): number {

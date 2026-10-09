@@ -16,6 +16,7 @@ import {
   Package,
   Search,
   Send,
+  Radio,
   Shield,
   Tag,
   Target,
@@ -25,6 +26,7 @@ import {
 import { AuthService } from '../../../../core/services/auth.service';
 import { Subscription } from 'rxjs';
 import { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../../madereria-inventory-import/config/permissions.config';
+import { GPS_TRACKING_PERMISSIONS } from '../../../logistics/config/permissions.config';
 import { canShowSettings } from '../../../settings/guards/settings-access.guard';
 
 interface SettingsSection {
@@ -34,6 +36,8 @@ interface SettingsSection {
   icon: LucideIconData;
   route: string;
   permissions: string[];
+  /** Solo si el permiso viene en la sesión. No basta con ser administrador de otra organización. */
+  requireGranted?: boolean;
 }
 
 /**
@@ -384,6 +388,15 @@ export class SettingsComponent implements OnInit, OnDestroy {
       icon: Send,
       route: 'mailer-configurations',
       permissions: []
+    },
+    {
+      id: 'gps-tracking',
+      title: 'Rastreo GPS',
+      description: 'Configura la cuenta de 3D Tracking para consultar la posición de los camiones',
+      icon: Radio,
+      route: 'gps-tracking',
+      permissions: [GPS_TRACKING_PERMISSIONS.viewMenu, GPS_TRACKING_PERMISSIONS.read],
+      requireGranted: true,
     }
   ];
 
@@ -411,6 +424,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
    * Check if user has permission to access a section
    */
   hasAccess(section: SettingsSection): boolean {
+    if (section.requireGranted) {
+      return (section.permissions ?? []).some((permission) =>
+        this.authService.hasGrantedPermission(permission)
+      );
+    }
     if (this.authService.hasAdminRole()) {
       return true;
     }

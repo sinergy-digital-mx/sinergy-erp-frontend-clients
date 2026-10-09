@@ -3,9 +3,11 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { SalesOrderService } from '../../services/sales-order.service';
+import { SalesOrderControlDeskTabComponent } from '../sales-order-control-desk-tab/sales-order-control-desk-tab.component';
 import {
   SalesDocumentLanguage,
   SalesOrder,
@@ -88,6 +90,7 @@ import { SalesOrderShippingTabComponent } from '../sales-order-shipping-tab/sale
 import { SalesOrderCreditTabComponent } from '../sales-order-credit-tab/sales-order-credit-tab.component';
 import { SalesOrderSubscriptionLinkComponent } from '../sales-order-subscription-link/sales-order-subscription-link.component';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
+import { SalesOrderPaymentComplementStatus } from '../../models/sales-order-electronic-invoice.model';
 import { AdvanceInvoiceDialogComponent } from '../advance-invoice-dialog/advance-invoice-dialog.component';
 import { countVigenteInvoices } from '../../utils/cfdi-xml-builder.util';
 import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
@@ -169,6 +172,7 @@ const INSTRUCTION_SECTIONS: InstructionSection[] = [
     SalesOrderInvoiceEmailTabComponent,
     SalesOrderShippingTabComponent,
     SalesOrderCreditTabComponent,
+    SalesOrderControlDeskTabComponent,
     SalesOrderSubscriptionLinkComponent,
   ],
   templateUrl: './sales-order-detail-dialog.component.html',
@@ -273,10 +277,19 @@ export class SalesOrderDetailDialogComponent {
   invoiceSummary = signal<string | null>(null);
   invoicesCount = signal(0);
   invoiceEmailsCount = signal(0);
+  paymentComplement = signal<SalesOrderPaymentComplementStatus | null>(null);
+  stampingPaymentComplement = signal(false);
+  openingPaymentComplementPdf = signal(false);
 
   canViewInvoicingTab = computed(() =>
     this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.viewMenu) &&
     this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.read)
+  );
+
+  canStampPaymentComplement = computed(
+    () =>
+      this.authService.hasAdminRole() ||
+      this.authService.hasPermission(ELECTRONIC_INVOICING_PERMISSIONS.stamp),
   );
 
   canViewShippingTab = computed(() =>
@@ -321,6 +334,7 @@ export class SalesOrderDetailDialogComponent {
         this.loading.set(false);
         this.refreshing.set(false);
         this.loadInvoiceSummaryIfAllowed();
+        this.loadPaymentComplement();
       },
       error: () => {
         this.loading.set(false);
@@ -1027,6 +1041,90 @@ export class SalesOrderDetailDialogComponent {
   getPaymentCurrency(): SalesOrderPaymentCurrency {
     const currency = this.order()?.payments_summary?.currency;
     return currency === 'USD' ? 'USD' : 'MXN';
+  }
+
+  showPaymentComplementCard(): boolean {
+    const status = this.paymentComplement();
+    if (!this.canViewInvoicingTab() || !status) return false;
+    return status.paid || !!status.payment_complement;
+  }
+
+  generatePaymentComplement(): void {
+    if (
+      !this.canStampPaymentComplement() ||
+      !this.paymentComplement()?.can_generate ||
+      this.stampingPaymentComplement()
+    ) {
+      return;
+    }
+    this.stampingPaymentComplement.set(true);
+    this.invoiceService.stampPaymentComplement(this.data.orderId).subscribe({
+      next: () => {
+        this.stampingPaymentComplement.set(false);
+        this.toast.success('CEP timbrado');
+        this.loadPaymentComplement();
+        this.loadInvoiceSummaryIfAllowed();
+      },
+      error: (error) => {
+        this.stampingPaymentComplement.set(false);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo timbrar el CEP'), {
+          duration: 12000,
+        });
+      },
+    });
+  }
+
+  openPaymentComplementPdf(): void {
+    const complement = this.paymentComplement()?.payment_complement;
+    if (!complement?.id || this.openingPaymentComplementPdf()) return;
+    this.openingPaymentComplementPdf.set(true);
+    this.invoiceService.getInvoicePdf(this.data.orderId, complement.id).subscribe({
+      next: (response) => {
+        this.openingPaymentComplementPdf.set(false);
+        if (!response.signedUrl) {
+          this.toast.error('No se recibió la URL del PDF');
+          return;
+        }
+        window.open(response.signedUrl, '_blank', 'noopener,noreferrer');
+      },
+      error: (error) => {
+        this.openingPaymentComplementPdf.set(false);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo abrir el PDF del CEP'));
+      },
+    });
+  }
+
+  downloadPaymentComplementXml(): void {
+    const complement = this.paymentComplement()?.payment_complement;
+    if (!complement?.id) return;
+    this.invoiceService.getInvoiceXml(this.data.orderId, complement.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${complement.uuid || 'cep'}.xml`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo descargar el XML del CEP'));
+      },
+    });
+  }
+
+  private loadPaymentComplement(): void {
+    if (
+      !this.canViewInvoicingTab() ||
+      this.getPaymentStatus() !== 'Pagado' ||
+      this.getOrderTotalForPayments() <= 0
+    ) {
+      this.paymentComplement.set(null);
+      return;
+    }
+    this.invoiceService.getPaymentComplement(this.data.orderId).subscribe({
+      next: (status) => this.paymentComplement.set(status),
+      error: () => this.paymentComplement.set(null),
+    });
   }
 
   getPaymentStatus(): string {

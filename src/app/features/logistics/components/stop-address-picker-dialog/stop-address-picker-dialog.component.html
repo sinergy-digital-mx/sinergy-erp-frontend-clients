@@ -1,0 +1,53 @@
+<div class="picker">
+  <header class="picker__header">
+    <div>
+      <h2>Dirección de entrega</h2>
+      <p>{{ data.customerName }}</p>
+    </div>
+    <button type="button" class="picker__close" aria-label="Cerrar" (click)="close()">
+      <lucide-icon [img]="X" [size]="18"></lucide-icon>
+    </button>
+  </header>
+
+  <div class="picker__body">
+    @if (loading() && !addresses().length) {
+      <p class="picker__empty">Cargando direcciones…</p>
+    } @else if (!addresses().length) {
+      <p class="picker__empty">Este cliente no tiene direcciones. Agrega una para usarla en el viaje.</p>
+    } @else {
+      <ul class="picker__list">
+        @for (addr of addresses(); track addr.id) {
+          <li class="picker__item" [class.is-on]="selectedId() === addr.id">
+            <button type="button" class="picker__row" (click)="pick(addr.id)">
+              <span class="picker__type">{{ typeLabel(addr) }}</span>
+              <span class="picker__summary">{{ addr.address_summary || 'Sin calle' }}</span>
+              <span class="picker__meta">
+                @if (addr.is_primary) {
+                  <em>Principal</em>
+                }
+                @if (addr.has_gps === false) {
+                  <em class="is-warn">Sin GPS</em>
+                } @else {
+                  <em class="is-ok">GPS OK</em>
+                }
+              </span>
+            </button>
+            <button type="button" class="picker__edit" (click)="edit(addr)">Editar</button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <footer class="picker__footer">
+    <button type="button" class="picker__add" (click)="addNew()">Agregar dirección</button>
+    <div class="picker__actions">
+      <button type="button" class="picker__cancel" (click)="close()">Cancelar</button>
+      @if (canAssign()) {
+        <button type="button" class="picker__use" [disabled]="selectedId() == null" (click)="useSelected()">
+          Usar dirección
+        </button>
+      }
+    </div>
+  </footer>
+</div>

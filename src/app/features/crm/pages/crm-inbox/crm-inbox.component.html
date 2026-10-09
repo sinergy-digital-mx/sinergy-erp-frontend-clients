@@ -168,15 +168,17 @@
             <th>Estado</th>
             <th>Fecha</th>
             <th>Seguimiento</th>
-            <th class="crm-table__actions">Acciones</th>
           </tr>
         </thead>
         <tbody>
           @for (activity of activities(); track activity.id) {
-            <tr [class.crm-table__row--overdue]="activity.is_overdue_follow_up">
+            <tr
+              [class.crm-table__row--overdue]="activity.is_overdue_follow_up"
+              [class.crm-table__row--clickable]="canUpdate"
+              (click)="openEdit(activity)">
               <td>
                 <div class="crm-party">
-                  <button type="button" class="crm-customer" (click)="openCustomer(activity)">
+                  <button type="button" class="crm-customer" (click)="openCustomer(activity); $event.stopPropagation()">
                     <span>{{ activity.customer?.display_name || ('#' + activity.customer_id) }}</span>
                     <lucide-icon [img]="ExternalLinkIcon" [size]="12"></lucide-icon>
                   </button>
@@ -191,26 +193,11 @@
                 <span [ngClass]="getTypeClass(activity.type)">{{ getTypeLabel(activity.type) }}</span>
               </td>
               <td>
-                @if (canUpdate) {
-                  <button
-                    type="button"
-                    class="crm-activity-open"
-                    (click)="openEdit(activity)"
-                    title="Ver y editar actividad">
-                    <div class="crm-title">{{ activity.title }}</div>
-                    @if (activity.notes) {
-                      <div class="crm-notes">{{ activity.notes }}</div>
-                    } @else if (activity.description) {
-                      <div class="crm-notes">{{ activity.description }}</div>
-                    }
-                  </button>
-                } @else {
-                  <div class="crm-title">{{ activity.title }}</div>
-                  @if (activity.notes) {
-                    <div class="crm-notes">{{ activity.notes }}</div>
-                  } @else if (activity.description) {
-                    <div class="crm-notes">{{ activity.description }}</div>
-                  }
+                <div class="crm-title">{{ activity.title }}</div>
+                @if (activity.notes) {
+                  <div class="crm-notes">{{ activity.notes }}</div>
+                } @else if (activity.description) {
+                  <div class="crm-notes">{{ activity.description }}</div>
                 }
               </td>
               <td>
@@ -229,26 +216,6 @@
                   }
                 } @else {
                   <span class="crm-muted">—</span>
-                }
-              </td>
-              <td class="crm-table__actions">
-                @if (canUpdate && activity.status !== 'completed' && activity.status !== 'cancelled') {
-                  <button
-                    type="button"
-                    class="crm-action crm-action--done"
-                    (click)="markCompleted(activity, $event)"
-                    title="Marcar completada">
-                    <lucide-icon [img]="CheckIcon" [size]="14"></lucide-icon>
-                  </button>
-                }
-                @if (canUpdate) {
-                  <button
-                    type="button"
-                    class="crm-action"
-                    (click)="openEdit(activity)"
-                    title="Editar">
-                    <lucide-icon [img]="PencilIcon" [size]="14"></lucide-icon>
-                  </button>
                 }
               </td>
             </tr>

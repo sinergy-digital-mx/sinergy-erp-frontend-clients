@@ -534,6 +534,10 @@
         { path: '/sales-orders', permissions: ['salesOrders:Read', 'sales_orders:read', 'sales_orders:ViewMenu'] },
         { path: '/quotations', permissions: ['Quotation:Read', 'Quotation:ViewMenu', 'quotation:Read', 'quotation:ViewMenu'] },
         { path: '/warehouse-control', permissions: ['WarehouseControl:Read', 'WarehouseControl:ViewMenu', 'warehousecontrol:Read', 'warehousecontrol:ViewMenu'] },
+        {
+          path: '/logistics',
+          permissions: ['shipping:Read', 'shipping:ViewMenu', 'truck:Read', 'truck:ViewMenu'],
+        },
         { path: '/employees', permissions: ['Employee:Read', 'Employee:ViewMenu', 'employee:Read', 'employee:ViewMenu'] },
         { path: '/settings/goals', permissions: ['goals:Read', 'goals:ViewMenu'] },
         {

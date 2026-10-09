@@ -197,17 +197,6 @@
       </ng-container>
       }
 
-      @if (activeTab() === 'credit' || !isCreateMode()) {
-        <div class="col-span-2" [hidden]="activeTab() !== 'credit'">
-          <app-customer-fiscal-credits
-            [customerId]="data.customer?.id ?? null"
-            [canEdit]="canEditStatus && !isWalkInCustomer()"
-            [walkIn]="isWalkInCustomer()"
-            [showSaveButton]="false">
-          </app-customer-fiscal-credits>
-        </div>
-      }
-
       @if (activeTab() === 'fiscal') {
         <div>
           <app-input

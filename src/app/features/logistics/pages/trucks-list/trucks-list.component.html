@@ -1,50 +1,59 @@
-<div class="settings-list-page px-4 pb-6">
-  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-    <h2 class="text-2xl font-semibold text-gray-800">Camiones</h2>
-
-    <div class="flex flex-wrap items-center gap-3">
-      <app-search class="w-64" [param_activate]="false" (searchChange)="onSearchChange($event)">
-      </app-search>
-
-      <button
-        type="button"
-        class="trucks-active-btn"
-        [class.trucks-active-btn--on]="onlyActive"
-        [attr.aria-pressed]="onlyActive"
-        (click)="onOnlyActiveChange(!onlyActive)"
-      >
-        <span class="trucks-active-btn__check" aria-hidden="true">
-          @if (onlyActive) {
-            <svg viewBox="0 0 16 16" fill="none" width="12" height="12">
-              <path
-                d="M3.5 8.5L6.5 11.5L12.5 4.5"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          }
-        </span>
-        Solo activos
-      </button>
-
-      <app-filter-clear-button [active]="hasActiveFilters" (clear)="clearFilters()">
-      </app-filter-clear-button>
-
-      <app-button
-        *hasPermission="permissions.create"
-        text="Nuevo camión"
-        variant="primary"
-        [fullWidth]="false"
-        (clicked)="openCreate()"
-      >
-      </app-button>
+<div class="logistics-page">
+  <header class="logistics-page__header">
+    <div class="logistics-page__titles">
+      <h2>Flota y remolques</h2>
     </div>
+    <div class="logistics-page__actions">
+      <button
+        *hasPermission="permissions.create"
+        type="button"
+        class="page-create-btn"
+        (click)="openCreate()"
+      >
+        Nuevo camión
+      </button>
+    </div>
+  </header>
+
+  <div class="logistics-toolbar">
+    <input
+      type="search"
+      class="logistics-field logistics-toolbar__search"
+      placeholder="Buscar unidad o placa"
+      aria-label="Buscar unidad o placa"
+      [value]="search"
+      (input)="onSearchInput($any($event.target).value)"
+    />
+
+    <button
+      type="button"
+      class="trucks-active-btn"
+      [class.trucks-active-btn--on]="onlyActive"
+      [attr.aria-pressed]="onlyActive"
+      (click)="onOnlyActiveChange(!onlyActive)"
+    >
+      <span class="trucks-active-btn__check" aria-hidden="true">
+        @if (onlyActive) {
+          <svg viewBox="0 0 16 16" fill="none" width="12" height="12">
+            <path
+              d="M3.5 8.5L6.5 11.5L12.5 4.5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        }
+      </span>
+      Solo activos
+    </button>
+
+    <app-filter-clear-button [active]="hasActiveFilters" (clear)="clearFilters()">
+    </app-filter-clear-button>
   </div>
 
   <app-datatable-wrapper
-    variant="settings"
+    variant="modern"
     [config]="table_config()"
     [rowTemplate]="tableTemplate"
     (pageChange)="onPageChange($event)"
@@ -64,19 +73,32 @@
     </div>
   </td>
   <td>
-    <p class="settings-cell-primary truncate">{{ item.name }}</p>
+    <p class="dt-cell-primary m-0 truncate">{{ item.name }}</p>
   </td>
   <td>
-    <span class="settings-badge settings-badge--code">{{ item.placa }}</span>
+    <span class="dt-folio-badge">{{ item.placa }}</span>
   </td>
   <td>
-    <span [class]="serialNumberOf(item) === '—' ? 'settings-cell-empty' : 'settings-cell-text'">{{ serialNumberOf(item) }}</span>
+    <p class="m-0" [class]="trailerOf(item) === '—' ? 'dt-cell-subtle' : 'dt-cell-muted'">{{ trailerOf(item) }}</p>
   </td>
   <td>
-    <span [class]="item.anio ? 'settings-cell-text' : 'settings-cell-empty'">{{ item.anio || '—' }}</span>
+    <p class="m-0" [class]="serialNumberOf(item) === '—' ? 'dt-cell-subtle' : 'dt-cell-muted'">{{ serialNumberOf(item) }}</p>
   </td>
   <td>
-    <span class="settings-badge" [ngClass]="getStatusClass(item.status)">
+    <p class="m-0" [class]="item.anio ? 'dt-cell-muted' : 'dt-cell-subtle'">{{ item.anio || '—' }}</p>
+  </td>
+  <td>
+    <span
+      class="dt-status-pill"
+      [class.dt-status-pill--success]="item.carta_porte_ready"
+      [class.dt-status-pill--warning]="!item.carta_porte_ready"
+      [title]="(item.carta_porte_missing || []).join('. ')"
+    >
+      {{ item.carta_porte_ready ? 'Lista' : 'Faltan datos' }}
+    </span>
+  </td>
+  <td>
+    <span [ngClass]="getStatusClass(item.status)">
       {{ getStatusLabel(item.status) }}
     </span>
   </td>

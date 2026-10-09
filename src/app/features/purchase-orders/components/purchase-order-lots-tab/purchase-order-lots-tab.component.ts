@@ -1,4 +1,6 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { AuthService } from '../../../../core/services/auth.service';
+import { canViewPurchaseOrderRealCost } from '../../utils/purchase-order-real-cost-access.util';
 import { CommonModule } from '@angular/common';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
 import { inventoryMeasureLabel } from '../../../../core/utils/inventory-measure.util';
@@ -27,6 +29,8 @@ export interface PurchaseOrderLotRow {
   styleUrl: './purchase-order-lots-tab.component.scss',
 })
 export class PurchaseOrderLotsTabComponent {
+  private readonly authService = inject(AuthService);
+
   @Input() lots: PurchaseOrderLotNode[] = [];
   @Input() summary: PurchaseOrderBatchesSummary | null = null;
   @Input() currency: PaymentCurrency = 'MXN';
@@ -150,7 +154,8 @@ export class PurchaseOrderLotsTabComponent {
   }
 
   hasRealCostColumns(): boolean {
-    return this.receivedLots().some((lot) => this.hasRealCost(lot));
+    return canViewPurchaseOrderRealCost(this.authService)
+      && this.receivedLots().some((lot) => this.hasRealCost(lot));
   }
 
   hasRealCost(lot: PurchaseOrderLotNode): boolean {

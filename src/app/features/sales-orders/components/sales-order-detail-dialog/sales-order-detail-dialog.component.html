@@ -608,6 +608,9 @@
           <button type="button" class="tab-button" [class.active]="activeTabIndex() === 8" (click)="activeTabIndex.set(8)">
             Instrucciones
           </button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 9" (click)="activeTabIndex.set(9)">
+            Mesa de Control
+          </button>
         </div>
 
         <div class="tabs-content">
@@ -835,6 +838,52 @@
                   <div class="payments-progress-fill" [style.width.%]="getPaidPercent()"></div>
                 </div>
               </div>
+
+              @if (showPaymentComplementCard()) {
+                <div class="cep-card">
+                  <div class="cep-card__copy">
+                    <p class="cep-card__title">Comprobante electrónico de pago</p>
+                    @if (paymentComplement()?.payment_complement; as cep) {
+                      <p class="cep-card__text">
+                        Timbrado{{ cep.uuid ? ' · ' + cep.uuid : '' }}
+                      </p>
+                    } @else if (paymentComplement()?.can_generate) {
+                      <p class="cep-card__text">
+                        La venta está pagada. Timbrar el CEP ante el SAT con Finkok.
+                      </p>
+                    } @else if (paymentComplement()?.reason) {
+                      <p class="cep-card__text">{{ paymentComplement()?.reason }}</p>
+                    }
+                  </div>
+                  <div class="cep-card__actions">
+                    @if (paymentComplement()?.payment_complement) {
+                      <button
+                        type="button"
+                        class="btn-secondary"
+                        (click)="openPaymentComplementPdf()"
+                        [disabled]="openingPaymentComplementPdf()"
+                      >
+                        PDF
+                      </button>
+                      <button type="button" class="btn-secondary" (click)="downloadPaymentComplementXml()">
+                        XML
+                      </button>
+                    } @else if (paymentComplement()?.can_generate && canStampPaymentComplement()) {
+                      <button
+                        type="button"
+                        class="btn-primary"
+                        (click)="generatePaymentComplement()"
+                        [disabled]="stampingPaymentComplement()"
+                      >
+                        @if (stampingPaymentComplement()) {
+                          <i class="fi fi-rr-spinner animate-spin"></i>
+                        }
+                        Generar CEP
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
 
               @if (payments().length > 0) {
                 <table class="payments-table">
@@ -1171,6 +1220,15 @@
           @if (activeTabIndex() === 7 && order()) {
             <div class="tab-content-wrapper">
               <app-sales-order-credit-tab [order]="order()!" />
+            </div>
+          }
+
+          @if (activeTabIndex() === 9 && order()) {
+            <div class="tab-content-wrapper">
+              <app-sales-order-control-desk-tab
+                [order]="order()!"
+                (changed)="refreshOrder()">
+              </app-sales-order-control-desk-tab>
             </div>
           }
 

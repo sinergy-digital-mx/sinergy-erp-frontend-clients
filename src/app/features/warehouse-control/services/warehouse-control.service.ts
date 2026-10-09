@@ -124,7 +124,9 @@ export class WarehouseControlService {
     if (filters.search?.trim()) {
       params = params.set('search', filters.search.trim());
     }
-    if (filters.status?.trim()) {
+    if (filters.stage?.trim()) {
+      params = params.set('stage', filters.stage.trim());
+    } else if (filters.status?.trim()) {
       params = params.set('status', filters.status.trim());
     }
     if (filters.view) {
@@ -259,8 +261,10 @@ export class WarehouseControlService {
       released: Number(row['released'] ?? 0),
       picking: Number(row['picking'] ?? 0),
       waiting_assembly: Number(row['waiting_assembly'] ?? 0),
+      queue: Number(row['queue'] ?? row['released'] ?? 0),
       assembling: Number(row['assembling'] ?? 0),
       assembled: Number(row['assembled'] ?? 0),
+      assembled_today: Number(row['assembled_today'] ?? 0),
       with_shortage: Number(row['with_shortage'] ?? 0),
       positions_free: Number(row['positions_free'] ?? 0),
       positions_occupied: Number(row['positions_occupied'] ?? 0),
@@ -442,6 +446,9 @@ export class WarehouseControlService {
       lines: this.asArray(row['lines']).map((item) => this.normalizeTaskLine(item)),
       lines_closed: row['lines_closed'] != null ? Number(row['lines_closed']) : undefined,
       lines_total: row['lines_total'] != null ? Number(row['lines_total']) : undefined,
+      lines_count: row['lines_count'] != null ? Number(row['lines_count']) : undefined,
+      quantity_requested_total:
+        row['quantity_requested_total'] != null ? Number(row['quantity_requested_total']) : undefined,
     };
   }
 
@@ -454,21 +461,20 @@ export class WarehouseControlService {
       row['sales_order_line'] && typeof row['sales_order_line'] === 'object'
         ? (row['sales_order_line'] as Record<string, unknown>)
         : {};
-    const ordered = firstPositiveQty(
+    const salesQty = this.asQty(row['quantity']);
+    const baseOrdered = firstPositiveQty(
+      this.asQty(row['quantity_base_requested']),
       this.asQty(row['quantity_base_ordered']),
       this.asQty(row['quantity_ordered']),
       this.asQty(row['ordered_qty']),
       this.asQty(row['qty_ordered']),
       this.asQty(row['quantity_requested']),
       this.asQty(row['requested_qty']),
-      this.asQty(row['qty']),
-      this.asQty(row['quantity']),
       this.asQty(row['quantity_base_uom']),
       this.asQty(row['quantity_base']),
       this.asQty(nested['quantity_base_ordered']),
-      this.asQty(nested['quantity_ordered']),
-      this.asQty(nested['quantity']),
-      this.asQty(nested['qty'])
+      this.asQty(nested['quantity_base_uom']),
+      this.asQty(nested['quantity'])
     );
     return {
       id: String(row['id'] ?? ''),
@@ -476,11 +482,14 @@ export class WarehouseControlService {
       product_name: this.firstString(row['product_name'], nested['product_name']) || undefined,
       product_sku: this.firstString(row['product_sku'], nested['sku'], nested['product_sku']) || undefined,
       uom_name: this.firstString(row['uom_name'], nested['uom_name']) || undefined,
-      quantity: ordered || this.asQty(row['quantity']),
+      quantity: salesQty ?? (baseOrdered || undefined),
+      quantity_picked: this.asQty(row['quantity_picked']),
       quantity_base_uom: this.asQty(row['quantity_base_uom']),
-      quantity_base_ordered: ordered || undefined,
-      quantity_base_picked: this.asQty(row['quantity_base_picked'] ?? row['quantity_picked'] ?? row['picked_qty']),
-      quantity_base_short: this.asQty(row['quantity_base_short'] ?? row['quantity_short'] ?? row['short_qty']),
+      quantity_base_ordered: baseOrdered || salesQty || undefined,
+      quantity_base_picked: this.asQty(row['quantity_base_picked'] ?? row['picked_qty']),
+      quantity_base_short: this.asQty(
+        row['quantity_base_short'] ?? row['quantity_base_missing'] ?? row['quantity_short'] ?? row['short_qty']
+      ),
       warehouse_id: row['warehouse_id'] != null ? String(row['warehouse_id']) : undefined,
       warehouse_name: row['warehouse_name'] != null ? String(row['warehouse_name']) : undefined,
     };

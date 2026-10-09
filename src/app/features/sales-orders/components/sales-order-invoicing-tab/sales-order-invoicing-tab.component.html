@@ -87,7 +87,7 @@
                     {{ getInvoiceFileName(invoice) }}
                   </span>
                   <div class="invoice-card__badges">
-                    <span class="invoice-card__type-badge">FACTURA</span>
+                    <span class="invoice-card__type-badge">{{ invoiceTypeLabel(invoice) }}</span>
                     @if (getInvoiceEnvironmentLabel(invoice); as envLabel) {
                       <span
                         class="invoice-card__env-badge"
@@ -154,8 +154,8 @@
                 <span class="field-value">{{ formatCurrency(getInvoiceTaxes(invoice)) }}</span>
               </div>
               <div class="invoice-card__field">
-                <span class="field-label">Total</span>
-                <span class="field-value field-value--total">{{ formatCurrency(invoice.total) }}</span>
+                <span class="field-label">{{ invoice.tipo_comprobante === 'P' ? 'Monto pagado' : 'Total' }}</span>
+                <span class="field-value field-value--total">{{ formatCurrency(invoiceDisplayTotal(invoice)) }}</span>
               </div>
               <div class="invoice-card__field">
                 <span class="field-label">Cód. estatus SAT</span>

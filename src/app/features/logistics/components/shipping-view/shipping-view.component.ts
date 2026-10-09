@@ -18,11 +18,15 @@ import { LucideAngularModule, MapPin, Plus, RefreshCw, X } from 'lucide-angular'
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
+import { AuthService } from '../../../../core/services/auth.service';
 import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
 import {
-  CustomerAddressDialogComponent,
-} from '../../../customers/components/customer-address-dialog/customer-address-dialog.component';
-import { SHIPPING_PERMISSIONS } from '../../config/permissions.config';
+  StopAddressPickerDialogComponent,
+  StopAddressPickerResult,
+} from '../stop-address-picker-dialog/stop-address-picker-dialog.component';
+import { GPS_TRACKING_PERMISSIONS, SHIPPING_PERMISSIONS } from '../../config/permissions.config';
+import { GpsTrackingService } from '../../services/gps-tracking.service';
+import { ShippingMapComponent, ShippingMapVehicle } from '../shipping-map/shipping-map.component';
 import {
   Shipping,
   ShippingStatus,
@@ -34,7 +38,6 @@ import {
   normalizeShippingStatusKey,
 } from '../../models/shipping.model';
 import { ShippingService } from '../../services/shipping.service';
-import { ShippingMapComponent } from '../shipping-map/shipping-map.component';
 import { AddShippingStopsDialogComponent } from '../add-shipping-stops-dialog/add-shipping-stops-dialog.component';
 import { BranchLocationDialogComponent } from '../branch-location-dialog/branch-location-dialog.component';
 
@@ -69,6 +72,7 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   readonly X = X;
   readonly permissions = SHIPPING_PERMISSIONS;
 
+  panel = signal<'route' | 'carta'>('route');
   shipping = signal<Shipping | null>(null);
   stops = signal<ShippingStop[]>([]);
   loading = signal(false);
@@ -76,12 +80,17 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   recalculating = signal(false);
   addressUpdating = signal(false);
   errorMessage = signal<string | null>(null);
+  vehicle = signal<ShippingMapVehicle | null>(null);
 
   private destroy$ = new Subject<void>();
   private loadedForId: string | null = null;
+  private vehicleTimer: ReturnType<typeof setInterval> | null = null;
+  private trackedTruckId: string | null = null;
 
   constructor(
     private shippingService: ShippingService,
+    private gpsTracking: GpsTrackingService,
+    private auth: AuthService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private router: Router
@@ -89,6 +98,9 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.active || !this.shippingId) return;
+    if (changes['shippingId'] && this.shippingId !== this.loadedForId) {
+      this.panel.set('route');
+    }
     const idChanged = changes['shippingId'] && this.shippingId !== this.loadedForId;
     const becameActive = changes['active'] && this.active && !changes['active'].previousValue;
     if (idChanged || becameActive || (changes['shippingId'] && this.active)) {
@@ -97,6 +109,7 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearVehicleTimer();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -134,6 +147,69 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
       .map(enrichShippingStop);
     this.shipping.set({ ...shipping, stops });
     this.stops.set(stops);
+    this.trackVehicle(shipping);
+  }
+
+  private trackVehicle(shipping: Shipping): void {
+    const truckId = shipping.truck_id || null;
+    if (!this.auth.hasPermission(GPS_TRACKING_PERMISSIONS.read) || !truckId) {
+      this.clearVehicleTimer();
+      this.trackedTruckId = null;
+      this.vehicle.set(null);
+      return;
+    }
+    if (this.trackedTruckId === truckId && this.vehicleTimer) return;
+    this.trackedTruckId = truckId;
+    this.clearVehicleTimer();
+    const pull = () => {
+      this.gpsTracking
+        .getPositions(truckId)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (response) => {
+            const unit = (response.units ?? []).find(
+              (row) => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude))
+            );
+            if (!unit) {
+              this.vehicle.set(null);
+              return;
+            }
+            this.vehicle.set({
+              lat: Number(unit.latitude),
+              lng: Number(unit.longitude),
+              title: unit.truck_name || unit.name,
+              speedKmh: unit.speed,
+              speedMeasure: unit.speed_measure,
+              heading: unit.heading,
+              ignition: unit.ignition,
+              reportedAt: this.formatReportedAt(unit.reported_at),
+              address: unit.address,
+            });
+          },
+          error: () => this.vehicle.set(null),
+        });
+    };
+    pull();
+    this.vehicleTimer = setInterval(pull, 45000);
+  }
+
+  private clearVehicleTimer(): void {
+    if (this.vehicleTimer) {
+      clearInterval(this.vehicleTimer);
+      this.vehicleTimer = null;
+    }
+  }
+
+  private formatReportedAt(value: string | null | undefined): string | null {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat('es-MX', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(date);
   }
 
   gpsSummary() {
@@ -321,7 +397,17 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
     });
   }
 
-  openAddStopAddress(stop: ShippingStop): void {
+  selectedAddressLine(stop: ShippingStop): string {
+    const selected = stop.customer_addresses?.find(
+      (item) => String(item.id) === String(stop.customer_address_id ?? ''),
+    );
+    if (selected) {
+      return `${selected.type_label || 'Dirección'} · ${selected.address_summary || 'Sin calle'}`;
+    }
+    return stop.address_summary || 'Sin dirección';
+  }
+
+  openAddressPicker(stop: ShippingStop): void {
     const customerId = stop.customer_id;
     if (customerId == null) {
       this.snackBar.openFromComponent(CustomSnackbarComponent, {
@@ -330,86 +416,30 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
       });
       return;
     }
-    const ref = this.dialog.open(CustomerAddressDialogComponent, {
-      width: '960px',
+    const ref = this.dialog.open(StopAddressPickerDialogComponent, {
+      width: '480px',
       maxWidth: '96vw',
+      maxHeight: '86vh',
+      panelClass: 'stop-address-picker-panel',
       data: {
         customerId: String(customerId),
-        address: null,
-        defaultType: 'shipping',
+        customerName: stop.customer_name || 'Cliente',
+        selectedId: stop.customer_address_id ?? null,
+        addresses: stop.customer_addresses ?? [],
+        canAssign: this.isCreado(),
       },
     });
-    ref.afterClosed().subscribe((created) => {
-      const addressId = this.createdAddressId(created);
-      if (addressId == null) {
-        if (created) this.afterGpsFixed();
+    ref.afterClosed().subscribe((result: StopAddressPickerResult | undefined) => {
+      if (!result) return;
+      if (
+        this.isCreado() &&
+        typeof result.addressId === 'number' &&
+        !this.isSelectedAddress(stop, result.addressId)
+      ) {
+        this.selectStopAddress(stop, result.addressId);
         return;
       }
-      this.addressUpdating.set(true);
-      this.shippingService.setStopAddress(this.shippingId, stop.sales_order_id, addressId).subscribe({
-        next: (res) => {
-          this.addressUpdating.set(false);
-          this.applyShipping(res.shipping);
-          this.shippingUpdated.emit(res.shipping);
-        },
-        error: (err) => {
-          this.addressUpdating.set(false);
-          this.snackBar.openFromComponent(CustomSnackbarComponent, {
-            data: {
-              message: err?.error?.message || 'No se pudo usar la dirección nueva',
-              type: 'error',
-            },
-            duration: 5000,
-          });
-          this.load();
-        },
-      });
-    });
-  }
-
-  private createdAddressId(created: unknown): number | null {
-    if (!created || created === true || typeof created !== 'object') return null;
-    const id = (created as { id?: number | string }).id;
-    if (id == null || id === '') return null;
-    const parsed = Number(id);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  openFixStopGps(stop: ShippingStop): void {
-    const customerId = stop.customer_id;
-    if (customerId == null) {
-      this.snackBar.openFromComponent(CustomSnackbarComponent, {
-        data: { message: 'Esta parada no tiene cliente asociado', type: 'error' },
-        duration: 4000,
-      });
-      return;
-    }
-
-    const hasAddress = !!stop.customer_address_id;
-    const ref = this.dialog.open(CustomerAddressDialogComponent, {
-      width: '960px',
-      maxWidth: '96vw',
-      data: {
-        customerId: String(customerId),
-        defaultType: 'shipping',
-        address: hasAddress
-          ? {
-              id: String(stop.customer_address_id),
-              customer_id: String(customerId),
-              type: 'shipping',
-              street_address: stop.address_summary || '',
-              city: '',
-              state: '',
-              postal_code: '',
-              country: 'México',
-              latitude: stop.delivery_latitude,
-              longitude: stop.delivery_longitude,
-            }
-          : null,
-      },
-    });
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) this.afterGpsFixed();
+      if (result.locationChanged) this.afterGpsFixed();
     });
   }
 
@@ -421,19 +451,90 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   }
 
   formatDate(value: string | undefined): string {
-    if (!value) return '—';
-    const [y, m, d] = value.slice(0, 10).split('-').map(Number);
-    if (!y || !m || !d) return value;
-    return new Date(y, m - 1, d).toLocaleDateString('es-MX', {
-      day: '2-digit',
-      month: 'short',
+    const date = this.shippingDate(value);
+    if (!date) return value || '—';
+    return date.toLocaleDateString('es-MX', {
+      day: 'numeric',
+      month: 'long',
       year: 'numeric',
     });
+  }
+
+  dateDay(value: string | undefined): string {
+    const date = this.shippingDate(value);
+    return date ? String(date.getDate()) : '—';
+  }
+
+  dateMonth(value: string | undefined): string {
+    const date = this.shippingDate(value);
+    if (!date) return '';
+    return date.toLocaleDateString('es-MX', { month: 'short' }).replace(/\./g, '').trim();
+  }
+
+  private shippingDate(value: string | undefined): Date | null {
+    if (!value) return null;
+    const [y, m, d] = value.slice(0, 10).split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d);
   }
 
   distanceLabel(): string {
     const km = this.shipping()?.distance_km;
     return typeof km === 'number' ? `${km.toFixed(1)} km` : '—';
+  }
+
+  pesoKg = '';
+  stamping = signal(false);
+
+  stampCartaPorte(): void {
+    const peso = Number(this.pesoKg);
+    if (!Number.isFinite(peso) || peso <= 0) {
+      this.toast('Indica el peso bruto de la carga en kilogramos', 'error');
+      return;
+    }
+    this.stamping.set(true);
+    this.shippingService.stampCartaPorte(this.shippingId, peso).subscribe({
+      next: (res) => {
+        this.stamping.set(false);
+        this.applyShipping(res.shipping);
+        this.shippingUpdated.emit(res.shipping);
+        this.toast('Carta porte timbrada', 'success');
+      },
+      error: (err) => {
+        this.stamping.set(false);
+        this.toast(this.apiMessage(err, 'No se pudo timbrar la carta porte'), 'error');
+        this.load();
+      },
+    });
+  }
+
+  downloadCartaPorte(): void {
+    const current = this.shipping();
+    if (!current?.id) return;
+    this.shippingService.downloadCartaPortePdf(current.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `carta-porte-${(current.carta_porte_uuid || current.id).slice(0, 8)}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.toast('No se pudo descargar el PDF', 'error'),
+    });
+  }
+
+  private toast(message: string, type: 'success' | 'error'): void {
+    this.snackBar.openFromComponent(CustomSnackbarComponent, {
+      data: { message, type },
+      duration: 5000,
+    });
+  }
+
+  private apiMessage(err: { error?: { message?: string | string[] } }, fallback: string): string {
+    const message = err?.error?.message;
+    if (Array.isArray(message)) return message.join('. ');
+    return message || fallback;
   }
 
   close(): void {

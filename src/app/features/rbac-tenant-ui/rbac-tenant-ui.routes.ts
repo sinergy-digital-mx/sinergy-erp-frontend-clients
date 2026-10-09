@@ -9,7 +9,10 @@ import { ProductListComponent } from '../settings/components/product-list/produc
 import { PosEquipmentListComponent } from '../settings/components/pos-equipment-list/pos-equipment-list.component';
 import { EmailTemplatesListComponent } from '../settings/pages/email-templates-list/email-templates-list.component';
 import { MailerConfigurationsListComponent } from '../settings/pages/mailer-configurations-list/mailer-configurations-list.component';
+import { GpsTrackingConfigurationsListComponent } from '../settings/pages/gps-tracking-configurations-list/gps-tracking-configurations-list.component';
 import { ExchangeRateSettingsComponent } from '../settings/components/exchange-rate-settings/exchange-rate-settings.component';
+import { permissionGuard } from '../../core/guards/permission.guard';
+import { GPS_TRACKING_PERMISSIONS } from '../logistics/config/permissions.config';
 
 export const RBAC_TENANT_UI_ROUTES: Routes = [
   {
@@ -62,6 +65,16 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
       {
         path: 'mailer-configurations',
         component: MailerConfigurationsListComponent
+      },
+      {
+        path: 'gps-tracking',
+        component: GpsTrackingConfigurationsListComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permissions: [GPS_TRACKING_PERMISSIONS.viewMenu, GPS_TRACKING_PERMISSIONS.read],
+          permissionMode: 'any',
+          title: 'Rastreo GPS',
+        },
       },
       {
         path: 'exchange-rates',

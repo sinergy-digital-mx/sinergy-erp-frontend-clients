@@ -1,0 +1,43 @@
+<div class="settings-list-page px-4 pb-6">
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800">Rastreo GPS</h2>
+      <p class="text-sm text-gray-500">Configura la cuenta de 3D Tracking para consultar la posición de cada camión.</p>
+    </div>
+    <app-button text="Crear configuración" variant="primary" [fullWidth]="false" (clicked)="openCreate()"></app-button>
+  </div>
+
+  <app-datatable-wrapper variant="settings" [config]="table_config()" [rowTemplate]="tableTemplate"></app-datatable-wrapper>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td>
+    <div class="flex items-center gap-2 min-w-0">
+      <p class="settings-cell-primary truncate">{{ item.name }}</p>
+      <lucide-icon *ngIf="item.is_active" [img]="CheckCircle2" [size]="15" class="text-green-600 shrink-0"></lucide-icon>
+    </div>
+  </td>
+  <td><span class="settings-cell-text">{{ item.username }}</span></td>
+  <td>
+    <span class="settings-badge" [ngClass]="statusClass(item.is_active)">
+      {{ item.is_active ? 'Activa' : 'Inactiva' }}
+    </span>
+  </td>
+  <td><span class="settings-cell-text">{{ lastTest(item) }}</span></td>
+  <td>
+    <div class="flex gap-2">
+      <button type="button" class="p-1.5 text-sky-700 hover:text-white hover:bg-sky-700 rounded-md" title="Probar conexión" (click)="test(item); $event.stopPropagation()">
+        <lucide-icon [img]="Radio" [size]="16"></lucide-icon>
+      </button>
+      <button type="button" class="p-1.5 text-green-600 hover:text-white hover:bg-green-600 rounded-md disabled:opacity-40" title="Activar" [disabled]="item.is_active" (click)="activate(item); $event.stopPropagation()">
+        <lucide-icon [img]="Power" [size]="16"></lucide-icon>
+      </button>
+      <button type="button" class="p-1.5 text-gray-600 hover:text-white hover:bg-gray-600 rounded-md" title="Editar" (click)="edit(item); $event.stopPropagation()">
+        <lucide-icon [img]="Edit2" [size]="16"></lucide-icon>
+      </button>
+      <button type="button" class="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-md" title="Eliminar" (click)="remove(item); $event.stopPropagation()">
+        <lucide-icon [img]="Trash2" [size]="16"></lucide-icon>
+      </button>
+    </div>
+  </td>
+</ng-template>

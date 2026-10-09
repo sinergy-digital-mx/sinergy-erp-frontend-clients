@@ -133,7 +133,7 @@ export const routes: Routes = [
       },
       {
         path: 'shippings',
-        redirectTo: 'logistics/shippings',
+        redirectTo: 'logistics/trips',
         pathMatch: 'full',
       },
       {

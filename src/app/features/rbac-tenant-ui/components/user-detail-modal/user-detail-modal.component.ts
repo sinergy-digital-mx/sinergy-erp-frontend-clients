@@ -234,6 +234,7 @@ export class UserDetailModalComponent implements OnInit {
     this.setupPosFieldBehavior();
     this.setupBranchFieldBehavior();
     this.setupEmployeeFieldBehavior();
+    this.setupDriverFieldBehavior();
     this.setupManagerFieldBehavior();
     this.loadEmployeeProfile();
     this.loadData();
@@ -267,6 +268,9 @@ export class UserDetailModalComponent implements OnInit {
       is_employee: [this.asEmployeeFlag(user)],
       is_manager: [user?.is_manager ?? false],
       is_crm_admin: [user?.is_crm_admin ?? false],
+      is_driver: [!!user?.is_driver],
+      driver_license_number: [user?.driver_license_number ?? ''],
+      driver_rfc: [user?.driver_rfc ?? employee?.rfc ?? ''],
       employee: this.fb.group({
         employee_code: [employee?.employee_code ?? ''],
         rfc: [employee?.rfc ?? ''],
@@ -341,6 +345,24 @@ export class UserDetailModalComponent implements OnInit {
     this.monthlySalary.set(Number(employeeGroup.get('monthly_salary')?.value) || 0);
     this.vacationCarryover.set(Number(employeeGroup.get('vacation_carryover_days')?.value) || 0);
     applyEmployeeState(!!this.form.get('is_employee')?.value);
+  }
+
+  private setupDriverFieldBehavior(): void {
+    const apply = (isDriver: boolean) => {
+      const license = this.form.get('driver_license_number');
+      const rfc = this.form.get('driver_rfc');
+      if (isDriver) {
+        license?.setValidators([Validators.required, Validators.minLength(5), Validators.maxLength(30)]);
+        rfc?.setValidators([Validators.required, Validators.minLength(12), Validators.maxLength(13)]);
+      } else {
+        license?.clearValidators();
+        rfc?.clearValidators();
+      }
+      license?.updateValueAndValidity({ emitEvent: false });
+      rfc?.updateValueAndValidity({ emitEvent: false });
+    };
+    this.form.get('is_driver')?.valueChanges.subscribe(apply);
+    apply(!!this.form.get('is_driver')?.value);
   }
 
   private setupPosFieldBehavior(): void {
@@ -1260,6 +1282,9 @@ export class UserDetailModalComponent implements OnInit {
       pos_user_code: posCode,
       is_manager: isManager,
       is_crm_admin: !!this.form.get('is_crm_admin')?.value,
+      is_driver: !!this.form.get('is_driver')?.value,
+      driver_license_number: String(this.form.get('driver_license_number')?.value || '').trim().toUpperCase() || undefined,
+      driver_rfc: String(this.form.get('driver_rfc')?.value || '').trim().toUpperCase() || undefined,
     };
 
     if (this.employeeProfileLoaded || this.isNew) {

@@ -403,6 +403,12 @@ export class SalesOrderService {
   /**
    * Update existing sales order
    */
+  setControlDesk(id: string, enabled: boolean): Observable<SalesOrder> {
+    return this.http
+      .post<SalesOrder>(`${this.baseUrl}/${id}/control-desk`, { enabled })
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
   updateOrder(id: string, data: Partial<SalesOrderFormData>): Observable<SalesOrder> {
     return this.http.put<SalesOrder>(`${this.baseUrl}/${id}`, data)
       .pipe(

@@ -29,6 +29,7 @@ export { GOAL_PERMISSIONS } from '../../features/goals/config/permissions.config
 export { GLOBAL_DISCOUNT_PERMISSIONS } from '../../features/global-discounts/config/permissions.config';
 export { EMPLOYEE_PERMISSIONS } from '../../features/employees/config/permissions.config';
 export {
+  GPS_TRACKING_PERMISSIONS,
   LOGISTICS_PERMISSIONS,
   TRUCK_PERMISSIONS,
   SHIPPING_PERMISSIONS,
@@ -60,6 +61,7 @@ import { GOAL_PERMISSIONS } from '../../features/goals/config/permissions.config
 import { GLOBAL_DISCOUNT_PERMISSIONS } from '../../features/global-discounts/config/permissions.config';
 import { EMPLOYEE_PERMISSIONS } from '../../features/employees/config/permissions.config';
 import {
+  GPS_TRACKING_PERMISSIONS,
   LOGISTICS_PERMISSIONS,
   SHIPPING_PERMISSIONS,
   TRUCK_PERMISSIONS,
@@ -91,6 +93,7 @@ export const PERMISSIONS = {
   logistics: LOGISTICS_PERMISSIONS,
   trucks: TRUCK_PERMISSIONS,
   shippings: SHIPPING_PERMISSIONS,
+  gpsTracking: GPS_TRACKING_PERMISSIONS,
   warehouseControl: WAREHOUSE_CONTROL_PERMISSIONS,
   madereriaInventoryImport: MADERERIA_INVENTORY_IMPORT_PERMISSIONS,
   customerSalesReport: CUSTOMER_SALES_REPORT_PERMISSIONS,

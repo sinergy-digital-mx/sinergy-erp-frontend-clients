@@ -7,7 +7,7 @@ export const CUSTOMER_PERMISSIONS = {
 
   viewList: 'customers:Read',
   viewDetail: 'customers:Read',
-  viewStats: 'customers:Read',
+  viewStats: 'customers:ViewStats',
 
   create: 'customers:Create',
   update: 'customers:Update',

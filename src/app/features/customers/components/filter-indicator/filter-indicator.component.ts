@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 
 interface ActiveFilter {
-  type: 'status' | 'group' | 'search';
+  type: 'status' | 'group' | 'fiscal' | 'search' | 'insight';
   value: string;
   label: string;
 }
@@ -128,8 +128,11 @@ export class FilterIndicatorComponent {
   @Input() activeStatusName: string | null = null;
   @Input() activeGroupId: string | null = null;
   @Input() activeGroupName: string | null = null;
+  @Input() activeFiscalId: string | null = null;
+  @Input() activeFiscalName: string | null = null;
   @Input() activeSearchTerm: string | null = null;
-  @Output() filterClear = new EventEmitter<'status' | 'group' | 'search' | 'all'>();
+  @Input() activeInsightLabel: string | null = null;
+  @Output() filterClear = new EventEmitter<'status' | 'group' | 'fiscal' | 'search' | 'insight' | 'all'>();
 
   activeFilters: ActiveFilter[] = [];
 
@@ -159,11 +162,27 @@ export class FilterIndicatorComponent {
       });
     }
 
+    if (this.activeFiscalId) {
+      this.activeFilters.push({
+        type: 'fiscal',
+        value: this.activeFiscalId,
+        label: `Razón social: ${this.activeFiscalName || this.activeFiscalId}`,
+      });
+    }
+
     if (this.activeSearchTerm) {
       this.activeFilters.push({
         type: 'search',
         value: this.activeSearchTerm,
         label: `Búsqueda: ${this.activeSearchTerm}`
+      });
+    }
+
+    if (this.activeInsightLabel) {
+      this.activeFilters.push({
+        type: 'insight',
+        value: this.activeInsightLabel,
+        label: this.activeInsightLabel,
       });
     }
   }
@@ -178,7 +197,7 @@ export class FilterIndicatorComponent {
   /**
    * Clear a specific filter
    */
-  clearFilter(filterType: 'status' | 'group' | 'search') {
+  clearFilter(filterType: 'status' | 'group' | 'fiscal' | 'search' | 'insight') {
     this.filterClear.emit(filterType);
   }
 
@@ -192,14 +211,18 @@ export class FilterIndicatorComponent {
   /**
    * Get the icon for a filter type
    */
-  getFilterIcon(filterType: 'status' | 'group' | 'search'): string {
+  getFilterIcon(filterType: 'status' | 'group' | 'fiscal' | 'search' | 'insight'): string {
     switch (filterType) {
       case 'status':
         return 'pi-filter';
       case 'group':
         return 'pi-tag';
+      case 'fiscal':
+        return 'pi-building';
       case 'search':
         return 'pi-search';
+      case 'insight':
+        return 'pi-chart-bar';
       default:
         return 'pi-filter';
     }

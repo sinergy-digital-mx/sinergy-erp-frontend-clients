@@ -12,22 +12,23 @@ export function getCustomerStatusLabel(customer: Customer): string {
 }
 
 export function getCustomerStatusPillClass(customer: Customer): string {
+  const base = 'dt-status-pill';
   switch (getCustomerStatusCode(customer)) {
     case 'ACTIVE':
-      return 'status-pill--active';
+      return `${base} dt-status-pill--sky`;
     case 'INACTIVE':
-      return 'status-pill--inactive';
+      return `${base} dt-status-pill--neutral`;
     case 'SUSPENDED':
-      return 'status-pill--suspended';
+      return `${base} dt-status-pill--warning`;
     case 'DELETED':
-      return 'status-pill--deleted';
+      return `${base} dt-status-pill--danger`;
     default: {
       const name = (customer.status?.name ?? '').toLowerCase();
-      if (name.includes('activ')) return 'status-pill--active';
-      if (name.includes('inactiv')) return 'status-pill--inactive';
-      if (name.includes('suspend')) return 'status-pill--suspended';
-      if (name.includes('elimin')) return 'status-pill--deleted';
-      return 'status-pill--default';
+      if (name.includes('activ')) return `${base} dt-status-pill--sky`;
+      if (name.includes('inactiv')) return `${base} dt-status-pill--neutral`;
+      if (name.includes('suspend')) return `${base} dt-status-pill--warning`;
+      if (name.includes('elimin')) return `${base} dt-status-pill--danger`;
+      return `${base} dt-status-pill--info`;
     }
   }
 }

@@ -31,6 +31,7 @@ import { AUDIT_DETAIL_DIALOG_OPTIONS } from '../../config/audit-dialog.config';
 import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit, ImageUp, ArrowRightLeft, ArrowUpRight, ArrowDownLeft, Stamp, Ruler, Eye, ClipboardCheck, CircleDollarSign, RefreshCw } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { formatPedimentoDisplay, formatPurchaseOrderUnitCost, formatVendorInvoiceDisplay, parsePurchaseOrderDecimal } from '../../../purchase-orders/utils/purchase-order-display.util';
+import { canViewPurchaseOrderRealCost } from '../../../purchase-orders/utils/purchase-order-real-cost-access.util';
 import {
   auditStatusLabel,
   auditUserName,
@@ -329,6 +330,9 @@ export class BatchDetailDialogComponent implements OnInit {
   }
 
   get hasRealCost(): boolean {
+    if (!canViewPurchaseOrderRealCost(this.authService)) {
+      return false;
+    }
     const batch = this.batch();
     return batch?.real_unit_cost_usd != null || batch?.real_unit_cost_mxn != null;
   }

@@ -1,0 +1,107 @@
+<div class="dash">
+  <header class="logistics-page__header">
+    <div class="logistics-page__titles">
+      <h2>Dashboard</h2>
+      <p>Resumen de viajes abiertos</p>
+    </div>
+    <div class="logistics-page__actions">
+      <time class="logistics-page__meta">{{ todayLabel }}</time>
+      <button
+        *hasPermission="permissions.create"
+        type="button"
+        class="page-create-btn"
+        (click)="openCreate()"
+      >
+        Nuevo viaje
+      </button>
+    </div>
+  </header>
+
+  <div class="stats" aria-label="Resumen">
+    <div class="stats__item">
+      <span class="stats__icon stats__icon--violet">
+        <lucide-icon [img]="Route" [size]="18" [strokeWidth]="2"></lucide-icon>
+      </span>
+      <div class="stats__copy">
+        <p class="stats__value">{{ formatCount(openCount()) }}</p>
+        <p class="stats__label">Abiertos</p>
+      </div>
+    </div>
+    <div class="stats__item">
+      <span class="stats__icon stats__icon--sky">
+        <lucide-icon [img]="Navigation" [size]="18" [strokeWidth]="2"></lucide-icon>
+      </span>
+      <div class="stats__copy">
+        <p class="stats__value">{{ formatKmValue(openKm()) }}<span> km</span></p>
+        <p class="stats__label">Estimados</p>
+      </div>
+    </div>
+    <div class="stats__item">
+      <span class="stats__icon stats__icon--amber">
+        <lucide-icon [img]="MapPin" [size]="18" [strokeWidth]="2"></lucide-icon>
+      </span>
+      <div class="stats__copy">
+        <p class="stats__value">{{ formatCount(openStops()) }}</p>
+        <p class="stats__label">Paradas</p>
+      </div>
+    </div>
+    <div class="stats__item">
+      <span class="stats__icon stats__icon--emerald">
+        <lucide-icon [img]="Truck" [size]="18" [strokeWidth]="2"></lucide-icon>
+      </span>
+      <div class="stats__copy">
+        <p class="stats__value">{{ formatCount(openUnits()) }}</p>
+        <p class="stats__label">Unidades</p>
+      </div>
+    </div>
+    <div class="stats__month">
+      <div class="month">
+        <button type="button" (click)="prevMonth()" aria-label="Mes anterior">
+          <lucide-icon [img]="ChevronLeft" [size]="16" [strokeWidth]="2"></lucide-icon>
+        </button>
+        <strong>{{ monthLabel() }}</strong>
+        <button type="button" (click)="nextMonth()" aria-label="Mes siguiente">
+          <lucide-icon [img]="ChevronRight" [size]="16" [strokeWidth]="2"></lucide-icon>
+        </button>
+      </div>
+      <p class="month-note">
+        @if (loadingMonth()) {
+          Cargando el mes…
+        } @else if (monthTotal() === 0) {
+          Sin salidas este mes
+        } @else {
+          {{ formatCount(monthTotal()) }} viajes · {{ formatCount(monthCompleted()) }} completados
+        }
+      </p>
+    </div>
+  </div>
+
+  <section class="open-section">
+    <div class="section-head">
+      <div>
+        <h3>Viajes abiertos</h3>
+        <p>
+          {{ formatCount(openCount()) }} en operación ·
+          {{ formatCount(plannedTotal()) }} planeados ·
+          {{ formatCount(inRouteTotal()) }} en ruta
+        </p>
+      </div>
+      <a routerLink="/logistics/trips" [queryParams]="{ view: 'list' }" class="section-link">Ver listado</a>
+    </div>
+
+    @if (loadingOpen()) {
+      <div class="dash__loading"><app-spinner></app-spinner></div>
+    } @else if (!openTrips().length) {
+      <div class="dash__empty">No hay viajes abiertos.</div>
+    } @else {
+      @if (truncated()) {
+        <p class="dash__note">Hay más viajes abiertos de los que caben en esta vista. El listado los trae todos.</p>
+      }
+      <div class="trip-list">
+        @for (trip of openTrips(); track trip.id) {
+          <app-trip-card [shipping]="trip" (selected)="openDetail($event)"></app-trip-card>
+        }
+      </div>
+    }
+  </section>
+</div>

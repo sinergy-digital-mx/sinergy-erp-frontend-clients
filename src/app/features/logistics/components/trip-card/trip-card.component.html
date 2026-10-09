@@ -1,0 +1,19 @@
+<button type="button" class="trip" (click)="open()">
+  <span class="trip__date">
+    <strong>{{ card.dateDay }}</strong>
+    <small>{{ card.dateMonth }}</small>
+  </span>
+
+  <span class="trip__body">
+    <span class="trip__route">
+      <strong>{{ card.origin }}</strong>
+      <lucide-icon [img]="ArrowRight" [size]="14" [strokeWidth]="2"></lucide-icon>
+      <strong>{{ card.destination }}</strong>
+    </span>
+    <span class="trip__meta">{{ card.metaLine }}</span>
+  </span>
+
+  <span class="dt-status-pill" [class]="'dt-status-pill dt-status-pill--' + card.tone">
+    {{ card.status }}
+  </span>
+</button>

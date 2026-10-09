@@ -530,6 +530,21 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     return formatUnitCurrency(value);
   }
 
+  invoiceTypeLabel(invoice: SalesOrderElectronicInvoice): string {
+    return invoice.tipo_comprobante === 'P' ? 'CEP' : 'FACTURA';
+  }
+
+  invoiceDisplayTotal(invoice: SalesOrderElectronicInvoice): number | string | null {
+    if (invoice.tipo_comprobante !== 'P') {
+      return invoice.total ?? null;
+    }
+    const paid = invoice.metadata?.['monto_total_pagos'];
+    if (typeof paid === 'number' || typeof paid === 'string') {
+      return paid;
+    }
+    return invoice.total ?? null;
+  }
+
   formatDate(value?: string | null): string {
     return formatApiDate(value, 'short');
   }
@@ -833,6 +848,7 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   }
 
   private isActiveProductionInvoice(invoice: SalesOrderElectronicInvoice): boolean {
+    if (invoice.tipo_comprobante === 'P') return false;
     if (this.getInvoiceEnvironment(invoice) !== 'production') return false;
     const stamp = (invoice.stamp_status || '').toLowerCase();
     const sat = (invoice.sat_status || '').toLowerCase();

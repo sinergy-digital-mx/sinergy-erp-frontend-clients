@@ -1,0 +1,146 @@
+<section class="wc-pace">
+  <div class="wc-pace__hero">
+    <div>
+      <h3>Avance de la mesa</h3>
+      <p>{{ insight() }}</p>
+    </div>
+    @if (statusLabel()) {
+      <span class="wc-pace__filter">Filtro activo: {{ statusLabel() }}</span>
+    }
+  </div>
+
+  <div class="wc-pace__kpis">
+    <article>
+      <span>En mesa</span>
+      <strong>{{ stat('in_desk') }}</strong>
+      <small>Pedidos en selección</small>
+    </article>
+    <article>
+      <span>Por surtir</span>
+      <strong>{{ warehouseStat('pending') }}</strong>
+      <small>Tareas de almacén sin iniciar</small>
+    </article>
+    <article class="is-amber">
+      <span>En curso</span>
+      <strong>{{ warehouseStat('in_progress') }}</strong>
+      <small>Almacenes surtiendo ahora</small>
+    </article>
+    <article class="is-sky">
+      <span>Listos para armar</span>
+      <strong>{{ readyCount() }}</strong>
+      <small>Almacenes cerrados, falta la caja</small>
+    </article>
+    <article class="is-emerald">
+      <span>Surtidas hoy</span>
+      <strong>{{ warehouseStat('picked_today') }}</strong>
+      <small>Tareas cerradas en el día</small>
+    </article>
+    <article [class.is-rose]="stat('with_shortage') > 0">
+      <span>Con faltante</span>
+      <strong>{{ stat('with_shortage') }}</strong>
+      <small>Piso {{ floorLabel() }} ocupado</small>
+    </article>
+  </div>
+
+  <div class="wc-pace__grid">
+    <section class="wc-pace__card">
+      <header>
+        <h4>Dónde está cada pedido</h4>
+        <p>Del liberado al armado. El número es de toda la mesa.</p>
+      </header>
+      <ol class="wc-funnel">
+        @for (step of funnel(); track step.key) {
+          <li>
+            <div class="wc-funnel__label">
+              <span>{{ step.label }}</span>
+              <strong>{{ step.value }}</strong>
+            </div>
+            <div class="wc-funnel__track">
+              <i [class]="'is-' + step.tone" [style.width.%]="step.width"></i>
+            </div>
+          </li>
+        }
+      </ol>
+    </section>
+
+    <section class="wc-pace__card">
+      <header>
+        <h4>Almacenes</h4>
+        <p>Quién lleva más pedidos abiertos va arriba.</p>
+      </header>
+      <div class="wc-wh-list">
+        @for (row of warehouses(); track row.id) {
+          <article class="wc-wh-row">
+            <div class="wc-wh-row__top">
+              <span [class]="kindClass(row.kind)">{{ row.name }}</span>
+              <strong>{{ row.pct }}%</strong>
+            </div>
+            <div class="wc-wh-row__bar" aria-hidden="true">
+              <i [style.width.%]="row.pct"></i>
+            </div>
+            <p>
+              {{ row.pending }} pendientes · {{ row.inProgress }} en curso · {{ row.picked }} surtidas
+              @if (row.short) {
+                · {{ row.short }} con faltante
+              }
+            </p>
+            @if (row.openJobs) {
+              <small>Frena {{ row.openJobs }} {{ row.openJobs === 1 ? 'pedido' : 'pedidos' }}</small>
+            } @else {
+              <small>Sin pedidos abiertos</small>
+            }
+          </article>
+        } @empty {
+          <p class="wc-pace__empty">Todavía no hay tareas de almacén en esta vista.</p>
+        }
+      </div>
+    </section>
+  </div>
+
+  <section class="wc-pace__card">
+    <header>
+      <h4>Pedidos</h4>
+      <p>
+        Primero los que ya pueden armarse, después los que van más atrasados.
+        @if (stat('in_desk') > orders().length) {
+          Detalle de {{ orders().length }} de {{ stat('in_desk') }}. Los totales de arriba son de toda la mesa.
+        }
+      </p>
+    </header>
+    <div class="wc-order-list">
+      @for (order of orders(); track order.id) {
+        <button type="button" class="wc-order" (click)="open(order.id)">
+          <span class="dt-folio-badge dt-folio-badge--odv">{{ order.folio }}</span>
+          <span class="wc-order__customer" [title]="order.customer">{{ order.customer }}</span>
+          <span
+            class="dt-status-pill"
+            [ngClass]="statusClass(order.status)"
+            [matTooltip]="statusTip(order.status)"
+            matTooltipClass="wc-status-tooltip"
+            matTooltipPosition="above">{{ statusLabelOf(order.status) }}</span>
+          <span class="wc-order__pos" [class.is-empty]="order.position === 'Sin posición'">{{ order.position }}</span>
+          <span class="wc-order__pace">
+            <i [style.width.%]="order.pct"></i>
+            <b>{{ order.done }}/{{ order.total }}</b>
+          </span>
+          <span class="wc-order__block">
+            @if (order.shortage) {
+              <em>Faltante</em>
+            }
+            @if (order.blockers.length) {
+              {{ order.blockers.join(' · ') }}
+            } @else if (order.ready) {
+              Listo para armar
+            } @else if (order.status === 'assembled') {
+              Lista para viaje
+            } @else {
+              Almacenes cerrados
+            }
+          </span>
+        </button>
+      } @empty {
+        <p class="wc-pace__empty">Sin pedidos en mesa con estos filtros.</p>
+      }
+    </div>
+  </section>
+</section>

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, Inject, inject, signal, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, DestroyRef, Inject, inject, signal, ViewEncapsulation } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -25,7 +25,6 @@ import {
   UpdateCustomerDto,
 } from '../../models/customer-group.model';
 import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
-import { CustomerFiscalCreditsComponent } from '../customer-fiscal-credits/customer-fiscal-credits.component';
 import { CustomerAssignmentHistoryComponent } from '../customer-assignment-history/customer-assignment-history.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -47,9 +46,6 @@ import {
   CustomerDuplicateWarningDialogComponent,
   CustomerDuplicateWarningResult,
 } from '../customer-duplicate-warning-dialog/customer-duplicate-warning-dialog.component';
-import { of } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
-
 @Component({
   selector: 'app-customer-edit-modal',
   standalone: true,
@@ -65,7 +61,6 @@ import { map, switchMap } from 'rxjs/operators';
     PhoneDigitsDirective,
     TabComponent,
     SlimSwitchComponent,
-    CustomerFiscalCreditsComponent,
     CustomerAssignmentHistoryComponent,
   ],
   templateUrl: './customer-edit-modal.html',
@@ -77,10 +72,9 @@ export class CustomerEditModalComponent {
   update = signal(false);
   selectedGroup = signal<any>(null);
   isCreateMode = signal(false);
-  activeTab = signal<'customer' | 'credit' | 'fiscal' | 'registration'>('customer');
-  tabs: TabItem[] = [
+  activeTab = signal<'customer' | 'fiscal' | 'registration'>('customer');
+  readonly tabs: TabItem[] = [
     { id: 'customer', title: 'Información del Cliente' },
-    { id: 'credit', title: 'Credito' },
     { id: 'fiscal', title: 'Información Fiscal' },
     { id: 'registration', title: 'Registro' }
   ];
@@ -99,7 +93,6 @@ export class CustomerEditModalComponent {
 
   readonly X = X;
   form: FormGroup;
-  @ViewChild(CustomerFiscalCreditsComponent) fiscalCredits?: CustomerFiscalCreditsComponent;
 
   constructor(
     private fb: FormBuilder,
@@ -107,7 +100,7 @@ export class CustomerEditModalComponent {
     public dialog_ref: MatDialogRef<CustomerEditModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: {
       customer: Customer | null;
-      initialTab?: 'customer' | 'credit' | 'fiscal' | 'registration';
+      initialTab?: 'customer' | 'fiscal' | 'registration';
     },
     private customerService: CustomerService,
     private interceptor_service: InterceptorService,
@@ -217,10 +210,6 @@ export class CustomerEditModalComponent {
     if (this.data?.initialTab) {
       this.setActiveTab(this.data.initialTab);
     }
-  }
-
-  isWalkInCustomer(): boolean {
-    return this.data?.customer?.is_walk_in === true;
   }
 
   private setupFiscalRfcAutoPersonType(): void {
@@ -464,7 +453,7 @@ export class CustomerEditModalComponent {
   }
 
   setActiveTab(tab: string): void {
-    if (tab === 'customer' || tab === 'credit' || tab === 'fiscal' || tab === 'registration') {
+    if (tab === 'customer' || tab === 'fiscal' || tab === 'registration') {
       this.activeTab.set(tab);
     }
   }
@@ -590,7 +579,7 @@ export class CustomerEditModalComponent {
     return names;
   }
 
-  private firstTabWithInvalidControl(): 'customer' | 'credit' | 'fiscal' | 'registration' | null {
+  private firstTabWithInvalidControl(): 'customer' | 'fiscal' | 'registration' | null {
     const customerKeys = [
       'name',
       'lastname',
@@ -901,32 +890,12 @@ export class CustomerEditModalComponent {
       return;
     }
 
-    if (this.fiscalCredits?.hasInvalidEnabledCredit()) {
-      this.activeTab.set('credit');
-      this.interceptor_service.openSnackbar({
-        type: 'error',
-        title: 'Crédito',
-        message: 'Revisa días y monto de crédito en las razones sociales activadas.',
-      });
-      return;
-    }
-
     this.loading.set(true);
 
     const payload = this.buildUpdatePayload();
     const customerId = String(this.data.customer!.id);
-    const credits = this.fiscalCredits?.buildUpdateItems();
 
-    this.customerService.updateCustomer(customerId, payload).pipe(
-      switchMap((updated) => {
-        if (!credits?.length) {
-          return of(updated);
-        }
-        return this.customerService.updateCustomerCredits(customerId, credits).pipe(
-          map(() => updated)
-        );
-      })
-    ).subscribe({
+    this.customerService.updateCustomer(customerId, payload).subscribe({
       next: () => {
         this.update.set(true);
         this.loading.set(false);

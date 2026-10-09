@@ -99,6 +99,9 @@
           <h3>Receptor</h3>
           <p><span>RFC</span>{{ receptorRfc || '—' }}</p>
           <p><span>Razón social</span>{{ receptorNombre || '—' }}</p>
+          @if (receptorPersonLabel) {
+            <p><span>Tipo</span>{{ receptorPersonLabel }}</p>
+          }
           <p><span>Total OV</span>{{ formatCurrency(data.order.total ?? data.order.requested_total) }}</p>
         </section>
       </div>
@@ -163,6 +166,15 @@
                 <option [value]="opt.id">{{ opt.name }}</option>
               }
             </select>
+            <p class="form-hint">
+              @if (isGenericPublic) {
+                Público en general usa régimen 616.
+              } @else if (receptorKind === 'fisica') {
+                El RFC del cliente es de persona física. Elige un régimen de persona física, por ejemplo 612.
+              } @else if (receptorKind === 'moral') {
+                El RFC del cliente es de persona moral.
+              }
+            </p>
           </div>
           <div class="form-field form-field--full">
             <label for="domicilioFiscalReceptor">Domicilio fiscal receptor (CP)</label>

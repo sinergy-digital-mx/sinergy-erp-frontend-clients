@@ -87,6 +87,11 @@
     min-width: 160px;
   }
 
+  &__filter--fiscal {
+    flex-basis: 240px;
+    min-width: 200px;
+  }
+
   &__clear {
     flex: 0 0 auto;
     display: flex;
@@ -102,9 +107,23 @@
       }
 
       th:first-child,
-      td.customers-col-name {
+      td.customers-col-name,
+      td.customers-col-fiscal,
+      td.customers-col-email {
         max-width: 0;
-        width: 28%;
+      }
+
+      td.customers-col-name {
+        width: 22%;
+      }
+
+      td.customers-col-fiscal {
+        width: 20%;
+      }
+
+      td.customers-col-email {
+        width: 18%;
+        overflow: hidden;
       }
 
       .datatable-table tbody tr td {
@@ -171,6 +190,17 @@
   }
 }
 
+.customer-email {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  color: #64748b;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .customer-cell {
   display: flex;
   flex-direction: column;
@@ -186,82 +216,12 @@
     text-overflow: ellipsis;
   }
 
-  &__email {
+  &__meta {
     font-size: 0.8125rem;
     color: #94a3b8;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-  white-space: nowrap;
-
-  &__dot {
-    width: 0.375rem;
-    height: 0.375rem;
-    border-radius: 9999px;
-    flex-shrink: 0;
-  }
-
-  &--active {
-    background-color: #e8f1fa;
-    color: #0072b2;
-    border: 1px solid #0072b2;
-
-    .status-pill__dot {
-      background-color: #0072b2;
-      border-radius: 2px;
-    }
-  }
-
-  &--inactive {
-    background-color: #f4f4f5;
-    color: #3f3f46;
-    border: 1px dashed #71717a;
-
-    .status-pill__dot {
-      background-color: #71717a;
-    }
-  }
-
-  &--suspended {
-    background-color: #fff4e0;
-    color: #b86e00;
-    border: 1px solid #e69f00;
-
-    .status-pill__dot {
-      background-color: #e69f00;
-      transform: rotate(45deg);
-    }
-  }
-
-  &--deleted {
-    background-color: #fde8dc;
-    color: #9a3412;
-    border: 1px solid #d55e00;
-
-    .status-pill__dot {
-      background-color: transparent;
-      border: 2px solid #d55e00;
-    }
-  }
-
-  &--default {
-    background-color: #eef2ff;
-    color: #4338ca;
-
-    .status-pill__dot {
-      background-color: #6366f1;
-    }
   }
 }
 

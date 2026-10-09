@@ -4,7 +4,7 @@ import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { MatDialog } from '@angular/material/dialog';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { LucideAngularModule, Plus, Pencil } from 'lucide-angular';
+import { LucideAngularModule, Plus } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
@@ -45,7 +45,6 @@ export class CustomerActivitiesComponent implements OnInit, OnChanges, OnDestroy
   readonly pageSize = 10;
 
   readonly PlusIcon = Plus;
-  readonly PencilIcon = Pencil;
 
   readonly activityTypes = Object.values(ActivityType);
   readonly activityStatuses = Object.values(ActivityStatus);

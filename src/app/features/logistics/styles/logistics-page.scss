@@ -1,0 +1,83 @@
+@use '../../../../base/form-controls' as fc;
+
+.logistics-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.logistics-page__titles {
+  min-width: 0;
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #1f2937;
+    white-space: nowrap;
+  }
+
+  p {
+    margin: 0.15rem 0 0;
+    color: #6b7280;
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+}
+
+.logistics-page__actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.logistics-page__meta {
+  color: #6b7280;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.logistics-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.logistics-toolbar__search {
+  flex: 1 1 16rem;
+  min-width: 12rem;
+  max-width: 22rem;
+}
+
+.logistics-toolbar__select {
+  flex: 0 1 15rem;
+  width: 15rem;
+  max-width: 100%;
+}
+
+.logistics-field {
+  @include fc.pollux-field-base;
+}
+
+.logistics-select {
+  @include fc.pollux-select-field;
+  width: 100%;
+}
+
+:host ::ng-deep .empty-state-container {
+  min-height: 0;
+  align-items: flex-start;
+}
+
+:host ::ng-deep app-empty-stage {
+  min-height: 11rem;
+}

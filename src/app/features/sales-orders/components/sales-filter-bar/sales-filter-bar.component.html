@@ -72,20 +72,28 @@
 
             <div class="more-filters__field">
               <label class="more-filters__label" for="sales-filter-fiscal-modal">Razón social</label>
-              <select id="sales-filter-fiscal-modal" [formControl]="fiscalConfigurationControl" class="filter-bar__select" title="Razón social">
-                <option value="">Todas las razones sociales</option>
+              <select
+                id="sales-filter-fiscal-modal"
+                class="filter-bar__select"
+                title="Razón social"
+                (change)="fiscalConfigurationControl.setValue($any($event.target).value)">
+                <option value="" [selected]="!fiscalConfigurationControl.value">Todas las razones sociales</option>
                 @for (fc of fiscalConfigurations; track fc.id) {
-                  <option [value]="fc.id">{{ fiscalOptionLabel(fc) }}</option>
+                  <option [value]="fc.id" [selected]="fiscalConfigurationControl.value === fc.id">{{ fiscalOptionLabel(fc) }}</option>
                 }
               </select>
             </div>
 
             <div class="more-filters__field">
               <label class="more-filters__label" for="sales-filter-branch-modal">Sucursal</label>
-              <select id="sales-filter-branch-modal" [formControl]="billingBranchControl" class="filter-bar__select" title="Sucursal">
-                <option value="">{{ allBranchesOptionLabel }}</option>
+              <select
+                id="sales-filter-branch-modal"
+                class="filter-bar__select"
+                title="Sucursal"
+                (change)="billingBranchControl.setValue($any($event.target).value)">
+                <option value="" [selected]="!billingBranchControl.value">{{ allBranchesOptionLabel }}</option>
                 @for (branch of branches; track branch.id) {
-                  <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+                  <option [value]="branch.id" [selected]="billingBranchControl.value === branch.id">{{ branchLabel(branch) }}</option>
                 }
               </select>
             </div>

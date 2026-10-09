@@ -56,6 +56,20 @@ export interface CustomersExportFilters {
   search?: string;
   status_id?: number | string;
   group_id?: string;
+  registered_fiscal_configuration_id?: string;
+  insight?: string;
+}
+
+export interface CustomerListStats {
+  total: number;
+  with_orders: number;
+  without_orders: number;
+  fiscal_ready: number;
+  fiscal_not_ready: number;
+  active: number;
+  inactive: number;
+  with_email: number;
+  without_email: number;
 }
 
 
@@ -89,6 +103,29 @@ export class CustomerService {
   getCustomers(params: any): Observable<any> {
     return this.http.get(`${this.api}/tenant/customers`, {
       params
+    });
+  }
+
+  getCustomerListStats(params: {
+    search?: string;
+    status_id?: string | number;
+    group_id?: string;
+    registered_fiscal_configuration_id?: string;
+  }): Observable<CustomerListStats> {
+    let httpParams = new HttpParams();
+    if (params.search) httpParams = httpParams.set('search', params.search);
+    if (params.status_id != null && params.status_id !== '') {
+      httpParams = httpParams.set('status_id', String(params.status_id));
+    }
+    if (params.group_id) httpParams = httpParams.set('group_id', params.group_id);
+    if (params.registered_fiscal_configuration_id) {
+      httpParams = httpParams.set(
+        'registered_fiscal_configuration_id',
+        params.registered_fiscal_configuration_id,
+      );
+    }
+    return this.http.get<CustomerListStats>(`${this.api}/tenant/customers/stats`, {
+      params: httpParams,
     });
   }
 
@@ -216,6 +253,8 @@ export class CustomerService {
       ['search', filters.search],
       ['status_id', filters.status_id],
       ['group_id', filters.group_id],
+      ['registered_fiscal_configuration_id', filters.registered_fiscal_configuration_id],
+      ['insight', filters.insight],
     ];
 
     for (const [key, value] of entries) {

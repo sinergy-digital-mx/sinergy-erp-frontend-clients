@@ -7,6 +7,33 @@
     padding: 1rem;
   }
 
+  &:has(app-warehouse-control-board) {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    > app-warehouse-control-board {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  &:has(app-logistics-shell) {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    > app-logistics-shell {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
   &:has(app-take-order),
   &:has(app-payment),
   &:has(app-pos-home) {

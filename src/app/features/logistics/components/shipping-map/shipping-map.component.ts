@@ -24,6 +24,19 @@ import {
   ShippingRoutePoint,
   ShippingStop,
 } from '../../models/shipping.model';
+import { truckFacesLeft, truckMarkerColor, truckMarkerUrl } from '../../utils/truck-marker';
+
+export interface ShippingMapVehicle {
+  lat: number;
+  lng: number;
+  title: string;
+  speedKmh?: number | null;
+  speedMeasure?: string | null;
+  heading?: number | null;
+  ignition?: string | null;
+  reportedAt?: string | null;
+  address?: string | null;
+}
 
 export interface ShippingMapPoint {
   lat: number;
@@ -48,6 +61,7 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
   @Input() stops: ShippingStop[] = [];
   @Input() previewOrders: ShippingPreviewOrder[] = [];
   @Input() routePoints: ShippingRoutePoint[] = [];
+  @Input() vehicle: ShippingMapVehicle | null = null;
 
   @ViewChild('mapHost') mapHost?: ElementRef<HTMLDivElement>;
 
@@ -60,6 +74,7 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
   private map: GoogleMap | null = null;
   private markers: GoogleMarker[] = [];
   private routeOverlays: MapOverlay[] = [];
+  private infoWindow: { close: () => void } | null = null;
   private initToken = 0;
   private renderTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -74,7 +89,7 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
 
   ngOnChanges(_changes: SimpleChanges): void {
     this.points = this.collectPoints();
-    this.empty = this.points.length === 0;
+    this.empty = this.points.length === 0 && !this.hasVehicle();
     if (this.active && !this.empty) {
       this.scheduleRender();
     } else {
@@ -167,6 +182,10 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
     return points;
   }
 
+  private hasVehicle(): boolean {
+    return !!this.vehicle && this.isValidCoord(this.vehicle.lat, this.vehicle.lng);
+  }
+
   private isValidCoord(lat: unknown, lng: unknown): boolean {
     const a = Number(lat);
     const b = Number(lng);
@@ -231,13 +250,20 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
         });
         this.markers.push(marker);
       });
+      this.addVehicleMarker(gmaps, bounds);
 
-      if (this.points.length === 1) {
-        this.map!.setCenter({ lat: this.points[0].lat, lng: this.points[0].lng });
+      const plotted = this.points.length + (this.hasVehicle() ? 1 : 0);
+      if (plotted <= 1) {
+        const only = this.hasVehicle()
+          ? { lat: Number(this.vehicle!.lat), lng: Number(this.vehicle!.lng) }
+          : { lat: this.points[0].lat, lng: this.points[0].lng };
+        this.map!.setCenter(only);
         this.map!.setZoom(13);
       } else {
-        await this.drawDrivingRoute(gmaps, token);
-        if (token !== this.initToken) return;
+        if (this.points.length > 1) {
+          await this.drawDrivingRoute(gmaps, token);
+          if (token !== this.initToken) return;
+        }
         this.map!.fitBounds?.(bounds, 48);
       }
 
@@ -404,6 +430,57 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
     this.routeOverlays.push(line);
   }
 
+  private addVehicleMarker(gmaps: any, bounds: { extend: (pos: { lat: number; lng: number }) => void }): void {
+    if (!this.hasVehicle() || !this.map) return;
+    const vehicle = this.vehicle!;
+    const position = { lat: Number(vehicle.lat), lng: Number(vehicle.lng) };
+    bounds.extend(position);
+    const marker = new this.maps!.Marker({
+      map: this.map,
+      position,
+      title: vehicle.title || 'Camión',
+      icon: {
+        url: truckMarkerUrl(
+          truckMarkerColor(vehicle.speedKmh, vehicle.ignition),
+          truckFacesLeft(vehicle.heading)
+        ),
+        scaledSize: new gmaps.Size(54, 30),
+        anchor: new gmaps.Point(27, 22),
+      },
+    });
+    if (typeof gmaps.InfoWindow === 'function') {
+      const info = new gmaps.InfoWindow({ content: this.vehicleInfo(vehicle) });
+      marker.addListener('click', () => info.open({ map: this.map, anchor: marker }));
+      this.infoWindow = info;
+    }
+    this.markers.push(marker);
+  }
+
+  private vehicleInfo(vehicle: ShippingMapVehicle): string {
+    const speed =
+      vehicle.speedKmh == null
+        ? ''
+        : `<div>Velocidad: ${this.escapeHtml(String(vehicle.speedKmh))} ${this.escapeHtml(vehicle.speedMeasure || 'km/h')}</div>`;
+    const when = vehicle.reportedAt
+      ? `<div>Última posición: ${this.escapeHtml(vehicle.reportedAt)}</div>`
+      : '';
+    const address = vehicle.address ? `<div>${this.escapeHtml(vehicle.address)}</div>` : '';
+    return `<div style="font-size:13px;line-height:1.4"><strong>${this.escapeHtml(vehicle.title || 'Camión')}</strong>${speed}${when}${address}</div>`;
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, (char) => {
+      const map: Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      };
+      return map[char];
+    });
+  }
+
   private markerText(point: ShippingMapPoint, idx: number): string {
     const raw = String(point.seq ?? '').trim();
     if (/^\d+$/.test(raw)) return raw.length <= 2 ? raw : raw.slice(0, 2);
@@ -414,6 +491,8 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
   }
 
   private clearOverlays(): void {
+    this.infoWindow?.close();
+    this.infoWindow = null;
     for (const m of this.markers) {
       m.setMap(null);
       this.maps?.event.clearInstanceListeners(m);

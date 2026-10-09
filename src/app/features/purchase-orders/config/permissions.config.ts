@@ -25,6 +25,11 @@ export const PURCHASE_ORDER_PERMISSIONS = {
   receive: 'purchase_orders:Receive',
   cancel: 'purchase_orders:Cancel',
   correctReceipt: 'purchase_orders:CorrectReceipt',
+  /**
+   * Entidad distinta de purchase_orders para que el admin de otra organización
+   * no lo herede. Ver y editar el costo real.
+   */
+  viewRealCost: 'purchase_order_real_cost:Read',
   
   // Document management
   uploadDocument: 'purchase_orders:UploadDocument',

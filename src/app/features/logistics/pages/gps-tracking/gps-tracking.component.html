@@ -1,0 +1,76 @@
+<div class="gps">
+  <aside class="gps__list">
+    <header class="gps__head">
+      <div>
+        <p class="gps__kicker">Rastreo GPS</p>
+        <h2>Posición de las unidades</h2>
+      </div>
+      <button type="button" class="gps__refresh" title="Actualizar" (click)="refresh()">
+        <lucide-icon [img]="RefreshCw" [size]="16"></lucide-icon>
+      </button>
+    </header>
+
+    @if (loading() && !units().length) {
+      <div class="gps__state"><app-spinner></app-spinner></div>
+    } @else if (!units().length) {
+      <p class="gps__state">{{ message() || 'Todavía no hay unidades con posición. Cuando 3D Tracking registre la flota con su placa, aparecerán aquí.' }}</p>
+    } @else {
+      <div class="gps__items">
+        @for (unit of units(); track unit.uid) {
+          <button
+            type="button"
+            class="gps__item"
+            [class.is-selected]="selectedId() === unit.uid"
+            [class.is-busy]="!!unit.active_shipping_id"
+            (click)="select(unit)"
+          >
+            <span class="gps__dot" [class.gps__dot--off]="!hasCoords(unit)"></span>
+            <span class="gps__item-copy">
+              <strong>{{ unit.name }}</strong>
+              <small>{{ formatWhen(unit.reported_at) }}</small>
+            </span>
+          </button>
+        }
+      </div>
+    }
+  </aside>
+
+  <section class="gps__map">
+    <div #mapHost class="gps__host"></div>
+    @if (message() && units().length) {
+      <p class="gps__banner">{{ message() }}</p>
+    }
+    @if (selected(); as unit) {
+      <article class="gps__card">
+        <p class="gps__card-kicker">Unidad</p>
+        <h3>{{ unit.truck_name || unit.name }}</h3>
+        @if (unit.truck_placa) {
+          <p class="gps__plate">{{ unit.truck_placa }}</p>
+        }
+        <div class="gps__stats">
+          <div>
+            <span>Velocidad</span>
+            <strong>{{ speedLabel(unit) }}</strong>
+          </div>
+          <div>
+            <span>Última posición</span>
+            <strong>{{ formatWhen(unit.reported_at) }}</strong>
+          </div>
+        </div>
+        @if (unit.address) {
+          <p class="gps__address">{{ unit.address }}</p>
+        }
+        @if (unit.driver_name) {
+          <p class="gps__meta">Chofer GPS: {{ unit.driver_name }}</p>
+        }
+        @if (unit.active_shipping_id) {
+          <div class="gps__trip">
+            <p class="gps__card-kicker">Viaje</p>
+            <strong>{{ unit.active_shipping_status || 'En curso' }}</strong>
+            <span>Esta unidad está ocupada hasta completar o cancelar el envío.</span>
+          </div>
+        }
+      </article>
+    }
+  </section>
+</div>

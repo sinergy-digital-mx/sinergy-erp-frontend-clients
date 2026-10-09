@@ -58,7 +58,10 @@ export interface WarehouseControlTaskLine {
   product_name?: string;
   product_sku?: string;
   uom_name?: string;
+  /** Cantidad pedida en la UOM de la OV. */
   quantity?: number | string;
+  /** Cantidad ya surtida en la UOM de la OV. */
+  quantity_picked?: number | string;
   quantity_base_uom?: number | string;
   quantity_base_ordered?: number | string;
   quantity_base_picked?: number | string;
@@ -76,6 +79,8 @@ export interface WarehouseControlTask {
   lines?: WarehouseControlTaskLine[];
   lines_closed?: number;
   lines_total?: number;
+  lines_count?: number;
+  quantity_requested_total?: number;
 }
 
 export interface WarehouseControlPositionRef {
@@ -92,6 +97,7 @@ export interface WarehouseControlJob {
   status: WarehouseControlJobStatus | string;
   has_shortage?: boolean;
   sales_order_id?: string;
+  sales_order?: { id?: string; general_status?: string; folio?: string };
   expected_delivery_date?: string | null;
   notes?: string | null;
   created_at?: string;
@@ -106,6 +112,10 @@ export interface WarehouseControlJob {
   pick_tasks?: WarehouseControlTask[];
   missing?: WarehouseControlMissingItem[];
   created_by_user?: WarehouseControlUserSummary | null;
+  progress?: {
+    warehouses_done?: number;
+    warehouses_total?: number;
+  };
 }
 
 export interface WarehouseControlPosition {
@@ -133,6 +143,8 @@ export interface WarehouseControlStats {
   waiting_assembly?: number;
   assembling?: number;
   assembled?: number;
+  queue?: number;
+  assembled_today?: number;
   with_shortage?: number;
   positions_free?: number;
   positions_occupied?: number;
@@ -143,6 +155,7 @@ export interface WarehouseControlBoardFilters {
   billing_branch_id?: string;
   search?: string;
   status?: string;
+  stage?: string;
   view?: WarehouseControlView;
   page?: number;
   limit?: number;
@@ -199,17 +212,19 @@ export interface AssignPositionPayload {
 export const WAREHOUSE_CONTROL_JOB_STATUS_LABEL: Record<string, string> = {
   released: 'Por surtir',
   picking: 'Picking',
-  waiting_assembly: 'Esperando armado',
+  waiting_assembly: 'Armando',
   assembling: 'Armando',
   assembled: 'Armada',
 };
 
 export const WAREHOUSE_CONTROL_JOB_STATUS_TOOLTIP: Record<string, string> = {
-  released: 'Liberada a los almacenes. Todavía nadie empezó a surtir.',
-  picking: 'Al menos un almacén ya está surtiendo esta orden.',
-  waiting_assembly: 'Todos los almacenes cerraron. Lista para juntar en la posición.',
-  assembling: 'Se está armando el pedido en el piso.',
-  assembled: 'Armada. Falta corroborar para pasar a entrega.',
+  released: 'En la cola, sin posición. Pasa a picking al asignarle piso.',
+  picking: 'Ya tiene posición. Sigue aquí hasta que cada almacén surta lo suyo.',
+  waiting_assembly: 'Todos los almacenes surtieron. Se arma en la caja.',
+  assembling: 'Todos los almacenes surtieron. Se arma en la caja.',
+  assembled: 'Armada. Se puede agregar a un viaje en Creado.',
+  queue: 'En la cola, sin posición. Pasa a picking al asignarle piso.',
+  today: 'Armadas hoy. Desde aquí se agregan a un viaje en Creado.',
 };
 
 export function warehouseControlJobStatusTooltip(status?: string | null): string {
@@ -227,10 +242,12 @@ export const WAREHOUSE_CONTROL_TASK_STATUS_LABEL: Record<string, string> = {
 export const EMPTY_WAREHOUSE_CONTROL_STATS: WarehouseControlStats = {
   in_desk: 0,
   released: 0,
+  queue: 0,
   picking: 0,
   waiting_assembly: 0,
   assembling: 0,
   assembled: 0,
+  assembled_today: 0,
   with_shortage: 0,
   positions_free: 0,
   positions_occupied: 0,
@@ -264,14 +281,60 @@ export function firstPositiveQty(...values: Array<number | string | null | undef
 
 export function taskLineOrderedQty(line: WarehouseControlTaskLine): number {
   return firstPositiveQty(
+    line.quantity,
     line.quantity_base_ordered,
-    line.quantity_base_uom,
-    line.quantity
+    line.quantity_base_uom
   );
 }
 
+/** Pedido en la UOM que ve el jefe (la de la OV). */
+export function taskLineSalesOrderedQty(line: WarehouseControlTaskLine): number {
+  return firstPositiveQty(line.quantity, line.quantity_base_ordered, line.quantity_base_uom);
+}
+
+/** Pedido en UOM base, que es lo que recibe `complete`. */
+export function taskLineBaseOrderedQty(line: WarehouseControlTaskLine): number {
+  return firstPositiveQty(line.quantity_base_ordered, line.quantity_base_uom, line.quantity);
+}
+
+export function salesQtyToBase(line: WarehouseControlTaskLine, salesQty: number): number {
+  const salesOrdered = firstPositiveQty(line.quantity);
+  const baseOrdered = firstPositiveQty(line.quantity_base_ordered, line.quantity_base_uom);
+  const qty = Number.isFinite(salesQty) ? Math.max(0, salesQty) : 0;
+  if (salesOrdered > 0 && baseOrdered > 0) {
+    return parseFloat(((qty * baseOrdered) / salesOrdered).toFixed(3));
+  }
+  return parseFloat(qty.toFixed(3));
+}
+
+export type WarehousePickStatusFilter = 'all' | WarehouseControlTaskStatus;
+
+export function matchesPickStatus(
+  status: string | null | undefined,
+  filter: WarehousePickStatusFilter
+): boolean {
+  if (filter === 'all') return true;
+  return status === filter;
+}
+
+export function matchesPickPosition(code: string | null | undefined, filter: string): boolean {
+  if (!filter || filter === 'all') return true;
+  const value = String(code ?? '').trim();
+  if (filter === 'none') return !value;
+  return value === filter;
+}
+
 export function taskLinePickedQty(line: WarehouseControlTaskLine): number {
-  return toWarehouseControlNumber(line.quantity_base_picked);
+  if (line.quantity_picked != null && line.quantity_picked !== '') {
+    return toWarehouseControlNumber(line.quantity_picked);
+  }
+  const basePicked = toWarehouseControlNumber(line.quantity_base_picked);
+  const salesOrdered = firstPositiveQty(line.quantity);
+  const baseOrdered = firstPositiveQty(line.quantity_base_ordered, line.quantity_base_uom);
+  if (salesOrdered > 0 && baseOrdered > 0 && basePicked > 0) {
+    return parseFloat(((basePicked * salesOrdered) / baseOrdered).toFixed(3));
+  }
+  return basePicked;
 }
 
 export function taskLineShortQty(line: WarehouseControlTaskLine): number {

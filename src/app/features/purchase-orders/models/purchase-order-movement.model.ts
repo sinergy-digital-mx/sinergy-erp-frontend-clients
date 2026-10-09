@@ -76,19 +76,34 @@ function sortMovements(list: PurchaseOrderMovement[]): PurchaseOrderMovement[] {
 
 export function movementChipTone(type: string | null | undefined): string {
   switch (type) {
+    case 'created':
+      return 'created';
     case 'status_changed':
+    case 'header_replaced':
       return 'status';
+    case 'line_added':
+    case 'line_updated':
+    case 'line_removed':
+    case 'notes_updated':
+    case 'pedimento_updated':
+    case 'vendor_invoice_updated':
+      return 'edit';
+    case 'real_cost_updated':
+      return 'cost';
     case 'payment_recorded':
-    case 'payment_deleted':
       return 'money';
+    case 'payment_deleted':
+      return 'money-out';
     case 'received':
     case 'lot_received':
-    case 'lot_migrated':
       return 'lot';
+    case 'lot_migrated':
+      return 'move';
     case 'document_uploaded':
     case 'document_generated':
       return 'document';
     case 'inventory_adjusted':
+    case 'receipt_corrected':
       return 'adjust';
     case 'stock_sold':
       return 'sale';

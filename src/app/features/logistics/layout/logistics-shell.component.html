@@ -1,0 +1,55 @@
+<div class="logistics-shell">
+  <aside class="lnav">
+    <div class="lnav__brand">
+      <span class="lnav__mark" aria-hidden="true">
+        <lucide-icon [img]="Truck" class="w-3.5 h-3.5"></lucide-icon>
+      </span>
+      <div class="min-w-0">
+        <p class="lnav__title">Control logístico</p>
+        <p class="lnav__subtitle">Operación</p>
+      </div>
+    </div>
+
+    @if (executionItems().length) {
+      <div class="lnav__section">
+        <p class="lnav__section-title">Ejecución</p>
+        <nav class="lnav__items">
+          @for (item of executionItems(); track item.route) {
+            <a
+              class="lnav__link"
+              [routerLink]="item.route"
+              routerLinkActive="is-active"
+              [routerLinkActiveOptions]="{ exact: item.exact }"
+            >
+              <lucide-icon [img]="item.icon" class="w-3.5 h-3.5 shrink-0"></lucide-icon>
+              <span>{{ item.label }}</span>
+            </a>
+          }
+        </nav>
+      </div>
+    }
+
+    @if (catalogItems().length) {
+      <div class="lnav__section">
+        <p class="lnav__section-title">Catálogos</p>
+        <nav class="lnav__items">
+          @for (item of catalogItems(); track item.route) {
+            <a
+              class="lnav__link"
+              [routerLink]="item.route"
+              routerLinkActive="is-active"
+              [routerLinkActiveOptions]="{ exact: item.exact }"
+            >
+              <lucide-icon [img]="item.icon" class="w-3.5 h-3.5 shrink-0"></lucide-icon>
+              <span>{{ item.label }}</span>
+            </a>
+          }
+        </nav>
+      </div>
+    }
+  </aside>
+
+  <section class="logistics-content">
+    <router-outlet></router-outlet>
+  </section>
+</div>

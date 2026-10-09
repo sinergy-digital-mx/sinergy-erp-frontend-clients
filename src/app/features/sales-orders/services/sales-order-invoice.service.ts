@@ -15,6 +15,7 @@ import {
   FinkokConfigurationsResponse,
   SalesOrderElectronicInvoice,
   SalesOrderInvoicePdfResponse,
+  SalesOrderPaymentComplementStatus,
   StampSalesOrderInvoicePayload,
 } from '../models/sales-order-electronic-invoice.model';
 import {
@@ -107,6 +108,18 @@ export class SalesOrderInvoiceService {
 
       .pipe(map((response) => this.normalizeInvoice(response)));
 
+  }
+
+  getPaymentComplement(orderId: string): Observable<SalesOrderPaymentComplementStatus> {
+    return this.http.get<SalesOrderPaymentComplementStatus>(
+      `${this.baseUrl}/${orderId}/invoices/payment-complement`,
+    );
+  }
+
+  stampPaymentComplement(orderId: string): Observable<SalesOrderElectronicInvoice> {
+    return this.http
+      .post<unknown>(`${this.baseUrl}/${orderId}/invoices/payment-complement`, {})
+      .pipe(map((response) => this.normalizeInvoice(response)));
   }
 
   stampAdvance(orderId: string, payload: {

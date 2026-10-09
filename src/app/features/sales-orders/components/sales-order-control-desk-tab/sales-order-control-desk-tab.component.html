@@ -1,0 +1,44 @@
+<div class="desk-tab">
+  @if (order.sales_order_type === 'POS' || order.sale_scope === 'services') {
+    <p>Esta orden no pasa por Mesa de Control.</p>
+  } @else if (!order.requires_selection_assembly || !order.control_desk?.job_id) {
+    <p>Todavía no está en la cola. Enviarla la deja en <strong>Por surtir</strong>, sin posición, hasta que le asignen piso.</p>
+    @if (canSend()) {
+      <button type="button" [disabled]="acting()" (click)="send(true)">
+        {{ acting() ? 'Enviando…' : 'Enviar a Mesa de Control' }}
+      </button>
+    }
+  } @else {
+    <dl>
+      <div>
+        <dt>Estado</dt>
+        <dd>{{ statusLabel() }}</dd>
+      </div>
+      <div>
+        <dt>Posición</dt>
+        <dd>{{ order.control_desk?.position?.code || 'En cola, sin posición' }}</dd>
+      </div>
+      <div>
+        <dt>Almacenes</dt>
+        <dd>
+          {{ order.control_desk?.progress?.warehouses_done || 0 }}/{{ order.control_desk?.progress?.warehouses_total || 0 }}
+          surtidos
+        </dd>
+      </div>
+    </dl>
+    <div class="desk-tab__actions">
+      @if (canRemove()) {
+        <button type="button" class="is-quiet" [disabled]="acting()" (click)="send(false)">
+          Sacar de la cola
+        </button>
+      }
+      @if (canAddToShipping()) {
+        <button type="button" (click)="addToShipping()">Agregar a viaje</button>
+      }
+    </div>
+  }
+
+  @if (error()) {
+    <p class="desk-tab__error">{{ error() }}</p>
+  }
+</div>

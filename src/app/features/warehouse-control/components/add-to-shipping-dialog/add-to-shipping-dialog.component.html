@@ -1,0 +1,32 @@
+<div class="ship-pick">
+  <header>
+    <div>
+      <h2>Agregar a un viaje</h2>
+      <p>Solo viajes en Creado.</p>
+    </div>
+    <button type="button" aria-label="Cerrar" (click)="close()">
+      <lucide-icon [img]="X" [size]="18"></lucide-icon>
+    </button>
+  </header>
+
+  @if (loading()) {
+    <p class="ship-pick__empty">Cargando viajes…</p>
+  } @else if (!trips().length) {
+    <p class="ship-pick__empty">No hay viajes en Creado para esta sucursal.</p>
+  } @else {
+    <ul>
+      @for (trip of trips(); track trip.id) {
+        <li>
+          <button type="button" [disabled]="savingId() === trip.id" (click)="add(trip)">
+            <strong>{{ label(trip) }}</strong>
+            <span>{{ savingId() === trip.id ? 'Agregando…' : 'Agregar' }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (error()) {
+    <p class="ship-pick__error">{{ error() }}</p>
+  }
+</div>

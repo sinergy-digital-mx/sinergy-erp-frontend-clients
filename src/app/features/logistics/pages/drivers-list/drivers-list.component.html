@@ -1,0 +1,48 @@
+<div class="logistics-page">
+  <header class="logistics-page__header">
+    <div class="logistics-page__titles">
+      <h2>Choferes</h2>
+      <p>Solo usuarios marcados como chofer. La licencia y el RFC se piden en su ficha.</p>
+    </div>
+  </header>
+
+  <div class="logistics-toolbar">
+    <input
+      type="search"
+      class="logistics-field logistics-toolbar__search"
+      placeholder="Buscar chofer"
+      aria-label="Buscar chofer"
+      [value]="search"
+      (input)="onSearch($any($event.target).value)"
+    />
+  </div>
+
+  <app-datatable-wrapper
+    variant="modern"
+    [config]="table_config()"
+    [rowTemplate]="tableTemplate"
+    (pageChange)="onPageChange($event)"
+  >
+  </app-datatable-wrapper>
+</div>
+
+<ng-template #tableTemplate let-item="$implicit">
+  <td>
+    <p class="dt-cell-primary m-0">{{ displayName(item) }}</p>
+  </td>
+  <td>
+    <p class="dt-cell-muted m-0">{{ item.email || '—' }}</p>
+  </td>
+  <td>
+    <p class="dt-cell-muted m-0">{{ licenseOf(item) }}</p>
+  </td>
+  <td>
+    <span
+      class="dt-status-pill"
+      [class.dt-status-pill--success]="cartaPorteReady(item)"
+      [class.dt-status-pill--warning]="!cartaPorteReady(item)"
+    >
+      {{ cartaPorteReady(item) ? 'Lista' : 'Faltan datos' }}
+    </span>
+  </td>
+</ng-template>

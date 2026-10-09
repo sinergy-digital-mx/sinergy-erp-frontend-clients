@@ -19,8 +19,11 @@ import { FilterIndicatorComponent } from '../../components/filter-indicator/filt
 import { CustomerEditModalComponent } from '../../components/customer-edit-modal/customer-edit-modal.component';
 import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { FilterStateService } from '../../services/filter-state.service';
-import { Customer, CustomerStatus } from '../../models/customer-group.model';
-import { PhoneComponent } from '../../../../core/components/phone/phone.component';
+import {
+  Customer,
+  CustomerRegistrationFiscalOption,
+  CustomerStatus,
+} from '../../models/customer-group.model';
 import {
   getCustomerFullName,
   getCustomerStatusLabel,
@@ -37,6 +40,13 @@ import { EmptyStageComponent } from '../../../../core/components/empty-stage/emp
 import { AuthService } from '../../../../core/services/auth.service';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
+import { CustomerListStatsComponent } from '../../components/customer-list-stats/customer-list-stats.component';
+import { CustomerListStats } from '../../../../core/services/customer.service';
+import {
+  CustomerListInsight,
+  customerInsightLabel,
+  isCustomerListInsight,
+} from '../../utils/customer-list-insight';
 
 @Component({
   selector: 'app-customers-list',
@@ -52,12 +62,12 @@ import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
     DatatableWrapperComponent,
     CustomerGroupDropdownComponent,
     FilterIndicatorComponent,
-    PhoneComponent,
     LucideAngularModule,
     FilterClearButtonComponent,
     SpinnerComponent,
     EmptyStageComponent,
     HasPermissionDirective,
+    CustomerListStatsComponent,
   ],
   templateUrl: './customers-list.html',
   styleUrl: './customers-list.scss',
@@ -69,7 +79,8 @@ export class CustomersList implements OnInit, OnDestroy {
     rows: [],
     columns: [
       { name: 'Cliente', prop: 'name', sortable: true, canAutoResize: true },
-      { name: 'Teléfono', prop: 'phone', sortable: true, canAutoResize: true },
+      { name: 'Razón social', prop: 'fiscal_razon_social', sortable: false, canAutoResize: true },
+      { name: 'Correo', prop: 'email', sortable: true, canAutoResize: true },
       { name: 'Grupo', prop: 'group_id', sortable: true, canAutoResize: true },
       { name: 'Estatus', prop: 'status', sortable: true, canAutoResize: true },
       { name: 'Creado', prop: 'created_at', sortable: true, canAutoResize: true },
@@ -95,10 +106,19 @@ export class CustomersList implements OnInit, OnDestroy {
   selectedGroupName: string | null = null;
   selectedStatusId: string | null = null;
   selectedStatusName: string | null = null;
+  selectedFiscalId: string | null = null;
+  selectedFiscalName: string | null = null;
+  selectedInsight: CustomerListInsight | null = null;
+  customerStats: CustomerListStats | null = null;
+  statsLoading = false;
+  statsError = false;
   currentSort: ISortEvent | null = null;
+  private statsRequest = 0;
+  private statsScopeKey = '';
   private destroy$ = new Subject<void>();
   private lastQueryParams: string = '';
   private customerStatuses: CustomerStatus[] = [];
+  private fiscalOptions: CustomerRegistrationFiscalOption[] = [];
 
   statusSelectConfig: ISelect = {
     placeholder: 'Estatus',
@@ -109,6 +129,17 @@ export class CustomersList implements OnInit, OnDestroy {
     data: [],
     all: true,
     all_message: 'Todos',
+  };
+
+  fiscalSelectConfig: ISelect = {
+    placeholder: 'Razón social',
+    name_select: 'registered_fiscal',
+    value: 'id',
+    option: 'label',
+    value_default: null,
+    data: [],
+    all: true,
+    all_message: 'Razón social',
   };
 
   constructor(
@@ -133,6 +164,10 @@ export class CustomersList implements OnInit, OnDestroy {
       this.selectedGroupId = query?.group_id ?? null;
       this.selectedStatusId = query?.status_id ?? null;
       this.selectedStatusName = this.resolveStatusName(this.selectedStatusId);
+      this.selectedFiscalId = query?.registered_fiscal_configuration_id ?? null;
+      this.syncFiscalFilterConfig();
+      const insight = typeof query?.insight === 'string' ? query.insight : null;
+      this.selectedInsight = this.canViewStats && isCustomerListInsight(insight) ? insight : null;
 
       const page = query?.page ? Number(query.page) : 1;
       const limit = query?.limit ? Number(query.limit) : 20;
@@ -148,12 +183,46 @@ export class CustomersList implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.customer_service.getRegistrationOptions().subscribe({
+      next: (options) => {
+        this.fiscalOptions = options.fiscal_configurations ?? [];
+        this.syncFiscalFilterConfig();
+      },
+    });
     this.customer_service.getCustomerStatuses().subscribe({
       next: (statuses) => {
         this.customerStatuses = statuses;
         this.syncStatusFilterConfig();
       },
     });
+    this.authService.permissions$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      const insight = this.route.snapshot.queryParamMap.get('insight');
+      const next = this.canViewStats && isCustomerListInsight(insight) ? insight : null;
+      const gainedInsight = !!next && next !== this.selectedInsight;
+      const lostInsight = !!this.selectedInsight && !next;
+      this.selectedInsight = next;
+      if (!this.canViewStats) {
+        this.customerStats = null;
+        this.statsLoading = false;
+        if (lostInsight) this.getCustomers();
+        return;
+      }
+      if (gainedInsight) {
+        this.getCustomers();
+        return;
+      }
+      if (!this.customerStats && !this.statsLoading) {
+        this.loadStats();
+      }
+    });
+  }
+
+  get canViewStats(): boolean {
+    return this.authService.hasPermission(this.permissions.viewStats);
+  }
+
+  get insightLabel(): string | null {
+    return this.selectedInsight ? customerInsightLabel(this.selectedInsight) : null;
   }
 
   ngOnDestroy() {
@@ -173,8 +242,11 @@ export class CustomersList implements OnInit, OnDestroy {
       ...(this.search && { search: this.search }),
       ...(this.selectedGroupId && { group_id: this.selectedGroupId }),
       ...(this.selectedStatusId && { status_id: this.selectedStatusId }),
+      ...(this.selectedFiscalId && { registered_fiscal_configuration_id: this.selectedFiscalId }),
+      ...(this.canViewStats && this.selectedInsight && { insight: this.selectedInsight }),
       ...(this.currentSort && this.currentSort.direction && { sort: this.currentSort.column.prop, order: this.currentSort.direction })
     };
+    this.loadStats();
     this.customer_service.getCustomers(data).subscribe({
       next: (res) => {
         this.table_config.update(c => ({
@@ -191,6 +263,58 @@ export class CustomersList implements OnInit, OnDestroy {
     });
   }
 
+  private loadStats(): void {
+    if (!this.canViewStats) {
+      this.customerStats = null;
+      this.statsLoading = false;
+      this.statsError = false;
+      this.statsScopeKey = '';
+      return;
+    }
+    const scopeKey = `${this.search}|${this.selectedGroupId ?? ''}|${this.selectedStatusId ?? ''}|${this.selectedFiscalId ?? ''}`;
+    if (scopeKey === this.statsScopeKey && (this.customerStats || this.statsLoading)) {
+      return;
+    }
+    this.statsScopeKey = scopeKey;
+    const request = ++this.statsRequest;
+    this.statsLoading = true;
+    this.statsError = false;
+    this.customer_service.getCustomerListStats({
+      ...(this.search && { search: this.search }),
+      ...(this.selectedGroupId && { group_id: this.selectedGroupId }),
+      ...(this.selectedStatusId && { status_id: this.selectedStatusId }),
+      ...(this.selectedFiscalId && { registered_fiscal_configuration_id: this.selectedFiscalId }),
+    }).subscribe({
+      next: (stats) => {
+        if (request !== this.statsRequest) return;
+        this.customerStats = stats;
+        this.statsLoading = false;
+      },
+      error: () => {
+        if (request !== this.statsRequest) return;
+        this.statsLoading = false;
+        this.statsError = !this.customerStats;
+        this.statsScopeKey = '';
+      },
+    });
+  }
+
+  private navigateList(page: number, extra: Record<string, unknown> = {}): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page,
+        search: this.search || undefined,
+        group_id: this.selectedGroupId || undefined,
+        status_id: this.selectedStatusId || undefined,
+        registered_fiscal_configuration_id: this.selectedFiscalId || null,
+        insight: this.canViewStats && this.selectedInsight ? this.selectedInsight : null,
+        ...extra,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   private syncStatusFilterConfig(): void {
     this.statusSelectConfig = {
       ...this.statusSelectConfig,
@@ -200,6 +324,30 @@ export class CustomersList implements OnInit, OnDestroy {
     this.selectedStatusName = this.resolveStatusName(this.selectedStatusId);
   }
 
+  private syncFiscalFilterConfig(): void {
+    this.selectedFiscalName = this.resolveFiscalName(this.selectedFiscalId);
+    this.fiscalSelectConfig = {
+      ...this.fiscalSelectConfig,
+      data: this.fiscalOptions.map((item) => ({
+        id: item.id,
+        label: this.fiscalOptionLabel(item),
+      })),
+      value_default: this.selectedFiscalId,
+    };
+  }
+
+  private resolveFiscalName(fiscalId: string | null): string | null {
+    if (!fiscalId) return null;
+    const match = this.fiscalOptions.find((item) => item.id === fiscalId);
+    return match ? this.fiscalOptionLabel(match) : null;
+  }
+
+  private fiscalOptionLabel(item: CustomerRegistrationFiscalOption): string {
+    const name = item.razon_social?.trim() || 'Sin razón social';
+    const rfc = item.rfc?.trim();
+    return rfc ? `${name} (${rfc})` : name;
+  }
+
   private resolveStatusName(statusId: string | null): string | null {
     if (!statusId) return null;
     const id = Number(statusId);
@@ -207,32 +355,13 @@ export class CustomersList implements OnInit, OnDestroy {
   }
 
   onPageChange(event: IPaginationEvent) {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: event.page,
-        limit: event.limit,
-        search: this.search || undefined,
-        group_id: this.selectedGroupId || undefined,
-        status_id: this.selectedStatusId || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateList(event.page, { limit: event.limit });
   }
 
   onSortChange(event: ISortEvent) {
     this.currentSort = event;
     this.table_config.update(c => ({ ...c, page: 1 }));
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        search: this.search || undefined,
-        group_id: this.selectedGroupId || undefined,
-        status_id: this.selectedStatusId || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateList(1);
   }
 
   onRowClick(event: any) {
@@ -242,16 +371,14 @@ export class CustomersList implements OnInit, OnDestroy {
   onGroupSelect(event: { groupId: string | null; groupName: string | null }) {
     this.selectedGroupId = event.groupId;
     this.selectedGroupName = event.groupName;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        group_id: event.groupId || undefined,
-        search: this.search || undefined,
-        status_id: this.selectedStatusId || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateList(1);
+  }
+
+  onFiscalSelect(event: { value?: string | null }): void {
+    const fiscalId = event?.value != null && event.value !== '' ? String(event.value) : null;
+    this.selectedFiscalId = fiscalId;
+    this.syncFiscalFilterConfig();
+    this.navigateList(1);
   }
 
   onStatusSelect(event: any): void {
@@ -262,30 +389,45 @@ export class CustomersList implements OnInit, OnDestroy {
       ...this.statusSelectConfig,
       value_default: statusId ? Number(statusId) : null,
     };
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        status_id: statusId || undefined,
-        search: this.search || undefined,
-        group_id: this.selectedGroupId || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateList(1);
+  }
+
+  onInsightChange(insight: CustomerListInsight | null): void {
+    if (!this.canViewStats || insight === this.selectedInsight) return;
+    this.selectedInsight = insight;
+    this.navigateList(1);
   }
 
   get hasActiveFilters(): boolean {
-    return !!(this.search || this.selectedGroupId || this.selectedStatusId);
+    return !!(
+      this.search ||
+      this.selectedGroupId ||
+      this.selectedStatusId ||
+      this.selectedFiscalId ||
+      this.selectedInsight
+    );
   }
 
-  onFilterClear(filterType: 'status' | 'group' | 'search' | 'all') {
+  get statsAreScoped(): boolean {
+    return !!(this.search || this.selectedGroupId || this.selectedStatusId || this.selectedFiscalId);
+  }
+
+  onFilterClear(filterType: 'status' | 'group' | 'fiscal' | 'search' | 'insight' | 'all') {
     if (filterType === 'all') {
       this.selectedGroupId = null;
       this.selectedGroupName = null;
       this.selectedStatusId = null;
       this.selectedStatusName = null;
       this.statusSelectConfig = { ...this.statusSelectConfig, value_default: null };
+      this.selectedFiscalId = null;
+      this.selectedFiscalName = null;
+      this.syncFiscalFilterConfig();
       this.search = '';
+      this.selectedInsight = null;
+    } else if (filterType === 'fiscal') {
+      this.selectedFiscalId = null;
+      this.selectedFiscalName = null;
+      this.syncFiscalFilterConfig();
     } else if (filterType === 'group') {
       this.selectedGroupId = null;
       this.selectedGroupName = null;
@@ -295,32 +437,16 @@ export class CustomersList implements OnInit, OnDestroy {
       this.statusSelectConfig = { ...this.statusSelectConfig, value_default: null };
     } else if (filterType === 'search') {
       this.search = '';
+    } else if (filterType === 'insight') {
+      this.selectedInsight = null;
     }
 
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        search: this.search || undefined,
-        group_id: this.selectedGroupId || undefined,
-        status_id: this.selectedStatusId || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateList(1);
   }
 
   onSearchChange(searchTerm: string) {
     this.search = searchTerm;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        search: searchTerm || undefined,
-        group_id: this.selectedGroupId || undefined,
-        status_id: this.selectedStatusId || undefined
-      },
-      queryParamsHandling: 'merge'
-    });
+    this.navigateList(1);
   }
 
   editCustomer(customer: Customer) {
@@ -368,6 +494,20 @@ export class CustomersList implements OnInit, OnDestroy {
     return getCustomerFullName(customer);
   }
 
+  fiscalName(customer: Customer): string {
+    return customer.fiscal_razon_social?.trim() || '—';
+  }
+
+  fiscalRfc(customer: Customer): string {
+    return customer.fiscal_rfc?.trim() || '';
+  }
+
+  fiscalTitle(customer: Customer): string {
+    const name = this.fiscalName(customer);
+    const rfc = this.fiscalRfc(customer);
+    return rfc && name !== '—' ? `${name} · ${rfc}` : name;
+  }
+
   openExportModal(): void {
     this.dialog
       .open(CustomerExportDialogComponent, {
@@ -380,6 +520,10 @@ export class CustomersList implements OnInit, OnDestroy {
           status_name: this.selectedStatusName,
           group_id: this.selectedGroupId,
           group_name: this.selectedGroupName,
+          registered_fiscal_configuration_id: this.selectedFiscalId,
+          fiscal_name: this.selectedFiscalName,
+          insight: this.canViewStats ? this.selectedInsight : null,
+          insight_label: this.canViewStats ? this.insightLabel : null,
         },
       })
       .afterClosed()

@@ -9,6 +9,10 @@ export interface CustomerExportDialogData {
   status_name?: string | null;
   group_id?: string | null;
   group_name?: string | null;
+  registered_fiscal_configuration_id?: string | null;
+  fiscal_name?: string | null;
+  insight?: string | null;
+  insight_label?: string | null;
 }
 
 export interface CustomerExportDialogResult {
@@ -27,8 +31,8 @@ export class CustomerExportDialogComponent {
   errorMessage = signal('');
 
   hasActiveFilters = computed(() => {
-    const { search, status_id, group_id } = this.data;
-    return !!(search || status_id || group_id);
+    const { search, status_id, group_id, registered_fiscal_configuration_id, insight } = this.data;
+    return !!(search || status_id || group_id || registered_fiscal_configuration_id || insight);
   });
 
   canDownload = computed(() => !this.exporting());
@@ -63,6 +67,12 @@ export class CustomerExportDialogComponent {
     }
     if (this.data.group_id) {
       filters.group_id = this.data.group_id;
+    }
+    if (this.data.registered_fiscal_configuration_id) {
+      filters.registered_fiscal_configuration_id = this.data.registered_fiscal_configuration_id;
+    }
+    if (this.data.insight) {
+      filters.insight = this.data.insight;
     }
 
     this.customerService.exportCustomersExcel(filters).subscribe({

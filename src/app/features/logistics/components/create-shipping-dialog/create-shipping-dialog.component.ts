@@ -25,8 +25,9 @@ import {
   getSalesOrderTotal,
 } from '../../../sales-orders/utils/sales-order-display.util';
 import {
-  CustomerAddressDialogComponent,
-} from '../../../customers/components/customer-address-dialog/customer-address-dialog.component';
+  StopAddressPickerDialogComponent,
+  StopAddressPickerResult,
+} from '../stop-address-picker-dialog/stop-address-picker-dialog.component';
 import { Truck, truckSelectLabel } from '../../models/truck.model';
 import {
   CreateShippingDto,
@@ -180,7 +181,9 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
             typeof u.status === 'string'
               ? u.status
               : (u.status as any)?.name || (u.status as any)?.code || '';
-          return String(status).toLowerCase() !== 'inactive';
+          const driver = (u as { is_driver?: unknown }).is_driver;
+          const isDriver = driver === true || driver === 1 || driver === '1';
+          return String(status).toLowerCase() !== 'inactive' && isDriver;
         });
         this.drivers.set(active);
         this.loadingCatalogs.set(false);
@@ -491,72 +494,38 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     });
   }
 
-  openAddCustomerAddress(order: ShippingPreviewOrder): void {
+  selectedAddressLine(order: ShippingPreviewOrder): string {
+    const selected = order.customer_addresses?.find(
+      (item) => String(item.id) === String(order.customer_address_id ?? ''),
+    );
+    if (selected) {
+      return `${selected.type_label || 'Dirección'} · ${selected.address_summary || 'Sin calle'}`;
+    }
+    return order.address_summary || 'Sin dirección';
+  }
+
+  openAddressPicker(order: ShippingPreviewOrder): void {
     const customerId = order.customer_id;
-    if (customerId == null) return;
-    const ref = this.dialog.open(CustomerAddressDialogComponent, {
-      width: '720px',
-      maxWidth: '95vw',
+    if (customerId == null || this.previewing()) return;
+    const ref = this.dialog.open(StopAddressPickerDialogComponent, {
+      width: '480px',
+      maxWidth: '96vw',
+      maxHeight: '86vh',
+      panelClass: 'stop-address-picker-panel',
       data: {
         customerId: String(customerId),
-        address: null,
-        defaultType: 'shipping',
+        customerName: order.customer_name || 'Cliente',
+        selectedId: order.customer_address_id ?? null,
+        addresses: order.customer_addresses ?? [],
       },
     });
-    ref.afterClosed().subscribe((created) => {
-      const addressId = this.createdAddressId(created);
-      if (addressId == null) {
-        if (created) this.refreshPreview();
+    ref.afterClosed().subscribe((result: StopAddressPickerResult | undefined) => {
+      if (!result) return;
+      if (typeof result.addressId === 'number' && !this.isSelectedAddress(order, result.addressId)) {
+        this.selectStopAddress(order, result.addressId);
         return;
       }
-      const current = this.preview();
-      if (current) {
-        this.preview.set({
-          ...current,
-          orders: current.orders.map((item) =>
-            item.sales_order_id === order.sales_order_id
-              ? { ...item, customer_address_id: addressId }
-              : item
-          ),
-        });
-      }
-      this.refreshPreview();
-    });
-  }
-
-  private createdAddressId(created: unknown): number | null {
-    if (!created || created === true || typeof created !== 'object') return null;
-    const id = (created as { id?: number | string }).id;
-    if (id == null || id === '') return null;
-    const parsed = Number(id);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  openEditCustomerAddress(order: ShippingPreviewOrder): void {
-    const customerId = order.customer_id;
-    if (customerId == null || order.customer_address_id == null) return;
-    const ref = this.dialog.open(CustomerAddressDialogComponent, {
-      width: '720px',
-      maxWidth: '95vw',
-      data: {
-        customerId: String(customerId),
-        defaultType: 'shipping',
-        address: {
-          id: String(order.customer_address_id),
-          customer_id: String(customerId),
-          type: order.address_type || 'shipping',
-          street_address: order.address_summary || '',
-          city: '',
-          state: '',
-          postal_code: '',
-          country: 'México',
-          latitude: order.delivery_latitude ?? order.latitude,
-          longitude: order.delivery_longitude ?? order.longitude,
-        },
-      },
-    });
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) this.refreshPreview();
+      if (result.locationChanged) this.refreshPreview();
     });
   }
 
@@ -571,7 +540,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
           title: 'Ubicaciones incompletas',
           message:
             'Hay paradas o sucursal sin GPS; la distancia será parcial. ¿Crear de todos modos?',
-          confirmText: 'Crear envío',
+          confirmText: 'Crear viaje',
           cancelText: 'Volver',
         },
       });
@@ -598,7 +567,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.creating.set(false);
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: res.message || 'Envío creado', type: 'success' },
+          data: { message: res.message || 'Viaje creado', type: 'success' },
           duration: 4000,
         });
         this.dialogRef.close({ created: true, shipping: res.shipping });
@@ -607,7 +576,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
         this.creating.set(false);
         const message = Array.isArray(err?.error?.message)
           ? err.error.message.join(', ')
-          : err?.error?.message || 'No se pudo crear el envío';
+          : err?.error?.message || 'No se pudo crear el viaje';
         this.snackBar.openFromComponent(CustomSnackbarComponent, {
           data: { message, type: 'error' },
           duration: 6000,

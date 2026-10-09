@@ -1,7 +1,7 @@
 <div class="create-shipping" [class.create-shipping--preview]="step() === 'preview'">
   @if (step() === 'form') {
     <div class="create-shipping__header">
-      <h2>Nuevo envío</h2>
+      <h2>Nuevo viaje</h2>
       <lucide-icon [img]="X" class="cursor-pointer w-5 h-5 text-gray-500" (click)="close()"></lucide-icon>
     </div>
 
@@ -34,7 +34,9 @@
           <select formControlName="truck_id">
             <option value="">Selecciona camión</option>
             @for (t of trucks(); track t.id) {
-              <option [value]="t.id">{{ truckSelectLabel(t) }}</option>
+              <option [value]="t.id" [disabled]="!!t.active_shipping_id">
+                {{ truckSelectLabel(t) }}{{ t.active_shipping_id ? ' · en uso' : '' }}
+              </option>
             }
           </select>
         </div>
@@ -133,7 +135,7 @@
   } @else if (preview(); as p) {
     <div class="create-shipping__header create-shipping__header--preview">
       <div class="preview-title">
-        <h2>Vista previa del envío</h2>
+        <h2>Vista previa del viaje</h2>
         <span class="preview-date">{{ form.get('shipping_date')?.value }}</span>
         <span class="preview-badge">Borrador</span>
         <span class="preview-km">
@@ -210,35 +212,16 @@
                       <span class="ok-pill">GPS OK</span>
                     }
                   </div>
-                  <p>{{ o.customer_name || 'Cliente' }}</p>
-                  @if (o.customer_addresses?.length) {
-                    <ul class="addr-list">
-                      @for (addr of o.customer_addresses; track addr.id) {
-                        <li>
-                          <label class="addr-option">
-                            <input
-                              type="radio"
-                              [name]="'addr-' + o.sales_order_id"
-                              [checked]="isSelectedAddress(o, addr.id)"
-                              [disabled]="previewing()"
-                              (change)="selectStopAddress(o, addr.id)"
-                            />
-                            <span>
-                              <strong>{{ addr.type_label || 'Dirección' }}</strong>
-                              @if (addr.is_primary) {
-                                <span class="addr-primary">Principal</span>
-                              }
-                              {{ addr.address_summary || 'Sin calle' }}
-                              @if (!addr.has_gps) {
-                                <em>sin GPS</em>
-                              }
-                            </span>
-                          </label>
-                        </li>
-                      }
-                    </ul>
-                  } @else {
-                    <p class="stop-card__addr">Sin dirección</p>
+                  <p class="stop-card__name">{{ o.customer_name || 'Cliente' }}</p>
+                  <p class="stop-card__addr">{{ selectedAddressLine(o) }}</p>
+                  @if (o.customer_id != null) {
+                    <button
+                      type="button"
+                      class="stop-card__tool"
+                      [disabled]="previewing()"
+                      (click)="openAddressPicker(o)">
+                      Dirección
+                    </button>
                   }
                   @if (o.distance_from_previous_km != null) {
                     <span class="stop-card__leg"
@@ -246,17 +229,9 @@
                     >
                   }
                   @if (stopNeedsAddress(o)) {
-                    <p class="warn-text">Este cliente no tiene dirección de entrega registrada</p>
+                    <p class="warn-text">Sin dirección de entrega</p>
                   } @else if (stopNeedsGps(o)) {
-                    <p class="warn-text">La dirección de entrega no tiene coordenadas</p>
-                    <button type="button" class="link-btn" (click)="openEditCustomerAddress(o)">
-                      Editar dirección
-                    </button>
-                  }
-                  @if (o.customer_id != null) {
-                    <button type="button" class="link-btn" (click)="openAddCustomerAddress(o)">
-                      Nueva dirección
-                    </button>
+                    <p class="warn-text">Sin coordenadas GPS</p>
                   }
                 </div>
               </div>
@@ -285,7 +260,7 @@
         (clicked)="refreshPreview()"
       ></app-button>
       <app-button
-        text="Crear envío"
+        text="Crear viaje"
         variant="primary"
         [fullWidth]="false"
         [disabled]="creating() || previewing()"

@@ -5,13 +5,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, filter, switchMap, takeUntil, tap } from 'rxjs';
 import { LucideAngularModule, Edit2, Trash2 } from 'lucide-angular';
-import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import {
   IDatatableConfig,
   IPaginationEvent,
 } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
-import { SearchComponent } from '../../../../core/components/search/search.component';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
@@ -26,9 +24,7 @@ import { TruckFormModalComponent } from '../../components/truck-form-modal/truck
   standalone: true,
   imports: [
     CommonModule,
-    ButtonComponent,
     DatatableWrapperComponent,
-    SearchComponent,
     FilterClearButtonComponent,
     HasPermissionDirective,
     LucideAngularModule,
@@ -49,8 +45,10 @@ export class TrucksListComponent implements OnDestroy {
       { name: '', prop: 'photo', sortable: false, canAutoResize: false, width: 56 },
       { name: 'Nombre', prop: 'name', sortable: false, canAutoResize: true, width: 180 },
       { name: 'Placa', prop: 'placa', sortable: false, canAutoResize: true, width: 120 },
+      { name: 'Remolque', prop: 'remolque', sortable: false, canAutoResize: true, width: 160 },
       { name: 'Núm. serie', prop: 'serial_number', sortable: false, canAutoResize: true, width: 160 },
       { name: 'Año', prop: 'anio', sortable: false, canAutoResize: true, width: 80 },
+      { name: 'Carta porte', prop: 'carta_porte', sortable: false, canAutoResize: true, width: 140 },
       { name: 'Estado', prop: 'status', sortable: false, canAutoResize: true, width: 100 },
       { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 120 },
     ],
@@ -60,7 +58,7 @@ export class TrucksListComponent implements OnDestroy {
     limit: 20,
     totalResults: 0,
     loading: false,
-    emptyState: { title: 'Sin camiones', subtitle: 'Crea el primero para tu flota' },
+    emptyState: { title: 'Sin unidades', subtitle: 'Crea la primera para tu flota' },
     columnMode: 'force',
     reorderable: false,
   });
@@ -68,6 +66,7 @@ export class TrucksListComponent implements OnDestroy {
   search = '';
   onlyActive = true;
   private destroy$ = new Subject<void>();
+  private searchTimer?: ReturnType<typeof setTimeout>;
   private lastQueryParams = '';
 
   constructor(
@@ -110,6 +109,7 @@ export class TrucksListComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    clearTimeout(this.searchTimer);
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -183,9 +183,12 @@ export class TrucksListComponent implements OnDestroy {
     this.syncQuery({ page: event.page, limit: event.limit });
   }
 
-  onSearchChange(searchTerm: string): void {
-    this.search = searchTerm;
-    this.syncQuery({ page: 1, search: searchTerm || undefined });
+  onSearchInput(value: string): void {
+    this.search = value;
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.syncQuery({ page: 1, search: value.trim() || undefined });
+    }, 400);
   }
 
   onOnlyActiveChange(checked: boolean): void {
@@ -301,8 +304,15 @@ export class TrucksListComponent implements OnDestroy {
 
   getStatusClass(status: string): string {
     return status === 'active'
-      ? 'settings-badge settings-badge--status-active'
-      : 'settings-badge settings-badge--status-inactive';
+      ? 'dt-status-pill dt-status-pill--success'
+      : 'dt-status-pill dt-status-pill--neutral';
+  }
+
+  trailerOf(row: Truck): string {
+    const type = row?.subtipo_remolque1?.trim();
+    const plate = row?.placa_remolque1?.trim();
+    if (type && plate) return `${type} · ${plate}`;
+    return type || plate || '—';
   }
 
   serialNumberOf(row: Truck): string {

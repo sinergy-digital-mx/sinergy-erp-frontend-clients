@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -16,6 +16,7 @@ import {
   normalizeShippingStatusKey,
 } from '../../models/shipping.model';
 import { ShippingService } from '../../services/shipping.service';
+import { buildTripCard } from '../../utils/trip-card.util';
 import { CreateShippingDialogComponent } from '../../components/create-shipping-dialog/create-shipping-dialog.component';
 import { ShippingDetailDialogComponent } from '../../components/shipping-detail-dialog/shipping-detail-dialog.component';
 
@@ -30,6 +31,7 @@ interface CalendarDay {
 interface CalendarEvent {
   id: string;
   title: string;
+  hint: string;
   status: string;
   colors: { background: string; text: string };
   shipping: ShippingListItem;
@@ -43,6 +45,8 @@ interface CalendarEvent {
   styleUrl: './shippings-calendar.component.scss',
 })
 export class ShippingsCalendarComponent implements OnInit, OnDestroy {
+  @Input() embedded = false;
+
   readonly ChevronLeft = ChevronLeft;
   readonly ChevronRight = ChevronRight;
   readonly Plus = Plus;
@@ -107,6 +111,10 @@ export class ShippingsCalendarComponent implements OnInit, OnDestroy {
     });
   }
 
+  reload(): void {
+    this.loadMonth();
+  }
+
   prevMonth(): void {
     const d = this.month();
     this.month.set(new Date(d.getFullYear(), d.getMonth() - 1, 1));
@@ -146,7 +154,7 @@ export class ShippingsCalendarComponent implements OnInit, OnDestroy {
           this.shippings.set([]);
           this.loading.set(false);
           this.snackBar.openFromComponent(CustomSnackbarComponent, {
-            data: { message: 'Error al cargar envíos', type: 'error' },
+            data: { message: 'No se pudo cargar los viajes', type: 'error' },
             duration: 5000,
           });
         },
@@ -158,11 +166,12 @@ export class ShippingsCalendarComponent implements OnInit, OnDestroy {
     return new Date(y, (m || 1) - 1, day || 1);
   }
 
-  private eventTitle(s: ShippingListItem): string {
-    const short = s.short_id || s.id?.slice(0, 8) || '';
-    const driver = s.driver_name || 'Sin chofer';
-    const truck = s.truck_placa || s.truck_name || 'Sin camión';
-    return `#${short} · ${driver} · ${truck} · ${s.status}`;
+  private eventTitle(s: ShippingListItem): { title: string; hint: string } {
+    const card = buildTripCard(s);
+    return {
+      title: `${card.folio} · ${card.destination}`,
+      hint: `${card.routeLine} · ${card.unitLine} · ${card.driverLine} · ${card.status}`,
+    };
   }
 
   private buildCalendarDays(month: Date, shippings: ShippingListItem[]): CalendarDay[] {
@@ -178,9 +187,11 @@ export class ShippingsCalendarComponent implements OnInit, OnDestroy {
       if (!s.shipping_date) continue;
       const iso = s.shipping_date.slice(0, 10);
       const list = byDate.get(iso) ?? [];
+      const label = this.eventTitle(s);
       list.push({
         id: s.id,
-        title: this.eventTitle(s),
+        title: label.title,
+        hint: label.hint,
         status: String(s.status),
         colors: getShippingStatusColors(s.status),
         shipping: s,
@@ -234,9 +245,9 @@ export class ShippingsCalendarComponent implements OnInit, OnDestroy {
   openDetail(event: CalendarEvent, e: MouseEvent): void {
     e.stopPropagation();
     const ref = this.dialog.open(ShippingDetailDialogComponent, {
-      width: '1280px',
-      maxWidth: '98vw',
-      maxHeight: '94vh',
+      width: '96vw',
+      maxWidth: '1680px',
+      maxHeight: '96vh',
       data: { shippingId: event.id },
     });
     ref.afterClosed().subscribe((result) => {

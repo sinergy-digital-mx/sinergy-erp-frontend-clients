@@ -94,13 +94,12 @@
               <label class="more-filters__label" for="fiscalConfiguration-modal">Razón social</label>
               <select
                 id="fiscalConfiguration-modal"
-                [formControl]="fiscalConfigurationControl"
                 class="filter-bar__select"
                 title="Razón social"
-              >
-                <option value="">Todas las razones sociales</option>
+                (change)="fiscalConfigurationControl.setValue($any($event.target).value)">
+                <option value="" [selected]="!fiscalConfigurationControl.value">Todas las razones sociales</option>
                 @for (fc of fiscalConfigurations; track fc.id) {
-                  <option [value]="fc.id">{{ fiscalOptionLabel(fc) }}</option>
+                  <option [value]="fc.id" [selected]="fiscalConfigurationControl.value === fc.id">{{ fiscalOptionLabel(fc) }}</option>
                 }
               </select>
             </div>
@@ -109,13 +108,12 @@
               <label class="more-filters__label" for="billingBranch-modal">Sucursal</label>
               <select
                 id="billingBranch-modal"
-                [formControl]="billingBranchControl"
                 class="filter-bar__select"
                 title="Sucursal"
-              >
-                <option value="">Todas las sucursales</option>
+                (change)="billingBranchControl.setValue($any($event.target).value)">
+                <option value="" [selected]="!billingBranchControl.value">Todas las sucursales</option>
                 @for (branch of branches; track branch.id) {
-                  <option [value]="branch.id">{{ branchLabel(branch) }}</option>
+                  <option [value]="branch.id" [selected]="billingBranchControl.value === branch.id">{{ branchLabel(branch) }}</option>
                 }
               </select>
             </div>

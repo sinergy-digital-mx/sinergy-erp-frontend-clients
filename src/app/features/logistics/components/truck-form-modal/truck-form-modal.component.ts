@@ -11,8 +11,11 @@ import { TabComponent, TabItem } from '../../../../core/components/tab/tab.compo
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TRUCK_PERMISSIONS } from '../../config/permissions.config';
+import { GPS_TRACKING_PERMISSIONS } from '../../config/permissions.config';
 import { CreateTruckDto, Truck } from '../../models/truck.model';
+import { GpsCatalogUnit } from '../../models/gps-unit.model';
 import { TruckService } from '../../services/truck.service';
+import { GpsTrackingService } from '../../services/gps-tracking.service';
 
 export interface TruckFormDialogData {
   truck: Truck | null;
@@ -49,6 +52,8 @@ export class TruckFormModalComponent implements OnInit {
   activeTab = 'general';
   truckId: string | null = null;
   photoUrl: string | null = null;
+  gpsUnits = signal<GpsCatalogUnit[]>([]);
+  gpsHint = signal<string | null>(null);
   /** Si se creó/actualizó/subió foto, al cerrar devolvemos el camión para refrescar lista */
   private resultTruck: Truck | null = null;
 
@@ -60,6 +65,7 @@ export class TruckFormModalComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private truckService: TruckService,
+    private gpsTracking: GpsTrackingService,
     private snackBar: MatSnackBar,
     private authService: AuthService,
     public dialogRef: MatDialogRef<TruckFormModalComponent>,
@@ -76,12 +82,15 @@ export class TruckFormModalComponent implements OnInit {
       tipo_auto_transporte: [''],
       aseguradora_rc: [''],
       poliza_rc: [''],
+      peso_bruto_vehicular: [''],
       subtipo_remolque1: [''],
       placa_remolque1: [''],
+      gps_unit_uid: [''],
     });
   }
 
   ngOnInit(): void {
+    if (this.canLinkGps) this.loadGpsUnits();
     if (this.data.truck) {
       this.truckId = this.data.truck.id;
       this.photoUrl = this.data.truck.photo?.trim() || null;
@@ -98,6 +107,10 @@ export class TruckFormModalComponent implements OnInit {
 
   get canUploadPhoto(): boolean {
     return !!this.truckId && this.authService.hasPermission(TRUCK_PERMISSIONS.update);
+  }
+
+  get canLinkGps(): boolean {
+    return this.authService.hasPermission(GPS_TRACKING_PERMISSIONS.read);
   }
 
   onTabChange(tabId: string): void {
@@ -237,8 +250,10 @@ export class TruckFormModalComponent implements OnInit {
       tipo_auto_transporte: truck.tipo_auto_transporte ?? '',
       aseguradora_rc: truck.aseguradora_rc ?? '',
       poliza_rc: truck.poliza_rc ?? '',
+      peso_bruto_vehicular: truck.peso_bruto_vehicular ?? '',
       subtipo_remolque1: truck.subtipo_remolque1 ?? '',
       placa_remolque1: truck.placa_remolque1 ?? '',
+      gps_unit_uid: truck.gps_unit_uid ?? '',
     });
     this.photoUrl = truck.photo?.trim() || null;
     if (
@@ -247,6 +262,7 @@ export class TruckFormModalComponent implements OnInit {
       truck.tipo_auto_transporte ||
       truck.aseguradora_rc ||
       truck.poliza_rc ||
+      truck.peso_bruto_vehicular ||
       truck.subtipo_remolque1 ||
       truck.placa_remolque1
     ) {
@@ -269,7 +285,7 @@ export class TruckFormModalComponent implements OnInit {
       serial_number: serial || null,
     };
 
-    const optionalKeys: (keyof CreateTruckDto)[] = [
+    const optionalKeys = [
       'anio',
       'permiso_sct',
       'numero_permiso_sct',
@@ -278,13 +294,40 @@ export class TruckFormModalComponent implements OnInit {
       'poliza_rc',
       'subtipo_remolque1',
       'placa_remolque1',
-    ];
+    ] as const;
     for (const key of optionalKeys) {
       const value = raw[key];
       if (value !== undefined && value !== null && String(value).trim() !== '') {
         payload[key] = String(value).trim();
       }
     }
+    const peso = Number(raw.peso_bruto_vehicular);
+    if (Number.isFinite(peso) && peso > 0) {
+      payload.peso_bruto_vehicular = peso;
+    }
+    if (this.canLinkGps) {
+      const uid = String(raw.gps_unit_uid ?? '').trim();
+      const unit = this.gpsUnits().find((row) => row.uid === uid);
+      payload.gps_unit_uid = uid || null;
+      payload.gps_unit_name = uid ? unit?.name || this.data.truck?.gps_unit_name || null : null;
+    }
     return payload;
+  }
+
+  private loadGpsUnits(): void {
+    this.gpsTracking.getUnits().subscribe({
+      next: (response) => {
+        this.gpsUnits.set(response.units ?? []);
+        this.gpsHint.set(
+          response.ok
+            ? 'Si no eliges una unidad, el rastreo usa la placa cuando coincida con el nombre en 3D Tracking.'
+            : response.message || null
+        );
+      },
+      error: () => {
+        this.gpsUnits.set([]);
+        this.gpsHint.set('No se pudieron cargar las unidades GPS. Puedes guardar el camión y enlazarlo después.');
+      },
+    });
   }
 }

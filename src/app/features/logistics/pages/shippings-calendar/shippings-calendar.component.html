@@ -1,7 +1,9 @@
-<div class="shippings-calendar">
+<div class="shippings-calendar" [class.shippings-calendar--embedded]="embedded">
   <div class="toolbar">
     <div class="toolbar__left">
-      <h2>Envíos</h2>
+      @if (!embedded) {
+        <h2>Viajes</h2>
+      }
       <div class="month-nav">
         <button type="button" class="icon-btn" (click)="prevMonth()" aria-label="Mes anterior">
           <lucide-icon [img]="ChevronLeft" class="w-5 h-5"></lucide-icon>
@@ -13,14 +15,16 @@
       </div>
     </div>
 
-    <button
-      *hasPermission="permissions.create"
-      type="button"
-      class="page-create-btn"
-      (click)="openCreate()"
-    >
-      Nuevo envío
-    </button>
+    @if (!embedded) {
+      <button
+        *hasPermission="permissions.create"
+        type="button"
+        class="page-create-btn"
+        (click)="openCreate()"
+      >
+        Nuevo viaje
+      </button>
+    }
   </div>
 
   <div class="legend-row">
@@ -37,9 +41,10 @@
     </div>
 
     <select
-      class="status-filter"
+      class="logistics-select logistics-toolbar__select"
       [ngModel]="statusFilter()"
       (ngModelChange)="onStatusChange($event)"
+      aria-label="Filtrar por estado"
     >
       <option value="">Todos los estados</option>
       <option value="Creado">Creado</option>
@@ -68,7 +73,7 @@
               class="cal-event"
               [style.background]="ev.colors.background"
               [style.color]="ev.colors.text"
-              [title]="ev.title"
+              [title]="ev.hint"
               (click)="openDetail(ev, $event)"
             >
               {{ ev.title }}

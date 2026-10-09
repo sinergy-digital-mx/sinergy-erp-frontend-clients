@@ -79,24 +79,22 @@
   }
 }
 
-.activity-open-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  color: #64748b;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+.activity-edit-btn {
+  flex-shrink: 0;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid #c7d2fe;
   border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  color: #4338ca;
+  background: #eef2ff;
   cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 
   &:hover {
-    color: #4f46e5;
-    background: #eef2ff;
-    border-color: #c7d2fe;
+    background: #e0e7ff;
+    border-color: #a5b4fc;
   }
 }
 

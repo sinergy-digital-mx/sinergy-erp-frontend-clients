@@ -2,7 +2,7 @@ import { Component, Inject, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { LucideAngularModule, X } from 'lucide-angular';
+import { Check, LucideAngularModule, X } from 'lucide-angular';
 import { Subject, takeUntil } from 'rxjs';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InputComponent } from '../../../../core/components/input/input.component';
@@ -41,6 +41,7 @@ export interface CustomerActivityFormDialogData {
 })
 export class CustomerActivityFormDialogComponent implements OnDestroy {
   readonly X = X;
+  readonly Check = Check;
 
   form: FormGroup;
   saving = signal(false);
@@ -85,10 +86,44 @@ export class CustomerActivityFormDialogComponent implements OnDestroy {
   getStatusLabel = getActivityStatusLabel;
   getOutcomeLabel = getActivityOutcomeLabel;
 
+  /** Misma acción que la palomita de CRM: solo en actividades abiertas. */
+  get canMarkCompleted(): boolean {
+    const status = this.data.activity?.status;
+    return (
+      this.isEdit &&
+      status !== ActivityStatus.COMPLETED &&
+      status !== ActivityStatus.CANCELLED
+    );
+  }
+
   close(): void {
     if (!this.saving()) {
       this.dialogRef.close(false);
     }
+  }
+
+  markCompleted(): void {
+    const activity = this.data.activity;
+    if (!this.canMarkCompleted || this.saving() || !activity) {
+      return;
+    }
+
+    this.saving.set(true);
+    this.submitError.set(null);
+
+    this.activityService
+      .updateActivity(this.data.customerId, activity.id, { status: ActivityStatus.COMPLETED })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.saving.set(false);
+          this.dialogRef.close(result ?? true);
+        },
+        error: (error) => {
+          this.saving.set(false);
+          this.submitError.set(error?.message || 'No se pudo completar la actividad');
+        },
+      });
   }
 
   save(): void {

@@ -1,0 +1,131 @@
+<div class="wc-pick-modal">
+  <header class="wc-pick-modal__head">
+    <div class="wc-pick-modal__id">
+      <span class="dt-folio-badge dt-folio-badge--odv">{{ job().folio || 'Pedido' }}</span>
+      <strong [title]="customerName()">{{ customerName() }}</strong>
+    </div>
+    <button type="button" class="wc-pick-modal__close" (click)="close()" aria-label="Cerrar">
+      <i class="fi fi-rr-cross-small" aria-hidden="true"></i>
+    </button>
+  </header>
+
+  <div class="wc-pick-modal__meta">
+    <span class="wc-pick-modal__chip">{{ positionLabel() }}</span>
+    <span class="wc-pick-modal__chip wc-pick-modal__chip--soft">{{ taskStatusLabel() }}</span>
+    <span class="wc-pick-modal__count">
+      {{ lines().length }} {{ lines().length === 1 ? 'producto' : 'productos' }}
+    </span>
+  </div>
+
+  @if (editable()) {
+    <p class="wc-pick-modal__hint">
+      Agrega lo que sí sale. En cero se registra faltante y se cierra este almacén.
+    </p>
+  } @else if (pending()) {
+    <p class="wc-pick-modal__hint">Inicia el surtido para ir marcando cada producto.</p>
+  }
+
+  <label class="wc-pick-modal__search">
+    <i class="fi fi-rr-search" aria-hidden="true"></i>
+    <input
+      type="search"
+      placeholder="Buscar producto o SKU"
+      [value]="query()"
+      (input)="onQuery($event)" />
+  </label>
+
+  @if (editable()) {
+    <div class="wc-pick-modal__summary">
+      <span><strong>{{ includedCount() }}</strong> de {{ lines().length }} con surtido</span>
+      @if (shortCount() > 0) {
+        <span class="wc-pick-modal__short">{{ shortCount() }} con faltante</span>
+      }
+    </div>
+  }
+
+  <div class="wc-pick-modal__list">
+    @for (line of visibleLines(); track line.id || $index) {
+      <article class="wc-line" [class.wc-line--short]="editable() && isShort(line)" [class.wc-line--on]="editable() && qtyOf(line) > 0">
+        <div class="wc-line__main">
+          <strong [title]="line.product_name || 'Producto'">{{ line.product_name || 'Producto' }}</strong>
+          <small>
+            @if (line.product_sku) {
+              {{ line.product_sku }}
+            }
+            @if (line.uom_name) {
+              · {{ line.uom_name }}
+            }
+          </small>
+        </div>
+        <div class="wc-line__order">
+          <span>Pedido</span>
+          <b>{{ formatQty(orderedOf(line)) }}</b>
+        </div>
+        <div class="wc-line__pick">
+          @if (editable()) {
+            @if (qtyOf(line) <= 0) {
+              <button type="button" class="wc-add" [disabled]="acting()" (click)="addLine(line)">
+                Agregar
+              </button>
+            } @else {
+              <div class="wc-step">
+                <button type="button" [disabled]="acting()" (click)="bump(line, -1)" aria-label="Restar">−</button>
+                <input
+                  type="number"
+                  min="0"
+                  [max]="orderedOf(line)"
+                  [value]="qtyOf(line)"
+                  [disabled]="acting()"
+                  [attr.aria-label]="'Surtido de ' + (line.product_name || 'producto')"
+                  (input)="onQtyInput(line, $event)" />
+                <button type="button" [disabled]="acting() || qtyOf(line) >= orderedOf(line)" (click)="bump(line, 1)" aria-label="Sumar">+</button>
+              </div>
+              <button type="button" class="wc-line__clear" [disabled]="acting()" (click)="clearLine(line)">
+                Quitar
+              </button>
+            }
+          } @else if (closed()) {
+            <span class="wc-line__done">Surtido {{ formatQty(pickedOf(line)) }}</span>
+          } @else {
+            <span class="wc-line__wait">Sin surtir</span>
+          }
+        </div>
+      </article>
+    } @empty {
+      <p class="wc-pick-modal__empty">
+        {{ query() ? 'Ningún producto coincide.' : 'Este pedido no trae líneas de tu almacén.' }}
+      </p>
+    }
+  </div>
+
+  <footer class="wc-pick-modal__foot">
+    @if (editable()) {
+      <div class="wc-pick-modal__bulk">
+        <button type="button" [disabled]="acting()" (click)="clearAll()">Quitar todos</button>
+        <button type="button" [disabled]="acting()" (click)="fillAll()">Pedido completo</button>
+      </div>
+    }
+    <div class="wc-pick-modal__actions">
+      <button type="button" class="wc-ghost" [disabled]="acting()" (click)="close()">Cerrar</button>
+      @if (pending()) {
+        <button type="button" class="wc-primary" [disabled]="acting()" (click)="start()">
+          {{ acting() ? 'Iniciando…' : 'Iniciar surtido' }}
+        </button>
+      }
+      @if (editable()) {
+        <button type="button" class="wc-ghost wc-ghost--strong" [disabled]="acting() || !lines().length" (click)="confirm(true)">
+          Surtir 100%
+        </button>
+        <button type="button" class="wc-primary" [disabled]="acting() || !includedCount()" (click)="confirm(false)">
+          {{ acting() ? 'Guardando…' : (shortCount() > 0 ? 'Confirmar con faltante' : 'Confirmar surtido') }}
+        </button>
+      }
+    </div>
+  </footer>
+
+  @if (acting()) {
+    <div class="wc-pick-modal__busy" aria-hidden="true">
+      <app-spinner></app-spinner>
+    </div>
+  }
+</div>

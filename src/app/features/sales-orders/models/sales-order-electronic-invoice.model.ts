@@ -20,6 +20,7 @@ export interface SalesOrderElectronicInvoice {
   uuid?: string | null;
   series?: string | null;
   folio?: string | null;
+  tipo_comprobante?: string | null;
   total?: string | number;
   stamp_status?: InvoiceStampStatus;
   sat_status?: InvoiceSatStatus;
@@ -38,6 +39,22 @@ export interface SalesOrderElectronicInvoice {
     finkok_environment?: 'demo' | 'production' | string;
     [key: string]: unknown;
   };
+}
+
+export interface SalesOrderPaymentComplement {
+  id: string;
+  uuid?: string | null;
+  stamp_status?: string;
+  sat_status?: string | null;
+  stamped_at?: string | null;
+  amount?: number;
+}
+
+export interface SalesOrderPaymentComplementStatus {
+  paid: boolean;
+  can_generate: boolean;
+  reason: string | null;
+  payment_complement: SalesOrderPaymentComplement | null;
 }
 
 export interface StampSalesOrderInvoicePayload {
@@ -116,15 +133,26 @@ export const CFDI_FORMA_PAGO_OPTIONS = [
   { id: '99', name: '99 - Por definir' },
 ];
 
-export const CFDI_REGIMEN_RECEPTOR_OPTIONS = [
-  { id: '601', name: '601 - General de Ley Personas Morales' },
-  { id: '603', name: '603 - Personas Morales con fines no lucrativos' },
-  { id: '605', name: '605 - Sueldos y Salarios' },
-  { id: '606', name: '606 - Arrendamiento' },
-  { id: '612', name: '612 - Personas Físicas con Actividades Empresariales' },
-  { id: '616', name: '616 - Sin obligaciones fiscales' },
-  { id: '626', name: '626 - Régimen Simplificado de Confianza' },
+export type CfdiRegimenPerson = 'fisica' | 'moral' | 'both';
+
+export const CFDI_REGIMEN_RECEPTOR_OPTIONS: Array<{
+  id: string;
+  name: string;
+  person: CfdiRegimenPerson;
+}> = [
+  { id: '601', name: '601 - General de Ley Personas Morales', person: 'moral' },
+  { id: '603', name: '603 - Personas Morales con fines no lucrativos', person: 'moral' },
+  { id: '605', name: '605 - Sueldos y Salarios', person: 'fisica' },
+  { id: '606', name: '606 - Arrendamiento', person: 'fisica' },
+  { id: '612', name: '612 - Personas Físicas con Actividades Empresariales', person: 'fisica' },
+  { id: '616', name: '616 - Sin obligaciones fiscales', person: 'fisica' },
+  { id: '626', name: '626 - Régimen Simplificado de Confianza', person: 'both' },
 ];
+
+export function regimenOptionsForPerson(kind: 'fisica' | 'moral' | null) {
+  if (!kind) return CFDI_REGIMEN_RECEPTOR_OPTIONS;
+  return CFDI_REGIMEN_RECEPTOR_OPTIONS.filter((option) => option.person === 'both' || option.person === kind);
+}
 
 export const CFDI_CANCEL_MOTIVO_OPTIONS = [
   { id: '01', name: '01 - Comprobante emitido con errores con relación' },

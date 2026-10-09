@@ -393,16 +393,18 @@
                 <span class="tab-extra">+{{ getMigratedLotsCount() }} migraciones</span>
               }
             </button>
-            <button
-              type="button"
-              class="tab-button"
-              [class.active]="activeTabIndex() === 3"
-              (click)="activeTabIndex.set(3)">
-              Costo real
-              @if (getExtraCostsCount() > 0) {
-                <span class="tab-count" [class.active]="activeTabIndex() === 3">{{ getExtraCostsCount() }}</span>
-              }
-            </button>
+            @if (canViewRealCost()) {
+              <button
+                type="button"
+                class="tab-button"
+                [class.active]="activeTabIndex() === 3"
+                (click)="activeTabIndex.set(3)">
+                Costo real
+                @if (getExtraCostsCount() > 0) {
+                  <span class="tab-count" [class.active]="activeTabIndex() === 3">{{ getExtraCostsCount() }}</span>
+                }
+              </button>
+            }
             <button
               type="button"
               class="tab-button"
@@ -699,7 +701,7 @@
             </div>
           }
 
-          @if (activeTabIndex() === 3) {
+          @if (canViewRealCost() && activeTabIndex() === 3) {
             <div class="tab-content-wrapper tab-content-wrapper--dense">
               <app-purchase-order-real-cost-tab
                 [order]="order()!"

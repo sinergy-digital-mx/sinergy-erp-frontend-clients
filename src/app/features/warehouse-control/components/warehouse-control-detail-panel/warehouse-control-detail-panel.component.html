@@ -20,78 +20,95 @@
   @if (loading()) {
     <div class="wc-drawer__loading"><app-spinner></app-spinner></div>
   } @else if (job(); as o) {
-    <div class="wc-drawer__meta">
+    <div class="wc-meta">
       <div>
         <span>Cliente</span>
-        <strong>{{ customerName() }}</strong>
+        <strong [title]="customerName()">{{ customerName() }}</strong>
       </div>
       <div>
         <span>Sucursal</span>
-        <strong>{{ branchLabel() }}</strong>
+        <strong [title]="branchLabel()">{{ branchLabel() }}</strong>
       </div>
       <div>
-        <span>Posición</span>
+        <span>Piso</span>
         <strong>{{ o.position?.code || 'Sin posición' }}</strong>
       </div>
       <div>
-        <span>Progreso</span>
+        <span>Avance</span>
         <strong>{{ warehousesDoneLabel() }}</strong>
       </div>
     </div>
 
-    <div class="wc-drawer__body">
-      @if (missing().length) {
-        <div class="wc-drawer__missing">
-          <p class="wc-drawer__missing-title">Faltantes</p>
-          @for (item of missing(); track $index) {
-            <p>{{ missingLabel(item) }}</p>
+    @if (missing().length) {
+      <div class="wc-alert" [class.wc-alert--open]="missingOpen()">
+        <button
+          type="button"
+          class="wc-alert__bar"
+          [class.wc-alert__bar--static]="missing().length < 2"
+          [attr.aria-expanded]="missing().length > 1 ? missingOpen() : null"
+          (click)="toggleMissing()">
+          <span class="wc-alert__count">{{ missing().length }} {{ missing().length === 1 ? 'faltante' : 'faltantes' }}</span>
+          <span class="wc-alert__preview">{{ missingPreview() }}</span>
+          @if (missing().length > 1) {
+            <span class="wc-alert__more">{{ missingOpen() ? 'Ocultar' : 'Ver' }}</span>
           }
-        </div>
-      }
+        </button>
+        @if (missingOpen()) {
+          <ul class="wc-alert__list">
+            @for (item of missing(); track $index) {
+              <li>{{ item.product_name || 'Producto' }} <em>{{ item.warehouse_name || 'Almacén' }}</em></li>
+            }
+          </ul>
+        }
+      </div>
+    }
 
+    <div class="wc-drawer__body">
       @for (group of taskGroups(); track group.warehouseId || group.warehouseName) {
         <section class="wc-wh">
-          <div class="wc-wh__head">
-            <div>
-              <h3>{{ group.warehouseName }}</h3>
-              <p>
-                @for (task of group.tasks; track task.id) {
-                  {{ taskChip(task) }} líneas · {{ taskStatusLabel(task.status) }}
-                }
-              </p>
-            </div>
-            <span>{{ groupProgress(group).pct }}%</span>
-          </div>
-          <div class="wc-wh__bar">
+          <header class="wc-wh__head">
+            <strong>{{ group.warehouseName }}</strong>
+            <span>
+              @for (task of group.tasks; track task.id) {
+                {{ taskChip(task) }} · {{ taskStatusLabel(task.status) }}
+              }
+            </span>
+            <b>{{ groupProgress(group).pct }}%</b>
+          </header>
+          <div class="wc-wh__bar" aria-hidden="true">
             <div [style.width.%]="groupProgress(group).pct"></div>
           </div>
-          <div class="wc-wh__table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Pedida</th>
-                  <th>Surtida</th>
-                  <th>Faltante</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (task of group.tasks; track task.id) {
-                  @for (line of task.lines || []; track line.id || $index) {
-                    <tr [class.is-short]="isShortLine(line) || task.status === 'short'">
-                      <td>
-                        <strong>{{ line.product_name || '—' }}</strong>
-                        <small>SKU: {{ line.product_sku || 'N/A' }}</small>
-                      </td>
-                      <td>{{ orderedQty(line) }}</td>
-                      <td>{{ pickedQty(line) }}</td>
-                      <td [class.is-warn]="isShortLine(line)">{{ shortQty(line) }}</td>
-                    </tr>
-                  }
+          <table>
+            <colgroup>
+              <col />
+              <col class="wc-col-sku" />
+              <col class="wc-col-qty" />
+              <col class="wc-col-qty" />
+              <col class="wc-col-qty" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>SKU</th>
+                <th class="wc-num">Pedida</th>
+                <th class="wc-num">Surtida</th>
+                <th class="wc-num">Faltante</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (task of group.tasks; track task.id) {
+                @for (line of task.lines || []; track line.id || $index) {
+                  <tr [class.is-short]="isShortLine(line) || task.status === 'short'">
+                    <td class="wc-name" [title]="line.product_name || '—'">{{ line.product_name || '—' }}</td>
+                    <td class="wc-sku" [title]="line.product_sku || ''">{{ line.product_sku || '—' }}</td>
+                    <td class="wc-num">{{ orderedQty(line) }}</td>
+                    <td class="wc-num">{{ pickedQty(line) }}</td>
+                    <td class="wc-num" [class.is-warn]="isShortLine(line)">{{ shortQty(line) }}</td>
+                  </tr>
                 }
-              </tbody>
-            </table>
-          </div>
+              }
+            </tbody>
+          </table>
         </section>
       } @empty {
         <p class="wc-drawer__empty">Sin tareas de almacén</p>
@@ -121,14 +138,14 @@
           Siguiente libre
         </button>
       }
-      @if (canAssemble()) {
-        <button type="button" class="page-export-btn" [disabled]="acting()" (click)="assemble()">
-          {{ o.status === 'assembling' ? 'Marcar armada' : 'Marcar armando' }}
+      @if (canFinishAssembly()) {
+        <button type="button" class="page-create-btn" [disabled]="acting()" (click)="corroborate()">
+          {{ acting() ? 'Guardando…' : 'Marcar como armada' }}
         </button>
       }
-      @if (canCorroborate()) {
-        <button type="button" class="page-create-btn" [disabled]="acting()" (click)="corroborate()">
-          {{ acting() ? 'Confirmando…' : 'Corroborar' }}
+      @if (canAddToShipping()) {
+        <button type="button" class="page-export-btn" [disabled]="acting()" (click)="addToShipping()">
+          Agregar a viaje
         </button>
       }
     </div>

@@ -43,6 +43,21 @@
           }
         </div>
 
+        @if (canLinkGps) {
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Unidad GPS</label>
+            <select formControlName="gps_unit_uid" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+              <option value="">Enlazar por placa</option>
+              @for (unit of gpsUnits(); track unit.uid) {
+                <option [value]="unit.uid">{{ unit.name }}</option>
+              }
+            </select>
+            @if (gpsHint()) {
+              <p class="text-xs text-gray-500 mt-1">{{ gpsHint() }}</p>
+            }
+          </div>
+        }
+
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Año</label>
           <input
@@ -78,7 +93,7 @@
               class="w-4 h-4 transition-transform"
               [class.rotate-180]="showSct()"
             ></lucide-icon>
-            Datos SCT / seguro (opcional)
+            Datos para carta porte
           </button>
         </div>
 
@@ -102,6 +117,17 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Póliza RC</label>
             <input type="text" formControlName="poliza_rc" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Peso bruto vehicular (ton)</label>
+            <input
+              type="number"
+              min="0.001"
+              step="0.001"
+              formControlName="peso_bruto_vehicular"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="8.500"
+            />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Subtipo remolque</label>

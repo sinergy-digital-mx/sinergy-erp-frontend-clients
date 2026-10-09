@@ -140,10 +140,7 @@
                 }
               </select>
             } @else {
-              <span class="status-pill" [ngClass]="getStatusPillClass(customer()!)">
-                <span class="status-pill__dot"></span>
-                {{ getStatusLabel(customer()!) }}
-              </span>
+              <span [ngClass]="getStatusPillClass(customer()!)">{{ getStatusLabel(customer()!) }}</span>
             }
           </div>
 
