@@ -230,6 +230,9 @@ export interface PurchaseOrderFiscalConfiguration {
   razon_social?: string;
   rfc?: string;
   prefix?: string | null;
+  iva_enabled?: boolean | number;
+  ieps_enabled?: boolean | number;
+  multi_fiscal_transfers_enabled?: boolean | number;
 }
 
 export interface PurchaseOrderExtraCost {
@@ -273,6 +276,8 @@ export interface PurchaseOrder {
   expected_delivery_date?: string;
   status: OrderStatus;
   general_status?: OrderStatus;
+  /** Reabierta para agregar productos y un segundo ingreso. */
+  additional_receipt_open?: boolean | number;
   cancellation_date?: string;
   cancellation_reason?: string;
   payment_status: PaymentStatus;

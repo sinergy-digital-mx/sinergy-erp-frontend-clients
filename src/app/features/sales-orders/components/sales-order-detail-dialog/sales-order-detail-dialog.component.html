@@ -507,10 +507,12 @@
               <span class="totals-value">{{ getDisplayedGlobalDiscount() }}</span>
             </div>
           }
+          @if (ivaEnabled()) {
           <div class="totals-row">
             <span class="totals-label">IVA</span>
             <span class="totals-value">{{ getDisplayedIva() }}</span>
           </div>
+          }
           @if (hasDisplayedIeps()) {
             <div class="totals-row">
               <span class="totals-label">IEPS</span>
@@ -760,20 +762,20 @@
                             $implicit: getTotalsSnapshot().subtotal,
                             gross: getTotalsSnapshot().total,
                             hasTax: getTotalsSnapshot().iva > 0 || getTotalsSnapshot().ieps > 0,
-                            withCurrency: true
+                            withCurrency: false
                           }" />
                       </td>
                       @if (hasLineIvaColumn()) {
                         <td class="col-money">
                           @if (getTotalsSnapshot().iva > 0) {
-                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: getTotalsSnapshot().iva, withCurrency: true }" />
+                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: getTotalsSnapshot().iva, withCurrency: false }" />
                           }
                         </td>
                       }
                       @if (hasLineIepsColumn()) {
                         <td class="col-money">
                           @if (hasDisplayedIeps()) {
-                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: getTotalsSnapshot().ieps, withCurrency: true }" />
+                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: getTotalsSnapshot().ieps, withCurrency: false }" />
                           }
                         </td>
                       }

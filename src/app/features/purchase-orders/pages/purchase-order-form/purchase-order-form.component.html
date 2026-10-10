@@ -239,7 +239,7 @@
                 </span>
               </div>
 
-              <div class="form-field">
+              <div class="form-field" *ngIf="showIva()">
                 <label>IVA %</label>
                 <input type="number" formControlName="iva_percentage" min="0" max="100" />
                 <span class="error" *ngIf="getLineItemFieldError(i, 'iva_percentage')">
@@ -247,7 +247,7 @@
                 </span>
               </div>
 
-              <div class="form-field">
+              <div class="form-field" *ngIf="showIeps()">
                 <label>IEPS %</label>
                 <input type="number" formControlName="ieps_percentage" min="0" max="100" />
                 <span class="error" *ngIf="getLineItemFieldError(i, 'ieps_percentage')">
@@ -261,11 +261,11 @@
                 <span>Subtotal:</span>
                 <strong>{{ formatCurrency(getLineCalculations(i).subtotal) }}</strong>
               </div>
-              <div class="calc-item">
+              <div class="calc-item" *ngIf="showIva()">
                 <span>IVA:</span>
                 <strong>{{ formatCurrency(getLineCalculations(i).iva_amount) }}</strong>
               </div>
-              <div class="calc-item">
+              <div class="calc-item" *ngIf="showIeps()">
                 <span>IEPS:</span>
                 <strong>{{ formatCurrency(getLineCalculations(i).ieps_amount) }}</strong>
               </div>
@@ -289,11 +289,11 @@
             <span>Subtotal:</span>
             <strong>{{ formatCurrency(totalCalculations().total_subtotal) }}</strong>
           </div>
-          <div class="total-item">
+          <div class="total-item" *ngIf="showIva()">
             <span>Total IVA:</span>
             <strong>{{ formatCurrency(totalCalculations().total_iva) }}</strong>
           </div>
-          <div class="total-item">
+          <div class="total-item" *ngIf="showIeps()">
             <span>Total IEPS:</span>
             <strong>{{ formatCurrency(totalCalculations().total_ieps) }}</strong>
           </div>

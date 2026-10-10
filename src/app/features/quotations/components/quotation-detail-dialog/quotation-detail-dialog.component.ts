@@ -13,6 +13,7 @@ import {
 } from '../../models/quotation.model';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
@@ -365,13 +366,23 @@ export class QuotationDetailDialogComponent implements OnInit {
     return formatUnitAmount(value);
   }
 
+  ivaEnabled(): boolean {
+    return isFiscalFlagOn(this.header()?.fiscal_configuration?.iva_enabled, true);
+  }
+
+  iepsEnabled(): boolean {
+    return isFiscalFlagOn(this.header()?.fiscal_configuration?.ieps_enabled, true);
+  }
+
   hasLineIvaColumn(): boolean {
+    if (!this.ivaEnabled()) return false;
     return this.lineItems().some(
       (item) => this.parseNumber(item.iva_percentage) > 0 || this.parseNumber(item.line_iva) > 0,
     );
   }
 
   hasLineIepsColumn(): boolean {
+    if (!this.iepsEnabled()) return false;
     return this.lineItems().some(
       (item) => this.parseNumber(item.ieps_percentage) > 0 || this.parseNumber(item.line_ieps) > 0,
     );
@@ -470,6 +481,8 @@ export class QuotationDetailDialogComponent implements OnInit {
           folio: q.folio,
           currency: this.getPaymentCurrency(),
           lineItem: item as SalesOrderLineItem,
+          ivaEnabled: this.ivaEnabled(),
+          iepsEnabled: this.iepsEnabled(),
         },
       })
       .afterClosed()
@@ -535,6 +548,8 @@ export class QuotationDetailDialogComponent implements OnInit {
           fiscal_configuration_id: fiscalId,
           billing_branch_id: branchId,
           sale_scope: 'combined',
+          ivaEnabled: this.ivaEnabled(),
+          iepsEnabled: this.iepsEnabled(),
         },
       })
       .afterClosed()

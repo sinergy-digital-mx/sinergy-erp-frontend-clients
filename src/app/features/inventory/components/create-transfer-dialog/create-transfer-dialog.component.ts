@@ -27,6 +27,7 @@ import {
   InventoryLocationWarehouse,
 } from '../../models/inventory-location.model';
 import { ToastService } from '../../../../core/services/toast.service';
+import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 import { fiscalOptionLabel } from '../../utils/transfer-location.util';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
@@ -97,7 +98,11 @@ export class CreateTransferDialogComponent implements OnInit, OnDestroy {
 
   destinationTree = computed(() => {
     const sourceId = this.originWarehouseId();
+    const origin = this.activeLocations().find((fiscal) => fiscal.id === this.originFiscalId());
+    const multi = isFiscalFlagOn(origin?.multi_fiscal_transfers_enabled, true);
+    const originFiscalId = this.originFiscalId();
     return this.activeLocations()
+      .filter((fiscal) => multi || !originFiscalId || fiscal.id === originFiscalId)
       .map((fiscal) => ({
         ...fiscal,
         branches: fiscal.branches
@@ -257,6 +262,13 @@ export class CreateTransferDialogComponent implements OnInit, OnDestroy {
     this.originFiscalId.set(fiscalId);
     this.originBranchId.set('');
     this.originWarehouseId.set('');
+    const origin = this.activeLocations().find((fiscal) => fiscal.id === fiscalId);
+    const multi = isFiscalFlagOn(origin?.multi_fiscal_transfers_enabled, true);
+    if (!multi && this.destFiscalId() && this.destFiscalId() !== fiscalId) {
+      this.destFiscalId.set('');
+      this.destBranchId.set('');
+      this.destWarehouseId.set('');
+    }
     this.resetSearch();
     if (hadStock) this.clearCartBecauseOriginChanged();
   }

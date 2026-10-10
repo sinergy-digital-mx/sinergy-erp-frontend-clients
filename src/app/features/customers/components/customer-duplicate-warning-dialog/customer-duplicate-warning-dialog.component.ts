@@ -73,6 +73,10 @@ export class CustomerDuplicateWarningDialogComponent {
     this.dialogRef.close({ action: 'continue' });
   }
 
+  dismiss(): void {
+    this.dialogRef.close();
+  }
+
   viewMatch(match: CustomerDuplicateMatch, event?: Event): void {
     event?.stopPropagation();
     const url = this.router.serializeUrl(

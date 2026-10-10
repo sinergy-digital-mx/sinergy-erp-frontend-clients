@@ -292,6 +292,9 @@ export interface SalesOrder {
     business_name?: string;
     rfc?: string;
     prefix?: string | null;
+    iva_enabled?: boolean | number;
+    ieps_enabled?: boolean | number;
+    multi_fiscal_transfers_enabled?: boolean | number;
     persona_type?: string;
     fiscal_regime?: string;
     status?: string;

@@ -34,6 +34,7 @@ import {
   VENDOR_INVOICE_MAX_LENGTH,
 } from '../../utils/purchase-order-display.util';
 import { VendorCatalogProduct, VendorCatalogUom } from '../../models/vendor-catalog.model';
+import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 import {
   VendorCostCurrency,
   currencyMismatchMessage,
@@ -206,6 +207,28 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       this.form.get('billing_branch_id')?.disable({ emitEvent: false });
     }
     this.form.get('warehouse_id')?.disable({ emitEvent: false });
+    this.clampLineTaxes();
+  }
+
+  get showIva(): boolean {
+    const fiscalId = this.form?.get('fiscal_configuration_id')?.value;
+    const fiscal = this.fiscalConfigurations.find((item) => item.id === fiscalId);
+    return isFiscalFlagOn(fiscal?.iva_enabled, true);
+  }
+
+  get showIeps(): boolean {
+    const fiscalId = this.form?.get('fiscal_configuration_id')?.value;
+    const fiscal = this.fiscalConfigurations.find((item) => item.id === fiscalId);
+    return isFiscalFlagOn(fiscal?.ieps_enabled, true);
+  }
+
+  private clampLineTaxes(): void {
+    if (this.showIva && this.showIeps) return;
+    for (const item of this.lineItems) {
+      if (!this.showIva) item.iva_percentage = 0;
+      if (!this.showIeps) item.ieps_percentage = 0;
+      this.calculateTotals(item);
+    }
   }
 
   private applyBranch(branchId: string, options: { resetWarehouse: boolean }): void {
@@ -680,8 +703,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     }
 
     this.selectedUnitTotal = catalogInputNumber(uom.cost);
-    this.selectedIva = catalogInputNumber(uom.iva_percentage);
-    this.selectedIeps = catalogInputNumber(uom.ieps_percentage);
+    this.selectedIva = this.showIva ? catalogInputNumber(uom.iva_percentage) : 0;
+    this.selectedIeps = this.showIeps ? catalogInputNumber(uom.ieps_percentage) : 0;
   }
 
   confirmAddProduct(): void {
@@ -706,9 +729,9 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       uom_id: this.selectedUomId,
       quantity,
       unit_total: this.selectedUnitTotal,
-      iva_percentage: this.selectedIva,
+      iva_percentage: this.showIva ? this.selectedIva : 0,
       iva_unit: 0,
-      ieps_percentage: this.selectedIeps,
+      ieps_percentage: this.showIeps ? this.selectedIeps : 0,
       ieps_unit: 0,
       currency: this.selectedLineCurrency
     };
@@ -759,8 +782,10 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
 
   calculateTotals(item: LineItem): void {
     const unit = Number(item.unit_total || 0);
-    const iva = Number(item.iva_percentage || 0);
-    const ieps = Number(item.ieps_percentage || 0);
+    const iva = this.showIva ? Number(item.iva_percentage || 0) : 0;
+    const ieps = this.showIeps ? Number(item.ieps_percentage || 0) : 0;
+    if (!this.showIva) item.iva_percentage = 0;
+    if (!this.showIeps) item.ieps_percentage = 0;
     item.iva_unit = (unit * iva) / 100;
     item.ieps_unit = (unit * ieps) / 100;
   }
@@ -800,8 +825,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
           this.toast.warning(currencyMismatchMessage(this.orderCurrency, uomCurrency));
         }
         item.unit_total = catalogInputNumber(selectedUom.cost);
-        item.iva_percentage = catalogInputNumber(selectedUom.iva_percentage);
-        item.ieps_percentage = catalogInputNumber(selectedUom.ieps_percentage);
+        item.iva_percentage = this.showIva ? catalogInputNumber(selectedUom.iva_percentage) : 0;
+        item.ieps_percentage = this.showIeps ? catalogInputNumber(selectedUom.ieps_percentage) : 0;
         item.currency = uomCurrency ?? item.currency ?? this.orderCurrency ?? 'MXN';
         this.calculateTotals(item);
       }
@@ -822,8 +847,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       uom_id: li.uom_id,
       quantity: Number(li.quantity),
       unit_total: Number(li.unit_total || 0),
-      iva_percentage: Number(li.iva_percentage || 0),
-      ieps_percentage: Number(li.ieps_percentage || 0),
+      iva_percentage: this.showIva ? Number(li.iva_percentage || 0) : 0,
+      ieps_percentage: this.showIeps ? Number(li.ieps_percentage || 0) : 0,
       currency: li.currency || paymentCurrency
     }));
 

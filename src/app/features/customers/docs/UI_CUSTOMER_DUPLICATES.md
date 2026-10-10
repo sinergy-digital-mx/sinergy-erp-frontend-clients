@@ -11,7 +11,8 @@ Implementado en `customer-edit-modal` + `customer-duplicate-warning-dialog`.
 Clic en Crear → `POST /tenant/customers/duplicates` → si `found === false`, `POST /customers`. Si `found === true`, abrir aviso con la lista.
 
 - **Ver** / clic en la fila: abre `/customers/detail/:id` en otra pestaña. No crea. Deja el aviso y Crear abiertos.
-- **Continuar de todos modos** / **X**: `POST /customers` con el form actual. Flag `duplicateWarningAccepted` para no volver a consultar en el mismo intento.
+- **Continuar de todos modos**: `POST /customers` con el form actual. Flag `duplicateWarningAccepted` para no volver a consultar en el mismo intento.
+- **Cancelar** / **X**: cierra el aviso y no crea el cliente. El formulario de alta sigue abierto.
 
 Si el check de duplicados falla, se crea igual (sin toast de error).
 

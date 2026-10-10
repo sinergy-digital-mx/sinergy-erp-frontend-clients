@@ -354,6 +354,18 @@
               Volver a creada
             </button>
           }
+          @if (canReopenForReceipt()) {
+            <button class="btn-reopen" (click)="reopenForAdditionalReceipt()">
+              <i class="fi fi-rr-box"></i>
+              Reabrir para agregar productos
+            </button>
+          }
+          @if (additionalReceiptOpen()) {
+            <button class="btn-correct" (click)="closeAdditionalReceipt()">
+              <i class="fi fi-rr-check"></i>
+              Cerrar ingreso
+            </button>
+          }
           @if (canCorrectReceipt()) {
             <button class="btn-correct" (click)="openReceiptCorrection()">
               <i class="fi fi-rr-pencil"></i>
@@ -527,24 +539,26 @@
                         </td>
                         @if (canEditLines()) {
                           <td class="col-actions">
-                            <div class="line-actions">
-                              <button
-                                type="button"
-                                class="action-btn edit-btn"
-                                title="Editar línea"
-                                aria-label="Editar línea"
-                                (click)="openEditLineItem(item)">
-                                <i class="fi fi-rr-pencil"></i>
-                              </button>
-                              <button
-                                type="button"
-                                class="action-btn delete-btn"
-                                title="Eliminar línea"
-                                aria-label="Eliminar línea"
-                                (click)="confirmDeleteLineItem(item)">
-                                <i class="fi fi-rr-trash"></i>
-                              </button>
-                            </div>
+                            @if (canMutateLine(item)) {
+                              <div class="line-actions">
+                                <button
+                                  type="button"
+                                  class="action-btn edit-btn"
+                                  title="Editar línea"
+                                  aria-label="Editar línea"
+                                  (click)="openEditLineItem(item)">
+                                  <i class="fi fi-rr-pencil"></i>
+                                </button>
+                                <button
+                                  type="button"
+                                  class="action-btn delete-btn"
+                                  title="Eliminar línea"
+                                  aria-label="Eliminar línea"
+                                  (click)="confirmDeleteLineItem(item)">
+                                  <i class="fi fi-rr-trash"></i>
+                                </button>
+                              </div>
+                            }
                           </td>
                         }
                       </tr>
@@ -571,20 +585,20 @@
                             $implicit: displayedSubtotalAmount(),
                             gross: displayedTotalAmount(),
                             hasTax: hasDisplayedIva() || hasDisplayedIeps(),
-                            withCurrency: true
+                            withCurrency: false
                           }" />
                       </td>
                       @if (hasLineIvaColumn()) {
                         <td class="col-money">
                           @if (hasDisplayedIva()) {
-                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIvaAmount(), withCurrency: true }" />
+                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIvaAmount(), withCurrency: false }" />
                           }
                         </td>
                       }
                       @if (hasLineIepsColumn()) {
                         <td class="col-money">
                           @if (hasDisplayedIeps()) {
-                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIepsAmount(), withCurrency: true }" />
+                            <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIepsAmount(), withCurrency: false }" />
                           }
                         </td>
                       }

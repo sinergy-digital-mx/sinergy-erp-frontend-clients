@@ -45,6 +45,7 @@
         </div>
       </div>
 
+      @if (showIva) {
       <div class="field field--full">
         <label for="so-line-iva">IVA %</label>
         <div class="tax-row">
@@ -69,7 +70,9 @@
             [disabled]="saving()">
         </div>
       </div>
+      }
 
+      @if (showIeps) {
       <div class="field field--full">
         <label for="so-line-ieps">IEPS %</label>
         <div class="tax-row">
@@ -94,6 +97,7 @@
             [disabled]="saving()">
         </div>
       </div>
+      }
     </div>
 
     <div class="line-dialog__totals">
@@ -101,11 +105,13 @@
         <span>Sin IVA</span>
         <strong>{{ lineNet | number:'1.2-2' }} {{ data.currency }}</strong>
       </div>
+      @if (showIva) {
       <div>
         <span>IVA {{ ivaPercentage || 0 }}%</span>
         <strong>{{ lineIvaAmount | number:'1.2-2' }} {{ data.currency }}</strong>
       </div>
-      @if (lineIepsAmount > 0) {
+      }
+      @if (showIeps && lineIepsAmount > 0) {
         <div>
           <span>IEPS {{ iepsPercentage || 0 }}%</span>
           <strong>{{ lineIepsAmount | number:'1.2-2' }} {{ data.currency }}</strong>

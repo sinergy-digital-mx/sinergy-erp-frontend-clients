@@ -222,8 +222,12 @@
                 <th>UOM</th>
                 <th>Cantidad</th>
                 <th>Costo unitario</th>
+                @if (showIva) {
                 <th>IVA %</th>
+                }
+                @if (showIeps) {
                 <th>IEPS %</th>
+                }
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -251,12 +255,16 @@
                 <td>
                   <input type="number" class="form-input form-input--inline" [(ngModel)]="item.unit_total" [ngModelOptions]="{standalone: true}" (change)="calculateTotals(item)" min="0" step="any">
                 </td>
+                @if (showIva) {
                 <td>
                   <input type="number" class="form-input form-input--inline" [(ngModel)]="item.iva_percentage" [ngModelOptions]="{standalone: true}" min="0" max="100" step="0.01" (change)="calculateTotals(item)">
                 </td>
+                }
+                @if (showIeps) {
                 <td>
                   <input type="number" class="form-input form-input--inline" [(ngModel)]="item.ieps_percentage" [ngModelOptions]="{standalone: true}" min="0" max="100" step="0.01" (change)="calculateTotals(item)">
                 </td>
+                }
                 <td>
                   <button type="button" class="btn-icon btn-icon--danger" (click)="removeLineItem(i)" title="Eliminar">
                     <i class="fi fi-rr-trash"></i>
@@ -377,14 +385,18 @@
               </div>
             </div>
           }
+          @if (showIva) {
           <div class="form-field">
             <label class="form-label">IVA %</label>
             <input type="number" class="form-input" [(ngModel)]="selectedIva" [ngModelOptions]="{ standalone: true }" min="0" max="100" step="0.01">
           </div>
+          }
+          @if (showIeps) {
           <div class="form-field">
             <label class="form-label">IEPS %</label>
             <input type="number" class="form-input" [(ngModel)]="selectedIeps" [ngModelOptions]="{ standalone: true }" min="0" max="100" step="0.01">
           </div>
+          }
         </div>
       </div>
       <div class="add-product-modal__footer">

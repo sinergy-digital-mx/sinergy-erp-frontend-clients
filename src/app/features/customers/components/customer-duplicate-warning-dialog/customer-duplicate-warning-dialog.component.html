@@ -4,7 +4,7 @@
     <lucide-icon
       [img]="X"
       class="duplicate-dialog__close"
-      (click)="continueAnyway()">
+      (click)="dismiss()">
     </lucide-icon>
   </div>
 
@@ -55,6 +55,12 @@
   </div>
 
   <div class="duplicate-dialog__footer">
+    <app-button
+      text="Cancelar"
+      variant="secondary"
+      [fullWidth]="false"
+      (clicked)="dismiss()">
+    </app-button>
     <app-button
       text="Continuar de todos modos"
       customClass="btn_primary"

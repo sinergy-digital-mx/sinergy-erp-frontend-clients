@@ -7,6 +7,9 @@ export interface FiscalConfiguration {
   prefix?: string | null;
   quotation_expiration_days?: number | null;
   advance_invoicing_enabled?: boolean;
+  iva_enabled?: boolean | number;
+  ieps_enabled?: boolean | number;
+  multi_fiscal_transfers_enabled?: boolean | number;
   persona_type: 'Persona Física' | 'Persona Moral';
   branches_count?: number;
   branch_count?: number;
@@ -35,6 +38,9 @@ export interface CreateFiscalConfigurationDto {
   prefix?: string | null;
   quotation_expiration_days?: number | null;
   advance_invoicing_enabled?: boolean;
+  iva_enabled?: boolean;
+  ieps_enabled?: boolean;
+  multi_fiscal_transfers_enabled?: boolean;
   persona_type: 'Persona Física' | 'Persona Moral';
   fiscal_regime?: string;
   digital_seal?: string;

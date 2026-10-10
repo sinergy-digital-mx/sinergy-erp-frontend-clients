@@ -11,6 +11,8 @@ export interface EditPurchaseOrderLineDialogData {
   folio?: string;
   currency: PaymentCurrency;
   lineItem: LineItem;
+  ivaEnabled?: boolean;
+  iepsEnabled?: boolean;
 }
 
 @Component({
@@ -28,6 +30,14 @@ export class EditPurchaseOrderLineDialogComponent {
   iepsPercentage = 0;
   saving = signal(false);
   errorMessage = signal('');
+
+  get showIva(): boolean {
+    return this.data.ivaEnabled !== false;
+  }
+
+  get showIeps(): boolean {
+    return this.data.iepsEnabled !== false;
+  }
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: EditPurchaseOrderLineDialogData,
@@ -75,8 +85,8 @@ export class EditPurchaseOrderLineDialogComponent {
 
     const quantity = Number(this.quantity);
     const unitTotal = Number(this.unitTotal);
-    const iva = Number(this.ivaPercentage);
-    const ieps = Number(this.iepsPercentage);
+    const iva = this.showIva ? Number(this.ivaPercentage) : 0;
+    const ieps = this.showIeps ? Number(this.iepsPercentage) : 0;
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
       this.errorMessage.set('La cantidad debe ser mayor a 0');

@@ -22,6 +22,8 @@ export interface AddPurchaseOrderLineDialogData {
   vendorId: string;
   currency: PaymentCurrency;
   folio?: string;
+  ivaEnabled?: boolean;
+  iepsEnabled?: boolean;
 }
 
 @Component({
@@ -62,6 +64,14 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadVendorProducts();
+  }
+
+  get showIva(): boolean {
+    return this.data.ivaEnabled !== false;
+  }
+
+  get showIeps(): boolean {
+    return this.data.iepsEnabled !== false;
   }
 
   get dialogTitle(): string {
@@ -190,8 +200,8 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
 
     const quantity = Number(this.selectedQuantity);
     const unitTotal = Number(this.selectedUnitTotal);
-    const iva = Number(this.selectedIva || 0);
-    const ieps = Number(this.selectedIeps || 0);
+    const iva = this.showIva ? Number(this.selectedIva || 0) : 0;
+    const ieps = this.showIeps ? Number(this.selectedIeps || 0) : 0;
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
       this.errorMessage.set('La cantidad debe ser mayor a 0');

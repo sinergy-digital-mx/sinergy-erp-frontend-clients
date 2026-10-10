@@ -620,7 +620,8 @@
   .importe-stack {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
     gap: 0.4rem;
 
     &__values {
@@ -741,6 +742,7 @@
 .money-cell {
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 0.4rem;
   white-space: nowrap;
 

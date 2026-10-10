@@ -385,6 +385,16 @@ export class PurchaseOrderService {
       .pipe(catchError(error => this.handleError(error)));
   }
 
+  reopenForAdditionalReceipt(id: string): Observable<PurchaseOrder> {
+    return this.http.post<PurchaseOrder>(`${this.baseUrl}/${id}/reopen-for-receipt`, {})
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
+  closeAdditionalReceipt(id: string): Observable<PurchaseOrder> {
+    return this.http.post<PurchaseOrder>(`${this.baseUrl}/${id}/close-additional-receipt`, {})
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
   correctReceipt(
     id: string,
     lines: Array<{ line_item_id: string; quantity?: number; unit_total?: number }>,

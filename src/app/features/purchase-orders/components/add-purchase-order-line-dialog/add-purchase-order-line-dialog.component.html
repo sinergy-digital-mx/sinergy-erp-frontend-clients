@@ -93,6 +93,7 @@
           </span>
         </div>
       </div>
+      @if (showIva) {
       <div class="form-field form-field--full">
         <label class="form-label">IVA %</label>
         <div class="tax-row">
@@ -117,6 +118,8 @@
             [disabled]="saving()">
         </div>
       </div>
+      }
+      @if (showIeps) {
       <div class="form-field form-field--full">
         <label class="form-label">IEPS %</label>
         <div class="tax-row">
@@ -141,6 +144,7 @@
             [disabled]="saving()">
         </div>
       </div>
+      }
     </div>
 
     @if (errorMessage()) {

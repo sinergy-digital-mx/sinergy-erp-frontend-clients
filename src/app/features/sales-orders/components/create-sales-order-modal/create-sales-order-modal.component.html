@@ -209,15 +209,19 @@
                 <input type="number" class="form-input form-input--inline" [(ngModel)]="item.discount_percentage" [ngModelOptions]="{standalone: true}" min="0" max="100" step="0.01">
               </div>
 
+              @if (showIva) {
               <div class="form-field">
                 <label class="form-label">IVA %</label>
                 <input type="number" class="form-input form-input--inline" [(ngModel)]="item.iva_percentage" [ngModelOptions]="{standalone: true}" min="0" max="100">
               </div>
+              }
 
+              @if (showIeps) {
               <div class="form-field">
                 <label class="form-label">IEPS %</label>
                 <input type="number" class="form-input form-input--inline" [(ngModel)]="item.ieps_percentage" [ngModelOptions]="{standalone: true}" min="0" max="100">
               </div>
+              }
             </div>
           </div>
         </div>
@@ -311,14 +315,18 @@
             <label class="form-label">DESCUENTO %</label>
             <input type="number" class="form-input" [value]="0" readonly>
           </div>
+          @if (showIva) {
           <div class="form-field">
             <label class="form-label">IVA %</label>
             <input type="number" class="form-input" [(ngModel)]="selectedIva" [ngModelOptions]="{ standalone: true }" min="0" max="100" step="0.01">
           </div>
+          }
+          @if (showIeps) {
           <div class="form-field">
             <label class="form-label">IEPS %</label>
             <input type="number" class="form-input" [(ngModel)]="selectedIeps" [ngModelOptions]="{ standalone: true }" min="0" max="100" step="0.01">
           </div>
+          }
         </div>
       </div>
       <div class="add-product-modal__footer">

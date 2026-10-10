@@ -30,6 +30,7 @@ import { FiscalConfigurationModalComponent } from '../../../settings/components/
 import { BranchModalComponent } from '../../../settings/components/branch-modal/branch-modal.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
+import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 import { VendorDetailModalComponent } from '../../../settings/components/vendor-detail-modal/vendor-detail-modal.component';
 import { VendorService } from '../../../settings/services/vendor.service';
 import { Vendor } from '../../../settings/models/vendor.model';
@@ -119,6 +120,23 @@ export class OrderDetailDialogComponent {
     const order = this.order();
     return (order?.general_status ?? order?.status) === 'Cancelada';
   });
+
+  additionalReceiptOpen = computed(() =>
+    isFiscalFlagOn(this.order()?.additional_receipt_open, false),
+  );
+
+  canReopenForReceipt = computed(() => {
+    const order = this.order();
+    return (order?.general_status ?? order?.status) === 'Recibida' && !this.additionalReceiptOpen();
+  });
+
+  ivaEnabled = computed(() =>
+    isFiscalFlagOn(this.order()?.fiscal_configuration?.iva_enabled, true),
+  );
+
+  iepsEnabled = computed(() =>
+    isFiscalFlagOn(this.order()?.fiscal_configuration?.ieps_enabled, true),
+  );
 
   canCorrectReceipt = computed(() => {
     const order = this.order();
@@ -234,7 +252,7 @@ export class OrderDetailDialogComponent {
 
   openEditLineItem(item: LineItem): void {
     const order = this.order();
-    if (!order || !this.canEditLines()) return;
+    if (!order || !this.canEditLines() || !this.canMutateLine(item)) return;
 
     this.dialog
       .open(EditPurchaseOrderLineDialogComponent, {
@@ -247,6 +265,8 @@ export class OrderDetailDialogComponent {
           folio: order.folio,
           currency: this.getPaymentCurrency(),
           lineItem: item,
+          ivaEnabled: this.ivaEnabled(),
+          iepsEnabled: this.iepsEnabled(),
         },
       })
       .afterClosed()
@@ -259,7 +279,7 @@ export class OrderDetailDialogComponent {
 
   confirmDeleteLineItem(item: LineItem): void {
     const order = this.order();
-    if (!order || !this.canEditLines()) return;
+    if (!order || !this.canEditLines() || !this.canMutateLine(item)) return;
 
     const name = item.product?.name || 'este producto';
     this.dialog
@@ -307,6 +327,8 @@ export class OrderDetailDialogComponent {
           vendorId: order.vendor_id,
           currency: this.getPaymentCurrency(),
           folio: order.folio,
+          ivaEnabled: this.ivaEnabled(),
+          iepsEnabled: this.iepsEnabled(),
         },
       })
       .afterClosed()
@@ -513,15 +535,20 @@ export class OrderDetailDialogComponent {
   }
 
   hasDisplayedIva(): boolean {
-    return this.displayedIvaAmount() > 0;
+    return this.ivaEnabled() && this.displayedIvaAmount() > 0;
   }
 
   hasDisplayedIeps(): boolean {
-    return this.displayedIepsAmount() > 0;
+    return this.iepsEnabled() && this.displayedIepsAmount() > 0;
+  }
+
+  canMutateLine(item: LineItem): boolean {
+    return Number(item.received_original_quantity || 0) <= 0;
   }
 
   /** Columna IVA si alguna línea tiene IVA (solicitado o recibido). */
   hasLineIvaColumn(): boolean {
+    if (!this.ivaEnabled()) return false;
     return (this.order()?.line_items ?? []).some(
       (item) =>
         this.parseNumber(item.iva_percentage) > 0 ||
@@ -532,6 +559,7 @@ export class OrderDetailDialogComponent {
   }
 
   hasLineIepsColumn(): boolean {
+    if (!this.iepsEnabled()) return false;
     return (this.order()?.line_items ?? []).some(
       (item) =>
         this.parseNumber(item.ieps_percentage) > 0 ||
@@ -842,6 +870,46 @@ export class OrderDetailDialogComponent {
           },
         });
       });
+  }
+
+  reopenForAdditionalReceipt(): void {
+    const order = this.order();
+    if (!order) return;
+    this.dialog
+      .open(AlertDialogComponent, {
+        width: '480px',
+        data: {
+          title: 'Reabrir para agregar productos',
+          message:
+            'La orden vuelve a Creada para agregar los productos del siguiente ingreso. Los lotes que ya entraron se quedan. Al confirmar el recibo, la orden vuelve a Recibida.',
+          type: 'warning',
+          text_accept: 'Reabrir',
+          text_cancel: 'Volver',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.purchaseOrderService.reopenForAdditionalReceipt(order.id).subscribe({
+          next: () => {
+            this.toast.success('Orden reabierta para otro ingreso');
+            this.loadOrder();
+          },
+          error: (error) => this.toast.error(error?.message || 'No se pudo reabrir'),
+        });
+      });
+  }
+
+  closeAdditionalReceipt(): void {
+    const order = this.order();
+    if (!order) return;
+    this.purchaseOrderService.closeAdditionalReceipt(order.id).subscribe({
+      next: () => {
+        this.toast.success('La orden volvió a Recibida');
+        this.loadOrder();
+      },
+      error: (error) => this.toast.error(error?.message || 'No se pudo cerrar el ingreso'),
+    });
   }
 
   reopenOrder(): void {

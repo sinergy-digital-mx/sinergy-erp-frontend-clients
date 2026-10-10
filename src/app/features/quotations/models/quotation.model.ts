@@ -69,7 +69,13 @@ export interface Quotation {
   customer?: QuotationCustomer;
   customer_display_name?: string;
   customer_summary?: QuotationCustomer;
-  fiscal_configuration?: { id: string; razon_social?: string; rfc?: string } | null;
+  fiscal_configuration?: {
+    id: string;
+    razon_social?: string;
+    rfc?: string;
+    iva_enabled?: boolean | number;
+    ieps_enabled?: boolean | number;
+  } | null;
   billing_branch?: {
     id: string;
     code?: string;

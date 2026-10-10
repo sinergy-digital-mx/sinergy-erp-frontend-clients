@@ -290,6 +290,36 @@
           </div>
       </div>
 
+      <div *ngIf="activeTab === 'impuestos'" class="tab-pane fiscal-form-grid">
+        <div class="col-span-2">
+          <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <input type="checkbox" formControlName="iva_enabled">
+            IVA habilitado
+          </label>
+          <p class="csd-field-hint">
+            Muestra y calcula IVA en órdenes de compra, órdenes de venta y cotizaciones de esta razón social.
+          </p>
+        </div>
+        <div class="col-span-2">
+          <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <input type="checkbox" formControlName="ieps_enabled">
+            IEPS habilitado
+          </label>
+          <p class="csd-field-hint">
+            Muestra y calcula IEPS en órdenes de compra, órdenes de venta y cotizaciones. Si está apagado, el impuesto queda en cero.
+          </p>
+        </div>
+        <div class="col-span-2">
+          <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <input type="checkbox" formControlName="multi_fiscal_transfers_enabled">
+            Transferencias multi razón social habilitadas
+          </label>
+          <p class="csd-field-hint">
+            Si está apagado, el inventario de esta razón social solo se transfiere a almacenes de la misma razón social.
+          </p>
+        </div>
+      </div>
+
       <div *ngIf="activeTab === 'cotizaciones'" class="tab-pane fiscal-form-grid">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Días de vigencia de cotizaciones</label>
@@ -437,7 +467,7 @@
       (clicked)="close()">
     </app-button>
     <app-button
-      *ngIf="activeTab === 'configuracion'"
+      *ngIf="activeTab === 'configuracion' || activeTab === 'impuestos' || activeTab === 'cotizaciones'"
       [text]="isNew ? 'Crear Razón Social' : 'Guardar Cambios'"
       custom_class="btn_primary"
       [loading]="saving()"

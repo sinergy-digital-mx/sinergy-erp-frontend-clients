@@ -21,6 +21,8 @@ export interface AddSalesOrderLineDialogData {
   fiscal_configuration_id: string;
   billing_branch_id: string;
   sale_scope?: 'inventory' | 'services' | 'combined';
+  ivaEnabled?: boolean;
+  iepsEnabled?: boolean;
 }
 
 @Component({
@@ -88,7 +90,16 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
     return quantity * unitPrice;
   }
 
+  get showIva(): boolean {
+    return this.data.ivaEnabled !== false;
+  }
+
+  get showIeps(): boolean {
+    return this.data.iepsEnabled !== false;
+  }
+
   get lineIvaAmount(): number {
+    if (!this.showIva) return 0;
     const iva = Number(this.selectedIva);
     if (!Number.isFinite(iva)) {
       return 0;
@@ -97,6 +108,7 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
   }
 
   get lineIepsAmount(): number {
+    if (!this.showIeps) return 0;
     const ieps = Number(this.selectedIeps);
     if (!Number.isFinite(ieps)) {
       return 0;
@@ -208,8 +220,8 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
 
     const quantity = Number(this.selectedQuantity);
     const unitPrice = Number(this.selectedUnitPrice);
-    const iva = Number(this.selectedIva || 0);
-    const ieps = Number(this.selectedIeps || 0);
+    const iva = this.showIva ? Number(this.selectedIva || 0) : 0;
+    const ieps = this.showIeps ? Number(this.selectedIeps || 0) : 0;
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
       this.errorMessage.set('La cantidad debe ser mayor a 0');

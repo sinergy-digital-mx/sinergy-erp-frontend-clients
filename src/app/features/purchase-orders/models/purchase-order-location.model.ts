@@ -16,6 +16,9 @@ export interface PurchaseOrderLocationFiscal {
   razon_social: string;
   rfc: string;
   status: string;
+  iva_enabled?: boolean | number;
+  ieps_enabled?: boolean | number;
+  multi_fiscal_transfers_enabled?: boolean | number;
   branches: PurchaseOrderLocationBranch[];
 }
 

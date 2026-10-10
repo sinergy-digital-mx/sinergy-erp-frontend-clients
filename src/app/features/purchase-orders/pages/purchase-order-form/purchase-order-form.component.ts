@@ -48,6 +48,7 @@ import {
   currencyMismatchMessage,
   normalizeVendorCostCurrency,
 } from '../../../settings/utils/vendor-cost-currency.util';
+import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 
 @Component({
   selector: 'app-purchase-order-form',
@@ -275,6 +276,9 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
             razon_social: fiscal.razon_social,
             rfc: fiscal.rfc,
             status: fiscal.status,
+            iva_enabled: fiscal.iva_enabled,
+            ieps_enabled: fiscal.ieps_enabled,
+            multi_fiscal_transfers_enabled: fiscal.multi_fiscal_transfers_enabled,
           })) as FiscalConfiguration[],
         );
         const fiscalId = String(this.orderForm?.get('fiscal_configuration_id')?.value || '');
@@ -457,10 +461,22 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     this.lineItems.at(index).patchValue({
       uom_id: u.uom_id,
       unit_price: catalogInputNumber(u.cost),
-      iva_percentage: catalogInputNumber(u.iva_percentage),
-      ieps_percentage: catalogInputNumber(u.ieps_percentage),
+      iva_percentage: this.showIva() ? catalogInputNumber(u.iva_percentage) : 0,
+      ieps_percentage: this.showIeps() ? catalogInputNumber(u.ieps_percentage) : 0,
       currency: uomCurrency ?? order ?? 'MXN',
     });
+  }
+
+  showIva(): boolean {
+    const fiscalId = String(this.orderForm?.get('fiscal_configuration_id')?.value || '');
+    const fiscal = this.fiscalConfigurations().find((item) => item.id === fiscalId);
+    return isFiscalFlagOn(fiscal?.iva_enabled, true);
+  }
+
+  showIeps(): boolean {
+    const fiscalId = String(this.orderForm?.get('fiscal_configuration_id')?.value || '');
+    const fiscal = this.fiscalConfigurations().find((item) => item.id === fiscalId);
+    return isFiscalFlagOn(fiscal?.ieps_enabled, true);
   }
 
   getLineCalculations(index: number): ReturnType<TaxCalculatorService['calculateLineItem']> {
@@ -538,8 +554,8 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       uom_id: row.uom_id,
       quantity: this.toNum(row.quantity),
       unit_total: this.toNum(row.unit_price),
-      iva_percentage: this.toNum(row.iva_percentage),
-      ieps_percentage: this.toNum(row.ieps_percentage),
+      iva_percentage: this.showIva() ? this.toNum(row.iva_percentage) : 0,
+      ieps_percentage: this.showIeps() ? this.toNum(row.ieps_percentage) : 0,
       currency: normalizeVendorCostCurrency(row.currency) ?? paymentCurrency
     }));
 

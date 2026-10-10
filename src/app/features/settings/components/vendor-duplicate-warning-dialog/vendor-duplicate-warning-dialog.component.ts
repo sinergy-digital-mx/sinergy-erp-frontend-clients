@@ -58,6 +58,10 @@ export class VendorDuplicateWarningDialogComponent {
     this.dialogRef.close({ action: 'continue' });
   }
 
+  dismiss(): void {
+    this.dialogRef.close();
+  }
+
   viewMatch(match: VendorSimilarMatch, event?: Event): void {
     event?.stopPropagation();
     this.dialogRef.close({ action: 'view', vendorId: match.id });

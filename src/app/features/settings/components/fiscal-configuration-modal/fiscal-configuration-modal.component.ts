@@ -60,6 +60,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
   // Tabs
   tabs: TabItem[] = [
     { id: 'configuracion', title: 'Configuración' },
+    { id: 'impuestos', title: 'Impuestos y transferencias' },
     { id: 'cotizaciones', title: 'Cotizaciones' },
     { id: 'sucursales', title: 'Sucursales' },
     { id: 'logo', title: 'Logo' }
@@ -164,6 +165,9 @@ export class FiscalConfigurationModalComponent implements OnInit {
       prefix: config.prefix ?? '',
       quotation_expiration_days: config.quotation_expiration_days ?? '',
       advance_invoicing_enabled: !!config.advance_invoicing_enabled,
+      iva_enabled: this.isEnabledFlag(config.iva_enabled ?? true),
+      ieps_enabled: this.isEnabledFlag(config.ieps_enabled ?? true),
+      multi_fiscal_transfers_enabled: this.isEnabledFlag(config.multi_fiscal_transfers_enabled ?? true),
       persona_type: config.persona_type,
       fiscal_regime: config.fiscal_regime ?? '',
       status: config.status,
@@ -404,6 +408,9 @@ export class FiscalConfigurationModalComponent implements OnInit {
       prefix: ['', [documentPrefixValidator()]],
       quotation_expiration_days: ['', [Validators.min(1), Validators.max(3650)]],
       advance_invoicing_enabled: [false],
+      iva_enabled: [true],
+      ieps_enabled: [true],
+      multi_fiscal_transfers_enabled: [false],
       persona_type: ['Persona Moral', [Validators.required]],
       fiscal_regime: [''],
       digital_seal: [''],
@@ -531,6 +538,9 @@ export class FiscalConfigurationModalComponent implements OnInit {
       prefix: normalizeDocumentPrefix(formValue.prefix),
       quotation_expiration_days: this.normalizeExpirationDays(formValue.quotation_expiration_days),
       advance_invoicing_enabled: !!formValue.advance_invoicing_enabled,
+      iva_enabled: !!formValue.iva_enabled,
+      ieps_enabled: !!formValue.ieps_enabled,
+      multi_fiscal_transfers_enabled: !!formValue.multi_fiscal_transfers_enabled,
       persona_type: formValue.persona_type,
       fiscal_regime: formValue.fiscal_regime || undefined,
       status: formValue.status,

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
+import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
@@ -367,6 +368,8 @@ export class SalesOrderDetailDialogComponent {
           folio: order.folio,
           currency: this.getPaymentCurrency(),
           lineItem: item,
+          ivaEnabled: this.ivaEnabled(),
+          iepsEnabled: this.iepsEnabled(),
         },
       })
       .afterClosed()
@@ -432,6 +435,8 @@ export class SalesOrderDetailDialogComponent {
           fiscal_configuration_id: fiscalId,
           billing_branch_id: branchId,
           sale_scope: order.sale_scope || 'inventory',
+          ivaEnabled: this.ivaEnabled(),
+          iepsEnabled: this.iepsEnabled(),
         },
       })
       .afterClosed()
@@ -786,16 +791,26 @@ export class SalesOrderDetailDialogComponent {
   }
 
   hasDisplayedIeps(): boolean {
-    return this.getTotalsSnapshot().ieps > 0;
+    return this.iepsEnabled() && this.getTotalsSnapshot().ieps > 0;
+  }
+
+  ivaEnabled(): boolean {
+    return isFiscalFlagOn(this.order()?.fiscal_configuration?.iva_enabled, true);
+  }
+
+  iepsEnabled(): boolean {
+    return isFiscalFlagOn(this.order()?.fiscal_configuration?.ieps_enabled, true);
   }
 
   hasLineIvaColumn(): boolean {
+    if (!this.ivaEnabled()) return false;
     return this.lineItems().some(
       (item) => this.parseNumber(item.iva_percentage) > 0 || this.parseNumber(item.line_iva) > 0
     );
   }
 
   hasLineIepsColumn(): boolean {
+    if (!this.iepsEnabled()) return false;
     return this.lineItems().some(
       (item) => this.parseNumber(item.ieps_percentage) > 0 || this.parseNumber(item.line_ieps) > 0
     );

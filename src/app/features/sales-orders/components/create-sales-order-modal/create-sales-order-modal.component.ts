@@ -18,6 +18,7 @@ import { FiscalConfigurationService } from '../../../settings/services/fiscal-co
 import { BranchService } from '../../../settings/services/branch.service';
 import { Branch } from '../../../settings/models/branch.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
+import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 
 interface LineItem {
   product_id: string;
@@ -373,6 +374,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
           this.loadBranches(fiscalId);
           this.form.get('billing_branch_id')?.enable({ emitEvent: false });
         }
+        this.clampLineTaxes();
         this.cdr.detectChanges();
       });
 
@@ -659,6 +661,26 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.productSearch$.next(value);
   }
 
+  get showIva(): boolean {
+    const fiscalId = this.form?.get('fiscal_configuration_id')?.value;
+    const fiscal = this.fiscalConfigurations.find((row) => row.id === fiscalId);
+    return isFiscalFlagOn(fiscal?.iva_enabled, true);
+  }
+
+  get showIeps(): boolean {
+    const fiscalId = this.form?.get('fiscal_configuration_id')?.value;
+    const fiscal = this.fiscalConfigurations.find((row) => row.id === fiscalId);
+    return isFiscalFlagOn(fiscal?.ieps_enabled, true);
+  }
+
+  private clampLineTaxes(): void {
+    if (this.showIva && this.showIeps) return;
+    for (const item of this.lineItems) {
+      if (!this.showIva) item.iva_percentage = 0;
+      if (!this.showIeps) item.ieps_percentage = 0;
+    }
+  }
+
   get filteredProductsForModal(): any[] {
     return this.products;
   }
@@ -674,8 +696,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     const firstUom = (product?.uoms || [])[0];
     this.selectedUomId = firstUom?.id || firstUom?.product_uom_id || firstUom?.uom_id || '';
     this.selectedUnitPrice = Number(firstUom?.cost || 0);
-    this.selectedIva = Number(firstUom?.iva_percentage || 0);
-    this.selectedIeps = Number(firstUom?.ieps_percentage || 0);
+    this.selectedIva = this.showIva ? Number(firstUom?.iva_percentage || 0) : 0;
+    this.selectedIeps = this.showIeps ? Number(firstUom?.ieps_percentage || 0) : 0;
     this.selectedPricingOptionId = '';
   }
 
@@ -683,8 +705,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     const uom = this.selectedProductUoms.find((row) => (row.id || row.product_uom_id || row.uom_id) === this.selectedUomId);
     if (!uom) return;
     this.selectedUnitPrice = Number(uom.cost || 0);
-    this.selectedIva = Number(uom.iva_percentage || 0);
-    this.selectedIeps = Number(uom.ieps_percentage || 0);
+    this.selectedIva = this.showIva ? Number(uom.iva_percentage || 0) : 0;
+    this.selectedIeps = this.showIeps ? Number(uom.ieps_percentage || 0) : 0;
     this.selectedPricingOptionId = '';
   }
 
@@ -697,8 +719,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     const option = this.selectedModalPricingOptions.find((row) => (row.price_list_id || row.id) === this.selectedPricingOptionId);
     if (!option) return;
     this.selectedUnitPrice = Number(option.price ?? 0);
-    this.selectedIva = Number(option.iva_percentage ?? 0);
-    this.selectedIeps = Number(option.ieps_percentage ?? 0);
+    this.selectedIva = this.showIva ? Number(option.iva_percentage ?? 0) : 0;
+    this.selectedIeps = this.showIeps ? Number(option.ieps_percentage ?? 0) : 0;
   }
 
   confirmAddProduct(): void {
@@ -735,8 +757,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       quantity,
       unit_price: Number(this.selectedUnitPrice || 0),
       discount_percentage: 0,
-      iva_percentage: Number(this.selectedIva || 0),
-      ieps_percentage: Number(this.selectedIeps || 0)
+      iva_percentage: this.showIva ? Number(this.selectedIva || 0) : 0,
+      ieps_percentage: this.showIeps ? Number(this.selectedIeps || 0) : 0
     };
     this.lineItems.push(newItem);
     this.closeAddProductModal();
@@ -812,7 +834,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       item.unit_price = Number(uom.cost || item.unit_price || 0);
       item.discount_percentage = Number(item.discount_percentage || 0);
       item.iva_percentage = Number(uom.iva_percentage || item.iva_percentage || 0);
-      item.ieps_percentage = Number(uom.ieps_percentage || item.ieps_percentage || 0);
+      item.ieps_percentage = this.showIeps ? Number(uom.ieps_percentage || item.ieps_percentage || 0) : 0;
       item.pricing_options = Array.isArray(uom.pricing_options) ? uom.pricing_options : [];
       item.selected_pricing_option_id = undefined;
     }
@@ -826,7 +848,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     item.unit_price = Number(uom.cost || item.unit_price || 0);
     item.discount_percentage = Number(item.discount_percentage || 0);
     item.iva_percentage = Number(uom.iva_percentage || item.iva_percentage || 0);
-    item.ieps_percentage = Number(uom.ieps_percentage || item.ieps_percentage || 0);
+    item.ieps_percentage = this.showIeps ? Number(uom.ieps_percentage || item.ieps_percentage || 0) : 0;
     item.pricing_options = Array.isArray(uom.pricing_options) ? uom.pricing_options : [];
     item.selected_pricing_option_id = undefined;
   }
@@ -836,8 +858,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     const option = (item.pricing_options || []).find((row) => (row.price_list_id || row.id) === item.selected_pricing_option_id);
     if (!option) return;
     item.unit_price = Number(option.price ?? item.unit_price ?? 0);
-    item.iva_percentage = Number(option.iva_percentage ?? item.iva_percentage ?? 0);
-    item.ieps_percentage = Number(option.ieps_percentage ?? item.ieps_percentage ?? 0);
+    item.iva_percentage = this.showIva ? Number(option.iva_percentage ?? item.iva_percentage ?? 0) : 0;
+    item.ieps_percentage = this.showIeps ? Number(option.ieps_percentage ?? item.ieps_percentage ?? 0) : 0;
   }
 
   save(): void {
@@ -854,8 +876,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       quantity: Number(li.quantity),
       unit_price: Number(li.unit_price),
       discount_percentage: Number(li.discount_percentage || 0),
-      iva_percentage: Number(li.iva_percentage),
-      ieps_percentage: Number(li.ieps_percentage),
+      iva_percentage: this.showIva ? Number(li.iva_percentage || 0) : 0,
+      ieps_percentage: this.showIeps ? Number(li.ieps_percentage || 0) : 0,
       ...(li.product_discount_id ? { product_discount_id: li.product_discount_id } : {}),
     }));
 
