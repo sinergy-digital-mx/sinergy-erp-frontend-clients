@@ -763,6 +763,38 @@ export function collectChangeUsd(form: PosCollectForm, orderTotal = 0): number {
   ).changeCashUsd;
 }
 
+/**
+ * Cambio a mostrar: el sobrante real más el equivalente en la otra moneda.
+ * 35.74 USD a TC 16.80 → también $600.43 MXN. El corte sigue usando el cambio físico.
+ */
+export function displayCashChange(
+  changeMxn: number,
+  changeUsd: number,
+  rate: number,
+): { mxn: number; usd: number } {
+  const mxn = roundMoney(Math.max(0, Number(changeMxn) || 0));
+  const usd = roundMoney(Math.max(0, Number(changeUsd) || 0));
+  const fx = Number(rate) || 0;
+  if (fx <= 0) {
+    return { mxn, usd };
+  }
+  if (usd > 0 && mxn <= 0) {
+    return { mxn: roundMoney(usd * fx), usd };
+  }
+  if (mxn > 0 && usd <= 0) {
+    return { mxn, usd: roundMoney(mxn / fx) };
+  }
+  return { mxn, usd };
+}
+
+export function collectChangeDisplay(form: PosCollectForm, orderTotal = 0): { mxn: number; usd: number } {
+  return displayCashChange(
+    collectChangeMxn(form, orderTotal),
+    collectChangeUsd(form, orderTotal),
+    form.usdExchangeRate,
+  );
+}
+
 export function collectCashShortfallMxn(form: PosCollectForm, orderTotal = 0): number {
   if (form.paymentMethod === 'cash') {
     return Math.max(0, roundMoney(orderTotal - collectReceivedTotalMxn(form)));

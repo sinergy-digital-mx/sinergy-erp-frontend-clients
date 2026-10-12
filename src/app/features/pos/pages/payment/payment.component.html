@@ -832,7 +832,7 @@
 
                   <div
                     class="cobranza-cash-result cobranza-cash-result--band"
-                    [class.cobranza-cash-result--change]="changeMxn() > 0 || changeUsd() > 0"
+                    [class.cobranza-cash-result--change]="changeDisplay().mxn > 0 || changeDisplay().usd > 0"
                     [class.cobranza-cash-result--short]="cashShortfallMxn() > 0">
                     @if (collectForm().amountCashUsd > 0) {
                       <p class="cobranza-cash-fx">
@@ -859,18 +859,14 @@
                           </strong>
                         }
                       }
-                      @if (changeUsd() > 0) {
-                        <strong class="cobranza-cash-result__change">
-                          {{ formatCurrencyUsd(changeUsd()) }}
-                          <span>USD</span>
-                        </strong>
-                      }
-                      @if (changeMxn() > 0 || changeUsd() === 0) {
-                        <strong class="cobranza-cash-result__change">
-                          {{ formatCurrency(changeMxn()) }}
-                          <span>MXN</span>
-                        </strong>
-                      }
+                      <strong class="cobranza-cash-result__change">
+                        {{ formatCurrencyUsd(changeDisplay().usd) }}
+                        <span>USD</span>
+                      </strong>
+                      <strong class="cobranza-cash-result__change">
+                        {{ formatCurrency(changeDisplay().mxn) }}
+                        <span>MXN</span>
+                      </strong>
                     </div>
                   </div>
                 }
@@ -1423,14 +1419,12 @@
                     @if (pay['received_cash_mxn'] != null && +pay['received_cash_mxn'] > 0) {
                       <div><dt>Recibió MXN</dt><dd>{{ moneyLabel(pay['received_cash_mxn']) }}</dd></div>
                     }
-                    @if (pay['change_cash_mxn'] != null && +pay['change_cash_mxn'] > 0) {
+                    @if (collectionChangeDisplay(pay).mxn > 0 || collectionChangeDisplay(pay).usd > 0) {
                       <div class="cobranza-detail-list__highlight">
-                        <dt>Cambio MXN</dt><dd>{{ moneyLabel(pay['change_cash_mxn']) }}</dd>
+                        <dt>Cambio USD</dt><dd>{{ formatCurrencyUsd(collectionChangeDisplay(pay).usd) }}</dd>
                       </div>
-                    }
-                    @if (pay['change_cash_usd'] != null && +pay['change_cash_usd'] > 0) {
                       <div class="cobranza-detail-list__highlight">
-                        <dt>Cambio USD</dt><dd>{{ formatCurrencyUsd(+pay['change_cash_usd']) }}</dd>
+                        <dt>Cambio MXN</dt><dd>{{ moneyLabel(collectionChangeDisplay(pay).mxn) }}</dd>
                       </div>
                     }
                   </dl>
@@ -1445,14 +1439,12 @@
                     @if (item.payment.amount_credit_mxn != null && +item.payment.amount_credit_mxn > 0) {
                       <div><dt>Crédito</dt><dd>{{ moneyLabel(item.payment.amount_credit_mxn) }}</dd></div>
                     }
-                    @if (item.payment.change_cash_mxn != null && +item.payment.change_cash_mxn > 0) {
+                    @if (collectionChangeDisplay(item.payment).mxn > 0 || collectionChangeDisplay(item.payment).usd > 0) {
                       <div class="cobranza-detail-list__highlight">
-                        <dt>Cambio MXN</dt><dd>{{ moneyLabel(item.payment.change_cash_mxn) }}</dd>
+                        <dt>Cambio USD</dt><dd>{{ formatCurrencyUsd(collectionChangeDisplay(item.payment).usd) }}</dd>
                       </div>
-                    }
-                    @if (item.payment.change_cash_usd != null && +item.payment.change_cash_usd > 0) {
                       <div class="cobranza-detail-list__highlight">
-                        <dt>Cambio USD</dt><dd>{{ formatCurrencyUsd(+item.payment.change_cash_usd) }}</dd>
+                        <dt>Cambio MXN</dt><dd>{{ moneyLabel(collectionChangeDisplay(item.payment).mxn) }}</dd>
                       </div>
                     }
                   </dl>

@@ -91,6 +91,8 @@ import {
   collectCashShortfallUsd,
   collectChangeMxn,
   collectChangeUsd,
+  collectChangeDisplay,
+  displayCashChange,
   CollectPaymentMethod,
   defaultCollectForm,
   parseOrderTotal,
@@ -327,6 +329,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly changeMxn = computed(() => collectChangeMxn(this.collectForm(), this.orderTotal()));
 
   readonly changeUsd = computed(() => collectChangeUsd(this.collectForm(), this.orderTotal()));
+
+  readonly changeDisplay = computed(() =>
+    collectChangeDisplay(this.collectForm(), this.orderTotal())
+  );
 
   readonly cashShortfallMxn = computed(() => collectCashShortfallMxn(this.collectForm(), this.orderTotal()));
 
@@ -1470,8 +1476,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (response) => {
         this.collecting.set(false);
         const collection = response.collection;
-        const changeMxn = Number(collection?.change_cash_mxn ?? 0);
-        const changeUsd = Number(collection?.change_cash_usd ?? 0);
+        const changeShown = displayCashChange(
+          Number(collection?.change_cash_mxn ?? 0),
+          Number(collection?.change_cash_usd ?? 0),
+          Number(collection?.usd_exchange_rate ?? 0)
+        );
+        const changeMxn = changeShown.mxn;
+        const changeUsd = changeShown.usd;
         const folio = sale.folio || response.sales_order?.folio || sale.id;
         const customerName =
           collection?.customer?.display_name ||
@@ -1736,6 +1747,18 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   formatCurrencyUsd(amount: number): string {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  }
+
+  collectionChangeDisplay(pay: {
+    change_cash_mxn?: number | string | null;
+    change_cash_usd?: number | string | null;
+    usd_exchange_rate?: number | string | null;
+  } | null | undefined): { mxn: number; usd: number } {
+    return displayCashChange(
+      Number(pay?.change_cash_mxn ?? 0),
+      Number(pay?.change_cash_usd ?? 0),
+      Number(pay?.usd_exchange_rate ?? 0)
+    );
   }
 
   readonly paymentMethodLabel = paymentMethodLabel;
