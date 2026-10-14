@@ -19,14 +19,14 @@
       type="button"
       class="payable-export"
       [disabled]="exporting() || tableConfig().loading"
-      [title]="currencyView() === 'all' ? 'El archivo trae una hoja de pesos y otra de dólares' : 'Descarga la lista de esta vista'"
+      [title]="currencyView() === 'all' ? 'El Excel abre en Ambos, trae Ambos detallado y arriba el tipo de cambio del sistema' : 'Descarga la lista de esta vista'"
       (click)="downloadExcel()">
       {{ exporting() ? 'Descargando…' : 'Descargar Excel' }}
     </button>
   </div>
 
   @if (currencyView() === 'all') {
-    <p class="payable-hint">Ambos muestra pesos y dólares. El total en pesos usa el tipo de cambio del sistema. El Excel abre en la hoja Ambos y arriba trae ese tipo de cambio.</p>
+    <p class="payable-hint">Ambos muestra pesos y dólares. El total en pesos usa el tipo de cambio del sistema. El Excel abre en Ambos y trae la hoja Ambos detallado con cada orden.</p>
   }
 
   @if (summary()) {

@@ -81,9 +81,42 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
     this.destroy$.complete();
   }
 
+  readonly documentTypes = [
+    { code: 1, label: 'Recibo' },
+    { code: 2, label: 'Dev. efectivo' },
+    { code: 3, label: 'Cancelación de recibo' },
+    { code: 5, label: 'Recibo a crédito' },
+    { code: 6, label: 'Factura' },
+    { code: 7, label: 'Nota de crédito' },
+    { code: 8, label: 'Cancelación de factura' },
+    { code: 9, label: 'Cancelación de nota' },
+    { code: 18, label: 'Apartado' },
+    { code: 19, label: 'Abono o anticipo' },
+  ];
+
+  readonly documentStatuses = [
+    { code: 1, label: 'Contado' },
+    { code: 2, label: 'Crédito' },
+    { code: 3, label: 'Cancelado' },
+    { code: 4, label: 'Pagado' },
+    { code: 5, label: 'Devolución' },
+  ];
+
   formatMoney(value: number | null | undefined, currency = 'MXN'): string {
     if (value == null || !Number.isFinite(value)) return '—';
     return formatUnitCurrency(value, currency === 'USD' ? 'USD' : 'MXN');
+  }
+
+  formatPercent(value: number | null | undefined): string {
+    if (value == null || !Number.isFinite(value)) return '—';
+    return `${value.toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  }
+
+  marginTone(value: number | null | undefined): 'good' | 'mid' | 'bad' | 'empty' {
+    if (value == null || !Number.isFinite(value)) return 'empty';
+    if (value < 0) return 'bad';
+    if (value < 20) return 'mid';
+    return 'good';
   }
 
   formatDay(value?: string | null): string {
@@ -203,13 +236,14 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
       { name: 'Cliente', prop: 'customer_name', sortable: false, canAutoResize: true, width: 220 },
       { name: 'Documento', prop: 'document', sortable: false, canAutoResize: false, width: 118 },
       { name: 'Fecha', prop: 'date', sortable: false, canAutoResize: false, width: 96 },
-      { name: 'Tipo', prop: 'type_code', sortable: false, canAutoResize: false, width: 148 },
-      { name: 'Stat', prop: 'status_code', sortable: false, canAutoResize: false, width: 108 },
+      { name: 'Tipo', prop: 'type_code', sortable: false, canAutoResize: false, width: 188 },
+      { name: 'Stat', prop: 'status_code', sortable: false, canAutoResize: false, width: 118 },
       { name: 'Importe', prop: 'amount', sortable: false, canAutoResize: false, width: 100 },
       { name: 'Descto', prop: 'discount', sortable: false, canAutoResize: false, width: 88 },
       { name: 'Impuesto', prop: 'tax', sortable: false, canAutoResize: false, width: 96 },
       { name: 'Total venta', prop: 'sale_total', sortable: false, canAutoResize: false, width: 108 },
       { name: 'Total costo', prop: 'cost_total', sortable: false, canAutoResize: false, width: 108 },
+      { name: 'Margen', prop: 'margin_amount', sortable: false, canAutoResize: false, width: 118 },
     ];
   }
 }

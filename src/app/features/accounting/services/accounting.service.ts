@@ -623,6 +623,8 @@ export class AccountingService {
       tax: Number(raw.tax) || 0,
       sale_total: Number(raw.sale_total) || 0,
       cost_total: Number(raw.cost_total) || 0,
+      margin_amount: Number(raw.margin_amount) || 0,
+      margin_percent: this.optionalPercent(raw.margin_percent),
       currency: raw.currency || 'MXN',
       reversal: raw.reversal === true,
     };
@@ -640,6 +642,7 @@ export class AccountingService {
       sale_total: Number(raw.sale_total ?? 0) || 0,
       cost_total: Number(raw.cost_total ?? 0) || 0,
       profit: Number(raw.profit ?? 0) || 0,
+      margin_percent: this.optionalPercent(raw.margin_percent),
       has_foreign_currency: raw.has_foreign_currency === true,
       date_from: raw.date_from,
       date_to: raw.date_to,
@@ -662,6 +665,12 @@ export class AccountingService {
       exchange_rate_date: raw.exchange_rate_date ?? null,
       total_amount_pending_total_mxn: this.optionalMoney(raw.total_amount_pending_total_mxn),
     };
+  }
+
+  private optionalPercent(value: unknown): number | null {
+    if (value == null || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private optionalMoney(value: number | null | undefined): number | null {

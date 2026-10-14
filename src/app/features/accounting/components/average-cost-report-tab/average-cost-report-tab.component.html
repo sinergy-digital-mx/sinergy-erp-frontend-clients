@@ -3,17 +3,37 @@
     <div>
       <h3 class="avg-cost-title">Reporte de ventas a costo promedio</h3>
       <p class="avg-cost-hint">
-        Cada fila es un documento de venta. El costo sale del kardex, al costo del lote.
+        Cada fila es un documento de venta. El costo sale del lote; si no hay, del costo promedio del producto.
+        El margen es el precio sin impuesto menos el costo.
         En una cancelación el importe queda positivo y se restan el impuesto, el total y el costo.
         @if (periodCaption()) {
           {{ periodCaption() }}.
         }
       </p>
-      <p class="avg-cost-legend">
-        Tipo: 1 Recibo, 2 Dev. efectivo, 3 Cancelación de recibo, 5 Recibo a crédito, 6 Factura,
-        7 Nota de crédito, 8 Cancelación de factura, 9 Cancelación de nota, 18 Apartado, 19 Abono o anticipo.
-        Estatus: 1 Contado, 2 Crédito, 3 Cancelado, 4 Pagado, 5 Devolución.
-      </p>
+      <div class="avg-cost-legend">
+        <div class="avg-cost-legend__row">
+          <span class="avg-cost-legend__label">Tipo</span>
+          <div class="avg-cost-legend__badges">
+            @for (type of documentTypes; track type.code) {
+              <span class="type-badge" [attr.data-type]="type.code">
+                <span class="type-badge__code">{{ type.code }}</span>
+                {{ type.label }}
+              </span>
+            }
+          </div>
+        </div>
+        <div class="avg-cost-legend__row">
+          <span class="avg-cost-legend__label">Estatus</span>
+          <div class="avg-cost-legend__badges">
+            @for (status of documentStatuses; track status.code) {
+              <span class="status-pill" [attr.data-status]="status.code">
+                <span class="status-pill__code">{{ status.code }}</span>
+                {{ status.label }}
+              </span>
+            }
+          </div>
+        </div>
+      </div>
     </div>
 
     <button
@@ -50,6 +70,11 @@
           [class.avg-cost-cell--negative]="summary()!.profit < 0">
           {{ formatMoney(summary()!.profit) }}
         </strong>
+        <span
+          class="margin-pill"
+          [attr.data-tone]="marginTone(summary()!.margin_percent)">
+          {{ formatPercent(summary()!.margin_percent) }} margen
+        </span>
       </article>
     </div>
     @if (summary()!.has_foreign_currency) {
@@ -86,12 +111,16 @@
   </td>
   <td class="avg-cost-cell">{{ formatDay(item.date) }}</td>
   <td class="avg-cost-cell" [attr.title]="item.type_label">
-    <span class="doc-code">{{ item.type_code }}</span>
-    <span class="doc-label">{{ item.type_label }}</span>
+    <span class="type-badge" [attr.data-type]="item.type_code">
+      <span class="type-badge__code">{{ item.type_code }}</span>
+      {{ item.type_label }}
+    </span>
   </td>
   <td class="avg-cost-cell" [attr.title]="item.status_label">
-    <span class="doc-code">{{ item.status_code }}</span>
-    <span class="doc-label">{{ item.status_label }}</span>
+    <span class="status-pill" [attr.data-status]="item.status_code">
+      <span class="status-pill__code">{{ item.status_code }}</span>
+      {{ item.status_label }}
+    </span>
   </td>
   <td class="avg-cost-cell avg-cost-cell--num">{{ formatMoney(item.amount, item.currency) }}</td>
   <td class="avg-cost-cell avg-cost-cell--num">{{ formatMoney(item.discount, item.currency) }}</td>
@@ -103,5 +132,15 @@
   </td>
   <td class="avg-cost-cell avg-cost-cell--num" [class.avg-cost-cell--negative]="item.cost_total < 0">
     {{ formatMoney(item.cost_total, item.currency) }}
+  </td>
+  <td class="avg-cost-cell avg-cost-cell--margin">
+    <span class="margin-stack">
+      <span class="margin-pill" [attr.data-tone]="marginTone(item.margin_percent)">
+        {{ formatPercent(item.margin_percent) }}
+      </span>
+      <span class="margin-money" [class.avg-cost-cell--negative]="item.margin_amount < 0">
+        {{ formatMoney(item.margin_amount, item.currency) }}
+      </span>
+    </span>
   </td>
 </ng-template>

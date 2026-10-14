@@ -297,6 +297,8 @@ export interface AverageCostReportRow {
   tax: number;
   sale_total: number;
   cost_total: number;
+  margin_amount: number;
+  margin_percent: number | null;
   currency: string;
   reversal: boolean;
 }
@@ -309,6 +311,7 @@ export interface AverageCostReportSummary {
   sale_total: number;
   cost_total: number;
   profit: number;
+  margin_percent: number | null;
   has_foreign_currency: boolean;
   date_from?: string;
   date_to?: string;
