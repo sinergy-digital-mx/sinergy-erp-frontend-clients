@@ -157,6 +157,7 @@ export interface AccountsPayableVendorRow {
   progress_percentage: number;
   progress_percentage_mxn: number;
   progress_percentage_usd: number;
+  amount_pending_total_mxn?: number | null;
   credit_limit?: number | null;
   total_committed?: number | null;
   total_committed_mxn?: number | null;
@@ -186,22 +187,33 @@ export interface AccountsPayableOrderRow {
 
 export interface AccountsReceivableRow {
   razon_social: string;
-  fiscal_rfc?: string;
+  fiscal_rfc?: string | null;
   pending_order_count: number;
+  pending_order_count_mxn?: number;
+  pending_order_count_usd?: number;
   amount_pending: number;
+  amount_pending_mxn?: number;
+  amount_pending_usd?: number;
+  amount_pending_total_mxn?: number | null;
+  customer_count?: number;
 }
 
 export interface AccountsReceivableDetail {
   razon_social: string;
   fiscal_rfc?: string;
   amount_pending: number;
+  amount_pending_mxn?: number;
+  amount_pending_usd?: number;
   pending_order_count: number;
+  pending_order_count_mxn?: number;
+  pending_order_count_usd?: number;
   orders: AccountsReceivableOrderRow[];
 }
 
 export interface AccountsReceivableOrderRow {
   id: string;
   folio?: string;
+  currency?: 'MXN' | 'USD' | string;
   created_at?: string;
   customer_display_name?: string;
   seller_user?: PosUserSummary | null;
@@ -252,35 +264,53 @@ export interface AccountsPayableListSummary {
   total_amount_pending_usd?: number;
   total_pending_orders_mxn?: number;
   total_pending_orders_usd?: number;
+  exchange_rate?: number | null;
+  exchange_rate_date?: string | null;
+  total_amount_pending_total_mxn?: number | null;
 }
 
 export interface AccountsReceivableListSummary {
+  currency?: PayableCurrencyView;
   total_accounts?: number;
   total_amount_pending?: number;
+  total_amount_pending_mxn?: number;
+  total_amount_pending_usd?: number;
+  total_pending_orders_mxn?: number;
+  total_pending_orders_usd?: number;
+  exchange_rate?: number | null;
+  exchange_rate_date?: string | null;
+  total_amount_pending_total_mxn?: number | null;
 }
 
-export type AverageCostBasis = 'real' | 'purchase' | 'mixed';
-
 export interface AverageCostReportRow {
-  product_id: string;
-  sku: string;
-  name: string;
-  sat_clave: string | null;
-  pedimentos: string[];
-  price: number | null;
-  price_list_name: string | null;
-  average_cost: number;
-  quantity: number;
-  total_cost: number;
-  margin_amount: number | null;
-  margin_percent: number | null;
-  cost_basis: AverageCostBasis;
-  receipt_count: number;
+  id: string;
+  sales_order_id: string | null;
+  customer_name: string;
+  document: string;
+  date: string;
+  type_code: number;
+  type_label: string;
+  status_code: number;
+  status_label: string;
+  amount: number;
+  discount: number;
+  tax: number;
+  sale_total: number;
+  cost_total: number;
+  currency: string;
+  reversal: boolean;
 }
 
 export interface AverageCostReportSummary {
-  product_count: number;
-  total_quantity: number;
-  total_cost: number;
-  real_cost_product_count: number;
+  document_count: number;
+  amount: number;
+  discount: number;
+  tax: number;
+  sale_total: number;
+  cost_total: number;
+  profit: number;
+  has_foreign_currency: boolean;
+  date_from?: string;
+  date_to?: string;
+  branch_label?: string;
 }

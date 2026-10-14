@@ -217,9 +217,13 @@ export class AccountingService {
     billingBranchId: string | undefined,
     search: string | undefined,
     page = 1,
-    limit = 20
+    limit = 20,
+    currency: PayableCurrencyView = 'all'
   ): Observable<AccountingPaginatedResponse<AccountsReceivableRow, AccountsReceivableListSummary>> {
-    let params = new HttpParams().set('page', String(page)).set('limit', String(limit));
+    let params = new HttpParams()
+      .set('page', String(page))
+      .set('limit', String(limit))
+      .set('currency', currency);
     if (billingBranchId) {
       params = params.set('billing_branch_id', billingBranchId);
     }
@@ -227,9 +231,52 @@ export class AccountingService {
       params = params.set('search', search.trim());
     }
 
+    return this.http.get<unknown>(`${this.api}/accounts-receivable`, { params }).pipe(
+      map((raw) => {
+        const parsed = this.parsePaginated<AccountsReceivableRow, AccountsReceivableListSummary>(raw);
+        return {
+          ...parsed,
+          data: parsed.data.map((row) => this.normalizeReceivableRow(row)),
+          summary: this.normalizeReceivableSummary(parsed.summary),
+        };
+      })
+    );
+  }
+
+  exportAccountsReceivableExcel(
+    billingBranchId: string | undefined,
+    search: string | undefined,
+    currency: PayableCurrencyView
+  ): Observable<{ blob: Blob; filename: string }> {
+    let params = new HttpParams().set('currency', currency);
+    if (billingBranchId) {
+      params = params.set('billing_branch_id', billingBranchId);
+    }
+    if (search?.trim()) {
+      params = params.set('search', search.trim());
+    }
+
+    const fallbackName =
+      currency === 'all'
+        ? `cuentas-por-cobrar-${new Date().toISOString().slice(0, 10)}.xlsx`
+        : `cuentas-por-cobrar-${currency}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
     return this.http
-      .get<unknown>(`${this.api}/accounts-receivable`, { params })
-      .pipe(map((raw) => this.parsePaginated<AccountsReceivableRow, AccountsReceivableListSummary>(raw)));
+      .get(`${this.api}/accounts-receivable/export/excel`, {
+        params,
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((response) => {
+          const disposition = response.headers.get('content-disposition') ?? undefined;
+          return {
+            blob: response.body as Blob,
+            filename: this.parseFilenameFromDisposition(disposition) ?? fallbackName,
+          };
+        }),
+        catchError(() => throwError(() => new Error('No se pudo descargar el Excel')))
+      );
   }
 
   getAccountsReceivableOrders(
@@ -248,11 +295,12 @@ export class AccountingService {
   }
 
   getAverageCostReport(
+    query: AccountingPeriodQuery,
     search: string | undefined,
     page = 1,
     limit = 20
   ): Observable<AccountingPaginatedResponse<AverageCostReportRow, AverageCostReportSummary>> {
-    let params = new HttpParams().set('page', String(page)).set('limit', String(limit));
+    let params = this.buildPeriodParams(query).set('page', String(page)).set('limit', String(limit));
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
@@ -269,8 +317,11 @@ export class AccountingService {
     );
   }
 
-  exportAverageCostReportExcel(search?: string): Observable<{ blob: Blob; filename: string }> {
-    let params = new HttpParams();
+  exportAverageCostReportExcel(
+    query: AccountingPeriodQuery,
+    search?: string
+  ): Observable<{ blob: Blob; filename: string }> {
+    let params = this.buildPeriodParams(query);
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
@@ -288,7 +339,7 @@ export class AccountingService {
             blob: response.body as Blob,
             filename:
               this.parseFilenameFromDisposition(disposition) ??
-              `rep-costo-promedio-${new Date().toISOString().slice(0, 10)}.xlsx`,
+              `rep-ventas-costo-promedio-${new Date().toISOString().slice(0, 10)}.xlsx`,
           };
         }),
         catchError(() => throwError(() => new Error('No se pudo descargar el Excel')))
@@ -486,8 +537,40 @@ export class AccountingService {
       razon_social: String(body['razon_social'] ?? ''),
       fiscal_rfc: body['fiscal_rfc'] as string | undefined,
       amount_pending: Number(body['amount_pending'] ?? 0),
+      amount_pending_mxn: Number(body['amount_pending_mxn'] ?? body['amount_pending'] ?? 0),
+      amount_pending_usd: Number(body['amount_pending_usd'] ?? 0),
       pending_order_count: Number(body['pending_order_count'] ?? 0),
+      pending_order_count_mxn: Number(body['pending_order_count_mxn'] ?? 0),
+      pending_order_count_usd: Number(body['pending_order_count_usd'] ?? 0),
       orders: this.asArray<AccountsReceivableOrderRow>(body['orders']),
+    };
+  }
+
+  private normalizeReceivableRow(raw: AccountsReceivableRow): AccountsReceivableRow {
+    return {
+      ...raw,
+      amount_pending_mxn: Number(raw.amount_pending_mxn ?? raw.amount_pending ?? 0) || 0,
+      amount_pending_usd: Number(raw.amount_pending_usd ?? 0) || 0,
+      pending_order_count_mxn: Number(raw.pending_order_count_mxn ?? raw.pending_order_count ?? 0) || 0,
+      pending_order_count_usd: Number(raw.pending_order_count_usd ?? 0) || 0,
+      amount_pending_total_mxn: this.optionalMoney(raw.amount_pending_total_mxn),
+    };
+  }
+
+  private normalizeReceivableSummary(
+    raw: AccountsReceivableListSummary | undefined
+  ): AccountsReceivableListSummary | undefined {
+    if (!raw) return raw;
+    return {
+      ...raw,
+      total_accounts: Number(raw.total_accounts ?? 0),
+      total_amount_pending_mxn: Number(raw.total_amount_pending_mxn ?? raw.total_amount_pending ?? 0),
+      total_amount_pending_usd: Number(raw.total_amount_pending_usd ?? 0),
+      total_pending_orders_mxn: Number(raw.total_pending_orders_mxn ?? 0),
+      total_pending_orders_usd: Number(raw.total_pending_orders_usd ?? 0),
+      exchange_rate: this.optionalMoney(raw.exchange_rate),
+      exchange_rate_date: raw.exchange_rate_date ?? null,
+      total_amount_pending_total_mxn: this.optionalMoney(raw.total_amount_pending_total_mxn),
     };
   }
 
@@ -520,24 +603,28 @@ export class AccountingService {
       pending_order_count_usd: Number.isFinite(ordersUsd) ? ordersUsd : 0,
       progress_percentage_mxn: Number(raw.progress_percentage_mxn ?? raw.progress_percentage ?? 0) || 0,
       progress_percentage_usd: Number(raw.progress_percentage_usd ?? 0) || 0,
+      amount_pending_total_mxn: this.optionalMoney(raw.amount_pending_total_mxn),
     };
   }
 
   private normalizeAverageCostRow(raw: AverageCostReportRow): AverageCostReportRow {
-    const price = raw.price == null ? null : Number(raw.price);
-    const marginAmount = raw.margin_amount == null ? null : Number(raw.margin_amount);
-    const marginPercent = raw.margin_percent == null ? null : Number(raw.margin_percent);
-
     return {
       ...raw,
-      pedimentos: Array.isArray(raw.pedimentos) ? raw.pedimentos : [],
-      price: price != null && Number.isFinite(price) ? price : null,
-      average_cost: Number(raw.average_cost ?? 0) || 0,
-      quantity: Number(raw.quantity ?? 0) || 0,
-      total_cost: Number(raw.total_cost ?? 0) || 0,
-      margin_amount: marginAmount != null && Number.isFinite(marginAmount) ? marginAmount : null,
-      margin_percent: marginPercent != null && Number.isFinite(marginPercent) ? marginPercent : null,
-      receipt_count: Number(raw.receipt_count ?? 0) || 0,
+      sales_order_id: raw.sales_order_id ?? null,
+      customer_name: raw.customer_name || '—',
+      document: raw.document || '—',
+      date: String(raw.date || '').slice(0, 10),
+      type_code: Number(raw.type_code) || 0,
+      type_label: raw.type_label || '',
+      status_code: Number(raw.status_code) || 0,
+      status_label: raw.status_label || '',
+      amount: Number(raw.amount) || 0,
+      discount: Number(raw.discount) || 0,
+      tax: Number(raw.tax) || 0,
+      sale_total: Number(raw.sale_total) || 0,
+      cost_total: Number(raw.cost_total) || 0,
+      currency: raw.currency || 'MXN',
+      reversal: raw.reversal === true,
     };
   }
 
@@ -546,10 +633,17 @@ export class AccountingService {
   ): AverageCostReportSummary | undefined {
     if (!raw) return raw;
     return {
-      product_count: Number(raw.product_count ?? 0) || 0,
-      total_quantity: Number(raw.total_quantity ?? 0) || 0,
-      total_cost: Number(raw.total_cost ?? 0) || 0,
-      real_cost_product_count: Number(raw.real_cost_product_count ?? 0) || 0,
+      document_count: Number(raw.document_count ?? 0) || 0,
+      amount: Number(raw.amount ?? 0) || 0,
+      discount: Number(raw.discount ?? 0) || 0,
+      tax: Number(raw.tax ?? 0) || 0,
+      sale_total: Number(raw.sale_total ?? 0) || 0,
+      cost_total: Number(raw.cost_total ?? 0) || 0,
+      profit: Number(raw.profit ?? 0) || 0,
+      has_foreign_currency: raw.has_foreign_currency === true,
+      date_from: raw.date_from,
+      date_to: raw.date_to,
+      branch_label: raw.branch_label,
     };
   }
 
@@ -564,7 +658,16 @@ export class AccountingService {
       total_amount_pending_usd: Number(raw.total_amount_pending_usd ?? 0),
       total_pending_orders_mxn: Number(raw.total_pending_orders_mxn ?? 0),
       total_pending_orders_usd: Number(raw.total_pending_orders_usd ?? 0),
+      exchange_rate: this.optionalMoney(raw.exchange_rate),
+      exchange_rate_date: raw.exchange_rate_date ?? null,
+      total_amount_pending_total_mxn: this.optionalMoney(raw.total_amount_pending_total_mxn),
     };
+  }
+
+  private optionalMoney(value: number | null | undefined): number | null {
+    if (value == null) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private parseFilenameFromDisposition(header?: string): string | null {

@@ -7,7 +7,7 @@ import { SalesOrderDetailDialogComponent } from '../../../sales-orders/component
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
-import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 
 export interface ReceivableDetailDialogData {
   razonSocial: string;
@@ -30,8 +30,7 @@ export class ReceivableDetailDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: ReceivableDetailDialogData,
     private dialogRef: MatDialogRef<ReceivableDetailDialogComponent>,
     private dialog: MatDialog,
-    private accountingService: AccountingService,
-    private taxCalculator: TaxCalculatorService
+    private accountingService: AccountingService
   ) {}
 
   ngOnInit(): void {
@@ -53,9 +52,13 @@ export class ReceivableDetailDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  formatCurrency(value: number | string | undefined | null): string {
+  formatCurrency(value: number | string | undefined | null, currency: 'MXN' | 'USD' = 'MXN'): string {
     const n = value == null ? 0 : typeof value === 'number' ? value : Number(value);
-    return this.taxCalculator.formatCurrency(Number.isFinite(n) ? n : 0);
+    return formatUnitCurrency(Number.isFinite(n) ? n : 0, currency);
+  }
+
+  orderCurrency(row: AccountsReceivableOrderRow): 'MXN' | 'USD' {
+    return String(row.currency ?? '').trim().toUpperCase() === 'USD' ? 'USD' : 'MXN';
   }
 
   formatDate(value?: string): string {

@@ -94,6 +94,39 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
     return formatUnitCurrency(value ?? 0, currency);
   }
 
+  summaryTotalLabel(): string {
+    const total = this.summary()?.total_amount_pending_total_mxn;
+    if (total == null || !Number.isFinite(total)) return '—';
+    return this.formatMoney(total, 'MXN');
+  }
+
+  totalMoney(row: AccountsPayableVendorRow): string {
+    const total = row.amount_pending_total_mxn;
+    if (total == null || !Number.isFinite(total)) return '—';
+    return this.formatMoney(total, 'MXN');
+  }
+
+  exchangeRateText(): string {
+    const rate = this.summary()?.exchange_rate;
+    if (rate == null || !Number.isFinite(rate) || rate <= 0) return '—';
+    return this.formatRate(rate);
+  }
+
+  exchangeRateCaption(): string {
+    const rate = this.summary()?.exchange_rate;
+    if (rate == null || !Number.isFinite(rate) || rate <= 0) return 'Sin tipo de cambio del día';
+    const date = this.formatRateDate(this.summary()?.exchange_rate_date);
+    return date ? `TC del día ${this.formatRate(rate)} · ${date}` : `TC del día ${this.formatRate(rate)}`;
+  }
+
+  totalOrderCount(): number {
+    const summary = this.summary();
+    if (!summary) return 0;
+    const mxn = this.showsMxn() ? Number(summary.total_pending_orders_mxn ?? 0) : 0;
+    const usd = this.showsUsd() ? Number(summary.total_pending_orders_usd ?? 0) : 0;
+    return mxn + usd;
+  }
+
   barWidth(pct: number | null | undefined): number {
     const value = Number(pct ?? 0);
     if (!Number.isFinite(value) || value < 0) return 0;
@@ -211,10 +244,38 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
       canAutoResize: false,
       width: 230,
     };
+    const rate: IColumn = {
+      name: 'Tipo de cambio',
+      prop: 'exchange_rate',
+      sortable: false,
+      canAutoResize: false,
+      width: 140,
+    };
+    const total: IColumn = {
+      name: 'Total en pesos',
+      prop: 'amount_pending_total_mxn',
+      sortable: false,
+      canAutoResize: false,
+      width: 180,
+    };
 
-    if (view === 'mxn') return [vendor, mxn, progress];
-    if (view === 'usd') return [vendor, usd, progress];
-    return [vendor, mxn, usd, progress];
+    if (view === 'mxn') return [vendor, mxn, rate, total, progress];
+    if (view === 'usd') return [vendor, usd, rate, total, progress];
+    return [vendor, mxn, usd, rate, total, progress];
+  }
+
+  private formatRate(rate: number): string {
+    return new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    }).format(rate);
+  }
+
+  private formatRateDate(value: string | null | undefined): string | null {
+    if (!value) return null;
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+    if (!match) return value;
+    return `${match[3]}/${match[2]}/${match[1]}`;
   }
 
   private emptyStateFor(view: PayableCurrencyView): { title: string; subtitle: string } {

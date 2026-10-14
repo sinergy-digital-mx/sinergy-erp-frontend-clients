@@ -7,8 +7,8 @@
           <span>RFC: {{ data.fiscalRfc }}</span>
         }
         @if (detail()) {
-          <span>{{ detail()!.pending_order_count }} órdenes</span>
-          <span>{{ formatCurrency(detail()!.amount_pending) }} adeudado</span>
+          <span>{{ detail()!.pending_order_count_mxn ?? 0 }} OV · {{ formatCurrency(detail()!.amount_pending_mxn ?? detail()!.amount_pending, 'MXN') }}</span>
+          <span>{{ detail()!.pending_order_count_usd ?? 0 }} OV · {{ formatCurrency(detail()!.amount_pending_usd ?? 0, 'USD') }}</span>
         }
       </div>
     </div>
@@ -28,6 +28,7 @@
             <th>Fecha</th>
             <th>Cliente</th>
             <th>Vendedor</th>
+            <th>Moneda</th>
             <th>Total</th>
             <th>Entrega</th>
           </tr>
@@ -43,7 +44,8 @@
               <td>{{ formatDate(row.created_at) }}</td>
               <td>{{ row.customer_display_name || '—' }}</td>
               <td>{{ sellerLabel(row) }}</td>
-              <td>{{ formatCurrency(row.total) }}</td>
+              <td>{{ orderCurrency(row) }}</td>
+              <td>{{ formatCurrency(row.total, orderCurrency(row)) }}</td>
               <td>{{ formatDate(row.expected_delivery_date || row.delivery_date) }}</td>
             </tr>
           }

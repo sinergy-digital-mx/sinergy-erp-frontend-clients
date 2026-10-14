@@ -1,40 +1,60 @@
 <div class="avg-cost-tab">
   <div class="avg-cost-toolbar">
     <div>
-      <h3 class="avg-cost-title">Artículos por costo promedio</h3>
+      <h3 class="avg-cost-title">Reporte de ventas a costo promedio</h3>
       <p class="avg-cost-hint">
-        El costo sale de los ingresos de compra. Si la compra tiene costo real, se usa ese.
-        Precio 1 es el precio registrado del artículo. El margen es por unidad: precio menos costo.
-        @if ((summary()?.real_cost_product_count ?? 0) > 0) {
-          {{ summary()!.real_cost_product_count }} artículos incluyen costo real.
+        Cada fila es un documento de venta. El costo sale del kardex, al costo del lote.
+        En una cancelación el importe queda positivo y se restan el impuesto, el total y el costo.
+        @if (periodCaption()) {
+          {{ periodCaption() }}.
         }
+      </p>
+      <p class="avg-cost-legend">
+        Tipo: 1 Recibo, 2 Dev. efectivo, 3 Cancelación de recibo, 5 Recibo a crédito, 6 Factura,
+        7 Nota de crédito, 8 Cancelación de factura, 9 Cancelación de nota, 18 Apartado, 19 Abono o anticipo.
+        Estatus: 1 Contado, 2 Crédito, 3 Cancelado, 4 Pagado, 5 Devolución.
       </p>
     </div>
 
     <button
       type="button"
       class="avg-cost-export"
-      [disabled]="exporting() || tableConfig().loading"
+      [disabled]="exporting() || tableConfig().loading || branchMissing()"
       (click)="downloadExcel()">
       {{ exporting() ? 'Descargando…' : 'Descargar Excel' }}
     </button>
   </div>
 
+  @if (branchMissing()) {
+    <p class="avg-cost-hint">Selecciona una sucursal para ver el reporte.</p>
+  }
+
   @if (summary()) {
     <div class="avg-cost-summary" aria-label="Totales del reporte">
       <article class="avg-cost-summary__card">
-        <span class="avg-cost-summary__label">Artículos</span>
-        <strong class="avg-cost-summary__value">{{ summary()!.product_count }}</strong>
+        <span class="avg-cost-summary__label">Documentos</span>
+        <strong class="avg-cost-summary__value">{{ summary()!.document_count }}</strong>
       </article>
       <article class="avg-cost-summary__card">
-        <span class="avg-cost-summary__label">Cantidad recibida</span>
-        <strong class="avg-cost-summary__value">{{ formatQty(summary()!.total_quantity) }}</strong>
+        <span class="avg-cost-summary__label">Total venta</span>
+        <strong class="avg-cost-summary__value">{{ formatMoney(summary()!.sale_total) }}</strong>
       </article>
       <article class="avg-cost-summary__card">
-        <span class="avg-cost-summary__label">Costo total</span>
-        <strong class="avg-cost-summary__value">{{ formatMoney(summary()!.total_cost) }}</strong>
+        <span class="avg-cost-summary__label">Total costo</span>
+        <strong class="avg-cost-summary__value">{{ formatMoney(summary()!.cost_total) }}</strong>
+      </article>
+      <article class="avg-cost-summary__card">
+        <span class="avg-cost-summary__label">Utilidad</span>
+        <strong
+          class="avg-cost-summary__value"
+          [class.avg-cost-cell--negative]="summary()!.profit < 0">
+          {{ formatMoney(summary()!.profit) }}
+        </strong>
       </article>
     </div>
+    @if (summary()!.has_foreign_currency) {
+      <p class="avg-cost-hint">Hay documentos en dólares sin tipo de cambio. Esos importes no se convirtieron a pesos.</p>
+    }
   }
 
   <div class="avg-cost-search">
@@ -42,8 +62,8 @@
       type="search"
       class="avg-cost-search__input"
       [formControl]="searchControl"
-      placeholder="Código, descripción, clave SAT o pedimento"
-      aria-label="Buscar artículo" />
+      placeholder="Cliente, documento, tipo o estatus"
+      aria-label="Buscar documento" />
   </div>
 
   <app-datatable-wrapper
@@ -54,28 +74,34 @@
 </div>
 
 <ng-template #tableTemplate let-item="$implicit">
-  <td class="avg-cost-cell avg-cost-cell--product">
-    <span class="product-name" [attr.title]="item.name">{{ item.name }}</span>
-    <span class="product-sku">{{ item.sku }}</span>
+  <td class="avg-cost-cell avg-cost-cell--customer" [attr.title]="item.customer_name">
+    {{ item.customer_name }}
   </td>
-  <td class="avg-cost-cell" [attr.title]="item.sat_clave || ''">{{ item.sat_clave || '—' }}</td>
-  <td class="avg-cost-cell" [attr.title]="pedimentoText(item)">{{ pedimentoText(item) }}</td>
-  <td class="avg-cost-cell avg-cost-cell--num" [attr.title]="item.price_list_name || 'Sin precio registrado'">
-    {{ formatMoney(item.price) }}
+  <td class="avg-cost-cell">
+    @if (item.sales_order_id) {
+      <button type="button" class="doc-link" (click)="openDocument(item)">{{ item.document }}</button>
+    } @else {
+      {{ item.document }}
+    }
   </td>
-  <td class="avg-cost-cell avg-cost-cell--num" [attr.title]="costTitle(item.cost_basis)">
-    {{ formatMoney(item.average_cost) }}
+  <td class="avg-cost-cell">{{ formatDay(item.date) }}</td>
+  <td class="avg-cost-cell" [attr.title]="item.type_label">
+    <span class="doc-code">{{ item.type_code }}</span>
+    <span class="doc-label">{{ item.type_label }}</span>
   </td>
-  <td class="avg-cost-cell avg-cost-cell--num">{{ formatQty(item.quantity) }}</td>
-  <td class="avg-cost-cell avg-cost-cell--num">{{ formatMoney(item.total_cost) }}</td>
-  <td
-    class="avg-cost-cell avg-cost-cell--num"
-    [class.avg-cost-cell--negative]="(item.margin_percent ?? 0) < 0">
-    {{ formatPercent(item.margin_percent) }}
+  <td class="avg-cost-cell" [attr.title]="item.status_label">
+    <span class="doc-code">{{ item.status_code }}</span>
+    <span class="doc-label">{{ item.status_label }}</span>
   </td>
-  <td
-    class="avg-cost-cell avg-cost-cell--num"
-    [class.avg-cost-cell--negative]="(item.margin_amount ?? 0) < 0">
-    {{ formatMoney(item.margin_amount) }}
+  <td class="avg-cost-cell avg-cost-cell--num">{{ formatMoney(item.amount, item.currency) }}</td>
+  <td class="avg-cost-cell avg-cost-cell--num">{{ formatMoney(item.discount, item.currency) }}</td>
+  <td class="avg-cost-cell avg-cost-cell--num" [class.avg-cost-cell--negative]="item.tax < 0">
+    {{ formatMoney(item.tax, item.currency) }}
+  </td>
+  <td class="avg-cost-cell avg-cost-cell--num" [class.avg-cost-cell--negative]="item.sale_total < 0">
+    {{ formatMoney(item.sale_total, item.currency) }}
+  </td>
+  <td class="avg-cost-cell avg-cost-cell--num" [class.avg-cost-cell--negative]="item.cost_total < 0">
+    {{ formatMoney(item.cost_total, item.currency) }}
   </td>
 </ng-template>

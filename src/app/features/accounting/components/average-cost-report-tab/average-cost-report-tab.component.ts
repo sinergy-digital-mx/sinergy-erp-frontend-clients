@@ -1,13 +1,16 @@
-import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IColumn, IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { ToastService } from '../../../../core/services/toast.service';
-import { formatUnitAmount, formatUnitCurrency } from '../../../../core/utils/unit-money.util';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
+import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { AccountingPeriod, AverageCostReportRow, AverageCostReportSummary } from '../../models/accounting.model';
 import { AccountingService } from '../../services/accounting.service';
-import { AverageCostBasis, AverageCostReportRow, AverageCostReportSummary } from '../../models/accounting.model';
 
 @Component({
   selector: 'app-average-cost-report-tab',
@@ -15,16 +18,23 @@ import { AverageCostBasis, AverageCostReportRow, AverageCostReportSummary } from
   imports: [CommonModule, ReactiveFormsModule, DatatableWrapperComponent],
   templateUrl: './average-cost-report-tab.component.html',
   styleUrl: './average-cost-report-tab.component.scss',
+  inputs: ['billingBranchId', 'period', 'dateFrom', 'dateTo', 'reloadToken'],
 })
-export class AverageCostReportTabComponent implements OnInit, OnChanges, OnDestroy {
+export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
 
+  @Input() billingBranchId = '';
+  @Input() period: AccountingPeriod = 'month';
+  @Input() dateFrom = '';
+  @Input() dateTo = '';
   @Input() reloadToken = 0;
 
+  /** Búsqueda de cliente, folio, tipo o estatus. */
   searchControl = new FormControl('', { nonNullable: true });
   private destroy$ = new Subject<void>();
   summary = signal<AverageCostReportSummary | null>(null);
   exporting = signal(false);
+  branchMissing = signal(false);
   private requestId = 0;
 
   tableConfig = signal<IDatatableConfig>({
@@ -37,8 +47,8 @@ export class AverageCostReportTabComponent implements OnInit, OnChanges, OnDestr
     totalResults: 0,
     loading: false,
     emptyState: {
-      title: 'Sin artículos con compras',
-      subtitle: 'No hay ingresos de compra para calcular el costo promedio',
+      title: 'Sin ventas en este periodo',
+      subtitle: 'No hay recibos, facturas ni notas para la sucursal y las fechas elegidas',
     },
     columnMode: 'standard',
     reorderable: false,
@@ -46,20 +56,23 @@ export class AverageCostReportTabComponent implements OnInit, OnChanges, OnDestr
 
   constructor(
     private accountingService: AccountingService,
+    private dialog: MatDialog,
     private toast: ToastService
-  ) {}
-
-  ngOnInit(): void {
+  ) {
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => this.loadPage(1));
-
-    this.loadPage(1);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['reloadToken'] && !changes['reloadToken'].firstChange) {
-      this.loadPage(this.tableConfig().page ?? 1);
+    if (
+      changes['reloadToken'] ||
+      changes['billingBranchId'] ||
+      changes['period'] ||
+      changes['dateFrom'] ||
+      changes['dateTo']
+    ) {
+      this.loadPage(1);
     }
   }
 
@@ -68,31 +81,25 @@ export class AverageCostReportTabComponent implements OnInit, OnChanges, OnDestr
     this.destroy$.complete();
   }
 
-  formatMoney(value: number | null | undefined): string {
-    if (value == null) return '—';
-    return formatUnitCurrency(value, 'MXN');
-  }
-
-  formatQty(value: number | null | undefined): string {
-    return formatUnitAmount(value ?? 0);
-  }
-
-  formatPercent(value: number | null | undefined): string {
+  formatMoney(value: number | null | undefined, currency = 'MXN'): string {
     if (value == null || !Number.isFinite(value)) return '—';
-    return `${new Intl.NumberFormat('es-MX', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value)}%`;
+    return formatUnitCurrency(value, currency === 'USD' ? 'USD' : 'MXN');
   }
 
-  pedimentoText(row: AverageCostReportRow): string {
-    return row.pedimentos?.length ? row.pedimentos.join(' · ') : '—';
+  formatDay(value?: string | null): string {
+    const iso = (value || '').slice(0, 10);
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    return match ? `${match[3]}/${match[2]}/${match[1]}` : '—';
   }
 
-  costTitle(basis: AverageCostBasis): string {
-    if (basis === 'real') return 'Costo real de las compras';
-    if (basis === 'mixed') return 'Parte con costo real y parte con el costo de la compra';
-    return 'Costo de las compras, sin costo real';
+  periodCaption(): string {
+    const summary = this.summary();
+    const from = summary?.date_from;
+    const to = summary?.date_to;
+    if (!from || !to) return '';
+    const branch = summary?.branch_label?.trim();
+    const dates = from === to ? this.formatDay(from) : `${this.formatDay(from)} – ${this.formatDay(to)}`;
+    return branch ? `${branch} · ${dates}` : dates;
   }
 
   onPageChange(event: IPaginationEvent): void {
@@ -102,11 +109,19 @@ export class AverageCostReportTabComponent implements OnInit, OnChanges, OnDestr
     this.loadPage(event.page);
   }
 
+  openDocument(row: AverageCostReportRow): void {
+    if (!row.sales_order_id) return;
+    this.dialog.open(SalesOrderDetailDialogComponent, {
+      ...ORDER_DETAIL_DIALOG_OPTIONS,
+      data: { orderId: row.sales_order_id },
+    });
+  }
+
   downloadExcel(): void {
-    if (this.exporting()) return;
+    if (this.exporting() || !this.canQuery()) return;
 
     this.exporting.set(true);
-    this.accountingService.exportAverageCostReportExcel(this.searchControl.value).subscribe({
+    this.accountingService.exportAverageCostReportExcel(this.periodQuery(), this.searchControl.value).subscribe({
       next: ({ blob, filename }) => {
         this.exporting.set(false);
         const url = URL.createObjectURL(blob);
@@ -124,48 +139,77 @@ export class AverageCostReportTabComponent implements OnInit, OnChanges, OnDestr
   }
 
   private loadPage(page: number): void {
+    if (!this.billingBranchId) {
+      this.branchMissing.set(true);
+      this.summary.set(null);
+      this.tableConfig.update((cfg) => ({ ...cfg, rows: [], totalResults: 0, loading: false, page: 1 }));
+      return;
+    }
+    if (this.period === 'range' && (!this.dateFrom || !this.dateTo)) {
+      return;
+    }
+
+    this.branchMissing.set(false);
     const limit = this.tableConfig().limit;
     const requestId = ++this.requestId;
     this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
 
-    this.accountingService.getAverageCostReport(this.searchControl.value, page, limit).subscribe({
-      next: (res) => {
-        if (requestId !== this.requestId) return;
-        this.summary.set(res.summary ?? null);
-        this.tableConfig.update((cfg) => ({
-          ...cfg,
-          rows: res.data,
-          page: res.page,
-          limit: res.limit || limit,
-          totalResults: res.total,
-          loading: false,
-        }));
-      },
-      error: () => {
-        if (requestId !== this.requestId) return;
-        this.summary.set(null);
-        this.tableConfig.update((cfg) => ({
-          ...cfg,
-          rows: [],
-          totalResults: 0,
-          loading: false,
-        }));
-        this.toast.error('No se pudo cargar el reporte de costo promedio');
-      },
-    });
+    this.accountingService
+      .getAverageCostReport(this.periodQuery(), this.searchControl.value, page, limit)
+      .subscribe({
+        next: (res) => {
+          if (requestId !== this.requestId) return;
+          this.summary.set(res.summary ?? null);
+          this.tableConfig.update((cfg) => ({
+            ...cfg,
+            rows: res.data,
+            page: res.page,
+            limit: res.limit || limit,
+            totalResults: res.total,
+            loading: false,
+          }));
+        },
+        error: () => {
+          if (requestId !== this.requestId) return;
+          this.summary.set(null);
+          this.tableConfig.update((cfg) => ({
+            ...cfg,
+            rows: [],
+            totalResults: 0,
+            loading: false,
+          }));
+          this.toast.error('No se pudo cargar el reporte de ventas a costo promedio');
+        },
+      });
+  }
+
+  private canQuery(): boolean {
+    if (!this.billingBranchId) return false;
+    if (this.period === 'range' && (!this.dateFrom || !this.dateTo)) return false;
+    return true;
+  }
+
+  private periodQuery() {
+    return {
+      period: this.period,
+      billing_branch_id: this.billingBranchId,
+      date_from: this.dateFrom || undefined,
+      date_to: this.dateTo || undefined,
+    };
   }
 
   private columns(): IColumn[] {
     return [
-      { name: 'Artículo', prop: 'name', sortable: false, canAutoResize: true, width: 280 },
-      { name: 'SAT', prop: 'sat_clave', sortable: false, canAutoResize: false, width: 88 },
-      { name: 'Pedimento', prop: 'pedimentos', sortable: false, canAutoResize: false, width: 168 },
-      { name: 'Precio 1', prop: 'price', sortable: false, canAutoResize: false, width: 88 },
-      { name: 'Costo', prop: 'average_cost', sortable: false, canAutoResize: false, width: 88 },
-      { name: 'Cant.', prop: 'quantity', sortable: false, canAutoResize: false, width: 72 },
-      { name: 'Total', prop: 'total_cost', sortable: false, canAutoResize: false, width: 96 },
-      { name: 'Margen %', prop: 'margin_percent', sortable: false, canAutoResize: false, width: 76 },
-      { name: 'Margen $', prop: 'margin_amount', sortable: false, canAutoResize: false, width: 88 },
+      { name: 'Cliente', prop: 'customer_name', sortable: false, canAutoResize: true, width: 220 },
+      { name: 'Documento', prop: 'document', sortable: false, canAutoResize: false, width: 118 },
+      { name: 'Fecha', prop: 'date', sortable: false, canAutoResize: false, width: 96 },
+      { name: 'Tipo', prop: 'type_code', sortable: false, canAutoResize: false, width: 148 },
+      { name: 'Stat', prop: 'status_code', sortable: false, canAutoResize: false, width: 108 },
+      { name: 'Importe', prop: 'amount', sortable: false, canAutoResize: false, width: 100 },
+      { name: 'Descto', prop: 'discount', sortable: false, canAutoResize: false, width: 88 },
+      { name: 'Impuesto', prop: 'tax', sortable: false, canAutoResize: false, width: 96 },
+      { name: 'Total venta', prop: 'sale_total', sortable: false, canAutoResize: false, width: 108 },
+      { name: 'Total costo', prop: 'cost_total', sortable: false, canAutoResize: false, width: 108 },
     ];
   }
 }

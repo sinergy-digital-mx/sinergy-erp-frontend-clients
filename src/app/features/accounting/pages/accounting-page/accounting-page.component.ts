@@ -65,7 +65,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     { id: 'payable', title: 'Cuentas por pagar' },
     { id: 'receivable', title: 'Cuentas por cobrar' },
     { id: 'debt-flow', title: 'Flujo de deuda' },
-    { id: 'average-cost', title: 'Rep. costo promedio' },
+    { id: 'average-cost', title: 'Rep. Vent. Cost. Prom' },
   ];
 
   constructor(
@@ -97,7 +97,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
 
   showPeriodFilters(): boolean {
     const tab = this.activeTab();
-    return tab !== 'payable' && tab !== 'debt-flow' && tab !== 'average-cost';
+    return tab !== 'payable' && tab !== 'debt-flow';
   }
 
   posDayOnlyFilters(): boolean {
@@ -105,7 +105,11 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   }
 
   branchRequired(): boolean {
-    return this.activeTab() === 'pos' || this.activeTab() === 'pos-collections';
+    return (
+      this.activeTab() === 'pos' ||
+      this.activeTab() === 'pos-collections' ||
+      this.activeTab() === 'average-cost'
+    );
   }
 
   branchOptional(): boolean {

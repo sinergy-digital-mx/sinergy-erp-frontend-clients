@@ -123,7 +123,12 @@
       }
 
       @if (activeTab() === 'average-cost') {
-        <app-average-cost-report-tab [reloadToken]="reloadToken()" />
+        <app-average-cost-report-tab
+          [billingBranchId]="billingBranchId()"
+          [period]="period()"
+          [dateFrom]="dateFrom()"
+          [dateTo]="dateTo()"
+          [reloadToken]="reloadToken()" />
       }
     </div>
   </div>

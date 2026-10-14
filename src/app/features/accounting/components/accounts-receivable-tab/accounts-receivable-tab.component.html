@@ -1,13 +1,62 @@
 <div class="receivable-tab">
+  <div class="receivable-toolbar">
+    <div class="receivable-view-toggle" role="tablist" aria-label="Moneda de cuentas por cobrar">
+      @for (view of views; track view.id) {
+        <button
+          type="button"
+          role="tab"
+          class="receivable-view-toggle__btn"
+          [class.receivable-view-toggle__btn--active]="currencyView() === view.id"
+          [attr.aria-selected]="currencyView() === view.id"
+          [disabled]="tableConfig().loading"
+          (click)="setCurrencyView(view.id)">
+          {{ view.label }}
+        </button>
+      }
+    </div>
+
+    <button
+      type="button"
+      class="receivable-export"
+      [disabled]="exporting() || tableConfig().loading"
+      [title]="currencyView() === 'all' ? 'El Excel abre en la hoja Ambos y arriba trae el tipo de cambio del sistema' : 'Descarga la lista de esta vista'"
+      (click)="downloadExcel()">
+      {{ exporting() ? 'Descargando…' : 'Descargar Excel' }}
+    </button>
+  </div>
+
+  @if (currencyView() === 'all') {
+    <p class="receivable-hint">Ambos muestra pesos y dólares. El total en pesos usa el tipo de cambio del sistema. El Excel abre en la hoja Ambos y arriba trae ese tipo de cambio.</p>
+  }
+
   @if (summary()) {
-    <div class="receivable-summary">
+    <div class="receivable-summary" [class.receivable-summary--single]="currencyView() !== 'all'">
       <div class="receivable-summary__card">
         <span class="receivable-summary__label">Cuentas con saldo</span>
         <span class="receivable-summary__value">{{ summary()!.total_accounts ?? 0 }}</span>
       </div>
+
+      @if (showsMxn()) {
+        <div class="receivable-summary__card">
+          <span class="receivable-summary__label">Por cobrar en pesos</span>
+          <span class="receivable-summary__value">{{ formatMoney(summary()!.total_amount_pending_mxn, 'MXN') }}</span>
+          <span class="currency-badge currency-badge--mxn">{{ summary()!.total_pending_orders_mxn ?? 0 }} OV</span>
+        </div>
+      }
+
+      @if (showsUsd()) {
+        <div class="receivable-summary__card">
+          <span class="receivable-summary__label">Por cobrar en dólares</span>
+          <span class="receivable-summary__value">{{ formatMoney(summary()!.total_amount_pending_usd, 'USD') }}</span>
+          <span class="currency-badge currency-badge--usd">{{ summary()!.total_pending_orders_usd ?? 0 }} OV</span>
+        </div>
+      }
+
       <div class="receivable-summary__card">
-        <span class="receivable-summary__label">Total por cobrar</span>
-        <span class="receivable-summary__value">{{ formatCurrency(summary()!.total_amount_pending ?? 0) }}</span>
+        <span class="receivable-summary__label">Total en pesos</span>
+        <span class="receivable-summary__value">{{ summaryTotalLabel() }}</span>
+        <span class="receivable-summary__meta">{{ exchangeRateCaption() }}</span>
+        <span class="currency-badge currency-badge--mxn">{{ totalOrderCount() }} OV</span>
       </div>
     </div>
   }
@@ -26,6 +75,29 @@
     </button>
   </td>
   <td class="px-2 py-2">{{ item.fiscal_rfc || '—' }}</td>
-  <td class="px-2 py-2">{{ item.pending_order_count }}</td>
-  <td class="px-2 py-2">{{ formatCurrency(item.amount_pending) }}</td>
+
+  @if (showsMxn()) {
+    <td class="px-2 py-2">
+      <div class="money-cell">
+        <span class="money-cell__amount">{{ formatMoney(item.amount_pending_mxn, 'MXN') }}</span>
+        <span class="currency-badge currency-badge--mxn">{{ item.pending_order_count_mxn }} OV</span>
+      </div>
+    </td>
+  }
+
+  @if (showsUsd()) {
+    <td class="px-2 py-2">
+      <div class="money-cell">
+        <span class="money-cell__amount">{{ formatMoney(item.amount_pending_usd, 'USD') }}</span>
+        <span class="currency-badge currency-badge--usd">{{ item.pending_order_count_usd }} OV</span>
+      </div>
+    </td>
+  }
+
+  <td class="px-2 py-2">
+    <span class="rate-cell">{{ exchangeRateText() }}</span>
+  </td>
+  <td class="px-2 py-2">
+    <span class="money-cell__amount">{{ totalMoney(item) }}</span>
+  </td>
 </ng-template>

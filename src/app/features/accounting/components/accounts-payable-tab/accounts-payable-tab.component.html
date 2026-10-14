@@ -26,7 +26,7 @@
   </div>
 
   @if (currencyView() === 'all') {
-    <p class="payable-hint">Ambos muestra pesos y dólares. El Excel de esta vista trae dos hojas, una por moneda.</p>
+    <p class="payable-hint">Ambos muestra pesos y dólares. El total en pesos usa el tipo de cambio del sistema. El Excel abre en la hoja Ambos y arriba trae ese tipo de cambio.</p>
   }
 
   @if (summary()) {
@@ -51,6 +51,13 @@
           <span class="currency-badge currency-badge--usd">{{ summary()!.total_pending_orders_usd ?? 0 }} OC</span>
         </div>
       }
+
+      <div class="payable-summary__card">
+        <span class="payable-summary__label">Total en pesos</span>
+        <span class="payable-summary__value">{{ summaryTotalLabel() }}</span>
+        <span class="payable-summary__meta">{{ exchangeRateCaption() }}</span>
+        <span class="currency-badge currency-badge--mxn">{{ totalOrderCount() }} OC</span>
+      </div>
     </div>
   }
 
@@ -99,6 +106,14 @@
       </div>
     </td>
   }
+
+  <td class="px-2 py-2">
+    <span class="rate-cell">{{ exchangeRateText() }}</span>
+  </td>
+
+  <td class="px-2 py-2">
+    <span class="money-cell__amount">{{ totalMoney(item) }}</span>
+  </td>
 
   <td class="px-2 py-2">
     <div class="progress-stack">
