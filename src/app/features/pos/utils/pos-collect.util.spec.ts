@@ -6,8 +6,10 @@ import {
   buildCollectPayload,
   collectCashShortfallMxn,
   collectCashShortfallUsd,
+  collectChangeDisplay,
   collectChangeMxn,
   collectChangeUsd,
+  displayCashChange,
   collectReceivedTotalMxn,
   defaultCollectForm,
   enableMixedCard,
@@ -138,6 +140,7 @@ describe('pago mixto — resto automático', () => {
     expect(collectReceivedTotalMxn(form)).toBe(1680);
     expect(collectChangeMxn(form, total)).toBe(0);
     expect(collectChangeUsd(form, total)).toBe(35.74);
+    expect(collectChangeDisplay(form, total)).toEqual({ mxn: 600.43, usd: 35.74 });
     expect(validateCollectForm(form, total)).toBeNull();
 
     const payload = buildCollectPayload(form, total);
@@ -145,6 +148,10 @@ describe('pago mixto — resto automático', () => {
     expect(payload.amount_cash_usd).toBe(64.26);
     expect(payload.received_cash_usd).toBe(100);
     expect(payload.usd_exchange_rate).toBe(16.8);
+  });
+
+  it('el cambio en pesos también se muestra en dólares', () => {
+    expect(displayCashChange(169.5, 0, 16.8)).toEqual({ mxn: 169.5, usd: 10.09 });
   });
 
   it('agregar otra tarjeta cuenta como un pago más', () => {

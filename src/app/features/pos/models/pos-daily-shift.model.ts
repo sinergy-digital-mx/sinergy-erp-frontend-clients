@@ -51,6 +51,8 @@ export interface CurrentDailyShiftResponse {
   daily_shift: PosDailyShiftDetail | null;
   requires_previous_close: boolean;
   unclosed_shift_alert: UnclosedShiftAlert | null;
+  usd_exchange_rate?: number | null;
+  usd_exchange_rate_date?: string | null;
 }
 
 export interface PosDailyShiftListItem {

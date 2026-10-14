@@ -493,6 +493,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.posService.getCurrentDailyShift(branchId).subscribe({
       next: (response) => {
         const openShift = this.posState.applyCurrentDailyShift(response, branchId);
+        this.applyUsdExchangeRateFromShift(response.usd_exchange_rate);
         this.posState.checkingShift.set(false);
         if (openShift) {
           this.loadPendingSales();
@@ -1790,6 +1791,14 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.dailyUsdMxnRate() != null;
   }
 
+  private applyUsdExchangeRateFromShift(rate: number | null | undefined): void {
+    if (rate == null || !Number.isFinite(rate) || rate <= 0) {
+      return;
+    }
+    this.dailyUsdMxnRate.set(rate);
+    this.applyDailyExchangeRateToForm();
+  }
+
   private loadDailyExchangeRate(): void {
     this.exchangeRateService.getDailyExchangeRate().subscribe({
       next: (rate) => {
@@ -1799,7 +1808,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           this.applyDailyExchangeRateToForm();
         }
       },
-      error: () => this.dailyUsdMxnRate.set(null),
+      error: () => {
+        /* Caja no necesita el permiso de Tipo de Cambio: el TC llega en daily-shift/current. */
+      },
     });
   }
 

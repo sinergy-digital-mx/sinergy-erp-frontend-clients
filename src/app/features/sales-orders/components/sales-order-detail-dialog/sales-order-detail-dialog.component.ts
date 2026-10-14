@@ -44,6 +44,7 @@ import {
   posCollectionMoneyLabel,
   posCollectionUsdLabel,
 } from '../../../pos/models/pos-sale-collection.model';
+import { displayCashChange } from '../../../pos/utils/pos-collect.util';
 import { normalizePosSaleReceipt } from '../../../pos/models/pos-receipt.model';
 import { PosReceiptPrintService } from '../../../pos/services/pos-receipt-print.service';
 import { PosPrinterSettingsDialogComponent } from '../../../pos/components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
@@ -543,6 +544,9 @@ export class SalesOrderDetailDialogComponent {
       Number(order.subtotal || 0) - Number(order.discount_total || 0) - Number(order.global_discount_amount || 0),
       0,
     );
+    const taxable = base || Number(order.total || 0);
+    const iva = taxable > 0 ? Math.round((Number(order.iva_total || 0) / taxable) * 10000) / 100 : 8;
+    const ivaPct = Math.abs(iva - 8) < 0.3 ? 8 : Math.abs(iva - 16) < 0.3 ? 16 : iva;
     this.dialog
       .open(AdvanceInvoiceDialogComponent, {
         width: '480px',
@@ -555,7 +559,8 @@ export class SalesOrderDetailDialogComponent {
           documentId: order.id,
           folio: order.folio,
           defaultBase: Number(base.toFixed(2)),
-          defaultIva: 8,
+          defaultTotal: Number(order.total || 0),
+          defaultIva: ivaPct,
         },
       })
       .afterClosed()
@@ -1455,6 +1460,14 @@ export class SalesOrderDetailDialogComponent {
 
   posCollectionUsd(value: unknown): string {
     return posCollectionUsdLabel(value);
+  }
+
+  posCollectionChangeDisplay(pay: PosSaleCollection | null | undefined): { mxn: number; usd: number } {
+    return displayCashChange(
+      Number(pay?.change_cash_mxn ?? 0),
+      Number(pay?.change_cash_usd ?? 0),
+      Number(pay?.usd_exchange_rate ?? 0),
+    );
   }
 
   formatPosCollectedAt(value?: string | null): string {

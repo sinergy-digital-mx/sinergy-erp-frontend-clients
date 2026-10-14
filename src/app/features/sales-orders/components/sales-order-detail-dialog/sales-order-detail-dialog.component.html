@@ -447,16 +447,14 @@
                   <span class="section-value">{{ posCollectionMoney(pay.amount_credit_mxn) }}</span>
                 </div>
               }
-              @if (pay.change_cash_mxn != null && +pay.change_cash_mxn > 0) {
-                <div class="section-item section-item--highlight">
-                  <span class="section-label">Cambio MXN</span>
-                  <span class="section-value section-value--change">{{ posCollectionMoney(pay.change_cash_mxn) }}</span>
-                </div>
-              }
-              @if (pay.change_cash_usd != null && +pay.change_cash_usd > 0) {
+              @if (posCollectionChangeDisplay(pay).mxn > 0 || posCollectionChangeDisplay(pay).usd > 0) {
                 <div class="section-item section-item--highlight">
                   <span class="section-label">Cambio USD</span>
-                  <span class="section-value section-value--change">{{ posCollectionUsd(pay.change_cash_usd) }}</span>
+                  <span class="section-value section-value--change">{{ posCollectionUsd(posCollectionChangeDisplay(pay).usd) }}</span>
+                </div>
+                <div class="section-item section-item--highlight">
+                  <span class="section-label">Cambio MXN</span>
+                  <span class="section-value section-value--change">{{ posCollectionMoney(posCollectionChangeDisplay(pay).mxn) }}</span>
                 </div>
               }
             </div>

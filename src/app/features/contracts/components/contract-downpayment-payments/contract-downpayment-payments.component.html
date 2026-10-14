@@ -1,5 +1,8 @@
 <div class="downpayments-container">
   <div class="flex items-center justify-end mb-2 gap-2">
+    <button type="button" class="text-sm text-indigo-700" (click)="openReceiptBranding()">
+      Razón social y logo del recibo
+    </button>
     <app-button
       *ngIf="isFinanced"
       text="Agregar abono manual"

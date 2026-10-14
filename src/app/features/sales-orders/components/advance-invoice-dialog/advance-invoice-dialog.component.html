@@ -18,23 +18,33 @@
 
         @if (data.mode === 'stamp') {
           <div class="form-field">
-            <label for="advance-percent">Porcentaje de la cotización <span>*</span></label>
+            <label for="advance-amount">Monto que dejó (con IVA) <span>*</span></label>
             <input
-              id="advance-percent"
+              id="advance-amount"
               class="form-input"
               type="number"
-              min="1"
-              max="100"
-              step="1"
-              formControlName="percent"
+              min="0.01"
+              [max]="quotationTotal || null"
+              step="0.01"
+              formControlName="amount_with_iva"
             />
           </div>
           <div class="summary-card">
             <div class="summary-row">
+              <span>Total de la cotización</span>
+              <strong>{{ formatMoney(quotationTotal) }}</strong>
+            </div>
+            <div class="summary-row">
               <span>Anticipo con IVA</span>
               <strong class="pending">{{ formatMoney(chargeTotal) }}</strong>
             </div>
-            <p class="summary-note">Sin desglose de partidas.</p>
+            <div class="summary-row">
+              <span>Pendiente</span>
+              <strong>{{ formatMoney(remainingTotal) }}</strong>
+            </div>
+            <p class="summary-note">
+              Concepto SAT 84111506 · anticipo_CFDI · ACT · «Anticipo del bien o servicio».
+            </p>
           </div>
         }
 

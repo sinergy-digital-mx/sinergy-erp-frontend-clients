@@ -1,4 +1,9 @@
 <div class="payments-container">
+  <div class="flex justify-end mb-2">
+    <button type="button" class="text-sm text-indigo-700" (click)="openReceiptBranding()">
+      Razón social y logo del recibo
+    </button>
+  </div>
   <div class="payments-toolbar" *ngIf="(calendarStartDate && calendarEndDate) || showScheduleForm">
     <div *ngIf="calendarStartDate && calendarEndDate" class="calendar-kpis">
       <div class="calendar-kpi">

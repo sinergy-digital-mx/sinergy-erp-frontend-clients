@@ -569,16 +569,22 @@ export class POSService {
         daily_shift,
         requires_previous_close: false,
         unclosed_shift_alert: null,
+        usd_exchange_rate: null,
+        usd_exchange_rate_date: null,
       };
     }
 
     const obj = payload as Record<string, unknown>;
     const unclosed_shift_alert = parseUnclosedShiftAlert(obj['unclosed_shift_alert']);
+    const rate = Number(obj['usd_exchange_rate']);
     return {
       daily_shift,
       requires_previous_close:
         obj['requires_previous_close'] === true || Boolean(unclosed_shift_alert),
       unclosed_shift_alert,
+      usd_exchange_rate: Number.isFinite(rate) && rate > 0 ? rate : null,
+      usd_exchange_rate_date:
+        typeof obj['usd_exchange_rate_date'] === 'string' ? obj['usd_exchange_rate_date'] : null,
     };
   }
 
@@ -665,6 +671,8 @@ export class POSService {
             daily_shift: null,
             requires_previous_close: false,
             unclosed_shift_alert: null,
+            usd_exchange_rate: null,
+            usd_exchange_rate_date: null,
           });
         }
         return throwError(() => error);
@@ -697,6 +705,8 @@ export class POSService {
               daily_shift: detail,
               requires_previous_close: Boolean(alert) || detail.is_previous_day === true,
               unclosed_shift_alert: alert,
+              usd_exchange_rate: current.usd_exchange_rate ?? null,
+              usd_exchange_rate_date: current.usd_exchange_rate_date ?? null,
             };
           }),
           catchError(() =>
@@ -706,6 +716,8 @@ export class POSService {
               unclosed_shift_alert: open.is_previous_day
                 ? unclosedAlertFromShift(open)
                 : null,
+              usd_exchange_rate: current.usd_exchange_rate ?? null,
+              usd_exchange_rate_date: current.usd_exchange_rate_date ?? null,
             })
           )
         );

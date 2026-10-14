@@ -1080,7 +1080,7 @@
                             @if (collectForm().mixedCashMxn > 0) {
                               <div
                                 class="cobranza-cash-result"
-                                [class.cobranza-cash-result--change]="changeMxn() > 0"
+                                [class.cobranza-cash-result--change]="changeDisplay().mxn > 0 || changeDisplay().usd > 0"
                                 [class.cobranza-cash-result--short]="cashShortfallMxn() > 0">
                                 @if (cashShortfallMxn() > 0) {
                                   <div class="cobranza-cash-result__item cobranza-cash-result__item--warn">
@@ -1090,7 +1090,8 @@
                                 }
                                 <div class="cobranza-cash-result__item">
                                   <span>Cambio a entregar</span>
-                                  <strong class="cobranza-cash-result__change">{{ formatCurrency(changeMxn()) }}</strong>
+                                  <strong class="cobranza-cash-result__change">{{ formatCurrencyUsd(changeDisplay().usd) }} USD</strong>
+                                  <strong class="cobranza-cash-result__change">{{ formatCurrency(changeDisplay().mxn) }} MXN</strong>
                                 </div>
                               </div>
                             }

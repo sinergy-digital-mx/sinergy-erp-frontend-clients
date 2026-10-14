@@ -44,6 +44,73 @@ import {
   QuotationConvertDialogResult,
 } from '../quotation-convert-dialog/quotation-convert-dialog.component';
 
+type InstructionFilter = 'all' | 'caseA' | 'caseB' | 'cash' | 'close';
+
+interface InstructionSection {
+  id: Exclude<InstructionFilter, 'all'>;
+  label: string;
+  shortLabel: string;
+  icon: string;
+  tone: 'blue' | 'violet' | 'amber' | 'rose';
+  points: string[];
+}
+
+const INSTRUCTION_SECTIONS: InstructionSection[] = [
+  {
+    id: 'caseA',
+    label: 'Caso A — Ya saben qué compran',
+    shortLabel: 'Caso A',
+    icon: 'fi fi-rr-box-open',
+    tone: 'blue',
+    points: [
+      'El cliente ya eligió productos (madera A, madera B, etc.). Arma la cotización con esas líneas reales. El total que ves ya incluye IVA.',
+      'Cuando ya recibieron el dinero, pulsa Factura de anticipo. Captura el monto que dejó, en pesos y con IVA. Puede ser el total de la cotización o menos. No se captura en porcentaje.',
+      'Ejemplo: cotización de $10,000. Dejó $10,000 o $8,000. El diálogo muestra el total, lo anticipado y lo pendiente.',
+      'El CFDI de anticipo no lista las maderas. Sale una sola partida: clave SAT 84111506, código de identificación anticipo_CFDI, unidad ACT, clave unidad H87, descripción «Anticipo del bien o servicio». Uso CFDI G01. Tipo de comprobante I-Ingreso.',
+      'Ese cobro entra al corte abierto de la sucursal, ligado a esta cotización. Sin corte de hoy no se timbra.',
+      'Cuando vengan por la mercancía, convierte esta cotización a orden. Sigue en Entrega y factura.',
+    ],
+  },
+  {
+    id: 'caseB',
+    label: 'Caso B — Solo dejan dinero',
+    shortLabel: 'Caso B',
+    icon: 'fi fi-rr-sack-dollar',
+    tone: 'violet',
+    points: [
+      'El cliente no eligió productos: solo deja dinero para facturar o gastar en el mes. Crea la cotización con una línea temporal: el producto «Anticipo del bien o servicio» (clave SAT 84111506, identificación anticipo_CFDI, unidad ACT, cantidad 1). El importe de esa línea es lo que dejó, con IVA.',
+      'Pulsa Factura de anticipo y captura esa misma cantidad con IVA. Caja recibe el dinero igual que en el caso A, ligado a la cotización.',
+      'Cuando ya sepan qué van a llevar, quita la línea temporal y agrega los productos reales. El anticipo vigente se queda; no se timbra otro.',
+      'Convierte a orden con esas líneas reales. El cierre fiscal es el mismo del caso A (descuentos + relación 07).',
+    ],
+  },
+  {
+    id: 'cash',
+    label: 'Caja',
+    shortLabel: 'Caja',
+    icon: 'fi fi-rr-cash-register',
+    tone: 'amber',
+    points: [
+      'Al timbrar el anticipo, caja recibe el dinero como ingreso de esta cotización (no como venta de madera). Efectivo, tarjeta, transferencia o cheque, según cómo pagó. Entra al corte del día, igual que una orden cobrada.',
+      'La cotización tiene que verse en caja para saber que ya hay dinero a cuenta de ese folio.',
+      'Al convertir a orden, el sistema pregunta si envías a caja. Si el anticipo cubrió el total, la orden queda pagada y no vuelve a cobrarse. Si quedó pendiente, caja cobra solo la diferencia cuando recogen la mercancía.',
+    ],
+  },
+  {
+    id: 'close',
+    label: 'Entrega y factura',
+    shortLabel: 'Entrega',
+    icon: 'fi fi-rr-file-invoice-dollar',
+    tone: 'rose',
+    points: [
+      'La factura de entrega es de la mercancía real (las líneas de la cotización), no del concepto de anticipo.',
+      'En Descuentos va el total que se anticipó (con IVA). Tipo Relación 07 — CFDI por aplicación de anticipos — al UUID de la factura de anticipo.',
+      'Si anticiparon el total: el descuento iguala el importe de las partidas y el gran total queda en $0. No se cobra otra vez. La salida de almacén es el surtido de la orden.',
+      'Si anticiparon menos: el descuento es solo lo anticipado y caja cobra lo pendiente. Ejemplo: cotización $10,000, anticipo $8,000 → cobran $2,000 al recoger.',
+    ],
+  },
+];
+
 @Component({
   selector: 'app-quotation-detail-dialog',
   standalone: true,
@@ -65,6 +132,22 @@ export class QuotationDetailDialogComponent implements OnInit {
   regeneratingPDF = signal(false);
   sendingEmail = signal(false);
   activeTabIndex = signal(0);
+  instructionSection = signal<InstructionFilter>('all');
+  readonly instructionFilters: { id: InstructionFilter; label: string; icon: string }[] = [
+    { id: 'all', label: 'Todas', icon: 'fi fi-rr-apps' },
+    ...INSTRUCTION_SECTIONS.map((section) => ({
+      id: section.id,
+      label: section.shortLabel,
+      icon: section.icon,
+    })),
+  ];
+  visibleInstructions = computed(() => {
+    const selected = this.instructionSection();
+    if (selected === 'all') {
+      return INSTRUCTION_SECTIONS;
+    }
+    return INSTRUCTION_SECTIONS.filter((section) => section.id === selected);
+  });
   header = signal<Quotation | null>(null);
   lineItems = signal<QuotationLineItem[]>([]);
   documents = signal<QuotationDocument[]>([]);
@@ -661,6 +744,7 @@ export class QuotationDetailDialogComponent implements OnInit {
     );
     const taxable = base || Number(q.total || 0);
     const iva = taxable > 0 ? Math.round((Number(q.iva_total || 0) / taxable) * 10000) / 100 : 8;
+    const ivaPct = Math.abs(iva - 8) < 0.3 ? 8 : Math.abs(iva - 16) < 0.3 ? 16 : iva;
     this.dialog
       .open(AdvanceInvoiceDialogComponent, {
         width: '480px',
@@ -673,7 +757,8 @@ export class QuotationDetailDialogComponent implements OnInit {
           documentId: q.id,
           folio: q.folio,
           defaultBase: Number(base.toFixed(2)),
-          defaultIva: Math.abs(iva - 8) < 0.3 ? 8 : Math.abs(iva - 16) < 0.3 ? 16 : iva,
+          defaultTotal: Number(q.total || 0),
+          defaultIva: ivaPct,
         },
       })
       .afterClosed()

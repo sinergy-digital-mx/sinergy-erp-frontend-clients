@@ -306,6 +306,9 @@
             Correo
             <span class="tab-count" [class.active]="activeTabIndex() === 2">{{ getEmailsCount() }}</span>
           </button>
+          <button type="button" class="tab-button" [class.active]="activeTabIndex() === 3" (click)="activeTabIndex.set(3)">
+            Instrucciones
+          </button>
         </div>
 
         <div class="tabs-content">
@@ -613,6 +616,45 @@
                   <p>Aún no se ha enviado esta cotización</p>
                 </div>
               }
+            </div>
+          }
+
+          @if (activeTabIndex() === 3) {
+            <div class="tab-content-wrapper instructions">
+              <p class="instructions__lead">
+                Hay dos formas de anticipo. Caso A: ya saben qué productos van a llevar. Caso B: solo dejan dinero y después se agregan las líneas reales. En ambos se timbra la factura de anticipo desde esta cotización, caja recibe el dinero, y al entregar se factura la mercancía con descuento y relación SAT 07.
+              </p>
+              <div class="instructions__filters" role="tablist" aria-label="Secciones de instrucciones">
+                @for (filter of instructionFilters; track filter.id) {
+                  <button
+                    type="button"
+                    class="instructions__filter"
+                    role="tab"
+                    [class.is-active]="instructionSection() === filter.id"
+                    [attr.aria-selected]="instructionSection() === filter.id"
+                    (click)="instructionSection.set(filter.id)">
+                    <i [class]="filter.icon" aria-hidden="true"></i>
+                    {{ filter.label }}
+                  </button>
+                }
+              </div>
+              <div class="instructions__grid" [class.instructions__grid--single]="instructionSection() !== 'all'">
+                @for (section of visibleInstructions(); track section.id) {
+                  <article class="instructions__card" [attr.data-tone]="section.tone">
+                    <header class="instructions__card-head">
+                      <span class="instructions__icon" aria-hidden="true">
+                        <i [class]="section.icon"></i>
+                      </span>
+                      <h3>{{ section.label }}</h3>
+                    </header>
+                    <ul class="instructions__points">
+                      @for (point of section.points; track point) {
+                        <li>{{ point }}</li>
+                      }
+                    </ul>
+                  </article>
+                }
+              </div>
             </div>
           }
         </div>

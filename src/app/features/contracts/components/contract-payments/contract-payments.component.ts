@@ -13,6 +13,7 @@ import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail
 import { PartialPaymentModalComponent } from '../partial-payment-modal/partial-payment-modal.component';
 import { EditPaymentModalComponent } from '../edit-payment-modal/edit-payment-modal.component';
 import { SendPaymentEmailModalComponent } from '../send-payment-email-modal/send-payment-email-modal.component';
+import { ReceiptBrandingComponent } from '../receipt-branding/receipt-branding.component';
 import { GeneratePaymentsDialogComponent } from '../generate-payments-dialog/generate-payments-dialog.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 
@@ -286,6 +287,14 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
           message: err.error?.message || 'No se pudo revertir el pago'
         });
       }
+    });
+  }
+
+  openReceiptBranding() {
+    this.dialog.open(ReceiptBrandingComponent, {
+      width: '480px',
+      maxWidth: '96vw',
+      data: { contractId: this.contractId },
     });
   }
 

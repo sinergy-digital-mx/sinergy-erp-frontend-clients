@@ -10,11 +10,12 @@ import {
   PaymentReceiptTemplate,
   PaymentService,
 } from '../../services/payment.service';
+import { ReceiptBrandingComponent } from '../receipt-branding/receipt-branding.component';
 
 @Component({
   selector: 'app-send-payment-email-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ReceiptBrandingComponent],
   templateUrl: './send-payment-email-modal.component.html',
   styleUrls: ['./send-payment-email-modal.component.scss'],
 })
@@ -30,8 +31,6 @@ export class SendPaymentEmailModalComponent implements OnInit {
   note = '';
   subject = '';
   bodyHtml = '';
-  fiscalConfigurationId = '';
-
   constructor(
     private paymentService: PaymentService,
     private interceptorService: InterceptorService,
@@ -74,7 +73,6 @@ export class SendPaymentEmailModalComponent implements OnInit {
         this.template.set(template);
         this.subject = template.subject;
         this.bodyHtml = template.body_html;
-        this.fiscalConfigurationId = template.fiscal_configuration_id || '';
       },
       error: (err) => {
         this.interceptorService.openSnackbar({
@@ -91,13 +89,12 @@ export class SendPaymentEmailModalComponent implements OnInit {
     this.paymentService
       .updateReceiptTemplate(this.data.contractId, reset
         ? { reset_default: true }
-        : { subject: this.subject, body_html: this.bodyHtml, fiscal_configuration_id: this.fiscalConfigurationId || null })
+        : { subject: this.subject, body_html: this.bodyHtml })
       .subscribe({
         next: (template) => {
           this.template.set(template);
           this.subject = template.subject;
           this.bodyHtml = template.body_html;
-          this.fiscalConfigurationId = template.fiscal_configuration_id || '';
           this.savingTemplate = false;
           this.refreshCompose();
         },
@@ -147,7 +144,7 @@ export class SendPaymentEmailModalComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  private refreshCompose() {
+  refreshCompose() {
     this.paymentService.composeReceipt(this.data.contractId, this.data.payment.id, this.data.kind || 'payment').subscribe({
       next: (compose) => this.compose.set(compose),
     });

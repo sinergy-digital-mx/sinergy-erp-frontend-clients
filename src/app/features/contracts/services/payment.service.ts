@@ -23,12 +23,22 @@ export interface PaymentReceiptCompose {
   attachment_name: string;
 }
 
+export interface PaymentReceiptFiscalOption {
+  id: string;
+  razon_social: string;
+  rfc: string;
+  has_logo: boolean;
+  use_as_system_logo: boolean;
+  logo_url: string | null;
+}
+
 export interface PaymentReceiptTemplate {
   id: string;
   subject: string;
   body_html: string;
   fiscal_configuration_id: string | null;
-  fiscal_configurations: { id: string; razon_social: string; rfc: string; has_logo: boolean }[];
+  effective_fiscal_configuration_id: string | null;
+  fiscal_configurations: PaymentReceiptFiscalOption[];
   variables: { key: string; label: string }[];
   sample_subject: string;
   sample_html: string;
@@ -127,6 +137,16 @@ export class PaymentService {
     return this.http.patch<PaymentReceiptTemplate>(
       `${this.api}/tenant/contracts/${contractId}/payments/receipt-template`,
       body,
+    );
+  }
+
+  uploadReceiptLogo(contractId: string, fiscalConfigurationId: string, file: File): Observable<PaymentReceiptTemplate> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('fiscal_configuration_id', fiscalConfigurationId);
+    return this.http.post<PaymentReceiptTemplate>(
+      `${this.api}/tenant/contracts/${contractId}/payments/receipt-template/logo`,
+      formData,
     );
   }
 
