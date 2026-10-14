@@ -218,6 +218,8 @@ export interface SalesOrder {
   advance_invoice?: {
     id: string;
     uuid?: string | null;
+    series?: string | null;
+    folio?: string | null;
     total?: number;
     applied?: boolean;
   } | null;

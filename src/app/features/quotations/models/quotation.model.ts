@@ -96,8 +96,12 @@ export interface Quotation {
   advance_invoice?: {
     id: string;
     uuid?: string | null;
+    series?: string | null;
+    folio?: string | null;
     subtotal?: number;
     total?: number;
+    stamp_status?: string;
+    sat_status?: string | null;
     applied?: boolean;
   } | null;
   advance_payment?: {

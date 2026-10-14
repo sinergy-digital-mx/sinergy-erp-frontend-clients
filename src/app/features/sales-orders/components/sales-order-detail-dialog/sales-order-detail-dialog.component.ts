@@ -544,6 +544,11 @@ export class SalesOrderDetailDialogComponent {
     });
   }
 
+  advanceFolioLabel(invoice: { series?: string | null; folio?: string | null }): string {
+    const parts = [invoice.series, invoice.folio].filter((part) => !!part?.trim());
+    return parts.join('-') || 'Sin folio';
+  }
+
   openAdvanceInvoice(): void {
     const order = this.order();
     if (!order?.can_stamp_advance) return;

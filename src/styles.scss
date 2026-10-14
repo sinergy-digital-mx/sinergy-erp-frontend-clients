@@ -814,6 +814,10 @@ main,
 }
 
 // Toasts globales (ToastService / CustomSnackbarComponent)
+.cdk-overlay-pane.app-toast-panel {
+  z-index: 2000 !important;
+}
+
 .app-toast-panel {
   --mdc-snackbar-container-color: transparent;
 

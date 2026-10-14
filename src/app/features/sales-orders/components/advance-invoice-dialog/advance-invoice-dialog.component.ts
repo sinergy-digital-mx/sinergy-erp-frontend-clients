@@ -1,8 +1,10 @@
-import { Component, Inject, OnInit, computed, signal } from '@angular/core';
+import { Component, ElementRef, Inject, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { ToastService } from '../../../../core/services/toast.service';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { QuotationService } from '../../../quotations/services/quotation.service';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
 import {
@@ -37,6 +39,8 @@ export interface AdvanceInvoiceDialogData {
   styleUrl: './advance-invoice-dialog.component.scss',
 })
 export class AdvanceInvoiceDialogComponent implements OnInit {
+  @ViewChild('dialogBody') private dialogBody?: ElementRef<HTMLElement>;
+
   saving = signal(false);
   error = signal('');
   finkokConfig = signal<FinkokConfigurationsResponse | null>(null);
@@ -61,6 +65,7 @@ export class AdvanceInvoiceDialogComponent implements OnInit {
     private readonly quotations: QuotationService,
     private readonly invoices: SalesOrderInvoiceService,
     private readonly router: Router,
+    private readonly toast: ToastService,
   ) {
     const iva = data.defaultIva ?? 8;
     const defaultGross = this.roundMoney(
@@ -199,7 +204,12 @@ export class AdvanceInvoiceDialogComponent implements OnInit {
       },
       error: (err) => {
         this.saving.set(false);
-        this.error.set(err?.error?.message || 'No se pudo timbrar');
+        const message = resolveHttpErrorMessage(err, 'No se pudo timbrar');
+        this.error.set(message);
+        this.toast.error(message, { title: 'No se pudo timbrar', duration: 12000 });
+        setTimeout(() => {
+          this.dialogBody?.nativeElement.scrollTo({ top: 0 });
+        });
       },
     });
   }

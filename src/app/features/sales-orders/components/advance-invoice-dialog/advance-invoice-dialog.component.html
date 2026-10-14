@@ -12,8 +12,12 @@
       </button>
     </div>
 
+    @if (error()) {
+      <div class="advance-error" role="alert" aria-live="assertive">{{ error() }}</div>
+    }
+
     <form [formGroup]="form" (ngSubmit)="submit()">
-      <div class="dialog-body">
+      <div class="dialog-body" #dialogBody>
         <p class="advance-hint">{{ hint }}</p>
 
         <section class="env-section">
@@ -118,9 +122,6 @@
           />
         </div>
 
-        @if (error()) {
-          <p class="advance-error" role="alert">{{ error() }}</p>
-        }
       </div>
 
       <div class="dialog-footer">

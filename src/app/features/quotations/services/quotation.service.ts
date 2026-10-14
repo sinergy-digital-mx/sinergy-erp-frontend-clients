@@ -175,6 +175,16 @@ export class QuotationService {
     return this.http.post(`${this.baseUrl}/${id}/invoices/${invoiceId}/cancel`, { motivo: '02' });
   }
 
+  getAdvancePdf(id: string, invoiceId: string): Observable<{ signedUrl: string; fileName?: string }> {
+    return this.http.get<{ signedUrl: string; fileName?: string }>(
+      `${this.baseUrl}/${id}/invoices/${invoiceId}/pdf`,
+    );
+  }
+
+  getAdvanceXml(id: string, invoiceId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${id}/invoices/${invoiceId}/xml`, { responseType: 'blob' });
+  }
+
   cancel(id: string): Observable<Quotation> {
     return this.http.post<Quotation>(`${this.baseUrl}/${id}/cancel`, {});
   }

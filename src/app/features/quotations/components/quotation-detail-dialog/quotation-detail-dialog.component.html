@@ -234,6 +234,31 @@
           <p class="notes-text">{{ header()!.notes || 'Sin observaciones' }}</p>
         </div>
 
+        @if (header()!.advance_invoice; as invoice) {
+          <section class="advance-invoice-card">
+            <div class="advance-invoice-card__head">
+              <h3>Factura de anticipo</h3>
+              <span>{{ invoice.applied ? 'Aplicada' : 'Vigente' }}</span>
+            </div>
+            <p class="advance-invoice-card__folio">{{ advanceFolioLabel() }}</p>
+            <p class="advance-invoice-card__meta">
+              {{ (invoice.total || 0) | number:'1.2-2' }} MXN
+              @if (invoice.sat_status) {
+                · {{ invoice.sat_status }}
+              }
+            </p>
+            <p class="advance-invoice-card__uuid">{{ invoice.uuid || 'Sin UUID' }}</p>
+            <div class="advance-invoice-card__actions">
+              <button type="button" (click)="openAdvancePdf()" [disabled]="openingAdvancePdf()">
+                {{ openingAdvancePdf() ? 'Abriendo…' : 'Ver PDF' }}
+              </button>
+              <button type="button" (click)="downloadAdvanceXml()" [disabled]="downloadingAdvanceXml()">
+                {{ downloadingAdvanceXml() ? 'Descargando…' : 'XML' }}
+              </button>
+            </div>
+          </section>
+        }
+
         @if (header()!.advance_payment; as payment) {
           <p class="advance-payment-note">
             Cobrado en el corte{{ payment.shift_date ? ' del ' + payment.shift_date : '' }}:
@@ -482,6 +507,21 @@
                   </button>
                 }
               </div>
+
+              @if (header()!.advance_invoice; as invoice) {
+                <section class="advance-invoice-card advance-invoice-card--wide">
+                  <div class="advance-invoice-card__head">
+                    <h3>Factura de anticipo</h3>
+                    <span>{{ invoice.applied ? 'Aplicada' : 'Vigente' }}</span>
+                  </div>
+                  <p class="advance-invoice-card__folio">{{ advanceFolioLabel() }} · {{ (invoice.total || 0) | number:'1.2-2' }} MXN</p>
+                  <p class="advance-invoice-card__uuid">UUID {{ invoice.uuid || '—' }}</p>
+                  <div class="advance-invoice-card__actions">
+                    <button type="button" (click)="openAdvancePdf()" [disabled]="openingAdvancePdf()">Ver PDF</button>
+                    <button type="button" (click)="downloadAdvanceXml()" [disabled]="downloadingAdvanceXml()">XML</button>
+                  </div>
+                </section>
+              }
 
               @if (documents().length) {
                 <table class="documents-table">

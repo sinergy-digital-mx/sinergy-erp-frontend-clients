@@ -548,6 +548,20 @@
           <p class="notes-text">{{ order()!.notes || 'Sin notas' }}</p>
         </div>
 
+        @if (order()!.advance_invoice; as invoice) {
+          <section class="advance-invoice-card">
+            <div class="advance-invoice-card__head">
+              <h3>Factura de anticipo</h3>
+              <span>{{ invoice.applied ? 'Aplicada' : 'Vigente' }}</span>
+            </div>
+            <p class="advance-invoice-card__folio">{{ advanceFolioLabel(invoice) }}</p>
+            <p class="advance-invoice-card__uuid">{{ invoice.uuid || 'Sin UUID' }}</p>
+            <button type="button" class="advance-invoice-card__link" (click)="activeTabIndex.set(4)">
+              Ver en facturación
+            </button>
+          </section>
+        }
+
         @if (showCancelOrderButton() || order()!.can_send_to_collection || order()!.can_withdraw_from_collection || order()!.can_stamp_advance) {
           <div class="action-buttons">
             @if (order()!.can_stamp_advance) {

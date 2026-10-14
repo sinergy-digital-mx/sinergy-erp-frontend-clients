@@ -129,6 +129,8 @@ export class QuotationDetailDialogComponent implements OnInit {
   refreshing = signal(false);
   converting = signal(false);
   cancelling = signal(false);
+  openingAdvancePdf = signal(false);
+  downloadingAdvanceXml = signal(false);
   regeneratingPDF = signal(false);
   sendingEmail = signal(false);
   activeTabIndex = signal(0);
@@ -352,7 +354,60 @@ export class QuotationDetailDialogComponent implements OnInit {
   }
 
   getDocumentsCount(): number {
-    return this.documents().length;
+    return this.documents().length + (this.header()?.advance_invoice ? 1 : 0);
+  }
+
+  advanceFolioLabel(): string {
+    const invoice = this.header()?.advance_invoice;
+    if (!invoice) return '';
+    const parts = [invoice.series, invoice.folio].filter((part) => !!part?.trim());
+    return parts.join('-') || 'Sin folio';
+  }
+
+  openAdvancePdf(): void {
+    const q = this.header();
+    const invoiceId = q?.advance_invoice?.id;
+    if (!q || !invoiceId || this.openingAdvancePdf()) return;
+    this.openingAdvancePdf.set(true);
+    this.quotationService.getAdvancePdf(q.id, invoiceId).subscribe({
+      next: (response) => {
+        this.openingAdvancePdf.set(false);
+        if (!response.signedUrl) {
+          this.toast.error('No se recibió la URL del PDF');
+          return;
+        }
+        window.open(response.signedUrl, '_blank', 'noopener,noreferrer');
+      },
+      error: (err) => {
+        this.openingAdvancePdf.set(false);
+        this.toast.error(err?.error?.message || 'No se pudo abrir el PDF');
+      },
+    });
+  }
+
+  downloadAdvanceXml(): void {
+    const q = this.header();
+    const invoice = q?.advance_invoice;
+    if (!q || !invoice?.id || this.downloadingAdvanceXml()) return;
+    this.downloadingAdvanceXml.set(true);
+    this.quotationService.getAdvanceXml(q.id, invoice.id).subscribe({
+      next: (blob) => {
+        this.downloadingAdvanceXml.set(false);
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${this.advanceFolioLabel() || 'anticipo'}.xml`;
+        anchor.rel = 'noopener';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.downloadingAdvanceXml.set(false);
+        this.toast.error(err?.error?.message || 'No se pudo descargar el XML');
+      },
+    });
   }
 
   getEmailsCount(): number {

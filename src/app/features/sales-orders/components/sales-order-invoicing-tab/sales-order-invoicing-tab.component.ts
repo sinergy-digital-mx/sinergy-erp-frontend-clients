@@ -531,6 +531,10 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   }
 
   invoiceTypeLabel(invoice: SalesOrderElectronicInvoice): string {
+    if (invoice.invoice_role === 'advance') return 'ANTICIPO';
+    if (invoice.invoice_role === 'advance_application' || invoice.tipo_comprobante === 'E') {
+      return 'NOTA DE CRÉDITO';
+    }
     return invoice.tipo_comprobante === 'P' ? 'CEP' : 'FACTURA';
   }
 
