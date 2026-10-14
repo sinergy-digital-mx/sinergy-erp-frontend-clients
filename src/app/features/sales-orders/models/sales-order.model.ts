@@ -255,6 +255,10 @@ export interface SalesOrder {
   walk_in_name?: string | null;
   walk_in_rfc?: string | null;
   sale_scope?: SalesOrderSaleScope;
+  /** Moneda del documento. La factura sale en la misma. */
+  currency?: 'MXN' | 'USD' | string;
+  /** Pesos por 1 USD cuando la orden es en dólares. */
+  exchange_rate?: number | string | null;
   requires_selection_assembly?: boolean;
   control_desk?: SalesOrderControlDesk | null;
   corroborated_at?: string | null;
@@ -460,6 +464,7 @@ export interface SalesOrderFormData {
   walk_in_name?: string;
   walk_in_rfc?: string;
   sale_scope?: SalesOrderSaleScope;
+  currency?: 'MXN' | 'USD';
   requires_selection_assembly?: boolean;
   global_discount_id?: string;
   line_items: Array<{

@@ -32,18 +32,28 @@ export interface DebtFlowFiltersApplied {
   period_label: string;
 }
 
+export type DebtCurrency = 'MXN' | 'USD';
+
 export interface DebtAgingRow {
   customer_id: number;
   customer_name: string;
   customer_rfc: string | null;
   billing_branch_name: string | null;
   open_order_count: number;
+  mxn_order_count: number;
+  usd_order_count: number;
   current: number;
   d1_30: number;
   d31_60: number;
   d61_90: number;
   d91_plus: number;
   total: number;
+  usd_current: number;
+  usd_d1_30: number;
+  usd_d31_60: number;
+  usd_d61_90: number;
+  usd_d91_plus: number;
+  usd_total: number;
   credit_days: number | null;
   credit_limit: number | null;
 }
@@ -51,12 +61,20 @@ export interface DebtAgingRow {
 export interface DebtAgingTotals {
   customer_count: number;
   open_order_count: number;
+  mxn_order_count: number;
+  usd_order_count: number;
   current: number;
   d1_30: number;
   d31_60: number;
   d61_90: number;
   d91_plus: number;
   total: number;
+  usd_current: number;
+  usd_d1_30: number;
+  usd_d31_60: number;
+  usd_d61_90: number;
+  usd_d91_plus: number;
+  usd_total: number;
 }
 
 export interface DebtLedgerRow {
@@ -78,6 +96,9 @@ export interface DebtLedgerRow {
   payment_amount: number | null;
   order_balance_after: number | null;
   balance_after: number | null;
+  currency: DebtCurrency;
+  balance_mxn: number | null;
+  balance_usd: number | null;
   due_date: string | null;
   is_opening: boolean;
 }

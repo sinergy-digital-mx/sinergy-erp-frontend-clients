@@ -16,6 +16,44 @@
       <div class="dialog-body">
         <p class="advance-hint">{{ hint }}</p>
 
+        <section class="env-section">
+          <h3>Ambiente Finkok</h3>
+          <div class="env-toggle" role="group" aria-label="Ambiente Finkok">
+            <button
+              type="button"
+              class="env-toggle__btn"
+              [class.env-toggle__btn--active]="stampEnvironment() === 'demo'"
+              [disabled]="saving()"
+              (click)="selectEnvironment('demo')">
+              Demo
+            </button>
+            <button
+              type="button"
+              class="env-toggle__btn"
+              [class.env-toggle__btn--active]="stampEnvironment() === 'production'"
+              [disabled]="saving()"
+              (click)="selectEnvironment('production')">
+              Producción
+            </button>
+          </div>
+          @if (stampEnvironment() === 'demo') {
+            <div class="alert alert--warning">Factura de prueba (Finkok Demo). No tiene validez fiscal.</div>
+          } @else {
+            <div class="alert alert--prod">Se timbrará un CFDI real ante el SAT.</div>
+          }
+          @if (hasSelectedEnvCredentials()) {
+            <p class="env-hint">
+              Usará: usuario Finkok “{{ selectedFinkokUsername() || '—' }}”
+              ({{ stampEnvironment() === 'demo' ? 'demo' : 'producción' }})
+            </p>
+          } @else {
+            <div class="alert alert--error">
+              Faltan credenciales Finkok de {{ environmentLabel(stampEnvironment()) }}.
+              <button type="button" class="link-btn" (click)="goToFinkokConfig()">Ir a Integración Finkok</button>
+            </div>
+          }
+        </section>
+
         @if (data.mode === 'stamp') {
           <div class="form-field">
             <label for="advance-amount">Monto que dejó (con IVA) <span>*</span></label>
@@ -87,7 +125,7 @@
 
       <div class="dialog-footer">
         <button type="button" class="btn-cancel" (click)="close()" [disabled]="saving()">Cancelar</button>
-        <button type="submit" class="btn-submit" [disabled]="saving() || form.invalid">
+        <button type="submit" class="btn-submit" [disabled]="saving() || form.invalid || !hasSelectedEnvCredentials()">
           {{ saving() ? 'Timbrando…' : submitLabel }}
         </button>
       </div>

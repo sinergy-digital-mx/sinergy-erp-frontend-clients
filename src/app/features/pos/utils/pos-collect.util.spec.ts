@@ -4,6 +4,7 @@ import {
   addMixedCardPayment,
   applyMixedRemainderToLast,
   buildCollectPayload,
+  canDocumentOrderInUsd,
   collectCashShortfallMxn,
   collectCashShortfallUsd,
   collectChangeDisplay,
@@ -148,6 +149,18 @@ describe('pago mixto — resto automático', () => {
     expect(payload.amount_cash_usd).toBe(64.26);
     expect(payload.received_cash_usd).toBe(100);
     expect(payload.usd_exchange_rate).toBe(16.8);
+    expect(canDocumentOrderInUsd(form, total)).toBe(true);
+    expect(buildCollectPayload(form, total, undefined, 'USD').order_currency).toBe('USD');
+  });
+
+  it('no deja la orden en dólares si los pesos cubren más', () => {
+    const total = 1000;
+    const form = defaultCollectForm(total, 20);
+    form.paymentMethod = 'cash';
+    form.receivedCashMxn = 800;
+    form.receivedCashUsd = 20;
+    form.usdExchangeRate = 20;
+    expect(canDocumentOrderInUsd(form, total)).toBe(false);
   });
 
   it('el cambio en pesos también se muestra en dólares', () => {

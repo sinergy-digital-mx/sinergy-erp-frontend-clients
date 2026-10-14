@@ -56,6 +56,8 @@ export interface CollectSalePayload {
   amount_credit_mxn?: number;
   customer_id?: number | string;
   generate_invoice?: boolean;
+  /** Moneda del documento. USD solo si el pago en dólares es mayor. */
+  order_currency?: 'MXN' | 'USD';
   walk_in_name?: string;
   walk_in_phone?: string;
   walk_in_rfc?: string;
@@ -389,12 +391,42 @@ function normalizeCollectCustomerId(customerId: number | string): number | strin
   return String(customerId).trim();
 }
 
+export function posDocumentCurrencySplit(
+  form: PosCollectForm,
+  orderTotal: number,
+): { usdAppliedMxn: number; mxnApplied: number } {
+  if (form.paymentMethod !== 'cash') {
+    return { usdAppliedMxn: 0, mxnApplied: roundMoney(orderTotal) };
+  }
+  const split = splitCashPayment(
+    orderTotal,
+    form.receivedCashMxn,
+    form.receivedCashUsd,
+    form.usdExchangeRate,
+  );
+  const rate = Number(form.usdExchangeRate) || 0;
+  return {
+    usdAppliedMxn: rate > 0 ? roundMoney(split.amountCashUsd * rate) : 0,
+    mxnApplied: split.amountCashMxn,
+  };
+}
+
+/** El pago aplicado en dólares, convertido a pesos, es mayor que el pago en pesos. */
+export function canDocumentOrderInUsd(form: PosCollectForm, orderTotal: number): boolean {
+  const split = posDocumentCurrencySplit(form, orderTotal);
+  return split.usdAppliedMxn > split.mxnApplied + 0.009;
+}
+
 export function buildCollectPayload(
   form: PosCollectForm,
   orderTotal: number,
-  customerId?: number | string
+  customerId?: number | string,
+  orderCurrency: 'MXN' | 'USD' = 'MXN',
 ): CollectSalePayload {
-  const base: CollectSalePayload = { payment_method: form.paymentMethod };
+  const base: CollectSalePayload = {
+    payment_method: form.paymentMethod,
+    order_currency: orderCurrency === 'USD' ? 'USD' : 'MXN',
+  };
   if (isValidCollectCustomerId(customerId)) {
     base.customer_id = normalizeCollectCustomerId(customerId);
   }
@@ -469,7 +501,7 @@ export function buildCollectPayload(
       single.amountCheckMxn = form.mixedCheckMxn;
       single.checkReference = form.mixedCheckRef;
     }
-    return buildCollectPayload(single, orderTotal, customerId);
+    return buildCollectPayload(single, orderTotal, customerId, orderCurrency);
   }
 
   return {

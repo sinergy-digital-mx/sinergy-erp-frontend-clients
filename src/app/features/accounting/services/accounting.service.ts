@@ -9,13 +9,18 @@ import {
   AccountsPayableOrderRow,
   AccountsPayableVendorDetail,
   AccountsPayableVendorRow,
+  PayableCurrencyView,
   AccountsReceivableDetail,
   AccountsReceivableListSummary,
   AccountsReceivableOrderRow,
   AccountsReceivableRow,
+  AverageCostReportRow,
+  AverageCostReportSummary,
   AccountingDailyShiftRow,
   CollectionCustomerType,
   CollectionTerminalSummary,
+  PosCollectionsPage,
+  PosCollectionsSummary,
   PosCollectionRow,
   PosDaySummary,
   PosEnteredOrder,
@@ -60,7 +65,7 @@ export class AccountingService {
     page = 1,
     limit = 20,
     search?: string
-  ): Observable<AccountingPaginatedResponse<PosCollectionRow>> {
+  ): Observable<PosCollectionsPage> {
     let params = this.buildPeriodParams(query)
       .set('customer_type', customerType)
       .set('page', String(page))
@@ -69,9 +74,24 @@ export class AccountingService {
       params = params.set('search', search.trim());
     }
 
-    return this.http
-      .get<unknown>(`${this.api}/pos-collections`, { params })
-      .pipe(map((raw) => this.parsePaginated<PosCollectionRow>(raw)));
+    return this.http.get<unknown>(`${this.api}/pos-collections`, { params }).pipe(
+      map((raw) => {
+        const pageResult = this.parsePaginated<PosCollectionRow, PosCollectionsSummary>(raw);
+        const body = this.asRecord(raw);
+        const summary = pageResult.summary ?? {
+          orders_collected: pageResult.total,
+          amount_collected: 0,
+          walk_in_count: 0,
+          invoiced_count: 0,
+        };
+        return {
+          ...pageResult,
+          summary,
+          filtered_amount: Number(body['filtered_amount'] ?? summary.amount_collected ?? 0),
+          filters_applied: this.parseFiltersApplied(body['filters_applied']),
+        };
+      })
+    );
   }
 
   exportPosCollectionsExcel(
@@ -132,16 +152,59 @@ export class AccountingService {
   getAccountsPayable(
     search: string | undefined,
     page = 1,
-    limit = 20
+    limit = 20,
+    currency: PayableCurrencyView = 'all'
   ): Observable<AccountingPaginatedResponse<AccountsPayableVendorRow, AccountsPayableListSummary>> {
-    let params = new HttpParams().set('page', String(page)).set('limit', String(limit));
+    let params = new HttpParams()
+      .set('page', String(page))
+      .set('limit', String(limit))
+      .set('currency', currency);
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
 
+    return this.http.get<unknown>(`${this.api}/accounts-payable`, { params }).pipe(
+      map((raw) => {
+        const parsed = this.parsePaginated<AccountsPayableVendorRow, AccountsPayableListSummary>(raw);
+        return {
+          ...parsed,
+          data: parsed.data.map((row) => this.normalizePayableRow(row)),
+          summary: this.normalizePayableSummary(parsed.summary),
+        };
+      })
+    );
+  }
+
+  exportAccountsPayableExcel(
+    search: string | undefined,
+    currency: PayableCurrencyView
+  ): Observable<{ blob: Blob; filename: string }> {
+    let params = new HttpParams().set('currency', currency);
+    if (search?.trim()) {
+      params = params.set('search', search.trim());
+    }
+
+    const fallbackName =
+      currency === 'all'
+        ? `cuentas-por-pagar-${new Date().toISOString().slice(0, 10)}.xlsx`
+        : `cuentas-por-pagar-${currency}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
     return this.http
-      .get<unknown>(`${this.api}/accounts-payable`, { params })
-      .pipe(map((raw) => this.parsePaginated<AccountsPayableVendorRow, AccountsPayableListSummary>(raw)));
+      .get(`${this.api}/accounts-payable/export/excel`, {
+        params,
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((response) => {
+          const disposition = response.headers.get('content-disposition') ?? undefined;
+          return {
+            blob: response.body as Blob,
+            filename: this.parseFilenameFromDisposition(disposition) ?? fallbackName,
+          };
+        }),
+        catchError(() => throwError(() => new Error('No se pudo descargar el Excel')))
+      );
   }
 
   getAccountsPayableVendorDetail(vendorId: string): Observable<AccountsPayableVendorDetail> {
@@ -184,6 +247,54 @@ export class AccountingService {
       .pipe(map((raw) => this.parseReceivableDetail(raw)));
   }
 
+  getAverageCostReport(
+    search: string | undefined,
+    page = 1,
+    limit = 20
+  ): Observable<AccountingPaginatedResponse<AverageCostReportRow, AverageCostReportSummary>> {
+    let params = new HttpParams().set('page', String(page)).set('limit', String(limit));
+    if (search?.trim()) {
+      params = params.set('search', search.trim());
+    }
+
+    return this.http.get<unknown>(`${this.api}/average-cost-report`, { params }).pipe(
+      map((raw) => {
+        const parsed = this.parsePaginated<AverageCostReportRow, AverageCostReportSummary>(raw);
+        return {
+          ...parsed,
+          data: parsed.data.map((row) => this.normalizeAverageCostRow(row)),
+          summary: this.normalizeAverageCostSummary(parsed.summary),
+        };
+      })
+    );
+  }
+
+  exportAverageCostReportExcel(search?: string): Observable<{ blob: Blob; filename: string }> {
+    let params = new HttpParams();
+    if (search?.trim()) {
+      params = params.set('search', search.trim());
+    }
+
+    return this.http
+      .get(`${this.api}/average-cost-report/export/excel`, {
+        params,
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((response) => {
+          const disposition = response.headers.get('content-disposition') ?? undefined;
+          return {
+            blob: response.body as Blob,
+            filename:
+              this.parseFilenameFromDisposition(disposition) ??
+              `rep-costo-promedio-${new Date().toISOString().slice(0, 10)}.xlsx`,
+          };
+        }),
+        catchError(() => throwError(() => new Error('No se pudo descargar el Excel')))
+      );
+  }
+
   private buildPeriodParams(query: AccountingPeriodQuery): HttpParams {
     let params = new HttpParams().set('period', query.period);
 
@@ -194,8 +305,23 @@ export class AccountingService {
       if (query.date_from) params = params.set('date_from', query.date_from);
       if (query.date_to) params = params.set('date_to', query.date_to);
     }
+    if (query.date_basis) {
+      params = params.set('date_basis', query.date_basis);
+    }
 
     return params;
+  }
+
+  private parseFiltersApplied(raw: unknown): PosCollectionsPage['filters_applied'] {
+    const filters = this.asRecord(raw);
+    const period = filters['period'];
+    return {
+      billing_branch_id: (filters['billing_branch_id'] as string | null) ?? null,
+      period: period === 'today' || period === 'week' || period === 'month' || period === 'range' ? period : 'month',
+      date_from: filters['date_from'] != null ? String(filters['date_from']).slice(0, 10) : null,
+      date_to: filters['date_to'] != null ? String(filters['date_to']).slice(0, 10) : null,
+      date_basis: filters['date_basis'] === 'collected' ? 'collected' : 'shift',
+    };
   }
 
   /** pos-summary: sales_terminals y collection_terminal en la raíz (no dentro de data). */
@@ -378,6 +504,67 @@ export class AccountingService {
 
   private asArray<T>(raw: unknown): T[] {
     return Array.isArray(raw) ? (raw as T[]) : [];
+  }
+
+  private normalizePayableRow(raw: AccountsPayableVendorRow): AccountsPayableVendorRow {
+    const amountMxn = Number(raw.amount_pending_mxn ?? raw.amount_pending ?? 0);
+    const amountUsd = Number(raw.amount_pending_usd ?? 0);
+    const ordersMxn = Number(raw.pending_order_count_mxn ?? raw.pending_order_count ?? 0);
+    const ordersUsd = Number(raw.pending_order_count_usd ?? 0);
+
+    return {
+      ...raw,
+      amount_pending_mxn: Number.isFinite(amountMxn) ? amountMxn : 0,
+      amount_pending_usd: Number.isFinite(amountUsd) ? amountUsd : 0,
+      pending_order_count_mxn: Number.isFinite(ordersMxn) ? ordersMxn : 0,
+      pending_order_count_usd: Number.isFinite(ordersUsd) ? ordersUsd : 0,
+      progress_percentage_mxn: Number(raw.progress_percentage_mxn ?? raw.progress_percentage ?? 0) || 0,
+      progress_percentage_usd: Number(raw.progress_percentage_usd ?? 0) || 0,
+    };
+  }
+
+  private normalizeAverageCostRow(raw: AverageCostReportRow): AverageCostReportRow {
+    const price = raw.price == null ? null : Number(raw.price);
+    const marginAmount = raw.margin_amount == null ? null : Number(raw.margin_amount);
+    const marginPercent = raw.margin_percent == null ? null : Number(raw.margin_percent);
+
+    return {
+      ...raw,
+      pedimentos: Array.isArray(raw.pedimentos) ? raw.pedimentos : [],
+      price: price != null && Number.isFinite(price) ? price : null,
+      average_cost: Number(raw.average_cost ?? 0) || 0,
+      quantity: Number(raw.quantity ?? 0) || 0,
+      total_cost: Number(raw.total_cost ?? 0) || 0,
+      margin_amount: marginAmount != null && Number.isFinite(marginAmount) ? marginAmount : null,
+      margin_percent: marginPercent != null && Number.isFinite(marginPercent) ? marginPercent : null,
+      receipt_count: Number(raw.receipt_count ?? 0) || 0,
+    };
+  }
+
+  private normalizeAverageCostSummary(
+    raw: AverageCostReportSummary | undefined
+  ): AverageCostReportSummary | undefined {
+    if (!raw) return raw;
+    return {
+      product_count: Number(raw.product_count ?? 0) || 0,
+      total_quantity: Number(raw.total_quantity ?? 0) || 0,
+      total_cost: Number(raw.total_cost ?? 0) || 0,
+      real_cost_product_count: Number(raw.real_cost_product_count ?? 0) || 0,
+    };
+  }
+
+  private normalizePayableSummary(
+    raw: AccountsPayableListSummary | undefined
+  ): AccountsPayableListSummary | undefined {
+    if (!raw) return raw;
+    return {
+      ...raw,
+      total_vendors: Number(raw.total_vendors ?? 0),
+      total_amount_pending_mxn: Number(raw.total_amount_pending_mxn ?? raw.total_amount_pending ?? 0),
+      total_amount_pending_usd: Number(raw.total_amount_pending_usd ?? 0),
+      total_pending_orders_mxn: Number(raw.total_pending_orders_mxn ?? 0),
+      total_pending_orders_usd: Number(raw.total_pending_orders_usd ?? 0),
+    };
   }
 
   private parseFilenameFromDisposition(header?: string): string | null {

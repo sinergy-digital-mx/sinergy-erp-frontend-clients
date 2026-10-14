@@ -97,6 +97,28 @@
           </p>
         </div>
 
+        @if (!asQuotation) {
+          <div class="form-field form-field--full">
+            <label class="form-label">MONEDA DE LA ORDEN *</label>
+            <select class="form-select" formControlName="currency">
+              <option value="MXN">Pesos (MXN)</option>
+              <option value="USD">Dólares (USD)</option>
+            </select>
+            <p class="assembly-helper" style="margin-left: 0">
+              @if (orderCurrency === 'USD') {
+                Esta orden es en USD. La factura sale en dólares
+                @if (dailyExchangeRate) {
+                  al tipo de cambio {{ dailyExchangeRate }}.
+                } @else {
+                  . Hace falta el tipo de cambio del día.
+                }
+              } @else {
+                Esta orden es en MXN. La factura sale en pesos.
+              }
+            </p>
+          </div>
+        }
+
         <div class="form-field form-field--full" *ngIf="showAssemblyCheckbox">
           <label class="assembly-checkbox">
             <input type="checkbox" formControlName="requires_selection_assembly" />

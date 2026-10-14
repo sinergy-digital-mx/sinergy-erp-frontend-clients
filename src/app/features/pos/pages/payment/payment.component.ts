@@ -93,6 +93,8 @@ import {
   collectChangeUsd,
   collectChangeDisplay,
   displayCashChange,
+  canDocumentOrderInUsd,
+  posDocumentCurrencySplit,
   CollectPaymentMethod,
   defaultCollectForm,
   parseOrderTotal,
@@ -247,6 +249,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   generateInvoice = signal(false);
   collectError = signal<string | null>(null);
   dailyUsdMxnRate = signal<number | null>(null);
+  orderCurrencyChoice = signal<'MXN' | 'USD'>('MXN');
   cashBillCounts = signal<CashDenominationCounts>({});
   cashManualMxn = signal(0);
   cashManualUsd = signal(0);
@@ -341,6 +344,15 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   );
 
   readonly appliedDelta = computed(() => collectAppliedDelta(this.collectForm(), this.orderTotal()));
+  readonly canChooseUsdOrder = computed(() =>
+    canDocumentOrderInUsd(this.collectForm(), this.orderTotal()),
+  );
+  readonly hasUsdPayment = computed(
+    () => posDocumentCurrencySplit(this.collectForm(), this.orderTotal()).usdAppliedMxn > 0.009,
+  );
+  readonly documentCurrency = computed<'MXN' | 'USD'>(() =>
+    this.canChooseUsdOrder() && this.orderCurrencyChoice() === 'USD' ? 'USD' : 'MXN',
+  );
 
   readonly mixedRemainder = computed(() => mixedRemainderMxn(this.collectForm(), this.orderTotal()));
 
@@ -826,6 +838,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedCollectedSale.set(null);
     this.collectionDetail.set(null);
     this.selectedSale.set(sale);
+    this.orderCurrencyChoice.set('MXN');
     this.collectError.set(null);
     const total = this.amountPending(sale);
     this.cashBillCounts.set({});
@@ -1450,7 +1463,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     const customerId = this.resolveCollectCustomerId();
 
     const payload = {
-      ...buildCollectPayload(form, total, customerId),
+      ...buildCollectPayload(form, total, customerId, this.documentCurrency()),
       ...(this.customerMode() === 'walk_in'
         ? {
             walk_in_name: this.walkInName().trim(),

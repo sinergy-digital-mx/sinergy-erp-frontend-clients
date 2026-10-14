@@ -4,10 +4,11 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
-import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+import { IColumn, IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+import { ToastService } from '../../../../core/services/toast.service';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { AccountingService } from '../../services/accounting.service';
-import { AccountsPayableListSummary, AccountsPayableVendorRow } from '../../models/accounting.model';
-import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
+import { AccountsPayableListSummary, AccountsPayableVendorRow, PayableCurrencyView } from '../../models/accounting.model';
 
 @Component({
   selector: 'app-accounts-payable-tab',
@@ -19,29 +20,30 @@ import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calc
 export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
 
-  readonly Math = Math;
-
   @Input() reloadToken = 0;
+
+  readonly views: { id: PayableCurrencyView; label: string }[] = [
+    { id: 'all', label: 'Ambos' },
+    { id: 'mxn', label: 'Pesos' },
+    { id: 'usd', label: 'Dólares' },
+  ];
 
   searchControl = new FormControl('', { nonNullable: true });
   private destroy$ = new Subject<void>();
   summary = signal<AccountsPayableListSummary | null>(null);
+  currencyView = signal<PayableCurrencyView>('all');
+  exporting = signal(false);
 
   tableConfig = signal<IDatatableConfig>({
     rows: [] as AccountsPayableVendorRow[],
-    columns: [
-      { name: 'Proveedor', prop: 'vendor', sortable: false, canAutoResize: false, width: 220 },
-      { name: '# OC pendientes', prop: 'pending_order_count', sortable: false, canAutoResize: false, width: 130 },
-      { name: 'Monto adeudado', prop: 'amount_pending', sortable: false, canAutoResize: false, width: 140 },
-      { name: 'Progreso', prop: 'progress', sortable: false, canAutoResize: false, width: 180 },
-    ],
+    columns: this.columnsFor('all'),
     externalPaging: true,
     externalSorting: false,
     page: 1,
     limit: 20,
     totalResults: 0,
     loading: false,
-    emptyState: { title: 'Sin proveedores', subtitle: 'No hay cuentas por pagar pendientes' },
+    emptyState: this.emptyStateFor('all'),
     columnMode: 'force',
     reorderable: false,
   });
@@ -49,7 +51,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
   constructor(
     private accountingService: AccountingService,
     private router: Router,
-    private taxCalculator: TaxCalculatorService
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -71,18 +73,45 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
     this.destroy$.complete();
   }
 
+  setCurrencyView(view: PayableCurrencyView): void {
+    if (this.currencyView() === view) return;
+    this.currencyView.set(view);
+    this.tableConfig.update((cfg) => ({
+      ...cfg,
+      columns: this.columnsFor(view),
+      emptyState: this.emptyStateFor(view),
+      page: 1,
+      loading: true,
+    }));
+    this.loadPage(1);
+  }
+
   vendorLabel(row: AccountsPayableVendorRow): string {
     return row.vendor_name?.trim() || row.razon_social?.trim() || row.company_name?.trim() || '—';
   }
 
-  formatCurrency(value: number): string {
-    return this.taxCalculator.formatCurrency(value);
+  formatMoney(value: number | null | undefined, currency: 'MXN' | 'USD'): string {
+    return formatUnitCurrency(value ?? 0, currency);
+  }
+
+  barWidth(pct: number | null | undefined): number {
+    const value = Number(pct ?? 0);
+    if (!Number.isFinite(value) || value < 0) return 0;
+    return Math.min(value, 100);
   }
 
   progressColor(pct: number): string {
     if (pct > 80) return 'danger';
     if (pct >= 50) return 'warning';
     return 'success';
+  }
+
+  showsMxn(): boolean {
+    return this.currencyView() !== 'usd';
+  }
+
+  showsUsd(): boolean {
+    return this.currencyView() !== 'mxn';
   }
 
   onPageChange(event: IPaginationEvent): void {
@@ -107,13 +136,36 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 
+  downloadExcel(): void {
+    if (this.exporting()) return;
+
+    this.exporting.set(true);
+    this.accountingService.exportAccountsPayableExcel(this.searchControl.value, this.currencyView()).subscribe({
+      next: ({ blob, filename }) => {
+        this.exporting.set(false);
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        this.exporting.set(false);
+        this.toast.error(error?.message || 'No se pudo descargar el Excel');
+      },
+    });
+  }
+
   private loadPage(page: number): void {
+    const currency = this.currencyView();
     this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
 
     this.accountingService
-      .getAccountsPayable(this.searchControl.value, page, this.tableConfig().limit)
+      .getAccountsPayable(this.searchControl.value, page, this.tableConfig().limit, currency)
       .subscribe({
         next: (res) => {
+          if (this.currencyView() !== currency) return;
           this.summary.set(res.summary ?? null);
           this.tableConfig.update((cfg) => ({
             ...cfg,
@@ -124,6 +176,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
           }));
         },
         error: () => {
+          if (this.currencyView() !== currency) return;
           this.summary.set(null);
           this.tableConfig.update((cfg) => ({
             ...cfg,
@@ -133,5 +186,44 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
           }));
         },
       });
+  }
+
+  private columnsFor(view: PayableCurrencyView): IColumn[] {
+    const vendor: IColumn = { name: 'Proveedor', prop: 'vendor', sortable: false, canAutoResize: false, width: 240 };
+    const progress: IColumn = {
+      name: 'Progreso',
+      prop: 'progress',
+      sortable: false,
+      canAutoResize: false,
+      width: view === 'all' ? 280 : 220,
+    };
+    const mxn: IColumn = {
+      name: 'Monto adeudado en pesos',
+      prop: 'amount_pending_mxn',
+      sortable: false,
+      canAutoResize: false,
+      width: 220,
+    };
+    const usd: IColumn = {
+      name: 'Monto adeudado en dólares',
+      prop: 'amount_pending_usd',
+      sortable: false,
+      canAutoResize: false,
+      width: 230,
+    };
+
+    if (view === 'mxn') return [vendor, mxn, progress];
+    if (view === 'usd') return [vendor, usd, progress];
+    return [vendor, mxn, usd, progress];
+  }
+
+  private emptyStateFor(view: PayableCurrencyView): { title: string; subtitle: string } {
+    if (view === 'mxn') {
+      return { title: 'Sin adeudos en pesos', subtitle: 'No hay órdenes de compra pendientes en MXN' };
+    }
+    if (view === 'usd') {
+      return { title: 'Sin adeudos en dólares', subtitle: 'No hay órdenes de compra pendientes en USD' };
+    }
+    return { title: 'Sin proveedores', subtitle: 'No hay cuentas por pagar pendientes' };
   }
 }

@@ -12,16 +12,6 @@
     </div>
   }
 
-  <div class="receivable-search">
-    <input
-      type="search"
-      class="receivable-search__input"
-      [formControl]="searchControl"
-      placeholder="Buscar por razón social o RFC"
-      aria-label="Buscar cuentas por cobrar" />
-    <a routerLink="/accounting/flujo-deuda" class="receivable-flow-link">Ver flujo de deuda</a>
-  </div>
-
   <app-datatable-wrapper
     [config]="tableConfig()"
     [rowTemplate]="tableTemplate"

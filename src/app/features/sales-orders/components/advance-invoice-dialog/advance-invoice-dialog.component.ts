@@ -1,9 +1,18 @@
-import { Component, Inject, signal } from '@angular/core';
+import { Component, Inject, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { QuotationService } from '../../../quotations/services/quotation.service';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
+import {
+  defaultStampEnvironment,
+  FinkokConfigurationsResponse,
+  getFinkokEnvironmentConfig,
+  hasFinkokEnvironmentCredentials,
+  isLocalStampHost,
+} from '../../models/sales-order-electronic-invoice.model';
+import type { FinkokEnvironment } from '../../models/sales-order-electronic-invoice.model';
 
 export type AdvanceInvoiceDialogMode = 'stamp' | 'apply';
 export type AdvanceInvoiceDialogSource = 'quotation' | 'sales_order';
@@ -27,9 +36,21 @@ export interface AdvanceInvoiceDialogData {
   templateUrl: './advance-invoice-dialog.component.html',
   styleUrl: './advance-invoice-dialog.component.scss',
 })
-export class AdvanceInvoiceDialogComponent {
+export class AdvanceInvoiceDialogComponent implements OnInit {
   saving = signal(false);
   error = signal('');
+  finkokConfig = signal<FinkokConfigurationsResponse | null>(null);
+  stampEnvironment = signal<FinkokEnvironment>(defaultStampEnvironment());
+
+  selectedEnvConfig = computed(() =>
+    getFinkokEnvironmentConfig(this.finkokConfig(), this.stampEnvironment()),
+  );
+
+  hasSelectedEnvCredentials = computed(() =>
+    hasFinkokEnvironmentCredentials(this.finkokConfig(), this.stampEnvironment()),
+  );
+
+  selectedFinkokUsername = computed(() => this.selectedEnvConfig()?.finkok_username?.trim() || '');
 
   form;
 
@@ -39,6 +60,7 @@ export class AdvanceInvoiceDialogComponent {
     private readonly dialogRef: MatDialogRef<AdvanceInvoiceDialogComponent, boolean>,
     private readonly quotations: QuotationService,
     private readonly invoices: SalesOrderInvoiceService,
+    private readonly router: Router,
   ) {
     const iva = data.defaultIva ?? 8;
     const defaultGross = this.roundMoney(
@@ -56,6 +78,36 @@ export class AdvanceInvoiceDialogComponent {
       uso_cfdi: ['G01', Validators.required],
       forma_pago: ['01', Validators.required],
       regimen_fiscal_receptor: ['601', Validators.required],
+    });
+  }
+
+  ngOnInit(): void {
+    this.invoices.getFinkokConfiguration().subscribe({
+      next: (config) => this.finkokConfig.set(config),
+      error: () => this.finkokConfig.set(null),
+    });
+  }
+
+  selectEnvironment(environment: FinkokEnvironment): void {
+    if (this.saving() || environment === this.stampEnvironment()) return;
+    if (environment === 'production' && isLocalStampHost()) {
+      const confirmed = window.confirm(
+        'Esto timbrará un CFDI real con Finkok producción. ¿Continuar?',
+      );
+      if (!confirmed) return;
+    }
+    this.stampEnvironment.set(environment);
+  }
+
+  environmentLabel(environment: FinkokEnvironment): string {
+    return environment === 'demo' ? 'Demo' : 'Producción';
+  }
+
+  goToFinkokConfig(): void {
+    if (this.saving()) return;
+    this.dialogRef.close(false);
+    void this.router.navigate(['/settings/fiscal-configurations'], {
+      queryParams: { tab: 'finkok' },
     });
   }
 
@@ -107,8 +159,9 @@ export class AdvanceInvoiceDialogComponent {
   }
 
   submit(): void {
-    if (this.form.invalid || this.saving()) return;
+    if (this.form.invalid || this.saving() || !this.hasSelectedEnvCredentials()) return;
     const value = this.form.getRawValue();
+    const environment = this.stampEnvironment();
     this.saving.set(true);
     this.error.set('');
     const request = this.data.mode === 'apply'
@@ -117,6 +170,7 @@ export class AdvanceInvoiceDialogComponent {
           forma_pago: String(value.forma_pago),
           regimen_fiscal_receptor: String(value.regimen_fiscal_receptor),
           metodo_pago: 'PUE',
+          environment,
         })
       : this.data.source === 'quotation'
         ? this.quotations.stampAdvance(this.data.documentId, {
@@ -126,6 +180,7 @@ export class AdvanceInvoiceDialogComponent {
             forma_pago: String(value.forma_pago),
             regimen_fiscal_receptor: String(value.regimen_fiscal_receptor),
             metodo_pago: 'PUE',
+            environment,
           })
         : this.invoices.stampAdvance(this.data.documentId, {
             base_amount: this.baseFromGross(Number(value.amount_with_iva), Number(value.iva_percentage)),
@@ -134,6 +189,7 @@ export class AdvanceInvoiceDialogComponent {
             forma_pago: String(value.forma_pago),
             regimen_fiscal_receptor: String(value.regimen_fiscal_receptor),
             metodo_pago: 'PUE',
+            environment,
           });
 
     request.subscribe({

@@ -20,6 +20,7 @@ import { CustomerDebtFlowService } from '../../services/customer-debt-flow.servi
 import {
   DebtAgingRow,
   DebtAgingTotals,
+  DebtCurrency,
   DebtFlowPeriod,
   DebtFlowQueryParams,
   DebtFlowView,
@@ -241,12 +242,54 @@ export class CustomerDebtFlowComponent implements OnInit {
     }
   }
 
-  formatMoney(value: number | null | undefined): string {
+  formatMoney(value: number | null | undefined, currency: DebtCurrency | string = 'MXN'): string {
     if (value == null) return '—';
+    const code = currency === 'USD' ? 'USD' : 'MXN';
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
-      currency: 'MXN',
+      currency: code,
     }).format(value);
+  }
+
+  orderCountLabel(count: number): string {
+    return count === 1 ? '1 orden' : `${count} órdenes`;
+  }
+
+  overdue(row: DebtAgingRow | DebtAgingTotals, currency: DebtCurrency): number {
+    if (currency === 'USD') {
+      return row.usd_d1_30 + row.usd_d31_60 + row.usd_d61_90 + row.usd_d91_plus;
+    }
+    return row.d1_30 + row.d31_60 + row.d61_90 + row.d91_plus;
+  }
+
+  agingTitle(row: DebtAgingRow | DebtAgingTotals, currency: DebtCurrency): string {
+    const buckets: Array<[string, number]> =
+      currency === 'USD'
+        ? [
+            ['Por vencer', row.usd_current],
+            ['1–30', row.usd_d1_30],
+            ['31–60', row.usd_d31_60],
+            ['61–90', row.usd_d61_90],
+            ['+90', row.usd_d91_plus],
+          ]
+        : [
+            ['Por vencer', row.current],
+            ['1–30', row.d1_30],
+            ['31–60', row.d31_60],
+            ['61–90', row.d61_90],
+            ['+90', row.d91_plus],
+          ];
+    const parts = buckets
+      .filter(([, amount]) => amount > 0)
+      .map(([label, amount]) => `${label} ${this.formatMoney(amount, currency)}`);
+    return parts.join(' · ') || 'Sin saldo';
+  }
+
+  showCustomerBalance(row: DebtLedgerRow, currency: DebtCurrency): boolean {
+    const amount = currency === 'USD' ? row.balance_usd : row.balance_mxn;
+    if (amount == null) return false;
+    if (amount !== 0) return true;
+    return (row.currency || 'MXN') === currency;
   }
 
   formatDay(value: string | null, dateOnly = false): string {

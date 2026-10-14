@@ -1,5 +1,5 @@
 <aside
-  [class]="'sidebar h-screen flex flex-col justify-between text-white text-[14px] shadow-xl transition-all duration-300 ' +
+  [class]="'sidebar h-screen flex flex-col justify-between text-white text-[13px] shadow-xl transition-all duration-300 ' +
     (isMobileOpen() ? 'sidebar--mobile-open ' : '') +
     (isCollapsed() ? 'w-20' : 'w-60')">
     <!-- Desktop collapse toggle -->
@@ -22,7 +22,7 @@
     <div class="sidebar__nav-scroll flex flex-col flex-1 overflow-y-auto">
         <!-- Logo Section -->
         <div
-          class="logo-section py-6 border-b border-white/10"
+          class="logo-section py-4 border-b border-white/10"
           [class.px-6]="!(isCollapsed() && !isMobileOpen())"
           [class.px-2]="isCollapsed() && !isMobileOpen()"
           [class.logo-section--compact]="isCollapsed() && !isMobileOpen()">
@@ -30,8 +30,8 @@
                 <app-pollux-brand-text [useSystemLogo]="true" [compact]="isCollapsed() && !isMobileOpen()" />
             </div>
         </div>
-        
-        <div [class]="'flex flex-col pt-6 pb-5 transition-all duration-300 ' + (isCollapsed() && !isMobileOpen() ? 'px-2' : 'px-4')">
+
+        <div [class]="'flex flex-col pt-4 pb-3 transition-all duration-300 ' + (isCollapsed() && !isMobileOpen() ? 'px-2' : 'px-4')">
         <nav class="flex flex-col">
           @for (section of visibleMenuSections(); track section.id; let first = $first) {
             <div class="nav-section" [class.nav-section--first]="first">
@@ -40,13 +40,13 @@
               } @else if (!first) {
                 <div class="nav-section-spacer" aria-hidden="true"></div>
               }
-              <div class="nav-section-items flex flex-col gap-1.5">
+              <div class="nav-section-items flex flex-col gap-1">
                 @for (item of section.items; track item.id) {
                   <a [routerLink]="item.route"
                      routerLinkActive="router-link-active"
                      [routerLinkActiveOptions]="{ exact: item.exact !== false }"
                      (click)="closeMobileMenu()"
-                     [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2.5 justify-center' : 'gap-3 px-3 py-2.5')"
+                     [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2 justify-center' : 'gap-2.5 px-3 py-1.5')"
                      [title]="isCollapsed() && !isMobileOpen() ? item.label : ''">
                     <lucide-icon [img]="item.icon" class="w-4 h-4 shrink-0"></lucide-icon>
                     @if (!isCollapsed() || isMobileOpen()) {
@@ -61,7 +61,7 @@
         </div>
     </div>
 
-    <div [class]="'user-section py-5 transition-all duration-300 shrink-0 ' + (isCollapsed() && !isMobileOpen() ? 'px-2' : 'px-6')">
+    <div [class]="'user-section py-4 transition-all duration-300 shrink-0 ' + (isCollapsed() && !isMobileOpen() ? 'px-2' : 'px-6')">
         @if (todayUsdMxnRate() !== null) {
             <a
                 routerLink="/settings/exchange-rates"
@@ -96,7 +96,7 @@
                 </button>
             </div>
         } @else {
-            <div class="flex items-center justify-between text-[14px]">
+            <div class="flex items-center justify-between text-[13px]">
                 <div class="flex items-center gap-3 user-info min-w-0">
                     <div class="user-avatar w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0">
                         {{ getInitials(auth_service.user_info?.email) }}

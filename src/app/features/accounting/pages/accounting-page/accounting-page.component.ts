@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -13,8 +13,15 @@ import { PosCollectionsTabComponent } from '../../components/pos-collections-tab
 import { AccountsPayableTabComponent } from '../../components/accounts-payable-tab/accounts-payable-tab.component';
 import { AccountsReceivableTabComponent } from '../../components/accounts-receivable-tab/accounts-receivable-tab.component';
 import { CustomerDebtFlowComponent } from '../../components/customer-debt-flow/customer-debt-flow.component';
+import { AverageCostReportTabComponent } from '../../components/average-cost-report-tab/average-cost-report-tab.component';
 
-export type AccountingTab = 'pos' | 'pos-collections' | 'payable' | 'receivable' | 'debt-flow';
+export type AccountingTab =
+  | 'pos'
+  | 'pos-collections'
+  | 'payable'
+  | 'receivable'
+  | 'debt-flow'
+  | 'average-cost';
 
 @Component({
   selector: 'app-accounting-page',
@@ -29,11 +36,12 @@ export type AccountingTab = 'pos' | 'pos-collections' | 'payable' | 'receivable'
     AccountsPayableTabComponent,
     AccountsReceivableTabComponent,
     CustomerDebtFlowComponent,
+    AverageCostReportTabComponent,
   ],
   templateUrl: './accounting-page.component.html',
   styleUrl: './accounting-page.component.scss',
 })
-export class AccountingPageComponent implements OnInit {
+export class AccountingPageComponent implements OnInit, OnDestroy {
   @ViewChild(PosSummaryTabComponent) posTab?: PosSummaryTabComponent;
   @ViewChild(AccountsPayableTabComponent) payableTab?: AccountsPayableTabComponent;
   @ViewChild(AccountsReceivableTabComponent) receivableTab?: AccountsReceivableTabComponent;
@@ -47,6 +55,9 @@ export class AccountingPageComponent implements OnInit {
 
   branches = signal<Branch[]>([]);
   posSummary = signal<PosDaySummary>(this.emptyPosSummary());
+  receivableSearchDraft = '';
+  receivableSearch = signal('');
+  private receivableSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly menuTabs: TabItem[] = [
     { id: 'pos', title: 'Puntos de venta' },
@@ -54,6 +65,7 @@ export class AccountingPageComponent implements OnInit {
     { id: 'payable', title: 'Cuentas por pagar' },
     { id: 'receivable', title: 'Cuentas por cobrar' },
     { id: 'debt-flow', title: 'Flujo de deuda' },
+    { id: 'average-cost', title: 'Rep. costo promedio' },
   ];
 
   constructor(
@@ -71,9 +83,21 @@ export class AccountingPageComponent implements OnInit {
     this.loadBranches();
   }
 
+  ngOnDestroy(): void {
+    if (this.receivableSearchTimer) clearTimeout(this.receivableSearchTimer);
+  }
+
+  onReceivableSearch(value: string): void {
+    this.receivableSearchDraft = value;
+    if (this.receivableSearchTimer) clearTimeout(this.receivableSearchTimer);
+    this.receivableSearchTimer = setTimeout(() => {
+      this.receivableSearch.set(value.trim());
+    }, 300);
+  }
+
   showPeriodFilters(): boolean {
     const tab = this.activeTab();
-    return tab !== 'payable' && tab !== 'debt-flow';
+    return tab !== 'payable' && tab !== 'debt-flow' && tab !== 'average-cost';
   }
 
   posDayOnlyFilters(): boolean {

@@ -1089,6 +1089,50 @@
   }
 }
 
+.cobranza-order-currency {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cobranza-currency-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.cobranza-currency-toggle button {
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.cobranza-currency-toggle__btn--active {
+  border-color: #047857;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.cobranza-currency-fixed {
+  margin: 0.4rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cobranza-currency-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #64748b;
+}
+
 .cobranza-invoice-switch {
   margin-top: 0.65rem;
 }

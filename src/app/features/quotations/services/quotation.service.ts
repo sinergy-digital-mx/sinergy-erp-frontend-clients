@@ -165,6 +165,7 @@ export class QuotationService {
       forma_pago: string;
       regimen_fiscal_receptor: string;
       metodo_pago: 'PUE' | 'PPD';
+      environment?: 'demo' | 'production';
     },
   ): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/${id}/invoices/stamp-advance`, body);

@@ -116,9 +116,14 @@ export class SalesOrderInvoiceService {
     );
   }
 
-  stampPaymentComplement(orderId: string): Observable<SalesOrderElectronicInvoice> {
+  stampPaymentComplement(
+    orderId: string,
+    environment?: 'demo' | 'production',
+  ): Observable<SalesOrderElectronicInvoice> {
     return this.http
-      .post<unknown>(`${this.baseUrl}/${orderId}/invoices/payment-complement`, {})
+      .post<unknown>(`${this.baseUrl}/${orderId}/invoices/payment-complement`, {
+        environment,
+      })
       .pipe(map((response) => this.normalizeInvoice(response)));
   }
 
@@ -129,6 +134,7 @@ export class SalesOrderInvoiceService {
     forma_pago: string;
     regimen_fiscal_receptor: string;
     metodo_pago: 'PUE' | 'PPD';
+    environment?: 'demo' | 'production';
   }): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/${orderId}/invoices/stamp-advance`, payload);
   }
@@ -138,6 +144,7 @@ export class SalesOrderInvoiceService {
     forma_pago: string;
     regimen_fiscal_receptor: string;
     metodo_pago: 'PUE' | 'PPD';
+    environment?: 'demo' | 'production';
   }): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/${orderId}/invoices/apply-advance`, payload);
   }

@@ -1,9 +1,6 @@
-import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
+import { Component, Input, OnChanges, OnInit, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { AccountingService } from '../../services/accounting.service';
@@ -14,18 +11,17 @@ import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calc
 @Component({
   selector: 'app-accounts-receivable-tab',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, DatatableWrapperComponent],
+  imports: [CommonModule, DatatableWrapperComponent],
   templateUrl: './accounts-receivable-tab.component.html',
   styleUrl: './accounts-receivable-tab.component.scss',
 })
-export class AccountsReceivableTabComponent implements OnInit, OnChanges, OnDestroy {
+export class AccountsReceivableTabComponent implements OnInit, OnChanges {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
 
   @Input() billingBranchId?: string;
+  @Input() search = '';
   @Input() reloadToken = 0;
 
-  searchControl = new FormControl('', { nonNullable: true });
-  private destroy$ = new Subject<void>();
   summary = signal<AccountsReceivableListSummary | null>(null);
 
   tableConfig = signal<IDatatableConfig>({
@@ -54,26 +50,19 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges, OnDest
   ) {}
 
   ngOnInit(): void {
-    this.searchControl.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe(() => this.loadPage(1));
-
     this.loadPage(1);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['billingBranchId'] && !changes['billingBranchId'].firstChange) {
+    const branchChanged = !!changes['billingBranchId'] && !changes['billingBranchId'].firstChange;
+    const searchChanged = !!changes['search'] && !changes['search'].firstChange;
+    if (branchChanged || searchChanged) {
       this.loadPage(1);
       return;
     }
     if (changes['reloadToken'] && !changes['reloadToken'].firstChange) {
       this.loadPage(this.tableConfig().page ?? 1);
     }
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   formatCurrency(value: number): string {
@@ -101,7 +90,7 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges, OnDest
     this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
 
     this.accountingService
-      .getAccountsReceivable(this.billingBranchId, this.searchControl.value, page, this.tableConfig().limit)
+      .getAccountsReceivable(this.billingBranchId, this.search, page, this.tableConfig().limit)
       .subscribe({
         next: (res) => {
           this.summary.set(res.summary ?? null);

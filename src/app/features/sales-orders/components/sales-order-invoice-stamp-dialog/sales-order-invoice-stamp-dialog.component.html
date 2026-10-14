@@ -103,8 +103,24 @@
             <p><span>Tipo</span>{{ receptorPersonLabel }}</p>
           }
           <p><span>Total OV</span>{{ formatCurrency(data.order.total ?? data.order.requested_total) }}</p>
+          <p><span>Total factura</span>{{ invoiceTotalLabel() }}</p>
         </section>
       </div>
+
+      <section class="currency-section">
+        <h3>Moneda</h3>
+        <p class="currency-section__label" [class.currency-section__label--usd]="invoiceCurrency() === 'USD'">
+          {{ invoiceCurrencyLabel() }}
+        </p>
+        @if (invoiceCurrency() === 'USD' && invoiceExchangeRateLabel()) {
+          <p class="currency-section__hint">Tipo de cambio {{ invoiceExchangeRateLabel() }} pesos por dólar.</p>
+        }
+        @if (!invoiceCurrencyReady()) {
+          <div class="alert alert--error">
+            La orden es en dólares y no tiene tipo de cambio. No se puede timbrar.
+          </div>
+        }
+      </section>
 
       <form [formGroup]="form" (ngSubmit)="submit()">
         <div class="form-grid">

@@ -92,7 +92,12 @@ import { SalesOrderShippingTabComponent } from '../sales-order-shipping-tab/sale
 import { SalesOrderCreditTabComponent } from '../sales-order-credit-tab/sales-order-credit-tab.component';
 import { SalesOrderSubscriptionLinkComponent } from '../sales-order-subscription-link/sales-order-subscription-link.component';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
-import { SalesOrderPaymentComplementStatus } from '../../models/sales-order-electronic-invoice.model';
+import {
+  defaultStampEnvironment,
+  isLocalStampHost,
+  SalesOrderPaymentComplementStatus,
+} from '../../models/sales-order-electronic-invoice.model';
+import type { FinkokEnvironment } from '../../models/sales-order-electronic-invoice.model';
 import { AdvanceInvoiceDialogComponent } from '../advance-invoice-dialog/advance-invoice-dialog.component';
 import { countVigenteInvoices } from '../../utils/cfdi-xml-builder.util';
 import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
@@ -281,6 +286,8 @@ export class SalesOrderDetailDialogComponent {
   invoiceEmailsCount = signal(0);
   paymentComplement = signal<SalesOrderPaymentComplementStatus | null>(null);
   stampingPaymentComplement = signal(false);
+  cepEnvironment = signal<FinkokEnvironment>(defaultStampEnvironment());
+  private cepEnvironmentTouched = false;
   openingPaymentComplementPdf = signal(false);
 
   canViewInvoicingTab = computed(() =>
@@ -1063,10 +1070,47 @@ export class SalesOrderDetailDialogComponent {
     return currency === 'USD' ? 'USD' : 'MXN';
   }
 
+  documentCurrency(): SalesOrderPaymentCurrency {
+    return this.order()?.currency === 'USD' ? 'USD' : 'MXN';
+  }
+
+  orderCurrencyLabel(): string {
+    return this.documentCurrency() === 'USD' ? 'Esta orden es en USD' : 'Esta orden es en MXN';
+  }
+
+  exchangeRateText(): string {
+    const rate = Number(this.order()?.exchange_rate);
+    return rate > 0 ? rate.toFixed(4) : '';
+  }
+
+  usdInvoiceTotal(): string {
+    const total = this.parseNumber(this.getTotalsSnapshot().total);
+    const rate = Number(this.order()?.exchange_rate);
+    if (!(rate > 0)) return '—';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total / rate);
+  }
+
   showPaymentComplementCard(): boolean {
     const status = this.paymentComplement();
     if (!this.canViewInvoicingTab() || !status) return false;
     return status.paid || !!status.payment_complement;
+  }
+
+  selectCepEnvironment(environment: FinkokEnvironment): void {
+    if (this.stampingPaymentComplement() || environment === this.cepEnvironment()) return;
+    if (environment === 'production' && isLocalStampHost()) {
+      const confirmed = window.confirm(
+        'Esto timbrará un CEP real con Finkok producción. ¿Continuar?',
+      );
+      if (!confirmed) return;
+    }
+    this.cepEnvironmentTouched = true;
+    this.cepEnvironment.set(environment);
+  }
+
+  cepEnvironmentMismatch(): boolean {
+    const related = this.paymentComplement()?.related_environment;
+    return !!related && related !== this.cepEnvironment();
   }
 
   generatePaymentComplement(): void {
@@ -1077,11 +1121,12 @@ export class SalesOrderDetailDialogComponent {
     ) {
       return;
     }
+    const environment = this.cepEnvironment();
     this.stampingPaymentComplement.set(true);
-    this.invoiceService.stampPaymentComplement(this.data.orderId).subscribe({
+    this.invoiceService.stampPaymentComplement(this.data.orderId, environment).subscribe({
       next: () => {
         this.stampingPaymentComplement.set(false);
-        this.toast.success('CEP timbrado');
+        this.toast.success(environment === 'demo' ? 'CEP de prueba timbrado' : 'CEP timbrado');
         this.loadPaymentComplement();
         this.loadInvoiceSummaryIfAllowed();
       },
@@ -1142,7 +1187,12 @@ export class SalesOrderDetailDialogComponent {
       return;
     }
     this.invoiceService.getPaymentComplement(this.data.orderId).subscribe({
-      next: (status) => this.paymentComplement.set(status),
+      next: (status) => {
+        this.paymentComplement.set(status);
+        if (!this.cepEnvironmentTouched && status.related_environment) {
+          this.cepEnvironment.set(status.related_environment);
+        }
+      },
       error: () => this.paymentComplement.set(null),
     });
   }

@@ -19,6 +19,7 @@ import { BranchService } from '../../../settings/services/branch.service';
 import { Branch } from '../../../settings/models/branch.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
+import { ExchangeRateService } from '../../../../core/services/exchange-rate.service';
 
 interface LineItem {
   product_id: string;
@@ -87,6 +88,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   };
 
   private destroy$ = new Subject<void>();
+  dailyExchangeRate: number | null = null;
   private productSearch$ = new Subject<string>();
   private productsSub?: Subscription;
   private hydrating = false;
@@ -124,6 +126,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private toast: ToastService,
     private auth: AuthService,
+    private exchangeRateService: ExchangeRateService,
     private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<CreateSalesOrderModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
@@ -135,6 +138,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       customer_id: ['', Validators.required],
       expected_delivery_date: ['', Validators.required],
       sale_scope: ['inventory' as SalesOrderSaleScope, Validators.required],
+      currency: ['MXN' as 'MXN' | 'USD', Validators.required],
       requires_selection_assembly: [false],
       notes: ['']
     });
@@ -172,7 +176,23 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       }
       this.filterCustomers(value ?? '');
     });
+    if (!this.asQuotation) {
+      this.exchangeRateService.getDailyExchangeRate().subscribe({
+        next: (rate) => {
+          const value = Number(rate?.exchange_rate);
+          this.dailyExchangeRate = value > 0 ? value : null;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.dailyExchangeRate = null;
+        },
+      });
+    }
     void this.initForm();
+  }
+
+  get orderCurrency(): 'MXN' | 'USD' {
+    return this.form.get('currency')?.value === 'USD' ? 'USD' : 'MXN';
   }
 
   ngOnDestroy(): void {
@@ -938,6 +958,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       sale_scope: fv.sale_scope || 'inventory',
       requires_selection_assembly: fv.sale_scope === 'services' ? false : !!fv.requires_selection_assembly,
       notes: (fv.notes || '').trim() || undefined,
+      currency: (fv.currency === 'USD' ? 'USD' : 'MXN') as 'MXN' | 'USD',
       line_items: lineItems,
     };
 

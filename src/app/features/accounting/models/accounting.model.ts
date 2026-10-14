@@ -3,11 +3,15 @@ import { PosUserSummary } from '../../sales-orders/models/sales-order.model';
 
 export type AccountingPeriod = Exclude<ReportPeriod, 'year'>;
 
+export type PosCollectionDateBasis = 'shift' | 'collected';
+
 export interface AccountingPeriodQuery {
   period: AccountingPeriod;
   billing_branch_id?: string;
   date_from?: string;
   date_to?: string;
+  /** `collected` = día de cobro. `shift` = fecha del corte. */
+  date_basis?: PosCollectionDateBasis;
 }
 
 export interface AccountingFiltersApplied {
@@ -15,6 +19,7 @@ export interface AccountingFiltersApplied {
   period: AccountingPeriod;
   date_from?: string | null;
   date_to?: string | null;
+  date_basis?: PosCollectionDateBasis | null;
 }
 
 export type PosTerminalType = 'VENTAS' | 'COBRANZA';
@@ -95,11 +100,32 @@ export interface PosTerminalSaleRow {
 
 export type CollectionCustomerType = 'all' | 'walk_in' | 'invoiced';
 
+export interface PosCollectionBranch {
+  id?: string | null;
+  code?: string | null;
+  city?: string | null;
+  label?: string | null;
+}
+
+export interface PosCollectionsSummary {
+  orders_collected: number;
+  amount_collected: number;
+  walk_in_count: number;
+  invoiced_count: number;
+}
+
+export interface PosCollectionsPage extends AccountingPaginatedResponse<PosCollectionRow, PosCollectionsSummary> {
+  filtered_amount: number;
+  filters_applied: AccountingFiltersApplied;
+}
+
 export interface PosCollectionRow {
   id: string;
   folio?: string;
   created_at: string;
   collected_at?: string;
+  shift_date?: string | null;
+  billing_branch?: PosCollectionBranch | null;
   customer_company_name?: string | null;
   customer_person_name?: string | null;
   customer_display_name?: string;
@@ -115,16 +141,26 @@ export interface PosCollectionRow {
   payment_status?: string;
 }
 
+export type PayableCurrencyView = 'all' | 'mxn' | 'usd';
+
 export interface AccountsPayableVendorRow {
   vendor_id: string;
   vendor_name?: string;
-  razon_social?: string;
-  company_name?: string;
+  razon_social?: string | null;
+  company_name?: string | null;
   pending_order_count: number;
+  pending_order_count_mxn: number;
+  pending_order_count_usd: number;
   amount_pending: number;
+  amount_pending_mxn: number;
+  amount_pending_usd: number;
   progress_percentage: number;
+  progress_percentage_mxn: number;
+  progress_percentage_usd: number;
   credit_limit?: number | null;
   total_committed?: number | null;
+  total_committed_mxn?: number | null;
+  total_committed_usd?: number | null;
 }
 
 export interface AccountsPayableVendorDetail {
@@ -209,11 +245,42 @@ export interface AccountingPaginatedResponse<T, S = undefined> {
 }
 
 export interface AccountsPayableListSummary {
+  currency?: PayableCurrencyView;
   total_vendors?: number;
   total_amount_pending?: number;
+  total_amount_pending_mxn?: number;
+  total_amount_pending_usd?: number;
+  total_pending_orders_mxn?: number;
+  total_pending_orders_usd?: number;
 }
 
 export interface AccountsReceivableListSummary {
   total_accounts?: number;
   total_amount_pending?: number;
+}
+
+export type AverageCostBasis = 'real' | 'purchase' | 'mixed';
+
+export interface AverageCostReportRow {
+  product_id: string;
+  sku: string;
+  name: string;
+  sat_clave: string | null;
+  pedimentos: string[];
+  price: number | null;
+  price_list_name: string | null;
+  average_cost: number;
+  quantity: number;
+  total_cost: number;
+  margin_amount: number | null;
+  margin_percent: number | null;
+  cost_basis: AverageCostBasis;
+  receipt_count: number;
+}
+
+export interface AverageCostReportSummary {
+  product_count: number;
+  total_quantity: number;
+  total_cost: number;
+  real_cost_product_count: number;
 }

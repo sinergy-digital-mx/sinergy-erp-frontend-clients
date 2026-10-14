@@ -1,14 +1,56 @@
 <div class="payable-tab">
+  <div class="payable-toolbar">
+    <div class="payable-view-toggle" role="tablist" aria-label="Moneda de cuentas por pagar">
+      @for (view of views; track view.id) {
+        <button
+          type="button"
+          role="tab"
+          class="payable-view-toggle__btn"
+          [class.payable-view-toggle__btn--active]="currencyView() === view.id"
+          [attr.aria-selected]="currencyView() === view.id"
+          [disabled]="tableConfig().loading"
+          (click)="setCurrencyView(view.id)">
+          {{ view.label }}
+        </button>
+      }
+    </div>
+
+    <button
+      type="button"
+      class="payable-export"
+      [disabled]="exporting() || tableConfig().loading"
+      [title]="currencyView() === 'all' ? 'El archivo trae una hoja de pesos y otra de dólares' : 'Descarga la lista de esta vista'"
+      (click)="downloadExcel()">
+      {{ exporting() ? 'Descargando…' : 'Descargar Excel' }}
+    </button>
+  </div>
+
+  @if (currencyView() === 'all') {
+    <p class="payable-hint">Ambos muestra pesos y dólares. El Excel de esta vista trae dos hojas, una por moneda.</p>
+  }
+
   @if (summary()) {
-    <div class="payable-summary">
+    <div class="payable-summary" [class.payable-summary--single]="currencyView() !== 'all'">
       <div class="payable-summary__card">
         <span class="payable-summary__label">Proveedores con saldo</span>
         <span class="payable-summary__value">{{ summary()!.total_vendors ?? 0 }}</span>
       </div>
-      <div class="payable-summary__card">
-        <span class="payable-summary__label">Total adeudado</span>
-        <span class="payable-summary__value">{{ formatCurrency(summary()!.total_amount_pending ?? 0) }}</span>
-      </div>
+
+      @if (showsMxn()) {
+        <div class="payable-summary__card">
+          <span class="payable-summary__label">Adeudado en pesos</span>
+          <span class="payable-summary__value">{{ formatMoney(summary()!.total_amount_pending_mxn, 'MXN') }}</span>
+          <span class="currency-badge currency-badge--mxn">{{ summary()!.total_pending_orders_mxn ?? 0 }} OC</span>
+        </div>
+      }
+
+      @if (showsUsd()) {
+        <div class="payable-summary__card">
+          <span class="payable-summary__label">Adeudado en dólares</span>
+          <span class="payable-summary__value">{{ formatMoney(summary()!.total_amount_pending_usd, 'USD') }}</span>
+          <span class="currency-badge currency-badge--usd">{{ summary()!.total_pending_orders_usd ?? 0 }} OC</span>
+        </div>
+      }
     </div>
   }
 
@@ -39,25 +81,51 @@
       {{ vendorLabel(item) }}
     </button>
   </td>
-  <td class="px-2 py-2">
-    <button
-      type="button"
-      class="row-link"
-      title="Ver órdenes de compra pendientes de pago"
-      (click)="openVendorPurchaseOrders(item); $event.stopPropagation()">
-      {{ item.pending_order_count }}
-    </button>
-  </td>
-  <td class="px-2 py-2">{{ formatCurrency(item.amount_pending) }}</td>
-  <td class="px-2 py-2">
-    <div class="progress-cell">
-      <div class="progress-bar">
-        <div
-          class="progress-bar__fill progress-bar__fill--{{ progressColor(item.progress_percentage) }}"
-          [style.width.%]="Math.min(item.progress_percentage, 100)">
-        </div>
+
+  @if (showsMxn()) {
+    <td class="px-2 py-2">
+      <div class="money-cell">
+        <span class="money-cell__amount">{{ formatMoney(item.amount_pending_mxn, 'MXN') }}</span>
+        <span class="currency-badge currency-badge--mxn">{{ item.pending_order_count_mxn }} OC</span>
       </div>
-      <span class="progress-cell__pct">{{ item.progress_percentage | number:'1.0-0' }}%</span>
+    </td>
+  }
+
+  @if (showsUsd()) {
+    <td class="px-2 py-2">
+      <div class="money-cell">
+        <span class="money-cell__amount">{{ formatMoney(item.amount_pending_usd, 'USD') }}</span>
+        <span class="currency-badge currency-badge--usd">{{ item.pending_order_count_usd }} OC</span>
+      </div>
+    </td>
+  }
+
+  <td class="px-2 py-2">
+    <div class="progress-stack">
+      @if (showsMxn()) {
+        <div class="progress-line">
+          <span class="currency-badge currency-badge--mxn">MXN</span>
+          <div class="progress-bar">
+            <div
+              class="progress-bar__fill progress-bar__fill--{{ progressColor(item.progress_percentage_mxn) }}"
+              [style.width.%]="barWidth(item.progress_percentage_mxn)">
+            </div>
+          </div>
+          <span class="progress-cell__pct">{{ item.progress_percentage_mxn | number:'1.0-0' }}%</span>
+        </div>
+      }
+      @if (showsUsd()) {
+        <div class="progress-line">
+          <span class="currency-badge currency-badge--usd">USD</span>
+          <div class="progress-bar">
+            <div
+              class="progress-bar__fill progress-bar__fill--{{ progressColor(item.progress_percentage_usd) }}"
+              [style.width.%]="barWidth(item.progress_percentage_usd)">
+            </div>
+          </div>
+          <span class="progress-cell__pct">{{ item.progress_percentage_usd | number:'1.0-0' }}%</span>
+        </div>
+      }
     </div>
   </td>
 </ng-template>

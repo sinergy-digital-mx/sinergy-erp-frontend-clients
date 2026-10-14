@@ -55,6 +55,7 @@ export interface SalesOrderPaymentComplementStatus {
   can_generate: boolean;
   reason: string | null;
   payment_complement: SalesOrderPaymentComplement | null;
+  related_environment?: 'demo' | 'production' | null;
 }
 
 export interface StampSalesOrderInvoicePayload {

@@ -90,8 +90,29 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
       this.data.canStamp &&
       this.hasSelectedEnvCredentials() &&
       !this.stamping() &&
-      !this.blocksProductionStamp()
+      !this.blocksProductionStamp() &&
+      this.invoiceCurrencyReady()
   );
+
+  invoiceCurrency(): 'MXN' | 'USD' {
+    return this.data.order.currency === 'USD' ? 'USD' : 'MXN';
+  }
+
+  invoiceCurrencyReady(): boolean {
+    if (this.invoiceCurrency() !== 'USD') return true;
+    return Number(this.data.order.exchange_rate) > 0;
+  }
+
+  invoiceCurrencyLabel(): string {
+    return this.invoiceCurrency() === 'USD'
+      ? 'Esta factura es en USD porque la orden es en USD.'
+      : 'Esta factura es en MXN porque la orden es en MXN.';
+  }
+
+  invoiceExchangeRateLabel(): string {
+    const rate = Number(this.data.order.exchange_rate);
+    return rate > 0 ? rate.toFixed(6) : '';
+  }
 
   generatedXml = computed(() => {
     const values = this.form?.getRawValue() as CfdiWizardFormValues;
@@ -225,6 +246,16 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
 
   formatCurrency(value: number | string | undefined | null): string {
     return formatUnitCurrency(value);
+  }
+
+  invoiceTotalLabel(): string {
+    const total = Number(this.data.order.total ?? this.data.order.requested_total ?? 0);
+    if (this.invoiceCurrency() !== 'USD') {
+      return `${this.formatCurrency(total)} MXN`;
+    }
+    const rate = Number(this.data.order.exchange_rate);
+    if (!(rate > 0)) return '—';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total / rate);
   }
 
   setConceptDescription(index: number, value: string): void {

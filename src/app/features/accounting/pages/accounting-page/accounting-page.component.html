@@ -14,6 +14,20 @@
 
     @if (showPeriodFilters()) {
       <div class="accounting-toolbar">
+        @if (activeTab() === 'receivable') {
+          <div class="accounting-filters__field accounting-filters__field--search">
+            <label class="accounting-filters__label" for="accounting-receivable-search">Buscar</label>
+            <input
+              id="accounting-receivable-search"
+              type="search"
+              class="accounting-filters__input"
+              [ngModel]="receivableSearchDraft"
+              (ngModelChange)="onReceivableSearch($event)"
+              placeholder="Razón social o RFC"
+              aria-label="Buscar cuentas por cobrar" />
+          </div>
+        }
+
         <div class="accounting-filters__field">
           <label class="accounting-filters__label" for="accounting-branch">
             Sucursal
@@ -100,11 +114,16 @@
       @if (activeTab() === 'receivable') {
         <app-accounts-receivable-tab
           [billingBranchId]="billingBranchId() || undefined"
+          [search]="receivableSearch()"
           [reloadToken]="reloadToken()" />
       }
 
       @if (activeTab() === 'debt-flow') {
         <app-customer-debt-flow [embedded]="true" />
+      }
+
+      @if (activeTab() === 'average-cost') {
+        <app-average-cost-report-tab [reloadToken]="reloadToken()" />
       }
     </div>
   </div>

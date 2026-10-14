@@ -1265,6 +1265,40 @@
                   </div>
                 }
 
+                <section class="cobranza-order-currency">
+                  <h3 class="cobranza-block__title">Moneda de la orden</h3>
+                  @if (canChooseUsdOrder()) {
+                    <div class="cobranza-currency-toggle" role="group" aria-label="Moneda de la orden">
+                      <button
+                        type="button"
+                        [class.cobranza-currency-toggle__btn--active]="documentCurrency() === 'MXN'"
+                        (click)="orderCurrencyChoice.set('MXN')">
+                        Pesos (MXN)
+                      </button>
+                      <button
+                        type="button"
+                        [class.cobranza-currency-toggle__btn--active]="documentCurrency() === 'USD'"
+                        (click)="orderCurrencyChoice.set('USD')">
+                        Dólares (USD)
+                      </button>
+                    </div>
+                    <p class="cobranza-currency-hint">
+                      @if (documentCurrency() === 'USD') {
+                        Esta orden es en USD. La factura sale en dólares.
+                      } @else {
+                        El pago en dólares es mayor. Puedes dejarla en pesos o pasarla a dólares.
+                      }
+                    </p>
+                  } @else {
+                    <p class="cobranza-currency-fixed">Esta orden es en MXN</p>
+                    @if (hasUsdPayment()) {
+                      <p class="cobranza-currency-hint">
+                        El pago en dólares no es mayor que el de pesos, así que la orden y la factura quedan en pesos.
+                      </p>
+                    }
+                  }
+                </section>
+
                 @if (collectError()) {
                   <p class="cobranza-form-error">{{ collectError() }}</p>
                 }

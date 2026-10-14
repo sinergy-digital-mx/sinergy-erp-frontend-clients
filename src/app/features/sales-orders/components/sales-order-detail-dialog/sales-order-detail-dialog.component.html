@@ -69,10 +69,10 @@
       </div>
       <div class="dialog-header-actions">
         <span
-          class="currency-badge"
-          [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
-          [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
-          {{ getPaymentCurrency() }}
+          class="currency-badge currency-badge--order"
+          [class.currency-badge--usd]="documentCurrency() === 'USD'"
+          [title]="orderCurrencyLabel()">
+          {{ orderCurrencyLabel() }}
         </span>
         @if (getPaymentStatus()) {
           <span class="status-badge" [ngClass]="getPaymentStatusBadgeClass()">
@@ -465,10 +465,10 @@
             <div class="section-header__title">
               <h3 class="section-title">TOTALES</h3>
               <span
-                class="currency-badge"
-                [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
-                [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
-                {{ getPaymentCurrency() }}
+                class="currency-badge currency-badge--order"
+                [class.currency-badge--usd]="documentCurrency() === 'USD'"
+                [title]="orderCurrencyLabel()">
+                {{ orderCurrencyLabel() }}
               </span>
             </div>
             <div class="toggle-container">
@@ -522,6 +522,18 @@
             <span class="totals-label-total">Total</span>
             <span class="totals-value-total" [ngClass]="getTotalColor()">{{ getDisplayedTotal() }}</span>
           </div>
+          @if (documentCurrency() === 'USD') {
+            <div class="totals-row">
+              <span class="totals-label">Total factura USD</span>
+              <span class="totals-value-total">{{ usdInvoiceTotal() }}</span>
+            </div>
+            <p class="currency-note">
+              Los importes de la orden están en pesos. La factura sale en dólares
+              @if (exchangeRateText()) {
+                al tipo de cambio {{ exchangeRateText() }}.
+              }
+            </p>
+          }
         </div>
 
         <div class="section-card section-card--notes">
@@ -849,8 +861,16 @@
                       </p>
                     } @else if (paymentComplement()?.can_generate) {
                       <p class="cep-card__text">
-                        La venta está pagada. Timbrar el CEP ante el SAT con Finkok.
+                        La venta está pagada. Timbrar el CEP con Finkok
+                        {{ cepEnvironment() === 'demo' ? 'demo' : 'producción' }}.
                       </p>
+                      @if (cepEnvironmentMismatch()) {
+                        <p class="cep-card__text">
+                          La factura se timbró en
+                          {{ paymentComplement()?.related_environment === 'demo' ? 'demo' : 'producción' }}.
+                          El CEP debe ir en el mismo ambiente.
+                        </p>
+                      }
                     } @else if (paymentComplement()?.reason) {
                       <p class="cep-card__text">{{ paymentComplement()?.reason }}</p>
                     }
@@ -869,6 +889,24 @@
                         XML
                       </button>
                     } @else if (paymentComplement()?.can_generate && canStampPaymentComplement()) {
+                      <div class="cep-env" role="group" aria-label="Ambiente Finkok del CEP">
+                        <button
+                          type="button"
+                          class="cep-env__btn"
+                          [class.cep-env__btn--active]="cepEnvironment() === 'demo'"
+                          [disabled]="stampingPaymentComplement()"
+                          (click)="selectCepEnvironment('demo')">
+                          Demo
+                        </button>
+                        <button
+                          type="button"
+                          class="cep-env__btn"
+                          [class.cep-env__btn--active]="cepEnvironment() === 'production'"
+                          [disabled]="stampingPaymentComplement()"
+                          (click)="selectCepEnvironment('production')">
+                          Producción
+                        </button>
+                      </div>
                       <button
                         type="button"
                         class="btn-primary"

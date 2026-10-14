@@ -101,7 +101,7 @@
           </div>
         </div>
         <p class="sf-money-hint">
-          MXN · cada cargo y abono queda <strong>congelado</strong> al capturarse.
+          Cada orden conserva su moneda. Pesos y dólares no se suman.
           Antigüedad al corte del periodo. Flujo: saldo de cada OV y abonos del rango.
         </p>
       </div>
@@ -130,23 +130,40 @@
               message="Sin saldos al corte"
               sub_message="No hay clientes con deuda abierta en esta razón social." />
           } @else {
+            @if (agingTotals(); as totals) {
+              <div class="debt-summary" aria-label="Saldos por moneda">
+                <article class="debt-summary__card">
+                  <span class="debt-summary__label">Clientes</span>
+                  <strong class="debt-summary__value">{{ totals.customer_count }}</strong>
+                  <span class="debt-summary__meta">{{ orderCountLabel(totals.open_order_count) }} abiertas</span>
+                </article>
+                <article class="debt-summary__card debt-summary__card--mxn">
+                  <span class="debt-summary__label">Pesos</span>
+                  <strong class="debt-summary__value">{{ formatMoney(totals.total, 'MXN') }}</strong>
+                  <span class="debt-summary__meta">{{ orderCountLabel(totals.mxn_order_count) }}</span>
+                </article>
+                <article class="debt-summary__card debt-summary__card--usd">
+                  <span class="debt-summary__label">Dólares</span>
+                  <strong class="debt-summary__value">{{ formatMoney(totals.usd_total, 'USD') }}</strong>
+                  <span class="debt-summary__meta">{{ orderCountLabel(totals.usd_order_count) }}</span>
+                </article>
+              </div>
+            }
             <div class="sf-table-wrap">
-              <table class="sf-table sf-table--grouped">
+              <table class="sf-table debt-aging">
                 <thead>
-                  <tr class="sf-head-groups">
-                    <th rowspan="2" class="sf-col-product sf-th-sticky">Cliente</th>
-                    <th rowspan="2">Sucursal</th>
-                    <th rowspan="2">Órdenes</th>
-                    <th colspan="5" class="sf-group sf-group--out">Antigüedad</th>
-                    <th rowspan="2" class="sf-num sf-group--fin">Total</th>
-                    <th rowspan="2" class="sf-num">Límite</th>
-                  </tr>
-                  <tr class="sf-head-subs">
-                    <th class="sf-num sf-group--ini">Por vencer</th>
-                    <th class="sf-num sf-group--in">1–30</th>
-                    <th class="sf-num sf-group--xfer">31–60</th>
-                    <th class="sf-num sf-group--adj">61–90</th>
-                    <th class="sf-num sf-group--out">+90</th>
+                  <tr>
+                    <th class="sf-col-product sf-th-sticky">Cliente</th>
+                    <th>Sucursal</th>
+                    <th class="sf-num debt-th debt-th--mxn">
+                      <span class="debt-th__title">Pesos</span>
+                      <span class="debt-th__sub">Órdenes y saldo</span>
+                    </th>
+                    <th class="sf-num debt-th debt-th--usd">
+                      <span class="debt-th__title">Dólares</span>
+                      <span class="debt-th__sub">Órdenes y saldo</span>
+                    </th>
+                    <th class="sf-num">Límite</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -163,13 +180,42 @@
                           {{ row.billing_branch_name || '—' }}
                         </span>
                       </td>
-                      <td class="sf-num"><span class="sf-v sf-v--qty">{{ row.open_order_count }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--sale">{{ formatMoney(row.current) }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.d1_30) }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.d31_60) }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--cost">{{ formatMoney(row.d61_90) }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--out">{{ formatMoney(row.d91_plus) }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(row.total) }}</span></td>
+                      <td class="sf-num debt-col debt-col--mxn" [title]="agingTitle(row, 'MXN')">
+                        @if (row.mxn_order_count > 0) {
+                          <div class="debt-denom">
+                            <span class="debt-denom__amount">{{ formatMoney(row.total, 'MXN') }}</span>
+                            <span class="debt-denom__count">{{ orderCountLabel(row.mxn_order_count) }}</span>
+                            @if (row.current > 0) {
+                              <span class="debt-denom__aging">Por vencer {{ formatMoney(row.current, 'MXN') }}</span>
+                            }
+                            @if (overdue(row, 'MXN') > 0) {
+                              <span class="debt-denom__aging debt-denom__aging--late">
+                                Vencido {{ formatMoney(overdue(row, 'MXN'), 'MXN') }}
+                              </span>
+                            }
+                          </div>
+                        } @else {
+                          <span class="debt-denom--empty">—</span>
+                        }
+                      </td>
+                      <td class="sf-num debt-col debt-col--usd" [title]="agingTitle(row, 'USD')">
+                        @if (row.usd_order_count > 0) {
+                          <div class="debt-denom">
+                            <span class="debt-denom__amount">{{ formatMoney(row.usd_total, 'USD') }}</span>
+                            <span class="debt-denom__count debt-denom__count--usd">{{ orderCountLabel(row.usd_order_count) }}</span>
+                            @if (row.usd_current > 0) {
+                              <span class="debt-denom__aging">Por vencer {{ formatMoney(row.usd_current, 'USD') }}</span>
+                            }
+                            @if (overdue(row, 'USD') > 0) {
+                              <span class="debt-denom__aging debt-denom__aging--late">
+                                Vencido {{ formatMoney(overdue(row, 'USD'), 'USD') }}
+                              </span>
+                            }
+                          </div>
+                        } @else {
+                          <span class="debt-denom--empty">—</span>
+                        }
+                      </td>
                       <td class="sf-num">
                         <span class="sf-v sf-v--qty">
                           {{ row.credit_limit != null ? formatMoney(row.credit_limit) : '—' }}
@@ -186,13 +232,18 @@
                     <tr class="sf-totals">
                       <td class="sf-th-sticky sf-totals__label">Total</td>
                       <td></td>
-                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ totals.open_order_count }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(totals.current) }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totals.d1_30) }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totals.d31_60) }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(totals.d61_90) }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--qty sf-v--strong">{{ formatMoney(totals.d91_plus) }}</span></td>
-                      <td class="sf-num"><span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(totals.total) }}</span></td>
+                      <td class="sf-num debt-col debt-col--mxn">
+                        <div class="debt-denom">
+                          <span class="debt-denom__amount">{{ formatMoney(totals.total, 'MXN') }}</span>
+                          <span class="debt-denom__count">{{ orderCountLabel(totals.mxn_order_count) }}</span>
+                        </div>
+                      </td>
+                      <td class="sf-num debt-col debt-col--usd">
+                        <div class="debt-denom">
+                          <span class="debt-denom__amount">{{ formatMoney(totals.usd_total, 'USD') }}</span>
+                          <span class="debt-denom__count debt-denom__count--usd">{{ orderCountLabel(totals.usd_order_count) }}</span>
+                        </div>
+                      </td>
                       <td></td>
                     </tr>
                   </tfoot>
@@ -218,7 +269,8 @@
                     <th class="sf-num">Cargo</th>
                     <th class="sf-num">Abono</th>
                     <th class="sf-num">Saldo de la orden</th>
-                    <th class="sf-num">Saldo del cliente</th>
+                    <th class="sf-num">Saldo MXN</th>
+                    <th class="sf-num">Saldo USD</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -248,6 +300,11 @@
                         @if (row.sales_order_id) {
                           <button type="button" class="debt-order" (click)="openOrder(row, $event)">
                             <span class="debt-order__folio">{{ row.folio || 'Orden' }}</span>
+                            <span
+                              class="debt-currency"
+                              [class.debt-currency--usd]="row.currency === 'USD'">
+                              {{ row.currency === 'USD' ? 'USD' : 'MXN' }}
+                            </span>
                             <span class="debt-order__action">Ver detalle</span>
                           </button>
                         } @else {
@@ -261,16 +318,27 @@
                         </div>
                       </td>
                       <td class="sf-num">
-                        <span class="sf-v sf-v--qty sf-v--out">{{ formatMoney(row.charge_amount) }}</span>
+                        <span class="sf-v sf-v--qty sf-v--out">{{ formatMoney(row.charge_amount, row.currency) }}</span>
                       </td>
                       <td class="sf-num">
-                        <span class="sf-v sf-v--qty sf-v--in">{{ formatMoney(row.payment_amount) }}</span>
+                        <span class="sf-v sf-v--qty sf-v--in">{{ formatMoney(row.payment_amount, row.currency) }}</span>
                       </td>
                       <td class="sf-num">
-                        <span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(row.order_balance_after) }}</span>
+                        <span class="sf-v sf-v--cost sf-v--strong">{{ formatMoney(row.order_balance_after, row.currency) }}</span>
                       </td>
                       <td class="sf-num">
-                        <span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(row.balance_after) }}</span>
+                        @if (showCustomerBalance(row, 'MXN')) {
+                          <span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(row.balance_mxn, 'MXN') }}</span>
+                        } @else {
+                          <span class="dt-cell-subtle">—</span>
+                        }
+                      </td>
+                      <td class="sf-num">
+                        @if (showCustomerBalance(row, 'USD')) {
+                          <span class="sf-v sf-v--sale sf-v--strong">{{ formatMoney(row.balance_usd, 'USD') }}</span>
+                        } @else {
+                          <span class="dt-cell-subtle">—</span>
+                        }
                       </td>
                     </tr>
                   }

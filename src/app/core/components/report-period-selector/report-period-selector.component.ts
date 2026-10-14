@@ -96,7 +96,7 @@ const MONTH_LABELS = [
                 <rect x="3" y="4" width="18" height="18" rx="2" />
                 <path d="M16 2v4M8 2v4M3 10h18" />
               </svg>
-              <span>Otro día</span>
+              <span>{{ rangeButtonLabel() }}</span>
             </button>
           } @else {
             <button
@@ -118,7 +118,7 @@ const MONTH_LABELS = [
                 <rect x="3" y="4" width="18" height="18" rx="2" />
                 <path d="M16 2v4M8 2v4M3 10h18" />
               </svg>
-              <span>Rango</span>
+              <span>{{ rangeButtonLabel() }}</span>
             </button>
           }
         </div>
@@ -143,8 +143,8 @@ const MONTH_LABELS = [
                 [id]="dateFromId"
                 type="date"
                 class="zn-date-range__input"
-                [(ngModel)]="dateFrom"
-                (change)="onSingleDayInputChange()"
+                [ngModel]="dateFrom"
+                (ngModelChange)="onDateFromChange($event)"
                 aria-label="Fecha" />
             </div>
           </div>
@@ -158,8 +158,8 @@ const MONTH_LABELS = [
                 [id]="dateFromId"
                 type="date"
                 class="zn-date-range__input"
-                [(ngModel)]="dateFrom"
-                (change)="onRangeInputChange()"
+                [ngModel]="dateFrom"
+                (ngModelChange)="onDateFromChange($event)"
                 [max]="dateTo || undefined"
                 aria-label="Fecha de inicio" />
             </div>
@@ -176,8 +176,8 @@ const MONTH_LABELS = [
                 [id]="dateToId"
                 type="date"
                 class="zn-date-range__input"
-                [(ngModel)]="dateTo"
-                (change)="onRangeInputChange()"
+                [ngModel]="dateTo"
+                (ngModelChange)="onDateToChange($event)"
                 [min]="dateFrom || undefined"
                 aria-label="Fecha de fin" />
             </div>
@@ -614,6 +614,30 @@ export class ReportPeriodSelectorComponent {
     }
   }
 
+  rangeButtonLabel(): string {
+    if (this.period === 'range' && this.dateFrom) {
+      if (this.dayOnly || !this.dateTo || this.dateFrom === this.dateTo) {
+        return this.shortDay(this.dateFrom);
+      }
+      return `${this.shortDay(this.dateFrom)} – ${this.shortDay(this.dateTo)}`;
+    }
+    return this.dayOnly ? 'Otro día' : 'Rango';
+  }
+
+  onDateFromChange(value: string): void {
+    this.dateFrom = value ?? '';
+    if (this.dayOnly) {
+      this.onSingleDayInputChange();
+      return;
+    }
+    this.onRangeInputChange();
+  }
+
+  onDateToChange(value: string): void {
+    this.dateTo = value ?? '';
+    this.onRangeInputChange();
+  }
+
   onSingleDayInputChange(): void {
     if (!this.dateFrom) {
       return;
@@ -680,6 +704,16 @@ export class ReportPeriodSelectorComponent {
     }
 
     return monthIndex;
+  }
+
+  private shortDay(iso: string): string {
+    const [year, month, day] = iso.slice(0, 10).split('-').map(Number);
+    if (!year || !month || !day) {
+      return iso;
+    }
+    const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const label = `${day} ${months[month - 1]}`;
+    return year === new Date().getFullYear() ? label : `${label} ${year}`;
   }
 
   private startOfDay(d: Date): Date {

@@ -106,9 +106,31 @@ app-report-period-selector.zn-period-drop {
   color: #dc2626;
 }
 
+.accounting-filters__field--search {
+  flex: 0 1 18rem;
+  width: min(100%, 18rem);
+}
+
+.accounting-filters__input,
 .accounting-filters__select {
   width: 100%;
   min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #334155;
+  background: #fff;
+}
+
+.accounting-filters__input:focus {
+  outline: none;
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.accounting-filters__select {
   padding: 0.5rem 2.25rem 0.5rem 0.75rem;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -140,5 +162,9 @@ app-report-period-selector.zn-period-drop {
   .accounting-toolbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .accounting-filters__field--search {
+    width: 100%;
   }
 }

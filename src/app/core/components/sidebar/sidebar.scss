@@ -15,9 +15,8 @@
   .logo-section {
     background: rgba(0, 0, 0, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-
     &--compact {
-      padding-block: 1.25rem;
+      padding-block: 1.15rem;
       overflow: hidden;
     }
 
@@ -42,14 +41,14 @@
 
   .nav-section {
     &:not(.nav-section--first) {
-      margin-top: 0.75rem;
-      padding-top: 0.75rem;
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
   }
 
   .nav-section-title {
-    margin: 0 0 0.5rem;
+    margin: 0 0 0.35rem;
     padding: 0 0.75rem;
     font-size: 0.625rem;
     font-weight: 600;
@@ -61,7 +60,7 @@
 
   .nav-section-spacer {
     height: 0;
-    margin: 0.5rem 0.25rem 0.25rem;
+    margin: 0.4rem 0.25rem 0.2rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
@@ -70,34 +69,34 @@
     font-weight: 500;
     color: rgba(255, 255, 255, 0.75);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 0.9rem;
-    
+    font-size: 0.8125rem;
+
     &:hover {
       background: rgba(255, 255, 255, 0.08);
       color: rgba(255, 255, 255, 0.95);
       transform: translateX(3px);
     }
-    
+
     lucide-icon {
       color: rgba(255, 255, 255, 0.65);
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    
+
     &:hover lucide-icon {
       color: rgba(255, 255, 255, 0.9);
     }
-    
+
     &.router-link-active {
       background: rgba(255, 255, 255, 0.15);
       color: white;
       font-weight: 600;
       box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.08);
-      
+
       lucide-icon {
         color: white;
         filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
       }
-      
+
       &::before {
         content: '';
         position: absolute;
@@ -105,12 +104,12 @@
         top: 50%;
         transform: translateY(-50%);
         width: 4px;
-        height: 28px;
+        height: 22px;
         background: white;
         border-radius: 0 3px 3px 0;
         box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
       }
-      
+
       &::after {
         content: '';
         position: absolute;
@@ -388,9 +387,9 @@
     }
 
     .nav-item {
-      font-size: 1rem;
-      padding-top: 0.75rem !important;
-      padding-bottom: 0.75rem !important;
+      font-size: 0.95rem;
+      padding-top: 0.65rem !important;
+      padding-bottom: 0.65rem !important;
 
       &.router-link-active::before {
         left: 0;

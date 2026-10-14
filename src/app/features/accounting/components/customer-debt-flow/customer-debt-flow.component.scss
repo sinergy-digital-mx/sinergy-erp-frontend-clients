@@ -693,3 +693,179 @@ tbody tr:hover .sf-th-sticky {
   font-weight: 600;
   color: #1e40af;
 }
+
+.debt-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.debt-summary__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.debt-summary__card--mxn {
+  border-top: 3px solid #0f766e;
+}
+
+.debt-summary__card--usd {
+  border-top: 3px solid #1d4ed8;
+}
+
+.debt-summary__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.debt-summary__value {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.debt-summary__meta {
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.debt-th {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  vertical-align: bottom;
+}
+
+.debt-th__title {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.debt-th--mxn {
+  background: #f0fdfa !important;
+}
+
+.debt-th--mxn .debt-th__title {
+  color: #0f766e;
+}
+
+.debt-th--usd {
+  background: #eff6ff !important;
+}
+
+.debt-th--usd .debt-th__title {
+  color: #1d4ed8;
+}
+
+.debt-th__sub {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.debt-col--mxn {
+  background: #f0fdfa;
+  border-left: 1px solid #ccfbf1;
+}
+
+.debt-col--usd {
+  background: #eff6ff;
+  border-left: 1px solid #dbeafe;
+}
+
+.debt-aging tbody tr:hover .debt-col--mxn {
+  background: #ccfbf1;
+}
+
+.debt-aging tbody tr:hover .debt-col--usd {
+  background: #dbeafe;
+}
+
+.debt-denom {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+  min-width: 8.5rem;
+}
+
+.debt-denom__amount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.debt-denom__count {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: #ccfbf1;
+  color: #115e59;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.debt-denom__count--usd {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.debt-denom__aging {
+  font-size: 0.6875rem;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.debt-denom__aging--late {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.debt-denom--empty {
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.debt-currency {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #ccfbf1;
+  color: #115e59;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.debt-currency--usd {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+@media (max-width: 800px) {
+  .debt-summary {
+    grid-template-columns: 1fr;
+  }
+}

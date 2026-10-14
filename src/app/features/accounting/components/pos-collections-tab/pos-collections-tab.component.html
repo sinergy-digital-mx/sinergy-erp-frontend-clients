@@ -8,9 +8,12 @@
       <div>
         <h3 class="pos-collections-tab__title">Órdenes cobradas en punto de venta</h3>
         <p class="pos-collections-tab__subtitle">
-          {{ listTotal() }}
-          {{ listTotal() === 1 ? 'orden cobrada' : 'órdenes cobradas' }}
-          en el periodo · {{ formatCurrency(collectionTerminal().amount_collected) }}
+          <span>{{ listTotal() }}</span>
+          {{ listTotal() === 1 ? 'orden' : 'órdenes' }}
+          · {{ formatCurrency(filteredAmount()) }}
+          @if (periodCaption()) {
+            <span class="pos-collections-tab__period">{{ periodCaption() }}</span>
+          }
         </p>
       </div>
       <button
@@ -48,6 +51,7 @@
     </div>
 
     <app-datatable-wrapper
+      class="pos-collections-table"
       [config]="tableConfig()"
       [rowTemplate]="tableTemplate"
       (pageChange)="onPageChange($event)">
@@ -56,35 +60,73 @@
 }
 
 <ng-template #tableTemplate let-item="$implicit">
-  <td class="px-2 py-2">
+  <td>
     <button type="button" class="folio-link" (click)="openSalesOrder(item)">
       {{ item.folio || item.id?.substring(0, 8) }}
     </button>
   </td>
-  <td class="px-2 py-2">{{ formatDate(item.created_at) }}</td>
-  <td class="px-2 py-2">{{ formatDate(item.collected_at) }}</td>
-  <td class="px-2 py-2">
-    <div class="customer-cell">
-      <div class="customer-cell__names">
-        <span class="customer-cell__company">{{ customerPrimary(item) }}</span>
-        @if (customerSecondary(item)) {
-          <span class="customer-cell__person">{{ customerSecondary(item) }}</span>
-        }
+  <td>
+    <div class="date-stack">
+      <div class="date-stack__row">
+        <span class="date-stack__label">Venta</span>
+        <span class="date-stack__value">{{ formatDate(item.created_at) }}</span>
       </div>
-      @if (item.is_walk_in) {
-        <span class="walk-in-chip">Mostrador</span>
-      }
-      @if (item.has_stamped_invoice) {
-        <span class="invoice-chip">CFDI timbrado</span>
+      <div class="date-stack__row">
+        <span class="date-stack__label">Cobro</span>
+        <span class="date-stack__value">{{ formatDate(item.collected_at) }}</span>
+      </div>
+      @if (shiftNote(item)) {
+        <span class="date-stack__shift">{{ shiftNote(item) }}</span>
       }
     </div>
   </td>
-  <td class="px-2 py-2">{{ sellerLabel(item) }}</td>
-  <td class="px-2 py-2">{{ cashierLabel(item) }}</td>
-  <td class="px-2 py-2">{{ methodLabel(item) }}</td>
-  <td class="px-2 py-2">{{ formatCurrency(item.total) }}</td>
-  <td class="px-2 py-2">
-    <span class="payment-pill" [class.payment-pill--paid]="item.payment_status === 'Pagado'">
+  <td>
+    <div class="branch-cell" [title]="item.billing_branch?.label || ''">
+      <span class="branch-cell__city">{{ branchCity(item) }}</span>
+      @if (branchCode(item)) {
+        <span class="branch-cell__code">{{ branchCode(item) }}</span>
+      }
+    </div>
+  </td>
+  <td>
+    <div class="customer-cell" [title]="customerPrimary(item)">
+      <span class="customer-cell__company">{{ customerPrimary(item) }}</span>
+      @if (customerSecondary(item)) {
+        <span class="customer-cell__person">{{ customerSecondary(item) }}</span>
+      }
+      @if (item.has_stamped_invoice) {
+        <span class="tag tag--invoice">CFDI</span>
+      }
+    </div>
+  </td>
+  <td>
+    <div class="people">
+      <div class="people__row">
+        <span class="people__role">Vendedor</span>
+        <span class="people__name" [title]="personLine(item.seller_user).name">
+          {{ personLine(item.seller_user).name }}
+          @if (personLine(item.seller_user).code) {
+            <span class="people__code">{{ personLine(item.seller_user).code }}</span>
+          }
+        </span>
+      </div>
+      <div class="people__row">
+        <span class="people__role">Cajero</span>
+        <span class="people__name" [title]="personLine(item.collected_by_user).name">
+          {{ personLine(item.collected_by_user).name }}
+          @if (personLine(item.collected_by_user).code) {
+            <span class="people__code">{{ personLine(item.collected_by_user).code }}</span>
+          }
+        </span>
+      </div>
+    </div>
+  </td>
+  <td>
+    <span [class]="methodClass(item)">{{ methodLabel(item) }}</span>
+  </td>
+  <td class="money-cell">{{ formatCurrency(item.total) }}</td>
+  <td>
+    <span class="status-pill" [class.status-pill--paid]="item.payment_status === 'Pagado'">
       {{ item.payment_status || '—' }}
     </span>
   </td>

@@ -148,9 +148,24 @@ interface BuiltConcepto {
   taxes: LineTax[];
 }
 
-function buildConcepto(item: SalesOrderLineItem, description?: string): BuiltConcepto {
+function documentScale(order: SalesOrder): (amount: number) => number {
+  if (order.currency !== 'USD') {
+    return (amount) => amount;
+  }
+  const rate = Number(order.exchange_rate);
+  if (!(rate > 0)) {
+    return (amount) => amount;
+  }
+  return (amount) => Math.round((amount / rate) * 100) / 100;
+}
+
+function buildConcepto(
+  item: SalesOrderLineItem,
+  description?: string,
+  scale: (amount: number) => number = (amount) => amount,
+): BuiltConcepto {
   const qty = parseNum(item.quantity);
-  const unitPrice = parseNum(item.unit_price);
+  const unitPrice = scale(parseNum(item.unit_price));
   const discountPct = parseNum(item.discount_percentage);
   const gross = unitPrice * qty;
   const discount = gross * (discountPct / 100);
@@ -234,13 +249,25 @@ ${trasladosXml}
 export function buildCfdiXml(context: CfdiBuildContext): string {
   const { order, lineItems, form } = context;
   const fiscal = order.fiscal_configuration;
-  const built = lineItems.map((item, index) => buildConcepto(item, context.descriptions?.[index]));
+  const currency = order.currency === 'USD' ? 'USD' : 'MXN';
+  const exchangeRate = Number(order.exchange_rate);
+  const scale = documentScale(order);
+  const built = lineItems.map((item, index) =>
+    buildConcepto(item, context.descriptions?.[index], currency === 'USD' ? scale : undefined),
+  );
   const subtotalNum = built.reduce((sum, row) => sum + row.importe, 0);
   const discountNum = built.reduce((sum, row) => sum + row.discount, 0);
   const taxesNum = built.reduce((sum, row) => sum + row.taxes.reduce((s, tax) => s + tax.importe, 0), 0);
-  const subtotal = toMoney(order.subtotal ?? order.requested_subtotal ?? subtotalNum);
-  const discount = toMoney(order.discount_total ?? order.requested_discount_total ?? discountNum);
-  const total = toMoney(order.total ?? order.requested_total ?? order.grand_total ?? subtotalNum - discountNum + taxesNum);
+  const rawSubtotal = order.subtotal ?? order.requested_subtotal;
+  const rawDiscount = order.discount_total ?? order.requested_discount_total;
+  const rawTotal = order.total ?? order.requested_total ?? order.grand_total;
+  const subtotal = toMoney(rawSubtotal != null ? scale(parseNum(rawSubtotal)) : subtotalNum);
+  const discount = toMoney(rawDiscount != null ? scale(parseNum(rawDiscount)) : discountNum);
+  const total = toMoney(
+    rawTotal != null ? scale(parseNum(rawTotal)) : subtotalNum - discountNum + taxesNum,
+  );
+  const tipoCambioAttr =
+    currency === 'USD' && exchangeRate > 0 ? ` TipoCambio="${exchangeRate.toFixed(6)}"` : '';
   const emisorRfc = fiscal?.rfc || '';
   const emisorNombre = fiscal?.razon_social || fiscal?.business_name || order.fiscal_razon_social || '';
   const genericPublic = isGenericPublicReceptor(order);
@@ -259,7 +286,7 @@ export function buildCfdiXml(context: CfdiBuildContext): string {
     fiveDigitPostalCode(form.domicilioFiscalReceptor) || getReceptorDomicilioFiscal(order);
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0"${serieAttr} Folio="${escapeXml(form.folio)}" Fecha="${cfdiFechaLocal()}" SubTotal="${subtotal}"${discountAttr} Total="${total}" Moneda="MXN" TipoDeComprobante="I" Exportacion="01" MetodoPago="${form.metodoPago}" FormaPago="${escapeXml(form.formaPago)}" LugarExpedicion="${escapeXml(lugarExpedicion)}">
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0"${serieAttr} Folio="${escapeXml(form.folio)}" Fecha="${cfdiFechaLocal()}" SubTotal="${subtotal}"${discountAttr} Total="${total}" Moneda="${currency}"${tipoCambioAttr} TipoDeComprobante="I" Exportacion="01" MetodoPago="${form.metodoPago}" FormaPago="${escapeXml(form.formaPago)}" LugarExpedicion="${escapeXml(lugarExpedicion)}">
   <cfdi:Emisor Rfc="${escapeXml(emisorRfc)}" Nombre="${escapeXml(emisorNombre)}" RegimenFiscal="${escapeXml(regimenEmisor)}"/>
   <cfdi:Receptor Rfc="${escapeXml(receptorRfc)}" Nombre="${escapeXml(receptorNombre)}" DomicilioFiscalReceptor="${escapeXml(domicilioReceptor)}" RegimenFiscalReceptor="${escapeXml(regimenReceptor)}" UsoCFDI="${escapeXml(usoCfdi)}"/>
   <cfdi:Conceptos>${built.map((row) => row.xml).join('')}
