@@ -52,6 +52,7 @@ export class PurchaseOrderListComponent implements OnInit {
   private totalResultsState = signal<number>(0);
   private hasMoreState = signal<boolean>(true);
   private statsState = signal<PurchaseOrderListStats>(emptyPurchaseOrderListStats());
+  private loadGeneration = 0;
   
   // Table configuration
   table_config = signal<IDatatableConfig>({
@@ -114,7 +115,7 @@ export class PurchaseOrderListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         this.filtersState.update((prev) => this.mergeQueryParamsIntoFilters(prev, params));
-        this.paginationState.set({ page: 1, limit: 15 });
+        this.setPage(1);
         this.loadOrders();
       });
   }
@@ -163,30 +164,37 @@ export class PurchaseOrderListComponent implements OnInit {
    * Load orders from API
    */
   loadOrders(): void {
+    const requestId = ++this.loadGeneration;
+    const requested = this.paginationState();
     this.loadingState.set(true);
-    this.table_config.update(c => ({ ...c, loading: true }));
+    this.table_config.update(c => ({
+      ...c,
+      page: requested.page,
+      limit: requested.limit,
+      loading: true,
+    }));
     
     this.purchaseOrderService
-      .getOrders(this.filtersState(), this.paginationState())
+      .getOrders(this.filtersState(), requested)
       .subscribe({
         next: (response) => {
-          console.log('Orders response:', response);
+          if (requestId !== this.loadGeneration) {
+            return;
+          }
           let orders: PurchaseOrder[] = [];
           let total = 0;
-          let hasNext = false;
 
           if (Array.isArray(response)) {
             orders = response as any;
             total = orders.length;
-            hasNext = false;
           } else if (response.data) {
             orders = response.data;
             total = response.total || response.data.length;
-            hasNext = response.page < response.totalPages;
           } else {
             console.error('Unknown response format:', response);
           }
 
+          const hasNext = requested.page * requested.limit < total;
           this.ordersData.set(orders);
           this.totalResultsState.set(total);
           this.hasMoreState.set(hasNext);
@@ -200,6 +208,8 @@ export class PurchaseOrderListComponent implements OnInit {
           this.table_config.update(c => ({
             ...c,
             rows: orders,
+            page: requested.page,
+            limit: requested.limit,
             totalResults: total,
             hasNext: hasNext,
             loading: false,
@@ -208,6 +218,9 @@ export class PurchaseOrderListComponent implements OnInit {
           this.loadingState.set(false);
         },
         error: (error) => {
+          if (requestId !== this.loadGeneration) {
+            return;
+          }
           console.error('Error loading orders:', error);
           this.loadingState.set(false);
           this.table_config.update(c => ({ ...c, loading: false }));
@@ -223,7 +236,7 @@ export class PurchaseOrderListComponent implements OnInit {
       ...this.queryScopedFilters(filters),
       ...filters,
     });
-    this.paginationState.set({ page: 1, limit: 15 });
+    this.setPage(1);
     const currentSearch = this.route.snapshot.queryParamMap.get('search')?.trim() || undefined;
     const nextSearch = filters.search?.trim() || undefined;
 
@@ -244,8 +257,15 @@ export class PurchaseOrderListComponent implements OnInit {
    * Handle pagination change
    */
   onPageChange(event: IPaginationEvent): void {
-    this.paginationState.set({ page: event.page, limit: event.limit });
+    const page = Math.max(1, Number(event.page) || 1);
+    const limit = Math.max(1, Number(event.limit) || this.paginationState().limit || 15);
+    this.setPage(page, limit);
     this.loadOrders();
+  }
+
+  private setPage(page: number, limit = this.paginationState().limit || 15): void {
+    this.paginationState.set({ page, limit });
+    this.table_config.update((config) => ({ ...config, page, limit }));
   }
 
   /**
@@ -406,11 +426,7 @@ export class PurchaseOrderListComponent implements OnInit {
     }
     
     const currentPagination = this.paginationState();
-    this.paginationState.set({
-      ...currentPagination,
-      page: currentPagination.page + 1
-    });
-    
+    this.setPage(currentPagination.page + 1, currentPagination.limit);
     this.loadOrders();
   }
 
