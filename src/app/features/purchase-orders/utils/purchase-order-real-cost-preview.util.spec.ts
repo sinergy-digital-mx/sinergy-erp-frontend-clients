@@ -32,5 +32,26 @@ describe('previewPurchaseOrderRealCost', () => {
     expect(result.extras_usd).toBe(1963.23);
     expect(result.total_usd).toBe(26563.45);
     expect(result.total_mxn).toBe(450497.52);
+    expect(result.invoice_mxn).toBe(417202.51);
+    expect(result.operating_extras_mxn).toBe(33295.01);
+  });
+
+  it('suma al total de factura solo el gasto marcado', () => {
+    const result = previewPurchaseOrderRealCost({
+      payment_currency: 'USD',
+      customs_exchange_rate: 16.9593,
+      extras: [
+        { amount: 10000, currency: 'MXN', include_in_invoice: true },
+        { amount: 23295.01, currency: 'MXN' },
+      ],
+      lines: [{ id: 'aduana', quantity: 1, vendor_unit_cost: 24600.22, igi_percentage: 0 }],
+    });
+
+    expect(result.contracted_mxn).toBe(417202.51);
+    expect(result.invoice_mxn).toBe(427202.51);
+    expect(result.invoice_usd).toBe(25189.87);
+    expect(result.operating_extras_mxn).toBe(23295.01);
+    expect(result.operating_extras_usd).toBe(1373.58);
+    expect(result.total_mxn).toBe(450497.52);
   });
 });

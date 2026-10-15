@@ -299,6 +299,8 @@ export interface AverageCostReportRow {
   cost_total: number;
   margin_amount: number;
   margin_percent: number | null;
+  source_currency: string;
+  exchange_rate: number | null;
   currency: string;
   reversal: boolean;
 }

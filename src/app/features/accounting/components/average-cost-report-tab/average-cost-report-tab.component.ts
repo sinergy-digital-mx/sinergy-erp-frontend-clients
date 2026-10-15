@@ -107,6 +107,11 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
     return formatUnitCurrency(value, currency === 'USD' ? 'USD' : 'MXN');
   }
 
+  formatRate(value: number | null | undefined): string {
+    if (value == null || !Number.isFinite(value) || value <= 0) return '';
+    return value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  }
+
   formatPercent(value: number | null | undefined): string {
     if (value == null || !Number.isFinite(value)) return '—';
     return `${value.toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
@@ -238,6 +243,7 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
       { name: 'Fecha', prop: 'date', sortable: false, canAutoResize: false, width: 96 },
       { name: 'Tipo', prop: 'type_code', sortable: false, canAutoResize: false, width: 188 },
       { name: 'Stat', prop: 'status_code', sortable: false, canAutoResize: false, width: 118 },
+      { name: 'Moneda', prop: 'source_currency', sortable: false, canAutoResize: false, width: 118 },
       { name: 'Importe', prop: 'amount', sortable: false, canAutoResize: false, width: 100 },
       { name: 'Descto', prop: 'discount', sortable: false, canAutoResize: false, width: 88 },
       { name: 'Impuesto', prop: 'tax', sortable: false, canAutoResize: false, width: 96 },

@@ -518,12 +518,25 @@ export class OrderDetailDialogComponent {
     return this.parseNumber(this.showReceivedTotals() ? order.received_total : order.requested_total);
   }
 
-  displayedExtrasAmount(): number {
-    return this.parseNumber(this.landedAmountInPaymentCurrency('extras'));
+  displayedContractedAmount(): number {
+    return this.parseNumber(this.landedAmountInPaymentCurrency('contracted'));
+  }
+
+  displayedInvoiceAmount(): number {
+    return this.parseNumber(this.landedAmountInPaymentCurrency('invoice'));
+  }
+
+  displayedOperatingAmount(): number {
+    return this.parseNumber(this.landedAmountInPaymentCurrency('operating'));
   }
 
   displayedLandedTotalAmount(): number {
     return this.parseNumber(this.landedAmountInPaymentCurrency('total'));
+  }
+
+  hasOperatingCosts(): boolean {
+    const operating = this.landedAmountInPaymentCurrency('operating');
+    return operating != null && operating > 0;
   }
 
   hasLandedExpenseTotals(): boolean {
@@ -746,13 +759,27 @@ export class OrderDetailDialogComponent {
     return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
   }
 
-  private landedAmountInPaymentCurrency(kind: 'extras' | 'total'): number | null {
+  private landedAmountInPaymentCurrency(
+    kind: 'contracted' | 'invoice' | 'operating' | 'extras' | 'total',
+  ): number | null {
     const currency = this.getPaymentCurrency();
     const preview = this.activeTabIndex() === 3 ? this.liveRealCostPreview() : null;
     if (preview) {
       const live = currency === 'USD'
-        ? (kind === 'extras' ? preview.extras_usd : preview.total_usd)
-        : (kind === 'extras' ? preview.extras_mxn : preview.total_mxn);
+        ? {
+            contracted: preview.contracted_usd,
+            invoice: preview.invoice_usd,
+            operating: preview.operating_extras_usd,
+            extras: preview.extras_usd,
+            total: preview.total_usd,
+          }[kind]
+        : {
+            contracted: preview.contracted_mxn,
+            invoice: preview.invoice_mxn,
+            operating: preview.operating_extras_mxn,
+            extras: preview.extras_mxn,
+            total: preview.total_mxn,
+          }[kind];
       return live;
     }
     const order = this.order();
@@ -761,11 +788,23 @@ export class OrderDetailDialogComponent {
     }
     if (currency === 'USD') {
       return this.parseNullableNumber(
-        kind === 'extras' ? order.landed_extras_usd : order.landed_total_usd,
+        {
+          contracted: order.landed_contracted_usd,
+          invoice: order.landed_invoice_usd,
+          operating: order.landed_operating_extras_usd,
+          extras: order.landed_extras_usd,
+          total: order.landed_total_usd,
+        }[kind],
       );
     }
     return this.parseNullableNumber(
-      kind === 'extras' ? order.landed_extras_mxn : order.landed_total_mxn,
+      {
+        contracted: order.landed_contracted_mxn,
+        invoice: order.landed_invoice_mxn,
+        operating: order.landed_operating_extras_mxn,
+        extras: order.landed_extras_mxn,
+        total: order.landed_total_mxn,
+      }[kind],
     );
   }
 

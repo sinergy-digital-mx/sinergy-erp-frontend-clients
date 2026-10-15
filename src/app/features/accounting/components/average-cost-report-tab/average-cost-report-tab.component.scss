@@ -138,7 +138,7 @@
 
 :host ::ng-deep .datatable-wrapper .datatable-container .datatable-table {
   width: 100%;
-  min-width: 1380px;
+  min-width: 1500px;
   table-layout: fixed;
   font-size: 12px;
 
@@ -149,7 +149,7 @@
     text-align: left;
   }
 
-  thead th:nth-child(n + 6) {
+  thead th:nth-child(n + 7) {
     text-align: right !important;
   }
 
@@ -163,7 +163,7 @@
     white-space: nowrap;
   }
 
-  tbody tr td:nth-child(n + 6) {
+  tbody tr td:nth-child(n + 7) {
     text-align: right !important;
   }
 
@@ -300,6 +300,33 @@
     background: #fff7ed;
     color: #c2410c;
   }
+}
+
+.fx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.4rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+
+  &[data-currency='USD'] {
+    background: #d1fae5;
+    color: #047857;
+  }
+}
+
+.fx-badge__rate {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 .margin-stack {

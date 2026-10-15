@@ -133,7 +133,10 @@
   <section class="sheet-bottom">
     <div class="extras-panel">
       <div class="block-head">
-        <h3>Gastos</h3>
+        <div>
+          <h3>Gastos</h3>
+          <p class="extras-note">Marca Factura en el gasto que cobra el proveedor. Ese monto se suma al total de factura.</p>
+        </div>
         @if (canEdit()) {
           <button type="button" class="po-rc-btn po-rc-btn--add" (click)="addExtra()" [disabled]="extras().length >= 80">
             <i class="fi fi-rr-plus"></i>
@@ -146,6 +149,7 @@
         <thead>
           <tr>
             <th class="col-concept">Concepto</th>
+            <th class="col-invoice" title="Suma este gasto al total de factura">Factura</th>
             <th class="col-money">MXN</th>
             <th class="col-money">USD</th>
             @if (canEdit()) {
@@ -168,6 +172,15 @@
                 } @else {
                   {{ row.concept }}
                 }
+              </td>
+              <td class="col-invoice">
+                <input
+                  type="checkbox"
+                  class="po-rc-check"
+                  [ngModel]="row.includeInInvoice"
+                  (ngModelChange)="setExtraInvoice(row.uid, $event)"
+                  [disabled]="!canEdit()"
+                  [attr.aria-label]="'Sumar ' + (row.concept || 'gasto') + ' al total de factura'" />
               </td>
               <td class="col-money">
                 @if (canEdit()) {
@@ -210,9 +223,12 @@
         <tfoot>
           <tr>
             <td>TOTAL</td>
+            <td></td>
             <td class="col-money">{{ formatAmount(extrasMxn()) }}</td>
             <td class="col-money">{{ formatAmount(extrasUsd()) }}</td>
-            <td></td>
+            @if (canEdit()) {
+              <td></td>
+            }
           </tr>
         </tfoot>
       </table>
@@ -233,19 +249,24 @@
         </thead>
         <tbody>
           <tr>
-            <td>Valor aduana</td>
+            <td>Total contratado</td>
             <td class="col-money">{{ formatAmount(merchandiseUsd()) }}</td>
             <td class="col-money">{{ formatAmount(merchandiseMxn()) }}</td>
           </tr>
           <tr>
-            <td>Gastos</td>
-            <td class="col-money">{{ formatAmount(extrasUsd()) }}</td>
-            <td class="col-money">{{ formatAmount(extrasMxn()) }}</td>
+            <td>Total factura</td>
+            <td class="col-money">{{ formatAmount(preview().invoice_usd) }}</td>
+            <td class="col-money">{{ formatAmount(preview().invoice_mxn) }}</td>
+          </tr>
+          <tr>
+            <td>Costos operativos</td>
+            <td class="col-money">{{ formatAmount(preview().operating_extras_usd) }}</td>
+            <td class="col-money">{{ formatAmount(preview().operating_extras_mxn) }}</td>
           </tr>
         </tbody>
         <tfoot>
           <tr>
-            <td>Total final</td>
+            <td>Total costo final</td>
             <td class="col-money">{{ formatAmount(totalUsd()) }}</td>
             <td class="col-money">{{ formatAmount(totalMxn()) }}</td>
           </tr>

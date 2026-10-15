@@ -204,7 +204,7 @@
 
 .block-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.25rem;
@@ -282,14 +282,38 @@
     width: 36px;
     text-align: center;
   }
+
+  .col-invoice {
+    width: 72px;
+    text-align: center;
+  }
 }
 
 .products-table {
   min-width: 920px;
 }
 
+.extras-note {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.po-rc-check {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #0f766e;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
 .extras-table {
-  min-width: 420px;
+  min-width: 520px;
 
   thead {
     background: #f8fafc;

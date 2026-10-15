@@ -7,6 +7,10 @@ Los números siguen la cascada razón social → sucursal → almacén. No cambi
 
 **POS no cambia.**
 
+## 2026-10-14
+
+`total_cost` usa el costo real MXN de la OC cuando existe. Si no, el costo proveedor.
+
 ## Dónde
 
 `inventory-batch-list` → `app-inventory-stats-cards`. Encima de la barra de filtros.

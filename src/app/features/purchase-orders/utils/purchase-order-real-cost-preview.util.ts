@@ -10,6 +10,7 @@ export interface RealCostPreviewLineInput {
 export interface RealCostPreviewExtraInput {
   amount: number;
   currency: PaymentCurrency;
+  include_in_invoice?: boolean;
 }
 
 export interface RealCostPreviewLine {
@@ -27,6 +28,12 @@ export interface RealCostPreview {
   extras_usd: number | null;
   merchandise_usd: number | null;
   merchandise_mxn: number | null;
+  contracted_usd: number | null;
+  contracted_mxn: number | null;
+  invoice_usd: number | null;
+  invoice_mxn: number | null;
+  operating_extras_usd: number | null;
+  operating_extras_mxn: number | null;
   total_usd: number | null;
   total_mxn: number | null;
   lines: RealCostPreviewLine[];
@@ -49,6 +56,27 @@ function convert(
 
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function sumExtraGroup(
+  extras: RealCostPreviewExtraInput[],
+  includeInInvoice: boolean,
+  to: PaymentCurrency,
+  rate: number | null,
+  extrasMxn: number | null
+): number | null {
+  const group = extras.filter((extra) => Boolean(extra.include_in_invoice) === includeInInvoice);
+  if (group.length === 0) {
+    return extrasMxn == null && includeInInvoice ? null : 0;
+  }
+  const converted = sumConvertedExtras(group, to, rate);
+  if (converted == null) {
+    return null;
+  }
+  if (includeInInvoice && extrasMxn != null) {
+    return Math.min(converted, extrasMxn);
+  }
+  return converted;
 }
 
 function sumConvertedExtras(
@@ -90,8 +118,20 @@ export function previewPurchaseOrderRealCost(input: {
     extrasMxn != null && rate != null
       ? roundMoney(extrasMxn / rate)
       : sumConvertedExtras(extras, 'USD', rate);
+  const invoiceExtrasMxn = sumExtraGroup(extras, true, 'MXN', rate, extrasMxn);
+  const operatingExtrasMxn =
+    extrasMxn != null && invoiceExtrasMxn != null
+      ? roundMoney(extrasMxn - invoiceExtrasMxn)
+      : sumExtraGroup(extras, false, 'MXN', rate, extrasMxn);
   const merchandiseMxnRounded = merchandiseMxn == null ? null : roundMoney(merchandiseMxn);
   const merchandiseUsdRounded = merchandiseUsd == null ? null : roundMoney(merchandiseUsd);
+  const invoiceMxn =
+    merchandiseMxnRounded != null && invoiceExtrasMxn != null
+      ? roundMoney(merchandiseMxnRounded + invoiceExtrasMxn)
+      : null;
+  const invoiceUsd = invoiceMxn != null && rate != null ? roundMoney(invoiceMxn / rate) : null;
+  const operatingExtrasUsd =
+    operatingExtrasMxn != null && rate != null ? roundMoney(operatingExtrasMxn / rate) : null;
   const extrasMxnForRatio = extrasMxn ?? 0;
   const merchandiseForRatio = merchandiseMxnRounded ?? merchandiseVendor;
   const incrementRatio =
@@ -103,6 +143,12 @@ export function previewPurchaseOrderRealCost(input: {
     extras_usd: extrasUsd,
     merchandise_usd: merchandiseUsdRounded,
     merchandise_mxn: merchandiseMxnRounded,
+    contracted_usd: merchandiseUsdRounded,
+    contracted_mxn: merchandiseMxnRounded,
+    invoice_usd: invoiceUsd,
+    invoice_mxn: invoiceMxn,
+    operating_extras_usd: operatingExtrasUsd,
+    operating_extras_mxn: operatingExtrasMxn,
     total_usd:
       merchandiseUsdRounded != null && extrasUsd != null
         ? roundMoney(merchandiseUsdRounded + extrasUsd)

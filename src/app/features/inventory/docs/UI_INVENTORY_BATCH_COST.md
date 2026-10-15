@@ -10,3 +10,7 @@ Fuente de verdad: `sinergy-erp-backend-clients/src/api/inventory/docs/UI_INVENTO
 - `suggested_unit_price` + `suggested_price_currency`
 
 Card COSTOS en tab General: proveedor, real USD (rojo), real MXN (verde), T.C. aduana, precio sugerido.
+
+## 2026-10-14
+
+`GET /inventory/stats` toma `real_unit_cost_mxn` (costo final) cuando la OC lo tiene.

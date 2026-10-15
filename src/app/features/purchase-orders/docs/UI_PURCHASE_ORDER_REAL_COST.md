@@ -14,11 +14,17 @@ T.C. de aduana (`customs_exchange_rate`), no el del día al facturar.
 
 USD rojo = `real_unit_cost_usd`. MXN verde = `real_unit_cost_mxn`.
 
+## 2026-10-14
+
 Totales de análisis (no cambian pagos ni `requested_total`):
 
-- GET: `landed_extras_usd`, `landed_total_usd`, `landed_total_mxn`
-- Sidebar **TOTALES**: Gastos + Total final si hay gastos
-- Resumen al lado de Gastos: Valor aduana, Gastos y Total final, con badge USD / MXN (preview en vivo)
+- Casilla **Factura** en cada gasto (`include_in_invoice`): suma ese gasto al total de factura
+- Total contratado = mercancía
+- Total factura = mercancía + gastos marcados
+- Costos operativos = gastos sin marcar
+- Total costo final = factura + costos operativos
+- Sidebar **TOTALES** y el resumen USD/MXN muestran ese desglose
+- El inventario usa el costo real (costo final) en `GET /inventory/stats`
 
 Si un gasto tiene monto y el concepto va vacío, se guarda como `Gasto`.
 

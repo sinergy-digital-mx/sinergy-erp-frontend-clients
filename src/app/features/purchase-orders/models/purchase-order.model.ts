@@ -240,6 +240,8 @@ export interface PurchaseOrderExtraCost {
   concept: string;
   amount: number | string;
   currency: PaymentCurrency;
+  /** Suma este gasto al total de factura del proveedor. */
+  include_in_invoice?: boolean | number;
   sort_order?: number;
 }
 
@@ -250,6 +252,7 @@ export interface UpdatePurchaseOrderRealCostPayload {
     concept: string;
     amount: number;
     currency: PaymentCurrency;
+    include_in_invoice?: boolean;
   }>;
   line_items?: Array<{
     line_item_id: string;
@@ -317,9 +320,16 @@ export interface PurchaseOrder {
   landed_increment_percentage?: number | string | null;
   landed_merchandise_mxn?: number | string | null;
   landed_extras_mxn?: number | string | null;
+  landed_invoice_extras_mxn?: number | string | null;
   landed_extras_usd?: number | string | null;
   landed_total_usd?: number | string | null;
   landed_total_mxn?: number | string | null;
+  landed_contracted_mxn?: number | string | null;
+  landed_contracted_usd?: number | string | null;
+  landed_invoice_mxn?: number | string | null;
+  landed_invoice_usd?: number | string | null;
+  landed_operating_extras_mxn?: number | string | null;
+  landed_operating_extras_usd?: number | string | null;
   extra_costs_count?: number;
   extra_costs?: PurchaseOrderExtraCost[];
   line_items: LineItem[];

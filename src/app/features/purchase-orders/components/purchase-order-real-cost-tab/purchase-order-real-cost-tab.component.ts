@@ -42,6 +42,7 @@ interface ExtraCostDraft {
   mxn: number | null;
   usd: number | null;
   lastEdited: PaymentCurrency;
+  includeInInvoice: boolean;
   preset: boolean;
 }
 
@@ -101,7 +102,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
       })),
       extras: this.extras()
         .map((row) => this.extraForPreview(row, rate))
-        .filter((row): row is { amount: number; currency: PaymentCurrency } => row != null),
+        .filter((row): row is { amount: number; currency: PaymentCurrency; include_in_invoice: boolean } => row != null),
     });
   }
 
@@ -198,6 +199,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
         mxn: null,
         usd: null,
         lastEdited: 'MXN',
+        includeInInvoice: false,
         preset: false,
       },
     ]);
@@ -209,6 +211,16 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
       return;
     }
     this.extras.update((rows) => rows.filter((row) => row.uid !== uid || row.preset));
+    this.emitPreview();
+  }
+
+  setExtraInvoice(uid: string, includeInInvoice: boolean): void {
+    if (!this.canEdit()) {
+      return;
+    }
+    this.extras.update((rows) =>
+      rows.map((row) => (row.uid === uid ? { ...row, includeInInvoice } : row))
+    );
     this.emitPreview();
   }
 
@@ -375,18 +387,19 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
   private extraForPreview(
     row: ExtraCostDraft,
     rate: number | null
-  ): { amount: number; currency: PaymentCurrency } | null {
+  ): { amount: number; currency: PaymentCurrency; include_in_invoice: boolean } | null {
+    const include_in_invoice = row.includeInInvoice;
     if (row.lastEdited === 'USD') {
       const usd = this.optionalNumber(row.usd);
-      return usd == null || usd <= 0 ? null : { amount: usd, currency: 'USD' };
+      return usd == null || usd <= 0 ? null : { amount: usd, currency: 'USD', include_in_invoice };
     }
     const mxn = this.optionalNumber(row.mxn);
     if (mxn != null && mxn > 0) {
-      return { amount: mxn, currency: 'MXN' };
+      return { amount: mxn, currency: 'MXN', include_in_invoice };
     }
     const usd = this.optionalNumber(row.usd);
     if (usd != null && usd > 0 && rate != null) {
-      return { amount: usd, currency: 'USD' };
+      return { amount: usd, currency: 'USD', include_in_invoice };
     }
     return null;
   }
@@ -404,6 +417,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
         concept: (concept || 'Gasto').slice(0, 120),
         amount,
         currency: row.lastEdited,
+        include_in_invoice: row.includeInInvoice,
       });
     }
 
@@ -456,6 +470,7 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
         usd: amount,
         mxn: convertExtraAmount(amount, 'USD', 'MXN', rate),
         lastEdited: 'USD',
+        includeInInvoice: this.isInvoiceFlag(row?.include_in_invoice),
         preset,
       };
     }
@@ -465,8 +480,13 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
       mxn: amount,
       usd: convertExtraAmount(amount, 'MXN', 'USD', rate),
       lastEdited: 'MXN',
+      includeInInvoice: this.isInvoiceFlag(row?.include_in_invoice),
       preset,
     };
+  }
+
+  private isInvoiceFlag(value: unknown): boolean {
+    return value === true || value === 1 || value === '1';
   }
 
   private normalizeConcept(value: string): string {

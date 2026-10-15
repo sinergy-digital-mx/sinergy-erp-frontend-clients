@@ -308,13 +308,27 @@
           @if (hasLandedExpenseTotals()) {
             <div class="totals-divider"></div>
             <div class="totals-row">
-              <span class="totals-label">Gastos</span>
+              <span class="totals-label">Total contratado</span>
               <span class="totals-value">
-                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedExtrasAmount(), withCurrency: true }" />
+                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedContractedAmount(), withCurrency: true }" />
               </span>
             </div>
+            <div class="totals-row">
+              <span class="totals-label">Total factura</span>
+              <span class="totals-value">
+                <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedInvoiceAmount(), withCurrency: true }" />
+              </span>
+            </div>
+            @if (hasOperatingCosts()) {
+              <div class="totals-row">
+                <span class="totals-label">Costos operativos</span>
+                <span class="totals-value">
+                  <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedOperatingAmount(), withCurrency: true }" />
+                </span>
+              </div>
+            }
             <div class="totals-row totals-row-total totals-row-final">
-              <span class="totals-label-total">Total final</span>
+              <span class="totals-label-total">Total costo final</span>
               <span class="totals-value-total">
                 <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedLandedTotalAmount(), withCurrency: true }" />
               </span>
