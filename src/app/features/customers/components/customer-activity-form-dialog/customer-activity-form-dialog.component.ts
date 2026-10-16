@@ -48,7 +48,6 @@ export class CustomerActivityFormDialogComponent implements OnDestroy {
   submitError = signal<string | null>(null);
   readonly isEdit: boolean;
 
-  readonly activityTypes = Object.values(ActivityType);
   readonly activityStatuses = Object.values(ActivityStatus);
   readonly activityOutcomes = Object.values(ActivityOutcome);
 
@@ -85,6 +84,15 @@ export class CustomerActivityFormDialogComponent implements OnDestroy {
   getTypeLabel = getActivityTypeLabel;
   getStatusLabel = getActivityStatusLabel;
   getOutcomeLabel = getActivityOutcomeLabel;
+
+  /** Tarea queda fuera del alta. Se conserva solo al editar una tarea ya guardada. */
+  get activityTypes(): ActivityType[] {
+    const types = Object.values(ActivityType);
+    if (this.data.activity?.type === ActivityType.TASK) {
+      return types;
+    }
+    return types.filter((type) => type !== ActivityType.TASK);
+  }
 
   /** Misma acción que la palomita de CRM: solo en actividades abiertas. */
   get canMarkCompleted(): boolean {

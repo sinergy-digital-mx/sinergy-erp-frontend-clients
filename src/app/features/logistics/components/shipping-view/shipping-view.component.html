@@ -12,7 +12,7 @@
         </div>
         <div class="sv__title">
           <h2>Viaje{{ s.short_id ? ' #' + s.short_id : '' }}</h2>
-          <p>{{ distanceLabel() }}</p>
+          <p>{{ cargoLabel() }} · {{ distanceLabel() }}</p>
         </div>
         <span
           class="sv__badge"
@@ -62,10 +62,10 @@
         <span>Sucursal</span>
         {{ originLabel() }}
       </div>
-      <div><span>Chofer</span>{{ s.driver_name || '—' }}</div>
+      <div><span>Chofer</span>{{ s.driver_name || '—' }}{{ s.driver_carta_porte_ready === false ? ' · carta porte no completo' : '' }}</div>
       <div>
         <span>Camión</span>
-        {{ s.truck_name || '—' }}{{ s.truck_placa ? ' · ' + s.truck_placa : '' }}
+        {{ s.truck_name || '—' }}{{ s.truck_placa ? ' · ' + s.truck_placa : '' }}{{ s.truck_carta_porte_ready === false ? ' · carta porte no completo' : '' }}
       </div>
       @if (s.notes) {
         <div class="sv__notes"><span>Notas</span>{{ s.notes }}</div>
@@ -84,11 +84,14 @@
     @if (panel() === 'carta') {
       <section class="sv__carta">
         <div class="sv__carta-head">
-          <h3>Carta porte</h3>
+          <div>
+            <h3>Carta porte</h3>
+            <p class="sv__carta-lead">Se genera aquí, con el viaje ya creado.</p>
+          </div>
           @if (s.carta_porte_uuid) {
             <span class="dt-status-pill dt-status-pill--success">Timbrada</span>
           } @else if (s.driver_carta_porte_ready && s.truck_carta_porte_ready) {
-            <span class="dt-status-pill dt-status-pill--info">Lista para timbrar</span>
+            <span class="dt-status-pill dt-status-pill--info">Lista</span>
           } @else {
             <span class="dt-status-pill dt-status-pill--warning">Faltan datos</span>
           }
@@ -97,23 +100,41 @@
           <p class="sv__carta-uuid">{{ s.carta_porte_uuid }}</p>
           <button type="button" class="page-create-btn" (click)="downloadCartaPorte()">Descargar PDF</button>
         } @else {
-          @if (!s.driver_carta_porte_ready && s.driver_carta_porte_missing?.length) {
-            <p>{{ s.driver_carta_porte_missing.join('. ') }}</p>
-          }
-          @if (!s.truck_carta_porte_ready && s.truck_carta_porte_missing?.length) {
-            <p>{{ s.truck_carta_porte_missing.join('. ') }}</p>
-          }
-          <label for="carta-porte-peso">Peso bruto de la carga (kg)</label>
-          <input id="carta-porte-peso" type="number" min="0.001" step="0.001" [(ngModel)]="pesoKg" />
-          <button
-            *hasPermission="permissions.update"
-            type="button"
-            class="page-create-btn"
-            [disabled]="stamping()"
-            (click)="stampCartaPorte()"
-          >
-            {{ stamping() ? 'Timbrando…' : 'Generar carta porte' }}
-          </button>
+          <div class="sv__carta-grid">
+            <article>
+              <strong>Chofer</strong>
+              @if (s.driver_carta_porte_ready) {
+                <p>Tiene la información requerida.</p>
+              } @else if (s.driver_carta_porte_missing?.length) {
+                <p>{{ s.driver_carta_porte_missing.join('. ') }}</p>
+              } @else {
+                <p>No tiene toda la información requerida.</p>
+              }
+            </article>
+            <article>
+              <strong>Unidad</strong>
+              @if (s.truck_carta_porte_ready) {
+                <p>Tiene la información requerida.</p>
+              } @else if (s.truck_carta_porte_missing?.length) {
+                <p>{{ s.truck_carta_porte_missing.join('. ') }}</p>
+              } @else {
+                <p>No tiene toda la información requerida.</p>
+              }
+            </article>
+          </div>
+          <div class="sv__carta-form">
+            <label for="carta-porte-peso">Peso bruto de la carga (kg)</label>
+            <input id="carta-porte-peso" type="number" min="0.001" step="0.001" [(ngModel)]="pesoKg" />
+            <button
+              *hasPermission="permissions.update"
+              type="button"
+              class="page-create-btn"
+              [disabled]="stamping()"
+              (click)="stampCartaPorte()"
+            >
+              {{ stamping() ? 'Timbrando…' : 'Generar carta porte' }}
+            </button>
+          </div>
           @if (s.carta_porte_error) {
             <p class="sv__carta-error">{{ s.carta_porte_error }}</p>
           }
@@ -170,6 +191,9 @@
 
         <div class="sv__section">
           <h4>Órdenes de venta ({{ stops().length }})</h4>
+          @if (!stops().length) {
+            <p class="sv__empty-inline">Sin órdenes en este viaje.</p>
+          }
           @for (stop of stops(); track stop.sales_order_id) {
             <div
               class="stop"
@@ -221,6 +245,24 @@
             </div>
           }
         </div>
+
+        @if (s.transfers?.length) {
+          <div class="sv__section">
+            <h4>Transferencias ({{ s.transfers.length }})</h4>
+            @for (transfer of s.transfers; track transfer.id) {
+              <div class="stop">
+                <div class="stop__seq">{{ $index + 1 }}</div>
+                <div class="stop__body">
+                  <strong class="stop__title">{{ transfer.folio }}</strong>
+                  <p class="stop__name">{{ transfer.destination_warehouse_name || 'Destino' }}</p>
+                  @if (transfer.total_quantity != null) {
+                    <p class="stop__addr">{{ transfer.total_quantity }}</p>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
 
         @if (isCreado()) {
           <div class="sv__add">

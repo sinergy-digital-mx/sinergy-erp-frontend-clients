@@ -81,6 +81,24 @@ export const LOGISTICS_ROUTES: Routes = [
         pathMatch: 'full',
       },
       {
+        path: 'transfer-process',
+        loadComponent: () =>
+          import('./pages/transfer-process/transfer-process.component').then(
+            (m) => m.TransferProcessComponent,
+          ),
+        canActivate: [permissionGuard],
+        data: {
+          permissions: [
+            INVENTORY_PERMISSIONS.viewList,
+            INVENTORY_PERMISSIONS.viewMenu,
+            SHIPPING_PERMISSIONS.viewList,
+            SHIPPING_PERMISSIONS.viewMenu,
+          ],
+          permissionMode: 'any',
+          title: 'Instrucciones',
+        },
+      },
+      {
         path: 'trucks',
         loadComponent: () =>
           import('./pages/trucks-list/trucks-list.component').then((m) => m.TrucksListComponent),

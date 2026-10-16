@@ -15,10 +15,15 @@ import { DatatableWrapperComponent } from '../../../../core/components/datatable
 import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
+import { TransferShippingDialogComponent } from '../transfer-shipping-dialog/transfer-shipping-dialog.component';
+import { TransferReceptionDialogComponent } from '../transfer-reception-dialog/transfer-reception-dialog.component';
 import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
+import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
+import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
+import { transferStatusLabel, transferStatusTone } from '../../utils/transfer-status.util';
 import { ArrowLeft, Download, Eye, ListFilter } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
@@ -101,9 +106,10 @@ export class TransferListComponent implements OnInit {
       { name: 'Cantidad', prop: 'total_quantity', sortable: false, canAutoResize: false, width: 150 },
       { name: 'Origen', prop: 'source_warehouse', sortable: false, canAutoResize: false, width: 210 },
       { name: 'Destino', prop: 'destination_warehouse', sortable: false, canAutoResize: false, width: 220 },
+      { name: 'Estado', prop: 'status', sortable: false, canAutoResize: false, width: 150 },
       { name: 'Usuario', prop: 'created_by_user', sortable: false, canAutoResize: false, width: 140 },
       { name: 'Fecha', prop: 'created_at', sortable: false, canAutoResize: false, width: 120 },
-      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: false, width: 210 },
+      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: false, width: 280 },
     ],
     externalPaging: true,
     externalSorting: false,
@@ -132,6 +138,10 @@ export class TransferListComponent implements OnInit {
     if (target && !this.host.nativeElement.querySelector('.filters-anchor')?.contains(target)) {
       this.closeFilters();
     }
+  }
+
+  get canCreateShipping(): boolean {
+    return this.authService.hasPermission(SHIPPING_PERMISSIONS.create);
   }
 
   get canCreateTransfer(): boolean {
@@ -329,6 +339,77 @@ export class TransferListComponent implements OnInit {
     }).afterClosed().subscribe((success) => {
       if (success) this.loadTransfers();
     });
+  }
+
+  statusLabel(status: string | null | undefined): string {
+    return transferStatusLabel(status);
+  }
+
+  statusTone(status: string | null | undefined): string {
+    return transferStatusTone(status);
+  }
+
+  openShipping(transfer: InventoryTransfer, event: Event): void {
+    event.stopPropagation();
+    this.dialog
+      .open(TransferShippingDialogComponent, {
+        data: { transfer },
+        width: 'min(640px, 96vw)',
+        maxWidth: '96vw',
+      })
+      .afterClosed()
+      .subscribe((created) => {
+        if (created) this.loadTransfers();
+      });
+  }
+
+  openReception(transfer: InventoryTransfer, event: Event): void {
+    event.stopPropagation();
+    const open = (current: InventoryTransfer) => {
+      this.dialog
+        .open(TransferReceptionDialogComponent, {
+          data: { transfer: current },
+          width: 'min(860px, 96vw)',
+          maxWidth: '96vw',
+        })
+        .afterClosed()
+        .subscribe((saved) => {
+          if (saved) this.loadTransfers();
+        });
+    };
+    if (transfer.lines?.some((line) => line.id)) {
+      open(transfer);
+      return;
+    }
+    this.transferService.getTransferById(transfer.id).subscribe({
+      next: (fresh) => open(fresh),
+      error: (err) => this.toast.error(err?.message || 'No se pudo abrir la recepción'),
+    });
+  }
+
+  cancelTransfer(transfer: InventoryTransfer, event: Event): void {
+    event.stopPropagation();
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '440px',
+        data: {
+          title: 'Cancelar transferencia',
+          message: `Se devuelve el stock de ${transfer.folio} al almacén origen.`,
+          confirmText: 'Cancelar transferencia',
+          cancelText: 'Volver',
+        },
+      })
+      .afterClosed()
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.transferService.cancelTransfer(transfer.id).subscribe({
+          next: () => {
+            this.toast.success(`${transfer.folio} cancelada`);
+            this.loadTransfers();
+          },
+          error: (err) => this.toast.error(err?.message || 'No se pudo cancelar'),
+        });
+      });
   }
 
   openTransferDetail(transfer: InventoryTransfer, event?: Event): void {

@@ -20,7 +20,8 @@
   <div
     class="datatable-container"
     *ngIf="(config?.totalResults ?? 0) > 0 || (!config?.loading && (config?.rows?.length ?? 0) > 0)">
-    <table class="datatable-table" *ngIf="!config?.loading && (config?.rows?.length ?? 0) > 0">
+    <div class="datatable-scroll" *ngIf="!config?.loading && (config?.rows?.length ?? 0) > 0">
+    <table class="datatable-table">
       <thead>
         <tr>
           <th *ngFor="let column of config?.columns; trackBy: trackByIndex" 
@@ -52,6 +53,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
 
     <div
       class="pagination-controls"

@@ -1,0 +1,44 @@
+<div class="cp-help">
+  <header>
+    <div>
+      <p class="kicker">Carta porte 3.1</p>
+      <h2>Cómo llenar la unidad</h2>
+    </div>
+    <button type="button" (click)="close()" aria-label="Cerrar">
+      <lucide-icon [img]="X" [size]="18"></lucide-icon>
+    </button>
+  </header>
+
+  <p class="lead">
+    Finkok timbra la clave del catálogo del SAT, no el nombre. Elige la clave. El texto de al lado es solo para reconocerla.
+  </p>
+
+  <ol>
+    <li>
+      <strong>Permiso SCT</strong>
+      <span>Clave <em>c_TipoPermiso</em>. Carga general suele ser TPAF01. Transporte propio de la empresa, TPAF02.</span>
+    </li>
+    <li>
+      <strong>Número de permiso</strong>
+      <span>El número impreso en el permiso de la SICT. Es texto, tal como viene en el documento.</span>
+    </li>
+    <li>
+      <strong>Configuración vehicular</strong>
+      <span>Clave <em>c_ConfigAutotransporte</em>. Un camión de 2 ejes es C2. Un tractocamión con semirremolque de 5 ejes suele ser T3S2. Cuenta los ejes de la tarjeta de circulación.</span>
+    </li>
+    <li>
+      <strong>Aseguradora y póliza</strong>
+      <span>Texto de la póliza de responsabilidad civil. El nombre de la aseguradora y el número de póliza, sin catálogo.</span>
+    </li>
+    <li>
+      <strong>Peso bruto vehicular</strong>
+      <span>Toneladas del vehículo, no de la carga. Ejemplo: 8.500. La carga se captura al generar la carta porte del viaje.</span>
+    </li>
+    <li>
+      <strong>Remolque</strong>
+      <span>Solo si la unidad jala uno. Clave <em>c_SubTipoRem</em> y su placa. Si no hay remolque, déjalos vacíos.</span>
+    </li>
+  </ol>
+
+  <p class="foot">La placa y el año de 4 dígitos se capturan en General. También los pide la carta porte.</p>
+</div>

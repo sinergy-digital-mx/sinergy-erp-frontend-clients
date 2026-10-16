@@ -236,6 +236,17 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
     return !!this.currentSalesOrderId && stop.sales_order_id === this.currentSalesOrderId;
   }
 
+  transferSummary(shipping: Shipping): string {
+    return (shipping.transfers ?? [])
+      .map((transfer) => {
+        const dest = transfer.destination_warehouse_name
+          ? ` → ${transfer.destination_warehouse_name}`
+          : '';
+        return `${transfer.folio}${dest}`;
+      })
+      .join(' · ');
+  }
+
   originLabel(): string {
     const s = this.shipping();
     return (
@@ -481,6 +492,17 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   distanceLabel(): string {
     const km = this.shipping()?.distance_km;
     return typeof km === 'number' ? `${km.toFixed(1)} km` : '—';
+  }
+
+  cargoLabel(): string {
+    switch (this.shipping()?.cargo_kind) {
+      case 'inventory_transfer':
+        return 'Transferencias';
+      case 'mixed':
+        return 'Órdenes y transferencias';
+      default:
+        return 'Órdenes';
+    }
   }
 
   pesoKg = '';

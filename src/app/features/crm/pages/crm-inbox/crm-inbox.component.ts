@@ -16,8 +16,9 @@ import { CUSTOMER_ACTIVITY_FORM_DIALOG_CONFIG } from '../../../../core/config/fo
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { CustomerActivityFormDialogComponent } from '../../../customers/components/customer-activity-form-dialog/customer-activity-form-dialog.component';
-import { ActivityStatus, ActivityType, CustomerActivity } from '../../../customers/models/customer-group.model';
+import { ActivityOutcome, ActivityStatus, ActivityType, CustomerActivity } from '../../../customers/models/customer-group.model';
 import {
+  getActivityOutcomeLabel,
   getActivityStatusClass,
   getActivityStatusLabel,
   getActivityTypeClass,
@@ -63,10 +64,12 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
   readonly XIcon = X;
   readonly activityTypes = Object.values(ActivityType);
   readonly activityStatuses = Object.values(ActivityStatus);
+  readonly activityOutcomes = Object.values(ActivityOutcome);
 
   readonly searchControl = new FormControl('', { nonNullable: true });
   readonly typeControl = new FormControl('', { nonNullable: true });
   readonly statusControl = new FormControl('', { nonNullable: true });
+  readonly outcomeControl = new FormControl('', { nonNullable: true });
   readonly authorSearchControl = new FormControl('', { nonNullable: true });
 
   datePreset: ReportPeriod = 'month';
@@ -124,6 +127,7 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
 
     this.typeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.reload(1));
     this.statusControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.reload(1));
+    this.outcomeControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.reload(1));
     this.authorSearchControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((value) => {
       if (value && typeof value !== 'string') {
         return;
@@ -236,6 +240,7 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
     this.searchControl.setValue('', { emitEvent: false });
     this.typeControl.setValue('', { emitEvent: false });
     this.statusControl.setValue('', { emitEvent: false });
+    this.outcomeControl.setValue('', { emitEvent: false });
     this.attention.set(null);
     this.clearAuthor();
   }
@@ -245,6 +250,7 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
       this.searchControl.value ||
         this.typeControl.value ||
         this.statusControl.value ||
+        this.outcomeControl.value ||
         this.selectedAuthor() ||
         this.attention(),
     );
@@ -296,6 +302,7 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
 
   getTypeLabel = getActivityTypeLabel;
   getStatusLabel = getActivityStatusLabel;
+  getOutcomeLabel = getActivityOutcomeLabel;
   getStatusClass = getActivityStatusClass;
   getTypeClass = getActivityTypeClass;
 
@@ -374,6 +381,7 @@ export class CrmInboxComponent implements OnInit, OnDestroy {
       search: this.searchControl.value.trim() || undefined,
       type: this.typeControl.value || undefined,
       status: this.statusControl.value || undefined,
+      outcome: this.outcomeControl.value || undefined,
       user_id: this.selectedAuthor()?.id || undefined,
       period: this.datePreset,
       date_from: this.datePreset === 'range' ? this.customDateFrom : undefined,

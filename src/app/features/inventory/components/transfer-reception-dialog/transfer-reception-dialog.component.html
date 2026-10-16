@@ -1,0 +1,57 @@
+<div class="recv">
+  <header class="recv__header">
+    <div>
+      <p class="recv__kicker">Recepción</p>
+      <h2>{{ data.transfer.folio }}</h2>
+    </div>
+    <button type="button" class="recv__close" (click)="close()" aria-label="Cerrar">
+      <lucide-icon [img]="X" [size]="18"></lucide-icon>
+    </button>
+  </header>
+  <p class="recv__lead">
+    Cuenta lo que llegó a {{ data.transfer.destination_warehouse?.name || 'destino' }}.
+    Si una cantidad no cuadra, la transferencia queda recibida con diferencia.
+  </p>
+
+  <div class="recv__table">
+    <div class="recv__head">
+      <span>Producto</span>
+      <span>Lote origen</span>
+      <span>Enviado</span>
+      <span>Contado</span>
+      <span></span>
+    </div>
+    @for (row of rows; track lineId(row.line, $index)) {
+      <div class="recv__row">
+        <span>
+          <strong>{{ row.line.product_name || data.transfer.product_name }}</strong>
+          <small>{{ row.line.uom_name || data.transfer.uom_name }}</small>
+        </span>
+        <span>{{ row.line.source_batch_number || '—' }}</span>
+        <span>{{ shipped(row) }}</span>
+        <span>
+          <input type="number" min="0" step="0.001" [(ngModel)]="row.quantityReceived" />
+        </span>
+        <span [class.is-ok]="matches(row)" [class.is-diff]="!matches(row)">
+          {{ matches(row) ? 'Igual' : 'Diferencia' }}
+        </span>
+      </div>
+    }
+  </div>
+
+  <label class="recv__notes">
+    Notas de recepción
+    <textarea rows="2" [(ngModel)]="notes" placeholder="Faltante, merma o conteo completo"></textarea>
+  </label>
+
+  <p class="recv__summary" [class.is-ok]="allMatch()" [class.is-diff]="!allMatch()">
+    {{ allMatch() ? 'Todas las cantidades cuadran con el envío.' : 'Hay diferencias contra lo enviado.' }}
+  </p>
+
+  <footer class="recv__footer">
+    <button type="button" class="recv__secondary" (click)="close()">Cancelar</button>
+    <button type="button" class="recv__primary" [disabled]="saving()" (click)="save()">
+      {{ saving() ? 'Guardando…' : 'Confirmar recepción' }}
+    </button>
+  </footer>
+</div>

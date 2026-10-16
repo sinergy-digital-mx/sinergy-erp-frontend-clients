@@ -1,9 +1,9 @@
 import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { LucideAngularModule, X, ChevronDown } from 'lucide-angular';
+import { LucideAngularModule, X } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
@@ -16,6 +16,14 @@ import { CreateTruckDto, Truck } from '../../models/truck.model';
 import { GpsCatalogUnit } from '../../models/gps-unit.model';
 import { TruckService } from '../../services/truck.service';
 import { GpsTrackingService } from '../../services/gps-tracking.service';
+import {
+  SAT_CONFIG_AUTOTRANSPORTE,
+  SAT_SUBTIPO_REMOLQUE,
+  SAT_TIPO_PERMISO,
+  SatCatalogItem,
+  catalogOrphan,
+} from '../../models/carta-porte-catalogs';
+import { CartaPorteTruckHelpDialogComponent } from '../carta-porte-truck-help-dialog/carta-porte-truck-help-dialog.component';
 
 export interface TruckFormDialogData {
   truck: Truck | null;
@@ -40,15 +48,16 @@ const PHOTO_ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
 })
 export class TruckFormModalComponent implements OnInit {
   readonly X = X;
-  readonly ChevronDown = ChevronDown;
   readonly permissions = TRUCK_PERMISSIONS;
+  readonly tipoPermiso = SAT_TIPO_PERMISO;
+  readonly configVehicular = SAT_CONFIG_AUTOTRANSPORTE;
+  readonly subtipoRemolque = SAT_SUBTIPO_REMOLQUE;
 
   form: FormGroup;
   saving = signal(false);
   loading = signal(false);
   uploadingPhoto = signal(false);
   isNew = true;
-  showSct = signal(false);
   activeTab = 'general';
   truckId: string | null = null;
   photoUrl: string | null = null;
@@ -59,6 +68,7 @@ export class TruckFormModalComponent implements OnInit {
 
   tabs: TabItem[] = [
     { id: 'general', title: 'General' },
+    { id: 'carta', title: 'Carta porte' },
     { id: 'fotos', title: 'Fotos', disabled: true },
   ];
 
@@ -68,6 +78,7 @@ export class TruckFormModalComponent implements OnInit {
     private gpsTracking: GpsTrackingService,
     private snackBar: MatSnackBar,
     private authService: AuthService,
+    private dialog: MatDialog,
     public dialogRef: MatDialogRef<TruckFormModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: TruckFormDialogData
   ) {
@@ -118,8 +129,15 @@ export class TruckFormModalComponent implements OnInit {
     this.activeTab = tabId;
   }
 
-  toggleSct(): void {
-    this.showSct.update((v) => !v);
+  openCartaPorteHelp(): void {
+    this.dialog.open(CartaPorteTruckHelpDialogComponent, {
+      width: '520px',
+      maxWidth: '94vw',
+    });
+  }
+
+  orphanOption(items: SatCatalogItem[], control: string): string {
+    return catalogOrphan(items, this.form.get(control)?.value);
   }
 
   close(): void {
@@ -256,18 +274,6 @@ export class TruckFormModalComponent implements OnInit {
       gps_unit_uid: truck.gps_unit_uid ?? '',
     });
     this.photoUrl = truck.photo?.trim() || null;
-    if (
-      truck.permiso_sct ||
-      truck.numero_permiso_sct ||
-      truck.tipo_auto_transporte ||
-      truck.aseguradora_rc ||
-      truck.poliza_rc ||
-      truck.peso_bruto_vehicular ||
-      truck.subtipo_remolque1 ||
-      truck.placa_remolque1
-    ) {
-      this.showSct.set(true);
-    }
   }
 
   private setFotosEnabled(enabled: boolean): void {

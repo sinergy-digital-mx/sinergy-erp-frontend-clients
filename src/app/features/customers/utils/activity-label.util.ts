@@ -23,6 +23,7 @@ const STATUS_LABELS: Record<ActivityStatus, string> = {
 
 const OUTCOME_LABELS: Record<ActivityOutcome, string> = {
   [ActivityOutcome.SATISFIED]: 'Satisfecho',
+  [ActivityOutcome.UNSATISFIED]: 'No satisfecho',
   [ActivityOutcome.ISSUE_RESOLVED]: 'Problema resuelto',
   [ActivityOutcome.ESCALATED]: 'Escalado',
   [ActivityOutcome.FOLLOW_UP_NEEDED]: 'Requiere seguimiento',

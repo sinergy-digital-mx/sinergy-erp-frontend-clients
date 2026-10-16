@@ -373,6 +373,7 @@ export enum ActivityStatus {
  */
 export enum ActivityOutcome {
   SATISFIED = 'satisfied',
+  UNSATISFIED = 'unsatisfied',
   ISSUE_RESOLVED = 'issue_resolved',
   ESCALATED = 'escalated',
   FOLLOW_UP_NEEDED = 'follow_up_needed'

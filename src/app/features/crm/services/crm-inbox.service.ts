@@ -69,6 +69,7 @@ export class CrmInboxService {
       ['search', query.search],
       ['type', query.type],
       ['status', query.status],
+      ['outcome', query.outcome],
       ['user_id', query.user_id],
       ['period', query.period],
       ['date_from', query.date_from],

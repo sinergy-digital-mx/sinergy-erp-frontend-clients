@@ -1,0 +1,143 @@
+.recv {
+  padding: 1.25rem 1.35rem 1.1rem;
+  color: #1f2937;
+}
+
+.recv__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.recv__kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6366f1;
+}
+
+h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.35rem;
+}
+
+.recv__close {
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.recv__lead {
+  margin: 0.75rem 0 1rem;
+  color: #4b5563;
+  font-size: 0.92rem;
+}
+
+.recv__table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.recv__head,
+.recv__row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr 0.6fr 0.8fr 0.7fr;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.recv__head {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.recv__row {
+  padding: 0.45rem 0;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+
+  strong,
+  small {
+    display: block;
+  }
+
+  small {
+    color: #6b7280;
+  }
+
+  input {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 0.45rem;
+    padding: 0.35rem 0.5rem;
+  }
+}
+
+.is-ok {
+  color: #166534;
+  font-weight: 600;
+}
+
+.is-diff {
+  color: #9a3412;
+  font-weight: 600;
+}
+
+.recv__notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  textarea {
+    font: inherit;
+    font-weight: 400;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.65rem;
+  }
+}
+
+.recv__summary {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+.recv__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.recv__secondary,
+.recv__primary {
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.recv__secondary {
+  border: 1px solid #d1d5db;
+  background: #fff;
+}
+
+.recv__primary {
+  border: 0;
+  background: #4338ca;
+  color: #fff;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

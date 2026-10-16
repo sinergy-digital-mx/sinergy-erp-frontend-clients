@@ -5,6 +5,7 @@ import {
   ArrowLeftRight,
   LayoutDashboard,
   LucideAngularModule,
+  BookOpen,
   Radio,
   Route,
   Truck,
@@ -86,6 +87,14 @@ export class LogisticsShellComponent implements OnInit, OnDestroy {
         label: 'Rastreo GPS',
         route: '/logistics/tracking',
         icon: Radio,
+        exact: true,
+      });
+    }
+    if (canTrips || canTransfers) {
+      execution.push({
+        label: 'Instrucciones',
+        route: '/logistics/transfer-process',
+        icon: BookOpen,
         exact: true,
       });
     }

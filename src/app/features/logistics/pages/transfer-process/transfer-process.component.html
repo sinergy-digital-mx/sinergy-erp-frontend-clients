@@ -1,0 +1,48 @@
+<div class="guide">
+  <header class="guide__head">
+    <h2>Instrucciones</h2>
+    <p>Un viaje lleva órdenes, transferencias o las dos. La carta porte se genera cuando el viaje ya existe.</p>
+  </header>
+
+  <div class="guide__grid">
+    <section>
+      <span class="guide__mark"><lucide-icon [img]="Package" [size]="16"></lucide-icon></span>
+      <h3>Entrega de órdenes</h3>
+      <ol>
+        <li>En <a routerLink="/logistics/trips">Viajes</a>, Nuevo viaje y elige <strong>Órdenes</strong>.</li>
+        <li>Razón social, sucursal, fecha, unidad y chofer.</li>
+        <li>Marca las órdenes listas y revisa la ruta.</li>
+        <li>La carta porte se timbra en el detalle del viaje.</li>
+      </ol>
+    </section>
+
+    <section>
+      <span class="guide__mark"><lucide-icon [img]="ArrowLeftRight" [size]="16"></lucide-icon></span>
+      <h3>Transferencia</h3>
+      <ol>
+        <li>En <a routerLink="/logistics/transfers">Transferencias</a> queda <strong>Pendiente</strong>: sale del origen y aún no entra al destino.</li>
+        <li>Crea el envío ahí, o en Viajes con <strong>Transferencias</strong>.</li>
+        <li>El destino cuenta. Si no cuadra, entra solo lo contado.</li>
+        <li>El viaje se cierra cuando ya se recibió. La carta porte va en ese viaje.</li>
+      </ol>
+      <p>Otra razón social solo si está activo <strong>Permitir transferencias a otra razón social</strong>.</p>
+    </section>
+
+    <section>
+      <span class="guide__mark"><lucide-icon [img]="Truck" [size]="16"></lucide-icon></span>
+      <h3>Ambos</h3>
+      <ol>
+        <li>Nuevo viaje y elige <strong>Ambos</strong>.</li>
+        <li>Primero las órdenes, después las transferencias pendientes de la sucursal.</li>
+        <li>Es un solo viaje, una ruta y una carta porte.</li>
+        <li>La recepción de cada transferencia sigue en su listado.</li>
+      </ol>
+    </section>
+  </div>
+
+  <p class="guide__note">
+    En <a routerLink="/logistics/trucks">Flota</a> y <a routerLink="/logistics/drivers">Choferes</a>
+    aparece <strong>Completo</strong> o <strong>No completo</strong>.
+    Si falta algo, el viaje se puede crear y la carta porte se genera después, desde su detalle.
+  </p>
+</div>

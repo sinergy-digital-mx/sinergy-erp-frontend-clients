@@ -28,7 +28,8 @@ import {
   StopAddressPickerDialogComponent,
   StopAddressPickerResult,
 } from '../stop-address-picker-dialog/stop-address-picker-dialog.component';
-import { Truck, truckSelectLabel } from '../../models/truck.model';
+import { Truck, truckBusyLabel, truckSelectLabel } from '../../models/truck.model';
+import { TruckFormModalComponent } from '../truck-form-modal/truck-form-modal.component';
 import {
   CreateShippingDto,
   ShippingOrderInput,
@@ -39,6 +40,8 @@ import {
 } from '../../models/shipping.model';
 import { TruckService } from '../../services/truck.service';
 import { ShippingService } from '../../services/shipping.service';
+import { InventoryTransferService } from '../../../inventory/services/inventory-transfer.service';
+import { InventoryTransfer } from '../../../inventory/models/inventory-transfer.model';
 import { ShippingMapComponent } from '../shipping-map/shipping-map.component';
 import { BranchLocationDialogComponent } from '../branch-location-dialog/branch-location-dialog.component';
 
@@ -46,7 +49,12 @@ export interface CreateShippingDialogData {
   shippingDate?: string;
 }
 
-type WizardStep = 'form' | 'preview';
+type WizardStep = 'info' | 'orders' | 'transfers' | 'preview';
+
+interface WizardPanel {
+  id: Exclude<WizardStep, 'preview'>;
+  label: string;
+}
 
 @Component({
   selector: 'app-create-shipping-dialog',
@@ -66,14 +74,17 @@ type WizardStep = 'form' | 'preview';
 export class CreateShippingDialogComponent implements OnInit, OnDestroy {
   readonly X = X;
   readonly truckSelectLabel = truckSelectLabel;
+  readonly truckBusyLabel = truckBusyLabel;
 
   form: FormGroup;
-  step = signal<WizardStep>('form');
+  step = signal<WizardStep>('info');
+  infoTried = signal(false);
   fiscalConfigurations = signal<FiscalConfiguration[]>([]);
   branches = signal<Branch[]>([]);
   trucks = signal<Truck[]>([]);
   drivers = signal<User[]>([]);
   orders = signal<SalesOrder[]>([]);
+  pendingTransfers = signal<InventoryTransfer[]>([]);
   preview = signal<ShippingPreviewResult | null>(null);
 
   loadingCatalogs = signal(false);
@@ -82,6 +93,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
   creating = signal(false);
 
   selectedOrderIds = new Set<string>();
+  selectedTransferIds = new Set<string>();
   orderSearch = '';
   orderPage = 1;
   orderTotalPages = 1;
@@ -96,6 +108,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     private truckService: TruckService,
     private userService: UserService,
     private shippingService: ShippingService,
+    private transferService: InventoryTransferService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     public dialogRef: MatDialogRef<CreateShippingDialogComponent>,
@@ -109,6 +122,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
       truck_id: ['', Validators.required],
       driver_id: ['', Validators.required],
       notes: [''],
+      cargo_kind: ['order_delivery'],
     });
   }
 
@@ -154,12 +168,195 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
 
   private onBranchChange(): void {
     this.clearOrderSelection();
+    this.selectedTransferIds = new Set();
     this.orderPage = 1;
     this.loadOrders();
+    this.loadPendingTransfers();
+  }
+
+  cargoKind(): string {
+    return this.form.get('cargo_kind')?.value || 'order_delivery';
+  }
+
+  showsOrders(): boolean {
+    return this.cargoKind() !== 'inventory_transfer';
+  }
+
+  showsTransfers(): boolean {
+    return this.cargoKind() !== 'order_delivery';
+  }
+
+  setCargo(kind: 'order_delivery' | 'inventory_transfer' | 'mixed'): void {
+    this.form.patchValue({ cargo_kind: kind });
+    if (kind === 'order_delivery') this.selectedTransferIds = new Set();
+    if (kind === 'inventory_transfer') this.clearOrderSelection();
+  }
+
+  wizardSteps(): WizardPanel[] {
+    const steps: WizardPanel[] = [{ id: 'info', label: 'Información' }];
+    if (this.showsOrders()) steps.push({ id: 'orders', label: 'Órdenes' });
+    if (this.showsTransfers()) steps.push({ id: 'transfers', label: 'Transferencias' });
+    return steps;
+  }
+
+  stepNumber(id: WizardPanel['id']): number {
+    return this.wizardSteps().findIndex((item) => item.id === id);
+  }
+
+  isStepDone(id: WizardPanel['id']): boolean {
+    const current = this.step();
+    if (current === 'preview') return true;
+    return this.stepNumber(id) < this.stepNumber(current as WizardPanel['id']);
+  }
+
+  primaryLabel(): string {
+    const current = this.step();
+    const steps = this.wizardSteps();
+    const last = steps[steps.length - 1]?.id;
+    if (current !== last) return 'Continuar';
+    return this.showsOrders() ? 'Vista previa' : 'Crear viaje';
+  }
+
+  infoSummary(): string {
+    const fiscalId = this.form.get('fiscal_configuration_id')?.value;
+    const branchId = this.form.get('billing_branch_id')?.value;
+    const fiscal = this.fiscalConfigurations().find((item) => item.id === fiscalId);
+    const branch = this.branches().find((item) => item.id === branchId);
+    return [fiscal ? this.fiscalLabel(fiscal) : '', branch ? this.branchLabel(branch) : '', this.form.get('shipping_date')?.value]
+      .filter(Boolean)
+      .join(' · ');
+  }
+
+  continueWizard(): void {
+    const current = this.step();
+    if (current === 'info') {
+      this.infoTried.set(true);
+      if (this.form.invalid) {
+        this.form.markAllAsTouched();
+        return;
+      }
+      const truck = this.selectedTruck();
+      if (truck?.active_shipping_id) {
+        this.notify(`Esa unidad está ${truckBusyLabel(truck)}. Elige otra.`);
+        return;
+      }
+      const next = this.wizardSteps()[1];
+      if (next) this.step.set(next.id);
+      return;
+    }
+    if (current === 'orders') {
+      if (!this.selectedOrderIds.size) {
+        this.notify('Selecciona al menos una orden');
+        return;
+      }
+      if (this.showsTransfers()) {
+        this.step.set('transfers');
+        return;
+      }
+      this.fetchPreview(true);
+      return;
+    }
+    if (current === 'transfers') {
+      if (!this.selectedTransferIds.size) {
+        this.notify('Selecciona al menos una transferencia');
+        return;
+      }
+      if (this.showsOrders()) {
+        this.fetchPreview(true);
+        return;
+      }
+      this.doCreate();
+    }
+  }
+
+  goBack(): void {
+    if (this.step() === 'preview') {
+      const steps = this.wizardSteps();
+      this.step.set(steps[steps.length - 1]?.id ?? 'info');
+      return;
+    }
+    const steps = this.wizardSteps();
+    const index = steps.findIndex((item) => item.id === this.step());
+    if (index > 0) this.step.set(steps[index - 1].id);
+  }
+
+  private notify(message: string): void {
+    this.snackBar.openFromComponent(CustomSnackbarComponent, {
+      data: { message, type: 'error' },
+      duration: 4000,
+    });
+  }
+
+  cartaPorteLabel(ready: boolean | null | undefined): string {
+    return ready ? 'Completo' : 'No completo';
+  }
+
+  selectedTruck(): Truck | undefined {
+    return this.trucks().find((item) => item.id === this.form.get('truck_id')?.value);
+  }
+
+  selectedTruckMissing(): string {
+    const truck = this.selectedTruck();
+    if (!truck || truck.carta_porte_ready) return '';
+    return (truck.carta_porte_missing ?? []).join(' · ');
+  }
+
+  editSelectedTruck(): void {
+    const truck = this.selectedTruck();
+    if (!truck) return;
+    const ref = this.dialog.open(TruckFormModalComponent, {
+      width: '700px',
+      maxWidth: '95vw',
+      disableClose: true,
+      data: { truck },
+    });
+    ref.afterClosed().subscribe((saved: Truck | null) => {
+      if (!saved) return;
+      const keepId = saved.id || truck.id;
+      this.truckService.getTrucks({ status: 'active', limit: 100 }).subscribe({
+        next: (res) => {
+          this.trucks.set(res.data ?? []);
+          this.form.patchValue({ truck_id: keepId });
+        },
+      });
+    });
+  }
+
+  selectedDriverMissing(): string {
+    const driver = this.drivers().find((item) => item.id === this.form.get('driver_id')?.value);
+    if (!driver || driver.carta_porte_ready) return '';
+    return (driver.carta_porte_missing ?? []).join(' · ');
+  }
+
+  toggleTransfer(id: string): void {
+    if (this.selectedTransferIds.has(id)) this.selectedTransferIds.delete(id);
+    else this.selectedTransferIds.add(id);
+    this.selectedTransferIds = new Set(this.selectedTransferIds);
+  }
+
+  isTransferSelected(id: string): boolean {
+    return this.selectedTransferIds.has(id);
   }
 
   private clearOrderSelection(): void {
     this.selectedOrderIds = new Set();
+  }
+
+  private loadPendingTransfers(): void {
+    const branchId = this.form.get('billing_branch_id')?.value;
+    if (!branchId) {
+      this.pendingTransfers.set([]);
+      return;
+    }
+    this.transferService
+      .getTransfers(
+        { status: 'pending', source_billing_branch_id: branchId },
+        { page: 1, limit: 50 },
+      )
+      .subscribe({
+        next: (res) => this.pendingTransfers.set(res.data ?? []),
+        error: () => this.pendingTransfers.set([]),
+      });
   }
 
   private loadCatalogs(): void {
@@ -261,7 +458,8 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
 
   driverLabel(user: User): string {
     const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
-    return name || user.email;
+    const base = name || user.email;
+    return `${base} · ${this.cartaPorteLabel(user.carta_porte_ready)}`;
   }
 
   orderFolio(order: SalesOrder): string {
@@ -304,7 +502,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
   }
 
   backToForm(): void {
-    this.step.set('form');
+    this.goBack();
   }
 
   /** Hint inicial; el back reordena por distancia. Conserva la dirección ya elegida. */
@@ -345,18 +543,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
   }
 
   runPreview(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    if (!this.selectedOrderIds.size) {
-      this.snackBar.openFromComponent(CustomSnackbarComponent, {
-        data: { message: 'Selecciona al menos una orden', type: 'error' },
-        duration: 4000,
-      });
-      return;
-    }
-    this.fetchPreview(true);
+    this.continueWizard();
   }
 
   /** Re-llama preview sin validar de nuevo el form (tras editar GPS). */
@@ -560,7 +747,8 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
       truck_id: value.truck_id,
       billing_branch_id: value.billing_branch_id,
       notes: value.notes?.trim() || undefined,
-      orders: this.buildOrdersPayloadFromPreview(),
+      orders: this.cargoKind() === 'inventory_transfer' ? [] : this.buildOrdersPayloadFromPreview(),
+      inventory_transfer_ids: this.showsTransfers() ? [...this.selectedTransferIds] : [],
     };
     this.creating.set(true);
     this.shippingService.createShipping(body).subscribe({

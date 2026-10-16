@@ -1,3 +1,16 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.purchase-order-list-container,
+.purchase-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .po-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;

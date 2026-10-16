@@ -82,62 +82,82 @@
           }
         </div>
 
-        <div class="md:col-span-2">
-          <button
-            type="button"
-            class="flex items-center gap-2 text-sm font-medium text-gray-700"
-            (click)="toggleSct()"
-          >
-            <lucide-icon
-              [img]="ChevronDown"
-              class="w-4 h-4 transition-transform"
-              [class.rotate-180]="showSct()"
-            ></lucide-icon>
-            Datos para carta porte
-          </button>
+      </form>
+    }
+
+    @if (activeTab === 'carta') {
+      <form [formGroup]="form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:col-span-2 carta-head">
+          <div>
+            <h3>Datos para carta porte</h3>
+            <p>Finkok recibe la clave del SAT. El número de permiso, la aseguradora y la póliza sí van en texto.</p>
+          </div>
+          <button type="button" class="carta-help" (click)="openCartaPorteHelp()">Cómo llenarlo</button>
         </div>
 
-        @if (showSct()) {
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Permiso SCT</label>
-            <input type="text" formControlName="permiso_sct" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Número permiso SCT</label>
-            <input type="text" formControlName="numero_permiso_sct" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo autotransporte</label>
-            <input type="text" formControlName="tipo_auto_transporte" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Aseguradora RC</label>
-            <input type="text" formControlName="aseguradora_rc" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Póliza RC</label>
-            <input type="text" formControlName="poliza_rc" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Peso bruto vehicular (ton)</label>
-            <input
-              type="number"
-              min="0.001"
-              step="0.001"
-              formControlName="peso_bruto_vehicular"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="8.500"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Subtipo remolque</label>
-            <input type="text" formControlName="subtipo_remolque1" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Placa remolque</label>
-            <input type="text" formControlName="placa_remolque1" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
-          </div>
-        }
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Permiso SCT</label>
+          <select formControlName="permiso_sct" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            <option value="">Selecciona la clave</option>
+            @if (orphanOption(tipoPermiso, 'permiso_sct'); as extra) {
+              <option [value]="extra">{{ extra }} · valor guardado</option>
+            }
+            @for (item of tipoPermiso; track item.code) {
+              <option [value]="item.code">{{ item.code }} · {{ item.label }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Número de permiso SCT</label>
+          <input type="text" formControlName="numero_permiso_sct" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Como viene en el permiso" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Configuración vehicular</label>
+          <select formControlName="tipo_auto_transporte" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            <option value="">Selecciona la clave</option>
+            @if (orphanOption(configVehicular, 'tipo_auto_transporte'); as extra) {
+              <option [value]="extra">{{ extra }} · valor guardado</option>
+            }
+            @for (item of configVehicular; track item.code) {
+              <option [value]="item.code">{{ item.code }} · {{ item.label }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Aseguradora RC</label>
+          <input type="text" formControlName="aseguradora_rc" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Nombre de la aseguradora" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Póliza RC</label>
+          <input type="text" formControlName="poliza_rc" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Número de póliza" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Peso bruto vehicular (ton)</label>
+          <input
+            type="number"
+            min="0.001"
+            step="0.001"
+            formControlName="peso_bruto_vehicular"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+            placeholder="8.500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Subtipo de remolque</label>
+          <select formControlName="subtipo_remolque1" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            <option value="">Sin remolque</option>
+            @if (orphanOption(subtipoRemolque, 'subtipo_remolque1'); as extra) {
+              <option [value]="extra">{{ extra }} · valor guardado</option>
+            }
+            @for (item of subtipoRemolque; track item.code) {
+              <option [value]="item.code">{{ item.code }} · {{ item.label }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Placa del remolque</label>
+          <input type="text" formControlName="placa_remolque1" class="w-full px-3 py-2 border border-gray-300 rounded-md uppercase" placeholder="Solo si hay remolque" />
+        </div>
       </form>
     }
 

@@ -231,8 +231,61 @@
 
 .sv__carta-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 0.6rem;
+}
+
+.sv__carta-lead {
+  margin: 0.15rem 0 0 !important;
+  color: #6b7280 !important;
+}
+
+.sv__carta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+
+  article {
+    padding: 0.75rem 0.8rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f8fafc;
+  }
+
+  strong {
+    display: block;
+    font-size: 0.78rem;
+    color: #111827;
+  }
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sv__carta-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+
+  label {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .page-create-btn {
+    margin-top: 0;
+  }
+}
+
+.sv__empty-inline {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.78rem;
 }
 
 .sv__carta-uuid {
@@ -256,7 +309,7 @@
 
 .sv__body {
   display: grid;
-  grid-template-columns: minmax(280px, 340px) 1fr;
+  grid-template-columns: minmax(320px, 420px) 1fr;
   gap: 1rem;
   flex: 1;
   min-height: 0;

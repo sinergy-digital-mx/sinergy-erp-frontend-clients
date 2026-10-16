@@ -8,6 +8,7 @@ import {
   TransferContext,
   CreateTransferDto,
   InventoryTransfer,
+  ReceiveTransferDto,
   TransferFilters,
   PaginationParams,
   TransferListResponse,
@@ -74,6 +75,7 @@ export class InventoryTransferService {
       .set('limit', pagination.limit.toString());
 
     if (filters.search) params = params.set('search', filters.search);
+    if (filters.status) params = params.set('status', filters.status);
     if (filters.product_id) params = params.set('product_id', filters.product_id);
     if (filters.source_fiscal_configuration_id) {
       params = params.set('source_fiscal_configuration_id', filters.source_fiscal_configuration_id);
@@ -117,6 +119,20 @@ export class InventoryTransferService {
         } as TransferListResponse;
       }),
       catchError((error) => this.handleError(error))
+    );
+  }
+
+  receiveTransfer(id: string, body: ReceiveTransferDto): Observable<InventoryTransfer> {
+    return this.http.post<any>(`${this.baseUrl}/${id}/receive`, body).pipe(
+      map((res) => unwrapData<InventoryTransfer>(res)),
+      catchError((error) => this.handleError(error)),
+    );
+  }
+
+  cancelTransfer(id: string): Observable<InventoryTransfer> {
+    return this.http.post<any>(`${this.baseUrl}/${id}/cancel`, {}).pipe(
+      map((res) => unwrapData<InventoryTransfer>(res)),
+      catchError((error) => this.handleError(error)),
     );
   }
 

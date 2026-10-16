@@ -14,7 +14,8 @@ export interface CreateShippingDto {
   truck_id: string;
   billing_branch_id: string;
   notes?: string;
-  orders: ShippingOrderInput[];
+  orders?: ShippingOrderInput[];
+  inventory_transfer_ids?: string[];
 }
 
 export interface ShippingPreviewDto {
@@ -133,6 +134,14 @@ export interface Shipping {
   driver_carta_porte_missing?: string[];
   truck_carta_porte_ready?: boolean;
   truck_carta_porte_missing?: string[];
+  cargo_kind?: 'order_delivery' | 'inventory_transfer' | 'mixed' | string;
+  transfers?: Array<{
+    id: string;
+    folio: string;
+    status?: string | null;
+    total_quantity?: string | number | null;
+    destination_warehouse_name?: string | null;
+  }>;
   stops?: ShippingStop[];
   origin?: ShippingOrigin;
   origin_missing_location?: boolean;

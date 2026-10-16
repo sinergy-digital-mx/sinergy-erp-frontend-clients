@@ -78,6 +78,16 @@
           </span>
         </div>
         <div class="info-item">
+          <span class="info-item__label">Estado</span>
+          <span class="info-item__value">{{ statusLabel(t.status) }}</span>
+        </div>
+        @if (t.shipping_id) {
+          <div class="info-item">
+            <span class="info-item__label">Envío</span>
+            <span class="info-item__value">{{ t.shipping_status || 'Creado' }}{{ t.shipping_date ? ' · ' + t.shipping_date : '' }}</span>
+          </div>
+        }
+        <div class="info-item">
           <span class="info-item__label">Creado por</span>
           <span class="info-item__value">{{ t.created_by_user?.name || '—' }}</span>
         </div>

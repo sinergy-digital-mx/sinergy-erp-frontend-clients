@@ -1,0 +1,78 @@
+.cp-help {
+  padding: 1.15rem 1.25rem 1.2rem;
+  color: #1f2937;
+  background: #fff;
+}
+
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6366f1;
+}
+
+h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+button {
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.lead,
+.foot {
+  margin: 0.75rem 0 0;
+  color: #4b5563;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+ol {
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+li {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e6e8ee;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+strong {
+  display: block;
+  font-size: 0.84rem;
+  color: #111827;
+}
+
+span {
+  display: block;
+  margin-top: 0.15rem;
+  color: #4b5563;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+em {
+  font-style: normal;
+  font-weight: 650;
+  color: #3730a3;
+}

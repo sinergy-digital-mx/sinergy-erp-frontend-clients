@@ -110,6 +110,7 @@ export interface TransferWarehouseSummary {
 }
 
 export interface TransferLine {
+  id?: string;
   product_id?: string;
   product_name?: string;
   product_sku?: string;
@@ -122,6 +123,7 @@ export interface TransferLine {
   destination_batch_id?: string;
   destination_batch_number: string;
   quantity: string;
+  quantity_received?: string | null;
   measure_label?: string | null;
 }
 
@@ -136,7 +138,13 @@ export interface InventoryTransfer {
   products?: TransferProductSummary[];
   products_count?: number;
   total_quantity: string;
+  status?: string;
   notes?: string | null;
+  reception_notes?: string | null;
+  received_at?: string | null;
+  shipping_id?: string | null;
+  shipping_status?: string | null;
+  shipping_date?: string | null;
   source_warehouse: TransferWarehouseSummary;
   destination_warehouse: TransferWarehouseSummary;
   lines?: TransferLine[];
@@ -144,8 +152,19 @@ export interface InventoryTransfer {
   created_at: string;
 }
 
+export interface ReceiveTransferLineDto {
+  id: string;
+  quantity_received: number;
+}
+
+export interface ReceiveTransferDto {
+  lines: ReceiveTransferLineDto[];
+  notes?: string;
+}
+
 export interface TransferFilters {
   search?: string;
+  status?: string;
   product_id?: string;
   source_fiscal_configuration_id?: string;
   source_billing_branch_id?: string;

@@ -477,7 +477,7 @@ export class CreateTransferDialogComponent implements OnInit, OnDestroy {
           this.submitting.set(false);
           const count = this.readyItems().length;
           const detail = count > 1 ? ` · ${count} productos` : '';
-          this.toast.success(`Transferencia ${result.folio} creada${detail}`);
+          this.toast.success(`Transferencia ${result.folio} pendiente${detail}. Crea el envío para poder recibirla.`);
           this.dialogRef.close(true);
         },
         error: (err) => {

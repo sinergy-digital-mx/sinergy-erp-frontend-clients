@@ -17,6 +17,7 @@ import {
   fromTransferWarehouse,
   isSameFiscal,
 } from '../../utils/transfer-location.util';
+import { transferStatusLabel } from '../../utils/transfer-status.util';
 
 @Component({
   selector: 'app-transfer-detail-dialog',
@@ -29,6 +30,7 @@ export class TransferDetailDialogComponent implements OnInit {
   readonly X = X;
   readonly ArrowRight = ArrowRight;
   readonly Download = Download;
+  readonly statusLabel = transferStatusLabel;
 
   transfer = signal<InventoryTransfer | null>(null);
   loading = signal(true);

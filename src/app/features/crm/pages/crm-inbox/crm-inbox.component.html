@@ -97,6 +97,17 @@
       </select>
     </div>
 
+    <div class="crm-filters__field">
+      <label class="crm-filters__label" for="crm-outcome">Resultado</label>
+      <select id="crm-outcome" class="crm-filters__select" [formControl]="outcomeControl">
+        <option value="">Todos los resultados</option>
+        <option value="none">Sin resultado</option>
+        @for (outcome of activityOutcomes; track outcome) {
+          <option [value]="outcome">{{ getOutcomeLabel(outcome) }}</option>
+        }
+      </select>
+    </div>
+
     <div class="crm-filters__field crm-filters__field--author">
         <label class="crm-filters__label" for="crm-author">Vendedor</label>
         <div class="author-picker">
@@ -166,6 +177,7 @@
             <th>Tipo</th>
             <th>Actividad</th>
             <th>Estado</th>
+            <th>Resultado</th>
             <th>Fecha</th>
             <th>Seguimiento</th>
           </tr>
@@ -202,6 +214,13 @@
               </td>
               <td>
                 <span [ngClass]="getStatusClass(activity.status)">{{ getStatusLabel(activity.status) }}</span>
+              </td>
+              <td>
+                @if (activity.outcome) {
+                  {{ getOutcomeLabel(activity.outcome) }}
+                } @else {
+                  <span class="crm-muted">—</span>
+                }
               </td>
               <td class="crm-date">{{ activity.activity_date | apiDate:'date' }}</td>
               <td class="crm-date">

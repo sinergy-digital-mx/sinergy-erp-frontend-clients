@@ -94,8 +94,11 @@
       [class.dt-status-pill--warning]="!item.carta_porte_ready"
       [title]="(item.carta_porte_missing || []).join('. ')"
     >
-      {{ item.carta_porte_ready ? 'Lista' : 'Faltan datos' }}
+      {{ item.carta_porte_ready ? 'Completo' : 'No completo' }}
     </span>
+    @if (!item.carta_porte_ready && item.carta_porte_missing?.length) {
+      <p class="dt-cell-subtle m-0">{{ item.carta_porte_missing.join(' · ') }}</p>
+    }
   </td>
   <td>
     <span [ngClass]="getStatusClass(item.status)">

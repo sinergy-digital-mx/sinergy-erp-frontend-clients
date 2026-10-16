@@ -97,6 +97,7 @@ export interface CrmInboxQuery {
   search?: string;
   type?: string;
   status?: string;
+  outcome?: string;
   user_id?: string;
   period?: ReportPeriod;
   date_from?: string;

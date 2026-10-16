@@ -228,14 +228,34 @@
       [fiscalBold]="fiscalRelation(item) === false">
     </app-transfer-location-path>
   </td>
+  <td class="px-2 py-2 w-[150px]">
+    <span class="transfer-status" [class]="'transfer-status transfer-status--' + statusTone(item.status)">
+      {{ statusLabel(item.status) }}
+    </span>
+  </td>
   <td class="px-2 py-2 w-[140px]">
     <span class="text-sm text-gray-700">{{ item.created_by_user?.name || '—' }}</span>
   </td>
   <td class="px-2 py-2 w-[120px]">
     <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>
   </td>
-  <td class="px-2 py-2 w-[210px]">
+  <td class="px-2 py-2 w-[280px]">
     <div class="transfer-actions">
+      @if (canCreateShipping && item.status === 'pending') {
+        <button type="button" class="transfer-ship-btn" (click)="openShipping(item, $event)">
+          Crear envío
+        </button>
+      }
+      @if (canCreateTransfer && item.status === 'in_transit') {
+        <button type="button" class="transfer-ship-btn" (click)="openReception(item, $event)">
+          Recibir
+        </button>
+      }
+      @if (canCreateTransfer && item.status === 'pending') {
+        <button type="button" class="transfer-pdf-btn" (click)="cancelTransfer(item, $event)">
+          Cancelar
+        </button>
+      }
       <button
         type="button"
         class="transfer-detail-btn"

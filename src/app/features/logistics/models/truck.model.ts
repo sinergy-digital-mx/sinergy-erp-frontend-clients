@@ -24,6 +24,7 @@ export interface Truck {
   /** Envío Creado o En Ruta que ya usa esta unidad. */
   active_shipping_id?: string | null;
   active_shipping_status?: string | null;
+  active_shipping_date?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -75,4 +76,23 @@ export function truckSelectLabel(truck: Pick<Truck, 'name' | 'placa'>): string {
   const placa = truck.placa?.trim();
   if (name && placa) return `${name} · ${placa}`;
   return name || placa || 'Camión';
+}
+
+/** Texto cuando la unidad ya está en un envío Creado o En Ruta. */
+export function truckBusyLabel(
+  truck: Pick<Truck, 'active_shipping_id' | 'active_shipping_status' | 'active_shipping_date'>,
+): string {
+  if (!truck.active_shipping_id) return '';
+  const folio = `#${truck.active_shipping_id.slice(0, 8)}`;
+  const day = formatShippingDay(truck.active_shipping_date);
+  const status = truck.active_shipping_status?.trim();
+  const where = [folio, day, status].filter(Boolean).join(' · ');
+  return `en uso en ${where}`;
+}
+
+function formatShippingDay(value: string | null | undefined): string {
+  if (!value) return '';
+  const [year, month, day] = value.slice(0, 10).split('-');
+  if (!year || !month || !day) return '';
+  return `${day}/${month}/${year}`;
 }
