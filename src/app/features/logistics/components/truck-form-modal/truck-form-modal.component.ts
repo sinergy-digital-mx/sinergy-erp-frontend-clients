@@ -61,6 +61,7 @@ export class TruckFormModalComponent implements OnInit {
   activeTab = 'general';
   truckId: string | null = null;
   photoUrl: string | null = null;
+  cartaPorteMissing: string[] = [];
   gpsUnits = signal<GpsCatalogUnit[]>([]);
   gpsHint = signal<string | null>(null);
   /** Si se creó/actualizó/subió foto, al cerrar devolvemos el camión para refrescar lista */
@@ -274,6 +275,7 @@ export class TruckFormModalComponent implements OnInit {
       gps_unit_uid: truck.gps_unit_uid ?? '',
     });
     this.photoUrl = truck.photo?.trim() || null;
+    this.cartaPorteMissing = truck.carta_porte_ready ? [] : (truck.carta_porte_missing ?? []);
   }
 
   private setFotosEnabled(enabled: boolean): void {

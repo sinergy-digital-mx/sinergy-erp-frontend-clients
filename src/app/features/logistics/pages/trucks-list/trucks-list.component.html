@@ -96,9 +96,6 @@
     >
       {{ item.carta_porte_ready ? 'Completo' : 'No completo' }}
     </span>
-    @if (!item.carta_porte_ready && item.carta_porte_missing?.length) {
-      <p class="dt-cell-subtle m-0">{{ item.carta_porte_missing.join(' · ') }}</p>
-    }
   </td>
   <td>
     <span [ngClass]="getStatusClass(item.status)">
@@ -106,25 +103,23 @@
     </span>
   </td>
   <td>
-    <div class="flex items-center gap-2" (click)="$event.stopPropagation()">
+    <div class="truck-actions" (click)="$event.stopPropagation()">
       <button
         *hasPermission="permissions.update"
         type="button"
-        class="p-1.5 rounded hover:bg-gray-100 text-gray-600"
-        title="Editar"
+        class="truck-actions__edit"
         (click)="openEdit(item, $event)"
       >
-        <lucide-icon [img]="Edit2" class="w-4 h-4"></lucide-icon>
+        Editar
       </button>
       @if (item.status === 'active') {
         <button
           *hasPermission="permissions.delete"
           type="button"
-          class="p-1.5 rounded hover:bg-red-50 text-red-600"
-          title="Desactivar"
+          class="truck-actions__off"
           (click)="deactivate(item, $event)"
         >
-          <lucide-icon [img]="Trash2" class="w-4 h-4"></lucide-icon>
+          Desactivar
         </button>
       }
     </div>

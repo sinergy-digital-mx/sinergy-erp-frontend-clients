@@ -54,16 +54,15 @@ import { TransferLocationView, branchLine } from '../../utils/transfer-location.
     }
 
     .loc-path__branch {
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       font-weight: 500;
-      color: #374151;
+      color: #6b7280;
     }
 
     .loc-path__warehouse {
-      font-size: 1rem;
-      font-weight: 650;
+      font-size: 0.75rem;
+      font-weight: 600;
       color: #111827;
-      letter-spacing: -0.01em;
     }
 
     .loc-path--detail {

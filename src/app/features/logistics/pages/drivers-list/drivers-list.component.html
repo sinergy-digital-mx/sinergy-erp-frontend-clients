@@ -44,8 +44,5 @@
     >
       {{ cartaPorteReady(item) ? 'Completo' : 'No completo' }}
     </span>
-    @if (!cartaPorteReady(item) && item.carta_porte_missing?.length) {
-      <p class="dt-cell-subtle m-0">{{ item.carta_porte_missing.join(' · ') }}</p>
-    }
   </td>
 </ng-template>

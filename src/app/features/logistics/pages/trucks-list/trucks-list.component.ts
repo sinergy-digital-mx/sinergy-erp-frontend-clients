@@ -4,7 +4,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, filter, switchMap, takeUntil, tap } from 'rxjs';
-import { LucideAngularModule, Edit2, Trash2 } from 'lucide-angular';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import {
   IDatatableConfig,
@@ -27,7 +26,6 @@ import { TruckFormModalComponent } from '../../components/truck-form-modal/truck
     DatatableWrapperComponent,
     FilterClearButtonComponent,
     HasPermissionDirective,
-    LucideAngularModule,
   ],
   templateUrl: './trucks-list.component.html',
   styleUrl: './trucks-list.component.scss',
@@ -35,8 +33,6 @@ import { TruckFormModalComponent } from '../../components/truck-form-modal/truck
 export class TrucksListComponent implements OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
 
-  readonly Edit2 = Edit2;
-  readonly Trash2 = Trash2;
   readonly permissions = TRUCK_PERMISSIONS;
 
   table_config = signal<IDatatableConfig>({
@@ -50,7 +46,7 @@ export class TrucksListComponent implements OnDestroy {
       { name: 'Año', prop: 'anio', sortable: false, canAutoResize: true, width: 80 },
       { name: 'Carta porte', prop: 'carta_porte', sortable: false, canAutoResize: true, width: 140 },
       { name: 'Estado', prop: 'status', sortable: false, canAutoResize: true, width: 100 },
-      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 120 },
+      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 200 },
     ],
     externalPaging: true,
     externalSorting: false,

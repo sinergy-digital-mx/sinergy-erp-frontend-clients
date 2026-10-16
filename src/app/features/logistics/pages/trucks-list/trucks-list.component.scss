@@ -1,5 +1,42 @@
 @use '../../styles/logistics-page';
 
+.truck-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.truck-actions__edit,
+.truck-actions__off {
+  height: 1.75rem;
+  padding: 0 0.6rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.truck-actions__edit {
+  border: 0;
+  background: #4338ca;
+  color: #fff;
+
+  &:hover {
+    background: #3730a3;
+  }
+}
+
+.truck-actions__off {
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #b91c1c;
+
+  &:hover {
+    background: #fef2f2;
+  }
+}
+
 .trucks-active-btn {
   display: inline-flex;
   align-items: center;

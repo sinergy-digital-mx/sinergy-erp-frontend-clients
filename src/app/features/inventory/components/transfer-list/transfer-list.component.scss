@@ -268,6 +268,30 @@
   }
 }
 
+.transfer-product {
+  display: block;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.transfer-product-sku,
+.transfer-qty,
+.transfer-user {
+  display: block;
+  color: #6b7280;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.transfer-qty,
+.transfer-user {
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
 .folio-open-btn {
   display: inline-flex;
   align-items: center;

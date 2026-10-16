@@ -57,6 +57,20 @@
   }
 }
 
+.carta-missing {
+  margin: 0;
+  padding: 0.55rem 0.75rem 0.55rem 1.35rem;
+  border-radius: 10px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 0.78rem;
+  line-height: 1.4;
+
+  li + li {
+    margin-top: 0.15rem;
+  }
+}
+
 .carta-help {
   flex-shrink: 0;
   border: 0;

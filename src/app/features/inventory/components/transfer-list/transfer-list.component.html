@@ -201,12 +201,12 @@
   </td>
   <td class="px-2 py-2 w-[220px]">
     <div class="flex flex-col">
-      <span class="dt-cell-primary truncate">{{ productTitle(item) }}</span>
-      <span class="dt-cell-subtle truncate">{{ productSubtitle(item) }}</span>
+      <span class="transfer-product truncate">{{ productTitle(item) }}</span>
+      <span class="transfer-product-sku truncate">{{ productSubtitle(item) }}</span>
     </div>
   </td>
   <td class="px-2 py-2 w-[150px]">
-    <span class="dt-cell-muted">{{ quantityLabel(item) }}</span>
+    <span class="transfer-qty">{{ quantityLabel(item) }}</span>
   </td>
   <td class="px-2 py-2 w-[210px] route-cell">
     <app-transfer-location-path
@@ -234,7 +234,7 @@
     </span>
   </td>
   <td class="px-2 py-2 w-[140px]">
-    <span class="text-sm text-gray-700">{{ item.created_by_user?.name || '—' }}</span>
+    <span class="transfer-user">{{ item.created_by_user?.name || '—' }}</span>
   </td>
   <td class="px-2 py-2 w-[120px]">
     <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>
