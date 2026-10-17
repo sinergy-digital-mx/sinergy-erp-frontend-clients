@@ -423,6 +423,7 @@ export class MadereriaInventoryImportPageComponent implements OnInit, OnDestroy 
       `${result.costs_created ?? 0} costos nuevos, ` +
       `${result.costs_updated ?? 0} actualizados` +
       (created ? `, ${created} productos nuevos` : '') +
+      (result.uoms_created?.length ? `, ${result.uoms_created.length} unidades nuevas` : '') +
       '.'
     );
   }

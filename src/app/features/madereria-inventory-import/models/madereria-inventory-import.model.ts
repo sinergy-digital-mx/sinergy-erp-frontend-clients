@@ -27,6 +27,7 @@ export interface MadereriaInventoryImportResult {
   costs_updated: number;
   batches_created: number;
   sat_claves_saved?: number;
+  uoms_created?: string[];
   skipped: MadereriaInventoryImportSkippedRow[];
   errors: MadereriaInventoryImportError[] | string[];
 }

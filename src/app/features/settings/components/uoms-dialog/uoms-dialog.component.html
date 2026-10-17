@@ -1,6 +1,6 @@
 <div class="dialog">
   <div class="dialog__header">
-    <h2>Gestionar Unidades de Medida</h2>
+    <h2>Catálogo de unidades de medida</h2>
     <button (click)="close()" class="close">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -11,8 +11,8 @@
   <div class="dialog__body">
     <!-- Create Button -->
     <div *ngIf="!isCreating()" class="header-actions">
-      <button (click)="startCreating()" class="create-btn">
-        + Crear Nueva
+      <button (click)="startCreating()" type="button" class="create-btn">
+        + Nueva unidad
       </button>
     </div>
 
@@ -30,7 +30,7 @@
         <button (click)="cancelCreating()" type="button" class="btn btn--secondary">
           Cancelar
         </button>
-        <button (click)="saveUOM()" [disabled]="form.invalid || saving()" class="btn btn--primary">
+        <button (click)="saveUOM()" type="button" [disabled]="form.invalid || saving()" class="btn btn--primary">
           {{ saving() ? 'Guardando...' : 'Guardar' }}
         </button>
       </div>
@@ -51,7 +51,7 @@
             <p class="uom-date">{{ uom.created_at | date: 'MMMM d' }}</p>
           </div>
           <div class="uom-actions">
-            <button (click)="startEditing(uom)" class="icon-btn" title="Editar">
+            <button (click)="startEditing(uom)" type="button" class="icon-btn" title="Editar">
               <i class="fi fi-rr-pencil"></i>
             </button>
             <button (click)="deleteUOM(uom)" [disabled]="saving()" class="icon-btn icon-btn--danger" title="Eliminar">
@@ -64,17 +64,25 @@
         <div *ngIf="editingUomId() === uom.id" class="uom-edit">
           <div>
             <label class="form-label">Nombre</label>
-            <input type="text" [(ngModel)]="editingUomForm[uom.id].name" class="form-input form-input--sm" />
+            <input
+              type="text"
+              class="form-input form-input--sm"
+              [ngModel]="editingDraft().name"
+              (ngModelChange)="updateDraft('name', $event)" />
           </div>
           <div>
             <label class="form-label">Descripción</label>
-            <textarea [(ngModel)]="editingUomForm[uom.id].description" class="form-input form-input--sm" rows="2"></textarea>
+            <textarea
+              class="form-input form-input--sm"
+              rows="2"
+              [ngModel]="editingDraft().description"
+              (ngModelChange)="updateDraft('description', $event)"></textarea>
           </div>
           <div class="form-actions">
             <button (click)="cancelEditing()" type="button" class="btn btn--sm btn--secondary">
               Cancelar
             </button>
-            <button (click)="saveEdit(uom)" [disabled]="saving()" class="btn btn--sm btn--primary">
+            <button (click)="saveEdit(uom)" type="button" [disabled]="saving() || !editingDraft().name.trim()" class="btn btn--sm btn--primary">
               {{ saving() ? 'Guardando...' : 'Guardar' }}
             </button>
           </div>
@@ -84,7 +92,7 @@
   </div>
 
   <div class="dialog__footer">
-    <button (click)="close()" class="btn btn--secondary">
+    <button (click)="close()" type="button" class="btn btn--secondary">
       Cerrar
     </button>
   </div>

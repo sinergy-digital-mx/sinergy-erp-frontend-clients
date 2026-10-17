@@ -22,6 +22,7 @@ import {
   ProductAttributeValue
 } from '../../models/product.model';
 import { CategoriesDialogComponent } from '../categories-dialog/categories-dialog.component';
+import { UomsDialogComponent } from '../uoms-dialog/uoms-dialog.component';
 import { formatUnitAmount as formatStoredUnitAmount } from '../../../../core/utils/unit-money.util';
 
 @Component({
@@ -461,7 +462,7 @@ export class ProductDetailModalComponent implements OnInit {
     const productId = this.product?.id;
 
     if (!productId) {
-      this.productService.getUOMCatalog().subscribe({
+      this.productService.getUOMCatalog({ limit: 500 }).subscribe({
         next: (raw: any) => {
           this.uomCatalog = this.normalizeUomCatalogList(raw);
           this.cdr.detectChanges();
@@ -476,7 +477,7 @@ export class ProductDetailModalComponent implements OnInit {
     }
 
     forkJoin({
-      global: this.productService.getUOMCatalog(),
+      global: this.productService.getUOMCatalog({ limit: 500 }),
       forProduct: this.productService
         .getUOMCatalogForProduct(productId)
         .pipe(catchError(() => of([] as UoMCatalog[])))
@@ -491,7 +492,7 @@ export class ProductDetailModalComponent implements OnInit {
         onComplete?.();
       },
       error: () => {
-        this.productService.getUOMCatalog().subscribe({
+        this.productService.getUOMCatalog({ limit: 500 }).subscribe({
           next: (raw: any) => {
             this.uomCatalog = this.normalizeUomCatalogList(raw);
             this.mergeAssignedUomIdsIntoCatalog();
@@ -638,6 +639,19 @@ export class ProductDetailModalComponent implements OnInit {
       } else {
         this.subcategories = [];
       }
+    });
+  }
+
+  /** Catálogo general de unidades. No asigna la unidad a este producto. */
+  openUomCatalogDialog(): void {
+    const dialogRef = this.dialog.open(UomsDialogComponent, {
+      width: '600px',
+      height: '600px',
+      disableClose: false,
+    });
+
+    dialogRef.afterClosed().subscribe(() => {
+      this.loadUomCatalog();
     });
   }
 

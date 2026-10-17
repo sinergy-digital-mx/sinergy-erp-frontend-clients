@@ -69,6 +69,8 @@ export class MadereriaInventoryImportService {
       costs_created: result.costs_created ?? 0,
       costs_updated: result.costs_updated ?? 0,
       batches_created: result.batches_created ?? 0,
+      sat_claves_saved: result.sat_claves_saved ?? 0,
+      uoms_created: Array.isArray(result.uoms_created) ? result.uoms_created : [],
       skipped: result.skipped ?? [],
       errors: result.errors ?? [],
     };

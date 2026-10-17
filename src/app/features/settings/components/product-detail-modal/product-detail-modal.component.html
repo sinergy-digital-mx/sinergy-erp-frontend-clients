@@ -158,8 +158,12 @@
         <!-- Tab: UOMs -->
         <div *ngIf="activeTab === 'uoms'" class="tab-pane">
           <div class="tab-header">
+            <button class="btn btn--sm btn--secondary" (click)="openUomCatalogDialog()" type="button">
+              Catálogo de unidades
+            </button>
             <button class="btn btn--sm btn--primary" (click)="addUom()" type="button" [disabled]="loadingUoms || saving">+ Agregar UOM</button>
           </div>
+          <p class="form-hint">Catálogo de unidades crea o edita la unidad general. Agregar UOM solo la asigna a este producto.</p>
 
           <div *ngIf="loadingUoms && (!product.uoms || product.uoms.length === 0)" class="tab-loader">
             <app-spinner></app-spinner>

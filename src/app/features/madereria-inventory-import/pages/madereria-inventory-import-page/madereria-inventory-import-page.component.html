@@ -134,7 +134,7 @@
         {{ result.warehouse_name }} · {{ result.file_rows }} filas en el archivo
       </p>
 
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
         <div class="madereria-import__stat">
           <p class="madereria-import__stat-label">Lotes</p>
           <p class="madereria-import__stat-value">{{ result.batches_created }}</p>
@@ -142,6 +142,10 @@
         <div class="madereria-import__stat">
           <p class="madereria-import__stat-label">Claves SAT</p>
           <p class="madereria-import__stat-value">{{ result.sat_claves_saved ?? 0 }}</p>
+        </div>
+        <div class="madereria-import__stat">
+          <p class="madereria-import__stat-label">Unidades nuevas</p>
+          <p class="madereria-import__stat-value">{{ result.uoms_created?.length ?? 0 }}</p>
         </div>
         <div class="madereria-import__stat">
           <p class="madereria-import__stat-label">Precios nuevos</p>
@@ -156,6 +160,19 @@
           <p class="madereria-import__stat-value">{{ result.costs_updated }}</p>
         </div>
       </div>
+
+      @if (result.uoms_created?.length) {
+        <div class="mb-4">
+          <h4 class="text-sm font-semibold text-gray-800 mb-2">
+            Unidades de medida nuevas ({{ result.uoms_created.length }})
+          </h4>
+          <ul class="madereria-import__list">
+            @for (name of result.uoms_created; track name) {
+              <li>{{ name }}</li>
+            }
+          </ul>
+        </div>
+      }
 
       <div class="mb-4">
         <h4 class="text-sm font-semibold text-gray-800 mb-2">

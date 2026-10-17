@@ -19,7 +19,7 @@ export class UomsDialogComponent implements OnInit {
   saving = signal(false);
   isCreating = signal(false);
   editingUomId = signal<string | null>(null);
-  editingUomForm: { [key: string]: any } = {};
+  editingDraft = signal<{ name: string; description: string }>({ name: '', description: '' });
 
   constructor(
     private fb: FormBuilder,
@@ -38,20 +38,18 @@ export class UomsDialogComponent implements OnInit {
   }
 
   private loadUOMCatalog(): void {
-    this.productService.getUOMCatalog().subscribe({
+    this.productService.getUOMCatalog({ limit: 500 }).subscribe({
       next: (data) => {
         this.uoms.set(data);
       },
-      error: () => {
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Error al cargar catálogo de UoMs', type: 'error' },
-          duration: 3000
-        });
+      error: (error) => {
+        this.notify(this.errorText(error, 'Error al cargar el catálogo de unidades'), 'error');
       }
     });
   }
 
   startCreating(): void {
+    this.editingUomId.set(null);
     this.isCreating.set(true);
     this.form.reset();
   }
@@ -62,70 +60,66 @@ export class UomsDialogComponent implements OnInit {
   }
 
   saveUOM(): void {
-    if (!this.form.valid) return;
-    this.saving.set(true);
-    
+    if (this.saving() || this.form.invalid) return;
     const uomData = {
-      name: this.form.get('name')?.value,
-      description: this.form.get('description')?.value || ''
+      name: String(this.form.get('name')?.value ?? '').trim(),
+      description: String(this.form.get('description')?.value ?? '').trim()
     };
+    if (!uomData.name) return;
+    this.saving.set(true);
 
     this.productService.createUOMCatalogItem(uomData).subscribe({
       next: () => {
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Unidad de medida creada exitosamente', type: 'success' },
-          duration: 3000
-        });
+        this.notify('Unidad de medida creada', 'success');
         this.isCreating.set(false);
         this.form.reset();
         this.loadUOMCatalog();
         this.saving.set(false);
       },
-      error: () => {
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Error al crear unidad de medida', type: 'error' },
-          duration: 3000
-        });
+      error: (error) => {
+        this.notify(this.errorText(error, 'Error al crear la unidad de medida'), 'error');
         this.saving.set(false);
       }
     });
   }
 
   startEditing(uom: any): void {
+    this.isCreating.set(false);
     this.editingUomId.set(uom.id);
-    this.editingUomForm[uom.id] = { name: uom.name, description: uom.description };
+    this.editingDraft.set({
+      name: uom.name ?? '',
+      description: uom.description ?? ''
+    });
   }
 
   cancelEditing(): void {
     this.editingUomId.set(null);
-    this.editingUomForm = {};
+  }
+
+  updateDraft(field: 'name' | 'description', value: string): void {
+    this.editingDraft.update((draft) => ({ ...draft, [field]: value }));
   }
 
   saveEdit(uom: any): void {
-    if (!this.editingUomForm[uom.id]?.name) return;
+    const draft = this.editingDraft();
+    const name = draft.name.trim();
+    if (!name) return;
     this.saving.set(true);
 
     const updateData = {
-      name: this.editingUomForm[uom.id].name,
-      description: this.editingUomForm[uom.id].description || ''
+      name,
+      description: draft.description.trim()
     };
 
     this.productService.updateUOMCatalogItem(uom.id, updateData).subscribe({
       next: () => {
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Unidad de medida actualizada exitosamente', type: 'success' },
-          duration: 3000
-        });
+        this.notify('Unidad de medida actualizada', 'success');
         this.editingUomId.set(null);
-        this.editingUomForm = {};
         this.loadUOMCatalog();
         this.saving.set(false);
       },
-      error: () => {
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Error al actualizar unidad de medida', type: 'error' },
-          duration: 3000
-        });
+      error: (error) => {
+        this.notify(this.errorText(error, 'Error al actualizar la unidad de medida'), 'error');
         this.saving.set(false);
       }
     });
@@ -137,24 +131,34 @@ export class UomsDialogComponent implements OnInit {
 
     this.productService.deleteUOMCatalogItem(uom.id).subscribe({
       next: () => {
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Unidad de medida eliminada exitosamente', type: 'success' },
-          duration: 3000
-        });
+        this.notify('Unidad de medida eliminada', 'success');
         this.loadUOMCatalog();
         this.saving.set(false);
       },
-      error: () => {
-        this.snackBar.openFromComponent(CustomSnackbarComponent, {
-          data: { message: 'Error al eliminar unidad de medida', type: 'error' },
-          duration: 3000
-        });
+      error: (error) => {
+        this.notify(this.errorText(error, 'Error al eliminar la unidad de medida'), 'error');
         this.saving.set(false);
       }
     });
   }
 
   close(): void {
-    this.dialogRef.close();
+    this.dialogRef.close(true);
+  }
+
+  private notify(message: string, type: 'success' | 'error'): void {
+    this.snackBar.openFromComponent(CustomSnackbarComponent, {
+      data: { message, type },
+      duration: 4000
+    });
+  }
+
+  private errorText(error: any, fallback: string): string {
+    const message = error?.error?.message ?? error?.message;
+    if (Array.isArray(message)) return message.join('. ');
+    if (typeof message === 'string' && message.trim() && message !== 'Http failure response for') {
+      return message;
+    }
+    return fallback;
   }
 }

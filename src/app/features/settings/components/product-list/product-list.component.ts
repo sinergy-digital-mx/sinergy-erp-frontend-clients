@@ -17,7 +17,6 @@ import { UomsDialogComponent } from '../uoms-dialog/uoms-dialog.component';
 import { PriceListsDialogComponent } from '../price-lists-dialog/price-lists-dialog';
 import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
-import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import {
   ProductCatalogExportDialogComponent,
   ProductCatalogExportDialogResult,
@@ -33,7 +32,6 @@ import { ToastService } from '../../../../core/services/toast.service';
     CommonModule,
     DatatableWrapperComponent,
     SearchComponent,
-    FilterClearButtonComponent,
     LucideAngularModule,
   ],
   templateUrl: './product-list.component.html',

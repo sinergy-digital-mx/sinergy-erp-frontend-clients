@@ -1,5 +1,6 @@
 <div class="settings-list-page px-4 pb-6">
   <div class="product-list-header">
+    <div class="product-list-header__top">
     <h2 class="product-list-header__title">Productos</h2>
     <div class="product-list-header__actions">
       <div class="product-list-btn-group" role="group" aria-label="Administrar catálogo">
@@ -51,29 +52,36 @@
         Nuevo producto o servicio
       </button>
     </div>
-  </div>
+    </div>
 
-  <div class="product-list-filters mb-4">
+  <div class="product-list-filters" role="search" aria-label="Filtros del catálogo">
     <app-search
       class="product-list-filters__search"
+      [showSearchIcon]="true"
+      placeholder="Buscar nombre o SKU"
       [param_activate]="false"
       [default_value]="search"
       (searchChange)="onSearchChange($event)">
     </app-search>
 
     <select
-      class="product-list-filters__kind"
+      class="product-list-filters__kind form-select"
+      aria-label="Tipo"
       [value]="itemKindFilter"
       (change)="onItemKindChange($any($event.target).value)">
-      <option value="">Todos</option>
+      <option value="">Todos los tipos</option>
       <option value="goods">Productos</option>
       <option value="service">Servicios</option>
     </select>
 
-    <app-filter-clear-button
-      [active]="hasActiveFilters"
-      (clear)="clearFilters()">
-    </app-filter-clear-button>
+    <button
+      type="button"
+      class="product-list-filters__clear"
+      [disabled]="!hasActiveFilters"
+      (click)="clearFilters()">
+      Limpiar
+    </button>
+  </div>
   </div>
 
   <app-datatable-wrapper

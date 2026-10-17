@@ -482,6 +482,14 @@
   }
 }
 
+.tab-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 // Buttons
 .btn {
   display: inline-flex;
