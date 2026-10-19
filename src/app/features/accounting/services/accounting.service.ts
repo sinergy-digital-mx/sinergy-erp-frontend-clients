@@ -518,7 +518,7 @@ export class AccountingService {
 
     return {
       vendor_id: String(vendor['vendor_id'] ?? vendor['id'] ?? vendorId),
-      vendor_name: vendor['vendor_name'] as string | undefined,
+      vendor_name: (vendor['vendor_name'] ?? vendor['name']) as string | undefined,
       razon_social: vendor['razon_social'] as string | undefined,
       company_name: vendor['company_name'] as string | undefined,
       amount_pending: Number(vendor['amount_pending'] ?? body['amount_pending'] ?? 0),

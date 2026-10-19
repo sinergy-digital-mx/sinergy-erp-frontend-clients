@@ -1,15 +1,21 @@
 import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
+import { OrderDetailDialogComponent } from '../../../purchase-orders/components/order-detail-dialog/order-detail-dialog.component';
 import { AccountingService } from '../../services/accounting.service';
-import { AccountsPayableOrderRow, AccountsPayableVendorDetail } from '../../models/accounting.model';
-import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
+import {
+  AccountsPayableOrderRow,
+  AccountsPayableVendorDetail,
+  PayableCurrencyView,
+} from '../../models/accounting.model';
 
 export interface VendorPayableDetailDialogData {
   vendorId: string;
   vendorLabel: string;
+  currency?: PayableCurrencyView;
 }
 
 @Component({
@@ -26,9 +32,8 @@ export class VendorPayableDetailDialogComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: VendorPayableDetailDialogData,
     private dialogRef: MatDialogRef<VendorPayableDetailDialogComponent>,
-    private accountingService: AccountingService,
-    private router: Router,
-    private taxCalculator: TaxCalculatorService
+    private dialog: MatDialog,
+    private accountingService: AccountingService
   ) {}
 
   ngOnInit(): void {
@@ -57,20 +62,51 @@ export class VendorPayableDetailDialogComponent implements OnInit {
     );
   }
 
+  visibleOrders(): AccountsPayableOrderRow[] {
+    const orders = this.detail()?.orders ?? [];
+    const view = this.data.currency ?? 'all';
+    if (view === 'all') {
+      return orders;
+    }
+    const currency = view === 'usd' ? 'USD' : 'MXN';
+    return orders.filter((row) => this.orderCurrency(row) === currency);
+  }
+
+  orderCount(currency: 'MXN' | 'USD'): number {
+    return this.visibleOrders().filter((row) => this.orderCurrency(row) === currency).length;
+  }
+
+  pendingTotal(currency: 'MXN' | 'USD'): number {
+    return this.visibleOrders()
+      .filter((row) => this.orderCurrency(row) === currency)
+      .reduce((sum, row) => sum + this.asNumber(row.amount_pending), 0);
+  }
+
+  showsMxn(): boolean {
+    return (this.data.currency ?? 'all') !== 'usd';
+  }
+
+  showsUsd(): boolean {
+    return (this.data.currency ?? 'all') !== 'mxn';
+  }
+
   close(): void {
     this.dialogRef.close();
   }
 
-  formatCurrency(value: number | string | undefined | null): string {
-    const n = value == null ? 0 : typeof value === 'number' ? value : Number(value);
-    return this.taxCalculator.formatCurrency(Number.isFinite(n) ? n : 0);
+  formatCurrency(value: number | string | undefined | null, currency: 'MXN' | 'USD'): string {
+    return formatUnitCurrency(this.asNumber(value), currency);
+  }
+
+  orderCurrency(row: AccountsPayableOrderRow): 'MXN' | 'USD' {
+    return String(row.payment_currency ?? '').trim().toUpperCase() === 'USD' ? 'USD' : 'MXN';
   }
 
   formatDate(value?: string): string {
     if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
   orderStatus(row: AccountsPayableOrderRow): string {
@@ -79,7 +115,14 @@ export class VendorPayableDetailDialogComponent implements OnInit {
 
   openPurchaseOrder(row: AccountsPayableOrderRow): void {
     if (!row.id) return;
-    this.dialogRef.close();
-    void this.router.navigate(['/purchase-orders', row.id]);
+    this.dialog.open(OrderDetailDialogComponent, {
+      ...ORDER_DETAIL_DIALOG_OPTIONS,
+      data: { orderId: row.id },
+    });
+  }
+
+  private asNumber(value: number | string | undefined | null): number {
+    const amount = value == null ? 0 : typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(amount) ? amount : 0;
   }
 }

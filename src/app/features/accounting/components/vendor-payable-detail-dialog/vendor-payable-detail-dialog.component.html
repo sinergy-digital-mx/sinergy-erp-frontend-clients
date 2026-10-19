@@ -3,7 +3,14 @@
     <div>
       <h2>{{ vendorDisplayName() }}</h2>
       @if (detail()) {
-        <p>{{ detail()!.pending_order_count }} OC pendientes · {{ formatCurrency(detail()!.amount_pending) }} adeudado</p>
+        <div class="vendor-detail-dialog__meta">
+          @if (showsMxn()) {
+            <span>{{ orderCount('MXN') }} OC · {{ formatCurrency(pendingTotal('MXN'), 'MXN') }}</span>
+          }
+          @if (showsUsd()) {
+            <span>{{ orderCount('USD') }} OC · {{ formatCurrency(pendingTotal('USD'), 'USD') }}</span>
+          }
+        </div>
       }
     </div>
     <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">×</button>
@@ -12,7 +19,7 @@
   <div class="vendor-detail-dialog__body">
     @if (loading()) {
       <p class="loading-text"><app-spinner></app-spinner></p>
-    } @else if (!detail()?.orders?.length) {
+    } @else if (!visibleOrders().length) {
       <p class="loading-text">No hay órdenes de compra pendientes.</p>
     } @else {
       <table class="detail-table">
@@ -21,13 +28,14 @@
             <th>Folio OC</th>
             <th>Fecha</th>
             <th>Entrega esperada</th>
+            <th>Moneda</th>
             <th>Pagado</th>
             <th>Pendiente</th>
             <th>Estatus</th>
           </tr>
         </thead>
         <tbody>
-          @for (row of detail()!.orders; track row.id) {
+          @for (row of visibleOrders(); track row.id) {
             <tr>
               <td>
                 <button type="button" class="folio-link" (click)="openPurchaseOrder(row)">
@@ -36,8 +44,9 @@
               </td>
               <td>{{ formatDate(row.created_at) }}</td>
               <td>{{ formatDate(row.expected_delivery_date) }}</td>
-              <td>{{ formatCurrency(row.amount_paid) }}</td>
-              <td>{{ formatCurrency(row.amount_pending) }}</td>
+              <td>{{ orderCurrency(row) }}</td>
+              <td>{{ formatCurrency(row.amount_paid, orderCurrency(row)) }}</td>
+              <td>{{ formatCurrency(row.amount_pending, orderCurrency(row)) }}</td>
               <td>{{ orderStatus(row) }}</td>
             </tr>
           }

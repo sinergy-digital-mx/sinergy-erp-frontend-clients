@@ -179,6 +179,7 @@ export interface AccountsPayableOrderRow {
   folio?: string;
   created_at?: string;
   expected_delivery_date?: string;
+  payment_currency?: 'MXN' | 'USD' | string;
   amount_paid?: number | string;
   amount_pending?: number | string;
   status?: string;
