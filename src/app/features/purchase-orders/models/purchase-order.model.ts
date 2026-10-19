@@ -298,6 +298,8 @@ export interface PurchaseOrder {
   requested_iva_total?: string;
   requested_ieps_total?: string;
   requested_total?: string;
+  /** Lo que se paga al proveedor: total factura si hay costo real; si no, el de catálogo. */
+  payable_total?: number | string | null;
   /** true solo si `general_status === 'Creada'`. */
   can_edit_lines?: boolean;
   received_subtotal?: string;

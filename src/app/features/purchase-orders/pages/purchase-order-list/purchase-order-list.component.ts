@@ -64,7 +64,7 @@ export class PurchaseOrderListComponent implements OnInit {
       { name: 'Sucursal', prop: 'sucursal', sortable: false, canAutoResize: false, width: 150 },
       { name: 'Almacén', prop: 'warehouse', sortable: false, canAutoResize: false, width: 130 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 120 },
-      { name: 'Total', prop: 'requested_total', sortable: true, canAutoResize: false, width: 120 },
+      { name: 'Total', prop: 'payable_total', sortable: true, canAutoResize: false, width: 120 },
       { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 120 },
       { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
     ],
@@ -374,6 +374,11 @@ export class PurchaseOrderListComponent implements OnInit {
    * Get total amount from order
    */
   getOrderTotal(order: PurchaseOrder): number {
+    const payable = order.payable_total;
+    if (payable != null && payable !== '') {
+      const amount = typeof payable === 'number' ? payable : parseFloat(String(payable));
+      if (Number.isFinite(amount)) return amount;
+    }
     return parseFloat(order.requested_total || '0') || 0;
   }
 
