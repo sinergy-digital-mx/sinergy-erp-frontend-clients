@@ -410,10 +410,14 @@
                         class="cobranza-sale__main"
                         (click)="selectSale(sale)">
                         <div class="cobranza-sale__row">
-                          <strong>{{ sale.folio || sale.id.substring(0, 8) }}</strong>
-                          @if (sale.quotation_folio) {
-                            <span>Desde {{ sale.quotation_folio }}</span>
-                          }
+                          <span class="cobranza-sale__identity">
+                            <strong>{{ sale.folio || sale.id.substring(0, 8) }}</strong>
+                            @if (sale.kind === 'advance') {
+                              <span class="cobranza-sale__from">Anticipo</span>
+                            } @else if (sale.quotation_folio) {
+                              <span class="cobranza-sale__from">Desde {{ sale.quotation_folio }}</span>
+                            }
+                          </span>
                           <span class="cobranza-sale__total">{{ saleTotal(sale) }}</span>
                         </div>
                         <div class="cobranza-sale__row cobranza-sale__row--meta">
@@ -432,13 +436,15 @@
                           }
                         </div>
                       </button>
-                      <button
-                        type="button"
-                        class="cobranza-sale__detail"
-                        (click)="openSaleDetail($event, sale.id)">
-                        <lucide-icon [img]="Eye" [size]="14" class="pos-ic pos-ic--xs" />
-                        Ver detalle
-                      </button>
+                      @if (sale.kind !== 'advance') {
+                        <button
+                          type="button"
+                          class="cobranza-sale__detail"
+                          (click)="openSaleDetail($event, sale.id)">
+                          <lucide-icon [img]="Eye" [size]="14" class="pos-ic pos-ic--xs" />
+                          Ver detalle
+                        </button>
+                      }
                     </article>
                   </li>
                 }
@@ -564,7 +570,7 @@
                 <div class="cobranza-total-card__top-end">
                   <time class="cobranza-total-card__date">{{ formatDate(sale.created_at) }}</time>
                   <button type="button" class="cobranza-head-btn" (click)="clearSelectedSale()">Cancelar</button>
-                  @if (canReturnToSales()) {
+                  @if (canReturnToSales() && !isAdvanceSale()) {
                     <button
                       type="button"
                       class="cobranza-head-btn"
@@ -577,13 +583,15 @@
               </div>
               <div class="cobranza-total-card__breakdown">
                 <div class="cobranza-total-card__row">
-                  <span>Total orden</span>
+                  <span>{{ isAdvanceSale() ? 'Total cotización' : 'Total orden' }}</span>
                   <strong>{{ saleOrderTotal(sale) }}</strong>
                 </div>
-                <div class="cobranza-total-card__row">
-                  <span>Ya pagado</span>
-                  <strong>{{ saleAmountPaid(sale) }}</strong>
-                </div>
+                @if (!isAdvanceSale()) {
+                  <div class="cobranza-total-card__row">
+                    <span>Ya pagado</span>
+                    <strong>{{ saleAmountPaid(sale) }}</strong>
+                  </div>
+                }
                 <div class="cobranza-total-card__amount">
                   <span>Por cobrar</span>
                   <strong>{{ saleTotal(sale) }}</strong>
@@ -752,14 +760,16 @@
                   <lucide-icon [img]="FileText" class="pos-ic pos-ic--sm" />
                   Cheque
                 </button>
-                <button
-                  type="button"
-                  class="cobranza-pay-tab"
-                  [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'mixed'"
-                  (click)="setPaymentMethod('mixed')">
-                  <lucide-icon [img]="Layers" class="pos-ic pos-ic--sm" />
-                  Mixto
-                </button>
+                @if (!isAdvanceSale()) {
+                  <button
+                    type="button"
+                    class="cobranza-pay-tab"
+                    [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'mixed'"
+                    (click)="setPaymentMethod('mixed')">
+                    <lucide-icon [img]="Layers" class="pos-ic pos-ic--sm" />
+                    Mixto
+                  </button>
+                }
                 @if (showCreditTab()) {
                   <button
                     type="button"
@@ -771,7 +781,7 @@
                   </button>
                 }
               </div>
-              @if (customerMode() === 'registered' && selectedCustomerDetail() && !showCreditTab()) {
+              @if (customerMode() === 'registered' && selectedCustomerDetail() && !showCreditTab() && !isAdvanceSale()) {
                 <p class="cobranza-cash-hint">Este cliente no tiene crédito activo con esta razón social. Actívalo con Editar.</p>
               }
 
@@ -1359,7 +1369,7 @@
               <button type="button" class="cobranza-action cobranza-action--ghost" (click)="clearSelectedSale()" [disabled]="collecting() || returningToSales()">
                 Cancelar
               </button>
-              @if (canReturnToSales()) {
+              @if (canReturnToSales() && !isAdvanceSale()) {
                 <button
                   type="button"
                   class="cobranza-action cobranza-action--return"
@@ -1374,7 +1384,7 @@
                 class="cobranza-action cobranza-action--primary"
                 (click)="collectSelected()"
                 [disabled]="collecting() || printingReceipt() || returningToSales() || !amountsOk() || creditInsufficient()">
-                {{ collecting() || printingReceipt() ? 'Cobrando…' : 'Confirmar cobro' }}
+                {{ collecting() || printingReceipt() ? 'Cobrando…' : (isAdvanceSale() ? 'Cobrar anticipo' : 'Confirmar cobro') }}
                 <span class="cobranza-action__amount">{{ saleTotal(sale) }}</span>
               </button>
             </div>

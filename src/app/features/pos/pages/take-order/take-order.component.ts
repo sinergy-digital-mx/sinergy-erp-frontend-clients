@@ -11,7 +11,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil, tap } from 'rxjs';
+import { Observable, Subject, catchError, debounceTime, distinctUntilChanged, map, of, takeUntil, tap } from 'rxjs';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -88,6 +88,9 @@ import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-messa
 import { formatMeasureTotalsLine, hasMeasureTotals } from '../../../../core/utils/inventory-measure.util';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { formatInventoryNumber } from '../../../inventory/utils/inventory-list.util';
+import { CustomerService } from '../../../../core/services/customer.service';
+import { unwrapCustomerPayload } from '../../../customers/utils/customer-credit.util';
+import { PosCheckoutCustomerFiscal } from '../../components/pos-checkout-confirm-dialog/pos-checkout-confirm-dialog.component';
 
 @Component({
   selector: 'app-take-order',
@@ -137,6 +140,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   private pendingResumeTicketId: string | null = null;
 
   selectedCustomerId = signal('');
+  private customerFiscalCache: { id: string; fiscal: PosCheckoutCustomerFiscal } | null = null;
   selectedCustomerName = signal('Público en General');
   selectedOrderCustomerId = signal<number | string | null>(null);
   walkInName = signal('');
@@ -209,7 +213,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     private dialog: MatDialog,
     private globalDiscountService: GlobalDiscountService,
     private productService: ProductService,
-    private posBranchSession: PosBranchSessionService
+    private posBranchSession: PosBranchSessionService,
+    private customerService: CustomerService,
   ) {}
 
   readonly canSell = computed(() => this.posState.canCaptureSales());
@@ -1239,38 +1244,64 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    const customerId = this.selectedCustomerId();
+    this.resolveCustomerFiscal(customerId, true).subscribe((customerFiscal) => {
+      if (this.selectedCustomerId() !== customerId) {
+        return;
+      }
+      this.openQuotationConfirm(cart, ctx, seller.id, customerFiscal);
+    });
+  }
+
+  private openQuotationConfirm(
+    cart: POSCart,
+    ctx: { warehouseId: string; fiscalConfigurationId: string },
+    sellerUserId: string,
+    customerFiscal: PosCheckoutCustomerFiscal,
+  ): void {
     this.confirmCheckout({
       kind: 'quote',
       title: 'Guardar cotización',
-      subtitle: 'No se retiene inventario ni se cobra. Puedes convertirla en venta después.',
+      subtitle: 'No se retiene inventario. Si marcas factura de anticipo, ese monto queda en caja para cobrarse.',
       totalLabel: this.formatCurrency(cart.grand_total),
+      cartTotal: Number(cart.grand_total),
       itemSummary: this.cartItemSummary(cart),
       customerLabel: this.selectedCustomerName(),
+      customerFiscal,
       acceptLabel: 'Guardar cotización',
     }).subscribe((confirmed) => {
-      if (!confirmed) {
+      if (!confirmed || typeof confirmed !== 'object') {
         return;
       }
 
       const payload = buildVentasPosOrderPayload(cart, {
         warehouseId: ctx.warehouseId,
         fiscalConfigurationId: ctx.fiscalConfigurationId,
-        sellerUserId: seller.id,
+        sellerUserId,
         terminalLabel: this.terminalLabel(),
         customerId: this.selectedOrderCustomerId() ?? undefined,
       });
-      const quoteNotes =
-        typeof confirmed === 'object' && 'notes' in confirmed ? confirmed.notes.trim() : '';
+      const quoteNotes = confirmed.notes.trim();
       if (quoteNotes) {
         payload.notes = quoteNotes;
       }
+      const advanceAmount = confirmed.advanceAmount;
 
       this.saving.set(true);
-      this.posService.createPosQuotation(payload).subscribe({
+      this.posService.createPosQuotation(
+        advanceAmount != null ? { ...payload, advance_amount: advanceAmount } : payload,
+      ).subscribe({
         next: (quotation) => {
           this.saving.set(false);
           const folioLabel = quotation.folio ? quotation.folio : 'sin folio';
-          this.notifySuccess(`Cotización guardada (${folioLabel}). No se retuvo inventario.`, 6000);
+          if (advanceAmount != null) {
+            this.notifySuccess(
+              `Cotización ${folioLabel} guardada. El anticipo de ${this.formatCurrency(advanceAmount)} ya está en caja.`,
+              7000,
+            );
+          } else {
+            this.notifySuccess(`Cotización guardada (${folioLabel}). No se retuvo inventario.`, 6000);
+          }
           this.posService.clearCart();
           this.resetCustomerSelection();
           this.loadProducts(this.searchTerm());
@@ -1284,6 +1315,54 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         },
       });
     });
+  }
+
+  private emptyCustomerFiscal(): PosCheckoutCustomerFiscal {
+    return {
+      ready: false,
+      missing: ['RFC', 'Razón social', 'Código postal fiscal'],
+    };
+  }
+
+  private fiscalSnapshot(customer: any): PosCheckoutCustomerFiscal {
+    const rfc = String(customer?.fiscal_rfc ?? '').trim().toUpperCase();
+    const razon = String(customer?.fiscal_razon_social ?? '').trim();
+    const postal = String(customer?.fiscal_postal_code ?? '').trim();
+    const missing: string[] = [];
+    if (!rfc || rfc === 'XAXX010101000' || rfc === 'XEXX010101000') {
+      missing.push('RFC');
+    }
+    if (!razon) {
+      missing.push('Razón social');
+    }
+    if (!/^\d{5}$/.test(postal)) {
+      missing.push('Código postal fiscal');
+    }
+    return { ready: missing.length === 0, missing };
+  }
+
+  private rememberCustomerFiscal(customerId: string, customer: any): void {
+    this.customerFiscalCache = { id: customerId, fiscal: this.fiscalSnapshot(customer) };
+  }
+
+  private resolveCustomerFiscal(customerId: string, force = false): Observable<PosCheckoutCustomerFiscal> {
+    if (!customerId) {
+      return of(this.emptyCustomerFiscal());
+    }
+    if (!force && this.customerFiscalCache?.id === customerId) {
+      return of(this.customerFiscalCache.fiscal);
+    }
+    return this.customerService.getCustomer(customerId).pipe(
+      map((response) => {
+        const customer = unwrapCustomerPayload(response) ?? response;
+        const fiscal = this.fiscalSnapshot(customer);
+        if (this.selectedCustomerId() === customerId) {
+          this.customerFiscalCache = { id: customerId, fiscal };
+        }
+        return fiscal;
+      }),
+      catchError(() => of(this.emptyCustomerFiscal())),
+    );
   }
 
   private confirmCheckout(data: PosCheckoutConfirmDialogData) {
@@ -1339,6 +1418,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           : resolvePosCollectCustomerId({ id: result.customerId });
         this.selectedOrderCustomerId.set(collectId ?? result.customerId);
         this.selectedCustomerName.set(this.customerDisplayName(result.customer));
+        this.rememberCustomerFiscal(result.customerId, result.customer);
+        this.resolveCustomerFiscal(result.customerId, true).subscribe();
       });
   }
 
@@ -1347,6 +1428,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedOrderCustomerId.set(null);
     this.selectedCustomerName.set('Público en General');
     this.walkInTicketOpen.set(false);
+    this.customerFiscalCache = null;
   }
 
   onCustomerRowClick(): void {

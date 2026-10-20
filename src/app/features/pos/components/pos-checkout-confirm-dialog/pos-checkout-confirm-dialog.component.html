@@ -27,6 +27,55 @@
   }
 
   @if (isQuote()) {
+    <label class="pos-checkout-dialog__advance">
+      <input
+        type="checkbox"
+        [checked]="advanceInvoice()"
+        (change)="toggleAdvance($any($event.target).checked)" />
+      <span>
+        <strong>Factura de anticipo</strong>
+        <small>El monto pasa a caja, igual que una venta, y ahí se cobra.</small>
+      </span>
+    </label>
+
+    @if (advanceInvoice()) {
+      <div
+        class="pos-checkout-dialog__fiscal"
+        [class.pos-checkout-dialog__fiscal--ready]="fiscalReady()"
+        [class.pos-checkout-dialog__fiscal--blocked]="!fiscalReady()">
+        @if (fiscalReady()) {
+          <strong>Listo para facturar</strong>
+          <span>El cliente tiene RFC, razón social y código postal fiscal.</span>
+        } @else {
+          <strong>Faltan datos para facturar</strong>
+          <span>
+            @if (data.customerFiscal?.missing?.length) {
+              {{ data.customerFiscal?.missing?.join(' · ') }}
+            } @else {
+              Selecciona un cliente con datos fiscales.
+            }
+          </span>
+        }
+      </div>
+
+      <label class="pos-checkout-dialog__amount">
+        <span>Anticipo a cobrar</span>
+        <input
+          type="number"
+          min="0.01"
+          [max]="cartTotal() || null"
+          step="0.01"
+          [ngModel]="advanceAmountText()"
+          (ngModelChange)="onAdvanceAmount($event)" />
+        <small>
+          Puede ser parcial. Total de la cotización {{ data.totalLabel }}.
+          @if (advanceAmountError(); as amountError) {
+            <em>{{ amountError }}</em>
+          }
+        </small>
+      </label>
+    }
+
     <label class="pos-checkout-dialog__notes">
       <span>Observaciones</span>
       <textarea
@@ -46,6 +95,7 @@
       class="pos-checkout-dialog__btn"
       [class.pos-checkout-dialog__btn--accent]="!isQuote()"
       [class.pos-checkout-dialog__btn--quote]="isQuote()"
+      [disabled]="!canConfirm()"
       (click)="confirm()">
       {{ data.acceptLabel }}
     </button>

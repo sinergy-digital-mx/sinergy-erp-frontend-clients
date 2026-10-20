@@ -280,7 +280,9 @@ export class POSService {
     );
   }
 
-  createPosQuotation(orderData: SalesOrderFormData): Observable<{ folio?: string; id?: string }> {
+  createPosQuotation(
+    orderData: SalesOrderFormData & { advance_amount?: number },
+  ): Observable<{ folio?: string; id?: string }> {
     const { sales_order_type: _salesOrderType, ...rest } = orderData as SalesOrderFormData & {
       sales_order_type?: string;
     };
@@ -839,6 +841,31 @@ export class POSService {
   sendSaleToCaja(salesOrderId: string): Observable<{ sales_order?: { folio?: string; general_status?: string }; message?: string }> {
     return this.http.post(`${this.API_URL}/sales/${salesOrderId}/send-to-caja`, {}).pipe(
       map((res: any) => this.extractPayload(res) ?? res)
+    );
+  }
+
+  collectQuotationAdvance(
+    quotationId: string,
+    data?: CollectSalePayload,
+  ): Observable<{
+    folio?: string;
+    customer_name?: string | null;
+    change_cash_mxn?: number;
+    change_cash_usd?: number;
+    usd_exchange_rate?: number;
+  }> {
+    const branchId = this.auth.getBillingBranchId();
+    return this.http.post(`${this.API_URL}/quotations/${quotationId}/collect-advance`, {
+      ...(data ?? {}),
+      ...(branchId ? { billing_branch_id: branchId } : {}),
+    }).pipe(
+      map((res: unknown) => (this.extractPayload(res) ?? res) as {
+        folio?: string;
+        customer_name?: string | null;
+        change_cash_mxn?: number;
+        change_cash_usd?: number;
+        usd_exchange_rate?: number;
+      }),
     );
   }
 

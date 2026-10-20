@@ -760,6 +760,22 @@
     word-break: break-word;
   }
 
+  &__identity {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.05rem;
+    min-width: 0;
+  }
+
+  &__from {
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.15;
+    color: #94a3b8;
+    letter-spacing: 0.01em;
+  }
+
   &__total {
     font-weight: 700;
     color: #4f46e5;

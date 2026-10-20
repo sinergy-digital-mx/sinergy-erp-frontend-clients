@@ -124,6 +124,9 @@
               <span class="field-label">UUID</span>
               <div class="invoice-card__uuid-value">{{ invoice.uuid || '—' }}</div>
             </div>
+            @if (isCancellationInProcess(invoice)) {
+              <div class="invoice-card__notice">La factura está en proceso de cancelación. El SAT la sigue mostrando vigente hasta que acepte el receptor o venza el plazo.</div>
+            }
             @if (isStampError(invoice) || invoice.stamp_status === 'cancel_error') {
               <div class="invoice-card__error">{{ invoice.stamp_error_message || getInvoiceErrorTooltip(invoice) }}</div>
             }
@@ -167,7 +170,7 @@
               </div>
               <div class="invoice-card__field">
                 <span class="field-label">Estatus cancel. SAT</span>
-                <span class="field-value">{{ getSatCancelStatus(invoice) }}</span>
+                <span class="field-value" [class.field-value--pending]="isCancellationInProcess(invoice)">{{ getSatCancelStatus(invoice) }}</span>
               </div>
               <div class="invoice-card__field">
                 <span class="field-label">Verificación SAT</span>

@@ -165,6 +165,7 @@ interface PendingSaleCustomer {
 
 interface PendingSale {
   id: string;
+  kind?: 'sale' | 'advance';
   folio?: string;
   quotation_folio?: string | null;
   total?: number | string;
@@ -371,6 +372,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   });
 
   readonly showCreditTab = computed(() => {
+    if (this.selectedSale()?.kind === 'advance') {
+      return false;
+    }
     if (this.customerMode() !== 'registered') {
       return false;
     }
@@ -405,7 +409,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly fiscalReadyForInvoice = computed(() => this.selectedCustomerDetail()?.fiscal_ready_for_invoice === true);
 
-  readonly showInvoiceSwitch = computed(() => this.customerMode() === 'registered');
+  readonly showInvoiceSwitch = computed(
+    () => this.customerMode() === 'registered' && this.selectedSale()?.kind !== 'advance',
+  );
+
+  isAdvanceSale(sale?: PendingSale | null): boolean {
+    return (sale ?? this.selectedSale())?.kind === 'advance';
+  }
 
   readonly invoiceSwitchDisabled = computed(() => !this.fiscalReadyForInvoice());
 
@@ -1501,6 +1511,42 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.collecting.set(true);
     this.collectError.set(null);
+
+    if (sale.kind === 'advance') {
+      const { generate_invoice: _invoice, ...advancePayload } = payload;
+      this.posService.collectQuotationAdvance(sale.id, advancePayload).subscribe({
+        next: (response) => {
+          this.collecting.set(false);
+          const changeShown = displayCashChange(
+            Number(response?.change_cash_mxn ?? 0),
+            Number(response?.change_cash_usd ?? 0),
+            Number(response?.usd_exchange_rate ?? 0),
+          );
+          const changeParts = [
+            changeShown.usd > 0 ? this.formatCurrencyUsd(changeShown.usd) : '',
+            changeShown.mxn > 0 ? formatPosMoney(changeShown.mxn) : '',
+          ].filter(Boolean);
+          const folio = response?.folio || sale.folio || sale.id;
+          const who = response?.customer_name ? ` — ${response.customer_name}` : '';
+          if (changeParts.length > 0) {
+            this.toast.success(`Anticipo ${folio} cobrado. Cambio: ${changeParts.join(' + ')}`, { duration: 5000 });
+          } else {
+            this.toast.success(`Anticipo ${folio} cobrado${who}`);
+          }
+          this.selectedSale.set(null);
+          this.loadPendingSales();
+          this.loadCollectedSales();
+          this.refreshDailyShift();
+        },
+        error: (error) => {
+          this.collecting.set(false);
+          const msg = mapPosApiErrorMessage(error.error?.message);
+          this.collectError.set(msg);
+          this.toast.error(msg);
+        },
+      });
+      return;
+    }
 
     this.posService.collectSale(sale.id, payload).subscribe({
       next: (response) => {

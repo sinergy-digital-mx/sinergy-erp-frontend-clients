@@ -398,11 +398,31 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
       .subscribe((result: SalesOrderInvoiceCancelDialogResult | undefined) => {
         if (!result?.payload) return;
         this.cancellingId.set(invoiceId);
+        const previousSyncAt = invoice.sat_last_sync_at ?? null;
         this.invoiceService.cancelInvoice(this.orderId, invoiceId, result.payload).subscribe({
-          next: () => {
-            this.cancellingId.set(null);
-            this.toast.success('Solicitud de cancelación enviada');
-            this.loadTabData();
+          next: (updated) => {
+            const syncMoved = !!updated.sat_last_sync_at && updated.sat_last_sync_at !== previousSyncAt;
+            if (syncMoved) {
+              this.cancellingId.set(null);
+              this.finishCancel(updated);
+              return;
+            }
+            this.invoiceService.syncSat(this.orderId, invoiceId).subscribe({
+              next: (synced) => {
+                this.cancellingId.set(null);
+                this.finishCancel(synced);
+              },
+              error: (error) => {
+                this.cancellingId.set(null);
+                this.toast.error(resolveHttpErrorMessage(error, 'La cancelación se envió, pero no se pudo sincronizar con el SAT'), {
+                  duration: 12000,
+                });
+                if (this.isCancellationInProcess(updated)) {
+                  this.toast.warning('La factura está en proceso de cancelación.', { duration: 10000 });
+                }
+                this.loadTabData();
+              },
+            });
           },
           error: (error) => {
             this.cancellingId.set(null);
@@ -412,6 +432,20 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
           },
         });
       });
+  }
+
+  private finishCancel(invoice: SalesOrderElectronicInvoice): void {
+    if (this.isCancellationInProcess(invoice)) {
+      this.toast.warning('La factura está en proceso de cancelación.', { duration: 10000 });
+    } else if (
+      (invoice.sat_status || '').toLowerCase().includes('cancelad') ||
+      (invoice.stamp_status || '').toLowerCase() === 'cancelled'
+    ) {
+      this.toast.success('Factura cancelada');
+    } else {
+      this.toast.success('Solicitud de cancelación enviada');
+    }
+    this.loadTabData();
   }
 
   syncSat(invoice: SalesOrderElectronicInvoice): void {
@@ -591,11 +625,19 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
     return null;
   }
 
+  isCancellationInProcess(invoice: SalesOrderElectronicInvoice): boolean {
+    const sat = (invoice.sat_status || '').toLowerCase();
+    if (sat.includes('cancelad')) return false;
+    const cancelStatus = (invoice.sat_estatus_cancelacion || '').toLowerCase();
+    if (cancelStatus.includes('proceso')) return true;
+    return (invoice.stamp_status || '').toLowerCase() === 'cancel_pending';
+  }
+
   getSystemStatusLabel(invoice: SalesOrderElectronicInvoice): string {
     const stamp = (invoice.stamp_status || '').toLowerCase();
+    if (this.isCancellationInProcess(invoice)) return 'En proceso de cancelación';
     if (stamp === 'stamped') return 'Activa en sistema';
     if (stamp === 'stamp_error') return 'Error de timbrado';
-    if (stamp === 'cancel_pending') return 'Cancelación pendiente';
     if (stamp === 'cancel_error') return 'Error de cancelación';
     if (stamp === 'cancelled') return 'Cancelada';
     if (stamp === 'pending' || stamp === 'pending_stamp') return 'Pendiente';
@@ -604,11 +646,12 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
 
   getSystemStatusClass(invoice: SalesOrderElectronicInvoice): string {
     const stamp = (invoice.stamp_status || '').toLowerCase();
+    if (this.isCancellationInProcess(invoice)) return 'status-pill--warning';
     if (stamp === 'stamped') return 'status-pill--success';
     if (stamp === 'stamp_error' || stamp === 'cancelled' || stamp === 'cancel_error') {
       return 'status-pill--danger';
     }
-    if (stamp === 'cancel_pending' || stamp === 'pending' || stamp === 'pending_stamp') {
+    if (stamp === 'pending' || stamp === 'pending_stamp') {
       return 'status-pill--warning';
     }
     return 'status-pill--neutral';

@@ -384,6 +384,17 @@
   line-height: 1.4;
 }
 
+.invoice-card__notice {
+  margin: 0.45rem 0.85rem 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
 .invoice-card__error {
   margin: 0.45rem 0.85rem 0;
   padding: 0.45rem 0.6rem;
@@ -418,6 +429,11 @@
   &--strong {
     font-weight: 600;
     color: #111827;
+  }
+
+  &--pending {
+    font-weight: 600;
+    color: #b45309;
   }
 
   &--total {
