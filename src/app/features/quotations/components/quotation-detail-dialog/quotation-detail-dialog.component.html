@@ -115,7 +115,15 @@
             </div>
           </div>
 
-          <div class="info-card info-card--green">
+          <div
+            class="info-card info-card--green"
+            [class.info-card--clickable]="canOpenCustomer()"
+            role="button"
+            [attr.tabindex]="canOpenCustomer() ? 0 : null"
+            [attr.aria-label]="canOpenCustomer() ? 'Abrir cliente en otra pestaña' : null"
+            (click)="canOpenCustomer() && openCustomerInNewTab()"
+            (keydown.enter)="canOpenCustomer() && openCustomerInNewTab()"
+            (keydown.space)="$event.preventDefault(); canOpenCustomer() && openCustomerInNewTab()">
             <div class="info-card__icon">
               <i class="fi fi-rr-shop"></i>
             </div>
@@ -126,6 +134,9 @@
                 <span class="info-card__subvalue">{{ getCustomerCompanyName() }}</span>
               }
             </div>
+            @if (canOpenCustomer()) {
+              <i class="fi fi-rr-angle-right info-card__chevron"></i>
+            }
           </div>
         </div>
 

@@ -774,7 +774,16 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     const summary = this.collectedSummary();
     const openingMxn = parsePosMoney(drawer?.opening_cash_mxn ?? shift.opening_cash_mxn);
     const openingUsd = parsePosMoney(drawer?.opening_cash_usd ?? shift.opening_cash_usd);
-    const collectedCashMxn = parsePosMoney(summary?.cash_mxn ?? drawer?.collected_cash_mxn);
+    const advances = shift.advance_payments ?? [];
+    const advanceOf = (method: string) =>
+      advances
+        .filter((row) => row.payment_method === method)
+        .reduce((sum, row) => sum + parsePosMoney(row.amount_mxn), 0);
+    const advanceCashMxn = advanceOf('cash');
+    const useDrawer = drawer != null;
+    const collectedCashMxn = useDrawer
+      ? parsePosMoney(drawer.collected_cash_mxn)
+      : parsePosMoney(summary?.cash_mxn) + advanceCashMxn;
     const collectedCashUsd = parsePosMoney(summary?.cash_usd ?? drawer?.collected_cash_usd);
     const removedMxn = parsePosMoney(drawer?.removed_total_mxn ?? dailyShiftRemovedTotal(shift));
     const removedUsd = parsePosMoney(drawer?.removed_total_usd ?? shift.totals?.removed_total_usd);
@@ -785,9 +794,16 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       openingCashUsd: openingUsd,
       collectedCashMxn,
       collectedCashUsd,
-      collectedTransferMxn: parsePosMoney(summary?.transfer_mxn ?? drawer?.collected_transfer_mxn),
-      collectedCardMxn: parsePosMoney(summary?.card_mxn ?? drawer?.collected_card_mxn),
-      collectedCheckMxn: parsePosMoney(summary?.check_mxn ?? drawer?.collected_check_mxn),
+      advanceCashMxn,
+      collectedTransferMxn: useDrawer
+        ? parsePosMoney(drawer.collected_transfer_mxn)
+        : parsePosMoney(summary?.transfer_mxn) + advanceOf('transfer'),
+      collectedCardMxn: useDrawer
+        ? parsePosMoney(drawer.collected_card_mxn)
+        : parsePosMoney(summary?.card_mxn) + advanceOf('card'),
+      collectedCheckMxn: useDrawer
+        ? parsePosMoney(drawer.collected_check_mxn)
+        : parsePosMoney(summary?.check_mxn) + advanceOf('check'),
       collectedCreditMxn: parsePosMoney(summary?.credit_mxn ?? drawer?.collected_credit_mxn),
       removedMxn,
       removedUsd,
@@ -1649,6 +1665,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   shiftSalesTotal(shift: PosDailyShiftDetail): string {
     return formatPosMoney(dailyShiftSalesTotal(shift));
+  }
+
+  formatAdvanceAmount(amount: number): string {
+    return formatPosMoney(amount);
   }
 
   shiftOpeningMxn(shift: PosDailyShiftDetail): string {

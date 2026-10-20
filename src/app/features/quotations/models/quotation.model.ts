@@ -10,6 +10,9 @@ export interface QuotationCustomer {
   company_name?: string;
   display_name?: string;
   email?: string;
+  fiscal_rfc?: string | null;
+  fiscal_person_type?: string | null;
+  is_walk_in?: boolean;
 }
 
 export interface QuotationLineItem {

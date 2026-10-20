@@ -112,6 +112,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
   pagadasPercent = computed(() => this.totalOrders() > 0 ? (this.pagadasCount() / this.totalOrders()) * 100 : 0);
   pendientesPercent = computed(() => this.totalOrders() > 0 ? (this.pendientesCount() / this.totalOrders()) * 100 : 0);
 
+  readonly initialSearch: string;
   readonly initialCustomerId: string;
   readonly initialCustomerLabel: string;
   readonly initialFiscalConfigurationId: string;
@@ -127,11 +128,13 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     private router: Router,
   ) {
     const params = this.route.snapshot.queryParamMap;
+    this.initialSearch = params.get('search')?.trim() || '';
     this.initialCustomerId = params.get('customer_id')?.trim() || '';
     this.initialCustomerLabel = params.get('customer')?.trim() || '';
     this.initialFiscalConfigurationId = params.get('fiscal_configuration_id')?.trim() || '';
     this.initialBillingBranchId = params.get('billing_branch_id')?.trim() || '';
     this.filtersState.set({
+      ...(this.initialSearch ? { search: this.initialSearch } : {}),
       ...(this.initialCustomerId ? { customer_id: this.initialCustomerId } : {}),
       ...(this.initialFiscalConfigurationId
         ? { fiscal_configuration_id: this.initialFiscalConfigurationId }
@@ -222,6 +225,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
+        search: apiFilters.search?.trim() || null,
         customer_id: apiFilters.customer_id ?? null,
         customer: customerLabel ?? null,
         fiscal_configuration_id: apiFilters.fiscal_configuration_id ?? null,

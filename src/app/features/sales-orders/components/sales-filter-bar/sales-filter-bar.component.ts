@@ -32,6 +32,7 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() sellers: PosUserSummary[] = [];
   /** `null` = todas. Array = solo esas sucursales (cotizaciones sin ViewAllBranches). */
   @Input() restrictBranchIds: string[] | null = null;
+  @Input() initialSearch = '';
   @Input() initialCustomerId = '';
   @Input() initialCustomerLabel = '';
   @Input() initialFiscalConfigurationId = '';
@@ -353,6 +354,10 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private restoreInitialFilters(): void {
+    const search = this.initialSearch.trim();
+    if (search) {
+      this.searchControl.setValue(search, { emitEvent: false });
+    }
     const customerId = this.initialCustomerId.trim();
     if (customerId) {
       const label = this.initialCustomerLabel.trim() || customerId;

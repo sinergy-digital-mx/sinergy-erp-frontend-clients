@@ -16,6 +16,8 @@ export interface CloseDailyShiftDialogData {
   openingCashUsd: number;
   collectedCashMxn: number;
   collectedCashUsd: number;
+  /** Efectivo de facturas de anticipo ya incluido en `collectedCashMxn`. */
+  advanceCashMxn?: number;
   collectedTransferMxn: number;
   collectedCardMxn: number;
   collectedCheckMxn: number;

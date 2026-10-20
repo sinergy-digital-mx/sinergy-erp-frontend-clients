@@ -35,6 +35,7 @@ export interface Customer {
   additional_email?: string;
   phone?: string;
   fiscal_rfc?: string;
+  fiscal_person_type?: string | null;
   fiscal_razon_social?: string;
   fiscal_postal_code?: string;
   /** Legado: usar `fiscal_postal_code`. */

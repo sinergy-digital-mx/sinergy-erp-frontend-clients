@@ -21,6 +21,11 @@
       <span>+ Cobrado en efectivo</span>
       <strong>{{ formatMxn(data.collectedCashMxn) }}</strong>
     </div>
+    @if ((data.advanceCashMxn ?? 0) > 0) {
+      <p class="close-shift-summary__aside">
+        Incluye anticipos de cotización por {{ formatMxn(data.advanceCashMxn ?? 0) }}. Ese dinero ya entró al corte.
+      </p>
+    }
     <div class="close-shift-summary__row">
       <span>− Retiros ({{ data.partialCount }} parcial{{ data.partialCount === 1 ? '' : 'es' }})</span>
       <strong>{{ formatMxn(data.removedMxn) }}</strong>

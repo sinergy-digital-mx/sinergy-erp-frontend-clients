@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { LucideAngularModule, Menu } from 'lucide-angular';
 import { Sidebar } from '../../core/components/sidebar/sidebar';
@@ -13,7 +13,10 @@ import { SystemLogoService } from '../../core/services/system-logo.service';
   templateUrl: './main-layout.html',
   styleUrl: './main-layout.scss',
 })
-export class MainLayout implements OnInit {
+export class MainLayout implements OnInit, OnDestroy {
+  /** Índigo de arriba del sidebar. Pinta la barra del sistema en el celular. */
+  private static readonly mobileThemeColor = '#1e1b4b';
+
   readonly icons = { Menu };
 
   constructor(
@@ -25,6 +28,25 @@ export class MainLayout implements OnInit {
   ngOnInit(): void {
     this.permissionSyncService.initialize();
     this.systemLogoService.refresh();
+    this.setMobileThemeColor(MainLayout.mobileThemeColor);
+  }
+
+  ngOnDestroy(): void {
+    this.setMobileThemeColor(null);
+  }
+
+  private setMobileThemeColor(color: string | null): void {
+    const existing = document.querySelector('meta[name="theme-color"]');
+    if (!color) {
+      existing?.remove();
+      return;
+    }
+    const meta = existing ?? document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    meta.setAttribute('content', color);
+    if (!existing) {
+      document.head.appendChild(meta);
+    }
   }
 
   openMobileMenu(): void {

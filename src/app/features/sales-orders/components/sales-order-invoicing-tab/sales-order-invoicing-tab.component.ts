@@ -267,6 +267,11 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
           folio: this.order.folio,
           advanceUuid: this.order.advance_invoice?.uuid,
           advanceTotal: this.order.advance_invoice?.total,
+          customer: {
+            fiscal_rfc: this.order.customer?.fiscal_rfc,
+            fiscal_person_type: this.order.customer?.fiscal_person_type,
+            is_walk_in: this.order.customer_summary?.is_walk_in,
+          },
         },
       })
       .afterClosed()

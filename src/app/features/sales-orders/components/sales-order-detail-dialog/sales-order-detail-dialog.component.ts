@@ -573,6 +573,11 @@ export class SalesOrderDetailDialogComponent {
           defaultBase: Number(base.toFixed(2)),
           defaultTotal: Number(order.total || 0),
           defaultIva: ivaPct,
+          customer: {
+            fiscal_rfc: order.customer?.fiscal_rfc,
+            fiscal_person_type: order.customer?.fiscal_person_type,
+            is_walk_in: order.customer_summary?.is_walk_in,
+          },
         },
       })
       .afterClosed()

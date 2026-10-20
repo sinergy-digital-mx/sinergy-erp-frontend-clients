@@ -28,7 +28,10 @@ import {
   formatTitleCase,
   getSalesOrderListCompanyName,
 } from '../../../sales-orders/utils/sales-order-display.util';
-import { resolveSalesOrderCustomerName } from '../../../sales-orders/utils/customer-display.util';
+import {
+  resolveSalesOrderCustomerId,
+  resolveSalesOrderCustomerName,
+} from '../../../sales-orders/utils/customer-display.util';
 import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
 import {
   getSalesOrderDocumentChipLabel,
@@ -273,6 +276,19 @@ export class QuotationDetailDialogComponent implements OnInit {
 
   getCustomerDisplayName(): string {
     return formatTitleCase(resolveSalesOrderCustomerName(this.header() as any));
+  }
+
+  canOpenCustomer(): boolean {
+    return resolveSalesOrderCustomerId(this.header() as any) != null;
+  }
+
+  openCustomerInNewTab(): void {
+    const customerId = resolveSalesOrderCustomerId(this.header() as any);
+    if (customerId == null) return;
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/customers/detail', customerId]),
+    );
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   getCustomerCompanyName(): string {
@@ -814,6 +830,11 @@ export class QuotationDetailDialogComponent implements OnInit {
           defaultBase: Number(base.toFixed(2)),
           defaultTotal: Number(q.total || 0),
           defaultIva: ivaPct,
+          customer: {
+            fiscal_rfc: q.customer?.fiscal_rfc,
+            fiscal_person_type: q.customer?.fiscal_person_type,
+            is_walk_in: q.customer_summary?.is_walk_in,
+          },
         },
       })
       .afterClosed()

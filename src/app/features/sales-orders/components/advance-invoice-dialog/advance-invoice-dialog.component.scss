@@ -236,6 +236,19 @@ form {
   }
 }
 
+.form-input[readonly],
+.form-select:disabled {
+  background: #f8fafc;
+  color: #334155;
+  cursor: default;
+}
+
+.form-hint {
+  margin: 0.3rem 0 0;
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+
 .advance-error {
   flex-shrink: 0;
   margin: 0;

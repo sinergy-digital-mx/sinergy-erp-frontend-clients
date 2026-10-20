@@ -96,7 +96,9 @@ export function salesOrderPaymentSourceLabel(
   if (fromApi) {
     return fromApi;
   }
-  return payment?.source === 'pos_cobranza' ? 'POS Caja' : 'Cobrada manual';
+  if (payment?.source === 'pos_cobranza') return 'POS Caja';
+  if (payment?.source === 'advance') return 'Anticipo';
+  return 'Cobrada manual';
 }
 
 export function isManualSalesOrderPayment(payment: SalesOrderPayment): boolean {

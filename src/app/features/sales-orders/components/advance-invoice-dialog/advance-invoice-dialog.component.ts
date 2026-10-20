@@ -8,6 +8,9 @@ import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-messa
 import { QuotationService } from '../../../quotations/services/quotation.service';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
 import {
+  CFDI_FORMA_PAGO_OPTIONS,
+  CFDI_REGIMEN_RECEPTOR_OPTIONS,
+  CFDI_USO_OPTIONS,
   defaultStampEnvironment,
   FinkokConfigurationsResponse,
   getFinkokEnvironmentConfig,
@@ -15,9 +18,19 @@ import {
   isLocalStampHost,
 } from '../../models/sales-order-electronic-invoice.model';
 import type { FinkokEnvironment } from '../../models/sales-order-electronic-invoice.model';
+import {
+  receptorPersonKind,
+  SAT_GENERIC_PUBLIC_RFC,
+} from '../../utils/cfdi-xml-builder.util';
 
 export type AdvanceInvoiceDialogMode = 'stamp' | 'apply';
 export type AdvanceInvoiceDialogSource = 'quotation' | 'sales_order';
+
+export interface AdvanceInvoiceCustomer {
+  fiscal_rfc?: string | null;
+  fiscal_person_type?: string | null;
+  is_walk_in?: boolean;
+}
 
 export interface AdvanceInvoiceDialogData {
   mode: AdvanceInvoiceDialogMode;
@@ -29,6 +42,58 @@ export interface AdvanceInvoiceDialogData {
   defaultIva?: number;
   advanceTotal?: number | null;
   advanceUuid?: string | null;
+  customer?: AdvanceInvoiceCustomer | null;
+}
+
+interface AdvanceReceptor {
+  regimen: string;
+  label: string;
+  generic: boolean;
+  hint: string;
+}
+
+function resolveAdvanceReceptor(customer?: AdvanceInvoiceCustomer | null): AdvanceReceptor {
+  const rfc = String(customer?.fiscal_rfc ?? '').replace(/[\s-]/g, '').toUpperCase();
+  const generic = rfc === SAT_GENERIC_PUBLIC_RFC || (!!customer?.is_walk_in && !rfc);
+  if (generic) {
+    return {
+      regimen: '616',
+      label: regimenLabel('616'),
+      generic: true,
+      hint: 'Público en general. El régimen 616 sale del cliente y no se edita aquí.',
+    };
+  }
+
+  const person = String(customer?.fiscal_person_type ?? '').trim().toLowerCase();
+  const kind =
+    person === 'fisica' || person === 'moral' ? person : receptorPersonKind(rfc);
+  const regimen = kind === 'fisica' ? '612' : '601';
+  if (kind === 'fisica') {
+    return {
+      regimen,
+      label: regimenLabel(regimen),
+      generic: false,
+      hint: 'El RFC del cliente es de persona física. El régimen no se edita aquí.',
+    };
+  }
+  if (kind === 'moral') {
+    return {
+      regimen,
+      label: regimenLabel(regimen),
+      generic: false,
+      hint: 'El RFC del cliente es de persona moral. El régimen no se edita aquí.',
+    };
+  }
+  return {
+    regimen,
+    label: regimenLabel(regimen),
+    generic: false,
+    hint: 'El cliente no tiene RFC fiscal. Se usa 601 y no se edita aquí.',
+  };
+}
+
+function regimenLabel(code: string): string {
+  return CFDI_REGIMEN_RECEPTOR_OPTIONS.find((option) => option.id === code)?.name ?? code;
 }
 
 @Component({
@@ -56,7 +121,16 @@ export class AdvanceInvoiceDialogComponent implements OnInit {
 
   selectedFinkokUsername = computed(() => this.selectedEnvConfig()?.finkok_username?.trim() || '');
 
+  readonly usoOptions = CFDI_USO_OPTIONS;
+  readonly receptor: AdvanceReceptor;
   form;
+
+  get formaPagoOptions() {
+    if (this.data.mode === 'stamp') {
+      return CFDI_FORMA_PAGO_OPTIONS.filter((option) => option.id !== '99');
+    }
+    return CFDI_FORMA_PAGO_OPTIONS;
+  }
 
   constructor(
     private readonly fb: FormBuilder,
@@ -67,6 +141,7 @@ export class AdvanceInvoiceDialogComponent implements OnInit {
     private readonly router: Router,
     private readonly toast: ToastService,
   ) {
+    this.receptor = resolveAdvanceReceptor(data.customer);
     const iva = data.defaultIva ?? 8;
     const defaultGross = this.roundMoney(
       data.defaultTotal ??
@@ -80,9 +155,12 @@ export class AdvanceInvoiceDialogComponent implements OnInit {
           : [],
       ],
       iva_percentage: [iva, data.mode === 'stamp' ? [Validators.required, Validators.min(0), Validators.max(16)] : []],
-      uso_cfdi: ['G01', Validators.required],
+      uso_cfdi: [
+        { value: this.receptor.generic ? 'S01' : 'G03', disabled: this.receptor.generic },
+        Validators.required,
+      ],
       forma_pago: ['01', Validators.required],
-      regimen_fiscal_receptor: ['601', Validators.required],
+      metodo_pago: ['PUE', Validators.required],
     });
   }
 
@@ -167,33 +245,37 @@ export class AdvanceInvoiceDialogComponent implements OnInit {
     if (this.form.invalid || this.saving() || !this.hasSelectedEnvCredentials()) return;
     const value = this.form.getRawValue();
     const environment = this.stampEnvironment();
+    const usoCfdi = String(value.uso_cfdi);
+    const formaPago = String(value.forma_pago);
+    const metodoPago = value.metodo_pago === 'PPD' ? 'PPD' : 'PUE';
+    const regimen = this.receptor.regimen;
     this.saving.set(true);
     this.error.set('');
     const request = this.data.mode === 'apply'
       ? this.invoices.applyAdvance(this.data.documentId, {
-          uso_cfdi: String(value.uso_cfdi),
-          forma_pago: String(value.forma_pago),
-          regimen_fiscal_receptor: String(value.regimen_fiscal_receptor),
-          metodo_pago: 'PUE',
+          uso_cfdi: usoCfdi,
+          forma_pago: formaPago,
+          regimen_fiscal_receptor: regimen,
+          metodo_pago: metodoPago,
           environment,
         })
       : this.data.source === 'quotation'
         ? this.quotations.stampAdvance(this.data.documentId, {
             base_amount: this.baseFromGross(Number(value.amount_with_iva), Number(value.iva_percentage)),
             iva_percentage: Number(value.iva_percentage),
-            uso_cfdi: String(value.uso_cfdi),
-            forma_pago: String(value.forma_pago),
-            regimen_fiscal_receptor: String(value.regimen_fiscal_receptor),
-            metodo_pago: 'PUE',
+            uso_cfdi: usoCfdi,
+            forma_pago: formaPago,
+            regimen_fiscal_receptor: regimen,
+            metodo_pago: metodoPago,
             environment,
           })
         : this.invoices.stampAdvance(this.data.documentId, {
             base_amount: this.baseFromGross(Number(value.amount_with_iva), Number(value.iva_percentage)),
             iva_percentage: Number(value.iva_percentage),
-            uso_cfdi: String(value.uso_cfdi),
-            forma_pago: String(value.forma_pago),
-            regimen_fiscal_receptor: String(value.regimen_fiscal_receptor),
-            metodo_pago: 'PUE',
+            uso_cfdi: usoCfdi,
+            forma_pago: formaPago,
+            regimen_fiscal_receptor: regimen,
+            metodo_pago: metodoPago,
             environment,
           });
 
