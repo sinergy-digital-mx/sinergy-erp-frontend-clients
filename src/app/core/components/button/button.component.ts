@@ -17,7 +17,7 @@ export class ButtonComponent {
   @Input() disabled = false;
   @Input() type: 'button' | 'submit' | 'reset' = 'button';
   @Input() customClass = '';
-  @Input() variant: 'primary' | 'secondary' | 'danger' | 'success' = 'primary';
+  @Input() variant: 'primary' | 'secondary' | 'danger' | 'danger-outline' | 'success' = 'primary';
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
   @Input() fullWidth = true;
   @Input() title?: string;

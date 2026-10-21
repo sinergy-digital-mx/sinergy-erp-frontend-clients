@@ -33,10 +33,10 @@
           <p class="text-lg font-semibold text-gray-900">{{ s.phone_number ? '+' + s.phone_number : '—' }}</p>
           <p *ngIf="s.push_name" class="text-sm text-gray-600">{{ s.push_name }}</p>
         </div>
-        <div class="flex flex-wrap gap-2" *ngIf="canUpdate || canDelete">
+        <div class="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4" *ngIf="canUpdate || canDelete">
           <app-button *ngIf="canUpdate" text="Reiniciar" variant="secondary" [fullWidth]="false" [icon]="RefreshCw" [loading]="busy()" (clicked)="restart()"></app-button>
           <app-button *ngIf="canUpdate" text="Desvincular teléfono" variant="secondary" [fullWidth]="false" [icon]="Unplug" [loading]="busy()" (clicked)="logout()"></app-button>
-          <app-button *ngIf="canDelete" text="Eliminar conexión" variant="danger" [fullWidth]="false" [loading]="busy()" (clicked)="remove()"></app-button>
+          <app-button *ngIf="canDelete" text="Eliminar conexión" variant="danger-outline" [fullWidth]="false" [loading]="busy()" (clicked)="remove()"></app-button>
         </div>
       </div>
 
@@ -58,8 +58,8 @@
 
         <div *ngIf="canUpdate" class="border-t pt-4">
           <p class="text-sm font-medium text-gray-700 mb-2">¿No puedes escanear? Vincula con tu número</p>
-          <div class="flex gap-2">
-            <input type="tel" class="flex-1 border rounded-lg px-3 py-2 text-sm" placeholder="Teléfono de este WhatsApp (10 dígitos)" [(ngModel)]="pairingPhone" />
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+            <input type="tel" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400" placeholder="Teléfono de este WhatsApp (10 dígitos)" [(ngModel)]="pairingPhone" />
             <app-button text="Obtener código" variant="secondary" [fullWidth]="false" [loading]="busy()" (clicked)="requestPairingCode()"></app-button>
           </div>
           <p *ngIf="pairingCode() as code" class="mt-3 text-center text-2xl font-mono tracking-widest text-gray-900">{{ code }}</p>
@@ -73,24 +73,28 @@
           {{ state === 'not_configured' ? 'Aún no has conectado WhatsApp.' : 'La sesión no está activa.' }}
           Genera un código QR y escanéalo con el teléfono que enviará los mensajes.
         </p>
-        <app-button *ngIf="canUpdate" text="Generar nuevo QR" variant="primary" [fullWidth]="false" [loading]="busy()" (clicked)="connect()"></app-button>
         <p *ngIf="!canUpdate" class="text-sm text-gray-500">No tienes permiso para conectar WhatsApp.</p>
-        <app-button *ngIf="canDelete && s.configured" text="Eliminar conexión" variant="danger" [fullWidth]="false" [loading]="busy()" (clicked)="remove()"></app-button>
+        <div class="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4" *ngIf="canUpdate || (canDelete && s.configured)">
+          <app-button *ngIf="canUpdate" text="Generar nuevo QR" variant="primary" [fullWidth]="false" [loading]="busy()" (clicked)="connect()"></app-button>
+          <app-button *ngIf="canDelete && s.configured" text="Eliminar conexión" variant="danger-outline" [fullWidth]="false" [loading]="busy()" (clicked)="remove()"></app-button>
+        </div>
       </div>
     </section>
 
     <!-- Envío de prueba e historial -->
     <section class="bg-white rounded-xl border border-gray-200 p-5" *ngIf="state === 'connected'">
       <h3 class="font-semibold text-gray-800 mb-3">Mensaje de prueba</h3>
-      <div *ngIf="canCreate" class="space-y-2 mb-5">
-        <input type="tel" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Teléfono destino (10 dígitos)" [(ngModel)]="testPhone" />
-        <textarea class="w-full border rounded-lg px-3 py-2 text-sm" rows="3" maxlength="4096" [(ngModel)]="testText"></textarea>
-        <app-button text="Enviar" variant="primary" [fullWidth]="false" [loading]="busy()" (clicked)="sendTest()"></app-button>
+      <div *ngIf="canCreate" class="space-y-3 mb-5 pb-5 border-b border-gray-100">
+        <input type="tel" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400" placeholder="Teléfono destino (10 dígitos)" [(ngModel)]="testPhone" />
+        <textarea class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400" rows="3" maxlength="4096" [(ngModel)]="testText"></textarea>
+        <div class="flex justify-end">
+          <app-button text="Enviar" variant="primary" [fullWidth]="false" [loading]="busy()" (clicked)="sendTest()"></app-button>
+        </div>
       </div>
 
       <div class="flex items-center justify-between mb-2">
         <h3 class="font-semibold text-gray-800">Últimos mensajes</h3>
-        <button type="button" class="text-xs text-sky-700 hover:underline" (click)="loadMessages()">Actualizar</button>
+        <button type="button" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline" (click)="loadMessages()">Actualizar</button>
       </div>
       <p *ngIf="!messages().length" class="text-sm text-gray-500">Todavía no hay mensajes enviados.</p>
       <ul class="divide-y">
