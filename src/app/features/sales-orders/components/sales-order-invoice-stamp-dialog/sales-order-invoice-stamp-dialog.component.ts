@@ -140,7 +140,7 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
     const defaults = defaultCfdiWizardForm(data.order);
     this.finkokConfig.set(data.finkokConfig);
     this.conceptDescriptions.set(
-      data.lineItems.map((item) => item.product?.name?.trim() || 'Producto'),
+      data.lineItems.map((item) => item.custom_description?.trim() || item.product?.name?.trim() || 'Producto'),
     );
     this.form = this.fb.group({
       series: [defaults.series],

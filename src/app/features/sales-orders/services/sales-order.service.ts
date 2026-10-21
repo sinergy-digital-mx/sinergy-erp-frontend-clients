@@ -366,6 +366,21 @@ export class SalesOrderService {
   }
 
   /**
+   * Clona una orden manual; solo cambian los conceptos y precios indicados.
+   */
+  cloneOrder(
+    orderId: string,
+    payload: {
+      lines: { line_id: string; custom_description?: string; unit_price?: number }[];
+      notes?: string;
+    },
+  ): Observable<SalesOrder> {
+    return this.http.post<SalesOrder>(`${this.baseUrl}/${orderId}/clone`, payload).pipe(
+      catchError(error => this.handleError(error)),
+    );
+  }
+
+  /**
    * Stock agregado de todos los almacenes de la sucursal (alta MANUAL).
    */
   getProductsSummary(params: SalesOrderProductsSummaryParams): Observable<any> {

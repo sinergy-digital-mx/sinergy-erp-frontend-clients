@@ -637,6 +637,11 @@
           <button type="button" class="tab-button" [class.active]="activeTabIndex() === 9" (click)="activeTabIndex.set(9)">
             Mesa de Control
           </button>
+          @if (canCloneOrder()) {
+            <button type="button" class="tab-button" [class.active]="activeTabIndex() === 10" (click)="activeTabIndex.set(10)">
+              Clonar orden
+            </button>
+          }
         </div>
 
         <div class="tabs-content">
@@ -689,7 +694,7 @@
                           (click)="canOpenProduct(item) && openProductDetail(item)"
                           (keydown.enter)="canOpenProduct(item) && openProductDetail(item)"
                           (keydown.space)="$event.preventDefault(); canOpenProduct(item) && openProductDetail(item)">
-                          <strong>{{ item.product?.name || item.product_id }}</strong>
+                          <strong>{{ item.custom_description || item.product?.name || item.product_id }}</strong>
                           @if (lineProductDescription(item); as description) {
                             <span class="product-info__description">{{ description }}</span>
                           }
@@ -1221,7 +1226,7 @@
                             (click)="canOpenProduct(row.item) && openProductDetail(row.item)"
                             (keydown.enter)="canOpenProduct(row.item) && openProductDetail(row.item)"
                             (keydown.space)="$event.preventDefault(); canOpenProduct(row.item) && openProductDetail(row.item)">
-                            <strong>{{ row.item.product?.name || row.item.product_id }}</strong>
+                            <strong>{{ row.item.custom_description || row.item.product?.name || row.item.product_id }}</strong>
                             @if (row.item.product?.sku) {
                               <small>{{ row.item.product.sku }}</small>
                             }
@@ -1272,6 +1277,15 @@
           @if (activeTabIndex() === 7 && order()) {
             <div class="tab-content-wrapper">
               <app-sales-order-credit-tab [order]="order()!" />
+            </div>
+          }
+
+          @if (activeTabIndex() === 10 && order() && canCloneOrder()) {
+            <div class="tab-content-wrapper">
+              <app-sales-order-clone-tab
+                [order]="order()!"
+                [lineItems]="lineItems()"
+                (cloned)="onOrderCloned($event)" />
             </div>
           }
 

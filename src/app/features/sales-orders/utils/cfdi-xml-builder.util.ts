@@ -207,7 +207,7 @@ ${taxes
         </cfdi:Traslados>
       </cfdi:Impuestos>`;
 
-  const descripcion = description?.trim() || item.product?.name?.trim() || 'Producto';
+  const descripcion = description?.trim() || item.custom_description?.trim() || item.product?.name?.trim() || 'Producto';
   const xml = `
     <cfdi:Concepto ClaveProdServ="${escapeXml(getProductSatClave(item))}" Cantidad="${qty.toFixed(6)}" ClaveUnidad="${escapeXml(getClaveUnidad(item))}" Unidad="${escapeXml(getUnidad(item))}" Descripcion="${escapeXml(descripcion)}" ValorUnitario="${toMoney(unitPrice)}" Importe="${toMoney(importe)}"${discountAttr} ObjetoImp="${objetoImp}">${taxXml}
     </cfdi:Concepto>`;

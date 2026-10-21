@@ -90,6 +90,8 @@ import { SalesOrderInvoicingTabComponent } from '../sales-order-invoicing-tab/sa
 import { SalesOrderInvoiceEmailTabComponent } from '../sales-order-invoice-email-tab/sales-order-invoice-email-tab.component';
 import { SalesOrderShippingTabComponent } from '../sales-order-shipping-tab/sales-order-shipping-tab.component';
 import { SalesOrderCreditTabComponent } from '../sales-order-credit-tab/sales-order-credit-tab.component';
+import { SalesOrderCloneTabComponent } from '../sales-order-clone-tab/sales-order-clone-tab.component';
+import { SALES_ORDER_PERMISSIONS } from '../../config/permissions.config';
 import { SalesOrderSubscriptionLinkComponent } from '../sales-order-subscription-link/sales-order-subscription-link.component';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
 import {
@@ -179,6 +181,7 @@ const INSTRUCTION_SECTIONS: InstructionSection[] = [
     SalesOrderInvoiceEmailTabComponent,
     SalesOrderShippingTabComponent,
     SalesOrderCreditTabComponent,
+    SalesOrderCloneTabComponent,
     SalesOrderControlDeskTabComponent,
     SalesOrderSubscriptionLinkComponent,
   ],
@@ -304,6 +307,21 @@ export class SalesOrderDetailDialogComponent {
   canViewShippingTab = computed(() =>
     this.authService.hasPermission(SHIPPING_PERMISSIONS.viewDetail)
   );
+
+  /** Clonar solo aplica a órdenes manuales y requiere permiso de crear. */
+  canCloneOrder = computed(
+    () =>
+      (this.order()?.sales_order_type ?? 'MANUAL') === 'MANUAL' &&
+      (this.authService.hasAdminRole() ||
+        this.authService.hasPermission(SALES_ORDER_PERMISSIONS.create)),
+  );
+
+  /** Abre la orden recién clonada en este mismo diálogo. */
+  onOrderCloned(newOrderId: string): void {
+    this.data.orderId = newOrderId;
+    this.activeTabIndex.set(0);
+    this.loadOrder();
+  }
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { orderId: string },
