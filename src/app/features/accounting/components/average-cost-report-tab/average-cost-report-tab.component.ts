@@ -238,18 +238,18 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
 
   private columns(): IColumn[] {
     return [
-      { name: 'Cliente', prop: 'customer_name', sortable: false, canAutoResize: true, width: 220 },
-      { name: 'Documento', prop: 'document', sortable: false, canAutoResize: false, width: 118 },
-      { name: 'Fecha', prop: 'date', sortable: false, canAutoResize: false, width: 96 },
-      { name: 'Tipo', prop: 'type_code', sortable: false, canAutoResize: false, width: 188 },
-      { name: 'Stat', prop: 'status_code', sortable: false, canAutoResize: false, width: 118 },
-      { name: 'Moneda', prop: 'source_currency', sortable: false, canAutoResize: false, width: 118 },
-      { name: 'Importe', prop: 'amount', sortable: false, canAutoResize: false, width: 100 },
-      { name: 'Descto', prop: 'discount', sortable: false, canAutoResize: false, width: 88 },
-      { name: 'Impuesto', prop: 'tax', sortable: false, canAutoResize: false, width: 96 },
-      { name: 'Total venta', prop: 'sale_total', sortable: false, canAutoResize: false, width: 108 },
-      { name: 'Total costo', prop: 'cost_total', sortable: false, canAutoResize: false, width: 108 },
-      { name: 'Margen', prop: 'margin_amount', sortable: false, canAutoResize: false, width: 118 },
+      { name: 'Cliente', prop: 'customer_name', sortable: false, canAutoResize: true, width: 180 },
+      { name: 'Documento', prop: 'document', sortable: false, canAutoResize: false, width: 104 },
+      { name: 'Fecha', prop: 'date', sortable: false, canAutoResize: false, width: 88 },
+      { name: 'Tipo', prop: 'type_code', sortable: false, canAutoResize: false, width: 176 },
+      { name: 'Stat', prop: 'status_code', sortable: false, canAutoResize: false, width: 104 },
+      { name: 'Moneda', prop: 'source_currency', sortable: false, canAutoResize: false, width: 100 },
+      { name: 'Importe', prop: 'amount', sortable: false, canAutoResize: false, width: 96 },
+      { name: 'Descto', prop: 'discount', sortable: false, canAutoResize: false, width: 80 },
+      { name: 'Impuesto', prop: 'tax', sortable: false, canAutoResize: false, width: 88 },
+      { name: 'Total venta', prop: 'sale_total', sortable: false, canAutoResize: false, width: 100 },
+      { name: 'Total costo', prop: 'cost_total', sortable: false, canAutoResize: false, width: 100 },
+      { name: 'Margen', prop: 'margin_amount', sortable: false, canAutoResize: false, width: 94 },
     ];
   }
 }

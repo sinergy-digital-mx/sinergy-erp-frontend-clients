@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, MessageCircle, RefreshCw, Unplug } from 'lucide-angular';
+import { RouterLink } from '@angular/router';
+import { BookOpen, LucideAngularModule, MessageCircle, RefreshCw, Unplug } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
@@ -19,10 +20,11 @@ const MAX_POLL_ERRORS = 5;
 @Component({
   selector: 'app-whatsapp-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonComponent, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterLink, ButtonComponent, LucideAngularModule],
   templateUrl: './whatsapp-settings.component.html',
 })
 export class WhatsappSettingsComponent implements OnInit, OnDestroy {
+  readonly BookOpen = BookOpen;
   readonly MessageCircle = MessageCircle;
   readonly RefreshCw = RefreshCw;
   readonly Unplug = Unplug;

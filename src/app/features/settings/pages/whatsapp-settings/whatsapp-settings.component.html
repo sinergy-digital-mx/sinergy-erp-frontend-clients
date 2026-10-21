@@ -1,9 +1,18 @@
 <div class="settings-list-page px-4 pb-6">
-  <div class="mb-4">
-    <h2 class="text-2xl font-semibold text-gray-800">WhatsApp</h2>
-    <p class="text-sm text-gray-500">
-      Conecta el WhatsApp de tu empresa para enviar mensajes desde el ERP. Cada empresa usa su propio número.
-    </p>
+  <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800">WhatsApp</h2>
+      <p class="text-sm text-gray-500">
+        Conecta el WhatsApp de tu empresa para enviar mensajes desde el ERP. Cada empresa usa su propio número.
+      </p>
+    </div>
+    <a
+      routerLink="/settings/whatsapp/guide"
+      class="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 border border-indigo-200 hover:border-indigo-400 rounded-lg px-3 py-2"
+    >
+      <lucide-icon [img]="BookOpen" [size]="16"></lucide-icon>
+      Guía de integración
+    </a>
   </div>
 
   <div *ngIf="loading()" class="text-sm text-gray-500">Cargando…</div>

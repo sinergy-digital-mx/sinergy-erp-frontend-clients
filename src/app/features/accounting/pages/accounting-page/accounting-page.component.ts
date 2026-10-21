@@ -79,6 +79,9 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     const initial = this.route.snapshot.data['tab'];
     if (typeof initial === 'string' && this.isAccountingTab(initial)) {
       this.activeTab.set(initial);
+      if (initial === 'average-cost') {
+        this.applyCurrentMonth();
+      }
     }
     this.loadBranches();
   }
@@ -123,10 +126,21 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       return;
     }
     const tab = tabId;
+    const previousTab = this.activeTab();
     if (tab === 'pos' && this.period() !== 'today' && this.period() !== 'range') {
       this.period.set('today');
       this.dateFrom.set('');
       this.dateTo.set('');
+    }
+    // El rango del mes de Rep. Vent. Cost. Prom. no aplica al corte diario de POS.
+    if (tab === 'pos' && previousTab === 'average-cost') {
+      this.period.set('today');
+      this.dateFrom.set('');
+      this.dateTo.set('');
+    }
+    // Rep. Vent. Cost. Prom. siempre abre en el mes actual.
+    if (tab === 'average-cost') {
+      this.applyCurrentMonth();
     }
     this.activeTab.set(tab);
     this.reloadActiveTab();
@@ -197,6 +211,22 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
         this.branches.set([]);
       },
     });
+  }
+
+  /** Mes actual como rango explícito (día 1 → hoy), igual que el botón "Mes" del selector. */
+  private applyCurrentMonth(): void {
+    const today = new Date();
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    this.period.set('range');
+    this.dateFrom.set(this.toInputDate(first));
+    this.dateTo.set(this.toInputDate(today));
+  }
+
+  private toInputDate(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
   private reloadActiveTab(): void {

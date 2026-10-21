@@ -1,0 +1,120 @@
+<div class="settings-list-page px-4 pb-6">
+  <a routerLink="/settings/whatsapp" class="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 hover:underline mb-3">
+    <lucide-icon [img]="ArrowLeft" [size]="16"></lucide-icon>
+    Volver a WhatsApp
+  </a>
+
+  <div class="mb-4">
+    <h2 class="text-2xl font-semibold text-gray-800">Guía de integración de WhatsApp</h2>
+    <ng-container *ngFor="let block of intro">
+      <p *ngIf="block.t === 'p'" class="text-sm text-gray-500">
+        <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: $any(block).text }"></ng-container>
+      </p>
+    </ng-container>
+  </div>
+
+  <!-- Pestañas -->
+  <div class="flex flex-wrap gap-2 mb-4">
+    <button
+      *ngFor="let section of sections"
+      type="button"
+      class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors"
+      [ngClass]="
+        activeId() === section.id
+          ? 'bg-indigo-600 text-white border-indigo-600'
+          : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-300'
+      "
+      (click)="select(section.id)"
+    >
+      {{ section.title }}
+    </button>
+  </div>
+
+  <section class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+    <ng-container *ngFor="let block of active.blocks">
+      <ng-container [ngSwitch]="block.t">
+        <!-- Títulos -->
+        <h3 *ngSwitchCase="'h3'" class="text-lg font-semibold text-gray-800 pt-2">
+          <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: $any(block).text }"></ng-container>
+        </h3>
+        <h4 *ngSwitchCase="'h4'" class="text-base font-semibold text-gray-700 pt-1">
+          <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: $any(block).text }"></ng-container>
+        </h4>
+
+        <!-- Párrafo -->
+        <p *ngSwitchCase="'p'" class="text-sm text-gray-700 leading-relaxed">
+          <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: $any(block).text }"></ng-container>
+        </p>
+
+        <!-- Nota -->
+        <div *ngSwitchCase="'quote'" class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: $any(block).text }"></ng-container>
+        </div>
+
+        <!-- Listas -->
+        <ul *ngSwitchCase="'ul'" class="list-disc pl-5 space-y-1 text-sm text-gray-700">
+          <li *ngFor="let item of $any(block).items">
+            <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: item.text }"></ng-container>
+            <ul *ngIf="item.children.length" class="list-[circle] pl-5 mt-1 space-y-1">
+              <li *ngFor="let child of item.children">
+                <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: child }"></ng-container>
+              </li>
+            </ul>
+          </li>
+        </ul>
+        <ol *ngSwitchCase="'ol'" class="list-decimal pl-5 space-y-1 text-sm text-gray-700">
+          <li *ngFor="let item of $any(block).items">
+            <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: item.text }"></ng-container>
+            <ul *ngIf="item.children.length" class="list-disc pl-5 mt-1 space-y-1">
+              <li *ngFor="let child of item.children">
+                <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: child }"></ng-container>
+              </li>
+            </ul>
+          </li>
+        </ol>
+
+        <!-- Tabla -->
+        <div *ngSwitchCase="'table'" class="overflow-x-auto border border-gray-200 rounded-lg">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 text-left text-gray-700">
+              <tr>
+                <th *ngFor="let cell of $any(block).head" class="px-3 py-2 font-semibold align-top">
+                  <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: cell }"></ng-container>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr *ngFor="let row of $any(block).rows">
+                <td *ngFor="let cell of row" class="px-3 py-2 text-gray-700 align-top">
+                  <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: cell }"></ng-container>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Código -->
+        <div *ngSwitchCase="'code'" class="rounded-lg overflow-hidden border border-gray-800">
+          <div class="flex items-center justify-between bg-gray-800 px-3 py-1.5">
+            <span class="text-xs uppercase tracking-wide text-gray-300">{{ $any(block).lang || 'texto' }}</span>
+            <button type="button" class="inline-flex items-center gap-1 text-xs text-gray-200 hover:text-white" (click)="copy($any(block).code)">
+              <lucide-icon [img]="Copy" [size]="14"></lucide-icon>
+              Copiar
+            </button>
+          </div>
+          <pre class="bg-gray-900 text-gray-100 text-xs p-3 overflow-x-auto"><code>{{ $any(block).code }}</code></pre>
+        </div>
+      </ng-container>
+    </ng-container>
+  </section>
+</div>
+
+<!-- Texto con `código`, **negritas** y enlaces -->
+<ng-template #inlineTpl let-text>
+  <ng-container *ngFor="let seg of inline(text)">
+    <code *ngIf="seg.kind === 'code'" class="px-1 py-0.5 rounded bg-gray-100 text-gray-800 text-xs break-words">{{ seg.text }}</code>
+    <strong *ngIf="seg.kind === 'bold'">{{ seg.text }}</strong>
+    <a *ngIf="seg.kind === 'link'" [href]="seg.href" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">{{ seg.text }}</a>
+    <ng-container *ngIf="seg.kind === 'text'">{{ seg.text }}</ng-container>
+  </ng-container>
+</ng-template>

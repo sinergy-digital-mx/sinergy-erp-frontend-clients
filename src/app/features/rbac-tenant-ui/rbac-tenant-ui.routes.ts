@@ -11,6 +11,7 @@ import { EmailTemplatesListComponent } from '../settings/pages/email-templates-l
 import { MailerConfigurationsListComponent } from '../settings/pages/mailer-configurations-list/mailer-configurations-list.component';
 import { GpsTrackingConfigurationsListComponent } from '../settings/pages/gps-tracking-configurations-list/gps-tracking-configurations-list.component';
 import { WhatsappSettingsComponent } from '../settings/pages/whatsapp-settings/whatsapp-settings.component';
+import { WhatsappIntegrationGuideComponent } from '../settings/pages/whatsapp-integration-guide/whatsapp-integration-guide.component';
 import { WHATSAPP_PERMISSIONS } from '../settings/config/whatsapp-permissions.config';
 import { ExchangeRateSettingsComponent } from '../settings/components/exchange-rate-settings/exchange-rate-settings.component';
 import { permissionGuard } from '../../core/guards/permission.guard';
@@ -76,6 +77,16 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
           permissions: [GPS_TRACKING_PERMISSIONS.viewMenu, GPS_TRACKING_PERMISSIONS.read],
           permissionMode: 'any',
           title: 'Rastreo GPS',
+        },
+      },
+      {
+        path: 'whatsapp/guide',
+        component: WhatsappIntegrationGuideComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permissions: [WHATSAPP_PERMISSIONS.viewMenu, WHATSAPP_PERMISSIONS.read],
+          permissionMode: 'any',
+          title: 'Guía de integración de WhatsApp',
         },
       },
       {
