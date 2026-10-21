@@ -83,6 +83,13 @@ export class ServiceSubscriptionDetailComponent {
     this.reminderPeriod.set(null);
   }
 
+  /** Error del timbrado a mostrar. El aviso informativo del SAT sobre meses anteriores no se muestra. */
+  visibleError(period: ServiceSubscriptionPeriod): string | null {
+    const message = period.invoice_error;
+    if (!message || message.includes('el SAT no acepta facturar meses anteriores')) return null;
+    return message;
+  }
+
   /** El recordatorio aplica a meses con orden que todavía no están pagados. */
   canRemind(period: ServiceSubscriptionPeriod): boolean {
     return !!period.sales_order_id && period.paid === false;

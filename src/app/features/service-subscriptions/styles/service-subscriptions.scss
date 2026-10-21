@@ -239,6 +239,23 @@ a.page-create-btn {
   }
 }
 
+/* Tabla de meses compacta: una línea por mes y los botones en la misma fila. */
+.sub-table--months {
+  td {
+    padding: 0.5rem 1rem;
+    white-space: nowrap;
+  }
+
+  .sub-warn {
+    white-space: normal;
+  }
+
+  .sub-actions--inline {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+}
+
 .sub-strong {
   display: block;
   font-weight: 600;
