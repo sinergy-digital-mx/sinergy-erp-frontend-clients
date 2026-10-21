@@ -48,6 +48,18 @@ export class ServiceSubscriptionService {
     });
   }
 
+  /** Recordatorio de pago por WhatsApp: foto con el detalle del mes y la factura en PDF. */
+  sendWhatsappReminder(
+    id: string,
+    periodId: string,
+    phone?: string,
+  ): Observable<{ sent_to: string; image_sent: boolean; invoice_attached: boolean }> {
+    return this.http.post<{ sent_to: string; image_sent: boolean; invoice_attached: boolean }>(
+      `${this.baseUrl}/${id}/periods/${periodId}/whatsapp-reminder`,
+      { phone: phone || undefined },
+    );
+  }
+
   get(id: string): Observable<ServiceSubscriptionDetail> {
     return this.http.get<ServiceSubscriptionDetail>(`${this.baseUrl}/${id}`);
   }

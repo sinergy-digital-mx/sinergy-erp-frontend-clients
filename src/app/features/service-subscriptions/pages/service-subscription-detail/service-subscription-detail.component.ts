@@ -63,6 +63,8 @@ export class ServiceSubscriptionDetailComponent {
   readonly confirmingCancel = signal(false);
   readonly summaryOpen = signal(false);
   readonly summaryEmail = signal('');
+  readonly reminderPeriod = signal<ServiceSubscriptionPeriod | null>(null);
+  readonly reminderPhone = signal('');
   readonly ordersLoading = signal(false);
   readonly detail = signal<ServiceSubscriptionDetail | null>(null);
   readonly linkingPeriod = signal<ServiceSubscriptionPeriod | null>(null);
@@ -78,6 +80,58 @@ export class ServiceSubscriptionDetailComponent {
   closeLink(): void {
     this.linkingPeriod.set(null);
     this.summaryOpen.set(false);
+    this.reminderPeriod.set(null);
+  }
+
+  /** El recordatorio aplica a meses con orden que todavía no están pagados. */
+  canRemind(period: ServiceSubscriptionPeriod): boolean {
+    return !!period.sales_order_id && period.paid === false;
+  }
+
+  openReminder(period: ServiceSubscriptionPeriod): void {
+    const detail = this.detail();
+    if (!detail || this.busy()) return;
+    this.reminderPhone.set(detail.customer_phone || '');
+    this.reminderPeriod.set(period);
+  }
+
+  /** Al pegar un teléfono quita espacios, guiones y paréntesis. */
+  onReminderPhonePaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    this.reminderPhone.set(this.cleanPhone(event.clipboardData?.getData('text') ?? ''));
+  }
+
+  sendReminder(): void {
+    const detail = this.detail();
+    const period = this.reminderPeriod();
+    if (!detail || !period || this.busy()) return;
+    const phone = this.cleanPhone(this.reminderPhone());
+    if (!phone) {
+      this.toast.error('Indica el teléfono de WhatsApp');
+      return;
+    }
+    this.busy.set(true);
+    this.api.sendWhatsappReminder(detail.id, period.id, phone).subscribe({
+      next: (result) => {
+        this.busy.set(false);
+        this.reminderPeriod.set(null);
+        this.toast.success(
+          result.invoice_attached
+            ? `Recordatorio y factura en cola para +${result.sent_to}`
+            : `Recordatorio en cola para +${result.sent_to}`,
+        );
+      },
+      error: (error) => {
+        this.busy.set(false);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo enviar el recordatorio'));
+      },
+    });
+  }
+
+  private cleanPhone(value: string): string {
+    const trimmed = (value ?? '').trim();
+    const digits = trimmed.replace(/\D/g, '');
+    return trimmed.startsWith('+') ? `+${digits}` : digits;
   }
 
   reload(): void {
@@ -86,6 +140,7 @@ export class ServiceSubscriptionDetailComponent {
     this.loading.set(true);
     this.confirmingCancel.set(false);
     this.summaryOpen.set(false);
+    this.reminderPeriod.set(null);
     this.linkingPeriod.set(null);
     this.api.get(id).subscribe({
       next: (detail) => {

@@ -815,6 +815,17 @@ a.page-create-btn {
     }
   }
 
+  &--whatsapp {
+    gap: 0.4rem;
+    color: #15803d;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+
+    &:hover:not(:disabled) {
+      background: #dcfce7;
+    }
+  }
+
   &--danger {
     color: #be123c;
     background: #fff;

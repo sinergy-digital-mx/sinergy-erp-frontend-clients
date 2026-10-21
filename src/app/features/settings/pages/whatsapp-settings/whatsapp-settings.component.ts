@@ -123,10 +123,27 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Deja solo dígitos (conserva un «+» inicial): quita espacios, guiones y paréntesis. */
+  private cleanPhone(value: string): string {
+    const trimmed = (value ?? '').trim();
+    const digits = trimmed.replace(/\D/g, '');
+    return trimmed.startsWith('+') ? `+${digits}` : digits;
+  }
+
+  /** Al pegar un teléfono, lo limpia antes de ponerlo en el campo. */
+  onPhonePaste(event: ClipboardEvent, field: 'test' | 'pairing'): void {
+    event.preventDefault();
+    const pasted = event.clipboardData?.getData('text') ?? '';
+    const cleaned = this.cleanPhone(pasted);
+    if (field === 'test') this.testPhone = cleaned;
+    else this.pairingPhone = cleaned;
+  }
+
   requestPairingCode(): void {
-    if (!this.pairingPhone.trim()) return;
+    const phone = this.cleanPhone(this.pairingPhone);
+    if (!phone) return;
     this.busy.set(true);
-    this.whatsapp.pairingCode(this.pairingPhone.trim()).subscribe({
+    this.whatsapp.pairingCode(phone).subscribe({
       next: ({ code }) => {
         this.busy.set(false);
         this.pairingCode.set(code);
@@ -187,9 +204,10 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
   }
 
   sendTest(): void {
-    if (!this.testPhone.trim() || !this.testText.trim()) return;
+    const phone = this.cleanPhone(this.testPhone);
+    if (!phone || !this.testText.trim()) return;
     this.busy.set(true);
-    this.whatsapp.sendText({ phone: this.testPhone.trim(), text: this.testText.trim() }).subscribe({
+    this.whatsapp.sendText({ phone, text: this.testText.trim() }).subscribe({
       next: () => {
         this.busy.set(false);
         this.interceptor.openSnackbar({

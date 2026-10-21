@@ -28,6 +28,8 @@ export interface ServiceSubscriptionPeriod {
   status: ServiceSubscriptionPeriodStatus;
   sales_order_id: string | null;
   sales_order_folio: string | null;
+  /** true si la orden del mes está pagada; null si el mes no tiene orden. */
+  paid?: boolean | null;
   electronic_invoice_id: string | null;
   linked_manually: boolean;
   invoice_error: string | null;
@@ -36,6 +38,7 @@ export interface ServiceSubscriptionPeriod {
 export interface ServiceSubscriptionDetail extends ServiceSubscriptionListItem {
   fiscal_configuration_id: string;
   customer_email?: string | null;
+  customer_phone?: string | null;
   billing_branch_id: string;
   billing_branch_code: string | null;
   product_id: string;
