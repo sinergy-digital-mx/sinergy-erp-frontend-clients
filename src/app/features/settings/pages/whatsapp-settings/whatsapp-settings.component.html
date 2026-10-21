@@ -1,0 +1,108 @@
+<div class="settings-list-page px-4 pb-6">
+  <div class="mb-4">
+    <h2 class="text-2xl font-semibold text-gray-800">WhatsApp</h2>
+    <p class="text-sm text-gray-500">
+      Conecta el WhatsApp de tu empresa para enviar mensajes desde el ERP. Cada empresa usa su propio número.
+    </p>
+  </div>
+
+  <div *ngIf="loading()" class="text-sm text-gray-500">Cargando…</div>
+
+  <div *ngIf="!loading() && session() as s" class="grid gap-4 lg:grid-cols-2">
+    <!-- Conexión -->
+    <section class="bg-white rounded-xl border border-gray-200 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <lucide-icon [img]="MessageCircle" [size]="20" class="text-green-600"></lucide-icon>
+          <h3 class="font-semibold text-gray-800">Conexión</h3>
+        </div>
+        <span class="text-xs font-medium px-2.5 py-1 rounded-full" [ngClass]="badgeClass()">{{ stateLabel() }}</span>
+      </div>
+
+      <p *ngIf="!s.service_available" class="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 mb-4">
+        No se pudo consultar el servicio de WhatsApp. Se muestra el último estado conocido.
+      </p>
+      <p *ngIf="s.last_error && state !== 'connected'" class="text-sm text-red-700 bg-red-50 rounded-lg p-3 mb-4">
+        {{ s.last_error }}
+      </p>
+
+      <!-- Conectado -->
+      <div *ngIf="state === 'connected'" class="space-y-4">
+        <div class="rounded-lg bg-green-50 p-4">
+          <p class="text-sm text-gray-600">Número vinculado</p>
+          <p class="text-lg font-semibold text-gray-900">{{ s.phone_number ? '+' + s.phone_number : '—' }}</p>
+          <p *ngIf="s.push_name" class="text-sm text-gray-600">{{ s.push_name }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2" *ngIf="canUpdate || canDelete">
+          <app-button *ngIf="canUpdate" text="Reiniciar" variant="secondary" [fullWidth]="false" [icon]="RefreshCw" [loading]="busy()" (clicked)="restart()"></app-button>
+          <app-button *ngIf="canUpdate" text="Desvincular teléfono" variant="secondary" [fullWidth]="false" [icon]="Unplug" [loading]="busy()" (clicked)="logout()"></app-button>
+          <app-button *ngIf="canDelete" text="Eliminar conexión" variant="danger" [fullWidth]="false" [loading]="busy()" (clicked)="remove()"></app-button>
+        </div>
+      </div>
+
+      <!-- Escaneo de QR -->
+      <div *ngIf="state === 'waiting_qr' || state === 'starting'" class="space-y-4">
+        <ol class="text-sm text-gray-600 list-decimal pl-5 space-y-1">
+          <li>Abre WhatsApp en tu teléfono.</li>
+          <li>Ve a <strong>Ajustes → Dispositivos vinculados</strong>.</li>
+          <li>Toca <strong>Vincular un dispositivo</strong> y escanea este código.</li>
+        </ol>
+
+        <div class="flex justify-center">
+          <img *ngIf="qrDataUrl() as qr" [src]="qr" alt="Código QR de WhatsApp" class="w-64 h-64 border rounded-lg bg-white p-2" />
+          <div *ngIf="!qrDataUrl()" class="w-64 h-64 border rounded-lg flex items-center justify-center text-sm text-gray-500">
+            Generando código QR…
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 text-center">El código se actualiza solo. Mantén esta pantalla abierta hasta que conecte.</p>
+
+        <div *ngIf="canUpdate" class="border-t pt-4">
+          <p class="text-sm font-medium text-gray-700 mb-2">¿No puedes escanear? Vincula con tu número</p>
+          <div class="flex gap-2">
+            <input type="tel" class="flex-1 border rounded-lg px-3 py-2 text-sm" placeholder="Teléfono de este WhatsApp (10 dígitos)" [(ngModel)]="pairingPhone" />
+            <app-button text="Obtener código" variant="secondary" [fullWidth]="false" [loading]="busy()" (clicked)="requestPairingCode()"></app-button>
+          </div>
+          <p *ngIf="pairingCode() as code" class="mt-3 text-center text-2xl font-mono tracking-widest text-gray-900">{{ code }}</p>
+          <p *ngIf="pairingCode()" class="text-xs text-gray-500 text-center">En WhatsApp: Dispositivos vinculados → Vincular con número de teléfono.</p>
+        </div>
+      </div>
+
+      <!-- Sin conectar -->
+      <div *ngIf="state === 'not_configured' || state === 'disconnected' || state === 'failed'" class="space-y-4">
+        <p class="text-sm text-gray-600">
+          {{ state === 'not_configured' ? 'Aún no has conectado WhatsApp.' : 'La sesión no está activa.' }}
+          Genera un código QR y escanéalo con el teléfono que enviará los mensajes.
+        </p>
+        <app-button *ngIf="canUpdate" text="Generar nuevo QR" variant="primary" [fullWidth]="false" [loading]="busy()" (clicked)="connect()"></app-button>
+        <p *ngIf="!canUpdate" class="text-sm text-gray-500">No tienes permiso para conectar WhatsApp.</p>
+        <app-button *ngIf="canDelete && s.configured" text="Eliminar conexión" variant="danger" [fullWidth]="false" [loading]="busy()" (clicked)="remove()"></app-button>
+      </div>
+    </section>
+
+    <!-- Envío de prueba e historial -->
+    <section class="bg-white rounded-xl border border-gray-200 p-5" *ngIf="state === 'connected'">
+      <h3 class="font-semibold text-gray-800 mb-3">Mensaje de prueba</h3>
+      <div *ngIf="canCreate" class="space-y-2 mb-5">
+        <input type="tel" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Teléfono destino (10 dígitos)" [(ngModel)]="testPhone" />
+        <textarea class="w-full border rounded-lg px-3 py-2 text-sm" rows="3" maxlength="4096" [(ngModel)]="testText"></textarea>
+        <app-button text="Enviar" variant="primary" [fullWidth]="false" [loading]="busy()" (clicked)="sendTest()"></app-button>
+      </div>
+
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-semibold text-gray-800">Últimos mensajes</h3>
+        <button type="button" class="text-xs text-sky-700 hover:underline" (click)="loadMessages()">Actualizar</button>
+      </div>
+      <p *ngIf="!messages().length" class="text-sm text-gray-500">Todavía no hay mensajes enviados.</p>
+      <ul class="divide-y">
+        <li *ngFor="let m of messages()" class="py-2 text-sm">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium text-gray-800">+{{ m.to_phone }}</span>
+            <span class="text-xs" [ngClass]="m.status === 'failed' ? 'text-red-600' : 'text-gray-600'">{{ messageStatusLabel(m.status) }}</span>
+          </div>
+          <p class="text-gray-600 truncate">{{ m.type === 'file' ? '📎 ' + (m.file_name || 'Archivo') : m.body }}</p>
+          <p *ngIf="m.error_message" class="text-xs text-red-600">{{ m.error_message }}</p>
+        </li>
+      </ul>
+    </section>
+  </div>
+</div>

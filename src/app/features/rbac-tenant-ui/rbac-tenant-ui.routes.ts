@@ -10,6 +10,8 @@ import { PosEquipmentListComponent } from '../settings/components/pos-equipment-
 import { EmailTemplatesListComponent } from '../settings/pages/email-templates-list/email-templates-list.component';
 import { MailerConfigurationsListComponent } from '../settings/pages/mailer-configurations-list/mailer-configurations-list.component';
 import { GpsTrackingConfigurationsListComponent } from '../settings/pages/gps-tracking-configurations-list/gps-tracking-configurations-list.component';
+import { WhatsappSettingsComponent } from '../settings/pages/whatsapp-settings/whatsapp-settings.component';
+import { WHATSAPP_PERMISSIONS } from '../settings/config/whatsapp-permissions.config';
 import { ExchangeRateSettingsComponent } from '../settings/components/exchange-rate-settings/exchange-rate-settings.component';
 import { permissionGuard } from '../../core/guards/permission.guard';
 import { GPS_TRACKING_PERMISSIONS } from '../logistics/config/permissions.config';
@@ -74,6 +76,16 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
           permissions: [GPS_TRACKING_PERMISSIONS.viewMenu, GPS_TRACKING_PERMISSIONS.read],
           permissionMode: 'any',
           title: 'Rastreo GPS',
+        },
+      },
+      {
+        path: 'whatsapp',
+        component: WhatsappSettingsComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permissions: [WHATSAPP_PERMISSIONS.viewMenu, WHATSAPP_PERMISSIONS.read],
+          permissionMode: 'any',
+          title: 'WhatsApp',
         },
       },
       {

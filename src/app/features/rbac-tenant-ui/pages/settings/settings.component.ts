@@ -12,6 +12,7 @@ import {
   LucideAngularModule,
   LucideIconData,
   Mail,
+  MessageCircle,
   Monitor,
   Package,
   Search,
@@ -27,6 +28,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { Subscription } from 'rxjs';
 import { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../../madereria-inventory-import/config/permissions.config';
 import { GPS_TRACKING_PERMISSIONS } from '../../../logistics/config/permissions.config';
+import { WHATSAPP_PERMISSIONS } from '../../../settings/config/whatsapp-permissions.config';
 import { canShowSettings } from '../../../settings/guards/settings-access.guard';
 
 interface SettingsSection {
@@ -396,6 +398,15 @@ export class SettingsComponent implements OnInit, OnDestroy {
       icon: Radio,
       route: 'gps-tracking',
       permissions: [GPS_TRACKING_PERMISSIONS.viewMenu, GPS_TRACKING_PERMISSIONS.read],
+      requireGranted: true,
+    },
+    {
+      id: 'whatsapp',
+      title: 'WhatsApp',
+      description: 'Conecta el WhatsApp de tu empresa escaneando un código QR para enviar mensajes desde el ERP',
+      icon: MessageCircle,
+      route: 'whatsapp',
+      permissions: [WHATSAPP_PERMISSIONS.viewMenu, WHATSAPP_PERMISSIONS.read],
       requireGranted: true,
     }
   ];
