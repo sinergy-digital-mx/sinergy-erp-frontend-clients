@@ -11,7 +11,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, Subject, catchError, debounceTime, distinctUntilChanged, map, of, takeUntil, tap } from 'rxjs';
+import { Observable, Subject, catchError, debounceTime, distinctUntilChanged, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -90,7 +90,13 @@ import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { formatInventoryNumber } from '../../../inventory/utils/inventory-list.util';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { unwrapCustomerPayload } from '../../../customers/utils/customer-credit.util';
-import { PosCheckoutCustomerFiscal } from '../../components/pos-checkout-confirm-dialog/pos-checkout-confirm-dialog.component';
+import {
+  buildCustomerFiscalSnapshot,
+  PosCheckoutCustomerFiscal,
+  PosCheckoutCustomerSnapshot,
+} from '../../components/pos-checkout-confirm-dialog/pos-checkout-confirm-dialog.component';
+import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
+import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 
 @Component({
   selector: 'app-take-order',
@@ -1267,7 +1273,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       cartTotal: Number(cart.grand_total),
       itemSummary: this.cartItemSummary(cart),
       customerLabel: this.selectedCustomerName(),
-      customerFiscal,
+      customerFiscal: this.selectedCustomerId() ? customerFiscal : undefined,
+      customerActions: {
+        edit: () => this.editSelectedCustomerFromDialog(),
+        change: () => this.changeCustomerFromDialog(),
+      },
       acceptLabel: 'Guardar cotización',
     }).subscribe((confirmed) => {
       if (!confirmed || typeof confirmed !== 'object') {
@@ -1286,10 +1296,19 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         payload.notes = quoteNotes;
       }
       const advanceAmount = confirmed.advanceAmount;
+      const advanceUsoCfdi = confirmed.advanceUsoCfdi;
+      const advanceMetodoPago = confirmed.advanceMetodoPago;
 
       this.saving.set(true);
       this.posService.createPosQuotation(
-        advanceAmount != null ? { ...payload, advance_amount: advanceAmount } : payload,
+        advanceAmount != null
+          ? {
+              ...payload,
+              advance_amount: advanceAmount,
+              ...(advanceUsoCfdi ? { advance_uso_cfdi: advanceUsoCfdi } : {}),
+              ...(advanceMetodoPago ? { advance_metodo_pago: advanceMetodoPago } : {}),
+            }
+          : payload,
       ).subscribe({
         next: (quotation) => {
           this.saving.set(false);
@@ -1325,20 +1344,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private fiscalSnapshot(customer: any): PosCheckoutCustomerFiscal {
-    const rfc = String(customer?.fiscal_rfc ?? '').trim().toUpperCase();
-    const razon = String(customer?.fiscal_razon_social ?? '').trim();
-    const postal = String(customer?.fiscal_postal_code ?? '').trim();
-    const missing: string[] = [];
-    if (!rfc || rfc === 'XAXX010101000' || rfc === 'XEXX010101000') {
-      missing.push('RFC');
-    }
-    if (!razon) {
-      missing.push('Razón social');
-    }
-    if (!/^\d{5}$/.test(postal)) {
-      missing.push('Código postal fiscal');
-    }
-    return { ready: missing.length === 0, missing };
+    return buildCustomerFiscalSnapshot(customer);
   }
 
   private rememberCustomerFiscal(customerId: string, customer: any): void {
@@ -1371,7 +1377,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       .open<PosCheckoutConfirmDialogComponent, PosCheckoutConfirmDialogData, PosCheckoutConfirmResult>(
         PosCheckoutConfirmDialogComponent,
         {
-          width: '420px',
+          width: data.kind === 'quote' ? '900px' : '420px',
           maxWidth: '95vw',
           disableClose: true,
           panelClass: 'pos-dialog-panel',
@@ -1396,7 +1402,12 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   openCustomerPicker(): void {
-    this.dialog
+    this.pickCustomer().subscribe();
+  }
+
+  /** Abre el selector y aplica el cliente elegido. Emite true si hubo cambio. */
+  private pickCustomer(): Observable<boolean> {
+    return this.dialog
       .open(PosCustomerPickerDialogComponent, {
         width: '520px',
         maxWidth: '95vw',
@@ -1404,23 +1415,74 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         data: { selectedCustomerId: this.selectedCustomerId() },
       })
       .afterClosed()
-      .subscribe((result: PosCustomerPickerDialogResult | undefined) => {
-        if (!result) {
-          return;
+      .pipe(
+        map((result: PosCustomerPickerDialogResult | undefined) => {
+          if (!result) {
+            return false;
+          }
+          if (!result.customerId) {
+            this.clearSelectedCustomer();
+            return true;
+          }
+          this.selectedCustomerId.set(result.customerId);
+          const collectId = result.customer
+            ? resolvePosCollectCustomerId(result.customer)
+            : resolvePosCollectCustomerId({ id: result.customerId });
+          this.selectedOrderCustomerId.set(collectId ?? result.customerId);
+          this.selectedCustomerName.set(this.customerDisplayName(result.customer));
+          this.rememberCustomerFiscal(result.customerId, result.customer);
+          return true;
+        }),
+        tap((changed) => {
+          const id = this.selectedCustomerId();
+          if (changed && id) {
+            this.resolveCustomerFiscal(id, true).subscribe();
+          }
+        }),
+      );
+  }
+
+  private currentCustomerSnapshot(force = false): Observable<PosCheckoutCustomerSnapshot> {
+    const id = this.selectedCustomerId();
+    return this.resolveCustomerFiscal(id, force).pipe(
+      map((fiscal) => ({ label: this.selectedCustomerName(), fiscal })),
+    );
+  }
+
+  /** Desde Guardar cotización: cambia de cliente y devuelve sus datos fiscales. */
+  private changeCustomerFromDialog(): Observable<PosCheckoutCustomerSnapshot | null> {
+    return this.pickCustomer().pipe(
+      switchMap((changed) => {
+        if (!changed) {
+          return of(null);
         }
-        if (!result.customerId) {
-          this.clearSelectedCustomer();
-          return;
+        if (!this.selectedCustomerId()) {
+          return of({ label: this.selectedCustomerName(), fiscal: null });
         }
-        this.selectedCustomerId.set(result.customerId);
-        const collectId = result.customer
-          ? resolvePosCollectCustomerId(result.customer)
-          : resolvePosCollectCustomerId({ id: result.customerId });
-        this.selectedOrderCustomerId.set(collectId ?? result.customerId);
-        this.selectedCustomerName.set(this.customerDisplayName(result.customer));
-        this.rememberCustomerFiscal(result.customerId, result.customer);
-        this.resolveCustomerFiscal(result.customerId, true).subscribe();
-      });
+        return this.currentCustomerSnapshot(true);
+      }),
+    );
+  }
+
+  /** Desde Guardar cotización: edita los datos fiscales del cliente y los vuelve a leer. */
+  private editSelectedCustomerFromDialog(): Observable<PosCheckoutCustomerSnapshot | null> {
+    const customerId = this.selectedCustomerId();
+    if (!customerId) {
+      return of(null);
+    }
+    return this.customerService.getCustomer(customerId).pipe(
+      switchMap((response) => {
+        const customer = unwrapCustomerPayload(response) ?? response;
+        return this.dialog
+          .open(CustomerEditModalComponent, {
+            ...CUSTOMER_FORM_DIALOG_CONFIG,
+            data: { customer, initialTab: 'fiscal' },
+          })
+          .afterClosed();
+      }),
+      switchMap(() => this.currentCustomerSnapshot(true)),
+      catchError(() => of(null)),
+    );
   }
 
   clearSelectedCustomer(): void {

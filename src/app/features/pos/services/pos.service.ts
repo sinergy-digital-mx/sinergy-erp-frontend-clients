@@ -281,7 +281,11 @@ export class POSService {
   }
 
   createPosQuotation(
-    orderData: SalesOrderFormData & { advance_amount?: number },
+    orderData: SalesOrderFormData & {
+      advance_amount?: number;
+      advance_uso_cfdi?: string;
+      advance_metodo_pago?: 'PUE' | 'PPD';
+    },
   ): Observable<{ folio?: string; id?: string }> {
     const { sales_order_type: _salesOrderType, ...rest } = orderData as SalesOrderFormData & {
       sales_order_type?: string;

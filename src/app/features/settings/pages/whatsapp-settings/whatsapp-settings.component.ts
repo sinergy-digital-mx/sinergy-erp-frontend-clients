@@ -2,7 +2,19 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { BookOpen, LucideAngularModule, MessageCircle, RefreshCw, Unplug } from 'lucide-angular';
+import {
+  BookOpen,
+  Check,
+  CheckCheck,
+  CircleAlert,
+  Clock,
+  LucideAngularModule,
+  MessageCircle,
+  MessageSquare,
+  Paperclip,
+  RefreshCw,
+  Unplug,
+} from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
@@ -26,6 +38,8 @@ const MAX_POLL_ERRORS = 5;
 export class WhatsappSettingsComponent implements OnInit, OnDestroy {
   readonly BookOpen = BookOpen;
   readonly MessageCircle = MessageCircle;
+  readonly MessageSquare = MessageSquare;
+  readonly Paperclip = Paperclip;
   readonly RefreshCw = RefreshCw;
   readonly Unplug = Unplug;
 
@@ -94,6 +108,38 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
         return 'bg-red-100 text-red-700';
       default:
         return 'bg-gray-100 text-gray-600';
+    }
+  }
+
+  messageStatusClass(status: string): string {
+    switch (status) {
+      case 'failed':
+        return 'bg-red-100 text-red-700';
+      case 'delivered':
+      case 'read':
+        return 'bg-green-100 text-green-700';
+      case 'sent':
+        return 'bg-blue-100 text-blue-700';
+      default:
+        return 'bg-amber-100 text-amber-700';
+    }
+  }
+
+  messageIconClass(status: string): string {
+    return status === 'failed' ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600';
+  }
+
+  messageStatusIcon(status: string) {
+    switch (status) {
+      case 'failed':
+        return CircleAlert;
+      case 'delivered':
+      case 'read':
+        return CheckCheck;
+      case 'sent':
+        return Check;
+      default:
+        return Clock;
     }
   }
 
