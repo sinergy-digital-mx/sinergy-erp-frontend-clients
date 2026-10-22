@@ -96,6 +96,8 @@ export interface Quotation {
   cancel_blocked_reason?: string | null;
   advance_invoicing_enabled?: boolean;
   can_stamp_advance?: boolean;
+  amount_paid?: number | string;
+  amount_pending?: number | string;
   advance_invoice?: {
     id: string;
     uuid?: string | null;

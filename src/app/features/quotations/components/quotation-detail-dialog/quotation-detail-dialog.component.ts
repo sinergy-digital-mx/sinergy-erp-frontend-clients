@@ -94,7 +94,7 @@ const INSTRUCTION_SECTIONS: InstructionSection[] = [
     icon: 'fi fi-rr-cash-register',
     tone: 'amber',
     points: [
-      'Al timbrar el anticipo, caja recibe el dinero como ingreso de esta cotización (no como venta de madera). Efectivo, tarjeta, transferencia o cheque, según cómo pagó. Entra al corte del día, igual que una orden cobrada.',
+      'Al timbrar el anticipo, caja recibe el dinero como ingreso de esta cotización (no como venta de madera). Efectivo, tarjeta, transferencia, cheque o mixto, según cómo pagó. Entra al corte del día, igual que una orden cobrada.',
       'La cotización tiene que verse en caja para saber que ya hay dinero a cuenta de ese folio.',
       'Al convertir a orden, el sistema pregunta si envías a caja. Si el anticipo cubrió el total, la orden queda pagada y no vuelve a cobrarse. Si quedó pendiente, caja cobra solo la diferencia cuando recogen la mercancía.',
     ],
@@ -363,6 +363,42 @@ export class QuotationDetailDialogComponent implements OnInit {
 
   getDisplayedTotal(): string {
     return this.formatCurrency(this.header()?.total);
+  }
+
+  hasAdvanceBalance(): boolean {
+    return this.getAmountPaid() > 0;
+  }
+
+  getAmountPaid(): number {
+    const header = this.header();
+    if (!header) return 0;
+    if (header.amount_paid != null && header.amount_paid !== '') {
+      return this.roundMoney(this.parseNumber(header.amount_paid));
+    }
+    const collected = this.parseNumber(header.advance_payment?.amount_mxn);
+    if (collected > 0) return this.roundMoney(collected);
+    return this.roundMoney(this.parseNumber(header.advance_invoice?.total));
+  }
+
+  getAmountPending(): number {
+    const header = this.header();
+    if (!header) return 0;
+    if (header.amount_pending != null && header.amount_pending !== '') {
+      return this.roundMoney(this.parseNumber(header.amount_pending));
+    }
+    return Math.max(0, this.roundMoney(this.parseNumber(header.total) - this.getAmountPaid()));
+  }
+
+  getDisplayedAmountPaid(): string {
+    return this.formatCurrency(this.getAmountPaid());
+  }
+
+  getDisplayedAmountPending(): string {
+    return this.formatCurrency(this.getAmountPending());
+  }
+
+  private roundMoney(value: number): number {
+    return Math.round(value * 100) / 100;
   }
 
   getLineItemsCount(): number {

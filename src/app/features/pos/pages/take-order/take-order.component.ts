@@ -143,6 +143,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   loadingTickets = signal(false);
   editingSaleId = signal<string | null>(null);
   editingFolio = signal<string | null>(null);
+  editingTicketKind = signal<'sale' | 'advance'>('sale');
+  editingAdvanceAmount = signal<number | null>(null);
+  editingAdvanceUsoCfdi = signal<string | null>(null);
+  editingAdvanceMetodoPago = signal<'PUE' | 'PPD' | null>(null);
   private pendingResumeTicketId: string | null = null;
 
   selectedCustomerId = signal('');
@@ -180,6 +184,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   );
 
   readonly isEditingReturnedTicket = computed(() => Boolean(this.editingSaleId()));
+  readonly isEditingReturnedAdvance = computed(
+    () => this.isEditingReturnedTicket() && this.editingTicketKind() === 'advance',
+  );
 
   canUseGlobalDiscounts = computed(() =>
     GLOBAL_DISCOUNT_PERMISSIONS.viewList.some((permission) =>
@@ -526,8 +533,19 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.posService.replaceCart(lines, ticket.global_discount ?? null);
     this.editingSaleId.set(ticket.id);
     this.editingFolio.set(ticket.folio || ticket.id);
+    this.editingTicketKind.set(ticket.kind === 'advance' ? 'advance' : 'sale');
+    this.editingAdvanceAmount.set(
+      ticket.kind === 'advance' ? Number(ticket.amount_pending ?? 0) || null : null,
+    );
+    this.editingAdvanceUsoCfdi.set(ticket.advance_uso_cfdi ?? null);
+    this.editingAdvanceMetodoPago.set(ticket.advance_metodo_pago ?? null);
     this.ticketsPanelOpen.set(false);
-    this.notifySuccess(`${ticket.folio || ticket.id} cargado. Edita y pulsa Enviar a caja.`, 4500);
+    this.notifySuccess(
+      ticket.kind === 'advance'
+        ? `${ticket.folio || ticket.id} cargado. Corrige el anticipo y pulsa Enviar a caja.`
+        : `${ticket.folio || ticket.id} cargado. Edita y pulsa Enviar a caja.`,
+      4500,
+    );
 
     if (ticket.customer?.is_walk_in || ticket.customer_id == null) {
       this.clearSelectedCustomer();
@@ -561,6 +579,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   private clearEditingTicket(): void {
     this.editingSaleId.set(null);
     this.editingFolio.set(null);
+    this.editingTicketKind.set('sale');
+    this.editingAdvanceAmount.set(null);
+    this.editingAdvanceUsoCfdi.set(null);
+    this.editingAdvanceMetodoPago.set(null);
   }
 
   private applyInventorySummaryMeta(summary: PosInventorySummaryResponse): void {
@@ -1082,6 +1104,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   saveOrder(): void {
+    if (this.isEditingReturnedAdvance()) {
+      this.resendReturnedQuotation();
+      return;
+    }
     if (this.saving() || this.confirming()) {
       return;
     }
@@ -1215,6 +1241,113 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
             this.loadProducts(this.searchTerm());
           }
         },
+      });
+    });
+  }
+
+  private resendReturnedQuotation(): void {
+    if (this.saving() || this.confirming()) {
+      return;
+    }
+    if (!this.canSell()) {
+      this.notifyError('Identifica al vendedor con su código para enviar a caja', 4000);
+      this.openSellerCodeDialog();
+      return;
+    }
+
+    const cart = this.posService.cart();
+    if (cart.items.length === 0) {
+      this.notifyInfo('Agrega productos a la cotización', 3000);
+      return;
+    }
+
+    const seller = this.posState.seller();
+    if (!seller?.id) {
+      this.openSellerCodeDialog();
+      return;
+    }
+
+    const ctx = this.resolvePosSaleContext();
+    if (!ctx) {
+      return;
+    }
+
+    const editingId = this.editingSaleId();
+    if (!editingId) {
+      return;
+    }
+
+    const customerId = this.selectedCustomerId();
+    this.resolveCustomerFiscal(customerId, true).subscribe((customerFiscal) => {
+      if (this.selectedCustomerId() !== customerId) {
+        return;
+      }
+      this.confirmCheckout({
+        kind: 'quote',
+        title: 'Enviar a caja',
+        subtitle: `Se actualizará el folio ${this.editingFolio()} y el anticipo volverá a caja.`,
+        totalLabel: this.formatCurrency(cart.grand_total),
+        cartTotal: Number(cart.grand_total),
+        itemSummary: this.cartItemSummary(cart),
+        customerLabel: this.selectedCustomerName(),
+        customerFiscal: this.selectedCustomerId() ? customerFiscal : undefined,
+        customerActions: {
+          edit: () => this.editSelectedCustomerFromDialog(),
+          change: () => this.changeCustomerFromDialog(),
+        },
+        acceptLabel: 'Enviar a caja',
+        initialAdvanceAmount: this.editingAdvanceAmount(),
+        initialAdvanceUsoCfdi: this.editingAdvanceUsoCfdi(),
+        initialAdvanceMetodoPago: this.editingAdvanceMetodoPago(),
+      }).subscribe((confirmed) => {
+        if (!confirmed || typeof confirmed !== 'object') {
+          return;
+        }
+        if (confirmed.advanceAmount == null) {
+          this.notifyError('El anticipo es obligatorio para reenviar a caja', 4000);
+          return;
+        }
+
+        const payload = buildVentasPosOrderPayload(cart, {
+          warehouseId: ctx.warehouseId,
+          fiscalConfigurationId: ctx.fiscalConfigurationId,
+          sellerUserId: seller.id,
+          terminalLabel: this.terminalLabel(),
+          customerId: this.selectedOrderCustomerId() ?? undefined,
+        });
+        const quoteNotes = confirmed.notes.trim();
+
+        this.saving.set(true);
+        this.posService.sendQuotationToCaja(editingId, {
+          line_items: payload.line_items,
+          customer_id: payload.customer_id,
+          global_discount_id: payload.global_discount_id,
+          ...(quoteNotes ? { notes: quoteNotes } : {}),
+          advance_amount: confirmed.advanceAmount,
+          ...(confirmed.advanceUsoCfdi ? { advance_uso_cfdi: confirmed.advanceUsoCfdi } : {}),
+          ...(confirmed.advanceMetodoPago ? { advance_metodo_pago: confirmed.advanceMetodoPago } : {}),
+        }).subscribe({
+          next: (response) => {
+            this.saving.set(false);
+            const folioLabel = response.quotation?.folio || this.editingFolio() || 'sin folio';
+            this.notifySuccess(
+              `Anticipo ${folioLabel} enviado a caja (${this.formatCurrency(confirmed.advanceAmount ?? 0)}).`,
+              7000,
+            );
+            this.posService.clearCart();
+            this.resetCustomerSelection();
+            this.clearEditingTicket();
+            this.loadProducts(this.searchTerm());
+            this.loadSalesInProgress();
+          },
+          error: (error) => {
+            this.saving.set(false);
+            const backendMessage = error?.error?.message;
+            const msg =
+              this.mapPosError(backendMessage, cart.items) || 'Error al enviar el anticipo a caja';
+            this.notifyError(msg, 6000);
+          },
+        });
       });
     });
   }

@@ -9,6 +9,16 @@ Grid **3 columnas** de botones con icono + etiqueta. Nunca 4 o 5 en una sola fil
 Fila 1: Efectivo · Transferencia · Tarjeta  
 Fila 2: Cheque · Mixto · Crédito (Crédito solo si el cliente lo tiene en esa razón social)
 
+## Cambios
+
+### 2026-10-22
+
+En anticipos (`kind: "advance"`) también sale **Mixto**. Crédito no. El desglose es el mismo que en una venta: efectivo, transferencia, tarjeta y/o cheque; mínimo dos. Solo el efectivo de ese mixto entra a caja.
+
+**Regresar a ventas** también sale en el anticipo seleccionado. Misma confirmación y permiso `pos:ReturnToSales`. El folio COT aparece en Tickets de POS Ventas.
+
+Badge **Anticipo** en la lista y en el folio. Debajo del cliente: RFC, razón social, CP y régimen. **Editar RFC** abre la pestaña fiscal. Si el RFC y el tipo de persona no cuadran, aviso con Corregir RFC / Regresar a ventas. El cobro ya no manda 612 sobre un RFC de persona moral.
+
 ## Mixto
 
 El cajero elige formas con **botones** 2×2 (no checkboxes nativos). Mínimo dos.

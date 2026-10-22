@@ -81,9 +81,13 @@ export interface PosSaleInProgressLine {
 
 export interface PosSaleInProgress {
   id: string;
+  kind?: 'sale' | 'advance';
   folio?: string;
   total?: number;
   subtotal?: number;
+  amount_pending?: number;
+  advance_uso_cfdi?: string;
+  advance_metodo_pago?: 'PUE' | 'PPD';
   created_at?: string;
   updated_at?: string;
   general_status?: string;

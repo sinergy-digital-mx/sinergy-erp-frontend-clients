@@ -8,6 +8,7 @@ import {
   CFDI_REGIMEN_RECEPTOR_OPTIONS,
   CFDI_USO_OPTIONS,
 } from '../../../sales-orders/models/sales-order-electronic-invoice.model';
+import { inferReceptorRegimen } from '../../../customers/utils/fiscal-person-type.util';
 
 export type PosCheckoutKind = 'sale' | 'quote';
 
@@ -48,6 +49,9 @@ export interface PosCheckoutConfirmDialogData {
   customerActions?: PosCheckoutCustomerActions;
   acceptLabel: string;
   queued?: boolean;
+  initialAdvanceAmount?: number | null;
+  initialAdvanceUsoCfdi?: string | null;
+  initialAdvanceMetodoPago?: 'PUE' | 'PPD' | null;
 }
 
 export interface PosCheckoutQuoteResult {
@@ -71,8 +75,7 @@ export function buildCustomerFiscalSnapshot(customer: any): PosCheckoutCustomerF
   if (!hasRfc) missing.push('RFC');
   if (!razon) missing.push('Razón social');
   if (!/^\d{5}$/.test(postal)) missing.push('Código postal fiscal');
-  const person = String(customer?.fiscal_person_type ?? '').trim().toLowerCase();
-  const regimen = person === 'fisica' || rfc.length === 13 ? '612' : '601';
+  const regimen = inferReceptorRegimen(rfc, customer?.fiscal_person_type);
   return {
     ready: missing.length === 0,
     missing,
@@ -113,8 +116,18 @@ export class PosCheckoutConfirmDialogComponent {
     private dialogRef: MatDialogRef<PosCheckoutConfirmDialogComponent, PosCheckoutConfirmResult>,
   ) {
     const total = Number(data.cartTotal ?? 0);
-    if (total > 0) {
+    const initialAdvance = Number(data.initialAdvanceAmount ?? 0);
+    if (initialAdvance > 0) {
+      this.advanceInvoice.set(true);
+      this.advanceAmountText.set(initialAdvance.toFixed(2));
+    } else if (total > 0) {
       this.advanceAmountText.set(total.toFixed(2));
+    }
+    if (data.initialAdvanceUsoCfdi) {
+      this.usoCfdi.set(data.initialAdvanceUsoCfdi);
+    }
+    if (data.initialAdvanceMetodoPago) {
+      this.metodoPago.set(data.initialAdvanceMetodoPago);
     }
     this.customerLabel.set(data.customerLabel ?? '');
     this.customerFiscal.set(data.customerFiscal ?? null);
@@ -217,7 +230,9 @@ export class PosCheckoutConfirmDialogComponent {
 
   acceptLabel(): string {
     if (this.isQuote() && this.advanceInvoice()) {
-      return 'Guardar y mandar anticipo a caja';
+      return this.data.acceptLabel.toLowerCase().includes('enviar')
+        ? 'Enviar anticipo a caja'
+        : 'Guardar y mandar anticipo a caja';
     }
     return this.data.acceptLabel;
   }

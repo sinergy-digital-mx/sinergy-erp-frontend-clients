@@ -17,11 +17,25 @@ export function isValidFiscalPersonType(value: string | null | undefined): value
   return normalized === 'fisica' || normalized === 'moral' || normalized === 'otro';
 }
 
+const GENERIC_RFCS = new Set(['XAXX010101000', 'XEXX010101000']);
+
 export function inferFiscalPersonTypeFromRfc(rfc: string | null | undefined): FiscalPersonType | null {
   const clean = (rfc ?? '').trim().replace(/\s/g, '').toUpperCase();
   if (clean.length === 13) return 'fisica';
   if (clean.length === 12) return 'moral';
   return null;
+}
+
+/** El RFC manda. Un tipo de persona viejo no fuerza 612 sobre un RFC de 12. */
+export function inferReceptorRegimen(
+  rfc: string | null | undefined,
+  personType?: string | null,
+): string {
+  const clean = (rfc ?? '').trim().replace(/[\s-]/g, '').toUpperCase();
+  if (GENERIC_RFCS.has(clean)) return '616';
+  if (clean.length === 12) return '601';
+  if (clean.length === 13) return '612';
+  return String(personType ?? '').trim().toLowerCase() === 'fisica' ? '612' : '601';
 }
 
 /** Normaliza valor del API (p. ej. códigos SAT erróneos) o infiere desde RFC. */

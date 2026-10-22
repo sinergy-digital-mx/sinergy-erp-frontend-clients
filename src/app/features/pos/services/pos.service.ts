@@ -821,8 +821,14 @@ export class POSService {
     );
   }
 
-  returnSaleToVentas(salesOrderId: string): Observable<{ sales_order?: unknown; message?: string }> {
+  returnSaleToVentas(salesOrderId: string): Observable<{ message?: string }> {
     return this.http.post(`${this.API_URL}/sales/${salesOrderId}/return-to-sales`, {}).pipe(
+      map((res: any) => this.extractPayload(res) ?? res)
+    );
+  }
+
+  returnQuotationToVentas(quotationId: string): Observable<{ message?: string }> {
+    return this.http.post(`${this.API_URL}/quotations/${quotationId}/return-to-sales`, {}).pipe(
       map((res: any) => this.extractPayload(res) ?? res)
     );
   }
@@ -844,6 +850,23 @@ export class POSService {
 
   sendSaleToCaja(salesOrderId: string): Observable<{ sales_order?: { folio?: string; general_status?: string }; message?: string }> {
     return this.http.post(`${this.API_URL}/sales/${salesOrderId}/send-to-caja`, {}).pipe(
+      map((res: any) => this.extractPayload(res) ?? res)
+    );
+  }
+
+  sendQuotationToCaja(
+    quotationId: string,
+    data?: {
+      line_items?: SalesOrderFormData['line_items'];
+      customer_id?: number | string;
+      global_discount_id?: string;
+      notes?: string;
+      advance_amount?: number;
+      advance_uso_cfdi?: string;
+      advance_metodo_pago?: 'PUE' | 'PPD';
+    },
+  ): Observable<{ quotation?: { folio?: string }; message?: string }> {
+    return this.http.post(`${this.API_URL}/quotations/${quotationId}/send-to-caja`, data ?? {}).pipe(
       map((res: any) => this.extractPayload(res) ?? res)
     );
   }

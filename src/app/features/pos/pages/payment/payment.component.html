@@ -1,4 +1,4 @@
-<div #posRoot class="pos-take-root cobranza-root" posOverlayHost [class.pos-take-root--fullscreen]="isFullscreen()">
+<div #posRoot class="pos-take-root cobranza-root notranslate" translate="no" posOverlayHost [class.pos-take-root--fullscreen]="isFullscreen()">
   <header class="pos-session-bar">
     <div class="pos-session-bar__content">
       <div class="pos-session-bar__brand">
@@ -413,7 +413,7 @@
                           <span class="cobranza-sale__identity">
                             <strong>{{ sale.folio || sale.id.substring(0, 8) }}</strong>
                             @if (sale.kind === 'advance') {
-                              <span class="cobranza-sale__from">Anticipo</span>
+                              <span class="cobranza-badge cobranza-badge--advance">Anticipo</span>
                             } @else if (sale.quotation_folio) {
                               <span class="cobranza-sale__from">Desde {{ sale.quotation_folio }}</span>
                             }
@@ -566,14 +566,19 @@
             <div class="cobranza-collect-body">
             <section class="cobranza-total-card">
               <div class="cobranza-total-card__top">
-                <span class="cobranza-total-card__folio">{{ sale.folio || sale.id }}</span>
+                <span class="cobranza-total-card__folio">
+                  {{ sale.folio || sale.id }}
+                  @if (isAdvanceSale(sale)) {
+                    <span class="cobranza-badge cobranza-badge--advance">Anticipo</span>
+                  }
+                </span>
                 <div class="cobranza-total-card__top-end">
                   <time class="cobranza-total-card__date">{{ formatDate(sale.created_at) }}</time>
                   <button type="button" class="cobranza-head-btn" (click)="clearSelectedSale()">Cancelar</button>
-                  @if (canReturnToSales() && !isAdvanceSale()) {
+                  @if (canReturnToSales()) {
                     <button
                       type="button"
-                      class="cobranza-head-btn"
+                      class="cobranza-head-btn cobranza-head-btn--return"
                       (click)="returnSelectedToVentas()"
                       [disabled]="collecting() || returningToSales()">
                       {{ returningToSales() ? 'Regresando…' : 'Regresar a ventas' }}
@@ -607,6 +612,7 @@
 
             <section class="cobranza-block">
               <h3 class="cobranza-block__title">Cliente</h3>
+              @if (!isAdvanceSale()) {
               <div class="cobranza-customer-options">
                 <label
                   class="cobranza-radio"
@@ -642,6 +648,9 @@
                   </span>
                 </label>
               </div>
+              } @else {
+                <p class="cobranza-advance-lead">El CFDI de anticipo sale a nombre de este cliente. Revisa RFC y régimen antes de cobrar, o regrésalo a ventas.</p>
+              }
 
               @if (customerMode() === 'walk_in' && walkInTicketOpen()) {
                 <div class="cobranza-field-grid cobranza-field-grid--2 cobranza-walk-in-fields">
@@ -683,14 +692,14 @@
                 <p class="cobranza-walk-in-hint">Solo para el ticket. No crea cliente.</p>
               }
 
-              @if (customerMode() === 'registered') {
+              @if (customerMode() === 'registered' || isAdvanceSale()) {
                 <div class="cobranza-customer-selected">
                   <button type="button" class="cobranza-customer-pick" (click)="openCustomerPicker()">
                     <span class="cobranza-customer-pick__avatar">
                       {{ selectedCustomerName().slice(0, 2).toUpperCase() }}
                     </span>
                     <span class="cobranza-customer-pick__body">
-                      <span class="cobranza-customer-pick__label">Cliente seleccionado</span>
+                      <span class="cobranza-customer-pick__label">{{ isAdvanceSale() ? 'Cliente del anticipo' : 'Cliente seleccionado' }}</span>
                       <span class="cobranza-customer-pick__name">{{ selectedCustomerName() }}</span>
                     </span>
                     <lucide-icon [img]="ChevronRight" class="pos-ic pos-ic--sm" />
@@ -699,12 +708,63 @@
                     type="button"
                     class="cobranza-customer-edit"
                     [disabled]="!selectedCustomerDetail()"
-                    (click)="openCustomerEditModal()"
+                    (click)="openCustomerEditModal(isAdvanceSale() ? 'fiscal' : 'customer')"
                     title="Editar cliente">
                     <lucide-icon [img]="Pencil" class="pos-ic pos-ic--sm" />
-                    Editar
+                    {{ isAdvanceSale() ? 'Editar RFC' : 'Editar' }}
                   </button>
                 </div>
+                @if (isAdvanceSale()) {
+                  @if (advanceFiscal(); as fiscal) {
+                    <dl class="cobranza-fiscal">
+                      <div>
+                        <dt>RFC</dt>
+                        <dd [class.is-missing]="!fiscal.rfc">{{ fiscal.rfc || 'Falta' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Razón social</dt>
+                        <dd [class.is-missing]="!fiscal.razonSocial">{{ fiscal.razonSocial || 'Falta' }}</dd>
+                      </div>
+                      <div>
+                        <dt>CP</dt>
+                        <dd [class.is-missing]="!fiscal.postalCode">{{ fiscal.postalCode || 'Falta' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Régimen</dt>
+                        <dd>{{ advanceRegimenLabel() || '—' }}</dd>
+                      </div>
+                    </dl>
+                  }
+                  @if (advanceFiscalWarning(); as warning) {
+                    <div class="cobranza-fiscal-warn">
+                      <lucide-icon [img]="AlertTriangle" [size]="16" />
+                      <div>
+                        <strong>Datos fiscales inconsistentes</strong>
+                        <p>{{ warning }}</p>
+                        <div class="cobranza-fiscal-warn__actions">
+                          <button type="button" (click)="openCustomerEditModal('fiscal')">Corregir RFC</button>
+                          @if (canReturnToSales()) {
+                            <button type="button" (click)="returnSelectedToVentas()">Regresar a ventas</button>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  } @else if (advanceFiscal() && !advanceFiscal()!.ready) {
+                    <div class="cobranza-fiscal-warn">
+                      <lucide-icon [img]="AlertTriangle" [size]="16" />
+                      <div>
+                        <strong>Faltan datos para facturar</strong>
+                        <p>{{ advanceFiscal()?.missing?.join(' · ') }}. Edítalos aquí o cambia de cliente.</p>
+                        <div class="cobranza-fiscal-warn__actions">
+                          <button type="button" (click)="openCustomerEditModal('fiscal')">Completar datos</button>
+                          @if (canReturnToSales()) {
+                            <button type="button" (click)="returnSelectedToVentas()">Regresar a ventas</button>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+                }
                 @if (showInvoiceSwitch()) {
                   <div class="cobranza-invoice-switch">
                     <app-slim-switch
@@ -760,16 +820,14 @@
                   <lucide-icon [img]="FileText" class="pos-ic pos-ic--sm" />
                   Cheque
                 </button>
-                @if (!isAdvanceSale()) {
-                  <button
-                    type="button"
-                    class="cobranza-pay-tab"
-                    [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'mixed'"
-                    (click)="setPaymentMethod('mixed')">
-                    <lucide-icon [img]="Layers" class="pos-ic pos-ic--sm" />
-                    Mixto
-                  </button>
-                }
+                <button
+                  type="button"
+                  class="cobranza-pay-tab"
+                  [class.cobranza-pay-tab--active]="collectForm().paymentMethod === 'mixed'"
+                  (click)="setPaymentMethod('mixed')">
+                  <lucide-icon [img]="Layers" class="pos-ic pos-ic--sm" />
+                  Mixto
+                </button>
                 @if (showCreditTab()) {
                   <button
                     type="button"
@@ -1359,7 +1417,17 @@
                 </section>
 
                 @if (collectError()) {
-                  <p class="cobranza-form-error">{{ collectError() }}</p>
+                  <div class="cobranza-form-error" [class.cobranza-form-error--box]="isAdvanceSale()">
+                    <p>{{ collectError() }}</p>
+                    @if (isAdvanceSale() && isRegimenCollectError()) {
+                      <div class="cobranza-fiscal-warn__actions">
+                        <button type="button" (click)="openCustomerEditModal('fiscal')">Editar RFC</button>
+                        @if (canReturnToSales()) {
+                          <button type="button" (click)="returnSelectedToVentas()">Regresar a ventas</button>
+                        }
+                      </div>
+                    }
+                  </div>
                 }
               </div>
             </section>
@@ -1369,7 +1437,7 @@
               <button type="button" class="cobranza-action cobranza-action--ghost" (click)="clearSelectedSale()" [disabled]="collecting() || returningToSales()">
                 Cancelar
               </button>
-              @if (canReturnToSales() && !isAdvanceSale()) {
+              @if (canReturnToSales()) {
                 <button
                   type="button"
                   class="cobranza-action cobranza-action--return"

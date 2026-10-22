@@ -36,6 +36,7 @@ import {
   X,
   Plus,
   Undo2,
+  AlertTriangle,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -152,6 +153,12 @@ import { CreditUsageBarComponent } from '../../../customers/components/credit-us
 import { isCustomerCreditEnabled, unwrapCustomerPayload } from '../../../customers/utils/customer-credit.util';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
 import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import {
+  inferFiscalPersonTypeFromRfc,
+  inferReceptorRegimen,
+} from '../../../customers/utils/fiscal-person-type.util';
+import { buildCustomerFiscalSnapshot } from '../../components/pos-checkout-confirm-dialog/pos-checkout-confirm-dialog.component';
+import { CFDI_REGIMEN_RECEPTOR_OPTIONS } from '../../../sales-orders/models/sales-order-electronic-invoice.model';
 
 interface PendingSaleCustomer {
   id?: number;
@@ -217,6 +224,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly X = X;
   readonly Undo2 = Undo2;
   readonly Plus = Plus;
+  readonly AlertTriangle = AlertTriangle;
 
   pendingSales = signal<PendingSale[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);
@@ -415,6 +423,36 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   isAdvanceSale(sale?: PendingSale | null): boolean {
     return (sale ?? this.selectedSale())?.kind === 'advance';
+  }
+
+  readonly advanceFiscal = computed(() => {
+    if (!this.isAdvanceSale()) return null;
+    const customer = this.selectedCustomerDetail();
+    return customer ? buildCustomerFiscalSnapshot(customer) : null;
+  });
+
+  readonly advanceFiscalWarning = computed(() => {
+    if (!this.isAdvanceSale()) return null;
+    const customer = this.selectedCustomerDetail();
+    if (!customer) return null;
+    const rfc = String(customer.fiscal_rfc ?? '').replace(/[\s-]/g, '').toUpperCase();
+    const stored = String(customer.fiscal_person_type ?? '').trim().toLowerCase();
+    const inferred = inferFiscalPersonTypeFromRfc(rfc);
+    if (!inferred || (stored !== 'fisica' && stored !== 'moral') || inferred === stored) {
+      return null;
+    }
+    const regimen = inferReceptorRegimen(rfc, stored);
+    return `El RFC es de persona ${inferred}. En catálogo está como ${stored}. El CFDI usará régimen ${regimen}.`;
+  });
+
+  advanceRegimenLabel(): string {
+    const code = this.advanceFiscal()?.regimen ?? '';
+    return CFDI_REGIMEN_RECEPTOR_OPTIONS.find((option) => option.id === code)?.name ?? code;
+  }
+
+  isRegimenCollectError(): boolean {
+    const message = this.collectError() ?? '';
+    return /régimen|regimen|persona moral|persona física/i.test(message);
   }
 
   readonly invoiceSwitchDisabled = computed(() => !this.fiscalReadyForInvoice());
@@ -1219,10 +1257,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dialog
       .open(CustomerEditModalComponent, {
         ...CUSTOMER_FORM_DIALOG_CONFIG,
-        data: { customer, initialTab: tab },
+        data: { customer, initialTab: this.isAdvanceSale() && tab === 'customer' ? 'fiscal' : tab },
       })
       .afterClosed()
       .subscribe(() => {
+        this.collectError.set(null);
         if (this.selectedCustomerId()) {
           this.loadRegisteredCustomer(this.selectedCustomerId());
         }
@@ -1244,6 +1283,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         next: (raw) => {
           const customer = unwrapCustomerPayload(raw);
           this.selectedCustomerDetail.set(customer);
+          const name = [customer?.name, customer?.lastname].filter(Boolean).join(' ').trim()
+            || customer?.company_name
+            || customer?.fiscal_razon_social
+            || 'Cliente';
+          this.selectedCustomerName.set(name);
           const ready = customer?.fiscal_ready_for_invoice === true;
           this.generateInvoice.set(ready && customer?.auto_generate_invoice === true);
           if (!isCustomerCreditEnabled(customer) && this.collectForm().paymentMethod === 'credit') {
@@ -1382,9 +1426,14 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         return;
       }
       if (!result.customerId) {
+        if (this.isAdvanceSale()) {
+          this.toast.info('El anticipo necesita un cliente con RFC. Elige uno del catálogo.');
+          return;
+        }
         this.setCustomerMode('walk_in');
         return;
       }
+      this.collectError.set(null);
       this.customerMode.set('registered');
       this.selectedCustomerId.set(result.customerId);
       const customer = result.customer;
@@ -1410,6 +1459,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const folio = sale.folio || sale.id;
+    const isAdvance = this.isAdvanceSale(sale);
     this.dialog
       .open(PosConfirmDialogComponent, {
         width: '420px',
@@ -1418,7 +1468,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         autoFocus: 'first-tabbable',
         data: {
           title: 'Regresar a ventas',
-          message: `El folio ${folio} saldrá de caja. No se puede cobrar hasta que Ventas lo reenvíe.`,
+          message: isAdvance
+            ? `El anticipo ${folio} saldrá de caja. No se puede cobrar hasta que Ventas lo reenvíe.`
+            : `El folio ${folio} saldrá de caja. No se puede cobrar hasta que Ventas lo reenvíe.`,
           note: 'En POS Ventas aparece en Tickets. Ahí se edita y se pulsa Enviar a caja.',
           cancelLabel: 'Cancelar',
           acceptLabel: 'Regresar a ventas',
@@ -1430,7 +1482,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
         this.returningToSales.set(true);
-        this.posService.returnSaleToVentas(sale.id).subscribe({
+        const request$ = isAdvance
+          ? this.posService.returnQuotationToVentas(sale.id)
+          : this.posService.returnSaleToVentas(sale.id);
+        request$.subscribe({
           next: () => {
             this.returningToSales.set(false);
             this.clearSelectedSale();
@@ -1685,7 +1740,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private initCustomerFromSale(sale: PendingSale): void {
     const customer = sale.customer;
-    if (isWalkInCollectCustomer(customer) || !customer?.id) {
+    if (sale.kind !== 'advance' && (isWalkInCollectCustomer(customer) || !customer?.id)) {
       this.customerMode.set('walk_in');
       this.selectedCustomerId.set('');
       this.selectedCollectCustomerId.set(null);
@@ -1699,14 +1754,18 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.customerMode.set('registered');
     this.walkInTicketOpen.set(false);
-    this.selectedCustomerId.set(String(customer.id));
+    this.selectedCustomerId.set(customer?.id != null ? String(customer.id) : '');
     this.selectedCollectCustomerId.set(
-      resolvePosCollectCustomerId(customer) ?? (customer.id != null ? customer.id : null)
+      resolvePosCollectCustomerId(customer) ?? (customer?.id != null ? customer.id : null)
     );
-    this.selectedCustomerName.set(customer.name || 'Cliente');
+    this.selectedCustomerName.set(customer?.name || (sale.kind === 'advance' ? 'Elegir cliente' : 'Cliente'));
     this.walkInName.set('');
     this.walkInRfc.set('');
-    this.loadRegisteredCustomer(String(customer.id));
+    if (customer?.id) {
+      this.loadRegisteredCustomer(String(customer.id));
+    } else {
+      this.selectedCustomerDetail.set(null);
+    }
   }
 
   shiftSalesTotal(shift: PosDailyShiftDetail): string {

@@ -1,4 +1,4 @@
-<div #posRoot class="pos-take-root" posOverlayHost [class.pos-take-root--fullscreen]="isFullscreen()">
+<div #posRoot class="pos-take-root notranslate" translate="no" posOverlayHost [class.pos-take-root--fullscreen]="isFullscreen()">
   <div class="pos-take-layout" [class.pos-take-layout--locked]="!isCobranzaTerminal() && !canSell()">
     @if (!isCobranzaTerminal() && !canSell()) {
       <div class="pos-lock-overlay" aria-hidden="true">
@@ -157,10 +157,15 @@
             <li>
               <button type="button" class="pos-tickets-panel__item" (click)="openReturnedTicket(ticket)">
                 <span>
-                  <strong>{{ ticket.folio || ticket.id }}</strong>
+                  <strong>
+                    {{ ticket.folio || ticket.id }}
+                    @if (ticket.kind === 'advance') {
+                      <span class="pos-ticket-badge">Anticipo</span>
+                    }
+                  </strong>
                   <small>{{ ticketCustomerName(ticket) }}</small>
                 </span>
-                <strong>{{ formatCurrency(ticket.total ?? 0) }}</strong>
+                <strong>{{ formatCurrency(ticket.kind === 'advance' ? (ticket.amount_pending ?? ticket.total ?? 0) : (ticket.total ?? 0)) }}</strong>
               </button>
             </li>
           }
@@ -355,12 +360,11 @@
           </button>
           <button
             type="button"
-            class="pos-customer__search"
+            class="pos-customer__search notranslate"
+            translate="no"
             (click)="openCustomerPicker()">
-            @if (hasSelectedCustomer()) {
-              Cambiar
-            } @else {
-              Existente
+            {{ hasSelectedCustomer() ? 'Cambiar' : 'Existente' }}
+            @if (!hasSelectedCustomer()) {
               <lucide-icon [img]="ChevronRight" class="pos-customer__chevron pos-ic pos-ic--sm" />
             }
           </button>
@@ -666,9 +670,9 @@
             confirming() ||
             !canSell() ||
             posService.cart().items.length === 0 ||
-            cartHasWithoutInventory()
+            (!isEditingReturnedAdvance() && cartHasWithoutInventory())
           "
-          [attr.title]="cartHasWithoutInventory() ? 'Hay productos sin inventario. Solo se puede cotizar.' : null">
+          [attr.title]="!isEditingReturnedAdvance() && cartHasWithoutInventory() ? 'Hay productos sin inventario. Solo se puede cotizar.' : null">
           {{ saving() ? 'Guardando…' : isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta' }}
         </button>
       </div>

@@ -1896,6 +1896,13 @@
     gap: 0.15rem;
   }
 
+  strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
   small {
     color: #64748b;
     font-size: 0.72rem;
@@ -1905,6 +1912,20 @@
   &:hover {
     background: #f8fafc;
   }
+}
+
+.pos-ticket-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .pos-cart__editing {

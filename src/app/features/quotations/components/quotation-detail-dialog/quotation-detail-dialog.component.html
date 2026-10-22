@@ -231,6 +231,16 @@
             <span class="totals-label-total">Total</span>
             <span class="totals-value-total totals-value-total--requested">{{ getDisplayedTotal() }}</span>
           </div>
+          @if (hasAdvanceBalance()) {
+            <div class="totals-row totals-row--paid">
+              <span class="totals-label">Ya pagado</span>
+              <span class="totals-value">{{ getDisplayedAmountPaid() }}</span>
+            </div>
+            <div class="totals-row totals-row-total">
+              <span class="totals-label-total">Por cobrar</span>
+              <span class="totals-value-total totals-value-total--pending">{{ getDisplayedAmountPending() }}</span>
+            </div>
+          }
         </div>
 
         <div class="section-card section-card--notes">
@@ -259,6 +269,11 @@
               }
             </p>
             <p class="advance-invoice-card__uuid">{{ invoice.uuid || 'Sin UUID' }}</p>
+            @if (hasAdvanceBalance()) {
+              <p class="advance-invoice-card__balance">
+                Ya pagado {{ getDisplayedAmountPaid() }} · Resta {{ getDisplayedAmountPending() }}
+              </p>
+            }
             <div class="advance-invoice-card__actions">
               <button type="button" (click)="openAdvancePdf()" [disabled]="openingAdvancePdf()">
                 {{ openingAdvancePdf() ? 'Abriendo…' : 'Ver PDF' }}
@@ -527,6 +542,11 @@
                   </div>
                   <p class="advance-invoice-card__folio">{{ advanceFolioLabel() }} · {{ (invoice.total || 0) | number:'1.2-2' }} MXN</p>
                   <p class="advance-invoice-card__uuid">UUID {{ invoice.uuid || '—' }}</p>
+                  @if (hasAdvanceBalance()) {
+                    <p class="advance-invoice-card__balance">
+                      Ya pagado {{ getDisplayedAmountPaid() }} · Resta {{ getDisplayedAmountPending() }}
+                    </p>
+                  }
                   <div class="advance-invoice-card__actions">
                     <button type="button" (click)="openAdvancePdf()" [disabled]="openingAdvancePdf()">Ver PDF</button>
                     <button type="button" (click)="downloadAdvanceXml()" [disabled]="downloadingAdvanceXml()">XML</button>

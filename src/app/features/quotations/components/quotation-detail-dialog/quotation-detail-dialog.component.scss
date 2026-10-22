@@ -90,6 +90,22 @@
   }
 }
 
+.totals-row--paid .totals-value {
+  color: #047857;
+  font-weight: 600;
+}
+
+.totals-value-total--pending {
+  color: #1d4ed8;
+}
+
+.advance-invoice-card__balance {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1e3a8a;
+}
+
 .advance-payment-note {
   margin: 0 0 0.75rem;
   font-size: 0.8125rem;

@@ -445,6 +445,12 @@
   background: #eef2ff;
 }
 
+.cobranza-head-btn--return {
+  color: #92400e;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
 .cobranza-head-btn {
   display: inline-flex;
   align-items: center;
@@ -776,6 +782,13 @@
     letter-spacing: 0.01em;
   }
 
+  &__identity strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
   &__total {
     font-weight: 700;
     color: #4f46e5;
@@ -791,6 +804,24 @@
   border-radius: 999px;
   background: #fef3c7;
   color: #92400e;
+}
+
+.cobranza-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+
+  &--advance {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
 }
 
 .cobranza-detail {
@@ -890,6 +921,10 @@
   }
 
   &__folio {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.8rem;
     font-weight: 700;
@@ -2228,6 +2263,111 @@
   color: #b91c1c;
   font-size: 0.8rem;
   font-weight: 600;
+
+  p {
+    margin: 0;
+  }
+
+  &--box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+}
+
+.cobranza-advance-lead {
+  margin: 0 0 0.7rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.cobranza-fiscal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem 0.85rem;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+
+  div {
+    min-width: 0;
+  }
+
+  dt {
+    margin: 0 0 0.15rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #0f172a;
+    word-break: break-word;
+
+    &.is-missing {
+      color: #b45309;
+    }
+  }
+}
+
+.cobranza-fiscal-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #92400e;
+
+  lucide-icon {
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  strong {
+    display: block;
+    font-size: 0.78rem;
+    margin-bottom: 0.2rem;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+
+    button {
+      border: 1px solid #f4d38a;
+      background: #fff;
+      color: #92400e;
+      border-radius: 8px;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+
+      &:hover {
+        background: #fef3c7;
+      }
+    }
+  }
 }
 
 .cobranza-credit-note {
