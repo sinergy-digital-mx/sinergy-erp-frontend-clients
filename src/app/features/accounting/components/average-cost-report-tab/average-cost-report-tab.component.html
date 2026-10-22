@@ -1,24 +1,37 @@
 <div class="avg-cost-tab">
   <div class="avg-cost-toolbar">
-    <div>
-      <h3 class="avg-cost-title">Reporte de ventas a costo promedio</h3>
-      <p class="avg-cost-hint">
-        Cada fila es un documento de venta. El costo sale del lote; si no hay, del costo promedio del producto.
-        El margen es el precio sin impuesto menos el costo.
-        Moneda es la original: MXN, o USD con el tipo de cambio de esa venta. Importe, impuesto, total, costo y margen ya van en pesos.
-        En una cancelación el importe queda positivo y se restan el impuesto, el total y el costo.
-        @if (periodCaption()) {
-          {{ periodCaption() }}.
-        }
-      </p>
+    <div class="avg-cost-heading">
+      <div class="avg-cost-title-row">
+        <h3 class="avg-cost-title">Reporte de ventas a costo promedio</h3>
+        <span class="avg-info" [class.avg-info--open]="infoOpen()">
+          <button
+            type="button"
+            class="avg-info__btn"
+            aria-label="Cómo se calcula el reporte"
+            [attr.aria-expanded]="infoOpen()"
+            (click)="toggleInfo($event)">
+            i
+          </button>
+          <span class="avg-info__panel" role="tooltip">
+            <strong class="avg-info__heading">Cómo se lee este reporte</strong>
+            <span class="avg-info__item">Cada fila es un documento de venta.</span>
+            <span class="avg-info__item">El costo sale del lote; si no hay, del costo promedio del producto.</span>
+            <span class="avg-info__item">El margen es el precio sin impuesto menos el costo.</span>
+            <span class="avg-info__item">Moneda es la original: MXN, o USD con el tipo de cambio de esa venta. Importe, impuesto, total, costo y margen ya van en pesos.</span>
+            <span class="avg-info__item">En una cancelación el importe queda positivo y se restan el impuesto, el total y el costo.</span>
+          </span>
+        </span>
+      </div>
+      @if (periodCaption()) {
+        <p class="avg-cost-caption">{{ periodCaption() }}</p>
+      }
       <div class="avg-cost-legend">
         <div class="avg-cost-legend__row">
           <span class="avg-cost-legend__label">Tipo</span>
           <div class="avg-cost-legend__badges">
             @for (type of documentTypes; track type.code) {
-              <span class="type-badge" [attr.data-type]="type.code">
-                <span class="type-badge__code">{{ type.code }}</span>
-                {{ type.label }}
+              <span class="tag" [attr.data-type]="type.code">
+                <span class="tag__dot"></span>{{ type.label }}
               </span>
             }
           </div>
@@ -27,9 +40,8 @@
           <span class="avg-cost-legend__label">Estatus</span>
           <div class="avg-cost-legend__badges">
             @for (status of documentStatuses; track status.code) {
-              <span class="status-pill" [attr.data-status]="status.code">
-                <span class="status-pill__code">{{ status.code }}</span>
-                {{ status.label }}
+              <span class="tag" [attr.data-status]="status.code">
+                <span class="tag__dot"></span>{{ status.label }}
               </span>
             }
           </div>
@@ -112,16 +124,10 @@
   </td>
   <td class="avg-cost-cell">{{ formatDay(item.date) }}</td>
   <td class="avg-cost-cell" [attr.title]="item.type_label">
-    <span class="type-badge" [attr.data-type]="item.type_code">
-      <span class="type-badge__code">{{ item.type_code }}</span>
-      {{ item.type_label }}
-    </span>
+    <span class="tag" [attr.data-type]="item.type_code"><span class="tag__dot"></span>{{ item.type_label }}</span>
   </td>
   <td class="avg-cost-cell" [attr.title]="item.status_label">
-    <span class="status-pill" [attr.data-status]="item.status_code">
-      <span class="status-pill__code">{{ item.status_code }}</span>
-      {{ item.status_label }}
-    </span>
+    <span class="tag" [attr.data-status]="item.status_code"><span class="tag__dot"></span>{{ item.status_label }}</span>
   </td>
   <td class="avg-cost-cell">
     <span class="fx-badge" [attr.data-currency]="item.source_currency || 'MXN'">

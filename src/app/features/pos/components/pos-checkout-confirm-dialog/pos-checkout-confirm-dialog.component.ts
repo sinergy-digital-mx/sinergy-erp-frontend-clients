@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
-import { LucideAngularModule, FileText, ShoppingCart } from 'lucide-angular';
+import { LucideAngularModule, AlertTriangle, Check, FileText, ShoppingCart, X } from 'lucide-angular';
 import {
   CFDI_REGIMEN_RECEPTOR_OPTIONS,
   CFDI_USO_OPTIONS,
@@ -93,6 +93,9 @@ export function buildCustomerFiscalSnapshot(customer: any): PosCheckoutCustomerF
 export class PosCheckoutConfirmDialogComponent {
   readonly ShoppingCart = ShoppingCart;
   readonly FileText = FileText;
+  readonly X = X;
+  readonly Check = Check;
+  readonly AlertTriangle = AlertTriangle;
   readonly usoOptions = CFDI_USO_OPTIONS;
   readonly quickPercents = [30, 50, 100];
 
@@ -119,10 +122,6 @@ export class PosCheckoutConfirmDialogComponent {
 
   isQuote(): boolean {
     return this.data.kind === 'quote';
-  }
-
-  icon() {
-    return this.isQuote() ? this.FileText : this.ShoppingCart;
   }
 
   cancel(): void {

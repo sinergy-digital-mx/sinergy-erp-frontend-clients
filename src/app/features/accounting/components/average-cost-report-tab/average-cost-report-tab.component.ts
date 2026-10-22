@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnDestroy, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, OnChanges, OnDestroy, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -34,6 +34,8 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
   private destroy$ = new Subject<void>();
   summary = signal<AverageCostReportSummary | null>(null);
   exporting = signal(false);
+  /** Ayuda del reporte (ícono i). */
+  infoOpen = signal(false);
   branchMissing = signal(false);
   private requestId = 0;
 
@@ -57,7 +59,8 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
   constructor(
     private accountingService: AccountingService,
     private dialog: MatDialog,
-    private toast: ToastService
+    private toast: ToastService,
+    private elementRef: ElementRef<HTMLElement>
   ) {
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
@@ -74,6 +77,18 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
     ) {
       this.loadPage(1);
     }
+  }
+
+  toggleInfo(event: MouseEvent): void {
+    event.stopPropagation();
+    this.infoOpen.update((open) => !open);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as Node | null;
+    if (target && this.elementRef.nativeElement.querySelector('.avg-info')?.contains(target)) return;
+    this.infoOpen.set(false);
   }
 
   ngOnDestroy(): void {

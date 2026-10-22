@@ -3,12 +3,7 @@ import { Component, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule, ArrowLeft, Copy } from 'lucide-angular';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import {
-  GuideBlock,
-  GuideSection,
-  WHATSAPP_GUIDE_INTRO,
-  WHATSAPP_GUIDE_SECTIONS,
-} from './whatsapp-integration-guide.content';
+import { Guide, GuideSection, WHATSAPP_GUIDES } from './whatsapp-integration-guide.content';
 
 interface InlineSegment {
   kind: 'text' | 'code' | 'bold' | 'link';
@@ -19,8 +14,8 @@ interface InlineSegment {
 const INLINE_PATTERN = /(\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*)/g;
 
 /**
- * Guía para usar WhatsApp desde otro proyecto. El contenido se genera desde
- * EXTERNAL_INTEGRATION_GUIDE.md (backend) con `node scripts/generate-whatsapp-guide.js`.
+ * Guías para usar WhatsApp desde otro proyecto. El contenido se genera desde los .md del backend
+ * (src/api/whatsapp/docs) con `node scripts/generate-whatsapp-guide.js`.
  */
 @Component({
   selector: 'app-whatsapp-integration-guide',
@@ -32,20 +27,31 @@ export class WhatsappIntegrationGuideComponent {
   readonly ArrowLeft = ArrowLeft;
   readonly Copy = Copy;
 
-  readonly intro: GuideBlock[] = WHATSAPP_GUIDE_INTRO;
-  readonly sections: GuideSection[] = WHATSAPP_GUIDE_SECTIONS;
-  readonly activeId = signal<string>(WHATSAPP_GUIDE_SECTIONS[0].id);
+  readonly guides: Guide[] = WHATSAPP_GUIDES;
+  readonly guideId = signal<string>(WHATSAPP_GUIDES[0].id);
+  readonly sectionId = signal<string>(WHATSAPP_GUIDES[0].sections[0].id);
 
   private readonly inlineCache = new Map<string, InlineSegment[]>();
 
   constructor(private interceptor: InterceptorService) {}
 
-  get active(): GuideSection {
-    return this.sections.find((s) => s.id === this.activeId()) ?? this.sections[0];
+  get guide(): Guide {
+    return this.guides.find((g) => g.id === this.guideId()) ?? this.guides[0];
   }
 
-  select(id: string): void {
-    this.activeId.set(id);
+  get active(): GuideSection {
+    return this.guide.sections.find((s) => s.id === this.sectionId()) ?? this.guide.sections[0];
+  }
+
+  selectGuide(id: string): void {
+    const guide = this.guides.find((g) => g.id === id);
+    if (!guide) return;
+    this.guideId.set(guide.id);
+    this.sectionId.set(guide.sections[0].id);
+  }
+
+  selectSection(id: string): void {
+    this.sectionId.set(id);
   }
 
   /** Convierte `código`, **negritas** y [enlaces](url) en segmentos para la plantilla. */

@@ -1268,7 +1268,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.confirmCheckout({
       kind: 'quote',
       title: 'Guardar cotización',
-      subtitle: 'No se retiene inventario. Si marcas factura de anticipo, ese monto queda en caja para cobrarse.',
+      subtitle: 'No se retiene inventario. Revisa el cliente y, si aplica, genera el anticipo.',
       totalLabel: this.formatCurrency(cart.grand_total),
       cartTotal: Number(cart.grand_total),
       itemSummary: this.cartItemSummary(cart),
@@ -1377,8 +1377,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       .open<PosCheckoutConfirmDialogComponent, PosCheckoutConfirmDialogData, PosCheckoutConfirmResult>(
         PosCheckoutConfirmDialogComponent,
         {
-          width: data.kind === 'quote' ? '900px' : '420px',
+          width: data.kind === 'quote' ? '920px' : '420px',
           maxWidth: '95vw',
+          maxHeight: '95vh',
           disableClose: true,
           panelClass: 'pos-dialog-panel',
           autoFocus: 'first-tabbable',
