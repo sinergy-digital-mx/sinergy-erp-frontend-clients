@@ -312,6 +312,10 @@ export class ContractDetailPageComponent implements OnInit {
     return buildPendingBalanceTooltip(current, this.paymentStats());
   }
 
+  get pendingInterestAmount(): number {
+    return Number(this.paymentStats()?.late_interest_pending_amount || 0);
+  }
+
   setActiveTab(tab: 'edit' | 'payments' | 'down_payments' | 'hoa' | 'documents' | 'statement'): void {
     this.activeTab.set(tab);
   }

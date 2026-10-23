@@ -84,6 +84,9 @@
               </span>
             </span>
             <span class="text-rose-600 font-semibold">{{ current.remaining_balance | currency:current.currency }}</span>
+            <span class="block text-[10px] font-medium text-orange-600/80 leading-tight mt-0.5">
+              + {{ pendingInterestAmount | currency:current.currency }} de intereses
+            </span>
           </div>
           <div>
             <span class="block text-slate-500 font-medium">Meses de pago</span>
