@@ -265,28 +265,35 @@
             </div>
             <div class="pos-card__body">
               <h3 class="pos-card__name" [attr.title]="product.name">{{ product.name }}</h3>
-              <div class="pos-card__facts">
-                <span class="pos-card__sku" [attr.title]="product.sku">{{ product.sku }}</span>
+              @if (product.sku) {
+                <p class="pos-card__sku" [attr.title]="product.sku">
+                  <span class="pos-card__sku-k">Nº pieza</span>
+                  <span class="pos-card__sku-v">{{ product.sku }}</span>
+                </p>
+              }
+              <div class="pos-card__chips">
                 <span
-                  class="pos-card__stock"
-                  [class.pos-card__stock--empty]="!(product.total_available_quantity > 0)">
-                  Stock {{ product.total_available_quantity || 0 }}
+                  class="pos-card__chip"
+                  [class.pos-card__chip--empty]="!(product.total_available_quantity > 0)">
+                  <span class="pos-card__chip-k">Stock</span>
+                  <span class="pos-card__chip-v">{{ product.total_available_quantity || 0 }}</span>
+                </span>
+                <span class="pos-card__chip" [attr.title]="catalogUomLabel(product)">
+                  <span class="pos-card__chip-k">Ud.</span>
+                  <span class="pos-card__chip-v">{{ catalogUomLabel(product) }}</span>
                 </span>
               </div>
               @if (stockWarehouseLabel(product); as warehouse) {
                 <p class="pos-card__warehouse" [attr.title]="warehouse">{{ warehouse }}</p>
               }
-              <div class="pos-card__row">
-                <span class="pos-card__uom" [attr.title]="catalogUomLabel(product)">{{ catalogUomLabel(product) }}</span>
+              @if (productMeasureLine(product)) {
+                <p class="pos-card__measures">{{ productMeasureLine(product) }}</p>
+              }
+              <div class="pos-card__price-row">
                 @if (product.has_price) {
                   <span class="pos-card__price">{{ formatCatalogPrice(catalogPriceGross(product)) }}</span>
                 } @else {
                   <span class="pos-card__no-price">Sin precio</span>
-                }
-              </div>
-              <div class="pos-card__extra">
-                @if (productMeasureLine(product)) {
-                  <p class="pos-card__measures">{{ productMeasureLine(product) }}</p>
                 }
               </div>
             </div>

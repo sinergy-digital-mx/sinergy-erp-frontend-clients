@@ -193,6 +193,8 @@
             <app-input label="Fecha Primer Pago" type="date" [form_control]="form.controls['first_payment_date']"></app-input>
           </div>
 
+          <app-select [label]="'Razón social *'" [config]="fiscalSelectConfig"></app-select>
+
           <app-input label="Notas" type="textarea" [form_control]="form.controls['notes']"></app-input>
         </div>
       </div>

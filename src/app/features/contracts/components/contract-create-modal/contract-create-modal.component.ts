@@ -25,6 +25,8 @@ import { CustomerEditModalComponent } from '../../../customers/components/custom
 import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { GroupSelectComponent } from '../../../../core/components/group-select/group-select.component';
 import { LeadService } from '../../../../core/services/leads.service';
+import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { emptyFiscalSelectConfig, toFiscalSelectData } from '../../utils/contract-fiscal-select.util';
 
 /**
  * Convierte montos del formulario a número.
@@ -147,6 +149,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     form_control: null
   };
 
+  fiscalSelectConfig: ISelect = emptyFiscalSelectConfig();
+
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<ContractCreateModalComponent>,
@@ -156,7 +160,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     private userService: UserService,
     private interceptorService: InterceptorService,
     private dialog: MatDialog,
-    private leadService: LeadService
+    private leadService: LeadService,
+    private fiscalConfigService: FiscalConfigurationService
   ) {
     this.form = this.fb.group({
       // Búsqueda y selección
@@ -179,6 +184,7 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       first_payment_date: ['', Validators.required],
       currency: ['MXN', Validators.required],
       status: ['activo', Validators.required],
+      fiscal_configuration_id: [null, Validators.required],
       notes: [''],
 
       // Campos calculados (readonly en UI)
@@ -192,6 +198,7 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     // Vincular form controls a las configuraciones de select
     this.currencySelectConfig.form_control = this.form.get('currency');
     this.statusSelectConfig.form_control = this.form.get('status');
+    this.fiscalSelectConfig.form_control = this.form.get('fiscal_configuration_id');
   }
 
   ngOnInit(): void {
@@ -199,6 +206,7 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     this.setupCalculations();
     this.setupDownPaymentFinancingRules();
     this.loadInitialData();
+    this.loadFiscalConfigurations();
   }
 
   /** Al financiar enganche: meta opcional (puede ser 0); sin meses/fechas en el alta. */
@@ -352,6 +360,25 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
           message: 'No se pudieron cargar los datos iniciales'
         });
       }
+    });
+  }
+
+  private loadFiscalConfigurations(): void {
+    this.fiscalConfigService.listFiscalConfigurations({ status: 'active', limit: 100 }).subscribe({
+      next: (res) => {
+        const rows = res?.data ?? [];
+        this.fiscalSelectConfig = {
+          ...this.fiscalSelectConfig,
+          data: toFiscalSelectData(rows),
+          loading: false,
+        };
+        if (!this.form.get('fiscal_configuration_id')?.value && rows.length === 1) {
+          this.form.patchValue({ fiscal_configuration_id: rows[0].id });
+        }
+      },
+      error: () => {
+        this.fiscalSelectConfig = { ...this.fiscalSelectConfig, loading: false };
+      },
     });
   }
 
@@ -645,6 +672,7 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       first_payment_date: this.form.get('first_payment_date')!.value,
       currency: this.form.get('currency')!.value,
       status: this.form.get('status')!.value,
+      fiscal_configuration_id: this.form.get('fiscal_configuration_id')!.value,
       notes: this.form.get('notes')!.value || undefined
     };
 

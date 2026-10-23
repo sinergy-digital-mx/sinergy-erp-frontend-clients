@@ -23,6 +23,8 @@ import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { ContractLotSectionComponent } from '../../components/contract-lot-section/contract-lot-section.component';
 import { buildPendingBalanceTooltip } from '../../utils/pending-balance-tooltip.util';
+import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { ContractFiscalOption, emptyFiscalSelectConfig, toFiscalSelectData } from '../../utils/contract-fiscal-select.util';
 
 @Component({
   selector: 'app-contract-detail-page',
@@ -76,6 +78,9 @@ export class ContractDetailPageComponent implements OnInit {
     form_control: null
   };
 
+  fiscalSelectConfig: ISelect = emptyFiscalSelectConfig();
+  private fiscalRows: ContractFiscalOption[] = [];
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -85,7 +90,8 @@ export class ContractDetailPageComponent implements OnInit {
     private userService: UserService,
     private interceptorService: InterceptorService,
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private fiscalConfigService: FiscalConfigurationService
   ) {
     this.form = this.fb.group({
       contract_date: ['', Validators.required],
@@ -97,16 +103,19 @@ export class ContractDetailPageComponent implements OnInit {
       first_payment_date: ['', Validators.required],
       currency: ['USD', Validators.required],
       status: ['activo', Validators.required],
+      fiscal_configuration_id: [null, Validators.required],
       notes: [''],
       seller_search: [''],
       seller_id: [null]
     });
 
     this.statusSelectConfig.form_control = this.form.get('status');
+    this.fiscalSelectConfig.form_control = this.form.get('fiscal_configuration_id');
   }
 
   ngOnInit(): void {
     this.loadSellers();
+    this.loadFiscalConfigurations();
     this.initializeSellerSearch();
     this.route.paramMap.subscribe((params) => {
       const contractId = params.get('id');
@@ -161,10 +170,12 @@ export class ContractDetailPageComponent implements OnInit {
       first_payment_date: contract.first_payment_date,
       currency: contract.currency || 'USD',
       status: this.normalizeStatus(contract.status),
+      fiscal_configuration_id: contract.fiscal_configuration_id || null,
       notes: contract.notes || '',
       seller_id: contract.seller_id || null,
       seller_search: contract.seller ? this.displaySeller(contract.seller) : ''
     });
+    this.refreshFiscalSelect();
   }
 
   loadPaymentStats(): void {
@@ -191,6 +202,26 @@ export class ContractDetailPageComponent implements OnInit {
       },
       error: () => {}
     });
+  }
+
+  private loadFiscalConfigurations(): void {
+    this.fiscalConfigService.listFiscalConfigurations({ status: 'active', limit: 100 }).subscribe({
+      next: (res) => {
+        this.fiscalRows = res?.data ?? [];
+        this.refreshFiscalSelect();
+        this.fiscalSelectConfig = { ...this.fiscalSelectConfig, loading: false };
+      },
+      error: () => {
+        this.fiscalSelectConfig = { ...this.fiscalSelectConfig, loading: false };
+      },
+    });
+  }
+
+  private refreshFiscalSelect(): void {
+    this.fiscalSelectConfig = {
+      ...this.fiscalSelectConfig,
+      data: toFiscalSelectData(this.fiscalRows, this.contract()?.fiscal_configuration),
+    };
   }
 
   initializeSellerSearch(): void {
@@ -323,6 +354,7 @@ export class ContractDetailPageComponent implements OnInit {
       first_payment_date: this.form.get('first_payment_date')?.value,
       currency: this.form.get('currency')?.value,
       status: this.normalizeStatus(this.form.get('status')?.value),
+      fiscal_configuration_id: this.form.get('fiscal_configuration_id')?.value || null,
       notes: this.form.get('notes')?.value,
       seller_id: this.form.get('seller_id')?.value || null
     };

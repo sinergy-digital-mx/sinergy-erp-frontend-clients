@@ -123,6 +123,9 @@ export class ContractDownpaymentPaymentsComponent implements OnInit {
     if (this.stats()?.downpayment_financing_complete) {
       return 'Completado';
     }
+    if (this.pendingAmount <= 0 && this.targetAmount != null && this.targetAmount > 0) {
+      return 'Completado';
+    }
     const target = this.targetAmount;
     if (target != null && this.appliedAmount >= target) {
       return 'Completado';

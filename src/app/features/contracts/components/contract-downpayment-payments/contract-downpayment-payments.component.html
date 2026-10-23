@@ -76,6 +76,7 @@
     <article class="stat-card stat-card--overdue">
       <span class="stat-card__label">Vencidos</span>
       <span class="stat-card__value">{{ stats()!.overdue_count }}</span>
+      <span class="stat-card__meta">{{ (stats()!.overdue_amount || 0) | currency:currency }}</span>
     </article>
   </div>
 

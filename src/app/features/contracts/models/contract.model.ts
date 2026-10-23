@@ -1,12 +1,18 @@
 /**
  * Contract Model
  */
+export type ContractPaymentPhase = 'down_payment' | 'contract';
+export type NextPaymentKind = 'down_payment' | 'contract';
+
 export interface Contract {
   id: string;
   tenant_id: string;
   customer_id: number;
   property_id: string;
   seller_id?: string;
+  /** Razón social que emite el contrato y sus recibos. */
+  fiscal_configuration_id?: string | null;
+  fiscal_configuration?: ContractFiscalConfiguration | null;
   contract_number: string;
   contract_date: string;
   total_price: number;
@@ -30,6 +36,16 @@ export interface Contract {
   metadata?: any;
   /** Enganche financiado en cuotas separadas de contract_payments */
   down_payment_financed?: boolean;
+  payment_phase?: ContractPaymentPhase;
+  next_payment_kind?: NextPaymentKind | null;
+  next_payment_is_last_down_payment?: boolean;
+  next_payment_date?: string | null;
+  next_payment_status?: string | null;
+  next_payment_number?: string | null;
+  next_payment_amount?: number | null;
+  overdue_payments_count?: number;
+  overdue_down_payment_count?: number;
+  has_overdue?: boolean;
   down_payment_months?: number;
   down_payment_monthly_amount?: number;
   down_payment_first_payment_date?: string;
@@ -39,6 +55,12 @@ export interface Contract {
   customer?: ContractCustomer;
   property?: ContractProperty;
   seller?: ContractSeller;
+}
+
+export interface ContractFiscalConfiguration {
+  id: string;
+  razon_social: string;
+  rfc: string;
 }
 
 export interface ContractSeller {
@@ -84,6 +106,7 @@ export interface CreateContractDto {
   customer_id: number;
   property_id: string;
   seller_id?: string;
+  fiscal_configuration_id: string;
   contract_number?: string;
   contract_date: string;
   total_price: number;
@@ -138,12 +161,25 @@ export interface ContractStats {
     paid: number;
     remaining: number;
   };
-  overdue: {
-    contracts_count: number;
-    payments_count: number;
-    value: number;
-  };
+  overdue: ContractOverdueStats;
 }
+
+export interface ContractOverdueBucket {
+  contracts_count: number;
+  payments_count: number;
+  value: number;
+}
+
+export interface ContractOverdueStats extends ContractOverdueBucket {
+  contract: ContractOverdueBucket;
+  down_payment: ContractOverdueBucket;
+}
+
+export const EMPTY_OVERDUE_BUCKET: ContractOverdueBucket = {
+  contracts_count: 0,
+  payments_count: 0,
+  value: 0,
+};
 
 export const EMPTY_CONTRACT_STATS: ContractStats = {
   currency: 'USD',
@@ -151,7 +187,11 @@ export const EMPTY_CONTRACT_STATS: ContractStats = {
   total: { count: 0, value: 0 },
   completed: { count: 0, value: 0 },
   pending: { count: 0, value: 0, paid: 0, remaining: 0 },
-  overdue: { contracts_count: 0, payments_count: 0, value: 0 },
+  overdue: {
+    ...EMPTY_OVERDUE_BUCKET,
+    contract: { ...EMPTY_OVERDUE_BUCKET },
+    down_payment: { ...EMPTY_OVERDUE_BUCKET },
+  },
 };
 
 export interface ContractStatsResponse {

@@ -26,6 +26,8 @@ import { GroupSelectComponent } from '../../../../core/components/group-select/g
 import { LeadService } from '../../../../core/services/leads.service';
 import { Property } from '../../../properties/models/property.model';
 import { buildPendingBalanceTooltip } from '../../utils/pending-balance-tooltip.util';
+import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { ContractFiscalOption, emptyFiscalSelectConfig, toFiscalSelectData } from '../../utils/contract-fiscal-select.util';
 
 @Component({
   selector: 'app-contract-detail-modal',
@@ -85,6 +87,9 @@ export class ContractDetailModalComponent implements OnInit {
     form_control: null
   };
 
+  fiscalSelectConfig: ISelect = emptyFiscalSelectConfig();
+  private fiscalRows: ContractFiscalOption[] = [];
+
   constructor(
     public dialog_ref: MatDialogRef<ContractDetailModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { contract: Contract },
@@ -95,7 +100,8 @@ export class ContractDetailModalComponent implements OnInit {
     private interceptorService: InterceptorService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
-    private leadService: LeadService
+    private leadService: LeadService,
+    private fiscalConfigService: FiscalConfigurationService
   ) {
     this.form = this.fb.group({
       contract_date: [this.data.contract.contract_date, Validators.required],
@@ -107,6 +113,7 @@ export class ContractDetailModalComponent implements OnInit {
       first_payment_date: [this.data.contract.first_payment_date, Validators.required],
       currency: [this.data.contract.currency || 'USD', Validators.required],
       status: [this.normalizeStatus(this.data.contract.status), Validators.required],
+      fiscal_configuration_id: [this.data.contract.fiscal_configuration_id || null, Validators.required],
       notes: [this.data.contract.notes || ''],
       seller_search: [''],
       seller_id: [this.data.contract.seller_id || null],
@@ -118,11 +125,13 @@ export class ContractDetailModalComponent implements OnInit {
 
     // Link form control to select
     this.statusSelectConfig.form_control = this.form.get('status');
+    this.fiscalSelectConfig.form_control = this.form.get('fiscal_configuration_id');
   }
 
   ngOnInit() {
     console.log('🔍 Contract Detail Modal - Contract ID:', this.data.contract.id);
     this.loadSellers();
+    this.loadFiscalConfigurations();
     this.initializeSellerSearch();
     this.initializeLeadSearch();
     this.loadContractDetails();
@@ -166,6 +175,7 @@ export class ContractDetailModalComponent implements OnInit {
           first_payment_date: contract.first_payment_date,
           currency: contract.currency || 'USD',
           status: normalizedStatus,
+          fiscal_configuration_id: contract.fiscal_configuration_id || null,
           notes: contract.notes || '',
           seller_id: contract.seller_id || null,
           seller_search: contract.seller ? this.displaySeller(contract.seller) : '',
@@ -173,6 +183,7 @@ export class ContractDetailModalComponent implements OnInit {
           lead_group_id: contract.lead_group_id ?? null,
           list_price: contract.list_price ?? propListPrice,
         });
+        this.refreshFiscalSelect();
 
         this.loadPaymentStats();
         
@@ -218,6 +229,26 @@ export class ContractDetailModalComponent implements OnInit {
         console.error('Error loading sellers:', err);
       }
     });
+  }
+
+  private loadFiscalConfigurations(): void {
+    this.fiscalConfigService.listFiscalConfigurations({ status: 'active', limit: 100 }).subscribe({
+      next: (res) => {
+        this.fiscalRows = res?.data ?? [];
+        this.refreshFiscalSelect();
+        this.fiscalSelectConfig = { ...this.fiscalSelectConfig, loading: false };
+      },
+      error: () => {
+        this.fiscalSelectConfig = { ...this.fiscalSelectConfig, loading: false };
+      },
+    });
+  }
+
+  private refreshFiscalSelect(): void {
+    this.fiscalSelectConfig = {
+      ...this.fiscalSelectConfig,
+      data: toFiscalSelectData(this.fiscalRows, this.data.contract?.fiscal_configuration),
+    };
   }
 
   initializeSellerSearch(): void {
@@ -432,6 +463,7 @@ export class ContractDetailModalComponent implements OnInit {
       first_payment_date: this.form.get('first_payment_date')?.value,
       currency: this.form.get('currency')?.value,
       status: this.normalizeStatus(this.form.get('status')?.value),
+      fiscal_configuration_id: this.form.get('fiscal_configuration_id')?.value || null,
       notes: this.form.get('notes')?.value,
       seller_id: this.form.get('seller_id')?.value || null,
       lead_id: this.form.get('lead_id')?.value || null,

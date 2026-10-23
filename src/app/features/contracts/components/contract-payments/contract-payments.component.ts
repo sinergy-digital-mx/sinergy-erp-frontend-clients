@@ -342,7 +342,13 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
     if (!this.contract?.down_payment_financed) return false;
     const stats = this.downpaymentStats();
     if (!stats) return true;
-    return !stats.downpayment_financing_complete;
+    if (stats.downpayment_financing_complete) return false;
+    const remaining = Number(stats.down_payment_remaining);
+    return !(
+      stats.down_payment_target_defined &&
+      Number.isFinite(remaining) &&
+      remaining <= 0
+    );
   }
 
   get downpaymentBlockingMessage(): string {

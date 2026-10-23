@@ -145,6 +145,18 @@
           <span>Contratos: <strong>{{ stats().overdue.contracts_count }}</strong></span>
           <span>Pagos: <strong>{{ stats().overdue.payments_count }}</strong></span>
         </div>
+        <div class="stats-v2-card__split">
+          <span class="stats-v2-card__split-item">
+            Contrato
+            <strong>{{ formatCardMoney(stats().overdue.contract.value) }}</strong>
+            <em>{{ stats().overdue.contract.payments_count }}</em>
+          </span>
+          <span class="stats-v2-card__split-item stats-v2-card__split-item--enganche">
+            Enganche
+            <strong>{{ formatCardMoney(stats().overdue.down_payment.value) }}</strong>
+            <em>{{ stats().overdue.down_payment.payments_count }}</em>
+          </span>
+        </div>
       </button>
     </div>
   }
@@ -175,9 +187,14 @@
             (click)="viewDetail(item)">
             <div class="flex justify-between items-start gap-2 mb-3">
               <div class="min-w-0 flex-1">
-                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                  {{ item.contract_number }}
-                </span>
+                <div class="flex flex-col items-start gap-1">
+                  <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                    {{ item.contract_number }}
+                  </span>
+                  <span class="phase-badge" [class.phase-badge--enganche]="getPaymentPhase(item) === 'down_payment'">
+                    {{ getPaymentPhaseLabel(item) }}
+                  </span>
+                </div>
                 <p
                   *ngIf="item.customer"
                   class="mt-1.5 text-sm font-medium text-gray-900 truncate"
@@ -226,12 +243,23 @@
               </div>
               <div class="col-span-2">
                 <span class="text-xs text-gray-500 block">Siguiente Pago</span>
-                <div class="flex items-center gap-2">
-                  <span class="text-gray-900">{{ item.next_payment_date | date:'mediumDate' }}</span>
-                  <div *ngIf="item.has_overdue" class="flex items-center gap-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span
+                    class="next-payment"
+                    [class.next-payment--enganche]="isNextPaymentDownPayment(item)"
+                    [class.next-payment--contract]="getNextPaymentKind(item) === 'contract'">
+                    {{ item.next_payment_date | date:'mediumDate' }}
+                  </span>
+                  <span *ngIf="isNextPaymentDownPayment(item)" class="next-payment-badge">
+                    {{ isLastDownPayment(item) ? 'Último enganche' : 'Enganche' }}
+                  </span>
+                  <span *ngIf="getNextPaymentKind(item) === 'contract'" class="next-payment-badge next-payment-badge--contract">
+                    Contrato
+                  </span>
+                  <div *ngIf="item.has_overdue" class="flex items-center gap-1" [title]="getOverdueTooltip(item)">
                     <lucide-icon [img]="AlertCircle" class="w-4 h-4 text-red-500"></lucide-icon>
-                    <span *ngIf="item.overdue_payments_count > 1" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white">
-                      {{ item.overdue_payments_count }}
+                    <span *ngIf="getOverdueCount(item) > 1" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white">
+                      {{ getOverdueCount(item) }}
                     </span>
                   </div>
                 </div>
@@ -281,9 +309,14 @@
 
 <ng-template #tableTemplate let-item="$implicit">
   <td>
-    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
-      {{ item.contract_number }}
-    </span>
+    <div class="flex flex-col items-start gap-1">
+      <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
+        {{ item.contract_number }}
+      </span>
+      <span class="phase-badge" [class.phase-badge--enganche]="getPaymentPhase(item) === 'down_payment'">
+        {{ getPaymentPhaseLabel(item) }}
+      </span>
+    </div>
   </td>
   <td>
     <span 
@@ -323,12 +356,23 @@
     </span>
   </td>
   <td>
-    <div class="flex items-center gap-2">
-      <span>{{ item.next_payment_date | date:'mediumDate' }}</span>
-      <div *ngIf="item.has_overdue" class="flex items-center gap-1" [title]="item.overdue_payments_count + ' pagos vencidos'">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span
+        class="next-payment"
+        [class.next-payment--enganche]="isNextPaymentDownPayment(item)"
+        [class.next-payment--contract]="getNextPaymentKind(item) === 'contract'">
+        {{ item.next_payment_date | date:'mediumDate' }}
+      </span>
+      <span *ngIf="isNextPaymentDownPayment(item)" class="next-payment-badge">
+        {{ isLastDownPayment(item) ? 'Último enganche' : 'Enganche' }}
+      </span>
+      <span *ngIf="getNextPaymentKind(item) === 'contract'" class="next-payment-badge next-payment-badge--contract">
+        Contrato
+      </span>
+      <div *ngIf="item.has_overdue" class="flex items-center gap-1" [title]="getOverdueTooltip(item)">
         <lucide-icon [img]="AlertCircle" class="w-5 h-5 text-red-500"></lucide-icon>
-        <span *ngIf="item.overdue_payments_count > 1" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">
-          {{ item.overdue_payments_count }}
+        <span *ngIf="getOverdueCount(item) > 1" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">
+          {{ getOverdueCount(item) }}
         </span>
       </div>
     </div>

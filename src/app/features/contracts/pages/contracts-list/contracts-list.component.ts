@@ -8,8 +8,12 @@ import { ContractService } from '../../services/contract.service';
 import {
   Contract,
   ContractListFilters,
+  ContractOverdueBucket,
+  ContractPaymentPhase,
   ContractStats,
   EMPTY_CONTRACT_STATS,
+  EMPTY_OVERDUE_BUCKET,
+  NextPaymentKind,
 } from '../../models/contract.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
@@ -66,7 +70,7 @@ export class ContractsListComponent implements OnDestroy {
       { name: 'Fecha Inicio', prop: 'contract_date', sortable: true, canAutoResize: true, width: 120 },
       { name: 'Precio Total', prop: 'total_price', sortable: true, canAutoResize: true, width: 120 },
       { name: 'Saldo Pendiente', prop: 'remaining_balance', sortable: true, canAutoResize: true, width: 130 },
-      { name: 'Siguiente Pago', prop: 'first_payment_date', sortable: true, canAutoResize: true, width: 130 },
+      { name: 'Siguiente Pago', prop: 'first_payment_date', sortable: true, canAutoResize: true, width: 170 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 120 },
     ],
@@ -197,7 +201,7 @@ export class ContractsListComponent implements OnDestroy {
         if (requestId !== this.statsRequestId) {
           return;
         }
-        this.stats.set(stats);
+        this.stats.set(this.normalizeStats(stats));
         this.statsLoading.set(false);
       },
       error: (error) => {
@@ -460,6 +464,67 @@ export class ContractsListComponent implements OnDestroy {
 
   getCustomerGroupName(contract: Contract): string {
     return contract.customer?.group?.name ?? '—';
+  }
+
+  getPaymentPhase(item: Contract): ContractPaymentPhase {
+    return item.payment_phase === 'down_payment' ? 'down_payment' : 'contract';
+  }
+
+  getPaymentPhaseLabel(item: Contract): string {
+    return this.getPaymentPhase(item) === 'down_payment' ? 'Enganche' : 'Contrato';
+  }
+
+  getNextPaymentKind(item: Contract): NextPaymentKind | null {
+    return item.next_payment_kind === 'down_payment' || item.next_payment_kind === 'contract'
+      ? item.next_payment_kind
+      : null;
+  }
+
+  isNextPaymentDownPayment(item: Contract): boolean {
+    return this.getNextPaymentKind(item) === 'down_payment';
+  }
+
+  isLastDownPayment(item: Contract): boolean {
+    return !!item.next_payment_is_last_down_payment;
+  }
+
+  getOverdueCount(item: Contract): number {
+    return (item.overdue_payments_count || 0) + (item.overdue_down_payment_count || 0);
+  }
+
+  getOverdueTooltip(item: Contract): string {
+    const contractCount = item.overdue_payments_count || 0;
+    const downCount = item.overdue_down_payment_count || 0;
+    if (contractCount && downCount) {
+      return `${contractCount} de contrato · ${downCount} de enganche`;
+    }
+    if (downCount) {
+      return `${downCount} ${downCount === 1 ? 'pago' : 'pagos'} de enganche vencidos`;
+    }
+    return `${contractCount} ${contractCount === 1 ? 'pago vencido' : 'pagos vencidos'}`;
+  }
+
+  private normalizeStats(stats: ContractStats): ContractStats {
+    const overdue = stats?.overdue;
+    const contract = overdue?.contract ?? EMPTY_OVERDUE_BUCKET;
+    const downPayment = overdue?.down_payment ?? EMPTY_OVERDUE_BUCKET;
+    const bucket = (value?: ContractOverdueBucket | null): ContractOverdueBucket => ({
+      contracts_count: value?.contracts_count ?? 0,
+      payments_count: value?.payments_count ?? 0,
+      value: value?.value ?? 0,
+    });
+
+    return {
+      ...EMPTY_CONTRACT_STATS,
+      ...stats,
+      overdue: {
+        contracts_count: overdue?.contracts_count ?? 0,
+        payments_count: overdue?.payments_count ?? 0,
+        value: overdue?.value ?? 0,
+        contract: bucket(contract),
+        down_payment: bucket(downPayment),
+      },
+    };
   }
 
   downloadGeneralReport(): void {

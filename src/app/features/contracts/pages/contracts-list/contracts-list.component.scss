@@ -151,6 +151,40 @@
   color: #b91c1c;
 }
 
+.stats-v2-card__split {
+  margin-top: 0.45rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.stats-v2-card__split-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 0.65rem;
+  font-weight: 600;
+
+  strong {
+    font-size: 0.7rem;
+  }
+
+  em {
+    font-style: normal;
+    font-weight: 700;
+    opacity: 0.75;
+  }
+
+  &--enganche {
+    background: #ffedd5;
+    color: #9a3412;
+  }
+}
+
 .stats-v2-card--skeleton {
   pointer-events: none;
   min-height: 118px;
@@ -194,6 +228,52 @@
   align-items: center;
   gap: 0.35rem;
   white-space: nowrap;
+}
+
+.phase-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: #e2e8f0;
+  color: #334155;
+
+  &--enganche {
+    background: #ffedd5;
+    color: #9a3412;
+  }
+}
+
+.next-payment {
+  font-weight: 600;
+  color: #334155;
+
+  &--enganche {
+    color: #c2410c;
+  }
+
+  &--contract {
+    color: #0f766e;
+  }
+}
+
+.next-payment-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background: #ffedd5;
+  color: #9a3412;
+
+  &--contract {
+    background: #ccfbf1;
+    color: #0f766e;
+  }
 }
 
 .currency-badge {
