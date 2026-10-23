@@ -24,9 +24,21 @@ export interface WhatsappQrResponse extends WhatsappSession {
 
 export type WhatsappMessageStatus = 'queued' | 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
+export interface WhatsappGroup {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface WhatsappGroupsResponse {
+  data: WhatsappGroup[];
+}
+
 export interface WhatsappMessage {
   id: string;
   to_phone: string;
+  chat_id?: string | null;
+  destination?: 'phone' | 'group';
   type: 'text' | 'file';
   body: string | null;
   file_name: string | null;
@@ -51,7 +63,8 @@ export interface WhatsappMessagesPage {
 }
 
 export interface SendWhatsappTextDto {
-  phone: string;
+  phone?: string;
+  group_id?: string;
   text: string;
   reference_type?: string;
   reference_id?: string;

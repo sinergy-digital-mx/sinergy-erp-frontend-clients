@@ -2,6 +2,7 @@
 
 ## Historial
 
+- 2026-10-23: **Siguiente pago** muestra monto + fecha `dd/MM/yyyy` (enganche o contrato). La fecha larga tipo “15 de noviembre de 2026” ya no va.
 - 2026-10-23: Badge **Enganche** / **Contrato** en cada fila. Siguiente pago con color distinto si es enganche (y **Último enganche** si es el último activo). Card **Vencidos**: total + desglose Contrato / Enganche. El Excel incluye Fase, Tipo Próximo Pago, Último Enganche y Vencidos Enganche.
 
 Las 4 cards de **Contratos** se recalculan con los **mismos filtros** que la tabla (no con toda la organización ni con `data[]` paginado).

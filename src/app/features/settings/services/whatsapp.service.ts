@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   SendWhatsappTextDto,
+  WhatsappGroupsResponse,
   WhatsappMessage,
   WhatsappMessagesPage,
   WhatsappQrResponse,
@@ -42,6 +43,10 @@ export class WhatsappService {
 
   remove(): Observable<{ ok: boolean }> {
     return this.http.delete<{ ok: boolean }>(`${this.api}/session`);
+  }
+
+  groups(): Observable<WhatsappGroupsResponse> {
+    return this.http.get<WhatsappGroupsResponse>(`${this.api}/groups`);
   }
 
   sendText(payload: SendWhatsappTextDto): Observable<WhatsappMessage> {

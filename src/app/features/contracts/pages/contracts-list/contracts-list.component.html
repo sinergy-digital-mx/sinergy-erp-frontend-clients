@@ -221,7 +221,7 @@
               </div>
               <div>
                 <span class="text-xs text-gray-500 block">Fecha</span>
-                <span class="text-gray-900">{{ item.contract_date | date:'mediumDate' }}</span>
+                <span class="text-gray-900">{{ item.contract_date | localDate:'dd/MM/yyyy' }}</span>
               </div>
               <div>
                 <span class="text-xs text-gray-500 block">Precio Total</span>
@@ -245,11 +245,16 @@
                 <span class="text-xs text-gray-500 block">Siguiente Pago</span>
                 <div class="flex items-center gap-2 flex-wrap">
                   <span
+                    *ngIf="item.next_payment_date"
                     class="next-payment"
                     [class.next-payment--enganche]="isNextPaymentDownPayment(item)"
                     [class.next-payment--contract]="getNextPaymentKind(item) === 'contract'">
-                    {{ item.next_payment_date | date:'mediumDate' }}
+                    <span *ngIf="item.next_payment_amount != null" class="next-payment__amount">
+                      {{ formatRowAmount(item.next_payment_amount) }}
+                    </span>
+                    <span class="next-payment__date">{{ item.next_payment_date | localDate:'dd/MM/yyyy' }}</span>
                   </span>
+                  <span *ngIf="!item.next_payment_date" class="text-gray-400">—</span>
                   <span *ngIf="isNextPaymentDownPayment(item)" class="next-payment-badge">
                     {{ isLastDownPayment(item) ? 'Último enganche' : 'Enganche' }}
                   </span>
@@ -338,7 +343,7 @@
     </span>
     <span *ngIf="!item.property" class="text-sm text-gray-400">—</span>
   </td>
-  <td>{{ item.contract_date | date:'mediumDate' }}</td>
+  <td>{{ item.contract_date | localDate:'dd/MM/yyyy' }}</td>
   <td>
     <span class="money-cell">
       {{ formatRowAmount(item.total_price) }}
@@ -358,11 +363,16 @@
   <td>
     <div class="flex items-center gap-2 flex-wrap">
       <span
+        *ngIf="item.next_payment_date"
         class="next-payment"
         [class.next-payment--enganche]="isNextPaymentDownPayment(item)"
         [class.next-payment--contract]="getNextPaymentKind(item) === 'contract'">
-        {{ item.next_payment_date | date:'mediumDate' }}
+        <span *ngIf="item.next_payment_amount != null" class="next-payment__amount">
+          {{ formatRowAmount(item.next_payment_amount) }}
+        </span>
+        <span class="next-payment__date">{{ item.next_payment_date | localDate:'dd/MM/yyyy' }}</span>
       </span>
+      <span *ngIf="!item.next_payment_date" class="text-gray-400">—</span>
       <span *ngIf="isNextPaymentDownPayment(item)" class="next-payment-badge">
         {{ isLastDownPayment(item) ? 'Último enganche' : 'Enganche' }}
       </span>

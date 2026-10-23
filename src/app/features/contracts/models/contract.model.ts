@@ -30,6 +30,10 @@ export interface Contract {
   payment_months: number;
   monthly_payment: number;
   first_payment_date: string;
+  /** Porcentaje de interés moratorio. 10 = 10%. */
+  interest_rate?: number | null;
+  /** Días después del vencimiento para sugerir el interés. */
+  payment_due_day?: number | null;
   currency: string;
   status: ContractStatus;
   notes?: string;
@@ -116,6 +120,8 @@ export interface CreateContractDto {
   down_payment: number;
   payment_months: number;
   first_payment_date: string;
+  interest_rate?: number | null;
+  payment_due_day?: number | null;
   currency: string;
   status?: ContractStatus;
   notes?: string;

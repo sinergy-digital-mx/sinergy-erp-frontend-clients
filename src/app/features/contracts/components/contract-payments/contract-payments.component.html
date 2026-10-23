@@ -1,9 +1,4 @@
 <div class="payments-container">
-  <div class="flex justify-end mb-2">
-    <button type="button" class="text-sm text-indigo-700" (click)="openReceiptBranding()">
-      Razón social y logo del recibo
-    </button>
-  </div>
   <div class="payments-toolbar" *ngIf="(calendarStartDate && calendarEndDate) || showScheduleForm">
     <div *ngIf="calendarStartDate && calendarEndDate" class="calendar-kpis">
       <div class="calendar-kpi">
@@ -22,24 +17,12 @@
 
     <app-button
       *ngIf="showScheduleForm"
-      [text]="canRegenerate ? 'Regenerar calendario' : 'Generar pagos'"
+      [text]="canGenerate ? 'Generar pagos' : 'Regenerar calendario'"
       size="sm"
       [fullWidth]="false"
-      [icon]="canRegenerate ? RotateCcw : Plus"
+      [icon]="canGenerate ? Plus : RotateCcw"
       (clicked)="openScheduleDialog()">
     </app-button>
-  </div>
-
-  <div *ngIf="showRegenerateBlockedBanner" class="schedule-banner">
-    <lucide-icon [img]="AlertTriangle" [size]="18" class="schedule-banner__icon"></lucide-icon>
-    <div>
-      <p *ngIf="stats()?.cannot_regenerate_reason" class="text-sm font-medium text-amber-900">
-        {{ stats()!.cannot_regenerate_reason }}
-      </p>
-      <p class="text-sm text-amber-800" [class.mt-1]="!!stats()?.cannot_regenerate_reason">
-        Debes revertir los pagos pagados o parciales antes de regenerar el calendario.
-      </p>
-    </div>
   </div>
 
   <div *ngIf="stats() && payments().length > 0" class="stat-grid">
@@ -78,6 +61,21 @@
       <span class="stat-card__value">{{ stats()!.overdue_count || 0 }}</span>
       <span class="stat-card__meta">{{ overdueAmount | currency:currency }}</span>
     </article>
+
+    <article *ngIf="hasLateInterestConfig" class="stat-card stat-card--interest">
+      <span class="stat-card__label">Intereses</span>
+      <span class="stat-card__value">{{ (stats()!.late_interest_pending_amount || 0) | currency:currency }}</span>
+      <span class="stat-card__meta">
+        {{ stats()!.late_interest_pending_count || 0 }} cuota(s)
+      </span>
+      <span class="stat-card__meta">{{ lateInterestPaymentsLabel }}</span>
+    </article>
+
+    <article *ngIf="hasLateInterestConfig" class="stat-card stat-card--interest-total">
+      <span class="stat-card__label">Total con intereses</span>
+      <span class="stat-card__value">{{ (stats()!.total_pending_with_interest || stats()!.total_pending || 0) | currency:currency }}</span>
+      <span class="stat-card__meta">Pendiente + intereses. No se suma al total de pagos.</span>
+    </article>
   </div>
 
   <div *ngIf="loading()" class="text-center py-8">
@@ -115,6 +113,7 @@
           <th>Estado</th>
           <th>Método</th>
           <th>Referencia</th>
+          <th>Interés</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -139,6 +138,59 @@
           </td>
           <td>{{ payment.payment_method || '—' }}</td>
           <td>{{ payment.reference_number || '—' }}</td>
+          <td>
+            <div class="interest-cell" *ngIf="editingInterestId() !== payment.id">
+              <span class="interest-cell__amount" [class.interest-cell__amount--active]="(payment.late_interest_amount || 0) > 0">
+                {{ (payment.late_interest_amount || 0) > 0 ? (payment.late_interest_amount | currency:currency) : '—' }}
+              </span>
+              <button
+                type="button"
+                class="interest-cell__info"
+                [matTooltip]="interestTooltip(payment)"
+                matTooltipPosition="above">
+                <lucide-icon [img]="Info" [size]="14"></lucide-icon>
+              </button>
+              <button
+                type="button"
+                class="interest-cell__action"
+                (click)="startEditInterest(payment)"
+                matTooltip="Editar interés"
+                matTooltipPosition="above">
+                <lucide-icon [img]="Edit" [size]="14"></lucide-icon>
+              </button>
+              <button
+                *ngIf="(payment.late_interest_amount || 0) > 0"
+                type="button"
+                class="interest-cell__action"
+                (click)="waiveInterest(payment)"
+                matTooltip="Quitar interés"
+                matTooltipPosition="above">
+                <lucide-icon [img]="X" [size]="14"></lucide-icon>
+              </button>
+              <button
+                *ngIf="payment.late_interest_waived && payment.late_interest_eligible"
+                type="button"
+                class="interest-cell__restore"
+                (click)="restoreInterest(payment)">
+                Aplicar
+              </button>
+            </div>
+            <div class="interest-cell interest-cell--editing" *ngIf="editingInterestId() === payment.id">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                class="interest-cell__input"
+                [value]="interestDraft()"
+                (input)="interestDraft.set($any($event.target).value)">
+              <button type="button" class="interest-cell__action" (click)="saveInterest(payment)" matTooltip="Guardar">
+                <lucide-icon [img]="Check" [size]="14"></lucide-icon>
+              </button>
+              <button type="button" class="interest-cell__action" (click)="cancelEditInterest()" matTooltip="Cancelar">
+                <lucide-icon [img]="X" [size]="14"></lucide-icon>
+              </button>
+            </div>
+          </td>
           <td>
             <div class="row-actions">
               <button

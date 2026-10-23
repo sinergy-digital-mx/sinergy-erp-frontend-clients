@@ -8,12 +8,12 @@ import { Contract } from '../../models/contract.model';
 import { DownPaymentStats } from '../../models/downpayment-payment.model';
 import { DownpaymentPaymentService } from '../../services/downpayment-payment.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
-import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail, Check, AlertTriangle, FileDown } from 'lucide-angular';
+import { LucideAngularModule, Plus, Edit, Trash2, X, DollarSign, RotateCcw, Mail, Check, FileDown, Info } from 'lucide-angular';
 import { PartialPaymentModalComponent } from '../partial-payment-modal/partial-payment-modal.component';
 import { EditPaymentModalComponent } from '../edit-payment-modal/edit-payment-modal.component';
 import { SendPaymentEmailModalComponent } from '../send-payment-email-modal/send-payment-email-modal.component';
-import { ReceiptBrandingComponent } from '../receipt-branding/receipt-branding.component';
 import { GeneratePaymentsDialogComponent } from '../generate-payments-dialog/generate-payments-dialog.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 
@@ -43,6 +43,8 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
   downpaymentStats = signal<DownPaymentStats | null>(null);
   loading = signal(false);
   currentPage = signal(1);
+  editingInterestId = signal<string | null>(null);
+  interestDraft = signal('');
   readonly pageSize = 20;
 
   readonly Plus = Plus;
@@ -55,7 +57,7 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
   readonly FileDown = FileDown;
   readonly Math = Math;
   readonly Check = Check;
-  readonly AlertTriangle = AlertTriangle;
+  readonly Info = Info;
 
   constructor(
     private paymentService: PaymentService,
@@ -128,6 +130,22 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
 
   openScheduleDialog(): void {
     if (!this.showScheduleForm) return;
+
+    if (this.hasExistingSchedule && !this.canRegenerate) {
+      const count = this.stats()?.paid_or_partial_count ?? 0;
+      const reason = this.stats()?.cannot_regenerate_reason
+        || `Hay ${count} pago(s) pagado(s) o parcial(es). Debes revertirlos antes de regenerar.`;
+      this.dialog.open(AlertDialogComponent, {
+        data: {
+          type: 'warning',
+          title: 'No se puede regenerar',
+          message: `${reason} Usa Revertir en cada cuota cobrada y vuelve a intentarlo.`,
+          text_cancel: 'Cerrar',
+          text_accept: 'Entendido'
+        }
+      });
+      return;
+    }
 
     const dialogRef = this.dialog.open(GeneratePaymentsDialogComponent, {
       width: '520px',
@@ -290,14 +308,6 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
     });
   }
 
-  openReceiptBranding() {
-    this.dialog.open(ReceiptBrandingComponent, {
-      width: '480px',
-      maxWidth: '96vw',
-      data: { contractId: this.contractId },
-    });
-  }
-
   downloadReceipt(payment: Payment) {
     this.paymentService.downloadReceipt(this.contractId, payment.id).subscribe({
       next: (blob) => {
@@ -360,6 +370,97 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
   }
 
   /** Monto pendiente solo de pagos vencidos (no todo total_pending). */
+  get hasLateInterestConfig(): boolean {
+    const stats = this.stats();
+    const rate = stats?.late_interest_rate_percent ?? Number(this.contract?.interest_rate || 0);
+    return rate > 0;
+  }
+
+  get lateInterestPaymentsLabel(): string {
+    const rows = this.stats()?.late_interest_payments || [];
+    if (!rows.length) return 'Sin cuotas con interés';
+    return rows.map((row) => `#${row.payment_number}`).join(' · ');
+  }
+
+  interestTooltip(payment: Payment): string {
+    const rate = payment.late_interest_rate_percent
+      ?? this.stats()?.late_interest_rate_percent
+      ?? Number(this.contract?.interest_rate || 0);
+    const days = payment.late_interest_grace_days
+      ?? this.stats()?.late_interest_grace_days
+      ?? Number(this.contract?.payment_due_day || 0);
+    const suggested = payment.late_interest_suggested ?? 0;
+
+    if (!rate) {
+      return 'Configura el interés de morosos en Editar.';
+    }
+
+    const rule = `A partir de ${days} día(s) después del vencimiento se cobra ${rate}%`;
+    if (payment.late_interest_waived) {
+      return `${rule}. Este pago está omitido.`;
+    }
+    if ((payment.late_interest_amount || 0) > 0) {
+      return `${rule} ($${suggested.toFixed(2)} sobre la cuota).`;
+    }
+    return `${rule} sobre la cuota.`;
+  }
+
+  startEditInterest(payment: Payment): void {
+    this.editingInterestId.set(payment.id);
+    this.interestDraft.set(String(payment.late_interest_amount ?? payment.late_interest_suggested ?? ''));
+  }
+
+  cancelEditInterest(): void {
+    this.editingInterestId.set(null);
+    this.interestDraft.set('');
+  }
+
+  saveInterest(payment: Payment): void {
+    const raw = this.interestDraft().trim();
+    if (raw === '') {
+      this.restoreInterest(payment);
+      return;
+    }
+
+    const amount = Number(raw);
+    if (!Number.isFinite(amount) || amount < 0) {
+      this.interceptorService.openSnackbar({
+        type: 'warning',
+        title: 'Advertencia',
+        message: 'El interés debe ser un monto válido'
+      });
+      return;
+    }
+
+    this.persistLateInterest(payment, { amount });
+  }
+
+  waiveInterest(payment: Payment): void {
+    this.persistLateInterest(payment, { waived: true, amount: 0 });
+  }
+
+  restoreInterest(payment: Payment): void {
+    this.persistLateInterest(payment, { waived: false, amount: null });
+  }
+
+  private persistLateInterest(payment: Payment, data: { amount?: number | null; waived?: boolean }): void {
+    this.paymentService.updateLateInterest(this.contractId, payment.id, data).subscribe({
+      next: () => {
+        this.cancelEditInterest();
+        this.loadPayments();
+        this.loadStats();
+        this.dataChanged.emit();
+      },
+      error: (err) => {
+        this.interceptorService.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: err.error?.message || 'No se pudo actualizar el interés'
+        });
+      }
+    });
+  }
+
   get overdueAmount(): number {
     const stats = this.stats();
     if (!stats) return 0;
@@ -388,16 +489,14 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
     return this.payments().length > 0 && (stats.paid_or_partial_count ?? 0) === 0;
   }
 
+  get hasExistingSchedule(): boolean {
+    return this.payments().length > 0 || (this.stats()?.total_payments ?? 0) > 0;
+  }
+
   get showScheduleForm(): boolean {
     return !this.isContractCompleted
       && !this.isDownpaymentFinancingBlocking
-      && (this.canGenerate || this.canRegenerate);
-  }
-
-  get showRegenerateBlockedBanner(): boolean {
-    const stats = this.stats();
-    if (!stats || this.canGenerate || this.canRegenerate) return false;
-    return (stats.paid_or_partial_count ?? 0) > 0 || !!stats.cannot_regenerate_reason;
+      && (this.canGenerate || this.hasExistingSchedule);
   }
 
   get calendarStartDate(): string | null {

@@ -3,6 +3,7 @@ import { CommonModule, DatePipe, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { LucideAngularModule, ArrowLeft, Info } from 'lucide-angular';
@@ -25,6 +26,7 @@ import { ContractLotSectionComponent } from '../../components/contract-lot-secti
 import { buildPendingBalanceTooltip } from '../../utils/pending-balance-tooltip.util';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { ContractFiscalOption, emptyFiscalSelectConfig, toFiscalSelectData } from '../../utils/contract-fiscal-select.util';
+import { ReceiptBrandingComponent } from '../../components/receipt-branding/receipt-branding.component';
 
 @Component({
   selector: 'app-contract-detail-page',
@@ -91,7 +93,8 @@ export class ContractDetailPageComponent implements OnInit {
     private interceptorService: InterceptorService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
-    private fiscalConfigService: FiscalConfigurationService
+    private fiscalConfigService: FiscalConfigurationService,
+    private dialog: MatDialog,
   ) {
     this.form = this.fb.group({
       contract_date: ['', Validators.required],
@@ -101,6 +104,8 @@ export class ContractDetailPageComponent implements OnInit {
       payment_months: [0, [Validators.required, Validators.min(0)]],
       monthly_payment: [{ value: 0, disabled: true }, [Validators.required, Validators.min(0)]],
       first_payment_date: ['', Validators.required],
+      interest_rate: [null],
+      payment_due_day: [null],
       currency: ['USD', Validators.required],
       status: ['activo', Validators.required],
       fiscal_configuration_id: [null, Validators.required],
@@ -168,6 +173,8 @@ export class ContractDetailPageComponent implements OnInit {
       payment_months: contract.payment_months,
       monthly_payment: contract.monthly_payment,
       first_payment_date: contract.first_payment_date,
+      interest_rate: contract.interest_rate ?? null,
+      payment_due_day: contract.payment_due_day ?? null,
       currency: contract.currency || 'USD',
       status: this.normalizeStatus(contract.status),
       fiscal_configuration_id: contract.fiscal_configuration_id || null,
@@ -280,6 +287,21 @@ export class ContractDetailPageComponent implements OnInit {
     return `${seller.first_name} ${seller.last_name} (${seller.email})`;
   }
 
+  openReceiptBranding(): void {
+    const current = this.contract();
+    if (!current) return;
+    this.dialog.open(ReceiptBrandingComponent, {
+      width: '480px',
+      maxWidth: '96vw',
+      data: { contractId: current.id },
+    });
+  }
+
+  headerDownPaymentTarget(contract: Contract): number | null {
+    const target = getDownPaymentTarget(contract);
+    return target != null && target > 0 ? target : null;
+  }
+
   getPendingBreakdown(): string {
     const current = this.contract();
     if (!current) return '';
@@ -352,6 +374,8 @@ export class ContractDetailPageComponent implements OnInit {
       down_payment: this.form.get('down_payment')?.value,
       payment_months: this.form.get('payment_months')?.value,
       first_payment_date: this.form.get('first_payment_date')?.value,
+      interest_rate: this.toOptionalNumber(this.form.get('interest_rate')?.value),
+      payment_due_day: this.toOptionalNumber(this.form.get('payment_due_day')?.value),
       currency: this.form.get('currency')?.value,
       status: this.normalizeStatus(this.form.get('status')?.value),
       fiscal_configuration_id: this.form.get('fiscal_configuration_id')?.value || null,
@@ -419,6 +443,12 @@ export class ContractDetailPageComponent implements OnInit {
       list_price: previous?.list_price ?? null,
       status: property.status
     };
+  }
+
+  private toOptionalNumber(value: unknown): number | null {
+    if (value === '' || value == null) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   getCustomerName(): string {

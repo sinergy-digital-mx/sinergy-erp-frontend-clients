@@ -248,15 +248,38 @@
 }
 
 .next-payment {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: #334155;
+  white-space: nowrap;
+
+  &__amount {
+    font-weight: 700;
+  }
+
+  &__date {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #64748b;
+  }
 
   &--enganche {
     color: #c2410c;
+
+    .next-payment__date {
+      color: #9a3412;
+    }
   }
 
   &--contract {
     color: #0f766e;
+
+    .next-payment__date {
+      color: #0f766e;
+    }
   }
 }
 

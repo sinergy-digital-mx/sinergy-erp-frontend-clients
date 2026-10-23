@@ -14,6 +14,7 @@ import {
   Paperclip,
   RefreshCw,
   Unplug,
+  Users,
 } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -21,6 +22,7 @@ import { InterceptorService } from '../../../../core/services/interceptor.servic
 import { WHATSAPP_PERMISSIONS } from '../../config/whatsapp-permissions.config';
 import {
   WhatsappConnectionState,
+  WhatsappGroup,
   WhatsappMessage,
   WhatsappSession,
 } from '../../models/whatsapp.model';
@@ -42,16 +44,22 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
   readonly Paperclip = Paperclip;
   readonly RefreshCw = RefreshCw;
   readonly Unplug = Unplug;
+  readonly Users = Users;
 
   session = signal<WhatsappSession | null>(null);
   qrDataUrl = signal<string | null>(null);
   loading = signal(true);
   busy = signal(false);
   messages = signal<WhatsappMessage[]>([]);
+  groups = signal<WhatsappGroup[]>([]);
+  groupsLoading = signal(false);
+  groupsError = signal<string | null>(null);
 
   pairingPhone = '';
   pairingCode = signal<string | null>(null);
+  testDestination: 'phone' | 'group' = 'phone';
   testPhone = '';
+  testGroupId = '';
   testText = 'Hola, esta es una prueba de WhatsApp desde el ERP.';
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -252,10 +260,16 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
   }
 
   sendTest(): void {
-    const phone = this.cleanPhone(this.testPhone);
-    if (!phone || !this.testText.trim()) return;
+    const text = this.testText.trim();
+    if (!text) return;
+    const payload =
+      this.testDestination === 'group'
+        ? { group_id: this.testGroupId.trim(), text }
+        : { phone: this.cleanPhone(this.testPhone), text };
+    if ('group_id' in payload && !payload.group_id) return;
+    if ('phone' in payload && !payload.phone) return;
     this.busy.set(true);
-    this.whatsapp.sendText({ phone, text: this.testText.trim() }).subscribe({
+    this.whatsapp.sendText(payload).subscribe({
       next: () => {
         this.busy.set(false);
         this.interceptor.openSnackbar({
@@ -268,6 +282,39 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.busy.set(false);
         this.toastError(err, 'No se pudo enviar el mensaje');
+      },
+    });
+  }
+
+  destinationLabel(message: WhatsappMessage): string {
+    return message.destination === 'group' || (message.to_phone ?? '').includes('@g.us')
+      ? message.to_phone
+      : `+${message.to_phone}`;
+  }
+
+  loadGroups(): void {
+    if (this.state !== 'connected') {
+      this.groups.set([]);
+      this.groupsError.set(null);
+      return;
+    }
+    this.groupsLoading.set(true);
+    this.groupsError.set(null);
+    this.whatsapp.groups().subscribe({
+      next: (page) => {
+        this.groups.set(page.data);
+        this.groupsLoading.set(false);
+        if (this.testGroupId && !page.data.some((group) => group.id === this.testGroupId)) {
+          this.testGroupId = '';
+        }
+      },
+      error: (err) => {
+        this.groups.set([]);
+        this.groupsLoading.set(false);
+        const raw = err?.error?.message;
+        this.groupsError.set(
+          (Array.isArray(raw) ? raw[0] : raw) || 'No se pudieron cargar los grupos',
+        );
       },
     });
   }
@@ -316,6 +363,10 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
         });
       }
       this.loadMessages();
+      this.loadGroups();
+    } else {
+      this.groups.set([]);
+      this.groupsError.set(null);
     }
   }
 

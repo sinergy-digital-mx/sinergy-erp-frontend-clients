@@ -242,17 +242,43 @@
                   <lucide-icon [img]="X" [size]="16"></lucide-icon>
                 </button>
               </div>
-              <label class="sub-mail-field">
-                Teléfono de WhatsApp
-                <input
-                  class="sub-input"
-                  type="tel"
-                  autocomplete="tel"
-                  placeholder="10 dígitos (México) o +código de país"
-                  [value]="reminderPhone()"
-                  (input)="reminderPhone.set($any($event.target).value)"
-                  (paste)="onReminderPhonePaste($event)" />
-              </label>
+              <div class="sub-dest" role="tablist" aria-label="Destino del recordatorio">
+                <button type="button" class="sub-dest__btn" [class.is-active]="reminderDest() === 'phone'" (click)="reminderDest.set('phone')">Teléfono</button>
+                <button type="button" class="sub-dest__btn" [class.is-active]="reminderDest() === 'group'" (click)="reminderDest.set('group')">Grupo</button>
+              </div>
+              @if (reminderDest() === 'phone') {
+                <label class="sub-mail-field">
+                  Teléfono de WhatsApp
+                  <input
+                    class="sub-input"
+                    type="tel"
+                    autocomplete="tel"
+                    placeholder="10 dígitos (México) o +código de país"
+                    [value]="reminderPhone()"
+                    (input)="reminderPhone.set($any($event.target).value)"
+                    (paste)="onReminderPhonePaste($event)" />
+                </label>
+              } @else {
+                <label class="sub-mail-field">
+                  Grupo de WhatsApp
+                  <select
+                    class="sub-input"
+                    [value]="reminderGroupId()"
+                    (change)="reminderGroupId.set($any($event.target).value)">
+                    <option value="">Selecciona un grupo</option>
+                    @for (group of reminderGroups(); track group.id) {
+                      <option [value]="group.id">{{ group.name }} — {{ group.id }}</option>
+                    }
+                  </select>
+                </label>
+                @if (reminderGroupsLoading()) {
+                  <p class="sub-lead">Cargando grupos…</p>
+                } @else if (reminderGroupsError(); as error) {
+                  <p class="sub-lead">{{ error }}</p>
+                } @else if (!reminderGroups().length) {
+                  <p class="sub-lead">Este WhatsApp no tiene grupos. Conéctalo en Configuración.</p>
+                }
+              }
               <div class="sub-dialog__actions">
                 <button type="button" class="sub-btn sub-btn--ghost" [disabled]="busy()" (click)="reminderPeriod.set(null)">Cancelar</button>
                 <button type="submit" class="page-create-btn" [disabled]="busy()">Enviar</button>

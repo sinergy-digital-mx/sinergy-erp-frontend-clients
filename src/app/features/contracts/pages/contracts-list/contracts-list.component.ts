@@ -1,5 +1,5 @@
 import { Component, signal, TemplateRef, ViewChild, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
@@ -38,6 +38,7 @@ import { FilterClearButtonComponent } from '../../../../core/components/filter-c
 import { CustomerGroupDropdownComponent } from '../../../customers/components/customer-group-dropdown/customer-group-dropdown.component';
 import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
+import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-contracts-list',
@@ -53,7 +54,9 @@ import { EmptyStageComponent } from '../../../../core/components/empty-stage/emp
     FilterClearButtonComponent,
     CustomerGroupDropdownComponent,
     EmptyStageComponent,
+    LocalDatePipe,
   ],
+  providers: [DatePipe],
   templateUrl: './contracts-list.component.html',
   styleUrl: './contracts-list.component.scss'
 })
@@ -70,7 +73,7 @@ export class ContractsListComponent implements OnDestroy {
       { name: 'Fecha Inicio', prop: 'contract_date', sortable: true, canAutoResize: true, width: 120 },
       { name: 'Precio Total', prop: 'total_price', sortable: true, canAutoResize: true, width: 120 },
       { name: 'Saldo Pendiente', prop: 'remaining_balance', sortable: true, canAutoResize: true, width: 130 },
-      { name: 'Siguiente Pago', prop: 'first_payment_date', sortable: true, canAutoResize: true, width: 170 },
+      { name: 'Siguiente Pago', prop: 'first_payment_date', sortable: true, canAutoResize: true, width: 200 },
       { name: 'Estado', prop: 'status', sortable: true, canAutoResize: true, width: 100 },
       { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 120 },
     ],

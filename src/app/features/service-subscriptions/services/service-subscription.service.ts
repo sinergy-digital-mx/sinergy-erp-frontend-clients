@@ -52,11 +52,14 @@ export class ServiceSubscriptionService {
   sendWhatsappReminder(
     id: string,
     periodId: string,
-    phone?: string,
+    dest: { phone?: string; group_id?: string } = {},
   ): Observable<{ sent_to: string; image_sent: boolean; invoice_attached: boolean }> {
     return this.http.post<{ sent_to: string; image_sent: boolean; invoice_attached: boolean }>(
       `${this.baseUrl}/${id}/periods/${periodId}/whatsapp-reminder`,
-      { phone: phone || undefined },
+      {
+        phone: dest.phone || undefined,
+        group_id: dest.group_id || undefined,
+      },
     );
   }
 

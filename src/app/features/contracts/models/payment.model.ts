@@ -16,6 +16,14 @@ export interface Payment {
   payment_method: string | null;
   reference_number: string | null;
   notes: string | null;
+  late_interest_amount?: number;
+  late_interest_suggested?: number;
+  late_interest_waived?: boolean;
+  late_interest_eligible?: boolean;
+  late_interest_manual?: boolean;
+  late_interest_days_overdue?: number;
+  late_interest_rate_percent?: number;
+  late_interest_grace_days?: number;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +110,12 @@ export interface PaymentStats {
     due_date: string;
     amount: number;
   } | null;
+  late_interest_rate_percent?: number;
+  late_interest_grace_days?: number;
+  late_interest_pending_amount?: number;
+  late_interest_pending_count?: number;
+  late_interest_payments?: Array<{ payment_number: number; amount: number }>;
+  total_pending_with_interest?: number;
 }
 
 /**

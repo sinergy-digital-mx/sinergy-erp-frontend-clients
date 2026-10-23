@@ -237,10 +237,16 @@ export const WHATSAPP_GUIDES: Guide[] = [
                 "Estado de la conexión. Revisar `state === \"connected\"` antes de enviar"
               ],
               [
+                "`GET`",
+                "`/groups`",
+                "Read",
+                "Grupos de la sesión. `{ data: [{ id, name, description }] }`. `id` termina en `@g.us`"
+              ],
+              [
                 "`POST`",
                 "`/messages/text`",
                 "Create",
-                "Enviar texto (responde **202**)"
+                "Enviar texto (responde **202**). Body: `phone` o `group_id`"
               ],
               [
                 "`POST`",
@@ -293,8 +299,14 @@ export const WHATSAPP_GUIDES: Guide[] = [
               [
                 "`phone`",
                 "string (máx. 32)",
-                "Sí",
+                "Sí, si no hay `group_id`",
                 "Ver reglas de teléfono (2.5)"
+              ],
+              [
+                "`group_id`",
+                "string (máx. 80)",
+                "Sí, si no hay `phone`",
+                "`120363…@g.us`. Si vienen los dos, gana el grupo"
               ],
               [
                 "`text`",

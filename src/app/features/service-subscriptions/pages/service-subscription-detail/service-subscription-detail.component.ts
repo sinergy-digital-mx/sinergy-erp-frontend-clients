@@ -6,6 +6,8 @@ import { LucideAngularModule, ArrowLeft, X } from 'lucide-angular';
 import { firstValueFrom, Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { ServiceSubscriptionService } from '../../services/service-subscription.service';
+import { WhatsappService } from '../../../settings/services/whatsapp.service';
+import { WhatsappGroup } from '../../../settings/models/whatsapp.model';
 import {
   ServiceSubscriptionDetail,
   ServiceSubscriptionPeriod,
@@ -46,6 +48,7 @@ export class ServiceSubscriptionDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(ServiceSubscriptionService);
+  private readonly whatsapp = inject(WhatsappService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
@@ -64,7 +67,12 @@ export class ServiceSubscriptionDetailComponent {
   readonly summaryOpen = signal(false);
   readonly summaryEmail = signal('');
   readonly reminderPeriod = signal<ServiceSubscriptionPeriod | null>(null);
+  readonly reminderDest = signal<'phone' | 'group'>('phone');
   readonly reminderPhone = signal('');
+  readonly reminderGroupId = signal('');
+  readonly reminderGroups = signal<WhatsappGroup[]>([]);
+  readonly reminderGroupsLoading = signal(false);
+  readonly reminderGroupsError = signal<string | null>(null);
   readonly ordersLoading = signal(false);
   readonly detail = signal<ServiceSubscriptionDetail | null>(null);
   readonly linkingPeriod = signal<ServiceSubscriptionPeriod | null>(null);
@@ -98,8 +106,29 @@ export class ServiceSubscriptionDetailComponent {
   openReminder(period: ServiceSubscriptionPeriod): void {
     const detail = this.detail();
     if (!detail || this.busy()) return;
+    this.reminderDest.set('phone');
     this.reminderPhone.set(detail.customer_phone || '');
+    this.reminderGroupId.set('');
     this.reminderPeriod.set(period);
+    this.loadReminderGroups();
+  }
+
+  loadReminderGroups(): void {
+    this.reminderGroupsLoading.set(true);
+    this.reminderGroupsError.set(null);
+    this.whatsapp.groups().subscribe({
+      next: (page) => {
+        this.reminderGroups.set(page.data);
+        this.reminderGroupsLoading.set(false);
+      },
+      error: (error) => {
+        this.reminderGroups.set([]);
+        this.reminderGroupsLoading.set(false);
+        this.reminderGroupsError.set(
+          resolveHttpErrorMessage(error, 'No se pudieron cargar los grupos'),
+        );
+      },
+    });
   }
 
   /** Al pegar un teléfono quita espacios, guiones y paréntesis. */
@@ -112,20 +141,28 @@ export class ServiceSubscriptionDetailComponent {
     const detail = this.detail();
     const period = this.reminderPeriod();
     if (!detail || !period || this.busy()) return;
-    const phone = this.cleanPhone(this.reminderPhone());
-    if (!phone) {
+    const dest =
+      this.reminderDest() === 'group'
+        ? { group_id: this.reminderGroupId() }
+        : { phone: this.cleanPhone(this.reminderPhone()) };
+    if (this.reminderDest() === 'group' && !dest.group_id) {
+      this.toast.error('Selecciona un grupo de WhatsApp');
+      return;
+    }
+    if (this.reminderDest() === 'phone' && !dest.phone) {
       this.toast.error('Indica el teléfono de WhatsApp');
       return;
     }
     this.busy.set(true);
-    this.api.sendWhatsappReminder(detail.id, period.id, phone).subscribe({
+    this.api.sendWhatsappReminder(detail.id, period.id, dest).subscribe({
       next: (result) => {
         this.busy.set(false);
         this.reminderPeriod.set(null);
+        const to = result.sent_to.includes('@g.us') ? result.sent_to : `+${result.sent_to}`;
         this.toast.success(
           result.invoice_attached
-            ? `Recordatorio y factura en cola para +${result.sent_to}`
-            : `Recordatorio en cola para +${result.sent_to}`,
+            ? `Recordatorio y factura en cola para ${to}`
+            : `Recordatorio en cola para ${to}`,
         );
       },
       error: (error) => {

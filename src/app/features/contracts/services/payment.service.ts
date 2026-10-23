@@ -86,6 +86,17 @@ export class PaymentService {
     return this.http.put<Payment>(`${this.api}/tenant/contracts/${contractId}/payments/${paymentId}`, data);
   }
 
+  updateLateInterest(
+    contractId: string,
+    paymentId: string,
+    data: { amount?: number | null; waived?: boolean },
+  ): Observable<Payment> {
+    return this.http.patch<Payment>(
+      `${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/late-interest`,
+      data,
+    );
+  }
+
   markAsPaid(contractId: string, paymentId: string, data: MarkPaymentPaidDto): Observable<Payment> {
     return this.http.post<Payment>(`${this.api}/tenant/contracts/${contractId}/payments/${paymentId}/pay`, data);
   }

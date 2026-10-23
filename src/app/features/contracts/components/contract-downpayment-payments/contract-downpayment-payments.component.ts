@@ -10,7 +10,6 @@ import { DownPaymentPayment, DownPaymentStats } from '../../models/downpayment-p
 import { DownpaymentPaymentService } from '../../services/downpayment-payment.service';
 import { PaymentService } from '../../services/payment.service';
 import { SendPaymentEmailModalComponent } from '../send-payment-email-modal/send-payment-email-modal.component';
-import { ReceiptBrandingComponent } from '../receipt-branding/receipt-branding.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { PartialDownpaymentModalComponent } from '../partial-downpayment-modal/partial-downpayment-modal.component';
 import { EditDownpaymentPaymentModalComponent } from '../edit-downpayment-payment-modal/edit-downpayment-payment-modal.component';
@@ -71,14 +70,6 @@ export class ContractDownpaymentPaymentsComponent implements OnInit {
           message: 'No se pudo descargar el recibo',
         });
       },
-    });
-  }
-
-  openReceiptBranding(): void {
-    this.dialog.open(ReceiptBrandingComponent, {
-      width: '480px',
-      maxWidth: '96vw',
-      data: { contractId: this.contractId },
     });
   }
 
