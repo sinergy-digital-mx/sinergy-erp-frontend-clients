@@ -27,6 +27,10 @@ import { buildPendingBalanceTooltip } from '../../utils/pending-balance-tooltip.
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { ContractFiscalOption, emptyFiscalSelectConfig, toFiscalSelectData } from '../../utils/contract-fiscal-select.util';
 import { ReceiptBrandingComponent } from '../../components/receipt-branding/receipt-branding.component';
+import {
+  DEFAULT_LATE_INTEREST_GRACE_DAYS,
+  DEFAULT_LATE_INTEREST_RATE_PERCENT,
+} from '../../utils/late-interest';
 
 @Component({
   selector: 'app-contract-detail-page',
@@ -104,8 +108,8 @@ export class ContractDetailPageComponent implements OnInit {
       payment_months: [0, [Validators.required, Validators.min(0)]],
       monthly_payment: [{ value: 0, disabled: true }, [Validators.required, Validators.min(0)]],
       first_payment_date: ['', Validators.required],
-      interest_rate: [null],
-      payment_due_day: [null],
+      interest_rate: [DEFAULT_LATE_INTEREST_RATE_PERCENT],
+      payment_due_day: [DEFAULT_LATE_INTEREST_GRACE_DAYS],
       currency: ['USD', Validators.required],
       status: ['activo', Validators.required],
       fiscal_configuration_id: [null, Validators.required],
@@ -173,8 +177,8 @@ export class ContractDetailPageComponent implements OnInit {
       payment_months: contract.payment_months,
       monthly_payment: contract.monthly_payment,
       first_payment_date: contract.first_payment_date,
-      interest_rate: contract.interest_rate ?? null,
-      payment_due_day: contract.payment_due_day ?? null,
+      interest_rate: contract.interest_rate ?? DEFAULT_LATE_INTEREST_RATE_PERCENT,
+      payment_due_day: contract.payment_due_day ?? DEFAULT_LATE_INTEREST_GRACE_DAYS,
       currency: contract.currency || 'USD',
       status: this.normalizeStatus(contract.status),
       fiscal_configuration_id: contract.fiscal_configuration_id || null,

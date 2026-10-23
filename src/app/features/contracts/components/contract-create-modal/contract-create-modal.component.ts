@@ -27,6 +27,10 @@ import { GroupSelectComponent } from '../../../../core/components/group-select/g
 import { LeadService } from '../../../../core/services/leads.service';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { emptyFiscalSelectConfig, toFiscalSelectData } from '../../utils/contract-fiscal-select.util';
+import {
+  DEFAULT_LATE_INTEREST_GRACE_DAYS,
+  DEFAULT_LATE_INTEREST_RATE_PERCENT,
+} from '../../utils/late-interest';
 
 /**
  * Convierte montos del formulario a número.
@@ -182,6 +186,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       down_payment: [0, [contractMoneyValidator]],
       payment_months: [1, [Validators.required, Validators.min(1)]],
       first_payment_date: ['', Validators.required],
+      interest_rate: [DEFAULT_LATE_INTEREST_RATE_PERCENT, [Validators.required, Validators.min(0), Validators.max(100)]],
+      payment_due_day: [DEFAULT_LATE_INTEREST_GRACE_DAYS, [Validators.required, Validators.min(0), Validators.max(365)]],
       currency: ['MXN', Validators.required],
       status: ['activo', Validators.required],
       fiscal_configuration_id: [null, Validators.required],
@@ -670,6 +676,8 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       down_payment: downPaymentFinanced ? 0 : parseContractAmount(this.form.get('down_payment')!.value),
       payment_months: Math.max(1, Math.round(parseContractAmount(this.form.get('payment_months')!.value) || 1)),
       first_payment_date: this.form.get('first_payment_date')!.value,
+      interest_rate: Number(this.form.get('interest_rate')!.value ?? DEFAULT_LATE_INTEREST_RATE_PERCENT),
+      payment_due_day: Number(this.form.get('payment_due_day')!.value ?? DEFAULT_LATE_INTEREST_GRACE_DAYS),
       currency: this.form.get('currency')!.value,
       status: this.form.get('status')!.value,
       fiscal_configuration_id: this.form.get('fiscal_configuration_id')!.value,

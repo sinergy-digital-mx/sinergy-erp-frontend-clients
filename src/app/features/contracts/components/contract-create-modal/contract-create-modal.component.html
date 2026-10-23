@@ -267,6 +267,19 @@
             [type]="'date'">
           </app-input>
         </div>
+        <p class="section-lead">Intereses de morosos. Default 10% a partir de 6 días; se puede cambiar.</p>
+        <div class="field-grid">
+          <app-input
+            [label]="'Porcentaje de interés (%)'"
+            [form_control]="form.get('interest_rate')"
+            [type]="'number'">
+          </app-input>
+          <app-input
+            [label]="'A partir de (días)'"
+            [form_control]="form.get('payment_due_day')"
+            [type]="'number'">
+          </app-input>
+        </div>
         <div class="money-summary">
           <div class="money-summary__item">
             <span>Saldo pendiente</span>
