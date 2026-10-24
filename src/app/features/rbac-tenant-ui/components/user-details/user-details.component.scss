@@ -541,7 +541,14 @@
   }
 
   .user-detail__actions {
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-content: stretch;
+
+    ::ng-deep .user-detail__action-btn {
+      width: 100%;
+      min-width: 0;
+    }
   }
 
   .user-detail__body {

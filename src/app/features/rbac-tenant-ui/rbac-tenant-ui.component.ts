@@ -12,7 +12,7 @@ import { RouterOutlet } from '@angular/router';
   standalone: true,
   imports: [CommonModule, RouterOutlet],
   template: `
-    <div class="h-screen flex flex-col">
+    <div class="rbac-shell">
       <router-outlet></router-outlet>
     </div>
   `,
@@ -20,6 +20,31 @@ import { RouterOutlet } from '@angular/router';
     :host {
       display: block;
       height: 100%;
+    }
+
+    .rbac-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    @media (max-width: 1023px) {
+      :host {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .rbac-shell {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+      }
+
+      .rbac-shell > app-users-management {
+        flex: 1 1 auto;
+        min-height: 0;
+      }
     }
   `]
 })

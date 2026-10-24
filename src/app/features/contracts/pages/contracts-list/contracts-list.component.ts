@@ -1,4 +1,4 @@
-import { Component, signal, TemplateRef, ViewChild, OnDestroy } from '@angular/core';
+import { Component, ElementRef, OnDestroy, signal, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -39,6 +39,7 @@ import { CustomerGroupDropdownComponent } from '../../../customers/components/cu
 import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
+import { MobileFilterSheetComponent } from '../../../../core/components/mobile-filter-sheet/mobile-filter-sheet.component';
 
 @Component({
   selector: 'app-contracts-list',
@@ -55,6 +56,7 @@ import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
     CustomerGroupDropdownComponent,
     EmptyStageComponent,
     LocalDatePipe,
+    MobileFilterSheetComponent,
   ],
   providers: [DatePipe],
   templateUrl: './contracts-list.component.html',
@@ -62,6 +64,9 @@ import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 })
 export class ContractsListComponent implements OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
+  @ViewChild('mobileSentinel') set mobileSentinel(ref: ElementRef<HTMLElement> | undefined) {
+    this.observeMobileSentinel(ref);
+  }
 
   table_config = signal<IDatatableConfig>({
     rows: [],
@@ -95,6 +100,9 @@ export class ContractsListComponent implements OnDestroy {
   readonly formatRowAmount = formatPolluxAmount;
   readonly resolveCurrency = resolvePolluxCurrency;
   readonly skeletonSlots = [0, 1, 2, 3];
+  readonly cardSkeletonSlots = [0, 1, 2, 3, 4];
+  readonly mobileFeed = signal<Contract[]>([]);
+  readonly loadingMore = signal(false);
   search = '';
   selectedGroupId: string | null = null;
   downPaymentFinanced = false;
@@ -108,6 +116,9 @@ export class ContractsListComponent implements OnDestroy {
   private lastFilterKey = '';
   private listRequestId = 0;
   private statsRequestId = 0;
+  private mobilePage = 1;
+  private mobileObserver?: IntersectionObserver;
+  private mobileSentinelEl?: HTMLElement;
 
   constructor(
     private router: Router,
@@ -190,6 +201,7 @@ export class ContractsListComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.mobileObserver?.disconnect();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -256,11 +268,29 @@ export class ContractsListComponent implements OnDestroy {
   }
 
   getContracts() {
+    this.fetchContracts({ append: false, page: this.table_config().page });
+  }
+
+  loadMoreMobile(): void {
+    if (this.loadingMore() || this.table_config().loading || !this.table_config().hasNext) {
+      return;
+    }
+    this.fetchContracts({ append: true, page: this.mobilePage + 1 });
+  }
+
+  private fetchContracts(options: { append: boolean; page: number }): void {
     const requestId = ++this.listRequestId;
-    this.table_config.update(c => ({ ...c, loading: true }));
+    const append = options.append;
     const config = this.table_config();
-    const page = isNaN(config.page) ? 1 : config.page;
+    const page = isNaN(options.page) ? 1 : options.page;
     const limit = isNaN(config.limit) ? 20 : config.limit;
+
+    if (append) {
+      this.loadingMore.set(true);
+    } else {
+      this.loadingMore.set(false);
+      this.table_config.update(c => ({ ...c, loading: true }));
+    }
 
     this.contractService.getContracts({
       ...this.buildApiFilters(),
@@ -272,7 +302,7 @@ export class ContractsListComponent implements OnDestroy {
           return;
         }
 
-        let contracts = [];
+        let contracts: Contract[] = [];
         let total = 0;
         let hasNext = false;
 
@@ -286,22 +316,60 @@ export class ContractsListComponent implements OnDestroy {
           hasNext = res.pagination?.hasNext ?? (page * limit < total);
         }
 
+        this.mobilePage = page;
+        if (append) {
+          this.mobileFeed.update((rows) => [...rows, ...contracts]);
+        } else {
+          this.mobileFeed.set(contracts);
+        }
+
         this.table_config.update(c => ({
           ...c,
-          rows: contracts,
+          rows: append ? c.rows : contracts,
           totalResults: total,
-          hasNext: hasNext,
+          hasNext,
           loading: false,
         }));
+        this.loadingMore.set(false);
+        queueMicrotask(() => this.continueMobileLoadIfVisible());
       },
       error: () => {
         if (requestId !== this.listRequestId) {
           return;
         }
         this.table_config.update(c => ({ ...c, loading: false }));
+        this.loadingMore.set(false);
         this.toast.error('No se pudieron cargar los contratos');
       }
     });
+  }
+
+  private observeMobileSentinel(ref?: ElementRef<HTMLElement>): void {
+    this.mobileObserver?.disconnect();
+    this.mobileSentinelEl = ref?.nativeElement;
+    if (!this.mobileSentinelEl) {
+      return;
+    }
+    this.mobileObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          this.loadMoreMobile();
+        }
+      },
+      { root: null, rootMargin: '240px', threshold: 0.01 },
+    );
+    this.mobileObserver.observe(this.mobileSentinelEl);
+  }
+
+  private continueMobileLoadIfVisible(): void {
+    const el = this.mobileSentinelEl;
+    if (!el || this.loadingMore() || this.table_config().loading || !this.table_config().hasNext) {
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight + 240) {
+      this.loadMoreMobile();
+    }
   }
 
   onPageChange(event: IPaginationEvent) {
@@ -351,6 +419,13 @@ export class ContractsListComponent implements OnDestroy {
       relativeTo: this.route,
       queryParams: {}
     });
+  }
+
+  get sheetFilterCount(): number {
+    const query = this.route.snapshot.queryParams;
+    return Number(!!this.selectedGroupId)
+      + Number(this.downPaymentFinanced)
+      + Number(!!query['status'] || query['hasOverdue']);
   }
 
   get hasActiveFilters(): boolean {

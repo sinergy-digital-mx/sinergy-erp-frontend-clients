@@ -164,6 +164,10 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
     this.stateService.selectUser(userId);
   }
 
+  closeMobileDetail(): void {
+    this.stateService.clearUserSelection();
+  }
+
   /**
    * Navigates back to Settings
    */
@@ -177,6 +181,7 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
   openCreateUserDialog(): void {
     this.dialog.open(UserDetailModalComponent, {
       width: '840px',
+      maxWidth: 'calc(100vw - 1rem)',
       maxHeight: '90vh',
       disableClose: false,
       panelClass: 'custom-dialog-container',

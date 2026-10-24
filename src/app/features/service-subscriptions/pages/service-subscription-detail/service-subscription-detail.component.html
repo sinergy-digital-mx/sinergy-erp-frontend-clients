@@ -102,6 +102,7 @@
                   <tr>
                     <th>Mes</th>
                     <th>Estado</th>
+                    <th>Pago</th>
                     <th>Orden</th>
                     <th class="is-right">Monto</th>
                     <th></th>
@@ -121,6 +122,9 @@
                         @if (visibleError(period); as error) {
                           <div class="sub-warn">{{ error }}</div>
                         }
+                      </td>
+                      <td>
+                        <span class="sub-pill" [attr.data-pay]="payKey(period.paid)">{{ payLabel(period.paid) }}</span>
                       </td>
                       <td>
                         @if (period.sales_order_id) {

@@ -1,12 +1,17 @@
 # UI — Stats y filtros del listado de lotes
 
+## Historial
+
+- 2026-10-24: Filtros de celular en sheet desde abajo. Cards + scroll infinito. Escritorio sigue con la tabla.
+- 2026-10-24: En celular, listado en **cards** (código, nombre, precio, área, cliente). Scroll infinito. Escritorio sigue con la tabla. KPIs en riel horizontal.
+
 Un solo catálogo: **grupos de clientes**. `property_groups` / “Proyecto” ya no aplica al lote.
 
 Tira de **4 cards** encima de la tabla. Los números salen de `GET /tenant/properties/stats` con los **mismos filtros** que el listado. No sumar `data[]`.
 
 ## Layout
 
-Filtros → KPIs → tabla. Grid: 1 col mobile, 2 tablet, 4 desktop. No clickeables.
+Filtros → KPIs → tabla (escritorio) o cards (celular). KPIs: riel en celular, 2/4 cols en escritorio. No clickeables.
 
 ```
 [ Buscar… ] [ Estado ▼ ] [ Grupo de cliente ▼ ]

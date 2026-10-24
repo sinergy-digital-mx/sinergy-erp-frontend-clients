@@ -1,0 +1,161 @@
+:host,
+.mfs__panel,
+.mfs__fields {
+  display: contents;
+}
+
+.mfs__trigger,
+.mfs__chrome,
+.mfs__foot,
+.mfs__backdrop {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  :host {
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  .mfs__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .mfs__badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #4f46e5;
+    color: #fff;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+  }
+
+  .mfs__panel {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1300;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    max-height: min(78dvh, 560px);
+    padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0;
+    background: #fff;
+    box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.18);
+  }
+
+  .mfs__panel--open {
+    display: flex;
+  }
+
+  .mfs__chrome,
+  .mfs__foot {
+    display: flex;
+  }
+
+  .mfs__chrome {
+    flex-direction: column;
+  }
+
+  .mfs__handle {
+    width: 36px;
+    height: 4px;
+    margin: 10px auto 4px;
+    border-radius: 999px;
+    background: #e2e8f0;
+  }
+
+  .mfs__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 12px;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+  }
+
+  .mfs__x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: #475569;
+    cursor: pointer;
+  }
+
+  .mfs__fields {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    overflow-y: auto;
+    padding-bottom: 12px;
+
+    > * {
+      width: 100%;
+    }
+  }
+
+  .mfs__foot {
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .mfs__clear,
+  .mfs__done {
+    height: 44px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .mfs__clear {
+    flex: 0 0 auto;
+    padding: 0 16px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+  }
+
+  .mfs__done {
+    flex: 1;
+    border: none;
+    background: #4f46e5;
+    color: #fff;
+  }
+
+  .mfs__backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1290;
+    background: rgba(15, 23, 42, 0.45);
+  }
+}

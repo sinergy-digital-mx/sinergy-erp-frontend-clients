@@ -21,13 +21,19 @@ export class SidebarService {
 
   openMobile(): void {
     this.isMobileOpen.set(true);
+    document.body.classList.add('mobile-nav-open');
   }
 
   closeMobile(): void {
     this.isMobileOpen.set(false);
+    document.body.classList.remove('mobile-nav-open');
   }
 
   toggleMobile(): void {
-    this.isMobileOpen.update(val => !val);
+    if (this.isMobileOpen()) {
+      this.closeMobile();
+      return;
+    }
+    this.openMobile();
   }
 }

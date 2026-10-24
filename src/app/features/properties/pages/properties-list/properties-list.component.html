@@ -25,28 +25,33 @@
         </app-search>
       </div>
 
-      <div class="filter-bar__field">
-        <app-property-status-dropdown
-          [selectedStatus]="selectedStatus"
-          (statusSelect)="onStatusSelect($event)">
-        </app-property-status-dropdown>
-      </div>
+      <app-mobile-filter-sheet
+        class="filter-bar__field filter-bar__field--sheet"
+        [activeCount]="sheetFilterCount"
+        (cleared)="clearAllFilters()">
+        <div class="filter-bar__field">
+          <app-property-status-dropdown
+            [selectedStatus]="selectedStatus"
+            (statusSelect)="onStatusSelect($event)">
+          </app-property-status-dropdown>
+        </div>
 
-      <div class="filter-bar__field">
-        <app-customer-group-dropdown
-          [selectedGroupId]="selectedGroupId"
-          placeholder="Grupo de cliente"
-          allMessage="Todos los grupos"
-          (groupSelect)="onGroupSelect($event)">
-        </app-customer-group-dropdown>
-      </div>
+        <div class="filter-bar__field">
+          <app-customer-group-dropdown
+            [selectedGroupId]="selectedGroupId"
+            placeholder="Grupo de cliente"
+            allMessage="Todos los grupos"
+            (groupSelect)="onGroupSelect($event)">
+          </app-customer-group-dropdown>
+        </div>
 
-      <div class="filter-bar__field filter-bar__field--clear">
-        <app-filter-clear-button
-          [active]="hasActiveFilters"
-          (clear)="clearAllFilters()">
-        </app-filter-clear-button>
-      </div>
+        <div class="filter-bar__field filter-bar__field--clear">
+          <app-filter-clear-button
+            [active]="hasActiveFilters"
+            (clear)="clearAllFilters()">
+          </app-filter-clear-button>
+        </div>
+      </app-mobile-filter-sheet>
     </div>
   </div>
 
@@ -65,7 +70,7 @@
   </app-property-stats-cards>
 
   <app-datatable-wrapper
-    class="properties-page__table hidden md:block"
+    class="properties-page__table hidden lg:block"
     variant="modern"
     [config]="table_config()"
     [rowTemplate]="tableTemplate"
@@ -74,26 +79,41 @@
     (rowClick)="onRowClick($event)">
   </app-datatable-wrapper>
 
-  <div class="block md:hidden">
-    @if (table_config().loading) {
-      <div class="py-10 text-center text-gray-500 text-sm">Cargando lotes...</div>
-    } @else if (!table_config().rows?.length) {
+  <div class="lots-feed lg:hidden">
+    @if (table_config().loading && mobileFeed().length === 0) {
+      <div class="lots-feed__list" aria-busy="true" aria-label="Cargando lotes">
+        @for (slot of cardSkeletonSlots; track slot) {
+          <div class="lot-card lot-card--skeleton" aria-hidden="true">
+            <div class="lot-skel lot-skel--chip"></div>
+            <div class="lot-skel lot-skel--name"></div>
+            <div class="lot-skel lot-skel--meta"></div>
+            <div class="lot-card__money">
+              <div class="lot-skel lot-skel--money"></div>
+              <div class="lot-skel lot-skel--money"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (!mobileFeed().length) {
       <app-empty-stage
         message="Sin resultados"
         sub_message="No se encontraron lotes">
       </app-empty-stage>
     } @else {
-      <div class="space-y-3">
-        @for (item of table_config().rows; track item.id) {
-          <div class="properties-mobile-card" (click)="editProperty(item)">
-            <div class="flex justify-between items-start gap-3 mb-3">
-              <div class="min-w-0 flex-1">
+      <div class="lots-feed__list">
+        @for (item of mobileFeed(); track item.id) {
+          <button
+            type="button"
+            class="lot-card"
+            [class.lot-card--available]="item.status === 'disponible'"
+            [class.lot-card--sold]="item.status === 'vendido'"
+            [class.lot-card--reserved]="item.status === 'reservado'"
+            [class.lot-card--canceled]="item.status === 'cancelado'"
+            [attr.aria-label]="'Abrir lote ' + item.code"
+            (click)="editProperty(item)">
+            <div class="lot-card__top">
+              <div class="lot-card__chips">
                 <span class="code-badge">{{ item.code }}</span>
-                <h3 class="property-cell__name mt-1.5">{{ item.name }}</h3>
-                @if (item.block) {
-                  <p class="property-cell__meta">Manzana {{ item.block }}</p>
-                }
-                <p class="property-cell__meta">Clave {{ displayCadastralKey(item.cadastral_key) }}</p>
               </div>
               <span class="status-pill" [ngClass]="getStatusPillClass(item.status)">
                 <span class="status-pill__dot"></span>
@@ -101,30 +121,25 @@
               </span>
             </div>
 
-            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <p class="lot-card__name">{{ item.name }}</p>
+            <p class="lot-card__meta">
+              @if (item.block) {
+                Manzana {{ item.block }}
+              }
+              @if (item.block && getGroupName(item) !== '—') {
+                ·
+              }
+              @if (getGroupName(item) !== '—') {
+                {{ getGroupName(item) }}
+              }
+              @if (!item.block && getGroupName(item) === '—') {
+                Sin manzana
+              }
+            </p>
+
+            <div class="lot-card__money">
               <div>
-                <span class="text-xs text-gray-500 block">Grupo</span>
-                <span class="text-[#64748b]">{{ getGroupName(item) }}</span>
-              </div>
-              <div>
-                <span class="text-xs text-gray-500 block">Cliente</span>
-                @if (hasOwner(item)) {
-                  <button
-                    type="button"
-                    class="customer-link"
-                    (click)="navigateToCustomer(item); $event.stopPropagation()">
-                    {{ getOwnerName(item) }}
-                  </button>
-                } @else {
-                  <span class="text-gray-400">—</span>
-                }
-              </div>
-              <div>
-                <span class="text-xs text-gray-500 block">Área</span>
-                <span class="text-[#334155]">{{ formatArea(item) }}</span>
-              </div>
-              <div>
-                <span class="text-xs text-gray-500 block">Precio</span>
+                <span class="lot-card__label">Precio</span>
                 <span class="price-cell">
                   {{ formatPrice(item) }}
                   <span class="currency-badge" [class.currency-badge--usd]="resolveCurrency(item) === 'USD'">
@@ -132,39 +147,37 @@
                   </span>
                 </span>
               </div>
+              <div>
+                <span class="lot-card__label">Área</span>
+                <span class="lot-card__area">{{ formatArea(item) }}</span>
+              </div>
             </div>
 
-            <div class="mt-3 pt-3 border-t border-gray-100 flex justify-end" (click)="$event.stopPropagation()">
-              <button type="button" class="properties-action-btn" (click)="editProperty(item)" aria-label="Ver detalle">
-                <lucide-icon [img]="ArrowRight" [size]="18"></lucide-icon>
-              </button>
+            <div class="lot-card__foot">
+              @if (hasOwner(item)) {
+                <span
+                  class="lot-card__owner"
+                  (click)="navigateToCustomer(item); $event.stopPropagation()">
+                  {{ getOwnerName(item) }}
+                </span>
+              } @else {
+                <span class="lot-card__muted">Sin cliente</span>
+              }
+              <span class="lot-card__key">{{ displayCadastralKey(item.cadastral_key) }}</span>
             </div>
-          </div>
+          </button>
         }
       </div>
 
-      @if ((table_config().totalResults ?? 0) > (table_config().limit ?? 20)) {
-        <div class="mt-4 flex justify-center">
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              [disabled]="table_config().page === 1"
-              (click)="onPageChange({page: (table_config().page ?? 1) - 1, limit: table_config().limit ?? 20})"
-              class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-50 bg-white text-gray-600">
-              Anterior
-            </button>
-            <span class="text-sm text-gray-600">
-              {{ table_config().page }} / {{ Math.ceil((table_config().totalResults ?? 0) / (table_config().limit ?? 20)) }}
-            </span>
-            <button
-              type="button"
-              [disabled]="!table_config().hasNext"
-              (click)="onPageChange({page: (table_config().page ?? 1) + 1, limit: table_config().limit ?? 20})"
-              class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-50 bg-white text-gray-600">
-              Siguiente
-            </button>
-          </div>
+      <div #mobileSentinel class="lots-feed__sentinel" aria-hidden="true"></div>
+
+      @if (loadingMore()) {
+        <div class="lots-feed__more" aria-live="polite">
+          <span class="lots-feed__spinner"></span>
+          Cargando más…
         </div>
+      } @else if (!table_config().hasNext && mobileFeed().length) {
+        <p class="lots-feed__end">No hay más lotes</p>
       }
     }
   </div>

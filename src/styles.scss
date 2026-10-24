@@ -44,6 +44,27 @@ span[class*='fi-sr-']::before {
   font-family: 'Material Icons' !important;
 }
 
+html,
+body {
+  background-color: #fff;
+}
+
+html.has-app-chrome,
+body.has-app-chrome {
+  background-color: #1e1b4b;
+}
+
+@media (max-width: 1023px) {
+  html.has-app-chrome,
+  body.has-app-chrome {
+    color-scheme: dark;
+  }
+}
+
+body.has-app-chrome.mobile-nav-open {
+  overflow: hidden;
+}
+
 body {
   font-family: Inter, sans-serif !important;
 }

@@ -98,6 +98,18 @@ export class ServiceSubscriptionDetailComponent {
     return message;
   }
 
+  payKey(paid: boolean | null | undefined): 'paid' | 'unpaid' | 'none' {
+    if (paid === true) return 'paid';
+    if (paid === false) return 'unpaid';
+    return 'none';
+  }
+
+  payLabel(paid: boolean | null | undefined): string {
+    if (paid === true) return 'Pagado';
+    if (paid === false) return 'Pendiente';
+    return '—';
+  }
+
   /** El recordatorio aplica a meses con orden que todavía no están pagados. */
   canRemind(period: ServiceSubscriptionPeriod): boolean {
     return !!period.sales_order_id && period.paid === false;

@@ -303,21 +303,250 @@
   }
 }
 
-.properties-mobile-card {
+.lots-feed {
+  padding-bottom: 1.5rem;
+}
+
+.lots-feed__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lot-card {
+  display: block;
+  width: 100%;
+  padding: 14px 14px 12px;
+  border: 1px solid #e8ecf1;
+  border-radius: 16px;
   background: #fff;
-  border: 1px solid #f3f4f6;
-  border-radius: 12px;
-  padding: 1rem;
-  transition: background-color 0.15s ease;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #10b981;
+  }
+
+  &--sold::before {
+    background: #6366f1;
+  }
+
+  &--reserved::before {
+    background: #f97316;
+  }
+
+  &--canceled::before {
+    background: #ef4444;
+  }
 
   &:active {
-    background-color: #fafafa;
+    transform: scale(0.985);
   }
 }
 
-@media (max-width: 1024px) {
+.lot-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lot-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lot-card__name {
+  margin: 10px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lot-card__meta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lot-card__money {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.lot-card__label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.lot-card__area {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.lot-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  min-width: 0;
+}
+
+.lot-card__owner {
+  min-width: 0;
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lot-card__muted,
+.lot-card__key {
+  font-size: 12px;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lot-card--skeleton {
+  pointer-events: none;
+  min-height: 148px;
+  box-shadow: none;
+}
+
+.lot-skel {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: lot-skel-pulse 1.2s ease-in-out infinite;
+}
+
+.lot-skel--chip {
+  width: 36%;
+  height: 18px;
+}
+
+.lot-skel--name {
+  width: 70%;
+  height: 16px;
+  margin-top: 12px;
+}
+
+.lot-skel--meta {
+  width: 48%;
+  height: 12px;
+  margin-top: 8px;
+}
+
+.lot-skel--money {
+  height: 28px;
+}
+
+.lots-feed__sentinel {
+  height: 1px;
+}
+
+.lots-feed__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 8px 4px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lots-feed__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: lot-spin 0.7s linear infinite;
+}
+
+.lots-feed__end {
+  margin: 8px 0 0;
+  padding: 8px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+@keyframes lot-skel-pulse {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@keyframes lot-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1023px) {
+  .properties-page__filters .filter-bar__container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .properties-page__filters .filter-bar__field--search {
-    grid-column: span 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    grid-column: auto;
+  }
+
+  .properties-page__title {
+    font-size: 1.25rem;
+  }
+
+  .properties-page__import-btn span,
+  .properties-page__create-btn span {
+    display: none;
+  }
+
+  .properties-page__import-btn,
+  .properties-page__create-btn {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  app-property-filter-indicator {
+    display: none;
   }
 }
 

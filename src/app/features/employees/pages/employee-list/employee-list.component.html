@@ -14,25 +14,29 @@
       <input
         type="text"
         class="filter-input filter-input--search"
-        placeholder="Buscar por nombre, correo o puesto..."
+        placeholder="Buscar nombre, correo o puesto"
         [ngModel]="search"
         (ngModelChange)="onSearchChange($event)">
 
-      <input
-        type="text"
-        class="filter-input"
-        placeholder="Departamento"
-        [(ngModel)]="departmentFilter"
-        (change)="onFilterChange()">
+      <app-mobile-filter-sheet
+        [activeCount]="employeeFilterCount"
+        (cleared)="departmentFilter = ''; statusFilter = ''; onFilterChange()">
+        <input
+          type="text"
+          class="filter-input"
+          placeholder="Departamento"
+          [(ngModel)]="departmentFilter"
+          (change)="onFilterChange()">
 
-      <select class="filter-input" [(ngModel)]="statusFilter" (change)="onFilterChange()">
-        <option value="">Todos los estatus</option>
-        <option value="active">Activos</option>
-        <option value="inactive">Inactivos</option>
-      </select>
+        <select class="filter-input" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">Todos los estatus</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
+      </app-mobile-filter-sheet>
     </div>
 
-    <div *ngIf="loading()" class="state-message">Cargando empleados...</div>
+    <div *ngIf="loading() && employees().length === 0" class="state-message hidden lg:block">Cargando empleados...</div>
 
     <app-empty-stage
       *ngIf="!loading() && employees().length === 0"
@@ -40,7 +44,54 @@
       sub_message="No hay empleados que coincidan con los filtros.">
     </app-empty-stage>
 
-    <div *ngIf="!loading() && employees().length > 0" class="table-wrapper">
+    <div class="people-feed lg:hidden">
+      @if (loading() && mobileFeed().length === 0) {
+        <div class="people-feed__list" aria-busy="true">
+          @for (slot of cardSkeletonSlots; track slot) {
+            <div class="person-card person-card--skeleton" aria-hidden="true">
+              <div class="person-skel person-skel--avatar"></div>
+              <div class="person-skel person-skel--name"></div>
+              <div class="person-skel person-skel--meta"></div>
+            </div>
+          }
+        </div>
+      } @else if (mobileFeed().length) {
+        <div class="people-feed__list">
+          @for (emp of mobileFeed(); track emp.id) {
+            <button type="button" class="person-card" (click)="openEmployee(emp)">
+              <div class="avatar">
+                <img *ngIf="emp.photo_url" [src]="emp.photo_url" [alt]="fullName(emp)">
+                <span *ngIf="!emp.photo_url">{{ initials(emp) }}</span>
+              </div>
+              <div class="person-card__body">
+                <div class="person-card__top">
+                  <p class="person-card__name">{{ fullName(emp) }}</p>
+                  <span class="status-badge" [class.status-badge--active]="(emp.status || 'active') === 'active'"
+                        [class.status-badge--inactive]="emp.status === 'inactive'">
+                    {{ (emp.status || 'active') === 'active' ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </div>
+                <p class="person-card__meta">{{ emp.position || 'Sin puesto' }}</p>
+                <div class="person-card__foot">
+                  <span class="vacation-badge">{{ emp.vacation?.available_days ?? 0 }} días</span>
+                  <span class="req-badge" *ngIf="(emp.request_counts?.pending ?? 0) > 0">
+                    {{ emp.request_counts?.pending }} pendiente(s)
+                  </span>
+                </div>
+              </div>
+            </button>
+          }
+        </div>
+        <div #mobileSentinel class="people-feed__sentinel"></div>
+        @if (loadingMore()) {
+          <div class="people-feed__more">Cargando más…</div>
+        } @else if (page() >= totalPages() && mobileFeed().length) {
+          <p class="people-feed__end">No hay más empleados</p>
+        }
+      }
+    </div>
+
+    <div *ngIf="!loading() && employees().length > 0" class="table-wrapper hidden lg:block">
       <table class="data-table">
         <thead>
           <tr>
@@ -88,7 +139,7 @@
       </table>
     </div>
 
-    <div class="pagination" *ngIf="!loading() && totalPages() > 1">
+    <div class="pagination hidden lg:flex" *ngIf="!loading() && totalPages() > 1">
       <button (click)="prevPage()" [disabled]="page() === 1">Anterior</button>
       <span>Página {{ page() }} de {{ totalPages() }} · {{ total() }} empleados</span>
       <button (click)="nextPage()" [disabled]="page() === totalPages()">Siguiente</button>
@@ -98,21 +149,25 @@
   <!-- ── Solicitudes ───────────────────────────────────────────── -->
   <section *ngIf="activeTab === 'requests'" class="tab-section">
     <div class="filters">
-      <select class="filter-input" [(ngModel)]="leaveStatusFilter" (change)="onLeaveFilterChange()">
-        <option value="">Todos los estatus</option>
-        <option value="pending">Pendientes</option>
-        <option value="approved">Aprobadas</option>
-        <option value="rejected">Rechazadas</option>
-        <option value="cancelled">Canceladas</option>
-      </select>
+      <app-mobile-filter-sheet
+        [activeCount]="leaveFilterCount"
+        (cleared)="leaveStatusFilter = ''; leaveTypeFilter = ''; onLeaveFilterChange()">
+        <select class="filter-input" [(ngModel)]="leaveStatusFilter" (change)="onLeaveFilterChange()">
+          <option value="">Todos los estatus</option>
+          <option value="pending">Pendientes</option>
+          <option value="approved">Aprobadas</option>
+          <option value="rejected">Rechazadas</option>
+          <option value="cancelled">Canceladas</option>
+        </select>
 
-      <select class="filter-input" [(ngModel)]="leaveTypeFilter" (change)="onLeaveFilterChange()">
-        <option value="">Todos los tipos</option>
-        <option value="vacation">Vacaciones</option>
-        <option value="absence">Faltas</option>
-        <option value="sick_leave">Incapacidades</option>
-        <option value="permit">Permisos</option>
-      </select>
+        <select class="filter-input" [(ngModel)]="leaveTypeFilter" (change)="onLeaveFilterChange()">
+          <option value="">Todos los tipos</option>
+          <option value="vacation">Vacaciones</option>
+          <option value="absence">Faltas</option>
+          <option value="sick_leave">Incapacidades</option>
+          <option value="permit">Permisos</option>
+        </select>
+      </app-mobile-filter-sheet>
     </div>
 
     <div *ngIf="leaveLoading()" class="state-message">Cargando solicitudes...</div>
@@ -123,7 +178,38 @@
       sub_message="No hay solicitudes que coincidan con los filtros.">
     </app-empty-stage>
 
-    <div *ngIf="!leaveLoading() && leaveRequests().length > 0" class="table-wrapper">
+    <div class="people-feed lg:hidden" *ngIf="!leaveLoading() && leaveRequests().length > 0">
+      <div class="people-feed__list">
+        @for (req of leaveRequests(); track req.id) {
+          <div class="person-card person-card--static">
+            <div class="avatar">
+              <img *ngIf="req.employee?.photo_url" [src]="req.employee?.photo_url" alt="">
+              <span *ngIf="!req.employee?.photo_url">{{ initials(req.employee || {}) }}</span>
+            </div>
+            <div class="person-card__body">
+              <div class="person-card__top">
+                <p class="person-card__name">{{ fullName(req.employee || {}) }}</p>
+                <span class="status-badge" [ngClass]="'status-badge--' + req.status">
+                  {{ getLeaveStatusLabel(req.status) }}
+                </span>
+              </div>
+              <p class="person-card__meta">{{ getLeaveTypeLabel(req.type) }} · {{ req.days }} días</p>
+              <p class="person-card__meta">{{ req.start_date }} → {{ req.end_date }}</p>
+              <div class="row-actions" *ngIf="req.status === 'pending' || (canUpdate && canCorrectLeaveRequest(req.status))">
+                <button *ngIf="canUpdate && canCorrectLeaveRequest(req.status)" class="action-btn" (click)="correct(req)">Corregir</button>
+                <ng-container *ngIf="canManageLeave && req.status === 'pending'">
+                  <button class="action-btn action-btn--approve" (click)="review(req, 'approved')">Aprobar</button>
+                  <button class="action-btn action-btn--reject" (click)="review(req, 'rejected')">Rechazar</button>
+                  <button class="action-btn" (click)="cancel(req)">Cancelar</button>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div *ngIf="!leaveLoading() && leaveRequests().length > 0" class="table-wrapper hidden lg:block">
       <table class="data-table">
         <thead>
           <tr>
@@ -173,7 +259,7 @@
       </table>
     </div>
 
-    <div class="pagination" *ngIf="!leaveLoading() && leaveTotalPages() > 1">
+    <div class="pagination hidden lg:flex" *ngIf="!leaveLoading() && leaveTotalPages() > 1">
       <button (click)="prevLeavePage()" [disabled]="leavePage() === 1">Anterior</button>
       <span>Página {{ leavePage() }} de {{ leaveTotalPages() }}</span>
       <button (click)="nextLeavePage()" [disabled]="leavePage() === leaveTotalPages()">Siguiente</button>

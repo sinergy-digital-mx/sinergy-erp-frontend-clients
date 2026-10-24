@@ -303,6 +303,21 @@ a.page-create-btn {
     background: #f1f5f9;
     color: #64748b;
   }
+
+  &[data-pay='paid'] {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  &[data-pay='unpaid'] {
+    background: #fff1f2;
+    color: #be123c;
+  }
+
+  &[data-pay='none'] {
+    background: #f1f5f9;
+    color: #64748b;
+  }
 }
 
 .sub-progress {

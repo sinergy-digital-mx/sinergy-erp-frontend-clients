@@ -3,6 +3,7 @@
     <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Contratos</h2>
 
     <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+      <div class="app-filter-row">
       <app-search
         class="w-full sm:w-64"
         [param_activate]="true"
@@ -10,31 +11,36 @@
         (searchChange)="onSearchChange($event)">
       </app-search>
 
-      <app-customer-group-dropdown
-        class="w-full sm:w-56"
-        [selectedGroupId]="selectedGroupId"
-        placeholder="Grupo de cliente"
-        allMessage="Todos los grupos"
-        (groupSelect)="onGroupSelect($event)">
-      </app-customer-group-dropdown>
+      <app-mobile-filter-sheet>
+        [activeCount]="sheetFilterCount"
+        (cleared)="clearFilters()">
+        <app-customer-group-dropdown
+          class="w-full sm:w-56"
+          [selectedGroupId]="selectedGroupId"
+          placeholder="Grupo de cliente"
+          allMessage="Todos los grupos"
+          (groupSelect)="onGroupSelect($event)">
+        </app-customer-group-dropdown>
 
-      <button
-        type="button"
-        class="h-10 px-3 rounded-lg border text-sm font-medium whitespace-nowrap"
-        [class.bg-white]="!downPaymentFinanced"
-        [class.text-gray-700]="!downPaymentFinanced"
-        [class.border-gray-300]="!downPaymentFinanced"
-        [class.bg-indigo-600]="downPaymentFinanced"
-        [class.text-white]="downPaymentFinanced"
-        [class.border-indigo-600]="downPaymentFinanced"
-        (click)="toggleDownPaymentFinanced()">
-        Enganche financiado
-      </button>
+        <button
+          type="button"
+          class="h-10 px-3 rounded-lg border text-sm font-medium whitespace-nowrap"
+          [class.bg-white]="!downPaymentFinanced"
+          [class.text-gray-700]="!downPaymentFinanced"
+          [class.border-gray-300]="!downPaymentFinanced"
+          [class.bg-indigo-600]="downPaymentFinanced"
+          [class.text-white]="downPaymentFinanced"
+          [class.border-indigo-600]="downPaymentFinanced"
+          (click)="toggleDownPaymentFinanced()">
+          Enganche financiado
+        </button>
 
-      <app-filter-clear-button
-        [active]="hasActiveFilters"
-        (clear)="clearFilters()">
-      </app-filter-clear-button>
+        <app-filter-clear-button
+          [active]="hasActiveFilters"
+          (clear)="clearFilters()">
+        </app-filter-clear-button>
+      </app-mobile-filter-sheet>
+      </div>
 
       <div class="flex items-center gap-3">
         <app-button
@@ -67,7 +73,7 @@
 
   <!-- Stats Cards V2 -->
   @if (statsLoading()) {
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" aria-busy="true">
+    <div class="stats-v2-grid" aria-busy="true">
       @for (slot of skeletonSlots; track slot) {
         <div class="stats-v2-card stats-v2-card--skeleton" aria-hidden="true">
           <div class="stats-v2-skel stats-v2-skel--title"></div>
@@ -77,7 +83,7 @@
       }
     </div>
   } @else {
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    <div class="stats-v2-grid">
       <button
         type="button"
         (click)="applyFilter('total')"
@@ -162,7 +168,7 @@
   }
 
   <app-datatable-wrapper
-    class="hidden md:block"
+    class="hidden lg:block"
     [config]="table_config()"
     [rowTemplate]="tableTemplate"
     (pageChange)="onPageChange($event)"
@@ -170,143 +176,117 @@
     (rowClick)="onRowClick($event)">
   </app-datatable-wrapper>
 
-  <!-- Mobile Cards -->
-  <div class="block md:hidden">
-    @if (table_config().loading) {
-      <div class="py-10 text-center text-gray-500 text-sm">Cargando contratos...</div>
-    } @else if (!table_config().rows?.length) {
+  <div class="contracts-feed lg:hidden">
+    @if (table_config().loading && mobileFeed().length === 0) {
+      <div class="contracts-feed__list" aria-busy="true" aria-label="Cargando contratos">
+        @for (slot of cardSkeletonSlots; track slot) {
+          <div class="contract-card contract-card--skeleton" aria-hidden="true">
+            <div class="contract-skel contract-skel--chip"></div>
+            <div class="contract-skel contract-skel--name"></div>
+            <div class="contract-skel contract-skel--meta"></div>
+            <div class="contract-card__money">
+              <div class="contract-skel contract-skel--money"></div>
+              <div class="contract-skel contract-skel--money"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (!mobileFeed().length) {
       <app-empty-stage
         message="Sin resultados"
         sub_message="No se encontraron contratos">
       </app-empty-stage>
     } @else {
-      <div class="space-y-3">
-        @for (item of table_config().rows; track item.id) {
-          <div
-            class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm active:bg-gray-50"
+      <div class="contracts-feed__list">
+        @for (item of mobileFeed(); track item.id) {
+          <button
+            type="button"
+            class="contract-card"
+            [class.contract-card--overdue]="item.has_overdue"
+            [class.contract-card--done]="item.status === 'completado'"
+            [attr.aria-label]="'Abrir contrato ' + item.contract_number"
             (click)="viewDetail(item)">
-            <div class="flex justify-between items-start gap-2 mb-3">
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-col items-start gap-1">
-                  <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                    {{ item.contract_number }}
-                  </span>
-                  <span class="phase-badge" [class.phase-badge--enganche]="getPaymentPhase(item) === 'down_payment'">
-                    {{ getPaymentPhaseLabel(item) }}
-                  </span>
-                </div>
-                <p
-                  *ngIf="item.customer"
-                  class="mt-1.5 text-sm font-medium text-gray-900 truncate"
-                  (click)="navigateToCustomer(item.customer.id); $event.stopPropagation()">
-                  {{ getCustomerName(item) }}
-                </p>
-                <p class="mt-0.5 text-xs text-gray-500 truncate">{{ getCustomerGroupName(item) }}</p>
+            <div class="contract-card__top">
+              <div class="contract-card__chips">
+                <span class="contract-card__number">{{ item.contract_number }}</span>
+                <span class="phase-badge" [class.phase-badge--enganche]="getPaymentPhase(item) === 'down_payment'">
+                  {{ getPaymentPhaseLabel(item) }}
+                </span>
               </div>
-              <span [class]="getStatusClass(item.status) + ' shrink-0'">
+              <span [class]="getStatusClass(item.status)">
                 {{ getStatusLabel(item.status) }}
               </span>
             </div>
 
-            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <p class="contract-card__name">{{ getCustomerName(item) }}</p>
+            <p class="contract-card__lot">
+              @if (item.property) {
+                {{ item.property.code }}
+              } @else {
+                Sin lote
+              }
+              @if (getCustomerGroupName(item) !== '—') {
+                <span>· {{ getCustomerGroupName(item) }}</span>
+              }
+            </p>
+
+            <div class="contract-card__money">
               <div>
-                <span class="text-xs text-gray-500 block">Lote</span>
-                <span
-                  *ngIf="item.property"
-                  class="text-green-700 font-medium"
-                  (click)="navigateToProperty(item.property.id); $event.stopPropagation()">
-                  {{ item.property.code }}
-                </span>
-                <span *ngIf="!item.property" class="text-gray-400">—</span>
-              </div>
-              <div>
-                <span class="text-xs text-gray-500 block">Fecha</span>
-                <span class="text-gray-900">{{ item.contract_date | localDate:'dd/MM/yyyy' }}</span>
-              </div>
-              <div>
-                <span class="text-xs text-gray-500 block">Precio Total</span>
-                <span class="text-gray-900 font-medium money-cell">
-                  {{ formatRowAmount(item.total_price) }}
-                  <span class="currency-badge" [class.currency-badge--usd]="resolveCurrency(item.currency) === 'USD'">
-                    {{ resolveCurrency(item.currency) }}
-                  </span>
-                </span>
-              </div>
-              <div>
-                <span class="text-xs text-gray-500 block">Saldo Pendiente</span>
-                <span class="text-red-600 font-medium money-cell">
+                <span class="contract-card__label">Saldo</span>
+                <span class="contract-card__balance">
                   {{ formatRowAmount(item.remaining_balance) }}
                   <span class="currency-badge" [class.currency-badge--usd]="resolveCurrency(item.currency) === 'USD'">
                     {{ resolveCurrency(item.currency) }}
                   </span>
                 </span>
               </div>
-              <div class="col-span-2">
-                <span class="text-xs text-gray-500 block">Siguiente Pago</span>
-                <div class="flex items-center gap-2 flex-wrap">
+              <div class="contract-card__next">
+                <span class="contract-card__label">Siguiente</span>
+                @if (item.next_payment_date) {
                   <span
-                    *ngIf="item.next_payment_date"
                     class="next-payment"
                     [class.next-payment--enganche]="isNextPaymentDownPayment(item)"
                     [class.next-payment--contract]="getNextPaymentKind(item) === 'contract'">
-                    <span *ngIf="item.next_payment_amount != null" class="next-payment__amount">
-                      {{ formatRowAmount(item.next_payment_amount) }}
-                    </span>
+                    @if (item.next_payment_amount != null) {
+                      <span class="next-payment__amount">{{ formatRowAmount(item.next_payment_amount) }}</span>
+                    }
                     <span class="next-payment__date">{{ item.next_payment_date | localDate:'dd/MM/yyyy' }}</span>
                   </span>
-                  <span *ngIf="!item.next_payment_date" class="text-gray-400">—</span>
-                  <span *ngIf="isNextPaymentDownPayment(item)" class="next-payment-badge">
-                    {{ isLastDownPayment(item) ? 'Último enganche' : 'Enganche' }}
-                  </span>
-                  <span *ngIf="getNextPaymentKind(item) === 'contract'" class="next-payment-badge next-payment-badge--contract">
-                    Contrato
-                  </span>
-                  <div *ngIf="item.has_overdue" class="flex items-center gap-1" [title]="getOverdueTooltip(item)">
-                    <lucide-icon [img]="AlertCircle" class="w-4 h-4 text-red-500"></lucide-icon>
-                    <span *ngIf="getOverdueCount(item) > 1" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white">
-                      {{ getOverdueCount(item) }}
-                    </span>
-                  </div>
-                </div>
+                } @else {
+                  <span class="contract-card__muted">—</span>
+                }
               </div>
             </div>
 
-            <div class="mt-3 pt-3 border-t border-gray-100" (click)="$event.stopPropagation()">
-              <app-button
-                text="Ver Detalle"
-                size="sm"
-                [fullWidth]="true"
-                custom_class="btn_primary"
-                (clicked)="viewDetail(item)"
-                [icon]="ArrowRight">
-              </app-button>
+            <div class="contract-card__foot">
+              @if (isNextPaymentDownPayment(item)) {
+                <span class="next-payment-badge">
+                  {{ isLastDownPayment(item) ? 'Último enganche' : 'Enganche' }}
+                </span>
+              }
+              @if (getNextPaymentKind(item) === 'contract') {
+                <span class="next-payment-badge next-payment-badge--contract">Contrato</span>
+              }
+              @if (item.has_overdue) {
+                <span class="contract-card__overdue" [title]="getOverdueTooltip(item)">
+                  <lucide-icon [img]="AlertCircle" class="w-3.5 h-3.5"></lucide-icon>
+                  {{ getOverdueCount(item) }} vencido{{ getOverdueCount(item) === 1 ? '' : 's' }}
+                </span>
+              }
             </div>
-          </div>
+          </button>
         }
       </div>
 
-      @if ((table_config().totalResults ?? 0) > (table_config().limit ?? 20)) {
-        <div class="mt-4 flex justify-center">
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              [disabled]="table_config().page === 1"
-              (click)="onPageChange({page: (table_config().page ?? 1) - 1, limit: table_config().limit ?? 20})"
-              class="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 bg-white">
-              Anterior
-            </button>
-            <span class="text-sm text-gray-600">
-              {{ table_config().page }} / {{ Math.ceil((table_config().totalResults ?? 0) / (table_config().limit ?? 20)) }}
-            </span>
-            <button
-              type="button"
-              [disabled]="!table_config().hasNext"
-              (click)="onPageChange({page: (table_config().page ?? 1) + 1, limit: table_config().limit ?? 20})"
-              class="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 bg-white">
-              Siguiente
-            </button>
-          </div>
+      <div #mobileSentinel class="contracts-feed__sentinel" aria-hidden="true"></div>
+
+      @if (loadingMore()) {
+        <div class="contracts-feed__more" aria-live="polite">
+          <span class="contracts-feed__spinner"></span>
+          Cargando más…
         </div>
+      } @else if (!table_config().hasNext && mobileFeed().length) {
+        <p class="contracts-feed__end">No hay más contratos</p>
       }
     }
   </div>

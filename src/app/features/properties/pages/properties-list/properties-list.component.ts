@@ -1,4 +1,4 @@
-import { Component, signal, TemplateRef, ViewChild, OnDestroy } from '@angular/core';
+import { Component, ElementRef, OnDestroy, signal, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -27,6 +27,7 @@ import { CustomerGroupDropdownComponent } from '../../../customers/components/cu
 import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
+import { MobileFilterSheetComponent } from '../../../../core/components/mobile-filter-sheet/mobile-filter-sheet.component';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import {
   formatPolluxAmount,
@@ -47,12 +48,16 @@ import {
     PropertyStatsCardsComponent,
     LucideAngularModule,
     CustomerGroupDropdownComponent,
+    MobileFilterSheetComponent,
   ],
   templateUrl: './properties-list.component.html',
   styleUrl: './properties-list.component.scss'
 })
 export class PropertiesListComponent implements OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
+  @ViewChild('mobileSentinel') set mobileSentinel(ref: ElementRef<HTMLElement> | undefined) {
+    this.observeMobileSentinel(ref);
+  }
 
   table_config = signal<IDatatableConfig>({
     rows: [],
@@ -84,6 +89,9 @@ export class PropertiesListComponent implements OnDestroy {
   Upload = Upload;
   readonly Math = Math;
   readonly displayCadastralKey = displayCadastralKey;
+  readonly cardSkeletonSlots = [0, 1, 2, 3, 4];
+  readonly mobileFeed = signal<Property[]>([]);
+  readonly loadingMore = signal(false);
   search = '';
   selectedGroupId: string | null = null;
   selectedGroupName: string | null = null;
@@ -96,6 +104,9 @@ export class PropertiesListComponent implements OnDestroy {
   private lastFilterKey = '';
   private listRequestId = 0;
   private statsRequestId = 0;
+  private mobilePage = 1;
+  private mobileObserver?: IntersectionObserver;
+  private mobileSentinelEl?: HTMLElement;
 
   constructor(
     private router: Router,
@@ -155,18 +166,39 @@ export class PropertiesListComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.mobileObserver?.disconnect();
     this.destroy$.next();
     this.destroy$.complete();
   }
 
   getProperties() {
+    this.fetchProperties({ append: false, page: this.table_config().page });
+  }
+
+  loadMoreMobile(): void {
+    if (this.loadingMore() || this.table_config().loading || !this.table_config().hasNext) {
+      return;
+    }
+    this.fetchProperties({ append: true, page: this.mobilePage + 1 });
+  }
+
+  private fetchProperties(options: { append: boolean; page: number }): void {
     const requestId = ++this.listRequestId;
-    this.table_config.update(c => ({ ...c, loading: true }));
+    const append = options.append;
     const config = this.table_config();
+    const page = isNaN(options.page) ? 1 : options.page;
+    const limit = isNaN(config.limit) ? 20 : config.limit;
+
+    if (append) {
+      this.loadingMore.set(true);
+    } else {
+      this.loadingMore.set(false);
+      this.table_config.update(c => ({ ...c, loading: true }));
+    }
 
     const data: PropertyListFilters = {
-      page: config.page,
-      limit: config.limit,
+      page,
+      limit,
       ...this.buildApiFilters(),
       ...(this.currentSort && this.currentSort.direction && {
         sort: this.currentSort.column.prop,
@@ -181,23 +213,62 @@ export class PropertiesListComponent implements OnDestroy {
         }
         const properties = Array.isArray(res) ? res : (res?.data ?? []);
         const total = Array.isArray(res) ? res.length : (res?.total ?? 0);
+        const hasNext = res?.hasNext ?? (page * limit < total);
+
+        this.mobilePage = page;
+        if (append) {
+          this.mobileFeed.update((rows) => [...rows, ...properties]);
+        } else {
+          this.mobileFeed.set(properties);
+        }
 
         this.table_config.update(c => ({
           ...c,
-          rows: properties,
+          rows: append ? c.rows : properties,
           totalResults: total,
-          hasNext: res?.hasNext ?? false,
+          hasNext,
           loading: false,
         }));
+        this.loadingMore.set(false);
+        queueMicrotask(() => this.continueMobileLoadIfVisible());
       },
       error: () => {
         if (requestId !== this.listRequestId) {
           return;
         }
         this.table_config.update(c => ({ ...c, loading: false }));
+        this.loadingMore.set(false);
         this.toast.error('No se pudieron cargar los lotes');
       }
     });
+  }
+
+  private observeMobileSentinel(ref?: ElementRef<HTMLElement>): void {
+    this.mobileObserver?.disconnect();
+    this.mobileSentinelEl = ref?.nativeElement;
+    if (!this.mobileSentinelEl) {
+      return;
+    }
+    this.mobileObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          this.loadMoreMobile();
+        }
+      },
+      { root: null, rootMargin: '240px', threshold: 0.01 },
+    );
+    this.mobileObserver.observe(this.mobileSentinelEl);
+  }
+
+  private continueMobileLoadIfVisible(): void {
+    const el = this.mobileSentinelEl;
+    if (!el || this.loadingMore() || this.table_config().loading || !this.table_config().hasNext) {
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight + 240) {
+      this.loadMoreMobile();
+    }
   }
 
   loadStats() {
@@ -261,6 +332,10 @@ export class PropertiesListComponent implements OnDestroy {
 
   get hasActiveFilters(): boolean {
     return !!(this.search || this.selectedGroupId || this.selectedStatus);
+  }
+
+  get sheetFilterCount(): number {
+    return Number(!!this.selectedGroupId) + Number(!!this.selectedStatus);
   }
 
   clearAllFilters(): void {

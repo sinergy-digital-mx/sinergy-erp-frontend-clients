@@ -2,6 +2,8 @@
 
 ## Historial
 
+- 2026-10-24: Filtros de celular en sheet desde abajo (botón **Filtros**). Cards + scroll infinito. Escritorio sigue con la tabla.
+- 2026-10-24: En celular, lista en **cards** (nombre, lote, saldo, siguiente pago). Scroll infinito, no paginación Anterior/Siguiente. Escritorio sigue con la tabla.
 - 2026-10-23: **Siguiente pago** muestra monto + fecha `dd/MM/yyyy` (enganche o contrato). La fecha larga tipo “15 de noviembre de 2026” ya no va.
 - 2026-10-23: Badge **Enganche** / **Contrato** en cada fila. Siguiente pago con color distinto si es enganche (y **Último enganche** si es el último activo). Card **Vencidos**: total + desglose Contrato / Enganche. El Excel incluye Fase, Tipo Próximo Pago, Último Enganche y Vencidos Enganche.
 

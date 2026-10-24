@@ -198,7 +198,7 @@
   }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .prop-stats__grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -210,7 +210,28 @@
   }
 }
 
-@media (max-width: 639px) {
+@media (max-width: 1023px) {
+  .prop-stats__grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 10px;
+    padding: 2px 4px 10px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .prop-stats__card {
+    flex: 0 0 78%;
+    min-width: 240px;
+    max-width: 320px;
+    scroll-snap-align: start;
+  }
+
   .prop-stats__value {
     font-size: 1.25rem;
   }

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -8,6 +8,7 @@ import { TabComponent, TabItem } from '../../../../core/components/tab/tab.compo
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { EmployeeService } from '../../services/employee.service';
+import { MobileFilterSheetComponent } from '../../../../core/components/mobile-filter-sheet/mobile-filter-sheet.component';
 import {
   Employee,
   LeaveRequest,
@@ -25,11 +26,14 @@ import { EmptyStageComponent } from '../../../../core/components/empty-stage/emp
 @Component({
   selector: 'app-employee-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TabComponent, EmptyStageComponent],
+  imports: [CommonModule, FormsModule, TabComponent, EmptyStageComponent, MobileFilterSheetComponent],
   templateUrl: './employee-list.component.html',
   styleUrls: ['./employee-list.component.scss'],
 })
-export class EmployeeListComponent implements OnInit {
+export class EmployeeListComponent implements OnInit, OnDestroy {
+  @ViewChild('mobileSentinel') set mobileSentinel(ref: ElementRef<HTMLElement> | undefined) {
+    this.observeMobileSentinel(ref);
+  }
   readonly permissions = EMPLOYEE_PERMISSIONS;
   readonly getLeaveTypeLabel = getLeaveTypeLabel;
   readonly getLeaveStatusLabel = getLeaveStatusLabel;
@@ -43,11 +47,16 @@ export class EmployeeListComponent implements OnInit {
 
   // Employees list state
   employees = signal<Employee[]>([]);
+  mobileFeed = signal<Employee[]>([]);
   loading = signal(false);
+  loadingMore = signal(false);
   page = signal(1);
   totalPages = signal(1);
   total = signal(0);
   readonly limit = 20;
+  readonly cardSkeletonSlots = [0, 1, 2, 3, 4];
+  private mobileObserver?: IntersectionObserver;
+  private mobileSentinelEl?: HTMLElement;
 
   search = '';
   statusFilter = '';
@@ -101,8 +110,30 @@ export class EmployeeListComponent implements OnInit {
 
   // ── Employees ──────────────────────────────────────────────────────────────
 
-  loadEmployees(): void {
-    this.loading.set(true);
+  ngOnDestroy(): void {
+    this.mobileObserver?.disconnect();
+  }
+
+  get employeeFilterCount(): number {
+    return Number(!!this.departmentFilter.trim()) + Number(!!this.statusFilter);
+  }
+
+  get leaveFilterCount(): number {
+    return Number(!!this.leaveStatusFilter) + Number(!!this.leaveTypeFilter);
+  }
+
+  loadEmployees(append = false): void {
+    if (append) {
+      if (this.loadingMore() || this.loading() || this.page() >= this.totalPages()) {
+        return;
+      }
+      this.loadingMore.set(true);
+      this.page.update((p) => p + 1);
+    } else {
+      this.loading.set(true);
+      this.loadingMore.set(false);
+    }
+
     this.employeeService
       .getEmployees(
         {
@@ -114,13 +145,18 @@ export class EmployeeListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.employees.set(res.data ?? []);
+          const rows = res.data ?? [];
+          this.employees.set(append ? [...this.employees(), ...rows] : rows);
+          this.mobileFeed.set(append ? [...this.mobileFeed(), ...rows] : rows);
           this.total.set(res.total ?? 0);
           this.totalPages.set(res.totalPages ?? 1);
           this.loading.set(false);
+          this.loadingMore.set(false);
+          queueMicrotask(() => this.continueMobileLoadIfVisible());
         },
         error: (error) => {
           this.loading.set(false);
+          this.loadingMore.set(false);
           this.interceptor.openSnackbar({
             type: 'error',
             title: 'Error',
@@ -128,6 +164,10 @@ export class EmployeeListComponent implements OnInit {
           });
         },
       });
+  }
+
+  loadMoreMobile(): void {
+    this.loadEmployees(true);
   }
 
   onSearchChange(value: string): void {
@@ -246,6 +286,33 @@ export class EmployeeListComponent implements OnInit {
           this.loadLeaveRequests();
         }
       });
+  }
+
+  private observeMobileSentinel(ref?: ElementRef<HTMLElement>): void {
+    this.mobileObserver?.disconnect();
+    this.mobileSentinelEl = ref?.nativeElement;
+    if (!this.mobileSentinelEl) {
+      return;
+    }
+    this.mobileObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          this.loadMoreMobile();
+        }
+      },
+      { root: null, rootMargin: '240px', threshold: 0.01 },
+    );
+    this.mobileObserver.observe(this.mobileSentinelEl);
+  }
+
+  private continueMobileLoadIfVisible(): void {
+    const el = this.mobileSentinelEl;
+    if (!el || this.loadingMore() || this.loading() || this.page() >= this.totalPages()) {
+      return;
+    }
+    if (el.getBoundingClientRect().top < window.innerHeight + 240) {
+      this.loadMoreMobile();
+    }
   }
 
   cancel(request: LeaveRequest): void {
