@@ -13,6 +13,8 @@ import { AccountingService } from '../../services/accounting.service';
 import {
   AccountingPeriod,
   CollectionCustomerType,
+  PosCollectionPaymentMethodKey,
+  PosCollectionPaymentMethodTotal,
   PosCollectionRow,
   PosCollectionsSummary,
 } from '../../models/accounting.model';
@@ -31,6 +33,12 @@ interface CollectionFilterChip {
 interface PersonLine {
   name: string;
   code: string;
+}
+
+interface PaymentMethodCard {
+  key: PosCollectionPaymentMethodKey;
+  label: string;
+  totals: PosCollectionPaymentMethodTotal;
 }
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
@@ -108,6 +116,16 @@ export class PosCollectionsTabComponent implements OnChanges {
       }
       this.reload(1);
     }
+  }
+
+  paymentMethodCards(): PaymentMethodCard[] {
+    const methods = this.summary().by_payment_method;
+    return [
+      { key: 'transfer', label: 'Transferencias', totals: methods.transfer },
+      { key: 'cash', label: 'Efectivo', totals: methods.cash },
+      { key: 'card', label: 'Tarjetas', totals: methods.card },
+      { key: 'check', label: 'Cheques', totals: methods.check },
+    ];
   }
 
   filterChips(): CollectionFilterChip[] {
@@ -351,11 +369,18 @@ export class PosCollectionsTabComponent implements OnChanges {
   }
 
   private emptySummary(): PosCollectionsSummary {
+    const empty = { orders: 0, amount: 0, ticket: 0 };
     return {
       orders_collected: 0,
       amount_collected: 0,
       walk_in_count: 0,
       invoiced_count: 0,
+      by_payment_method: {
+        cash: { ...empty },
+        transfer: { ...empty },
+        card: { ...empty },
+        check: { ...empty },
+      },
     };
   }
 }

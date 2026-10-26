@@ -737,6 +737,11 @@ export const WHATSAPP_GUIDES: Guide[] = [
                 "→ `{ numberExists, chatId }`"
               ],
               [
+                "Grupos",
+                "`GET /api/{session}/groups?exclude=participants`",
+                "Si viene vacío, `GET /api/{session}/chats` y filtrar `…@g.us`. Detalle en [WAHA_GROUPS.md](./WAHA_GROUPS.md)"
+              ],
+              [
                 "«Escribiendo…»",
                 "`POST /api/startTyping` · `/api/stopTyping`",
                 "`{ session, chatId }`"
@@ -766,7 +771,11 @@ export const WHATSAPP_GUIDES: Guide[] = [
             "t": "ul",
             "items": [
               {
-                "text": "`chatId` = el que devuelve `check-exists` (`chatId`) o `<digits>@c.us`.",
+                "text": "`chatId` de una persona = el que devuelve `check-exists` (`chatId`) o `<digits>@c.us`.",
+                "children": []
+              },
+              {
+                "text": "`chatId` de un grupo = `120363…@g.us` (el `id` de [WAHA_GROUPS.md](./WAHA_GROUPS.md)). No se llama a `check-exists`.",
                 "children": []
               },
               {

@@ -70,11 +70,15 @@
 
 <ng-template #tableTemplate let-item="$implicit">
   <td class="px-2 py-2">
-    <button type="button" class="row-link" (click)="openReceivableDetail(item)">
-      {{ item.razon_social }}
-    </button>
+    <div class="account-cell">
+      <button type="button" class="row-link" [title]="item.razon_social" (click)="openReceivableDetail(item)">
+        {{ item.razon_social }}
+      </button>
+      <span class="rfc-badge" [class.rfc-badge--empty]="!item.fiscal_rfc">
+        {{ item.fiscal_rfc || 'Sin RFC' }}
+      </span>
+    </div>
   </td>
-  <td class="px-2 py-2">{{ item.fiscal_rfc || '—' }}</td>
 
   @if (showsMxn()) {
     <td class="px-2 py-2">

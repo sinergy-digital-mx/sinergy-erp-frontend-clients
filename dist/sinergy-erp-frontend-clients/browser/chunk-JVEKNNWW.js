@@ -1,1 +1,0 @@
-import{C as e,D as n}from"./chunk-6QKYHVW2.js";var o=new e(()=>!1);function p(){return new n().set(o,!0)}function i(t){return t.context.get(o)?!0:/\/public\/self-invoice(?:\/|$|\?)/.test(t.url??"")}export{p as a,i as b};

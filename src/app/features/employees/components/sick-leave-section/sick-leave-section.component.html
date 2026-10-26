@@ -1,0 +1,121 @@
+<section class="sick" aria-labelledby="sick-leave-title">
+  <header class="sick__band">
+    <div class="sick__copy">
+      <p class="sick__kicker">Año {{ year }}</p>
+      <h3 id="sick-leave-title">Incapacidad médica</h3>
+      <p>Días aprobados en el año. En cada solicitud van los comentarios y los comprobantes.</p>
+    </div>
+
+    <div class="sick__meter">
+      <div class="sick__orb" aria-hidden="true">{{ dayFigure(approvedDays) }}</div>
+      <div class="sick__meter-copy">
+        <strong>{{ daysLabel(approvedDays) }}</strong>
+        <span>en {{ year }}</span>
+        <div class="sick__chips">
+          @if (pendingDays > 0) {
+            <em>{{ daysLabel(pendingDays) }} en revisión</em>
+          }
+          @if (requestCount > 0) {
+            <em>{{ requestCount }} {{ requestCount === 1 ? 'solicitud' : 'solicitudes' }} este año</em>
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (canRequest) {
+      <button type="button" class="sick__cta" (click)="openCreate()">
+        <lucide-icon [img]="plus" [size]="16"></lucide-icon>
+        Solicitar incapacidad
+      </button>
+    }
+  </header>
+
+  @if (!rows.length) {
+    <div class="sick__empty">
+      <p>Todavía no hay incapacidades en este expediente.</p>
+      @if (canRequest) {
+        <button type="button" (click)="openCreate()">Registrar la primera</button>
+      }
+    </div>
+  } @else {
+    <ul class="sick__list">
+      @for (req of rows; track req.id) {
+        <li class="sick-row" [class.sick-row--busy]="uploadingId() === req.id">
+          <div class="sick-row__when">
+            <p>{{ rangeLabel(req) }}</p>
+            <span>{{ daysLabel(req.days) }}</span>
+          </div>
+
+          <div class="sick-row__main">
+            <p class="sick-row__note" [class.sick-row__note--empty]="!req.reason">
+              {{ req.reason || 'Sin comentarios' }}
+            </p>
+            @if (req.review_notes) {
+              <p class="sick-row__review">Nota de revisión: {{ req.review_notes }}</p>
+            }
+            @if (req.is_paid === false) {
+              <p class="sick-row__unpaid">Sin goce de sueldo</p>
+            }
+
+            <div class="proofs">
+              @for (doc of req.documents ?? []; track doc.id) {
+                <div class="proof" [class.proof--confirm]="confirmingId() === doc.id">
+                  @if (confirmingId() === doc.id) {
+                    <span>¿Quitar este comprobante?</span>
+                    <button type="button" class="proof__yes" (click)="remove(req, doc)" [disabled]="removingId() === doc.id">
+                      {{ removingId() === doc.id ? '…' : 'Quitar' }}
+                    </button>
+                    <button type="button" (click)="askRemove(doc.id)">No</button>
+                  } @else {
+                    <a [attr.href]="doc.url || null" target="_blank" rel="noopener">
+                      @if (isImage(doc) && doc.url) {
+                        <img [src]="doc.url" alt="">
+                      } @else {
+                        <span class="proof__ext">{{ extLabel(doc) }}</span>
+                      }
+                      <span class="proof__name">{{ doc.file_name }}</span>
+                    </a>
+                    @if (canRemove(req)) {
+                      <button type="button" class="proof__x" (click)="askRemove(doc.id)" aria-label="Quitar comprobante">
+                        <lucide-icon [img]="closeIcon" [size]="12"></lucide-icon>
+                      </button>
+                    }
+                  }
+                </div>
+              }
+
+              @if (canAttach(req)) {
+                <label class="proof-add">
+                  <input
+                    type="file"
+                    [accept]="accept"
+                    hidden
+                    [disabled]="uploadingId() === req.id"
+                    (change)="onFile(req, $event)">
+                  <lucide-icon [img]="paperclip" [size]="14"></lucide-icon>
+                  {{ uploadingId() === req.id ? 'Subiendo…' : 'Adjuntar comprobante' }}
+                </label>
+              }
+            </div>
+          </div>
+
+          <div class="sick-row__side">
+            <span class="pill" [ngClass]="'pill--' + req.status">{{ statusLabel(req.status) }}</span>
+            <div class="sick-row__actions">
+              @if (canCorrect && req.status !== 'cancelled' && req.status !== 'rejected') {
+                <button type="button" (click)="openCorrect(req)">Corregir</button>
+              }
+              @if (canReview && req.status === 'pending') {
+                <button type="button" class="is-approve" (click)="review(req, 'approved')">Aprobar</button>
+                <button type="button" class="is-reject" (click)="review(req, 'rejected')">Rechazar</button>
+              }
+              @if (canCancel && req.status === 'pending') {
+                <button type="button" (click)="cancel(req)">Cancelar</button>
+              }
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

@@ -14,11 +14,12 @@ import {
   getPaymentFrequencyLabel,
 } from '../../../employees/models/employee.model';
 import { getLeaveDays } from '../../../employees/utils/mexican-labor.util';
+import { SickLeaveSectionComponent } from '../../../employees/components/sick-leave-section/sick-leave-section.component';
 
 @Component({
   selector: 'app-employee-portal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, SickLeaveSectionComponent],
   templateUrl: './employee-portal.component.html',
   styleUrls: ['./employee-portal.component.scss'],
 })
@@ -43,6 +44,9 @@ export class EmployeePortalComponent implements OnInit {
     return getLeaveDays(value?.start_date, value?.end_date, value?.type);
   });
   availableDays = computed(() => this.employee()?.vacation?.available_days ?? 0);
+  otherRequests = computed(() =>
+    this.leaveRequests().filter((request) => request.type !== 'sick_leave')
+  );
   exceedsAvailable = computed(() => {
     const value = this.leaveFormValue();
     return value?.type === 'vacation' && this.requestedDays() > this.availableDays();

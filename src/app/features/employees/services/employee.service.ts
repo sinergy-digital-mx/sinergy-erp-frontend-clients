@@ -211,6 +211,31 @@ export class EmployeeService {
       );
   }
 
+  uploadLeaveDocument(requestId: string, file: File): Observable<LeaveRequest> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http
+      .post<LeaveRequest | { data: LeaveRequest }>(
+        `${this.baseUrl}/leave-requests/${requestId}/documents`,
+        formData
+      )
+      .pipe(
+        map((raw) => this.unwrap<LeaveRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  removeLeaveDocument(requestId: string, documentId: string): Observable<LeaveRequest> {
+    return this.http
+      .delete<LeaveRequest | { data: LeaveRequest }>(
+        `${this.baseUrl}/leave-requests/${requestId}/documents/${documentId}`
+      )
+      .pipe(
+        map((raw) => this.unwrap<LeaveRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   private unwrap<T>(raw: T | { data: T }): T {

@@ -199,16 +199,15 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges {
   }
 
   private columnsFor(view: PayableCurrencyView): IColumn[] {
-    const account: IColumn = { name: 'Razón social', prop: 'razon_social', sortable: false, canAutoResize: false, width: 240 };
-    const rfc: IColumn = { name: 'RFC', prop: 'fiscal_rfc', sortable: false, canAutoResize: false, width: 150 };
+    const account: IColumn = { name: 'Razón social', prop: 'razon_social', sortable: false, canAutoResize: false, width: 220 };
     const mxn: IColumn = { name: 'Por cobrar en pesos', prop: 'amount_pending_mxn', sortable: false, canAutoResize: false, width: 200 };
     const usd: IColumn = { name: 'Por cobrar en dólares', prop: 'amount_pending_usd', sortable: false, canAutoResize: false, width: 210 };
     const rate: IColumn = { name: 'Tipo de cambio', prop: 'exchange_rate', sortable: false, canAutoResize: false, width: 140 };
     const total: IColumn = { name: 'Total en pesos', prop: 'amount_pending_total_mxn', sortable: false, canAutoResize: false, width: 170 };
 
-    if (view === 'mxn') return [account, rfc, mxn, rate, total];
-    if (view === 'usd') return [account, rfc, usd, rate, total];
-    return [account, rfc, mxn, usd, rate, total];
+    if (view === 'mxn') return [account, mxn, rate, total];
+    if (view === 'usd') return [account, usd, rate, total];
+    return [account, mxn, usd, rate, total];
   }
 
   private emptyStateFor(view: PayableCurrencyView): { title: string; subtitle: string } {

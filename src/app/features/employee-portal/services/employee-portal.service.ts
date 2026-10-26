@@ -23,12 +23,12 @@ export interface UpdateOwnProfileDto {
  * EmployeePortalService
  *
  * Self-service endpoints for the logged-in employee. These live under the
- * `/tenant/employees/me` namespace (the authenticated employee resolves their
- * own profile server-side), plus `/tenant/users/me` for name/password changes.
+ * `/tenant/employee-portal/me` namespace (the authenticated employee resolves
+ * their own profile server-side), plus `/tenant/users/me` for name/password.
  */
 @Injectable({ providedIn: 'root' })
 export class EmployeePortalService {
-  private readonly employeesBase = `${environment.api}/tenant/employees`;
+  private readonly portalBase = `${environment.api}/tenant/employee-portal`;
   private readonly usersBase = `${environment.api}/tenant/users`;
 
   constructor(private http: HttpClient) {}
@@ -36,7 +36,7 @@ export class EmployeePortalService {
   /** The logged-in employee's own profile (vacation + payroll + photo). */
   getMyProfile(): Observable<Employee> {
     return this.http
-      .get<Employee | { data: Employee }>(`${this.employeesBase}/me`)
+      .get<Employee | { data: Employee }>(`${this.portalBase}/me`)
       .pipe(
         map((raw) => this.unwrap<Employee>(raw)),
         catchError((error) => this.handleError(error))
@@ -47,7 +47,7 @@ export class EmployeePortalService {
   getMyLeaveRequests(): Observable<LeaveRequest[]> {
     return this.http
       .get<LeaveRequest[] | { data: LeaveRequest[] }>(
-        `${this.employeesBase}/me/leave-requests`
+        `${this.portalBase}/me/leave-requests`
       )
       .pipe(
         map((raw) => this.unwrapArray<LeaveRequest>(raw)),
@@ -59,7 +59,7 @@ export class EmployeePortalService {
   createMyLeaveRequest(payload: CreateLeaveRequestDto): Observable<LeaveRequest> {
     return this.http
       .post<LeaveRequest | { data: LeaveRequest }>(
-        `${this.employeesBase}/me/leave-requests`,
+        `${this.portalBase}/me/leave-requests`,
         payload
       )
       .pipe(
@@ -72,8 +72,33 @@ export class EmployeePortalService {
   cancelMyLeaveRequest(requestId: string): Observable<LeaveRequest> {
     return this.http
       .put<LeaveRequest | { data: LeaveRequest }>(
-        `${this.employeesBase}/me/leave-requests/${requestId}/cancel`,
+        `${this.portalBase}/me/leave-requests/${requestId}/cancel`,
         {}
+      )
+      .pipe(
+        map((raw) => this.unwrap<LeaveRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  uploadMyLeaveDocument(requestId: string, file: File): Observable<LeaveRequest> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http
+      .post<LeaveRequest | { data: LeaveRequest }>(
+        `${this.portalBase}/me/leave-requests/${requestId}/documents`,
+        formData
+      )
+      .pipe(
+        map((raw) => this.unwrap<LeaveRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  removeMyLeaveDocument(requestId: string, documentId: string): Observable<LeaveRequest> {
+    return this.http
+      .delete<LeaveRequest | { data: LeaveRequest }>(
+        `${this.portalBase}/me/leave-requests/${requestId}/documents/${documentId}`
       )
       .pipe(
         map((raw) => this.unwrap<LeaveRequest>(raw)),

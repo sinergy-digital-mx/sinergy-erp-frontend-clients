@@ -25,6 +25,28 @@
       </button>
     </div>
 
+    <div class="pay-totals" aria-label="Totales por forma de pago">
+      @for (card of paymentMethodCards(); track card.key) {
+        <article [class]="'pay-total pay-total--' + card.key">
+          <h4 class="pay-total__title">{{ card.label }}</h4>
+          <dl class="pay-total__metrics">
+            <div>
+              <dt>Ventas</dt>
+              <dd>{{ card.totals.orders }}</dd>
+            </div>
+            <div>
+              <dt>Monto</dt>
+              <dd>{{ formatCurrency(card.totals.amount) }}</dd>
+            </div>
+            <div>
+              <dt>Ticket</dt>
+              <dd>{{ formatCurrency(card.totals.ticket) }}</dd>
+            </div>
+          </dl>
+        </article>
+      }
+    </div>
+
     <div class="pos-collections-tab__filters">
       <div class="pos-collections-tab__chips" role="tablist" aria-label="Tipo de cliente">
         @for (chip of filterChips(); track chip.type) {

@@ -19,6 +19,9 @@ import {
   AccountingDailyShiftRow,
   CollectionCustomerType,
   CollectionTerminalSummary,
+  PosCollectionPaymentMethodKey,
+  PosCollectionPaymentMethodTotal,
+  PosCollectionPaymentMethodTotals,
   PosCollectionsPage,
   PosCollectionsSummary,
   PosCollectionRow,
@@ -78,12 +81,10 @@ export class AccountingService {
       map((raw) => {
         const pageResult = this.parsePaginated<PosCollectionRow, PosCollectionsSummary>(raw);
         const body = this.asRecord(raw);
-        const summary = pageResult.summary ?? {
-          orders_collected: pageResult.total,
-          amount_collected: 0,
-          walk_in_count: 0,
-          invoiced_count: 0,
-        };
+        const summary = this.parsePosCollectionsSummary(
+          pageResult.summary,
+          pageResult.total
+        );
         return {
           ...pageResult,
           summary,
@@ -493,6 +494,35 @@ export class AccountingService {
 
   private parseTerminalType(raw: unknown): PosTerminalType {
     return raw === 'COBRANZA' ? 'COBRANZA' : 'VENTAS';
+  }
+
+  private parsePosCollectionsSummary(
+    raw: PosCollectionsSummary | undefined,
+    fallbackOrders: number
+  ): PosCollectionsSummary {
+    const body = this.asRecord(raw);
+    const methods = this.asRecord(body['by_payment_method']);
+    return {
+      orders_collected: Number(body['orders_collected'] ?? fallbackOrders ?? 0),
+      amount_collected: Number(body['amount_collected'] ?? 0),
+      walk_in_count: Number(body['walk_in_count'] ?? 0),
+      invoiced_count: Number(body['invoiced_count'] ?? 0),
+      by_payment_method: this.parsePaymentMethodTotals(methods),
+    };
+  }
+
+  private parsePaymentMethodTotals(raw: Record<string, unknown>): PosCollectionPaymentMethodTotals {
+    const keys: PosCollectionPaymentMethodKey[] = ['cash', 'transfer', 'card', 'check'];
+    const empty: PosCollectionPaymentMethodTotal = { orders: 0, amount: 0, ticket: 0 };
+    return keys.reduce((acc, key) => {
+      const row = this.asRecord(raw[key]);
+      acc[key] = {
+        orders: Number(row['orders'] ?? 0),
+        amount: Number(row['amount'] ?? 0),
+        ticket: Number(row['ticket'] ?? 0),
+      };
+      return acc;
+    }, { cash: empty, transfer: { ...empty }, card: { ...empty }, check: { ...empty } });
   }
 
   /** Listas paginadas: data[], total, page, summary en la raíz. */

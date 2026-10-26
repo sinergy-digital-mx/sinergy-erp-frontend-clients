@@ -986,3 +986,62 @@ main,
     transform: translateY(0) scale(1);
   }
 }
+
+// Etiqueta del riel de iconos. Va en body para no recortarse con el scroll del menú.
+.sidebar-rail-tip {
+  position: fixed;
+  z-index: 80;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0.42rem 0.75rem;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e1b4b;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-50%) translateX(-6px);
+  filter:
+    drop-shadow(0 10px 18px rgba(30, 27, 75, 0.18))
+    drop-shadow(0 1px 2px rgba(30, 27, 75, 0.08));
+  transition:
+    opacity 0.14s ease,
+    transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0.14s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-style: solid;
+    border-width: 7px 8px 7px 0;
+    border-color: transparent #fff transparent transparent;
+  }
+
+  &.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) translateX(0);
+    transition:
+      opacity 0.14s ease,
+      transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0.14s ease,
+      top 0.12s ease,
+      left 0.12s ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-rail-tip,
+  .sidebar-rail-tip.is-open {
+    transition: none;
+  }
+}

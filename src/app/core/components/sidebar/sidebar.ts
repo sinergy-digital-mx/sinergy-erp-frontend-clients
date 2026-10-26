@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import {
   LucideAngularModule,
@@ -132,6 +132,9 @@ export class Sidebar implements OnInit, OnDestroy {
 
   private permissionsSubscription?: Subscription;
   private routerSubscription?: Subscription;
+  private railTipEl: HTMLDivElement | null = null;
+  private railTipShowTimer?: ReturnType<typeof setTimeout>;
+  private railTipHideTimer?: ReturnType<typeof setTimeout>;
 
   menu: MenuItem[] = [
     {
@@ -313,7 +316,7 @@ export class Sidebar implements OnInit, OnDestroy {
     public auth_service: AuthService,
     private sidebarService: SidebarService,
     private exchangeRateService: ExchangeRateService,
-    private router: Router
+    private router: Router,
   ) {
     this.isCollapsed = this.sidebarService.isCollapsed;
     this.isMobileOpen = this.sidebarService.isMobileOpen;
@@ -330,6 +333,7 @@ export class Sidebar implements OnInit, OnDestroy {
 
     this.routerSubscription = this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
+        this.hideRailTip();
         this.sidebarService.closeMobile();
       }
     });
@@ -352,16 +356,104 @@ export class Sidebar implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.hideRailTip();
+    this.railTipEl?.remove();
+    this.railTipEl = null;
     this.permissionsSubscription?.unsubscribe();
     this.routerSubscription?.unsubscribe();
   }
 
+  /** Muestra el nombre del botón a la derecha cuando el menú está en iconos. */
+  showRailTip(event: Event, label: string): void {
+    if (!this.isRailCompact() || !label.trim()) {
+      this.hideRailTip();
+      return;
+    }
+
+    const origin = event.currentTarget as HTMLElement | null;
+    if (!origin) {
+      return;
+    }
+
+    window.clearTimeout(this.railTipHideTimer);
+    window.clearTimeout(this.railTipShowTimer);
+
+    const open = () => this.placeRailTip(origin, label);
+    if (this.isRailTipOpen()) {
+      open();
+      return;
+    }
+
+    this.railTipShowTimer = window.setTimeout(open, 70);
+  }
+
+  scheduleHideRailTip(): void {
+    window.clearTimeout(this.railTipShowTimer);
+    this.railTipHideTimer = window.setTimeout(() => this.hideRailTip(), 90);
+  }
+
+  hideRailTip(): void {
+    window.clearTimeout(this.railTipShowTimer);
+    window.clearTimeout(this.railTipHideTimer);
+    this.railTipEl?.classList.remove('is-open');
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.hideRailTip();
+  }
+
   toggleSidebar() {
+    this.hideRailTip();
     this.sidebarService.toggleSidebar();
   }
 
   closeMobileMenu() {
+    this.hideRailTip();
     this.sidebarService.closeMobile();
+  }
+
+  private isRailTipOpen(): boolean {
+    return !!this.railTipEl?.classList.contains('is-open');
+  }
+
+  private placeRailTip(origin: HTMLElement, label: string): void {
+    if (!this.isRailCompact() || typeof document === 'undefined') {
+      this.hideRailTip();
+      return;
+    }
+
+    const rect = origin.getBoundingClientRect();
+    const sidebarRight = origin.closest('.sidebar')?.getBoundingClientRect().right;
+    const anchorRight = origin.dataset['tipAnchor'] === 'self'
+      ? rect.right
+      : (sidebarRight ?? rect.right);
+    const tip = this.ensureRailTip();
+    const wasOpen = tip.classList.contains('is-open');
+
+    tip.textContent = label;
+    tip.style.top = `${rect.top + rect.height / 2}px`;
+    tip.style.left = `${anchorRight + 12}px`;
+
+    if (!wasOpen) {
+      // Fija la posición antes de animar, para que no salga desde la esquina.
+      void tip.offsetWidth;
+      tip.classList.add('is-open');
+    }
+  }
+
+  private ensureRailTip(): HTMLDivElement {
+    if (this.railTipEl?.isConnected) {
+      return this.railTipEl;
+    }
+
+    const tip = document.createElement('div');
+    tip.className = 'sidebar-rail-tip';
+    tip.setAttribute('role', 'tooltip');
+    tip.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(tip);
+    this.railTipEl = tip;
+    return tip;
   }
 
   /** Iconos solos. El drawer móvil no debe angostar ni recortar el menú de escritorio. */

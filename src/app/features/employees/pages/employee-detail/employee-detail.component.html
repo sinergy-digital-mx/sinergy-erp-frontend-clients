@@ -52,6 +52,19 @@
       </div>
     </div>
 
+    <app-sick-leave-section
+      [source]="'employee'"
+      [employeeId]="emp.id"
+      [employeeName]="fullName(emp)"
+      [requests]="leaveRequests()"
+      [summary]="emp.sick_leave ?? null"
+      [canRequest]="canRequestLeave"
+      [canReview]="canManageLeave"
+      [canCorrect]="canUpdate"
+      [canCancel]="canManageLeave || isOwnRecord"
+      (refreshed)="load()">
+    </app-sick-leave-section>
+
     <div class="detail-columns">
       <div class="detail-section">
         <h3>Mis datos</h3>
@@ -84,17 +97,17 @@
 
     <section class="detail-section">
       <div class="section-head">
-        <h3>Solicitudes</h3>
+        <h3>Vacaciones y permisos</h3>
         <button *ngIf="canRequestLeave" class="btn btn--primary" (click)="openLeaveRequest()">Nueva solicitud</button>
       </div>
 
-      <div *ngIf="leaveRequests().length === 0" class="empty-requests">
-        <p>Todavía no hay solicitudes.</p>
+      <div *ngIf="otherLeaveRequests().length === 0" class="empty-requests">
+        <p>Todavía no hay solicitudes de vacaciones o permisos.</p>
         <button *ngIf="canRequestLeave" class="btn btn--primary" (click)="openLeaveRequest()">Pedir vacaciones</button>
       </div>
 
-      <ul *ngIf="leaveRequests().length > 0" class="request-list">
-        <li *ngFor="let req of leaveRequests()" class="request-card">
+      <ul *ngIf="otherLeaveRequests().length > 0" class="request-list">
+        <li *ngFor="let req of otherLeaveRequests()" class="request-card">
           <div>
             <p class="request-card__type">{{ getLeaveTypeLabel(req.type) }}</p>
             <p class="request-card__dates">{{ req.start_date }} → {{ req.end_date }} · {{ req.days }} día(s)</p>

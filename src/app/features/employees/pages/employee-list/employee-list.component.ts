@@ -21,6 +21,7 @@ import {
 import { EMPLOYEE_PERMISSIONS } from '../../config/permissions.config';
 import { LeaveReviewDialogComponent } from '../../components/leave-review-dialog/leave-review-dialog.component';
 import { LeaveRequestDialogComponent } from '../../components/leave-request-dialog/leave-request-dialog.component';
+import { SickLeaveRequestDialogComponent } from '../../components/sick-leave-request-dialog/sick-leave-request-dialog.component';
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 @Component({
@@ -255,6 +256,28 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
   }
 
   correct(request: LeaveRequest): void {
+    if (request.type === 'sick_leave') {
+      this.dialog
+        .open(SickLeaveRequestDialogComponent, {
+          width: '640px',
+          maxWidth: '94vw',
+          autoFocus: false,
+          panelClass: 'sick-leave-dialog',
+          data: {
+            source: 'employee',
+            employeeId: request.employee_id || request.employee?.id,
+            employeeName: this.fullName(request.employee || {}),
+            request,
+          },
+        })
+        .afterClosed()
+        .subscribe((changed) => {
+          if (changed) {
+            this.loadLeaveRequests();
+          }
+        });
+      return;
+    }
     this.dialog
       .open(LeaveRequestDialogComponent, {
         width: '520px',

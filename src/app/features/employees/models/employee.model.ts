@@ -37,9 +37,16 @@ export const LEAVE_TYPE_OPTIONS: ReadonlyArray<{
 }> = [
   { value: 'vacation', label: 'Vacaciones' },
   { value: 'absence', label: 'Falta' },
-  { value: 'sick_leave', label: 'Incapacidad' },
   { value: 'permit', label: 'Permiso' },
 ];
+
+const LEAVE_TYPE_LABELS: Record<string, string> = {
+  vacation: 'Vacaciones',
+  absence: 'Falta',
+  sick_leave: 'Incapacidad médica',
+  permission: 'Permiso',
+  permit: 'Permiso',
+};
 
 /**
  * Vacation summary computed by the backend (Mexican LFT — "Vacaciones dignas").
@@ -72,6 +79,23 @@ export interface EmployeePayroll {
 /**
  * A single vacation / absence request.
  */
+export interface LeaveDocument {
+  id: string;
+  file_name: string;
+  mime_type?: string | null;
+  file_size?: number | null;
+  url?: string | null;
+  created_at?: string;
+}
+
+/** Días de incapacidad médica que caen en el año calendario. */
+export interface SickLeaveYearSummary {
+  year: number;
+  approved_days: number;
+  pending_days: number;
+  request_count: number;
+}
+
 export interface LeaveRequest {
   id: string;
   employee_id?: string;
@@ -88,6 +112,7 @@ export interface LeaveRequest {
   reviewed_at?: string;
   created_at?: string;
   updated_at?: string;
+  documents?: LeaveDocument[];
   /** Present in the RH "all leave requests" view. */
   employee?: {
     id?: string;
@@ -141,6 +166,7 @@ export interface Employee extends EmployeeProfile {
   photo_url?: string | null;
   years_of_service?: number;
   vacation?: EmployeeVacationSummary;
+  sick_leave?: SickLeaveYearSummary;
   payroll?: EmployeePayroll;
   request_counts?: LeaveRequestCounts;
   leave_requests?: LeaveRequest[];
@@ -227,7 +253,10 @@ export interface ReviewLeaveRequestDto {
  * Human-readable labels for leave types.
  */
 export function getLeaveTypeLabel(type: LeaveType | string | undefined): string {
-  return LEAVE_TYPE_OPTIONS.find((o) => o.value === type)?.label ?? 'Solicitud';
+  if (!type) {
+    return 'Solicitud';
+  }
+  return LEAVE_TYPE_LABELS[type] ?? 'Solicitud';
 }
 
 /**

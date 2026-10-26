@@ -1,7 +1,7 @@
 <div class="portal-page">
   <div class="page-header">
     <h1>Portal de empleado</h1>
-    <p class="page-subtitle">Consulta tu información, vacaciones y solicita ausencias</p>
+    <p class="page-subtitle">Consulta tu información, vacaciones e incapacidades</p>
   </div>
 
   <div *ngIf="loading()" class="state-message">Cargando tu información...</div>
@@ -46,6 +46,17 @@
         <span class="info-card__value">{{ emp.vacation?.pending_days ?? 0 }} días</span>
       </div>
     </div>
+
+    <app-sick-leave-section
+      [source]="'portal'"
+      [employeeId]="emp.id"
+      [employeeName]="fullName(emp)"
+      [requests]="leaveRequests()"
+      [summary]="emp.sick_leave ?? null"
+      [canRequest]="true"
+      [canCancel]="true"
+      (refreshed)="loadProfile()">
+    </app-sick-leave-section>
 
     <div class="portal-columns">
       <!-- New leave request -->
@@ -93,11 +104,11 @@
       <!-- My requests -->
       <div class="portal-section">
         <h3>Mis solicitudes</h3>
-        <div *ngIf="leaveRequests().length === 0" class="state-message state-message--sm">
+        <div *ngIf="otherRequests().length === 0" class="state-message state-message--sm">
           Aún no has enviado solicitudes.
         </div>
-        <ul *ngIf="leaveRequests().length > 0" class="request-list">
-          <li *ngFor="let req of leaveRequests()" class="request-item">
+        <ul *ngIf="otherRequests().length > 0" class="request-list">
+          <li *ngFor="let req of otherRequests()" class="request-item">
             <div class="request-item__main">
               <span class="request-item__type">{{ getLeaveTypeLabel(req.type) }}</span>
               <span class="request-item__dates">{{ req.start_date }} → {{ req.end_date }} · {{ req.days }} día(s)</span>

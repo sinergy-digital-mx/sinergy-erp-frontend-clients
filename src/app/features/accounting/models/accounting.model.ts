@@ -107,11 +107,25 @@ export interface PosCollectionBranch {
   label?: string | null;
 }
 
+export type PosCollectionPaymentMethodKey = 'cash' | 'transfer' | 'card' | 'check';
+
+export interface PosCollectionPaymentMethodTotal {
+  orders: number;
+  amount: number;
+  ticket: number;
+}
+
+export type PosCollectionPaymentMethodTotals = Record<
+  PosCollectionPaymentMethodKey,
+  PosCollectionPaymentMethodTotal
+>;
+
 export interface PosCollectionsSummary {
   orders_collected: number;
   amount_collected: number;
   walk_in_count: number;
   invoiced_count: number;
+  by_payment_method: PosCollectionPaymentMethodTotals;
 }
 
 export interface PosCollectionsPage extends AccountingPaginatedResponse<PosCollectionRow, PosCollectionsSummary> {

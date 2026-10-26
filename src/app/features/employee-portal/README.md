@@ -38,10 +38,12 @@ src/app/features/employee-portal/
 
 | Método | Endpoint                                             | Uso                       |
 |--------|------------------------------------------------------|---------------------------|
-| GET    | `/tenant/employees/me`                               | Perfil propio             |
-| GET    | `/tenant/employees/me/leave-requests`                | Mis solicitudes           |
-| POST   | `/tenant/employees/me/leave-requests`                | Enviar solicitud          |
-| PUT    | `/tenant/employees/me/leave-requests/:id/cancel`     | Cancelar solicitud propia |
+| GET    | `/tenant/employee-portal/me`                               | Perfil propio             |
+| GET    | `/tenant/employee-portal/me/leave-requests`                | Mis solicitudes           |
+| POST   | `/tenant/employee-portal/me/leave-requests`                | Enviar solicitud          |
+| PUT    | `/tenant/employee-portal/me/leave-requests/:id/cancel`     | Cancelar solicitud propia |
+| POST   | `/tenant/employee-portal/me/leave-requests/:id/documents`  | Adjuntar comprobante médico |
+| DELETE | `/tenant/employee-portal/me/leave-requests/:id/documents/:documentId` | Quitar comprobante |
 | PUT    | `/tenant/users/me`                                   | Cambiar nombre/contraseña |
 
 Los modelos y el cálculo de días se reutilizan del módulo `employees`

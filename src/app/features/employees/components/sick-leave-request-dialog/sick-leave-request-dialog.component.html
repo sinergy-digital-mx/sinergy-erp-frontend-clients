@@ -1,0 +1,123 @@
+<div class="sick-sheet" role="dialog" aria-labelledby="sick-sheet-title">
+  <header class="sick-sheet__head">
+    <div class="sick-sheet__mark" aria-hidden="true">
+      <lucide-icon [img]="stethoscope" [size]="20"></lucide-icon>
+    </div>
+    <div class="sick-sheet__titles">
+      <p class="sick-sheet__kicker">Solicitud</p>
+      <h2 id="sick-sheet-title">{{ isEdit ? 'Corregir incapacidad' : 'Incapacidad médica' }}</h2>
+      <p>{{ data.employeeName || 'Queda pendiente de aprobación' }}</p>
+    </div>
+    <button type="button" class="sick-sheet__close" (click)="close()" [disabled]="saving()" aria-label="Cerrar">
+      <lucide-icon [img]="closeIcon" [size]="18"></lucide-icon>
+    </button>
+  </header>
+
+  <div class="sick-sheet__body" [formGroup]="form">
+    <div class="date-pair">
+      <label class="field">
+        <span>Desde</span>
+        <input type="date" formControlName="start_date" [class.is-invalid]="form.get('start_date')?.invalid && form.get('start_date')?.touched">
+      </label>
+      <label class="field">
+        <span>Hasta</span>
+        <input type="date" formControlName="end_date" [class.is-invalid]="form.get('end_date')?.invalid && form.get('end_date')?.touched">
+      </label>
+    </div>
+
+    @if (singleDay()) {
+      <div class="segment" role="group" aria-label="Duración del día">
+        <button type="button" [class.is-on]="!halfDay()" (click)="setHalfDay(false)">Día completo</button>
+        <button type="button" [class.is-on]="halfDay()" (click)="setHalfDay(true)">Medio día</button>
+      </div>
+    }
+
+    <div class="day-callout" [class.day-callout--idle]="previewDays() <= 0">
+      @if (previewDays() > 0) {
+        <div>
+          <strong>{{ previewDays() }}</strong>
+          <span>{{ dayLabel(previewDays()) }}</span>
+        </div>
+        <p>{{ halfDay() ? 'Solo cuenta media jornada' : 'Incluye sábados y domingos' }}</p>
+      } @else {
+        <p>Elige las fechas para ver cuántos días se van a registrar.</p>
+      }
+    </div>
+
+    <label class="field field--stack">
+      <span class="field__label-row">
+        Comentarios
+        <em>{{ reasonLength() }}/500</em>
+      </span>
+      <textarea
+        formControlName="reason"
+        rows="4"
+        maxlength="500"
+        placeholder="Por ejemplo: incapacidad del IMSS por gripe. Folio del certificado.">
+      </textarea>
+    </label>
+
+    <button
+      type="button"
+      class="pay"
+      [class.pay--on]="form.get('is_paid')?.value"
+      (click)="togglePaid()"
+      [attr.aria-pressed]="form.get('is_paid')?.value">
+      <span class="pay__track" aria-hidden="true"><span class="pay__knob"></span></span>
+      <span>
+        <strong>Con goce de sueldo</strong>
+        <small>{{ form.get('is_paid')?.value ? 'La falta se cubre con salario' : 'Se registrará sin goce de sueldo' }}</small>
+      </span>
+    </button>
+
+    <div class="uploads">
+      <div class="uploads__label">
+        <span>Comprobantes médicos</span>
+        <small>
+          @if (isEdit) {
+            Los que ya están cargados siguen en el renglón. Aquí puedes agregar otro.
+          } @else {
+            Opcional. También puedes subirlos después, en el mismo renglón.
+          }
+        </small>
+      </div>
+
+      <label
+        class="drop"
+        [class.drop--hot]="dragging()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)">
+        <input type="file" [accept]="accept" multiple (change)="onPick($event)" [disabled]="saving()">
+        <lucide-icon [img]="fileIcon" [size]="22"></lucide-icon>
+        <strong>Suelta el PDF o la foto aquí</strong>
+        <span>o haz clic para elegirlo · hasta 10 MB</span>
+      </label>
+
+      @if (files().length) {
+        <ul class="picked">
+          @for (item of files(); track item.id) {
+            <li>
+              @if (item.previewUrl) {
+                <img [src]="item.previewUrl" alt="">
+              } @else {
+                <span class="picked__badge">PDF</span>
+              }
+              <span class="picked__name">{{ item.file.name }}</span>
+              <button type="button" (click)="removeFile(item.id)" aria-label="Quitar archivo">
+                <lucide-icon [img]="closeIcon" [size]="14"></lucide-icon>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+
+  <footer class="sick-sheet__foot">
+    <button type="button" class="btn-quiet" (click)="close()" [disabled]="saving()">Cancelar</button>
+    <button type="button" class="btn-send" (click)="submit()" [disabled]="saving()">
+      {{ saving() ? 'Guardando…' : (isEdit ? 'Guardar cambios' : 'Enviar solicitud') }}
+    </button>
+  </footer>
+</div>

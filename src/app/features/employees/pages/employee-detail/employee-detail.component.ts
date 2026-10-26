@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -16,11 +16,12 @@ import {
 import { EMPLOYEE_PERMISSIONS } from '../../config/permissions.config';
 import { LeaveRequestDialogComponent } from '../../components/leave-request-dialog/leave-request-dialog.component';
 import { LeaveReviewDialogComponent } from '../../components/leave-review-dialog/leave-review-dialog.component';
+import { SickLeaveSectionComponent } from '../../components/sick-leave-section/sick-leave-section.component';
 
 @Component({
   selector: 'app-employee-detail',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SickLeaveSectionComponent],
   templateUrl: './employee-detail.component.html',
   styleUrls: ['./employee-detail.component.scss'],
 })
@@ -33,6 +34,9 @@ export class EmployeeDetailComponent implements OnInit {
 
   employee = signal<Employee | null>(null);
   leaveRequests = signal<LeaveRequest[]>([]);
+  otherLeaveRequests = computed(() =>
+    this.leaveRequests().filter((request) => request.type !== 'sick_leave')
+  );
   loading = signal(true);
   uploadingPhoto = signal(false);
 
