@@ -10,7 +10,31 @@ const version = packageJson.version || '0.0.0';
 const buildId = `${version}-${Date.now()}`;
 const builtAt = new Date().toISOString();
 
-const versionPayload = { version, buildId, builtAt };
+function readReleaseNotes() {
+  const notesFile = path.join(rootDir, 'scripts', '.release-changes.json');
+  if (!fs.existsSync(notesFile)) {
+    return { channel: 'frontend', changes: [] };
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(notesFile, 'utf8'));
+    return {
+      channel: parsed.channel === 'backend' || parsed.channel === 'full' ? parsed.channel : 'frontend',
+      changes: Array.isArray(parsed.changes) ? parsed.changes : [],
+    };
+  } catch {
+    return { channel: 'frontend', changes: [] };
+  }
+}
+
+const releaseNotes = readReleaseNotes();
+const versionPayload = {
+  version,
+  buildId,
+  builtAt,
+  channel: releaseNotes.channel,
+  changes: releaseNotes.changes,
+};
 
 /** Copied to dist via angular.json (public folder). */
 const assetsDir = path.join(rootDir, 'public');
@@ -35,4 +59,4 @@ fs.writeFileSync(path.join(constantsDir, 'app-version.generated.ts'), tsContent)
 
 console.log(`Generated app version ${version} (${buildId})`);
 
-module.exports = { version, buildId, builtAt };
+module.exports = { version, buildId, builtAt, channel: releaseNotes.channel, changes: releaseNotes.changes };

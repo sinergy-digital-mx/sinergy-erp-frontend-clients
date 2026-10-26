@@ -1,0 +1,73 @@
+<div class="versions-page">
+  <header class="versions-page__header">
+    <div class="versions-page__intro">
+      <button type="button" class="versions-page__back" (click)="back()">
+        <lucide-icon [img]="ArrowLeft" [size]="16"></lucide-icon>
+        Configuración
+      </button>
+      <h1>Versiones</h1>
+      <p>Cambios publicados para esta organización.</p>
+    </div>
+
+    <label class="versions-search">
+      <lucide-icon [img]="Search" [size]="16"></lucide-icon>
+      <input
+        type="search"
+        [ngModel]="searchQuery"
+        (ngModelChange)="onSearch($event)"
+        placeholder="Buscar versión o cambio"
+        aria-label="Buscar en versiones"
+        autocomplete="off" />
+    </label>
+  </header>
+
+  @if (loading) {
+    <p class="versions-page__status">Cargando versiones…</p>
+  }
+
+  @if (!loading && errorMessage) {
+    <p class="versions-page__error">{{ errorMessage }}</p>
+  }
+
+  @if (!loading && !errorMessage && items.length === 0) {
+    <div class="versions-empty">
+      <p class="versions-empty__title">Todavía no hay versiones</p>
+      <p>Cuando se publique una actualización del sistema, el detalle va a quedar en este historial.</p>
+    </div>
+  }
+
+  @if (!loading && items.length > 0) {
+    <ol class="versions-list">
+      @for (item of items; track item.id) {
+        <li class="version-card">
+          <div class="version-card__top">
+            <div>
+              <p class="version-card__kicker">{{ channelLabel(item.channel) }}</p>
+              <h2>Versión {{ item.version }}</h2>
+            </div>
+            <time [attr.datetime]="item.released_at">{{ formatReleasedAt(item.released_at) }}</time>
+          </div>
+
+          <ul>
+            @for (change of item.changes; track $index) {
+              <li>
+                @if (hasMixedScopes(item)) {
+                  <span class="version-card__scope">{{ scopeLabel(change.scope) }}</span>
+                }
+                {{ change.message }}
+              </li>
+            }
+          </ul>
+        </li>
+      }
+    </ol>
+
+    @if (totalPages > 1) {
+      <div class="versions-pager">
+        <button type="button" (click)="previousPage()" [disabled]="page <= 1">Anterior</button>
+        <span>{{ page }} / {{ totalPages }}</span>
+        <button type="button" (click)="nextPage()" [disabled]="page >= totalPages">Siguiente</button>
+      </div>
+    }
+  }
+</div>

@@ -2,17 +2,35 @@
   padding: 16px;
 }
 
-.back-link {
-  border: none;
-  background: transparent;
-  color: #4f46e5;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
+.back-btn {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #4338ca;
+  cursor: pointer;
 
-  &:hover { text-decoration: underline; }
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+  }
+}
+
+.hero .back-btn {
+  margin-bottom: 0;
+  background: #f8fafc;
 }
 
 .state-message {
@@ -280,80 +298,105 @@
 .hero {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 16px;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
 
   &__identity {
     display: flex;
-    gap: 16px;
+    gap: 10px;
     align-items: center;
     min-width: 0;
+  }
+
+  &__avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 13px;
   }
 
   &__copy {
     min-width: 0;
   }
 
-  &__eyebrow {
-    margin: 0 0 4px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #4f46e5;
-  }
-
   h1 {
     margin: 0;
-    font-size: 26px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.25;
     color: #111827;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__meta {
-    margin: 4px 0 0;
-    color: #374151;
+    margin: 1px 0 0;
+    color: #4b5563;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__email {
-    margin: 2px 0 0;
+    margin: 0;
     color: #6b7280;
-    font-size: 13px;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__balance {
-    min-width: 220px;
-    background: linear-gradient(160deg, #eef2ff, #f5f3ff);
-    border: 1px solid #ddd6fe;
-    border-radius: 14px;
-    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    background: #eef2ff;
+    border: 1px solid #e0e7ff;
+    border-radius: 10px;
+    padding: 8px 8px 8px 12px;
+  }
+
+  &__days-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__days-text {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+    line-height: 1.2;
   }
 
   &__days {
-    font-size: 40px;
+    font-size: 22px;
     line-height: 1;
     font-weight: 700;
     color: #312e81;
   }
 
   &__days-label {
+    font-size: 12px;
     font-weight: 600;
     color: #312e81;
   }
 
   &__days-hint {
-    font-size: 12px;
+    font-size: 11px;
     color: #6b7280;
-    margin-bottom: 10px;
+  }
+
+  .btn {
+    padding: 7px 12px;
+    font-size: 13px;
+    white-space: nowrap;
   }
 }
 
@@ -463,13 +506,9 @@
     padding: 0 0 20px;
   }
 
-  .back-link {
-    margin-bottom: 8px;
-    font-size: 13px;
-  }
-
   .hero {
     flex-direction: column;
+    align-items: stretch;
     gap: 8px;
     padding: 0;
     border: none;
@@ -479,67 +518,33 @@
 
   .hero__identity {
     width: 100%;
-    gap: 12px;
-    padding: 12px;
+    gap: 10px;
+    padding: 10px 12px;
     background: #fff;
-    border-radius: 16px;
-  }
-
-  .hero__eyebrow {
-    display: none;
-  }
-
-  .avatar--lg {
-    width: 48px;
-    height: 48px;
-    font-size: 15px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
   }
 
   .hero h1 {
-    font-size: 17px;
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .hero__meta,
-  .hero__email {
-    margin-top: 2px;
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 15px;
   }
 
   .hero__balance {
     width: 100%;
     min-width: 0;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    column-gap: 8px;
-    padding: 12px 14px;
-    border-radius: 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
   }
 
   .hero__days {
-    font-size: 28px;
-  }
-
-  .hero__days-label {
-    font-size: 13px;
-  }
-
-  .hero__days-hint {
-    flex: 1 0 100%;
-    margin: 0;
+    font-size: 20px;
   }
 
   .hero__balance .btn {
     width: 100%;
-    margin-top: 8px;
-    border-radius: 12px;
   }
 
   .stat-row {

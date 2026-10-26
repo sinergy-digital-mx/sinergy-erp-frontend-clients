@@ -42,3 +42,8 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Notas temporales del deploy de versiones
+scripts/.release-changes.json
+scripts/.last-release.json
+scripts/.release-fingerprint.json

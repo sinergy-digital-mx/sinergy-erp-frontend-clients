@@ -14,6 +14,8 @@ import { WhatsappSettingsComponent } from '../settings/pages/whatsapp-settings/w
 import { WhatsappIntegrationGuideComponent } from '../settings/pages/whatsapp-integration-guide/whatsapp-integration-guide.component';
 import { WHATSAPP_PERMISSIONS } from '../settings/config/whatsapp-permissions.config';
 import { ExchangeRateSettingsComponent } from '../settings/components/exchange-rate-settings/exchange-rate-settings.component';
+import { SystemVersionsComponent } from '../settings/pages/system-versions/system-versions.component';
+import { SETTINGS_PERMISSIONS } from '../settings/config/permissions.config';
 import { permissionGuard } from '../../core/guards/permission.guard';
 import { GPS_TRACKING_PERMISSIONS } from '../logistics/config/permissions.config';
 
@@ -102,6 +104,19 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
       {
         path: 'exchange-rates',
         component: ExchangeRateSettingsComponent
+      },
+      {
+        path: 'versions',
+        component: SystemVersionsComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permissions: [
+            SETTINGS_PERMISSIONS.systemVersions.viewMenu,
+            SETTINGS_PERMISSIONS.systemVersions.view,
+          ],
+          permissionMode: 'any',
+          title: 'Versiones',
+        },
       },
       {
         path: 'goals',

@@ -86,6 +86,11 @@ export const SETTINGS_PERMISSIONS = {
     update: 'exchangerate:Update'
   },
 
+  systemVersions: {
+    viewMenu: 'system-versions:ViewMenu',
+    view: 'system-versions:Read'
+  },
+
   // Importación de inventario (Madereria Zona Norte)
   madereriaInventoryImport: {
     viewMenu: 'madereria_inventory_import:ViewMenu',

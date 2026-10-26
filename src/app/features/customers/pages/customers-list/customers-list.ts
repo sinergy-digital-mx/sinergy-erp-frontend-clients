@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { TagModule } from 'primeng/tag';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { ArrowRight, Plus, LucideAngularModule } from 'lucide-angular';
+import { ArrowRight, ChevronRight, Plus, LucideAngularModule } from 'lucide-angular';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { MatDialog } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -35,12 +35,12 @@ import {
   CustomerExportDialogResult,
 } from '../../components/customer-export-dialog/customer-export-dialog.component';
 import { ToastService } from '../../../../core/services/toast.service';
-import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { CUSTOMER_PERMISSIONS } from '../../config/permissions.config';
 import { CustomerListStatsComponent } from '../../components/customer-list-stats/customer-list-stats.component';
+import { MobileFilterSheetComponent } from '../../../../core/components/mobile-filter-sheet/mobile-filter-sheet.component';
 import { CustomerListStats } from '../../../../core/services/customer.service';
 import {
   CustomerListInsight,
@@ -64,10 +64,10 @@ import {
     FilterIndicatorComponent,
     LucideAngularModule,
     FilterClearButtonComponent,
-    SpinnerComponent,
     EmptyStageComponent,
     HasPermissionDirective,
     CustomerListStatsComponent,
+    MobileFilterSheetComponent,
   ],
   templateUrl: './customers-list.html',
   styleUrl: './customers-list.scss',
@@ -98,7 +98,9 @@ export class CustomersList implements OnInit, OnDestroy {
   });
 
   ArrowRight = ArrowRight;
+  ChevronRight = ChevronRight;
   Plus = Plus;
+  readonly cardSkeletonSlots = [1, 2, 3, 4, 5];
   readonly permissions = CUSTOMER_PERMISSIONS;
   readonly Math = Math;
   search = '';
@@ -398,6 +400,10 @@ export class CustomersList implements OnInit, OnDestroy {
     this.navigateList(1);
   }
 
+  get sheetFilterCount(): number {
+    return [this.selectedGroupId, this.selectedStatusId, this.selectedFiscalId].filter(Boolean).length;
+  }
+
   get hasActiveFilters(): boolean {
     return !!(
       this.search ||
@@ -441,6 +447,18 @@ export class CustomersList implements OnInit, OnDestroy {
       this.selectedInsight = null;
     }
 
+    this.navigateList(1);
+  }
+
+  clearSheetFilters(): void {
+    this.selectedGroupId = null;
+    this.selectedGroupName = null;
+    this.selectedStatusId = null;
+    this.selectedStatusName = null;
+    this.statusSelectConfig = { ...this.statusSelectConfig, value_default: null };
+    this.selectedFiscalId = null;
+    this.selectedFiscalName = null;
+    this.syncFiscalFilterConfig();
     this.navigateList(1);
   }
 
@@ -500,6 +518,20 @@ export class CustomersList implements OnInit, OnDestroy {
 
   fiscalRfc(customer: Customer): string {
     return customer.fiscal_rfc?.trim() || '';
+  }
+
+  customerInitials(customer: Customer): string {
+    const source = getCustomerFullName(customer);
+    if (!source || source === '—') return '?';
+    const parts = source.split(/\s+/).filter(Boolean).slice(0, 2);
+    return parts.map((part) => part.charAt(0).toUpperCase()).join('') || '?';
+  }
+
+  customerCardMeta(customer: Customer): string {
+    const company = customer.company_name?.trim();
+    const email = customer.email?.trim();
+    if (company && email) return `${company} · ${email}`;
+    return company || email || 'Sin correo';
   }
 
   fiscalTitle(customer: Customer): string {

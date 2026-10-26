@@ -14,6 +14,8 @@ interface AppVersionFile {
   version?: string;
   buildId?: string;
   builtAt?: string;
+  channel?: string;
+  changes?: AppUpdateDialogData['changes'];
 }
 
 @Injectable({
@@ -91,7 +93,7 @@ export class AppUpdateService {
       restoreFocus: false,
       panelClass: 'px-upd-panel',
       backdropClass: 'px-upd-backdrop',
-      width: '420px',
+      width: '440px',
       maxWidth: '92vw',
       enterAnimationDuration: '0ms',
       exitAnimationDuration: '160ms'

@@ -8,6 +8,7 @@ import {
   ChevronRight,
   FileDown,
   FolderOpen,
+  History,
   Landmark,
   LucideAngularModule,
   LucideIconData,
@@ -30,6 +31,7 @@ import { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../../madereria-inven
 import { GPS_TRACKING_PERMISSIONS } from '../../../logistics/config/permissions.config';
 import { WHATSAPP_PERMISSIONS } from '../../../settings/config/whatsapp-permissions.config';
 import { canShowSettings } from '../../../settings/guards/settings-access.guard';
+import { SETTINGS_PERMISSIONS } from '../../../settings/config/permissions.config';
 
 interface SettingsSection {
   id: string;
@@ -122,6 +124,15 @@ interface SettingsSection {
           <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Comunicación</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <ng-container *ngFor="let section of visibleCommunicationSections">
+              <ng-container *ngTemplateOutlet="sectionCard; context: { $implicit: section }"></ng-container>
+            </ng-container>
+          </div>
+        </div>
+
+        <div class="mb-8" *ngIf="visibleSystemSections.length > 0">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Sistema</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <ng-container *ngFor="let section of visibleSystemSections">
               <ng-container *ngTemplateOutlet="sectionCard; context: { $implicit: section }"></ng-container>
             </ng-container>
           </div>
@@ -411,6 +422,21 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
   ];
 
+  systemSections: SettingsSection[] = [
+    {
+      id: 'versions',
+      title: 'Versiones',
+      description: 'Consulta los cambios publicados en cada actualización del sistema',
+      icon: History,
+      route: 'versions',
+      permissions: [
+        SETTINGS_PERMISSIONS.systemVersions.viewMenu,
+        SETTINGS_PERMISSIONS.systemVersions.view,
+      ],
+      requireGranted: true,
+    }
+  ];
+
   sections: SettingsSection[] = [];
   private permissionsSubscription?: Subscription;
 
@@ -459,6 +485,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       this.visibleCompanySections.length > 0 ||
       this.visibleCatalogSections.length > 0 ||
       this.visibleCommunicationSections.length > 0 ||
+      this.visibleSystemSections.length > 0 ||
       this.showEmployeePortal
     );
   }
@@ -483,6 +510,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   get visibleCommunicationSections(): SettingsSection[] {
     return this.filterSections(this.communicationSections);
+  }
+
+  get visibleSystemSections(): SettingsSection[] {
+    return this.filterSections(this.systemSections);
   }
 
   /** The employee self-service portal is only shown to employee users. */

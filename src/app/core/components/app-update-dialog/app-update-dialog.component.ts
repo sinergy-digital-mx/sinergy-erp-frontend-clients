@@ -2,10 +2,18 @@ import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, CircleArrowUp, Sparkles } from 'lucide-angular';
+import { AuthService } from '../../services/auth.service';
+import { SETTINGS_PERMISSIONS } from '../../../features/settings/config/permissions.config';
+
+export interface AppUpdateChange {
+  scope?: 'frontend' | 'backend' | string;
+  message?: string;
+}
 
 export interface AppUpdateDialogData {
   version?: string;
   buildId?: string;
+  changes?: AppUpdateChange[];
 }
 
 @Component({
@@ -37,6 +45,28 @@ export interface AppUpdateDialogData {
             <span class="px-upd__dot" aria-hidden="true"></span>
             Versión {{ data.version }}
           </div>
+        }
+
+        @if (visibleChanges.length) {
+          <ul class="px-upd__changes">
+            @for (change of visibleChanges; track $index) {
+              <li>
+                @if (hasMixedScopes) {
+                  <span class="px-upd__scope">{{ scopeLabel(change.scope) }}</span>
+                }
+                {{ change.message }}
+              </li>
+            }
+          </ul>
+          @if (hiddenChangeCount > 0) {
+            <p class="px-upd__more">y {{ hiddenChangeCount }} cambios más</p>
+          }
+        }
+
+        @if (canOpenHistory) {
+          <button type="button" class="px-upd__link" (click)="openHistory()">
+            Ver todos los cambios
+          </button>
         }
 
         <p class="px-upd__hint">
@@ -178,11 +208,75 @@ export interface AppUpdateDialogData {
     }
 
     .px-upd__hint {
-      margin: 0;
+      margin: 0.85rem 0 0;
       font-size: 0.8125rem;
       line-height: 1.55;
       color: #94a3b8;
       animation: px-upd-up 0.45s ease 0.28s both;
+    }
+
+    .px-upd__changes {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      max-height: 9.5rem;
+      margin: 0 0 0.35rem;
+      padding: 0;
+      overflow: auto;
+      list-style: none;
+    }
+
+    .px-upd__changes li {
+      position: relative;
+      padding-left: 0.85rem;
+      font-size: 0.8125rem;
+      line-height: 1.4;
+      color: #334155;
+    }
+
+    .px-upd__changes li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.42rem;
+      width: 0.35rem;
+      height: 0.35rem;
+      border-radius: 50%;
+      background: #6366f1;
+    }
+
+    .px-upd__scope {
+      margin-right: 0.3rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #4f46e5;
+    }
+
+    .px-upd__more {
+      margin: 0.15rem 0 0;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    .px-upd__link {
+      display: inline-flex;
+      margin-top: 0.75rem;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: #4338ca;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 0.16rem;
+      cursor: pointer;
+    }
+
+    .px-upd__link:focus-visible {
+      outline: 2px solid #6366f1;
+      outline-offset: 2px;
     }
 
     .px-upd__footer {
@@ -316,11 +410,57 @@ export interface AppUpdateDialogData {
 export class AppUpdateDialogComponent {
   readonly Sparkles = Sparkles;
   readonly CircleArrowUp = CircleArrowUp;
+  private readonly visibleLimit = 6;
 
   constructor(
     private dialogRef: MatDialogRef<AppUpdateDialogComponent, boolean>,
+    private authService: AuthService,
     @Inject(MAT_DIALOG_DATA) public data: AppUpdateDialogData
   ) {}
+
+  get changes(): Array<{ scope: 'frontend' | 'backend'; message: string }> {
+    if (!Array.isArray(this.data?.changes)) {
+      return [];
+    }
+    return this.data.changes
+      .map((change) => ({
+        scope: change?.scope === 'backend' ? 'backend' as const : 'frontend' as const,
+        message: String(change?.message ?? '').trim(),
+      }))
+      .filter((change) => change.message);
+  }
+
+  get visibleChanges() {
+    return this.changes.slice(0, this.visibleLimit);
+  }
+
+  get hiddenChangeCount(): number {
+    return Math.max(this.changes.length - this.visibleChanges.length, 0);
+  }
+
+  get hasMixedScopes(): boolean {
+    return new Set(this.changes.map((change) => change.scope)).size > 1;
+  }
+
+  get canOpenHistory(): boolean {
+    if (!this.authService.token) {
+      return false;
+    }
+    const canReadVersions =
+      this.authService.hasGrantedPermission(SETTINGS_PERMISSIONS.systemVersions.viewMenu) ||
+      this.authService.hasGrantedPermission(SETTINGS_PERMISSIONS.systemVersions.view);
+    return canReadVersions && this.authService.hasPermission(SETTINGS_PERMISSIONS.viewMenu);
+  }
+
+  scopeLabel(scope: 'frontend' | 'backend'): string {
+    return scope === 'backend' ? 'Servidor' : 'Aplicación';
+  }
+
+  openHistory(): void {
+    const url = new URL('settings/versions', document.baseURI);
+    url.searchParams.set('v', String(Date.now()));
+    window.location.assign(url.toString());
+  }
 
   close(reload: boolean): void {
     this.dialogRef.close(reload);

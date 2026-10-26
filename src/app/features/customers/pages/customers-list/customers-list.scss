@@ -245,44 +245,239 @@
   }
 }
 
-.customers-mobile-card {
+.customers-feed {
+  display: block;
+}
+
+.customers-feed__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.customer-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e7eaf0;
+  border-radius: 16px;
   background: #fff;
-  border: 1px solid #f3f4f6;
-  border-radius: 12px;
-  padding: 1rem;
-  transition: background-color 0.15s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 
   &:active {
-    background-color: #fafafa;
+    transform: scale(0.985);
+  }
+
+  &--skeleton {
+    pointer-events: none;
+    min-height: 84px;
+    box-shadow: none;
+
+    .customer-card__avatar,
+    .customer-card__skel {
+      background: linear-gradient(90deg, #f8fafc 0%, #eef2f7 50%, #f8fafc 100%);
+      background-size: 200% 100%;
+      animation: customer-card-shimmer 1.2s ease-in-out infinite;
+    }
+  }
+
+  &__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    flex-shrink: 0;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  &__main {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &__name {
+    min-width: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__status {
+    flex-shrink: 0;
+  }
+
+  &__meta {
+    min-width: 0;
+    font-size: 0.75rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  &__tag {
+    min-width: 0;
+    max-width: 100%;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__go {
+    flex-shrink: 0;
+    color: #cbd5e1;
+  }
+
+  &__skel {
+    display: block;
+    border-radius: 8px;
+
+    &--name {
+      width: 58%;
+      height: 14px;
+    }
+
+    &--meta {
+      width: 74%;
+      height: 12px;
+      margin-top: 8px;
+    }
   }
 }
 
-@media (max-width: 767px) {
+.customers-feed__pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+
+  button {
+    height: 40px;
+    padding: 0 14px;
+    border: 1px solid #e7eaf0;
+    border-radius: 12px;
+    background: #fff;
+    color: #334155;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+  }
+
+  span {
+    min-width: 3.5rem;
+    text-align: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes customer-card-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (max-width: 1023px) {
   .customers-page {
     &__header {
-      flex-direction: column;
-      align-items: stretch;
+      margin-bottom: 1rem;
     }
 
     &__title {
-      font-size: 1.5rem;
+      font-size: 1.375rem;
     }
 
+    &__header-actions {
+      flex-wrap: nowrap;
+    }
+
+    &__export-btn,
     &__create-btn {
-      justify-content: center;
-      width: 100%;
+      position: relative;
+      width: 40px;
+      padding: 0;
+
+      span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
     }
 
     &__toolbar {
-      flex-direction: column;
-      align-items: stretch;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 0.5rem;
     }
 
-    &__search,
+    &__search {
+      flex: 1 1 auto;
+      width: auto;
+      min-width: 0;
+    }
+
     &__filter {
       flex: 1 1 auto;
       width: 100%;
       min-width: 0;
+    }
+
+    &__clear {
+      display: none;
     }
   }
 }

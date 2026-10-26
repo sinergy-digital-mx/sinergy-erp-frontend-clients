@@ -136,8 +136,9 @@ $nav-top: #1e1b4b;
   gap: 0.5rem;
   padding: calc(0.4rem + env(safe-area-inset-top, 0px)) 0.75rem 0.4rem;
   color: #fff;
-  background: linear-gradient(180deg, $nav-top 0%, #312e81 50%, #4c1d95 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  // Plano, igual que el fondo del HTML: en celular el degradado del escritorio
+  // partía la barra y no se juntaba con el índigo de arriba.
+  background: $nav-top;
   z-index: 40;
 }
 

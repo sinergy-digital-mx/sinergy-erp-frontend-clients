@@ -1,17 +1,37 @@
 <div class="detail-page">
-  <button *ngIf="canSeeAll" class="back-link" (click)="goBack()">&larr; Volver a empleados</button>
+  <button
+    *ngIf="canSeeAll && (loading() || !employee())"
+    type="button"
+    class="back-btn"
+    title="Volver a empleados"
+    aria-label="Volver a empleados"
+    (click)="goBack()">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  </button>
 
   <div *ngIf="loading()" class="state-message">Cargando...</div>
 
   <ng-container *ngIf="!loading() && employee() as emp">
     <section class="hero">
       <div class="hero__identity">
-        <div class="avatar avatar--lg">
+        <button
+          *ngIf="canSeeAll"
+          type="button"
+          class="back-btn"
+          title="Volver a empleados"
+          aria-label="Volver a empleados"
+          (click)="goBack()">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </button>
+        <div class="avatar hero__avatar">
           <img *ngIf="emp.photo_url" [src]="emp.photo_url" [alt]="fullName(emp)">
           <span *ngIf="!emp.photo_url">{{ initials(emp) }}</span>
         </div>
         <div class="hero__copy">
-          <p class="hero__eyebrow">{{ isOwnRecord ? 'Mi expediente' : 'Expediente' }}</p>
           <h1>{{ fullName(emp) }}</h1>
           <p class="hero__meta">
             {{ emp.position || 'Sin puesto' }}
@@ -22,12 +42,16 @@
       </div>
 
       <div class="hero__balance">
-        <span class="hero__days">{{ emp.vacation?.available_days ?? 0 }}</span>
-        <span class="hero__days-label">días disponibles</span>
-        <span class="hero__days-hint">
-          {{ emp.vacation?.entitled_days ?? 0 }} de ley
-          <ng-container *ngIf="(emp.vacation?.carryover_days ?? 0) > 0"> + {{ emp.vacation?.carryover_days }} arrastre</ng-container>
-        </span>
+        <div class="hero__days-group">
+          <span class="hero__days">{{ emp.vacation?.available_days ?? 0 }}</span>
+          <span class="hero__days-text">
+            <span class="hero__days-label">días disponibles</span>
+            <span class="hero__days-hint">
+              {{ emp.vacation?.entitled_days ?? 0 }} de ley
+              <ng-container *ngIf="(emp.vacation?.carryover_days ?? 0) > 0"> + {{ emp.vacation?.carryover_days }} arrastre</ng-container>
+            </span>
+          </span>
+        </div>
         <button *ngIf="canRequestLeave" class="btn btn--primary" (click)="openLeaveRequest()">Solicitar vacaciones</button>
       </div>
     </section>

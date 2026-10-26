@@ -352,21 +352,47 @@
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1023px) {
   .sick__band {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 18px 16px;
-    border-radius: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "copy meter"
+      "cta cta";
+    gap: 8px 10px;
+    align-items: center;
+    padding: 12px 12px 12px 14px;
   }
 
   .sick {
-    border-radius: 18px;
+    border-radius: 14px;
   }
 
-  .sick h3 { font-size: 22px; }
+  .sick__copy { grid-area: copy; min-width: 0; }
+  .sick__meter { grid-area: meter; min-width: 0; gap: 8px; }
+  .sick__cta { grid-area: cta; width: 100%; padding: 8px 12px; font-size: 13px; }
 
-  .sick__cta { width: 100%; }
+  .sick__kicker {
+    margin: 0 0 2px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+
+  .sick h3 { font-size: 15px; letter-spacing: 0; }
+
+  .sick__copy p:last-child { display: none; }
+
+  .sick__orb {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+    box-shadow: none;
+  }
+
+  .sick__meter-copy strong { font-size: 13px; }
+  .sick__meter-copy > span { font-size: 11px; }
+  .sick__chips { margin-top: 4px; }
+
+  .sick__empty { padding: 14px 14px 16px; }
 
   .sick-row {
     grid-template-columns: 1fr;
