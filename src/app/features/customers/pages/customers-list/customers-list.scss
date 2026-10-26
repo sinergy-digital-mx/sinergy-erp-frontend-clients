@@ -245,10 +245,6 @@
   }
 }
 
-.customers-feed {
-  display: block;
-}
-
 .customers-feed__list {
   display: flex;
   flex-direction: column;
@@ -423,6 +419,12 @@
 @keyframes customer-card-shimmer {
   0% { background-position: 100% 0; }
   100% { background-position: -100% 0; }
+}
+
+@media (min-width: 1024px) {
+  .customers-feed {
+    display: none;
+  }
 }
 
 @media (max-width: 1023px) {

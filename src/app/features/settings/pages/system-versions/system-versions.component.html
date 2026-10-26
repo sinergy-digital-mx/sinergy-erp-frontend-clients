@@ -12,6 +12,7 @@
     <label class="versions-search">
       <lucide-icon [img]="Search" [size]="16"></lucide-icon>
       <input
+        class="versions-search__input"
         type="search"
         [ngModel]="searchQuery"
         (ngModelChange)="onSearch($event)"

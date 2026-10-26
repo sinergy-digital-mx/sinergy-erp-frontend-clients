@@ -65,15 +65,32 @@
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
-.versions-search input {
+.versions-search__input {
   flex: 1;
   min-width: 0;
   height: 100%;
+  margin: 0;
+  padding: 0;
   border: 0;
+  border-radius: 0;
   outline: none;
   background: transparent;
+  box-shadow: none;
   color: #334155;
   font-size: 0.875rem;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.versions-search__input::-webkit-search-decoration,
+.versions-search__input::-webkit-search-cancel-button,
+.versions-search__input::-webkit-search-results-button {
+  -webkit-appearance: none;
+  display: none;
+}
+
+.versions-search__input::placeholder {
+  color: #9ca3af;
 }
 
 .versions-page__status,
