@@ -18,7 +18,6 @@ import {
   IPaginationEvent,
 } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
-import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { DivinoReservationFormatService } from '../../services/divino-reservation-format.service';
@@ -29,6 +28,7 @@ import {
 import { DIVINO_RESERVATION_FORMAT_PERMISSIONS } from '../../config/permissions.config';
 import { ReservationFormatModalComponent } from '../../components/reservation-format-modal/reservation-format-modal.component';
 import { SendReservationFormatModalComponent } from '../../components/send-reservation-format-modal/send-reservation-format-modal.component';
+import { DeleteReservationFormatModalComponent } from '../../components/delete-reservation-format-modal/delete-reservation-format-modal.component';
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 @Component({
@@ -264,38 +264,19 @@ export class ReservationFormatsListComponent implements OnDestroy {
 
   deleteFormat(format: DivinoReservationFormat): void {
     this.dialog
-      .open(AlertDialogComponent, {
-        width: '400px',
-        data: {
-          title: 'Eliminar formato',
-          message: `¿Estás seguro de que deseas eliminar el formato "${format.folio}"? Esta acción no se puede deshacer.`,
-          confirmText: 'Eliminar',
-          cancelText: 'Cancelar',
-          type: 'danger',
-        },
+      .open(DeleteReservationFormatModalComponent, {
+        width: '440px',
+        maxWidth: '92vw',
+        autoFocus: false,
+        ariaLabel: 'Eliminar formato',
+        panelClass: 'delete-reservation-format-dialog',
+        data: { format },
       })
       .afterClosed()
-      .subscribe((confirmed) => {
-        if (!confirmed) {
-          return;
+      .subscribe((deleted) => {
+        if (deleted) {
+          this.load();
         }
-        this.service.delete(format.id).subscribe({
-          next: () => {
-            this.interceptor.openSnackbar({
-              type: 'success',
-              title: 'Eliminado',
-              message: 'Formato eliminado correctamente.',
-            });
-            this.load();
-          },
-          error: () => {
-            this.interceptor.openSnackbar({
-              type: 'error',
-              title: 'Error',
-              message: 'No pudimos eliminar el formato.',
-            });
-          },
-        });
       });
   }
 

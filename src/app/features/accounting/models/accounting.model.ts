@@ -162,6 +162,8 @@ export interface AccountsPayableVendorRow {
   total_committed?: number | null;
   total_committed_mxn?: number | null;
   total_committed_usd?: number | null;
+  credit_balance_mxn?: number;
+  credit_balance_usd?: number;
 }
 
 export interface AccountsPayableVendorDetail {
@@ -268,6 +270,8 @@ export interface AccountsPayableListSummary {
   exchange_rate?: number | null;
   exchange_rate_date?: string | null;
   total_amount_pending_total_mxn?: number | null;
+  total_credit_balance_mxn?: number;
+  total_credit_balance_usd?: number;
 }
 
 export interface AccountsReceivableListSummary {

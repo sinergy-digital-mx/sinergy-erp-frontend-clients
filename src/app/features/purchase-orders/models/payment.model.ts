@@ -1,6 +1,25 @@
 /**
  * Payment entity
  */
+export interface VendorCreditCreated {
+  amount: number;
+  currency: 'MXN' | 'USD' | string;
+  balance_after: number;
+}
+
+export interface RegisterPaymentResponse {
+  payment?: Payment | null;
+  summary?: PaymentsSummaryLike;
+  credit_created?: VendorCreditCreated | null;
+}
+
+export interface PaymentsSummaryLike {
+  amount_paid?: number;
+  amount_pending?: number;
+  payment_status?: string;
+  currency?: string;
+}
+
 export interface Payment {
   id: string;
   purchase_order_batch_id: string;

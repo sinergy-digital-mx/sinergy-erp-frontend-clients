@@ -10,10 +10,13 @@
           <img *ngIf="emp.photo_url" [src]="emp.photo_url" [alt]="fullName(emp)">
           <span *ngIf="!emp.photo_url">{{ initials(emp) }}</span>
         </div>
-        <div>
+        <div class="hero__copy">
           <p class="hero__eyebrow">{{ isOwnRecord ? 'Mi expediente' : 'Expediente' }}</p>
           <h1>{{ fullName(emp) }}</h1>
-          <p class="hero__meta">{{ emp.position || 'Sin puesto' }}<span *ngIf="emp.department"> · {{ emp.department }}</span></p>
+          <p class="hero__meta">
+            {{ emp.position || 'Sin puesto' }}
+            <span *ngIf="emp.department && emp.department !== emp.position"> · {{ emp.department }}</span>
+          </p>
           <p class="hero__email">{{ emp.email }}</p>
         </div>
       </div>

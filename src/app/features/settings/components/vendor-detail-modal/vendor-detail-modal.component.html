@@ -186,6 +186,73 @@
           </div>
         </ng-container>
       </ng-container>
+
+      @if (activeTab() === 'cuentas') {
+        <div class="col-span-2 vendor-accounts">
+          @if (accountsLoading()) {
+            <p class="vendor-accounts__empty">Cargando cuentas…</p>
+          } @else if (!accounts()) {
+            <p class="vendor-accounts__empty">No se pudieron cargar las cuentas.</p>
+          } @else {
+            <div class="vendor-accounts__grid">
+              @for (row of [
+                { code: 'MXN', label: 'Pesos', bucket: accounts()!.mxn },
+                { code: 'USD', label: 'Dólares', bucket: accounts()!.usd }
+              ]; track row.code) {
+                <section class="vendor-accounts__card">
+                  <header>{{ row.label }}</header>
+                  <button type="button" class="vendor-accounts__stat" (click)="openPendingOrders()">
+                    <span>OC pendientes</span>
+                    <strong>{{ row.bucket.pending_order_count }}</strong>
+                  </button>
+                  <div class="vendor-accounts__stat">
+                    <span>Adeudado</span>
+                    <strong>{{ formatMoney(row.bucket.amount_pending, $any(row.code)) }}</strong>
+                  </div>
+                  <div class="vendor-accounts__stat">
+                    <span>A favor</span>
+                    <strong class="is-credit">{{ formatMoney(row.bucket.credit_balance, $any(row.code)) }}</strong>
+                  </div>
+                  <div class="vendor-accounts__stat">
+                    <span>Diferencia</span>
+                    <strong [class.is-credit]="row.bucket.net < 0">
+                      {{ netLabel(row.bucket.net, $any(row.code)) }}
+                    </strong>
+                  </div>
+                </section>
+              }
+            </div>
+
+            <h3>Kardex</h3>
+            @if (!accounts()!.ledger.length) {
+              <p class="vendor-accounts__empty">Todavía no hay movimientos de saldo a favor.</p>
+            } @else {
+              <table class="vendor-accounts__ledger">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Folio</th>
+                    <th>Monto</th>
+                    <th>Saldo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of accounts()!.ledger; track row.id) {
+                    <tr>
+                      <td>{{ row.created_at | date:'dd/MM/yyyy' }}</td>
+                      <td>{{ ledgerTypeLabel(row.entry_type) }}</td>
+                      <td>{{ row.folio || '—' }}</td>
+                      <td>{{ formatMoney(row.amount, $any(row.currency === 'USD' ? 'USD' : 'MXN')) }}</td>
+                      <td>{{ formatMoney(row.balance_after, $any(row.currency === 'USD' ? 'USD' : 'MXN')) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          }
+        </div>
+      }
     </form>
   </div>
 

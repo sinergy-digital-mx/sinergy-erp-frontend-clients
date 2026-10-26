@@ -58,6 +58,20 @@
         <span class="payable-summary__meta">{{ exchangeRateCaption() }}</span>
         <span class="currency-badge currency-badge--mxn">{{ totalOrderCount() }} OC</span>
       </div>
+
+      @if (showsMxn()) {
+        <div class="payable-summary__card">
+          <span class="payable-summary__label">A favor en pesos</span>
+          <span class="payable-summary__value">{{ formatMoney(summary()!.total_credit_balance_mxn, 'MXN') }}</span>
+        </div>
+      }
+
+      @if (showsUsd()) {
+        <div class="payable-summary__card">
+          <span class="payable-summary__label">A favor en dólares</span>
+          <span class="payable-summary__value">{{ formatMoney(summary()!.total_credit_balance_usd, 'USD') }}</span>
+        </div>
+      }
     </div>
   }
 
@@ -106,6 +120,20 @@
       </div>
     </td>
   }
+
+  <td class="px-2 py-2">
+    <div class="money-cell">
+      @if (showsMxn()) {
+        <span class="money-cell__amount">{{ formatMoney(item.credit_balance_mxn, 'MXN') }}</span>
+      }
+      @if (showsUsd() && showsMxn()) {
+        <span class="currency-badge currency-badge--usd">{{ formatMoney(item.credit_balance_usd, 'USD') }}</span>
+      }
+      @if (showsUsd() && !showsMxn()) {
+        <span class="money-cell__amount">{{ formatMoney(item.credit_balance_usd, 'USD') }}</span>
+      }
+    </div>
+  </td>
 
   <td class="px-2 py-2">
     <span class="rate-cell">{{ exchangeRateText() }}</span>

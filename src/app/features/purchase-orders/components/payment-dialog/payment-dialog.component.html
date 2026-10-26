@@ -24,7 +24,23 @@
           <span>Saldo Pendiente:</span>
           <strong class="pending">{{ formatCurrency(remainingAmount) }}</strong>
         </div>
+        <div class="summary-row">
+          <span>Este pago:</span>
+          <strong>{{ formatCurrency(appliedAmount()) }}</strong>
+        </div>
+        @if (hasCredit()) {
+          <div class="summary-row">
+            <span>A favor:</span>
+            <strong class="credit">{{ formatCurrency(creditAmount()) }}</strong>
+          </div>
+        }
       </div>
+
+      @if (hasCredit()) {
+        <p class="credit-hint">
+          Excedente {{ formatCurrency(creditAmount()) }}. Queda como saldo a favor del proveedor.
+        </p>
+      }
 
       <form [formGroup]="form" (ngSubmit)="submit()">
         <div class="form-field">

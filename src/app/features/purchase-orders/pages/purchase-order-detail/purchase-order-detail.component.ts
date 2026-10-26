@@ -260,8 +260,13 @@ export class PurchaseOrderDetailComponent implements OnInit {
     dialogRef.afterClosed().subscribe((paymentData: PaymentFormData | null) => {
       if (paymentData && order) {
         this.purchaseOrderService.registerPayment(order.id, paymentData).subscribe({
-          next: () => {
-            alert('Pago registrado exitosamente');
+          next: (result) => {
+            const credit = result?.credit_created;
+            alert(
+              credit?.amount
+                ? `Pago registrado. ${credit.amount} quedan a favor del proveedor.`
+                : 'Pago registrado exitosamente',
+            );
             this.loadOrder(order.id);
           },
           error: (error) => {

@@ -165,8 +165,111 @@
   opacity: 0.85;
 }
 
+.vendor-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+
+  h3 {
+    margin: 0.25rem 0 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__empty {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #64748b;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  &__card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.8rem 0.9rem;
+    background: #f8fafc;
+
+    header {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 0.45rem;
+    }
+  }
+
+  &__stat {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    margin: 0 0 0.35rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+
+    span {
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+
+    strong {
+      font-size: 0.86rem;
+      color: #0f172a;
+    }
+
+    &.is-credit,
+    .is-credit {
+      color: #047857;
+    }
+  }
+
+  button.vendor-accounts__stat {
+    cursor: pointer;
+    border-radius: 8px;
+
+    &:hover {
+      background: #eef2ff;
+    }
+  }
+
+  &__ledger {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+
+    th,
+    td {
+      padding: 0.4rem 0.35rem;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+    }
+
+    th {
+      color: #64748b;
+      font-weight: 700;
+    }
+  }
+}
+
 @media (max-width: 640px) {
   .vendor-modal__body form {
+    grid-template-columns: 1fr;
+  }
+
+  .vendor-accounts__grid {
     grid-template-columns: 1fr;
   }
 }

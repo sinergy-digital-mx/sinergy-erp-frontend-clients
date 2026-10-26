@@ -292,6 +292,11 @@
     display: flex;
     gap: 16px;
     align-items: center;
+    min-width: 0;
+  }
+
+  &__copy {
+    min-width: 0;
   }
 
   &__eyebrow {
@@ -453,7 +458,152 @@
   }
 }
 
-@media (max-width: 800px) {
-  .stat-row { grid-template-columns: 1fr 1fr; }
-  .hero__balance { width: 100%; }
+@media (max-width: 1023px) {
+  .detail-page {
+    padding: 0 0 20px;
+  }
+
+  .back-link {
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+
+  .hero {
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .hero__identity {
+    width: 100%;
+    gap: 12px;
+    padding: 12px;
+    background: #fff;
+    border-radius: 16px;
+  }
+
+  .hero__eyebrow {
+    display: none;
+  }
+
+  .avatar--lg {
+    width: 48px;
+    height: 48px;
+    font-size: 15px;
+  }
+
+  .hero h1 {
+    font-size: 17px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hero__meta,
+  .hero__email {
+    margin-top: 2px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hero__balance {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 8px;
+    padding: 12px 14px;
+    border-radius: 16px;
+  }
+
+  .hero__days {
+    font-size: 28px;
+  }
+
+  .hero__days-label {
+    font-size: 13px;
+  }
+
+  .hero__days-hint {
+    flex: 1 0 100%;
+    margin: 0;
+  }
+
+  .hero__balance .btn {
+    width: 100%;
+    margin-top: 8px;
+    border-radius: 12px;
+  }
+
+  .stat-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 10px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .stat {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 0;
+    border-bottom: 1px solid #f1f5f9;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .stat__label {
+    font-size: 11px;
+  }
+
+  .stat__value {
+    margin-left: auto;
+    font-size: 15px;
+    text-align: right;
+  }
+
+  .stat__hint {
+    font-size: 11px;
+  }
+
+  .detail-columns {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .detail-section {
+    padding: 14px;
+    margin-bottom: 10px;
+    border-radius: 16px;
+  }
+
+  .request-card {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .request-card__side {
+    align-items: flex-start;
+  }
+
+  .row-actions {
+    flex-wrap: wrap;
+  }
 }

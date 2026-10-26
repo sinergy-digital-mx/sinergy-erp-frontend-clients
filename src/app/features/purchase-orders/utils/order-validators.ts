@@ -73,9 +73,9 @@ export function validateLineItems(): ValidatorFn {
 }
 
 /**
- * Validate payment amount - must be > 0 and <= remaining
+ * Validate payment amount. Puede ser mayor al pendiente: el excedente es saldo a favor.
  */
-export function validatePaymentAmount(remainingAmount: number): ValidatorFn {
+export function validatePaymentAmount(_remainingAmount?: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const value = control.value;
     
@@ -85,14 +85,6 @@ export function validatePaymentAmount(remainingAmount: number): ValidatorFn {
     
     if (value <= 0) {
       return { invalidPaymentAmount: { message: 'El monto debe ser mayor a cero' } };
-    }
-    
-    if (value > remainingAmount) {
-      return { 
-        exceedsRemaining: { 
-          message: `El monto no puede exceder el saldo pendiente de ${remainingAmount}` 
-        } 
-      };
     }
     
     return null;

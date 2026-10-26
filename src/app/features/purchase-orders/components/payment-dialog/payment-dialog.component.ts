@@ -57,7 +57,7 @@ export class PaymentDialogComponent {
         [
           Validators.required,
           this.amountFormatValidator(),
-          this.amountRangeValidator(0.01, this.remainingAmount)
+          this.amountMinValidator(0.01)
         ]
       ],
       payment_date: [
@@ -94,7 +94,6 @@ export class PaymentDialogComponent {
 
     const amount = this.parseLocalizedAmount(raw);
     if (!Number.isFinite(amount) || amount < 0.01) return false;
-    if (this.toCents(amount) > this.toCents(this.remainingAmount)) return false;
 
     return (
       !this.form.get('payment_date')?.invalid &&
@@ -147,11 +146,31 @@ export class PaymentDialogComponent {
       return 'El monto debe ser mayor a cero';
     }
 
-    if (control.errors['amountMax']) {
-      return `El monto no puede exceder el saldo pendiente (${this.formatCurrency(this.remainingAmount)})`;
-    }
-
     return 'Monto inválido';
+  }
+
+  currentAmount(): number {
+    return this.roundMoney(this.parseLocalizedAmount(this.advanceRaw()));
+  }
+
+  creditAmount(): number {
+    const amount = this.currentAmount();
+    if (!Number.isFinite(amount)) return 0;
+    return Math.max(0, this.roundMoney(amount - this.remainingAmount));
+  }
+
+  hasCredit(): boolean {
+    return this.creditAmount() > 0;
+  }
+
+  appliedAmount(): number {
+    const amount = this.currentAmount();
+    if (!Number.isFinite(amount)) return 0;
+    return Math.min(amount, this.remainingAmount);
+  }
+
+  private advanceRaw(): string {
+    return String(this.form.get('amount')?.value ?? '');
   }
 
   /**
@@ -190,7 +209,7 @@ export class PaymentDialogComponent {
     };
   }
 
-  private amountRangeValidator(min: number, max: number): ValidatorFn {
+  private amountMinValidator(min: number): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       const raw = control.value;
       if (raw === null || raw === undefined || raw === '') return null;
@@ -200,9 +219,6 @@ export class PaymentDialogComponent {
       }
       if (this.toCents(amount) < this.toCents(min)) {
         return { amountMin: true };
-      }
-      if (this.toCents(amount) > this.toCents(max)) {
-        return { amountMax: true };
       }
       return null;
     };

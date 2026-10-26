@@ -124,6 +124,31 @@ export interface VendorQueryParams {
   similar_only?: boolean;
 }
 
+export interface VendorAccountsCurrencyBucket {
+  pending_order_count: number;
+  amount_pending: number;
+  credit_balance: number;
+  net: number;
+}
+
+export interface VendorAccountsLedgerRow {
+  id: string;
+  created_at: string;
+  entry_type: 'credit' | 'debit' | 'void' | string;
+  amount: number;
+  currency: 'MXN' | 'USD' | string;
+  folio?: string | null;
+  notes?: string | null;
+  balance_after: number;
+}
+
+export interface VendorAccounts {
+  vendor: { id: string; name?: string; razon_social?: string | null; company_name?: string | null };
+  mxn: VendorAccountsCurrencyBucket;
+  usd: VendorAccountsCurrencyBucket;
+  ledger: VendorAccountsLedgerRow[];
+}
+
 /** Filtros del listado reutilizados en GET /tenant/vendors/export/excel */
 export interface VendorsExportFilters {
   search?: string;

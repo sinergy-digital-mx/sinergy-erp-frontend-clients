@@ -27,7 +27,7 @@ import {
   PurchaseOrderExportFilters,
   PurchaseOrderExportType,
 } from '../models/filters.model';
-import { Payment } from '../models/payment.model';
+import { Payment, RegisterPaymentResponse } from '../models/payment.model';
 import { environment } from '../../../../environments/environment';
 import { VendorCatalogProduct, VendorProductsQuery } from '../models/vendor-catalog.model';
 import { PurchaseOrderLocationsResponse } from '../models/purchase-order-location.model';
@@ -416,7 +416,7 @@ export class PurchaseOrderService {
   /**
    * Register payment
    */
-  registerPayment(orderId: string, payment: PaymentFormData): Observable<Payment> {
+  registerPayment(orderId: string, payment: PaymentFormData): Observable<RegisterPaymentResponse> {
     const payload = {
       amount: payment.amount,
       payment_date: payment.payment_date,
@@ -425,7 +425,7 @@ export class PurchaseOrderService {
       reference_number: payment.reference_number,
       notes: payment.notes
     };
-    return this.http.post<Payment>(`${this.baseUrl}/${orderId}/payments`, payload)
+    return this.http.post<RegisterPaymentResponse>(`${this.baseUrl}/${orderId}/payments`, payload)
       .pipe(
         catchError(error => this.handleError(error))
       );

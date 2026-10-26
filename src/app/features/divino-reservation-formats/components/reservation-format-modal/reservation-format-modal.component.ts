@@ -248,6 +248,11 @@ export class ReservationFormatModalComponent implements OnInit {
       },
       error: () => {
         this.fiscalSelectConfig = { ...this.fiscalSelectConfig, loading: false };
+        this.interceptor.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: 'No pudimos cargar las razones sociales.',
+        });
       },
     });
   }

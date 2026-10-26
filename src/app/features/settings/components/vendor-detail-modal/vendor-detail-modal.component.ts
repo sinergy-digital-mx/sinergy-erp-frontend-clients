@@ -15,9 +15,12 @@ import { VendorService } from '../../services/vendor.service';
 import {
   CheckVendorDuplicatesDto,
   Vendor,
+  VendorAccounts,
   CreateVendorDto,
   VendorType,
 } from '../../models/vendor.model';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
+import { VendorPayableDetailDialogComponent } from '../../../accounting/components/vendor-payable-detail-dialog/vendor-payable-detail-dialog.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { X } from 'lucide-angular';
@@ -36,7 +39,7 @@ import {
   VENDOR_MATCH_REASON_LABELS,
 } from '../../utils/vendor-profile.util';
 
-type VendorTabId = 'general' | 'direccion' | 'bancaria';
+type VendorTabId = 'general' | 'direccion' | 'bancaria' | 'cuentas';
 
 /** RFC persona física (13) o moral (12): 3-4 letras + 6 dígitos + 3 homoclave */
 const MEXICAN_RFC_PATTERN = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/i;
@@ -70,6 +73,8 @@ export class VendorDetailModalComponent implements OnDestroy {
     { id: 'direccion', title: 'Dirección' },
     { id: 'bancaria', title: 'Información bancaria' },
   ];
+  accounts = signal<VendorAccounts | null>(null);
+  accountsLoading = signal(false);
 
   vendorTypeOptions: { id: VendorType; name: string }[] = [
     { id: 'NATIONAL', name: 'Nacional (México)' },
@@ -119,6 +124,9 @@ export class VendorDetailModalComponent implements OnDestroy {
     @Inject(MAT_DIALOG_DATA) public data: { vendor: Vendor | null },
   ) {
     this.isNew = !data.vendor;
+    if (!this.isNew) {
+      this.tabs = [...this.tabs, { id: 'cuentas', title: 'Cuentas' }];
+    }
     this.form = this.createForm();
 
     if (data.vendor) {
@@ -169,9 +177,59 @@ export class VendorDetailModalComponent implements OnDestroy {
   }
 
   setActiveTab(tabId: string): void {
-    if (tabId === 'general' || tabId === 'direccion' || tabId === 'bancaria') {
+    if (tabId === 'general' || tabId === 'direccion' || tabId === 'bancaria' || tabId === 'cuentas') {
       this.activeTab.set(tabId);
+      if (tabId === 'cuentas') {
+        this.loadAccounts();
+      }
     }
+  }
+
+  loadAccounts(): void {
+    const vendorId = this.data.vendor?.id;
+    if (!vendorId || this.accountsLoading()) return;
+    this.accountsLoading.set(true);
+    this.vendorService.getVendorAccounts(vendorId).subscribe({
+      next: (accounts) => {
+        this.accounts.set(accounts);
+        this.accountsLoading.set(false);
+      },
+      error: () => {
+        this.accounts.set(null);
+        this.accountsLoading.set(false);
+        this.toast.error('No se pudieron cargar las cuentas del proveedor');
+      },
+    });
+  }
+
+  openPendingOrders(): void {
+    const vendor = this.data.vendor;
+    if (!vendor?.id) return;
+    this.dialog.open(VendorPayableDetailDialogComponent, {
+      width: '820px',
+      maxWidth: '95vw',
+      data: {
+        vendorId: vendor.id,
+        vendorLabel: vendor.name || vendor.razon_social || vendor.company_name || 'Proveedor',
+        currency: 'all',
+      },
+    });
+  }
+
+  formatMoney(amount: number, currency: 'MXN' | 'USD'): string {
+    return formatUnitCurrency(amount || 0, currency);
+  }
+
+  ledgerTypeLabel(type: string): string {
+    if (type === 'credit') return 'A favor';
+    if (type === 'debit') return 'Aplicado';
+    if (type === 'void') return 'Reverso';
+    return type;
+  }
+
+  netLabel(net: number, currency: 'MXN' | 'USD'): string {
+    if (net < 0) return `A favor ${this.formatMoney(Math.abs(net), currency)}`;
+    return this.formatMoney(net, currency);
   }
 
   private createForm(): FormGroup {
@@ -470,6 +528,7 @@ export class VendorDetailModalComponent implements OnDestroy {
         'bank_swift_bic',
         'bank_iban',
       ],
+      cuentas: [],
     };
 
     for (const tab of ['general', 'direccion', 'bancaria'] as VendorTabId[]) {

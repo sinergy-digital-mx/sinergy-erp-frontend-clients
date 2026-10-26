@@ -1,0 +1,87 @@
+<div class="delete-format">
+  <header class="delete-format__header">
+    <div class="delete-format__heading">
+      <span class="delete-format__icon" aria-hidden="true">
+        <lucide-icon [img]="Trash2" [size]="18"></lucide-icon>
+      </span>
+      <div>
+        <h2 id="delete-format-title">Eliminar formato</h2>
+        <p id="delete-format-desc">Esta acción no se puede deshacer.</p>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="delete-format__close"
+      aria-label="Cerrar"
+      [disabled]="deleting()"
+      (click)="cancel()">
+      <lucide-icon [img]="X" [size]="18"></lucide-icon>
+    </button>
+  </header>
+
+  <div class="delete-format__body">
+    <p class="delete-format__lead">
+      Se va a borrar el formato
+      <strong>{{ format.folio }}</strong>
+      y los datos del apartado. El PDF deja de estar disponible.
+    </p>
+
+    <dl class="delete-format__card">
+      <div class="delete-format__row">
+        <dt>Folio</dt>
+        <dd>
+          <span class="dt-folio-badge dt-folio-badge--res">{{ format.folio }}</span>
+        </dd>
+      </div>
+      <div class="delete-format__row">
+        <dt>Comprador</dt>
+        <dd>
+          <span class="delete-format__value">{{ buyerName }}</span>
+          @if (format.buyer_email) {
+            <span class="delete-format__sub">{{ format.buyer_email }}</span>
+          }
+        </dd>
+      </div>
+      <div class="delete-format__row">
+        <dt>Lote</dt>
+        <dd>{{ lotLabel }}</dd>
+      </div>
+      <div class="delete-format__row">
+        <dt>Estatus</dt>
+        <dd>
+          <span class="delete-format__status" [class.delete-format__status--sent]="isSent">
+            {{ statusLabel }}
+          </span>
+        </dd>
+      </div>
+      @if (format.created_at) {
+        <div class="delete-format__row">
+          <dt>Fecha</dt>
+          <dd>{{ format.created_at | date: 'dd/MM/yyyy' }}</dd>
+        </div>
+      }
+    </dl>
+
+    @if (isSent) {
+      <div class="delete-format__warning">
+        <lucide-icon [img]="Mail" [size]="16"></lucide-icon>
+        <p>Este formato ya se envió por correo. Borrarlo no retira ese mensaje.</p>
+      </div>
+    }
+  </div>
+
+  <footer class="delete-format__footer">
+    <app-button
+      text="Cancelar"
+      variant="secondary"
+      [disabled]="deleting()"
+      (clicked)="cancel()">
+    </app-button>
+    <app-button
+      text="Eliminar formato"
+      variant="danger"
+      [loading]="deleting()"
+      (clicked)="confirm()">
+    </app-button>
+  </footer>
+</div>

@@ -1014,8 +1014,13 @@ export class OrderDetailDialogComponent {
     dialogRef.afterClosed().subscribe((paymentData: PaymentFormData | null) => {
       if (!paymentData) return;
       this.purchaseOrderService.registerPayment(order.id, paymentData).subscribe({
-        next: () => {
-          this.toast.success('Pago registrado exitosamente');
+        next: (result) => {
+          const credit = result?.credit_created;
+          this.toast.success(
+            credit?.amount
+              ? `Pago registrado. ${this.formatCurrency(credit.amount)} quedan a favor del proveedor.`
+              : 'Pago registrado exitosamente',
+          );
           this.loadOrder();
         },
         error: (error) => {

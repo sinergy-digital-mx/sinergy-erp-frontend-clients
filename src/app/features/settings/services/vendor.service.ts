@@ -6,6 +6,7 @@ import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import {
   Vendor,
+  VendorAccounts,
   CreateVendorDto,
   UpdateVendorDto,
   VendorListResponse,
@@ -65,6 +66,10 @@ export class VendorService {
 
   getVendor(id: string): Observable<Vendor> {
     return this.http.get<Vendor>(`${this.api}/tenant/vendors/${id}`);
+  }
+
+  getVendorAccounts(id: string): Observable<VendorAccounts> {
+    return this.http.get<VendorAccounts>(`${this.api}/tenant/vendors/${id}/accounts`);
   }
 
   createVendor(data: CreateVendorDto): Observable<Vendor> {

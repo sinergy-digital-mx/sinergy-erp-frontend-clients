@@ -65,17 +65,12 @@ describe('PaymentDialogComponent', () => {
       expect(amountControl?.hasError('min')).toBe(false);
     });
 
-    it('should validate amount does not exceed remaining amount', () => {
+    it('should allow an amount greater than the remaining balance', () => {
       const amountControl = component.form.get('amount');
-      
-      amountControl?.setValue(1001);
-      expect(amountControl?.hasError('max')).toBe(true);
-      
-      amountControl?.setValue(1000);
-      expect(amountControl?.hasError('max')).toBe(false);
-      
-      amountControl?.setValue(500);
-      expect(amountControl?.hasError('max')).toBe(false);
+      amountControl?.setValue('1500');
+      expect(amountControl?.valid).toBe(true);
+      expect(component.creditAmount()).toBe(500);
+      expect(component.appliedAmount()).toBe(1000);
     });
 
     it('should require payment_date field', () => {
@@ -137,14 +132,12 @@ describe('PaymentDialogComponent', () => {
       expect(component.getAmountError()).toBe('El monto debe ser mayor a cero');
     });
 
-    it('should return max error message with formatted amount', () => {
+    it('should not treat an excess as an error', () => {
       const amountControl = component.form.get('amount');
-      amountControl?.setValue(1500);
+      amountControl?.setValue('1500');
       amountControl?.markAsTouched();
-      
-      const error = component.getAmountError();
-      expect(error).toContain('no puede exceder el saldo pendiente');
-      expect(error).toContain('1,000');
+      expect(component.getAmountError()).toBeNull();
+      expect(component.hasCredit()).toBe(true);
     });
   });
 

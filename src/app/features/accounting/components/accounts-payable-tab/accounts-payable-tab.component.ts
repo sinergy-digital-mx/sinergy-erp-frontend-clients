@@ -246,6 +246,13 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
       canAutoResize: false,
       width: 230,
     };
+    const credit: IColumn = {
+      name: 'Saldo a favor',
+      prop: 'credit_balance',
+      sortable: false,
+      canAutoResize: false,
+      width: 180,
+    };
     const rate: IColumn = {
       name: 'Tipo de cambio',
       prop: 'exchange_rate',
@@ -261,9 +268,9 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
       width: 180,
     };
 
-    if (view === 'mxn') return [vendor, mxn, rate, total, progress];
-    if (view === 'usd') return [vendor, usd, rate, total, progress];
-    return [vendor, mxn, usd, rate, total, progress];
+    if (view === 'mxn') return [vendor, mxn, credit, rate, total, progress];
+    if (view === 'usd') return [vendor, usd, credit, rate, total, progress];
+    return [vendor, mxn, usd, credit, rate, total, progress];
   }
 
   private formatRate(rate: number): string {

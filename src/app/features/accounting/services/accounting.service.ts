@@ -604,6 +604,8 @@ export class AccountingService {
       progress_percentage_mxn: Number(raw.progress_percentage_mxn ?? raw.progress_percentage ?? 0) || 0,
       progress_percentage_usd: Number(raw.progress_percentage_usd ?? 0) || 0,
       amount_pending_total_mxn: this.optionalMoney(raw.amount_pending_total_mxn),
+      credit_balance_mxn: Number(raw.credit_balance_mxn ?? 0) || 0,
+      credit_balance_usd: Number(raw.credit_balance_usd ?? 0) || 0,
     };
   }
 
@@ -666,6 +668,8 @@ export class AccountingService {
       exchange_rate: this.optionalMoney(raw.exchange_rate),
       exchange_rate_date: raw.exchange_rate_date ?? null,
       total_amount_pending_total_mxn: this.optionalMoney(raw.total_amount_pending_total_mxn),
+      total_credit_balance_mxn: Number(raw.total_credit_balance_mxn ?? 0) || 0,
+      total_credit_balance_usd: Number(raw.total_credit_balance_usd ?? 0) || 0,
     };
   }
 
