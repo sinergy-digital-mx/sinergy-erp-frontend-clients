@@ -131,7 +131,7 @@ $nav-top: #1e1b4b;
 }
 
 .mobile-header {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 0.5rem;
   padding: calc(0.4rem + env(safe-area-inset-top, 0px)) 0.75rem 0.4rem;
@@ -139,6 +139,12 @@ $nav-top: #1e1b4b;
   background: linear-gradient(180deg, $nav-top 0%, #312e81 50%, #4c1d95 100%);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 40;
+}
+
+@media (max-width: 1023px) {
+  .mobile-header {
+    display: flex;
+  }
 }
 
 .mobile-header__brand {

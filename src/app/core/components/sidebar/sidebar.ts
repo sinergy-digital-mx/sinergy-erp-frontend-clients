@@ -364,6 +364,20 @@ export class Sidebar implements OnInit, OnDestroy {
     this.sidebarService.closeMobile();
   }
 
+  /** Iconos solos. El drawer móvil no debe angostar ni recortar el menú de escritorio. */
+  isRailCompact(): boolean {
+    if (this.isDesktopNav()) {
+      return this.isCollapsed();
+    }
+    return this.isCollapsed() && !this.isMobileOpen();
+  }
+
+  private isDesktopNav(): boolean {
+    return typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(min-width: 1024px)').matches;
+  }
+
   private getMenuItems(): MenuItem[] {
     const posType = this.auth_service.getPosUserType();
     const canSell = this.auth_service.canPosSell();

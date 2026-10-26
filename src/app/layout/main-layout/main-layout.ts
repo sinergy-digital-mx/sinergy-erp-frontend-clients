@@ -20,6 +20,10 @@ export class MainLayout implements OnInit, OnDestroy {
 
   readonly icons = { Menu };
   readonly isMobileMenuOpen: Signal<boolean>;
+  private desktopNavQuery: MediaQueryList | null = null;
+  private readonly onDesktopNavChange = (): void => {
+    this.syncDesktopNav();
+  };
 
   constructor(
     private permissionSyncService: PermissionSyncService,
@@ -35,9 +39,11 @@ export class MainLayout implements OnInit, OnDestroy {
     this.setMobileThemeColor(MainLayout.mobileThemeColor);
     document.documentElement.classList.add(MainLayout.chromeClass);
     document.body.classList.add(MainLayout.chromeClass);
+    this.watchDesktopNav();
   }
 
   ngOnDestroy(): void {
+    this.desktopNavQuery?.removeEventListener('change', this.onDesktopNavChange);
     this.sidebarService.closeMobile();
     document.documentElement.classList.remove(MainLayout.chromeClass);
     document.body.classList.remove(MainLayout.chromeClass);
@@ -58,6 +64,25 @@ export class MainLayout implements OnInit, OnDestroy {
   }
 
   openMobileMenu(): void {
+    if (this.desktopNavQuery?.matches) {
+      return;
+    }
     this.sidebarService.openMobile();
+  }
+
+  /** En escritorio el drawer móvil no debe quedar abierto ni pintar etiquetas en el rail. */
+  private watchDesktopNav(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+    this.desktopNavQuery = window.matchMedia('(min-width: 1024px)');
+    this.desktopNavQuery.addEventListener('change', this.onDesktopNavChange);
+    this.syncDesktopNav();
+  }
+
+  private syncDesktopNav(): void {
+    if (this.desktopNavQuery?.matches) {
+      this.sidebarService.closeMobile();
+    }
   }
 }

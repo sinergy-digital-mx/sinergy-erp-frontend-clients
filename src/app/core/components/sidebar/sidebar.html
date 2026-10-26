@@ -23,19 +23,19 @@
         <!-- Logo Section -->
         <div
           class="logo-section py-4 border-b border-white/10"
-          [class.px-6]="!(isCollapsed() && !isMobileOpen())"
-          [class.px-2]="isCollapsed() && !isMobileOpen()"
-          [class.logo-section--compact]="isCollapsed() && !isMobileOpen()">
+          [class.px-6]="!isRailCompact()"
+          [class.px-2]="isRailCompact()"
+          [class.logo-section--compact]="isRailCompact()">
             <div class="text-center logo-section__brand">
-                <app-pollux-brand-text [useSystemLogo]="true" [compact]="isCollapsed() && !isMobileOpen()" />
+                <app-pollux-brand-text [useSystemLogo]="true" [compact]="isRailCompact()" />
             </div>
         </div>
 
-        <div [class]="'flex flex-col pt-4 pb-3 transition-all duration-300 ' + (isCollapsed() && !isMobileOpen() ? 'px-2' : 'px-4')">
+        <div [class]="'flex flex-col pt-4 pb-3 transition-all duration-300 ' + (isRailCompact() ? 'px-2' : 'px-4')">
         <nav class="flex flex-col">
           @for (section of visibleMenuSections(); track section.id; let first = $first) {
             <div class="nav-section" [class.nav-section--first]="first">
-              @if (!isCollapsed() || isMobileOpen()) {
+              @if (!isRailCompact()) {
                 <h3 class="nav-section-title">{{ section.title }}</h3>
               } @else if (!first) {
                 <div class="nav-section-spacer" aria-hidden="true"></div>
@@ -46,10 +46,10 @@
                      routerLinkActive="router-link-active"
                      [routerLinkActiveOptions]="{ exact: item.exact !== false }"
                      (click)="closeMobileMenu()"
-                     [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isCollapsed() && !isMobileOpen() ? 'gap-0 px-2 py-2 justify-center' : 'gap-2.5 px-3 py-1.5')"
-                     [title]="isCollapsed() && !isMobileOpen() ? item.label : ''">
+                     [class]="'nav-item flex items-center rounded-lg transition-all duration-200 ' + (isRailCompact() ? 'gap-0 px-2 py-2 justify-center' : 'gap-2.5 px-3 py-1.5')"
+                     [title]="isRailCompact() ? item.label : ''">
                     <lucide-icon [img]="item.icon" class="w-4 h-4 shrink-0"></lucide-icon>
-                    @if (!isCollapsed() || isMobileOpen()) {
+                    @if (!isRailCompact()) {
                       <span class="font-medium whitespace-nowrap">{{ item.label }}</span>
                     }
                   </a>
@@ -61,15 +61,15 @@
         </div>
     </div>
 
-    <div [class]="'user-section py-4 transition-all duration-300 shrink-0 ' + (isCollapsed() && !isMobileOpen() ? 'px-2' : 'px-6')">
+    <div [class]="'user-section py-4 transition-all duration-300 shrink-0 ' + (isRailCompact() ? 'px-2' : 'px-6')">
         @if (todayUsdMxnRate() !== null) {
             <a
                 routerLink="/settings/exchange-rates"
                 (click)="closeMobileMenu()"
                 class="fx-card"
-                [class.fx-card--compact]="isCollapsed() && !isMobileOpen()"
+                [class.fx-card--compact]="isRailCompact()"
                 title="Cambio USD/MXN">
-                @if (isCollapsed() && !isMobileOpen()) {
+                @if (isRailCompact()) {
                     <span class="fx-card__compact-code">USD</span>
                     <span class="fx-card__compact-value">{{ todayUsdMxnRate() | number:'1.2-2' }}</span>
                 } @else {
@@ -86,7 +86,7 @@
             </a>
         }
 
-        @if (isCollapsed() && !isMobileOpen()) {
+        @if (isRailCompact()) {
             <div class="flex flex-col items-center gap-3">
                 <div class="user-avatar w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold">
                     {{ getInitials(auth_service.user_info?.email) }}

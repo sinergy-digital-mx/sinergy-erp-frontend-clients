@@ -10,6 +10,10 @@ El menú ocupa toda la pantalla y tapa el header. El botón de cerrar queda visi
 
 ## Cambios
 
+### 2026-10-26
+
+La barra con hamburguesa solo existe bajo 1024px. En escritorio el estilo del componente la ocultaba mal (`display: flex` le ganaba a `lg:hidden`) y, si el drawer quedaba abierto, las etiquetas salían cortadas en el sidebar.
+
 ### 2026-10-24
 
 Header más chico: logo reducido y menos padding. La barra del sistema toma el color del nav.
