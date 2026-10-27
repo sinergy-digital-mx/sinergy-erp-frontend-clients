@@ -1,5 +1,4 @@
 @use '../../../../../base/brand-buttons' as brand;
-@use '../../../../../base/filter-bar';
 @use '../../../../../base/form-controls' as fc;
 
 :host {
@@ -65,39 +64,19 @@
     gap: 0.5rem;
   }
 
-  &__filters {
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
 
-    .filter-bar__container--toolbar {
-      flex-wrap: nowrap;
-    }
-
-    .filter-bar__field--search {
-      flex: 1 1 auto;
-      min-width: 220px;
-      max-width: none;
-      grid-column: auto;
-    }
-
-    .filter-bar__field--group,
-    .filter-bar__field--status {
-      flex: 0 0 200px;
-      width: 200px;
-    }
-
-    .filter-bar__field--clear {
-      flex: 0 0 auto;
-      width: auto;
-    }
+  &__search {
+    flex: 1 1 220px;
+    min-width: 200px;
 
     ::ng-deep {
-      app-search,
-      app-property-status-dropdown,
-      app-customer-group-dropdown {
-        display: block;
-        width: 100%;
-      }
-
       .search_container--with-icon .search-input-wrap {
         @include fc.pollux-field-base;
         display: flex;
@@ -118,17 +97,34 @@
           box-shadow: none;
         }
       }
+    }
+  }
 
-      .select_container {
+  &__filter {
+    flex: 0 1 180px;
+    min-width: 160px;
+
+    ::ng-deep {
+      display: block;
+      width: 100%;
+
+      .select_container,
+      .select_container select,
+      .filter__control {
         width: 100%;
       }
 
       .select_container select,
       .filter__control {
         @include fc.pollux-select-field;
-        width: 100%;
       }
     }
+  }
+
+  &__clear {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
   }
 
   &__table {
@@ -534,16 +530,6 @@
 }
 
 @media (max-width: 1023px) {
-  .properties-page__filters .filter-bar__container--toolbar {
-    flex-wrap: nowrap;
-    gap: 8px;
-  }
-
-  .properties-page__filters .filter-bar__field--search {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
   .properties-page__title {
     font-size: 1.25rem;
   }
@@ -558,6 +544,26 @@
     width: 40px;
     padding: 0;
     justify-content: center;
+  }
+
+  .properties-page__toolbar {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+
+  .properties-page__search {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .properties-page__filter {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .properties-page__clear {
+    display: none;
   }
 
   app-property-filter-indicator {

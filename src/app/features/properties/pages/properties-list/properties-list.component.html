@@ -13,46 +13,39 @@
     </div>
   </div>
 
-  <div class="properties-page__filters filter-bar">
-    <div class="filter-bar__container filter-bar__container--toolbar">
-      <div class="filter-bar__field filter-bar__field--search">
-        <app-search
-          [showSearchIcon]="true"
-          placeholder="Buscar código, manzana o clave catastral..."
-          [param_activate]="true"
-          param_name="search"
-          (searchChange)="onSearchChange($event)">
-        </app-search>
-      </div>
+  <div class="properties-page__toolbar">
+    <app-search
+      class="properties-page__search"
+      [showSearchIcon]="true"
+      placeholder="Buscar código, manzana o clave catastral..."
+      [param_activate]="true"
+      param_name="search"
+      (searchChange)="onSearchChange($event)">
+    </app-search>
 
-      <app-mobile-filter-sheet
-        class="filter-bar__field filter-bar__field--sheet"
-        [activeCount]="sheetFilterCount"
-        (cleared)="clearAllFilters()">
-        <div class="filter-bar__field filter-bar__field--group">
-          <app-customer-group-dropdown
-            [selectedGroupId]="selectedGroupId"
-            placeholder="Grupo de cliente"
-            allMessage="Todos los grupos"
-            (groupSelect)="onGroupSelect($event)">
-          </app-customer-group-dropdown>
-        </div>
+    <app-mobile-filter-sheet
+      [activeCount]="sheetFilterCount"
+      (cleared)="clearAllFilters()">
+      <app-customer-group-dropdown
+        class="properties-page__filter"
+        [selectedGroupId]="selectedGroupId"
+        placeholder="Grupo de cliente"
+        allMessage="Todos los grupos"
+        (groupSelect)="onGroupSelect($event)">
+      </app-customer-group-dropdown>
 
-        <div class="filter-bar__field filter-bar__field--status">
-          <app-property-status-dropdown
-            [selectedStatus]="selectedStatus"
-            (statusSelect)="onStatusSelect($event)">
-          </app-property-status-dropdown>
-        </div>
+      <app-property-status-dropdown
+        class="properties-page__filter"
+        [selectedStatus]="selectedStatus"
+        (statusSelect)="onStatusSelect($event)">
+      </app-property-status-dropdown>
 
-        <div class="filter-bar__field filter-bar__field--clear">
-          <app-filter-clear-button
-            [active]="hasActiveFilters"
-            (clear)="clearAllFilters()">
-          </app-filter-clear-button>
-        </div>
-      </app-mobile-filter-sheet>
-    </div>
+      <app-filter-clear-button
+        class="properties-page__clear"
+        [active]="hasActiveFilters"
+        (clear)="clearAllFilters()">
+      </app-filter-clear-button>
+    </app-mobile-filter-sheet>
   </div>
 
   <app-property-filter-indicator
