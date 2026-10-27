@@ -1,7 +1,7 @@
 <div class="portal-page">
   <div class="page-header">
     <h1>Portal de empleado</h1>
-    <p class="page-subtitle">Consulta tu información, vacaciones e incapacidades</p>
+    <p class="page-subtitle">Consulta tu información, vacaciones, incapacidades y horas extras</p>
   </div>
 
   <div *ngIf="loading()" class="state-message">Cargando tu información...</div>
@@ -57,6 +57,13 @@
       [canCancel]="true"
       (refreshed)="loadProfile()">
     </app-sick-leave-section>
+
+    <app-overtime-section
+      [source]="'portal'"
+      [employeeId]="emp.id"
+      [employeeName]="fullName(emp)"
+      [canRequest]="true">
+    </app-overtime-section>
 
     <div class="portal-columns">
       <!-- New leave request -->

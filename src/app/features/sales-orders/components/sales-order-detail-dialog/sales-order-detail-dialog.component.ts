@@ -98,6 +98,7 @@ import {
   defaultStampEnvironment,
   isLocalStampHost,
   SalesOrderPaymentComplementStatus,
+  SalesOrderElectronicInvoice,
 } from '../../models/sales-order-electronic-invoice.model';
 import type { FinkokEnvironment } from '../../models/sales-order-electronic-invoice.model';
 import { AdvanceInvoiceDialogComponent } from '../advance-invoice-dialog/advance-invoice-dialog.component';
@@ -285,6 +286,7 @@ export class SalesOrderDetailDialogComponent {
   deletingPaymentId = signal<string | null>(null);
   uploadingPaymentDocId = signal<string | null>(null);
   invoiceSummary = signal<string | null>(null);
+  headerInvoices = signal<SalesOrderElectronicInvoice[]>([]);
   invoicesCount = signal(0);
   invoiceEmailsCount = signal(0);
   paymentComplement = signal<SalesOrderPaymentComplementStatus | null>(null);
@@ -1087,6 +1089,36 @@ export class SalesOrderDetailDialogComponent {
     return Math.max(this.getOrderTotalForPayments() - this.getPaidAmount(), 0);
   }
 
+  creditNotesAmount(): number {
+    return Math.max(this.parseNumber(this.order()?.payments_summary?.credit_notes_total), 0);
+  }
+
+  customerCreditAmount(): number {
+    return Math.max(this.parseNumber(this.order()?.payments_summary?.customer_credit), 0);
+  }
+
+  hasCreditNoteBadge(): boolean {
+    return this.headerInvoices().some(
+      (invoice) => this.isHeaderInvoiceVigente(invoice) && this.isHeaderEgress(invoice),
+    );
+  }
+
+  private isHeaderEgress(invoice: SalesOrderElectronicInvoice): boolean {
+    return (
+      invoice.tipo_comprobante === 'E' ||
+      invoice.invoice_role === 'credit_note' ||
+      invoice.invoice_role === 'advance_application'
+    );
+  }
+
+  private isHeaderInvoiceVigente(invoice: SalesOrderElectronicInvoice): boolean {
+    const sat = (invoice.sat_status || '').toLowerCase();
+    if (sat.includes('cancelad')) return false;
+    if (sat.includes('vigente')) return true;
+    const stamp = (invoice.stamp_status || '').toLowerCase();
+    return stamp === 'stamped' || stamp === 'cancel_pending' || stamp === 'cancel_error';
+  }
+
   getPaidPercent(): number {
     const total = this.getOrderTotalForPayments();
     if (total <= 0) return 0;
@@ -1651,17 +1683,20 @@ export class SalesOrderDetailDialogComponent {
   private loadInvoiceSummaryIfAllowed(): void {
     if (!this.canViewInvoicingTab()) {
       this.invoiceSummary.set(null);
+      this.headerInvoices.set([]);
       this.invoicesCount.set(this.getInvoices().length);
       return;
     }
 
     this.invoiceService.getInvoices(this.data.orderId).subscribe({
       next: (invoices) => {
+        this.headerInvoices.set(invoices);
         this.invoicesCount.set(invoices.length);
         const vigentes = countVigenteInvoices(invoices);
         this.invoiceSummary.set(`Facturas: ${invoices.length} · Vigentes: ${vigentes}`);
       },
       error: () => {
+        this.headerInvoices.set([]);
         this.invoicesCount.set(this.getInvoices().length);
         this.invoiceSummary.set(null);
       },
@@ -1702,7 +1737,7 @@ export class SalesOrderDetailDialogComponent {
   }
 
   onInvoicingTabChanged(): void {
-    this.loadInvoiceSummaryIfAllowed();
+    this.loadOrder(true);
   }
 
   onInvoiceEmailsChanged(count: number): void {

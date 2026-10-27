@@ -124,6 +124,27 @@
               <span class="field-label">UUID</span>
               <div class="invoice-card__uuid-value">{{ invoice.uuid || '—' }}</div>
             </div>
+            @if (isCommercialCreditNote(invoice)) {
+              <p class="credit-note-link">{{ relatedIncomeLabel(invoice) }}</p>
+            }
+            @if (isCreditableIncome(invoice)) {
+              <div class="credit-note-box">
+                <p>
+                  Acreditado {{ formatCurrency(creditedAmount(invoice)) }}
+                  · Disponible {{ formatCurrency(availableCredit(invoice)) }}
+                </p>
+                @for (note of creditNotesOf(invoice); track note.id) {
+                  <p class="credit-note-box__row">
+                    {{ getSeriesFolio(note) }} · {{ note.uuid || 'sin UUID' }} · {{ formatCurrency(note.total) }} · {{ getSystemStatusLabel(note) }}
+                  </p>
+                }
+                @if (orderIsPaid() && isInvoiceVigente(invoice)) {
+                  <p class="credit-note-box__hint">
+                    La orden ya está pagada. La nota de crédito deja saldo a favor y no cancela la factura. Cancelar en SAT es para cuando la operación no existió.
+                  </p>
+                }
+              </div>
+            }
             @if (isCancellationInProcess(invoice)) {
               <div class="invoice-card__notice">La factura está en proceso de cancelación. El SAT la sigue mostrando vigente hasta que acepte el receptor o venza el plazo.</div>
             }
@@ -200,6 +221,11 @@
                     [disabled]="unlinkingId() === invoiceRecordId(invoice)"
                   >
                     {{ unlinkingId() === invoiceRecordId(invoice) ? 'Quitando…' : 'Quitar de la orden' }}
+                  </button>
+                }
+                @if (canIssueCreditNote(invoice)) {
+                  <button type="button" class="action-btn action-btn--neutral" (click)="openCreditNote(invoice)">
+                    Nota de crédito
                   </button>
                 }
                 @if (canShowCancel(invoice)) {

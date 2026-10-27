@@ -5,6 +5,8 @@ export type DebtMovementType =
   | 'payment'
   | 'charge_reversal'
   | 'payment_reversal'
+  | 'credit_note'
+  | 'credit_note_reversal'
   | 'opening';
 
 export interface DebtFlowQueryParams {

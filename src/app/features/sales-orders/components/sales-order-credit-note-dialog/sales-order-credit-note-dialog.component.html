@@ -1,0 +1,68 @@
+<div class="dialog-overlay" (click)="close()">
+  <div class="dialog-container" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="dialog-header">
+      <h2>Nota de crédito</h2>
+      <button type="button" class="close-button" (click)="close()" aria-label="Cerrar">
+        <i class="fi fi-rr-cross-small"></i>
+      </button>
+    </div>
+
+    <form class="dialog-body" [formGroup]="form" (ngSubmit)="submit()">
+      <p class="hint">
+        Se relaciona con la factura
+        <strong>{{ data.invoice.folio || data.invoice.uuid || 'vigente' }}</strong>.
+        Disponible {{ data.available | number:'1.2-2' }} {{ currencyLabel }}.
+      </p>
+      @if (data.orderPaid) {
+        <p class="hint hint--favor">
+          La orden ya está pagada. Este importe queda como saldo a favor. No cancela la factura.
+        </p>
+      } @else {
+        <p class="hint">
+          Baja el saldo pendiente. Si el importe supera lo que falta por cobrar, el resto queda como saldo a favor.
+        </p>
+      }
+
+      <div class="form-field">
+        <label for="credit-note-amount">Importe con IVA *</label>
+        <input id="credit-note-amount" class="form-input" type="number" min="0.01" step="0.01" formControlName="amount" />
+        @if (form.get('amount')?.hasError('max') && form.get('amount')?.touched) {
+          <span class="field-error">No puede ser mayor al disponible.</span>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="credit-note-reason">Motivo *</label>
+        <textarea id="credit-note-reason" class="form-input" rows="3" formControlName="reason" placeholder="Diferencia de precio, devolución o bonificación"></textarea>
+      </div>
+
+      <div class="form-field">
+        <label for="credit-note-uso">Uso CFDI</label>
+        <select id="credit-note-uso" class="form-input" formControlName="uso_cfdi">
+          @for (opt of usoOptions; track opt.id) {
+            <option [value]="opt.id">{{ opt.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-field">
+        <span class="field-label">Timbrado</span>
+        <div class="env-row">
+          <label>
+            <input type="radio" formControlName="environment" value="demo" />
+            Demo
+          </label>
+          <label>
+            <input type="radio" formControlName="environment" value="production" />
+            Producción
+          </label>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" (click)="close()">Cerrar</button>
+        <button type="submit" class="btn-primary" [disabled]="form.invalid">Timbrar nota</button>
+      </div>
+    </form>
+  </div>
+</div>

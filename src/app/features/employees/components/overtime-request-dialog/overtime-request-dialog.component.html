@@ -1,0 +1,52 @@
+<div class="overtime-dialog">
+  <div class="overtime-dialog__header">
+    <h2>{{ isEdit ? 'Corregir horas extras' : 'Solicitar horas extras' }}</h2>
+    <button class="close-btn" type="button" (click)="close()" aria-label="Cerrar">&times;</button>
+  </div>
+
+  <div class="overtime-dialog__body" [formGroup]="form">
+    <p *ngIf="data.employeeName" class="overtime-dialog__subtitle">{{ data.employeeName }}</p>
+
+    <div class="form-field">
+      <label class="form-label">Fecha en que se realizaron *</label>
+      <input type="date" class="form-input" formControlName="work_date" [max]="today">
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Hora de inicio *</label>
+        <input type="time" class="form-input" formControlName="start_time">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Hora de término *</label>
+        <input type="time" class="form-input" formControlName="end_time">
+      </div>
+    </div>
+
+    <p class="hours-total" [class.hours-total--empty]="requestedHours() == null">
+      {{ requestedHours() == null ? 'Indica un horario válido' : 'Total: ' + formatHours(requestedHours()) }}
+    </p>
+
+    <div class="form-field">
+      <label class="form-label">Motivo *</label>
+      <textarea class="form-input" formControlName="reason" rows="2" placeholder="Cierre de inventario"></textarea>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Observaciones</label>
+      <textarea class="form-input" formControlName="notes" rows="2" placeholder="Opcional"></textarea>
+    </div>
+  </div>
+
+  <div class="overtime-dialog__footer">
+    <app-button text="Cancelar" variant="secondary" [fullWidth]="false" [disabled]="saving()" (clicked)="close()"></app-button>
+    <app-button
+      [text]="isEdit ? 'Guardar' : 'Enviar a revisión'"
+      variant="primary"
+      [fullWidth]="false"
+      [loading]="saving()"
+      [disabled]="requestedHours() == null"
+      (clicked)="submit()">
+    </app-button>
+  </div>
+</div>

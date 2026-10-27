@@ -236,7 +236,10 @@ export class CustomerDebtFlowComponent implements OnInit {
         return 'dt-status-pill dt-status-pill--success';
       case 'charge_reversal':
       case 'payment_reversal':
+      case 'credit_note_reversal':
         return 'dt-status-pill dt-status-pill--warning';
+      case 'credit_note':
+        return 'dt-status-pill dt-status-pill--success';
       default:
         return 'dt-status-pill dt-status-pill--neutral';
     }

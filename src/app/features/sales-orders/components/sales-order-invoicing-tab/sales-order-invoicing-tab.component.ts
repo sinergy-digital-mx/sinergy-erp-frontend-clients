@@ -33,6 +33,10 @@ import {
   SalesOrderInvoiceCancelDialogResult,
 } from '../sales-order-invoice-cancel-dialog/sales-order-invoice-cancel-dialog.component';
 import {
+  SalesOrderCreditNoteDialogComponent,
+  SalesOrderCreditNoteDialogResult,
+} from '../sales-order-credit-note-dialog/sales-order-credit-note-dialog.component';
+import {
   SalesOrderInvoiceStampDialogComponent,
   SalesOrderInvoiceStampDialogResult,
 } from '../sales-order-invoice-stamp-dialog/sales-order-invoice-stamp-dialog.component';
@@ -575,6 +579,97 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
       return 'NOTA DE CRÉDITO';
     }
     return invoice.tipo_comprobante === 'P' ? 'CEP' : 'FACTURA';
+  }
+
+  isCommercialCreditNote(invoice: SalesOrderElectronicInvoice): boolean {
+    return invoice.invoice_role === 'credit_note';
+  }
+
+  isCreditableIncome(invoice: SalesOrderElectronicInvoice): boolean {
+    const tipo = (invoice.tipo_comprobante || 'I').toUpperCase();
+    if (tipo !== 'I') return false;
+    const role = invoice.invoice_role || 'standard';
+    return role === 'standard' || role === 'merchandise';
+  }
+
+  isInvoiceVigente(invoice: SalesOrderElectronicInvoice): boolean {
+    const sat = (invoice.sat_status || '').toLowerCase();
+    if (sat.includes('cancelad')) return false;
+    if (sat.includes('vigente')) return true;
+    const stamp = (invoice.stamp_status || '').toLowerCase();
+    return stamp === 'stamped' || stamp === 'cancel_pending' || stamp === 'cancel_error';
+  }
+
+  orderIsPaid(): boolean {
+    const status = String(this.order.payment_status || this.order.payments_summary?.payment_status || '');
+    return status === 'Pagado';
+  }
+
+  creditNotesOf(invoice: SalesOrderElectronicInvoice): SalesOrderElectronicInvoice[] {
+    return this.visibleInvoices().filter((row) => row.related_invoice_id === invoice.id && row.invoice_role === 'credit_note');
+  }
+
+  creditedAmount(invoice: SalesOrderElectronicInvoice): number {
+    return this.creditNotesOf(invoice)
+      .filter((note) => this.isInvoiceVigente(note))
+      .reduce((sum, note) => sum + this.money(note.total), 0);
+  }
+
+  availableCredit(invoice: SalesOrderElectronicInvoice): number {
+    return Math.max(this.money(invoice.total) - this.creditedAmount(invoice), 0);
+  }
+
+  canIssueCreditNote(invoice: SalesOrderElectronicInvoice): boolean {
+    return this.canStamp() && this.isCreditableIncome(invoice) && this.isInvoiceVigente(invoice) && this.availableCredit(invoice) > 0.009 && !!invoice.uuid;
+  }
+
+  relatedIncomeLabel(note: SalesOrderElectronicInvoice): string {
+    const parent = this.visibleInvoices().find((row) => row.id === note.related_invoice_id);
+    const folio = parent ? this.getSeriesFolio(parent) : 'la factura';
+    const uuid = parent?.uuid || String(note.metadata?.['related_uuid'] || '');
+    return uuid ? `Relacionada a ${folio} · ${uuid}` : `Relacionada a ${folio}`;
+  }
+
+  openCreditNote(invoice: SalesOrderElectronicInvoice): void {
+    const invoiceId = this.invoiceRecordId(invoice);
+    if (!invoiceId || !this.canIssueCreditNote(invoice)) return;
+    const currency = this.order.currency === 'USD' ? 'USD' : 'MXN';
+    this.dialog
+      .open(SalesOrderCreditNoteDialogComponent, {
+        width: '520px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: {
+          invoice,
+          available: this.availableCredit(invoice),
+          currency,
+          orderPaid: this.orderIsPaid(),
+        },
+      })
+      .afterClosed()
+      .subscribe((result: SalesOrderCreditNoteDialogResult | undefined) => {
+        if (!result) return;
+        this.stamping.set(true);
+        this.invoiceService.stampCreditNote(this.orderId, invoiceId, result).subscribe({
+          next: () => {
+            this.stamping.set(false);
+            this.toast.success('Nota de crédito timbrada');
+            this.loadTabData();
+            this.invoicesChanged.emit();
+          },
+          error: (error) => {
+            this.stamping.set(false);
+            this.toast.error(resolveHttpErrorMessage(error, 'No se pudo timbrar la nota de crédito'), {
+              duration: 12000,
+            });
+          },
+        });
+      });
+  }
+
+  private money(value: number | string | null | undefined): number {
+    const amount = Number(value ?? 0);
+    return Number.isFinite(amount) ? amount : 0;
   }
 
   invoiceDisplayTotal(invoice: SalesOrderElectronicInvoice): number | string | null {

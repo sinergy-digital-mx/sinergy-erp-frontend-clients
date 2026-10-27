@@ -292,3 +292,118 @@ export function getPaymentFrequencyLabel(
 export function canCorrectLeaveRequest(status: LeaveStatus | string | undefined): boolean {
   return status !== 'cancelled' && status !== 'rejected';
 }
+
+export type OvertimeStatus = 'pending' | 'approved' | 'rejected' | 'paid';
+
+export interface OvertimeEmployeeSummary {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  position?: string | null;
+  department?: string | null;
+  employee_code?: string | null;
+  monthly_salary?: number | null;
+  daily_salary?: number | null;
+  hourly_rate?: number | null;
+}
+
+export interface OvertimePayment {
+  hourly_rate: number;
+  approved_hours: number;
+  double_hours: number;
+  excess_hours: number;
+  amount: number;
+  is_estimate?: boolean;
+  workday_hours?: number | null;
+  daily_double_hours?: number | null;
+  weekly_double_hours?: number | null;
+  double_multiplier?: number | null;
+  excess_multiplier?: number | null;
+  prior_day_hours?: number | null;
+  prior_week_hours?: number | null;
+  week_start?: string | null;
+  week_end?: string | null;
+  daily_salary?: number | null;
+  monthly_salary?: number | null;
+}
+
+export interface OvertimeRequest {
+  id: string;
+  employee_id: string;
+  work_date: string;
+  start_time: string;
+  end_time: string;
+  requested_hours: number;
+  reason: string;
+  notes?: string | null;
+  status: OvertimeStatus;
+  approved_hours?: number | null;
+  hourly_rate?: number | null;
+  double_hours?: number | null;
+  excess_hours?: number | null;
+  amount?: number | null;
+  paid_amount?: number | null;
+  payment?: OvertimePayment | null;
+  reviewed_by?: string | null;
+  reviewer_name?: string | null;
+  reviewed_at?: string | null;
+  review_notes?: string | null;
+  paid_by?: string | null;
+  payer_name?: string | null;
+  paid_at?: string | null;
+  created_at?: string;
+  employee?: OvertimeEmployeeSummary | null;
+}
+
+export interface OvertimePreview {
+  requested_hours: number;
+  approved_hours: number;
+  payment: OvertimePayment;
+}
+
+export interface OvertimePolicy {
+  workday_hours: number;
+  daily_double_hours: number;
+  weekly_double_hours: number;
+  double_multiplier: number;
+  excess_multiplier: number;
+  is_custom: boolean;
+}
+
+export interface CreateOvertimeRequestDto {
+  work_date: string;
+  start_time: string;
+  end_time: string;
+  reason: string;
+  notes?: string;
+}
+
+export interface UpdateOvertimeRequestDto {
+  work_date?: string;
+  start_time?: string;
+  end_time?: string;
+  reason?: string;
+  notes?: string | null;
+}
+
+export interface ReviewOvertimeRequestDto {
+  status: 'approved' | 'rejected';
+  approved_hours?: number;
+  review_notes?: string;
+}
+
+export function getOvertimeStatusLabel(status: OvertimeStatus | string | undefined): string {
+  switch (status) {
+    case 'pending':
+      return 'Pendiente';
+    case 'approved':
+      return 'Aprobada';
+    case 'rejected':
+      return 'Rechazada';
+    case 'paid':
+      return 'Pagada';
+    default:
+      return status ?? '—';
+  }
+}

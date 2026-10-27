@@ -628,3 +628,29 @@
 .animate-spin {
   animation: invoicing-spin 1s linear infinite;
 }
+
+.credit-note-link,
+.credit-note-box {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: #334155;
+}
+
+.credit-note-box {
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: #fff7ed;
+}
+
+.credit-note-box p {
+  margin: 0;
+}
+
+.credit-note-box__row,
+.credit-note-box__hint {
+  margin-top: 0.35rem !important;
+}
+
+.credit-note-box__hint {
+  color: #9a3412;
+}

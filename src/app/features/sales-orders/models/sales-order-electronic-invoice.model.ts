@@ -22,6 +22,9 @@ export interface SalesOrderElectronicInvoice {
   folio?: string | null;
   tipo_comprobante?: string | null;
   invoice_role?: string | null;
+  related_invoice_id?: string | null;
+  relation_type?: string | null;
+  subtotal?: string | number | null;
   total?: string | number;
   stamp_status?: InvoiceStampStatus;
   sat_status?: InvoiceSatStatus;

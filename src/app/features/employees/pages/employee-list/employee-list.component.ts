@@ -14,14 +14,25 @@ import {
   LeaveRequest,
   LeaveStatus,
   LeaveType,
+  OvertimePolicy,
+  OvertimeRequest,
+  OvertimeStatus,
   canCorrectLeaveRequest,
   getLeaveStatusLabel,
   getLeaveTypeLabel,
+  getOvertimeStatusLabel,
 } from '../../models/employee.model';
 import { EMPLOYEE_PERMISSIONS } from '../../config/permissions.config';
 import { LeaveReviewDialogComponent } from '../../components/leave-review-dialog/leave-review-dialog.component';
 import { LeaveRequestDialogComponent } from '../../components/leave-request-dialog/leave-request-dialog.component';
 import { SickLeaveRequestDialogComponent } from '../../components/sick-leave-request-dialog/sick-leave-request-dialog.component';
+import { OvertimeReviewDialogComponent } from '../../components/overtime-review-dialog/overtime-review-dialog.component';
+import {
+  formatOvertimeDate,
+  formatOvertimeHours,
+  formatOvertimeMoney,
+  formatOvertimeWhen,
+} from '../../utils/overtime.util';
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 
 @Component({
@@ -39,10 +50,16 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
   readonly getLeaveTypeLabel = getLeaveTypeLabel;
   readonly getLeaveStatusLabel = getLeaveStatusLabel;
   readonly canCorrectLeaveRequest = canCorrectLeaveRequest;
+  readonly getOvertimeStatusLabel = getOvertimeStatusLabel;
+  readonly formatOvertimeDate = formatOvertimeDate;
+  readonly formatOvertimeHours = formatOvertimeHours;
+  readonly formatOvertimeMoney = formatOvertimeMoney;
+  readonly formatOvertimeWhen = formatOvertimeWhen;
 
   readonly tabs: TabItem[] = [
     { id: 'employees', title: 'Empleados' },
     { id: 'requests', title: 'Solicitudes' },
+    { id: 'overtime', title: 'Horas extras' },
   ];
   activeTab = 'employees';
 
@@ -71,6 +88,24 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
   leaveTotalPages = signal(1);
   leaveStatusFilter: LeaveStatus | '' = '';
   leaveTypeFilter: LeaveType | '' = '';
+
+  overtimeRequests = signal<OvertimeRequest[]>([]);
+  overtimeLoading = signal(false);
+  overtimePage = signal(1);
+  overtimeTotalPages = signal(1);
+  overtimeStatusFilter: OvertimeStatus | '' = '';
+  confirmingPayId: string | null = null;
+  payingId: string | null = null;
+  savingPolicy = signal(false);
+  policyDraft: OvertimePolicy = {
+    workday_hours: 8,
+    daily_double_hours: 3,
+    weekly_double_hours: 9,
+    double_multiplier: 2,
+    excess_multiplier: 3,
+    is_custom: false,
+  };
+  private policyLoaded = false;
 
   constructor(
     private employeeService: EmployeeService,
@@ -106,6 +141,12 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
     this.activeTab = tabId;
     if (tabId === 'requests' && this.leaveRequests().length === 0) {
       this.loadLeaveRequests();
+    }
+    if (tabId === 'overtime') {
+      this.loadOvertimeRequests();
+      if (!this.policyLoaded) {
+        this.loadOvertimePolicy();
+      }
     }
   }
 
@@ -199,7 +240,12 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
     this.router.navigate(['/employees', employee.id]);
   }
 
-  fullName(item: { first_name?: string; last_name?: string; email?: string }): string {
+  openEmployeeId(id: string): void {
+    if (!id) return;
+    this.router.navigate(['/employees', id]);
+  }
+
+  fullName(item: { first_name?: string | null; last_name?: string | null; email?: string | null }): string {
     const name = `${item.first_name ?? ''} ${item.last_name ?? ''}`.trim();
     return name || item.email || 'Empleado';
   }
@@ -353,6 +399,137 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
           type: 'error',
           title: 'Error',
           message: error?.message || 'No se pudo cancelar la solicitud',
+        });
+      },
+    });
+  }
+
+  get overtimeFilterCount(): number {
+    return Number(!!this.overtimeStatusFilter);
+  }
+
+  loadOvertimeRequests(): void {
+    this.overtimeLoading.set(true);
+    this.confirmingPayId = null;
+    this.employeeService
+      .getAllOvertimeRequests(this.overtimeStatusFilter, {
+        page: this.overtimePage(),
+        limit: this.limit,
+      })
+      .subscribe({
+        next: (res) => {
+          this.overtimeRequests.set(res.data ?? []);
+          this.overtimeTotalPages.set(res.totalPages ?? 1);
+          this.overtimeLoading.set(false);
+        },
+        error: (error) => {
+          this.overtimeLoading.set(false);
+          this.interceptor.openSnackbar({
+            type: 'error',
+            title: 'Error',
+            message: error?.message || 'No se pudieron cargar las horas extras',
+          });
+        },
+      });
+  }
+
+  onOvertimeFilterChange(): void {
+    this.overtimePage.set(1);
+    this.loadOvertimeRequests();
+  }
+
+  prevOvertimePage(): void {
+    if (this.overtimePage() > 1) {
+      this.overtimePage.update((page) => page - 1);
+      this.loadOvertimeRequests();
+    }
+  }
+
+  nextOvertimePage(): void {
+    if (this.overtimePage() < this.overtimeTotalPages()) {
+      this.overtimePage.update((page) => page + 1);
+      this.loadOvertimeRequests();
+    }
+  }
+
+  reviewOvertime(request: OvertimeRequest): void {
+    this.dialog
+      .open(OvertimeReviewDialogComponent, {
+        width: '560px',
+        maxWidth: '94vw',
+        autoFocus: false,
+        panelClass: 'custom-dialog-container',
+        data: { request },
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed) {
+          this.loadOvertimeRequests();
+        }
+      });
+  }
+
+  confirmOvertimePay(request: OvertimeRequest): void {
+    this.payingId = request.id;
+    this.employeeService.markOvertimePaid(request.id).subscribe({
+      next: () => {
+        this.payingId = null;
+        this.confirmingPayId = null;
+        this.interceptor.openSnackbar({
+          type: 'success',
+          title: 'Éxito',
+          message: 'Horas extras marcadas como pagadas',
+        });
+        this.loadOvertimeRequests();
+      },
+      error: (error) => {
+        this.payingId = null;
+        this.interceptor.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: error?.message || 'No se pudo registrar el pago',
+        });
+      },
+    });
+  }
+
+  loadOvertimePolicy(): void {
+    this.employeeService.getOvertimePolicy().subscribe({
+      next: (policy) => {
+        this.policyDraft = { ...policy };
+        this.policyLoaded = true;
+      },
+      error: () => {
+        this.policyLoaded = true;
+      },
+    });
+  }
+
+  saveOvertimePolicy(): void {
+    this.savingPolicy.set(true);
+    this.employeeService
+      .saveOvertimePolicy({
+        workday_hours: Number(this.policyDraft.workday_hours),
+        daily_double_hours: Number(this.policyDraft.daily_double_hours),
+        weekly_double_hours: Number(this.policyDraft.weekly_double_hours),
+        double_multiplier: Number(this.policyDraft.double_multiplier),
+        excess_multiplier: Number(this.policyDraft.excess_multiplier),
+      }).subscribe({
+      next: (policy) => {
+        this.policyDraft = { ...policy };
+        this.savingPolicy.set(false);
+        this.interceptor.openSnackbar({
+          type: 'success',
+          title: 'Éxito',
+          message: 'Reglas de pago actualizadas',
+        });
+      },
+      error: (error) => {
+        this.savingPolicy.set(false);
+        this.interceptor.openSnackbar({
+          type: 'error',
+          title: 'Error',
+          message: error?.message || 'No se pudieron guardar las reglas',
         });
       },
     });

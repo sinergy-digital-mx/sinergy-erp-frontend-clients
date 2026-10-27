@@ -89,6 +89,14 @@
       (refreshed)="load()">
     </app-sick-leave-section>
 
+    <app-overtime-section
+      [source]="'employee'"
+      [employeeId]="emp.id"
+      [employeeName]="fullName(emp)"
+      [canRequest]="canRequestLeave"
+      [canReview]="canManageLeave">
+    </app-overtime-section>
+
     <div class="detail-columns">
       <div class="detail-section">
         <h3>Mis datos</h3>

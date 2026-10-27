@@ -1,0 +1,73 @@
+<div class="review-dialog">
+  <div class="review-dialog__header">
+    <h2>Revisar horas extras</h2>
+    <button class="close-btn" type="button" (click)="close()" aria-label="Cerrar">&times;</button>
+  </div>
+
+  <div class="review-dialog__body" [formGroup]="form">
+    <section class="employee-box">
+      <p class="employee-box__name">{{ employeeName }}</p>
+      <p class="employee-box__meta">
+        {{ data.request.employee?.position || 'Sin puesto' }}
+        <span *ngIf="data.request.employee?.department"> · {{ data.request.employee?.department }}</span>
+        <span *ngIf="data.request.employee?.employee_code"> · {{ data.request.employee?.employee_code }}</span>
+      </p>
+      <dl>
+        <div>
+          <dt>Salario mensual</dt>
+          <dd>{{ formatMoney(data.request.employee?.monthly_salary) }}</dd>
+        </div>
+        <div>
+          <dt>Salario diario</dt>
+          <dd>{{ formatMoney(data.request.employee?.daily_salary) }}</dd>
+        </div>
+        <div>
+          <dt>Tarifa por hora</dt>
+          <dd>{{ formatMoney(data.request.employee?.hourly_rate) }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <p class="schedule">
+      <strong>{{ formatDate(data.request.work_date) }}</strong>
+      · {{ data.request.start_time }} – {{ data.request.end_time }}
+      · solicitó {{ formatHours(data.request.requested_hours) }}
+    </p>
+    <p class="reason">{{ data.request.reason }}</p>
+    <p class="notes" *ngIf="data.request.notes">{{ data.request.notes }}</p>
+
+    <div class="form-field">
+      <label class="form-label">Horas a autorizar</label>
+      <input type="number" class="form-input" formControlName="approved_hours" min="0.01" max="24" step="0.01">
+    </div>
+
+    <div class="pay-box" *ngIf="preview() as pay">
+      <p *ngIf="pay.double_hours > 0">{{ formatHours(pay.double_hours) }} al doble (×{{ pay.double_multiplier }})</p>
+      <p *ngIf="pay.excess_hours > 0">{{ formatHours(pay.excess_hours) }} al triple (×{{ pay.excess_multiplier }})</p>
+      <p class="pay-box__amount">Importe {{ formatMoney(pay.amount) }}</p>
+      <p class="pay-box__hint">
+        En la semana ya hay {{ formatHours(pay.prior_week_hours) }} autorizadas
+        ({{ formatHours(pay.prior_day_hours) }} este día).
+        Tope al doble: {{ formatHours(pay.daily_double_hours) }}/día y {{ formatHours(pay.weekly_double_hours) }}/semana.
+      </p>
+    </div>
+    <p class="preview-state" *ngIf="previewing()">Calculando importe...</p>
+    <p class="preview-error" *ngIf="previewError()">{{ previewError() }}</p>
+
+    <label class="form-label">Comentarios de la decisión</label>
+    <textarea class="form-input" formControlName="review_notes" rows="3" placeholder="Opcional"></textarea>
+  </div>
+
+  <div class="review-dialog__footer">
+    <app-button text="Cancelar" variant="secondary" [fullWidth]="false" [disabled]="saving()" (clicked)="close()"></app-button>
+    <app-button text="Rechazar" variant="danger" [fullWidth]="false" [loading]="saving()" (clicked)="reject()"></app-button>
+    <app-button
+      text="Aprobar"
+      variant="success"
+      [fullWidth]="false"
+      [loading]="saving()"
+      [disabled]="!!previewError() || previewing()"
+      (clicked)="approve()">
+    </app-button>
+  </div>
+</div>

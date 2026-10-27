@@ -1,12 +1,15 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import {
   CreateLeaveRequestDto,
+  CreateOvertimeRequestDto,
   Employee,
   LeaveRequest,
+  OvertimeRequest,
+  UpdateOvertimeRequestDto,
 } from '../../employees/models/employee.model';
 
 /**
@@ -106,6 +109,46 @@ export class EmployeePortalService {
       );
   }
 
+  getMyOvertimeRequests(): Observable<OvertimeRequest[]> {
+    const params = new HttpParams().set('page', '1').set('limit', '100');
+    return this.http
+      .get<OvertimeRequest[] | { data: OvertimeRequest[] }>(
+        `${this.portalBase}/me/overtime-requests`,
+        { params }
+      )
+      .pipe(
+        map((raw) => this.unwrapArray<OvertimeRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  createMyOvertimeRequest(payload: CreateOvertimeRequestDto): Observable<OvertimeRequest> {
+    return this.http
+      .post<OvertimeRequest | { data: OvertimeRequest }>(
+        `${this.portalBase}/me/overtime-requests`,
+        payload
+      )
+      .pipe(
+        map((raw) => this.unwrap<OvertimeRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  updateMyOvertimeRequest(
+    requestId: string,
+    payload: UpdateOvertimeRequestDto
+  ): Observable<OvertimeRequest> {
+    return this.http
+      .put<OvertimeRequest | { data: OvertimeRequest }>(
+        `${this.portalBase}/me/overtime-requests/${requestId}`,
+        payload
+      )
+      .pipe(
+        map((raw) => this.unwrap<OvertimeRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
   /** Update own name and/or password. */
   updateMyProfile(payload: UpdateOwnProfileDto): Observable<void> {
     return this.http
@@ -144,7 +187,7 @@ export class EmployeePortalService {
         break;
       case 400:
       case 422:
-        message = error.error?.message || 'Datos inválidos. Verifica la información.';
+        message = this.readErrorMessage(error) || 'Datos inválidos. Verifica la información.';
         break;
       case 0:
         message = 'Error de conexión. Verifica tu conexión a internet';
@@ -153,5 +196,13 @@ export class EmployeePortalService {
         message = error.error?.message || 'Ha ocurrido un error inesperado';
     }
     return throwError(() => new Error(message));
+  }
+
+  private readErrorMessage(error: HttpErrorResponse): string {
+    const raw = error.error?.message;
+    if (Array.isArray(raw)) {
+      return raw.join('. ');
+    }
+    return typeof raw === 'string' ? raw : '';
   }
 }

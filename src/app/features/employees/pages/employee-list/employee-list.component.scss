@@ -224,6 +224,7 @@
   &--approved { background: #d1fae5; color: #065f46; }
   &--rejected { background: #fee2e2; color: #991b1b; }
   &--cancelled { background: #e5e7eb; color: #374151; }
+  &--paid { background: #dbeafe; color: #1e40af; }
 }
 
 .row-actions {
@@ -418,4 +419,80 @@
 
     &:hover { text-decoration: underline; }
   }
+}
+
+.policy-box {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+
+  &__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 650;
+      color: #111827;
+    }
+
+    p {
+      margin: 4px 0 0;
+      max-width: 62ch;
+      font-size: 13px;
+      color: #6b7280;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+
+  &__note {
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: #6b7280;
+  }
+}
+
+.linkish {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-weight: 650;
+  color: #111827;
+  cursor: pointer;
+
+  &:hover { color: #4f46e5; }
+}
+
+@media (max-width: 1100px) {
+  .policy-box__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

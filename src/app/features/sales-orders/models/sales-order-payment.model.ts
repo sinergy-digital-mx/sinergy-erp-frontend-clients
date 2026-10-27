@@ -48,6 +48,8 @@ export interface SalesOrderPaymentsSummary {
   amount_pending: number | string;
   payment_status: SalesPaymentStatus | string;
   currency?: SalesOrderPaymentCurrency | string;
+  credit_notes_total?: number | string;
+  customer_credit?: number | string;
 }
 
 export interface RegisterSalesOrderPaymentPayload {

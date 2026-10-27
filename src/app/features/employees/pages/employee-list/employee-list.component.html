@@ -2,7 +2,7 @@
   <div class="page-header">
     <div>
       <h1>Empleados</h1>
-      <p class="page-subtitle">Gestión de personal, vacaciones y solicitudes de ausencia</p>
+      <p class="page-subtitle">Personal, vacaciones, ausencias y horas extras</p>
     </div>
   </div>
 
@@ -271,6 +271,186 @@
       <button (click)="prevLeavePage()" [disabled]="leavePage() === 1">Anterior</button>
       <span>Página {{ leavePage() }} de {{ leaveTotalPages() }}</span>
       <button (click)="nextLeavePage()" [disabled]="leavePage() === leaveTotalPages()">Siguiente</button>
+    </div>
+  </section>
+
+  <section *ngIf="activeTab === 'overtime'" class="tab-section">
+    <form class="policy-box" (ngSubmit)="saveOvertimePolicy()">
+      <div class="policy-box__head">
+        <div>
+          <h2>Reglas de pago</h2>
+          <p>
+            Tarifa por hora = salario diario / jornada.
+            Las primeras horas del día y de la semana se pagan al doble; el resto, al triple.
+          </p>
+        </div>
+        <button *ngIf="canUpdate" type="submit" class="action-btn action-btn--approve" [disabled]="savingPolicy()">
+          {{ savingPolicy() ? 'Guardando...' : 'Guardar reglas' }}
+        </button>
+      </div>
+      <div class="policy-box__grid">
+        <label>
+          Jornada (h)
+          <input type="number" min="1" max="24" step="0.5" [(ngModel)]="policyDraft.workday_hours" name="workday_hours" [disabled]="!canUpdate">
+        </label>
+        <label>
+          Doble por día
+          <input type="number" min="0" max="24" step="0.5" [(ngModel)]="policyDraft.daily_double_hours" name="daily_double_hours" [disabled]="!canUpdate">
+        </label>
+        <label>
+          Doble por semana
+          <input type="number" min="0" max="168" step="0.5" [(ngModel)]="policyDraft.weekly_double_hours" name="weekly_double_hours" [disabled]="!canUpdate">
+        </label>
+        <label>
+          Multiplicador doble
+          <input type="number" min="1" max="10" step="0.1" [(ngModel)]="policyDraft.double_multiplier" name="double_multiplier" [disabled]="!canUpdate">
+        </label>
+        <label>
+          Multiplicador excedente
+          <input type="number" min="1" max="10" step="0.1" [(ngModel)]="policyDraft.excess_multiplier" name="excess_multiplier" [disabled]="!canUpdate">
+        </label>
+      </div>
+      <p class="policy-box__note" *ngIf="!policyDraft.is_custom">
+        Todavía no hay reglas propias: se usa la Ley Federal del Trabajo (8 h de jornada, 3 h/día y 9 h/semana al doble).
+      </p>
+    </form>
+
+    <div class="filters">
+      <app-mobile-filter-sheet
+        [activeCount]="overtimeFilterCount"
+        (cleared)="overtimeStatusFilter = ''; onOvertimeFilterChange()">
+        <select class="filter-input" [(ngModel)]="overtimeStatusFilter" (change)="onOvertimeFilterChange()">
+          <option value="">Todos los estatus</option>
+          <option value="pending">Pendientes</option>
+          <option value="approved">Aprobadas</option>
+          <option value="rejected">Rechazadas</option>
+          <option value="paid">Pagadas</option>
+        </select>
+      </app-mobile-filter-sheet>
+    </div>
+
+    <div *ngIf="overtimeLoading()" class="state-message">Cargando horas extras...</div>
+
+    <app-empty-stage
+      *ngIf="!overtimeLoading() && overtimeRequests().length === 0"
+      message="Sin resultados"
+      sub_message="No hay solicitudes de horas extras con ese filtro.">
+    </app-empty-stage>
+
+    <div class="people-feed lg:hidden" *ngIf="!overtimeLoading() && overtimeRequests().length > 0">
+      <div class="people-feed__list">
+        @for (req of overtimeRequests(); track req.id) {
+          <div class="person-card person-card--static">
+            <div class="person-card__body">
+              <div class="person-card__top">
+                <p class="person-card__name">{{ fullName(req.employee || {}) }}</p>
+                <span class="status-badge" [ngClass]="'status-badge--' + req.status">
+                  {{ getOvertimeStatusLabel(req.status) }}
+                </span>
+              </div>
+              <p class="person-card__meta">
+                {{ formatOvertimeDate(req.work_date) }} · {{ req.start_time }} – {{ req.end_time }}
+              </p>
+              <p class="person-card__meta">
+                {{ formatOvertimeHours(req.requested_hours) }} · {{ req.reason }}
+              </p>
+              <p class="person-card__meta" *ngIf="req.reviewer_name">
+                Autorizó {{ req.reviewer_name }} · {{ formatOvertimeWhen(req.reviewed_at) }}
+              </p>
+              <p class="person-card__meta" *ngIf="req.status === 'paid'">
+                Pagado {{ formatOvertimeMoney(req.paid_amount) }}
+              </p>
+              <div class="row-actions" *ngIf="canManageLeave && req.status !== 'rejected' && req.status !== 'paid'">
+                <button class="action-btn action-btn--approve" (click)="reviewOvertime(req)">Revisar</button>
+                <ng-container *ngIf="req.status === 'approved'">
+                  <button *ngIf="confirmingPayId !== req.id" class="action-btn" (click)="confirmingPayId = req.id">Marcar pagada</button>
+                  <button *ngIf="confirmingPayId === req.id" class="action-btn action-btn--approve" [disabled]="payingId === req.id" (click)="confirmOvertimePay(req)">
+                    {{ payingId === req.id ? 'Pagando...' : 'Confirmar' }}
+                  </button>
+                  <button *ngIf="confirmingPayId === req.id" class="action-btn" (click)="confirmingPayId = null">Cancelar</button>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div *ngIf="!overtimeLoading() && overtimeRequests().length > 0" class="table-wrapper hidden lg:block">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Empleado</th>
+            <th>Fecha</th>
+            <th>Horario</th>
+            <th>Horas</th>
+            <th>Motivo</th>
+            <th>Estatus</th>
+            <th>Autorizó</th>
+            <th>Pago</th>
+            <th *ngIf="canManageLeave">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let req of overtimeRequests()">
+            <td>
+              <button type="button" class="linkish" (click)="openEmployeeId(req.employee_id)">
+                {{ fullName(req.employee || {}) }}
+              </button>
+              <div class="muted">{{ req.employee?.position }}</div>
+            </td>
+            <td>{{ formatOvertimeDate(req.work_date) }}</td>
+            <td>{{ req.start_time }} – {{ req.end_time }}</td>
+            <td>
+              {{ formatOvertimeHours(req.requested_hours) }}
+              <div class="muted" *ngIf="req.approved_hours != null && req.approved_hours !== req.requested_hours">
+                Autorizadas {{ formatOvertimeHours(req.approved_hours) }}
+              </div>
+            </td>
+            <td>
+              {{ req.reason }}
+              <div class="muted" *ngIf="req.notes">{{ req.notes }}</div>
+              <div class="muted" *ngIf="req.review_notes">{{ req.review_notes }}</div>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="'status-badge--' + req.status">
+                {{ getOvertimeStatusLabel(req.status) }}
+              </span>
+            </td>
+            <td>
+              {{ req.reviewer_name || '—' }}
+              <div class="muted" *ngIf="req.reviewed_at">{{ formatOvertimeWhen(req.reviewed_at) }}</div>
+            </td>
+            <td>
+              <span *ngIf="req.status === 'approved'">{{ formatOvertimeMoney(req.amount) }}</span>
+              <span *ngIf="req.status === 'paid'">
+                {{ formatOvertimeMoney(req.paid_amount) }}
+                <div class="muted" *ngIf="req.paid_at">{{ formatOvertimeWhen(req.paid_at) }}</div>
+              </span>
+              <span *ngIf="req.status === 'pending' || req.status === 'rejected'" class="muted">—</span>
+            </td>
+            <td *ngIf="canManageLeave">
+              <div class="row-actions" *ngIf="req.status === 'pending' || req.status === 'approved'">
+                <button class="action-btn action-btn--approve" (click)="reviewOvertime(req)">Revisar</button>
+                <ng-container *ngIf="req.status === 'approved'">
+                  <button *ngIf="confirmingPayId !== req.id" class="action-btn" (click)="confirmingPayId = req.id">Marcar pagada</button>
+                  <button *ngIf="confirmingPayId === req.id" class="action-btn action-btn--approve" [disabled]="payingId === req.id" (click)="confirmOvertimePay(req)">
+                    {{ payingId === req.id ? 'Pagando...' : 'Confirmar' }}
+                  </button>
+                  <button *ngIf="confirmingPayId === req.id" class="action-btn" (click)="confirmingPayId = null">Cancelar</button>
+                </ng-container>
+              </div>
+              <span *ngIf="req.status === 'rejected' || req.status === 'paid'" class="muted">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination hidden lg:flex" *ngIf="!overtimeLoading() && overtimeTotalPages() > 1">
+      <button (click)="prevOvertimePage()" [disabled]="overtimePage() === 1">Anterior</button>
+      <span>Página {{ overtimePage() }} de {{ overtimeTotalPages() }}</span>
+      <button (click)="nextOvertimePage()" [disabled]="overtimePage() === overtimeTotalPages()">Siguiente</button>
     </div>
   </section>
 </div>

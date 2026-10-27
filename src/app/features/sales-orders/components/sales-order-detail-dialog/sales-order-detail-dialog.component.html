@@ -85,6 +85,14 @@
         @if (invoiceSummary()) {
           <span class="status-badge status-badge--invoice">{{ invoiceSummary() }}</span>
         }
+        @if (hasCreditNoteBadge()) {
+          <span class="status-badge status-badge--credit-note">Nota de crédito</span>
+        }
+        @if (customerCreditAmount() > 0) {
+          <span class="status-badge status-badge--favor">
+            Saldo a favor {{ formatPaymentCurrency(customerCreditAmount()) }}
+          </span>
+        }
         <span class="status-badge" [ngClass]="getStatusBadgeClass()">
           {{ order()!.general_status || '-' }}
         </span>
@@ -293,6 +301,22 @@
               }
             </span>
           </div>
+          @if (creditNotesAmount() > 0) {
+            <div class="section-item">
+              <span class="section-label">Notas de crédito</span>
+              <span class="section-value">{{ formatPaymentCurrency(creditNotesAmount()) }}</span>
+            </div>
+            <div class="section-item">
+              <span class="section-label">Saldo pendiente</span>
+              <span class="section-value">{{ formatPaymentCurrency(getRemainingAmount()) }}</span>
+            </div>
+          }
+          @if (customerCreditAmount() > 0) {
+            <div class="section-item">
+              <span class="section-label">Saldo a favor</span>
+              <span class="section-value">{{ formatPaymentCurrency(customerCreditAmount()) }}</span>
+            </div>
+          }
           <div class="section-item section-item--seller">
             <span class="section-label">Vendedor</span>
             <div class="seller-value-row">
@@ -851,10 +875,22 @@
                     <span>Pagado:</span>
                     <strong class="payments-summary-value text-green-600">{{ formatPaymentCurrency(getPaidAmount()) }}</strong>
                   </div>
+                  @if (creditNotesAmount() > 0) {
+                    <div class="payments-summary-row">
+                      <span>Notas de crédito:</span>
+                      <strong class="payments-summary-value">{{ formatPaymentCurrency(creditNotesAmount()) }}</strong>
+                    </div>
+                  }
                   <div class="payments-summary-row">
                     <span>Pendiente:</span>
                     <strong class="payments-summary-value text-amber-600">{{ formatPaymentCurrency(getRemainingAmount()) }}</strong>
                   </div>
+                  @if (customerCreditAmount() > 0) {
+                    <div class="payments-summary-row">
+                      <span>Saldo a favor:</span>
+                      <strong class="payments-summary-value text-green-700">{{ formatPaymentCurrency(customerCreditAmount()) }}</strong>
+                    </div>
+                  }
                   <div class="payments-summary-row">
                     <span>Estatus:</span>
                     <span class="payments-status-row">

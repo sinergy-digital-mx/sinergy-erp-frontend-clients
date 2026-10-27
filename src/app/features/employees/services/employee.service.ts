@@ -9,10 +9,17 @@ import {
   EmployeeFilters,
   LeaveRequest,
   LeaveRequestFilters,
+  OvertimePolicy,
+  OvertimePreview,
+  OvertimeRequest,
+  OvertimeStatus,
   PaginatedResponse,
   PaginationParams,
   ReviewLeaveRequestDto,
+  ReviewOvertimeRequestDto,
   UpdateLeaveRequestDto,
+  CreateOvertimeRequestDto,
+  UpdateOvertimeRequestDto,
 } from '../models/employee.model';
 
 /**
@@ -236,6 +243,124 @@ export class EmployeeService {
       );
   }
 
+  // ── Horas extras ───────────────────────────────────────────────────────────
+
+  getOvertimePolicy(): Observable<OvertimePolicy> {
+    return this.http
+      .get<OvertimePolicy>(`${this.baseUrl}/overtime/policy`)
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  saveOvertimePolicy(payload: Omit<OvertimePolicy, 'is_custom'>): Observable<OvertimePolicy> {
+    return this.http
+      .put<OvertimePolicy>(`${this.baseUrl}/overtime/policy`, payload)
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  getAllOvertimeRequests(
+    status: OvertimeStatus | '',
+    pagination: PaginationParams
+  ): Observable<PaginatedResponse<OvertimeRequest>> {
+    let params = new HttpParams()
+      .set('page', String(pagination.page))
+      .set('limit', String(pagination.limit));
+    if (status) {
+      params = params.set('status', status);
+    }
+    return this.http
+      .get<PaginatedResponse<OvertimeRequest>>(
+        `${this.baseUrl}/overtime-requests/all`,
+        { params }
+      )
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  getEmployeeOvertimeRequests(id: string): Observable<OvertimeRequest[]> {
+    const params = new HttpParams().set('page', '1').set('limit', '100');
+    return this.http
+      .get<OvertimeRequest[] | { data: OvertimeRequest[] }>(
+        `${this.baseUrl}/${id}/overtime-requests`,
+        { params }
+      )
+      .pipe(
+        map((raw) => this.unwrapArray<OvertimeRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  createOvertimeRequest(
+    id: string,
+    payload: CreateOvertimeRequestDto
+  ): Observable<OvertimeRequest> {
+    return this.http
+      .post<OvertimeRequest | { data: OvertimeRequest }>(
+        `${this.baseUrl}/${id}/overtime-requests`,
+        payload
+      )
+      .pipe(
+        map((raw) => this.unwrap<OvertimeRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  updateOvertimeRequest(
+    requestId: string,
+    payload: UpdateOvertimeRequestDto
+  ): Observable<OvertimeRequest> {
+    return this.http
+      .put<OvertimeRequest | { data: OvertimeRequest }>(
+        `${this.baseUrl}/overtime-requests/${requestId}`,
+        payload
+      )
+      .pipe(
+        map((raw) => this.unwrap<OvertimeRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  previewOvertimeRequest(
+    requestId: string,
+    approvedHours?: number
+  ): Observable<OvertimePreview> {
+    let params = new HttpParams();
+    if (approvedHours != null) {
+      params = params.set('approved_hours', String(approvedHours));
+    }
+    return this.http
+      .get<OvertimePreview>(
+        `${this.baseUrl}/overtime-requests/${requestId}/preview`,
+        { params }
+      )
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  reviewOvertimeRequest(
+    requestId: string,
+    payload: ReviewOvertimeRequestDto
+  ): Observable<OvertimeRequest> {
+    return this.http
+      .put<OvertimeRequest | { data: OvertimeRequest }>(
+        `${this.baseUrl}/overtime-requests/${requestId}/review`,
+        payload
+      )
+      .pipe(
+        map((raw) => this.unwrap<OvertimeRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  markOvertimePaid(requestId: string): Observable<OvertimeRequest> {
+    return this.http
+      .put<OvertimeRequest | { data: OvertimeRequest }>(
+        `${this.baseUrl}/overtime-requests/${requestId}/pay`,
+        {}
+      )
+      .pipe(
+        map((raw) => this.unwrap<OvertimeRequest>(raw)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   private unwrap<T>(raw: T | { data: T }): T {
@@ -274,7 +399,7 @@ export class EmployeeService {
         message = this.extractValidationErrors(error);
         break;
       case 400:
-        message = error.error?.message || 'Datos inválidos. Verifica la información.';
+        message = this.readErrorMessage(error) || 'Datos inválidos. Verifica la información.';
         break;
       case 500:
         message = 'Error del servidor. Por favor, intenta más tarde';
@@ -293,6 +418,14 @@ export class EmployeeService {
       const errors = Object.values(error.error.errors).flat();
       return errors.join(', ');
     }
-    return error.error?.message || 'Error de validación. Verifica los datos ingresados.';
+    return this.readErrorMessage(error) || 'Error de validación. Verifica los datos ingresados.';
+  }
+
+  private readErrorMessage(error: HttpErrorResponse): string {
+    const raw = error.error?.message;
+    if (Array.isArray(raw)) {
+      return raw.join('. ');
+    }
+    return typeof raw === 'string' ? raw : '';
   }
 }

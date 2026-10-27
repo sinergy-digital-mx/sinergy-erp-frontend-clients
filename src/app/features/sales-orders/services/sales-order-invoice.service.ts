@@ -110,6 +110,16 @@ export class SalesOrderInvoiceService {
 
   }
 
+  stampCreditNote(
+    orderId: string,
+    invoiceId: string,
+    payload: { amount: number; reason: string; uso_cfdi?: string; environment?: 'demo' | 'production' },
+  ): Observable<SalesOrderElectronicInvoice> {
+    return this.http
+      .post<unknown>(`${this.baseUrl}/${orderId}/invoices/${invoiceId}/credit-note`, payload)
+      .pipe(map((response) => this.normalizeInvoice(response)));
+  }
+
   getPaymentComplement(orderId: string): Observable<SalesOrderPaymentComplementStatus> {
     return this.http.get<SalesOrderPaymentComplementStatus>(
       `${this.baseUrl}/${orderId}/invoices/payment-complement`,

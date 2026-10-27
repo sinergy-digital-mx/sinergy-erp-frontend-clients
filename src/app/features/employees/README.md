@@ -12,8 +12,8 @@ El módulo permite al área de Recursos Humanos:
 - Consultar antigüedad, días de vacaciones disponibles y conteo de solicitudes.
 - Ver el detalle de cada empleado (datos generales, nómina, banco e historial).
 - Subir/actualizar la foto del empleado.
-- Registrar solicitudes de vacaciones/faltas a nombre de un empleado.
-- Aprobar, rechazar o cancelar solicitudes.
+- Registrar solicitudes de vacaciones, faltas y horas extras a nombre de un empleado.
+- Aprobar, rechazar o marcar como pagadas las horas extras. El importe sale del salario y de las reglas de pago.
 
 El perfil de empleado se crea/edita desde el **modal de usuario** (pestaña
 "Empleado"), no desde este módulo. Ver [`docs/user-modal-employee-tab.md`](./docs/user-modal-employee-tab.md).

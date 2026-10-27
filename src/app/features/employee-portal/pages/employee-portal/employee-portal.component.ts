@@ -15,11 +15,12 @@ import {
 } from '../../../employees/models/employee.model';
 import { getLeaveDays } from '../../../employees/utils/mexican-labor.util';
 import { SickLeaveSectionComponent } from '../../../employees/components/sick-leave-section/sick-leave-section.component';
+import { OvertimeSectionComponent } from '../../../employees/components/overtime-section/overtime-section.component';
 
 @Component({
   selector: 'app-employee-portal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SickLeaveSectionComponent],
+  imports: [CommonModule, ReactiveFormsModule, SickLeaveSectionComponent, OvertimeSectionComponent],
   templateUrl: './employee-portal.component.html',
   styleUrls: ['./employee-portal.component.scss'],
 })

@@ -1,0 +1,84 @@
+<section class="overtime">
+  <div class="overtime__head">
+    <div>
+      <h3>Horas extras</h3>
+      <p>Fecha, horario y motivo. El total de horas se calcula solo.</p>
+    </div>
+    <button *ngIf="canRequest" type="button" class="btn btn--primary" (click)="openCreate()">
+      Solicitar
+    </button>
+  </div>
+
+  <p *ngIf="loading()" class="overtime__empty">Cargando horas extras...</p>
+
+  <div *ngIf="!loading() && requests().length === 0" class="overtime__empty">
+    <p>Todavía no hay solicitudes de horas extras.</p>
+    <button *ngIf="canRequest" type="button" class="btn btn--primary" (click)="openCreate()">
+      Solicitar horas extras
+    </button>
+  </div>
+
+  <ul *ngIf="!loading() && requests().length > 0" class="overtime__list">
+    <li *ngFor="let req of requests()" class="ot-card">
+      <div class="ot-card__main">
+        <p class="ot-card__when">
+          {{ formatDate(req.work_date) }} · {{ req.start_time }} – {{ req.end_time }}
+        </p>
+        <p class="ot-card__hours">
+          Solicitó {{ formatHours(req.requested_hours) }}
+          <span *ngIf="req.approved_hours != null && req.approved_hours !== req.requested_hours">
+            · autorizadas {{ formatHours(req.approved_hours) }}
+          </span>
+        </p>
+        <p class="ot-card__reason">{{ req.reason }}</p>
+        <p class="ot-card__notes" *ngIf="req.notes">{{ req.notes }}</p>
+        <p class="ot-card__meta" *ngIf="req.reviewer_name || req.reviewed_at">
+          Autorizó {{ req.reviewer_name || '—' }}
+          <span *ngIf="req.reviewed_at"> · {{ formatWhen(req.reviewed_at) }}</span>
+        </p>
+        <p class="ot-card__notes" *ngIf="req.review_notes">{{ req.review_notes }}</p>
+        <p class="ot-card__money" *ngIf="req.status === 'approved'">
+          Importe {{ formatMoney(req.amount) }}
+        </p>
+        <p class="ot-card__money" *ngIf="req.status === 'paid'">
+          Pagado {{ formatMoney(req.paid_amount) }}
+          <span *ngIf="req.payer_name"> · {{ req.payer_name }}</span>
+          <span *ngIf="req.paid_at"> · {{ formatWhen(req.paid_at) }}</span>
+        </p>
+      </div>
+
+      <div class="ot-card__side">
+        <span class="status-badge" [ngClass]="'status-badge--' + req.status">
+          {{ statusLabel(req.status) }}
+        </span>
+        <div class="ot-card__actions">
+          <button
+            *ngIf="canRequest && req.status === 'pending'"
+            type="button"
+            class="action-btn"
+            (click)="openEdit(req)">
+            Corregir
+          </button>
+          <button
+            *ngIf="canReview && (req.status === 'pending' || req.status === 'approved')"
+            type="button"
+            class="action-btn action-btn--approve"
+            (click)="openReview(req)">
+            Revisar
+          </button>
+          <ng-container *ngIf="canReview && req.status === 'approved'">
+            <ng-container *ngIf="confirmingPayId() === req.id; else payButton">
+              <button type="button" class="action-btn action-btn--approve" [disabled]="payingId() === req.id" (click)="confirmPay(req)">
+                {{ payingId() === req.id ? 'Pagando...' : 'Confirmar ' + formatMoney(req.amount) }}
+              </button>
+              <button type="button" class="action-btn" (click)="cancelPay()">Cancelar</button>
+            </ng-container>
+            <ng-template #payButton>
+              <button type="button" class="action-btn" (click)="askPay(req)">Marcar pagada</button>
+            </ng-template>
+          </ng-container>
+        </div>
+      </div>
+    </li>
+  </ul>
+</section>
