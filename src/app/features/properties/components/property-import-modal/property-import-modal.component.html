@@ -17,15 +17,34 @@
     </select>
   </label>
 
-  <button type="button" class="import-modal__download" (click)="downloadTemplate()" [disabled]="downloading">
+  <button type="button" class="import-modal__download" (click)="downloadTemplate()" [disabled]="downloading || importing">
     <lucide-icon [img]="Download" [size]="16"></lucide-icon>
     {{ downloading ? 'Descargando…' : 'Descargar plantilla' }}
   </button>
 
-  <label class="import-modal__file">
-    <input type="file" accept=".xlsx,.xls" (change)="onFileSelected($event)" />
+  <label class="import-modal__file" [class.import-modal__file--disabled]="importing">
+    <input type="file" accept=".xlsx,.xls" (change)="onFileSelected($event)" [disabled]="importing" />
     <span>{{ file ? file.name : 'Seleccionar archivo Excel' }}</span>
   </label>
+
+  @if (importing) {
+    <div class="import-modal__progress" aria-live="polite">
+      <div class="import-modal__progress-row">
+        <p>{{ progressLabel }}</p>
+        <span>{{ progressPercent }}%</span>
+      </div>
+      <div class="import-modal__bar" role="progressbar" [attr.aria-valuenow]="progressPercent" aria-valuemin="0" aria-valuemax="100">
+        <div class="import-modal__bar-fill" [style.width.%]="progressPercent"></div>
+      </div>
+      @if (job?.current_code) {
+        <p class="import-modal__current">Lote actual: {{ job?.current_code }}</p>
+      }
+    </div>
+  }
+
+  @if (failMessage && !errors.length) {
+    <p class="import-modal__fail">{{ failMessage }}</p>
+  }
 
   <ul class="import-modal__errors" *ngIf="errors.length">
     <li *ngFor="let error of errors">Fila {{ error.row }}: {{ error.message }}</li>

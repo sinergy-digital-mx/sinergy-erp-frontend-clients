@@ -144,6 +144,20 @@ export interface PropertyImportResult {
   created: number;
 }
 
+export type PropertyImportJobStatus = 'queued' | 'processing' | 'completed' | 'failed';
+
+export interface PropertyImportJob {
+  id: string;
+  status: PropertyImportJobStatus;
+  total: number;
+  processed: number;
+  percent: number;
+  current_code: string | null;
+  message: string | null;
+  result: PropertyImportResult | null;
+  error: string | null;
+}
+
 /** Vacío / no numérico → null. */
 export function parseOptionalNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') {

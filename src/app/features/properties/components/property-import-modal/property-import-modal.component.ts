@@ -1,15 +1,19 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Download, LucideAngularModule, Upload } from 'lucide-angular';
+import { interval, Subject, Subscription } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
 import { CloseButtonComponent } from '../../../../core/components/close-button/close-button.component';
 import { PropertyService } from '../../services/property.service';
-import { PropertyImportRowError } from '../../models/property.model';
+import { PropertyImportJob, PropertyImportRowError } from '../../models/property.model';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
 import { CustomerGroup } from '../../../customers/models/customer-group.model';
+
+const POLL_INTERVAL_MS = 900;
 
 @Component({
   selector: 'app-property-import-modal',
@@ -18,24 +22,52 @@ import { CustomerGroup } from '../../../customers/models/customer-group.model';
   templateUrl: './property-import-modal.component.html',
   styleUrl: './property-import-modal.component.scss',
 })
-export class PropertyImportModalComponent implements OnInit {
+export class PropertyImportModalComponent implements OnInit, OnDestroy {
   Download = Download;
   Upload = Upload;
   file: File | null = null;
   downloading = false;
   importing = false;
+  job: PropertyImportJob | null = null;
+  failMessage = '';
   errors: PropertyImportRowError[] = [];
   groups: CustomerGroup[] = [];
   groupId = '';
+
+  private readonly destroy$ = new Subject<void>();
+  private readonly stopPoll$ = new Subject<void>();
+  private pollSub?: Subscription;
 
   constructor(
     private dialogRef: MatDialogRef<PropertyImportModalComponent, number | undefined>,
     private propertyService: PropertyService,
     private toast: ToastService,
     private customerGroupFetch: CustomerGroupFetchService,
+    private cdr: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) data: { groupId?: string | null } | null,
   ) {
     this.groupId = data?.groupId ?? '';
+  }
+
+  get progressPercent(): number {
+    const percent = this.job?.percent ?? 0;
+    if (!Number.isFinite(percent)) {
+      return 0;
+    }
+    return Math.min(100, Math.max(0, percent));
+  }
+
+  get progressLabel(): string {
+    if (!this.job) {
+      return 'Leyendo el archivo…';
+    }
+    if (this.job.message?.trim()) {
+      return this.job.message.trim();
+    }
+    if (this.job.total > 0) {
+      return `Importando ${this.job.processed} de ${this.job.total}`;
+    }
+    return this.job.status === 'queued' ? 'En cola…' : 'Importando…';
   }
 
   ngOnInit(): void {
@@ -47,6 +79,13 @@ export class PropertyImportModalComponent implements OnInit {
         this.toast.error('No pudimos cargar los grupos de cliente.');
       },
     });
+  }
+
+  ngOnDestroy(): void {
+    this.stopPolling();
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.stopPoll$.complete();
   }
 
   close(): void {
@@ -80,6 +119,8 @@ export class PropertyImportModalComponent implements OnInit {
     const selected = input.files?.[0] ?? null;
     this.file = selected;
     this.errors = [];
+    this.failMessage = '';
+    this.job = null;
   }
 
   importFile(): void {
@@ -88,21 +129,92 @@ export class PropertyImportModalComponent implements OnInit {
     }
     this.importing = true;
     this.errors = [];
-    this.propertyService.importProperties(this.file, this.groupId).subscribe({
-      next: (result) => {
-        this.importing = false;
-        const count = result?.created ?? 0;
-        this.toast.success(count === 1 ? 'Se creó 1 lote.' : `Se crearon ${count} lotes.`);
-        this.dialogRef.close(count);
-      },
+    this.failMessage = '';
+    this.job = null;
+    this.dialogRef.disableClose = true;
+
+    this.propertyService.startImport(this.file, this.groupId).subscribe({
+      next: (job) => this.applyJob(job),
       error: (error) => {
-        this.importing = false;
+        this.finishImport();
         this.errors = this.readRowErrors(error);
+        this.failMessage = resolveHttpErrorMessage(
+          error,
+          'No se pudieron importar los lotes.',
+        );
         if (!this.errors.length) {
-          this.toast.error(resolveHttpErrorMessage(error, 'No se pudieron importar los lotes.'));
+          this.toast.error(this.failMessage);
         }
+        this.cdr.detectChanges();
       },
     });
+  }
+
+  private applyJob(job: PropertyImportJob): void {
+    this.job = job;
+    this.cdr.detectChanges();
+
+    if (job.status === 'completed') {
+      this.stopPolling();
+      const count = job.result?.created ?? job.processed ?? 0;
+      this.finishImport();
+      this.toast.success(count === 1 ? 'Se creó 1 lote.' : `Se crearon ${count} lotes.`);
+      this.dialogRef.close(count);
+      return;
+    }
+
+    if (job.status === 'failed') {
+      this.stopPolling();
+      this.finishImport();
+      this.failMessage = job.error?.trim() || 'La importación falló.';
+      this.toast.error(this.failMessage);
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.pollSub) {
+      if (!job.id) {
+        this.finishImport();
+        this.failMessage = 'No se recibió el identificador del trabajo.';
+        this.toast.error(this.failMessage);
+        return;
+      }
+      this.startPolling(job.id);
+    }
+  }
+
+  private startPolling(jobId: string): void {
+    this.stopPolling();
+    this.pollSub = interval(POLL_INTERVAL_MS)
+      .pipe(
+        switchMap(() => this.propertyService.getImportJob(jobId)),
+        takeUntil(this.stopPoll$),
+        takeUntil(this.destroy$),
+      )
+      .subscribe({
+        next: (job) => this.applyJob(job),
+        error: (error) => {
+          this.stopPolling();
+          this.finishImport();
+          this.failMessage = resolveHttpErrorMessage(
+            error,
+            'No se pudo consultar el progreso de la importación.',
+          );
+          this.toast.error(this.failMessage);
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  private stopPolling(): void {
+    this.stopPoll$.next();
+    this.pollSub?.unsubscribe();
+    this.pollSub = undefined;
+  }
+
+  private finishImport(): void {
+    this.importing = false;
+    this.dialogRef.disableClose = false;
   }
 
   private readRowErrors(error: unknown): PropertyImportRowError[] {

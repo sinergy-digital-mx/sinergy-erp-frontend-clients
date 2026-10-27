@@ -14,7 +14,7 @@
   </div>
 
   <div class="properties-page__filters filter-bar">
-    <div class="filter-bar__container">
+    <div class="filter-bar__container filter-bar__container--toolbar">
       <div class="filter-bar__field filter-bar__field--search">
         <app-search
           [showSearchIcon]="true"
@@ -29,20 +29,20 @@
         class="filter-bar__field filter-bar__field--sheet"
         [activeCount]="sheetFilterCount"
         (cleared)="clearAllFilters()">
-        <div class="filter-bar__field">
-          <app-property-status-dropdown
-            [selectedStatus]="selectedStatus"
-            (statusSelect)="onStatusSelect($event)">
-          </app-property-status-dropdown>
-        </div>
-
-        <div class="filter-bar__field">
+        <div class="filter-bar__field filter-bar__field--group">
           <app-customer-group-dropdown
             [selectedGroupId]="selectedGroupId"
             placeholder="Grupo de cliente"
             allMessage="Todos los grupos"
             (groupSelect)="onGroupSelect($event)">
           </app-customer-group-dropdown>
+        </div>
+
+        <div class="filter-bar__field filter-bar__field--status">
+          <app-property-status-dropdown
+            [selectedStatus]="selectedStatus"
+            (statusSelect)="onStatusSelect($event)">
+          </app-property-status-dropdown>
         </div>
 
         <div class="filter-bar__field filter-bar__field--clear">

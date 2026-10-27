@@ -71,6 +71,71 @@
     input {
       display: none;
     }
+
+    &--disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+  }
+
+  &__progress {
+    margin-top: 0.9rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid #e0e7ff;
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+
+  &__progress-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+
+    p {
+      margin: 0;
+      font-size: 0.8125rem;
+      font-weight: 650;
+      color: #1e293b;
+    }
+
+    span {
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #4338ca;
+    }
+  }
+
+  &__bar {
+    height: 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+  }
+
+  &__bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: #4f46e5;
+    transition: width 0.25s ease;
+  }
+
+  &__current {
+    margin: 0.45rem 0 0;
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  &__fail {
+    margin: 0.75rem 0 0;
+    padding: 0.7rem 0.8rem;
+    border-radius: 10px;
+    background: #fef2f2;
+    color: #991b1b;
+    font-size: 0.8125rem;
+    font-weight: 600;
   }
 
   &__errors {

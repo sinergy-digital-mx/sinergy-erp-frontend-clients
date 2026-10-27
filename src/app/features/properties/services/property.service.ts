@@ -10,6 +10,8 @@ import {
   MeasurementUnit,
   PropertyListFilters,
   PropertyStats,
+  PropertyImportJob,
+  PropertyImportJobStatus,
   PropertyImportResult,
 } from '../models/property.model';
 
@@ -68,11 +70,19 @@ export class PropertyService {
       );
   }
 
-  importProperties(file: File, groupId: string): Observable<PropertyImportResult> {
+  startImport(file: File, groupId: string): Observable<PropertyImportJob> {
     const body = new FormData();
     body.append('file', file);
     body.append('group_id', groupId);
-    return this.http.post<PropertyImportResult>(`${this.api}/tenant/properties/import`, body);
+    return this.http
+      .post<unknown>(`${this.api}/tenant/properties/import`, body)
+      .pipe(map((response) => this.unwrapImportJob(response)));
+  }
+
+  getImportJob(jobId: string): Observable<PropertyImportJob> {
+    return this.http
+      .get<unknown>(`${this.api}/tenant/properties/import/jobs/${jobId}`)
+      .pipe(map((response) => this.unwrapImportJob(response)));
   }
 
   getMeasurementUnits(): Observable<MeasurementUnit[]> {
@@ -97,6 +107,45 @@ export class PropertyService {
     }
 
     return params;
+  }
+
+  private unwrapImportJob(response: unknown): PropertyImportJob {
+    const raw = this.unwrapData(response);
+    const job = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    const resultRaw = job['result'];
+    const result =
+      resultRaw && typeof resultRaw === 'object'
+        ? { created: Number((resultRaw as { created?: unknown }).created ?? 0) || 0 }
+        : null;
+    return {
+      id: String(job['id'] ?? ''),
+      status: this.normalizeJobStatus(job['status']),
+      total: Number(job['total'] ?? 0) || 0,
+      processed: Number(job['processed'] ?? 0) || 0,
+      percent: Number(job['percent'] ?? 0) || 0,
+      current_code: job['current_code'] != null ? String(job['current_code']) : null,
+      message: job['message'] != null ? String(job['message']) : null,
+      result,
+      error: job['error'] != null ? String(job['error']) : null,
+    };
+  }
+
+  private unwrapData(response: unknown): unknown {
+    if (response && typeof response === 'object' && 'data' in response) {
+      const data = (response as { data: unknown }).data;
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        return data;
+      }
+    }
+    return response;
+  }
+
+  private normalizeJobStatus(value: unknown): PropertyImportJobStatus {
+    const status = String(value ?? '').toLowerCase();
+    if (status === 'queued' || status === 'processing' || status === 'completed' || status === 'failed') {
+      return status;
+    }
+    return 'queued';
   }
 
   private setIfPresent(params: HttpParams, key: string, value: unknown): HttpParams {

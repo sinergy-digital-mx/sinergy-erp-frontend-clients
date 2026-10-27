@@ -2,6 +2,7 @@
 
 ## Historial
 
+- 2026-10-27: Escritorio: buscador + grupo + estatus + limpiar en **una sola fila**. Celular sigue con sheet.
 - 2026-10-24: Filtros de celular en sheet desde abajo. Cards + scroll infinito. Escritorio sigue con la tabla.
 - 2026-10-24: En celular, listado en **cards** (código, nombre, precio, área, cliente). Scroll infinito. Escritorio sigue con la tabla. KPIs en riel horizontal.
 

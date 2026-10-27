@@ -68,9 +68,26 @@
   &__filters {
     margin-bottom: 1rem;
 
+    .filter-bar__container--toolbar {
+      flex-wrap: nowrap;
+    }
+
     .filter-bar__field--search {
-      grid-column: span 2;
+      flex: 1 1 auto;
       min-width: 220px;
+      max-width: none;
+      grid-column: auto;
+    }
+
+    .filter-bar__field--group,
+    .filter-bar__field--status {
+      flex: 0 0 200px;
+      width: 200px;
+    }
+
+    .filter-bar__field--clear {
+      flex: 0 0 auto;
+      width: auto;
     }
 
     ::ng-deep {
@@ -517,16 +534,14 @@
 }
 
 @media (max-width: 1023px) {
-  .properties-page__filters .filter-bar__container {
-    display: flex;
-    align-items: center;
+  .properties-page__filters .filter-bar__container--toolbar {
+    flex-wrap: nowrap;
     gap: 8px;
   }
 
   .properties-page__filters .filter-bar__field--search {
     flex: 1 1 auto;
     min-width: 0;
-    grid-column: auto;
   }
 
   .properties-page__title {
@@ -547,29 +562,5 @@
 
   app-property-filter-indicator {
     display: none;
-  }
-}
-
-@media (max-width: 767px) {
-  .properties-page {
-    &__header {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    &__title {
-      font-size: 1.5rem;
-    }
-
-    &__actions {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    &__import-btn,
-    &__create-btn {
-      justify-content: center;
-      width: 100%;
-    }
   }
 }
