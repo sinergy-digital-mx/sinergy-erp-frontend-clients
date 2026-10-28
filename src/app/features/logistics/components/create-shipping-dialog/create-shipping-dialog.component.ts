@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { LucideAngularModule, X } from 'lucide-angular';
+import { Check, CircleAlert, LucideAngularModule, X } from 'lucide-angular';
 import { Subject, takeUntil } from 'rxjs';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
@@ -28,7 +28,6 @@ import {
   StopAddressPickerDialogComponent,
   StopAddressPickerResult,
 } from '../stop-address-picker-dialog/stop-address-picker-dialog.component';
-import { cartaPorteReadyLabel } from '../../models/carta-porte-catalogs';
 import { Truck, truckBusyLabel, truckSelectLabel } from '../../models/truck.model';
 import { UserDetailModalComponent } from '../../../rbac-tenant-ui/components/user-detail-modal/user-detail-modal.component';
 import { TruckFormModalComponent } from '../truck-form-modal/truck-form-modal.component';
@@ -75,9 +74,10 @@ interface WizardPanel {
 })
 export class CreateShippingDialogComponent implements OnInit, OnDestroy {
   readonly X = X;
+  readonly Check = Check;
+  readonly CircleAlert = CircleAlert;
   readonly truckSelectLabel = truckSelectLabel;
   readonly truckBusyLabel = truckBusyLabel;
-  readonly cartaPorteReadyLabel = cartaPorteReadyLabel;
 
   form: FormGroup;
   step = signal<WizardStep>('info');
@@ -294,10 +294,16 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     return this.trucks().find((item) => item.id === this.form.get('truck_id')?.value);
   }
 
-  selectedTruckMissing(): string {
-    const truck = this.selectedTruck();
-    if (!truck || truck.carta_porte_ready) return '';
-    return (truck.carta_porte_missing ?? []).join(' · ');
+  truckMarkTitle(truck: Truck): string {
+    if (truck.carta_porte_ready) return 'Carta porte completo';
+    const missing = (truck.carta_porte_missing ?? []).join(' · ');
+    return missing ? `Carta porte no completo: ${missing}` : 'Carta porte no completo';
+  }
+
+  driverMarkTitle(driver: User): string {
+    if (driver.carta_porte_ready) return 'Carta porte completo';
+    const missing = (driver.carta_porte_missing ?? []).join(' · ');
+    return missing ? `Carta porte no completo: ${missing}` : 'Carta porte no completo';
   }
 
   editSelectedTruck(): void {
@@ -323,12 +329,6 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
 
   selectedDriver(): User | undefined {
     return this.drivers().find((item) => item.id === this.form.get('driver_id')?.value);
-  }
-
-  selectedDriverMissing(): string {
-    const driver = this.selectedDriver();
-    if (!driver || driver.carta_porte_ready) return '';
-    return (driver.carta_porte_missing ?? []).join(' · ');
   }
 
   editSelectedDriver(): void {
@@ -473,8 +473,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
 
   driverLabel(user: User): string {
     const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
-    const base = name || user.email;
-    return `${base} · ${cartaPorteReadyLabel(user.carta_porte_ready)}`;
+    return name || user.email;
   }
 
   private activeDrivers(users: User[]): User[] {

@@ -14,7 +14,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import { LucideAngularModule, MapPin, Plus, RefreshCw, X } from 'lucide-angular';
+import { Check, CircleAlert, LucideAngularModule, MapPin, Plus, RefreshCw, X } from 'lucide-angular';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
@@ -24,7 +24,6 @@ import {
   StopAddressPickerDialogComponent,
   StopAddressPickerResult,
 } from '../stop-address-picker-dialog/stop-address-picker-dialog.component';
-import { cartaPorteReadyLabel } from '../../models/carta-porte-catalogs';
 import { Truck, truckBusyLabel, truckSelectLabel } from '../../models/truck.model';
 import { TruckFormModalComponent } from '../truck-form-modal/truck-form-modal.component';
 import { TruckService } from '../../services/truck.service';
@@ -77,6 +76,8 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   readonly Plus = Plus;
   readonly RefreshCw = RefreshCw;
   readonly X = X;
+  readonly Check = Check;
+  readonly CircleAlert = CircleAlert;
   readonly permissions = SHIPPING_PERMISSIONS;
 
   panel = signal<'route' | 'carta'>('route');
@@ -206,8 +207,7 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   }
 
   driverOptionLabel(user: User): string {
-    const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.email || 'Chofer';
-    return `${name} · ${cartaPorteReadyLabel(user.carta_porte_ready)}`;
+    return [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.email || 'Chofer';
   }
 
   truckOptionLabel(truck: Truck): string {
@@ -216,7 +216,7 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
       truck.active_shipping_id && truck.active_shipping_id !== currentId
         ? ` · ${truckBusyLabel(truck)}`
         : '';
-    return `${truckSelectLabel(truck)} · ${cartaPorteReadyLabel(truck.carta_porte_ready)}${busy}`;
+    return `${truckSelectLabel(truck)}${busy}`;
   }
 
   crewDriverReady(shipping: Shipping): boolean {

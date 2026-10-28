@@ -3,9 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { TruckFormModalComponent } from '../../../logistics/components/truck-form-modal/truck-form-modal.component';
-import { LucideAngularModule, X } from 'lucide-angular';
+import { Check, CircleAlert, LucideAngularModule, X } from 'lucide-angular';
 import { InventoryTransfer } from '../../models/inventory-transfer.model';
-import { cartaPorteReadyLabel } from '../../../logistics/models/carta-porte-catalogs';
 import { Truck, truckBusyLabel, truckSelectLabel } from '../../../logistics/models/truck.model';
 import { UserDetailModalComponent } from '../../../rbac-tenant-ui/components/user-detail-modal/user-detail-modal.component';
 import { TruckService } from '../../../logistics/services/truck.service';
@@ -27,9 +26,10 @@ export interface TransferShippingDialogData {
 })
 export class TransferShippingDialogComponent implements OnInit {
   readonly X = X;
+  readonly Check = Check;
+  readonly CircleAlert = CircleAlert;
   readonly truckSelectLabel = truckSelectLabel;
   readonly truckBusyLabel = truckBusyLabel;
-  readonly cartaPorteReadyLabel = cartaPorteReadyLabel;
 
   trucks = signal<Truck[]>([]);
   drivers = signal<User[]>([]);
@@ -108,12 +108,10 @@ export class TransferShippingDialogComponent implements OnInit {
     });
   }
 
-  completeness(ready: boolean | null | undefined): string {
-    return cartaPorteReadyLabel(ready);
-  }
-
-  missingText(items: string[] | null | undefined): string {
-    return (items ?? []).join(' · ');
+  markTitle(ready: boolean | null | undefined, missing: string[] | null | undefined): string {
+    if (ready) return 'Carta porte completo';
+    const detail = (missing ?? []).filter(Boolean).join(' · ');
+    return detail ? `Carta porte no completo: ${detail}` : 'Carta porte no completo';
   }
 
   driverName(user: User): string {

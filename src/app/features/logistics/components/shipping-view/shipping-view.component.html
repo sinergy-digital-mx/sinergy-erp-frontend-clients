@@ -65,15 +65,27 @@
       <div>
         <div class="sv__crew-label">
           <span>Chofer</span>
-          <button
-            *hasPermission="permissions.update"
-            type="button"
-            class="sv__edit"
-            [disabled]="!s.driver_id || crewSaving()"
-            (click)="editCrewDriver()"
-          >
-            Editar
-          </button>
+          <div class="sv__crew-actions">
+            @if (s.driver_id) {
+              <span
+                class="sv__cp-mark"
+                [class.is-bad]="!crewDriverReady(s)"
+                [title]="crewDriverStatus(s)"
+                [attr.aria-label]="crewDriverStatus(s)"
+              >
+                <lucide-icon [img]="crewDriverReady(s) ? Check : CircleAlert" class="w-4 h-4"></lucide-icon>
+              </span>
+            }
+            <button
+              *hasPermission="permissions.update"
+              type="button"
+              class="sv__edit"
+              [disabled]="!s.driver_id || crewSaving()"
+              (click)="editCrewDriver()"
+            >
+              Editar
+            </button>
+          </div>
         </div>
         @if (canReassignCrew(s)) {
           <select
@@ -89,20 +101,31 @@
         } @else {
           <strong class="sv__crew-name">{{ s.driver_name || '—' }}</strong>
         }
-        <p class="sv__cp" [class.is-bad]="!crewDriverReady(s)">{{ crewDriverStatus(s) }}</p>
       </div>
       <div>
         <div class="sv__crew-label">
           <span>Camión</span>
-          <button
-            *hasPermission="permissions.update"
-            type="button"
-            class="sv__edit"
-            [disabled]="!s.truck_id || crewSaving()"
-            (click)="editCrewTruck()"
-          >
-            Editar
-          </button>
+          <div class="sv__crew-actions">
+            @if (s.truck_id) {
+              <span
+                class="sv__cp-mark"
+                [class.is-bad]="!crewTruckReady(s)"
+                [title]="crewTruckStatus(s)"
+                [attr.aria-label]="crewTruckStatus(s)"
+              >
+                <lucide-icon [img]="crewTruckReady(s) ? Check : CircleAlert" class="w-4 h-4"></lucide-icon>
+              </span>
+            }
+            <button
+              *hasPermission="permissions.update"
+              type="button"
+              class="sv__edit"
+              [disabled]="!s.truck_id || crewSaving()"
+              (click)="editCrewTruck()"
+            >
+              Editar
+            </button>
+          </div>
         </div>
         @if (canReassignCrew(s)) {
           <select
@@ -125,7 +148,6 @@
             {{ s.truck_name || '—' }}{{ s.truck_placa ? ' · ' + s.truck_placa : '' }}
           </strong>
         }
-        <p class="sv__cp" [class.is-bad]="!crewTruckReady(s)">{{ crewTruckStatus(s) }}</p>
       </div>
       @if (s.notes) {
         <div class="sv__notes"><span>Notas</span>{{ s.notes }}</div>

@@ -95,6 +95,22 @@ h2 {
   color: #374151;
 }
 
+.ship-dialog__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ship-dialog__mark {
+  display: inline-flex;
+  color: #15803d;
+  cursor: help;
+
+  &.is-bad {
+    color: #c2410c;
+  }
+}
+
 .ship-dialog__edit {
   border: 0;
   background: none;
