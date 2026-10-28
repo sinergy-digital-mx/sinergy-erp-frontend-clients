@@ -1,16 +1,16 @@
 {
-  "version": "0.0.76",
-  "buildId": "0.0.76-1793158770484",
-  "builtAt": "2026-10-28T03:39:30.484Z",
+  "version": "0.0.77",
+  "buildId": "0.0.77-1793210289823",
+  "builtAt": "2026-10-28T17:58:09.823Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Cambios en versiones"
+      "message": "Cambios en logística"
     },
     {
-      "scope": "frontend",
-      "message": "Cambios en inmuebles"
+      "scope": "backend",
+      "message": "Cambios en inventario"
     }
   ]
 }

@@ -147,6 +147,9 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
       .map(enrichShippingStop);
     this.shipping.set({ ...shipping, stops });
     this.stops.set(stops);
+    if (!this.pesoKg && shipping.carta_porte_peso_kg != null) {
+      this.pesoKg = String(shipping.carta_porte_peso_kg);
+    }
     this.trackVehicle(shipping);
   }
 
@@ -507,6 +510,29 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
 
   pesoKg = '';
   stamping = signal(false);
+  stampEnvironment = signal<'demo' | 'production'>(
+    typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'demo'
+      : 'production',
+  );
+
+  cartaPorteIsFinal(shipping: Shipping): boolean {
+    return !!shipping.carta_porte_uuid && shipping.carta_porte_environment !== 'demo';
+  }
+
+  selectStampEnvironment(environment: 'demo' | 'production'): void {
+    if (this.stamping() || environment === this.stampEnvironment()) return;
+    if (environment === 'production' && this.stampEnvironment() === 'demo') {
+      const local =
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      if (local && !window.confirm('Esto timbrará un CFDI real con Finkok producción. ¿Continuar?')) {
+        return;
+      }
+    }
+    this.stampEnvironment.set(environment);
+  }
 
   stampCartaPorte(): void {
     const peso = Number(this.pesoKg);
@@ -514,13 +540,17 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
       this.toast('Indica el peso bruto de la carga en kilogramos', 'error');
       return;
     }
+    const environment = this.stampEnvironment();
     this.stamping.set(true);
-    this.shippingService.stampCartaPorte(this.shippingId, peso).subscribe({
+    this.shippingService.stampCartaPorte(this.shippingId, peso, environment).subscribe({
       next: (res) => {
         this.stamping.set(false);
         this.applyShipping(res.shipping);
         this.shippingUpdated.emit(res.shipping);
-        this.toast('Carta porte timbrada', 'success');
+        this.toast(
+          environment === 'demo' ? 'Carta porte de prueba timbrada' : 'Carta porte timbrada',
+          'success',
+        );
       },
       error: (err) => {
         this.stamping.set(false);

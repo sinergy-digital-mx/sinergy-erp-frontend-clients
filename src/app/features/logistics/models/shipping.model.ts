@@ -130,6 +130,7 @@ export interface Shipping {
   carta_porte_stamped_at?: string | null;
   carta_porte_error?: string | null;
   carta_porte_peso_kg?: number | null;
+  carta_porte_environment?: 'demo' | 'production' | string | null;
   driver_carta_porte_ready?: boolean;
   driver_carta_porte_missing?: string[];
   truck_carta_porte_ready?: boolean;

@@ -152,13 +152,22 @@ export class ShippingService {
     );
   }
 
-  stampCartaPorte(id: string, pesoBrutoKg: number): Observable<{ shipping: Shipping; message?: string }> {
-    return this.http.post<any>(`${this.baseUrl}/${id}/carta-porte`, { peso_bruto_kg: pesoBrutoKg }).pipe(
-      map((response) => ({
-        shipping: normalizeShipping(response?.data ?? response),
-        message: response?.message,
-      }))
-    );
+  stampCartaPorte(
+    id: string,
+    pesoBrutoKg: number,
+    environment: 'demo' | 'production',
+  ): Observable<{ shipping: Shipping; message?: string }> {
+    return this.http
+      .post<any>(`${this.baseUrl}/${id}/carta-porte`, {
+        peso_bruto_kg: pesoBrutoKg,
+        environment,
+      })
+      .pipe(
+        map((response) => ({
+          shipping: normalizeShipping(response?.data ?? response),
+          message: response?.message,
+        })),
+      );
   }
 
   downloadCartaPortePdf(id: string): Observable<Blob> {

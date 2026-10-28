@@ -88,15 +88,17 @@
             <h3>Carta porte</h3>
             <p class="sv__carta-lead">Se genera aquí, con el viaje ya creado.</p>
           </div>
-          @if (s.carta_porte_uuid) {
+          @if (cartaPorteIsFinal(s)) {
             <span class="dt-status-pill dt-status-pill--success">Timbrada</span>
+          } @else if (s.carta_porte_uuid) {
+            <span class="dt-status-pill dt-status-pill--warning">Demo</span>
           } @else if (s.driver_carta_porte_ready && s.truck_carta_porte_ready) {
             <span class="dt-status-pill dt-status-pill--info">Lista</span>
           } @else {
             <span class="dt-status-pill dt-status-pill--warning">Faltan datos</span>
           }
         </div>
-        @if (s.carta_porte_uuid) {
+        @if (cartaPorteIsFinal(s)) {
           <p class="sv__carta-uuid">{{ s.carta_porte_uuid }}</p>
           <button type="button" class="page-create-btn" (click)="downloadCartaPorte()">Descargar PDF</button>
         } @else {
@@ -122,6 +124,36 @@
               }
             </article>
           </div>
+          @if (s.carta_porte_uuid) {
+            <p class="sv__carta-demo">Timbrada en demo. Descarga el PDF de prueba o genera la de producción.</p>
+            <p class="sv__carta-uuid">{{ s.carta_porte_uuid }}</p>
+            <button type="button" class="page-create-btn" (click)="downloadCartaPorte()">Descargar PDF</button>
+          }
+          <div class="sv__carta-env" role="group" aria-label="Ambiente Finkok">
+            <button
+              type="button"
+              [class.is-on]="stampEnvironment() === 'demo'"
+              [disabled]="stamping()"
+              (click)="selectStampEnvironment('demo')"
+            >
+              Demo
+            </button>
+            <button
+              type="button"
+              [class.is-on]="stampEnvironment() === 'production'"
+              [disabled]="stamping()"
+              (click)="selectStampEnvironment('production')"
+            >
+              Producción
+            </button>
+          </div>
+          <p class="sv__carta-hint">
+            @if (stampEnvironment() === 'demo') {
+              Se timbra en Finkok Demo para ver el PDF. No tiene validez fiscal.
+            } @else {
+              Se timbrará un CFDI real ante el SAT.
+            }
+          </p>
           <div class="sv__carta-form">
             <label for="carta-porte-peso">Peso bruto de la carga (kg)</label>
             <input id="carta-porte-peso" type="number" min="0.001" step="0.001" [(ngModel)]="pesoKg" />
@@ -132,7 +164,7 @@
               [disabled]="stamping()"
               (click)="stampCartaPorte()"
             >
-              {{ stamping() ? 'Timbrando…' : 'Generar carta porte' }}
+              {{ stamping() ? 'Timbrando…' : (stampEnvironment() === 'demo' ? 'Generar en demo' : 'Generar carta porte') }}
             </button>
           </div>
           @if (s.carta_porte_error) {
