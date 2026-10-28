@@ -21,7 +21,7 @@ export interface AppUpdateDialogData {
   standalone: true,
   imports: [CommonModule, MatDialogModule, LucideAngularModule],
   template: `
-    <div class="px-upd">
+    <div class="px-upd" (animationend)="settleAnimation($event)">
       <div class="px-upd__mesh" aria-hidden="true"></div>
       <div class="px-upd__shine" aria-hidden="true"></div>
 
@@ -344,33 +344,35 @@ export interface AppUpdateDialogData {
     @keyframes px-upd-in {
       from {
         opacity: 0;
-        transform: translateY(10px) scale(0.97);
+        translate: 0 10px;
+        scale: 0.97;
       }
       to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        translate: 0 0;
+        scale: 1;
       }
     }
 
     @keyframes px-upd-up {
       from {
         opacity: 0;
-        transform: translateY(8px);
+        translate: 0 8px;
       }
       to {
         opacity: 1;
-        transform: translateY(0);
+        translate: 0 0;
       }
     }
 
     @keyframes px-upd-pop {
       from {
         opacity: 0;
-        transform: scale(0.72);
+        scale: 0.72;
       }
       to {
         opacity: 1;
-        transform: scale(1);
+        scale: 1;
       }
     }
 
@@ -380,8 +382,8 @@ export interface AppUpdateDialogData {
     }
 
     @keyframes px-upd-pulse {
-      0%, 100% { opacity: 0.55; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.06); }
+      0%, 100% { opacity: 0.55; scale: 1; }
+      50% { opacity: 1; scale: 1.06; }
     }
 
     @keyframes px-upd-live {
@@ -464,5 +466,24 @@ export class AppUpdateDialogComponent {
 
   close(reload: boolean): void {
     this.dialogRef.close(reload);
+  }
+
+  /**
+   * Firefox reinicia una animación de `transform` si un hijo también anima
+   * `transform`. Al terminar la entrada se quita para que el aviso no reaparezca.
+   */
+  settleAnimation(event: AnimationEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target?.classList) {
+      return;
+    }
+    if (
+      target.classList.contains('px-upd__shine') ||
+      target.classList.contains('px-upd__icon-ring') ||
+      target.classList.contains('px-upd__dot')
+    ) {
+      return;
+    }
+    target.style.animation = 'none';
   }
 }

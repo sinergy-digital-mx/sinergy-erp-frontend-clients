@@ -3,14 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 const rootDir = path.resolve(__dirname, '..');
-const backendLib = path.resolve(
-  rootDir,
-  '..',
-  'sinergy-erp-backend-clients',
-  'scripts',
-  'lib',
-  'release-notes.js',
-);
+const backendDir = path.resolve(rootDir, '..', 'sinergy-erp-backend-clients');
+const backendLib = path.resolve(backendDir, 'scripts', 'lib', 'release-notes.js');
+const changelogLib = path.resolve(backendDir, 'scripts', 'lib', 'session-changelog.js');
 const recordScript = path.resolve(
   rootDir,
   '..',
@@ -142,6 +137,21 @@ if (!status) {
   process.exit(0);
 }
 
-run(`git commit -m "Deploying version ${published.version} (${published.buildId})"`);
+const versionTitle = `Deploying version ${published.version} (${published.buildId})`;
+if (fs.existsSync(changelogLib)) {
+  const changelog = require(changelogLib);
+  const notes = changelog.pendingEntries(backendDir);
+  changelog.commitWithMessage(rootDir, changelog.deployCommitMessage(versionTitle, notes));
+} else {
+  run(`git commit -m "${versionTitle}"`);
+}
 ensureGitSshAuth();
 run('git push origin main');
+
+if (process.env.DEPLOY_BOTH !== '1' && process.env.CHANGELOG_HOLD !== '1' && fs.existsSync(changelogLib)) {
+  try {
+    require(changelogLib).shipPendingChangelog(backendDir, published.version);
+  } catch (error) {
+    console.warn(`No se pudo cerrar el changelog en el backend: ${error.message}`);
+  }
+}

@@ -1,7 +1,6 @@
-import { ChangeDetectorRef, Component, Inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Download, LucideAngularModule, Upload } from 'lucide-angular';
 import { interval, Subject, Subscription } from 'rxjs';
 import { switchMap, takeUntil } from 'rxjs/operators';
@@ -10,19 +9,17 @@ import { PropertyService } from '../../services/property.service';
 import { PropertyImportJob, PropertyImportRowError } from '../../models/property.model';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
-import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
-import { CustomerGroup } from '../../../customers/models/customer-group.model';
 
 const POLL_INTERVAL_MS = 900;
 
 @Component({
   selector: 'app-property-import-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, LucideAngularModule, CloseButtonComponent],
+  imports: [CommonModule, MatDialogModule, LucideAngularModule, CloseButtonComponent],
   templateUrl: './property-import-modal.component.html',
   styleUrl: './property-import-modal.component.scss',
 })
-export class PropertyImportModalComponent implements OnInit, OnDestroy {
+export class PropertyImportModalComponent implements OnDestroy {
   Download = Download;
   Upload = Upload;
   file: File | null = null;
@@ -31,8 +28,6 @@ export class PropertyImportModalComponent implements OnInit, OnDestroy {
   job: PropertyImportJob | null = null;
   failMessage = '';
   errors: PropertyImportRowError[] = [];
-  groups: CustomerGroup[] = [];
-  groupId = '';
 
   private readonly destroy$ = new Subject<void>();
   private readonly stopPoll$ = new Subject<void>();
@@ -42,12 +37,8 @@ export class PropertyImportModalComponent implements OnInit, OnDestroy {
     private dialogRef: MatDialogRef<PropertyImportModalComponent, number | undefined>,
     private propertyService: PropertyService,
     private toast: ToastService,
-    private customerGroupFetch: CustomerGroupFetchService,
     private cdr: ChangeDetectorRef,
-    @Inject(MAT_DIALOG_DATA) data: { groupId?: string | null } | null,
-  ) {
-    this.groupId = data?.groupId ?? '';
-  }
+  ) {}
 
   get progressPercent(): number {
     const percent = this.job?.percent ?? 0;
@@ -68,17 +59,6 @@ export class PropertyImportModalComponent implements OnInit, OnDestroy {
       return `Importando ${this.job.processed} de ${this.job.total}`;
     }
     return this.job.status === 'queued' ? 'En cola…' : 'Importando…';
-  }
-
-  ngOnInit(): void {
-    this.customerGroupFetch.fetchGroups().subscribe({
-      next: (groups) => {
-        this.groups = groups;
-      },
-      error: () => {
-        this.toast.error('No pudimos cargar los grupos de cliente.');
-      },
-    });
   }
 
   ngOnDestroy(): void {
@@ -124,7 +104,7 @@ export class PropertyImportModalComponent implements OnInit, OnDestroy {
   }
 
   importFile(): void {
-    if (!this.file || !this.groupId || this.importing) {
+    if (!this.file || this.importing) {
       return;
     }
     this.importing = true;
@@ -133,7 +113,7 @@ export class PropertyImportModalComponent implements OnInit, OnDestroy {
     this.job = null;
     this.dialogRef.disableClose = true;
 
-    this.propertyService.startImport(this.file, this.groupId).subscribe({
+    this.propertyService.startImport(this.file).subscribe({
       next: (job) => this.applyJob(job),
       error: (error) => {
         this.finishImport();

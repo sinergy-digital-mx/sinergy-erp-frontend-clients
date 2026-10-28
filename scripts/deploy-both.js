@@ -48,6 +48,16 @@ if (!fs.existsSync(frontendDir) || !fs.existsSync(backendDir)) {
 
 ensureGitSshAuth();
 
+process.env.CHANGELOG_HOLD = '1';
+
+const changelogLib = path.join(backendDir, 'scripts', 'lib', 'session-changelog.js');
+if (fs.existsSync(changelogLib)) {
+  const pendingNotes = require(changelogLib).pendingEntries(backendDir);
+  if (pendingNotes.length) {
+    console.log(`Changelog pendiente: ${pendingNotes.length} solicitud(es) para el commit.`);
+  }
+}
+
 console.log('=== Frontend: build + commit + push ===');
 run('npm run build:deploy', frontendDir);
 

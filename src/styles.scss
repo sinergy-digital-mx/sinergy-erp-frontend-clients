@@ -951,11 +951,23 @@ main,
   background: rgba(15, 23, 42, 0.62) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  transition: none !important;
+  animation: none !important;
 }
 
 .cdk-overlay-pane.px-upd-panel,
 .mat-mdc-dialog-panel.px-upd-panel {
-  animation: px-upd-panel-in 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: none !important;
+}
+
+.px-upd-panel .mat-mdc-dialog-inner-container {
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+.px-upd-panel .mat-mdc-dialog-surface {
+  transform: none !important;
+  transition: none !important;
 }
 
 .cdk-overlay-pane.px-upd-panel .mat-mdc-dialog-container,
@@ -974,17 +986,6 @@ main,
   box-shadow:
     0 28px 60px -16px rgba(15, 23, 42, 0.42),
     0 0 0 1px rgba(99, 102, 241, 0.08) !important;
-}
-
-@keyframes px-upd-panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 // Etiqueta del riel de iconos. Va en body para no recortarse con el scroll del menú.

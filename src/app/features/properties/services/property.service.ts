@@ -70,10 +70,9 @@ export class PropertyService {
       );
   }
 
-  startImport(file: File, groupId: string): Observable<PropertyImportJob> {
+  startImport(file: File): Observable<PropertyImportJob> {
     const body = new FormData();
     body.append('file', file);
-    body.append('group_id', groupId);
     return this.http
       .post<unknown>(`${this.api}/tenant/properties/import`, body)
       .pipe(map((response) => this.unwrapImportJob(response)));

@@ -24,11 +24,15 @@ interface AppVersionFile {
   providedIn: 'root'
 })
 export class AppUpdateService {
+  private static readonly dismissedBuildKey = 'pollux.update.dismissedBuildId';
+
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
   private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private dialogOpen = false;
+  private reloading = false;
+  private checkInFlight: Promise<void> | null = null;
 
   init(): void {
     if (!environment.production || !APP_BUILD_ID || APP_BUILD_ID.endsWith('-dev')) {
@@ -42,10 +46,14 @@ export class AppUpdateService {
       void this.checkForUpdate();
     });
 
-    document.addEventListener('visibilitychange', () => {
+    const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         void this.checkForUpdate();
       }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    this.destroyRef.onDestroy(() => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     });
 
     interval(3 * 60 * 1000).pipe(
@@ -59,11 +67,19 @@ export class AppUpdateService {
     }, 5000);
   }
 
-  private async checkForUpdate(): Promise<void> {
-    if (this.dialogOpen) {
-      return;
+  private checkForUpdate(): Promise<void> {
+    if (this.dialogOpen || this.reloading) {
+      return Promise.resolve();
     }
+    if (!this.checkInFlight) {
+      this.checkInFlight = this.detectUpdate().finally(() => {
+        this.checkInFlight = null;
+      });
+    }
+    return this.checkInFlight;
+  }
 
+  private async detectUpdate(): Promise<void> {
     try {
       const versionUrl = new URL('app-version.json', document.baseURI);
       versionUrl.searchParams.set('v', String(Date.now()));
@@ -74,16 +90,24 @@ export class AppUpdateService {
       }
 
       const serverVersion = await response.json() as AppVersionFile;
-      if (serverVersion.buildId && serverVersion.buildId !== APP_BUILD_ID) {
-        const changes = await this.changesForCurrentOrganization(serverVersion);
-        this.promptUpdate({
-          version: serverVersion.version,
-          buildId: serverVersion.buildId,
-          changes,
-        });
+      if (!serverVersion.buildId || serverVersion.buildId === APP_BUILD_ID) {
+        return;
       }
+      if (this.isDismissed(serverVersion.buildId) || this.dialogOpen || this.reloading) {
+        return;
+      }
+
+      const changes = await this.changesForCurrentOrganization(serverVersion);
+      if (this.dialogOpen || this.reloading || this.isDismissed(serverVersion.buildId)) {
+        return;
+      }
+      this.promptUpdate({
+        version: serverVersion.version,
+        buildId: serverVersion.buildId,
+        changes,
+      });
     } catch {
-      // Ignore transient network errors while checking for updates.
+      // Ignora fallos de red al consultar la versión.
     }
   }
 
@@ -140,17 +164,65 @@ export class AppUpdateService {
       backdropClass: 'px-upd-backdrop',
       width: '440px',
       maxWidth: '92vw',
-      enterAnimationDuration: '0ms',
-      exitAnimationDuration: '160ms'
+      enterAnimationDuration: 1,
+      exitAnimationDuration: 120
     });
 
     dialogRef.afterClosed().subscribe((reload) => {
       this.dialogOpen = false;
       if (reload) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('v', String(Date.now()));
-        window.location.href = url.toString();
+        this.reloading = true;
+        void this.reloadForUpdate();
+        return;
+      }
+      if (versionInfo.buildId) {
+        this.rememberDismissal(versionInfo.buildId);
       }
     });
+  }
+
+  /**
+   * Firefox repite `visibilitychange` al cerrar el diálogo y al recuperar la
+   * ventana. Sin esto, «Más tarde» volvía a abrir el aviso enseguida.
+   */
+  private isDismissed(buildId: string): boolean {
+    try {
+      return sessionStorage.getItem(AppUpdateService.dismissedBuildKey) === buildId;
+    } catch {
+      return false;
+    }
+  }
+
+  private rememberDismissal(buildId: string): void {
+    try {
+      sessionStorage.setItem(AppUpdateService.dismissedBuildKey, buildId);
+    } catch {
+      // Modo privado: el aviso puede volver en esta sesión.
+    }
+  }
+
+  /**
+   * Firefox puede seguir sirviendo el HTML anterior en una recarga normal.
+   * Se limpia la caché y se entra por una URL nueva.
+   */
+  private async reloadForUpdate(): Promise<void> {
+    const url = new URL(window.location.href);
+    url.searchParams.set('v', String(Date.now()));
+
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+      if (navigator.serviceWorker?.getRegistrations) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+      }
+      await fetch(url.toString(), { cache: 'reload', credentials: 'same-origin' });
+    } catch {
+      // La navegación siguiente igual usa otra clave de caché.
+    }
+
+    window.location.replace(url.toString());
   }
 }
