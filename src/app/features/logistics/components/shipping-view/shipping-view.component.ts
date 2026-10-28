@@ -24,6 +24,13 @@ import {
   StopAddressPickerDialogComponent,
   StopAddressPickerResult,
 } from '../stop-address-picker-dialog/stop-address-picker-dialog.component';
+import { cartaPorteReadyLabel } from '../../models/carta-porte-catalogs';
+import { Truck, truckBusyLabel, truckSelectLabel } from '../../models/truck.model';
+import { TruckFormModalComponent } from '../truck-form-modal/truck-form-modal.component';
+import { TruckService } from '../../services/truck.service';
+import { User } from '../../../rbac-tenant-ui/models';
+import { UserDetailModalComponent } from '../../../rbac-tenant-ui/components/user-detail-modal/user-detail-modal.component';
+import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { GPS_TRACKING_PERMISSIONS, SHIPPING_PERMISSIONS } from '../../config/permissions.config';
 import { GpsTrackingService } from '../../services/gps-tracking.service';
 import { ShippingMapComponent, ShippingMapVehicle } from '../shipping-map/shipping-map.component';
@@ -74,6 +81,9 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
 
   panel = signal<'route' | 'carta'>('route');
   shipping = signal<Shipping | null>(null);
+  trucks = signal<Truck[]>([]);
+  drivers = signal<User[]>([]);
+  crewSaving = signal(false);
   stops = signal<ShippingStop[]>([]);
   loading = signal(false);
   statusUpdating = signal(false);
@@ -89,6 +99,8 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
 
   constructor(
     private shippingService: ShippingService,
+    private truckService: TruckService,
+    private userService: UserService,
     private gpsTracking: GpsTrackingService,
     private auth: AuthService,
     private snackBar: MatSnackBar,
@@ -104,6 +116,7 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
     const idChanged = changes['shippingId'] && this.shippingId !== this.loadedForId;
     const becameActive = changes['active'] && this.active && !changes['active'].previousValue;
     if (idChanged || becameActive || (changes['shippingId'] && this.active)) {
+      this.loadCrewCatalogs();
       this.load();
     }
   }
@@ -151,6 +164,213 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
       this.pesoKg = String(shipping.carta_porte_peso_kg);
     }
     this.trackVehicle(shipping);
+  }
+
+  canReassignCrew(shipping: Shipping): boolean {
+    if (shipping.status !== 'Creado' && shipping.status !== 'En Ruta') return false;
+    return !(shipping.carta_porte_uuid && shipping.carta_porte_environment !== 'demo');
+  }
+
+  driverOptions(): User[] {
+    const list = this.drivers();
+    const current = this.shipping();
+    if (!current?.driver_id || list.some((item) => item.id === current.driver_id)) return list;
+    return [
+      {
+        id: current.driver_id,
+        email: '',
+        status: 'active',
+        first_name: current.driver_name || 'Chofer',
+        carta_porte_ready: current.driver_carta_porte_ready,
+        carta_porte_missing: current.driver_carta_porte_missing,
+      },
+      ...list,
+    ];
+  }
+
+  truckOptions(): Truck[] {
+    const list = this.trucks();
+    const current = this.shipping();
+    if (!current?.truck_id || list.some((item) => item.id === current.truck_id)) return list;
+    return [
+      {
+        id: current.truck_id,
+        name: current.truck_name || 'Camión',
+        placa: current.truck_placa || '',
+        status: 'active',
+        carta_porte_ready: current.truck_carta_porte_ready,
+        carta_porte_missing: current.truck_carta_porte_missing,
+      },
+      ...list,
+    ];
+  }
+
+  driverOptionLabel(user: User): string {
+    const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.email || 'Chofer';
+    return `${name} · ${cartaPorteReadyLabel(user.carta_porte_ready)}`;
+  }
+
+  truckOptionLabel(truck: Truck): string {
+    const currentId = this.shipping()?.id;
+    const busy =
+      truck.active_shipping_id && truck.active_shipping_id !== currentId
+        ? ` · ${truckBusyLabel(truck)}`
+        : '';
+    return `${truckSelectLabel(truck)} · ${cartaPorteReadyLabel(truck.carta_porte_ready)}${busy}`;
+  }
+
+  crewDriverReady(shipping: Shipping): boolean {
+    const driver = this.drivers().find((item) => item.id === shipping.driver_id);
+    if (driver) return driver.carta_porte_ready === true;
+    return shipping.driver_carta_porte_ready === true;
+  }
+
+  crewTruckReady(shipping: Shipping): boolean {
+    const truck = this.trucks().find((item) => item.id === shipping.truck_id);
+    if (truck) return truck.carta_porte_ready === true;
+    return shipping.truck_carta_porte_ready === true;
+  }
+
+  crewDriverStatus(shipping: Shipping): string {
+    return this.crewStatus(
+      this.crewDriverReady(shipping),
+      this.drivers().find((item) => item.id === shipping.driver_id)?.carta_porte_missing ??
+        shipping.driver_carta_porte_missing,
+    );
+  }
+
+  crewTruckStatus(shipping: Shipping): string {
+    return this.crewStatus(
+      this.crewTruckReady(shipping),
+      this.trucks().find((item) => item.id === shipping.truck_id)?.carta_porte_missing ??
+        shipping.truck_carta_porte_missing,
+    );
+  }
+
+  changeCrewDriver(driverId: string): void {
+    const current = this.shipping();
+    if (!current?.truck_id || !driverId || driverId === current.driver_id) return;
+    this.saveCrew(driverId, current.truck_id);
+  }
+
+  changeCrewTruck(truckId: string): void {
+    const current = this.shipping();
+    if (!current?.driver_id || !truckId || truckId === current.truck_id) return;
+    this.saveCrew(current.driver_id, truckId);
+  }
+
+  editCrewDriver(): void {
+    const driverId = this.shipping()?.driver_id;
+    if (!driverId) return;
+    const known = this.drivers().find((item) => item.id === driverId);
+    if (known) {
+      this.openDriverEditor(known);
+      return;
+    }
+    this.userService.getUserById(driverId).subscribe({
+      next: (user) => this.openDriverEditor(user),
+      error: () => this.toast('No se pudo abrir el chofer', 'error'),
+    });
+  }
+
+  editCrewTruck(): void {
+    const truckId = this.shipping()?.truck_id;
+    if (!truckId) return;
+    const known = this.trucks().find((item) => item.id === truckId);
+    if (known) {
+      this.openTruckEditor(known);
+      return;
+    }
+    this.truckService.getTruck(truckId).subscribe({
+      next: (truck) => this.openTruckEditor(truck),
+      error: () => this.toast('No se pudo abrir el camión', 'error'),
+    });
+  }
+
+  private openDriverEditor(driver: User): void {
+    this.dialog
+      .open(UserDetailModalComponent, {
+        width: '840px',
+        maxWidth: 'calc(100vw - 1rem)',
+        maxHeight: '90vh',
+        panelClass: 'custom-dialog-container',
+        data: { user: driver, isNew: false },
+      })
+      .afterClosed()
+      .subscribe((saved) => {
+        if (!saved) return;
+        this.loadCrewCatalogs();
+        this.load();
+      });
+  }
+
+  private openTruckEditor(truck: Truck): void {
+    this.dialog
+      .open(TruckFormModalComponent, {
+        width: '700px',
+        maxWidth: '95vw',
+        disableClose: true,
+        data: { truck },
+      })
+      .afterClosed()
+      .subscribe((saved: Truck | null) => {
+        if (!saved) return;
+        this.loadCrewCatalogs();
+        this.load();
+      });
+  }
+
+  private crewStatus(ready: boolean, missing: string[] | null | undefined): string {
+    if (ready) return 'Carta porte completo';
+    const detail = (missing ?? []).filter(Boolean).join(' · ');
+    return detail ? `Carta porte no completo: ${detail}` : 'Carta porte no completo';
+  }
+
+  private saveCrew(driverId: string, truckId: string): void {
+    const current = this.shipping();
+    if (!current) return;
+    const hadDemoStamp = current.carta_porte_environment === 'demo' && !!current.carta_porte_uuid;
+    this.crewSaving.set(true);
+    this.shippingService.updateCrew(current.id, driverId, truckId).subscribe({
+      next: (res) => {
+        this.crewSaving.set(false);
+        this.applyShipping(res.shipping);
+        this.shippingUpdated.emit(res.shipping);
+        this.toast(
+          hadDemoStamp
+            ? 'Chofer y camión actualizados. La carta porte de prueba se quitó para volver a generarla.'
+            : 'Chofer y camión actualizados',
+          'success',
+        );
+      },
+      error: (err) => {
+        this.crewSaving.set(false);
+        this.toast(this.apiMessage(err, 'No se pudo cambiar el chofer o el camión'), 'error');
+        this.load();
+      },
+    });
+  }
+
+  private loadCrewCatalogs(): void {
+    this.truckService.getTrucks({ status: 'active', limit: 100 }).subscribe({
+      next: (res) => this.trucks.set(res.data ?? []),
+      error: () => this.trucks.set([]),
+    });
+    this.userService.refreshUsers().subscribe({
+      next: (users) => this.drivers.set((users ?? []).filter((user) => this.isActiveDriver(user))),
+      error: () => this.drivers.set([]),
+    });
+  }
+
+  private isActiveDriver(user: User): boolean {
+    const status =
+      typeof user.status === 'string'
+        ? user.status
+        : user.status?.name || user.status?.code || '';
+    const flag = user.is_driver as unknown;
+    const isDriver = flag === true || flag === 1 || flag === '1';
+    const code = String(status).toLowerCase();
+    return code !== 'inactive' && code !== 'deleted' && isDriver;
   }
 
   private trackVehicle(shipping: Shipping): void {

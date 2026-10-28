@@ -29,13 +29,18 @@
         <option value="">Selecciona unidad</option>
         @for (truck of trucks(); track truck.id) {
           <option [value]="truck.id" [disabled]="!!truck.active_shipping_id">
-            {{ truckSelectLabel(truck) }}{{ truck.active_shipping_id ? ' · ' + truckBusyLabel(truck) : '' }}
+            {{ truckSelectLabel(truck) }} · {{ cartaPorteReadyLabel(truck.carta_porte_ready) }}{{ truck.active_shipping_id ? ' · ' + truckBusyLabel(truck) : '' }}
           </option>
         }
       </select>
     </div>
-    <label>
-      Chofer
+    <div class="ship-dialog__field">
+      <div class="ship-dialog__field-label">
+        <span>Chofer</span>
+        <button type="button" class="ship-dialog__edit" [disabled]="!driverId" (click)="editDriver()">
+          Editar
+        </button>
+      </div>
       <select [(ngModel)]="driverId">
         <option value="">Selecciona chofer</option>
         @for (driver of drivers(); track driver.id) {
@@ -44,7 +49,7 @@
           </option>
         }
       </select>
-    </label>
+    </div>
     <label class="ship-dialog__full">
       Notas
       <textarea rows="2" [(ngModel)]="notes" placeholder="Salida de bodega…"></textarea>
@@ -52,15 +57,16 @@
   </div>
 
   @if (selectedTruck(); as truck) {
-    @if (!truck.carta_porte_ready) {
-      <p class="ship-dialog__check">
-        No tiene toda la información requerida para carta porte{{ truck.carta_porte_missing?.length ? ': ' + missingText(truck.carta_porte_missing) : '' }}.
-      </p>
-    }
+    <p class="ship-dialog__check" [class.is-ready]="truck.carta_porte_ready">
+      {{ cartaPorteReadyLabel(truck.carta_porte_ready) }}
+      @if (!truck.carta_porte_ready && truck.carta_porte_missing?.length) {
+        · {{ missingText(truck.carta_porte_missing) }}
+      }
+    </p>
   }
   @if (selectedDriver(); as driver) {
     <p class="ship-dialog__check" [class.is-ready]="driver.carta_porte_ready">
-      Chofer {{ completeness(driver.carta_porte_ready).toLowerCase() }}
+      {{ cartaPorteReadyLabel(driver.carta_porte_ready) }}
       @if (!driver.carta_porte_ready && driver.carta_porte_missing?.length) {
         · {{ missingText(driver.carta_porte_missing) }}
       }

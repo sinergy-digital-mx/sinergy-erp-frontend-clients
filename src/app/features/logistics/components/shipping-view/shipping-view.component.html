@@ -62,10 +62,70 @@
         <span>Sucursal</span>
         {{ originLabel() }}
       </div>
-      <div><span>Chofer</span>{{ s.driver_name || '—' }}{{ s.driver_carta_porte_ready === false ? ' · carta porte no completo' : '' }}</div>
       <div>
-        <span>Camión</span>
-        {{ s.truck_name || '—' }}{{ s.truck_placa ? ' · ' + s.truck_placa : '' }}{{ s.truck_carta_porte_ready === false ? ' · carta porte no completo' : '' }}
+        <div class="sv__crew-label">
+          <span>Chofer</span>
+          <button
+            *hasPermission="permissions.update"
+            type="button"
+            class="sv__edit"
+            [disabled]="!s.driver_id || crewSaving()"
+            (click)="editCrewDriver()"
+          >
+            Editar
+          </button>
+        </div>
+        @if (canReassignCrew(s)) {
+          <select
+            class="sv__crew-select"
+            [ngModel]="s.driver_id || ''"
+            [disabled]="crewSaving()"
+            (ngModelChange)="changeCrewDriver($event)"
+          >
+            @for (driver of driverOptions(); track driver.id) {
+              <option [value]="driver.id">{{ driverOptionLabel(driver) }}</option>
+            }
+          </select>
+        } @else {
+          <strong class="sv__crew-name">{{ s.driver_name || '—' }}</strong>
+        }
+        <p class="sv__cp" [class.is-bad]="!crewDriverReady(s)">{{ crewDriverStatus(s) }}</p>
+      </div>
+      <div>
+        <div class="sv__crew-label">
+          <span>Camión</span>
+          <button
+            *hasPermission="permissions.update"
+            type="button"
+            class="sv__edit"
+            [disabled]="!s.truck_id || crewSaving()"
+            (click)="editCrewTruck()"
+          >
+            Editar
+          </button>
+        </div>
+        @if (canReassignCrew(s)) {
+          <select
+            class="sv__crew-select"
+            [ngModel]="s.truck_id || ''"
+            [disabled]="crewSaving()"
+            (ngModelChange)="changeCrewTruck($event)"
+          >
+            @for (truck of truckOptions(); track truck.id) {
+              <option
+                [value]="truck.id"
+                [disabled]="!!truck.active_shipping_id && truck.active_shipping_id !== s.id"
+              >
+                {{ truckOptionLabel(truck) }}
+              </option>
+            }
+          </select>
+        } @else {
+          <strong class="sv__crew-name">
+            {{ s.truck_name || '—' }}{{ s.truck_placa ? ' · ' + s.truck_placa : '' }}
+          </strong>
+        }
+        <p class="sv__cp" [class.is-bad]="!crewTruckReady(s)">{{ crewTruckStatus(s) }}</p>
       </div>
       @if (s.notes) {
         <div class="sv__notes"><span>Notas</span>{{ s.notes }}</div>

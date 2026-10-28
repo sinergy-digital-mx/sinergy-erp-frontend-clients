@@ -28,7 +28,9 @@ import {
   StopAddressPickerDialogComponent,
   StopAddressPickerResult,
 } from '../stop-address-picker-dialog/stop-address-picker-dialog.component';
+import { cartaPorteReadyLabel } from '../../models/carta-porte-catalogs';
 import { Truck, truckBusyLabel, truckSelectLabel } from '../../models/truck.model';
+import { UserDetailModalComponent } from '../../../rbac-tenant-ui/components/user-detail-modal/user-detail-modal.component';
 import { TruckFormModalComponent } from '../truck-form-modal/truck-form-modal.component';
 import {
   CreateShippingDto,
@@ -75,6 +77,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
   readonly X = X;
   readonly truckSelectLabel = truckSelectLabel;
   readonly truckBusyLabel = truckBusyLabel;
+  readonly cartaPorteReadyLabel = cartaPorteReadyLabel;
 
   form: FormGroup;
   step = signal<WizardStep>('info');
@@ -287,10 +290,6 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     });
   }
 
-  cartaPorteLabel(ready: boolean | null | undefined): string {
-    return ready ? 'Completo' : 'No completo';
-  }
-
   selectedTruck(): Truck | undefined {
     return this.trucks().find((item) => item.id === this.form.get('truck_id')?.value);
   }
@@ -322,10 +321,35 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     });
   }
 
+  selectedDriver(): User | undefined {
+    return this.drivers().find((item) => item.id === this.form.get('driver_id')?.value);
+  }
+
   selectedDriverMissing(): string {
-    const driver = this.drivers().find((item) => item.id === this.form.get('driver_id')?.value);
+    const driver = this.selectedDriver();
     if (!driver || driver.carta_porte_ready) return '';
     return (driver.carta_porte_missing ?? []).join(' · ');
+  }
+
+  editSelectedDriver(): void {
+    const driver = this.selectedDriver();
+    if (!driver) return;
+    const ref = this.dialog.open(UserDetailModalComponent, {
+      width: '840px',
+      maxWidth: 'calc(100vw - 1rem)',
+      maxHeight: '90vh',
+      panelClass: 'custom-dialog-container',
+      data: { user: driver, isNew: false },
+    });
+    ref.afterClosed().subscribe((saved) => {
+      if (!saved) return;
+      this.userService.refreshUsers().subscribe({
+        next: (users) => {
+          this.drivers.set(this.activeDrivers(users));
+          this.form.patchValue({ driver_id: driver.id });
+        },
+      });
+    });
   }
 
   toggleTransfer(id: string): void {
@@ -371,18 +395,9 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
       next: (res) => this.trucks.set(res.data ?? []),
       error: () => this.trucks.set([]),
     });
-    this.userService.getUsers().subscribe({
+    this.userService.refreshUsers().subscribe({
       next: (users) => {
-        const active = users.filter((u) => {
-          const status =
-            typeof u.status === 'string'
-              ? u.status
-              : (u.status as any)?.name || (u.status as any)?.code || '';
-          const driver = (u as { is_driver?: unknown }).is_driver;
-          const isDriver = driver === true || driver === 1 || driver === '1';
-          return String(status).toLowerCase() !== 'inactive' && isDriver;
-        });
-        this.drivers.set(active);
+        this.drivers.set(this.activeDrivers(users));
         this.loadingCatalogs.set(false);
       },
       error: () => {
@@ -459,7 +474,21 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
   driverLabel(user: User): string {
     const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
     const base = name || user.email;
-    return `${base} · ${this.cartaPorteLabel(user.carta_porte_ready)}`;
+    return `${base} · ${cartaPorteReadyLabel(user.carta_porte_ready)}`;
+  }
+
+  private activeDrivers(users: User[]): User[] {
+    return users.filter((user) => {
+      const status =
+        typeof user.status === 'string'
+          ? user.status
+          : (user.status as { name?: string; code?: string } | undefined)?.name ||
+            (user.status as { code?: string } | undefined)?.code ||
+            '';
+      const driver = user.is_driver as unknown;
+      const isDriver = driver === true || driver === 1 || driver === '1';
+      return String(status).toLowerCase() !== 'inactive' && String(status).toLowerCase() !== 'deleted' && isDriver;
+    });
   }
 
   orderFolio(order: SalesOrder): string {

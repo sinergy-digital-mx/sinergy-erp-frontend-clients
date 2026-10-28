@@ -5,7 +5,9 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { TruckFormModalComponent } from '../../../logistics/components/truck-form-modal/truck-form-modal.component';
 import { LucideAngularModule, X } from 'lucide-angular';
 import { InventoryTransfer } from '../../models/inventory-transfer.model';
+import { cartaPorteReadyLabel } from '../../../logistics/models/carta-porte-catalogs';
 import { Truck, truckBusyLabel, truckSelectLabel } from '../../../logistics/models/truck.model';
+import { UserDetailModalComponent } from '../../../rbac-tenant-ui/components/user-detail-modal/user-detail-modal.component';
 import { TruckService } from '../../../logistics/services/truck.service';
 import { ShippingService } from '../../../logistics/services/shipping.service';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
@@ -27,6 +29,7 @@ export class TransferShippingDialogComponent implements OnInit {
   readonly X = X;
   readonly truckSelectLabel = truckSelectLabel;
   readonly truckBusyLabel = truckBusyLabel;
+  readonly cartaPorteReadyLabel = cartaPorteReadyLabel;
 
   trucks = signal<Truck[]>([]);
   drivers = signal<User[]>([]);
@@ -54,11 +57,33 @@ export class TransferShippingDialogComponent implements OnInit {
       next: (res) => this.trucks.set(res.data ?? []),
       error: () => this.trucks.set([]),
     });
-    this.userService.getUsers().subscribe({
+    this.userService.refreshUsers().subscribe({
       next: (users) => {
         this.drivers.set((users ?? []).filter((user) => this.isActiveDriver(user)));
       },
       error: () => this.drivers.set([]),
+    });
+  }
+
+  editDriver(): void {
+    const driver = this.selectedDriver();
+    if (!driver) return;
+    const ref = this.dialog.open(UserDetailModalComponent, {
+      width: '840px',
+      maxWidth: 'calc(100vw - 1rem)',
+      maxHeight: '90vh',
+      panelClass: 'custom-dialog-container',
+      data: { user: driver, isNew: false },
+    });
+    ref.afterClosed().subscribe((saved) => {
+      if (!saved) return;
+      const keepId = driver.id;
+      this.userService.refreshUsers().subscribe({
+        next: (users) => {
+          this.drivers.set((users ?? []).filter((user) => this.isActiveDriver(user)));
+          this.driverId = keepId;
+        },
+      });
     });
   }
 
@@ -84,7 +109,7 @@ export class TransferShippingDialogComponent implements OnInit {
   }
 
   completeness(ready: boolean | null | undefined): string {
-    return ready ? 'Completo' : 'No completo';
+    return cartaPorteReadyLabel(ready);
   }
 
   missingText(items: string[] | null | undefined): string {

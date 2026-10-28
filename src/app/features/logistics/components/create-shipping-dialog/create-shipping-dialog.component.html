@@ -70,28 +70,41 @@
             <option value="">Selecciona camión</option>
             @for (t of trucks(); track t.id) {
               <option [value]="t.id" [disabled]="!!t.active_shipping_id">
-                {{ truckSelectLabel(t) }}{{ t.active_shipping_id ? ' · ' + truckBusyLabel(t) : '' }}
+                {{ truckSelectLabel(t) }} · {{ cartaPorteReadyLabel(t.carta_porte_ready) }}{{ t.active_shipping_id ? ' · ' + truckBusyLabel(t) : '' }}
               </option>
             }
           </select>
           @if (selectedTruck(); as truck) {
-            @if (!truck.carta_porte_ready) {
+            @if (truck.carta_porte_ready) {
+              <p class="cp-ok">Carta porte completo.</p>
+            } @else {
               <p class="cp-warn">
-                No tiene toda la información requerida para carta porte{{ selectedTruckMissing() ? ': ' + selectedTruckMissing() : '' }}.
+                Carta porte no completo{{ selectedTruckMissing() ? ': ' + selectedTruckMissing() : '' }}.
               </p>
             }
           }
         </div>
         <div>
-          <label>Chofer *</label>
+          <div class="field-label">
+            <label>Chofer *</label>
+            <button type="button" class="field-edit" [disabled]="!selectedDriver()" (click)="editSelectedDriver()">
+              Editar
+            </button>
+          </div>
           <select formControlName="driver_id">
             <option value="">Selecciona chofer</option>
             @for (u of drivers(); track u.id) {
               <option [value]="u.id">{{ driverLabel(u) }}</option>
             }
           </select>
-          @if (selectedDriverMissing()) {
-            <p class="cp-warn">No tiene toda la información requerida para carta porte: {{ selectedDriverMissing() }}.</p>
+          @if (selectedDriver(); as driver) {
+            @if (driver.carta_porte_ready) {
+              <p class="cp-ok">Carta porte completo.</p>
+            } @else {
+              <p class="cp-warn">
+                Carta porte no completo{{ selectedDriverMissing() ? ': ' + selectedDriverMissing() : '' }}.
+              </p>
+            }
           }
         </div>
         <div class="create-shipping__full">

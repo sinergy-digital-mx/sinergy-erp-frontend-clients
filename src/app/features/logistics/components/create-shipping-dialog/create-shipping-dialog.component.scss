@@ -288,11 +288,19 @@
     }
   }
 
-  .cp-warn {
+  .cp-warn,
+  .cp-ok {
     margin: 0.35rem 0 0;
-    color: #9a3412;
     font-size: 0.75rem;
     line-height: 1.35;
+  }
+
+  .cp-warn {
+    color: #9a3412;
+  }
+
+  .cp-ok {
+    color: #166534;
   }
 
   input,

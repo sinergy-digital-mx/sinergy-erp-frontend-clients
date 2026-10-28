@@ -174,6 +174,22 @@ export class ShippingService {
     return this.http.get(`${this.baseUrl}/${id}/carta-porte/pdf`, { responseType: 'blob' });
   }
 
+  updateCrew(
+    id: string,
+    driverId: string,
+    truckId: string,
+  ): Observable<{ shipping: Shipping; message?: string }> {
+    return this.http.patch<any>(`${this.baseUrl}/${id}/crew`, {
+      driver_id: driverId,
+      truck_id: truckId,
+    }).pipe(
+      map((response) => ({
+        shipping: normalizeShipping(response?.data ?? response),
+        message: response?.message,
+      })),
+    );
+  }
+
   updateStatus(id: string, status: ShippingStatus | string): Observable<{ shipping: Shipping; message?: string }> {
     return this.http.patch<any>(`${this.baseUrl}/${id}/status`, { status }).pipe(
       map((response) => ({

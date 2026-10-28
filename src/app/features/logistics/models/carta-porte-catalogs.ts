@@ -1,3 +1,8 @@
+/** Texto de la lista: si la unidad o el chofer ya pueden timbrar carta porte. */
+export function cartaPorteReadyLabel(ready: boolean | null | undefined): string {
+  return ready ? 'Carta porte completo' : 'Carta porte no completo';
+}
+
 /** Claves que Finkok envía al SAT en Carta Porte 3.1. Se guarda la clave, no la descripción. */
 
 export interface SatCatalogItem {
