@@ -76,6 +76,14 @@
       </div>
     </div>
 
+    <app-work-schedule-section
+      [source]="'employee'"
+      [employeeId]="emp.id"
+      [schedule]="emp.work_schedule ?? null"
+      [canEdit]="canUpdate"
+      (saved)="load()">
+    </app-work-schedule-section>
+
     <app-sick-leave-section
       [source]="'employee'"
       [employeeId]="emp.id"

@@ -168,10 +168,38 @@ export interface Employee extends EmployeeProfile {
   vacation?: EmployeeVacationSummary;
   sick_leave?: SickLeaveYearSummary;
   payroll?: EmployeePayroll;
+  work_schedule?: WorkSchedule | null;
   request_counts?: LeaveRequestCounts;
   leave_requests?: LeaveRequest[];
   created_at?: string;
   updated_at?: string;
+}
+
+/** Día ISO: 1 lunes … 7 domingo. */
+export type WorkWeekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export interface WorkScheduleDay {
+  weekday: WorkWeekday;
+  is_workday: boolean;
+  start_time: string | null;
+  end_time: string | null;
+  hours: number;
+}
+
+export interface WorkSchedule {
+  days: WorkScheduleDay[];
+  weekly_hours: number;
+  notes: string | null;
+}
+
+export interface UpsertWorkScheduleDto {
+  days: Array<{
+    weekday: WorkWeekday;
+    is_workday: boolean;
+    start_time?: string | null;
+    end_time?: string | null;
+  }>;
+  notes?: string | null;
 }
 
 /**

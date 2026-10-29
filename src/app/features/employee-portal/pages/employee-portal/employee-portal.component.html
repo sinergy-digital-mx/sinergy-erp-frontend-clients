@@ -1,7 +1,7 @@
 <div class="portal-page">
   <div class="page-header">
     <h1>Portal de empleado</h1>
-    <p class="page-subtitle">Consulta tu información, vacaciones, incapacidades y horas extras</p>
+    <p class="page-subtitle">Consulta tu información, horario, vacaciones, incapacidades y horas extras</p>
   </div>
 
   <div *ngIf="loading()" class="state-message">Cargando tu información...</div>
@@ -46,6 +46,13 @@
         <span class="info-card__value">{{ emp.vacation?.pending_days ?? 0 }} días</span>
       </div>
     </div>
+
+    <app-work-schedule-section
+      [source]="'portal'"
+      [schedule]="emp.work_schedule ?? null"
+      [canEdit]="true"
+      (saved)="loadProfile()">
+    </app-work-schedule-section>
 
     <app-sick-leave-section
       [source]="'portal'"

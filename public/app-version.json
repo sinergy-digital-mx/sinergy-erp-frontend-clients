@@ -1,12 +1,12 @@
 {
-  "version": "0.0.80",
-  "buildId": "0.0.80-1793243061825",
-  "builtAt": "2026-10-29T03:04:21.825Z",
+  "version": "0.0.81",
+  "buildId": "0.0.81-1793299813714",
+  "builtAt": "2026-10-29T18:50:13.714Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Cambios en contabilidad"
+      "message": "Cambios en empleados"
     },
     {
       "scope": "frontend",

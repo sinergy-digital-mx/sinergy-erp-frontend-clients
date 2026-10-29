@@ -10,6 +10,7 @@ import {
   LeaveRequest,
   OvertimeRequest,
   UpdateOvertimeRequestDto,
+  UpsertWorkScheduleDto,
 } from '../../employees/models/employee.model';
 
 /**
@@ -146,6 +147,15 @@ export class EmployeePortalService {
       .pipe(
         map((raw) => this.unwrap<OvertimeRequest>(raw)),
         catchError((error) => this.handleError(error))
+      );
+  }
+
+  upsertMyWorkSchedule(payload: UpsertWorkScheduleDto): Observable<Employee> {
+    return this.http
+      .put<Employee | { data: Employee }>(`${this.portalBase}/me/work-schedule`, payload)
+      .pipe(
+        map((raw) => this.unwrap<Employee>(raw)),
+        catchError((error) => this.handleError(error)),
       );
   }
 

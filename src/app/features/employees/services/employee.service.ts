@@ -20,6 +20,7 @@ import {
   UpdateLeaveRequestDto,
   CreateOvertimeRequestDto,
   UpdateOvertimeRequestDto,
+  UpsertWorkScheduleDto,
 } from '../models/employee.model';
 
 /**
@@ -92,6 +93,15 @@ export class EmployeeService {
   /**
    * Uploads / replaces the employee photo. Returns the fresh signed URL.
    */
+  upsertWorkSchedule(id: string, payload: UpsertWorkScheduleDto): Observable<Employee> {
+    return this.http
+      .put<Employee | { data: Employee }>(`${this.baseUrl}/${id}/work-schedule`, payload)
+      .pipe(
+        map((raw) => this.unwrap<Employee>(raw)),
+        catchError((error) => this.handleError(error)),
+      );
+  }
+
   uploadPhoto(id: string, file: File): Observable<{ photo_url: string }> {
     const formData = new FormData();
     formData.append('file', file);

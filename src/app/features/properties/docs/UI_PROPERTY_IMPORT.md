@@ -4,6 +4,7 @@ Modal en el listado de lotes. Descarga plantilla, llena y sube. Si una fila fall
 
 ## Historial
 
+- 2026-10-28: La plantilla ya no trae `ubicacion`. El grupo de cada fila es la ubicación.
 - 2026-10-28: Si una fila ya existe, está repetida o está mal, se omite y el resto se importa. Al terminar, caja para copiar los que no entraron.
 - 2026-10-27: El modal ya no pide un grupo único. El grupo va en cada fila del Excel (columna `grupo`). La plantilla trae la hoja **Grupos** con las ubicaciones actuales.
 - 2026-10-27: Tras el POST, barra de progreso y poll `GET …/import/jobs/:jobId` (`Importando X de Y`).

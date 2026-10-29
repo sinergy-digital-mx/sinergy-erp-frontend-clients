@@ -1,0 +1,67 @@
+<section class="schedule">
+  <div class="schedule__head">
+    <div>
+      <h3>Horario laboral</h3>
+      <p>Lunes a domingo. Marca descanso o pon entrada y salida. Si la salida es más temprano, el turno cruza medianoche.</p>
+    </div>
+    <span class="schedule__total">{{ formatHours(canEdit ? weeklyHours : (schedule?.weekly_hours ?? 0)) }} / semana</span>
+  </div>
+
+  <p *ngIf="!canEdit && !hasSchedule" class="schedule__empty">Aún no hay horario asignado.</p>
+
+  <ng-container *ngIf="canEdit || hasSchedule">
+    <ul class="schedule__days">
+      <li *ngFor="let day of days()" class="day-row" [class.day-row--off]="!day.is_workday">
+        <label class="day-row__name">
+          <input
+            *ngIf="canEdit"
+            type="checkbox"
+            [checked]="day.is_workday"
+            (change)="toggleWorkday(day.weekday, $any($event.target).checked)">
+          <span class="day-row__short">{{ weekdayShort[day.weekday] }}</span>
+          <span class="day-row__full">{{ weekdayLabel[day.weekday] }}</span>
+        </label>
+
+        <ng-container *ngIf="day.is_workday; else restDay">
+          <ng-container *ngIf="canEdit; else readTimes">
+            <input
+              type="time"
+              class="day-row__time"
+              [ngModel]="day.start_time"
+              (ngModelChange)="patchTime(day.weekday, 'start_time', $event)">
+            <span class="day-row__sep">–</span>
+            <input
+              type="time"
+              class="day-row__time"
+              [ngModel]="day.end_time"
+              (ngModelChange)="patchTime(day.weekday, 'end_time', $event)">
+          </ng-container>
+          <ng-template #readTimes>
+            <span class="day-row__range">{{ day.start_time }} – {{ day.end_time }}</span>
+          </ng-template>
+          <span class="day-row__hours">{{ formatHours(dayHours(day)) }}</span>
+        </ng-container>
+        <ng-template #restDay>
+          <span class="day-row__rest">Descanso</span>
+        </ng-template>
+      </li>
+    </ul>
+
+    <div class="schedule__notes" *ngIf="canEdit || schedule?.notes">
+      <label *ngIf="canEdit">
+        Notas
+        <input
+          type="text"
+          maxlength="255"
+          [ngModel]="notes()"
+          (ngModelChange)="notes.set($event)"
+          placeholder="Ej. Turno matutino, comida 14:00–15:00">
+      </label>
+      <p *ngIf="!canEdit && schedule?.notes">{{ schedule?.notes }}</p>
+    </div>
+
+    <button *ngIf="canEdit" type="button" class="btn btn--primary" (click)="save()" [disabled]="saving()">
+      {{ saving() ? 'Guardando...' : 'Guardar horario' }}
+    </button>
+  </ng-container>
+</section>

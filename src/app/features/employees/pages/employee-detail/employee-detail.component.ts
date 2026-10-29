@@ -18,11 +18,12 @@ import { LeaveRequestDialogComponent } from '../../components/leave-request-dial
 import { LeaveReviewDialogComponent } from '../../components/leave-review-dialog/leave-review-dialog.component';
 import { SickLeaveSectionComponent } from '../../components/sick-leave-section/sick-leave-section.component';
 import { OvertimeSectionComponent } from '../../components/overtime-section/overtime-section.component';
+import { WorkScheduleSectionComponent } from '../../components/work-schedule-section/work-schedule-section.component';
 
 @Component({
   selector: 'app-employee-detail',
   standalone: true,
-  imports: [CommonModule, SickLeaveSectionComponent, OvertimeSectionComponent],
+  imports: [CommonModule, SickLeaveSectionComponent, OvertimeSectionComponent, WorkScheduleSectionComponent],
   templateUrl: './employee-detail.component.html',
   styleUrls: ['./employee-detail.component.scss'],
 })

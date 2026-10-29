@@ -14,6 +14,7 @@ su propia información y gestiona sus solicitudes, sin acceso al módulo de RH.
 
 ## Funcionalidad
 
+- Ver y guardar el horario laboral de la semana (lun–dom).
 - Ver foto, nombre, puesto, departamento y correo.
 - Ver días de vacaciones: disponibles, por año, tomados y pendientes.
 - Enviar una solicitud de vacaciones/ausencia (queda **pendiente** de aprobación).
@@ -39,6 +40,7 @@ src/app/features/employee-portal/
 | Método | Endpoint                                             | Uso                       |
 |--------|------------------------------------------------------|---------------------------|
 | GET    | `/tenant/employee-portal/me`                               | Perfil propio             |
+| PUT    | `/tenant/employee-portal/me/work-schedule`                 | Guardar horario laboral   |
 | GET    | `/tenant/employee-portal/me/leave-requests`                | Mis solicitudes           |
 | POST   | `/tenant/employee-portal/me/leave-requests`                | Enviar solicitud          |
 | PUT    | `/tenant/employee-portal/me/leave-requests/:id/cancel`     | Cancelar solicitud propia |
