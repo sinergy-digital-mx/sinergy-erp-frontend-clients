@@ -138,10 +138,12 @@ export function displayCadastralKey(value?: string | null): string {
 export interface PropertyImportRowError {
   row: number;
   message: string;
+  code?: string;
 }
 
 export interface PropertyImportResult {
   created: number;
+  skipped: PropertyImportRowError[];
 }
 
 export type PropertyImportJobStatus = 'queued' | 'processing' | 'completed' | 'failed';

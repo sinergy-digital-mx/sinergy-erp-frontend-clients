@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { Download, LucideAngularModule, Upload } from 'lucide-angular';
+import { Copy, Download, LucideAngularModule, Upload } from 'lucide-angular';
 import { interval, Subject, Subscription } from 'rxjs';
 import { switchMap, takeUntil } from 'rxjs/operators';
 import { CloseButtonComponent } from '../../../../core/components/close-button/close-button.component';
@@ -22,12 +22,16 @@ const POLL_INTERVAL_MS = 900;
 export class PropertyImportModalComponent implements OnDestroy {
   Download = Download;
   Upload = Upload;
+  Copy = Copy;
   file: File | null = null;
   downloading = false;
   importing = false;
   job: PropertyImportJob | null = null;
   failMessage = '';
   errors: PropertyImportRowError[] = [];
+  skipped: PropertyImportRowError[] = [];
+  createdCount = 0;
+  done = false;
 
   private readonly destroy$ = new Subject<void>();
   private readonly stopPoll$ = new Subject<void>();
@@ -61,6 +65,15 @@ export class PropertyImportModalComponent implements OnDestroy {
     return this.job.status === 'queued' ? 'En cola…' : 'Importando…';
   }
 
+  get skippedCopyText(): string {
+    return this.skipped
+      .map((item) => {
+        const code = item.code?.trim() ? `${item.code} — ` : '';
+        return `Fila ${item.row}: ${code}${item.message}`;
+      })
+      .join('\n');
+  }
+
   ngOnDestroy(): void {
     this.stopPolling();
     this.destroy$.next();
@@ -72,7 +85,7 @@ export class PropertyImportModalComponent implements OnDestroy {
     if (this.importing) {
       return;
     }
-    this.dialogRef.close();
+    this.dialogRef.close(this.createdCount || undefined);
   }
 
   downloadTemplate(): void {
@@ -101,15 +114,21 @@ export class PropertyImportModalComponent implements OnDestroy {
     this.errors = [];
     this.failMessage = '';
     this.job = null;
+    this.skipped = [];
+    this.createdCount = 0;
+    this.done = false;
   }
 
   importFile(): void {
-    if (!this.file || this.importing) {
+    if (!this.file || this.importing || this.done) {
       return;
     }
     this.importing = true;
     this.errors = [];
     this.failMessage = '';
+    this.skipped = [];
+    this.createdCount = 0;
+    this.done = false;
     this.job = null;
     this.dialogRef.disableClose = true;
 
@@ -130,16 +149,43 @@ export class PropertyImportModalComponent implements OnDestroy {
     });
   }
 
+  async copySkipped(): Promise<void> {
+    const text = this.skippedCopyText;
+    if (!text) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      this.toast.success('Lista copiada.');
+    } catch {
+      this.toast.error('No se pudo copiar. Selecciona el texto a mano.');
+    }
+  }
+
   private applyJob(job: PropertyImportJob): void {
     this.job = job;
     this.cdr.detectChanges();
 
     if (job.status === 'completed') {
       this.stopPolling();
-      const count = job.result?.created ?? job.processed ?? 0;
+      this.createdCount = job.result?.created ?? job.processed ?? 0;
+      this.skipped = job.result?.skipped ?? [];
+      this.done = true;
       this.finishImport();
-      this.toast.success(count === 1 ? 'Se creó 1 lote.' : `Se crearon ${count} lotes.`);
-      this.dialogRef.close(count);
+      const summary =
+        job.message?.trim() ||
+        (this.createdCount === 1 ? 'Se creó 1 lote.' : `Se crearon ${this.createdCount} lotes.`);
+      if (this.skipped.length) {
+        if (this.createdCount > 0) {
+          this.toast.success(summary);
+        } else {
+          this.toast.warning(summary);
+        }
+        this.cdr.detectChanges();
+        return;
+      }
+      this.toast.success(summary);
+      this.dialogRef.close(this.createdCount);
       return;
     }
 

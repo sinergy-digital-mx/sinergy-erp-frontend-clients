@@ -12,7 +12,7 @@ import {
   PropertyStats,
   PropertyImportJob,
   PropertyImportJobStatus,
-  PropertyImportResult,
+  PropertyImportRowError,
 } from '../models/property.model';
 
 @Injectable({
@@ -114,7 +114,10 @@ export class PropertyService {
     const resultRaw = job['result'];
     const result =
       resultRaw && typeof resultRaw === 'object'
-        ? { created: Number((resultRaw as { created?: unknown }).created ?? 0) || 0 }
+        ? {
+            created: Number((resultRaw as { created?: unknown }).created ?? 0) || 0,
+            skipped: this.readSkippedRows((resultRaw as { skipped?: unknown }).skipped),
+          }
         : null;
     return {
       id: String(job['id'] ?? ''),
@@ -127,6 +130,19 @@ export class PropertyService {
       result,
       error: job['error'] != null ? String(job['error']) : null,
     };
+  }
+
+  private readSkippedRows(value: unknown): PropertyImportRowError[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value.filter(
+      (item): item is PropertyImportRowError =>
+        !!item &&
+        typeof item === 'object' &&
+        typeof (item as PropertyImportRowError).row === 'number' &&
+        typeof (item as PropertyImportRowError).message === 'string',
+    );
   }
 
   private unwrapData(response: unknown): unknown {

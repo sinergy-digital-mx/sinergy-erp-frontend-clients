@@ -116,7 +116,7 @@
     {{ item.customer_name }}
   </td>
   <td class="avg-cost-cell">
-    @if (item.sales_order_id) {
+    @if (item.sales_order_id || item.quotation_id) {
       <button type="button" class="doc-link" (click)="openDocument(item)">{{ item.document }}</button>
     } @else {
       {{ item.document }}

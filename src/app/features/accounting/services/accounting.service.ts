@@ -643,6 +643,7 @@ export class AccountingService {
     return {
       ...raw,
       sales_order_id: raw.sales_order_id ?? null,
+      quotation_id: raw.quotation_id ?? null,
       customer_name: raw.customer_name || '—',
       document: raw.document || '—',
       date: String(raw.date || '').slice(0, 10),

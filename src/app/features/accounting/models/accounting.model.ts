@@ -304,6 +304,7 @@ export interface AccountsReceivableListSummary {
 export interface AverageCostReportRow {
   id: string;
   sales_order_id: string | null;
+  quotation_id: string | null;
   customer_name: string;
   document: string;
   date: string;

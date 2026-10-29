@@ -9,6 +9,7 @@ import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detai
 import { ToastService } from '../../../../core/services/toast.service';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { QuotationDetailDialogComponent } from '../../../quotations/components/quotation-detail-dialog/quotation-detail-dialog.component';
 import { AccountingPeriod, AverageCostReportRow, AverageCostReportSummary } from '../../models/accounting.model';
 import { AccountingService } from '../../services/accounting.service';
 
@@ -163,6 +164,13 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
   }
 
   openDocument(row: AverageCostReportRow): void {
+    if (row.quotation_id) {
+      this.dialog.open(QuotationDetailDialogComponent, {
+        ...ORDER_DETAIL_DIALOG_OPTIONS,
+        data: { quotationId: row.quotation_id },
+      });
+      return;
+    }
     if (!row.sales_order_id) return;
     this.dialog.open(SalesOrderDetailDialogComponent, {
       ...ORDER_DETAIL_DIALOG_OPTIONS,

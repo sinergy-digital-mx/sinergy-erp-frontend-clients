@@ -7,7 +7,7 @@
   <p class="import-modal__lead">
     Descarga la plantilla. En la hoja <strong>Grupos</strong> están las ubicaciones.
     Copia el nombre a la columna <strong>grupo</strong> de cada lote (cada fila puede ser de otro grupo).
-    La fila «Lote ejemplo» no se importa. Si alguna fila falla, no se crea ningún lote.
+    La fila «Lote ejemplo» no se importa. Si una fila no se puede importar (ya existe, está repetida o está mal), se omite y el resto sí se crea.
   </p>
 
   <button type="button" class="import-modal__download" (click)="downloadTemplate()" [disabled]="downloading || importing">
@@ -43,9 +43,27 @@
     <li *ngFor="let error of errors">Fila {{ error.row }}: {{ error.message }}</li>
   </ul>
 
+  @if (done && skipped.length) {
+    <div class="import-modal__skipped">
+      <div class="import-modal__skipped-head">
+        <p>
+          {{ createdCount === 1 ? 'Se creó 1 lote.' : 'Se crearon ' + createdCount + ' lotes.' }}
+          {{ skipped.length === 1 ? '1 no se importó:' : skipped.length + ' no se importaron:' }}
+        </p>
+        <button type="button" class="import-modal__copy" (click)="copySkipped()">
+          <lucide-icon [img]="Copy" [size]="14"></lucide-icon>
+          Copiar
+        </button>
+      </div>
+      <textarea class="import-modal__copy-box" readonly rows="6" [value]="skippedCopyText"></textarea>
+    </div>
+  }
+
   <div class="import-modal__actions">
-    <button type="button" class="import-modal__cancel" (click)="close()" [disabled]="importing">Cancelar</button>
-    <button type="button" class="import-modal__submit" (click)="importFile()" [disabled]="!file || importing">
+    <button type="button" class="import-modal__cancel" (click)="close()" [disabled]="importing">
+      {{ done ? 'Cerrar' : 'Cancelar' }}
+    </button>
+    <button type="button" class="import-modal__submit" (click)="importFile()" [disabled]="!file || importing || done">
       <lucide-icon [img]="Upload" [size]="16"></lucide-icon>
       {{ importing ? 'Importando…' : 'Importar' }}
     </button>
