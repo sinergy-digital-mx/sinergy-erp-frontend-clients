@@ -19,6 +19,7 @@ import { LeaveReviewDialogComponent } from '../../components/leave-review-dialog
 import { SickLeaveSectionComponent } from '../../components/sick-leave-section/sick-leave-section.component';
 import { OvertimeSectionComponent } from '../../components/overtime-section/overtime-section.component';
 import { WorkScheduleSectionComponent } from '../../components/work-schedule-section/work-schedule-section.component';
+import { UserDetailModalComponent } from '../../../rbac-tenant-ui/components/user-detail-modal/user-detail-modal.component';
 
 @Component({
   selector: 'app-employee-detail',
@@ -109,6 +110,31 @@ export class EmployeeDetailComponent implements OnInit {
       next: (requests) => this.leaveRequests.set(requests),
       error: () => {},
     });
+  }
+
+  openEdit(): void {
+    const emp = this.employee();
+    if (!emp?.user_id || !this.canUpdate) {
+      return;
+    }
+    this.dialog
+      .open(UserDetailModalComponent, {
+        width: '840px',
+        maxWidth: 'calc(100vw - 1rem)',
+        maxHeight: '90vh',
+        panelClass: 'custom-dialog-container',
+        data: {
+          user: { id: emp.user_id },
+          isNew: false,
+          initialTab: 'employee',
+        },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (result) {
+          this.load();
+        }
+      });
   }
 
   goBack(): void {

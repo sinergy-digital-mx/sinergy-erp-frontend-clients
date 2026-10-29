@@ -52,7 +52,10 @@
             </span>
           </span>
         </div>
-        <button *ngIf="canRequestLeave" class="btn btn--primary" (click)="openLeaveRequest()">Solicitar vacaciones</button>
+        <div class="hero__actions">
+          <button *ngIf="canUpdate" type="button" class="btn btn--ghost" (click)="openEdit()">Editar</button>
+          <button *ngIf="canRequestLeave" class="btn btn--primary" (click)="openLeaveRequest()">Solicitar vacaciones</button>
+        </div>
       </div>
     </section>
 

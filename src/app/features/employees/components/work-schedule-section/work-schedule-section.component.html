@@ -1,6 +1,6 @@
 <section class="schedule">
   <div class="schedule__head">
-    <div>
+    <div *ngIf="persist">
       <h3>Horario laboral</h3>
       <p>Lunes a domingo. Marca descanso o pon entrada y salida. Si la salida es más temprano, el turno cruza medianoche.</p>
     </div>
@@ -54,13 +54,14 @@
           type="text"
           maxlength="255"
           [ngModel]="notes()"
-          (ngModelChange)="notes.set($event)"
+          (ngModelChange)="setNotes($event)"
           placeholder="Ej. Turno matutino, comida 14:00–15:00">
       </label>
       <p *ngIf="!canEdit && schedule?.notes">{{ schedule?.notes }}</p>
     </div>
 
-    <button *ngIf="canEdit" type="button" class="btn btn--primary" (click)="save()" [disabled]="saving()">
+    <p *ngIf="canEdit && !persist" class="schedule__hint">Se guarda junto con el empleado.</p>
+    <button *ngIf="canEdit && persist" type="button" class="btn btn--primary" (click)="save()" [disabled]="saving()">
       {{ saving() ? 'Guardando...' : 'Guardar horario' }}
     </button>
   </ng-container>

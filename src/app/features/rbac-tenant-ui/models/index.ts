@@ -165,6 +165,17 @@ export interface UserEmployeeProfile {
   photo_url?: string | null;
   vacation?: Record<string, unknown>;
   payroll?: Record<string, unknown>;
+  work_schedule?: {
+    days: Array<{
+      weekday: number;
+      is_workday: boolean;
+      start_time?: string | null;
+      end_time?: string | null;
+      hours?: number;
+    }>;
+    weekly_hours?: number;
+    notes?: string | null;
+  } | null;
 }
 
 /** Gerente responsable de un usuario (campo `manager` del GET de usuario). */

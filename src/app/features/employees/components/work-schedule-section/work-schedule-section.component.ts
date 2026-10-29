@@ -27,7 +27,10 @@ export class WorkScheduleSectionComponent implements OnChanges {
   @Input() employeeId = '';
   @Input() schedule: WorkSchedule | null = null;
   @Input() canEdit = false;
+  /** false = se guarda con el formulario padre (modal de usuario). */
+  @Input() persist = true;
   @Output() saved = new EventEmitter<Employee>();
+  @Output() draftChange = new EventEmitter<UpsertWorkScheduleDto>();
 
   readonly weekdayLabel = WORK_WEEKDAY_LABELS;
   readonly weekdayShort = WORK_WEEKDAY_SHORT;
@@ -36,6 +39,7 @@ export class WorkScheduleSectionComponent implements OnChanges {
   days = signal<WorkScheduleDayDraft[]>(draftWorkScheduleDays());
   notes = signal('');
   saving = signal(false);
+  private userEdited = false;
 
   constructor(
     private employeeService: EmployeeService,
@@ -44,8 +48,28 @@ export class WorkScheduleSectionComponent implements OnChanges {
   ) {}
 
   ngOnChanges(): void {
+    if (!this.persist && this.userEdited) {
+      return;
+    }
     this.days.set(draftWorkScheduleDays(this.schedule));
     this.notes.set(this.schedule?.notes ?? '');
+    this.emitDraft();
+  }
+
+  toPayload(): UpsertWorkScheduleDto {
+    return {
+      days: this.days().map((day) => ({
+        weekday: day.weekday,
+        is_workday: day.is_workday,
+        start_time: day.is_workday ? day.start_time?.slice(0, 5) || null : null,
+        end_time: day.is_workday ? day.end_time?.slice(0, 5) || null : null,
+      })),
+      notes: this.notes().trim() || null,
+    };
+  }
+
+  private emitDraft(): void {
+    this.draftChange.emit(this.toPayload());
   }
 
   get weeklyHours(): number {
@@ -77,6 +101,8 @@ export class WorkScheduleSectionComponent implements OnChanges {
         };
       }),
     );
+    this.userEdited = true;
+    this.emitDraft();
   }
 
   patchTime(
@@ -87,21 +113,21 @@ export class WorkScheduleSectionComponent implements OnChanges {
     this.days.update((days) =>
       days.map((day) => (day.weekday === weekday ? { ...day, [field]: value } : day)),
     );
+    this.userEdited = true;
+    this.emitDraft();
+  }
+
+  setNotes(value: string): void {
+    this.notes.set(value);
+    this.userEdited = true;
+    this.emitDraft();
   }
 
   save(): void {
-    if (!this.canEdit || this.saving()) {
+    if (!this.canEdit || !this.persist || this.saving()) {
       return;
     }
-    const payload: UpsertWorkScheduleDto = {
-      days: this.days().map((day) => ({
-        weekday: day.weekday,
-        is_workday: day.is_workday,
-        start_time: day.is_workday ? day.start_time?.slice(0, 5) || null : null,
-        end_time: day.is_workday ? day.end_time?.slice(0, 5) || null : null,
-      })),
-      notes: this.notes().trim() || null,
-    };
+    const payload = this.toPayload();
     this.saving.set(true);
     const request$ =
       this.source === 'portal'

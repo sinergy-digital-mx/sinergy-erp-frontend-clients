@@ -304,6 +304,16 @@
             </div>
           </div>
 
+          <h4 class="employee-section-title">Horario laboral</h4>
+          <p class="field-hint">Lunes a domingo. Marca descanso o pon entrada y salida.</p>
+          <app-work-schedule-section
+            [source]="'employee'"
+            [schedule]="workSchedule()"
+            [canEdit]="true"
+            [persist]="false"
+            (draftChange)="onScheduleDraft($event)">
+          </app-work-schedule-section>
+
           <h4 class="employee-section-title">Vacaciones</h4>
           <div class="form-grid">
             <div class="form-field">

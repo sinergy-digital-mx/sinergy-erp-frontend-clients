@@ -12,6 +12,7 @@ agregó una pestaña **Empleado** que sigue el mismo patrón que la de POS.
    sub-formulario `employee` (reactive `FormGroup` anidado):
    - Datos: puesto\*, departamento, fecha de ingreso\*, fecha de nacimiento,
      código, RFC, CURP, NSS.
+   - Horario laboral: lun–dom, entrada/salida o descanso. Se manda en `employee.work_schedule`.
    - Vacaciones: días de arrastre (`vacation_carryover_days`).
    - Nómina: salario mensual\*, frecuencia de pago.
    - Banco: banco, CLABE, cuenta.

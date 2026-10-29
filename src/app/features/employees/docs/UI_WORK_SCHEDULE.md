@@ -2,6 +2,7 @@
 
 ## Historial
 
+- 2026-10-29: El admin lo captura en **Editar usuario → Empleado** y con **Editar** en el expediente. También se ve en el portal.
 - 2026-10-29: Sección lun–dom en el portal de empleado y en el expediente. Cada día es laboral (entrada/salida) o descanso. El total de horas lo calcula el backend.
 
 ## Dónde

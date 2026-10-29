@@ -14,7 +14,8 @@ import { UserService } from '../../services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
-import { PAYMENT_FREQUENCY_OPTIONS } from '../../../employees/models/employee.model';
+import { PAYMENT_FREQUENCY_OPTIONS, UpsertWorkScheduleDto, WorkSchedule } from '../../../employees/models/employee.model';
+import { WorkScheduleSectionComponent } from '../../../employees/components/work-schedule-section/work-schedule-section.component';
 import { EmployeeService } from '../../../employees/services/employee.service';
 import {
   calculatePayroll,
@@ -25,7 +26,7 @@ import {
 @Component({
   selector: 'app-user-detail-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TabComponent, ButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, TabComponent, ButtonComponent, WorkScheduleSectionComponent],
   templateUrl: './user-detail-modal.component.html',
   styleUrls: ['./user-detail-modal.component.scss']
 })
@@ -73,6 +74,8 @@ export class UserDetailModalComponent implements OnInit {
   employeeId = signal<string | null>(null);
   photoUrl = signal<string | null>(null);
   uploadingPhoto = signal(false);
+  workSchedule = signal<WorkSchedule | null>(null);
+  private scheduleDraft: UpsertWorkScheduleDto | null = null;
 
   /** Usuarios a cargo (tab Gerente). Independiente de Guardar cambios. */
   reports = signal<ManagerReport[]>([]);
@@ -211,7 +214,7 @@ export class UserDetailModalComponent implements OnInit {
   }
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { user: User | null; isNew?: boolean },
+    @Inject(MAT_DIALOG_DATA) public data: { user: User | null; isNew?: boolean; initialTab?: string },
     private dialogRef: MatDialogRef<UserDetailModalComponent>,
     private fb: FormBuilder,
     private userService: UserService,
@@ -223,6 +226,9 @@ export class UserDetailModalComponent implements OnInit {
   ) {
     this.isNew = data.isNew ?? !data.user;
     this.editedUserId = data.user?.id ?? null;
+    if (data.initialTab) {
+      this.activeTab = data.initialTab;
+    }
     this.form = this.createForm();
     this.passwordForm = this.fb.group({
       new_password: ['', [Validators.required, Validators.minLength(8)]],
@@ -584,6 +590,7 @@ export class UserDetailModalComponent implements OnInit {
 
     this.employeeId.set(employee.id ?? null);
     this.photoUrl.set(employee.photo_url ?? null);
+    this.workSchedule.set((employee.work_schedule as WorkSchedule | null) ?? null);
 
     this.form.get('employee')?.patchValue(
       {
@@ -1381,7 +1388,15 @@ export class UserDetailModalComponent implements OnInit {
       payload.vacation_carryover_days = Number(raw.vacation_carryover_days);
     }
 
+    if (this.scheduleDraft?.days.some((day) => day.is_workday)) {
+      payload.work_schedule = this.scheduleDraft;
+    }
+
     return payload;
+  }
+
+  onScheduleDraft(draft: UpsertWorkScheduleDto): void {
+    this.scheduleDraft = draft;
   }
 
   private resolveCarryoverDays(employee: UserEmployeeProfile): number | null {
