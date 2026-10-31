@@ -1,16 +1,20 @@
 {
-  "version": "0.0.82",
-  "buildId": "0.0.82-1793300882385",
-  "builtAt": "2026-10-29T19:08:02.385Z",
+  "version": "0.0.83",
+  "buildId": "0.0.83-1793472852652",
+  "builtAt": "2026-10-31T18:54:12.652Z",
   "channel": "full",
   "changes": [
     {
-      "scope": "frontend",
+      "scope": "backend",
+      "message": "Cambios en facturación electrónica"
+    },
+    {
+      "scope": "backend",
       "message": "Cambios en empleados"
     },
     {
-      "scope": "frontend",
-      "message": "Cambios en accesos y permisos"
+      "scope": "backend",
+      "message": "Cambios en ventas"
     }
   ]
 }
