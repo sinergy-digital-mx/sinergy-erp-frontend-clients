@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import {
   ArrowLeftRight,
-  Building2,
   ChevronRight,
   FileDown,
   FolderOpen,
@@ -15,7 +14,6 @@ import {
   Mail,
   MessageCircle,
   Monitor,
-  Package,
   Search,
   Send,
   Radio,
@@ -30,7 +28,6 @@ import { Subscription } from 'rxjs';
 import { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../../madereria-inventory-import/config/permissions.config';
 import { GPS_TRACKING_PERMISSIONS } from '../../../logistics/config/permissions.config';
 import { WHATSAPP_PERMISSIONS } from '../../../settings/config/whatsapp-permissions.config';
-import { canShowSettings } from '../../../settings/guards/settings-access.guard';
 import { SETTINGS_PERMISSIONS } from '../../../settings/config/permissions.config';
 
 interface SettingsSection {
@@ -86,15 +83,6 @@ interface SettingsSection {
           <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Empresa</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <ng-container *ngFor="let section of visibleCompanySections">
-              <ng-container *ngTemplateOutlet="sectionCard; context: { $implicit: section }"></ng-container>
-            </ng-container>
-          </div>
-        </div>
-
-        <div class="mb-8" *ngIf="visibleCatalogSections.length > 0">
-          <h2 class="text-lg font-semibold text-gray-700 mb-4 px-1">Catálogo Productos y Proveedores</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <ng-container *ngFor="let section of visibleCatalogSections">
               <ng-container *ngTemplateOutlet="sectionCard; context: { $implicit: section }"></ng-container>
             </ng-container>
           </div>
@@ -355,25 +343,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
   ];
 
-  catalogSections: SettingsSection[] = [
-    {
-      id: 'products',
-      title: 'Productos',
-      description: 'Gestiona el catálogo de productos, SKU, nombres y descripciones de tus productos',
-      icon: Package,
-      route: 'products',
-      permissions: ['products:ViewMenu']
-    },
-    {
-      id: 'vendors',
-      title: 'Proveedores',
-      description: 'Gestiona proveedores, información de contacto, RFC y datos fiscales de tus proveedores',
-      icon: Building2,
-      route: 'vendors',
-      permissions: ['vendors:ViewMenu']
-    }
-  ];
-
   communicationSections: SettingsSection[] = [
     {
       id: 'email-templates',
@@ -483,7 +452,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     return (
       this.visibleAccessSections.length > 0 ||
       this.visibleCompanySections.length > 0 ||
-      this.visibleCatalogSections.length > 0 ||
       this.visibleCommunicationSections.length > 0 ||
       this.visibleSystemSections.length > 0 ||
       this.showEmployeePortal
@@ -499,13 +467,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   get visibleCompanySections(): SettingsSection[] {
     return this.filterSections(this.companySections);
-  }
-
-  get visibleCatalogSections(): SettingsSection[] {
-    if (!canShowSettings(this.authService)) {
-      return [];
-    }
-    return this.filterSections(this.catalogSections);
   }
 
   get visibleCommunicationSections(): SettingsSection[] {

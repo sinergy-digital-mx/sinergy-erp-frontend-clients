@@ -45,10 +45,9 @@ import { SystemLogoService } from '../../services/system-logo.service';
       margin: 0;
       font-size: 1.85rem;
       font-weight: 300;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.03em;
       line-height: 1.2;
       text-align: center;
-      text-transform: uppercase;
       white-space: nowrap;
       user-select: none;
       color: hsl(214, 45%, 78%);
@@ -281,5 +280,5 @@ export class PolluxBrandTextComponent {
   /** Muestra el logo de la razón social cuando está activo. */
   useSystemLogo = input(false, { transform: booleanAttribute });
 
-  readonly label = computed(() => (this.compact() ? 'P' : 'POLLUX'));
+  readonly label = computed(() => (this.compact() ? 'P' : 'Polux ERP'));
 }

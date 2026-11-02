@@ -1,7 +1,7 @@
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { LucideAngularModule, CircleArrowUp, Sparkles } from 'lucide-angular';
+import { LucideAngularModule, ArrowRight, CircleArrowUp, History, Sparkles } from 'lucide-angular';
 import { AuthService } from '../../services/auth.service';
 import { SETTINGS_PERMISSIONS } from '../../../features/settings/config/permissions.config';
 
@@ -33,11 +33,11 @@ export interface AppUpdateDialogData {
           </span>
         </div>
 
-        <p class="px-upd__kicker">Pollux</p>
+        <p class="px-upd__kicker">Polux</p>
         <h2 class="px-upd__title">Hay una actualización</h2>
 
         <p class="px-upd__lead">
-          Hay una nueva versión de Pollux disponible.
+          Hay una nueva versión de Polux disponible.
         </p>
 
         @if (data.version) {
@@ -47,9 +47,9 @@ export interface AppUpdateDialogData {
           </div>
         }
 
-        @if (visibleChanges.length) {
+        @if (changes.length) {
           <ul class="px-upd__changes">
-            @for (change of visibleChanges; track $index) {
+            @for (change of changes; track $index) {
               <li>
                 @if (hasMixedScopes) {
                   <span class="px-upd__scope">{{ scopeLabel(change.scope) }}</span>
@@ -58,14 +58,13 @@ export interface AppUpdateDialogData {
               </li>
             }
           </ul>
-          @if (hiddenChangeCount > 0) {
-            <p class="px-upd__more">y {{ hiddenChangeCount }} cambios más</p>
-          }
         }
 
         @if (canOpenHistory) {
-          <button type="button" class="px-upd__link" (click)="openHistory()">
-            Ver todos los cambios
+          <button type="button" class="px-upd__history" (click)="openHistory()">
+            <lucide-icon [img]="History" [size]="15" [strokeWidth]="2.2"></lucide-icon>
+            Ver todas las versiones
+            <lucide-icon [img]="ArrowRight" [size]="15" [strokeWidth]="2.2"></lucide-icon>
           </button>
         }
 
@@ -219,7 +218,7 @@ export interface AppUpdateDialogData {
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
-      max-height: 9.5rem;
+      max-height: 12rem;
       margin: 0 0 0.35rem;
       padding: 0;
       overflow: auto;
@@ -254,27 +253,33 @@ export interface AppUpdateDialogData {
       color: #4f46e5;
     }
 
-    .px-upd__more {
-      margin: 0.15rem 0 0;
-      font-size: 0.75rem;
-      color: #94a3b8;
-    }
-
-    .px-upd__link {
-      display: inline-flex;
-      margin-top: 0.75rem;
-      padding: 0;
-      border: 0;
-      background: none;
-      color: #4338ca;
+    .px-upd__history {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      width: 100%;
+      margin-top: 0.85rem;
+      min-height: 2.5rem;
+      padding: 0.55rem 0.9rem;
+      border: 1.5px solid #c7d2fe;
+      border-radius: 0.8rem;
+      background: #f5f3ff;
+      color: #3730a3;
       font-size: 0.8125rem;
       font-weight: 700;
-      text-decoration: underline;
-      text-underline-offset: 0.16rem;
+      letter-spacing: -0.01em;
       cursor: pointer;
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
     }
 
-    .px-upd__link:focus-visible {
+    .px-upd__history:hover {
+      background: #eef2ff;
+      border-color: #a5b4fc;
+      transform: translateY(-1px);
+    }
+
+    .px-upd__history:focus-visible {
       outline: 2px solid #6366f1;
       outline-offset: 2px;
     }
@@ -412,7 +417,8 @@ export interface AppUpdateDialogData {
 export class AppUpdateDialogComponent {
   readonly Sparkles = Sparkles;
   readonly CircleArrowUp = CircleArrowUp;
-  private readonly visibleLimit = 6;
+  readonly History = History;
+  readonly ArrowRight = ArrowRight;
 
   constructor(
     private dialogRef: MatDialogRef<AppUpdateDialogComponent, boolean>,
@@ -430,14 +436,6 @@ export class AppUpdateDialogComponent {
         message: String(change?.message ?? '').trim(),
       }))
       .filter((change) => change.message);
-  }
-
-  get visibleChanges() {
-    return this.changes.slice(0, this.visibleLimit);
-  }
-
-  get hiddenChangeCount(): number {
-    return Math.max(this.changes.length - this.visibleChanges.length, 0);
   }
 
   get hasMixedScopes(): boolean {

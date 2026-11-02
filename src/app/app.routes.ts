@@ -6,6 +6,8 @@ import { AdminGuard } from './core/guards/admin.guard';
 import { defaultRouteGuard } from './core/guards/default-route.guard';
 import { divinoInventoryGuard } from './core/guards/divino-inventory.guard';
 import { settingsAccessGuard } from './features/settings/guards/settings-access.guard';
+import { permissionGuard } from './core/guards/permission.guard';
+import { SETTINGS_PERMISSIONS } from './features/settings/config/permissions.config';
 import { posCobranzaGuard, posEntryRedirectGuard, posVentasGuard } from './core/guards/pos-user-type.guard';
 
 export const routes: Routes = [
@@ -79,6 +81,40 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/contracts/contracts.routes')
             .then(m => m.CONTRACTS_ROUTES),
+      },
+      {
+        path: 'products',
+        canActivate: [permissionGuard],
+        loadComponent: () =>
+          import('./features/settings/components/product-list/product-list.component')
+            .then(m => m.ProductListComponent),
+        data: {
+          permissions: [SETTINGS_PERMISSIONS.products.viewMenu, 'Product:ViewMenu'],
+          permissionMode: 'any',
+          title: 'Productos',
+        },
+      },
+      {
+        path: 'vendors',
+        canActivate: [permissionGuard],
+        loadComponent: () =>
+          import('./features/settings/components/vendor-list/vendor-list.component')
+            .then(m => m.VendorListComponent),
+        data: {
+          permissions: [SETTINGS_PERMISSIONS.vendors.viewMenu, 'Vendor:ViewMenu'],
+          permissionMode: 'any',
+          title: 'Proveedores',
+        },
+      },
+      {
+        path: 'settings/products',
+        redirectTo: 'products',
+        pathMatch: 'full',
+      },
+      {
+        path: 'settings/vendors',
+        redirectTo: 'vendors',
+        pathMatch: 'full',
       },
       {
         path: 'settings',

@@ -531,6 +531,8 @@
         { path: '/contracts', permissions: ['contracts:Read', 'contracts:ViewMenu'] },
         { path: '/purchase-orders', permissions: ['purchaseOrders:Read', 'purchase_orders:read', 'purchase_orders:ViewMenu'] },
         { path: '/inventory', permissions: ['inventory:Read', 'inventory:ViewMenu'] },
+        { path: '/products', permissions: ['products:ViewMenu', 'Product:ViewMenu'] },
+        { path: '/vendors', permissions: ['vendors:ViewMenu', 'Vendor:ViewMenu'] },
         { path: '/sales-orders', permissions: ['salesOrders:Read', 'sales_orders:read', 'sales_orders:ViewMenu'] },
         { path: '/quotations', permissions: ['Quotation:Read', 'Quotation:ViewMenu', 'quotation:Read', 'quotation:ViewMenu'] },
         { path: '/warehouse-control', permissions: ['WarehouseControl:Read', 'WarehouseControl:ViewMenu', 'warehousecontrol:Read', 'warehousecontrol:ViewMenu'] },

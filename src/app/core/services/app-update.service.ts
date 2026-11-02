@@ -5,7 +5,6 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter, interval } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { APP_BUILD_ID } from '../constants/app-version.generated';
-import { AuthService } from './auth.service';
 import {
   AppUpdateDialogComponent,
   AppUpdateChange,
@@ -28,7 +27,6 @@ export class AppUpdateService {
 
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
-  private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private dialogOpen = false;
   private reloading = false;
@@ -97,55 +95,27 @@ export class AppUpdateService {
         return;
       }
 
-      const changes = await this.changesForCurrentOrganization(serverVersion);
-      if (this.dialogOpen || this.reloading || this.isDismissed(serverVersion.buildId)) {
-        return;
-      }
       this.promptUpdate({
         version: serverVersion.version,
         buildId: serverVersion.buildId,
-        changes,
+        changes: this.notesFromVersionFile(serverVersion),
       });
     } catch {
       // Ignora fallos de red al consultar la versión.
     }
   }
 
-  /**
-   * El archivo público trae todos los cambios del deploy. El aviso solo puede
-   * listar los de los módulos activos de esta organización.
-   */
-  private async changesForCurrentOrganization(serverVersion: AppVersionFile): Promise<AppUpdateChange[]> {
-    const token = this.authService.token;
-    if (!token) {
+  /** Notas publicadas con esa compilación. No consulta el historial. */
+  private notesFromVersionFile(serverVersion: AppVersionFile): AppUpdateChange[] {
+    if (!Array.isArray(serverVersion.changes)) {
       return [];
     }
-
-    try {
-      const response = await fetch(`${environment.api}/tenant/system-versions/latest`, {
-        cache: 'no-store',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        return [];
-      }
-
-      const latest = await response.json() as {
-        version?: string;
-        build_id?: string | null;
-        changes?: AppUpdateChange[];
-      };
-      const sameRelease = !latest?.build_id
-        || !serverVersion.buildId
-        || latest.build_id === serverVersion.buildId
-        || latest.version === serverVersion.version;
-      if (!sameRelease || !Array.isArray(latest?.changes)) {
-        return [];
-      }
-      return latest.changes;
-    } catch {
-      return [];
-    }
+    return serverVersion.changes
+      .map((change) => ({
+        scope: change?.scope === 'backend' ? 'backend' as const : 'frontend' as const,
+        message: String(change?.message ?? '').replace(/\s+/g, ' ').trim(),
+      }))
+      .filter((change) => change.message);
   }
 
   private promptUpdate(versionInfo: AppUpdateDialogData): void {

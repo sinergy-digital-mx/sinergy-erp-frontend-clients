@@ -3,7 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { SETTINGS_PERMISSIONS } from '../config/permissions.config';
 
-/** Menú Configuración y catálogo de productos/proveedores. */
+/** Menú Configuración. Productos y proveedores viven en el menú principal. */
 export function canShowSettings(authService: AuthService): boolean {
   return authService.hasPermission(SETTINGS_PERMISSIONS.viewMenu);
 }

@@ -1,4 +1,7 @@
 .versions-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 7.5rem);
   padding: 0.5rem 0.5rem 2rem;
 }
 
@@ -93,7 +96,26 @@
   color: #9ca3af;
 }
 
-.versions-page__status,
+.versions-loader {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 16rem;
+  animation: versions-loader-in 0.28s ease;
+}
+
+@keyframes versions-loader-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .versions-page__error,
 .versions-empty {
   margin: 0;

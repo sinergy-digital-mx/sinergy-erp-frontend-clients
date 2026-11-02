@@ -28,7 +28,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
     "intro": [
       {
         "t": "p",
-        "text": "Cómo enviar WhatsApp desde **otro sistema** (otro backend y otro frontend) reutilizando lo que ya existe en Pollux ERP, **sin que los usuarios del otro sistema tengan cuenta ni sesión en Pollux**."
+        "text": "Cómo enviar WhatsApp desde **otro sistema** (otro backend y otro frontend) reutilizando lo que ya existe en Polux ERP, **sin que los usuarios del otro sistema tengan cuenta ni sesión en Polux**."
       }
     ],
     "sections": [
@@ -40,28 +40,28 @@ export const WHATSAPP_GUIDES: Guide[] = [
             "t": "table",
             "head": [
               "",
-              "**Modo A — API de Pollux**",
+              "**Modo A — API de Polux**",
               "**Modo B — WAHA directo**"
             ],
             "rows": [
               [
                 "Quién envía",
-                "El número de WhatsApp de **una** organización de Pollux",
+                "El número de WhatsApp de **una** organización de Polux",
                 "El número de **cada cliente** del otro proyecto"
               ],
               [
                 "Sesiones (QR)",
-                "Una, ya conectada en Pollux",
+                "Una, ya conectada en Polux",
                 "Una por cliente, las crea y administra el otro proyecto"
               ],
               [
                 "Qué necesita el otro backend",
-                "URL de Pollux + email/contraseña de un usuario de servicio",
+                "URL de Polux + email/contraseña de un usuario de servicio",
                 "URL de WAHA + `WAHA_API_KEY`"
               ],
               [
                 "Cola anti-bloqueo, límite diario, historial, confirmaciones",
-                "Ya los hace Pollux",
+                "Ya los hace Polux",
                 "Hay que implementarlos (código de referencia abajo)"
               ],
               [
@@ -77,7 +77,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
               [
                 "Riesgo de seguridad",
                 "Bajo: el usuario solo tiene permisos de WhatsApp",
-                "**Alto** si comparte el WAHA de Pollux (la API key controla todas las sesiones)"
+                "**Alto** si comparte el WAHA de Polux (la API key controla todas las sesiones)"
               ]
             ]
           },
@@ -100,21 +100,21 @@ export const WHATSAPP_GUIDES: Guide[] = [
           },
           {
             "t": "quote",
-            "text": "Importante: el navegador del otro proyecto **nunca** habla con Pollux ni con WAHA. Siempre va `Front → Backend del otro proyecto → Pollux / WAHA`. Así ni la contraseña del usuario de servicio ni la API key de WAHA salen del servidor."
+            "text": "Importante: el navegador del otro proyecto **nunca** habla con Polux ni con WAHA. Siempre va `Front → Backend del otro proyecto → Polux / WAHA`. Así ni la contraseña del usuario de servicio ni la API key de WAHA salen del servidor."
           }
         ]
       },
       {
         "id": "general-2",
-        "title": "Modo A — API de Pollux (usuario de servicio)",
+        "title": "Modo A — API de Polux (usuario de servicio)",
         "blocks": [
           {
             "t": "p",
-            "text": "Pollux no tiene API keys: toda la API usa JWT (`Authorization: Bearer <token>`). Para que nadie del otro proyecto se autentique en Pollux, **el backend del otro proyecto inicia sesión por su cuenta** con un usuario técnico y guarda el token. Los usuarios finales del otro proyecto no ven ni saben nada de Pollux."
+            "text": "Polux no tiene API keys: toda la API usa JWT (`Authorization: Bearer <token>`). Para que nadie del otro proyecto se autentique en Polux, **el backend del otro proyecto inicia sesión por su cuenta** con un usuario técnico y guarda el token. Los usuarios finales del otro proyecto no ven ni saben nada de Polux."
           },
           {
             "t": "h3",
-            "text": "2.1 Preparación en Pollux (una sola vez)"
+            "text": "2.1 Preparación en Polux (una sola vez)"
           },
           {
             "t": "ol",
@@ -381,7 +381,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           },
           {
             "t": "p",
-            "text": "Los estados `delivered`/`read` dependen de que Pollux tenga configurado `WAHA_WEBHOOK_BASE_URL`."
+            "text": "Los estados `delivered`/`read` dependen de que Polux tenga configurado `WAHA_WEBHOOK_BASE_URL`."
           },
           {
             "t": "h3",
@@ -423,7 +423,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           {
             "t": "code",
             "lang": "typescript",
-            "code": "// pollux-whatsapp.client.ts\nconst BASE = process.env.POLLUX_API_URL!; // https://sapi.sinergydigital.mx/api\nconst EMAIL = process.env.POLLUX_SERVICE_EMAIL!;\nconst PASSWORD = process.env.POLLUX_SERVICE_PASSWORD!;\n\nexport interface PolluxWhatsappMessage {\n  id: string;\n  to_phone: string;\n  status: 'queued' | 'sending' | 'sent' | 'delivered' | 'read' | 'failed';\n  error_message: string | null;\n}\n\nexport class PolluxHttpError extends Error {\n  constructor(readonly status: number, message: string) {\n    super(message);\n  }\n}\n\nlet token: string | null = null;\nlet loginInFlight: Promise<string> | null = null;\n\nasync function login(): Promise<string> {\n  // Evita varios logins simultáneos\n  loginInFlight ??= fetch(`${BASE}/auth/login`, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ email: EMAIL, password: PASSWORD }),\n    signal: AbortSignal.timeout(15000),\n  })\n    .then(async (res) => {\n      if (!res.ok) throw new PolluxHttpError(res.status, 'No se pudo iniciar sesión en Pollux');\n      const json = (await res.json()) as { access_token: string };\n      token = json.access_token;\n      return token;\n    })\n    .finally(() => {\n      loginInFlight = null;\n    });\n  return loginInFlight;\n}\n\nasync function call<T>(method: string, path: string, body?: unknown, retry = true): Promise<T> {\n  const bearer = token ?? (await login());\n  const res = await fetch(`${BASE}/tenant/whatsapp${path}`, {\n    method,\n    headers: {\n      Authorization: `Bearer ${bearer}`,\n      ...(body ? { 'Content-Type': 'application/json' } : {}),\n    },\n    body: body ? JSON.stringify(body) : undefined,\n    signal: AbortSignal.timeout(20000),\n  });\n\n  // Token vencido o permisos cambiados (PERMISSIONS_CHANGED): se vuelve a entrar una vez\n  if (res.status === 401 && retry) {\n    token = null;\n    return call<T>(method, path, body, false);\n  }\n  if (!res.ok) {\n    const err = (await res.json().catch(() => ({}))) as { message?: string | string[] };\n    const message = Array.isArray(err.message) ? err.message[0] : err.message;\n    throw new PolluxHttpError(res.status, message ?? `Pollux respondió ${res.status}`);\n  }\n  return (await res.json()) as T;\n}\n\nexport const polluxWhatsapp = {\n  status: () => call<{ state: string; phone_number: string | null }>('GET', '/session'),\n  sendText: (phone: string, text: string, ref?: { type: string; id: string }) =>\n    call<PolluxWhatsappMessage>('POST', '/messages/text', {\n      phone,\n      text,\n      reference_type: ref?.type,\n      reference_id: ref?.id,\n    }),\n  sendFile: (phone: string, fileUrl: string, opts: { name?: string; mimetype?: string; caption?: string } = {}) =>\n    call<PolluxWhatsappMessage>('POST', '/messages/file', {\n      phone,\n      file_url: fileUrl,\n      file_name: opts.name,\n      mimetype: opts.mimetype,\n      caption: opts.caption,\n    }),\n  getMessage: (id: string) => call<PolluxWhatsappMessage>('GET', `/messages/${id}`),\n};"
+            "code": "// polux-whatsapp.client.ts\nconst BASE = process.env.POLUX_API_URL!; // https://sapi.sinergydigital.mx/api\nconst EMAIL = process.env.POLUX_SERVICE_EMAIL!;\nconst PASSWORD = process.env.POLUX_SERVICE_PASSWORD!;\n\nexport interface PoluxWhatsappMessage {\n  id: string;\n  to_phone: string;\n  status: 'queued' | 'sending' | 'sent' | 'delivered' | 'read' | 'failed';\n  error_message: string | null;\n}\n\nexport class PoluxHttpError extends Error {\n  constructor(readonly status: number, message: string) {\n    super(message);\n  }\n}\n\nlet token: string | null = null;\nlet loginInFlight: Promise<string> | null = null;\n\nasync function login(): Promise<string> {\n  // Evita varios logins simultáneos\n  loginInFlight ??= fetch(`${BASE}/auth/login`, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ email: EMAIL, password: PASSWORD }),\n    signal: AbortSignal.timeout(15000),\n  })\n    .then(async (res) => {\n      if (!res.ok) throw new PoluxHttpError(res.status, 'No se pudo iniciar sesión en Polux');\n      const json = (await res.json()) as { access_token: string };\n      token = json.access_token;\n      return token;\n    })\n    .finally(() => {\n      loginInFlight = null;\n    });\n  return loginInFlight;\n}\n\nasync function call<T>(method: string, path: string, body?: unknown, retry = true): Promise<T> {\n  const bearer = token ?? (await login());\n  const res = await fetch(`${BASE}/tenant/whatsapp${path}`, {\n    method,\n    headers: {\n      Authorization: `Bearer ${bearer}`,\n      ...(body ? { 'Content-Type': 'application/json' } : {}),\n    },\n    body: body ? JSON.stringify(body) : undefined,\n    signal: AbortSignal.timeout(20000),\n  });\n\n  // Token vencido o permisos cambiados (PERMISSIONS_CHANGED): se vuelve a entrar una vez\n  if (res.status === 401 && retry) {\n    token = null;\n    return call<T>(method, path, body, false);\n  }\n  if (!res.ok) {\n    const err = (await res.json().catch(() => ({}))) as { message?: string | string[] };\n    const message = Array.isArray(err.message) ? err.message[0] : err.message;\n    throw new PoluxHttpError(res.status, message ?? `Polux respondió ${res.status}`);\n  }\n  return (await res.json()) as T;\n}\n\nexport const poluxWhatsapp = {\n  status: () => call<{ state: string; phone_number: string | null }>('GET', '/session'),\n  sendText: (phone: string, text: string, ref?: { type: string; id: string }) =>\n    call<PoluxWhatsappMessage>('POST', '/messages/text', {\n      phone,\n      text,\n      reference_type: ref?.type,\n      reference_id: ref?.id,\n    }),\n  sendFile: (phone: string, fileUrl: string, opts: { name?: string; mimetype?: string; caption?: string } = {}) =>\n    call<PoluxWhatsappMessage>('POST', '/messages/file', {\n      phone,\n      file_url: fileUrl,\n      file_name: opts.name,\n      mimetype: opts.mimetype,\n      caption: opts.caption,\n    }),\n  getMessage: (id: string) => call<PoluxWhatsappMessage>('GET', `/messages/${id}`),\n};"
           },
           {
             "t": "p",
@@ -432,7 +432,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           {
             "t": "code",
             "lang": "env",
-            "code": "POLLUX_API_URL=https://sapi.sinergydigital.mx/api\nPOLLUX_SERVICE_EMAIL=integraciones@tuempresa.com\nPOLLUX_SERVICE_PASSWORD=********"
+            "code": "POLUX_API_URL=https://sapi.sinergydigital.mx/api\nPOLUX_SERVICE_EMAIL=integraciones@tuempresa.com\nPOLUX_SERVICE_PASSWORD=********"
           },
           {
             "t": "h3",
@@ -441,7 +441,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           {
             "t": "code",
             "lang": "",
-            "code": "Navegador (otro front)\n   │  POST /api/notifications/whatsapp   (con la sesión del otro proyecto)\n   ▼\nBackend del otro proyecto  ── valida su propio usuario/permisos\n   │  Bearer <token del usuario de servicio>\n   ▼\nPollux  /api/tenant/whatsapp/messages/text\n   ▼\nWAHA → WhatsApp"
+            "code": "Navegador (otro front)\n   │  POST /api/notifications/whatsapp   (con la sesión del otro proyecto)\n   ▼\nBackend del otro proyecto  ── valida su propio usuario/permisos\n   │  Bearer <token del usuario de servicio>\n   ▼\nPolux  /api/tenant/whatsapp/messages/text\n   ▼\nWAHA → WhatsApp"
           },
           {
             "t": "p",
@@ -450,7 +450,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           {
             "t": "code",
             "lang": "typescript",
-            "code": "@Post('notifications/whatsapp')\n@UseGuards(MiPropioAuthGuard)\nasync send(@Body() dto: { phone: string; text: string; orderId?: string }) {\n  const status = await polluxWhatsapp.status();\n  if (status.state !== 'connected') throw new ServiceUnavailableException('WhatsApp no está disponible.');\n  return polluxWhatsapp.sendText(dto.phone, dto.text, dto.orderId ? { type: 'order', id: dto.orderId } : undefined);\n}"
+            "code": "@Post('notifications/whatsapp')\n@UseGuards(MiPropioAuthGuard)\nasync send(@Body() dto: { phone: string; text: string; orderId?: string }) {\n  const status = await poluxWhatsapp.status();\n  if (status.state !== 'connected') throw new ServiceUnavailableException('WhatsApp no está disponible.');\n  return poluxWhatsapp.sendText(dto.phone, dto.text, dto.orderId ? { type: 'order', id: dto.orderId } : undefined);\n}"
           },
           {
             "t": "h3",
@@ -467,7 +467,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
               [
                 "400",
                 "Teléfono inválido, texto vacío, URL no `https`/pública, WhatsApp no conectado",
-                "Corregir datos. «WhatsApp no está conectado…» → escanear QR en Pollux"
+                "Corregir datos. «WhatsApp no está conectado…» → escanear QR en Polux"
               ],
               [
                 "401",
@@ -503,7 +503,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
             "t": "ul",
             "items": [
               {
-                "text": "Solo hay **un número** por organización de Pollux: todo sale desde él.",
+                "text": "Solo hay **un número** por organización de Polux: todo sale desde él.",
                 "children": []
               },
               {
@@ -511,15 +511,15 @@ export const WHATSAPP_GUIDES: Guide[] = [
                 "children": []
               },
               {
-                "text": "Los mensajes aparecen en el historial de esa organización en Pollux (usa `reference_type`/`reference_id` para distinguirlos).",
+                "text": "Los mensajes aparecen en el historial de esa organización en Polux (usa `reference_type`/`reference_id` para distinguirlos).",
                 "children": []
               },
               {
-                "text": "Si necesitas un número distinto por cliente, usa el **Modo B**, o una organización de Pollux por cliente con su propio usuario de servicio.",
+                "text": "Si necesitas un número distinto por cliente, usa el **Modo B**, o una organización de Polux por cliente con su propio usuario de servicio.",
                 "children": []
               },
               {
-                "text": "No hay API keys ni tokens de servicio permanentes: si algún día se requiere, hay que construir esa función en Pollux (hoy se usa email/contraseña + JWT).",
+                "text": "No hay API keys ni tokens de servicio permanentes: si algún día se requiere, hay que construir esa función en Polux (hoy se usa email/contraseña + JWT).",
                 "children": []
               },
               {
@@ -540,7 +540,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           },
           {
             "t": "p",
-            "text": "El otro proyecto habla **directamente con [WAHA](https://waha.devlike.pro/)** (el mismo servidor que usa Pollux o uno propio), crea **una sesión por cliente** y administra su propio QR, cola y webhooks. No interviene Pollux."
+            "text": "El otro proyecto habla **directamente con [WAHA](https://waha.devlike.pro/)** (el mismo servidor que usa Polux o uno propio), crea **una sesión por cliente** y administra su propio QR, cola y webhooks. No interviene Polux."
           },
           {
             "t": "h3",
@@ -558,7 +558,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
                 "children": []
               },
               {
-                "text": "Si se comparte el WAHA de Pollux: usar un prefijo propio de sesiones (`miapp_<idCliente>`), **nunca** listar/borrar/reiniciar sesiones que no empiecen con tu prefijo, y avisar al administrador (comparten límite de recursos).",
+                "text": "Si se comparte el WAHA de Polux: usar un prefijo propio de sesiones (`miapp_<idCliente>`), **nunca** listar/borrar/reiniciar sesiones que no empiecen con tu prefijo, y avisar al administrador (comparten límite de recursos).",
                 "children": []
               },
               {
@@ -1163,11 +1163,11 @@ export const WHATSAPP_GUIDES: Guide[] = [
         "blocks": [
           {
             "t": "p",
-            "text": "El front **solo** llama a **tu** backend (que a su vez usa Modo A o B). Nunca a Pollux ni a WAHA."
+            "text": "El front **solo** llama a **tu** backend (que a su vez usa Modo A o B). Nunca a Polux ni a WAHA."
           },
           {
             "t": "p",
-            "text": "Archivos de referencia en el frontend de Pollux:"
+            "text": "Archivos de referencia en el frontend de Polux:"
           },
           {
             "t": "table",
@@ -1200,7 +1200,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           },
           {
             "t": "p",
-            "text": "No hay pantalla de QR: la conexión se administra en Pollux. En tu front basta un servicio que llame a tu endpoint de envío:"
+            "text": "No hay pantalla de QR: la conexión se administra en Polux. En tu front basta un servicio que llame a tu endpoint de envío:"
           },
           {
             "t": "code",
@@ -1217,7 +1217,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           },
           {
             "t": "p",
-            "text": "Copiar el servicio, modelo y componente de conexión, y apuntar `api` a **tu** backend. Contrato que debe exponer tu backend (mismo que el de Pollux, sin `tenant/`):"
+            "text": "Copiar el servicio, modelo y componente de conexión, y apuntar `api` a **tu** backend. Contrato que debe exponer tu backend (mismo que el de Polux, sin `tenant/`):"
           },
           {
             "t": "table",
@@ -1271,7 +1271,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           },
           {
             "t": "p",
-            "text": "Reglas de la pantalla (ya implementadas en el componente de Pollux):"
+            "text": "Reglas de la pantalla (ya implementadas en el componente de Polux):"
           },
           {
             "t": "ul",
@@ -1411,7 +1411,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
     "intro": [
       {
         "t": "p",
-        "text": "Paso a paso para que **otro proyecto** (NestJS + TypeORM + Angular, igual que Pollux) hable **directo con WAHA**: cómo funciona la autenticación de WAHA, cómo levantarlo, y el módulo completo de backend y frontend para que cada cliente conecte **su propio número** con su QR."
+        "text": "Paso a paso para que **otro proyecto** (NestJS + TypeORM + Angular, igual que Polux) hable **directo con WAHA**: cómo funciona la autenticación de WAHA, cómo levantarlo, y el módulo completo de backend y frontend para que cada cliente conecte **su propio número** con su QR."
       }
     ],
     "sections": [
@@ -1647,7 +1647,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
         "blocks": [
           {
             "t": "p",
-            "text": "Cambia solo un concepto respecto a Pollux: la «organización» (`tenant_id`) pasa a ser **el dueño de la sesión** en tu proyecto. En el código de abajo se llama `owner_id`: puede ser el id del cliente, empresa o cuenta. Una sesión de WhatsApp por `owner_id`."
+            "text": "Cambia solo un concepto respecto a Polux: la «organización» (`tenant_id`) pasa a ser **el dueño de la sesión** en tu proyecto. En el código de abajo se llama `owner_id`: puede ser el id del cliente, empresa o cuenta. Una sesión de WhatsApp por `owner_id`."
           },
           {
             "t": "code",
@@ -1920,7 +1920,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           },
           {
             "t": "p",
-            "text": "La pantalla completa está en el frontend de Pollux: `settings/pages/whatsapp-settings/whatsapp-settings.component.{ts,html}`. Cópiala y cambia el servicio. La lógica que no debes perder:"
+            "text": "La pantalla completa está en el frontend de Polux: `settings/pages/whatsapp-settings/whatsapp-settings.component.{ts,html}`. Cópiala y cambia el servicio. La lógica que no debes perder:"
           },
           {
             "t": "code",
@@ -1938,7 +1938,7 @@ export const WHATSAPP_GUIDES: Guide[] = [
           },
           {
             "t": "p",
-            "text": "Detalles de UX que ya resolvió Pollux:"
+            "text": "Detalles de UX que ya resolvió Polux:"
           },
           {
             "t": "ul",

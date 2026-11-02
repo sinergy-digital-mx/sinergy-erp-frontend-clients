@@ -1,7 +1,7 @@
 import { NgStyle } from '@angular/common';
 import { Component, Input } from '@angular/core';
 
-const POLLUX_LETTERS = ['P', 'O', 'L', 'L', 'U', 'X'] as const;
+const POLLUX_LETTERS = ['P', 'O', 'L', 'U', 'X'] as const;
 
 @Component({
   selector: 'app-spinner',

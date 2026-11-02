@@ -1,36 +1,16 @@
 {
-  "version": "0.0.85",
-  "buildId": "0.0.85-1793643560713",
-  "builtAt": "2026-11-02T18:19:20.713Z",
+  "version": "0.0.86",
+  "buildId": "0.0.86-1793645539596",
+  "builtAt": "2026-11-02T18:52:19.596Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Cambios en contabilidad"
+      "message": "Cambios en versiones"
     },
     {
       "scope": "frontend",
-      "message": "Cambios en CRM"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en clientes"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en inventario"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en ventas"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en compras"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en configuración"
+      "message": "Cambios en accesos y permisos"
     },
     {
       "scope": "frontend",
@@ -38,31 +18,19 @@
     },
     {
       "scope": "frontend",
-      "message": "Cambios en productos"
+      "message": "Cambios en configuración"
     },
     {
       "scope": "frontend",
+      "message": "Cambios en WhatsApp"
+    },
+    {
+      "scope": "backend",
+      "message": "Cambios en productos"
+    },
+    {
+      "scope": "backend",
       "message": "Cambios en proveedores"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en correo"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en autofactura"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en almacenes"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en cotizaciones"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en accesos y permisos"
     }
   ]
 }

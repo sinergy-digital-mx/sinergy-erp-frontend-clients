@@ -30,6 +30,8 @@ import {
   ClipboardCheck,
   Phone,
   Repeat,
+  Building2,
+  Boxes,
 } from 'lucide-angular';
 import {
   COSTA_CAMPESTRE_DIVINO_ORGANIZATION_ID,
@@ -87,10 +89,12 @@ const MENU_SECTIONS: MenuSection[] = [
     title: 'Operación',
     itemIds: [
       'menu-purchase-orders',
+      'menu-vendors',
       'menu-sales-orders',
       'menu-quotations',
       'menu-warehouse-control',
       'menu-shippings',
+      'menu-products',
       'menu-inventory',
       'menu-pos',
       'menu-pos-cobranza',
@@ -190,6 +194,16 @@ export class Sidebar implements OnInit, OnDestroy {
       permission: PERMISSIONS.purchaseOrders.viewMenu
     },
     {
+      label: 'Proveedores',
+      route: '/vendors',
+      icon: Building2,
+      id: 'menu-vendors',
+      permissions: [
+        PERMISSIONS.settings.vendors.viewMenu,
+        'Vendor:ViewMenu',
+      ],
+    },
+    {
       label: 'Órdenes de Venta',
       route: '/sales-orders',
       icon: ShoppingBag,
@@ -224,6 +238,16 @@ export class Sidebar implements OnInit, OnDestroy {
         PERMISSIONS.trucks.viewList,
         PERMISSIONS.gpsTracking.viewMenu,
         PERMISSIONS.gpsTracking.viewList,
+      ],
+    },
+    {
+      label: 'Productos',
+      route: '/products',
+      icon: Boxes,
+      id: 'menu-products',
+      permissions: [
+        PERMISSIONS.settings.products.viewMenu,
+        'Product:ViewMenu',
       ],
     },
     {

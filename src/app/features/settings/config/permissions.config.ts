@@ -8,8 +8,9 @@ export const SETTINGS_PERMISSIONS = {
   // Module access
   viewMenu: 'settings:ViewMenu',
   
-  // Products sub-module
+  // Products sub-module. El JWT puede traer la entidad Product o products.
   products: {
+    viewMenu: 'products:ViewMenu',
     view: 'products:Read',
     create: 'products:Create',
     update: 'products:Update',
@@ -21,8 +22,9 @@ export const SETTINGS_PERMISSIONS = {
     import: 'products:Import'
   },
   
-  // Vendors sub-module
+  // Vendors sub-module. El JWT puede traer la entidad Vendor o vendors.
   vendors: {
+    viewMenu: 'vendors:ViewMenu',
     view: 'vendors:Read',
     create: 'vendors:Create',
     update: 'vendors:Update',

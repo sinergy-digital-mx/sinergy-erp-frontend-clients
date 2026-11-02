@@ -22,24 +22,31 @@
     </label>
   </header>
 
-  @if (loading) {
-    <p class="versions-page__status">Cargando versiones…</p>
-  }
-
-  @if (!loading && errorMessage) {
-    <p class="versions-page__error">{{ errorMessage }}</p>
-  }
-
-  @if (!loading && !errorMessage && items.length === 0) {
-    <div class="versions-empty">
-      <p class="versions-empty__title">Todavía no hay versiones</p>
-      <p>Cuando se publique una actualización del sistema, el detalle va a quedar en este historial.</p>
+  @if (showLoader) {
+    <div class="versions-loader" role="status" aria-live="polite" aria-busy="true" aria-label="Cargando versiones">
+      <app-spinner></app-spinner>
     </div>
   }
 
-  @if (!loading && items.length > 0) {
+  @if (!showLoader && errorMessage && allItems.length === 0) {
+    <p class="versions-page__error">{{ errorMessage }}</p>
+  }
+
+  @if (!showLoader && !errorMessage && filteredItems.length === 0) {
+    <div class="versions-empty">
+      @if (searchQuery.trim()) {
+        <p class="versions-empty__title">Sin resultados</p>
+        <p>No hay versiones que coincidan con esa búsqueda.</p>
+      } @else {
+        <p class="versions-empty__title">Todavía no hay versiones</p>
+        <p>Cuando se publique una actualización del sistema, el detalle va a quedar en este historial.</p>
+      }
+    </div>
+  }
+
+  @if (!showLoader && pagedItems.length > 0) {
     <ol class="versions-list">
-      @for (item of items; track item.id) {
+      @for (item of pagedItems; track item.id) {
         <li class="version-card">
           <div class="version-card__top">
             <div>
