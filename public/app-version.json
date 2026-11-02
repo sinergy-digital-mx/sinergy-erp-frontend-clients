@@ -1,16 +1,12 @@
 {
-  "version": "0.0.88",
-  "buildId": "0.0.88-1793649635025",
-  "builtAt": "2026-11-02T20:00:35.025Z",
+  "version": "0.0.89",
+  "buildId": "0.0.89-1793649881454",
+  "builtAt": "2026-11-02T20:04:41.454Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Cambios en contabilidad"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en ventas"
+      "message": "Actualización de la plataforma."
     }
   ]
 }
