@@ -125,6 +125,10 @@ export function getErrorMessage(control: AbstractControl | null, fieldName: stri
     return errors['invalidPaymentAmount'].message;
   }
 
+  if (errors['pedimentoFormat']) {
+    return errors['pedimentoFormat'].message;
+  }
+
   if (errors['exceedsRemaining']) {
     return errors['exceedsRemaining'].message;
   }

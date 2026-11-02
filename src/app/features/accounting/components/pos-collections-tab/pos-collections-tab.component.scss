@@ -289,6 +289,13 @@
   }
 }
 
+.folio-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
 .folio-link {
   border: none;
   background: transparent;
@@ -298,6 +305,34 @@
   letter-spacing: -0.01em;
   cursor: pointer;
   padding: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  cursor: pointer;
+
+  i {
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+
+  &:hover {
+    background: #e0e7ff;
+  }
 }
 
 .folio-link:hover {
@@ -449,11 +484,19 @@
   white-space: nowrap;
 }
 
-.people__code {
-  margin-left: 0.28rem;
+.pay-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.pay-cell__detail {
   font-size: 0.6875rem;
   font-weight: 550;
-  color: #94a3b8;
+  line-height: 1.25;
+  color: #6d28d9;
 }
 
 .pay-badge {

@@ -19,6 +19,7 @@ import {
   uppercasePrefixControl,
 } from '../../utils/document-prefix.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import { describeWarehouseLocationIssue } from '../../utils/warehouse-address.util';
 import { X } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
@@ -87,6 +88,10 @@ export class WarehouseDetailModalComponent implements OnInit {
     this.isNew = !data.warehouse;
     this.branchLocationSeed = data.branchLocation ?? null;
     this.form = this.createForm();
+  }
+
+  get locationIssue(): string | null {
+    return describeWarehouseLocationIssue(this.form.getRawValue());
   }
 
   get canCopyBranchAddress(): boolean {
@@ -218,8 +223,17 @@ export class WarehouseDetailModalComponent implements OnInit {
   }
 
   save() {
-    if (this.form.invalid || this.saving()) {
+    if (this.saving()) return;
+
+    const locationIssue = this.locationIssue;
+    if (this.form.invalid || locationIssue) {
       this.form.markAllAsTouched();
+      if (locationIssue) {
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: locationIssue, type: 'error' },
+          duration: 7000,
+        });
+      }
       return;
     }
 

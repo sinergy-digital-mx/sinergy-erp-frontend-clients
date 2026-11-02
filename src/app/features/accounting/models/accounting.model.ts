@@ -151,6 +151,8 @@ export interface PosCollectionRow {
   collected_by_user?: PosUserSummary | null;
   payment_method?: string | null;
   payment_method_label?: string | null;
+  /** Mixto: `Efectivo + Tarjeta`. Un solo método: igual que el label. */
+  payment_breakdown_label?: string | null;
   total?: number | string;
   payment_status?: string;
 }

@@ -21,7 +21,7 @@ import {
 import { ToastService } from '../../../../core/services/toast.service';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { SETTINGS_PERMISSIONS } from '../../config/permissions.config';
-import { VENDOR_MATCH_REASON_LABELS } from '../../utils/vendor-profile.util';
+import { vendorCompanyName, VENDOR_MATCH_REASON_LABELS } from '../../utils/vendor-profile.util';
 
 @Component({
   selector: 'app-vendor-list',
@@ -41,12 +41,12 @@ export class VendorListComponent implements OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
 
   readonly vendorDeletePermission = SETTINGS_PERMISSIONS.vendors.delete;
+  readonly vendorCompanyName = vendorCompanyName;
 
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Nombre', prop: 'name', sortable: true, canAutoResize: true, width: 150 },
-      { name: 'Empresa', prop: 'company_name', sortable: true, canAutoResize: true, width: 160 },
+      { name: 'Empresa', prop: 'company_name', sortable: true, canAutoResize: true, width: 220 },
       { name: 'Tipo', prop: 'vendor_type', sortable: true, canAutoResize: true, width: 100 },
       { name: 'ID Fiscal', prop: 'rfc', sortable: false, canAutoResize: true, width: 120 },
       { name: 'Ficha', prop: 'profile_completeness', sortable: false, canAutoResize: true, width: 110 },
@@ -264,7 +264,9 @@ export class VendorListComponent implements OnDestroy {
     if (!vendor.looks_similar) {
       return '';
     }
-    const names = (vendor.similar_vendors ?? []).map((item) => item.name).filter(Boolean);
+    const names = (vendor.similar_vendors ?? [])
+      .map((item) => vendorCompanyName(item))
+      .filter(Boolean);
     const reasons = (vendor.similar_vendors ?? [])
       .flatMap((item) => item.match_reasons ?? [])
       .map((reason) => VENDOR_MATCH_REASON_LABELS[reason])
@@ -307,10 +309,11 @@ export class VendorListComponent implements OnDestroy {
   deleteVendor(vendor: Vendor, event: Event) {
     event.stopPropagation();
 
-    const similarName = vendor.similar_vendors?.[0]?.name;
+    const similarName = vendorCompanyName(vendor.similar_vendors?.[0]);
+    const label = vendorCompanyName(vendor) || 'este proveedor';
     const message = similarName
-      ? `¿Eliminar "${vendor.name}"? Si tiene compras, se conservarán en "${similarName}".`
-      : `¿Eliminar "${vendor.name}"? Si tiene compras y no hay otro parecido, se desactivará para conservar el historial.`;
+      ? `¿Eliminar "${label}"? Si tiene compras, se conservarán en "${similarName}".`
+      : `¿Eliminar "${label}"? Si tiene compras y no hay otro parecido, se desactivará para conservar el historial.`;
 
     const dialogRef = this.dialog.open(AlertDialogComponent, {
       width: '400px',

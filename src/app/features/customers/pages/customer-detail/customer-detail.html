@@ -552,7 +552,8 @@
 
       <app-customer-activities
         *hasPermission="permissions.viewDetail"
-        [customerId]="customer()!.id">
+        [customerId]="customer()!.id"
+        [fallbackSeller]="customer()!.assigned_seller_user || customer()!.registered_by_user || null">
       </app-customer-activities>
     }
 </div>

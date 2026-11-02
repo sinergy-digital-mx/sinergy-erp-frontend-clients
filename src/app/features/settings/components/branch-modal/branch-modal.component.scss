@@ -97,6 +97,18 @@
       overflow-x: auto;
     }
 
+    .warehouse-address-missing {
+      display: block;
+      margin-top: 0.2rem;
+      max-width: 28rem;
+      color: #b91c1c;
+      font-size: 0.75rem;
+      font-weight: 600;
+      line-height: 1.35;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
     .data-table {
       width: 100%;
       border-collapse: collapse;

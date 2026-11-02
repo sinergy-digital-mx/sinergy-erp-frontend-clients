@@ -11,7 +11,7 @@ export const PURCHASE_ORDER_PERMISSIONS = {
   // Views
   viewList: 'purchase_orders:Read',
   viewDetail: 'purchase_orders:Read',
-  viewStats: 'purchase_orders:Read',
+  viewStats: 'purchase_orders:ViewStats',
   
   // CRUD operations
   create: 'purchase_orders:Create',

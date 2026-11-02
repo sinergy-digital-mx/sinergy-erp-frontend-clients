@@ -71,6 +71,7 @@ export interface VendorProductPrice {
   vendor?: {
     id: string;
     name: string;
+    company_name?: string | null;
     rfc?: string;
   };
   product_uom?: {

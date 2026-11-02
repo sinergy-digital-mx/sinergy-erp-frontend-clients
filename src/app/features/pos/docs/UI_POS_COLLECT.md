@@ -11,6 +11,26 @@ Fila 2: Cheque · Mixto · Crédito (Crédito solo si el cliente lo tiene en esa
 
 ## Cambios
 
+### 2026-11-02
+
+En **Cheque** (también dentro de mixto) hay dos botones: Pesos y Dólares. Un cheque es de una sola moneda. En dólares se usa el tipo de cambio del corte y se muestra a cuántos pesos equivale. El número, el nombre y el teléfono siguen igual.
+
+En **Efectivo** hay tres botones: Pesos, Dólares y Ambas. Cada moneda tiene sus billetes y su monto. Si ocultas una, lo ya capturado sigue aplicado.
+
+En **Mixto**, la tarjeta de efectivo pide pesos y dólares (aplica y recibió). Los dólares se suman al total con el tipo de cambio del cobro. El cambio sale en la moneda en que sobró.
+
+### 2026-11-01
+
+Al elegir el método de pago:
+
+- **Transferencia** (también dentro de mixto): nombre o razón social. Con uno basta. No pide teléfono.
+- **Tarjeta** y **cheque** (también dentro de mixto): nombre y teléfono de 10 dígitos. En varias tarjetas, el nombre y el teléfono van en la primera.
+- Efectivo y crédito no piden esos datos.
+
+Si el cliente ya tiene nombre, razón social o teléfono, se prellenan y se pueden cambiar. En público en general, si el ticket no trae nombre o teléfono, se copian de estos campos. Quedan en el desglose del cobro y en el ticket.
+
+El crédito de la razón social es en pesos o en dólares (`credit_currency`). Si la orden está en la otra moneda, caja la convierte con el tipo de cambio de esa orden y lo compara con el disponible. La barra muestra la moneda del crédito.
+
 ### 2026-10-22
 
 En anticipos (`kind: "advance"`) también sale **Mixto**. Crédito no. El desglose es el mismo que en una venta: efectivo, transferencia, tarjeta y/o cheque; mínimo dos. Solo el efectivo de ese mixto entra a caja.

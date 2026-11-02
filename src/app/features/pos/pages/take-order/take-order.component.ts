@@ -875,6 +875,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
             sku: product.sku,
           },
           isNew: false,
+          fiscalConfigurationId: this.posState.fiscalConfigurationId() || undefined,
         },
       })
       .afterClosed()

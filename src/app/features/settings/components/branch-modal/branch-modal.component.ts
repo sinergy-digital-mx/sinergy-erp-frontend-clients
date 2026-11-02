@@ -20,6 +20,7 @@ import {
   uppercasePrefixControl,
 } from '../../utils/document-prefix.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import { describeWarehouseLocationIssue } from '../../utils/warehouse-address.util';
 import { X } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 
@@ -196,6 +197,10 @@ export class BranchModalComponent implements OnInit {
     return status === 'active' ? 'Activo' : 'Inactivo';
   }
 
+  warehouseLocationIssue(warehouse: BranchWarehouse): string | null {
+    return describeWarehouseLocationIssue(warehouse);
+  }
+
   private normalizeCoords(value: unknown): number | null {
     if (value === null || value === undefined || value === '') return null;
     const n = Number(value);
@@ -221,6 +226,18 @@ export class BranchModalComponent implements OnInit {
   save() {
     if (this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
+      return;
+    }
+
+    const warehouseIssue = this.warehouses
+      .map((warehouse) => this.warehouseLocationIssue(warehouse))
+      .find((issue): issue is string => !!issue);
+    if (warehouseIssue) {
+      this.activeTab = 'almacenes';
+      this.snackBar.openFromComponent(CustomSnackbarComponent, {
+        data: { message: warehouseIssue, type: 'error' },
+        duration: 7000,
+      });
       return;
     }
 

@@ -22,6 +22,7 @@ export interface CrmActivityCustomer {
   company_name: string | null;
   display_name: string;
   created_by?: CrmActivityUser | null;
+  assigned_seller?: CrmActivityUser | null;
 }
 
 export interface CrmActivity {
@@ -30,6 +31,7 @@ export interface CrmActivity {
   customer: CrmActivityCustomer | null;
   user_id: string | null;
   user: CrmActivityUser | null;
+  seller?: CrmActivityUser | null;
   type: ActivityType | string;
   status: ActivityStatus | string;
   title: string;

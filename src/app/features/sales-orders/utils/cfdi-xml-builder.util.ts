@@ -1,4 +1,5 @@
 import { SalesOrder, SalesOrderLineItem, Customer } from '../models/sales-order.model';
+import { isFiscalFlagOn } from '../../settings/utils/fiscal-tax-flags.util';
 
 export interface CfdiWizardFormValues {
   series: string;
@@ -163,6 +164,7 @@ function buildConcepto(
   item: SalesOrderLineItem,
   description?: string,
   scale: (amount: number) => number = (amount) => amount,
+  iepsEnabled = true,
 ): BuiltConcepto {
   const qty = parseNum(item.quantity);
   const unitPrice = scale(parseNum(item.unit_price));
@@ -171,7 +173,7 @@ function buildConcepto(
   const discount = gross * (discountPct / 100);
   const importe = Math.max(gross - discount, 0);
   const ivaPct = parseNum(item.iva_percentage);
-  const iepsPct = parseNum(item.ieps_percentage);
+  const iepsPct = iepsEnabled ? parseNum(item.ieps_percentage) : 0;
   const taxes: LineTax[] = [];
   if (ivaPct > 0) {
     taxes.push({
@@ -249,11 +251,17 @@ ${trasladosXml}
 export function buildCfdiXml(context: CfdiBuildContext): string {
   const { order, lineItems, form } = context;
   const fiscal = order.fiscal_configuration;
+  const iepsEnabled = isFiscalFlagOn(fiscal?.ieps_enabled, true);
   const currency = order.currency === 'USD' ? 'USD' : 'MXN';
   const exchangeRate = Number(order.exchange_rate);
   const scale = documentScale(order);
   const built = lineItems.map((item, index) =>
-    buildConcepto(item, context.descriptions?.[index], currency === 'USD' ? scale : undefined),
+    buildConcepto(
+      item,
+      context.descriptions?.[index],
+      currency === 'USD' ? scale : undefined,
+      iepsEnabled,
+    ),
   );
   const subtotalNum = built.reduce((sum, row) => sum + row.importe, 0);
   const discountNum = built.reduce((sum, row) => sum + row.discount, 0);

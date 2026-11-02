@@ -1,4 +1,5 @@
-import { Component, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -14,6 +15,7 @@ import { AccountsPayableTabComponent } from '../../components/accounts-payable-t
 import { AccountsReceivableTabComponent } from '../../components/accounts-receivable-tab/accounts-receivable-tab.component';
 import { CustomerDebtFlowComponent } from '../../components/customer-debt-flow/customer-debt-flow.component';
 import { AverageCostReportTabComponent } from '../../components/average-cost-report-tab/average-cost-report-tab.component';
+import { branchIdFromQuery, branchQueryFromId, isAllBranchesQuery } from '../../utils/branch-query.util';
 
 export type AccountingTab =
   | 'pos'
@@ -73,9 +75,13 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private route: ActivatedRoute,
     private router: Router,
+    private destroyRef: DestroyRef,
   ) {}
 
   ngOnInit(): void {
+    const fromUrl = branchIdFromQuery(this.route.snapshot.queryParamMap.get('billing_branch_id'));
+    if (fromUrl) this.billingBranchId.set(fromUrl);
+
     const initial = this.route.snapshot.data['tab'];
     if (typeof initial === 'string' && this.isAccountingTab(initial)) {
       this.activeTab.set(initial);
@@ -83,6 +89,14 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
         this.applyCurrentMonth();
       }
     }
+
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const next = branchIdFromQuery(params.get('billing_branch_id'));
+      if (next === this.billingBranchId()) return;
+      this.billingBranchId.set(next);
+      if (this.showPeriodFilters()) this.reloadActiveTab();
+    });
+
     this.loadBranches();
   }
 
@@ -122,7 +136,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   onTabChange(tabId: string): void {
     if (!this.isAccountingTab(tabId)) return;
     if (this.route.snapshot.routeConfig?.path === 'flujo-deuda' && tabId !== 'debt-flow') {
-      void this.router.navigate(['/accounting']);
+      void this.router.navigate(['/accounting'], { queryParamsHandling: 'preserve' });
       return;
     }
     const tab = tabId;
@@ -143,6 +157,9 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       this.applyCurrentMonth();
     }
     this.activeTab.set(tab);
+    if (this.branchRequired() && !this.billingBranchId()) {
+      this.applyDefaultBranch();
+    }
     this.reloadActiveTab();
   }
 
@@ -169,6 +186,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   }
 
   onBranchChange(): void {
+    this.persistBranchQuery();
     this.reloadActiveTab();
   }
 
@@ -196,20 +214,60 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       next: (branches) => {
         const list = branches ?? [];
         this.branches.set(list);
-        if (this.billingBranchId() || !list.length) {
+        const current = this.billingBranchId();
+        const currentOk = !!current && list.some((branch) => branch.id === current);
+        if (currentOk) {
+          this.persistBranchQuery();
           return;
         }
-        const sessionBranchId = this.authService.getBillingBranchId();
-        const sessionBranch = list.find((branch) => branch.id === sessionBranchId);
-        const selected = sessionBranch ?? (list.length === 1 ? list[0] : null);
-        if (selected) {
-          this.billingBranchId.set(selected.id);
+        // Flujo de deuda y "Todas" no heredan la sucursal de la sesión.
+        const raw = this.route.snapshot.queryParamMap.get('billing_branch_id');
+        if (this.activeTab() === 'debt-flow' || (isAllBranchesQuery(raw) && !this.branchRequired())) {
+          if (current) {
+            this.billingBranchId.set('');
+            if (!isAllBranchesQuery(raw)) this.persistBranchQuery();
+          }
+          return;
+        }
+        const applied = this.applyDefaultBranch();
+        if (applied) {
+          this.reloadActiveTab();
+          return;
+        }
+        if (current) {
+          this.billingBranchId.set('');
+          this.persistBranchQuery();
           this.reloadActiveTab();
         }
       },
       error: () => {
         this.branches.set([]);
       },
+    });
+  }
+
+  /** Sucursal de la sesión, o la única sucursal si no hay sesión. */
+  private applyDefaultBranch(): boolean {
+    const list = this.branches();
+    if (!list.length) return false;
+    const sessionBranchId = this.authService.getBillingBranchId();
+    const sessionBranch = list.find((branch) => branch.id === sessionBranchId);
+    const selected = sessionBranch ?? (list.length === 1 ? list[0] : null);
+    if (!selected || selected.id === this.billingBranchId()) return false;
+    this.billingBranchId.set(selected.id);
+    this.persistBranchQuery();
+    return true;
+  }
+
+  private persistBranchQuery(): void {
+    const next = branchQueryFromId(this.billingBranchId());
+    const current = this.route.snapshot.queryParamMap.get('billing_branch_id') ?? '';
+    if (current === next) return;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { billing_branch_id: next },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
     });
   }
 

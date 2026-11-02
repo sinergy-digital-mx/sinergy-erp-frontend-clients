@@ -37,12 +37,20 @@ import {
   formatVendorPickerLabel,
   isInternationalPurchaseOrder,
   collectVendorInvoiceInputs,
-  PEDIMENTO_MAX_LENGTH,
   sortVendorsByLabel,
   vendorInvoiceDraftFromOrder,
   VENDOR_INVOICE_MAX_COUNT,
   VENDOR_INVOICE_MAX_LENGTH,
 } from '../../utils/purchase-order-display.util';
+import {
+  PEDIMENTO_HINT,
+  PEDIMENTO_INPUT_MAX_LENGTH,
+  PEDIMENTO_MASK_PLACEHOLDER,
+  parsePedimentoNumber,
+  pedimentoInputValue,
+  pedimentoNumberValidator,
+} from '../../utils/pedimento-number.util';
+import { PedimentoMaskDirective } from '../../directives/pedimento-mask.directive';
 import {
   VendorCostCurrency,
   currencyMismatchMessage,
@@ -53,7 +61,7 @@ import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 @Component({
   selector: 'app-purchase-order-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, SpinnerComponent, PolluxErrorStateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, SpinnerComponent, PolluxErrorStateComponent, PedimentoMaskDirective],
   templateUrl: './purchase-order-form.component.html',
   styleUrls: ['./purchase-order-form.component.scss']
 })
@@ -67,7 +75,9 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
   /** Folio de la OC cargada: el listado busca por folio, no por UUID. */
   loadedOrderFolio = signal<string | null>(null);
   loadedOrder = signal<PurchaseOrder | null>(null);
-  readonly pedimentoMaxLength = PEDIMENTO_MAX_LENGTH;
+  readonly pedimentoMaxLength = PEDIMENTO_INPUT_MAX_LENGTH;
+  readonly pedimentoPlaceholder = PEDIMENTO_MASK_PLACEHOLDER;
+  readonly pedimentoHint = PEDIMENTO_HINT;
   readonly vendorInvoiceMaxLength = VENDOR_INVOICE_MAX_LENGTH;
   readonly vendorInvoiceMaxCount = VENDOR_INVOICE_MAX_COUNT;
   vendorInvoiceInputs = signal<string[]>(['']);
@@ -149,7 +159,7 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
         Validators.required
       ],
       payment_status: [this.paymentStatusToForm(order?.payment_status)],
-      pedimento_number: [order?.pedimento_number ?? '', [Validators.maxLength(PEDIMENTO_MAX_LENGTH)]],
+      pedimento_number: [pedimentoInputValue(order?.pedimento_number), [pedimentoNumberValidator]],
       line_items: this.fb.array([], Validators.minLength(1))
     });
 
@@ -497,6 +507,19 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     return getErrorMessage(this.orderForm.get(fieldName), fieldName);
   }
 
+  pedimentoFieldError(): string | null {
+    const control = this.orderForm?.get('pedimento_number');
+    const message = control?.errors?.['pedimentoFormat']?.message as string | undefined;
+    if (!message) {
+      return null;
+    }
+    const digits = String(control?.value ?? '').replace(/\D/g, '').length;
+    if (control?.touched || digits >= 15) {
+      return message;
+    }
+    return null;
+  }
+
   getLineItemFieldError(index: number, fieldName: string): string | null {
     if (!this.orderForm) return null;
     return getErrorMessage(this.lineItems.at(index).get(fieldName), fieldName);
@@ -508,7 +531,8 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
     }
     if (this.orderForm.invalid) {
       this.orderForm.markAllAsTouched();
-      alert('Por favor, completa todos los campos requeridos');
+      const pedimentoMessage = this.orderForm.get('pedimento_number')?.errors?.['pedimentoFormat']?.message;
+      alert(pedimentoMessage || 'Por favor, completa todos los campos requeridos');
       return;
     }
 
@@ -581,8 +605,8 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
 
     if (this.isInternationalVendor()) {
       const rawForm = this.orderForm!.getRawValue() as PurchaseOrderFormData & { pedimento_number?: string };
-      const pedimento = String(rawForm.pedimento_number || '').trim();
-      body.pedimento_number = pedimento || null;
+      const parsed = parsePedimentoNumber(rawForm.pedimento_number);
+      body.pedimento_number = parsed.valid ? parsed.formatted : String(rawForm.pedimento_number || '').trim() || null;
     }
     body.vendor_invoice_numbers = collectVendorInvoiceInputs(this.vendorInvoiceInputs());
 

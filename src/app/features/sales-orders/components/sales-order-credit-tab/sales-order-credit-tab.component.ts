@@ -61,6 +61,7 @@ import { salesOrderCreditChipLabel } from '../../utils/sales-order-credit.util';
               [available]="credit()?.credit_available ?? 0"
               [limit]="credit()?.credit_amount ?? 0"
               [percent]="credit()?.credit_usage_percent ?? 0"
+              [currency]="credit()?.credit_currency || 'MXN'"
               [days]="creditDays()">
             </app-credit-usage-bar>
           }

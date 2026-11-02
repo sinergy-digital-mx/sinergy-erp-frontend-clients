@@ -35,6 +35,7 @@
         </app-sales-filter-bar>
       </div>
 
+      @if (canViewStats()) {
       <!-- Resumen o gráfica. Las bolitas rotan solas; un clic las detiene. -->
       <section class="sales-glance" aria-label="Resumen de ventas">
         <div class="sales-glance__dots" role="tablist" aria-label="Cambiar vista">
@@ -133,6 +134,7 @@
           </app-sales-order-trend>
         }
       </section>
+      }
 
       <!-- Table -->
       <div class="hidden md:block">

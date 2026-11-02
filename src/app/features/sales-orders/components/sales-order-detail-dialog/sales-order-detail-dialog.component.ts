@@ -1351,10 +1351,10 @@ export class SalesOrderDetailDialogComponent {
     const mxn = this.parseNumber(line.amount_mxn);
     const usd = this.parseNumber(line.amount_usd);
     const parts: string[] = [];
-    if (line.amount_mxn != null && line.amount_mxn !== '') {
+    if (mxn > 0) {
       parts.push(this.formatPaymentCurrency(mxn));
     }
-    if (line.amount_usd != null && line.amount_usd !== '' && usd > 0) {
+    if (usd > 0) {
       parts.push(this.posCollectionUsd(usd));
     }
     return parts.join(' · ') || this.formatPaymentCurrency(0);
@@ -1816,6 +1816,7 @@ export class SalesOrderDetailDialogComponent {
           sku: item.product?.sku,
         },
         isNew: false,
+        iepsEnabled: this.iepsEnabled(),
       },
     });
   }

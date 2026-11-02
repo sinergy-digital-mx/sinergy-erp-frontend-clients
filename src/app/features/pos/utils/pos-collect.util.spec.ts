@@ -5,6 +5,7 @@ import {
   applyMixedRemainderToLast,
   buildCollectPayload,
   canDocumentOrderInUsd,
+  usdAmountCoveringMxn,
   collectCashShortfallMxn,
   collectCashShortfallUsd,
   collectChangeDisplay,
@@ -15,6 +16,7 @@ import {
   defaultCollectForm,
   enableMixedCard,
   fillMixedMethodWithRemainder,
+  mixedAppliedTotal,
   mixedRemainderMxn,
   mixedRemainderTarget,
   mixedSelectedCount,
@@ -79,6 +81,54 @@ describe('pago mixto — resto automático', () => {
     expect(form.mixedCardPayments[0].amountMxn).toBe(450);
   });
 
+  it('un cheque en dólares cubre la orden con el tipo de cambio', () => {
+    const total = 1079.65;
+    const form = defaultCollectForm(total, 16.8);
+    form.paymentMethod = 'check';
+    form.checkCurrency = 'USD';
+    form.amountCheckMxn = 0;
+    form.amountCheckUsd = usdAmountCoveringMxn(total, 16.8);
+    form.checkReference = 'CH-USD';
+    form.checkPayerName = 'Luis Gómez';
+    form.checkPayerPhone = '6640001122';
+
+    expect(validateCollectForm(form, total)).toBeNull();
+    expect(canDocumentOrderInUsd(form, total)).toBe(true);
+
+    const payload = buildCollectPayload(form, total, undefined, 'USD');
+    expect(payload.payment_method).toBe('check');
+    expect(payload.amount_check_usd).toBe(form.amountCheckUsd);
+    expect(payload.amount_check_mxn).toBeUndefined();
+    expect(payload.usd_exchange_rate).toBe(16.8);
+    expect(payload.order_currency).toBe('USD');
+    expect(payload.check_payer_name).toBe('Luis Gómez');
+  });
+
+  it('en mixto el cheque en dólares entra al total', () => {
+    const total = 1000;
+    const form = defaultCollectForm(total, 20);
+    form.paymentMethod = 'mixed';
+    form.mixedUsesCash = true;
+    form.mixedCashMxn = 400;
+    form.mixedReceivedMxn = 400;
+    form.mixedUsesCheck = true;
+    form.mixedCheckCurrency = 'USD';
+    form.mixedCheckMxn = 0;
+    form.mixedCheckUsd = 30;
+    form.mixedCheckRef = 'CH-2';
+    form.checkPayerName = 'Luis Gómez';
+    form.checkPayerPhone = '6640001122';
+
+    expect(mixedAppliedTotal(form)).toBe(1000);
+    expect(validateCollectForm(form, total)).toBeNull();
+
+    const payload = buildCollectPayload(form, total);
+    expect(payload.payment_method).toBe('mixed');
+    expect(payload.amount_check_usd).toBe(30);
+    expect(payload.amount_cash_mxn).toBe(400);
+    expect(payload.usd_exchange_rate).toBe(20);
+  });
+
   it('exige número de cheque en mixto', () => {
     const total = 200;
     const form = defaultCollectForm(total);
@@ -92,6 +142,10 @@ describe('pago mixto — resto automático', () => {
     expect(validateCollectForm(form, total)).toBe('Ingresa el número de cheque');
 
     form.mixedCheckRef = 'CH-1';
+    expect(validateCollectForm(form, total)).toBe('Ingresa el nombre de quien paga con cheque');
+
+    form.checkPayerName = 'Luis Gómez';
+    form.checkPayerPhone = '6640001122';
     expect(validateCollectForm(form, total)).toBeNull();
   });
 
@@ -107,6 +161,8 @@ describe('pago mixto — resto automático', () => {
       { amountMxn: 400, reference: '4242' },
       { amountMxn: 430.5, reference: '1111' },
     ];
+    form.cardPayerName = 'Ana López';
+    form.cardPayerPhone = '6641234567';
 
     expect(validateCollectForm(form, total)).toBeNull();
 
@@ -117,6 +173,24 @@ describe('pago mixto — resto automático', () => {
       { amount_mxn: 400, reference: '4242' },
       { amount_mxn: 430.5, reference: '1111' },
     ]);
+    expect(payload.card_payer_name).toBe('Ana López');
+    expect(payload.card_payer_phone).toBe('6641234567');
+  });
+
+  it('transferencia pide nombre o razón social y no teléfono', () => {
+    const total = 500;
+    const form = defaultCollectForm(total);
+    form.paymentMethod = 'transfer';
+    form.transferReference = 'SPEI-1';
+
+    expect(validateCollectForm(form, total)).toBe(
+      'Ingresa el nombre o la razón social de la transferencia',
+    );
+
+    form.transferPayerBusinessName = 'Maderería del Norte';
+    expect(validateCollectForm(form, total)).toBeNull();
+    expect(buildCollectPayload(form, total).transfer_payer_business_name).toBe('Maderería del Norte');
+    expect(buildCollectPayload(form, total).transfer_payer_name).toBeUndefined();
   });
 
   it('el faltante en pesos se convierte a dólares con el tipo de cambio', () => {
@@ -165,6 +239,34 @@ describe('pago mixto — resto automático', () => {
 
   it('el cambio en pesos también se muestra en dólares', () => {
     expect(displayCashChange(169.5, 0, 16.8)).toEqual({ mxn: 169.5, usd: 10.09 });
+  });
+
+  it('en mixto el efectivo en dólares entra al total con el tipo de cambio', () => {
+    const total = 1000;
+    const form = defaultCollectForm(total, 20);
+    form.paymentMethod = 'mixed';
+    form.mixedUsesCash = true;
+    form.mixedUsesTransfer = true;
+    form.mixedCashMxn = 200;
+    form.mixedReceivedMxn = 200;
+    form.mixedCashUsd = 10;
+    form.mixedReceivedUsd = 15;
+    form.usdExchangeRate = 20;
+    form.mixedTransferMxn = 600;
+    form.mixedTransferRef = 'SPEI-1';
+    form.transferPayerName = 'Ana';
+
+    expect(mixedAppliedTotal(form)).toBe(1000);
+    expect(collectChangeUsd(form, total)).toBe(5);
+    expect(validateCollectForm(form, total)).toBeNull();
+
+    const payload = buildCollectPayload(form, total);
+    expect(payload.payment_method).toBe('mixed');
+    expect(payload.amount_cash_mxn).toBe(200);
+    expect(payload.amount_cash_usd).toBe(10);
+    expect(payload.received_cash_usd).toBe(15);
+    expect(payload.usd_exchange_rate).toBe(20);
+    expect(payload.amount_transfer_mxn).toBe(600);
   });
 
   it('agregar otra tarjeta cuenta como un pago más', () => {

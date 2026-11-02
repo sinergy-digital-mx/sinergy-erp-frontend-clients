@@ -28,11 +28,18 @@ import {
   catalogInputNumber,
   formatVendorPickerLabel,
   collectVendorInvoiceInputs,
-  PEDIMENTO_MAX_LENGTH,
   sortVendorsByLabel,
   VENDOR_INVOICE_MAX_COUNT,
   VENDOR_INVOICE_MAX_LENGTH,
 } from '../../utils/purchase-order-display.util';
+import {
+  PEDIMENTO_HINT,
+  PEDIMENTO_INPUT_MAX_LENGTH,
+  PEDIMENTO_MASK_PLACEHOLDER,
+  parsePedimentoNumber,
+  pedimentoNumberValidator,
+} from '../../utils/pedimento-number.util';
+import { PedimentoMaskDirective } from '../../directives/pedimento-mask.directive';
 import { VendorCatalogProduct, VendorCatalogUom } from '../../models/vendor-catalog.model';
 import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 import {
@@ -58,7 +65,7 @@ interface LineItem {
 @Component({
   selector: 'app-create-purchase-order-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatAutocompleteModule, TabComponent, LucideAngularModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatAutocompleteModule, TabComponent, LucideAngularModule, PedimentoMaskDirective],
   templateUrl: './create-purchase-order-modal.component.html',
   styleUrls: ['./create-purchase-order-modal.component.scss']
 })
@@ -101,7 +108,9 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   readonly Pencil = Pencil;
   readonly Plus = Plus;
   readonly ChevronDown = ChevronDown;
-  readonly pedimentoMaxLength = PEDIMENTO_MAX_LENGTH;
+  readonly pedimentoMaxLength = PEDIMENTO_INPUT_MAX_LENGTH;
+  readonly pedimentoPlaceholder = PEDIMENTO_MASK_PLACEHOLDER;
+  readonly pedimentoHint = PEDIMENTO_HINT;
   readonly vendorInvoiceMaxLength = VENDOR_INVOICE_MAX_LENGTH;
   readonly vendorInvoiceMaxCount = VENDOR_INVOICE_MAX_COUNT;
   vendorInvoiceInputs = signal<string[]>(['']);
@@ -126,7 +135,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       vendor_id: ['', Validators.required],
       expected_delivery_date: ['', Validators.required],
       payment_status: ['Pendiente', Validators.required],
-      pedimento_number: ['', [Validators.maxLength(PEDIMENTO_MAX_LENGTH)]],
+      pedimento_number: ['', [pedimentoNumberValidator]],
       notes: ['']
     });
   }
@@ -354,7 +363,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
     const query = term.trim().toLowerCase();
     if (!query) return this.vendorOptions;
     return this.vendorOptions.filter((vendor) => {
-      const haystack = `${vendor.display_name || ''} ${vendor.name || ''} ${vendor.rfc || ''}`.toLowerCase();
+      const haystack = `${vendor.display_name || ''} ${vendor.company_name || ''} ${vendor.name || ''} ${vendor.rfc || ''}`.toLowerCase();
       return haystack.includes(query);
     });
   }
@@ -411,6 +420,19 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
 
   get isInternationalVendor(): boolean {
     return this.selectedVendor?.vendor_type === 'INTERNATIONAL';
+  }
+
+  pedimentoError(): string | null {
+    const control = this.form.get('pedimento_number');
+    const message = control?.errors?.['pedimentoFormat']?.message as string | undefined;
+    if (!message) {
+      return null;
+    }
+    const digits = String(control.value ?? '').replace(/\D/g, '').length;
+    if (control.touched || digits >= 15) {
+      return message;
+    }
+    return null;
   }
 
   canAddVendorInvoice(): boolean {
@@ -626,6 +648,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
         },
         isNew: false,
         initialTab: 'costos',
+        iepsEnabled: this.showIeps,
       },
     }).afterClosed().subscribe(() => {
       this.refreshSelectedProductFromVendor(productIdToRefresh, uomIdToRestore);
@@ -835,7 +858,9 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
 
   save(): void {
     if (!this.form.valid || this.lineItems.length === 0) {
-      this.toast.warning('Por favor completa todos los campos y agrega al menos un producto');
+      this.form.markAllAsTouched();
+      const pedimentoMessage = this.form.get('pedimento_number')?.errors?.['pedimentoFormat']?.message;
+      this.toast.warning(pedimentoMessage || 'Por favor completa todos los campos y agrega al menos un producto');
       return;
     }
 
@@ -871,8 +896,10 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       payload.notes = notes;
     }
     if (this.isInternationalVendor) {
-      const pedimento = String(fv.pedimento_number || '').trim();
-      payload.pedimento_number = pedimento || null;
+      const parsed = parsePedimentoNumber(fv.pedimento_number);
+      payload.pedimento_number = parsed.valid
+        ? parsed.formatted
+        : String(fv.pedimento_number || '').trim() || null;
     }
     payload.vendor_invoice_numbers = collectVendorInvoiceInputs(this.vendorInvoiceInputs());
 

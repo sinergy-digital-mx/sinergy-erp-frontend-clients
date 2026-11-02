@@ -11,7 +11,7 @@ export const SALES_ORDER_PERMISSIONS = {
   // Views
   viewList: 'sales_orders:Read',
   viewDetail: 'sales_orders:Read',
-  viewStats: 'sales_orders:Read',
+  viewStats: 'sales_orders:ViewStats',
 
   // CRUD operations
   create: 'sales_orders:Create',

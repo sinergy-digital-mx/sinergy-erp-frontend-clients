@@ -53,6 +53,7 @@
 
       <div class="warehouse-form__location">
         <h3>Ubicación</h3>
+        <p *ngIf="locationIssue" class="err" role="alert">{{ locationIssue }}</p>
         <app-location-map-fields
           [formGroup]="form"
           streetControl="street"
@@ -83,7 +84,7 @@
       customClass="btn_primary"
       [fullWidth]="false"
       [loading]="saving()"
-      [disabled]="form.invalid || saving()"
+      [disabled]="saving()"
       (clicked)="save()"
     >
     </app-button>

@@ -20,6 +20,7 @@ import {
   isTruthyFlag,
   unwrapCustomerPayload,
 } from '../../utils/customer-credit.util';
+import { normalizeCreditCurrency } from '../../utils/credit-currency.util';
 
 interface CreditCardDraft {
   fiscal_configuration_id: string;
@@ -27,6 +28,7 @@ interface CreditCardDraft {
   rfc: string;
   credit_enabled: boolean;
   allow_credit_exceed: boolean;
+  credit_currency: 'MXN' | 'USD';
   credit_days: string;
   credit_amount: string;
   credit_used: number;
@@ -87,6 +89,19 @@ interface CreditCardDraft {
                 </div>
               </div>
             } @else {
+              <label class="fiscal-credits__currency">
+                <span>Moneda del crédito</span>
+                <select
+                  [ngModel]="item.credit_currency"
+                  (ngModelChange)="setCurrency(item.fiscal_configuration_id, $event)"
+                  [disabled]="!canEdit || saving() || item.credit_used > 0.009">
+                  <option value="MXN">Pesos</option>
+                  <option value="USD">Dólares</option>
+                </select>
+              </label>
+              <p class="fiscal-credits__hint">
+                Una venta en la otra moneda se convierte con el tipo de cambio de la orden.
+              </p>
               <div class="fiscal-credits__fields">
                 <label>
                   <span>Días de crédito</span>
@@ -114,6 +129,7 @@ interface CreditCardDraft {
                 [available]="item.credit_available"
                 [limit]="+item.credit_amount || 0"
                 [percent]="item.credit_usage_percent"
+                [currency]="item.credit_currency"
                 [days]="item.credit_days !== '' ? +item.credit_days : null">
               </app-credit-usage-bar>
             }
@@ -198,7 +214,8 @@ interface CreditCardDraft {
       font-weight: 500;
     }
 
-    .fiscal-credits__fields input {
+    .fiscal-credits__fields input,
+    .fiscal-credits__currency select {
       width: 100%;
       height: 2.25rem;
       padding: 0 0.65rem;
@@ -206,6 +223,15 @@ interface CreditCardDraft {
       border-radius: 8px;
       font-size: 0.875rem;
       box-sizing: border-box;
+      background: #fff;
+    }
+
+    .fiscal-credits__currency span {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #64748b;
     }
   `],
 })
@@ -231,6 +257,10 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
 
   setEnabled(id: string, enabled: boolean): void {
     this.patchCard(id, { credit_enabled: enabled });
+  }
+
+  setCurrency(id: string, value: string): void {
+    this.patchCard(id, { credit_currency: value === 'USD' ? 'USD' : 'MXN' });
   }
 
   patchCard(id: string, patch: Partial<CreditCardDraft>): void {
@@ -268,6 +298,7 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
       allow_credit_exceed: item.credit_enabled ? item.allow_credit_exceed : false,
       credit_days: item.credit_enabled ? Number(item.credit_days) : null,
       credit_amount: item.credit_enabled ? Number(item.credit_amount) : null,
+      credit_currency: item.credit_currency,
     }));
   }
 
@@ -356,6 +387,7 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
     return drafts.map((item) => ({
       ...item,
       credit_enabled: true,
+      credit_currency: normalizeCreditCurrency(customer?.credit_currency ?? item.credit_currency),
       credit_days: customer?.credit_days != null ? String(customer.credit_days) : item.credit_days,
       credit_amount: customer?.credit_amount != null ? String(customer.credit_amount) : item.credit_amount,
       credit_used: Number(customer?.credit_used ?? item.credit_used),
@@ -372,6 +404,7 @@ export class CustomerFiscalCreditsComponent implements OnChanges {
       rfc: credit.rfc || '',
       credit_enabled: enabled,
       allow_credit_exceed: enabled && isTruthyFlag(credit.allow_credit_exceed),
+      credit_currency: normalizeCreditCurrency(credit.credit_currency),
       credit_days: credit.credit_days != null ? String(credit.credit_days) : '',
       credit_amount: credit.credit_amount != null ? String(credit.credit_amount) : '',
       credit_used: Number(credit.credit_used ?? 0),

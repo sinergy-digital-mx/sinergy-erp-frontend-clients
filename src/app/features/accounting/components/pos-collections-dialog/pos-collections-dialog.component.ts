@@ -15,8 +15,9 @@ import {
   PosCollectionRow,
 } from '../../models/accounting.model';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
-import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
+import { PosUserSummary } from '../../../sales-orders/models/sales-order.model';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 
 export interface PosCollectionsDialogData {
@@ -52,7 +53,7 @@ export class PosCollectionsDialogComponent implements OnInit {
   tableConfig = signal<IDatatableConfig>({
     rows: [] as PosCollectionRow[],
     columns: [
-      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 140 },
       { name: 'Fecha venta', prop: 'created_at', sortable: false, canAutoResize: false, width: 120 },
       { name: 'Fecha cobro', prop: 'collected_at', sortable: false, canAutoResize: false, width: 120 },
       { name: 'Cliente', prop: 'customer', sortable: false, canAutoResize: false, width: 170 },
@@ -118,11 +119,16 @@ export class PosCollectionsDialogComponent implements OnInit {
   }
 
   sellerLabel(row: PosCollectionRow): string {
-    return formatPosUser(row.seller_user);
+    return this.personName(row.seller_user);
   }
 
   cashierLabel(row: PosCollectionRow): string {
-    return formatPosUser(row.collected_by_user);
+    return this.personName(row.collected_by_user);
+  }
+
+  hasCollectedMoney(row: PosCollectionRow): boolean {
+    const total = row.total == null ? 0 : typeof row.total === 'number' ? row.total : Number(row.total);
+    return Number.isFinite(total) && total > 0;
   }
 
   onPageChange(event: IPaginationEvent): void {
@@ -135,6 +141,30 @@ export class PosCollectionsDialogComponent implements OnInit {
       ...ORDER_DETAIL_DIALOG_OPTIONS,
       data: { orderId: row.id },
     });
+  }
+
+  openTicket(row: PosCollectionRow): void {
+    if (!row.id || !this.hasCollectedMoney(row)) {
+      return;
+    }
+    this.dialog.open(PosReceiptPreviewDialogComponent, {
+      width: '480px',
+      maxWidth: '95vw',
+      panelClass: 'pos-dialog-panel',
+      autoFocus: false,
+      data: {
+        salesOrderId: row.id,
+        useSalesOrderTicketApi: true,
+        title: `Ticket ${row.folio || row.id}`,
+      },
+    });
+  }
+
+  private personName(user?: PosUserSummary | null): string {
+    if (!user) {
+      return '—';
+    }
+    return [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || '—';
   }
 
   private loadPage(page: number): void {

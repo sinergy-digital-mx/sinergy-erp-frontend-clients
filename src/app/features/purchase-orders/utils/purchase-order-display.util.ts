@@ -1,6 +1,7 @@
 import { formatUnitAmount } from '../../../core/utils/unit-money.util';
 import { PurchaseOrder } from '../models/purchase-order.model';
 import { formatTitleCase } from '../../sales-orders/utils/sales-order-display.util';
+import { formatPedimentoForDisplay } from './pedimento-number.util';
 
 export const PEDIMENTO_MAX_LENGTH = 30;
 export const VENDOR_INVOICE_MAX_LENGTH = 60;
@@ -39,8 +40,7 @@ export function isInternationalPurchaseOrder(order: PurchaseOrder | null | undef
 }
 
 export function formatPedimentoDisplay(value?: string | null): string {
-  const trimmed = value?.trim() ?? '';
-  return trimmed || 'Sin pedimento';
+  return formatPedimentoForDisplay(value) || 'Sin pedimento';
 }
 
 export function formatVendorInvoiceDisplay(value?: string | null): string {
@@ -114,7 +114,7 @@ export function formatVendorPickerLabel(vendor: {
   if (!vendor) {
     return '';
   }
-  const name = (vendor.name || vendor.company_name || vendor.razon_social || '').trim();
+  const name = (vendor.company_name || vendor.name || vendor.razon_social || '').trim();
   const rfc = (vendor.rfc || '').trim();
   if (!name && !rfc) {
     return '';

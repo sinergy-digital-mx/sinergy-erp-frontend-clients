@@ -55,9 +55,9 @@ export class VendorPayableDetailDialogComponent implements OnInit {
       return this.data.vendorLabel;
     }
     return (
+      detail.company_name?.trim() ||
       detail.vendor_name?.trim() ||
       detail.razon_social?.trim() ||
-      detail.company_name?.trim() ||
       this.data.vendorLabel
     );
   }

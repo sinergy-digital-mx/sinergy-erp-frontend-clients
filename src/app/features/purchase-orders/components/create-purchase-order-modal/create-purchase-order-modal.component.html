@@ -156,8 +156,13 @@
               type="text"
               class="form-input"
               formControlName="pedimento_number"
-              placeholder="Número de pedimento"
+              appPedimentoMask
+              [placeholder]="pedimentoPlaceholder"
               [attr.maxlength]="pedimentoMaxLength">
+            <p class="field-hint">{{ pedimentoHint }}</p>
+            @if (pedimentoError()) {
+              <p class="field-error">{{ pedimentoError() }}</p>
+            }
           </div>
         }
 

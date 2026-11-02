@@ -161,6 +161,7 @@ export class PosDailyShiftDetailModalComponent {
         collectedTransferMxn: parsePosMoney(drawer?.collected_transfer_mxn),
         collectedCardMxn: parsePosMoney(drawer?.collected_card_mxn),
         collectedCheckMxn: parsePosMoney(drawer?.collected_check_mxn),
+        collectedCheckUsd: parsePosMoney(drawer?.collected_check_usd),
         collectedCreditMxn: parsePosMoney(drawer?.collected_credit_mxn),
         removedMxn,
         removedUsd,

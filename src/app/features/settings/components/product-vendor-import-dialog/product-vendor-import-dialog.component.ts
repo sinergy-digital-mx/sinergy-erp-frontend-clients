@@ -16,6 +16,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ProductService } from '../../services/product.service';
 import { VendorService } from '../../services/vendor.service';
 import { Vendor, VendorListResponse } from '../../models/vendor.model';
+import { vendorCompanyName } from '../../utils/vendor-profile.util';
 import {
   PriceList,
   VendorCatalogImportPreview,
@@ -118,7 +119,7 @@ export class ProductVendorImportDialogComponent implements OnInit, OnDestroy {
     if (!vendor || typeof vendor === 'string') {
       return typeof vendor === 'string' ? vendor : '';
     }
-    return vendor.name ?? '';
+    return vendorCompanyName(vendor);
   };
 
   onVendorSearchFocus(): void {

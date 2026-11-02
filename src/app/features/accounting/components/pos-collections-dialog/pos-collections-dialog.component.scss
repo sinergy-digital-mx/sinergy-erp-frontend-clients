@@ -101,6 +101,13 @@
   overflow: auto;
 }
 
+.folio-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
 .folio-link {
   border: none;
   background: transparent;
@@ -109,6 +116,34 @@
   font-weight: 600;
   cursor: pointer;
   padding: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  cursor: pointer;
+
+  i {
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+
+  &:hover {
+    background: #e0e7ff;
+  }
 }
 
 .folio-link:hover {

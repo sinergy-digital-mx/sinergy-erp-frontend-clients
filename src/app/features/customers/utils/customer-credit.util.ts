@@ -88,6 +88,7 @@ export function pickCustomerCreditForFiscal(
     credit_enabled: customer.credit_enabled,
     credit_days: customer.credit_days,
     credit_amount: customer.credit_amount,
+    credit_currency: customer.credit_currency,
     credit_used: customer.credit_used,
     credit_available: customer.credit_available,
     credit_usage_percent: customer.credit_usage_percent,

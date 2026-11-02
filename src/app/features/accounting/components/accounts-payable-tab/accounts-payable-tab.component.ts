@@ -88,7 +88,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
   }
 
   vendorLabel(row: AccountsPayableVendorRow): string {
-    return row.vendor_name?.trim() || row.razon_social?.trim() || row.company_name?.trim() || '—';
+    return row.company_name?.trim() || row.vendor_name?.trim() || row.razon_social?.trim() || '—';
   }
 
   formatMoney(value: number | null | undefined, currency: 'MXN' | 'USD'): string {

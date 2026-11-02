@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -15,7 +16,9 @@ import {
   InventoryExportDialogResult,
 } from '../inventory-export-dialog/inventory-export-dialog.component';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import { INVENTORY_PERMISSIONS } from '../../config/permissions.config';
 
 @Component({
   selector: 'app-inventory-batch-list',
@@ -39,7 +42,10 @@ export class InventoryBatchListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
   readonly state = inject(InventoryListState);
+  readonly canViewStats = signal(this.auth.hasPermission(INVENTORY_PERMISSIONS.viewStats));
 
   readonly ArrowRightLeft = ArrowRightLeft;
   readonly ClipboardCheck = ClipboardCheck;
@@ -47,7 +53,7 @@ export class InventoryBatchListComponent implements OnInit {
 
   locations = signal<InventoryLocationFiscal[]>([]);
   stats = signal<InventoryStats | null>(null);
-  statsLoading = signal(true);
+  statsLoading = signal(this.canViewStats());
   statsFailed = signal(false);
 
   selectedFiscal = computed(() =>
@@ -69,6 +75,20 @@ export class InventoryBatchListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    let known = false;
+    this.auth.permissions$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      const allowed = this.auth.hasPermission(INVENTORY_PERMISSIONS.viewStats);
+      const changed = known && allowed !== this.canViewStats();
+      known = true;
+      this.canViewStats.set(allowed);
+      if (!allowed) {
+        this.stats.set(null);
+        this.statsLoading.set(false);
+        this.statsFailed.set(false);
+        return;
+      }
+      if (changed) this.loadStats();
+    });
     this.loadLocations();
   }
 
@@ -166,6 +186,12 @@ export class InventoryBatchListComponent implements OnInit {
   }
 
   private loadStats(): void {
+    if (!this.canViewStats()) {
+      this.stats.set(null);
+      this.statsLoading.set(false);
+      this.statsFailed.set(false);
+      return;
+    }
     this.statsLoading.set(true);
     this.statsFailed.set(false);
 

@@ -1407,6 +1407,7 @@ export class OrderDetailDialogComponent {
           sku: item.product?.sku,
         },
         isNew: false,
+        iepsEnabled: this.iepsEnabled(),
       },
     });
   }

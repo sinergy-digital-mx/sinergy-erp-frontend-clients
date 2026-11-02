@@ -4,7 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, X } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { VendorMatchReason, VendorSimilarMatch } from '../../models/vendor.model';
-import { VENDOR_MATCH_REASON_LABELS } from '../../utils/vendor-profile.util';
+import { vendorCompanyName, VENDOR_MATCH_REASON_LABELS } from '../../utils/vendor-profile.util';
 
 export interface VendorDuplicateWarningDialogData {
   matches: VendorSimilarMatch[];
@@ -42,16 +42,18 @@ export class VendorDuplicateWarningDialogComponent {
       : 'Hay un proveedor que parece familiar. Revisa si ya existe antes de crear uno nuevo.';
   }
 
+  companyLabel(match: VendorSimilarMatch): string {
+    return vendorCompanyName(match) || 'Proveedor';
+  }
+
   reasonLabels(reasons: VendorMatchReason[]): string[] {
-    return (reasons ?? []).map((reason) => VENDOR_MATCH_REASON_LABELS[reason]).filter(Boolean);
+    return [...new Set((reasons ?? []).map((reason) => VENDOR_MATCH_REASON_LABELS[reason]).filter(Boolean))];
   }
 
   secondaryLine(match: VendorSimilarMatch): string {
     const rfc = (match.rfc ?? '').trim();
     const taxId = (match.tax_id ?? '').trim();
-    return [(match.company_name ?? '').trim(), rfc ? `RFC ${rfc}` : '', taxId ? `ID ${taxId}` : '']
-      .filter(Boolean)
-      .join(' · ');
+    return [rfc ? `RFC ${rfc}` : '', taxId ? `ID ${taxId}` : ''].filter(Boolean).join(' · ');
   }
 
   continueAnyway(): void {

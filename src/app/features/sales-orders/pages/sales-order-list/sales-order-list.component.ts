@@ -1,4 +1,5 @@
-import { Component, OnDestroy, OnInit, signal, computed, ViewChild, TemplateRef } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, inject, signal, computed, ViewChild, TemplateRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -30,6 +31,8 @@ import {
 } from '../../utils/sales-order-display.util';
 import { salesOrderListPaymentMetaLabel } from '../../utils/sales-order-collection.util';
 import { getInvoiceStatusLabel } from '../../utils/cfdi-xml-builder.util';
+import { AuthService } from '../../../../core/services/auth.service';
+import { SALES_ORDER_PERMISSIONS } from '../../config/permissions.config';
 
 @Component({
   selector: 'app-sales-order-list',
@@ -40,6 +43,10 @@ import { getInvoiceStatusLabel } from '../../utils/cfdi-xml-builder.util';
 })
 export class SalesOrderListComponent implements OnInit, OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
+
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly authService = inject(AuthService);
+  readonly canViewStats = signal(this.authService.hasPermission(SALES_ORDER_PERMISSIONS.viewStats));
 
   readonly Math = Math;
 
@@ -145,8 +152,25 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadOrders();
-    this.loadTrend();
-    this.startGlance();
+    let known = false;
+    this.authService.permissions$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      const allowed = this.authService.hasPermission(SALES_ORDER_PERMISSIONS.viewStats);
+      const changed = known && allowed !== this.canViewStats();
+      const first = !known;
+      known = true;
+      this.canViewStats.set(allowed);
+      if (!allowed) {
+        this.stopGlance();
+        this.trend.set(null);
+        this.trendLoading.set(false);
+        this.trendError.set(false);
+        return;
+      }
+      if (first || changed) {
+        this.loadTrend();
+        if (this.glanceTimer == null) this.startGlance();
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -235,10 +259,16 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
       replaceUrl: true,
     });
     this.loadOrders();
-    this.loadTrend();
+    if (this.canViewStats()) this.loadTrend();
   }
 
   loadTrend(): void {
+    if (!this.canViewStats()) {
+      this.trend.set(null);
+      this.trendLoading.set(false);
+      this.trendError.set(false);
+      return;
+    }
     const seq = ++this.trendSeq;
     this.trendLoading.set(true);
     this.trendError.set(false);

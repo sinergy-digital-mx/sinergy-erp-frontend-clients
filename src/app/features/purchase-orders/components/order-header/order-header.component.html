@@ -17,7 +17,7 @@
     <div class="order-header__row">
       <div class="order-header__field">
         <span class="label">PROVEEDOR:</span>
-        <span class="value">{{ order.vendor?.name || 'N/A' }}</span>
+        <span class="value">{{ order.vendor?.company_name || order.vendor?.name || 'N/A' }}</span>
       </div>
       <div class="order-header__field">
         <span class="label">ALMACÉN:</span>

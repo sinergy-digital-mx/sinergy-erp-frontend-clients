@@ -22,6 +22,8 @@ import { formatPurchaseOrderUnitCost } from '../../utils/purchase-order-display.
 export class LineItemsTableComponent {
   @Input() lineItems: LineItem[] = [];
   @Input() editable: boolean = false;
+  /** Apagado cuando la razón social no calcula IEPS. */
+  @Input() iepsEnabled = true;
   @Output() lineItemChange = new EventEmitter<LineItem>();
   @Output() lineItemRemove = new EventEmitter<number>();
 
@@ -32,6 +34,14 @@ export class LineItemsTableComponent {
    */
   get useVirtualScroll(): boolean {
     return this.lineItems.length > 50;
+  }
+
+  get showIeps(): boolean {
+    return this.iepsEnabled !== false;
+  }
+
+  get columnCount(): number {
+    return this.showIeps ? 8 : 7;
   }
 
   /**

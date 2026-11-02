@@ -2,6 +2,10 @@
 
 Listado y modal de proveedores. Contrato: `src/api/vendor/docs/UI_VENDOR_PROFILE.md` del backend.
 
+## 2026-11-02 — Sin campo Nombre
+
+El modal pide **Nombre de empresa** (obligatorio) y **Razón social**. Ya no hay input **Nombre**. El listado muestra una sola columna **Empresa**. Compras, costos y cuentas por pagar usan ese nombre.
+
 ## Listado
 
 - Columna **Ficha**: barra + `%` (`profile_completeness`).

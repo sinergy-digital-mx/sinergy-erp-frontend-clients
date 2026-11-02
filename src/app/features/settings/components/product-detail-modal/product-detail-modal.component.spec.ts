@@ -5,8 +5,14 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProductDetailModalComponent } from './product-detail-modal.component';
 import { ProductService } from '../../services/product.service';
+import { FiscalConfigurationService } from '../../services/fiscal-configuration.service';
 import { Product, ProductListResponse } from '../../models/product.model';
 import { of, throwError } from 'rxjs';
+
+const fiscalConfigStub = {
+  listFiscalConfigurations: () => of({ data: [{ ieps_enabled: true, status: 'active' }] }),
+  getFiscalConfiguration: () => of({ ieps_enabled: true }),
+};
 
 describe('ProductDetailModalComponent', () => {
   let component: ProductDetailModalComponent;
@@ -51,7 +57,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: null } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: null } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -119,7 +126,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -201,7 +209,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -572,7 +581,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -618,7 +628,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -668,7 +679,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -720,7 +732,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -772,7 +785,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -1073,7 +1087,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -1362,7 +1377,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -1473,7 +1489,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: otherTenantProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: otherTenantProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -1607,7 +1624,8 @@ describe('ProductDetailModalComponent', () => {
         { provide: ProductService, useValue: productServiceSpy },
         { provide: MatDialogRef, useValue: dialogRefSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: MAT_DIALOG_DATA, useValue: { product: otherTenantProduct } }
+        { provide: MAT_DIALOG_DATA, useValue: { product: otherTenantProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
       ]
     }).compileComponents();
 
@@ -1758,7 +1776,8 @@ describe('ProductDetailModalComponent', () => {
           { provide: ProductService, useValue: productServiceSpy },
           { provide: MatDialogRef, useValue: dialogRefSpy },
           { provide: MatSnackBar, useValue: snackBarSpy },
-          { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+          { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
         ]
       }).compileComponents();
 
@@ -1898,7 +1917,8 @@ describe('ProductDetailModalComponent', () => {
           { provide: ProductService, useValue: productServiceSpy },
           { provide: MatDialogRef, useValue: dialogRefSpy },
           { provide: MatSnackBar, useValue: snackBarSpy },
-          { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } }
+          { provide: MAT_DIALOG_DATA, useValue: { product: mockProduct } },
+        { provide: FiscalConfigurationService, useValue: fiscalConfigStub }
         ]
       }).compileComponents();
 

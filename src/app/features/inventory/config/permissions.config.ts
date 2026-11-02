@@ -11,7 +11,7 @@ export const INVENTORY_PERMISSIONS = {
   // Views
   viewList: 'inventory:Read',
   viewDetail: 'inventory:Read',
-  viewStats: 'inventory:Read',
+  viewStats: 'inventory:ViewStats',
   viewBatches: 'inventory:Read',
 
   /** Reporte de existencia / kardex */

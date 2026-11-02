@@ -10,6 +10,8 @@ import { Product } from '../../../purchase-orders/models/product.model';
 import { Warehouse } from '../../../purchase-orders/models/warehouse.model';
 import { SalesOrder, Customer } from '../../models/sales-order.model';
 import { validateQuantity, validatePrice, validateTaxPercentage, getErrorMessage } from '../../../purchase-orders/utils/order-validators';
+import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
+import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 
 @Component({
   selector: 'app-sales-order-form',
@@ -36,6 +38,7 @@ export class SalesOrderFormComponent implements OnInit {
     total_ieps: 0,
     grand_total: 0
   });
+  showIeps = signal(false);
 
   get lineItems(): FormArray {
     return this.orderForm.get('line_items') as FormArray;
@@ -48,12 +51,14 @@ export class SalesOrderFormComponent implements OnInit {
     private salesOrderService: SalesOrderService,
     private taxCalculator: TaxCalculatorService,
     private productService: ProductService,
-    private warehouseService: WarehouseService
+    private warehouseService: WarehouseService,
+    private fiscalConfigService: FiscalConfigurationService,
   ) {}
 
   ngOnInit(): void {
     this.initForm();
     this.loadDropdownData();
+    this.loadIepsPolicy();
     
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -112,7 +117,7 @@ export class SalesOrderFormComponent implements OnInit {
         item.quantity || 0,
         item.unit_price || 0,
         item.iva_percentage || 0,
-        item.ieps_percentage || 0
+        this.showIeps() ? item.ieps_percentage || 0 : 0
       );
       
       total_subtotal += calculations.subtotal;
@@ -230,7 +235,7 @@ export class SalesOrderFormComponent implements OnInit {
       item.quantity || 0,
       item.unit_price || 0,
       item.iva_percentage || 0,
-      item.ieps_percentage || 0
+      this.showIeps() ? item.ieps_percentage || 0 : 0
     );
   }
 
@@ -260,6 +265,12 @@ export class SalesOrderFormComponent implements OnInit {
     
     this.saving.set(true);
     const formData = this.orderForm.value;
+    if (!this.showIeps() && Array.isArray(formData.line_items)) {
+      formData.line_items = formData.line_items.map((item: { ieps_percentage?: number }) => ({
+        ...item,
+        ieps_percentage: 0,
+      }));
+    }
     
     console.log('Form data being sent:', formData);
     console.log('Line items:', formData.line_items);
@@ -304,5 +315,20 @@ export class SalesOrderFormComponent implements OnInit {
    */
   formatCurrency(amount: number): string {
     return this.taxCalculator.formatCurrency(amount);
+  }
+
+  private loadIepsPolicy(): void {
+    this.fiscalConfigService.listFiscalConfigurations({ status: 'active', limit: 100 }).subscribe({
+      next: (res) => {
+        const payload = Array.isArray(res) ? res : (res?.data ?? []);
+        const rows = Array.isArray(payload) ? payload : [];
+        const enabled = rows.length
+          ? rows.some((row) => isFiscalFlagOn(row.ieps_enabled, true))
+          : true;
+        this.showIeps.set(enabled);
+        this.calculateTotals();
+      },
+      error: () => this.showIeps.set(true),
+    });
   }
 }

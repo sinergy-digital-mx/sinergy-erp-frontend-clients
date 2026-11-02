@@ -1,5 +1,9 @@
 # UI — Pedimento en detalle de lote
 
+## Cambios
+
+- 2026-11-02: Si el número tiene 15 dígitos, se pinta `26  47  3807  6000123` (dos espacios entre año, aduana y patente). La validación al capturar está en la orden de compra.
+
 Si el lote viene de una orden de compra, el pedimento vive en la OC. El lote apunta a esa OC (`purchase_order_batch_id`); al recibir se copia esa relación, y al transferir se conserva.
 
 Si el lote se creó con **Importación de inventario** (reporte CLAVE SAT / pedimentos), el pedimento se guarda en el lote: `pedimento_number` (el de fecha más reciente) y la lista completa. Al transferir se copian esos campos.
@@ -34,7 +38,7 @@ const pedimentos = batch.pedimento_numbers?.filter((value) => value.trim()) ?? [
 
 | Condición | UI |
 |-----------|-----|
-| `pedimento_numbers` con valores | Mostrar cada número (mismo formato que en OC; no validar SAT) |
+| `pedimento_numbers` con valores | Mostrar cada número. Si tiene 15 dígitos, con la máscara de la OC |
 | Lista vacía y `pedimento_number` vacío | No mostrar la card |
 | Sin OC y sin pedimento en el lote | No hay pedimento |
 

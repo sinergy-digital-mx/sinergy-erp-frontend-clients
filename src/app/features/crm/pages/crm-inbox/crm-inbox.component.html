@@ -194,9 +194,9 @@
                     <span>{{ activity.customer?.display_name || ('#' + activity.customer_id) }}</span>
                     <lucide-icon [img]="ExternalLinkIcon" [size]="12"></lucide-icon>
                   </button>
-                  @if (creatorName(activity); as name) {
-                    <span class="crm-creator" [title]="'Creado por ' + name">
-                      Creado por {{ name }}
+                  @if (sellerName(activity); as name) {
+                    <span class="crm-creator" [title]="'Vendedor ' + name">
+                      Vendedor {{ name }}
                     </span>
                   }
                 </div>

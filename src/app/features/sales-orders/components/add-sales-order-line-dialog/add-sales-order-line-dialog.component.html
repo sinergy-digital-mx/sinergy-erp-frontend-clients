@@ -38,6 +38,20 @@
           <span>Ver producto</span>
         </button>
       </div>
+      @if (missingProductUom) {
+        <div class="uom-missing" role="alert">
+          <p>
+            Este {{ selectedItemNoun }} no tiene unidad de medida. Necesitas una para agregarlo a la venta.
+          </p>
+          <button
+            type="button"
+            class="uom-missing__action"
+            [disabled]="refreshingUoms() || saving()"
+            (click)="openProductUomEditor()">
+            {{ refreshingUoms() ? 'Cargando…' : 'Agregar unidad' }}
+          </button>
+        </div>
+      }
     </div>
 
     <div class="form-grid">

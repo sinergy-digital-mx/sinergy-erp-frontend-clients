@@ -21,6 +21,7 @@ export interface CloseDailyShiftDialogData {
   collectedTransferMxn: number;
   collectedCardMxn: number;
   collectedCheckMxn: number;
+  collectedCheckUsd?: number;
   collectedCreditMxn: number;
   removedMxn: number;
   removedUsd: number;
@@ -112,6 +113,19 @@ export class CloseDailyShiftDialogComponent {
 
   formatMxn(value: number): string {
     return formatPosMoney(value);
+  }
+
+  checkOutsideLabel(): string {
+    const mxn = this.data.collectedCheckMxn;
+    const usd = this.data.collectedCheckUsd ?? 0;
+    const parts: string[] = [];
+    if (mxn > 0.009) {
+      parts.push(this.formatMxn(mxn));
+    }
+    if (usd > 0.009) {
+      parts.push(this.formatMoney('USD', usd));
+    }
+    return parts.length > 0 ? parts.join(' + ') : this.formatMxn(0);
   }
 
   formatMoney(currency: 'MXN' | 'USD', value: number): string {

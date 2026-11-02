@@ -36,6 +36,7 @@ import {
 import {
   completenessLevel as completenessTone,
   computeVendorCompleteness,
+  vendorCompanyName,
   VENDOR_MATCH_REASON_LABELS,
 } from '../../utils/vendor-profile.util';
 
@@ -66,6 +67,7 @@ export class VendorDetailModalComponent implements OnDestroy {
   activeTab = signal<VendorTabId>('general');
   isNew = true;
   readonly vendorDeletePermission = SETTINGS_PERMISSIONS.vendors.delete;
+  readonly vendorCompanyName = vendorCompanyName;
   private duplicateWarningAccepted = false;
 
   tabs: TabItem[] = [
@@ -133,6 +135,7 @@ export class VendorDetailModalComponent implements OnDestroy {
       this.form.patchValue({
         ...data.vendor,
         vendor_type: data.vendor.vendor_type ?? 'NATIONAL',
+        company_name: data.vendor.company_name || data.vendor.name || '',
         tax_id: data.vendor.tax_id ?? '',
         rfc: data.vendor.rfc ?? '',
         credit_limit: data.vendor.credit_limit ?? 0,
@@ -210,7 +213,7 @@ export class VendorDetailModalComponent implements OnDestroy {
       maxWidth: '95vw',
       data: {
         vendorId: vendor.id,
-        vendorLabel: vendor.name || vendor.razon_social || vendor.company_name || 'Proveedor',
+        vendorLabel: vendorCompanyName(vendor) || vendor.razon_social || 'Proveedor',
         currency: 'all',
       },
     });
@@ -235,8 +238,7 @@ export class VendorDetailModalComponent implements OnDestroy {
   private createForm(): FormGroup {
     return this.fb.group({
       vendor_type: ['NATIONAL' as VendorType, Validators.required],
-      name: ['', [Validators.required, Validators.minLength(2)]],
-      company_name: [''],
+      company_name: ['', [Validators.required, Validators.minLength(2)]],
       street: [''],
       city: [''],
       state: [''],
@@ -376,8 +378,10 @@ export class VendorDetailModalComponent implements OnDestroy {
     const v = this.form.getRawValue();
     const trim = (s: string | null | undefined) => s?.trim() || '';
     const payload: CheckVendorDuplicatesDto = {};
-    if (trim(v.name)) payload.name = trim(v.name);
-    if (trim(v.company_name)) payload.company_name = trim(v.company_name);
+    if (trim(v.company_name)) {
+      payload.company_name = trim(v.company_name);
+      payload.name = trim(v.company_name);
+    }
     if (trim(v.razon_social)) payload.razon_social = trim(v.razon_social);
     if (trim(v.legal_name)) payload.legal_name = trim(v.legal_name);
     if (trim(v.rfc)) payload.rfc = trim(v.rfc);
@@ -421,10 +425,11 @@ export class VendorDetailModalComponent implements OnDestroy {
     }
 
     const vendor = this.data.vendor;
-    const similarName = vendor.similar_vendors?.[0]?.name;
+    const similarName = vendorCompanyName(vendor.similar_vendors?.[0]);
+    const label = vendorCompanyName(vendor) || 'este proveedor';
     const message = similarName
-      ? `¿Eliminar "${vendor.name}"? Si tiene compras, se conservarán en "${similarName}".`
-      : `¿Eliminar "${vendor.name}"? Si tiene compras y no hay otro parecido, se desactivará para conservar el historial.`;
+      ? `¿Eliminar "${label}"? Si tiene compras, se conservarán en "${similarName}".`
+      : `¿Eliminar "${label}"? Si tiene compras y no hay otro parecido, se desactivará para conservar el historial.`;
 
     this.dialog
       .open(AlertDialogComponent, {
@@ -462,10 +467,11 @@ export class VendorDetailModalComponent implements OnDestroy {
     const trim = (s: string | null | undefined) => s?.trim() || undefined;
     const type = v.vendor_type as VendorType;
 
+    const companyName = trim(v.company_name)!;
     const base: CreateVendorDto = {
       vendor_type: type,
-      name: trim(v.name)!,
-      company_name: trim(v.company_name),
+      name: companyName,
+      company_name: companyName,
       street: trim(v.street),
       city: trim(v.city),
       state: trim(v.state),
@@ -507,7 +513,6 @@ export class VendorDetailModalComponent implements OnDestroy {
     const tabFields: Record<VendorTabId, string[]> = {
       general: [
         'vendor_type',
-        'name',
         'company_name',
         'rfc',
         'razon_social',

@@ -34,9 +34,21 @@
 
 <ng-template #tableTemplate let-item="$implicit">
   <td class="px-2 py-2">
-    <button type="button" class="folio-link" (click)="openSalesOrder(item)">
-      {{ item.folio || item.id?.substring(0, 8) }}
-    </button>
+    <div class="folio-cell">
+      <button type="button" class="folio-link" (click)="openSalesOrder(item)">
+        {{ item.folio || item.id?.substring(0, 8) }}
+      </button>
+      @if (hasCollectedMoney(item)) {
+        <button
+          type="button"
+          class="ticket-eye"
+          (click)="openTicket(item)"
+          title="Ver ticket"
+          aria-label="Ver ticket de venta">
+          <i class="fi fi-rr-eye" aria-hidden="true"></i>
+        </button>
+      }
+    </div>
   </td>
   <td class="px-2 py-2">{{ formatDate(item.created_at) }}</td>
   <td class="px-2 py-2">{{ formatDate(item.collected_at) }}</td>

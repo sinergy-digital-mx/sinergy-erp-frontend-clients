@@ -14,7 +14,7 @@
       >
         <option value="">Selecciona un proveedor</option>
         <option *ngFor="let vendor of vendors" [value]="vendor.id">
-          {{ vendor.name }}
+          {{ vendor.company_name || vendor.name }}
         </option>
       </select>
       <span 

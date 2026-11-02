@@ -32,11 +32,13 @@
         </div>
       </div>
 
-      <app-inventory-stats-cards
-        [stats]="stats()"
-        [loading]="statsLoading()"
-        [failed]="statsFailed()">
-      </app-inventory-stats-cards>
+      @if (canViewStats()) {
+        <app-inventory-stats-cards
+          [stats]="stats()"
+          [loading]="statsLoading()"
+          [failed]="statsFailed()">
+        </app-inventory-stats-cards>
+      }
 
       <div class="mb-4">
         <div class="filter-bar" role="search" aria-label="Filtros de inventario">

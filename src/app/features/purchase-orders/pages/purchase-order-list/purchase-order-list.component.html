@@ -31,6 +31,7 @@
         </app-filter-bar>
       </div>
 
+      @if (canViewStats()) {
       <div class="po-stats">
         <article class="po-stats-card">
           <header class="po-stats-card__header">
@@ -146,6 +147,7 @@
           </div>
         </article>
       </div>
+      }
 
       <!-- Desktop Table -->
       <div class="hidden md:block">
@@ -181,7 +183,7 @@
               
               <div class="space-y-2">
                 <div class="text-sm text-gray-600">
-                  <div><strong>Proveedor:</strong> {{ order.vendor?.name || 'N/A' }}</div>
+                  <div><strong>Proveedor:</strong> {{ order.vendor?.company_name || order.vendor?.name || 'N/A' }}</div>
                   <div><strong>Razón social:</strong> {{ getFiscalLabel(order) }}</div>
                   <div><strong>Sucursal:</strong> {{ getBranchLabel(order) }}</div>
                   <div><strong>Almacén:</strong> {{ getWarehouseLabel(order) }}</div>
@@ -241,7 +243,7 @@
     <span class="dt-folio-badge dt-folio-badge--odc">{{ item.folio }}</span>
   </td>
   <td class="w-[150px]">
-    <p class="dt-cell-muted truncate m-0">{{ item.vendor?.name || 'N/A' }}</p>
+    <p class="dt-cell-muted truncate m-0">{{ item.vendor?.company_name || item.vendor?.name || 'N/A' }}</p>
   </td>
   <td class="w-[150px]">
     <p class="dt-cell-muted truncate m-0">{{ getFiscalLabel(item) }}</p>

@@ -9,6 +9,8 @@ import { ToastType } from '../../../../core/models/toast.model';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ProductService } from '../../services/product.service';
+import { FiscalConfigurationService } from '../../services/fiscal-configuration.service';
+import { isFiscalFlagOn } from '../../utils/fiscal-tax-flags.util';
 import {
   Product,
   CreateProductDto,
@@ -151,6 +153,12 @@ export class ProductDetailModalComponent implements OnInit {
   attributeValueModalVisible = false;
 
   // Formularios de modales secundarios
+  /** IEPS solo si la razón social (o alguna activa de la organización) lo tiene prendido. */
+  showIeps = false;
+  private iepsLocked = false;
+  private tenantIepsEnabled = true;
+  private iepsPolicyReady = false;
+
   priceForm: any = this.getEmptyPriceForm();
   costForm: any = this.getEmptyCostForm();
   discountForm: any = this.getEmptyDiscountForm();
@@ -162,7 +170,14 @@ export class ProductDetailModalComponent implements OnInit {
 
   constructor(
     private productService: ProductService,
-    @Inject(MAT_DIALOG_DATA) public data: { product?: Product; isNew?: boolean; initialTab?: string },
+    private fiscalConfigService: FiscalConfigurationService,
+    @Inject(MAT_DIALOG_DATA) public data: {
+      product?: Product;
+      isNew?: boolean;
+      initialTab?: string;
+      iepsEnabled?: boolean;
+      fiscalConfigurationId?: string;
+    },
     private dialogRef: MatDialogRef<ProductDetailModalComponent>,
     private dialog: MatDialog,
     private toast: ToastService,
@@ -240,6 +255,7 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadIepsPolicy();
     console.log('ProductDetailModal ngOnInit - data:', this.data);
     
     // Si recibimos un producto, cargar su detalle completo del backend
@@ -1425,7 +1441,7 @@ export class ProductDetailModalComponent implements OnInit {
       product_uom_id: this.priceForm.product_uom_id,
       price: Number(this.priceForm.price),
       iva_percentage: Number(this.priceForm.iva_percentage) || 0,
-      ieps_percentage: Number(this.priceForm.ieps_percentage) || 0
+      ieps_percentage: this.iepsToSave(this.priceForm.ieps_percentage)
     };
 
     if (this.priceForm.id) {
@@ -1538,7 +1554,7 @@ export class ProductDetailModalComponent implements OnInit {
       product_uom_id: this.costForm.product_uom_id,
       cost: Number(this.costForm.cost),
       iva_percentage: Number(this.costForm.iva_percentage) || 0,
-      ieps_percentage: Number(this.costForm.ieps_percentage) || 0,
+      ieps_percentage: this.iepsToSave(this.costForm.ieps_percentage),
       currency
     };
 
@@ -1869,6 +1885,73 @@ export class ProductDetailModalComponent implements OnInit {
       value: '',
       is_active: true
     };
+  }
+
+  catalogGross(base: unknown, iva: unknown, ieps: unknown): number {
+    return (Number(base) || 0) + (Number(iva) || 0) + (this.showIeps ? Number(ieps) || 0 : 0);
+  }
+
+  catalogHint(baseLabel: string, base: unknown, iva: unknown, ieps: unknown): string {
+    const lines = [
+      `${baseLabel}: $${this.money(base)}`,
+      `IVA: $${this.money(iva)}`,
+    ];
+    if (this.showIeps) {
+      lines.push(`IEPS: $${this.money(ieps)}`);
+    }
+    lines.push(`Total: $${this.money(this.catalogGross(base, iva, ieps))}`);
+    return lines.join('\n');
+  }
+
+  private money(value: unknown): string {
+    return (Number(value) || 0).toFixed(2);
+  }
+
+  private iepsToSave(raw: unknown): number {
+    if (this.showIeps) return Number(raw) || 0;
+    if (!this.iepsPolicyReady) return Number(raw) || 0;
+    if (this.tenantIepsEnabled) return Number(raw) || 0;
+    return 0;
+  }
+
+  private loadIepsPolicy(): void {
+    if (typeof this.data?.iepsEnabled === 'boolean') {
+      this.showIeps = this.data.iepsEnabled;
+      this.iepsLocked = true;
+    } else if (this.data?.fiscalConfigurationId) {
+      this.fiscalConfigService.getFiscalConfiguration(this.data.fiscalConfigurationId).subscribe({
+        next: (config) => {
+          this.showIeps = isFiscalFlagOn(config?.ieps_enabled, true);
+          this.iepsLocked = true;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          if (this.iepsPolicyReady) {
+            this.showIeps = this.tenantIepsEnabled;
+            this.cdr.detectChanges();
+          }
+        },
+      });
+    }
+
+    this.fiscalConfigService.listFiscalConfigurations({ status: 'active', limit: 100 }).subscribe({
+      next: (res) => {
+        const payload = Array.isArray(res) ? res : (res?.data ?? []);
+        const rows = Array.isArray(payload) ? payload : [];
+        this.tenantIepsEnabled = rows.length
+          ? rows.some((row) => isFiscalFlagOn(row.ieps_enabled, true))
+          : true;
+        this.iepsPolicyReady = true;
+        if (!this.iepsLocked) this.showIeps = this.tenantIepsEnabled;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.tenantIepsEnabled = true;
+        this.iepsPolicyReady = true;
+        if (!this.iepsLocked) this.showIeps = true;
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   getUomName(uomId: string): string {

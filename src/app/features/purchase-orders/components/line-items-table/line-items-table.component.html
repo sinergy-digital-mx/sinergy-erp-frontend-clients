@@ -13,7 +13,7 @@
               <th role="columnheader" scope="col" class="text-right">COSTO UNIT.</th>
               <th role="columnheader" scope="col" class="text-right">SUBTOTAL</th>
               <th role="columnheader" scope="col" class="text-right">IVA</th>
-              <th role="columnheader" scope="col" class="text-right">IEPS</th>
+              <th *ngIf="showIeps" role="columnheader" scope="col" class="text-right">IEPS</th>
               <th role="columnheader" scope="col" class="text-right">TOTAL</th>
             </tr>
           </thead>
@@ -31,7 +31,7 @@
               <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatUnitCost(item.unit_price ?? item.unit_total ?? 0) }}</td>
               <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
               <td role="cell" data-label="IVA" class="text-right">{{ formatCurrency(item.iva_amount) }}</td>
-              <td role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
+              <td *ngIf="showIeps" role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
               <td role="cell" data-label="TOTAL" class="text-right font-weight-bold">{{ formatCurrency(item.line_total) }}</td>
             </tr>
           </tbody>
@@ -49,7 +49,7 @@
           <th role="columnheader" scope="col" class="text-right">COSTO UNIT.</th>
           <th role="columnheader" scope="col" class="text-right">SUBTOTAL</th>
           <th role="columnheader" scope="col" class="text-right">IVA</th>
-          <th role="columnheader" scope="col" class="text-right">IEPS</th>
+          <th *ngIf="showIeps" role="columnheader" scope="col" class="text-right">IEPS</th>
           <th role="columnheader" scope="col" class="text-right">TOTAL</th>
         </tr>
       </thead>
@@ -67,11 +67,11 @@
           <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatUnitCost(item.unit_price ?? item.unit_total ?? 0) }}</td>
           <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
           <td role="cell" data-label="IVA" class="text-right">{{ formatCurrency(item.iva_amount) }}</td>
-          <td role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
+          <td *ngIf="showIeps" role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
           <td role="cell" data-label="TOTAL" class="text-right font-weight-bold">{{ formatCurrency(item.line_total) }}</td>
         </tr>
         <tr *ngIf="lineItems.length === 0" role="row">
-          <td colspan="8" class="empty-state" role="cell">
+          <td [attr.colspan]="columnCount" class="empty-state" role="cell">
             <div class="empty-message">
               <p>No hay líneas de productos</p>
             </div>
@@ -84,7 +84,7 @@
           <td colspan="4" class="text-right font-weight-bold">TOTALES:</td>
           <td class="text-right font-weight-bold">{{ formatCurrency(totals.total_subtotal) }}</td>
           <td class="text-right font-weight-bold">{{ formatCurrency(totals.total_iva) }}</td>
-          <td class="text-right font-weight-bold">{{ formatCurrency(totals.total_ieps) }}</td>
+          <td *ngIf="showIeps" class="text-right font-weight-bold">{{ formatCurrency(totals.total_ieps) }}</td>
           <td class="text-right font-weight-bold total-grand">{{ formatCurrency(totals.grand_total) }}</td>
         </tr>
       </tfoot>
@@ -101,7 +101,7 @@
           <span class="totals-label">IVA:</span>
           <span class="totals-value">{{ formatCurrency(totals.total_iva) }}</span>
         </div>
-        <div class="totals-item">
+        <div class="totals-item" *ngIf="showIeps">
           <span class="totals-label">IEPS:</span>
           <span class="totals-value">{{ formatCurrency(totals.total_ieps) }}</span>
         </div>
@@ -148,7 +148,7 @@
           <span class="label">IVA:</span>
           <span class="value">{{ formatCurrency(item.iva_amount) }}</span>
         </div>
-        <div class="line-item-card__row">
+        <div class="line-item-card__row" *ngIf="showIeps">
           <span class="label">IEPS:</span>
           <span class="value">{{ formatCurrency(item.ieps_amount) }}</span>
         </div>
@@ -173,7 +173,7 @@
         <span class="label">IVA:</span>
         <span class="value">{{ formatCurrency(totals.total_iva) }}</span>
       </div>
-      <div class="mobile-totals-row">
+      <div class="mobile-totals-row" *ngIf="showIeps">
         <span class="label">IEPS:</span>
         <span class="value">{{ formatCurrency(totals.total_ieps) }}</span>
       </div>

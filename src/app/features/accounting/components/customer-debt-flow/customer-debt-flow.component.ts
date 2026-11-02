@@ -1,7 +1,8 @@
-import { Component, Input, OnInit, computed, signal } from '@angular/core';
+import { Component, DestroyRef, Input, OnInit, computed, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import {
   ReportPeriod,
@@ -17,6 +18,7 @@ import { SalesOrderDetailDialogComponent } from '../../../sales-orders/component
 import { InventoryService } from '../../../inventory/services/inventory.service';
 import { InventoryLocationFiscal } from '../../../inventory/models/inventory-location.model';
 import { CustomerDebtFlowService } from '../../services/customer-debt-flow.service';
+import { branchIdFromQuery, branchQueryFromId } from '../../utils/branch-query.util';
 import {
   DebtAgingRow,
   DebtAgingTotals,
@@ -123,17 +125,28 @@ export class CustomerDebtFlowComponent implements OnInit {
     private debtFlowService: CustomerDebtFlowService,
     private dialog: MatDialog,
     private router: Router,
+    private route: ActivatedRoute,
     private toast: ToastService,
+    private destroyRef: DestroyRef,
   ) {}
 
   ngOnInit(): void {
+    this.billingBranchId = branchIdFromQuery(this.route.snapshot.queryParamMap.get('debt_branch_id'));
+
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const next = branchIdFromQuery(params.get('debt_branch_id'));
+      if (next === this.billingBranchId) return;
+      this.billingBranchId = next;
+      if (!this.locations().length) return;
+      this.applyLocationFromQuery();
+      this.resetPageAndLoad();
+    });
+
     this.inventoryService.getLocations().subscribe({
       next: (data) => {
         const list = data ?? [];
         this.locations.set(list);
-        if (!this.fiscalConfigurationId && list.length > 0) {
-          this.fiscalConfigurationId = list[0].id;
-        }
+        this.applyLocationFromQuery();
         this.loadReport();
       },
       error: () => {
@@ -158,7 +171,7 @@ export class CustomerDebtFlowComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/accounting']);
+    this.router.navigate(['/accounting'], { queryParamsHandling: 'preserve' });
   }
 
   setView(view: DebtFlowView): void {
@@ -184,11 +197,13 @@ export class CustomerDebtFlowComponent implements OnInit {
 
   onFiscalChange(): void {
     this.billingBranchId = '';
+    this.persistDebtFilters();
     this.clearCustomerFilter(false);
     this.resetPageAndLoad();
   }
 
   onBranchChange(): void {
+    this.persistDebtFilters();
     this.resetPageAndLoad();
   }
 
@@ -366,6 +381,46 @@ export class CustomerDebtFlowComponent implements OnInit {
   private resetPageAndLoad(): void {
     this.page = 1;
     this.loadReport();
+  }
+
+  /** La sucursal de la URL elige su razón social. "Todas" conserva la razón social de la URL. */
+  private applyLocationFromQuery(): void {
+    const list = this.locations();
+    const branchId = this.billingBranchId;
+    if (branchId) {
+      const owner = list.find((fiscal) => fiscal.branches.some((branch) => branch.id === branchId));
+      if (owner) {
+        this.fiscalConfigurationId = owner.id;
+        return;
+      }
+      this.billingBranchId = '';
+    }
+    const fiscalFromUrl = this.route.snapshot.queryParamMap.get('fiscal_configuration_id')?.trim() || '';
+    if (fiscalFromUrl && list.some((fiscal) => fiscal.id === fiscalFromUrl)) {
+      this.fiscalConfigurationId = fiscalFromUrl;
+      return;
+    }
+    if (!this.fiscalConfigurationId && list.length > 0) {
+      this.fiscalConfigurationId = list[0].id;
+    }
+  }
+
+  private persistDebtFilters(): void {
+    const branch = branchQueryFromId(this.billingBranchId);
+    const fiscal = this.fiscalConfigurationId.trim();
+    const params = this.route.snapshot.queryParamMap;
+    const currentBranch = params.get('debt_branch_id') ?? '';
+    const currentFiscal = params.get('fiscal_configuration_id') ?? '';
+    if (currentBranch === branch && currentFiscal === fiscal) return;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        debt_branch_id: branch,
+        fiscal_configuration_id: fiscal || null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   private currentQuery(): DebtFlowQueryParams {

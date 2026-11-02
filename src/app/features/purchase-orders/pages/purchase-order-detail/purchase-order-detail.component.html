@@ -43,6 +43,7 @@
         <app-line-items-table
           [lineItems]="order()!.line_items"
           [editable]="false"
+          [iepsEnabled]="iepsEnabled()"
         ></app-line-items-table>
       </div>
 

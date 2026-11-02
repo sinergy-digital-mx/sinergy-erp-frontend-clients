@@ -51,6 +51,7 @@ export interface CustomerFiscalCredit {
   allow_credit_exceed?: boolean;
   credit_days?: number | null;
   credit_amount?: number | null;
+  credit_currency?: 'MXN' | 'USD' | string | null;
   credit_used?: number | null;
   credit_available?: number | null;
   credit_usage_percent?: number | null;
@@ -62,6 +63,7 @@ export interface CustomerCreditsUpdateItem {
   allow_credit_exceed?: boolean;
   credit_days?: number | null;
   credit_amount?: number | null;
+  credit_currency?: 'MXN' | 'USD';
 }
 
 /**
@@ -84,6 +86,7 @@ export interface Customer {
   allow_credit_exceed?: boolean;
   credit_days?: number | null;
   credit_amount?: number | null;
+  credit_currency?: 'MXN' | 'USD' | string | null;
   credit_used?: number | null;
   credit_available?: number | null;
   credit_usage_percent?: number | null;

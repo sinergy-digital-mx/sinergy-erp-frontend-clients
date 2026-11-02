@@ -6,6 +6,7 @@ export type PurchaseOrderVendorType = 'NATIONAL' | 'INTERNATIONAL';
 export interface Vendor {
   id: string;
   name: string;
+  company_name?: string | null;
   code: string;
   email?: string;
   phone?: string;

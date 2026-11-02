@@ -8,8 +8,8 @@ import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
   template: `
     <div class="credit-usage">
       <div class="credit-usage__row">
-        <span>Utilizado {{ used | currency:'MXN':'symbol':'1.2-2' }}</span>
-        <span>Límite {{ limit | currency:'MXN':'symbol':'1.2-2' }}</span>
+        <span>Utilizado {{ used | currency:moneyCode:'symbol':'1.2-2' }}</span>
+        <span>Límite {{ limit | currency:moneyCode:'symbol':'1.2-2' }}</span>
       </div>
       <div class="credit-usage__track" role="progressbar" [attr.aria-valuenow]="percent" aria-valuemin="0" aria-valuemax="100">
         <div
@@ -19,7 +19,7 @@ import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
         </div>
       </div>
       <div class="credit-usage__meta">
-        <span>Disponible {{ available | currency:'MXN':'symbol':'1.2-2' }}</span>
+        <span>Disponible {{ available | currency:moneyCode:'symbol':'1.2-2' }}</span>
         <strong>{{ percent | number:'1.0-0' }}%</strong>
         @if (days != null) {
           <span>{{ days }} días</span>
@@ -73,6 +73,11 @@ export class CreditUsageBarComponent {
   @Input() limit = 0;
   @Input() percent = 0;
   @Input() days: number | null = null;
+  @Input() currency: 'MXN' | 'USD' | string | null = 'MXN';
+
+  get moneyCode(): string {
+    return this.currency === 'USD' ? 'USD' : 'MXN';
+  }
 
   get barWidth(): number {
     return Math.max(0, Math.min(100, this.percent || 0));

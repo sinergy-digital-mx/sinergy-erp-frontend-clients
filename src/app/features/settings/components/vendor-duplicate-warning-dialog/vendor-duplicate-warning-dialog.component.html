@@ -21,10 +21,7 @@
           role="link">
           <div class="duplicate-dialog__card-top">
             <div class="duplicate-dialog__card-identity">
-              <p class="duplicate-dialog__name">{{ match.name }}</p>
-              @if (match.company_name) {
-                <p class="duplicate-dialog__company">{{ match.company_name }}</p>
-              }
+              <p class="duplicate-dialog__name">{{ companyLabel(match) }}</p>
             </div>
             <span (click)="$event.stopPropagation()">
               <app-button

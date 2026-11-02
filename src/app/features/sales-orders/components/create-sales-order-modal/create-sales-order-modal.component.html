@@ -287,6 +287,17 @@
               {{ getProductOptionLabel(product) }}
             </mat-option>
           </mat-autocomplete>
+          @if (missingProductUom) {
+            <div class="uom-missing" role="alert">
+              <p>
+                Este {{ isServiceProduct(selectedProduct) ? 'servicio' : 'producto' }} no tiene unidad de medida.
+                Necesitas una para agregarlo a la venta.
+              </p>
+              <button type="button" class="uom-missing__action" [disabled]="refreshingProductUoms" (click)="openProductUomEditor()">
+                {{ refreshingProductUoms ? 'Cargando…' : 'Agregar unidad' }}
+              </button>
+            </div>
+          }
         </div>
 
         <div class="form-grid">

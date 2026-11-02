@@ -35,7 +35,7 @@
           <mat-option disabled>No se encontraron proveedores</mat-option>
         }
         @for (vendor of vendors(); track vendor.id) {
-          <mat-option [value]="vendor">{{ vendor.name }}</mat-option>
+          <mat-option [value]="vendor">{{ displayVendor(vendor) }}</mat-option>
         }
       </mat-autocomplete>
     </div>

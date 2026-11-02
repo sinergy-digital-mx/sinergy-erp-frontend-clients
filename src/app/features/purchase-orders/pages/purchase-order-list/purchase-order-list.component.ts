@@ -29,6 +29,8 @@ import { CreatePurchaseOrderModalComponent } from '../../components/create-purch
 import { PurchaseOrderExportDialogComponent } from '../../components/purchase-order-export-dialog/purchase-order-export-dialog.component';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
+import { AuthService } from '../../../../core/services/auth.service';
+import { PURCHASE_ORDER_PERMISSIONS } from '../../config/permissions.config';
 
 @Component({
   selector: 'app-purchase-order-list',
@@ -102,15 +104,34 @@ export class PurchaseOrderListComponent implements OnInit {
     this.paymentAmount('Pendiente', 'MXN') > 0 || this.paymentAmount('Pendiente', 'USD') > 0
   );
 
+  readonly canViewStats = signal(false);
+
   constructor(
     private purchaseOrderService: PurchaseOrderService,
     private route: ActivatedRoute,
     private router: Router,
     private dialog: MatDialog,
-    private taxCalculator: TaxCalculatorService
-  ) {}
+    private taxCalculator: TaxCalculatorService,
+    private authService: AuthService,
+  ) {
+    this.canViewStats.set(this.authService.hasPermission(PURCHASE_ORDER_PERMISSIONS.viewStats));
+  }
 
   ngOnInit(): void {
+    let known = false;
+    this.authService.permissions$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const allowed = this.authService.hasPermission(PURCHASE_ORDER_PERMISSIONS.viewStats);
+        const changed = known && allowed !== this.canViewStats();
+        known = true;
+        this.canViewStats.set(allowed);
+        if (!allowed) {
+          this.statsState.set(emptyPurchaseOrderListStats());
+        }
+        if (changed) this.loadOrders();
+      });
+
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
@@ -199,10 +220,12 @@ export class PurchaseOrderListComponent implements OnInit {
           this.totalResultsState.set(total);
           this.hasMoreState.set(hasNext);
           this.statsState.set(
-            normalizePurchaseOrderListStats(
-              Array.isArray(response) ? undefined : response.stats,
-              total
-            )
+            this.canViewStats()
+              ? normalizePurchaseOrderListStats(
+                  Array.isArray(response) ? undefined : response.stats,
+                  total,
+                )
+              : emptyPurchaseOrderListStats(),
           );
           
           this.table_config.update(c => ({

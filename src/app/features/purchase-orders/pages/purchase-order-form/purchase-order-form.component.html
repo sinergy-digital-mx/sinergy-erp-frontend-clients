@@ -58,7 +58,7 @@
             <select id="vendor" formControlName="vendor_id">
               <option value="">Selecciona un proveedor</option>
               <option *ngFor="let vendor of vendors()" [value]="vendor.id">
-                {{ vendor.name }}
+                {{ vendor.company_name || vendor.name }}
               </option>
             </select>
             <span class="error" *ngIf="getFieldError('vendor_id')">
@@ -73,9 +73,14 @@
                 type="text"
                 id="pedimento"
                 formControlName="pedimento_number"
-                placeholder="Número de pedimento"
+                appPedimentoMask
+                [placeholder]="pedimentoPlaceholder"
                 [attr.maxlength]="pedimentoMaxLength"
               />
+              <span class="hint">{{ pedimentoHint }}</span>
+              <span class="error" *ngIf="pedimentoFieldError()">
+                {{ pedimentoFieldError() }}
+              </span>
             </div>
           }
 

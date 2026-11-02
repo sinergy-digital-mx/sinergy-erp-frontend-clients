@@ -25,17 +25,30 @@ export interface PosCollectForm {
   amountCardMxn: number;
   cardReference: string;
   amountCheckMxn: number;
+  amountCheckUsd: number;
+  /** Un cheque es de una sola moneda. */
+  checkCurrency: 'MXN' | 'USD';
   checkReference: string;
+  transferPayerName: string;
+  transferPayerBusinessName: string;
+  cardPayerName: string;
+  cardPayerPhone: string;
+  checkPayerName: string;
+  checkPayerPhone: string;
   mixedUsesCash: boolean;
   mixedUsesTransfer: boolean;
   mixedUsesCard: boolean;
   mixedUsesCheck: boolean;
   mixedCashMxn: number;
+  mixedCashUsd: number;
   mixedReceivedMxn: number;
+  mixedReceivedUsd: number;
   mixedTransferMxn: number;
   mixedTransferRef: string;
   mixedCardPayments: MixedCardPayment[];
   mixedCheckMxn: number;
+  mixedCheckUsd: number;
+  mixedCheckCurrency: 'MXN' | 'USD';
   mixedCheckRef: string;
 }
 
@@ -52,7 +65,14 @@ export interface CollectSalePayload {
   card_reference?: string;
   card_payments?: Array<{ amount_mxn: number; reference?: string }>;
   amount_check_mxn?: number;
+  amount_check_usd?: number;
   check_reference?: string;
+  transfer_payer_name?: string;
+  transfer_payer_business_name?: string;
+  card_payer_name?: string;
+  card_payer_phone?: string;
+  check_payer_name?: string;
+  check_payer_phone?: string;
   amount_credit_mxn?: number;
   customer_id?: number | string;
   generate_invoice?: boolean;
@@ -93,19 +113,46 @@ export function defaultCollectForm(orderTotal: number, usdExchangeRate?: number)
     amountCardMxn: orderTotal,
     cardReference: '',
     amountCheckMxn: orderTotal,
+    amountCheckUsd: 0,
+    checkCurrency: 'MXN',
     checkReference: '',
+    transferPayerName: '',
+    transferPayerBusinessName: '',
+    cardPayerName: '',
+    cardPayerPhone: '',
+    checkPayerName: '',
+    checkPayerPhone: '',
     mixedUsesCash: false,
     mixedUsesTransfer: false,
     mixedUsesCard: false,
     mixedUsesCheck: false,
     mixedCashMxn: 0,
+    mixedCashUsd: 0,
     mixedReceivedMxn: 0,
+    mixedReceivedUsd: 0,
     mixedTransferMxn: 0,
     mixedTransferRef: '',
     mixedCardPayments: [],
     mixedCheckMxn: 0,
+    mixedCheckUsd: 0,
+    mixedCheckCurrency: 'MXN',
     mixedCheckRef: '',
   };
+}
+
+/** Dólares a 2 decimales cuyo producto con el TC queda más cerca del total en pesos. */
+export function usdAmountCoveringMxn(totalMxn: number, rate: number): number {
+  const fx = Number(rate) || 0;
+  const total = roundMoney(Math.max(0, totalMxn));
+  if (fx <= 0 || total <= 0) {
+    return 0;
+  }
+  const raw = total / fx;
+  const down = roundMoney(Math.floor((raw + 1e-8) * 100) / 100);
+  const up = roundMoney(down + 0.01);
+  const downGap = Math.abs(roundMoney(down * fx) - total);
+  const upGap = Math.abs(roundMoney(up * fx) - total);
+  return downGap <= upGap ? down : up;
 }
 
 export function cashDenomKey(currency: 'MXN' | 'USD', denomination: number): string {
@@ -239,24 +286,33 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
     if (!form.transferReference.trim()) {
       return 'Ingresa referencia de transferencia';
     }
-    return null;
+    return validatePayerContact(form);
   }
 
   if (form.paymentMethod === 'card') {
     if (!amountsMatch(orderTotal, form.amountCardMxn)) {
       return `Los montos deben cubrir exactamente ${formatMoney(orderTotal)}`;
     }
-    return null;
+    return validatePayerContact(form);
   }
 
   if (form.paymentMethod === 'check') {
-    if (!amountsMatch(orderTotal, form.amountCheckMxn)) {
+    if (form.amountCheckUsd > 0 && form.usdExchangeRate <= 0) {
+      return 'Ingresa tipo de cambio';
+    }
+    if (form.amountCheckMxn <= 0 && form.amountCheckUsd <= 0) {
+      return `Los montos deben cubrir exactamente ${formatMoney(orderTotal)}`;
+    }
+    const applied = checkAppliedMxn(form);
+    const tolerance =
+      form.amountCheckUsd > 0 ? usdCentToleranceMxn(form.usdExchangeRate) : 0.01;
+    if (Math.abs(applied - orderTotal) > tolerance + 0.001) {
       return `Los montos deben cubrir exactamente ${formatMoney(orderTotal)}`;
     }
     if (!form.checkReference.trim()) {
       return 'Ingresa el número de cheque';
     }
-    return null;
+    return validatePayerContact(form);
   }
 
   if (form.paymentMethod === 'credit') {
@@ -268,8 +324,11 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
     if (selected < 2) {
       return 'Selecciona al menos dos formas de pago';
     }
-    if (form.mixedUsesCash && form.mixedCashMxn <= 0) {
+    if (form.mixedUsesCash && form.mixedCashMxn <= 0 && form.mixedCashUsd <= 0) {
       return 'Ingresa el monto en efectivo';
+    }
+    if (form.mixedUsesCash && form.mixedCashUsd > 0 && form.usdExchangeRate <= 0) {
+      return 'Ingresa tipo de cambio';
     }
     if (form.mixedUsesTransfer && form.mixedTransferMxn <= 0) {
       return 'Ingresa el monto de transferencia';
@@ -284,11 +343,18 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
           : 'Ingresa el monto de tarjeta';
       }
     }
-    if (form.mixedUsesCheck && form.mixedCheckMxn <= 0) {
+    if (form.mixedUsesCheck && form.mixedCheckMxn <= 0 && form.mixedCheckUsd <= 0) {
       return 'Ingresa el monto de cheque';
     }
+    if (form.mixedUsesCheck && form.mixedCheckUsd > 0 && form.usdExchangeRate <= 0) {
+      return 'Ingresa tipo de cambio';
+    }
     const paid = mixedAppliedTotal(form);
-    if (!amountsMatch(orderTotal, paid)) {
+    const usdLegs =
+      (form.mixedUsesCash && form.mixedCashUsd > 0 ? 1 : 0) +
+      (form.mixedUsesCheck && form.mixedCheckUsd > 0 ? 1 : 0);
+    const tolerance = usdLegs > 0 ? usdCentToleranceMxn(form.usdExchangeRate) * usdLegs : 0.01;
+    if (Math.abs(paid - orderTotal) > tolerance + 0.001) {
       return `Los montos deben cubrir exactamente ${formatMoney(orderTotal)}`;
     }
     if (form.mixedUsesTransfer && !form.mixedTransferRef.trim()) {
@@ -297,10 +363,13 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
     if (form.mixedUsesCheck && !form.mixedCheckRef.trim()) {
       return 'Ingresa el número de cheque';
     }
-    if (form.mixedUsesCash && form.mixedReceivedMxn < form.mixedCashMxn) {
+    if (form.mixedUsesCash && form.mixedReceivedMxn + 0.001 < form.mixedCashMxn) {
       return 'El efectivo recibido debe cubrir el monto en efectivo';
     }
-    return null;
+    if (form.mixedUsesCash && form.mixedReceivedUsd + 0.001 < form.mixedCashUsd) {
+      return 'El efectivo en dólares recibido debe cubrir el monto en dólares';
+    }
+    return validatePayerContact(form);
   }
 
   return 'Selecciona un método de pago';
@@ -395,6 +464,24 @@ export function posDocumentCurrencySplit(
   form: PosCollectForm,
   orderTotal: number,
 ): { usdAppliedMxn: number; mxnApplied: number } {
+  if (form.paymentMethod === 'mixed') {
+    const usdAppliedMxn = roundMoney(mixedCashUsdInMxn(form) + mixedCheckUsdInMxn(form));
+    return {
+      usdAppliedMxn,
+      mxnApplied: roundMoney(Math.max(0, mixedAppliedTotal(form) - usdAppliedMxn)),
+    };
+  }
+  if (form.paymentMethod === 'check') {
+    const usdAppliedMxn = mixedCheckUsdInMxn({
+      ...form,
+      mixedUsesCheck: true,
+      mixedCheckUsd: form.amountCheckUsd,
+    });
+    return {
+      usdAppliedMxn,
+      mxnApplied: roundMoney(form.amountCheckMxn),
+    };
+  }
   if (form.paymentMethod !== 'cash') {
     return { usdAppliedMxn: 0, mxnApplied: roundMoney(orderTotal) };
   }
@@ -417,7 +504,58 @@ export function canDocumentOrderInUsd(form: PosCollectForm, orderTotal: number):
   return split.usdAppliedMxn > split.mxnApplied + 0.009;
 }
 
+export function collectPhoneDigits(value: string): string {
+  return value.replace(/\D/g, '').slice(0, 15);
+}
+
+/** Transferencia: nombre o razón social. Tarjeta y cheque: nombre y teléfono. */
+export function validatePayerContact(form: PosCollectForm): string | null {
+  if (formUsesTransfer(form)) {
+    if (!form.transferPayerName.trim() && !form.transferPayerBusinessName.trim()) {
+      return 'Ingresa el nombre o la razón social de la transferencia';
+    }
+  }
+  if (formUsesCard(form)) {
+    if (!form.cardPayerName.trim()) {
+      return 'Ingresa el nombre de quien paga con tarjeta';
+    }
+    if (collectPhoneDigits(form.cardPayerPhone).length < 10) {
+      return 'Ingresa el teléfono de quien paga con tarjeta (10 dígitos)';
+    }
+  }
+  if (formUsesCheck(form)) {
+    if (!form.checkPayerName.trim()) {
+      return 'Ingresa el nombre de quien paga con cheque';
+    }
+    if (collectPhoneDigits(form.checkPayerPhone).length < 10) {
+      return 'Ingresa el teléfono de quien paga con cheque (10 dígitos)';
+    }
+  }
+  return null;
+}
+
+function formUsesTransfer(form: PosCollectForm): boolean {
+  return form.paymentMethod === 'transfer' || (form.paymentMethod === 'mixed' && form.mixedUsesTransfer);
+}
+
+function formUsesCard(form: PosCollectForm): boolean {
+  return form.paymentMethod === 'card' || (form.paymentMethod === 'mixed' && form.mixedUsesCard);
+}
+
+function formUsesCheck(form: PosCollectForm): boolean {
+  return form.paymentMethod === 'check' || (form.paymentMethod === 'mixed' && form.mixedUsesCheck);
+}
+
 export function buildCollectPayload(
+  form: PosCollectForm,
+  orderTotal: number,
+  customerId?: number | string,
+  orderCurrency: 'MXN' | 'USD' = 'MXN',
+): CollectSalePayload {
+  return withPayerContact(form, buildCollectPayloadBody(form, orderTotal, customerId, orderCurrency));
+}
+
+function buildCollectPayloadBody(
   form: PosCollectForm,
   orderTotal: number,
   customerId?: number | string,
@@ -464,9 +602,14 @@ export function buildCollectPayload(
   }
 
   if (form.paymentMethod === 'check') {
+    const usd = roundMoney(form.amountCheckUsd);
+    const mxn = roundMoney(form.amountCheckMxn);
     return {
       ...base,
-      amount_check_mxn: roundMoney(form.amountCheckMxn),
+      ...(mxn > 0 ? { amount_check_mxn: mxn } : {}),
+      ...(usd > 0
+        ? { amount_check_usd: usd, usd_exchange_rate: form.usdExchangeRate }
+        : {}),
       check_reference: form.checkReference.trim(),
     };
   }
@@ -486,8 +629,8 @@ export function buildCollectPayload(
     const single: PosCollectForm = { ...form, paymentMethod: method };
     if (method === 'cash') {
       single.receivedCashMxn = form.mixedReceivedMxn || form.mixedCashMxn;
-      single.receivedCashUsd = 0;
-      single.amountCashUsd = 0;
+      single.receivedCashUsd = form.mixedReceivedUsd || form.mixedCashUsd;
+      single.usdExchangeRate = form.usdExchangeRate;
     }
     if (method === 'transfer') {
       single.amountTransferMxn = form.mixedTransferMxn;
@@ -499,9 +642,12 @@ export function buildCollectPayload(
     }
     if (method === 'check') {
       single.amountCheckMxn = form.mixedCheckMxn;
+      single.amountCheckUsd = form.mixedCheckUsd;
+      single.checkCurrency = form.mixedCheckCurrency;
       single.checkReference = form.mixedCheckRef;
+      single.usdExchangeRate = form.usdExchangeRate;
     }
-    return buildCollectPayload(single, orderTotal, customerId, orderCurrency);
+    return buildCollectPayloadBody(single, orderTotal, customerId, orderCurrency);
   }
 
   return {
@@ -511,6 +657,13 @@ export function buildCollectPayload(
       ? {
           amount_cash_mxn: roundMoney(form.mixedCashMxn),
           received_cash_mxn: roundMoney(form.mixedReceivedMxn),
+          ...(form.mixedCashUsd > 0
+            ? {
+                amount_cash_usd: roundMoney(form.mixedCashUsd),
+                received_cash_usd: roundMoney(form.mixedReceivedUsd),
+                usd_exchange_rate: form.usdExchangeRate,
+              }
+            : {}),
         }
       : {}),
     ...(form.mixedUsesTransfer
@@ -522,10 +675,35 @@ export function buildCollectPayload(
     ...mixedCardPayload(form),
     ...(form.mixedUsesCheck
       ? {
-          amount_check_mxn: roundMoney(form.mixedCheckMxn),
+          ...(form.mixedCheckMxn > 0 ? { amount_check_mxn: roundMoney(form.mixedCheckMxn) } : {}),
+          ...(form.mixedCheckUsd > 0
+            ? {
+                amount_check_usd: roundMoney(form.mixedCheckUsd),
+                usd_exchange_rate: form.usdExchangeRate,
+              }
+            : {}),
           check_reference: form.mixedCheckRef.trim(),
         }
       : {}),
+  };
+}
+
+function withPayerContact(form: PosCollectForm, payload: CollectSalePayload): CollectSalePayload {
+  const transfer = (payload.amount_transfer_mxn ?? 0) > 0;
+  const card = (payload.amount_card_mxn ?? 0) > 0;
+  const check = (payload.amount_check_mxn ?? 0) > 0 || (payload.amount_check_usd ?? 0) > 0;
+  const transferName = form.transferPayerName.trim().slice(0, 120);
+  const transferBusiness = form.transferPayerBusinessName.trim().slice(0, 180);
+  const cardName = form.cardPayerName.trim().slice(0, 120);
+  const checkName = form.checkPayerName.trim().slice(0, 120);
+  return {
+    ...payload,
+    ...(transfer && transferName ? { transfer_payer_name: transferName } : {}),
+    ...(transfer && transferBusiness ? { transfer_payer_business_name: transferBusiness } : {}),
+    ...(card && cardName ? { card_payer_name: cardName } : {}),
+    ...(card ? { card_payer_phone: collectPhoneDigits(form.cardPayerPhone) } : {}),
+    ...(check && checkName ? { check_payer_name: checkName } : {}),
+    ...(check ? { check_payer_phone: collectPhoneDigits(form.checkPayerPhone) } : {}),
   };
 }
 
@@ -597,10 +775,46 @@ export function parseMixedCardPart(part: MixedPartId): number | null {
   return Number.isInteger(index) && index >= 0 ? index : null;
 }
 
+export function mixedCashUsdInMxn(form: PosCollectForm): number {
+  if (!form.mixedUsesCash || form.mixedCashUsd <= 0 || form.usdExchangeRate <= 0) {
+    return 0;
+  }
+  return roundMoney(form.mixedCashUsd * form.usdExchangeRate);
+}
+
+export function mixedCheckUsdInMxn(form: PosCollectForm): number {
+  if (!form.mixedUsesCheck || form.mixedCheckUsd <= 0 || form.usdExchangeRate <= 0) {
+    return 0;
+  }
+  return roundMoney(form.mixedCheckUsd * form.usdExchangeRate);
+}
+
+export function mixedCheckAppliedMxn(form: PosCollectForm): number {
+  if (!form.mixedUsesCheck) {
+    return 0;
+  }
+  return roundMoney(form.mixedCheckMxn + mixedCheckUsdInMxn(form));
+}
+
+function checkAppliedMxn(form: PosCollectForm): number {
+  const usdMxn =
+    form.amountCheckUsd > 0 && form.usdExchangeRate > 0
+      ? form.amountCheckUsd * form.usdExchangeRate
+      : 0;
+  return roundMoney(form.amountCheckMxn + usdMxn);
+}
+
+export function mixedCashAppliedMxn(form: PosCollectForm): number {
+  if (!form.mixedUsesCash) {
+    return 0;
+  }
+  return roundMoney(form.mixedCashMxn + mixedCashUsdInMxn(form));
+}
+
 export function mixedAmountOf(form: PosCollectForm, part: MixedPartId): number {
-  if (part === 'cash') return form.mixedCashMxn;
+  if (part === 'cash') return mixedCashAppliedMxn(form);
   if (part === 'transfer') return form.mixedTransferMxn;
-  if (part === 'check') return form.mixedCheckMxn;
+  if (part === 'check') return mixedCheckAppliedMxn(form);
   const index = parseMixedCardPart(part);
   if (index == null) return 0;
   return form.mixedCardPayments[index]?.amountMxn ?? 0;
@@ -610,9 +824,10 @@ export function setMixedAmount(form: PosCollectForm, part: MixedPartId, amount: 
   const next = { ...form };
   const value = roundMoney(Math.max(0, amount));
   if (part === 'cash') {
-    next.mixedCashMxn = value;
-    if (next.mixedReceivedMxn < value) {
-      next.mixedReceivedMxn = value;
+    const usdMxn = mixedCashUsdInMxn(next);
+    next.mixedCashMxn = roundMoney(Math.max(0, value - usdMxn));
+    if (next.mixedReceivedMxn < next.mixedCashMxn) {
+      next.mixedReceivedMxn = next.mixedCashMxn;
     }
     return next;
   }
@@ -621,7 +836,13 @@ export function setMixedAmount(form: PosCollectForm, part: MixedPartId, amount: 
     return next;
   }
   if (part === 'check') {
+    if (next.mixedCheckCurrency === 'USD') {
+      next.mixedCheckMxn = 0;
+      next.mixedCheckUsd = usdAmountCoveringMxn(value, next.usdExchangeRate);
+      return next;
+    }
     next.mixedCheckMxn = value;
+    next.mixedCheckUsd = 0;
     return next;
   }
   const index = parseMixedCardPart(part);
@@ -694,15 +915,23 @@ export function removeMixedCardPayment(form: PosCollectForm, index: number): Pos
 
 export function mixedAppliedTotal(form: PosCollectForm): number {
   return roundMoney(
-    (form.mixedUsesCash ? form.mixedCashMxn : 0) +
+    mixedCashAppliedMxn(form) +
       (form.mixedUsesTransfer ? form.mixedTransferMxn : 0) +
       mixedCardTotal(form) +
-      (form.mixedUsesCheck ? form.mixedCheckMxn : 0),
+      mixedCheckAppliedMxn(form),
   );
 }
 
 export function mixedRemainderMxn(form: PosCollectForm, orderTotal: number): number {
-  return roundMoney(orderTotal - mixedAppliedTotal(form));
+  const raw = roundMoney(orderTotal - mixedAppliedTotal(form));
+  const usdLegs =
+    (form.mixedUsesCash && form.mixedCashUsd > 0 ? 1 : 0) +
+    (form.mixedUsesCheck && form.mixedCheckUsd > 0 ? 1 : 0);
+  const tolerance = usdLegs > 0 ? usdCentToleranceMxn(form.usdExchangeRate) * usdLegs : 0.01;
+  if (Math.abs(raw) <= tolerance + 0.001) {
+    return 0;
+  }
+  return raw;
 }
 
 export function mixedRemainderTarget(form: PosCollectForm): MixedPartId | null {
@@ -752,7 +981,7 @@ export function collectAppliedTotal(form: PosCollectForm): number {
     return form.amountCardMxn;
   }
   if (form.paymentMethod === 'check') {
-    return form.amountCheckMxn;
+    return checkAppliedMxn(form);
   }
   if (form.paymentMethod === 'credit') {
     return 0;
@@ -776,7 +1005,7 @@ export function collectChangeMxn(form: PosCollectForm, orderTotal = 0): number {
       form.usdExchangeRate
     ).changeCashMxn;
   }
-  if (form.paymentMethod === 'mixed' && form.mixedUsesCash && form.mixedCashMxn > 0) {
+  if (form.paymentMethod === 'mixed' && form.mixedUsesCash) {
     return Math.max(0, roundMoney(form.mixedReceivedMxn - form.mixedCashMxn));
   }
   return 0;
@@ -784,6 +1013,9 @@ export function collectChangeMxn(form: PosCollectForm, orderTotal = 0): number {
 
 /** Sobrante en dólares: 100 USD − (1079.65 / 16.80) = 35.74 USD. */
 export function collectChangeUsd(form: PosCollectForm, orderTotal = 0): number {
+  if (form.paymentMethod === 'mixed' && form.mixedUsesCash) {
+    return Math.max(0, roundMoney(form.mixedReceivedUsd - form.mixedCashUsd));
+  }
   if (form.paymentMethod !== 'cash') {
     return 0;
   }
@@ -831,7 +1063,7 @@ export function collectCashShortfallMxn(form: PosCollectForm, orderTotal = 0): n
   if (form.paymentMethod === 'cash') {
     return Math.max(0, roundMoney(orderTotal - collectReceivedTotalMxn(form)));
   }
-  if (form.paymentMethod === 'mixed' && form.mixedUsesCash && form.mixedCashMxn > 0) {
+  if (form.paymentMethod === 'mixed' && form.mixedUsesCash) {
     return Math.max(0, roundMoney(form.mixedCashMxn - form.mixedReceivedMxn));
   }
   return 0;

@@ -83,9 +83,21 @@
 
 <ng-template #tableTemplate let-item="$implicit">
   <td>
-    <button type="button" class="folio-link" (click)="openSalesOrder(item)">
-      {{ item.folio || item.id?.substring(0, 8) }}
-    </button>
+    <div class="folio-cell">
+      <button type="button" class="folio-link" (click)="openSalesOrder(item)">
+        {{ item.folio || item.id?.substring(0, 8) }}
+      </button>
+      @if (hasCollectedMoney(item)) {
+        <button
+          type="button"
+          class="ticket-eye"
+          (click)="openTicket(item)"
+          title="Ver ticket"
+          aria-label="Ver ticket de venta">
+          <i class="fi fi-rr-eye" aria-hidden="true"></i>
+        </button>
+      }
+    </div>
   </td>
   <td>
     <div class="date-stack">
@@ -125,26 +137,25 @@
     <div class="people">
       <div class="people__row">
         <span class="people__role">Vendedor</span>
-        <span class="people__name" [title]="personLine(item.seller_user).name">
-          {{ personLine(item.seller_user).name }}
-          @if (personLine(item.seller_user).code) {
-            <span class="people__code">{{ personLine(item.seller_user).code }}</span>
-          }
+        <span class="people__name" [title]="personName(item.seller_user)">
+          {{ personName(item.seller_user) }}
         </span>
       </div>
       <div class="people__row">
         <span class="people__role">Cajero</span>
-        <span class="people__name" [title]="personLine(item.collected_by_user).name">
-          {{ personLine(item.collected_by_user).name }}
-          @if (personLine(item.collected_by_user).code) {
-            <span class="people__code">{{ personLine(item.collected_by_user).code }}</span>
-          }
+        <span class="people__name" [title]="personName(item.collected_by_user)">
+          {{ personName(item.collected_by_user) }}
         </span>
       </div>
     </div>
   </td>
   <td>
-    <span [class]="methodClass(item)">{{ methodLabel(item) }}</span>
+    <div class="pay-cell" [title]="methodDetail(item) || methodLabel(item)">
+      <span [class]="methodClass(item)">{{ methodLabel(item) }}</span>
+      @if (methodDetail(item)) {
+        <span class="pay-cell__detail">{{ methodDetail(item) }}</span>
+      }
+    </div>
   </td>
   <td class="money-cell">{{ formatCurrency(item.total) }}</td>
   <td>

@@ -26,7 +26,7 @@
         >
           <td role="cell" data-label="FOLIO">{{ order.id }}</td>
           <td role="cell" data-label="TIPO" class="hide-on-tablet">{{ order.purpose }}</td>
-          <td role="cell" data-label="PROVEEDOR">{{ order.vendor?.name || 'N/A' }}</td>
+          <td role="cell" data-label="PROVEEDOR">{{ order.vendor?.company_name || order.vendor?.name || 'N/A' }}</td>
           <td role="cell" data-label="CEDIS" class="hide-on-tablet">{{ order.warehouse?.name || 'N/A' }}</td>
           <td role="cell" data-label="ESTADO">
             <span [ngClass]="getStatusClass(order.status)" role="status">
@@ -78,7 +78,7 @@
       <div class="order-card__body">
         <div class="order-card__row">
           <span class="label">PROVEEDOR:</span>
-          <span class="value">{{ order.vendor?.name || 'N/A' }}</span>
+          <span class="value">{{ order.vendor?.company_name || order.vendor?.name || 'N/A' }}</span>
         </div>
         <div class="order-card__row">
           <span class="label">CEDIS:</span>

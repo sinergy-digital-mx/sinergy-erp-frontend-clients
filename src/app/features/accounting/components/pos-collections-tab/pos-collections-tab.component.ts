@@ -19,6 +19,7 @@ import {
   PosCollectionsSummary,
 } from '../../models/accounting.model';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { paymentMethodLabel } from '../../../pos/models/pos-collected-sales.model';
 import { PosUserSummary } from '../../../sales-orders/models/sales-order.model';
@@ -28,11 +29,6 @@ interface CollectionFilterChip {
   type: CollectionCustomerType;
   label: string;
   count: number;
-}
-
-interface PersonLine {
-  name: string;
-  code: string;
 }
 
 interface PaymentMethodCard {
@@ -73,12 +69,12 @@ export class PosCollectionsTabComponent implements OnChanges {
   tableConfig = signal<IDatatableConfig>({
     rows: [] as PosCollectionRow[],
     columns: [
-      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 108 },
+      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 140 },
       { name: 'Fechas', prop: 'created_at', sortable: false, canAutoResize: false, width: 148 },
       { name: 'Sucursal', prop: 'billing_branch', sortable: false, canAutoResize: false, width: 108 },
       { name: 'Cliente', prop: 'customer', sortable: false, canAutoResize: false, width: 136 },
       { name: 'Vendedor / cajero', prop: 'seller', sortable: false, canAutoResize: true, width: 260 },
-      { name: 'Pago', prop: 'payment_method', sortable: false, canAutoResize: false, width: 118 },
+      { name: 'Pago', prop: 'payment_method', sortable: false, canAutoResize: false, width: 168 },
       { name: 'Total', prop: 'total', sortable: false, canAutoResize: false, width: 96 },
       { name: 'Estatus', prop: 'payment_status', sortable: false, canAutoResize: false, width: 88 },
     ],
@@ -174,12 +170,16 @@ export class PosCollectionsTabComponent implements OnChanges {
     return formatBusinessDateTime(value)?.date ?? '—';
   }
 
-  personLine(user?: PosUserSummary | null): PersonLine {
+  personName(user?: PosUserSummary | null): string {
     if (!user) {
-      return { name: '—', code: '' };
+      return '—';
     }
-    const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || '—';
-    return { name, code: user.pos_user_code ? String(user.pos_user_code) : '' };
+    return [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || '—';
+  }
+
+  hasCollectedMoney(row: PosCollectionRow): boolean {
+    const total = row.total == null ? 0 : typeof row.total === 'number' ? row.total : Number(row.total);
+    return Number.isFinite(total) && total > 0;
   }
 
   branchCity(row: PosCollectionRow): string {
@@ -197,6 +197,15 @@ export class PosCollectionsTabComponent implements OnChanges {
 
   methodLabel(row: PosCollectionRow): string {
     return row.payment_method_label || paymentMethodLabel(row.payment_method);
+  }
+
+  /** Combinación del mixto (`Efectivo + Tarjeta`). Vacío si es un solo método. */
+  methodDetail(row: PosCollectionRow): string {
+    const detail = row.payment_breakdown_label?.trim() || '';
+    if (!detail || detail === this.methodLabel(row)) {
+      return '';
+    }
+    return detail;
   }
 
   methodClass(row: PosCollectionRow): string {
@@ -245,6 +254,23 @@ export class PosCollectionsTabComponent implements OnChanges {
     this.dialog.open(SalesOrderDetailDialogComponent, {
       ...ORDER_DETAIL_DIALOG_OPTIONS,
       data: { orderId: row.id },
+    });
+  }
+
+  openTicket(row: PosCollectionRow): void {
+    if (!row.id || !this.hasCollectedMoney(row)) {
+      return;
+    }
+    this.dialog.open(PosReceiptPreviewDialogComponent, {
+      width: '480px',
+      maxWidth: '95vw',
+      panelClass: 'pos-dialog-panel',
+      autoFocus: false,
+      data: {
+        salesOrderId: row.id,
+        useSalesOrderTicketApi: true,
+        title: `Ticket ${row.folio || row.id}`,
+      },
     });
   }
 

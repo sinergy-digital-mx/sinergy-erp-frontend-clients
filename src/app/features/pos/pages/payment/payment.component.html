@@ -218,6 +218,11 @@
                           <span>Anticipo</span>
                           <span class="cobranza-pay-chip">{{ payment.payment_method_label }}</span>
                         </div>
+                        @if (payment.payer_summary) {
+                          <div class="cobranza-sale__row cobranza-sale__row--meta">
+                            <span>{{ payment.payer_summary }}</span>
+                          </div>
+                        }
                       </div>
                     </article>
                   </li>
@@ -354,6 +359,12 @@
                     <dt>Cheque</dt>
                     <dd>{{ formatCurrency(drawer.collectedCheckMxn) }}</dd>
                   </div>
+                  @if ((drawer.collectedCheckUsd ?? 0) > 0) {
+                    <div>
+                      <dt>Cheque USD</dt>
+                      <dd>{{ formatCurrencyUsd(drawer.collectedCheckUsd ?? 0) }}</dd>
+                    </div>
+                  }
                   <div>
                     <dt>Crédito</dt>
                     <dd>{{ formatCurrency(drawer.collectedCreditMxn) }}</dd>
@@ -548,6 +559,11 @@
                           <span>Anticipo</span>
                           <span class="cobranza-pay-chip">{{ payment.payment_method_label }}</span>
                         </div>
+                        @if (payment.payer_summary) {
+                          <div class="cobranza-sale__row cobranza-sale__row--meta">
+                            <span>{{ payment.payer_summary }}</span>
+                          </div>
+                        }
                       </div>
                     </article>
                   </li>
@@ -846,10 +862,34 @@
               <div class="cobranza-pay-form">
                 @if (collectForm().paymentMethod === 'cash') {
                   <p class="cobranza-cash-hint">
-                    Toca los billetes que entregó el cliente o escribe el monto manual abajo. Puedes combinar pesos y dólares.
+                    Elige pesos, dólares o ambas. Toca los billetes o escribe el monto.
                   </p>
+                  <div class="cobranza-cash-mode" role="group" aria-label="Moneda del efectivo">
+                    <button
+                      type="button"
+                      class="cobranza-cash-mode__btn"
+                      [class.cobranza-cash-mode__btn--active]="cashCurrencyView() === 'MXN'"
+                      (click)="cashCurrencyView.set('MXN')">
+                      Pesos (MXN)
+                    </button>
+                    <button
+                      type="button"
+                      class="cobranza-cash-mode__btn"
+                      [class.cobranza-cash-mode__btn--active]="cashCurrencyView() === 'USD'"
+                      (click)="cashCurrencyView.set('USD')">
+                      Dólares (USD)
+                    </button>
+                    <button
+                      type="button"
+                      class="cobranza-cash-mode__btn"
+                      [class.cobranza-cash-mode__btn--active]="cashCurrencyView() === 'both'"
+                      (click)="cashCurrencyView.set('both')">
+                      Ambas
+                    </button>
+                  </div>
 
                   <div class="cobranza-cash-currencies">
+                    @if (cashCurrencyView() !== 'USD') {
                     <section class="cobranza-cash-currency cobranza-cash-currency--mxn">
                       <div class="cobranza-cash-currency__head">
                         <h4 class="cobranza-cash-currency__title">Pesos (MXN)</h4>
@@ -888,7 +928,9 @@
                       </label>
                       <p class="cobranza-cash-total">Total recibido: <strong>{{ cashReceivedMxnLabel() }}</strong></p>
                     </section>
+                    }
 
+                    @if (cashCurrencyView() !== 'MXN') {
                     <section class="cobranza-cash-currency cobranza-cash-currency--usd">
                       <div class="cobranza-cash-currency__head">
                         <h4 class="cobranza-cash-currency__title">Dólares (USD)</h4>
@@ -945,7 +987,14 @@
                       </label>
                       <p class="cobranza-cash-total">Total recibido: <strong>{{ cashReceivedUsdLabel() }}</strong></p>
                     </section>
+                    }
                   </div>
+                  @if (cashCurrencyView() === 'MXN' && hasCashInput('USD')) {
+                    <p class="cobranza-cash-hint">También hay dólares capturados. Siguen aplicados al cobro.</p>
+                  }
+                  @if (cashCurrencyView() === 'USD' && hasCashInput('MXN')) {
+                    <p class="cobranza-cash-hint">También hay pesos capturados. Siguen aplicados al cobro.</p>
+                  }
 
                   <div
                     class="cobranza-cash-result cobranza-cash-result--band"
@@ -1007,6 +1056,29 @@
                       [ngModel]="collectForm().transferReference"
                       (ngModelChange)="patchCollectForm({ transferReference: $event })" />
                   </label>
+                  <div class="cobranza-field-grid cobranza-field-grid--2">
+                    <label class="cobranza-field">
+                      <span>Nombre</span>
+                      <input
+                        type="text"
+                        maxlength="120"
+                        placeholder="Quien transfiere"
+                        autocomplete="off"
+                        [ngModel]="collectForm().transferPayerName"
+                        (ngModelChange)="patchCollectForm({ transferPayerName: $event })" />
+                    </label>
+                    <label class="cobranza-field">
+                      <span>Razón social</span>
+                      <input
+                        type="text"
+                        maxlength="180"
+                        placeholder="Empresa"
+                        autocomplete="off"
+                        [ngModel]="collectForm().transferPayerBusinessName"
+                        (ngModelChange)="patchCollectForm({ transferPayerBusinessName: $event })" />
+                    </label>
+                  </div>
+                  <p class="cobranza-cash-hint">Nombre o razón social. Con uno basta.</p>
                 }
 
                 @if (collectForm().paymentMethod === 'card') {
@@ -1028,19 +1100,95 @@
                       [ngModel]="collectForm().cardReference"
                       (ngModelChange)="patchCollectForm({ cardReference: $event })" />
                   </label>
+                  <div class="cobranza-field-grid cobranza-field-grid--2">
+                    <label class="cobranza-field">
+                      <span>Nombre</span>
+                      <input
+                        type="text"
+                        maxlength="120"
+                        placeholder="Quien paga"
+                        autocomplete="name"
+                        [ngModel]="collectForm().cardPayerName"
+                        (ngModelChange)="patchCollectForm({ cardPayerName: $event })" />
+                    </label>
+                    <label class="cobranza-field">
+                      <span>Teléfono</span>
+                      <input
+                        type="tel"
+                        inputmode="numeric"
+                        maxlength="15"
+                        placeholder="10 dígitos"
+                        autocomplete="tel"
+                        [ngModel]="collectForm().cardPayerPhone"
+                        (ngModelChange)="patchCollectForm({ cardPayerPhone: digitsPhone($event) })" />
+                    </label>
+                  </div>
                 }
 
                 @if (collectForm().paymentMethod === 'check') {
-                  <label class="cobranza-field">
-                    <span>Monto MXN</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      [ngModel]="moneyInputValue(collectForm().amountCheckMxn)"
-                      (ngModelChange)="patchCollectForm({ amountCheckMxn: parseMoneyInput($event) })" />
-                  </label>
+                  <div class="cobranza-cash-mode" role="group" aria-label="Moneda del cheque">
+                    <button
+                      type="button"
+                      class="cobranza-cash-mode__btn"
+                      [class.cobranza-cash-mode__btn--active]="collectForm().checkCurrency === 'MXN'"
+                      (click)="setCheckCurrency('MXN')">
+                      Pesos (MXN)
+                    </button>
+                    <button
+                      type="button"
+                      class="cobranza-cash-mode__btn"
+                      [class.cobranza-cash-mode__btn--active]="collectForm().checkCurrency === 'USD'"
+                      (click)="setCheckCurrency('USD')">
+                      Dólares (USD)
+                    </button>
+                  </div>
+                  @if (collectForm().checkCurrency === 'USD') {
+                    <div class="cobranza-check-rate">
+                    @if (exchangeRateFromConfig()) {
+                      <span class="cobranza-tc-badge">{{ exchangeRateBadgeLabel() }}</span>
+                    } @else {
+                      <div class="cobranza-tc-field">
+                        <label class="cobranza-tc-field__label" for="cobranza-check-usd-tc">TC $</label>
+                        <input
+                          id="cobranza-check-usd-tc"
+                          type="number"
+                          min="0"
+                          step="0.0001"
+                          class="cobranza-tc-field__input"
+                          placeholder="0.00"
+                          [ngModel]="moneyInputValue(collectForm().usdExchangeRate)"
+                          (ngModelChange)="onUsdExchangeRateChange($event)" />
+                      </div>
+                    }
+                    </div>
+                    <label class="cobranza-field">
+                      <span>Monto USD</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        [ngModel]="moneyInputValue(collectForm().amountCheckUsd)"
+                        (ngModelChange)="patchCollectForm({ amountCheckUsd: parseMoneyInput($event), amountCheckMxn: 0 })" />
+                    </label>
+                    @if (collectForm().amountCheckUsd > 0 && collectForm().usdExchangeRate > 0) {
+                      <p class="cobranza-cash-fx">
+                        Equivale a {{ formatCurrency(checkUsdInMxn(collectForm().amountCheckUsd)) }}
+                        a TC {{ collectForm().usdExchangeRate }}
+                      </p>
+                    }
+                  } @else {
+                    <label class="cobranza-field">
+                      <span>Monto MXN</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        [ngModel]="moneyInputValue(collectForm().amountCheckMxn)"
+                        (ngModelChange)="patchCollectForm({ amountCheckMxn: parseMoneyInput($event), amountCheckUsd: 0 })" />
+                    </label>
+                  }
                   <label class="cobranza-field">
                     <span>Número de cheque</span>
                     <input
@@ -1049,21 +1197,50 @@
                       [ngModel]="collectForm().checkReference"
                       (ngModelChange)="patchCollectForm({ checkReference: $event })" />
                   </label>
+                  <div class="cobranza-field-grid cobranza-field-grid--2">
+                    <label class="cobranza-field">
+                      <span>Nombre</span>
+                      <input
+                        type="text"
+                        maxlength="120"
+                        placeholder="Quien paga"
+                        autocomplete="name"
+                        [ngModel]="collectForm().checkPayerName"
+                        (ngModelChange)="patchCollectForm({ checkPayerName: $event })" />
+                    </label>
+                    <label class="cobranza-field">
+                      <span>Teléfono</span>
+                      <input
+                        type="tel"
+                        inputmode="numeric"
+                        maxlength="15"
+                        placeholder="10 dígitos"
+                        autocomplete="tel"
+                        [ngModel]="collectForm().checkPayerPhone"
+                        (ngModelChange)="patchCollectForm({ checkPayerPhone: digitsPhone($event) })" />
+                    </label>
+                  </div>
                 }
 
                 @if (collectForm().paymentMethod === 'credit') {
                   <div class="cobranza-credit-panel">
-                    <h4>{{ saleCreditRazonSocial() ? 'Crédito · ' + saleCreditRazonSocial() : 'Crédito' }}</h4>
+                    <h4>{{ saleCreditRazonSocial() ? 'Crédito · ' + saleCreditRazonSocial() : 'Crédito' }} · {{ creditCurrency() }}</h4>
                     <p class="cobranza-credit-panel__name">{{ selectedCustomerName() }}</p>
                     <app-credit-usage-bar
                       [used]="selectedCustomerDetail()?.credit_used ?? 0"
                       [available]="selectedCustomerDetail()?.credit_available ?? 0"
                       [limit]="selectedCustomerDetail()?.credit_amount ?? 0"
                       [percent]="selectedCustomerDetail()?.credit_usage_percent ?? 0"
+                      [currency]="creditCurrency()"
                       [days]="selectedCustomerDetail()?.credit_days ?? null">
                     </app-credit-usage-bar>
+                    @if (creditConversionNote()) {
+                      <p class="cobranza-credit-note">{{ creditConversionNote() }}</p>
+                    } @else if (creditOrderCharge().error) {
+                      <p class="cobranza-form-error">{{ creditOrderCharge().error }}</p>
+                    }
                     @if (creditInsufficient()) {
-                      <p class="cobranza-form-error">Crédito insuficiente. Disponible: {{ formatCurrency(creditAvailable()) }}</p>
+                      <p class="cobranza-form-error">Crédito insuficiente. Disponible: {{ formatCreditMoney(creditAvailable()) }}</p>
                     } @else if (creditExceedAuthorized()) {
                       <p class="cobranza-credit-note">Excepción autorizada para esta venta. Al cobrar se apaga.</p>
                     }
@@ -1164,9 +1341,10 @@
                             </div>
                           </header>
                           <div class="cobranza-mixed-card__body">
+                            <p class="cobranza-cash-hint">Pesos, dólares o los dos. Los dólares entran al total con el tipo de cambio.</p>
                             <div class="cobranza-field-grid cobranza-field-grid--2">
                               <label class="cobranza-field">
-                                <span>Aplica a la venta</span>
+                                <span>Aplica MXN</span>
                                 <input
                                   type="number"
                                   min="0"
@@ -1188,13 +1366,67 @@
                               </label>
                             </div>
                             <div class="cobranza-quick-btns">
-                              <button type="button" class="cobranza-quick-btn" (click)="setExactCashReceived()">Exacto</button>
-                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(50)">+$50</button>
-                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(100)">+$100</button>
-                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(200)">+$200</button>
-                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(500)">+$500</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="setExactCashReceived('MXN')">Exacto</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(50, 'MXN')">+$50</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(100, 'MXN')">+$100</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(200, 'MXN')">+$200</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(500, 'MXN')">+$500</button>
                             </div>
-                            @if (collectForm().mixedCashMxn > 0) {
+                            <div class="cobranza-mixed-usd-head">
+                              <span>Dólares</span>
+                              @if (exchangeRateFromConfig()) {
+                                <span class="cobranza-tc-badge">{{ exchangeRateBadgeLabel() }}</span>
+                              } @else {
+                                <div class="cobranza-tc-field">
+                                  <label class="cobranza-tc-field__label" for="cobranza-mixed-usd-tc">TC $</label>
+                                  <input
+                                    id="cobranza-mixed-usd-tc"
+                                    type="number"
+                                    min="0"
+                                    step="0.0001"
+                                    class="cobranza-tc-field__input"
+                                    placeholder="0.00"
+                                    [ngModel]="moneyInputValue(collectForm().usdExchangeRate)"
+                                    (ngModelChange)="onUsdExchangeRateChange($event)" />
+                                </div>
+                              }
+                            </div>
+                            <div class="cobranza-field-grid cobranza-field-grid--2">
+                              <label class="cobranza-field">
+                                <span>Aplica USD</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  [ngModel]="moneyInputValue(collectForm().mixedCashUsd)"
+                                  (ngModelChange)="onMixedCashUsdChange($event)" />
+                              </label>
+                              <label class="cobranza-field">
+                                <span>Recibió USD</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  class="cobranza-field__input--highlight"
+                                  [ngModel]="moneyInputValue(collectForm().mixedReceivedUsd)"
+                                  (ngModelChange)="patchCollectForm({ mixedReceivedUsd: parseMoneyInput($event) })" />
+                              </label>
+                            </div>
+                            <div class="cobranza-quick-btns">
+                              <button type="button" class="cobranza-quick-btn" (click)="setExactCashReceived('USD')">Exacto</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(20, 'USD')">+$20</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(50, 'USD')">+$50</button>
+                              <button type="button" class="cobranza-quick-btn" (click)="addReceivedCash(100, 'USD')">+$100</button>
+                            </div>
+                            @if (collectForm().mixedCashUsd > 0 && collectForm().usdExchangeRate > 0) {
+                              <p class="cobranza-cash-fx">
+                                Aplican {{ formatCurrencyUsd(collectForm().mixedCashUsd) }}
+                                a TC {{ collectForm().usdExchangeRate }}
+                              </p>
+                            }
+                            @if (collectForm().mixedCashMxn > 0 || collectForm().mixedCashUsd > 0) {
                               <div
                                 class="cobranza-cash-result"
                                 [class.cobranza-cash-result--change]="changeDisplay().mxn > 0 || changeDisplay().usd > 0"
@@ -1202,7 +1434,13 @@
                                 @if (cashShortfallMxn() > 0) {
                                   <div class="cobranza-cash-result__item cobranza-cash-result__item--warn">
                                     <span>Falta por recibir</span>
-                                    <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
+                                    <strong>{{ formatCurrency(cashShortfallMxn()) }} MXN</strong>
+                                  </div>
+                                }
+                                @if (mixedUsdShortfall() > 0) {
+                                  <div class="cobranza-cash-result__item cobranza-cash-result__item--warn">
+                                    <span>Falta por recibir</span>
+                                    <strong>{{ formatCurrencyUsd(mixedUsdShortfall()) }} USD</strong>
                                   </div>
                                 }
                                 <div class="cobranza-cash-result__item">
@@ -1261,6 +1499,29 @@
                                 [ngModel]="collectForm().mixedTransferRef"
                                 (ngModelChange)="patchCollectForm({ mixedTransferRef: $event })" />
                             </label>
+                            <div class="cobranza-field-grid cobranza-field-grid--2">
+                              <label class="cobranza-field">
+                                <span>Nombre</span>
+                                <input
+                                  type="text"
+                                  maxlength="120"
+                                  placeholder="Quien transfiere"
+                                  autocomplete="off"
+                                  [ngModel]="collectForm().transferPayerName"
+                                  (ngModelChange)="patchCollectForm({ transferPayerName: $event })" />
+                              </label>
+                              <label class="cobranza-field">
+                                <span>Razón social</span>
+                                <input
+                                  type="text"
+                                  maxlength="180"
+                                  placeholder="Empresa"
+                                  autocomplete="off"
+                                  [ngModel]="collectForm().transferPayerBusinessName"
+                                  (ngModelChange)="patchCollectForm({ transferPayerBusinessName: $event })" />
+                              </label>
+                            </div>
+                            <p class="cobranza-cash-hint">Nombre o razón social. Con uno basta.</p>
                           </div>
                         </article>
                       }
@@ -1319,6 +1580,31 @@
                                 [ngModel]="card.reference"
                                 (ngModelChange)="onMixedCardRefChange($index, $event)" />
                             </label>
+                            @if ($index === 0) {
+                              <div class="cobranza-field-grid cobranza-field-grid--2">
+                                <label class="cobranza-field">
+                                  <span>Nombre</span>
+                                  <input
+                                    type="text"
+                                    maxlength="120"
+                                    placeholder="Quien paga"
+                                    autocomplete="name"
+                                    [ngModel]="collectForm().cardPayerName"
+                                    (ngModelChange)="patchCollectForm({ cardPayerName: $event })" />
+                                </label>
+                                <label class="cobranza-field">
+                                  <span>Teléfono</span>
+                                  <input
+                                    type="tel"
+                                    inputmode="numeric"
+                                    maxlength="15"
+                                    placeholder="10 dígitos"
+                                    autocomplete="tel"
+                                    [ngModel]="collectForm().cardPayerPhone"
+                                    (ngModelChange)="patchCollectForm({ cardPayerPhone: digitsPhone($event) })" />
+                                </label>
+                              </div>
+                            }
                           </div>
                         </article>
                       }
@@ -1357,16 +1643,69 @@
                             </div>
                           </header>
                           <div class="cobranza-mixed-card__body">
-                            <label class="cobranza-field">
-                              <span>Monto MXN</span>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                placeholder="0.00"
-                                [ngModel]="moneyInputValue(collectForm().mixedCheckMxn)"
-                                (ngModelChange)="onMixedAmountChange('check', $event)" />
-                            </label>
+                            <div class="cobranza-cash-mode" role="group" aria-label="Moneda del cheque">
+                              <button
+                                type="button"
+                                class="cobranza-cash-mode__btn"
+                                [class.cobranza-cash-mode__btn--active]="collectForm().mixedCheckCurrency === 'MXN'"
+                                (click)="setCheckCurrency('MXN')">
+                                Pesos (MXN)
+                              </button>
+                              <button
+                                type="button"
+                                class="cobranza-cash-mode__btn"
+                                [class.cobranza-cash-mode__btn--active]="collectForm().mixedCheckCurrency === 'USD'"
+                                (click)="setCheckCurrency('USD')">
+                                Dólares (USD)
+                              </button>
+                            </div>
+                            @if (collectForm().mixedCheckCurrency === 'USD') {
+                              <div class="cobranza-check-rate">
+                              @if (exchangeRateFromConfig()) {
+                                <span class="cobranza-tc-badge">{{ exchangeRateBadgeLabel() }}</span>
+                              } @else {
+                                <div class="cobranza-tc-field">
+                                  <label class="cobranza-tc-field__label" for="cobranza-mixed-check-usd-tc">TC $</label>
+                                  <input
+                                    id="cobranza-mixed-check-usd-tc"
+                                    type="number"
+                                    min="0"
+                                    step="0.0001"
+                                    class="cobranza-tc-field__input"
+                                    placeholder="0.00"
+                                    [ngModel]="moneyInputValue(collectForm().usdExchangeRate)"
+                                    (ngModelChange)="onUsdExchangeRateChange($event)" />
+                                </div>
+                              }
+                              </div>
+                              <label class="cobranza-field">
+                                <span>Monto USD</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  [ngModel]="moneyInputValue(collectForm().mixedCheckUsd)"
+                                  (ngModelChange)="onMixedCheckAmountChange($event)" />
+                              </label>
+                              @if (collectForm().mixedCheckUsd > 0 && collectForm().usdExchangeRate > 0) {
+                                <p class="cobranza-cash-fx">
+                                  Equivale a {{ formatCurrency(checkUsdInMxn(collectForm().mixedCheckUsd)) }}
+                                  a TC {{ collectForm().usdExchangeRate }}
+                                </p>
+                              }
+                            } @else {
+                              <label class="cobranza-field">
+                                <span>Monto MXN</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  [ngModel]="moneyInputValue(collectForm().mixedCheckMxn)"
+                                  (ngModelChange)="onMixedCheckAmountChange($event)" />
+                              </label>
+                            }
                             <label class="cobranza-field">
                               <span>Número de cheque</span>
                               <input
@@ -1375,6 +1714,29 @@
                                 [ngModel]="collectForm().mixedCheckRef"
                                 (ngModelChange)="patchCollectForm({ mixedCheckRef: $event })" />
                             </label>
+                            <div class="cobranza-field-grid cobranza-field-grid--2">
+                              <label class="cobranza-field">
+                                <span>Nombre</span>
+                                <input
+                                  type="text"
+                                  maxlength="120"
+                                  placeholder="Quien paga"
+                                  autocomplete="name"
+                                  [ngModel]="collectForm().checkPayerName"
+                                  (ngModelChange)="patchCollectForm({ checkPayerName: $event })" />
+                              </label>
+                              <label class="cobranza-field">
+                                <span>Teléfono</span>
+                                <input
+                                  type="tel"
+                                  inputmode="numeric"
+                                  maxlength="15"
+                                  placeholder="10 dígitos"
+                                  autocomplete="tel"
+                                  [ngModel]="collectForm().checkPayerPhone"
+                                  (ngModelChange)="patchCollectForm({ checkPayerPhone: digitsPhone($event) })" />
+                              </label>
+                            </div>
                           </div>
                         </article>
                       }
@@ -1553,6 +1915,12 @@
                     @if (pay['transfer_reference']) {
                       <div><dt>Ref. SPEI</dt><dd>{{ pay['transfer_reference'] }}</dd></div>
                     }
+                    @if (pay['transfer_payer_name']) {
+                      <div><dt>Nombre transferencia</dt><dd>{{ pay['transfer_payer_name'] }}</dd></div>
+                    }
+                    @if (pay['transfer_payer_business_name']) {
+                      <div><dt>Razón social</dt><dd>{{ pay['transfer_payer_business_name'] }}</dd></div>
+                    }
                     @if (cardPaymentRows(pay); as cards) {
                       @if (cards.length > 0) {
                         @for (card of cards; track $index) {
@@ -1569,11 +1937,26 @@
                         }
                       }
                     }
+                    @if (pay['card_payer_name']) {
+                      <div><dt>Nombre tarjeta</dt><dd>{{ pay['card_payer_name'] }}</dd></div>
+                    }
+                    @if (pay['card_payer_phone']) {
+                      <div><dt>Tel. tarjeta</dt><dd>{{ pay['card_payer_phone'] }}</dd></div>
+                    }
                     @if (pay['amount_check_mxn'] != null && +pay['amount_check_mxn'] > 0) {
                       <div><dt>Cheque</dt><dd>{{ moneyLabel(pay['amount_check_mxn']) }}</dd></div>
                     }
+                    @if (pay['amount_check_usd'] != null && +pay['amount_check_usd'] > 0) {
+                      <div><dt>Cheque USD</dt><dd>{{ formatCurrencyUsd(+pay['amount_check_usd']) }}</dd></div>
+                    }
                     @if (pay['check_reference']) {
                       <div><dt>Ref. cheque</dt><dd>{{ pay['check_reference'] }}</dd></div>
+                    }
+                    @if (pay['check_payer_name']) {
+                      <div><dt>Nombre cheque</dt><dd>{{ pay['check_payer_name'] }}</dd></div>
+                    }
+                    @if (pay['check_payer_phone']) {
+                      <div><dt>Tel. cheque</dt><dd>{{ pay['check_payer_phone'] }}</dd></div>
                     }
                     @if (pay['amount_credit_mxn'] != null && +pay['amount_credit_mxn'] > 0) {
                       <div><dt>Crédito</dt><dd>{{ moneyLabel(pay['amount_credit_mxn']) }}</dd></div>
@@ -1597,6 +1980,9 @@
                     }
                     @if (item.payment.amount_check_mxn != null && +item.payment.amount_check_mxn > 0) {
                       <div><dt>Cheque</dt><dd>{{ moneyLabel(item.payment.amount_check_mxn) }}</dd></div>
+                    }
+                    @if (item.payment.amount_check_usd != null && +item.payment.amount_check_usd > 0) {
+                      <div><dt>Cheque USD</dt><dd>{{ formatCurrencyUsd(+item.payment.amount_check_usd) }}</dd></div>
                     }
                     @if (item.payment.amount_credit_mxn != null && +item.payment.amount_credit_mxn > 0) {
                       <div><dt>Crédito</dt><dd>{{ moneyLabel(item.payment.amount_credit_mxn) }}</dd></div>

@@ -11,7 +11,17 @@ Fila del carrito:
 
 El botón no debe mostrar ambos textos a la vez.
 
+## Catálogo
+
+En monitor caben **3 cartas** por fila. El ancho mínimo impide una cuarta columna; si el catálogo se angosta (iPad con el carrito al lado, o celular), bajan a 2 o a 1 y la carta sigue grande. La foto usa proporción 4:3.
+
+Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la misma altura para que la etiqueta no se pegue al borde de arriba.
+
 ## Cambios
+
+### 2026-11-02
+
+Cartas del catálogo más grandes: máximo 3 por fila en monitor e iPad anchos, 2 o 1 si el ancho no alcanza. Badges de stock y unidad con el texto centrado, sin pegarse entre sí ni al borde superior.
 
 ### 2026-10-22
 

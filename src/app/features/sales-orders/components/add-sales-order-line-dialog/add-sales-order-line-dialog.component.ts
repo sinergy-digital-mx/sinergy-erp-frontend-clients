@@ -9,6 +9,7 @@ import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialo
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { SalesOrderDetailPayload } from '../../models/sales-order.model';
 import { SalesOrderPaymentCurrency } from '../../models/sales-order-payment.model';
+import { ProductService } from '../../../settings/services/product.service';
 import { SalesOrderService } from '../../services/sales-order.service';
 import { QuotationDetailPayload } from '../../../quotations/models/quotation.model';
 import { QuotationService } from '../../../quotations/services/quotation.service';
@@ -38,6 +39,7 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
 
   products: any[] = [];
   loadingProducts = signal(false);
+  refreshingUoms = signal(false);
   saving = signal(false);
   errorMessage = signal('');
 
@@ -61,6 +63,7 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
     private salesOrderService: SalesOrderService,
     private quotationService: QuotationService,
     private dialog: MatDialog,
+    private productService: ProductService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -132,6 +135,17 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
     return this.selectedProduct?.uoms || [];
   }
 
+  get missingProductUom(): boolean {
+    return !!this.selectedProduct && this.selectedProductUoms.length === 0;
+  }
+
+  get selectedItemNoun(): string {
+    if (this.selectedProduct?.item_kind === 'service' || this.data.sale_scope === 'services') {
+      return 'servicio';
+    }
+    return 'producto';
+  }
+
   get canConfirm(): boolean {
     return !!(
       this.selectedProduct &&
@@ -192,10 +206,18 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
   }
 
   openSelectedProductDetail(): void {
-    const productId = this.selectedProduct?.product_id || this.selectedProduct?.id;
-    if (!productId) return;
+    this.openProductEditor('detalles');
+  }
 
-    this.dialog.open(ProductDetailModalComponent, {
+  openProductUomEditor(): void {
+    this.openProductEditor('uoms');
+  }
+
+  private openProductEditor(initialTab: 'detalles' | 'uoms'): void {
+    const productId = this.selectedProduct?.product_id || this.selectedProduct?.id;
+    if (!productId || this.saving()) return;
+
+    const dialogRef = this.dialog.open(ProductDetailModalComponent, {
       ...PRODUCT_DETAIL_DIALOG_CONFIG,
       data: {
         product: {
@@ -204,8 +226,56 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
           sku: this.selectedProduct?.product_sku || this.selectedProduct?.sku,
         },
         isNew: false,
+        initialTab,
+        iepsEnabled: this.showIeps,
       },
     });
+
+    dialogRef.afterClosed().subscribe(() => this.reloadSelectedProductUoms(productId));
+  }
+
+  private reloadSelectedProductUoms(productId: string): void {
+    if ((this.selectedProduct?.product_id || this.selectedProduct?.id) !== productId) return;
+    this.refreshingUoms.set(true);
+    this.productService.getAssignedUoMs(productId).subscribe({
+      next: (rows) => {
+        if ((this.selectedProduct?.product_id || this.selectedProduct?.id) !== productId) {
+          this.refreshingUoms.set(false);
+          return;
+        }
+        const uoms = this.mapAssignedUoms(rows);
+        this.selectedProduct = { ...(this.selectedProduct || {}), uoms };
+        this.products = this.products.map((row) =>
+          (row.product_id || row.id) === productId ? { ...row, uoms } : row
+        );
+        if (uoms.length && !this.selectedUomId) {
+          this.selectedUomId = uoms[0].id || uoms[0].product_uom_id || '';
+          this.applySelectedUom();
+        }
+        this.refreshingUoms.set(false);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.refreshingUoms.set(false);
+        this.errorMessage.set('No se pudieron cargar las unidades del producto');
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private mapAssignedUoms(rows: any[]): any[] {
+    return (Array.isArray(rows) ? rows : [])
+      .map((uom) => ({
+        id: uom.id,
+        product_uom_id: uom.id,
+        uom_id: uom.uom_catalog_id || uom.uom?.id || '',
+        name: uom.uom?.name || uom.name || 'Unidad',
+        uom_name: uom.uom?.name || uom.uom_name || uom.name || 'Unidad',
+        cost: Number(uom.cost ?? uom.suggested_unit_price ?? 0),
+        iva_percentage: Number(uom.iva_percentage ?? uom.suggested_iva_percentage ?? 8),
+        ieps_percentage: Number(uom.ieps_percentage ?? uom.suggested_ieps_percentage ?? 0),
+      }))
+      .filter((uom) => !!uom.id);
   }
 
   cancel(): void {

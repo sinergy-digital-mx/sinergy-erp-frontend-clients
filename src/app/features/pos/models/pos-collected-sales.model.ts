@@ -10,11 +10,18 @@ export interface CollectedSalePayment {
   usd_exchange_rate?: number | string;
   amount_transfer_mxn?: number | string;
   transfer_reference?: string | null;
+  transfer_payer_name?: string | null;
+  transfer_payer_business_name?: string | null;
   amount_card_mxn?: number | string;
   card_reference?: string | null;
   card_payments?: Array<{ amount_mxn?: number | string; reference?: string | null }>;
   amount_check_mxn?: number | string;
+  amount_check_usd?: number | string;
+  card_payer_name?: string | null;
+  card_payer_phone?: string | null;
   check_reference?: string | null;
+  check_payer_name?: string | null;
+  check_payer_phone?: string | null;
   amount_credit_mxn?: number | string;
   received_cash_mxn?: number | string;
   received_cash_usd?: number | string;
@@ -60,6 +67,7 @@ export interface CollectedSalesSummary {
   transfer_mxn?: number | string;
   card_mxn?: number | string;
   check_mxn?: number | string;
+  check_usd?: number | string;
   credit_mxn?: number | string;
 }
 

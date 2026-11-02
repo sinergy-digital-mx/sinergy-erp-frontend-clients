@@ -180,6 +180,7 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
           },
           isNew: false,
           initialTab: 'costos',
+          iepsEnabled: this.showIeps,
         },
       })
       .afterClosed()

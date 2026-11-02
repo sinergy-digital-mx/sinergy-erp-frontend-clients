@@ -97,7 +97,9 @@ import {
   canDocumentOrderInUsd,
   posDocumentCurrencySplit,
   CollectPaymentMethod,
+  collectPhoneDigits,
   defaultCollectForm,
+  usdAmountCoveringMxn,
   parseOrderTotal,
   PosCollectForm,
   mixedSelectedCount,
@@ -151,6 +153,10 @@ import { SlimSwitchComponent } from '../../../../core/components/slim-switch/sli
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CreditUsageBarComponent } from '../../../customers/components/credit-usage-bar/credit-usage-bar.component';
 import { isCustomerCreditEnabled, unwrapCustomerPayload } from '../../../customers/utils/customer-credit.util';
+import {
+  amountInCreditCurrency,
+  normalizeCreditCurrency,
+} from '../../../customers/utils/credit-currency.util';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
 import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import {
@@ -176,6 +182,8 @@ interface PendingSale {
   folio?: string;
   quotation_folio?: string | null;
   total?: number | string;
+  currency?: string | null;
+  exchange_rate?: number | string | null;
   /** Saldo real por cobrar (considera anticipos registrados en detalle OV). */
   amount_pending?: number | string;
   amount_paid?: number | string;
@@ -265,6 +273,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly cashMxnDenominations = CASH_MXN_DENOMINATIONS;
   readonly cashUsdDenominations = CASH_USD_DENOMINATIONS;
+  /** Qué moneda se captura en efectivo. Ambas quedan aplicadas aunque se oculte un panel. */
+  readonly cashCurrencyView = signal<'MXN' | 'USD' | 'both'>('both');
 
   readonly shift = computed(() => this.posState.dailyShift());
   readonly shiftOpen = computed(() => this.posState.shiftOpen());
@@ -371,10 +381,14 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     const form = this.collectForm();
     const total = this.orderTotal();
     if (form.paymentMethod === 'credit') {
-      if (this.allowCreditExceed()) {
-        return total > 0;
+      const charge = this.creditOrderCharge().amount;
+      if (charge == null || total <= 0) {
+        return false;
       }
-      return this.creditAvailable() + 0.01 >= total && total > 0;
+      if (this.allowCreditExceed()) {
+        return true;
+      }
+      return this.creditAvailable() + 0.01 >= charge;
     }
     return validateCollectForm(form, total) === null;
   });
@@ -406,6 +420,30 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   });
 
   readonly creditAvailable = computed(() => Number(this.selectedCustomerDetail()?.credit_available ?? 0));
+
+  readonly creditCurrency = computed(() =>
+    normalizeCreditCurrency(this.selectedCustomerDetail()?.credit_currency),
+  );
+
+  /** Saldo de la orden expresado en la moneda de la línea de crédito. */
+  readonly creditOrderCharge = computed(() => {
+    const sale = this.selectedSale();
+    const orderCurrency = sale?.currency === 'USD' ? 'USD' : 'MXN';
+    const creditCurrency = this.creditCurrency();
+    const orderRate = Number(sale?.exchange_rate);
+    const dailyRate = Number(this.collectForm().usdExchangeRate);
+    const rate = orderRate > 0 ? orderRate : dailyRate;
+    return {
+      ...amountInCreditCurrency({
+        amount: this.orderTotal(),
+        orderCurrency,
+        creditCurrency,
+        exchangeRate: orderCurrency === creditCurrency ? null : rate,
+      }),
+      rate: orderCurrency === creditCurrency ? null : rate > 0 ? rate : null,
+      orderCurrency,
+    };
+  });
 
   readonly allowCreditExceed = computed(() =>
     this.selectedCustomerDetail()?.allow_credit_exceed === true,
@@ -761,7 +799,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const dialogRef = this.dialog.open(PartialShiftDialogComponent, {
-      width: '440px',
+      width: '500px',
       maxWidth: '95vw',
       disableClose: true,
       panelClass: 'pos-dialog-panel',
@@ -852,6 +890,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       collectedCheckMxn: useDrawer
         ? parsePosMoney(drawer.collected_check_mxn)
         : parsePosMoney(summary?.check_mxn) + advanceOf('check'),
+      collectedCheckUsd: useDrawer
+        ? parsePosMoney(drawer.collected_check_usd)
+        : parsePosMoney(summary?.check_usd),
       collectedCreditMxn: parsePosMoney(summary?.credit_mxn ?? drawer?.collected_credit_mxn),
       removedMxn,
       removedUsd,
@@ -950,6 +991,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       if (method === 'check') {
         next.amountCheckMxn = total;
+        next.amountCheckUsd = 0;
+        next.checkCurrency = 'MXN';
       }
       if (method === 'mixed') {
         next.mixedUsesCash = false;
@@ -961,10 +1004,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         next.mixedReceivedMxn = 0;
         next.mixedCardPayments = [];
         next.mixedCheckMxn = 0;
+        next.mixedCheckUsd = 0;
+        next.mixedCheckCurrency = 'MXN';
         next.mixedTransferRef = '';
         next.mixedCheckRef = '';
       }
-      return next;
+      return this.applyPayerDefaults(next);
     });
     this.collectError.set(null);
   }
@@ -974,6 +1019,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       let next = { ...form, ...patch };
       if (patch.mixedCashMxn != null && next.mixedReceivedMxn < next.mixedCashMxn) {
         next.mixedReceivedMxn = next.mixedCashMxn;
+      }
+      if (patch.mixedCashUsd != null && next.mixedReceivedUsd < next.mixedCashUsd) {
+        next.mixedReceivedUsd = next.mixedCashUsd;
       }
       if (next.paymentMethod === 'mixed' && editedMixed) {
         next = applyMixedRemainderToLast(next, this.orderTotal(), editedMixed);
@@ -997,7 +1045,60 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       this.onMixedCardAmountChange(0, value);
       return;
     }
-    this.patchCollectForm({ mixedCheckMxn: amount }, 'check');
+    this.onMixedCheckAmountChange(value);
+  }
+
+  onMixedCheckAmountChange(value: string | number | null): void {
+    const amount = this.parseMoneyInput(value);
+    if (this.collectForm().mixedCheckCurrency === 'USD') {
+      this.patchCollectForm({ mixedCheckUsd: amount, mixedCheckMxn: 0 }, 'check');
+      return;
+    }
+    this.patchCollectForm({ mixedCheckMxn: amount, mixedCheckUsd: 0 }, 'check');
+  }
+
+  setCheckCurrency(currency: 'MXN' | 'USD'): void {
+    const total = this.orderTotal();
+    this.collectForm.update((form) => {
+      const rate = form.usdExchangeRate;
+      if (form.paymentMethod === 'mixed') {
+        if (currency === 'USD') {
+          const usd =
+            form.mixedCheckMxn > 0 ? usdAmountCoveringMxn(form.mixedCheckMxn, rate) : form.mixedCheckUsd;
+          return { ...form, mixedCheckCurrency: 'USD', mixedCheckMxn: 0, mixedCheckUsd: usd };
+        }
+        const mxn =
+          form.mixedCheckUsd > 0 && rate > 0 ? roundMoney(form.mixedCheckUsd * rate) : form.mixedCheckMxn;
+        return { ...form, mixedCheckCurrency: 'MXN', mixedCheckUsd: 0, mixedCheckMxn: mxn };
+      }
+      if (currency === 'USD') {
+        return {
+          ...form,
+          checkCurrency: 'USD',
+          amountCheckMxn: 0,
+          amountCheckUsd: usdAmountCoveringMxn(total, rate),
+        };
+      }
+      return {
+        ...form,
+        checkCurrency: 'MXN',
+        amountCheckUsd: 0,
+        amountCheckMxn: total,
+      };
+    });
+    this.collectError.set(null);
+  }
+
+  checkUsdInMxn(usd: number): number {
+    const rate = this.collectForm().usdExchangeRate;
+    if (usd <= 0 || rate <= 0) {
+      return 0;
+    }
+    return roundMoney(usd * rate);
+  }
+
+  onMixedCashUsdChange(value: string | number | null): void {
+    this.patchCollectForm({ mixedCashUsd: this.parseMoneyInput(value) }, 'cash');
   }
 
   onMixedCardAmountChange(index: number, value: string | number | null): void {
@@ -1029,7 +1130,15 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onUsdExchangeRateChange(value: string | number | null): void {
-    this.patchCollectForm({ usdExchangeRate: this.parseMoneyInput(value) });
+    const rate = this.parseMoneyInput(value);
+    this.collectForm.update((form) => {
+      const next = { ...form, usdExchangeRate: rate };
+      if (next.paymentMethod === 'check' && next.checkCurrency === 'USD') {
+        next.amountCheckMxn = 0;
+        next.amountCheckUsd = usdAmountCoveringMxn(this.orderTotal(), rate);
+      }
+      return next;
+    });
     this.syncCashFromBillCounts();
   }
 
@@ -1100,18 +1209,36 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.formatCurrencyUsd(this.collectForm().receivedCashUsd);
   }
 
+  mixedUsdShortfall(): number {
+    const form = this.collectForm();
+    if (form.paymentMethod !== 'mixed' || !form.mixedUsesCash) {
+      return 0;
+    }
+    return Math.max(0, Math.round((form.mixedCashUsd - form.mixedReceivedUsd) * 100) / 100);
+  }
+
   setExactCashReceived(currency: 'MXN' | 'USD' = 'MXN'): void {
     const form = this.collectForm();
-    if (form.paymentMethod === 'mixed') {
-      this.patchCollectForm({ mixedReceivedMxn: form.mixedCashMxn });
+    if (form.paymentMethod !== 'mixed') {
+      return;
     }
+    if (currency === 'USD') {
+      this.patchCollectForm({ mixedReceivedUsd: form.mixedCashUsd });
+      return;
+    }
+    this.patchCollectForm({ mixedReceivedMxn: form.mixedCashMxn });
   }
 
   addReceivedCash(delta: number, currency: 'MXN' | 'USD' = 'MXN'): void {
     const form = this.collectForm();
-    if (form.paymentMethod === 'mixed') {
-      this.patchCollectForm({ mixedReceivedMxn: roundMoney(form.mixedReceivedMxn + delta) });
+    if (form.paymentMethod !== 'mixed') {
+      return;
     }
+    if (currency === 'USD') {
+      this.patchCollectForm({ mixedReceivedUsd: roundMoney(form.mixedReceivedUsd + delta) });
+      return;
+    }
+    this.patchCollectForm({ mixedReceivedMxn: roundMoney(form.mixedReceivedMxn + delta) });
   }
 
   parseMoneyInput(value: string | number | null | undefined): number {
@@ -1134,7 +1261,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       if (type === 'cash') {
         next.mixedUsesCash = enabled;
         next.mixedCashMxn = enabled ? next.mixedCashMxn : 0;
+        next.mixedCashUsd = enabled ? next.mixedCashUsd : 0;
         next.mixedReceivedMxn = enabled ? Math.max(next.mixedReceivedMxn, next.mixedCashMxn) : 0;
+        next.mixedReceivedUsd = enabled ? Math.max(next.mixedReceivedUsd, next.mixedCashUsd) : 0;
       }
       if (type === 'transfer') {
         next.mixedUsesTransfer = enabled;
@@ -1147,10 +1276,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       if (type === 'check') {
         next.mixedUsesCheck = enabled;
         next.mixedCheckMxn = enabled ? next.mixedCheckMxn : 0;
+        next.mixedCheckUsd = enabled ? next.mixedCheckUsd : 0;
+        next.mixedCheckCurrency = enabled ? next.mixedCheckCurrency : 'MXN';
         next.mixedCheckRef = enabled ? next.mixedCheckRef : '';
       }
       next = applyMixedRemainderToLast(next, total, null);
-      return next;
+      return this.applyPayerDefaults(next);
     });
     this.collectError.set(null);
   }
@@ -1222,23 +1353,42 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.mixedTypeCount() >= 2 && this.mixedRemainder() > 0.009;
   }
 
-  walkInNeedsContact(method: string): boolean {
-    return method === 'card' || method === 'transfer' || method === 'check' || method === 'mixed';
-  }
-
   creditInsufficient(): boolean {
     if (this.allowCreditExceed()) {
       return false;
     }
-    return this.collectForm().paymentMethod === 'credit' && this.creditAvailable() + 0.01 < this.orderTotal();
+    const charge = this.creditOrderCharge().amount;
+    return (
+      this.collectForm().paymentMethod === 'credit' &&
+      charge != null &&
+      this.creditAvailable() + 0.01 < charge
+    );
   }
 
   creditExceedAuthorized(): boolean {
+    const charge = this.creditOrderCharge().amount;
     return (
       this.collectForm().paymentMethod === 'credit' &&
       this.allowCreditExceed() &&
-      this.creditAvailable() + 0.01 < this.orderTotal()
+      charge != null &&
+      this.creditAvailable() + 0.01 < charge
     );
+  }
+
+  creditConversionNote(): string {
+    const charge = this.creditOrderCharge();
+    if (charge.amount == null || charge.orderCurrency === this.creditCurrency() || !charge.rate) {
+      return '';
+    }
+    return `Esta orden equivale a ${this.formatCreditMoney(charge.amount)} al tipo de cambio ${charge.rate.toFixed(4)}`;
+  }
+
+  formatCreditMoney(amount: number): string {
+    const currency = this.creditCurrency();
+    return new Intl.NumberFormat(currency === 'USD' ? 'en-US' : 'es-MX', {
+      style: 'currency',
+      currency,
+    }).format(amount);
   }
 
   openCustomerCreditSettings(): void {
@@ -1288,6 +1438,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
             || customer?.fiscal_razon_social
             || 'Cliente';
           this.selectedCustomerName.set(name);
+          this.collectForm.update((form) => this.applyPayerDefaults(form));
           const ready = customer?.fiscal_ready_for_invoice === true;
           this.generateInvoice.set(ready && customer?.auto_generate_invoice === true);
           if (!isCustomerCreditEnabled(customer) && this.collectForm().paymentMethod === 'credit') {
@@ -1522,22 +1673,21 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    if (this.customerMode() === 'walk_in' && this.walkInNeedsContact(form.paymentMethod)) {
-      if (!this.walkInName().trim() || this.walkInPhone().replace(/\D/g, '').length < 10) {
-        this.walkInTicketOpen.set(true);
-        this.collectError.set('En público en general, tarjeta, transferencia y cheque piden nombre y teléfono');
-        return;
-      }
-    }
-
     if (this.customerMode() === 'walk_in' && !isValidWalkInRfc(this.walkInRfc())) {
       this.walkInTicketOpen.set(true);
       this.collectError.set('El RFC debe tener 12 o 13 caracteres');
       return;
     }
 
+    if (form.paymentMethod === 'credit' && this.creditOrderCharge().error) {
+      this.collectError.set(this.creditOrderCharge().error);
+      return;
+    }
+
     if (form.paymentMethod === 'credit' && this.creditInsufficient()) {
-      this.collectError.set(`Crédito insuficiente. Disponible: ${this.formatCurrency(this.creditAvailable())}`);
+      this.collectError.set(
+        `Crédito insuficiente. Disponible: ${this.formatCreditMoney(this.creditAvailable())}`,
+      );
       return;
     }
 
@@ -1545,13 +1695,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const payload = {
       ...buildCollectPayload(form, total, customerId, this.documentCurrency()),
-      ...(this.customerMode() === 'walk_in'
-        ? {
-            walk_in_name: this.walkInName().trim(),
-            walk_in_phone: this.walkInPhone().replace(/\D/g, ''),
-            walk_in_rfc: normalizeWalkInRfc(this.walkInRfc()) ?? '',
-          }
-        : {}),
+      ...(this.customerMode() === 'walk_in' ? this.walkInTicketPayload(form) : {}),
       ...(this.generateInvoice() && this.customerMode() === 'registered' && this.fiscalReadyForInvoice()
         ? { generate_invoice: true }
         : {}),
@@ -1957,7 +2101,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     if (rate == null) {
       return;
     }
-    this.collectForm.update((form) => ({ ...form, usdExchangeRate: rate }));
+    this.collectForm.update((form) => {
+      const next = { ...form, usdExchangeRate: rate };
+      if (next.paymentMethod === 'check' && next.checkCurrency === 'USD' && next.amountCheckUsd <= 0) {
+        next.amountCheckUsd = usdAmountCoveringMxn(this.orderTotal(), rate);
+      }
+      return next;
+    });
   }
 
   private buildCollectFormForTotal(total: number): PosCollectForm {
@@ -1991,6 +2141,68 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       ),
     }));
     this.collectError.set(null);
+  }
+
+  digitsPhone(value: string): string {
+    return collectPhoneDigits(value ?? '');
+  }
+
+  private applyPayerDefaults(form: PosCollectForm): PosCollectForm {
+    const defaults = this.payerDefaults();
+    const next = { ...form };
+    const transfer =
+      form.paymentMethod === 'transfer' || (form.paymentMethod === 'mixed' && form.mixedUsesTransfer);
+    const card = form.paymentMethod === 'card' || (form.paymentMethod === 'mixed' && form.mixedUsesCard);
+    const check = form.paymentMethod === 'check' || (form.paymentMethod === 'mixed' && form.mixedUsesCheck);
+    if (transfer) {
+      if (!next.transferPayerName.trim()) next.transferPayerName = defaults.name;
+      if (!next.transferPayerBusinessName.trim()) next.transferPayerBusinessName = defaults.businessName;
+    }
+    if (card) {
+      if (!next.cardPayerName.trim()) next.cardPayerName = defaults.name;
+      if (!next.cardPayerPhone.trim()) next.cardPayerPhone = defaults.phone;
+    }
+    if (check) {
+      if (!next.checkPayerName.trim()) next.checkPayerName = defaults.name;
+      if (!next.checkPayerPhone.trim()) next.checkPayerPhone = defaults.phone;
+    }
+    return next;
+  }
+
+  private payerDefaults(): { name: string; businessName: string; phone: string } {
+    if (this.customerMode() === 'walk_in') {
+      return {
+        name: this.walkInName().trim(),
+        businessName: '',
+        phone: collectPhoneDigits(this.walkInPhone()),
+      };
+    }
+    const customer = this.selectedCustomerDetail();
+    const person = [customer?.name, customer?.lastname].filter(Boolean).join(' ').trim();
+    return {
+      name: person || this.selectedCustomerName().trim(),
+      businessName: customer?.company_name?.trim() || customer?.fiscal_razon_social?.trim() || '',
+      phone: collectPhoneDigits(customer?.phone || customer?.additional_phone || ''),
+    };
+  }
+
+  private walkInTicketPayload(form: PosCollectForm): {
+    walk_in_name: string;
+    walk_in_phone: string;
+    walk_in_rfc: string;
+  } {
+    const payerName =
+      form.transferPayerName.trim() ||
+      form.transferPayerBusinessName.trim() ||
+      form.cardPayerName.trim() ||
+      form.checkPayerName.trim();
+    const payerPhone =
+      collectPhoneDigits(form.cardPayerPhone) || collectPhoneDigits(form.checkPayerPhone);
+    return {
+      walk_in_name: this.walkInName().trim() || payerName,
+      walk_in_phone: collectPhoneDigits(this.walkInPhone()) || payerPhone,
+      walk_in_rfc: normalizeWalkInRfc(this.walkInRfc()) ?? '',
+    };
   }
 }
 

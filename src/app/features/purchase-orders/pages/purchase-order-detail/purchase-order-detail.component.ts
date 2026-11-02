@@ -13,6 +13,7 @@ import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-messa
 import { PaymentsListComponent } from '../../components/payments-list/payments-list.component';
 import { PaymentDialogComponent, PaymentFormData } from '../../components/payment-dialog/payment-dialog.component';
 import { CancelDialogComponent } from '../../components/cancel-dialog/cancel-dialog.component';
+import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 
 @Component({
   selector: 'app-purchase-order-detail',
@@ -36,6 +37,9 @@ export class PurchaseOrderDetailComponent implements OnInit {
   
   // Public readonly signals
   order = this.orderData.asReadonly();
+  iepsEnabled = computed(() =>
+    isFiscalFlagOn(this.order()?.fiscal_configuration?.ieps_enabled, true),
+  );
   loading = this.loadingState.asReadonly();
   error = this.errorState.asReadonly();
   

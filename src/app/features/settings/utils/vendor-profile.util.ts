@@ -20,8 +20,7 @@ export function computeVendorCompleteness(
 ): number {
   const isInternational = vendor.vendor_type === 'INTERNATIONAL';
   const slots: boolean[] = [
-    isFilled(vendor.name),
-    isFilled(vendor.company_name),
+    isFilled(vendor.company_name) || isFilled(vendor.name),
     isInternational ? isFilled(vendor.tax_id) : isFilled(vendor.rfc),
     isInternational ? isFilled(vendor.legal_name) : isFilled(vendor.razon_social),
     isFilled(vendor.street),
@@ -51,10 +50,18 @@ export function completenessLevel(value?: number): 'high' | 'mid' | 'low' {
   return 'low';
 }
 
+/** Nombre comercial. `name` solo cubre fichas anteriores al cambio. */
+export function vendorCompanyName(vendor?: {
+  company_name?: string | null;
+  name?: string | null;
+} | null): string {
+  return (vendor?.company_name || vendor?.name || '').trim();
+}
+
 export const VENDOR_MATCH_REASON_LABELS: Record<VendorMatchReason, string> = {
   rfc: 'RFC',
   tax_id: 'ID fiscal',
-  name: 'Nombre',
+  name: 'Empresa',
   company: 'Empresa',
   bank: 'Cuenta / CLABE',
 };

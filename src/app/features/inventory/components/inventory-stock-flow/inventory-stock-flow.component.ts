@@ -501,13 +501,13 @@ export class InventoryStockFlowComponent implements OnInit {
     const query = term.trim().toLowerCase();
     if (!query) return this.vendorOptions;
     return this.vendorOptions.filter((vendor) => {
-      const haystack = `${vendor.display_name || ''} ${vendor.name || ''} ${vendor.rfc || ''}`.toLowerCase();
+      const haystack = `${vendor.display_name || ''} ${vendor.company_name || ''} ${vendor.name || ''} ${vendor.rfc || ''}`.toLowerCase();
       return haystack.includes(query);
     });
   }
 
   private formatVendorLabel(vendor: Vendor): string {
-    const name = (vendor.name || '').trim();
+    const name = (vendor.company_name || vendor.name || '').trim();
     const rfc = (vendor.rfc || '').trim();
     return rfc ? `${name} (${rfc})` : name;
   }

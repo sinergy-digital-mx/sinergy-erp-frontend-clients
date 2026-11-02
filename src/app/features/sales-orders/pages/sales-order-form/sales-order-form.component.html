@@ -171,6 +171,7 @@
                 }
               </div>
 
+              @if (showIeps()) {
               <div class="form-field">
                 <label>IEPS % *</label>
                 <input 
@@ -185,6 +186,7 @@
                   </span>
                 }
               </div>
+              }
             </div>
 
             <!-- Line calculations -->
@@ -197,10 +199,12 @@
                 <span>IVA:</span>
                 <strong>{{ formatCurrency(getLineCalculations(i).iva_amount) }}</strong>
               </div>
+              @if (showIeps()) {
               <div class="calc-item">
                 <span>IEPS:</span>
                 <strong>{{ formatCurrency(getLineCalculations(i).ieps_amount) }}</strong>
               </div>
+              }
               <div class="calc-item total">
                 <span>Total Línea:</span>
                 <strong>{{ formatCurrency(getLineCalculations(i).line_total) }}</strong>
@@ -229,10 +233,12 @@
           <span>Total IVA:</span>
           <strong>{{ formatCurrency(totalCalculations().total_iva) }}</strong>
         </div>
+        @if (showIeps()) {
         <div class="total-item">
           <span>Total IEPS:</span>
           <strong>{{ formatCurrency(totalCalculations().total_ieps) }}</strong>
         </div>
+        }
         <div class="total-item grand-total">
           <span>Gran Total:</span>
           <strong>{{ formatCurrency(totalCalculations().grand_total) }}</strong>

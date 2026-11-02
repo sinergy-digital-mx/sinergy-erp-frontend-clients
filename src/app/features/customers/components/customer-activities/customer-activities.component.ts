@@ -15,6 +15,9 @@ import {
   ActivityStatus,
   ActivityType,
   CustomerActivity,
+  CustomerActivityUser,
+  CustomerAssignedSellerUser,
+  CustomerRegisteredByUser,
 } from '../../models/customer-group.model';
 import { CustomerActivityFormDialogComponent } from '../customer-activity-form-dialog/customer-activity-form-dialog.component';
 import { CUSTOMER_ACTIVITY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
@@ -35,6 +38,8 @@ import {
 })
 export class CustomerActivitiesComponent implements OnInit, OnChanges, OnDestroy {
   @Input({ required: true }) customerId!: number | string;
+  /** Si la actividad no trae autor, se muestra el vendedor del cliente o quien lo registró. */
+  @Input() fallbackSeller: CustomerAssignedSellerUser | CustomerRegisteredByUser | null = null;
 
   activities = signal<CustomerActivity[]>([]);
   summary = signal<ActivitySummary | null>(null);
@@ -218,12 +223,25 @@ export class CustomerActivitiesComponent implements OnInit, OnChanges, OnDestroy
   getStatusClass = getActivityStatusClass;
   getTypeClass = getActivityTypeClass;
 
-  creatorName(activity: CustomerActivity): string {
-    const user = activity.user;
+  sellerName(activity: CustomerActivity): string {
+    return this.personName(activity.user) || this.personName(this.fallbackSeller);
+  }
+
+  private personName(
+    user: CustomerActivityUser | CustomerAssignedSellerUser | CustomerRegisteredByUser | null | undefined,
+  ): string {
     if (!user) {
       return '';
     }
-    const named = (user.display_name || [user.first_name, user.last_name].filter(Boolean).join(' ')).trim();
-    return named || user.email || '';
+    const record = user as {
+      display_name?: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
+      email?: string | null;
+    };
+    const named = (
+      record.display_name || [record.first_name, record.last_name].filter(Boolean).join(' ')
+    ).trim();
+    return named || (record.email ?? '').trim();
   }
 }

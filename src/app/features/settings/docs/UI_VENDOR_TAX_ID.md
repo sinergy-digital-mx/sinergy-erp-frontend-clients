@@ -10,7 +10,12 @@ Visible solo con `vendor_type === 'INTERNATIONAL'`. Sin asterisco, sin `required
 
 | UI | Body | Cuándo | Obligatorio |
 |----|------|--------|-------------|
+| Nombre de empresa | `company_name` | Siempre | Sí |
 | RFC | `rfc` | Nacional | No |
+
+## 2026-11-02
+
+Se quitó el campo **Nombre**. El identificador es el nombre de empresa.
 | ID fiscal | `tax_id` | Internacional | **No** |
 | Nombre legal | `legal_name` | Internacional | Sí |
 | País | `country` | Internacional | Sí |

@@ -108,6 +108,7 @@ export interface PosDailyShiftCashDrawer {
   collected_transfer_mxn?: number | string;
   collected_card_mxn?: number | string;
   collected_check_mxn?: number | string;
+  collected_check_usd?: number | string;
   collected_credit_mxn?: number | string;
   removed_total_mxn?: number | string;
   removed_total_usd?: number | string;
@@ -136,6 +137,7 @@ export interface PosDailyShiftDetail extends PosDailyShiftListItem {
     payment_method: string;
     payment_method_label: string;
     amount_mxn: number;
+    payer_summary?: string | null;
   }>;
 }
 
