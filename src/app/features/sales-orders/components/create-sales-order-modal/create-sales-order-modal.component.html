@@ -129,6 +129,18 @@
           </p>
         </div>
 
+        @if (!asQuotation) {
+          <div class="form-field form-field--full">
+            <label class="assembly-checkbox">
+              <input type="checkbox" formControlName="for_shipping" />
+              <span>Para envío</span>
+            </label>
+            <p class="assembly-helper">
+              La orden queda marcada para salir en un envío. Si no se marca ahora, se puede agregar después.
+            </p>
+          </div>
+        }
+
         <div class="form-field form-field--full">
           <label class="form-label">{{ asQuotation ? 'OBSERVACIONES' : 'NOTAS' }}</label>
           <textarea

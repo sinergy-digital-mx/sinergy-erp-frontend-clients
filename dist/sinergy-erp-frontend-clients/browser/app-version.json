@@ -1,36 +1,16 @@
 {
-  "version": "0.0.86",
-  "buildId": "0.0.86-1793645539596",
-  "builtAt": "2026-11-02T18:52:19.596Z",
+  "version": "0.0.88",
+  "buildId": "0.0.88-1793649635025",
+  "builtAt": "2026-11-02T20:00:35.025Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Cambios en versiones"
+      "message": "Cambios en contabilidad"
     },
     {
       "scope": "frontend",
-      "message": "Cambios en accesos y permisos"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en facturación"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en configuración"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en WhatsApp"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en productos"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en proveedores"
+      "message": "Cambios en ventas"
     }
   ]
 }

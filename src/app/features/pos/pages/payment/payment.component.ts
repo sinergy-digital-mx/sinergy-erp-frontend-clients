@@ -37,6 +37,7 @@ import {
   Plus,
   Undo2,
   AlertTriangle,
+  Truck,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -195,6 +196,7 @@ interface PendingSale {
   terminal_user?: { first_name?: string; last_name?: string; pos_user_type?: string };
   walk_in_name?: string | null;
   walk_in_rfc?: string | null;
+  for_shipping?: boolean | number | string | null;
 }
 
 type CustomerMode = 'walk_in' | 'registered';
@@ -233,6 +235,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly Undo2 = Undo2;
   readonly Plus = Plus;
   readonly AlertTriangle = AlertTriangle;
+  readonly Truck = Truck;
 
   pendingSales = signal<PendingSale[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);
@@ -245,6 +248,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   loadingShiftDetail = signal(false);
   loadingCollectionDetail = signal(false);
   collecting = signal(false);
+  shippingBusyId = signal<string | null>(null);
   returningToSales = signal(false);
   printingReceipt = signal(false);
   isFullscreen = signal(false);
@@ -934,6 +938,59 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       error: (error) => {
         this.loading.set(false);
         this.toast.error(mapPosApiErrorMessage(error.error?.message));
+      },
+    });
+  }
+
+  isForShipping(value: unknown): boolean {
+    return value === true || value === 1 || value === '1';
+  }
+
+  togglePendingShipping(event: Event, sale: PendingSale): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (sale.kind === 'advance' || !sale.id || this.shippingBusyId()) return;
+    this.applyShippingFlag(sale.id, !this.isForShipping(sale.for_shipping));
+  }
+
+  toggleCollectedShipping(event: Event, orderId?: string | null, current?: unknown): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!orderId || this.shippingBusyId()) return;
+    this.applyShippingFlag(orderId, !this.isForShipping(current));
+  }
+
+  private applyShippingFlag(orderId: string, next: boolean): void {
+    this.shippingBusyId.set(orderId);
+    this.salesOrderService.setForShipping(orderId, next).subscribe({
+      next: () => {
+        this.shippingBusyId.set(null);
+        this.pendingSales.update((list) =>
+          list.map((item) => (item.id === orderId ? { ...item, for_shipping: next } : item)),
+        );
+        const selected = this.selectedSale();
+        if (selected?.id === orderId) {
+          this.selectedSale.set({ ...selected, for_shipping: next });
+        }
+        this.collectedSales.update((list) =>
+          list.map((item) =>
+            item.sales_order?.id === orderId
+              ? { ...item, sales_order: { ...item.sales_order, for_shipping: next } }
+              : item,
+          ),
+        );
+        const collected = this.selectedCollectedSale();
+        if (collected?.sales_order?.id === orderId) {
+          this.selectedCollectedSale.set({
+            ...collected,
+            sales_order: { ...collected.sales_order, for_shipping: next },
+          });
+        }
+        this.toast.success(next ? 'Marcada para envío' : 'Ya no es para envío');
+      },
+      error: (error) => {
+        this.shippingBusyId.set(null);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo cambiar el envío'));
       },
     });
   }

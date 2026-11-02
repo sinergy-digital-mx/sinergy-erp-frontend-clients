@@ -455,6 +455,15 @@
                           <lucide-icon [img]="Eye" [size]="14" class="pos-ic pos-ic--xs" />
                           Ver detalle
                         </button>
+                        <button
+                          type="button"
+                          class="cobranza-ship-toggle"
+                          [class.cobranza-ship-toggle--on]="isForShipping(sale.for_shipping)"
+                          [disabled]="shippingBusyId() === sale.id"
+                          (click)="togglePendingShipping($event, sale)">
+                          <lucide-icon [img]="Truck" [size]="14" />
+                          {{ isForShipping(sale.for_shipping) ? 'Para envío' : 'Marcar envío' }}
+                        </button>
                       }
                     </article>
                   </li>
@@ -536,6 +545,17 @@
                         <lucide-icon [img]="Eye" [size]="14" class="pos-ic pos-ic--xs" />
                         Ver detalle
                       </button>
+                      @if (item.sales_order?.id) {
+                        <button
+                          type="button"
+                          class="cobranza-ship-toggle"
+                          [class.cobranza-ship-toggle--on]="isForShipping(item.sales_order?.for_shipping)"
+                          [disabled]="shippingBusyId() === item.sales_order?.id"
+                          (click)="toggleCollectedShipping($event, item.sales_order?.id, item.sales_order?.for_shipping)">
+                          <lucide-icon [img]="Truck" [size]="14" />
+                          {{ isForShipping(item.sales_order?.for_shipping) ? 'Para envío' : 'Marcar envío' }}
+                        </button>
+                      }
                     </article>
                   </li>
                 }
@@ -624,6 +644,17 @@
                   <strong>{{ sellerLabel(sale) }}</strong>
                 </div>
               </div>
+              @if (!isAdvanceSale(sale)) {
+                <button
+                  type="button"
+                  class="cobranza-ship-toggle cobranza-ship-toggle--card"
+                  [class.cobranza-ship-toggle--on]="isForShipping(sale.for_shipping)"
+                  [disabled]="shippingBusyId() === sale.id"
+                  (click)="togglePendingShipping($event, sale)">
+                  <lucide-icon [img]="Truck" [size]="16" />
+                  {{ isForShipping(sale.for_shipping) ? 'Para envío' : 'Marcar para envío' }}
+                </button>
+              }
             </section>
 
             <section class="cobranza-block">
@@ -1891,6 +1922,17 @@
                   </div>
                 }
               </div>
+              @if (item.sales_order?.id) {
+                <button
+                  type="button"
+                  class="cobranza-ship-toggle cobranza-ship-toggle--card"
+                  [class.cobranza-ship-toggle--on]="isForShipping(item.sales_order?.for_shipping)"
+                  [disabled]="shippingBusyId() === item.sales_order?.id"
+                  (click)="toggleCollectedShipping($event, item.sales_order?.id, item.sales_order?.for_shipping)">
+                  <lucide-icon [img]="Truck" [size]="16" />
+                  {{ isForShipping(item.sales_order?.for_shipping) ? 'Para envío' : 'Marcar para envío' }}
+                </button>
+              }
             </section>
 
             <section class="cobranza-block">

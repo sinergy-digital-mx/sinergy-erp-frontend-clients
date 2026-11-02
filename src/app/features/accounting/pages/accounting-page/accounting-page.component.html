@@ -84,6 +84,16 @@
           <strong class="summary-card__value">{{ formatMoney(posSummary().amount_pending) }}</strong>
           <span class="summary-card__meta">{{ posSummary().orders_pending }} órdenes</span>
         </article>
+        <article class="summary-card summary-card--shipping">
+          <span class="summary-card__label">Para envío</span>
+          <strong class="summary-card__value">{{ posSummary().orders_for_shipping }}</strong>
+          <span class="summary-card__meta">
+            {{ formatMoney(posSummary().amount_for_shipping) }}
+            @if (posSummary().orders_for_shipping_pending) {
+              · {{ posSummary().orders_for_shipping_pending }} por cobrar
+            }
+          </span>
+        </article>
       </div>
     }
 

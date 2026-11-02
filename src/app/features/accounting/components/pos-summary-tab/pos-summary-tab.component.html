@@ -119,6 +119,9 @@
 <ng-template #tableTemplate let-item="$implicit">
   <td class="px-2 py-2">
     <span class="detail-link-btn">{{ item.folio || 'Sin folio' }}</span>
+    @if (isForShipping(item)) {
+      <span class="ship-chip">Envío</span>
+    }
   </td>
   <td class="px-2 py-2">{{ formatTime(item.created_at) }}</td>
   <td class="px-2 py-2">

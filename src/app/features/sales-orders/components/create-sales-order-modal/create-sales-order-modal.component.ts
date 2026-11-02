@@ -143,6 +143,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       sale_scope: ['inventory' as SalesOrderSaleScope, Validators.required],
       currency: ['MXN' as 'MXN' | 'USD', Validators.required],
       requires_selection_assembly: [false],
+      for_shipping: [false],
       notes: ['']
     });
   }
@@ -1031,6 +1032,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       expected_delivery_date: fv.expected_delivery_date,
       sale_scope: fv.sale_scope || 'inventory',
       requires_selection_assembly: fv.sale_scope === 'services' ? false : !!fv.requires_selection_assembly,
+      for_shipping: !!fv.for_shipping,
       notes: (fv.notes || '').trim() || undefined,
       currency: (fv.currency === 'USD' ? 'USD' : 'MXN') as 'MXN' | 'USD',
       line_items: lineItems,

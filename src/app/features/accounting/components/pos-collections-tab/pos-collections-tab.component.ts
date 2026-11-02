@@ -22,7 +22,7 @@ import { SalesOrderDetailDialogComponent } from '../../../sales-orders/component
 import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { paymentMethodLabel } from '../../../pos/models/pos-collected-sales.model';
-import { PosUserSummary } from '../../../sales-orders/models/sales-order.model';
+import { PosUserSummary, isForShippingFlag } from '../../../sales-orders/models/sales-order.model';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 
 interface CollectionFilterChip {
@@ -70,7 +70,7 @@ export class PosCollectionsTabComponent implements OnChanges {
     rows: [] as PosCollectionRow[],
     columns: [
       { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 140 },
-      { name: 'Fechas', prop: 'created_at', sortable: false, canAutoResize: false, width: 148 },
+      { name: 'Fechas', prop: 'created_at', sortable: false, canAutoResize: false, width: 168 },
       { name: 'Sucursal', prop: 'billing_branch', sortable: false, canAutoResize: false, width: 108 },
       { name: 'Cliente', prop: 'customer', sortable: false, canAutoResize: false, width: 136 },
       { name: 'Vendedor / cajero', prop: 'seller', sortable: false, canAutoResize: true, width: 260 },
@@ -170,11 +170,21 @@ export class PosCollectionsTabComponent implements OnChanges {
     return formatBusinessDateTime(value)?.date ?? '—';
   }
 
+  /** Fecha de pago: día de calendario, sin corrimiento de zona. */
+  formatPaymentDate(value?: string | null): string {
+    const day = (value || '').slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(day) ? this.formatIsoDay(day) : '—';
+  }
+
   personName(user?: PosUserSummary | null): string {
     if (!user) {
       return '—';
     }
     return [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || '—';
+  }
+
+  isForShipping(row: PosCollectionRow): boolean {
+    return isForShippingFlag(row.for_shipping);
   }
 
   hasCollectedMoney(row: PosCollectionRow): boolean {

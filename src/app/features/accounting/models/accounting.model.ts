@@ -63,6 +63,9 @@ export interface PosDaySummary {
   amount_collected: number;
   orders_pending: number;
   amount_pending: number;
+  orders_for_shipping: number;
+  amount_for_shipping: number;
+  orders_for_shipping_pending: number;
 }
 
 export interface PosEnteredOrder {
@@ -75,6 +78,7 @@ export interface PosEnteredOrder {
   terminal_name?: string | null;
   customer_display_name?: string | null;
   amount_collected: number;
+  for_shipping?: boolean | number | string | null;
 }
 
 export interface PosSummaryResponse {
@@ -137,6 +141,8 @@ export interface PosCollectionRow {
   id: string;
   folio?: string;
   created_at: string;
+  /** Día de calendario del abono (`YYYY-MM-DD`). Vacío si la orden aún no tiene pago. */
+  payment_date?: string | null;
   collected_at?: string;
   shift_date?: string | null;
   billing_branch?: PosCollectionBranch | null;
@@ -155,6 +161,7 @@ export interface PosCollectionRow {
   payment_breakdown_label?: string | null;
   total?: number | string;
   payment_status?: string;
+  for_shipping?: boolean | number | string | null;
 }
 
 export type PayableCurrencyView = 'all' | 'mxn' | 'usd';

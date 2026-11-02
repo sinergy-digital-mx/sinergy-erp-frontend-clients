@@ -49,6 +49,7 @@ export interface PosCheckoutConfirmDialogData {
   customerActions?: PosCheckoutCustomerActions;
   acceptLabel: string;
   queued?: boolean;
+  initialForShipping?: boolean;
   initialAdvanceAmount?: number | null;
   initialAdvanceUsoCfdi?: string | null;
   initialAdvanceMetodoPago?: 'PUE' | 'PPD' | null;
@@ -61,7 +62,11 @@ export interface PosCheckoutQuoteResult {
   advanceMetodoPago: 'PUE' | 'PPD' | null;
 }
 
-export type PosCheckoutConfirmResult = boolean | PosCheckoutQuoteResult;
+export interface PosCheckoutSaleResult {
+  forShipping: boolean;
+}
+
+export type PosCheckoutConfirmResult = boolean | PosCheckoutSaleResult | PosCheckoutQuoteResult;
 
 const GENERIC_RFCS = new Set(['XAXX010101000', 'XEXX010101000']);
 
@@ -103,6 +108,7 @@ export class PosCheckoutConfirmDialogComponent {
   readonly quickPercents = [30, 50, 100];
 
   notesText = signal('');
+  forShipping = signal(false);
   advanceInvoice = signal(false);
   advanceAmountText = signal('');
   usoCfdi = signal('G03');
@@ -131,6 +137,7 @@ export class PosCheckoutConfirmDialogComponent {
     }
     this.customerLabel.set(data.customerLabel ?? '');
     this.customerFiscal.set(data.customerFiscal ?? null);
+    this.forShipping.set(!!data.initialForShipping);
   }
 
   isQuote(): boolean {
@@ -258,6 +265,6 @@ export class PosCheckoutConfirmDialogComponent {
       });
       return;
     }
-    this.dialogRef.close(true);
+    this.dialogRef.close({ forShipping: this.forShipping() });
   }
 }

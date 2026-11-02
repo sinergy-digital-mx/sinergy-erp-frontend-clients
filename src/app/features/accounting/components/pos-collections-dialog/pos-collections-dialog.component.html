@@ -51,6 +51,7 @@
     </div>
   </td>
   <td class="px-2 py-2">{{ formatDate(item.created_at) }}</td>
+  <td class="px-2 py-2">{{ formatPaymentDate(item.payment_date) }}</td>
   <td class="px-2 py-2">{{ formatDate(item.collected_at) }}</td>
   <td class="px-2 py-2">
     <div class="customer-cell">
@@ -71,6 +72,9 @@
       }
       @if (item.has_stamped_invoice) {
         <span class="invoice-chip">CFDI timbrado</span>
+      }
+      @if (isForShipping(item)) {
+        <span class="ship-chip">Envío</span>
       }
     </div>
   </td>

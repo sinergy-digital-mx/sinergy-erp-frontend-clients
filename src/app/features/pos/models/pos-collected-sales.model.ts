@@ -39,6 +39,7 @@ export interface CollectedSaleItem {
     total?: number | string;
     walk_in_name?: string | null;
     walk_in_rfc?: string | null;
+    for_shipping?: boolean | number | string | null;
   };
   customer?: {
     id?: number;

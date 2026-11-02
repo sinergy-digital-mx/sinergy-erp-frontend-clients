@@ -605,6 +605,15 @@ export class SalesOrderService {
     return '';
   }
 
+  setForShipping(orderId: string, forShipping: boolean): Observable<{ for_shipping: boolean }> {
+    return this.http
+      .patch<unknown>(`${this.baseUrl}/${orderId}/for-shipping`, { for_shipping: forShipping })
+      .pipe(
+        map(() => ({ for_shipping: forShipping })),
+        catchError(error => this.handleError(error))
+      );
+  }
+
   updateOrderNotes(orderId: string, notes: string | null): Observable<{ notes: string | null }> {
     return this.http
       .patch<unknown>(`${this.baseUrl}/${orderId}/notes`, { notes })

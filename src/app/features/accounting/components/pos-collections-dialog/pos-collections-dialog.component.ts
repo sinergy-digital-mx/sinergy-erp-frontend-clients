@@ -17,7 +17,7 @@ import {
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
-import { PosUserSummary } from '../../../sales-orders/models/sales-order.model';
+import { PosUserSummary, isForShippingFlag } from '../../../sales-orders/models/sales-order.model';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 
 export interface PosCollectionsDialogData {
@@ -55,6 +55,7 @@ export class PosCollectionsDialogComponent implements OnInit {
     columns: [
       { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 140 },
       { name: 'Fecha venta', prop: 'created_at', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Fecha pago', prop: 'payment_date', sortable: false, canAutoResize: false, width: 110 },
       { name: 'Fecha cobro', prop: 'collected_at', sortable: false, canAutoResize: false, width: 120 },
       { name: 'Cliente', prop: 'customer', sortable: false, canAutoResize: false, width: 170 },
       { name: 'Vendedor', prop: 'seller', sortable: false, canAutoResize: false, width: 140 },
@@ -109,6 +110,10 @@ export class PosCollectionsDialogComponent implements OnInit {
     this.loadPage(1);
   }
 
+  isForShipping(row: PosCollectionRow): boolean {
+    return isForShippingFlag(row.for_shipping);
+  }
+
   formatCurrency(value: number | string | undefined | null): string {
     const n = value == null ? 0 : typeof value === 'number' ? value : Number(value);
     return this.taxCalculator.formatCurrency(Number.isFinite(n) ? n : 0);
@@ -116,6 +121,16 @@ export class PosCollectionsDialogComponent implements OnInit {
 
   formatDate(value?: string): string {
     return formatBusinessDateTime(value)?.date ?? '—';
+  }
+
+  formatPaymentDate(value?: string | null): string {
+    const day = (value || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      return '—';
+    }
+    const [year, month, dayNum] = day.split('-').map(Number);
+    const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    return `${dayNum} ${months[month - 1]} ${year}`;
   }
 
   sellerLabel(row: PosCollectionRow): string {

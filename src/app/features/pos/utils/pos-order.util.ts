@@ -9,6 +9,7 @@ export interface VentasPosOrderContext {
   terminalLabel?: string;
   walkInName?: string | null;
   walkInRfc?: string | null;
+  forShipping?: boolean;
 }
 
 export function todayIsoDate(): string {
@@ -49,6 +50,7 @@ export function buildVentasPosOrderPayload(
     expected_delivery_date: todayIsoDate(),
     sales_order_type: 'POS',
     seller_user_id: ctx.sellerUserId,
+    for_shipping: !!ctx.forShipping,
     notes: `POS Ventas - ${terminal}`,
     line_items: cart.items.map(mapCartLineToOrderLine),
     ...(cart.global_discount_id ? { global_discount_id: cart.global_discount_id } : {}),

@@ -303,6 +303,9 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       amount_collected: 0,
       orders_pending: 0,
       amount_pending: 0,
+      orders_for_shipping: 0,
+      amount_for_shipping: 0,
+      orders_for_shipping_pending: 0,
     };
   }
 }

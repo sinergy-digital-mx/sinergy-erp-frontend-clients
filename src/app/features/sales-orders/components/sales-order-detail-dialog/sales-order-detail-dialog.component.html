@@ -96,6 +96,9 @@
         <span class="status-badge" [ngClass]="getStatusBadgeClass()">
           {{ order()!.general_status || '-' }}
         </span>
+        @if (isForShipping()) {
+          <span class="status-badge status-badge--shipping">Para envío</span>
+        }
         @if (shippingInfo()?.has_shipping) {
           <span class="status-badge status-badge--invoice">
             En envío{{ shippingInfo()?.status ? ' · ' + shippingInfo()!.status : '' }}
@@ -230,6 +233,25 @@
             </div>
           }
         </div>
+
+        <button
+          type="button"
+          class="info-card info-card--teal ship-flag"
+          [class.ship-flag--on]="isForShipping()"
+          [disabled]="!canToggleForShipping()"
+          (click)="toggleForShipping()">
+          <div class="info-card__icon">
+            <i class="fi fi-rr-truck-side"></i>
+          </div>
+          <div class="info-card__content">
+            <span class="info-card__label">ENVÍO</span>
+            <span class="info-card__value">{{ isForShipping() ? 'Para envío' : 'No es para envío' }}</span>
+            <span class="info-card__subvalue">
+              {{ isForShipping() ? 'Quedará disponible para un envío' : 'Márcala si sale a domicilio' }}
+            </span>
+          </div>
+          <span class="ship-flag__switch" [class.ship-flag__switch--on]="isForShipping()" aria-hidden="true"></span>
+        </button>
 
         <div class="section-card">
           <h3 class="section-title">FECHAS</h3>

@@ -243,6 +243,18 @@
       }
     </div>
 
+    <label class="pos-ship-toggle" [class.pos-ship-toggle--on]="forShipping()">
+      <span>
+        <strong>Para envío</strong>
+        <small>La orden queda marcada para salir en un envío.</small>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        [checked]="forShipping()"
+        (change)="forShipping.set($any($event.target).checked)" />
+    </label>
+
     <div class="pos-dialog__actions">
       <button type="button" class="pos-checkout-dialog__btn pos-checkout-dialog__btn--ghost" (click)="cancel()">
         Volver

@@ -795,6 +795,39 @@
   }
 }
 
+.cobranza-ship-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0.4rem 0 0;
+  padding: 0.38rem 0.55rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &--on {
+    border-color: #5eead4;
+    background: #f0fdfa;
+    color: #0f766e;
+  }
+
+  &--card {
+    width: 100%;
+    margin: 0.75rem 0 0;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+}
+
 .cobranza-chip {
   font-size: 0.65rem;
   font-weight: 700;

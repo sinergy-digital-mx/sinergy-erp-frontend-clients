@@ -76,6 +76,7 @@ export class SalesOrderFormComponent implements OnInit {
       warehouse_id: [order?.warehouse_id || '', Validators.required],
       delivery_date: [order?.delivery_date || ''],
       requires_selection_assembly: [!!order?.requires_selection_assembly],
+      for_shipping: [!!order?.for_shipping],
       line_items: this.fb.array([], Validators.minLength(1))
     });
     

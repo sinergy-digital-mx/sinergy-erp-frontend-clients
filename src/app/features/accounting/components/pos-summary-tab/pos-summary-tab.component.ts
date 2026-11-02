@@ -19,6 +19,7 @@ import { PosCollectionsDialogComponent } from '../pos-collections-dialog/pos-col
 import { PosShiftsDialogComponent, PosShiftsDialogView } from '../pos-shifts-dialog/pos-shifts-dialog.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { isForShippingFlag } from '../../../sales-orders/models/sales-order.model';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 
 @Component({
@@ -46,7 +47,7 @@ export class PosSummaryTabComponent implements OnChanges {
   tableConfig = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 150 },
       { name: 'Hora', prop: 'created_at', sortable: false, canAutoResize: false, width: 90 },
       { name: 'Cliente', prop: 'customer_display_name', sortable: false, canAutoResize: false, width: 200 },
       { name: 'Origen', prop: 'channel', sortable: false, canAutoResize: false, width: 110 },
@@ -104,6 +105,10 @@ export class PosSummaryTabComponent implements OnChanges {
 
   isCollected(order: PosEnteredOrder): boolean {
     return (order.amount_collected ?? 0) > 0 || order.payment_status === 'Pagado';
+  }
+
+  isForShipping(order: PosEnteredOrder): boolean {
+    return isForShippingFlag(order.for_shipping);
   }
 
   onOrderRow(event: { data?: PosEnteredOrder }): void {
@@ -283,6 +288,7 @@ export class PosSummaryTabComponent implements OnChanges {
       terminal_name: null,
       customer_display_name: row.customer_display_name ?? row.customer_company_name ?? null,
       amount_collected: Number.isFinite(total) ? total : 0,
+      for_shipping: row.for_shipping,
     };
   }
 
@@ -298,6 +304,9 @@ export class PosSummaryTabComponent implements OnChanges {
       amount_collected: 0,
       orders_pending: 0,
       amount_pending: 0,
+      orders_for_shipping: 0,
+      amount_for_shipping: 0,
+      orders_for_shipping_pending: 0,
     };
   }
 

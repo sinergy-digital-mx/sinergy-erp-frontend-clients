@@ -19,6 +19,7 @@ import {
   SalesOrderLineItem,
   SalesOrderShippingInfo,
   TicketReciboResponse,
+  isForShippingFlag,
 } from '../../models/sales-order.model';
 import {
   isManualSalesOrderPayment,
@@ -200,6 +201,7 @@ export class SalesOrderDetailDialogComponent {
   posCollection = signal<PosSaleCollection | null>(null);
   shippingInfo = signal<SalesOrderShippingInfo | null>(null);
   loading = signal(true);
+  shippingSaving = signal(false);
   refreshing = signal(false);
   activeTabIndex = signal(0);
   instructionSection = signal<InstructionFilter>('all');
@@ -538,6 +540,33 @@ export class SalesOrderDetailDialogComponent {
             : 'Notas eliminadas. Se regeneró el PDF y el ticket si existía.',
         );
       });
+  }
+
+  isForShipping(): boolean {
+    return isForShippingFlag(this.order()?.for_shipping);
+  }
+
+  canToggleForShipping(): boolean {
+    const order = this.order();
+    return !!order && order.general_status !== 'Cancelada' && !this.shippingSaving();
+  }
+
+  toggleForShipping(): void {
+    const order = this.order();
+    if (!order || !this.canToggleForShipping()) return;
+    const next = !this.isForShipping();
+    this.shippingSaving.set(true);
+    this.salesOrderService.setForShipping(order.id, next).subscribe({
+      next: () => {
+        this.shippingSaving.set(false);
+        this.order.update((current) => (current ? { ...current, for_shipping: next } : current));
+        this.toast.success(next ? 'Orden marcada para envío' : 'La orden ya no es para envío');
+      },
+      error: (error) => {
+        this.shippingSaving.set(false);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo cambiar el envío'));
+      },
+    });
   }
 
   sendOrderToCollection(): void {

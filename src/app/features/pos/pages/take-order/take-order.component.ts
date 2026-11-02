@@ -147,6 +147,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   editingAdvanceAmount = signal<number | null>(null);
   editingAdvanceUsoCfdi = signal<string | null>(null);
   editingAdvanceMetodoPago = signal<'PUE' | 'PPD' | null>(null);
+  editingForShipping = signal(false);
   private pendingResumeTicketId: string | null = null;
 
   selectedCustomerId = signal('');
@@ -539,6 +540,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     this.editingAdvanceUsoCfdi.set(ticket.advance_uso_cfdi ?? null);
     this.editingAdvanceMetodoPago.set(ticket.advance_metodo_pago ?? null);
+    this.editingForShipping.set(
+      ticket.for_shipping === true || ticket.for_shipping === 1 || ticket.for_shipping === '1',
+    );
     this.ticketsPanelOpen.set(false);
     this.notifySuccess(
       ticket.kind === 'advance'
@@ -583,6 +587,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.editingAdvanceAmount.set(null);
     this.editingAdvanceUsoCfdi.set(null);
     this.editingAdvanceMetodoPago.set(null);
+    this.editingForShipping.set(false);
   }
 
   private applyInventorySummaryMeta(summary: PosInventorySummaryResponse): void {
@@ -1156,8 +1161,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       customerLabel: this.ticketCustomerLabel(),
       acceptLabel: this.isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta',
       queued: this.posState.salesQueueMode(),
+      initialForShipping: this.editingForShipping(),
     }).subscribe((confirmed) => {
-      if (!confirmed) {
+      if (!confirmed || typeof confirmed !== 'object' || !('forShipping' in confirmed)) {
         return;
       }
 
@@ -1169,6 +1175,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         customerId: this.selectedOrderCustomerId() ?? undefined,
         walkInName: this.walkInName(),
         walkInRfc: normalizeWalkInRfc(this.walkInRfc()),
+        forShipping: confirmed.forShipping,
       });
 
       this.saving.set(true);
@@ -1180,6 +1187,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           global_discount_id: payload.global_discount_id,
           walk_in_name: payload.walk_in_name,
           walk_in_rfc: payload.walk_in_rfc,
+          for_shipping: payload.for_shipping,
         }).subscribe({
           next: () => {
             this.posService.sendSaleToCaja(editingId).subscribe({
@@ -1301,7 +1309,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         initialAdvanceUsoCfdi: this.editingAdvanceUsoCfdi(),
         initialAdvanceMetodoPago: this.editingAdvanceMetodoPago(),
       }).subscribe((confirmed) => {
-        if (!confirmed || typeof confirmed !== 'object') {
+        if (!confirmed || typeof confirmed !== 'object' || !('notes' in confirmed)) {
           return;
         }
         if (confirmed.advanceAmount == null) {
@@ -1414,7 +1422,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       acceptLabel: 'Guardar cotización',
     }).subscribe((confirmed) => {
-      if (!confirmed || typeof confirmed !== 'object') {
+      if (!confirmed || typeof confirmed !== 'object' || !('notes' in confirmed)) {
         return;
       }
 

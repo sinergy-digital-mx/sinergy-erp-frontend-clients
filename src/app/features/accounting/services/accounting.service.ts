@@ -404,8 +404,11 @@ export class AccountingService {
   ): PosDaySummary {
     const summary = this.asRecord(raw);
     const pending = orders.filter((order) => order.payment_status === 'Pendiente');
+    const shipping = orders.filter((order) => this.isShippingFlag(order.for_shipping));
+    const shippingPending = shipping.filter((order) => order.payment_status === 'Pendiente');
     const amountEntered = orders.reduce((sum, order) => sum + order.total, 0);
     const amountPending = pending.reduce((sum, order) => sum + order.total, 0);
+    const amountShipping = shipping.reduce((sum, order) => sum + order.total, 0);
 
     return {
       orders_entered: Number(summary['orders_entered'] ?? orders.length),
@@ -414,6 +417,11 @@ export class AccountingService {
       amount_collected: Number(summary['amount_collected'] ?? collection?.amount_collected ?? 0),
       orders_pending: Number(summary['orders_pending'] ?? pending.length),
       amount_pending: Number(summary['amount_pending'] ?? amountPending),
+      orders_for_shipping: Number(summary['orders_for_shipping'] ?? shipping.length),
+      amount_for_shipping: Number(summary['amount_for_shipping'] ?? amountShipping),
+      orders_for_shipping_pending: Number(
+        summary['orders_for_shipping_pending'] ?? shippingPending.length,
+      ),
     };
   }
 
@@ -429,7 +437,12 @@ export class AccountingService {
       terminal_name: (row['terminal_name'] as string | null) ?? null,
       customer_display_name: (row['customer_display_name'] as string | null) ?? null,
       amount_collected: Number(row['amount_collected'] ?? 0),
+      for_shipping: this.isShippingFlag(row['for_shipping']),
     };
+  }
+
+  private isShippingFlag(value: unknown): boolean {
+    return value === true || value === 1 || value === '1';
   }
 
   private parseSalesTerminal(raw: unknown): SalesTerminalSummary {

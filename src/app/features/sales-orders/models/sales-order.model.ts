@@ -265,6 +265,8 @@ export interface SalesOrder {
   /** Pesos por 1 USD cuando la orden es en dólares. */
   exchange_rate?: number | string | null;
   requires_selection_assembly?: boolean;
+  /** Marcada para salir en un envío. No significa que ya tenga ruta. */
+  for_shipping?: boolean | number | string | null;
   control_desk?: SalesOrderControlDesk | null;
   corroborated_at?: string | null;
   corroborated_by?: string | null;
@@ -471,6 +473,7 @@ export interface SalesOrderFormData {
   sale_scope?: SalesOrderSaleScope;
   currency?: 'MXN' | 'USD';
   requires_selection_assembly?: boolean;
+  for_shipping?: boolean;
   global_discount_id?: string;
   line_items: Array<{
     product_id: string;
@@ -482,6 +485,11 @@ export interface SalesOrderFormData {
     iva_percentage: number;
     ieps_percentage: number;
   }>;
+}
+
+/** true solo cuando la orden está marcada para envío. */
+export function isForShippingFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === '1';
 }
 
 export interface SalesOrderProductsSummaryParams {
