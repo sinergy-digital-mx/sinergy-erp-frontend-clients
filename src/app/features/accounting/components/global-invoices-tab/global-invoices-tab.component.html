@@ -42,6 +42,13 @@
     }
   </div>
 
+  @if (page() && canSelectOrders()) {
+    <p class="gi-info">
+      <span class="gi-info__mark" aria-hidden="true">i</span>
+      Estas son las órdenes que el cliente no facturó. La factura global se emite con todas.
+    </p>
+  }
+
   @if (page(); as data) {
     <p class="gi-caption">
       {{ data.period_label }}

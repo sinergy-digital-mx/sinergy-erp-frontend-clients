@@ -1,32 +1,12 @@
 {
-  "version": "0.0.95",
-  "buildId": "0.0.95-1793737062762",
-  "builtAt": "2026-11-03T20:17:42.762Z",
+  "version": "0.0.96",
+  "buildId": "0.0.96-1793738537943",
+  "builtAt": "2026-11-03T20:42:17.943Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
       "message": "Cambios en contabilidad"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en inventario"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en productos"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en facturación electrónica"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en ventas"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en autofactura"
     }
   ]
 }
