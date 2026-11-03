@@ -1,12 +1,12 @@
 @if (branchMissing()) {
   <div class="accounting-empty">
-    <p>Selecciona una sucursal para ver las órdenes cobradas en POS.</p>
+    <p>Selecciona una sucursal para ver las órdenes a crédito.</p>
   </div>
 } @else {
   <div class="pos-collections-tab">
     <div class="pos-collections-tab__toolbar">
       <div>
-        <h3 class="pos-collections-tab__title">Órdenes cobradas en punto de venta</h3>
+        <h3 class="pos-collections-tab__title">Órdenes a crédito</h3>
         <p class="pos-collections-tab__subtitle">
           <span>{{ listTotal() }}</span>
           {{ listTotal() === 1 ? 'orden' : 'órdenes' }}
@@ -25,40 +25,9 @@
       </button>
     </div>
 
-    <div class="pay-totals" aria-label="Totales por forma de pago">
-      @for (card of paymentMethodCards(); track card.key) {
-        <button
-          type="button"
-          [class]="'pay-total pay-total--' + card.key"
-          [class.pay-total--active]="paymentMethod() === card.key"
-          [attr.aria-pressed]="paymentMethod() === card.key"
-          [disabled]="tableConfig().loading"
-          (click)="setPaymentMethod(card.key)">
-          <h4 class="pay-total__title">
-            <i class="fi {{ card.icon }}" aria-hidden="true"></i>
-            {{ card.label }}
-          </h4>
-          <dl class="pay-total__metrics">
-            <div>
-              <dt>Ventas</dt>
-              <dd>{{ card.totals.orders }}</dd>
-            </div>
-            <div>
-              <dt>Monto</dt>
-              <dd>{{ formatCurrency(card.totals.amount) }}</dd>
-            </div>
-            <div>
-              <dt>Ticket</dt>
-              <dd>{{ formatCurrency(card.totals.ticket) }}</dd>
-            </div>
-          </dl>
-        </button>
-      }
-    </div>
-
     <div class="pos-collections-tab__filters">
       <div class="pos-collections-tab__chip-groups">
-        <div class="pos-collections-tab__chips" role="tablist" aria-label="Tipo de cliente">
+        <div class="pos-collections-tab__chips" role="tablist" aria-label="Órdenes a crédito">
           @for (chip of filterChips(); track chip.type) {
             <button
               type="button"
@@ -68,21 +37,6 @@
               [attr.aria-selected]="customerType() === chip.type"
               [disabled]="tableConfig().loading"
               (click)="setCustomerType(chip.type)">
-              <i class="fi {{ chip.icon }}" aria-hidden="true"></i>
-              {{ chip.label }}
-              <span class="filter-chip__count">{{ chip.count }}</span>
-            </button>
-          }
-        </div>
-        <div class="pos-collections-tab__chips" role="group" aria-label="Forma de pago">
-          @for (chip of paymentFilters(); track chip.key) {
-            <button
-              type="button"
-              class="filter-chip"
-              [class.filter-chip--active]="paymentMethod() === chip.key"
-              [attr.aria-pressed]="paymentMethod() === chip.key"
-              [disabled]="tableConfig().loading"
-              (click)="setPaymentMethod(chip.key)">
               <i class="fi {{ chip.icon }}" aria-hidden="true"></i>
               {{ chip.label }}
               <span class="filter-chip__count">{{ chip.count }}</span>

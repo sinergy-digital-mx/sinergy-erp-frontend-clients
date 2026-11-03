@@ -13,8 +13,6 @@ import { AccountingService } from '../../services/accounting.service';
 import {
   AccountingPeriod,
   CollectionCustomerType,
-  PosCollectionPaymentMethodKey,
-  PosCollectionPaymentMethodTotal,
   PosCollectionRow,
   PosCollectionsSummary,
 } from '../../models/accounting.model';
@@ -30,20 +28,6 @@ interface CollectionFilterChip {
   label: string;
   count: number;
   icon: string;
-}
-
-interface PaymentFilterChip {
-  key: PosCollectionPaymentMethodKey;
-  label: string;
-  count: number;
-  icon: string;
-}
-
-interface PaymentMethodCard {
-  key: PosCollectionPaymentMethodKey;
-  label: string;
-  icon: string;
-  totals: PosCollectionPaymentMethodTotal;
 }
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
@@ -66,7 +50,6 @@ export class PosCollectionsTabComponent implements OnChanges {
 
   branchMissing = signal(false);
   customerType = signal<CollectionCustomerType>('all');
-  paymentMethod = signal<PosCollectionPaymentMethodKey | null>(null);
   search = signal('');
   listTotal = signal(0);
   filteredAmount = signal(0);
@@ -94,7 +77,7 @@ export class PosCollectionsTabComponent implements OnChanges {
     limit: 20,
     totalResults: 0,
     loading: false,
-    emptyState: { title: 'Sin cobros', subtitle: 'No hay órdenes cobradas en estas fechas' },
+    emptyState: { title: 'Sin órdenes a crédito', subtitle: 'No hay órdenes a crédito de clientes con crédito habilitado en estas fechas' },
     columnMode: 'force',
     reorderable: false,
   });
@@ -115,7 +98,6 @@ export class PosCollectionsTabComponent implements OnChanges {
       changes['dateTo']
     ) {
       this.customerType.set('all');
-      this.paymentMethod.set(null);
       this.search.set('');
       if (this.searchTimer) {
         clearTimeout(this.searchTimer);
@@ -125,34 +107,11 @@ export class PosCollectionsTabComponent implements OnChanges {
     }
   }
 
-  paymentMethodCards(): PaymentMethodCard[] {
-    const methods = this.summary().by_payment_method;
-    return [
-      { key: 'transfer', label: 'Transferencias', icon: 'fi-rr-bank', totals: methods.transfer },
-      { key: 'cash', label: 'Efectivo', icon: 'fi-rr-money', totals: methods.cash },
-      { key: 'card', label: 'Tarjetas', icon: 'fi-rr-credit-card', totals: methods.card },
-      { key: 'check', label: 'Cheques', icon: 'fi-rr-document', totals: methods.check },
-      { key: 'credit', label: 'Crédito', icon: 'fi-rr-handshake', totals: methods.credit },
-    ];
-  }
-
   filterChips(): CollectionFilterChip[] {
     const summary = this.summary();
     return [
       { type: 'all', label: 'Todas', count: summary.orders_collected, icon: 'fi-rr-apps' },
-      { type: 'walk_in', label: 'Público en General', count: summary.walk_in_count, icon: 'fi-rr-user' },
       { type: 'invoiced', label: 'Facturadas', count: summary.invoiced_count, icon: 'fi-rr-file-invoice' },
-    ];
-  }
-
-  paymentFilters(): PaymentFilterChip[] {
-    const methods = this.summary().by_payment_method;
-    return [
-      { key: 'cash', label: 'Efectivo', count: methods.cash.orders, icon: 'fi-rr-money' },
-      { key: 'transfer', label: 'Transferencia', count: methods.transfer.orders, icon: 'fi-rr-bank' },
-      { key: 'card', label: 'Tarjeta', count: methods.card.orders, icon: 'fi-rr-credit-card' },
-      { key: 'check', label: 'Cheque', count: methods.check.orders, icon: 'fi-rr-document' },
-      { key: 'credit', label: 'Crédito', count: methods.credit.orders, icon: 'fi-rr-handshake' },
     ];
   }
 
@@ -163,9 +122,9 @@ export class PosCollectionsTabComponent implements OnChanges {
       return '';
     }
     if (from === to) {
-      return `Cobradas el ${this.formatIsoDay(from)}`;
+      return this.formatIsoDay(from);
     }
-    return `Cobradas del ${this.formatIsoDay(from)} al ${this.formatIsoDay(to)}`;
+    return `Del ${this.formatIsoDay(from)} al ${this.formatIsoDay(to)}`;
   }
 
   setCustomerType(type: CollectionCustomerType): void {
@@ -173,14 +132,6 @@ export class PosCollectionsTabComponent implements OnChanges {
       return;
     }
     this.customerType.set(type);
-    this.fetchPage(1);
-  }
-
-  setPaymentMethod(method: PosCollectionPaymentMethodKey): void {
-    if (this.tableConfig().loading) {
-      return;
-    }
-    this.paymentMethod.set(this.paymentMethod() === method ? null : method);
     this.fetchPage(1);
   }
 
@@ -330,7 +281,8 @@ export class PosCollectionsTabComponent implements OnChanges {
         this.periodQuery(),
         this.customerType(),
         this.search(),
-        this.paymentMethod()
+        null,
+        true
       )
       .subscribe({
         next: ({ blob, filename }) => {
@@ -385,7 +337,8 @@ export class PosCollectionsTabComponent implements OnChanges {
         page,
         this.tableConfig().limit,
         this.search(),
-        this.paymentMethod()
+        null,
+        true
       )
       .subscribe({
         next: (res) => {

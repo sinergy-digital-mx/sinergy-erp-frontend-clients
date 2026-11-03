@@ -74,7 +74,8 @@ export class AccountingService {
     page = 1,
     limit = 20,
     search?: string,
-    paymentMethod?: PosCollectionPaymentMethodKey | null
+    paymentMethod?: PosCollectionPaymentMethodKey | null,
+    creditOnly = false
   ): Observable<PosCollectionsPage> {
     let params = this.buildPeriodParams(query)
       .set('customer_type', customerType)
@@ -83,8 +84,11 @@ export class AccountingService {
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
-    if (paymentMethod) {
+    if (paymentMethod && !creditOnly) {
       params = params.set('payment_method', paymentMethod);
+    }
+    if (creditOnly) {
+      params = params.set('credit_only', 'true');
     }
 
     return this.http.get<unknown>(`${this.api}/pos-collections`, { params }).pipe(
@@ -109,14 +113,18 @@ export class AccountingService {
     query: AccountingPeriodQuery,
     customerType: CollectionCustomerType = 'all',
     search?: string,
-    paymentMethod?: PosCollectionPaymentMethodKey | null
+    paymentMethod?: PosCollectionPaymentMethodKey | null,
+    creditOnly = false
   ): Observable<{ blob: Blob; filename: string }> {
     let params = this.buildPeriodParams(query).set('customer_type', customerType);
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
-    if (paymentMethod) {
+    if (paymentMethod && !creditOnly) {
       params = params.set('payment_method', paymentMethod);
+    }
+    if (creditOnly) {
+      params = params.set('credit_only', 'true');
     }
 
     return this.http
