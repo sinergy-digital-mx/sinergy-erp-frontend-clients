@@ -367,7 +367,9 @@
               <div class="stop">
                 <div class="stop__seq">{{ $index + 1 }}</div>
                 <div class="stop__body">
-                  <strong class="stop__title">{{ transfer.folio }}</strong>
+                  <button type="button" class="stop__title stop__title-btn" (click)="openTransferDetail(transfer.id)">
+                    {{ transfer.folio }}
+                  </button>
                   <p class="stop__name">{{ transfer.destination_warehouse_name || 'Destino' }}</p>
                   @if (transfer.total_quantity != null) {
                     <p class="stop__addr">{{ transfer.total_quantity }}</p>
@@ -387,6 +389,14 @@
               (click)="openAddStops()">
               <lucide-icon [img]="Plus" [size]="16" [strokeWidth]="2.25"></lucide-icon>
               Agregar orden de venta
+            </button>
+            <button
+              type="button"
+              class="sv__add-btn"
+              *hasPermission="permissions.create"
+              (click)="openAddTransfers()">
+              <lucide-icon [img]="Plus" [size]="16" [strokeWidth]="2.25"></lucide-icon>
+              Agregar transferencia
             </button>
           </div>
         }

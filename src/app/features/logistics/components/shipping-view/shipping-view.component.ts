@@ -45,6 +45,7 @@ import {
 } from '../../models/shipping.model';
 import { ShippingService } from '../../services/shipping.service';
 import { AddShippingStopsDialogComponent } from '../add-shipping-stops-dialog/add-shipping-stops-dialog.component';
+import { AddShippingTransfersDialogComponent } from '../add-shipping-transfers-dialog/add-shipping-transfers-dialog.component';
 import { BranchLocationDialogComponent } from '../branch-location-dialog/branch-location-dialog.component';
 
 @Component({
@@ -546,6 +547,55 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
         this.shippingUpdated.emit(updated);
       }
     });
+  }
+
+  openAddTransfers(): void {
+    const shipping = this.shipping();
+    const billingBranchId =
+      shipping?.origin_billing_branch_id || shipping?.origin?.billing_branch_id;
+    if (!shipping || !billingBranchId) return;
+    const ref = this.dialog.open(AddShippingTransfersDialogComponent, {
+      width: '640px',
+      maxWidth: '95vw',
+      data: {
+        shippingId: shipping.id,
+        billingBranchId,
+        assignedTransferIds: (shipping.transfers ?? []).map((transfer) => transfer.id),
+      },
+    });
+    ref.afterClosed().subscribe((updated) => {
+      if (updated) {
+        this.applyShipping(updated);
+        this.shippingUpdated.emit(updated);
+      }
+    });
+  }
+
+  openTransferDetail(transferId: string): void {
+    void import('../../../inventory/components/transfer-detail-dialog/transfer-detail-dialog.component').then(
+      (mod) => {
+        this.dialog
+          .open(mod.TransferDetailDialogComponent, {
+            data: { transferId },
+            width: 'min(1100px, 96vw)',
+            maxWidth: '96vw',
+            maxHeight: '92vh',
+          })
+          .afterClosed()
+          .subscribe((changed) => {
+            if (!changed || !this.shippingId) return;
+            this.shippingService
+              .getShipping(this.shippingId)
+              .pipe(takeUntil(this.destroy$))
+              .subscribe({
+                next: (shipping) => {
+                  this.applyShipping(shipping);
+                  this.shippingUpdated.emit(shipping);
+                },
+              });
+          });
+      },
+    );
   }
 
   recalculate(): void {

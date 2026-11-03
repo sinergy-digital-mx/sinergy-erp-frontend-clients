@@ -126,6 +126,22 @@ export class ShippingService {
     );
   }
 
+  addTransfers(
+    id: string,
+    inventoryTransferIds: string[],
+  ): Observable<{ shipping: Shipping; message?: string }> {
+    return this.http
+      .post<any>(`${this.baseUrl}/${id}/transfers`, {
+        inventory_transfer_ids: inventoryTransferIds,
+      })
+      .pipe(
+        map((response) => ({
+          shipping: normalizeShipping(response?.data ?? response),
+          message: response?.message,
+        })),
+      );
+  }
+
   setStopAddress(
     id: string,
     salesOrderId: string,

@@ -15,7 +15,6 @@ import { DatatableWrapperComponent } from '../../../../core/components/datatable
 import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
-import { TransferShippingDialogComponent } from '../transfer-shipping-dialog/transfer-shipping-dialog.component';
 import { TransferReceptionDialogComponent } from '../transfer-reception-dialog/transfer-reception-dialog.component';
 import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
@@ -349,20 +348,6 @@ export class TransferListComponent implements OnInit {
     return transferStatusTone(status);
   }
 
-  openShipping(transfer: InventoryTransfer, event: Event): void {
-    event.stopPropagation();
-    this.dialog
-      .open(TransferShippingDialogComponent, {
-        data: { transfer },
-        width: 'min(640px, 96vw)',
-        maxWidth: '96vw',
-      })
-      .afterClosed()
-      .subscribe((created) => {
-        if (created) this.loadTransfers();
-      });
-  }
-
   openReception(transfer: InventoryTransfer, event: Event): void {
     event.stopPropagation();
     const open = (current: InventoryTransfer) => {
@@ -414,12 +399,17 @@ export class TransferListComponent implements OnInit {
 
   openTransferDetail(transfer: InventoryTransfer, event?: Event): void {
     event?.stopPropagation();
-    this.dialog.open(TransferDetailDialogComponent, {
-      data: { transferId: transfer.id },
-      width: 'min(1100px, 96vw)',
-      maxWidth: '96vw',
-      maxHeight: '92vh',
-    });
+    this.dialog
+      .open(TransferDetailDialogComponent, {
+        data: { transferId: transfer.id },
+        width: 'min(1100px, 96vw)',
+        maxWidth: '96vw',
+        maxHeight: '92vh',
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed) this.loadTransfers();
+      });
   }
 
   downloadPdf(transfer: InventoryTransfer, event: Event): void {

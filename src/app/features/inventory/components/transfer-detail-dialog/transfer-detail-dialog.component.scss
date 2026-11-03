@@ -259,3 +259,161 @@
 .text-right {
   text-align: right;
 }
+
+.ship-panel {
+  margin-bottom: 1.1rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.ship-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+
+  h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #111827;
+  }
+}
+
+.ship-panel__link,
+.ship-panel__actions button {
+  border: 0;
+  background: transparent;
+  color: #4338ca;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+
+  &:disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+  }
+}
+
+.ship-panel__summary,
+.ship-panel__meta,
+.ship-panel__lead,
+.ship-panel__hint {
+  margin: 0.45rem 0 0;
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.ship-panel__modes {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+
+  button {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #374151;
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &.is-on {
+      border-color: #4338ca;
+      background: #eef2ff;
+      color: #3730a3;
+    }
+  }
+}
+
+.ship-panel__loading {
+  padding: 1rem 0;
+}
+
+.ship-panel__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.ship-panel__full {
+  grid-column: 1 / -1;
+}
+
+.ship-panel__modes + .ship-panel__full,
+.ship-panel__modes + .ship-panel__hint {
+  margin-top: 0.85rem;
+}
+
+.ship-panel label,
+.ship-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.ship-panel input,
+.ship-panel select,
+.ship-panel textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #111827;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.45rem 0.6rem;
+}
+
+.ship-panel__field-label,
+.ship-panel__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.ship-panel__mark {
+  display: inline-flex;
+  color: #15803d;
+
+  &.is-bad {
+    color: #b45309;
+  }
+}
+
+.ship-panel__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.85rem;
+}
+
+.ship-panel__primary {
+  border: 0;
+  border-radius: 0.5rem;
+  background: #4338ca;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 700px) {
+  .ship-panel__grid {
+    grid-template-columns: 1fr;
+  }
+}

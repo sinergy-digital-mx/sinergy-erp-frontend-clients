@@ -24,6 +24,130 @@
     </div>
   } @else if (transfer(); as t) {
     <div class="transfer-detail__body">
+      @if (t.shipping_id || canAssignShipping(t)) {
+        <section class="ship-panel">
+          <div class="ship-panel__head">
+            <h3>Envío</h3>
+            @if (t.shipping_id && canReadShipping()) {
+              <button type="button" class="ship-panel__link" (click)="openShipping()">Ver envío</button>
+            }
+          </div>
+
+          @if (t.shipping_id) {
+            <p class="ship-panel__summary">
+              {{ t.shipping_status || 'Creado' }}
+              @if (t.shipping_date) {
+                · {{ formatShippingDate(t.shipping_date) }}
+              }
+              @if (t.shipping_truck_name) {
+                · {{ t.shipping_truck_name }}
+              }
+              @if (t.shipping_driver_name) {
+                · {{ t.shipping_driver_name }}
+              }
+            </p>
+            <p class="ship-panel__meta">Este envío lleva {{ shippingCountLabel(t.shipping_transfer_count) }}.</p>
+          } @else {
+            <p class="ship-panel__lead">
+              La mercancía sigue apartada. Créale un envío o súmala a uno que ya esté creado en esta sucursal.
+            </p>
+            <div class="ship-panel__modes">
+              <button type="button" [class.is-on]="shipMode() === 'new'" (click)="shipMode.set('new')">
+                Nuevo envío
+              </button>
+              <button type="button" [class.is-on]="shipMode() === 'existing'" (click)="shipMode.set('existing')">
+                Agregar a uno existente
+              </button>
+            </div>
+
+            @if (loadingShipOptions()) {
+              <div class="ship-panel__loading"><app-spinner></app-spinner></div>
+            } @else if (shipMode() === 'new') {
+              <div class="ship-panel__grid">
+                <label>
+                  Fecha
+                  <input type="date" [(ngModel)]="shippingDate" />
+                </label>
+                <div class="ship-panel__field">
+                  <div class="ship-panel__field-label">
+                    <span>Unidad</span>
+                    <span class="ship-panel__actions">
+                      @if (selectedTruck(); as truck) {
+                        <span
+                          class="ship-panel__mark"
+                          [class.is-bad]="!truck.carta_porte_ready"
+                          [title]="markTitle(truck.carta_porte_ready, truck.carta_porte_missing)">
+                          <lucide-icon [img]="truck.carta_porte_ready ? Check : CircleAlert" [size]="16"></lucide-icon>
+                        </span>
+                      }
+                      <button type="button" [disabled]="!truckId" (click)="editTruck()">Editar</button>
+                    </span>
+                  </div>
+                  <select [(ngModel)]="truckId">
+                    <option value="">Selecciona unidad</option>
+                    @for (truck of trucks(); track truck.id) {
+                      <option [value]="truck.id" [disabled]="!!truck.active_shipping_id">
+                        {{ truckSelectLabel(truck) }}{{ truck.active_shipping_id ? ' · ' + truckBusyLabel(truck) : '' }}
+                      </option>
+                    }
+                  </select>
+                </div>
+                <div class="ship-panel__field">
+                  <div class="ship-panel__field-label">
+                    <span>Chofer</span>
+                    <span class="ship-panel__actions">
+                      @if (selectedDriver(); as driver) {
+                        <span
+                          class="ship-panel__mark"
+                          [class.is-bad]="!driver.carta_porte_ready"
+                          [title]="markTitle(driver.carta_porte_ready, driver.carta_porte_missing)">
+                          <lucide-icon [img]="driver.carta_porte_ready ? Check : CircleAlert" [size]="16"></lucide-icon>
+                        </span>
+                      }
+                      <button type="button" [disabled]="!driverId" (click)="editDriver()">Editar</button>
+                    </span>
+                  </div>
+                  <select [(ngModel)]="driverId">
+                    <option value="">Selecciona chofer</option>
+                    @for (driver of drivers(); track driver.id) {
+                      <option [value]="driver.id">{{ driverName(driver) }}</option>
+                    }
+                  </select>
+                </div>
+                <label class="ship-panel__full">
+                  Notas
+                  <textarea rows="2" [(ngModel)]="notes" placeholder="Salida de bodega…"></textarea>
+                </label>
+              </div>
+              <div class="ship-panel__footer">
+                <button type="button" class="ship-panel__primary" [disabled]="savingShipping()" (click)="createShipping()">
+                  {{ savingShipping() ? 'Creando…' : 'Crear envío' }}
+                </button>
+              </div>
+            } @else {
+              @if (!openShippings().length) {
+                <p class="ship-panel__hint">No hay envíos creados en la sucursal de origen.</p>
+              } @else {
+                <label class="ship-panel__full">
+                  Envío
+                  <select [(ngModel)]="existingShippingId">
+                    <option value="">Selecciona un envío</option>
+                    @for (shipping of openShippings(); track shipping.id) {
+                      <option [value]="shipping.id">{{ shippingOptionLabel(shipping) }}</option>
+                    }
+                  </select>
+                </label>
+                <div class="ship-panel__footer">
+                  <button type="button" class="ship-panel__primary" [disabled]="savingShipping()" (click)="addToExistingShipping()">
+                    {{ savingShipping() ? 'Agregando…' : 'Agregar a este envío' }}
+                  </button>
+                </div>
+              }
+            }
+          }
+        </section>
+      }
+
       <div class="route-cards">
         <div class="route-card">
           <span class="route-card__kicker">Origen</span>
@@ -81,12 +205,6 @@
           <span class="info-item__label">Estado</span>
           <span class="info-item__value">{{ statusLabel(t.status) }}</span>
         </div>
-        @if (t.shipping_id) {
-          <div class="info-item">
-            <span class="info-item__label">Envío</span>
-            <span class="info-item__value">{{ t.shipping_status || 'Creado' }}{{ t.shipping_date ? ' · ' + t.shipping_date : '' }}</span>
-          </div>
-        }
         <div class="info-item">
           <span class="info-item__label">Creado por</span>
           <span class="info-item__value">{{ t.created_by_user?.name || '—' }}</span>

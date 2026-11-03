@@ -242,7 +242,7 @@
   <td class="px-2 py-2 w-[280px]">
     <div class="transfer-actions">
       @if (canCreateShipping && item.status === 'pending') {
-        <button type="button" class="transfer-ship-btn" (click)="openShipping(item, $event)">
+        <button type="button" class="transfer-ship-btn" (click)="openTransferDetail(item, $event)">
           Crear envío
         </button>
       }

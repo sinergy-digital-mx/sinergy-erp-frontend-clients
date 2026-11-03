@@ -145,6 +145,9 @@ export interface InventoryTransfer {
   shipping_id?: string | null;
   shipping_status?: string | null;
   shipping_date?: string | null;
+  shipping_driver_name?: string | null;
+  shipping_truck_name?: string | null;
+  shipping_transfer_count?: number | null;
   source_warehouse: TransferWarehouseSummary;
   destination_warehouse: TransferWarehouseSummary;
   lines?: TransferLine[];

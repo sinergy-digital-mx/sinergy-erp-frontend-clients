@@ -452,8 +452,28 @@
 }
 
 .sv__add {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
   padding-top: 0.15rem;
   margin-top: 0.15rem;
+}
+
+.stop__title-btn {
+  display: inline;
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .sv__add-btn {

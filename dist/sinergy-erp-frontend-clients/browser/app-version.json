@@ -1,11 +1,19 @@
 {
-  "version": "0.0.93",
-  "buildId": "0.0.93-1793723308204",
-  "builtAt": "2026-11-03T16:28:28.204Z",
+  "version": "0.0.94",
+  "buildId": "0.0.94-1793726468601",
+  "builtAt": "2026-11-03T17:21:08.601Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
+      "message": "Cambios en inventario"
+    },
+    {
+      "scope": "frontend",
+      "message": "Cambios en logística"
+    },
+    {
+      "scope": "backend",
       "message": "Cambios en contabilidad"
     }
   ]
