@@ -12,6 +12,7 @@ import {
   AccountingPeriod,
   CollectionCustomerType,
   CollectionTerminalSummary,
+  PosCollectionPaymentMethodKey,
   PosCollectionRow,
 } from '../../models/accounting.model';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
@@ -33,6 +34,7 @@ interface CollectionFilterChip {
   type: CollectionCustomerType;
   label: string;
   count: number;
+  icon: string;
 }
 
 @Component({
@@ -46,9 +48,11 @@ export class PosCollectionsDialogComponent implements OnInit {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
 
   customerType = signal<CollectionCustomerType>('all');
+  paymentMethod = signal<PosCollectionPaymentMethodKey | null>(null);
   listTotal = signal(0);
 
   readonly filterChips: CollectionFilterChip[];
+  readonly creditCount: number;
 
   tableConfig = signal<IDatatableConfig>({
     rows: [] as PosCollectionRow[],
@@ -83,10 +87,11 @@ export class PosCollectionsDialogComponent implements OnInit {
   ) {
     const collection = data.collection;
     this.filterChips = [
-      { type: 'all', label: 'Todas', count: collection.orders_collected },
-      { type: 'walk_in', label: 'Público en General', count: collection.walk_in_count },
-      { type: 'invoiced', label: 'Facturadas', count: collection.invoiced_count },
+      { type: 'all', label: 'Todas', count: collection.orders_collected, icon: 'fi-rr-apps' },
+      { type: 'walk_in', label: 'Público en General', count: collection.walk_in_count, icon: 'fi-rr-user' },
+      { type: 'invoiced', label: 'Facturadas', count: collection.invoiced_count, icon: 'fi-rr-file-invoice' },
     ];
+    this.creditCount = collection.credit_count ?? 0;
     this.customerType.set(data.customerType ?? 'all');
   }
 
@@ -107,6 +112,14 @@ export class PosCollectionsDialogComponent implements OnInit {
       return;
     }
     this.customerType.set(type);
+    this.loadPage(1);
+  }
+
+  toggleCredit(): void {
+    if (this.tableConfig().loading) {
+      return;
+    }
+    this.paymentMethod.set(this.paymentMethod() === 'credit' ? null : 'credit');
     this.loadPage(1);
   }
 
@@ -195,7 +208,9 @@ export class PosCollectionsDialogComponent implements OnInit {
         },
         this.customerType(),
         page,
-        this.tableConfig().limit
+        this.tableConfig().limit,
+        undefined,
+        this.paymentMethod()
       )
       .subscribe({
         next: (res) => {

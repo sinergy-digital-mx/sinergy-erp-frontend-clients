@@ -29,11 +29,20 @@ interface CollectionFilterChip {
   type: CollectionCustomerType;
   label: string;
   count: number;
+  icon: string;
+}
+
+interface PaymentFilterChip {
+  key: PosCollectionPaymentMethodKey;
+  label: string;
+  count: number;
+  icon: string;
 }
 
 interface PaymentMethodCard {
   key: PosCollectionPaymentMethodKey;
   label: string;
+  icon: string;
   totals: PosCollectionPaymentMethodTotal;
 }
 
@@ -57,6 +66,7 @@ export class PosCollectionsTabComponent implements OnChanges {
 
   branchMissing = signal(false);
   customerType = signal<CollectionCustomerType>('all');
+  paymentMethod = signal<PosCollectionPaymentMethodKey | null>(null);
   search = signal('');
   listTotal = signal(0);
   filteredAmount = signal(0);
@@ -105,6 +115,7 @@ export class PosCollectionsTabComponent implements OnChanges {
       changes['dateTo']
     ) {
       this.customerType.set('all');
+      this.paymentMethod.set(null);
       this.search.set('');
       if (this.searchTimer) {
         clearTimeout(this.searchTimer);
@@ -117,19 +128,31 @@ export class PosCollectionsTabComponent implements OnChanges {
   paymentMethodCards(): PaymentMethodCard[] {
     const methods = this.summary().by_payment_method;
     return [
-      { key: 'transfer', label: 'Transferencias', totals: methods.transfer },
-      { key: 'cash', label: 'Efectivo', totals: methods.cash },
-      { key: 'card', label: 'Tarjetas', totals: methods.card },
-      { key: 'check', label: 'Cheques', totals: methods.check },
+      { key: 'transfer', label: 'Transferencias', icon: 'fi-rr-bank', totals: methods.transfer },
+      { key: 'cash', label: 'Efectivo', icon: 'fi-rr-money', totals: methods.cash },
+      { key: 'card', label: 'Tarjetas', icon: 'fi-rr-credit-card', totals: methods.card },
+      { key: 'check', label: 'Cheques', icon: 'fi-rr-document', totals: methods.check },
+      { key: 'credit', label: 'Crédito', icon: 'fi-rr-handshake', totals: methods.credit },
     ];
   }
 
   filterChips(): CollectionFilterChip[] {
     const summary = this.summary();
     return [
-      { type: 'all', label: 'Todas', count: summary.orders_collected },
-      { type: 'walk_in', label: 'Público en General', count: summary.walk_in_count },
-      { type: 'invoiced', label: 'Facturadas', count: summary.invoiced_count },
+      { type: 'all', label: 'Todas', count: summary.orders_collected, icon: 'fi-rr-apps' },
+      { type: 'walk_in', label: 'Público en General', count: summary.walk_in_count, icon: 'fi-rr-user' },
+      { type: 'invoiced', label: 'Facturadas', count: summary.invoiced_count, icon: 'fi-rr-file-invoice' },
+    ];
+  }
+
+  paymentFilters(): PaymentFilterChip[] {
+    const methods = this.summary().by_payment_method;
+    return [
+      { key: 'cash', label: 'Efectivo', count: methods.cash.orders, icon: 'fi-rr-money' },
+      { key: 'transfer', label: 'Transferencia', count: methods.transfer.orders, icon: 'fi-rr-bank' },
+      { key: 'card', label: 'Tarjeta', count: methods.card.orders, icon: 'fi-rr-credit-card' },
+      { key: 'check', label: 'Cheque', count: methods.check.orders, icon: 'fi-rr-document' },
+      { key: 'credit', label: 'Crédito', count: methods.credit.orders, icon: 'fi-rr-handshake' },
     ];
   }
 
@@ -150,6 +173,14 @@ export class PosCollectionsTabComponent implements OnChanges {
       return;
     }
     this.customerType.set(type);
+    this.fetchPage(1);
+  }
+
+  setPaymentMethod(method: PosCollectionPaymentMethodKey): void {
+    if (this.tableConfig().loading) {
+      return;
+    }
+    this.paymentMethod.set(this.paymentMethod() === method ? null : method);
     this.fetchPage(1);
   }
 
@@ -295,7 +326,12 @@ export class PosCollectionsTabComponent implements OnChanges {
 
     this.exporting.set(true);
     this.accountingService
-      .exportPosCollectionsExcel(this.periodQuery(), this.customerType(), this.search())
+      .exportPosCollectionsExcel(
+        this.periodQuery(),
+        this.customerType(),
+        this.search(),
+        this.paymentMethod()
+      )
       .subscribe({
         next: ({ blob, filename }) => {
           this.exporting.set(false);
@@ -343,7 +379,14 @@ export class PosCollectionsTabComponent implements OnChanges {
 
     this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
     this.accountingService
-      .getPosCollections(this.periodQuery(), this.customerType(), page, this.tableConfig().limit, this.search())
+      .getPosCollections(
+        this.periodQuery(),
+        this.customerType(),
+        page,
+        this.tableConfig().limit,
+        this.search(),
+        this.paymentMethod()
+      )
       .subscribe({
         next: (res) => {
           this.listTotal.set(res.total);
@@ -416,6 +459,7 @@ export class PosCollectionsTabComponent implements OnChanges {
         transfer: { ...empty },
         card: { ...empty },
         check: { ...empty },
+        credit: { ...empty },
       },
     };
   }

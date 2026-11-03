@@ -318,6 +318,7 @@ export class PosSummaryTabComponent implements OnChanges {
       amount_collected: 0,
       walk_in_count: 0,
       invoiced_count: 0,
+      credit_count: 0,
       daily_shifts_count: 0,
       partial_shifts_count: 0,
       open_daily_shift: null,

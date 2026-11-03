@@ -7,20 +7,31 @@
     <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">×</button>
   </div>
 
-  <div class="collections-dialog__filters" role="tablist" aria-label="Tipo de cliente">
+  <div class="collections-dialog__filters" role="group" aria-label="Filtros de cobranza">
     @for (chip of filterChips; track chip.type) {
       <button
         type="button"
-        role="tab"
         class="filter-chip"
         [class.filter-chip--active]="customerType() === chip.type"
-        [attr.aria-selected]="customerType() === chip.type"
+        [attr.aria-pressed]="customerType() === chip.type"
         [disabled]="tableConfig().loading"
         (click)="setCustomerType(chip.type)">
+        <i class="fi {{ chip.icon }}" aria-hidden="true"></i>
         {{ chip.label }}
         <span class="filter-chip__count">{{ chip.count }}</span>
       </button>
     }
+    <button
+      type="button"
+      class="filter-chip"
+      [class.filter-chip--active]="paymentMethod() === 'credit'"
+      [attr.aria-pressed]="paymentMethod() === 'credit'"
+      [disabled]="tableConfig().loading"
+      (click)="toggleCredit()">
+      <i class="fi fi-rr-handshake" aria-hidden="true"></i>
+      Crédito
+      <span class="filter-chip__count">{{ creditCount }}</span>
+    </button>
   </div>
 
   <div class="collections-dialog__body">

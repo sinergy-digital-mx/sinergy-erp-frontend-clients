@@ -67,7 +67,8 @@ export class AccountingService {
     customerType: CollectionCustomerType = 'all',
     page = 1,
     limit = 20,
-    search?: string
+    search?: string,
+    paymentMethod?: PosCollectionPaymentMethodKey | null
   ): Observable<PosCollectionsPage> {
     let params = this.buildPeriodParams(query)
       .set('customer_type', customerType)
@@ -75,6 +76,9 @@ export class AccountingService {
       .set('limit', String(limit));
     if (search?.trim()) {
       params = params.set('search', search.trim());
+    }
+    if (paymentMethod) {
+      params = params.set('payment_method', paymentMethod);
     }
 
     return this.http.get<unknown>(`${this.api}/pos-collections`, { params }).pipe(
@@ -98,11 +102,15 @@ export class AccountingService {
   exportPosCollectionsExcel(
     query: AccountingPeriodQuery,
     customerType: CollectionCustomerType = 'all',
-    search?: string
+    search?: string,
+    paymentMethod?: PosCollectionPaymentMethodKey | null
   ): Observable<{ blob: Blob; filename: string }> {
     let params = this.buildPeriodParams(query).set('customer_type', customerType);
     if (search?.trim()) {
       params = params.set('search', search.trim());
+    }
+    if (paymentMethod) {
+      params = params.set('payment_method', paymentMethod);
     }
 
     return this.http
@@ -478,6 +486,7 @@ export class AccountingService {
       amount_collected: Number(c['amount_collected'] ?? 0),
       walk_in_count: Number(c['walk_in_count'] ?? 0),
       invoiced_count: Number(c['invoiced_count'] ?? 0),
+      credit_count: Number(c['credit_count'] ?? 0),
       daily_shifts_count: Number(c['daily_shifts_count'] ?? 0),
       partial_shifts_count: Number(c['partial_shifts_count'] ?? 0),
       open_daily_shift: this.parseOpenDailyShift(c['open_daily_shift']),
@@ -525,7 +534,7 @@ export class AccountingService {
   }
 
   private parsePaymentMethodTotals(raw: Record<string, unknown>): PosCollectionPaymentMethodTotals {
-    const keys: PosCollectionPaymentMethodKey[] = ['cash', 'transfer', 'card', 'check'];
+    const keys: PosCollectionPaymentMethodKey[] = ['cash', 'transfer', 'card', 'check', 'credit'];
     const empty: PosCollectionPaymentMethodTotal = { orders: 0, amount: 0, ticket: 0 };
     return keys.reduce((acc, key) => {
       const row = this.asRecord(raw[key]);
@@ -535,7 +544,13 @@ export class AccountingService {
         ticket: Number(row['ticket'] ?? 0),
       };
       return acc;
-    }, { cash: empty, transfer: { ...empty }, card: { ...empty }, check: { ...empty } });
+    }, {
+      cash: empty,
+      transfer: { ...empty },
+      card: { ...empty },
+      check: { ...empty },
+      credit: { ...empty },
+    });
   }
 
   /** Listas paginadas: data[], total, page, summary en la raíz. */

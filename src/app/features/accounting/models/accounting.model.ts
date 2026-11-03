@@ -51,6 +51,7 @@ export interface CollectionTerminalSummary {
   amount_collected: number;
   walk_in_count: number;
   invoiced_count: number;
+  credit_count: number;
   daily_shifts_count: number;
   partial_shifts_count: number;
   open_daily_shift: PosOpenDailyShiftSummary | null;
@@ -111,7 +112,7 @@ export interface PosCollectionBranch {
   label?: string | null;
 }
 
-export type PosCollectionPaymentMethodKey = 'cash' | 'transfer' | 'card' | 'check';
+export type PosCollectionPaymentMethodKey = 'cash' | 'transfer' | 'card' | 'check' | 'credit';
 
 export interface PosCollectionPaymentMethodTotal {
   orders: number;
