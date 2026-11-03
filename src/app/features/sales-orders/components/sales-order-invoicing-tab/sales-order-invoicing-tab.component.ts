@@ -45,6 +45,7 @@ import {
   SalesOrderInvoiceEmailDialogComponent,
   SalesOrderInvoiceEmailDialogResult,
 } from '../sales-order-invoice-email-dialog/sales-order-invoice-email-dialog.component';
+import { SalesOrderInvoiceWhatsappDialogComponent } from '../sales-order-invoice-whatsapp-dialog/sales-order-invoice-whatsapp-dialog.component';
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
@@ -517,6 +518,24 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
 
   canShowEmail(invoice: SalesOrderElectronicInvoice): boolean {
     return this.canViewTab() && this.canShowPdf(invoice);
+  }
+
+  openSendWhatsapp(invoice: SalesOrderElectronicInvoice): void {
+    const invoiceId = this.invoiceRecordId(invoice);
+    if (!invoiceId || !this.canShowEmail(invoice)) return;
+    const folio = [invoice.series, invoice.folio].filter(Boolean).join('-');
+
+    this.dialog.open(SalesOrderInvoiceWhatsappDialogComponent, {
+      width: '32rem',
+      maxWidth: '94vw',
+      autoFocus: 'first-tabbable',
+      panelClass: 'invoice-whatsapp-dialog-panel',
+      data: {
+        orderId: this.orderId,
+        invoiceId,
+        invoiceFolio: folio || this.order.folio,
+      },
+    });
   }
 
   openSendEmail(invoice: SalesOrderElectronicInvoice): void {

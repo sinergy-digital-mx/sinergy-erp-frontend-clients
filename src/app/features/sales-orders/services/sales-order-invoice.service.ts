@@ -21,7 +21,10 @@ import {
 import {
   InvoiceEmailCompose,
   InvoiceEmailTemplate,
+  InvoiceWhatsappCompose,
   SalesOrderInvoiceEmail,
+  SendInvoiceWhatsappPayload,
+  SendInvoiceWhatsappResult,
   SendSalesOrderInvoiceEmailPayload,
 } from '../models/sales-order-invoice-email.model';
 
@@ -325,6 +328,18 @@ export class SalesOrderInvoiceService {
     return this.http
       .post<unknown>(`${this.baseUrl}/${orderId}/invoices/${invoiceId}/send-email`, payload)
       .pipe(map((response) => this.unwrap(response) as unknown as SalesOrderInvoiceEmail));
+  }
+
+  getInvoiceWhatsappCompose(orderId: string, invoiceId: string) {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/${orderId}/invoices/${invoiceId}/whatsapp-compose`)
+      .pipe(map((response) => this.unwrap(response) as unknown as InvoiceWhatsappCompose));
+  }
+
+  sendInvoiceWhatsapp(orderId: string, invoiceId: string, payload: SendInvoiceWhatsappPayload) {
+    return this.http
+      .post<unknown>(`${this.baseUrl}/${orderId}/invoices/${invoiceId}/send-whatsapp`, payload)
+      .pipe(map((response) => this.unwrap(response) as unknown as SendInvoiceWhatsappResult));
   }
 
   listInvoiceEmails(orderId: string) {

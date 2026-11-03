@@ -308,6 +308,15 @@ main,
   height: 100% !important;
 }
 
+.cdk-overlay-pane.invoice-whatsapp-dialog-panel .mat-mdc-dialog-container,
+.mat-mdc-dialog-panel.invoice-whatsapp-dialog-panel .mat-mdc-dialog-container,
+.cdk-overlay-pane.invoice-whatsapp-dialog-panel .mat-mdc-dialog-surface,
+.mat-mdc-dialog-panel.invoice-whatsapp-dialog-panel .mat-mdc-dialog-surface {
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 16px !important;
+}
+
 /* Modales editar / agregar línea de OC */
 .cdk-overlay-pane.po-line-dialog-panel .mat-mdc-dialog-container,
 .mat-mdc-dialog-panel.po-line-dialog-panel .mat-mdc-dialog-container {

@@ -1,0 +1,73 @@
+<div class="wa-dialog">
+  <header class="wa-dialog__head">
+    <div>
+      <p class="wa-dialog__eyebrow">WhatsApp</p>
+      <h2>Enviar factura {{ compose()?.invoice_folio || data.invoiceFolio || '' }}</h2>
+      <p class="wa-dialog__lead">Se manda el PDF de la factura y, si está, el XML.</p>
+    </div>
+    <button type="button" class="wa-dialog__close" aria-label="Cerrar" [disabled]="sending()" (click)="close()">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  </header>
+
+  @if (loading()) {
+    <p class="wa-dialog__status">Preparando la factura…</p>
+  } @else {
+    @if (compose()?.block_reason) {
+      <p class="wa-dialog__warn">{{ compose()?.block_reason }}</p>
+    }
+
+    <div class="wa-dest" role="tablist" aria-label="Destino">
+      <button type="button" [class.is-active]="dest() === 'phone'" (click)="dest.set('phone')">Teléfono</button>
+      <button type="button" [class.is-active]="dest() === 'group'" (click)="dest.set('group')">Grupo</button>
+    </div>
+
+    @if (dest() === 'phone') {
+      <label class="wa-field">
+        Teléfono de WhatsApp
+        <input
+          type="tel"
+          autocomplete="tel"
+          placeholder="10 dígitos (México) o +código de país"
+          [value]="phone()"
+          (input)="onPhoneInput($any($event.target).value)"
+          (paste)="onPhonePaste($event)" />
+        @if (compose()?.customer_company) {
+          <small>Cliente: {{ compose()?.customer_name }} · {{ compose()?.customer_company }}</small>
+        }
+      </label>
+    } @else {
+      <label class="wa-field">
+        Grupo de WhatsApp
+        <select [value]="groupId()" (change)="groupId.set($any($event.target).value)">
+          <option value="">Selecciona un grupo</option>
+          @for (group of groups(); track group.id) {
+            <option [value]="group.id">{{ group.name }}</option>
+          }
+        </select>
+      </label>
+      @if (groupsLoading()) {
+        <p class="wa-dialog__status">Cargando grupos…</p>
+      } @else if (groupsError(); as error) {
+        <p class="wa-dialog__status">{{ error }}</p>
+      } @else if (!groups().length) {
+        <p class="wa-dialog__status">Este WhatsApp no tiene grupos. Conéctalo en Configuración.</p>
+      }
+    }
+
+    @if (compose()?.attachments?.length) {
+      <ul class="wa-files">
+        @for (file of compose()!.attachments; track file.fileName) {
+          <li>{{ file.kind === 'pdf' ? 'PDF' : 'XML' }} · {{ file.fileName }}</li>
+        }
+      </ul>
+    }
+
+    <footer class="wa-dialog__actions">
+      <button type="button" class="wa-btn wa-btn--ghost" [disabled]="sending()" (click)="close()">Cancelar</button>
+      <button type="button" class="wa-btn wa-btn--send" [disabled]="sending() || !compose()?.can_send" (click)="send()">
+        {{ sending() ? 'Enviando…' : 'Enviar' }}
+      </button>
+    </footer>
+  }
+</div>

@@ -53,6 +53,27 @@ export interface SendSalesOrderInvoiceEmailPayload {
   message?: string;
 }
 
+export interface InvoiceWhatsappCompose {
+  phone: string;
+  customer_name: string;
+  customer_company: string;
+  invoice_folio: string;
+  attachments: { kind: 'pdf' | 'xml'; fileName: string }[];
+  can_send: boolean;
+  block_reason?: string | null;
+}
+
+export interface SendInvoiceWhatsappPayload {
+  phone?: string;
+  group_id?: string;
+}
+
+export interface SendInvoiceWhatsappResult {
+  sent_to: string;
+  pdf_sent: boolean;
+  xml_sent: boolean;
+}
+
 export function renderInvoiceEmailTemplate(
   template: string,
   values: Record<string, string>,
