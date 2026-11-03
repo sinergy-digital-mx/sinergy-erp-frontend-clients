@@ -65,6 +65,8 @@ export class PosCollectionsDialogComponent implements OnInit {
       { name: 'Vendedor', prop: 'seller', sortable: false, canAutoResize: false, width: 140 },
       { name: 'Cajero', prop: 'cashier', sortable: false, canAutoResize: false, width: 140 },
       { name: 'Total', prop: 'total', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Anticipo', prop: 'advance_given', sortable: false, canAutoResize: false, width: 110 },
+      { name: 'Pendiente', prop: 'amount_pending', sortable: false, canAutoResize: false, width: 110 },
       { name: 'Estatus pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 110 },
     ],
     externalPaging: true,

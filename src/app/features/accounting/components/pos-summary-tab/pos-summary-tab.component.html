@@ -132,6 +132,8 @@
   <td class="px-2 py-2">
     <p class="dt-cell-amount m-0">{{ formatCurrency(item.total) }}</p>
   </td>
+  <td class="px-2 py-2">{{ item.has_advance ? formatCurrency(item.advance_given) : '—' }}</td>
+  <td class="px-2 py-2">{{ formatCurrency(item.amount_pending) }}</td>
   <td class="px-2 py-2">
     <span class="payment-pill" [class.payment-pill--paid]="isCollected(item)">
       {{ paymentLabel(item) }}

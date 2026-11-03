@@ -137,6 +137,8 @@ export interface PosDailyShiftDetail extends PosDailyShiftListItem {
     payment_method: string;
     payment_method_label: string;
     amount_mxn: number;
+    document_total?: number;
+    amount_pending?: number;
     payer_summary?: string | null;
   }>;
 }

@@ -75,6 +75,9 @@ export interface PosEnteredOrder {
   created_at: string;
   total: number;
   payment_status?: string | null;
+  has_advance?: boolean;
+  advance_given?: number | string | null;
+  amount_pending?: number | string | null;
   channel?: 'caja' | 'branch' | null;
   terminal_name?: string | null;
   customer_display_name?: string | null;
@@ -161,6 +164,9 @@ export interface PosCollectionRow {
   /** Mixto: `Efectivo + Tarjeta`. Un solo método: igual que el label. */
   payment_breakdown_label?: string | null;
   total?: number | string;
+  has_advance?: boolean;
+  advance_given?: number | string | null;
+  amount_pending?: number | string | null;
   payment_status?: string;
   for_shipping?: boolean | number | string | null;
 }

@@ -92,6 +92,8 @@
   <td class="px-2 py-2">{{ sellerLabel(item) }}</td>
   <td class="px-2 py-2">{{ cashierLabel(item) }}</td>
   <td class="px-2 py-2">{{ formatCurrency(item.total) }}</td>
+  <td class="px-2 py-2">{{ item.has_advance ? formatCurrency(item.advance_given) : '—' }}</td>
+  <td class="px-2 py-2">{{ formatCurrency(item.amount_pending) }}</td>
   <td class="px-2 py-2">
     <span class="payment-pill" [class.payment-pill--paid]="item.payment_status === 'Pagado'">
       {{ item.payment_status || '—' }}

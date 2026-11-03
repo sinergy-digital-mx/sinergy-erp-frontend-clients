@@ -215,9 +215,14 @@
                           <span class="cobranza-sale__total">{{ formatAdvanceAmount(payment.amount_mxn) }}</span>
                         </div>
                         <div class="cobranza-sale__row cobranza-sale__row--meta">
-                          <span>Anticipo</span>
+                          <span>Anticipo {{ formatAdvanceAmount(payment.amount_mxn) }}</span>
                           <span class="cobranza-pay-chip">{{ payment.payment_method_label }}</span>
                         </div>
+                        @if ((payment.amount_pending ?? 0) > 0) {
+                          <div class="cobranza-sale__row cobranza-sale__row--meta">
+                            <span>Pendiente {{ formatAdvanceAmount(payment.amount_pending ?? 0) }}</span>
+                          </div>
+                        }
                         @if (payment.payer_summary) {
                           <div class="cobranza-sale__row cobranza-sale__row--meta">
                             <span>{{ payment.payer_summary }}</span>
@@ -576,9 +581,14 @@
                           <span class="cobranza-sale__total">{{ formatAdvanceAmount(payment.amount_mxn) }}</span>
                         </div>
                         <div class="cobranza-sale__row cobranza-sale__row--meta">
-                          <span>Anticipo</span>
+                          <span>Anticipo {{ formatAdvanceAmount(payment.amount_mxn) }}</span>
                           <span class="cobranza-pay-chip">{{ payment.payment_method_label }}</span>
                         </div>
+                        @if ((payment.amount_pending ?? 0) > 0) {
+                          <div class="cobranza-sale__row cobranza-sale__row--meta">
+                            <span>Pendiente {{ formatAdvanceAmount(payment.amount_pending ?? 0) }}</span>
+                          </div>
+                        }
                         @if (payment.payer_summary) {
                           <div class="cobranza-sale__row cobranza-sale__row--meta">
                             <span>{{ payment.payer_summary }}</span>

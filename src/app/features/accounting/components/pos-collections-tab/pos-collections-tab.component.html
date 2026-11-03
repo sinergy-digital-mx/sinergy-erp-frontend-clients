@@ -146,6 +146,14 @@
     </div>
   </td>
   <td class="money-cell">{{ formatCurrency(item.total) }}</td>
+  <td class="money-cell">
+    @if (item.has_advance) {
+      <span class="advance-cell">{{ formatCurrency(item.advance_given) }}</span>
+    } @else {
+      —
+    }
+  </td>
+  <td class="money-cell">{{ formatCurrency(item.amount_pending) }}</td>
   <td>
     <span class="status-pill" [class.status-pill--paid]="item.payment_status === 'Pagado'">
       {{ item.payment_status || '—' }}
