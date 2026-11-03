@@ -1,16 +1,16 @@
 {
-  "version": "0.0.91",
-  "buildId": "0.0.91-1793681139766",
-  "builtAt": "2026-11-03T04:45:39.766Z",
+  "version": "0.0.92",
+  "buildId": "0.0.92-1793682169698",
+  "builtAt": "2026-11-03T05:02:49.698Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Cambios en ventas"
+      "message": "Cambios en WhatsApp"
     },
     {
       "scope": "frontend",
-      "message": "Cambios en WhatsApp"
+      "message": "Cambios en ventas"
     }
   ]
 }

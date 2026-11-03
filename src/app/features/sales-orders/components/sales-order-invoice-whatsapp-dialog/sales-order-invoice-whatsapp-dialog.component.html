@@ -3,7 +3,7 @@
     <div>
       <p class="wa-dialog__eyebrow">WhatsApp</p>
       <h2>Enviar factura {{ compose()?.invoice_folio || data.invoiceFolio || '' }}</h2>
-      <p class="wa-dialog__lead">Se manda el PDF de la factura y, si está, el XML.</p>
+      <p class="wa-dialog__lead">Se manda una foto con el aviso, el PDF de la factura y, si está, el XML.</p>
     </div>
     <button type="button" class="wa-dialog__close" aria-label="Cerrar" [disabled]="sending()" (click)="close()">
       <i class="fi fi-rr-cross-small"></i>

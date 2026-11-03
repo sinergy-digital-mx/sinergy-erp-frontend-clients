@@ -70,6 +70,7 @@ export interface SendInvoiceWhatsappPayload {
 
 export interface SendInvoiceWhatsappResult {
   sent_to: string;
+  image_sent?: boolean;
   pdf_sent: boolean;
   xml_sent: boolean;
 }

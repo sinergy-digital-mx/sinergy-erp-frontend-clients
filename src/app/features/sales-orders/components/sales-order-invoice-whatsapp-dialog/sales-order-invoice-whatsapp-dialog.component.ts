@@ -119,11 +119,18 @@ export class SalesOrderInvoiceWhatsappDialogComponent implements OnInit {
       next: (result) => {
         this.sending.set(false);
         const to = result.sent_to.includes('@g.us') ? result.sent_to : `+${result.sent_to}`;
-        this.toast.success(
-          result.xml_sent
-            ? `Factura y XML en cola para ${to}`
-            : `Factura en cola para ${to}`,
-        );
+        const pieces = [
+          result.image_sent ? 'Aviso' : '',
+          'factura',
+          result.xml_sent ? 'XML' : '',
+        ].filter(Boolean);
+        const label =
+          pieces.length === 1
+            ? 'Factura'
+            : pieces.length === 2
+              ? `${pieces[0]} y ${pieces[1]}`
+              : `${pieces[0]}, ${pieces[1]} y ${pieces[2]}`;
+        this.toast.success(`${label} en cola para ${to}`);
         this.dialogRef.close({ sent: true, sent_to: result.sent_to });
       },
       error: (error) => {
