@@ -1,0 +1,18 @@
+<div
+  class="margin-chip"
+  [attr.data-source]="margin?.source || 'none'"
+  [attr.title]="margin?.hint || null">
+  @if (!margin) {
+    <span class="margin-chip__empty">—</span>
+  } @else {
+    <div class="margin-chip__head">
+      <span class="margin-chip__pct" [attr.data-tone]="tone">{{ percentLabel }}</span>
+      <span class="margin-chip__badge">{{ margin.source_label }}</span>
+    </div>
+    @if (margin.margin_amount) {
+      <span class="margin-chip__amount">{{ money(margin.margin_amount) }}</span>
+    }
+    <span class="margin-chip__pair">Precio {{ money(margin.unit_price) }}</span>
+    <span class="margin-chip__pair">Costo {{ money(margin.unit_cost) }}</span>
+  }
+</div>

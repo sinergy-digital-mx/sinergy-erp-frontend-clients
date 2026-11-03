@@ -34,6 +34,12 @@ import {
   SalesTerminalSummary,
 } from '../models/accounting.model';
 import { PosDailyShiftDetail, normalizeDailyShiftDetail } from '../../pos/models/pos-daily-shift.model';
+import {
+  GlobalInvoiceCard,
+  GlobalInvoiceOrderRow,
+  GlobalInvoicePage,
+  GlobalInvoicePaymentLine,
+} from '../models/global-invoice.model';
 
 @Injectable({ providedIn: 'root' })
 export class AccountingService {
@@ -353,6 +359,128 @@ export class AccountingService {
         }),
         catchError(() => throwError(() => new Error('No se pudo descargar el Excel')))
       );
+  }
+
+  getGlobalInvoices(month: string, fiscalConfigurationId?: string): Observable<GlobalInvoicePage> {
+    let params = new HttpParams().set('month', month);
+    if (fiscalConfigurationId) {
+      params = params.set('fiscal_configuration_id', fiscalConfigurationId);
+    }
+    return this.http
+      .get<unknown>(`${this.api}/global-invoices`, { params })
+      .pipe(map((raw) => this.parseGlobalInvoicePage(raw)));
+  }
+
+  generateGlobalInvoice(body: {
+    month: string;
+    fiscal_configuration_id: string;
+    order_ids: string[];
+    environment: 'demo' | 'production';
+  }): Observable<GlobalInvoicePage> {
+    return this.http
+      .post<unknown>(`${this.api}/global-invoices`, body)
+      .pipe(map((raw) => this.parseGlobalInvoicePage(raw)));
+  }
+
+  cancelGlobalInvoice(id: string): Observable<GlobalInvoicePage> {
+    return this.http
+      .post<unknown>(`${this.api}/global-invoices/${id}/cancel`, {})
+      .pipe(map((raw) => this.parseGlobalInvoicePage(raw)));
+  }
+
+  getElectronicInvoicePdfUrl(invoiceId: string): Observable<string> {
+    return this.http.get<unknown>(`${environment.api}/tenant/electronic-invoices/${invoiceId}/pdf`).pipe(
+      map((raw) => {
+        const body = this.asRecord(raw);
+        const nested = this.asRecord(body['data']);
+        return (
+          String(body['signedUrl'] || body['signed_url'] || nested['signedUrl'] || nested['signed_url'] || '')
+        );
+      }),
+    );
+  }
+
+  private parseGlobalInvoicePage(raw: unknown): GlobalInvoicePage {
+    const body = this.asRecord(raw);
+    const source = body['orders'] || body['fiscal_configurations'] ? body : this.asRecord(body['data']);
+    const orders = this.asArray<Record<string, unknown>>(source['orders']).map((row) =>
+      this.parseGlobalInvoiceOrder(row),
+    );
+    return {
+      month: String(source['month'] ?? ''),
+      period_label: String(source['period_label'] ?? ''),
+      fiscal_configurations: this.asArray<Record<string, unknown>>(source['fiscal_configurations']).map(
+        (row) => ({
+          id: String(row['id'] ?? ''),
+          razon_social: String(row['razon_social'] ?? ''),
+          rfc: String(row['rfc'] ?? ''),
+        }),
+      ),
+      fiscal_configuration_id: source['fiscal_configuration_id']
+        ? String(source['fiscal_configuration_id'])
+        : null,
+      invoice: this.parseGlobalInvoiceCard(source['invoice']),
+      cancelled_invoice: this.parseGlobalInvoiceCard(source['cancelled_invoice']),
+      orders,
+      orders_count: Number(source['orders_count'] ?? orders.length) || 0,
+      orders_total: source['orders_total'] == null ? null : Number(source['orders_total']) || 0,
+      currency: source['currency'] ? String(source['currency']) : null,
+      can_generate: source['can_generate'] === true,
+      blocked_reason: source['blocked_reason'] ? String(source['blocked_reason']) : null,
+    };
+  }
+
+  private parseGlobalInvoiceCard(raw: unknown): GlobalInvoiceCard | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const row = raw as Record<string, unknown>;
+    const status = String(row['status'] ?? '');
+    if (status !== 'pending' && status !== 'active' && status !== 'cancelled') return null;
+    return {
+      id: String(row['id'] ?? ''),
+      status,
+      electronic_invoice_id: row['electronic_invoice_id'] ? String(row['electronic_invoice_id']) : null,
+      series: row['series'] ? String(row['series']) : null,
+      folio: row['folio'] ? String(row['folio']) : null,
+      uuid: row['uuid'] ? String(row['uuid']) : null,
+      subtotal: Number(row['subtotal']) || 0,
+      total: Number(row['total']) || 0,
+      currency: String(row['currency'] || 'MXN'),
+      stamp_status: row['stamp_status'] ? String(row['stamp_status']) : null,
+      sat_status: row['sat_status'] ? String(row['sat_status']) : null,
+      can_cancel: row['can_cancel'] === true,
+    };
+  }
+
+  private parseGlobalInvoiceOrder(row: Record<string, unknown>): GlobalInvoiceOrderRow {
+    return {
+      id: String(row['id'] ?? ''),
+      folio: String(row['folio'] ?? ''),
+      created_at: String(row['created_at'] ?? ''),
+      customer_name: String(row['customer_name'] ?? ''),
+      company_name: row['company_name'] ? String(row['company_name']) : null,
+      branch_label: row['branch_label'] ? String(row['branch_label']) : null,
+      general_status: String(row['general_status'] ?? ''),
+      payment_status: String(row['payment_status'] ?? ''),
+      currency: String(row['currency'] || 'MXN'),
+      subtotal: Number(row['subtotal']) || 0,
+      iva_total: Number(row['iva_total']) || 0,
+      ieps_total: Number(row['ieps_total']) || 0,
+      discount_total: Number(row['discount_total']) || 0,
+      total: Number(row['total']) || 0,
+      payment_method: row['payment_method'] ? String(row['payment_method']) : null,
+      payment_method_label: row['payment_method_label'] ? String(row['payment_method_label']) : null,
+      payment_breakdown_label: row['payment_breakdown_label']
+        ? String(row['payment_breakdown_label'])
+        : null,
+      payment_lines: this.asArray<Record<string, unknown>>(row['payment_lines']).map(
+        (line): GlobalInvoicePaymentLine => ({
+          method: String(line['method'] ?? ''),
+          label: String(line['label'] ?? ''),
+          amount_mxn: Number(line['amount_mxn']) || 0,
+          amount_usd: Number(line['amount_usd']) || 0,
+        }),
+      ),
+    };
   }
 
   private buildPeriodParams(query: AccountingPeriodQuery): HttpParams {

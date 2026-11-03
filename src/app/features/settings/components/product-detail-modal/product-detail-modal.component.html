@@ -394,6 +394,26 @@
           </table>
         </div>
 
+        <div *ngIf="activeTab === 'margen'" class="tab-pane">
+          <div *ngIf="loadingMargin" class="tab-loader">
+            <app-spinner></app-spinner>
+          </div>
+          <div *ngIf="!loadingMargin && marginError" class="empty-state">
+            <p>{{ marginError }}</p>
+          </div>
+          <div *ngIf="!loadingMargin && !marginError && productMargin?.empty_reason && !productMargin?.uoms?.length" class="empty-state">
+            <p>{{ productMargin?.empty_reason }}</p>
+          </div>
+          <div class="margin-tab" *ngIf="!loadingMargin && !marginError && productMargin?.uoms?.length">
+            <app-inventory-margin-panel
+              *ngFor="let uom of productMargin?.uoms"
+              [explanation]="uom.margin_detail"
+              [heading]="(productMargin?.uoms?.length || 0) > 1 ? uom.uom_name : ''"
+              costLabel="Costo promedio">
+            </app-inventory-margin-panel>
+          </div>
+        </div>
+
         <!-- Tab: Fotos -->
         <div *ngIf="activeTab === 'fotos'" class="tab-pane">
           <div class="photo-tab">

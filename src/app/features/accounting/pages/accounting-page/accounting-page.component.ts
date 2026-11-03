@@ -15,6 +15,7 @@ import { AccountsPayableTabComponent } from '../../components/accounts-payable-t
 import { AccountsReceivableTabComponent } from '../../components/accounts-receivable-tab/accounts-receivable-tab.component';
 import { CustomerDebtFlowComponent } from '../../components/customer-debt-flow/customer-debt-flow.component';
 import { AverageCostReportTabComponent } from '../../components/average-cost-report-tab/average-cost-report-tab.component';
+import { GlobalInvoicesTabComponent } from '../../components/global-invoices-tab/global-invoices-tab.component';
 import { branchIdFromQuery, branchQueryFromId, isAllBranchesQuery } from '../../utils/branch-query.util';
 
 export type AccountingTab =
@@ -23,7 +24,8 @@ export type AccountingTab =
   | 'payable'
   | 'receivable'
   | 'debt-flow'
-  | 'average-cost';
+  | 'average-cost'
+  | 'global-invoices';
 
 @Component({
   selector: 'app-accounting-page',
@@ -39,6 +41,7 @@ export type AccountingTab =
     AccountsReceivableTabComponent,
     CustomerDebtFlowComponent,
     AverageCostReportTabComponent,
+    GlobalInvoicesTabComponent,
   ],
   templateUrl: './accounting-page.component.html',
   styleUrl: './accounting-page.component.scss',
@@ -68,6 +71,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     { id: 'receivable', title: 'Cuentas por cobrar' },
     { id: 'debt-flow', title: 'Flujo de deuda' },
     { id: 'average-cost', title: 'Rep. Vent. Cost. Prom' },
+    { id: 'global-invoices', title: 'Facturas globales' },
   ];
 
   constructor(
@@ -114,7 +118,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
 
   showPeriodFilters(): boolean {
     const tab = this.activeTab();
-    return tab !== 'payable' && tab !== 'debt-flow';
+    return tab !== 'payable' && tab !== 'debt-flow' && tab !== 'global-invoices';
   }
 
   posDayOnlyFilters(): boolean {

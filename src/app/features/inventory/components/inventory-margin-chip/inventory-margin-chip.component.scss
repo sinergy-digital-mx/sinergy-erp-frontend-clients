@@ -1,0 +1,76 @@
+.margin-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: fit-content;
+  margin-left: auto;
+  gap: 0.12rem;
+  min-width: 8.5rem;
+  line-height: 1.25;
+
+  &__empty {
+    color: #94a3b8;
+    font-size: 0.8125rem;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+  }
+
+  &__pct {
+    font-size: 0.95rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: #334155;
+
+    &[data-tone='up'] { color: #047857; }
+    &[data-tone='down'] { color: #be123c; }
+    &[data-tone='empty'] { color: #94a3b8; }
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.08rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    background: #f1f5f9;
+    color: #64748b;
+  }
+
+  &[data-source='purchase'] &__badge {
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  &[data-source='configuration'] &__badge {
+    background: #fff7ed;
+    color: #c2410c;
+  }
+
+  &[data-source='mixed'] &__badge {
+    background: #eef2ff;
+    color: #4338ca;
+  }
+
+  &__amount {
+    font-size: 0.75rem;
+    font-weight: 650;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__pair {
+    font-size: 0.6875rem;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}

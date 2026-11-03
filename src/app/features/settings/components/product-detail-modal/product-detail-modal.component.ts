@@ -26,11 +26,15 @@ import {
 import { CategoriesDialogComponent } from '../categories-dialog/categories-dialog.component';
 import { UomsDialogComponent } from '../uoms-dialog/uoms-dialog.component';
 import { formatUnitAmount as formatStoredUnitAmount } from '../../../../core/utils/unit-money.util';
+import { InventoryService } from '../../../inventory/services/inventory.service';
+import { InventoryMarginPanelComponent } from '../../../inventory/components/inventory-margin-panel/inventory-margin-panel.component';
+import { ProductMarginResponse } from '../../../inventory/models/inventory-margin.model';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 
 @Component({
   selector: 'app-product-detail-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, TabComponent, SpinnerComponent],
+  imports: [CommonModule, FormsModule, TabComponent, SpinnerComponent, InventoryMarginPanelComponent],
   templateUrl: './product-detail-modal.component.html',
   styleUrls: ['./product-detail-modal.component.scss']
 })
@@ -45,6 +49,9 @@ export class ProductDetailModalComponent implements OnInit {
   loadingPrices = false;
   loadingCosts = false;
   loadingDiscounts = false;
+  loadingMargin = false;
+  marginError = '';
+  productMargin: ProductMarginResponse | null = null;
   savingNested = false;
   product: Product | null = null;
 
@@ -65,14 +72,18 @@ export class ProductDetailModalComponent implements OnInit {
   get tabs(): TabItem[] {
     const productLocked = !this.isPersistedProduct;
     const uomLocked = productLocked || !this.hasAssignedUoms;
-    return [
+    const tabs: TabItem[] = [
       { id: 'detalles', title: 'Detalles' },
       { id: 'uoms', title: 'UOMs', disabled: productLocked },
       { id: 'precios', title: 'Precios', disabled: uomLocked },
       { id: 'descuentos', title: 'Descuentos', disabled: uomLocked },
       { id: 'costos', title: 'Costos de Proveedor', disabled: uomLocked },
-      { id: 'fotos', title: 'Fotos', disabled: productLocked },
     ];
+    if (this.product?.item_kind !== 'service') {
+      tabs.push({ id: 'margen', title: 'Margen', disabled: productLocked });
+    }
+    tabs.push({ id: 'fotos', title: 'Fotos', disabled: productLocked });
+    return tabs;
   }
 
   onTabChange(tabId: string): void {
@@ -102,6 +113,32 @@ export class ProductDetailModalComponent implements OnInit {
     if (tabId === 'descuentos' && this.isPersistedProduct) {
       this.loadProductDiscounts();
     }
+    if (tabId === 'margen' && this.isPersistedProduct) {
+      this.loadProductMargin();
+    }
+  }
+
+  loadProductMargin(): void {
+    const productId = this.product?.id?.trim();
+    if (!productId) return;
+    this.loadingMargin = true;
+    this.marginError = '';
+    this.inventoryService.getProductMargin(productId).pipe(
+      finalize(() => {
+        this.loadingMargin = false;
+        this.cdr.detectChanges();
+      }),
+    ).subscribe({
+      next: (margin) => {
+        this.productMargin = margin;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.productMargin = null;
+        this.marginError = resolveHttpErrorMessage(err, 'No se pudo calcular el margen');
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   private requireAssignedUoms(target: 'precio' | 'costo' | 'descuento'): boolean {
@@ -170,6 +207,7 @@ export class ProductDetailModalComponent implements OnInit {
 
   constructor(
     private productService: ProductService,
+    private inventoryService: InventoryService,
     private fiscalConfigService: FiscalConfigurationService,
     @Inject(MAT_DIALOG_DATA) public data: {
       product?: Product;

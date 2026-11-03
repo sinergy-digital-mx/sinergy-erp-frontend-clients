@@ -200,6 +200,12 @@
   animation: fadeIn 0.2s ease;
 }
 
+.margin-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

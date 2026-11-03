@@ -18,6 +18,7 @@ import {
   InventoryLocationFiscal,
 } from '../models/inventory-location.model';
 import { InventoryStats } from '../models/inventory-stats.model';
+import { ProductMarginResponse } from '../models/inventory-margin.model';
 import { InventoryMovement } from '../models/inventory-movement.model';
 import { StockReservation } from '../models/stock-reservation.model';
 import { environment } from '../../../../environments/environment';
@@ -235,6 +236,12 @@ export class InventoryService {
           return this.handleError(error);
         })
       );
+  }
+
+  getProductMargin(productId: string): Observable<ProductMarginResponse> {
+    return this.http
+      .get<ProductMarginResponse>(`${this.baseUrl}/products/${productId}/margin`)
+      .pipe(catchError((error) => this.handleError(error)));
   }
 
   /**

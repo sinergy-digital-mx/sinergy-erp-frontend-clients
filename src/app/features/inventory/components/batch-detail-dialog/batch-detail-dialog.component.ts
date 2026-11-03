@@ -9,6 +9,7 @@ import { InventoryBatchService } from '../../services/inventory-batch.service';
 import { InventoryAuditService } from '../../services/inventory-audit.service';
 import { InventoryBatch } from '../../models/inventory-batch.model';
 import { InventoryBatchMovementsTabComponent, BatchMovementReferenceKind, BatchMovementsLoadedEvent } from '../inventory-batch-movements-tab/inventory-batch-movements-tab.component';
+import { InventoryMarginPanelComponent } from '../inventory-margin-panel/inventory-margin-panel.component';
 import { UomCatalogItem } from '../../../purchase-orders/models/receipt.model';
 import { ProductService } from '../../../settings/services/product.service';
 import { BatchAuditHistoryEntry, InventoryAudit, InventoryAuditStatus } from '../../models/inventory-audit.model';
@@ -44,7 +45,7 @@ import {
 @Component({
   selector: 'app-batch-detail-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, RemoveTrailingZerosPipe, LucideAngularModule, SpinnerComponent, InventoryBatchMovementsTabComponent],
+  imports: [CommonModule, FormsModule, RemoveTrailingZerosPipe, LucideAngularModule, SpinnerComponent, InventoryBatchMovementsTabComponent, InventoryMarginPanelComponent],
   templateUrl: './batch-detail-dialog.component.html',
   styleUrl: './batch-detail-dialog.component.scss',
   host: {
@@ -87,6 +88,7 @@ export class BatchDetailDialogComponent implements OnInit {
   get tabs(): Array<{ id: string; label: string; count?: number }> {
     return [
       { id: 'general', label: 'General' },
+      { id: 'margen', label: 'Margen' },
       { id: 'movimientos', label: 'Movimientos', count: this.movementsCount },
       { id: 'transferencias', label: 'Transferencias' },
       { id: 'auditorias', label: 'Auditorías', count: this.auditsLoading() ? undefined : (this.visibleAuditHistory.length || undefined) },

@@ -1,0 +1,199 @@
+<div class="gi-tab">
+  <div class="gi-toolbar">
+    <div class="gi-field">
+      <label class="gi-label" for="global-invoice-month">Mes</label>
+      <input
+        id="global-invoice-month"
+        type="month"
+        class="gi-input"
+        [ngModel]="month()"
+        (ngModelChange)="onMonth($event)" />
+    </div>
+
+    <div class="gi-field gi-field--fiscal">
+      <label class="gi-label" for="global-invoice-fiscal">Razón social</label>
+      <select
+        id="global-invoice-fiscal"
+        class="gi-select"
+        [ngModel]="fiscalId()"
+        (ngModelChange)="onFiscal($event)">
+        @if ((page()?.fiscal_configurations.length ?? 0) !== 1) {
+          <option value="" disabled>Selecciona razón social</option>
+        }
+        @for (fiscal of page()?.fiscal_configurations ?? []; track fiscal.id) {
+          <option [value]="fiscal.id">{{ fiscal.razon_social }} · {{ fiscal.rfc }}</option>
+        }
+      </select>
+    </div>
+
+    @if (showGenerate()) {
+      <div class="gi-generate">
+        <button
+          type="button"
+          class="page-create-btn"
+          [disabled]="generateDisabled()"
+          (click)="generate()">
+          {{ saving() ? 'Generando…' : 'Generar facturas' }}
+        </button>
+        @if (generateHint()) {
+          <p class="gi-hint">{{ generateHint() }}</p>
+        }
+      </div>
+    }
+  </div>
+
+  @if (page(); as data) {
+    <p class="gi-caption">
+      {{ data.period_label }}
+      @if (data.orders_count) {
+        · {{ data.orders_count }} {{ data.orders_count === 1 ? 'orden' : 'órdenes' }}
+        @if (data.orders_total != null && data.currency) {
+          · {{ formatMoney(data.orders_total, data.currency) }}
+        }
+      }
+    </p>
+
+    @if (data.invoice; as invoice) {
+      <article class="gi-card" [class.gi-card--pending]="invoice.status === 'pending' || invoice.stamp_status === 'cancel_pending'">
+        <div>
+          <p class="gi-card__kicker">Factura global</p>
+          <h3 class="gi-card__folio">{{ invoiceFolio() }}</h3>
+          <p class="gi-card__meta">
+            {{ stampLabel(invoice.stamp_status) }}
+            @if (invoice.sat_status) {
+              · SAT {{ invoice.sat_status }}
+            }
+            @if (invoice.total) {
+              · {{ formatMoney(invoice.total, invoice.currency) }}
+            }
+          </p>
+          @if (invoice.uuid) {
+            <p class="gi-card__uuid">{{ invoice.uuid }}</p>
+          }
+          @if (invoice.stamp_status === 'cancel_pending') {
+            <p class="gi-card__note">La cancelación está en proceso en el SAT. No se puede generar otra mientras esta siga vigente.</p>
+          }
+        </div>
+        <div class="gi-card__actions">
+          @if (canReadInvoice() && invoice.electronic_invoice_id && invoice.stamp_status) {
+            <button type="button" class="gi-secondary" (click)="openPdf()">PDF</button>
+          }
+          @if (canCancel() && invoice.can_cancel) {
+            <button type="button" class="gi-danger" [disabled]="cancelling()" (click)="askCancel()">
+              {{ cancelling() ? 'Cancelando…' : 'Cancelar' }}
+            </button>
+          }
+        </div>
+      </article>
+
+      @if (confirmCancel()) {
+        <div class="gi-confirm">
+          <p>¿Cancelar la factura global de {{ data.period_label }}? Cuando el SAT la cancele, las órdenes vuelven a esta lista y se puede timbrar otra.</p>
+          <div class="gi-confirm__actions">
+            <button type="button" class="gi-secondary" (click)="confirmCancel.set(false)">Volver</button>
+            <button type="button" class="gi-danger" [disabled]="cancelling()" (click)="cancel()">
+              Sí, cancelar
+            </button>
+          </div>
+        </div>
+      }
+    } @else if (data.cancelled_invoice; as cancelled) {
+      <p class="gi-cancelled">
+        La factura de este mes se canceló
+        @if (cancelledFolio()) {
+          ({{ cancelledFolio() }})
+        }
+        . Las órdenes sin factura se pueden incluir en una nueva.
+      </p>
+    }
+  }
+
+  @if (loading()) {
+    <p class="gi-empty">Cargando órdenes…</p>
+  } @else if (!(page()?.orders.length)) {
+    <p class="gi-empty">
+      {{ page()?.blocked_reason && !(page()?.fiscal_configuration_id) ? page()?.blocked_reason : 'No hay órdenes de clientes sin facturar en este mes.' }}
+    </p>
+  } @else {
+    <div class="gi-table-wrap">
+      <table class="gi-table">
+        <thead>
+          <tr>
+            @if (canSelectOrders()) {
+              <th class="gi-check">
+                <input
+                  type="checkbox"
+                  aria-label="Seleccionar todas"
+                  [checked]="allSelected()"
+                  (change)="toggleAll(checkedOf($event))" />
+              </th>
+            }
+            <th>Folio</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Estado</th>
+            <th class="gi-num">Total</th>
+            <th>Pago</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of page()?.orders ?? []; track order.id) {
+            <tr>
+              @if (canSelectOrders()) {
+                <td class="gi-check">
+                  <input
+                    type="checkbox"
+                    [attr.aria-label]="'Seleccionar ' + order.folio"
+                    [checked]="isSelected(order.id)"
+                    (change)="toggle(order.id, checkedOf($event))" />
+                </td>
+              }
+              <td>
+                <span class="dt-folio-badge dt-folio-badge--odv">{{ order.folio }}</span>
+              </td>
+              <td class="gi-date">{{ formatDate(order.created_at) }}</td>
+              <td>
+                <span class="gi-customer">{{ order.customer_name }}</span>
+                @if (order.company_name) {
+                  <span class="gi-sub">{{ order.company_name }}</span>
+                }
+                @if (order.branch_label) {
+                  <span class="gi-sub">{{ order.branch_label }}</span>
+                }
+              </td>
+              <td>
+                <span [class]="statusClass(order.general_status)">{{ order.general_status }}</span>
+              </td>
+              <td class="gi-num">
+                <strong>{{ formatMoney(order.total, order.currency) }}</strong>
+                <span class="gi-sub">Subtotal {{ formatMoney(order.subtotal, order.currency) }}</span>
+                @if (order.discount_total) {
+                  <span class="gi-sub">Descuento {{ formatMoney(order.discount_total, order.currency) }}</span>
+                }
+                @if (order.iva_total) {
+                  <span class="gi-sub">IVA {{ formatMoney(order.iva_total, order.currency) }}</span>
+                }
+                @if (order.ieps_total) {
+                  <span class="gi-sub">IEPS {{ formatMoney(order.ieps_total, order.currency) }}</span>
+                }
+              </td>
+              <td>
+                <div class="gi-pay">
+                  <span [class]="paymentClass(order.payment_status)">{{ order.payment_status }}</span>
+                  @if (showBreakdown(order)) {
+                    <span class="gi-pay__mix">{{ order.payment_breakdown_label || 'Mixto' }}</span>
+                    @for (line of order.payment_lines; track $index) {
+                      <span class="gi-pay__line">{{ line.label }} {{ lineAmount(line) }}</span>
+                    }
+                  } @else if (order.payment_method_label) {
+                    <span class="gi-pay__mix">{{ order.payment_method_label }}</span>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

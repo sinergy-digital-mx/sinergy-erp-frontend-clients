@@ -19,13 +19,14 @@ import {
   inventoryMeasureLabel,
 } from '../../../../core/utils/inventory-measure.util';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
+import { InventoryMarginChipComponent } from '../inventory-margin-chip/inventory-margin-chip.component';
 import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 
 @Component({
   selector: 'app-inventory-summary-view',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, SpinnerComponent],
+  imports: [CommonModule, LucideAngularModule, SpinnerComponent, InventoryMarginChipComponent],
   templateUrl: './inventory-summary-view.component.html',
   styleUrl: './inventory-summary-view.component.scss',
 })

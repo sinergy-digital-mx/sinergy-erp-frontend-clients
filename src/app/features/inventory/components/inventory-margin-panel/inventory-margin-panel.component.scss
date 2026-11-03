@@ -1,0 +1,239 @@
+.margin-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.1rem 1.15rem 1.15rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+  &__heading {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  &__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  &__headline {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 650;
+    line-height: 1.45;
+    color: #0f172a;
+  }
+
+  &__formula {
+    padding: 0.85rem 1rem;
+    border-radius: 0.8rem;
+    background: #f8fafc;
+    border: 1px solid #eef2f7;
+  }
+
+  &__math {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 650;
+    line-height: 1.45;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__notes {
+    margin: 0.4rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: #64748b;
+  }
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.85rem 0.9rem;
+  border-radius: 0.85rem;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+
+  &__kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  &__value {
+    font-size: 1.35rem;
+    font-weight: 720;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__meta {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &--result[data-tone='up'] {
+    background: #f0fdf4;
+    border-color: #dcfce7;
+
+    .metric__value { color: #047857; }
+  }
+
+  &--result[data-tone='down'] {
+    background: #fff1f2;
+    border-color: #ffe4e6;
+
+    .metric__value { color: #be123c; }
+  }
+}
+
+.source-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #64748b;
+
+  &[data-source='purchase'] {
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  &[data-source='configuration'] {
+    background: #fff7ed;
+    color: #c2410c;
+  }
+
+  &[data-source='mixed'] {
+    background: #eef2ff;
+    color: #4338ca;
+  }
+}
+
+.margin-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+
+    h3 {
+      margin: 0;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.75rem;
+      line-height: 1.4;
+      color: #64748b;
+    }
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #eef2f7;
+    border-radius: 0.8rem;
+    overflow: hidden;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    background: #fff;
+
+    & + li {
+      border-top: 1px solid #f1f5f9;
+    }
+
+    &.is-out {
+      background: #fafafa;
+
+      .margin-line__copy strong,
+      .margin-line__amount {
+        color: #94a3b8;
+      }
+    }
+  }
+}
+
+.margin-line {
+  &__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+
+    strong {
+      font-size: 0.8125rem;
+      font-weight: 650;
+      color: #0f172a;
+    }
+
+    span {
+      font-size: 0.75rem;
+      line-height: 1.35;
+      color: #64748b;
+    }
+  }
+
+  &__aside {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+  }
+
+  &__amount {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
+.out-pill {
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.625rem;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .margin-panel__metrics {
+    grid-template-columns: 1fr;
+  }
+}

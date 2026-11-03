@@ -1,3 +1,5 @@
+import { InventoryMarginSnapshot } from './inventory-margin.model';
+
 /**
  * Inventory Item entity
  */
@@ -78,6 +80,7 @@ export interface InventorySummaryBatch {
   source_tag_identifier?: string | null;
   measure_label?: string | null;
   created_at: string;
+  margin?: InventoryMarginSnapshot | null;
 }
 
 /**
@@ -101,6 +104,7 @@ export interface InventorySummaryItem {
   /** Desglose por tamaño. No clonar filas. */
   measure_totals?: InventoryMeasureTotal[];
   batches: InventorySummaryBatch[];
+  margin?: InventoryMarginSnapshot | null;
 }
 
 /**

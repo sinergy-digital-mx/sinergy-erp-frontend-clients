@@ -1,0 +1,63 @@
+@if (explanation) {
+  <article class="margin-panel">
+    @if (heading) {
+      <p class="margin-panel__heading">{{ heading }}</p>
+    }
+
+    <div class="margin-panel__metrics">
+      <div class="metric">
+        <span class="metric__kicker">Precio</span>
+        <strong class="metric__value">{{ money(explanation.margin.unit_price) }}</strong>
+        <span class="metric__meta">{{ explanation.margin.price_list_name || 'Sin lista activa' }}</span>
+      </div>
+      <div class="metric">
+        <span class="metric__kicker">{{ costLabel }}</span>
+        <strong class="metric__value">{{ money(explanation.margin.unit_cost) }}</strong>
+        <span class="source-pill" [attr.data-source]="explanation.margin.source">
+          {{ explanation.margin.source_label }}
+        </span>
+      </div>
+      <div class="metric metric--result" [attr.data-tone]="tone">
+        <span class="metric__kicker">Margen</span>
+        <strong class="metric__value">{{ percentLabel }}</strong>
+        <span class="metric__meta">{{ money(explanation.margin.margin_amount) }}</span>
+      </div>
+    </div>
+
+    <p class="margin-panel__headline">{{ explanation.headline }}</p>
+
+    <div class="margin-panel__formula">
+      <p class="margin-panel__math">{{ explanation.formula_sentence }}</p>
+      <p class="margin-panel__notes">{{ explanation.price_note }} {{ explanation.cost_note }}</p>
+    </div>
+
+    @for (group of explanation.groups; track group.title) {
+      <section class="margin-group">
+        <header class="margin-group__header">
+          <h3>{{ group.title }}</h3>
+          @if (group.note) {
+            <p>{{ group.note }}</p>
+          }
+        </header>
+        <ul>
+          @for (line of group.lines; track $index) {
+            <li [class.is-out]="!line.included">
+              <div class="margin-line__copy">
+                <strong>{{ line.label }}</strong>
+                @if (line.detail) {
+                  <span>{{ line.detail }}</span>
+                }
+              </div>
+              <div class="margin-line__aside">
+                @if (!line.included) {
+                  <span class="out-pill">No entra</span>
+                }
+                <span class="margin-line__amount">{{ lineMoney(line) }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </article>
+}

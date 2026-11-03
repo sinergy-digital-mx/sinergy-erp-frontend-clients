@@ -1,4 +1,5 @@
 import { BatchAuditHistoryEntry } from './inventory-audit.model';
+import { InventoryMarginExplanation } from './inventory-margin.model';
 import { InventoryBatchMovement } from './inventory-batch-movement.model';
 import { BatchTransferHistoryEntry } from './inventory-transfer.model';
 
@@ -105,6 +106,7 @@ export interface InventoryBatch {
   can_edit_tag?: boolean;
   can_edit_measure?: boolean;
   can_transfer?: boolean;
+  margin_detail?: InventoryMarginExplanation | null;
 }
 
 export interface UpdateInventoryBatchPayload {

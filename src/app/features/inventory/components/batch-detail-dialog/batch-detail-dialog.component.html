@@ -327,6 +327,21 @@
       </div>
     }
 
+    @if (activeTab === 'margen') {
+      <div class="batch-detail__body">
+        @if (batch()?.margin_detail) {
+          <app-inventory-margin-panel
+            [explanation]="batch()?.margin_detail"
+            costLabel="Costo">
+          </app-inventory-margin-panel>
+        } @else {
+          <div class="empty-tab">
+            <p>No hay datos para explicar el margen de este lote</p>
+          </div>
+        }
+      </div>
+    }
+
     <!-- Tab: Movimientos -->
     @if (activeTab === 'movimientos') {
       <div class="batch-detail__body">

@@ -140,6 +140,10 @@
           [dateTo]="dateTo()"
           [reloadToken]="reloadToken()" />
       }
+
+      @if (activeTab() === 'global-invoices') {
+        <app-global-invoices-tab />
+      }
     </div>
   </div>
 </div>
