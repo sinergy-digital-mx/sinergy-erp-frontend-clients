@@ -151,6 +151,19 @@
   }
 }
 
+.vendor-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.vendor-cell__meta {
+  color: #64748b;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
 .row-link {
   border: none;
   background: transparent;

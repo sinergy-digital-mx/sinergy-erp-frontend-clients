@@ -8,7 +8,7 @@ import { IColumn, IDatatableConfig, IPaginationEvent } from '../../../../core/co
 import { ToastService } from '../../../../core/services/toast.service';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { AccountingService } from '../../services/accounting.service';
-import { AccountsPayableListSummary, AccountsPayableVendorRow, PayableCurrencyView } from '../../models/accounting.model';
+import { AccountingPeriod, AccountsPayableListSummary, AccountsPayableVendorRow, PayableCurrencyView } from '../../models/accounting.model';
 import { VendorPayableDetailDialogComponent } from '../vendor-payable-detail-dialog/vendor-payable-detail-dialog.component';
 
 @Component({
@@ -21,6 +21,9 @@ import { VendorPayableDetailDialogComponent } from '../vendor-payable-detail-dia
 export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
 
+  @Input() period: AccountingPeriod = 'month';
+  @Input() dateFrom = '';
+  @Input() dateTo = '';
   @Input() reloadToken = 0;
 
   readonly views: { id: PayableCurrencyView; label: string }[] = [
@@ -64,6 +67,13 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    const periodChanged = !!changes['period'] && !changes['period'].firstChange;
+    const fromChanged = !!changes['dateFrom'] && !changes['dateFrom'].firstChange;
+    const toChanged = !!changes['dateTo'] && !changes['dateTo'].firstChange;
+    if (periodChanged || fromChanged || toChanged) {
+      this.loadPage(1);
+      return;
+    }
     if (changes['reloadToken'] && !changes['reloadToken'].firstChange) {
       this.loadPage(this.tableConfig().page ?? 1);
     }
@@ -88,7 +98,23 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
   }
 
   vendorLabel(row: AccountsPayableVendorRow): string {
-    return row.company_name?.trim() || row.vendor_name?.trim() || row.razon_social?.trim() || '—';
+    return row.razon_social?.trim() || row.company_name?.trim() || row.vendor_name?.trim() || '—';
+  }
+
+  /** Nombre comercial, cuando no es la misma razón social. */
+  vendorSecondary(row: AccountsPayableVendorRow): string {
+    const primary = this.vendorLabel(row);
+    const commercial = row.company_name?.trim() || row.vendor_name?.trim() || '';
+    if (!commercial || commercial === primary) return '';
+    return commercial;
+  }
+
+  periodCaption(): string {
+    if (this.period === 'range' && this.dateFrom && this.dateTo) {
+      return `Creadas del ${this.formatInputDate(this.dateFrom)} al ${this.formatInputDate(this.dateTo)}`;
+    }
+    if (this.period === 'month') return 'Creadas en el mes actual';
+    return 'Saldo pendiente completo. Mes o Rango dejan solo esas fechas.';
   }
 
   formatMoney(value: number | null | undefined, currency: 'MXN' | 'USD'): string {
@@ -167,6 +193,9 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
         vendorId: row.vendor_id,
         vendorLabel: this.vendorLabel(row),
         currency: this.currencyView(),
+        period: this.periodForQuery(),
+        dateFrom: this.dateFrom,
+        dateTo: this.dateTo,
       },
     });
   }
@@ -175,7 +204,15 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
     if (this.exporting()) return;
 
     this.exporting.set(true);
-    this.accountingService.exportAccountsPayableExcel(this.searchControl.value, this.currencyView()).subscribe({
+    this.accountingService
+      .exportAccountsPayableExcel(
+        this.searchControl.value,
+        this.currencyView(),
+        this.periodForQuery(),
+        this.dateFrom,
+        this.dateTo,
+      )
+      .subscribe({
       next: ({ blob, filename }) => {
         this.exporting.set(false);
         const url = URL.createObjectURL(blob);
@@ -193,11 +230,21 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
   }
 
   private loadPage(page: number): void {
+    if (this.period === 'range' && (!this.dateFrom || !this.dateTo)) return;
+
     const currency = this.currencyView();
     this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
 
     this.accountingService
-      .getAccountsPayable(this.searchControl.value, page, this.tableConfig().limit, currency)
+      .getAccountsPayable(
+        this.searchControl.value,
+        page,
+        this.tableConfig().limit,
+        currency,
+        this.periodForQuery(),
+        this.dateFrom,
+        this.dateTo,
+      )
       .subscribe({
         next: (res) => {
           if (this.currencyView() !== currency) return;
@@ -224,7 +271,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
   }
 
   private columnsFor(view: PayableCurrencyView): IColumn[] {
-    const vendor: IColumn = { name: 'Proveedor', prop: 'vendor', sortable: false, canAutoResize: false, width: 240 };
+    const vendor: IColumn = { name: 'Razón social', prop: 'vendor', sortable: false, canAutoResize: false, width: 260 };
     const progress: IColumn = {
       name: 'Progreso',
       prop: 'progress',
@@ -278,6 +325,20 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
       minimumFractionDigits: 2,
       maximumFractionDigits: 4,
     }).format(rate);
+  }
+
+  /** Hoy y semana no recortan el saldo. Mes y rango sí. */
+  private periodForQuery(): AccountingPeriod | undefined {
+    if (this.period === 'month' || (this.period === 'range' && this.dateFrom && this.dateTo)) {
+      return this.period;
+    }
+    return undefined;
+  }
+
+  private formatInputDate(value: string): string {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return value;
+    return `${match[3]}/${match[2]}/${match[1]}`;
   }
 
   private formatRateDate(value: string | null | undefined): string | null {

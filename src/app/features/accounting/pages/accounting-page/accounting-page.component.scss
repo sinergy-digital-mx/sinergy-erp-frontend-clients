@@ -94,6 +94,20 @@ app-report-period-selector.zn-period-drop {
   width: min(100%, 22rem);
 }
 
+.accounting-filters__clear {
+  align-self: end;
+  height: 40px;
+  padding: 0 0.85rem;
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  background: #fff;
+  color: #4338ca;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .accounting-filters__field {
   min-width: 0;
 }

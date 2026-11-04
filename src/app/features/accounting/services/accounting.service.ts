@@ -4,6 +4,7 @@ import { Observable, catchError, map, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   AccountingPaginatedResponse,
+  AccountingPeriod,
   AccountingPeriodQuery,
   AccountsPayableListSummary,
   AccountsPayableOrderRow,
@@ -192,12 +193,16 @@ export class AccountingService {
     search: string | undefined,
     page = 1,
     limit = 20,
-    currency: PayableCurrencyView = 'all'
+    currency: PayableCurrencyView = 'all',
+    period?: AccountingPeriod,
+    dateFrom?: string,
+    dateTo?: string,
   ): Observable<AccountingPaginatedResponse<AccountsPayableVendorRow, AccountsPayableListSummary>> {
     let params = new HttpParams()
       .set('page', String(page))
       .set('limit', String(limit))
       .set('currency', currency);
+    params = this.withPayablePeriod(params, period, dateFrom, dateTo);
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
@@ -216,9 +221,13 @@ export class AccountingService {
 
   exportAccountsPayableExcel(
     search: string | undefined,
-    currency: PayableCurrencyView
+    currency: PayableCurrencyView,
+    period?: AccountingPeriod,
+    dateFrom?: string,
+    dateTo?: string,
   ): Observable<{ blob: Blob; filename: string }> {
     let params = new HttpParams().set('currency', currency);
+    params = this.withPayablePeriod(params, period, dateFrom, dateTo);
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
@@ -246,10 +255,31 @@ export class AccountingService {
       );
   }
 
-  getAccountsPayableVendorDetail(vendorId: string): Observable<AccountsPayableVendorDetail> {
+  getAccountsPayableVendorDetail(
+    vendorId: string,
+    period?: AccountingPeriod,
+    dateFrom?: string,
+    dateTo?: string,
+  ): Observable<AccountsPayableVendorDetail> {
+    const params = this.withPayablePeriod(new HttpParams(), period, dateFrom, dateTo);
     return this.http
-      .get<unknown>(`${this.api}/accounts-payable/vendors/${vendorId}`)
+      .get<unknown>(`${this.api}/accounts-payable/vendors/${vendorId}`, { params })
       .pipe(map((raw) => this.parsePayableVendorDetail(raw, vendorId)));
+  }
+
+  private withPayablePeriod(
+    params: HttpParams,
+    period?: AccountingPeriod,
+    dateFrom?: string,
+    dateTo?: string,
+  ): HttpParams {
+    if (!period) return params;
+    let next = params.set('period', period);
+    if (period === 'range') {
+      if (dateFrom) next = next.set('date_from', dateFrom);
+      if (dateTo) next = next.set('date_to', dateTo);
+    }
+    return next;
   }
 
   getAccountsReceivable(

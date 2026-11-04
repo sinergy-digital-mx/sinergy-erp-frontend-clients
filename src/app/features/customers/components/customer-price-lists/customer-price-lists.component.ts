@@ -16,7 +16,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
   styleUrl: './customer-price-lists.component.scss',
 })
 export class CustomerPriceListsComponent implements OnChanges {
-  @Input() customerId: string | number | null = null;
+  @Input() customerId: number | null = null;
   @Input() canEdit = false;
 
   loading = signal(true);

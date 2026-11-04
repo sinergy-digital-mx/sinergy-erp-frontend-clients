@@ -119,21 +119,22 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
 
   showPeriodFilters(): boolean {
     const tab = this.activeTab();
-    return tab !== 'payable' && tab !== 'debt-flow' && tab !== 'global-invoices';
+    return tab !== 'debt-flow' && tab !== 'global-invoices';
   }
 
   posDayOnlyFilters(): boolean {
     return this.activeTab() === 'pos';
   }
 
-  /** Cuentas por cobrar: solo Mes y Rango. */
+  /** Cuentas por cobrar y por pagar: solo Mes y Rango. */
   monthAndRangeFilters(): boolean {
-    return this.activeTab() === 'receivable';
+    const tab = this.activeTab();
+    return tab === 'receivable' || tab === 'payable';
   }
 
-  /** En esa pestaña Hoy y Semana no se muestran: se ve Mes hasta que elijan un rango. */
+  /** En cuentas por cobrar, Hoy y Semana no se muestran: se ve Mes hasta que elijan un rango. */
   selectorPeriod(): AccountingPeriod {
-    if (this.monthAndRangeFilters() && (this.period() === 'today' || this.period() === 'week')) {
+    if (this.activeTab() === 'receivable' && (this.period() === 'today' || this.period() === 'week')) {
       return 'month';
     }
     return this.period();
@@ -165,7 +166,10 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       this.dateTo.set('');
     }
     // El rango del mes no aplica al corte diario de POS.
-    if (tab === 'pos' && (previousTab === 'average-cost' || previousTab === 'pos-collections')) {
+    if (
+      tab === 'pos' &&
+      (previousTab === 'average-cost' || previousTab === 'pos-collections' || previousTab === 'payable')
+    ) {
       this.period.set('today');
       this.dateFrom.set('');
       this.dateTo.set('');
@@ -208,6 +212,14 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       this.dateFrom.set('');
       this.dateTo.set('');
     }
+    this.reloadActiveTab();
+  }
+
+  /** Cuentas por pagar vuelve al saldo completo, sin mes ni rango. */
+  clearPayablePeriod(): void {
+    this.period.set('today');
+    this.dateFrom.set('');
+    this.dateTo.set('');
     this.reloadActiveTab();
   }
 

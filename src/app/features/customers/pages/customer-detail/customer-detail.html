@@ -165,9 +165,9 @@
           </app-customer-fiscal-credits>
         }
 
-        @if (activeInfoTab() === 'price-lists') {
+        @if (activeInfoTab() === 'price-lists' && customerId) {
           <app-customer-price-lists
-            [customerId]="customer()!.id"
+            [customerId]="customerId"
             [canEdit]="canEditStatus">
           </app-customer-price-lists>
         }

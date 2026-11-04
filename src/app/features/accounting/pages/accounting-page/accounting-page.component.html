@@ -28,6 +28,7 @@
           </div>
         }
 
+        @if (activeTab() !== 'payable') {
         <div class="accounting-filters__field">
           <label class="accounting-filters__label" for="accounting-branch">
             Sucursal
@@ -51,6 +52,13 @@
             }
           </select>
         </div>
+        }
+
+        @if (activeTab() === 'payable' && (period() === 'month' || period() === 'range')) {
+          <button type="button" class="accounting-filters__clear" (click)="clearPayablePeriod()">
+            Todo el saldo
+          </button>
+        }
 
         <app-report-period-selector
           class="zn-period-drop"
@@ -119,7 +127,11 @@
       }
 
       @if (activeTab() === 'payable') {
-        <app-accounts-payable-tab [reloadToken]="reloadToken()" />
+        <app-accounts-payable-tab
+          [period]="period()"
+          [dateFrom]="dateFrom()"
+          [dateTo]="dateTo()"
+          [reloadToken]="reloadToken()" />
       }
 
       @if (activeTab() === 'receivable') {

@@ -154,11 +154,12 @@
 
       @if (activeTab === 'products') {
       <div class="line-items-section">
-        <div class="capture-dock">
+        <div class="products-toolbar">
           <label class="capture-search">
             <i class="fi fi-rr-search" aria-hidden="true"></i>
             <input
               #productSearchInput
+              #productSearchTrigger="matAutocompleteTrigger"
               class="capture-control"
               type="text"
               [ngModel]="productSearchTerm"
@@ -173,12 +174,18 @@
               <span class="capture-search__status">Buscando…</span>
             }
           </label>
+          @if (canCreateServiceInline) {
+            <button type="button" class="btn btn--sm btn--secondary" (click)="openCreateServiceModal()" [disabled]="!hasBillingBranch">
+              + Nuevo servicio
+            </button>
+          }
+        </div>
           <mat-autocomplete
             #autoProductPicker="matAutocomplete"
             panelClass="capture-product-panel"
-            [displayWith]="displayProduct.bind(this)"
+            [displayWith]="displayProduct"
             autoActiveFirstOption
-            (optionSelected)="onProductSelectedForModal($event.option.value)">
+            (optionSelected)="onProductPicked($event)">
             @for (product of filteredProductsForModal; track product.product_id || product.id) {
               <mat-option [value]="product">
                 <span class="product-option">
@@ -202,157 +209,19 @@
 
           @if (!hasBillingBranch) {
             <p class="capture-hint">Selecciona una sucursal en Información para buscar.</p>
-          } @else if (!selectedProduct && lineItems.length === 0) {
-            <p class="capture-hint">Enter elige el primero. Luego confirma cantidad, precio, descuento e IVA.</p>
+          } @else if (lineItems.length === 0 && !missingProductUom) {
+            <p class="capture-hint">Elige un resultado y el renglón queda en la lista. Ahí se edita.</p>
           }
 
-          @if (selectedProduct) {
-            <div class="capture-line">
-              <div class="capture-identity">
-                <div class="capture-identity__name" [title]="selectedProduct.product_name || selectedProduct.name">
-                  {{ selectedProduct.product_name || selectedProduct.name }}
-                </div>
-                <div class="capture-identity__badges">
-                  <span class="sku-badge">{{ selectedProduct.product_sku || selectedProduct.sku || 'Sin código' }}</span>
-                  <span
-                    class="stock-badge"
-                    [class.is-service]="isServiceProduct(selectedProduct)"
-                    [class.is-empty]="!isServiceProduct(selectedProduct) && getAvailableQty(selectedProduct) <= 0">
-                    {{ stockLabel(selectedProduct) }}
-                  </span>
-                  @if (getWarehouseNamesLabel(selectedProduct)) {
-                    <span class="capture-wh" [title]="getWarehouseNamesLabel(selectedProduct)">{{ getWarehouseNamesLabel(selectedProduct) }}</span>
-                  }
-                </div>
-              </div>
-
-              @if (missingProductUom) {
-                <div class="uom-missing" role="alert">
-                  <p>Este {{ isServiceProduct(selectedProduct) ? 'servicio' : 'producto' }} no tiene unidad de medida.</p>
-                  <button type="button" class="uom-missing__action" [disabled]="refreshingProductUoms" (click)="openProductUomEditor()">
-                    {{ refreshingProductUoms ? 'Cargando…' : 'Agregar unidad' }}
-                  </button>
-                </div>
-              }
-
-              <div class="capture-fields">
-                <label class="capture-field capture-field--uom">
-                  <span>UOM</span>
-                  <select class="capture-control" [(ngModel)]="selectedUomId" [ngModelOptions]="{ standalone: true }" (change)="onSelectedUomChange()">
-                    <option value="">UOM</option>
-                    @for (uom of selectedProductUoms; track uom.id || uom.product_uom_id || uom.uom_id) {
-                      <option [value]="uom.id || uom.product_uom_id || uom.uom_id">{{ uom.name || uom.uom_name }}</option>
-                    }
-                  </select>
-                </label>
-
-                <label class="capture-field capture-field--list">
-                  <span>Lista</span>
-                  <select class="capture-control" [(ngModel)]="selectedPricingOptionId" [ngModelOptions]="{ standalone: true }" (change)="onSelectedPricingOptionChange()">
-                    <option value="">Sugerido</option>
-                    @for (option of visiblePricingOptions(selectedModalPricingOptions); track option.price_list_id || option.id) {
-                      <option [value]="option.price_list_id || option.id">
-                        {{ option.price_list_name || 'Lista' }} ({{ option.price }})
-                      </option>
-                    }
-                  </select>
-                </label>
-
-                <label class="capture-field capture-field--qty">
-                  <span>Cant.</span>
-                  <input
-                    #captureQtyInput
-                    class="capture-control"
-                    type="number"
-                    [(ngModel)]="selectedQuantity"
-                    [ngModelOptions]="{ standalone: true }"
-                    min="0.001"
-                    step="any"
-                    (keydown.enter)="onCaptureEnter($event)">
-                </label>
-
-                <label class="capture-field capture-field--price">
-                  <span>Precio</span>
-                  <input
-                    class="capture-control"
-                    type="number"
-                    title="Precio unitario sin IVA"
-                    [(ngModel)]="selectedUnitPrice"
-                    [ngModelOptions]="{ standalone: true }"
-                    min="0"
-                    step="any"
-                    (keydown.enter)="onCaptureEnter($event)">
-                </label>
-
-                <label class="capture-field capture-field--disc">
-                  <span>Desc. %</span>
-                  <input
-                    class="capture-control"
-                    type="number"
-                    [(ngModel)]="selectedDiscount"
-                    [ngModelOptions]="{ standalone: true }"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    (keydown.enter)="onCaptureEnter($event)">
-                </label>
-
-                @if (showIva) {
-                  <div class="iva-pills">
-                    <span>IVA</span>
-                    <div class="iva-pills__row" role="group" aria-label="IVA">
-                      @for (preset of ivaChoices(selectedIva); track preset) {
-                        <button
-                          type="button"
-                          [class.is-active]="isSameRate(selectedIva, preset)"
-                          (click)="setSelectedIva(preset)">
-                          {{ preset }}%
-                        </button>
-                      }
-                    </div>
-                  </div>
-                }
-
-                @if (showIeps) {
-                  <label class="capture-field capture-field--ieps">
-                    <span>IEPS</span>
-                    <input
-                      class="capture-control"
-                      type="number"
-                      [(ngModel)]="selectedIeps"
-                      [ngModelOptions]="{ standalone: true }"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      (keydown.enter)="onCaptureEnter($event)">
-                  </label>
-                }
-
-                <div class="capture-commit">
-                  <span class="capture-amount">{{ formatMoney(captureLineTotal) }}</span>
-                  <button type="button" class="capture-add" (click)="confirmAddProduct()" [disabled]="!canConfirmAddProduct" title="Enter agrega el renglón">
-                    Agregar
-                  </button>
-                  <button type="button" class="capture-clear" (click)="clearCapture()" title="Limpiar" aria-label="Limpiar producto">
-                    <i class="fi fi-rr-cross-small"></i>
-                  </button>
-                </div>
-              </div>
+          @if (missingProductUom) {
+            <div class="uom-missing" role="alert">
+              <p>{{ selectedProduct.product_name || selectedProduct.name }} no tiene unidad de medida.</p>
+              <button type="button" class="uom-missing__action" [disabled]="refreshingProductUoms" (click)="openProductUomEditor()">
+                {{ refreshingProductUoms ? 'Cargando…' : 'Agregar unidad' }}
+              </button>
             </div>
           }
-        </div>
 
-        <div class="section-header">
-          <h3>
-            {{ saleScope === 'services' ? 'Servicios' : 'Renglones' }}
-            <span class="section-count">{{ lineItems.length }}</span>
-          </h3>
-          @if (canCreateServiceInline) {
-            <button type="button" class="btn btn--sm btn--secondary" (click)="openCreateServiceModal()" [disabled]="!hasBillingBranch">
-              + Nuevo servicio
-            </button>
-          }
-        </div>
 
         @if (lineItems.length === 0) {
           <div class="empty-state">
@@ -361,6 +230,22 @@
         } @else {
           <div class="lines-wrap">
             <table class="lines-table">
+              <colgroup>
+                <col class="col-product" />
+                <col class="col-uom" />
+                <col class="col-list" />
+                <col class="col-qty" />
+                <col class="col-price" />
+                <col class="col-disc" />
+                @if (showIva) {
+                  <col class="col-iva" />
+                }
+                @if (showIeps) {
+                  <col class="col-ieps" />
+                }
+                <col class="col-amount" />
+                <col class="col-remove" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Producto</th>
@@ -392,6 +277,9 @@
                           [class.is-empty]="item.item_kind !== 'service' && !(item.available_quantity > 0)">
                           {{ lineStockLabel(item) }}
                         </span>
+                        @if (item.warehouse_names?.length) {
+                          <span class="lines-wh" [title]="item.warehouse_names.join(', ')">{{ item.warehouse_names.join(', ') }}</span>
+                        }
                       </div>
                     </td>
                     <td>
@@ -436,16 +324,16 @@
                     </td>
                     @if (showIva) {
                       <td>
-                        <div class="iva-pills__row" role="group" aria-label="IVA">
+                        <select
+                          class="cell-input"
+                          [ngModel]="item.iva_percentage"
+                          (ngModelChange)="setLineIva(i, $event)"
+                          [ngModelOptions]="{standalone: true}"
+                          aria-label="IVA">
                           @for (preset of ivaChoices(item.iva_percentage); track preset) {
-                            <button
-                              type="button"
-                              [class.is-active]="isSameRate(item.iva_percentage, preset)"
-                              (click)="setLineIva(i, preset)">
-                              {{ preset }}%
-                            </button>
+                            <option [ngValue]="preset">{{ preset }}%</option>
                           }
-                        </div>
+                        </select>
                       </td>
                     }
                     @if (showIeps) {

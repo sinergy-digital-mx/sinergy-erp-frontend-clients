@@ -7,6 +7,7 @@ import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { OrderDetailDialogComponent } from '../../../purchase-orders/components/order-detail-dialog/order-detail-dialog.component';
 import { AccountingService } from '../../services/accounting.service';
 import {
+  AccountingPeriod,
   AccountsPayableOrderRow,
   AccountsPayableVendorDetail,
   PayableCurrencyView,
@@ -16,6 +17,9 @@ export interface VendorPayableDetailDialogData {
   vendorId: string;
   vendorLabel: string;
   currency?: PayableCurrencyView;
+  period?: AccountingPeriod;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 @Component({
@@ -37,7 +41,9 @@ export class VendorPayableDetailDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.accountingService.getAccountsPayableVendorDetail(this.data.vendorId).subscribe({
+    this.accountingService
+      .getAccountsPayableVendorDetail(this.data.vendorId, this.data.period, this.data.dateFrom, this.data.dateTo)
+      .subscribe({
       next: (detail) => {
         this.detail.set(detail);
         this.loading.set(false);
@@ -55,9 +61,9 @@ export class VendorPayableDetailDialogComponent implements OnInit {
       return this.data.vendorLabel;
     }
     return (
+      detail.razon_social?.trim() ||
       detail.company_name?.trim() ||
       detail.vendor_name?.trim() ||
-      detail.razon_social?.trim() ||
       this.data.vendorLabel
     );
   }
