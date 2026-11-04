@@ -108,7 +108,7 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     id: 'marketing-reports',
     title: 'Análisis',
-    itemIds: ['menu-marketing', 'menu-zona-norte', 'menu-customer-sales-report', 'menu-divino-dashboard', 'menu-divino-reservation-formats'],
+    itemIds: ['menu-reports', 'menu-marketing', 'menu-zona-norte', 'menu-customer-sales-report', 'menu-divino-dashboard', 'menu-divino-reservation-formats'],
   },
   {
     id: 'hr',
@@ -288,6 +288,14 @@ export class Sidebar implements OnInit, OnDestroy {
       icon: FileText,
       id: 'menu-zona-norte',
       permission: 'zona_norte_custom_report:ViewMenu'
+    },
+    {
+      label: 'Reportes',
+      route: '/reports',
+      icon: FileText,
+      id: 'menu-reports',
+      permission: PERMISSIONS.reports.viewMenu,
+      tenantId: MADERERIA_ZONA_NORTE_ORGANIZATION_ID,
     },
     {
       label: 'Reporte Clientes',

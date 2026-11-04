@@ -75,7 +75,9 @@ export class AccountingService {
     limit = 20,
     search?: string,
     paymentMethod?: PosCollectionPaymentMethodKey | null,
-    creditOnly = false
+    creditOnly = false,
+    creditScope?: 'paid' | null,
+    forShipping = false
   ): Observable<PosCollectionsPage> {
     let params = this.buildPeriodParams(query)
       .set('customer_type', customerType)
@@ -84,11 +86,17 @@ export class AccountingService {
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
-    if (paymentMethod && !creditOnly) {
+    if (paymentMethod && (creditScope === 'paid' || !creditOnly)) {
       params = params.set('payment_method', paymentMethod);
     }
     if (creditOnly) {
       params = params.set('credit_only', 'true');
+    }
+    if (creditScope === 'paid') {
+      params = params.set('credit_scope', 'paid');
+    }
+    if (forShipping) {
+      params = params.set('for_shipping', 'true');
     }
 
     return this.http.get<unknown>(`${this.api}/pos-collections`, { params }).pipe(
@@ -114,17 +122,25 @@ export class AccountingService {
     customerType: CollectionCustomerType = 'all',
     search?: string,
     paymentMethod?: PosCollectionPaymentMethodKey | null,
-    creditOnly = false
+    creditOnly = false,
+    creditScope?: 'paid' | null,
+    forShipping = false
   ): Observable<{ blob: Blob; filename: string }> {
     let params = this.buildPeriodParams(query).set('customer_type', customerType);
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
-    if (paymentMethod && !creditOnly) {
+    if (paymentMethod && (creditScope === 'paid' || !creditOnly)) {
       params = params.set('payment_method', paymentMethod);
     }
     if (creditOnly) {
       params = params.set('credit_only', 'true');
+    }
+    if (creditScope === 'paid') {
+      params = params.set('credit_scope', 'paid');
+    }
+    if (forShipping) {
+      params = params.set('for_shipping', 'true');
     }
 
     return this.http
@@ -369,10 +385,10 @@ export class AccountingService {
       );
   }
 
-  getGlobalInvoices(month: string, fiscalConfigurationId?: string): Observable<GlobalInvoicePage> {
+  getGlobalInvoices(month: string, billingBranchId?: string): Observable<GlobalInvoicePage> {
     let params = new HttpParams().set('month', month);
-    if (fiscalConfigurationId) {
-      params = params.set('fiscal_configuration_id', fiscalConfigurationId);
+    if (billingBranchId) {
+      params = params.set('billing_branch_id', billingBranchId);
     }
     return this.http
       .get<unknown>(`${this.api}/global-invoices`, { params })
@@ -381,7 +397,7 @@ export class AccountingService {
 
   generateGlobalInvoice(body: {
     month: string;
-    fiscal_configuration_id: string;
+    billing_branch_id: string;
     order_ids: string[];
     environment: 'demo' | 'production';
   }): Observable<GlobalInvoicePage> {
@@ -410,20 +426,19 @@ export class AccountingService {
 
   private parseGlobalInvoicePage(raw: unknown): GlobalInvoicePage {
     const body = this.asRecord(raw);
-    const source = body['orders'] || body['fiscal_configurations'] ? body : this.asRecord(body['data']);
+    const source = body['orders'] || body['branches'] ? body : this.asRecord(body['data']);
     const orders = this.asArray<Record<string, unknown>>(source['orders']).map((row) =>
       this.parseGlobalInvoiceOrder(row),
     );
     return {
       month: String(source['month'] ?? ''),
       period_label: String(source['period_label'] ?? ''),
-      fiscal_configurations: this.asArray<Record<string, unknown>>(source['fiscal_configurations']).map(
-        (row) => ({
-          id: String(row['id'] ?? ''),
-          razon_social: String(row['razon_social'] ?? ''),
-          rfc: String(row['rfc'] ?? ''),
-        }),
-      ),
+      branches: this.asArray<Record<string, unknown>>(source['branches']).map((row) => ({
+        id: String(row['id'] ?? ''),
+        label: String(row['label'] ?? ''),
+        fiscal_configuration_id: String(row['fiscal_configuration_id'] ?? ''),
+      })),
+      billing_branch_id: source['billing_branch_id'] ? String(source['billing_branch_id']) : null,
       fiscal_configuration_id: source['fiscal_configuration_id']
         ? String(source['fiscal_configuration_id'])
         : null,
@@ -665,6 +680,8 @@ export class AccountingService {
       amount_collected: Number(body['amount_collected'] ?? 0),
       walk_in_count: Number(body['walk_in_count'] ?? 0),
       invoiced_count: Number(body['invoiced_count'] ?? 0),
+      shipping_count: Number(body['shipping_count'] ?? 0),
+      shipping_amount: Number(body['shipping_amount'] ?? 0),
       by_payment_method: this.parsePaymentMethodTotals(methods),
     };
   }

@@ -71,7 +71,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     { id: 'receivable', title: 'Cuentas por cobrar' },
     { id: 'debt-flow', title: 'Flujo de deuda' },
     { id: 'average-cost', title: 'Rep. Vent. Cost. Prom' },
-    { id: 'global-invoices', title: 'Facturas globales' },
+    { id: 'global-invoices', title: 'Factura público en general' },
   ];
 
   constructor(
@@ -123,6 +123,19 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
 
   posDayOnlyFilters(): boolean {
     return this.activeTab() === 'pos';
+  }
+
+  /** Cuentas por cobrar: solo Mes y Rango. */
+  monthAndRangeFilters(): boolean {
+    return this.activeTab() === 'receivable';
+  }
+
+  /** En esa pestaña Hoy y Semana no se muestran: se ve Mes hasta que elijan un rango. */
+  selectorPeriod(): AccountingPeriod {
+    if (this.monthAndRangeFilters() && (this.period() === 'today' || this.period() === 'week')) {
+      return 'month';
+    }
+    return this.period();
   }
 
   branchRequired(): boolean {
@@ -192,6 +205,12 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   onBranchChange(): void {
     this.persistBranchQuery();
     this.reloadActiveTab();
+  }
+
+  onGlobalBranch(id: string): void {
+    if (id === this.billingBranchId()) return;
+    this.billingBranchId.set(id);
+    this.persistBranchQuery();
   }
 
   branchLabel(b: Branch): string {

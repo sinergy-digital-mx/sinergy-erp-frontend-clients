@@ -54,11 +54,12 @@
 
         <app-report-period-selector
           class="zn-period-drop"
-          [period]="period()"
+          [period]="selectorPeriod()"
           [dateFrom]="dateFrom()"
           [dateTo]="dateTo()"
           [includeYear]="false"
           [dayOnly]="posDayOnlyFilters()"
+          [monthAndRange]="monthAndRangeFilters()"
           dateFromId="accounting-date-from"
           dateToId="accounting-date-to"
           ariaLabel="Periodo contable"
@@ -142,7 +143,9 @@
       }
 
       @if (activeTab() === 'global-invoices') {
-        <app-global-invoices-tab />
+        <app-global-invoices-tab
+          [billingBranchId]="billingBranchId()"
+          (billingBranchChange)="onGlobalBranch($event)" />
       }
     </div>
   </div>

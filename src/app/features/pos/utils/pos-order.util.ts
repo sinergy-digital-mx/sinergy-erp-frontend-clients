@@ -10,6 +10,25 @@ export interface VentasPosOrderContext {
   walkInName?: string | null;
   walkInRfc?: string | null;
   forShipping?: boolean;
+  /** Observaciones del vendedor. Si vienen, reemplazan la nota automática de terminal. */
+  notes?: string | null;
+}
+
+const AUTO_POS_SALE_NOTE = /^POS Ventas\s*-/i;
+
+/** Texto que el vendedor capturó. La nota automática de terminal no cuenta. */
+export function posSaleObservation(notes: string | null | undefined): string {
+  const text = notes?.trim() ?? '';
+  if (!text || AUTO_POS_SALE_NOTE.test(text)) return '';
+  return text;
+}
+
+/** Observaciones del vendedor, o la nota de terminal si no escribió nada. */
+export function resolvePosSaleNotes(terminalLabel: string | undefined, notes?: string | null): string {
+  const observation = notes?.trim();
+  if (observation) return observation;
+  const terminal = terminalLabel?.trim() || 'POS Ventas';
+  return `POS Ventas - ${terminal}`;
 }
 
 export function todayIsoDate(): string {
@@ -51,7 +70,7 @@ export function buildVentasPosOrderPayload(
     sales_order_type: 'POS',
     seller_user_id: ctx.sellerUserId,
     for_shipping: !!ctx.forShipping,
-    notes: `POS Ventas - ${terminal}`,
+    notes: resolvePosSaleNotes(terminal, ctx.notes),
     line_items: cart.items.map(mapCartLineToOrderLine),
     ...(cart.global_discount_id ? { global_discount_id: cart.global_discount_id } : {}),
     ...(hasRegisteredCustomer

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildVentasPosOrderPayload } from './pos-order.util';
+import { buildVentasPosOrderPayload, posSaleObservation, resolvePosSaleNotes } from './pos-order.util';
 
 const cart = {
   items: [
@@ -65,5 +65,19 @@ describe('buildVentasPosOrderPayload', () => {
     });
     expect(payload.walk_in_name).toBeUndefined();
     expect(payload.walk_in_rfc).toBeUndefined();
+  });
+
+  it('guarda las observaciones del vendedor en notes', () => {
+    const payload = buildVentasPosOrderPayload(cart as any, {
+      ...ctx,
+      notes: '  Cortar a 2.40 m  ',
+    });
+    expect(payload.notes).toBe('Cortar a 2.40 m');
+  });
+
+  it('usa la nota de terminal si no hay observaciones', () => {
+    expect(resolvePosSaleNotes('ventas1', '   ')).toBe('POS Ventas - ventas1');
+    expect(posSaleObservation('POS Ventas - ventas1')).toBe('');
+    expect(posSaleObservation('Entregar en andén')).toBe('Entregar en andén');
   });
 });

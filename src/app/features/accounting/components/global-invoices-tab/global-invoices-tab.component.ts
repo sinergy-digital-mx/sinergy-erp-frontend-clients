@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -19,9 +19,12 @@ import {
   templateUrl: './global-invoices-tab.component.html',
   styleUrl: './global-invoices-tab.component.scss',
 })
-export class GlobalInvoicesTabComponent implements OnInit {
+export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
+  @Input() billingBranchId = '';
+  @Output() billingBranchChange = new EventEmitter<string>();
+
   readonly month = signal(this.currentMonth());
-  readonly fiscalId = signal('');
+  readonly branchId = signal('');
   readonly page = signal<GlobalInvoicePage | null>(null);
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -41,6 +44,17 @@ export class GlobalInvoicesTabComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.branchId.set(this.billingBranchId || '');
+    this.load();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    const change = changes['billingBranchId'];
+    if (!change || change.firstChange) return;
+    const next = this.billingBranchId || '';
+    if (next === this.branchId()) return;
+    this.branchId.set(next);
+    this.confirmCancel.set(false);
     this.load();
   }
 
@@ -51,9 +65,10 @@ export class GlobalInvoicesTabComponent implements OnInit {
     this.load();
   }
 
-  onFiscal(value: string): void {
-    this.fiscalId.set(value);
+  onBranch(value: string): void {
+    this.branchId.set(value);
     this.confirmCancel.set(false);
+    if (value !== this.billingBranchId) this.billingBranchChange.emit(value);
     this.load();
   }
 
@@ -120,19 +135,19 @@ export class GlobalInvoicesTabComponent implements OnInit {
     if (!page || !this.showGenerate()) return '';
     if (!this.canStamp()) return 'No tienes permiso para timbrar.';
     if (page.blocked_reason) return page.blocked_reason;
-    if (!this.allSelected()) return 'Selecciona todas las órdenes del mes para generar la factura.';
+    if (!this.allSelected()) return 'Selecciona todas las órdenes de esta sucursal para generar la factura.';
     return '';
   }
 
   generate(): void {
     const page = this.page();
-    const fiscalId = page?.fiscal_configuration_id;
-    if (!page || !fiscalId || this.generateDisabled()) return;
+    const branchId = page?.billing_branch_id;
+    if (!page || !branchId || this.generateDisabled()) return;
     this.saving.set(true);
     this.accounting
       .generateGlobalInvoice({
         month: page.month,
-        fiscal_configuration_id: fiscalId,
+        billing_branch_id: branchId,
         order_ids: page.orders.map((order) => order.id),
         environment: this.stampEnvironment(),
       })
@@ -140,7 +155,7 @@ export class GlobalInvoicesTabComponent implements OnInit {
         next: (next) => {
           this.saving.set(false);
           this.applyPage(next);
-          this.toast.success('Factura global timbrada.');
+          this.toast.success('Factura a público en general timbrada.');
         },
         error: (error) => {
           this.saving.set(false);
@@ -167,7 +182,7 @@ export class GlobalInvoicesTabComponent implements OnInit {
         this.toast.success(
           pending
             ? 'La cancelación quedó en proceso en el SAT.'
-            : 'Factura global cancelada.',
+            : 'Factura a público en general cancelada.',
         );
       },
       error: (error) => {
@@ -197,7 +212,7 @@ export class GlobalInvoicesTabComponent implements OnInit {
   invoiceFolio(): string {
     const invoice = this.page()?.invoice;
     if (!invoice) return '';
-    return [invoice.series, invoice.folio].filter(Boolean).join(' ') || 'Factura global';
+    return [invoice.series, invoice.folio].filter(Boolean).join(' ') || 'Factura público en general';
   }
 
   stampLabel(status: string | null): string {
@@ -279,7 +294,7 @@ export class GlobalInvoicesTabComponent implements OnInit {
 
   private load(): void {
     this.loading.set(true);
-    this.accounting.getGlobalInvoices(this.month(), this.fiscalId() || undefined).subscribe({
+    this.accounting.getGlobalInvoices(this.month(), this.branchId() || undefined).subscribe({
       next: (page) => {
         this.loading.set(false);
         this.applyPage(page);
@@ -293,9 +308,9 @@ export class GlobalInvoicesTabComponent implements OnInit {
 
   private applyPage(page: GlobalInvoicePage): void {
     this.page.set(page);
-    if ((page.fiscal_configuration_id ?? '') !== this.fiscalId()) {
-      this.fiscalId.set(page.fiscal_configuration_id ?? '');
-    }
+    const next = page.billing_branch_id ?? '';
+    if (next !== this.branchId()) this.branchId.set(next);
+    if (next && next !== this.billingBranchId) this.billingBranchChange.emit(next);
     const selectable = !page.invoice || page.invoice.status === 'cancelled';
     this.selected.set(selectable ? new Set(page.orders.map((order) => order.id)) : new Set());
   }

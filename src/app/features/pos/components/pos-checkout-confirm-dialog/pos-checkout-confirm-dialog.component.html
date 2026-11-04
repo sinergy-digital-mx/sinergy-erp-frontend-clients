@@ -243,6 +243,16 @@
       }
     </div>
 
+    <label class="pos-notes">
+      <span>Observaciones</span>
+      <textarea
+        rows="3"
+        maxlength="5000"
+        [ngModel]="notesText()"
+        (ngModelChange)="notesText.set($event)"
+        placeholder="Opcional. Sale en el ticket."></textarea>
+    </label>
+
     <label class="pos-ship-toggle" [class.pos-ship-toggle--on]="forShipping()">
       <span>
         <strong>Para envío</strong>

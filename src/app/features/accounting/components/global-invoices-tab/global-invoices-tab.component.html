@@ -10,18 +10,18 @@
         (ngModelChange)="onMonth($event)" />
     </div>
 
-    <div class="gi-field gi-field--fiscal">
-      <label class="gi-label" for="global-invoice-fiscal">Razón social</label>
+    <div class="gi-field gi-field--branch">
+      <label class="gi-label" for="global-invoice-branch">Sucursal</label>
       <select
-        id="global-invoice-fiscal"
+        id="global-invoice-branch"
         class="gi-select"
-        [ngModel]="fiscalId()"
-        (ngModelChange)="onFiscal($event)">
-        @if ((page()?.fiscal_configurations.length ?? 0) !== 1) {
-          <option value="" disabled>Selecciona razón social</option>
+        [ngModel]="branchId()"
+        (ngModelChange)="onBranch($event)">
+        @if ((page()?.branches.length ?? 0) !== 1) {
+          <option value="" disabled>Selecciona sucursal</option>
         }
-        @for (fiscal of page()?.fiscal_configurations ?? []; track fiscal.id) {
-          <option [value]="fiscal.id">{{ fiscal.razon_social }} · {{ fiscal.rfc }}</option>
+        @for (branch of page()?.branches ?? []; track branch.id) {
+          <option [value]="branch.id">{{ branch.label }}</option>
         }
       </select>
     </div>
@@ -42,10 +42,10 @@
     }
   </div>
 
-  @if (page() && canSelectOrders()) {
+  @if (page()?.billing_branch_id && canSelectOrders()) {
     <p class="gi-info">
       <span class="gi-info__mark" aria-hidden="true">i</span>
-      Estas son las órdenes que el cliente no facturó. La factura global se emite con todas.
+      Estas son las órdenes de esta sucursal que el cliente no facturó. La factura a público en general se emite con todas.
     </p>
   }
 
@@ -63,7 +63,7 @@
     @if (data.invoice; as invoice) {
       <article class="gi-card" [class.gi-card--pending]="invoice.status === 'pending' || invoice.stamp_status === 'cancel_pending'">
         <div>
-          <p class="gi-card__kicker">Factura global</p>
+          <p class="gi-card__kicker">Factura público en general</p>
           <h3 class="gi-card__folio">{{ invoiceFolio() }}</h3>
           <p class="gi-card__meta">
             {{ stampLabel(invoice.stamp_status) }}
@@ -95,7 +95,7 @@
 
       @if (confirmCancel()) {
         <div class="gi-confirm">
-          <p>¿Cancelar la factura global de {{ data.period_label }}? Cuando el SAT la cancele, las órdenes vuelven a esta lista y se puede timbrar otra.</p>
+          <p>¿Cancelar la factura a público en general de {{ data.period_label }}? Cuando el SAT la cancele, las órdenes vuelven a esta lista y se puede timbrar otra.</p>
           <div class="gi-confirm__actions">
             <button type="button" class="gi-secondary" (click)="confirmCancel.set(false)">Volver</button>
             <button type="button" class="gi-danger" [disabled]="cancelling()" (click)="cancel()">
@@ -119,7 +119,7 @@
     <p class="gi-empty">Cargando órdenes…</p>
   } @else if (!(page()?.orders.length)) {
     <p class="gi-empty">
-      {{ page()?.blocked_reason && !(page()?.fiscal_configuration_id) ? page()?.blocked_reason : 'No hay órdenes de clientes sin facturar en este mes.' }}
+      {{ page()?.blocked_reason && !(page()?.billing_branch_id) ? page()?.blocked_reason : 'No hay órdenes de clientes sin facturar en esta sucursal.' }}
     </p>
   } @else {
     <div class="gi-table-wrap">

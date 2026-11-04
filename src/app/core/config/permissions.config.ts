@@ -37,6 +37,7 @@ export {
 export { WAREHOUSE_CONTROL_PERMISSIONS } from '../../features/warehouse-control/config/permissions.config';
 export { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../features/madereria-inventory-import/config/permissions.config';
 export { CUSTOMER_SALES_REPORT_PERMISSIONS } from '../../features/customer-sales-reports/config/permissions.config';
+export { REPORTS_PERMISSIONS } from '../../features/reports/config/permissions.config';
 export { SERVICE_SUBSCRIPTION_PERMISSIONS } from '../../features/service-subscriptions/config/permissions.config';
 
 /**
@@ -69,6 +70,7 @@ import {
 import { WAREHOUSE_CONTROL_PERMISSIONS } from '../../features/warehouse-control/config/permissions.config';
 import { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../features/madereria-inventory-import/config/permissions.config';
 import { CUSTOMER_SALES_REPORT_PERMISSIONS } from '../../features/customer-sales-reports/config/permissions.config';
+import { REPORTS_PERMISSIONS } from '../../features/reports/config/permissions.config';
 import { SERVICE_SUBSCRIPTION_PERMISSIONS } from '../../features/service-subscriptions/config/permissions.config';
 
 export const PERMISSIONS = {
@@ -97,5 +99,6 @@ export const PERMISSIONS = {
   warehouseControl: WAREHOUSE_CONTROL_PERMISSIONS,
   madereriaInventoryImport: MADERERIA_INVENTORY_IMPORT_PERMISSIONS,
   customerSalesReport: CUSTOMER_SALES_REPORT_PERMISSIONS,
+  reports: REPORTS_PERMISSIONS,
   serviceSubscriptions: SERVICE_SUBSCRIPTION_PERMISSIONS,
 } as const;

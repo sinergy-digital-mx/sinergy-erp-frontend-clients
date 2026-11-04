@@ -1,12 +1,12 @@
 @if (branchMissing()) {
   <div class="accounting-empty">
-    <p>Selecciona una sucursal para ver las órdenes a crédito.</p>
+    <p>Selecciona una sucursal para ver las ventas.</p>
   </div>
 } @else {
   <div class="pos-collections-tab">
     <div class="pos-collections-tab__toolbar">
       <div>
-        <h3 class="pos-collections-tab__title">Órdenes a crédito</h3>
+        <h3 class="pos-collections-tab__title">Ventas cobradas</h3>
         <p class="pos-collections-tab__subtitle">
           <span>{{ listTotal() }}</span>
           {{ listTotal() === 1 ? 'orden' : 'órdenes' }}
@@ -14,6 +14,7 @@
           @if (periodCaption()) {
             <span class="pos-collections-tab__period">{{ periodCaption() }}</span>
           }
+          <span class="pos-collections-tab__period">Crédito: solo abonos cobrados</span>
         </p>
       </div>
       <button
@@ -25,9 +26,40 @@
       </button>
     </div>
 
+    <div class="pay-totals" aria-label="Totales por forma de pago">
+      @for (card of paymentMethodCards(); track card.key) {
+        <button
+          type="button"
+          [class]="'pay-total pay-total--' + card.key"
+          [class.pay-total--active]="paymentMethod() === card.key"
+          [attr.aria-pressed]="paymentMethod() === card.key"
+          [disabled]="tableConfig().loading"
+          (click)="togglePaymentMethod(card.key)">
+          <h4 class="pay-total__title">
+            <i class="fi {{ card.icon }}" aria-hidden="true"></i>
+            {{ card.label }}
+          </h4>
+          <dl class="pay-total__metrics">
+            <div>
+              <dt>Ventas</dt>
+              <dd>{{ card.totals.orders }}</dd>
+            </div>
+            <div>
+              <dt>Monto</dt>
+              <dd>{{ formatCurrency(card.totals.amount) }}</dd>
+            </div>
+            <div>
+              <dt>Ticket</dt>
+              <dd>{{ formatCurrency(card.totals.ticket) }}</dd>
+            </div>
+          </dl>
+        </button>
+      }
+    </div>
+
     <div class="pos-collections-tab__filters">
       <div class="pos-collections-tab__chip-groups">
-        <div class="pos-collections-tab__chips" role="tablist" aria-label="Órdenes a crédito">
+        <div class="pos-collections-tab__chips" role="tablist" aria-label="Tipo de cliente">
           @for (chip of filterChips(); track chip.type) {
             <button
               type="button"
@@ -40,6 +72,34 @@
               <i class="fi {{ chip.icon }}" aria-hidden="true"></i>
               {{ chip.label }}
               <span class="filter-chip__count">{{ chip.count }}</span>
+            </button>
+          }
+        </div>
+        <div class="pos-collections-tab__chips" role="group" aria-label="Envío y forma de pago">
+          <button
+            type="button"
+            class="filter-chip"
+            [class.filter-chip--active]="forShipping()"
+            [attr.aria-pressed]="forShipping()"
+            [disabled]="tableConfig().loading"
+            (click)="toggleShipping()">
+            <i class="fi fi-rr-truck" aria-hidden="true"></i>
+            Envío
+            <span class="filter-chip__count">{{ summary().shipping_count }}</span>
+            <span class="filter-chip__amount">{{ formatCurrency(summary().shipping_amount) }}</span>
+          </button>
+          @for (chip of paymentFilters(); track chip.key) {
+            <button
+              type="button"
+              class="filter-chip"
+              [class.filter-chip--active]="paymentMethod() === chip.key"
+              [attr.aria-pressed]="paymentMethod() === chip.key"
+              [disabled]="tableConfig().loading"
+              (click)="togglePaymentMethod(chip.key)">
+              <i class="fi {{ chip.icon }}" aria-hidden="true"></i>
+              {{ chip.label }}
+              <span class="filter-chip__count">{{ chip.count }}</span>
+              <span class="filter-chip__amount">{{ formatCurrency(chip.amount) }}</span>
             </button>
           }
         </div>
@@ -140,6 +200,9 @@
   <td>
     <div class="pay-cell" [title]="methodDetail(item) || methodLabel(item)">
       <span [class]="methodClass(item)">{{ methodLabel(item) }}</span>
+      @if (item.is_credit_payment) {
+        <span class="tag tag--credit">Abono</span>
+      }
       @if (methodDetail(item)) {
         <span class="pay-cell__detail">{{ methodDetail(item) }}</span>
       }

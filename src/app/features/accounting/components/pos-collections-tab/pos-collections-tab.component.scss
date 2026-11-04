@@ -231,9 +231,8 @@
 
 .pos-collections-tab__filters {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.65rem;
 }
 
@@ -263,7 +262,8 @@
 }
 
 .pos-collections-tab__search {
-  min-width: 15rem;
+  width: 100%;
+  min-width: 0;
   height: 34px;
   padding: 0 0.75rem;
   border: 1px solid #e2e8f0;
@@ -336,6 +336,13 @@
 .filter-chip--active .filter-chip__count {
   background: #c7d2fe;
   color: #312e81;
+}
+
+.filter-chip__amount {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
 }
 
 :host ::ng-deep .pos-collections-table {
@@ -529,6 +536,11 @@
 .tag--shipping {
   background: #ccfbf1;
   color: #0f766e;
+}
+
+.tag--credit {
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .people {

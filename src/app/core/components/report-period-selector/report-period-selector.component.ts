@@ -465,6 +465,8 @@ export class ReportPeriodSelectorComponent {
   @Input() dateTo = '';
   @Input() includeYear = false;
   @Input() dayOnly = false;
+  /** Solo Mes y Rango. Oculta Hoy y Semana. */
+  @Input() monthAndRange = false;
   /** Mes/Hoy/Semana/Año mandan el preset al servidor, sin date_from/date_to. Solo Rango usa fechas. */
   @Input() monthAsServerPreset = false;
   @Input() ariaLabel = 'Periodo del reporte';
@@ -495,6 +497,9 @@ export class ReportPeriodSelectorComponent {
   get visibleOptions(): { label: string; value: Exclude<ReportPeriod, 'range'> }[] {
     if (this.dayOnly) {
       return [{ label: 'Hoy', value: 'today' }];
+    }
+    if (this.monthAndRange) {
+      return [{ label: 'Mes', value: 'month' }];
     }
     if (this.includeYear) {
       return [...this.baseOptions, { label: 'Año', value: 'year' }];

@@ -13,6 +13,8 @@ import { AccountingService } from '../../services/accounting.service';
 import {
   AccountingPeriod,
   CollectionCustomerType,
+  PosCollectionPaymentMethodKey,
+  PosCollectionPaymentMethodTotal,
   PosCollectionRow,
   PosCollectionsSummary,
 } from '../../models/accounting.model';
@@ -32,6 +34,21 @@ interface CollectionFilterChip {
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
 
+interface PaymentFilterChip {
+  key: PosCollectionPaymentMethodKey;
+  label: string;
+  count: number;
+  amount: number;
+  icon: string;
+}
+
+interface PaymentMethodCard {
+  key: PosCollectionPaymentMethodKey;
+  label: string;
+  icon: string;
+  totals: PosCollectionPaymentMethodTotal;
+}
+
 @Component({
   selector: 'app-pos-collections-tab',
   standalone: true,
@@ -50,6 +67,8 @@ export class PosCollectionsTabComponent implements OnChanges {
 
   branchMissing = signal(false);
   customerType = signal<CollectionCustomerType>('all');
+  paymentMethod = signal<PosCollectionPaymentMethodKey | null>(null);
+  forShipping = signal(false);
   search = signal('');
   listTotal = signal(0);
   filteredAmount = signal(0);
@@ -79,7 +98,7 @@ export class PosCollectionsTabComponent implements OnChanges {
     limit: 20,
     totalResults: 0,
     loading: false,
-    emptyState: { title: 'Sin órdenes a crédito', subtitle: 'No hay órdenes a crédito de clientes con crédito habilitado en estas fechas' },
+    emptyState: { title: 'Sin ventas en estas fechas', subtitle: 'No hay cobros ni abonos de crédito en el periodo' },
     columnMode: 'force',
     reorderable: false,
   });
@@ -100,6 +119,8 @@ export class PosCollectionsTabComponent implements OnChanges {
       changes['dateTo']
     ) {
       this.customerType.set('all');
+      this.paymentMethod.set(null);
+      this.forShipping.set(false);
       this.search.set('');
       if (this.searchTimer) {
         clearTimeout(this.searchTimer);
@@ -109,12 +130,52 @@ export class PosCollectionsTabComponent implements OnChanges {
     }
   }
 
+  paymentMethodCards(): PaymentMethodCard[] {
+    const methods = this.summary().by_payment_method;
+    const empty: PosCollectionPaymentMethodTotal = { orders: 0, amount: 0, ticket: 0 };
+    return [
+      { key: 'transfer', label: 'Transferencias', icon: 'fi-rr-bank', totals: methods?.transfer ?? empty },
+      { key: 'cash', label: 'Efectivo', icon: 'fi-rr-money', totals: methods?.cash ?? empty },
+      { key: 'card', label: 'Tarjetas', icon: 'fi-rr-credit-card', totals: methods?.card ?? empty },
+      { key: 'check', label: 'Cheques', icon: 'fi-rr-document', totals: methods?.check ?? empty },
+      { key: 'credit', label: 'Crédito', icon: 'fi-rr-handshake', totals: methods?.credit ?? empty },
+    ];
+  }
+
   filterChips(): CollectionFilterChip[] {
     const summary = this.summary();
     return [
       { type: 'all', label: 'Todas', count: summary.orders_collected, icon: 'fi-rr-apps' },
+      { type: 'walk_in', label: 'Público en General', count: summary.walk_in_count, icon: 'fi-rr-user' },
       { type: 'invoiced', label: 'Facturadas', count: summary.invoiced_count, icon: 'fi-rr-file-invoice' },
     ];
+  }
+
+  paymentFilters(): PaymentFilterChip[] {
+    const methods = this.summary().by_payment_method;
+    return [
+      { key: 'cash', label: 'Efectivo', count: methods?.cash?.orders ?? 0, amount: methods?.cash?.amount ?? 0, icon: 'fi-rr-money' },
+      { key: 'card', label: 'Tarjeta', count: methods?.card?.orders ?? 0, amount: methods?.card?.amount ?? 0, icon: 'fi-rr-credit-card' },
+      { key: 'transfer', label: 'Transferencia', count: methods?.transfer?.orders ?? 0, amount: methods?.transfer?.amount ?? 0, icon: 'fi-rr-bank' },
+      { key: 'check', label: 'Cheque', count: methods?.check?.orders ?? 0, amount: methods?.check?.amount ?? 0, icon: 'fi-rr-document' },
+      { key: 'credit', label: 'Crédito', count: methods?.credit?.orders ?? 0, amount: methods?.credit?.amount ?? 0, icon: 'fi-rr-handshake' },
+    ];
+  }
+
+  toggleShipping(): void {
+    if (this.tableConfig().loading) {
+      return;
+    }
+    this.forShipping.set(!this.forShipping());
+    this.fetchPage(1);
+  }
+
+  togglePaymentMethod(key: PosCollectionPaymentMethodKey): void {
+    if (this.tableConfig().loading) {
+      return;
+    }
+    this.paymentMethod.set(this.paymentMethod() === key ? null : key);
+    this.fetchPage(1);
   }
 
   periodCaption(): string {
@@ -243,16 +304,22 @@ export class PosCollectionsTabComponent implements OnChanges {
     this.fetchPage(event.page);
   }
 
+  orderId(row: PosCollectionRow): string {
+    return row.sales_order_id || row.id;
+  }
+
   openSalesOrder(row: PosCollectionRow): void {
-    if (!row.id) return;
+    const orderId = this.orderId(row);
+    if (!orderId) return;
     this.dialog.open(SalesOrderDetailDialogComponent, {
       ...ORDER_DETAIL_DIALOG_OPTIONS,
-      data: { orderId: row.id },
+      data: { orderId },
     });
   }
 
   openTicket(row: PosCollectionRow): void {
-    if (!row.id || !this.hasCollectedMoney(row)) {
+    const orderId = this.orderId(row);
+    if (!orderId || !this.hasCollectedMoney(row)) {
       return;
     }
     this.dialog.open(PosReceiptPreviewDialogComponent, {
@@ -261,9 +328,9 @@ export class PosCollectionsTabComponent implements OnChanges {
       panelClass: 'pos-dialog-panel',
       autoFocus: false,
       data: {
-        salesOrderId: row.id,
+        salesOrderId: orderId,
         useSalesOrderTicketApi: true,
-        title: `Ticket ${row.folio || row.id}`,
+        title: `Ticket ${row.folio || orderId}`,
       },
     });
   }
@@ -283,8 +350,10 @@ export class PosCollectionsTabComponent implements OnChanges {
         this.periodQuery(),
         this.customerType(),
         this.search(),
-        null,
-        true
+        this.paymentMethod(),
+        false,
+        'paid',
+        this.forShipping()
       )
       .subscribe({
         next: ({ blob, filename }) => {
@@ -339,8 +408,10 @@ export class PosCollectionsTabComponent implements OnChanges {
         page,
         this.tableConfig().limit,
         this.search(),
-        null,
-        true
+        this.paymentMethod(),
+        false,
+        'paid',
+        this.forShipping()
       )
       .subscribe({
         next: (res) => {
@@ -409,6 +480,8 @@ export class PosCollectionsTabComponent implements OnChanges {
       amount_collected: 0,
       walk_in_count: 0,
       invoiced_count: 0,
+      shipping_count: 0,
+      shipping_amount: 0,
       by_payment_method: {
         cash: { ...empty },
         transfer: { ...empty },

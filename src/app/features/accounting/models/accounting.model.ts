@@ -133,6 +133,8 @@ export interface PosCollectionsSummary {
   amount_collected: number;
   walk_in_count: number;
   invoiced_count: number;
+  shipping_count: number;
+  shipping_amount: number;
   by_payment_method: PosCollectionPaymentMethodTotals;
 }
 
@@ -143,6 +145,10 @@ export interface PosCollectionsPage extends AccountingPaginatedResponse<PosColle
 
 export interface PosCollectionRow {
   id: string;
+  /** Orden a abrir. En un abono `id` es el pago. */
+  sales_order_id?: string | null;
+  /** Abono de una orden a crédito. El total de la fila es el importe cobrado. */
+  is_credit_payment?: boolean;
   folio?: string;
   created_at: string;
   /** Día de calendario del abono (`YYYY-MM-DD`). Vacío si la orden aún no tiene pago. */

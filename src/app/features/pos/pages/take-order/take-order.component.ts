@@ -47,6 +47,7 @@ import {
   PosCheckoutConfirmDialogComponent,
   PosCheckoutConfirmDialogData,
   PosCheckoutConfirmResult,
+  isPosCheckoutQuoteResult,
 } from '../../components/pos-checkout-confirm-dialog/pos-checkout-confirm-dialog.component';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
@@ -72,6 +73,7 @@ import {
   buildVentasPosOrderPayload,
   isPosOrderQueued,
   mapInProgressLineToCartItem,
+  posSaleObservation,
   resolveFiscalConfigurationIdFromBranch,
 } from '../../utils/pos-order.util';
 import { isValidWalkInRfc, normalizeWalkInRfc } from '../../utils/walk-in-ticket.util';
@@ -148,6 +150,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   editingAdvanceUsoCfdi = signal<string | null>(null);
   editingAdvanceMetodoPago = signal<'PUE' | 'PPD' | null>(null);
   editingForShipping = signal(false);
+  editingNotes = signal('');
   private pendingResumeTicketId: string | null = null;
 
   selectedCustomerId = signal('');
@@ -543,6 +546,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.editingForShipping.set(
       ticket.for_shipping === true || ticket.for_shipping === 1 || ticket.for_shipping === '1',
     );
+    this.editingNotes.set(ticket.kind === 'advance' ? '' : posSaleObservation(ticket.notes));
     this.ticketsPanelOpen.set(false);
     this.notifySuccess(
       ticket.kind === 'advance'
@@ -588,6 +592,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.editingAdvanceUsoCfdi.set(null);
     this.editingAdvanceMetodoPago.set(null);
     this.editingForShipping.set(false);
+    this.editingNotes.set('');
   }
 
   private applyInventorySummaryMeta(summary: PosInventorySummaryResponse): void {
@@ -1162,6 +1167,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       acceptLabel: this.isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta',
       queued: this.posState.salesQueueMode(),
       initialForShipping: this.editingForShipping(),
+      initialNotes: this.editingNotes(),
     }).subscribe((confirmed) => {
       if (!confirmed || typeof confirmed !== 'object' || !('forShipping' in confirmed)) {
         return;
@@ -1176,6 +1182,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         walkInName: this.walkInName(),
         walkInRfc: normalizeWalkInRfc(this.walkInRfc()),
         forShipping: confirmed.forShipping,
+        notes: confirmed.notes,
       });
 
       this.saving.set(true);
@@ -1188,6 +1195,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           walk_in_name: payload.walk_in_name,
           walk_in_rfc: payload.walk_in_rfc,
           for_shipping: payload.for_shipping,
+          notes: payload.notes,
         }).subscribe({
           next: () => {
             this.posService.sendSaleToCaja(editingId).subscribe({
@@ -1309,7 +1317,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         initialAdvanceUsoCfdi: this.editingAdvanceUsoCfdi(),
         initialAdvanceMetodoPago: this.editingAdvanceMetodoPago(),
       }).subscribe((confirmed) => {
-        if (!confirmed || typeof confirmed !== 'object' || !('notes' in confirmed)) {
+        if (!isPosCheckoutQuoteResult(confirmed)) {
           return;
         }
         if (confirmed.advanceAmount == null) {
@@ -1422,7 +1430,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       acceptLabel: 'Guardar cotización',
     }).subscribe((confirmed) => {
-      if (!confirmed || typeof confirmed !== 'object' || !('notes' in confirmed)) {
+      if (!isPosCheckoutQuoteResult(confirmed)) {
         return;
       }
 

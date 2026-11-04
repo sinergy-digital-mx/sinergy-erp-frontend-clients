@@ -385,6 +385,7 @@ export class OrderDetailDialogComponent {
         this.order.update((current) =>
           current ? { ...current, notes: result.notes ?? undefined } : current
         );
+        this.loadDocuments(order.id);
         this.toast.success(result.notes ? 'Notas actualizadas' : 'Notas eliminadas');
       });
   }
@@ -464,6 +465,7 @@ export class OrderDetailDialogComponent {
               }
             : current
         );
+        this.loadDocuments(order.id);
         this.toast.success(
           result.vendor_invoice_numbers.length
             ? result.vendor_invoice_numbers.length > 1

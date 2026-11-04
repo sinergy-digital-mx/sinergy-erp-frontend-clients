@@ -9,6 +9,8 @@
 .pos-checkout-dialog {
   text-align: center;
   padding: 1.5rem 1.35rem 1.2rem;
+  max-height: min(92vh, 760px);
+  overflow-y: auto;
 }
 
 .pos-checkout-dialog__mark {
@@ -77,7 +79,7 @@
 }
 
 .pos-checkout-dialog__chip {
-  margin: 0 0 1.15rem;
+  margin: 0 0 0.85rem;
   padding: 0.55rem 0.75rem;
   border-radius: 8px;
   font-size: 0.78rem;
@@ -91,6 +93,49 @@
     background: #fff7ed;
     border-color: #fed7aa;
     color: #9a3412;
+  }
+}
+
+.pos-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0 0 0.85rem;
+  text-align: left;
+
+  span {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 72px;
+    max-height: 140px;
+    resize: vertical;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    color: #0f172a;
+    font: inherit;
+    font-size: 0.84rem;
+    line-height: 1.4;
+    text-align: left;
+
+    &::placeholder {
+      color: #94a3b8;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
   }
 }
 

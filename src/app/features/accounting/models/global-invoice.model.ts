@@ -1,7 +1,7 @@
-export interface GlobalInvoiceFiscalOption {
+export interface GlobalInvoiceBranchOption {
   id: string;
-  razon_social: string;
-  rfc: string;
+  label: string;
+  fiscal_configuration_id: string;
 }
 
 export interface GlobalInvoicePaymentLine {
@@ -50,7 +50,8 @@ export interface GlobalInvoiceCard {
 export interface GlobalInvoicePage {
   month: string;
   period_label: string;
-  fiscal_configurations: GlobalInvoiceFiscalOption[];
+  branches: GlobalInvoiceBranchOption[];
+  billing_branch_id: string | null;
   fiscal_configuration_id: string | null;
   invoice: GlobalInvoiceCard | null;
   cancelled_invoice: GlobalInvoiceCard | null;

@@ -50,6 +50,8 @@ export interface PosCheckoutConfirmDialogData {
   acceptLabel: string;
   queued?: boolean;
   initialForShipping?: boolean;
+  /** Observaciones ya guardadas, al reenviar un ticket. */
+  initialNotes?: string | null;
   initialAdvanceAmount?: number | null;
   initialAdvanceUsoCfdi?: string | null;
   initialAdvanceMetodoPago?: 'PUE' | 'PPD' | null;
@@ -64,9 +66,16 @@ export interface PosCheckoutQuoteResult {
 
 export interface PosCheckoutSaleResult {
   forShipping: boolean;
+  notes: string;
 }
 
 export type PosCheckoutConfirmResult = boolean | PosCheckoutSaleResult | PosCheckoutQuoteResult;
+
+export function isPosCheckoutQuoteResult(
+  value: PosCheckoutConfirmResult | null | undefined,
+): value is PosCheckoutQuoteResult {
+  return !!value && typeof value === 'object' && 'advanceAmount' in value;
+}
 
 const GENERIC_RFCS = new Set(['XAXX010101000', 'XEXX010101000']);
 
@@ -138,6 +147,7 @@ export class PosCheckoutConfirmDialogComponent {
     this.customerLabel.set(data.customerLabel ?? '');
     this.customerFiscal.set(data.customerFiscal ?? null);
     this.forShipping.set(!!data.initialForShipping);
+    this.notesText.set(data.initialNotes?.trim() ?? '');
   }
 
   isQuote(): boolean {
@@ -265,6 +275,9 @@ export class PosCheckoutConfirmDialogComponent {
       });
       return;
     }
-    this.dialogRef.close({ forShipping: this.forShipping() });
+    this.dialogRef.close({
+      forShipping: this.forShipping(),
+      notes: this.notesText().trim(),
+    });
   }
 }

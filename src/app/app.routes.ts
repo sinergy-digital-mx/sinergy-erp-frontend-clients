@@ -236,6 +236,12 @@ export const routes: Routes = [
             .then(m => m.CUSTOMER_SALES_REPORTS_ROUTES),
       },
       {
+        path: 'reports',
+        loadChildren: () =>
+          import('./features/reports/reports.routes')
+            .then(m => m.REPORTS_ROUTES),
+      },
+      {
         path: 'accounting',
         loadChildren: () =>
           import('./features/accounting/accounting.routes')
