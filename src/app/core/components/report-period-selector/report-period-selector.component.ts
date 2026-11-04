@@ -532,6 +532,7 @@ export class ReportPeriodSelectorComponent {
 
   toggleMonthDropdown(event: MouseEvent): void {
     event.stopPropagation();
+    this.dayPanelOpen = false;
     this.monthDropdownOpen = !this.monthDropdownOpen;
   }
 
@@ -547,6 +548,7 @@ export class ReportPeriodSelectorComponent {
 
   onSelectMonth(monthIndex: number): void {
     this.monthDropdownOpen = false;
+    this.dayPanelOpen = false;
 
     const now = new Date();
     const year = now.getFullYear();

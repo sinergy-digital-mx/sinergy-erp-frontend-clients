@@ -553,7 +553,7 @@
         },
         { path: '/accounting', permissions: ['accounting:Read', 'Accounting:Read', 'accounting:ViewMenu', 'Accounting:ViewMenu'] },
         { path: '/customer-sales-reports', permissions: ['customer_sales_report:Read', 'customer_sales_report:ViewMenu'] },
-        { path: '/reports', permissions: ['stock_reports:Read', 'stock_reports:ViewMenu'] },
+        { path: '/reporte-requerimiento', permissions: ['stock_reports:Read', 'stock_reports:ViewMenu'] },
 
         { path: '/marketing', permissions: ['marketing:ViewDashboard', 'marketing:ViewMenu'] },
         { path: '/pos/ventas', permissions: ['pos:Create', 'pos:ViewMenu'] },
@@ -566,7 +566,7 @@
         if (skipRealEstate && (route.path === '/properties' || route.path === '/contracts')) {
           continue;
         }
-        if (route.path === '/reports' && !skipRealEstate) {
+        if (route.path === '/reporte-requerimiento' && !skipRealEstate) {
           continue;
         }
         if (route.path.startsWith('/settings') && !this.hasPermission(SETTINGS_PERMISSIONS.viewMenu)) {

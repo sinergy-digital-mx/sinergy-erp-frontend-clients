@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
@@ -11,6 +12,7 @@ import {
   GlobalInvoicePage,
   GlobalInvoicePaymentLine,
 } from '../../models/global-invoice.model';
+import { sharedBranchIdFromParams } from '../../utils/branch-query.util';
 
 @Component({
   selector: 'app-global-invoices-tab',
@@ -41,10 +43,15 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
     private accounting: AccountingService,
     private auth: AuthService,
     private toast: ToastService,
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
-    this.branchId.set(this.billingBranchId || '');
+    const fromParent = this.billingBranchId || '';
+    const fromUrl = sharedBranchIdFromParams(this.route.snapshot.queryParamMap);
+    const branch = fromParent || fromUrl;
+    this.branchId.set(branch);
+    if (branch && branch !== fromParent) this.billingBranchChange.emit(branch);
     this.load();
   }
 

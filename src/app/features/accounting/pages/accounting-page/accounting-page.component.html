@@ -39,7 +39,7 @@
             id="accounting-branch"
             class="accounting-filters__select"
             [ngModel]="billingBranchId()"
-            (ngModelChange)="billingBranchId.set($event); onBranchChange()"
+            (ngModelChange)="onBranchModelChange($event)"
             [attr.aria-required]="branchRequired()">
             @if (branchOptional()) {
               <option value="">Todas las sucursales</option>
@@ -130,7 +130,10 @@
       }
 
       @if (activeTab() === 'debt-flow') {
-        <app-customer-debt-flow [embedded]="true" />
+        <app-customer-debt-flow
+          [embedded]="true"
+          [sharedBranchId]="billingBranchId()"
+          (billingBranchChange)="onDebtBranch($event)" />
       }
 
       @if (activeTab() === 'average-cost') {

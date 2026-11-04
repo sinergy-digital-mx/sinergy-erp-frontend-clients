@@ -149,6 +149,8 @@ export interface PosCollectionRow {
   sales_order_id?: string | null;
   /** Abono de una orden a crédito. El total de la fila es el importe cobrado. */
   is_credit_payment?: boolean;
+  /** Anticipo, crédito o contado. */
+  sale_kind?: 'advance' | 'credit' | 'cash';
   folio?: string;
   created_at: string;
   /** Día de calendario del abono (`YYYY-MM-DD`). Vacío si la orden aún no tiene pago. */

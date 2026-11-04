@@ -1,8 +1,8 @@
 <div class="purchase-order-list-container">
   <div class="purchase-content">
     <div [class.px-4]="!embedded" class="pb-8">
-      <div class="sf-header" [class.sf-header--embedded]="embedded">
-        @if (!embedded) {
+      @if (!embedded) {
+        <div class="sf-header">
           <div class="sf-header__left">
             <app-back-button title="Volver a cobranza" (clicked)="goBack()" />
             <div class="sf-header__titles">
@@ -10,44 +10,72 @@
               <p class="sf-header__subtitle">{{ subtitle }}</p>
             </div>
           </div>
-        }
-        <button
-          type="button"
-          class="page-export-btn"
-          [disabled]="exporting() || rangeIncomplete || fiscalRequired || loading()"
-          (click)="downloadExcel()">
-          @if (exporting()) {
-            <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
-            Descargando...
-          } @else {
-            <i class="fi fi-rr-download" aria-hidden="true"></i>
-            Descargar Excel
-          }
-        </button>
-      </div>
+        </div>
+      }
 
-      <div class="sf-panel">
-        <div class="sf-panel__top">
-          <div class="sf-view-toggle" role="group" aria-label="Vista del reporte">
-            <button
-              type="button"
-              class="sf-view-toggle__btn"
-              [class.sf-view-toggle__btn--active]="view === 'aging'"
-              [attr.aria-pressed]="view === 'aging'"
-              (click)="setView('aging')">
-              Antigüedad
-            </button>
-            <button
-              type="button"
-              class="sf-view-toggle__btn"
-              [class.sf-view-toggle__btn--active]="view === 'ledger'"
-              [attr.aria-pressed]="view === 'ledger'"
-              (click)="setView('ledger')">
-              Flujo
-            </button>
-          </div>
+      <div class="sf-toolbar" role="search" aria-label="Filtros de deuda">
+        <div class="sf-view-toggle" role="group" aria-label="Vista del reporte">
+          <button
+            type="button"
+            class="sf-view-toggle__btn"
+            [class.sf-view-toggle__btn--active]="view === 'aging'"
+            [attr.aria-pressed]="view === 'aging'"
+            (click)="setView('aging')">
+            Antigüedad
+          </button>
+          <button
+            type="button"
+            class="sf-view-toggle__btn"
+            [class.sf-view-toggle__btn--active]="view === 'ledger'"
+            [attr.aria-pressed]="view === 'ledger'"
+            (click)="setView('ledger')">
+            Flujo
+          </button>
+        </div>
 
+        <div class="sf-filters__field">
+          <label class="sf-filters__label" for="debt-fiscal">Razón social</label>
+          <select
+            id="debt-fiscal"
+            class="sf-filters__select"
+            [(ngModel)]="fiscalConfigurationId"
+            (change)="onFiscalChange()"
+            required>
+            <option value="" disabled>Selecciona…</option>
+            @for (fc of locations(); track fc.id) {
+              <option [value]="fc.id">{{ fc.razon_social }}</option>
+            }
+          </select>
+        </div>
+        <div class="sf-filters__field">
+          <label class="sf-filters__label" for="debt-branch">Sucursal</label>
+          <select
+            id="debt-branch"
+            class="sf-filters__select"
+            [(ngModel)]="billingBranchId"
+            [disabled]="!fiscalConfigurationId"
+            (change)="onBranchChange()">
+            <option value="">Todas</option>
+            @for (branch of branchOptions(); track branch.id) {
+              <option [value]="branch.id">{{ branch.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="sf-filters__field sf-filters__field--search">
+          <label class="sf-filters__label" for="debt-search">Buscar</label>
+          <input
+            id="debt-search"
+            type="search"
+            class="sf-filters__input"
+            [(ngModel)]="search"
+            (keyup.enter)="onSearch()"
+            placeholder="Cliente, RFC o folio de OV"
+            aria-label="Buscar cliente, RFC o folio" />
+        </div>
+
+        <div class="sf-toolbar__dates">
           <app-report-period-selector
+            class="zn-period-drop"
             [period]="datePreset"
             [dateFrom]="customDateFrom"
             [dateTo]="customDateTo"
@@ -58,53 +86,25 @@
             ariaLabel="Periodo del flujo de deuda"
             (periodChange)="onPeriodChange($event)"
             (rangeChange)="onRangeChange($event)" />
+          <button
+            type="button"
+            class="page-export-btn"
+            [disabled]="exporting() || rangeIncomplete || fiscalRequired || loading()"
+            (click)="downloadExcel()">
+            @if (exporting()) {
+              <i class="fi fi-rr-spinner animate-spin" aria-hidden="true"></i>
+              Descargando...
+            } @else {
+              <i class="fi fi-rr-download" aria-hidden="true"></i>
+              Descargar Excel
+            }
+          </button>
         </div>
-
-        <div class="sf-filters" role="search" aria-label="Filtros de deuda">
-          <div class="sf-filters__field">
-            <label class="sf-filters__label" for="debt-fiscal">Razón social</label>
-            <select
-              id="debt-fiscal"
-              class="sf-filters__select"
-              [(ngModel)]="fiscalConfigurationId"
-              (change)="onFiscalChange()"
-              required>
-              <option value="" disabled>Selecciona…</option>
-              @for (fc of locations(); track fc.id) {
-                <option [value]="fc.id">{{ fc.razon_social }}</option>
-              }
-            </select>
-          </div>
-          <div class="sf-filters__field">
-            <label class="sf-filters__label" for="debt-branch">Sucursal</label>
-            <select
-              id="debt-branch"
-              class="sf-filters__select"
-              [(ngModel)]="billingBranchId"
-              [disabled]="!fiscalConfigurationId"
-              (change)="onBranchChange()">
-              <option value="">Todas</option>
-              @for (branch of branchOptions(); track branch.id) {
-                <option [value]="branch.id">{{ branch.name }}</option>
-              }
-            </select>
-          </div>
-          <div class="sf-filters__field">
-            <label class="sf-filters__label" for="debt-search">Buscar</label>
-            <input
-              id="debt-search"
-              type="text"
-              class="sf-filters__input"
-              [(ngModel)]="search"
-              (keyup.enter)="onSearch()"
-              placeholder="Cliente, RFC o folio de OV" />
-          </div>
-        </div>
-        <p class="sf-money-hint">
-          Cada orden conserva su moneda. Pesos y dólares no se suman.
-          Antigüedad al corte del periodo. Flujo: saldo de cada OV y abonos del rango.
-        </p>
       </div>
+      <p class="sf-money-hint">
+        Cada orden conserva su moneda. Pesos y dólares no se suman.
+        Antigüedad al corte del periodo. Flujo: saldo de cada OV y abonos del rango.
+      </p>
 
       @if (customerId) {
         <div class="sf-product-chip" role="status">

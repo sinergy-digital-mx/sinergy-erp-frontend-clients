@@ -12,7 +12,7 @@ import {
   providedIn: 'root',
 })
 export class StockReplenishmentService {
-  private readonly api = `${environment.api}/tenant/reports/stock-replenishment`;
+  private readonly api = `${environment.api}/tenant/reporte-requerimiento`;
   private readonly http = inject(HttpClient);
 
   listVendors(): Observable<StockReplenishmentVendorsResponse> {

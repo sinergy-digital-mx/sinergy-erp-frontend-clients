@@ -1,13 +1,9 @@
 {
-  "version": "0.0.99",
-  "buildId": "0.0.99-1793754822955",
-  "builtAt": "2026-11-04T01:13:42.955Z",
+  "version": "0.0.100",
+  "buildId": "0.0.100-1793759402107",
+  "builtAt": "2026-11-04T02:30:02.107Z",
   "channel": "full",
   "changes": [
-    {
-      "scope": "frontend",
-      "message": "Cambios en accesos y permisos"
-    },
     {
       "scope": "frontend",
       "message": "Cambios en contabilidad"
@@ -18,19 +14,11 @@
     },
     {
       "scope": "frontend",
-      "message": "Cambios en compras"
+      "message": "Cambios en cotizaciones"
     },
     {
       "scope": "frontend",
       "message": "Cambios en reports"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en clientes"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en cotizaciones"
     }
   ]
 }

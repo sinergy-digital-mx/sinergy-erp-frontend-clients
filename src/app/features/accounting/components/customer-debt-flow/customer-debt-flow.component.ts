@@ -1,4 +1,4 @@
-import { Component, DestroyRef, Input, OnInit, computed, signal } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, computed, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,7 +18,7 @@ import { SalesOrderDetailDialogComponent } from '../../../sales-orders/component
 import { InventoryService } from '../../../inventory/services/inventory.service';
 import { InventoryLocationFiscal } from '../../../inventory/models/inventory-location.model';
 import { CustomerDebtFlowService } from '../../services/customer-debt-flow.service';
-import { branchIdFromQuery, branchQueryFromId } from '../../utils/branch-query.util';
+import { branchQueryFromId, sharedBranchIdFromParams } from '../../utils/branch-query.util';
 import {
   DebtAgingRow,
   DebtAgingTotals,
@@ -82,9 +82,13 @@ const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', '
   templateUrl: './customer-debt-flow.component.html',
   styleUrl: './customer-debt-flow.component.scss',
 })
-export class CustomerDebtFlowComponent implements OnInit {
+export class CustomerDebtFlowComponent implements OnInit, OnChanges {
   /** Dentro del menú de Cobranza: sin título ni botón de volver. */
   @Input() embedded = false;
+  /** Sucursal ya elegida en Cobranza. En el menú manda sobre la URL si acaba de cambiar. */
+  @Input() sharedBranchId: string | null = null;
+  /** La sucursal elegida aquí es la misma de la URL de Cobranza. */
+  @Output() billingBranchChange = new EventEmitter<string>();
   view: DebtFlowView = 'aging';
   datePreset: DebtFlowPeriod = 'month';
   customDateFrom = '';
@@ -130,11 +134,25 @@ export class CustomerDebtFlowComponent implements OnInit {
     private destroyRef: DestroyRef,
   ) {}
 
+  ngOnChanges(changes: SimpleChanges): void {
+    const change = changes['sharedBranchId'];
+    if (!this.embedded || !change || change.firstChange) return;
+    const next = this.sharedBranchId ?? '';
+    if (next === this.billingBranchId) return;
+    this.billingBranchId = next;
+    if (!this.locations().length) return;
+    this.applyLocationFromQuery();
+    this.resetPageAndLoad();
+  }
+
   ngOnInit(): void {
-    this.billingBranchId = branchIdFromQuery(this.route.snapshot.queryParamMap.get('debt_branch_id'));
+    const fromUrl = sharedBranchIdFromParams(this.route.snapshot.queryParamMap);
+    const fromParent = (this.sharedBranchId ?? '').trim();
+    this.billingBranchId = this.embedded ? fromParent || fromUrl : fromUrl;
+    if (this.billingBranchId) this.billingBranchChange.emit(this.billingBranchId);
 
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const next = branchIdFromQuery(params.get('debt_branch_id'));
+      const next = sharedBranchIdFromParams(params);
       if (next === this.billingBranchId) return;
       this.billingBranchId = next;
       if (!this.locations().length) return;
@@ -197,12 +215,14 @@ export class CustomerDebtFlowComponent implements OnInit {
 
   onFiscalChange(): void {
     this.billingBranchId = '';
+    this.billingBranchChange.emit(this.billingBranchId);
     this.persistDebtFilters();
     this.clearCustomerFilter(false);
     this.resetPageAndLoad();
   }
 
   onBranchChange(): void {
+    this.billingBranchChange.emit(this.billingBranchId);
     this.persistDebtFilters();
     this.resetPageAndLoad();
   }
@@ -409,13 +429,15 @@ export class CustomerDebtFlowComponent implements OnInit {
     const branch = branchQueryFromId(this.billingBranchId);
     const fiscal = this.fiscalConfigurationId.trim();
     const params = this.route.snapshot.queryParamMap;
-    const currentBranch = params.get('debt_branch_id') ?? '';
+    const currentBranch = params.get('billing_branch_id') ?? '';
     const currentFiscal = params.get('fiscal_configuration_id') ?? '';
-    if (currentBranch === branch && currentFiscal === fiscal) return;
+    const dropLegacy = params.has('debt_branch_id');
+    if (currentBranch === branch && currentFiscal === fiscal && !dropLegacy) return;
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
-        debt_branch_id: branch,
+        billing_branch_id: branch,
+        debt_branch_id: null,
         fiscal_configuration_id: fiscal || null,
       },
       queryParamsHandling: 'merge',

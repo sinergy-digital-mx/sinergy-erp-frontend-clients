@@ -301,9 +301,9 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
 
   navigateToCreate(): void {
     this.dialog.open(CreateSalesOrderModalComponent, {
-      width: '900px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
+      width: '1200px',
+      maxWidth: '96vw',
+      maxHeight: '92vh',
       panelClass: 'create-purchase-order-modal'
     }).afterClosed().subscribe(result => {
       if (result) {

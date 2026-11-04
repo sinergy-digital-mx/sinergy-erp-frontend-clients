@@ -1,6 +1,6 @@
 {
   "name": "sinergy-erp-frontend-clients",
-  "version": "0.0.99",
+  "version": "0.0.100",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -41,6 +41,7 @@
     "@primeuix/themes": "^2.0.3",
     "@swimlane/ngx-datatable": "^22.0.0",
     "chart.js": "^4.5.1",
+    "exceljs": "^4.4.0",
     "jwt-decode": "^4.0.0",
     "lucide-angular": "^0.563.0",
     "ngx-infinite-scroll": "^21.0.0",

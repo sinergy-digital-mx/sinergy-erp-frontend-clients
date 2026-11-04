@@ -232,6 +232,27 @@ export class PosCollectionsTabComponent implements OnChanges {
     return isForShippingFlag(row.for_shipping);
   }
 
+  saleKindLabel(row: PosCollectionRow): string {
+    const kind = this.saleKind(row);
+    if (kind === 'advance') return 'Anticipo';
+    if (kind === 'credit') return 'Crédito';
+    return 'Contado';
+  }
+
+  saleKindClass(row: PosCollectionRow): string {
+    return `folio-kind folio-kind--${this.saleKind(row)}`;
+  }
+
+  private saleKind(row: PosCollectionRow): 'advance' | 'credit' | 'cash' {
+    if (row.sale_kind === 'advance' || row.sale_kind === 'credit' || row.sale_kind === 'cash') {
+      return row.sale_kind;
+    }
+    if (row.is_credit_payment) return 'credit';
+    const folio = (row.folio || '').toUpperCase();
+    if (folio.startsWith('COT') || row.payment_method === 'advance') return 'advance';
+    return 'cash';
+  }
+
   hasCollectedMoney(row: PosCollectionRow): boolean {
     const total = row.total == null ? 0 : typeof row.total === 'number' ? row.total : Number(row.total);
     return Number.isFinite(total) && total > 0;

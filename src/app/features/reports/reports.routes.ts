@@ -5,7 +5,7 @@ import { permissionGuard } from '../../core/guards/permission.guard';
 import { AuthService } from '../../core/services/auth.service';
 import { REPORTS_PERMISSIONS } from './config/permissions.config';
 
-/** Reportes solo está prendido para Madereria Zona Norte. */
+/** Reporte de requerimiento solo está prendido para Madereria Zona Norte. */
 export const madereriaReportsGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
@@ -27,7 +27,7 @@ export const REPORTS_ROUTES: Routes = [
     data: {
       permissions: [REPORTS_PERMISSIONS.read, REPORTS_PERMISSIONS.viewMenu],
       permissionMode: 'any',
-      title: 'Reportes',
+      title: 'Reporte de requerimiento',
     },
   },
 ];

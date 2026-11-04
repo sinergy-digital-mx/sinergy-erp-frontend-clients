@@ -375,9 +375,38 @@
 
 .folio-cell {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.folio-cell__top {
+  display: flex;
   align-items: center;
   gap: 0.3rem;
   min-width: 0;
+  max-width: 100%;
+}
+
+.folio-kind {
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  color: #64748b;
+}
+
+.folio-kind--advance {
+  color: #0369a1;
+}
+
+.folio-kind--credit {
+  color: #b45309;
+}
+
+.folio-kind--cash {
+  color: #047857;
 }
 
 .folio-link {

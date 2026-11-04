@@ -16,7 +16,7 @@ import { AccountsReceivableTabComponent } from '../../components/accounts-receiv
 import { CustomerDebtFlowComponent } from '../../components/customer-debt-flow/customer-debt-flow.component';
 import { AverageCostReportTabComponent } from '../../components/average-cost-report-tab/average-cost-report-tab.component';
 import { GlobalInvoicesTabComponent } from '../../components/global-invoices-tab/global-invoices-tab.component';
-import { branchIdFromQuery, branchQueryFromId, isAllBranchesQuery } from '../../utils/branch-query.util';
+import { branchQueryFromId, isAllBranchesQuery, sharedBranchIdFromParams } from '../../utils/branch-query.util';
 
 export type AccountingTab =
   | 'pos'
@@ -83,21 +83,22 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const fromUrl = branchIdFromQuery(this.route.snapshot.queryParamMap.get('billing_branch_id'));
+    const fromUrl = sharedBranchIdFromParams(this.route.snapshot.queryParamMap);
     if (fromUrl) this.billingBranchId.set(fromUrl);
 
     const initial = this.route.snapshot.data['tab'];
     if (typeof initial === 'string' && this.isAccountingTab(initial)) {
       this.activeTab.set(initial);
-      if (initial === 'average-cost') {
+      if (initial === 'average-cost' || initial === 'pos-collections') {
         this.applyCurrentMonth();
       }
     }
 
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const next = branchIdFromQuery(params.get('billing_branch_id'));
+      const next = sharedBranchIdFromParams(params);
       if (next === this.billingBranchId()) return;
       this.billingBranchId.set(next);
+      if (!next && this.branchRequired()) this.applyDefaultBranch();
       if (this.showPeriodFilters()) this.reloadActiveTab();
     });
 
@@ -163,21 +164,36 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       this.dateFrom.set('');
       this.dateTo.set('');
     }
-    // El rango del mes de Rep. Vent. Cost. Prom. no aplica al corte diario de POS.
-    if (tab === 'pos' && previousTab === 'average-cost') {
+    // El rango del mes no aplica al corte diario de POS.
+    if (tab === 'pos' && (previousTab === 'average-cost' || previousTab === 'pos-collections')) {
       this.period.set('today');
       this.dateFrom.set('');
       this.dateTo.set('');
     }
-    // Rep. Vent. Cost. Prom. siempre abre en el mes actual.
-    if (tab === 'average-cost') {
+    // Rep. Vent. Cost. Prom. y Cobranza POS abren en el mes actual.
+    if (tab === 'average-cost' || (tab === 'pos-collections' && previousTab !== 'pos-collections')) {
       this.applyCurrentMonth();
     }
     this.activeTab.set(tab);
+    this.restoreBranchFromUrl();
     if (this.branchRequired() && !this.billingBranchId()) {
       this.applyDefaultBranch();
     }
     this.reloadActiveTab();
+  }
+
+  onBranchModelChange(value: string): void {
+    if (value === this.billingBranchId()) return;
+    // Vacío solo es "Todas" en cuentas por cobrar. En las demás, o al ocultar el combo, se conserva la URL.
+    if (!value && (!this.showPeriodFilters() || !this.branchOptional())) return;
+    this.billingBranchId.set(value);
+    this.onBranchChange();
+  }
+
+  /** El flujo escribe la misma sucursal de la URL. El signal queda listo antes de que termine la navegación. */
+  onDebtBranch(id: string): void {
+    if (id === this.billingBranchId()) return;
+    this.billingBranchId.set(id);
   }
 
   onPeriodChange(preset: ReportPeriod): void {
@@ -208,6 +224,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   }
 
   onGlobalBranch(id: string): void {
+    if (!id && this.activeTab() !== 'global-invoices') return;
     if (id === this.billingBranchId()) return;
     this.billingBranchId.set(id);
     this.persistBranchQuery();
@@ -243,7 +260,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
           this.persistBranchQuery();
           return;
         }
-        // Flujo de deuda y "Todas" no heredan la sucursal de la sesión.
+        // Sin sucursal en la URL, flujo de deuda y "Todas" no heredan la de la sesión.
         const raw = this.route.snapshot.queryParamMap.get('billing_branch_id');
         if (this.activeTab() === 'debt-flow' || (isAllBranchesQuery(raw) && !this.branchRequired())) {
           if (current) {
@@ -282,13 +299,25 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     return true;
   }
 
+  /** Si el signal se vació y la URL aún trae sucursal, esa gana sobre la de la sesión. */
+  private restoreBranchFromUrl(): void {
+    if (this.billingBranchId()) return;
+    const fromUrl = sharedBranchIdFromParams(this.route.snapshot.queryParamMap);
+    if (fromUrl) this.billingBranchId.set(fromUrl);
+  }
+
   private persistBranchQuery(): void {
     const next = branchQueryFromId(this.billingBranchId());
-    const current = this.route.snapshot.queryParamMap.get('billing_branch_id') ?? '';
-    if (current === next) return;
+    const params = this.route.snapshot.queryParamMap;
+    const current = params.get('billing_branch_id') ?? '';
+    const dropLegacy = params.has('debt_branch_id');
+    if (current === next && !dropLegacy) return;
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { billing_branch_id: next },
+      queryParams: {
+        billing_branch_id: next,
+        ...(dropLegacy ? { debt_branch_id: null } : {}),
+      },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });

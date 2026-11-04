@@ -1,6 +1,7 @@
 import { Component, ElementRef, HostListener, Input, OnChanges, OnDestroy, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -12,6 +13,7 @@ import { SalesOrderDetailDialogComponent } from '../../../sales-orders/component
 import { QuotationDetailDialogComponent } from '../../../quotations/components/quotation-detail-dialog/quotation-detail-dialog.component';
 import { AccountingPeriod, AverageCostReportRow, AverageCostReportSummary } from '../../models/accounting.model';
 import { AccountingService } from '../../services/accounting.service';
+import { sharedBranchIdFromParams } from '../../utils/branch-query.util';
 
 @Component({
   selector: 'app-average-cost-report-tab',
@@ -19,7 +21,6 @@ import { AccountingService } from '../../services/accounting.service';
   imports: [CommonModule, ReactiveFormsModule, DatatableWrapperComponent],
   templateUrl: './average-cost-report-tab.component.html',
   styleUrl: './average-cost-report-tab.component.scss',
-  inputs: ['billingBranchId', 'period', 'dateFrom', 'dateTo', 'reloadToken'],
 })
 export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
@@ -61,7 +62,8 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
     private accountingService: AccountingService,
     private dialog: MatDialog,
     private toast: ToastService,
-    private elementRef: ElementRef<HTMLElement>
+    private elementRef: ElementRef<HTMLElement>,
+    private route: ActivatedRoute,
   ) {
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
@@ -200,7 +202,7 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
   }
 
   private loadPage(page: number): void {
-    if (!this.billingBranchId) {
+    if (!this.branchForQuery()) {
       this.branchMissing.set(true);
       this.summary.set(null);
       this.tableConfig.update((cfg) => ({ ...cfg, rows: [], totalResults: 0, loading: false, page: 1 }));
@@ -245,15 +247,22 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
   }
 
   private canQuery(): boolean {
-    if (!this.billingBranchId) return false;
+    if (!this.branchForQuery()) return false;
     if (this.period === 'range' && (!this.dateFrom || !this.dateTo)) return false;
     return true;
+  }
+
+  /** La sucursal del combo. Si aún no llegó, la de la URL compartida. */
+  private branchForQuery(): string {
+    const fromInput = this.billingBranchId.trim();
+    if (fromInput) return fromInput;
+    return sharedBranchIdFromParams(this.route.snapshot.queryParamMap);
   }
 
   private periodQuery() {
     return {
       period: this.period,
-      billing_branch_id: this.billingBranchId,
+      billing_branch_id: this.branchForQuery(),
       date_from: this.dateFrom || undefined,
       date_to: this.dateTo || undefined,
     };

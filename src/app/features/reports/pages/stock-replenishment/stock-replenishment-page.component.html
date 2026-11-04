@@ -2,12 +2,78 @@
   <header class="report-header">
     <div>
       <p class="report-kicker">Maderería</p>
-      <h1>Reportes</h1>
-      <p class="report-subtitle">Existencias por proveedor. Requerimiento de compra con mínimos y máximos.</p>
+      <h1>Reporte de requerimiento</h1>
+      <p class="report-subtitle">
+        Existencias por proveedor, con mínimos y máximos.
+        @if (report(); as current) {
+          <span>{{ current.period_label }}</span>
+        }
+      </p>
     </div>
-    @if (report(); as current) {
-      <p class="report-period">{{ current.period_label }}</p>
-    }
+    <div class="header-actions">
+      <div class="branch-config">
+        <button
+          type="button"
+          class="icon-btn"
+          [class.is-on]="branchPanelOpen"
+          [disabled]="!report()"
+          (click)="branchPanelOpen = !branchPanelOpen"
+          aria-haspopup="dialog"
+          [attr.aria-expanded]="branchPanelOpen">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 13a7.8 7.8 0 0 0 .1-2l1.8-1.1-1.8-3.1-2 .7a7.6 7.6 0 0 0-1.7-1L15.4 4h-3.6l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2-.7-1.8 3.1 1.8 1.1a7.8 7.8 0 0 0 .1 2l-1.8 1.1 1.8 3.1 2-.7a7.6 7.6 0 0 0 1.7 1l.4 2.5h3.6l.4-2.5a7.6 7.6 0 0 0 1.7-1l2 .7 1.8-3.1-1.8-1.1Z" />
+          </svg>
+          Sucursales
+          @if (report(); as current) {
+            <span class="count">{{ visibleBranches.length }}/{{ current.branches.length }}</span>
+          }
+        </button>
+        @if (branchPanelOpen && report()) {
+          <button type="button" class="panel-backdrop" aria-label="Cerrar sucursales" (click)="branchPanelOpen = false"></button>
+          <div class="branch-panel" role="dialog" aria-label="Sucursales del reporte">
+            <div class="branch-panel__head">
+              <strong>Qué sucursales mostrar</strong>
+              <p>Las que dicen CEDIS empiezan ocultas. Ocultarlas no cambia cuánto comprar.</p>
+            </div>
+            <div class="branch-panel__actions">
+              <button type="button" (click)="hideCedis()">Ocultar CEDIS</button>
+              <button type="button" (click)="showAllBranches()">Mostrar todas</button>
+            </div>
+            <ul>
+              @for (choice of branchChoices; track choice.id) {
+                <li>
+                  <label>
+                    <input
+                      type="checkbox"
+                      [checked]="choice.visible"
+                      (change)="setBranchVisible(choice.id, $any($event.target).checked)" />
+                    <span>
+                      {{ choice.label }}
+                      @if (choice.cedis) {
+                        <em>CEDIS</em>
+                      }
+                    </span>
+                    <small>{{ qty(choice.onHand) }}</small>
+                  </label>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+      <button
+        type="button"
+        class="excel-btn"
+        [disabled]="!report() || loading() || exporting()"
+        (click)="downloadExcel()">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" />
+          <path d="M14 3v5h5M8 13h8M8 17h5" />
+        </svg>
+        {{ exporting() ? 'Armando…' : 'Excel' }}
+      </button>
+    </div>
   </header>
 
   <section class="toolbar">
@@ -37,10 +103,10 @@
     </label>
 
     <div class="field">
-      <span>Ventas a analizar</span>
+      <span [appTip]="periodFieldTip">Ventas a analizar</span>
       <div class="chips" role="group" aria-label="Días de venta">
         @for (days of periodOptions; track days) {
-          <button type="button" [class.is-on]="periodDays === days" (click)="setPeriod(days)">
+          <button type="button" [class.is-on]="periodDays === days" [appTip]="periodTip(days)" (click)="setPeriod(days)">
             {{ days }} días
           </button>
         }
@@ -48,10 +114,10 @@
     </div>
 
     <div class="field">
-      <span>Días a cubrir</span>
+      <span [appTip]="coverFieldTip">Días a cubrir</span>
       <div class="chips" role="group" aria-label="Días de inventario a cubrir">
         @for (days of coverOptions; track days) {
-          <button type="button" [class.is-on]="coverDays === days" (click)="setCover(days)">
+          <button type="button" [class.is-on]="coverDays === days" [appTip]="coverTip(days)" (click)="setCover(days)">
             {{ days }}
           </button>
         }
@@ -80,27 +146,27 @@
 
   @if (report(); as current) {
     <section class="kpis" aria-label="Totales del proveedor">
-      <article>
+      <article [appTip]="productsTip">
         <p>Productos</p>
         <strong>{{ current.summary.product_count }}</strong>
         <small>{{ current.summary.out_of_stock_count }} agotados</small>
       </article>
-      <article>
+      <article [appTip]="toBuyTip">
         <p>Por comprar</p>
         <strong>{{ supplierTotals().toBuyCount }}</strong>
         <small>{{ qty(supplierTotals().orderQty) }} unidades</small>
       </article>
-      <article>
+      <article [appTip]="investmentTip">
         <p>Inversión estimada</p>
         <strong>{{ money(supplierTotals().investment) }}</strong>
         <small>cantidad × costo</small>
       </article>
-      <article>
+      <article [appTip]="salesTip">
         <p>Venta potencial</p>
         <strong>{{ money(supplierTotals().potentialSales) }}</strong>
         <small>cantidad × precio promedio</small>
       </article>
-      <article class="kpis__profit">
+      <article class="kpis__profit" [appTip]="profitTip">
         <p>Utilidad posible</p>
         <strong>{{ money(supplierTotals().potentialProfit) }}</strong>
         <small>{{ percent(supplierTotals().marginPercent) }} de margen</small>
@@ -151,52 +217,51 @@
         <table class="sheet">
           <thead>
             <tr>
-              <th class="col-code" rowspan="2">Código</th>
               <th class="col-name" rowspan="2">Producto</th>
-              @for (branch of current.branches; track branch.id; let index = $index) {
-                <th [class]="toneClass(index, 'branch-head')" [attr.colspan]="3">{{ branch.name }}</th>
+              @for (branch of visibleBranches; track branch.id; let index = $index) {
+                <th [class]="toneClass(index, 'branch-head')" [attr.colspan]="3">{{ branch.label }}</th>
               }
-              <th rowspan="2">Precio promedio</th>
-              <th rowspan="2">Utilidad</th>
-              <th rowspan="2">Mínimo</th>
-              <th rowspan="2">Máximo</th>
-              <th rowspan="2">Cobertura</th>
-              <th rowspan="2">Recomendado</th>
-              <th rowspan="2">A comprar</th>
+              <th rowspan="2" [appTip]="priceTip">Precio</th>
+              <th rowspan="2" [appTip]="marginTip">Utilidad</th>
+              <th rowspan="2" [appTip]="minTip">Mín</th>
+              <th rowspan="2" [appTip]="maxTip">Máx</th>
+              <th rowspan="2" [appTip]="coverColTip">Cob.</th>
+              <th rowspan="2" [appTip]="recommendedTip">Rec.</th>
+              <th rowspan="2" [appTip]="buyTip">Comprar</th>
             </tr>
             <tr>
-              @for (branch of current.branches; track branch.id; let index = $index) {
-                <th [class]="toneClass(index, 'subhead')">Existencia</th>
-                <th [class]="toneClass(index, 'subhead')">Venta</th>
-                <th [class]="toneClass(index, 'subhead')" title="Existencia menos venta del periodo">Diferencia</th>
+              @for (branch of visibleBranches; track branch.id; let index = $index) {
+                <th [class]="toneClass(index, 'subhead')" [appTip]="onHandTip">Exist.</th>
+                <th [class]="toneClass(index, 'subhead')" [appTip]="soldTip">Venta</th>
+                <th [class]="toneClass(index, 'subhead')" [appTip]="differenceTip">Dif.</th>
               }
             </tr>
           </thead>
           <tbody>
             @for (row of visibleRows; track row.product_id) {
               <tr [attr.data-status]="row.status">
-                <td class="col-code">
-                  <div class="sku">{{ row.sku }}</div>
-                  @if (row.external_sku && row.external_sku !== row.sku) {
-                    <div class="sku-alt">{{ row.external_sku }}</div>
-                  }
-                </td>
                 <td class="col-name">
-                  <div class="product-name">{{ row.name }}</div>
+                  <div class="product-line">
+                    <span class="sku">{{ row.sku }}</span>
+                    @if (row.external_sku && row.external_sku !== row.sku) {
+                      <span class="sku-alt">{{ row.external_sku }}</span>
+                    }
+                    <span class="product-name">{{ row.name }}</span>
+                  </div>
                   <div class="product-meta">
                     @if (row.uom_name) {
                       <span>{{ row.uom_name }}</span>
                     }
-                    <span class="status" [attr.data-status]="row.status">{{ statusLabel(row.status) }}</span>
+                    <span class="status" [attr.data-status]="row.status" [appTip]="statusTip(row)">{{ statusLabel(row.status) }}</span>
                     @if (trendLabel(row.trend)) {
-                      <span class="trend" [attr.data-trend]="row.trend">{{ trendLabel(row.trend) }}</span>
+                      <span class="trend" [attr.data-trend]="row.trend" [appTip]="trendTip(row)">{{ trendLabel(row.trend) }}</span>
                     }
                     @if (row.transfer_hint) {
-                      <span class="status" data-status="transfer" title="Una sucursal está corta, pero el total alcanza. Conviene traspasar antes de comprar.">Traspasar</span>
+                      <span class="status" data-status="transfer" [appTip]="transferTip">Traspasar</span>
                     }
                   </div>
                 </td>
-                @for (branch of current.branches; track branch.id; let index = $index) {
+                @for (branch of visibleBranches; track branch.id; let index = $index) {
                   <td [class]="toneClass(index, 'num')">{{ qty(cell(row, branch.id).on_hand) }}</td>
                   <td [class]="toneClass(index, 'num')">{{ qty(cell(row, branch.id).sold_qty) }}</td>
                   <td [class]="toneClass(index, 'num' + (cell(row, branch.id).difference < 0 ? ' is-neg' : ''))">
@@ -231,29 +296,31 @@
                   {{ qty(row.recommended_qty) }}
                 </td>
                 <td class="buy">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    [class.is-edited]="isDirty(row)"
-                    [ngModel]="qtyOf(row.product_id)"
-                    [attr.aria-label]="'Cantidad a comprar de ' + row.name"
-                    (focus)="$any($event.target).select()"
-                    (ngModelChange)="setQty(row.product_id, $event)" />
-                  @if (isDirty(row)) {
-                    <button type="button" class="restore" (click)="restoreRow(row)">Restaurar</button>
-                  }
+                  <div class="buy-line">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      [class.is-edited]="isDirty(row)"
+                      [ngModel]="qtyOf(row.product_id)"
+                      [attr.aria-label]="'Cantidad a comprar de ' + row.name"
+                      (focus)="$any($event.target).select()"
+                      (ngModelChange)="setQty(row.product_id, $event)" />
+                    @if (isDirty(row)) {
+                      <button type="button" class="restore" title="Restaurar" (click)="restoreRow(row)">↺</button>
+                    }
+                  </div>
                 </td>
               </tr>
             }
           </tbody>
           <tfoot>
             <tr>
-              <td class="col-code" colspan="2">
+              <td class="col-name">
                 {{ filterActive ? 'Totales en pantalla' : 'Totales' }}
                 <span class="cell-note">{{ totalsLabel(visibleTotals) }}</span>
               </td>
-              @for (branch of current.branches; track branch.id; let index = $index) {
+              @for (branch of visibleBranches; track branch.id; let index = $index) {
                 <td [class]="toneClass(index, 'num')">{{ qty(branchSum(branch.id, 'on_hand')) }}</td>
                 <td [class]="toneClass(index, 'num')">{{ qty(branchSum(branch.id, 'sold_qty')) }}</td>
                 <td [class]="toneClass(index, 'num' + (branchSum(branch.id, 'difference') < 0 ? ' is-neg' : ''))">

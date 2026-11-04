@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -67,15 +67,20 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     { id: 'products', title: 'Productos', disabled: true }
   ];
   activeTab = 'info';
-  addProductModalOpen = false;
   productSearchTerm: any = '';
   selectedProduct: any = null;
   selectedUomId = '';
   selectedQuantity = 1;
   selectedUnitPrice = 0;
+  selectedDiscount = 0;
   selectedIva = 16;
   selectedIeps = 0;
   selectedPricingOptionId = '';
+  readonly ivaPresets = [0, 8, 16];
+
+  @ViewChild('productSearchInput') productSearchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('captureQtyInput') captureQtyInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('linesEnd') linesEnd?: ElementRef<HTMLElement>;
   refreshingProductUoms = false;
   createServiceModalOpen = false;
   savingService = false;
@@ -158,6 +163,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       .subscribe((scope: SalesOrderSaleScope) => {
         if (!this.hydrating) {
           this.lineItems = [];
+          this.resetAddProductForm();
         }
         this.tabs = this.tabs.map((tab) =>
           tab.id === 'products'
@@ -238,6 +244,19 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
 
   onTabChange(tabId: string): void {
     this.activeTab = tabId;
+    if (tabId === 'products') {
+      this.focusProductSearch();
+    }
+  }
+
+  get capturePlaceholder(): string {
+    return this.saleScope === 'services'
+      ? 'Código, SKU o nombre del servicio'
+      : 'Código, SKU o nombre';
+  }
+
+  get productSearchText(): string {
+    return typeof this.productSearchTerm === 'string' ? this.productSearchTerm.trim() : '';
   }
 
   branchLabel(branch: Branch): string {
@@ -448,7 +467,6 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.products = [];
     this.lineItems = [];
     this.loadingProducts = false;
-    this.closeAddProductModal();
     this.resetAddProductForm();
     this.setProductsTabEnabled(false);
   }
@@ -665,24 +683,30 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     }];
   }
 
-  openAddProductModal(): void {
-    if (!this.hasBillingBranch) {
-      this.toast.warning('Selecciona una sucursal antes de agregar productos');
+  onProductSearchChange(value: any): void {
+    if (typeof value !== 'string') {
+      this.productSearchTerm = value;
       return;
     }
-    this.addProductModalOpen = true;
-    this.resetAddProductForm();
-    this.loadProducts();
-  }
-
-  closeAddProductModal(): void {
-    this.addProductModalOpen = false;
-  }
-
-  onProductSearchChange(value: any): void {
+    if (this.selectedProduct && value === this.displayProduct(this.selectedProduct)) {
+      return;
+    }
+    if (this.selectedProduct) {
+      this.clearSelectedProduct();
+    }
     this.productSearchTerm = value;
-    if (typeof value !== 'string') return;
     this.productSearch$.next(value);
+  }
+
+  onCaptureEnter(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.confirmAddProduct();
+  }
+
+  clearCapture(): void {
+    this.resetAddProductForm();
+    this.focusProductSearch();
   }
 
   get showIva(): boolean {
@@ -790,10 +814,13 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.productSearchTerm = product;
     const firstUom = (product?.uoms || [])[0];
     this.selectedUomId = firstUom?.id || firstUom?.product_uom_id || firstUom?.uom_id || '';
+    this.selectedQuantity = 1;
+    this.selectedDiscount = 0;
     this.selectedUnitPrice = Number(firstUom?.cost || 0);
     this.selectedIva = this.showIva ? Number(firstUom?.iva_percentage || 0) : 0;
     this.selectedIeps = this.showIeps ? Number(firstUom?.ieps_percentage || 0) : 0;
     this.selectedPricingOptionId = '';
+    this.focusCaptureQty();
   }
 
   onSelectedUomChange(): void {
@@ -811,6 +838,14 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   }
 
   onSelectedPricingOptionChange(): void {
+    if (!this.selectedPricingOptionId) {
+      const uom = this.selectedProductUoms.find((row) => (row.id || row.product_uom_id || row.uom_id) === this.selectedUomId);
+      if (!uom) return;
+      this.selectedUnitPrice = Number(uom.cost || 0);
+      this.selectedIva = this.showIva ? Number(uom.iva_percentage || 0) : 0;
+      this.selectedIeps = this.showIeps ? Number(uom.ieps_percentage || 0) : 0;
+      return;
+    }
     const option = this.selectedModalPricingOptions.find((row) => (row.price_list_id || row.id) === this.selectedPricingOptionId);
     if (!option) return;
     this.selectedUnitPrice = Number(option.price ?? 0);
@@ -848,38 +883,33 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
         : [],
       uom_name: selectedUom?.uom_name || selectedUom?.name || '',
       pricing_options: Array.isArray(selectedUom?.pricing_options) ? selectedUom.pricing_options : [],
-      selected_pricing_option_id: this.selectedPricingOptionId || undefined,
+      selected_pricing_option_id: this.selectedPricingOptionId || '',
       quantity,
       unit_price: Number(this.selectedUnitPrice || 0),
-      discount_percentage: 0,
+      discount_percentage: this.clampPercent(this.selectedDiscount),
       iva_percentage: this.showIva ? Number(this.selectedIva || 0) : 0,
       ieps_percentage: this.showIeps ? Number(this.selectedIeps || 0) : 0
     };
     this.lineItems.push(newItem);
-    this.closeAddProductModal();
+    this.resetAddProductForm();
+    this.focusProductSearch();
+    this.scrollLinesToEnd();
   }
 
   private resetAddProductForm(): void {
     this.productSearchTerm = '';
-    this.selectedProduct = null;
-    this.selectedUomId = '';
-    this.selectedQuantity = 1;
-    this.selectedUnitPrice = 0;
-    this.selectedIva = 16;
-    this.selectedIeps = 0;
-    this.selectedPricingOptionId = '';
+    this.clearSelectedProduct();
   }
 
-  getProductOptionLabel(product: any): string {
-    const name = product?.product_name || product?.name || 'Producto';
-    const sku = product?.product_sku || product?.sku ? ` | SKU: ${product?.product_sku || product?.sku}` : '';
-    if (this.isServiceProduct(product)) {
-      return `${name}${sku} | Servicio`;
-    }
-    const available = this.getAvailableQty(product);
-    const warehouses = this.getWarehouseNamesLabel(product);
-    const warehouseSuffix = warehouses ? ` | ${warehouses}` : '';
-    return `${name}${sku} | Disp: ${available}${warehouseSuffix}`;
+  private clearSelectedProduct(): void {
+    this.selectedProduct = null;
+    this.selectedUomId = '';
+    this.selectedPricingOptionId = '';
+    this.selectedQuantity = 1;
+    this.selectedUnitPrice = 0;
+    this.selectedDiscount = 0;
+    this.selectedIva = this.showIva ? 16 : 0;
+    this.selectedIeps = 0;
   }
 
   isServiceProduct(product: any): boolean {
@@ -895,7 +925,129 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   displayProduct(value: any): string {
     if (!value) return '';
     if (typeof value === 'string') return value;
-    return this.getProductOptionLabel(value);
+    return value.product_name || value.name || '';
+  }
+
+  stockLabel(product: any): string {
+    if (this.isServiceProduct(product)) return 'Servicio';
+    const available = this.getAvailableQty(product);
+    return available > 0 ? `${this.formatQty(available)} disp.` : 'Sin stock';
+  }
+
+  lineStockLabel(item: LineItem): string {
+    if (item.item_kind === 'service') return 'Servicio';
+    const available = Number(item.available_quantity ?? 0);
+    return available > 0 ? `${this.formatQty(available)} disp.` : 'Sin stock';
+  }
+
+  ivaChoices(current: number): number[] {
+    const value = Number(current);
+    if (!Number.isFinite(value) || this.ivaPresets.includes(value)) {
+      return this.ivaPresets;
+    }
+    return [...this.ivaPresets, value].sort((left, right) => left - right);
+  }
+
+  isSameRate(current: number, preset: number): boolean {
+    return Number(current) === Number(preset);
+  }
+
+  setSelectedIva(value: number): void {
+    this.selectedIva = value;
+  }
+
+  setLineIva(index: number, value: number): void {
+    const item = this.lineItems[index];
+    if (!item) return;
+    item.iva_percentage = value;
+  }
+
+  lineNet(item: LineItem): number {
+    const quantity = Number(item.quantity) || 0;
+    const unitPrice = Number(item.unit_price) || 0;
+    const discount = this.clampPercent(item.discount_percentage);
+    return quantity * unitPrice * (1 - discount / 100);
+  }
+
+  lineTotal(item: LineItem): number {
+    const net = this.lineNet(item);
+    const iva = this.showIva ? (net * (Number(item.iva_percentage) || 0)) / 100 : 0;
+    const ieps = this.showIeps ? (net * (Number(item.ieps_percentage) || 0)) / 100 : 0;
+    return net + iva + ieps;
+  }
+
+  get draftSubtotal(): number {
+    return this.lineItems.reduce((sum, item) => sum + this.lineNet(item), 0);
+  }
+
+  get draftIva(): number {
+    if (!this.showIva) return 0;
+    return this.lineItems.reduce((sum, item) => {
+      const net = this.lineNet(item);
+      return sum + (net * (Number(item.iva_percentage) || 0)) / 100;
+    }, 0);
+  }
+
+  get draftIeps(): number {
+    if (!this.showIeps) return 0;
+    return this.lineItems.reduce((sum, item) => {
+      const net = this.lineNet(item);
+      return sum + (net * (Number(item.ieps_percentage) || 0)) / 100;
+    }, 0);
+  }
+
+  get draftTotal(): number {
+    return this.draftSubtotal + this.draftIva + this.draftIeps;
+  }
+
+  get captureLineTotal(): number {
+    const quantity = Number(this.selectedQuantity) || 0;
+    const unitPrice = Number(this.selectedUnitPrice) || 0;
+    const net = quantity * unitPrice * (1 - this.clampPercent(this.selectedDiscount) / 100);
+    const iva = this.showIva ? (net * (Number(this.selectedIva) || 0)) / 100 : 0;
+    const ieps = this.showIeps ? (net * (Number(this.selectedIeps) || 0)) / 100 : 0;
+    return net + iva + ieps;
+  }
+
+  formatMoney(value: number): string {
+    const amount = Number.isFinite(value) ? value : 0;
+    return new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  }
+
+  private clampPercent(value: number): number {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) return 0;
+    return Math.min(100, parsed);
+  }
+
+  private formatQty(value: number): string {
+    if (!Number.isFinite(value)) return '0';
+    return Number.isInteger(value) ? String(value) : String(Math.round(value * 1000) / 1000);
+  }
+
+  private focusProductSearch(): void {
+    setTimeout(() => {
+      const input = this.productSearchInput?.nativeElement;
+      if (!input || input.disabled) return;
+      input.focus();
+      input.select();
+    });
+  }
+
+  private focusCaptureQty(): void {
+    setTimeout(() => {
+      const input = this.captureQtyInput?.nativeElement;
+      if (!input) return;
+      input.focus();
+      input.select();
+    }, 120);
+  }
+
+  private scrollLinesToEnd(): void {
+    setTimeout(() => this.linesEnd?.nativeElement.scrollIntoView({ block: 'nearest' }));
   }
 
   getAvailableQty(product: any): number {
@@ -950,6 +1102,14 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
 
   onLinePricingOptionChange(index: number): void {
     const item = this.lineItems[index];
+    if (!item.selected_pricing_option_id) {
+      const uom = this.getProductUoms(index).find((row) => (row.id || row.product_uom_id || row.uom_id) === item.product_uom_id);
+      if (!uom) return;
+      item.unit_price = Number(uom.cost || item.unit_price || 0);
+      item.iva_percentage = this.showIva ? Number(uom.iva_percentage || item.iva_percentage || 0) : 0;
+      item.ieps_percentage = this.showIeps ? Number(uom.ieps_percentage || item.ieps_percentage || 0) : 0;
+      return;
+    }
     const option = (item.pricing_options || []).find((row) => (row.price_list_id || row.id) === item.selected_pricing_option_id);
     if (!option) return;
     item.unit_price = Number(option.price ?? item.unit_price ?? 0);
@@ -1123,7 +1283,9 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
         });
         this.savingService = false;
         this.closeCreateServiceModal();
-        this.closeAddProductModal();
+        this.resetAddProductForm();
+        this.focusProductSearch();
+        this.scrollLinesToEnd();
         this.toast.success('Servicio creado y agregado a la orden');
         this.cdr.detectChanges();
       },
