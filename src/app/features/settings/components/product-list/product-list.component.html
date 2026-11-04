@@ -53,6 +53,7 @@
       </button>
     </div>
     </div>
+  </div>
 
   <div class="product-list-filters" role="search" aria-label="Filtros del catálogo">
     <app-search
@@ -64,24 +65,25 @@
       (searchChange)="onSearchChange($event)">
     </app-search>
 
-    <select
-      class="product-list-filters__kind form-select"
-      aria-label="Tipo"
-      [value]="itemKindFilter"
-      (change)="onItemKindChange($any($event.target).value)">
-      <option value="">Todos los tipos</option>
-      <option value="goods">Productos</option>
-      <option value="service">Servicios</option>
-    </select>
+    <app-mobile-filter-sheet
+      [activeCount]="kindFilterCount"
+      (cleared)="clearKindFilter()">
+      <select
+        class="product-list-filters__kind form-select"
+        aria-label="Tipo"
+        [value]="itemKindFilter"
+        (change)="onItemKindChange($any($event.target).value)">
+        <option value="">Todos los tipos</option>
+        <option value="goods">Productos</option>
+        <option value="service">Servicios</option>
+      </select>
 
-    <button
-      type="button"
-      class="product-list-filters__clear"
-      [disabled]="!hasActiveFilters"
-      (click)="clearFilters()">
-      Limpiar
-    </button>
-  </div>
+      <app-filter-clear-button
+        class="product-list-filters__clear"
+        [active]="hasActiveFilters"
+        (clear)="clearFilters()">
+      </app-filter-clear-button>
+    </app-mobile-filter-sheet>
   </div>
 
   <app-datatable-wrapper

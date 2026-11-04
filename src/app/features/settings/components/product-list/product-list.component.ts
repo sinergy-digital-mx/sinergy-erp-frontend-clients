@@ -10,6 +10,8 @@ import { Product, ProductCatalogExportFilters } from '../../models/product.model
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { SearchComponent } from '../../../../core/components/search/search.component';
+import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
+import { MobileFilterSheetComponent } from '../../../../core/components/mobile-filter-sheet/mobile-filter-sheet.component';
 import { ProductDetailModalComponent } from '../product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { CategoriesDialogComponent } from '../categories-dialog/categories-dialog.component';
@@ -32,6 +34,8 @@ import { ToastService } from '../../../../core/services/toast.service';
     CommonModule,
     DatatableWrapperComponent,
     SearchComponent,
+    FilterClearButtonComponent,
+    MobileFilterSheetComponent,
     LucideAngularModule,
   ],
   templateUrl: './product-list.component.html',
@@ -208,6 +212,10 @@ export class ProductListComponent implements OnDestroy {
     return !!this.search?.trim() || !!this.itemKindFilter;
   }
 
+  get kindFilterCount(): number {
+    return this.itemKindFilter ? 1 : 0;
+  }
+
   itemKindLabel(kind: string | undefined): string {
     return kind === 'service' ? 'Servicio' : 'Producto';
   }
@@ -273,6 +281,20 @@ export class ProductListComponent implements OnDestroy {
       filters.item_kind = this.itemKindFilter;
     }
     return filters;
+  }
+
+  clearKindFilter(): void {
+    if (!this.itemKindFilter) return;
+    this.itemKindFilter = '';
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: 1,
+        search: this.search || undefined,
+        item_kind: undefined,
+      },
+      queryParamsHandling: 'merge',
+    });
   }
 
   clearFilters(): void {
