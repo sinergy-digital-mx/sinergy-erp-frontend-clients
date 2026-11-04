@@ -7,10 +7,6 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-
-  &:has(.capture-dock) {
-    min-height: min(680px, 92vh);
-  }
 }
 
 .modal-header {
@@ -444,12 +440,13 @@ select.cell-input {
 }
 
 .capture-dock {
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 8px 12px 10px;
-  border-top: 1px solid #d6dbe3;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid #d6dbe3;
+  border-radius: 6px;
   background: #f4f6f8;
 }
 
@@ -483,12 +480,27 @@ select.cell-input {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 34px;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
   padding: 0 10px;
   border: 1px solid #c5ced8;
   border-radius: 4px;
   background: #fff;
   color: #64748b;
+  box-sizing: border-box;
+  overflow: hidden;
+
+  i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    font-size: 14px;
+    line-height: 1;
+  }
 
   &:focus-within {
     border-color: #2563eb;
@@ -496,19 +508,32 @@ select.cell-input {
   }
 
   input {
-    flex: 1;
+    flex: 1 1 auto;
+    width: 100%;
     min-width: 0;
-    height: 32px;
+    height: 34px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
     border: 0;
+    border-radius: 0;
     outline: none;
+    box-shadow: none;
     background: transparent;
     color: #0f172a;
     font-size: 13px;
     font-family: inherit;
+    line-height: 34px;
 
     &:disabled {
       color: #94a3b8;
       cursor: not-allowed;
+    }
+
+    &:hover,
+    &:focus {
+      border: 0;
+      box-shadow: none;
     }
   }
 }
@@ -528,23 +553,22 @@ select.cell-input {
 
 .capture-line {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
   gap: 8px;
   min-width: 0;
-  overflow-x: auto;
-  padding-bottom: 2px;
 }
 
 .capture-identity {
-  flex: 1 1 220px;
-  min-width: 180px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-bottom: 4px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
 }
 
 .capture-identity__name {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   color: #0f172a;
   font-size: 13px;
@@ -554,9 +578,17 @@ select.cell-input {
   white-space: nowrap;
 }
 
-.capture-identity__badges {
+.capture-fields {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.capture-identity__badges {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 4px;
 }
@@ -575,7 +607,8 @@ select.cell-input {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
 
   > span {
     font-size: 10px;
@@ -613,11 +646,17 @@ select.cell-input {
   }
 
   &--uom { width: 108px; }
-  &--list { width: 156px; }
+  &--list { flex: 1 1 140px; width: auto; min-width: 120px; max-width: 220px; }
   &--qty { width: 72px; }
   &--price { width: 96px; }
-  &--disc { width: 68px; }
+  &--disc { width: 72px; }
   &--ieps { width: 64px; }
+
+  input,
+  select {
+    min-height: 30px;
+    max-height: 30px;
+  }
 }
 
 .capture-dock input[type='number'],
@@ -677,6 +716,7 @@ select.cell-input {
   gap: 6px;
   flex: 0 0 auto;
   height: 30px;
+  margin-left: auto;
 }
 
 .capture-amount {

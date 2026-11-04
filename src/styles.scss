@@ -91,10 +91,10 @@ input::-ms-reveal {
 main,
 .mat-mdc-dialog-container,
 .dialog {
-  input[type='text']:not(.mat-mdc-input-element):not(.mdc-text-field__input):not(.p-inputtext):not(.search-input):not(.zn-date-range__input):not(.form-input):not(.po-rc-input):not(.sub-input),
-  input[type='search']:not(.mat-mdc-input-element):not(.search-input):not(.form-input):not(.cobranza-search__input):not(.pos-search__input):not(.pos-customer-search__input):not(.settings-search__input):not(.versions-search__input),
+  input[type='text']:not(.mat-mdc-input-element):not(.mdc-text-field__input):not(.p-inputtext):not(.search-input):not(.zn-date-range__input):not(.form-input):not(.po-rc-input):not(.sub-input):not(.capture-control),
+  input[type='search']:not(.mat-mdc-input-element):not(.search-input):not(.form-input):not(.cobranza-search__input):not(.pos-search__input):not(.pos-customer-search__input):not(.settings-search__input):not(.versions-search__input):not(.capture-control),
   input[type='email']:not(.mat-mdc-input-element):not(.p-inputtext):not(.form-input),
-  input[type='number']:not(.mat-mdc-input-element):not(.p-inputtext):not(.form-input):not(.pos-qty__input):not(.wc-ctrl):not(.wc-qty-input):not(.po-rc-input):not(.cobranza-tc-field__input):not(.sub-affix__input):not(.money-field__input):not(.denom-stepper__value),
+  input[type='number']:not(.mat-mdc-input-element):not(.p-inputtext):not(.form-input):not(.pos-qty__input):not(.wc-ctrl):not(.wc-qty-input):not(.po-rc-input):not(.cobranza-tc-field__input):not(.sub-affix__input):not(.money-field__input):not(.denom-stepper__value):not(.capture-control):not(.cell-input),
   input[type='password']:not(.mat-mdc-input-element):not(.form-input),
   input[type='date']:not(.mat-mdc-input-element):not(.zn-date-range__input):not(.form-input):not(.po-rc-input),
   input[type='time']:not(.mat-mdc-input-element):not(.form-input) {
@@ -117,7 +117,7 @@ main,
     box-sizing: border-box;
   }
 
-  select:not(.mat-mdc-select-trigger):not([class*='p-']):not(.form-select):not(.pos-line__pricing-select):not(.wc-assign-select) {
+  select:not(.mat-mdc-select-trigger):not([class*='p-']):not(.form-select):not(.pos-line__pricing-select):not(.wc-assign-select):not(.capture-control):not(.cell-input) {
     @include fc.pollux-select-field;
   }
 }

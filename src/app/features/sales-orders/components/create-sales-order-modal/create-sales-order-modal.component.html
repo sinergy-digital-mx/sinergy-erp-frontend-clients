@@ -154,6 +154,194 @@
 
       @if (activeTab === 'products') {
       <div class="line-items-section">
+        <div class="capture-dock">
+          <label class="capture-search">
+            <i class="fi fi-rr-search" aria-hidden="true"></i>
+            <input
+              #productSearchInput
+              class="capture-control"
+              type="text"
+              [ngModel]="productSearchTerm"
+              (ngModelChange)="onProductSearchChange($event)"
+              [ngModelOptions]="{ standalone: true }"
+              [placeholder]="capturePlaceholder"
+              [matAutocomplete]="autoProductPicker"
+              [disabled]="!hasBillingBranch"
+              autocomplete="off"
+              aria-label="Buscar producto" />
+            @if (loadingProducts) {
+              <span class="capture-search__status">Buscando…</span>
+            }
+          </label>
+          <mat-autocomplete
+            #autoProductPicker="matAutocomplete"
+            panelClass="capture-product-panel"
+            [displayWith]="displayProduct.bind(this)"
+            autoActiveFirstOption
+            (optionSelected)="onProductSelectedForModal($event.option.value)">
+            @for (product of filteredProductsForModal; track product.product_id || product.id) {
+              <mat-option [value]="product">
+                <span class="product-option">
+                  <span class="product-option__name">{{ product.product_name || product.name }}</span>
+                  <span class="product-option__badges">
+                    <span class="sku-badge">{{ product.product_sku || product.sku || 'Sin código' }}</span>
+                    <span
+                      class="stock-badge"
+                      [class.is-service]="isServiceProduct(product)"
+                      [class.is-empty]="!isServiceProduct(product) && getAvailableQty(product) <= 0">
+                      {{ stockLabel(product) }}
+                    </span>
+                  </span>
+                </span>
+              </mat-option>
+            }
+            @if (!loadingProducts && productSearchText.length > 0 && filteredProductsForModal.length === 0) {
+              <mat-option disabled>Sin resultados</mat-option>
+            }
+          </mat-autocomplete>
+
+          @if (!hasBillingBranch) {
+            <p class="capture-hint">Selecciona una sucursal en Información para buscar.</p>
+          } @else if (!selectedProduct && lineItems.length === 0) {
+            <p class="capture-hint">Enter elige el primero. Luego confirma cantidad, precio, descuento e IVA.</p>
+          }
+
+          @if (selectedProduct) {
+            <div class="capture-line">
+              <div class="capture-identity">
+                <div class="capture-identity__name" [title]="selectedProduct.product_name || selectedProduct.name">
+                  {{ selectedProduct.product_name || selectedProduct.name }}
+                </div>
+                <div class="capture-identity__badges">
+                  <span class="sku-badge">{{ selectedProduct.product_sku || selectedProduct.sku || 'Sin código' }}</span>
+                  <span
+                    class="stock-badge"
+                    [class.is-service]="isServiceProduct(selectedProduct)"
+                    [class.is-empty]="!isServiceProduct(selectedProduct) && getAvailableQty(selectedProduct) <= 0">
+                    {{ stockLabel(selectedProduct) }}
+                  </span>
+                  @if (getWarehouseNamesLabel(selectedProduct)) {
+                    <span class="capture-wh" [title]="getWarehouseNamesLabel(selectedProduct)">{{ getWarehouseNamesLabel(selectedProduct) }}</span>
+                  }
+                </div>
+              </div>
+
+              @if (missingProductUom) {
+                <div class="uom-missing" role="alert">
+                  <p>Este {{ isServiceProduct(selectedProduct) ? 'servicio' : 'producto' }} no tiene unidad de medida.</p>
+                  <button type="button" class="uom-missing__action" [disabled]="refreshingProductUoms" (click)="openProductUomEditor()">
+                    {{ refreshingProductUoms ? 'Cargando…' : 'Agregar unidad' }}
+                  </button>
+                </div>
+              }
+
+              <div class="capture-fields">
+                <label class="capture-field capture-field--uom">
+                  <span>UOM</span>
+                  <select class="capture-control" [(ngModel)]="selectedUomId" [ngModelOptions]="{ standalone: true }" (change)="onSelectedUomChange()">
+                    <option value="">UOM</option>
+                    @for (uom of selectedProductUoms; track uom.id || uom.product_uom_id || uom.uom_id) {
+                      <option [value]="uom.id || uom.product_uom_id || uom.uom_id">{{ uom.name || uom.uom_name }}</option>
+                    }
+                  </select>
+                </label>
+
+                <label class="capture-field capture-field--list">
+                  <span>Lista</span>
+                  <select class="capture-control" [(ngModel)]="selectedPricingOptionId" [ngModelOptions]="{ standalone: true }" (change)="onSelectedPricingOptionChange()">
+                    <option value="">Sugerido</option>
+                    @for (option of selectedModalPricingOptions; track option.price_list_id || option.id) {
+                      <option [value]="option.price_list_id || option.id">
+                        {{ option.price_list_name || 'Lista' }} ({{ option.price }})
+                      </option>
+                    }
+                  </select>
+                </label>
+
+                <label class="capture-field capture-field--qty">
+                  <span>Cant.</span>
+                  <input
+                    #captureQtyInput
+                    class="capture-control"
+                    type="number"
+                    [(ngModel)]="selectedQuantity"
+                    [ngModelOptions]="{ standalone: true }"
+                    min="0.001"
+                    step="any"
+                    (keydown.enter)="onCaptureEnter($event)">
+                </label>
+
+                <label class="capture-field capture-field--price">
+                  <span>Precio</span>
+                  <input
+                    class="capture-control"
+                    type="number"
+                    title="Precio unitario sin IVA"
+                    [(ngModel)]="selectedUnitPrice"
+                    [ngModelOptions]="{ standalone: true }"
+                    min="0"
+                    step="any"
+                    (keydown.enter)="onCaptureEnter($event)">
+                </label>
+
+                <label class="capture-field capture-field--disc">
+                  <span>Desc. %</span>
+                  <input
+                    class="capture-control"
+                    type="number"
+                    [(ngModel)]="selectedDiscount"
+                    [ngModelOptions]="{ standalone: true }"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    (keydown.enter)="onCaptureEnter($event)">
+                </label>
+
+                @if (showIva) {
+                  <div class="iva-pills">
+                    <span>IVA</span>
+                    <div class="iva-pills__row" role="group" aria-label="IVA">
+                      @for (preset of ivaChoices(selectedIva); track preset) {
+                        <button
+                          type="button"
+                          [class.is-active]="isSameRate(selectedIva, preset)"
+                          (click)="setSelectedIva(preset)">
+                          {{ preset }}%
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (showIeps) {
+                  <label class="capture-field capture-field--ieps">
+                    <span>IEPS</span>
+                    <input
+                      class="capture-control"
+                      type="number"
+                      [(ngModel)]="selectedIeps"
+                      [ngModelOptions]="{ standalone: true }"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      (keydown.enter)="onCaptureEnter($event)">
+                  </label>
+                }
+
+                <div class="capture-commit">
+                  <span class="capture-amount">{{ formatMoney(captureLineTotal) }}</span>
+                  <button type="button" class="capture-add" (click)="confirmAddProduct()" [disabled]="!canConfirmAddProduct" title="Enter agrega el renglón">
+                    Agregar
+                  </button>
+                  <button type="button" class="capture-clear" (click)="clearCapture()" title="Limpiar" aria-label="Limpiar producto">
+                    <i class="fi fi-rr-cross-small"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
         <div class="section-header">
           <h3>
             {{ saleScope === 'services' ? 'Servicios' : 'Renglones' }}
@@ -168,7 +356,7 @@
 
         @if (lineItems.length === 0) {
           <div class="empty-state">
-            <p>Sin renglones. Busca abajo por código, SKU o nombre.</p>
+            <p>Sin renglones.</p>
           </div>
         } @else {
           <div class="lines-wrap">
@@ -278,208 +466,26 @@
             <div #linesEnd></div>
           </div>
         }
+
+        @if (lineItems.length > 0) {
+          <div class="capture-totals">
+            <span>{{ lineItems.length }} {{ lineItems.length === 1 ? 'renglón' : 'renglones' }}</span>
+            <div class="capture-totals__figures">
+              <span>Subtotal <strong>{{ formatMoney(draftSubtotal) }}</strong></span>
+              @if (showIva) {
+                <span>IVA <strong>{{ formatMoney(draftIva) }}</strong></span>
+              }
+              @if (showIeps && draftIeps > 0) {
+                <span>IEPS <strong>{{ formatMoney(draftIeps) }}</strong></span>
+              }
+              <span class="capture-totals__total">Total <strong>{{ formatMoney(draftTotal) }} {{ orderCurrency }}</strong></span>
+            </div>
+          </div>
+        }
       </div>
       }
     </form>
   </div>
-
-  @if (activeTab === 'products') {
-    <div class="capture-dock">
-      @if (lineItems.length > 0) {
-        <div class="capture-totals">
-          <span>{{ lineItems.length }} {{ lineItems.length === 1 ? 'renglón' : 'renglones' }}</span>
-          <div class="capture-totals__figures">
-            <span>Subtotal <strong>{{ formatMoney(draftSubtotal) }}</strong></span>
-            @if (showIva) {
-              <span>IVA <strong>{{ formatMoney(draftIva) }}</strong></span>
-            }
-            @if (showIeps && draftIeps > 0) {
-              <span>IEPS <strong>{{ formatMoney(draftIeps) }}</strong></span>
-            }
-            <span class="capture-totals__total">Total <strong>{{ formatMoney(draftTotal) }} {{ orderCurrency }}</strong></span>
-          </div>
-        </div>
-      }
-
-      <label class="capture-search">
-        <i class="fi fi-rr-search" aria-hidden="true"></i>
-        <input
-          #productSearchInput
-          type="text"
-          [ngModel]="productSearchTerm"
-          (ngModelChange)="onProductSearchChange($event)"
-          [ngModelOptions]="{ standalone: true }"
-          [placeholder]="capturePlaceholder"
-          [matAutocomplete]="autoProductPicker"
-          [disabled]="!hasBillingBranch"
-          autocomplete="off"
-          aria-label="Buscar producto" />
-        @if (loadingProducts) {
-          <span class="capture-search__status">Buscando…</span>
-        }
-      </label>
-      <mat-autocomplete
-        #autoProductPicker="matAutocomplete"
-        panelClass="capture-product-panel"
-        [displayWith]="displayProduct.bind(this)"
-        autoActiveFirstOption
-        (optionSelected)="onProductSelectedForModal($event.option.value)">
-        @for (product of filteredProductsForModal; track product.product_id || product.id) {
-          <mat-option [value]="product">
-            <span class="product-option">
-              <span class="product-option__name">{{ product.product_name || product.name }}</span>
-              <span class="product-option__badges">
-                <span class="sku-badge">{{ product.product_sku || product.sku || 'Sin código' }}</span>
-                <span
-                  class="stock-badge"
-                  [class.is-service]="isServiceProduct(product)"
-                  [class.is-empty]="!isServiceProduct(product) && getAvailableQty(product) <= 0">
-                  {{ stockLabel(product) }}
-                </span>
-              </span>
-            </span>
-          </mat-option>
-        }
-        @if (!loadingProducts && productSearchText.length > 0 && filteredProductsForModal.length === 0) {
-          <mat-option disabled>Sin resultados</mat-option>
-        }
-      </mat-autocomplete>
-
-      @if (!hasBillingBranch) {
-        <p class="capture-hint">Selecciona una sucursal en Información para buscar.</p>
-      } @else if (!selectedProduct && lineItems.length === 0) {
-        <p class="capture-hint">Enter elige el primer resultado. Luego confirma cantidad, precio, descuento e IVA.</p>
-      }
-
-      @if (selectedProduct) {
-        <div class="capture-line">
-          <div class="capture-identity">
-            <div class="capture-identity__name" [title]="selectedProduct.product_name || selectedProduct.name">
-              {{ selectedProduct.product_name || selectedProduct.name }}
-            </div>
-            <div class="capture-identity__badges">
-              <span class="sku-badge">{{ selectedProduct.product_sku || selectedProduct.sku || 'Sin código' }}</span>
-              <span
-                class="stock-badge"
-                [class.is-service]="isServiceProduct(selectedProduct)"
-                [class.is-empty]="!isServiceProduct(selectedProduct) && getAvailableQty(selectedProduct) <= 0">
-                {{ stockLabel(selectedProduct) }}
-              </span>
-              @if (getWarehouseNamesLabel(selectedProduct)) {
-                <span class="capture-wh" [title]="getWarehouseNamesLabel(selectedProduct)">{{ getWarehouseNamesLabel(selectedProduct) }}</span>
-              }
-            </div>
-            @if (missingProductUom) {
-              <div class="uom-missing" role="alert">
-                <p>Este {{ isServiceProduct(selectedProduct) ? 'servicio' : 'producto' }} no tiene unidad de medida.</p>
-                <button type="button" class="uom-missing__action" [disabled]="refreshingProductUoms" (click)="openProductUomEditor()">
-                  {{ refreshingProductUoms ? 'Cargando…' : 'Agregar unidad' }}
-                </button>
-              </div>
-            }
-          </div>
-
-          <label class="capture-field capture-field--uom">
-            <span>UOM</span>
-            <select [(ngModel)]="selectedUomId" [ngModelOptions]="{ standalone: true }" (change)="onSelectedUomChange()">
-              <option value="">UOM</option>
-              @for (uom of selectedProductUoms; track uom.id || uom.product_uom_id || uom.uom_id) {
-                <option [value]="uom.id || uom.product_uom_id || uom.uom_id">{{ uom.name || uom.uom_name }}</option>
-              }
-            </select>
-          </label>
-
-          <label class="capture-field capture-field--list">
-            <span>Lista</span>
-            <select [(ngModel)]="selectedPricingOptionId" [ngModelOptions]="{ standalone: true }" (change)="onSelectedPricingOptionChange()">
-              <option value="">Sugerido</option>
-              @for (option of selectedModalPricingOptions; track option.price_list_id || option.id) {
-                <option [value]="option.price_list_id || option.id">
-                  {{ option.price_list_name || 'Lista' }} ({{ option.price }})
-                </option>
-              }
-            </select>
-          </label>
-
-          <label class="capture-field capture-field--qty">
-            <span>Cant.</span>
-            <input
-              #captureQtyInput
-              type="number"
-              [(ngModel)]="selectedQuantity"
-              [ngModelOptions]="{ standalone: true }"
-              min="0.001"
-              step="any"
-              (keydown.enter)="onCaptureEnter($event)">
-          </label>
-
-          <label class="capture-field capture-field--price">
-            <span>Precio</span>
-            <input
-              type="number"
-              title="Precio unitario sin IVA"
-              [(ngModel)]="selectedUnitPrice"
-              [ngModelOptions]="{ standalone: true }"
-              min="0"
-              step="any"
-              (keydown.enter)="onCaptureEnter($event)">
-          </label>
-
-          <label class="capture-field capture-field--disc">
-            <span>Desc. %</span>
-            <input
-              type="number"
-              [(ngModel)]="selectedDiscount"
-              [ngModelOptions]="{ standalone: true }"
-              min="0"
-              max="100"
-              step="0.01"
-              (keydown.enter)="onCaptureEnter($event)">
-          </label>
-
-          @if (showIva) {
-            <div class="iva-pills">
-              <span>IVA</span>
-              <div class="iva-pills__row" role="group" aria-label="IVA">
-                @for (preset of ivaChoices(selectedIva); track preset) {
-                  <button
-                    type="button"
-                    [class.is-active]="isSameRate(selectedIva, preset)"
-                    (click)="setSelectedIva(preset)">
-                    {{ preset }}%
-                  </button>
-                }
-              </div>
-            </div>
-          }
-
-          @if (showIeps) {
-            <label class="capture-field capture-field--ieps">
-              <span>IEPS</span>
-              <input
-                type="number"
-                [(ngModel)]="selectedIeps"
-                [ngModelOptions]="{ standalone: true }"
-                min="0"
-                max="100"
-                step="0.01"
-                (keydown.enter)="onCaptureEnter($event)">
-            </label>
-          }
-
-          <div class="capture-commit">
-            <span class="capture-amount">{{ formatMoney(captureLineTotal) }}</span>
-            <button type="button" class="capture-add" (click)="confirmAddProduct()" [disabled]="!canConfirmAddProduct" title="Enter agrega el renglón">
-              Agregar
-            </button>
-            <button type="button" class="capture-clear" (click)="clearCapture()" title="Limpiar" aria-label="Limpiar producto">
-              <i class="fi fi-rr-cross-small"></i>
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-  }
 
   <!-- Footer -->
   <div class="modal-footer">

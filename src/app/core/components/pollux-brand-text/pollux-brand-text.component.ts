@@ -14,6 +14,13 @@ import { SystemLogoService } from '../../services/system-logo.service';
         aria-label="Logo del sistema">
         <img [src]="src" alt="" />
       </span>
+    } @else if (fallback() === 'star') {
+      <img
+        class="brand-star"
+        [class.brand-star--compact]="compact()"
+        src="favicon.png"
+        alt=""
+        aria-hidden="true" />
     } @else if (compact()) {
       <h2
         class="pollux-brand-text pollux-brand-text--compact"
@@ -257,6 +264,18 @@ import { SystemLogoService } from '../../services/system-logo.service';
       max-height: 72px;
     }
 
+    .brand-star {
+      display: block;
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+
+    .brand-star--compact {
+      width: 28px;
+      height: 28px;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .pollux-brand-text {
         animation: none;
@@ -279,6 +298,8 @@ export class PolluxBrandTextComponent {
   size = input<'md' | 'lg'>('md');
   /** Muestra el logo de la razón social cuando está activo. */
   useSystemLogo = input(false, { transform: booleanAttribute });
+  /** En el menú no va el nombre: la estrella del favicon. El texto se queda en login y en la pestaña. */
+  fallback = input<'text' | 'star'>('text');
 
   readonly label = computed(() => (this.compact() ? 'P' : 'Polux ERP'));
 }

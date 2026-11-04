@@ -685,14 +685,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
 
   onProductSearchChange(value: any): void {
     if (typeof value !== 'string') {
-      this.productSearchTerm = value;
       return;
-    }
-    if (this.selectedProduct && value === this.displayProduct(this.selectedProduct)) {
-      return;
-    }
-    if (this.selectedProduct) {
-      this.clearSelectedProduct();
     }
     this.productSearchTerm = value;
     this.productSearch$.next(value);
@@ -811,7 +804,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
 
   onProductSelectedForModal(product: any): void {
     this.selectedProduct = product;
-    this.productSearchTerm = product;
+    this.productSearchTerm = '';
     const firstUom = (product?.uoms || [])[0];
     this.selectedUomId = firstUom?.id || firstUom?.product_uom_id || firstUom?.uom_id || '';
     this.selectedQuantity = 1;
@@ -820,7 +813,10 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.selectedIva = this.showIva ? Number(firstUom?.iva_percentage || 0) : 0;
     this.selectedIeps = this.showIeps ? Number(firstUom?.ieps_percentage || 0) : 0;
     this.selectedPricingOptionId = '';
-    this.focusCaptureQty();
+    setTimeout(() => {
+      this.productSearchTerm = '';
+      this.focusCaptureQty();
+    });
   }
 
   onSelectedUomChange(): void {

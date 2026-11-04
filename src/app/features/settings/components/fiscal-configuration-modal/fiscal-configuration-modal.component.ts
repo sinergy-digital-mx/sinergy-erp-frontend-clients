@@ -296,7 +296,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
             data: {
               message: this.useAsSystemLogo
                 ? 'Este logo se usa en el menú del sistema'
-                : 'El menú vuelve a mostrar Polux ERP',
+                : 'El menú vuelve a mostrar la estrella',
               type: 'success',
             },
             duration: 3000,
