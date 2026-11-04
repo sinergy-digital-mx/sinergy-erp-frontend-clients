@@ -44,6 +44,7 @@ import { formatAssignedSellerLabel, formatRegisteredByUserLabel } from '../../ut
 import { CustomerAddressDialogComponent } from '../../components/customer-address-dialog/customer-address-dialog.component';
 import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
 import { CustomerFiscalCreditsComponent } from '../../components/customer-fiscal-credits/customer-fiscal-credits.component';
+import { CustomerPriceListsComponent } from '../../components/customer-price-lists/customer-price-lists.component';
 import { CustomerAssignmentHistoryComponent } from '../../components/customer-assignment-history/customer-assignment-history.component';
 import { unwrapCustomerPayload } from '../../utils/customer-credit.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
@@ -74,6 +75,7 @@ import { CustomerSubscriptionsComponent } from '../../components/customer-subscr
     TabComponent,
     SlimSwitchComponent,
     CustomerFiscalCreditsComponent,
+    CustomerPriceListsComponent,
     SpinnerComponent,
     PolluxErrorStateComponent,
     CustomerAssignmentHistoryComponent,
@@ -89,12 +91,13 @@ export class CustomerDetail implements OnInit, OnDestroy {
   error = signal<any>(null);
   /** Persona adicional en detalle: colapsable (mismo criterio que el modal). */
   additionalPersonExpanded = signal(false);
-  activeInfoTab = signal<'customer' | 'credit' | 'fiscal' | 'registration'>('customer');
+  activeInfoTab = signal<'customer' | 'credit' | 'price-lists' | 'fiscal' | 'registration'>('customer');
   statuses = signal<CustomerStatus[]>([]);
   statusUpdating = signal(false);
   infoTabs: TabItem[] = [
     { id: 'customer', title: 'Información del Cliente' },
     { id: 'credit', title: 'Credito' },
+    { id: 'price-lists', title: 'Listas de precio' },
     { id: 'fiscal', title: 'Información Fiscal' },
     { id: 'registration', title: 'Registro' }
   ];
@@ -132,7 +135,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
     });
     this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((query) => {
       const tab = query.get('tab');
-      if (tab === 'credit' || tab === 'fiscal' || tab === 'customer' || tab === 'registration') {
+      if (tab === 'credit' || tab === 'price-lists' || tab === 'fiscal' || tab === 'customer' || tab === 'registration') {
         this.activeInfoTab.set(tab);
       }
     });
@@ -353,7 +356,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
   }
 
   setActiveInfoTab(tab: string): void {
-    if (tab === 'customer' || tab === 'credit' || tab === 'fiscal' || tab === 'registration') {
+    if (tab === 'customer' || tab === 'credit' || tab === 'price-lists' || tab === 'fiscal' || tab === 'registration') {
       this.activeInfoTab.set(tab);
     }
   }

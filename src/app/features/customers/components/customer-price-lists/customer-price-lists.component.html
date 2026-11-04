@@ -1,0 +1,46 @@
+@if (loading()) {
+  <app-spinner></app-spinner>
+} @else if (!catalog().length) {
+  <p class="price-lists__empty">No hay listas de precio activas.</p>
+} @else {
+  <p class="price-lists__hint">
+    Marca las listas que este cliente puede usar. Una queda como predeterminada en las órdenes nuevas.
+  </p>
+  <div class="price-lists">
+    @for (list of catalog(); track list.id) {
+      <div class="price-lists__row" [class.is-off]="list.is_active === false">
+        <label class="price-lists__check">
+          <input
+            type="checkbox"
+            [checked]="isAssigned(list.id)"
+            [disabled]="!canEdit || saving() || (list.is_active === false && !isAssigned(list.id))"
+            (change)="toggle(list, $any($event.target).checked)" />
+          <span>{{ list.name }}</span>
+          @if (list.is_active === false) {
+            <span class="price-lists__badge">Inactiva</span>
+          }
+        </label>
+        @if (isAssigned(list.id)) {
+          <button
+            type="button"
+            class="price-lists__default"
+            [class.is-default]="defaultId() === list.id"
+            [disabled]="!canEdit || saving() || defaultId() === list.id"
+            (click)="setDefault(list.id)">
+            {{ defaultId() === list.id ? 'Predeterminada' : 'Hacer predeterminada' }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+  @if (canEdit) {
+    <app-button
+      text="Guardar listas"
+      variant="primary"
+      size="sm"
+      [fullWidth]="false"
+      [loading]="saving()"
+      (clicked)="save()">
+    </app-button>
+  }
+}

@@ -1,0 +1,73 @@
+:host {
+  display: block;
+}
+
+.price-lists__hint,
+.price-lists__empty {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.price-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.price-lists__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #d6dbe3;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.price-lists__row.is-off {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.price-lists__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  color: #334155;
+}
+
+.price-lists__badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.price-lists__default {
+  flex: 0 0 auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.price-lists__default.is-default {
+  border-color: #4b3e8e;
+  background: #4b3e8e;
+  color: #fff;
+  cursor: default;
+}
+
+.price-lists__default:disabled:not(.is-default) {
+  opacity: 0.55;
+  cursor: default;
+}

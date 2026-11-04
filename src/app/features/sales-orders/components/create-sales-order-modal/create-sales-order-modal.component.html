@@ -250,7 +250,7 @@
                   <span>Lista</span>
                   <select class="capture-control" [(ngModel)]="selectedPricingOptionId" [ngModelOptions]="{ standalone: true }" (change)="onSelectedPricingOptionChange()">
                     <option value="">Sugerido</option>
-                    @for (option of selectedModalPricingOptions; track option.price_list_id || option.id) {
+                    @for (option of visiblePricingOptions(selectedModalPricingOptions); track option.price_list_id || option.id) {
                       <option [value]="option.price_list_id || option.id">
                         {{ option.price_list_name || 'Lista' }} ({{ option.price }})
                       </option>
@@ -418,7 +418,7 @@
                         [ngModelOptions]="{standalone: true}"
                         (change)="onLinePricingOptionChange(i)">
                         <option value="">Sugerido</option>
-                        @for (option of item.pricing_options || []; track option.price_list_id || option.id) {
+                        @for (option of visiblePricingOptions(item.pricing_options); track option.price_list_id || option.id) {
                           <option [value]="option.price_list_id || option.id">
                             {{ option.price_list_name || 'Lista' }} ({{ option.price }})
                           </option>

@@ -76,6 +76,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   selectedIva = 16;
   selectedIeps = 0;
   selectedPricingOptionId = '';
+  customerPriceListIds: string[] = [];
+  customerDefaultPriceListId = '';
   readonly ivaPresets = [0, 8, 16];
 
   @ViewChild('productSearchInput') productSearchInput?: ElementRef<HTMLInputElement>;
@@ -99,6 +101,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   dailyExchangeRate: number | null = null;
   private productSearch$ = new Subject<string>();
   private productsSub?: Subscription;
+  private customerPriceListSub?: Subscription;
+  private customerPriceListRequest = 0;
   private hydrating = false;
   private editingWarehouseId: string | null = null;
   private editingSellerUserId: string | null = null;
@@ -182,7 +186,11 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((value) => {
       if (typeof value === 'string') {
+        const hadCustomer = !!this.form.get('customer_id')?.value;
         this.form.patchValue({ customer_id: '' }, { emitEvent: false });
+        if (hadCustomer) {
+          this.clearCustomerPriceLists();
+        }
       }
       this.filterCustomers(value ?? '');
     });
@@ -207,6 +215,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.productsSub?.unsubscribe();
+    this.customerPriceListSub?.unsubscribe();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -336,6 +345,9 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
             },
             { emitEvent: false },
           );
+          if (customerId) {
+            this.loadCustomerPriceLists(customerId, false);
+          }
           this.form.get('sale_scope')?.disable({ emitEvent: false });
 
           this.lineItems = (payload.line_items || []).map((item) => ({
@@ -486,6 +498,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       customer_id: customer.id,
       customer_search: customer.display_name
     }, { emitEvent: false });
+    this.loadCustomerPriceLists(customer.id, true);
   }
 
   openCreateCustomerModal(): void {
@@ -813,6 +826,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.selectedIva = this.showIva ? Number(firstUom?.iva_percentage || 0) : 0;
     this.selectedIeps = this.showIeps ? Number(firstUom?.ieps_percentage || 0) : 0;
     this.selectedPricingOptionId = '';
+    this.applyCustomerPriceListToCapture();
     setTimeout(() => {
       this.productSearchTerm = '';
       this.focusCaptureQty();
@@ -826,6 +840,89 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.selectedIva = this.showIva ? Number(uom.iva_percentage || 0) : 0;
     this.selectedIeps = this.showIeps ? Number(uom.ieps_percentage || 0) : 0;
     this.selectedPricingOptionId = '';
+    this.applyCustomerPriceListToCapture();
+  }
+
+  visiblePricingOptions(options: any[] | null | undefined): any[] {
+    const rows = Array.isArray(options) ? options : [];
+    if (!this.customerPriceListIds.length) return rows;
+    return rows.filter((row) =>
+      this.customerPriceListIds.includes(String(row?.price_list_id || row?.id || '')),
+    );
+  }
+
+  private loadCustomerPriceLists(customerId: string | number, applyToLines: boolean): void {
+    const requestId = ++this.customerPriceListRequest;
+    this.customerPriceListSub?.unsubscribe();
+    this.customerPriceListSub = this.customerService.getCustomerPriceLists(String(customerId)).subscribe({
+      next: (rows) => {
+        if (requestId !== this.customerPriceListRequest) return;
+        this.customerPriceListIds = rows.map((row) => row.price_list_id);
+        this.customerDefaultPriceListId =
+          rows.find((row) => row.is_default)?.price_list_id || this.customerPriceListIds[0] || '';
+        if (applyToLines) {
+          this.lineItems.forEach((_, index) => this.reconcileLinePriceList(index));
+        }
+        this.applyCustomerPriceListToCapture();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        if (requestId !== this.customerPriceListRequest) return;
+        this.customerPriceListIds = [];
+        this.customerDefaultPriceListId = '';
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private clearCustomerPriceLists(): void {
+    this.customerPriceListRequest += 1;
+    this.customerPriceListSub?.unsubscribe();
+    this.customerPriceListIds = [];
+    this.customerDefaultPriceListId = '';
+  }
+
+  private applyCustomerPriceListToCapture(): void {
+    if (!this.selectedProduct || !this.selectedUomId || !this.customerDefaultPriceListId) return;
+    const match = this.visiblePricingOptions(this.selectedModalPricingOptions).find(
+      (row) => String(row.price_list_id || row.id || '') === this.customerDefaultPriceListId,
+    );
+    if (!match) return;
+    this.selectedPricingOptionId = String(match.price_list_id || match.id);
+    this.onSelectedPricingOptionChange();
+  }
+
+  private reconcileLinePriceList(index: number): void {
+    const item = this.lineItems[index];
+    if (!item) return;
+    const current = String(item.selected_pricing_option_id || '');
+    const currentAllowed =
+      !this.customerPriceListIds.length || !current || this.customerPriceListIds.includes(current);
+    if (current && currentAllowed) return;
+
+    const match = this.visiblePricingOptions(item.pricing_options).find(
+      (row) => String(row.price_list_id || row.id || '') === this.customerDefaultPriceListId,
+    );
+    if (!match) {
+      if (current) {
+        item.selected_pricing_option_id = '';
+        this.onLinePricingOptionChange(index);
+      }
+      return;
+    }
+    item.selected_pricing_option_id = String(match.price_list_id || match.id);
+    this.onLinePricingOptionChange(index);
+  }
+
+  private applyDefaultPriceListToLine(index: number): void {
+    const item = this.lineItems[index];
+    if (!item || !this.customerDefaultPriceListId) return;
+    const match = this.visiblePricingOptions(item.pricing_options).find(
+      (row) => String(row.price_list_id || row.id || '') === this.customerDefaultPriceListId,
+    );
+    if (!match) return;
+    item.selected_pricing_option_id = String(match.price_list_id || match.id);
+    this.onLinePricingOptionChange(index);
   }
 
   get selectedModalPricingOptions(): any[] {
@@ -1079,7 +1176,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       item.iva_percentage = Number(uom.iva_percentage || item.iva_percentage || 0);
       item.ieps_percentage = this.showIeps ? Number(uom.ieps_percentage || item.ieps_percentage || 0) : 0;
       item.pricing_options = Array.isArray(uom.pricing_options) ? uom.pricing_options : [];
-      item.selected_pricing_option_id = undefined;
+      item.selected_pricing_option_id = '';
+      this.applyDefaultPriceListToLine(index);
     }
   }
 
@@ -1093,7 +1191,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     item.iva_percentage = Number(uom.iva_percentage || item.iva_percentage || 0);
     item.ieps_percentage = this.showIeps ? Number(uom.ieps_percentage || item.ieps_percentage || 0) : 0;
     item.pricing_options = Array.isArray(uom.pricing_options) ? uom.pricing_options : [];
-    item.selected_pricing_option_id = undefined;
+    item.selected_pricing_option_id = '';
+    this.applyDefaultPriceListToLine(index);
   }
 
   onLinePricingOptionChange(index: number): void {

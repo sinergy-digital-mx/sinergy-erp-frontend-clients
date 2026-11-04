@@ -165,6 +165,13 @@
           </app-customer-fiscal-credits>
         }
 
+        @if (activeInfoTab() === 'price-lists') {
+          <app-customer-price-lists
+            [customerId]="customer()!.id"
+            [canEdit]="canEditStatus">
+          </app-customer-price-lists>
+        }
+
         @if (activeInfoTab() === 'fiscal') {
           @if (canEditStatus) {
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">

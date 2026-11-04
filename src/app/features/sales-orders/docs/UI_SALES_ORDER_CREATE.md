@@ -12,3 +12,7 @@ El producto no se agrega en otro modal. En la pestaña Productos, la búsqueda q
 6. El mismo flujo vale para crear cotización. Un servicio sin stock sí se puede agregar; un producto sin stock en la sucursal, no.
 
 La ventana de alta abre a 1200px para que esos campos quepan en una línea.
+
+## 2026-11-04
+
+Si el cliente tiene listas de precio, el selector Lista muestra solo esas. La predeterminada queda elegida al agregar un producto. Si el producto no tiene esa lista, se queda en Sugerido.

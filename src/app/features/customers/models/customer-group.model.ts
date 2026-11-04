@@ -57,6 +57,14 @@ export interface CustomerFiscalCredit {
   credit_usage_percent?: number | null;
 }
 
+export interface CustomerPriceListAssignment {
+  id?: string;
+  price_list_id: string;
+  name?: string;
+  is_default: boolean;
+  is_active?: boolean;
+}
+
 export interface CustomerCreditsUpdateItem {
   fiscal_configuration_id: string;
   credit_enabled: boolean;

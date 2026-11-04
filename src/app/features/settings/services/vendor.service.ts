@@ -15,6 +15,7 @@ import {
   CheckVendorDuplicatesDto,
   VendorDuplicatesResponse,
   DeleteVendorResult,
+  VendorSatConstanciaPreview,
 } from '../models/vendor.model';
 
 @Injectable({
@@ -86,6 +87,16 @@ export class VendorService {
 
   checkVendorDuplicates(payload: CheckVendorDuplicatesDto): Observable<VendorDuplicatesResponse> {
     return this.http.post<VendorDuplicatesResponse>(`${this.api}/tenant/vendors/duplicates`, payload);
+  }
+
+  /** Lee el PDF de la constancia del SAT. No guarda el proveedor. */
+  readSatConstancia(file: File): Observable<VendorSatConstanciaPreview> {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http.post<VendorSatConstanciaPreview>(
+      `${this.api}/tenant/vendors/fiscal-constancia`,
+      body,
+    );
   }
 
   exportVendorsExcel(

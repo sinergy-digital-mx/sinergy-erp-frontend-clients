@@ -21,6 +21,10 @@ export interface Vendor {
   name: string;
   company_name?: string;
   street?: string;
+  exterior_number?: string | null;
+  interior_number?: string | null;
+  colonia?: string | null;
+  localidad?: string | null;
   city?: string;
   state?: string;
   zip_code?: string;
@@ -80,6 +84,10 @@ export interface CreateVendorDto {
   name: string;
   company_name?: string;
   street?: string;
+  exterior_number?: string | null;
+  interior_number?: string | null;
+  colonia?: string | null;
+  localidad?: string | null;
   city?: string;
   state?: string;
   zip_code?: string;
@@ -102,6 +110,22 @@ export interface CreateVendorDto {
 }
 
 export interface UpdateVendorDto extends Partial<CreateVendorDto> {}
+
+/** Respuesta de POST /tenant/vendors/fiscal-constancia. No persiste. */
+export interface VendorSatConstanciaPreview {
+  rfc: string;
+  persona_type: VendorPersonaType;
+  razon_social: string;
+  street: string | null;
+  exterior_number: string | null;
+  interior_number: string | null;
+  colonia: string | null;
+  localidad: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string;
+  country: string;
+}
 
 export interface VendorListResponse {
   data: Vendor[];

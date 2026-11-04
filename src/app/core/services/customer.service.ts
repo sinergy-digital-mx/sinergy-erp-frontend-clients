@@ -13,6 +13,7 @@ import {
   CustomerCreditsUpdateItem,
   CustomerDuplicatesResponse,
   CustomerFiscalCredit,
+  CustomerPriceListAssignment,
   CustomerRegistrationFiscalOption,
   CustomerRegistrationOptions,
   CustomerRegistrationSellerOption,
@@ -155,6 +156,53 @@ export class CustomerService {
     return this.http
       .put<unknown>(`${this.api}/tenant/customers/${id}/credits`, { credits })
       .pipe(map((raw) => this.unwrapCredits(raw)));
+  }
+
+  getCustomerPriceLists(id: string): Observable<CustomerPriceListAssignment[]> {
+    return this.http
+      .get<unknown>(`${this.api}/tenant/customers/${id}/price-lists`)
+      .pipe(map((raw) => this.unwrapPriceLists(raw)));
+  }
+
+  updateCustomerPriceLists(
+    id: string,
+    priceLists: Array<{ price_list_id: string; is_default: boolean }>,
+  ): Observable<CustomerPriceListAssignment[]> {
+    return this.http
+      .put<unknown>(`${this.api}/tenant/customers/${id}/price-lists`, { price_lists: priceLists })
+      .pipe(map((raw) => this.unwrapPriceLists(raw)));
+  }
+
+  private unwrapPriceLists(raw: unknown): CustomerPriceListAssignment[] {
+    const result: CustomerPriceListAssignment[] = [];
+    for (const row of this.unwrapNamedList(raw, 'price_lists')) {
+      if (!row || typeof row !== 'object') continue;
+      const item = row as Record<string, unknown>;
+      const priceListId = String(item['price_list_id'] ?? '').trim();
+      if (!priceListId) continue;
+      const assignment: CustomerPriceListAssignment = {
+        price_list_id: priceListId,
+        is_default: item['is_default'] === true,
+        is_active: item['is_active'] !== false,
+      };
+      if (typeof item['id'] === 'string') assignment.id = item['id'];
+      if (typeof item['name'] === 'string') assignment.name = item['name'];
+      result.push(assignment);
+    }
+    return result;
+  }
+
+  private unwrapNamedList(raw: unknown, key: string): unknown[] {
+    if (Array.isArray(raw)) return raw;
+    if (!raw || typeof raw !== 'object') return [];
+    const root = raw as Record<string, unknown>;
+    const nested = root[key] ?? root['data'];
+    if (Array.isArray(nested)) return nested;
+    if (nested && typeof nested === 'object') {
+      const inner = (nested as Record<string, unknown>)[key];
+      if (Array.isArray(inner)) return inner;
+    }
+    return [];
   }
 
   private unwrapCredits(raw: unknown): CustomerFiscalCredit[] {

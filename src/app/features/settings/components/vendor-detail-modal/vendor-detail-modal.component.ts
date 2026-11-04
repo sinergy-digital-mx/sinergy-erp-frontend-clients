@@ -10,6 +10,7 @@ import {
 } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { Subject, takeUntil } from 'rxjs';
 import { VendorService } from '../../services/vendor.service';
 import {
@@ -23,7 +24,7 @@ import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { VendorPayableDetailDialogComponent } from '../../../accounting/components/vendor-payable-detail-dialog/vendor-payable-detail-dialog.component';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
-import { X } from 'lucide-angular';
+import { X, FileUp } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { SETTINGS_PERMISSIONS } from '../../config/permissions.config';
@@ -40,7 +41,7 @@ import {
   VENDOR_MATCH_REASON_LABELS,
 } from '../../utils/vendor-profile.util';
 
-type VendorTabId = 'general' | 'direccion' | 'bancaria' | 'cuentas';
+type VendorTabId = 'general' | 'fiscal' | 'direccion' | 'bancaria' | 'cuentas';
 
 /** RFC persona física (13) o moral (12): 3-4 letras + 6 dígitos + 3 homoclave */
 const MEXICAN_RFC_PATTERN = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/i;
@@ -61,20 +62,16 @@ const MEXICAN_RFC_PATTERN = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/i;
 })
 export class VendorDetailModalComponent implements OnDestroy {
   X = X;
+  readonly FileUpIcon = FileUp;
   form: FormGroup;
   saving = signal(false);
   deleting = signal(false);
+  satConstanciaUploading = signal(false);
   activeTab = signal<VendorTabId>('general');
   isNew = true;
   readonly vendorDeletePermission = SETTINGS_PERMISSIONS.vendors.delete;
   readonly vendorCompanyName = vendorCompanyName;
   private duplicateWarningAccepted = false;
-
-  tabs: TabItem[] = [
-    { id: 'general', title: 'General' },
-    { id: 'direccion', title: 'Dirección' },
-    { id: 'bancaria', title: 'Información bancaria' },
-  ];
   accounts = signal<VendorAccounts | null>(null);
   accountsLoading = signal(false);
 
@@ -126,9 +123,6 @@ export class VendorDetailModalComponent implements OnDestroy {
     @Inject(MAT_DIALOG_DATA) public data: { vendor: Vendor | null },
   ) {
     this.isNew = !data.vendor;
-    if (!this.isNew) {
-      this.tabs = [...this.tabs, { id: 'cuentas', title: 'Cuentas' }];
-    }
     this.form = this.createForm();
 
     if (data.vendor) {
@@ -138,6 +132,10 @@ export class VendorDetailModalComponent implements OnDestroy {
         company_name: data.vendor.company_name || data.vendor.name || '',
         tax_id: data.vendor.tax_id ?? '',
         rfc: data.vendor.rfc ?? '',
+        exterior_number: data.vendor.exterior_number ?? '',
+        interior_number: data.vendor.interior_number ?? '',
+        colonia: data.vendor.colonia ?? '',
+        localidad: data.vendor.localidad ?? '',
         credit_limit: data.vendor.credit_limit ?? 0,
         credit_days: data.vendor.credit_days ?? 0,
       });
@@ -147,7 +145,14 @@ export class VendorDetailModalComponent implements OnDestroy {
     this.form
       .get('vendor_type')!
       .valueChanges.pipe(takeUntil(this.destroy$))
-      .subscribe((type: VendorType) => this.applyVendorTypeValidators(type));
+      .subscribe((type: VendorType) => {
+        this.applyVendorTypeValidators(type);
+        this.keepTabForVendorType(type);
+      });
+
+    if (this.isNew) {
+      this.activeTab.set('fiscal');
+    }
   }
 
   ngOnDestroy(): void {
@@ -157,6 +162,20 @@ export class VendorDetailModalComponent implements OnDestroy {
 
   get isNational(): boolean {
     return this.form.get('vendor_type')?.value === 'NATIONAL';
+  }
+
+  get tabs(): TabItem[] {
+    const items: TabItem[] = [{ id: 'general', title: 'General' }];
+    if (this.isNational) {
+      items.push({ id: 'fiscal', title: 'Información Fiscal' });
+    } else {
+      items.push({ id: 'direccion', title: 'Dirección' });
+    }
+    items.push({ id: 'bancaria', title: 'Información bancaria' });
+    if (!this.isNew) {
+      items.push({ id: 'cuentas', title: 'Cuentas' });
+    }
+    return items;
   }
 
   get profileCompleteness(): number {
@@ -180,12 +199,85 @@ export class VendorDetailModalComponent implements OnDestroy {
   }
 
   setActiveTab(tabId: string): void {
-    if (tabId === 'general' || tabId === 'direccion' || tabId === 'bancaria' || tabId === 'cuentas') {
+    if (
+      tabId === 'general' ||
+      tabId === 'fiscal' ||
+      tabId === 'direccion' ||
+      tabId === 'bancaria' ||
+      tabId === 'cuentas'
+    ) {
       this.activeTab.set(tabId);
       if (tabId === 'cuentas') {
         this.loadAccounts();
       }
     }
+  }
+
+  openSatConstanciaPicker(): void {
+    if (!this.isNational || this.satConstanciaUploading()) {
+      return;
+    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf,.pdf';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file) {
+        this.uploadSatConstancia(file);
+      }
+    };
+    input.click();
+  }
+
+  uploadSatConstancia(file: File): void {
+    if (!this.isNational || this.satConstanciaUploading()) {
+      return;
+    }
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      this.toast.error('Selecciona el PDF de la constancia del SAT');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      this.toast.error('El PDF no puede superar 10 MB');
+      return;
+    }
+
+    this.satConstanciaUploading.set(true);
+    this.vendorService
+      .readSatConstancia(file)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          const companyName = String(this.form.get('company_name')?.value ?? '').trim();
+          this.form.patchValue({
+            vendor_type: 'NATIONAL',
+            rfc: data.rfc,
+            persona_type: data.persona_type,
+            razon_social: data.razon_social,
+            company_name: companyName || data.razon_social,
+            street: data.street ?? '',
+            exterior_number: data.exterior_number ?? '',
+            interior_number: data.interior_number ?? '',
+            colonia: data.colonia ?? '',
+            localidad: data.localidad ?? '',
+            city: data.city ?? '',
+            state: data.state ?? '',
+            zip_code: data.zip_code ?? '',
+            country: 'México',
+          });
+          this.form.get('rfc')?.markAsTouched();
+          this.satConstanciaUploading.set(false);
+          this.activeTab.set('fiscal');
+          this.toast.success(
+            'Se llenó la información fiscal con la constancia del SAT. Puedes corregirla antes de guardar.',
+          );
+        },
+        error: (error) => {
+          this.satConstanciaUploading.set(false);
+          this.toast.error(resolveHttpErrorMessage(error, 'No se pudo leer la constancia del SAT'));
+        },
+      });
   }
 
   loadAccounts(): void {
@@ -240,6 +332,10 @@ export class VendorDetailModalComponent implements OnDestroy {
       vendor_type: ['NATIONAL' as VendorType, Validators.required],
       company_name: ['', [Validators.required, Validators.minLength(2)]],
       street: [''],
+      exterior_number: [''],
+      interior_number: [''],
+      colonia: [''],
+      localidad: [''],
       city: [''],
       state: [''],
       zip_code: [''],
@@ -492,6 +588,10 @@ export class VendorDetailModalComponent implements OnDestroy {
         rfc: trim(v.rfc)?.toUpperCase(),
         razon_social: trim(v.razon_social),
         persona_type: v.persona_type,
+        exterior_number: trim(v.exterior_number) ?? '',
+        interior_number: trim(v.interior_number) ?? '',
+        colonia: trim(v.colonia) ?? '',
+        localidad: trim(v.localidad) ?? '',
         bank_clabe: trim(v.bank_clabe),
       };
     }
@@ -510,18 +610,32 @@ export class VendorDetailModalComponent implements OnDestroy {
   }
 
   private focusTabWithErrors(): void {
+    const national = this.isNational;
     const tabFields: Record<VendorTabId, string[]> = {
-      general: [
-        'vendor_type',
-        'company_name',
+      general: national
+        ? ['vendor_type', 'company_name', 'status', 'credit_days', 'credit_limit']
+        : [
+            'vendor_type',
+            'company_name',
+            'tax_id',
+            'legal_name',
+            'status',
+            'credit_days',
+            'credit_limit',
+          ],
+      fiscal: [
         'rfc',
         'razon_social',
         'persona_type',
-        'tax_id',
-        'legal_name',
-        'status',
-        'credit_days',
-        'credit_limit',
+        'street',
+        'exterior_number',
+        'interior_number',
+        'colonia',
+        'localidad',
+        'city',
+        'state',
+        'country',
+        'zip_code',
       ],
       direccion: ['street', 'city', 'state', 'country', 'zip_code'],
       bancaria: [
@@ -536,12 +650,25 @@ export class VendorDetailModalComponent implements OnDestroy {
       cuentas: [],
     };
 
-    for (const tab of ['general', 'direccion', 'bancaria'] as VendorTabId[]) {
+    const order: VendorTabId[] = national
+      ? ['general', 'fiscal', 'bancaria']
+      : ['general', 'direccion', 'bancaria'];
+
+    for (const tab of order) {
       const hasError = tabFields[tab].some((name) => this.form.get(name)?.invalid);
       if (hasError) {
         this.activeTab.set(tab);
         return;
       }
+    }
+  }
+
+  private keepTabForVendorType(type: VendorType): void {
+    if (type === 'NATIONAL' && this.activeTab() === 'direccion') {
+      this.activeTab.set('fiscal');
+    }
+    if (type !== 'NATIONAL' && this.activeTab() === 'fiscal') {
+      this.activeTab.set('direccion');
     }
   }
 
