@@ -199,7 +199,7 @@ export class ProductDetailModalComponent implements OnInit {
   priceForm: any = this.getEmptyPriceForm();
   costForm: any = this.getEmptyCostForm();
   discountForm: any = this.getEmptyDiscountForm();
-  priceListForm: any = { name: '', description: '' };
+  priceListForm: any = { name: '', description: '', list_number: '', margin_percent: '' };
   attributeForm: any = this.getEmptyAttributeForm();
   attributeValueForm: any = this.getEmptyAttributeValueForm();
 
@@ -1389,7 +1389,7 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   openPriceListModal(): void {
-    this.priceListForm = { name: '', description: '' };
+    this.priceListForm = { name: '', description: '', list_number: '', margin_percent: '' };
     this.priceListModalVisible = true;
     this.syncDialogCloseGuard();
   }
@@ -1400,10 +1400,28 @@ export class ProductDetailModalComponent implements OnInit {
       return;
     }
 
-    const data = {
+    const listNumber = this.parseOptionalListNumber(this.priceListForm.list_number);
+    const margin = this.parseOptionalMargin(this.priceListForm.margin_percent);
+    if (listNumber === 'invalid') {
+      alert('El número de lista debe ser un entero del 1 al 9999');
+      return;
+    }
+    if (margin === 'invalid') {
+      alert('El margen debe ser un porcentaje válido');
+      return;
+    }
+
+    const data: {
+      name: string;
+      description: string;
+      list_number?: number;
+      margin_percent?: number;
+    } = {
       name: this.priceListForm.name.trim(),
       description: this.priceListForm.description?.trim() || ''
     };
+    if (listNumber != null) data.list_number = listNumber;
+    if (margin != null) data.margin_percent = margin;
 
     console.log('Creating price list:', data);
 
@@ -1424,6 +1442,24 @@ export class ProductDetailModalComponent implements OnInit {
         this.showNotification('Error al crear la lista de precios: ' + (error.error?.message || error.message), 'error');
       }
     });
+  }
+
+  private parseOptionalListNumber(value: unknown): number | null | 'invalid' {
+    if (value == null || String(value).trim() === '') return null;
+    const text = String(value).trim();
+    if (!/^\d+$/.test(text)) return 'invalid';
+    const number = Number(text);
+    if (number < 1 || number > 9999) return 'invalid';
+    return number;
+  }
+
+  private parseOptionalMargin(value: unknown): number | null | 'invalid' {
+    if (value == null || String(value).trim() === '') return null;
+    const text = String(value).trim().replace(',', '.');
+    if (!/^-?\d+(\.\d{1,2})?$/.test(text)) return 'invalid';
+    const number = Number(text);
+    if (number < -100 || number > 999.99) return 'invalid';
+    return number;
   }
 
   openPriceModal(price?: ProductPrice): void {

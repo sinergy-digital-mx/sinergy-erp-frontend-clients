@@ -247,6 +247,12 @@ export const routes: Routes = [
         pathMatch: 'full',
       },
       {
+        path: 'price-updates',
+        loadChildren: () =>
+          import('./features/price-updates/price-updates.routes')
+            .then(m => m.PRICE_UPDATE_ROUTES),
+      },
+      {
         path: 'accounting',
         loadChildren: () =>
           import('./features/accounting/accounting.routes')

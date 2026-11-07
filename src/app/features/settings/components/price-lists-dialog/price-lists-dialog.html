@@ -24,13 +24,25 @@
     <table *ngIf="!loading && priceLists.length > 0" class="data-table">
       <thead>
         <tr>
+          <th>NÚMERO</th>
           <th>NOMBRE</th>
+          <th>MARGEN</th>
           <th>DESCRIPCIÓN</th>
           <th>ACCIONES</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let list of priceLists; let i = index">
+          <td>
+            <input
+              *ngIf="list.editing"
+              type="text"
+              inputmode="numeric"
+              class="num-input"
+              [(ngModel)]="list.list_number"
+              placeholder="1">
+            <span *ngIf="!list.editing" class="num-pill">{{ list.list_number ?? '—' }}</span>
+          </td>
           <td>
             <input 
               *ngIf="list.editing" 
@@ -39,6 +51,17 @@
               [(ngModel)]="list.name"
               placeholder="Nombre">
             <span *ngIf="!list.editing">{{ list.name }}</span>
+          </td>
+          <td>
+            <label *ngIf="list.editing" class="margin-input">
+              <input
+                type="text"
+                inputmode="decimal"
+                [(ngModel)]="list.margin_percent"
+                placeholder="0">
+              <span>%</span>
+            </label>
+            <span *ngIf="!list.editing">{{ marginLabel(list) }}</span>
           </td>
           <td>
             <input 

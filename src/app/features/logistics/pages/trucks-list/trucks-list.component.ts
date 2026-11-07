@@ -14,7 +14,13 @@ import { CustomSnackbarComponent } from '../../../../core/components/custom-snac
 import { AlertDialogComponent } from '../../../../core/components/alert-dialog/alert-dialog.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { TRUCK_PERMISSIONS } from '../../config/permissions.config';
-import { Truck, TruckStatus } from '../../models/truck.model';
+import { ShippingDetailDialogComponent } from '../../components/shipping-detail-dialog/shipping-detail-dialog.component';
+import {
+  Truck,
+  TruckStatus,
+  truckShippingFolio,
+  truckUsageTitle,
+} from '../../models/truck.model';
 import { TruckService } from '../../services/truck.service';
 import { TruckFormModalComponent } from '../../components/truck-form-modal/truck-form-modal.component';
 
@@ -45,6 +51,7 @@ export class TrucksListComponent implements OnDestroy {
       { name: 'Núm. serie', prop: 'serial_number', sortable: false, canAutoResize: true, width: 160 },
       { name: 'Año', prop: 'anio', sortable: false, canAutoResize: true, width: 80 },
       { name: 'Carta porte', prop: 'carta_porte', sortable: false, canAutoResize: true, width: 140 },
+      { name: 'Uso', prop: 'usage', sortable: false, canAutoResize: false, width: 176 },
       { name: 'Estado', prop: 'status', sortable: false, canAutoResize: true, width: 100 },
       { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 200 },
     ],
@@ -292,6 +299,33 @@ export class TrucksListComponent implements OnDestroy {
         next: (res) => this.applyResponse(res),
         error: (err) => this.handleLoadError(err),
       });
+  }
+
+  shippingFolio(truck: Truck): string {
+    return truckShippingFolio(truck.active_shipping_id);
+  }
+
+  usageTitle(truck: Truck): string {
+    return truckUsageTitle(truck);
+  }
+
+  isRoute(truck: Truck): boolean {
+    return truck.active_shipping_status?.trim().toLowerCase() === 'en ruta';
+  }
+
+  openShipping(truck: Truck, event: Event): void {
+    event.stopPropagation();
+    const shippingId = truck.active_shipping_id;
+    if (!shippingId) return;
+    const ref = this.dialog.open(ShippingDetailDialogComponent, {
+      width: '96vw',
+      maxWidth: '1680px',
+      maxHeight: '96vh',
+      data: { shippingId },
+    });
+    ref.afterClosed().subscribe((result) => {
+      if (result?.updated) this.reload();
+    });
   }
 
   getStatusLabel(status: string): string {

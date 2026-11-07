@@ -94,6 +94,82 @@
   background: #4f46e5;
 }
 
+.usage-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  height: 26px;
+  padding: 0 0.35rem 0 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.usage-badge__dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 16%, transparent);
+  flex-shrink: 0;
+}
+
+.usage-badge__folio {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.usage-badge--free {
+  padding-right: 0.65rem;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.usage-badge--created {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+  cursor: pointer;
+
+  &:hover {
+    background: #e0e7ff;
+    border-color: #a5b4fc;
+  }
+}
+
+.usage-badge--route {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+  cursor: pointer;
+
+  &:hover {
+    background: #ffedd5;
+    border-color: #fdba74;
+  }
+}
+
+.usage-badge--created:focus-visible,
+.usage-badge--route:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.45);
+  outline-offset: 2px;
+}
+
 .truck-thumb {
   display: flex;
   align-items: center;

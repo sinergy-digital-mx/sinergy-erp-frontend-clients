@@ -698,6 +698,16 @@
         </div>
 
         <div class="form-field form-field--full">
+          <label class="form-label">NÚMERO</label>
+          <input type="text" inputmode="numeric" class="form-input" [(ngModel)]="priceListForm.list_number" placeholder="Opcional. No tiene que ir en orden">
+        </div>
+
+        <div class="form-field form-field--full">
+          <label class="form-label">MARGEN %</label>
+          <input type="text" inputmode="decimal" class="form-input" [(ngModel)]="priceListForm.margin_percent" placeholder="Opcional">
+        </div>
+
+        <div class="form-field form-field--full">
           <label class="form-label">DESCRIPCIÓN</label>
           <textarea class="form-textarea" [(ngModel)]="priceListForm.description" placeholder="Descripción opcional" rows="2"></textarea>
         </div>

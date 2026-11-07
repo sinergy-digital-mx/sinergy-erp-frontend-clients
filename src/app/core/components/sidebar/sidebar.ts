@@ -32,10 +32,12 @@ import {
   Repeat,
   Building2,
   Boxes,
+  Tags,
 } from 'lucide-angular';
 import {
   COSTA_CAMPESTRE_DIVINO_ORGANIZATION_ID,
   MADERERIA_ZONA_NORTE_ORGANIZATION_ID,
+  VERDULERIA_ORGANIZATION_ID,
 } from '../../config/organizations.constants';
 import { DIVINO_DASHBOARD_TENANT_ID } from '../../../features/divino-dashboard/config/divino-dashboard.constants';
 import { VEXIA_TENANT_ID } from '../../../features/service-subscriptions/config/service-subscription.constants';
@@ -95,6 +97,7 @@ const MENU_SECTIONS: MenuSection[] = [
       'menu-warehouse-control',
       'menu-shippings',
       'menu-products',
+      'menu-price-update',
       'menu-inventory',
       'menu-pos',
       'menu-pos-cobranza',
@@ -249,6 +252,14 @@ export class Sidebar implements OnInit, OnDestroy {
         PERMISSIONS.settings.products.viewMenu,
         'Product:ViewMenu',
       ],
+    },
+    {
+      label: 'Actualización de precio',
+      route: '/price-updates',
+      icon: Tags,
+      id: 'menu-price-update',
+      permission: PERMISSIONS.priceUpdates.viewMenu,
+      tenantId: VERDULERIA_ORGANIZATION_ID,
     },
     {
       label: 'Inventario',

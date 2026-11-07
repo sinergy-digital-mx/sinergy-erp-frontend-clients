@@ -1,5 +1,5 @@
 .dialog-container {
-  width: 600px;
+  width: min(920px, 94vw);
   max-height: 600px;
   display: flex;
   flex-direction: column;
@@ -43,8 +43,8 @@
 
 .dialog-content {
   flex: 1;
-  overflow-y: auto;
-  padding: 10px;
+  overflow: auto;
+  padding: 10px 16px 16px;
 }
 
 .dialog-actions {
@@ -84,8 +84,19 @@
 
 .data-table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
   font-size: 13px;
+  table-layout: fixed;
+
+  th:nth-child(1),
+  td:nth-child(1) { width: 5.5rem; }
+  th:nth-child(2),
+  td:nth-child(2) { width: 28%; }
+  th:nth-child(3),
+  td:nth-child(3) { width: 7.5rem; }
+  th:nth-child(5),
+  td:nth-child(5) { width: 5.5rem; }
 
   thead {
     background: #f9fafb;
@@ -205,4 +216,68 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.num-input {
+  width: 4.2rem;
+  height: 2rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  text-align: center;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: #111827;
+}
+
+.num-input:focus,
+.margin-input:focus-within {
+  outline: 2px solid #bfdbfe;
+  border-color: #2563eb;
+}
+
+.num-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.8rem;
+  height: 1.6rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.margin-input {
+  display: flex;
+  align-items: center;
+  width: 6.2rem;
+  height: 2rem;
+  padding: 0 0.45rem 0 0.55rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+
+  input {
+    width: 100%;
+    border: 0;
+    outline: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    background: transparent;
+  }
+
+  span {
+    margin-left: 0.2rem;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+  }
 }

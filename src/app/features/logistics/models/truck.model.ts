@@ -79,6 +79,33 @@ export function truckSelectLabel(truck: Pick<Truck, 'name' | 'placa'>): string {
   return name || placa || 'Camión';
 }
 
+/** Mismo corte que la tarjeta de viajes: primeros 8 del id. */
+export function truckShippingFolio(id: string | null | undefined): string {
+  const raw = id?.trim().slice(0, 8) ?? '';
+  if (!raw) return '';
+  return raw.startsWith('#') ? raw : `#${raw}`;
+}
+
+export function truckUsageStatusLabel(status: string | null | undefined): string {
+  const value = status?.trim();
+  if (!value) return 'En uso';
+  return value.toLowerCase() === 'en ruta' ? 'En ruta' : value;
+}
+
+export function truckUsageTitle(
+  truck: Pick<
+    Truck,
+    'active_shipping_id' | 'active_shipping_status' | 'active_shipping_date' | 'active_shipping_driver_name'
+  >,
+): string {
+  if (!truck.active_shipping_id) return 'Sin envío activo';
+  const folio = truckShippingFolio(truck.active_shipping_id);
+  const status = truckUsageStatusLabel(truck.active_shipping_status);
+  const day = formatShippingDay(truck.active_shipping_date);
+  const driver = truck.active_shipping_driver_name?.trim();
+  return [`Envío ${folio}`, status, day, driver].filter(Boolean).join(' · ');
+}
+
 /** Texto cuando la unidad ya está en un envío Creado o En Ruta. */
 export function truckBusyLabel(
   truck: Pick<

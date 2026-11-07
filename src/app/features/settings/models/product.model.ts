@@ -108,6 +108,8 @@ export interface PriceList {
   id: string;
   tenant_id?: string;
   name: string;
+  list_number?: number | null;
+  margin_percent?: number | null;
   description?: string | null;
   is_default: boolean;
   is_active?: boolean;
@@ -310,6 +312,8 @@ export interface ConvertUoMResponse {
 
 export interface CreatePriceListDto {
   name: string;
+  list_number?: number | null;
+  margin_percent?: number | null;
   description?: string;
   is_default?: boolean;
   valid_from?: string | null;

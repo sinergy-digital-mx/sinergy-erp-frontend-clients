@@ -439,7 +439,8 @@ export class ProductListComponent implements OnDestroy {
 
   openPriceListsDialog() {
     this.dialog.open(PriceListsDialogComponent, {
-      width: '600px',
+      width: '960px',
+      maxWidth: '96vw',
       height: '600px',
       disableClose: false
     });

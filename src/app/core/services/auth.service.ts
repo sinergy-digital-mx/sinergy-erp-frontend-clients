@@ -5,7 +5,7 @@
   import { jwtDecode } from 'jwt-decode';
   import { ActivatedRoute, Router } from '@angular/router';
   import { environment } from '../../../environments/environment';
-  import { isCostaCampestreDivino, isMadereriaZonaNorte } from '../config/organizations.constants';
+  import { isCostaCampestreDivino, isMadereriaZonaNorte, isVerduleria } from '../config/organizations.constants';
   import { SETTINGS_PERMISSIONS } from '../config/permissions.config';
 
 
@@ -532,6 +532,7 @@
         { path: '/purchase-orders', permissions: ['purchaseOrders:Read', 'purchase_orders:read', 'purchase_orders:ViewMenu'] },
         { path: '/inventory', permissions: ['inventory:Read', 'inventory:ViewMenu'] },
         { path: '/products', permissions: ['products:ViewMenu', 'Product:ViewMenu'] },
+        { path: '/price-updates', permissions: ['price_updates:ViewMenu', 'price_updates:Read'] },
         { path: '/vendors', permissions: ['vendors:ViewMenu', 'Vendor:ViewMenu'] },
         { path: '/sales-orders', permissions: ['salesOrders:Read', 'sales_orders:read', 'sales_orders:ViewMenu'] },
         { path: '/quotations', permissions: ['Quotation:Read', 'Quotation:ViewMenu', 'quotation:Read', 'quotation:ViewMenu'] },
@@ -567,6 +568,9 @@
           continue;
         }
         if (route.path === '/reporte-requerimiento' && !skipRealEstate) {
+          continue;
+        }
+        if (route.path === '/price-updates' && !isVerduleria(this.user_info?.tenant_id)) {
           continue;
         }
         if (route.path.startsWith('/settings') && !this.hasPermission(SETTINGS_PERMISSIONS.viewMenu)) {

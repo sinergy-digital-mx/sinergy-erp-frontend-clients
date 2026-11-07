@@ -38,6 +38,8 @@ export class PriceListsDialogComponent implements OnInit {
       next: (lists) => {
         this.priceLists = lists.map(list => ({
           ...list,
+          list_number: list.list_number ?? null,
+          margin_percent: list.margin_percent ?? null,
           editing: false
         }));
         this.loading = false;
@@ -56,6 +58,8 @@ export class PriceListsDialogComponent implements OnInit {
     const newList = {
       id: '',
       name: '',
+      list_number: null,
+      margin_percent: null,
       description: '',
       editing: true,
       isNew: true
@@ -86,9 +90,22 @@ export class PriceListsDialogComponent implements OnInit {
       return;
     }
 
+    const listNumber = this.parseListNumber(list.list_number);
+    const margin = this.parseMargin(list.margin_percent);
+    if (listNumber === 'invalid') {
+      this.showNotification('El número debe ser un entero del 1 al 9999', 'error');
+      return;
+    }
+    if (margin === 'invalid') {
+      this.showNotification('El margen debe ser un porcentaje válido', 'error');
+      return;
+    }
+
     const data = {
       name: list.name.trim(),
-      description: list.description?.trim() || ''
+      description: list.description?.trim() || '',
+      list_number: listNumber,
+      margin_percent: margin,
     };
 
     if (list.isNew) {
@@ -138,6 +155,29 @@ export class PriceListsDialogComponent implements OnInit {
         this.showNotification(errorMessage, 'error');
       }
     });
+  }
+
+  marginLabel(list: { margin_percent?: number | string | null }): string {
+    if (list.margin_percent == null || list.margin_percent === '') return '—';
+    return `${Number(list.margin_percent)}%`;
+  }
+
+  private parseListNumber(value: unknown): number | null | 'invalid' {
+    if (value == null || String(value).trim() === '') return null;
+    const text = String(value).trim();
+    if (!/^\d+$/.test(text)) return 'invalid';
+    const number = Number(text);
+    if (number < 1 || number > 9999) return 'invalid';
+    return number;
+  }
+
+  private parseMargin(value: unknown): number | null | 'invalid' {
+    if (value == null || String(value).trim() === '') return null;
+    const text = String(value).trim().replace(',', '.');
+    if (!/^-?\d+(\.\d{1,2})?$/.test(text)) return 'invalid';
+    const number = Number(text);
+    if (number < -100 || number > 999.99) return 'invalid';
+    return number;
   }
 
   close(): void {

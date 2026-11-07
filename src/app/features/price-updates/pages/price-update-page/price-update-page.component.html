@@ -1,0 +1,109 @@
+<section class="sheet">
+  <header class="sheet-header">
+    <div>
+      <p class="kicker">Verdulería</p>
+      <h1>Actualización de precio</h1>
+      <p class="sub">
+        C1 y C2 son las últimas compras en la unidad base. PC es su promedio.
+        Al cambiarlo se recalculan las listas que tienen margen.
+      </p>
+    </div>
+    <button
+      type="button"
+      class="apply"
+      (click)="applyMargins()"
+      [disabled]="!canEdit || applying() || loading()">
+      {{ applying() ? 'Aplicando…' : 'Aplicar márgenes' }}
+    </button>
+  </header>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      class="search"
+      placeholder="Buscar producto o código"
+      [value]="search"
+      (input)="onSearch($any($event.target).value)">
+    <span class="count">{{ total() }} productos</span>
+  </div>
+
+  @if (loading() && rows().length === 0) {
+    <p class="state">Cargando productos…</p>
+  } @else if (!loading() && rows().length === 0) {
+    <p class="state">No hay productos para mostrar.</p>
+  } @else if (!lists().length) {
+    <p class="state">No hay listas de precio activas. Crea una y asígnale número y margen.</p>
+  } @else {
+    <div class="grid-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="sticky product-head">Producto</th>
+            <th class="cost-head" title="Última compra, en unidad base">C1</th>
+            <th class="cost-head" title="Compra anterior, en unidad base">C2</th>
+            <th class="cost-head pc" title="Costo promedio de C1 y C2">PC</th>
+            @for (list of lists(); track list.id) {
+              <th class="list-head" [attr.colspan]="2" [title]="listTip(list)">
+                <span>{{ list.label }}</span>
+                <small>{{ marginText(list) }}</small>
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr [class.is-saving]="isSaving(row.id)">
+              <th class="sticky product" scope="row">
+                <span class="code">{{ row.code }}</span>
+                <span class="name">{{ row.name }}</span>
+                <span class="base">{{ row.baseLabel }}</span>
+              </th>
+              <td class="cost">
+                @if (isEditingCost(row.id, 'c1')) {
+                  <input class="cell-editor" [value]="editing()!.initial" (blur)="commitCost(row, 'c1', $any($event.target).value)" (keydown)="onEditorKey($event)">
+                } @else {
+                  <button type="button" class="cell-btn" [title]="row.purchase1Title" [disabled]="!canEdit" (click)="beginCost(row, 'c1')">{{ row.cost1Text }}</button>
+                }
+              </td>
+              <td class="cost">
+                @if (isEditingCost(row.id, 'c2')) {
+                  <input class="cell-editor" [value]="editing()!.initial" (blur)="commitCost(row, 'c2', $any($event.target).value)" (keydown)="onEditorKey($event)">
+                } @else {
+                  <button type="button" class="cell-btn" [title]="row.purchase2Title" [disabled]="!canEdit" (click)="beginCost(row, 'c2')">{{ row.cost2Text }}</button>
+                }
+              </td>
+              <td class="cost pc">
+                @if (isEditingCost(row.id, 'pc')) {
+                  <input class="cell-editor" [value]="editing()!.initial" (blur)="commitCost(row, 'pc', $any($event.target).value)" (keydown)="onEditorKey($event)">
+                } @else {
+                  <button type="button" class="cell-btn" title="Promedio. Al cambiarlo se recalculan las listas con margen." [disabled]="!canEdit" (click)="beginCost(row, 'pc')">{{ row.averageText }}</button>
+                }
+              </td>
+              @for (slot of row.slots; track slot.key) {
+                <td class="price" [class.group-start]="slot.groupStart" [class.is-manual]="slot.manual" [class.is-suggested]="slot.suggested">
+                  @if (!slot.uomId) {
+                    <span class="empty">—</span>
+                  } @else if (isEditingPrice(row.id, slot.key)) {
+                    <span class="um" [title]="slot.uomTitle">{{ slot.uomName }}</span>
+                    <input class="cell-editor" [value]="editing()!.initial" (blur)="commitPrice(row, slot, $any($event.target).value)" (keydown)="onEditorKey($event)">
+                  } @else {
+                    <button type="button" class="price-btn" [title]="slot.manual ? 'Precio capturado a mano' : slot.uomTitle" [disabled]="!canEdit" (click)="beginPrice(row, slot)">
+                      <span class="um">{{ slot.uomName }}</span>
+                      <span class="amount">{{ slot.text }}</span>
+                    </button>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="pager">
+      <button type="button" (click)="prev()" [disabled]="page() <= 1 || loading()">Anterior</button>
+      <span>{{ page() }} / {{ pageCount() }}</span>
+      <button type="button" (click)="next()" [disabled]="page() >= pageCount() || loading()">Siguiente</button>
+    </footer>
+  }
+</section>
