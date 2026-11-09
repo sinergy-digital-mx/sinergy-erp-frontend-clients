@@ -29,8 +29,7 @@
     <button
       type="button"
       class="gi-info-btn"
-      [attr.aria-expanded]="infoOpen()"
-      (click)="infoOpen.set(!infoOpen())">
+      (click)="infoOpen.set(true)">
       <span class="gi-info-btn__mark" aria-hidden="true">i</span>
       Información
     </button>
@@ -52,10 +51,25 @@
   </div>
 
   @if (infoOpen()) {
-    <div class="gi-info-panel">
-      @for (line of infoLines(); track line) {
-        <p>{{ line }}</p>
-      }
+    <div class="gi-modal" (click)="infoOpen.set(false)">
+      <div
+        class="gi-modal__card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="global-invoice-info-title"
+        (click)="$event.stopPropagation()">
+        <div class="gi-modal__head">
+          <h3 id="global-invoice-info-title">Información</h3>
+          <button type="button" class="gi-modal__close" aria-label="Cerrar" (click)="infoOpen.set(false)">
+            ×
+          </button>
+        </div>
+        <div class="gi-modal__body">
+          @for (line of infoLines(); track line) {
+            <p>{{ line }}</p>
+          }
+        </div>
+      </div>
     </div>
   }
 
@@ -158,9 +172,9 @@
         </thead>
         <tbody>
           @for (order of page()?.orders ?? []; track order.id) {
-            <tr>
+            <tr class="gi-row" (click)="openOrder(order.id)">
               @if (canSelectOrders()) {
-                <td class="gi-check">
+                <td class="gi-check" (click)="$event.stopPropagation()">
                   <input
                     type="checkbox"
                     [attr.aria-label]="'Seleccionar ' + order.folio"
@@ -169,7 +183,9 @@
                 </td>
               }
               <td>
-                <span class="dt-folio-badge dt-folio-badge--odv">{{ order.folio }}</span>
+                <button type="button" class="gi-folio" (click)="openOrder(order.id); $event.stopPropagation()">
+                  <span class="dt-folio-badge dt-folio-badge--odv">{{ order.folio }}</span>
+                </button>
               </td>
               <td class="gi-date">{{ formatDate(order.created_at) }}</td>
               <td>

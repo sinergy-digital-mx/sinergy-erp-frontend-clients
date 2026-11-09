@@ -1,7 +1,10 @@
-import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, computed, signal } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, SimpleChanges, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
+import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
+import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
@@ -46,6 +49,7 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
     private auth: AuthService,
     private toast: ToastService,
     private route: ActivatedRoute,
+    private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -271,6 +275,19 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
       default:
         return `${base} dt-status-pill--neutral`;
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  closeInfo(): void {
+    this.infoOpen.set(false);
+  }
+
+  openOrder(orderId: string): void {
+    if (!orderId) return;
+    this.dialog.open(SalesOrderDetailDialogComponent, {
+      ...ORDER_DETAIL_DIALOG_OPTIONS,
+      data: { orderId },
+    });
   }
 
   infoLines(): string[] {

@@ -132,6 +132,7 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges {
   }
 
   openReceivableDetail(row: AccountsReceivableRow): void {
+    if (!row?.razon_social) return;
     this.dialog.open(ReceivableDetailDialogComponent, {
       width: '92vw',
       maxWidth: '1200px',

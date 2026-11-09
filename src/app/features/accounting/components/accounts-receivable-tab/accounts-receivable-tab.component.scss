@@ -126,6 +126,14 @@
   margin-bottom: 0;
 }
 
+:host ::ng-deep .datatable-row {
+  cursor: pointer;
+}
+
+:host ::ng-deep .datatable-row:hover td {
+  background: #f8fafc;
+}
+
 .account-cell {
   display: flex;
   flex-direction: column;

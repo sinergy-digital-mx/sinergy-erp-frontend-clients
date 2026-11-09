@@ -64,14 +64,15 @@
   <app-datatable-wrapper
     [config]="tableConfig()"
     [rowTemplate]="tableTemplate"
-    (pageChange)="onPageChange($event)">
+    (pageChange)="onPageChange($event)"
+    (rowClick)="openReceivableDetail($event.data)">
   </app-datatable-wrapper>
 </div>
 
 <ng-template #tableTemplate let-item="$implicit">
   <td class="px-2 py-2">
     <div class="account-cell">
-      <button type="button" class="row-link" [title]="item.razon_social" (click)="openReceivableDetail(item)">
+      <button type="button" class="row-link" [title]="item.razon_social" (click)="openReceivableDetail(item); $event.stopPropagation()">
         {{ item.razon_social }}
       </button>
       <span class="rfc-badge" [class.rfc-badge--empty]="!item.fiscal_rfc">

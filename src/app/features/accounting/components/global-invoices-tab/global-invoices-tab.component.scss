@@ -90,22 +90,77 @@
   font: italic 700 0.6875rem/1 Georgia, 'Times New Roman', serif;
 }
 
-.gi-info-panel {
-  max-width: 46rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid #e0e7ff;
-  border-radius: 12px;
-  background: #f8fafc;
+.gi-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
 }
 
-.gi-info-panel p {
-  margin: 0 0 0.45rem;
+.gi-modal__card {
+  width: min(28rem, 100%);
+  max-height: min(32rem, calc(100vh - 2rem));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+}
+
+.gi-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.gi-modal__head h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.gi-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gi-modal__close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.gi-modal__body {
+  padding: 0.95rem 1rem 1.05rem;
+  overflow: auto;
+}
+
+.gi-modal__body p {
+  margin: 0 0 0.55rem;
   color: #334155;
   font-size: 0.8125rem;
   line-height: 1.45;
 }
 
-.gi-info-panel p:last-child {
+.gi-modal__body p:last-child {
   margin-bottom: 0;
 }
 
@@ -271,6 +326,21 @@
 
 .gi-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.gi-row {
+  cursor: pointer;
+}
+
+.gi-row:hover td {
+  background: #f8fafc;
+}
+
+.gi-folio {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .gi-check {
