@@ -348,6 +348,51 @@
           </p>
         </div>
       </div>
+
+      <div *ngIf="activeTab === 'publico'" class="tab-pane fiscal-form-grid">
+        <div class="col-span-2">
+          <h3 class="text-sm font-semibold text-gray-800">Facturas a público en general</h3>
+          <p class="csd-field-hint">
+            El último día del mes, a la hora de esta zona, se pueden timbrar solas las órdenes que el cliente no facturó. Cada una lleva en sus notas el folio de ese proceso.
+          </p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Zona horaria</label>
+          <select
+            formControlName="global_invoice_timezone"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let zone of publicInvoiceTimeZones" [value]="zone.id">{{ zone.label }}</option>
+          </select>
+          <p class="csd-field-hint">El mes de la orden y la hora de cierre se cuentan aquí.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Hora de cierre</label>
+          <select
+            formControlName="global_invoice_hour"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let hour of publicInvoiceHours" [value]="hour.id">{{ hour.label }}</option>
+          </select>
+          <p class="csd-field-hint">Hora en punto del último día del mes.</p>
+        </div>
+        <div class="col-span-2">
+          <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <input type="checkbox" formControlName="global_invoice_auto_enabled">
+            Timbrar automáticamente el último día del mes
+          </label>
+          <p class="csd-field-hint">
+            A esa hora toma, por sucursal, las órdenes del mes que sigan sin factura y timbra la factura a público en general. Si ya hay una vigente, no la repite. Se puede cancelar y generar otra desde Cobranza.
+          </p>
+        </div>
+        <div class="col-span-2">
+          <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <input type="checkbox" formControlName="global_invoice_block_after_month">
+            No permitir facturar órdenes después del mes de la orden
+          </label>
+          <p class="csd-field-hint">
+            A partir de esa hora ya no se puede facturar la orden por separado, ni desde la orden ni en el portal. La factura a público en general sí se puede generar, cancelar y volver a generar.
+          </p>
+        </div>
+      </div>
       </form>
 
       <!-- Tab: Sucursales -->
@@ -451,7 +496,7 @@
               <span>Utilizar como logo del sistema</span>
             </label>
             <small class="logo-help">
-              Si lo activas, este logo reemplaza la estrella arriba del menú. Solo una razón social puede tenerlo activo.
+              Si lo activas, este logo reemplaza Polux | ERP arriba del menú. Solo una razón social puede tenerlo activo.
               Se guarda en este navegador y no se vuelve a descargar hasta que cambies el archivo.
             </small>
           </div>
@@ -467,7 +512,7 @@
       (clicked)="close()">
     </app-button>
     <app-button
-      *ngIf="activeTab === 'configuracion' || activeTab === 'impuestos' || activeTab === 'cotizaciones'"
+      *ngIf="activeTab === 'configuracion' || activeTab === 'impuestos' || activeTab === 'cotizaciones' || activeTab === 'publico'"
       [text]="isNew ? 'Crear Razón Social' : 'Guardar Cambios'"
       custom_class="btn_primary"
       [loading]="saving()"

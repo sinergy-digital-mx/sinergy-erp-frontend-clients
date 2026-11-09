@@ -10,6 +10,10 @@ export interface FiscalConfiguration {
   iva_enabled?: boolean | number;
   ieps_enabled?: boolean | number;
   multi_fiscal_transfers_enabled?: boolean | number;
+  global_invoice_auto_enabled?: boolean | number;
+  global_invoice_block_after_month?: boolean | number;
+  global_invoice_hour?: number | null;
+  global_invoice_timezone?: string | null;
   persona_type: 'Persona Física' | 'Persona Moral';
   branches_count?: number;
   branch_count?: number;
@@ -41,6 +45,10 @@ export interface CreateFiscalConfigurationDto {
   iva_enabled?: boolean;
   ieps_enabled?: boolean;
   multi_fiscal_transfers_enabled?: boolean;
+  global_invoice_auto_enabled?: boolean;
+  global_invoice_block_after_month?: boolean;
+  global_invoice_hour?: number | null;
+  global_invoice_timezone?: string | null;
   persona_type: 'Persona Física' | 'Persona Moral';
   fiscal_regime?: string;
   digital_seal?: string;

@@ -32,7 +32,9 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
   readonly saving = signal(false);
   readonly cancelling = signal(false);
   readonly confirmCancel = signal(false);
+  readonly infoOpen = signal(false);
   readonly selected = signal<Set<string>>(new Set());
+  private calendarAligned = false;
 
   readonly allSelected = computed(() => {
     const orders = this.page()?.orders ?? [];
@@ -67,6 +69,7 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
 
   onMonth(value: string): void {
     if (!/^\d{4}-\d{2}$/.test(value)) return;
+    this.calendarAligned = true;
     this.month.set(value);
     this.confirmCancel.set(false);
     this.load();
@@ -270,6 +273,38 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
     }
   }
 
+  infoLines(): string[] {
+    const policy = this.page()?.policy;
+    const lines = [
+      'Son las órdenes de esta sucursal, del mes elegido, que el cliente todavía no facturó.',
+      'La factura a público en general se emite con todas. Hay que dejarlas marcadas. Queda una vigente por sucursal.',
+      'La factura queda arriba de la lista. Se puede ver el PDF, cancelarla y, cuando el SAT la cancele, generar otra.',
+    ];
+    if (!policy) {
+      lines.push('Elige la sucursal. La hora, la zona horaria y el cierre del mes se configuran en su razón social.');
+      return lines;
+    }
+    const hour = this.hourLabel(policy.hour);
+    const zone = policy.timezone_label || 'Tijuana';
+    if (policy.auto_enabled && hour) {
+      lines.push(
+        `Esta razón social timbra sola el último día del mes a las ${hour} (${zone}). Toma las que sigan sin factura. En la nota de cada orden queda un folio del proceso, como FAPG-20261130-01.`,
+      );
+    } else {
+      lines.push('El timbrado automático está apagado en esta razón social. Se genera aquí, a mano.');
+    }
+    if (policy.block_after_month && hour) {
+      lines.push(
+        `A partir de las ${hour} del último día del mes (${zone}) ya no se puede facturar la orden por separado, ni desde la orden ni en el portal. Sí se puede incluir en esta factura.`,
+      );
+    } else if (!policy.block_after_month) {
+      lines.push(
+        'Si en la razón social se activa «No permitir facturar órdenes después del mes de la orden», después de esa hora la orden ya no se factura por separado.',
+      );
+    }
+    return lines;
+  }
+
   formatDate(value: string): string {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '';
@@ -277,7 +312,7 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
-      timeZone: 'America/Tijuana',
+      timeZone: this.page()?.policy?.timezone || 'America/Tijuana',
     }).format(date);
   }
 
@@ -314,6 +349,19 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
   }
 
   private applyPage(page: GlobalInvoicePage): void {
+    const calendar = page.policy?.calendar_month;
+    if (
+      !this.calendarAligned &&
+      calendar &&
+      /^\d{4}-\d{2}$/.test(calendar) &&
+      calendar !== this.month()
+    ) {
+      this.calendarAligned = true;
+      this.month.set(calendar);
+      this.load();
+      return;
+    }
+    if (calendar) this.calendarAligned = true;
     this.page.set(page);
     const next = page.billing_branch_id ?? '';
     if (next !== this.branchId()) this.branchId.set(next);
@@ -331,6 +379,11 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
     const year = parts.find((part) => part.type === 'year')?.value ?? '0000';
     const month = parts.find((part) => part.type === 'month')?.value ?? '01';
     return `${year}-${month}`;
+  }
+
+  private hourLabel(hour: number | null | undefined): string {
+    if (hour == null || !Number.isInteger(hour)) return '';
+    return `${String(hour).padStart(2, '0')}:00`;
   }
 
   private stampEnvironment(): 'demo' | 'production' {

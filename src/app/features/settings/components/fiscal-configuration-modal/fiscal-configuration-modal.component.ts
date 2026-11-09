@@ -62,6 +62,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
     { id: 'configuracion', title: 'Configuración' },
     { id: 'impuestos', title: 'Impuestos y transferencias' },
     { id: 'cotizaciones', title: 'Cotizaciones' },
+    { id: 'publico', title: 'Público en general' },
     { id: 'sucursales', title: 'Sucursales' },
     { id: 'logo', title: 'Logo' }
   ];
@@ -83,6 +84,23 @@ export class FiscalConfigurationModalComponent implements OnInit {
   readonly prefixMaxLength = DOCUMENT_PREFIX_MAX_LENGTH;
   showCsdPassword = false;
   readonly prefixErrorMessage = DOCUMENT_PREFIX_ERROR;
+  readonly publicInvoiceHours = Array.from({ length: 24 }, (_, hour) => ({
+    id: String(hour),
+    label: `${String(hour).padStart(2, '0')}:00`,
+  }));
+  readonly publicInvoiceTimeZones = [
+    { id: 'America/Tijuana', label: 'Tijuana' },
+    { id: 'America/Hermosillo', label: 'Hermosillo' },
+    { id: 'America/Mazatlan', label: 'Mazatlán' },
+    { id: 'America/Chihuahua', label: 'Chihuahua' },
+    { id: 'America/Mexico_City', label: 'Ciudad de México' },
+    { id: 'America/Monterrey', label: 'Monterrey' },
+    { id: 'America/Matamoros', label: 'Matamoros' },
+    { id: 'America/Ojinaga', label: 'Ojinaga' },
+    { id: 'America/Bahia_Banderas', label: 'Bahía de Banderas' },
+    { id: 'America/Merida', label: 'Mérida' },
+    { id: 'America/Cancun', label: 'Cancún' },
+  ];
 
   personaTypeOptions = [
     { id: 'Persona Física', name: 'Persona Física' },
@@ -168,6 +186,10 @@ export class FiscalConfigurationModalComponent implements OnInit {
       iva_enabled: this.isEnabledFlag(config.iva_enabled ?? true),
       ieps_enabled: this.isEnabledFlag(config.ieps_enabled ?? true),
       multi_fiscal_transfers_enabled: this.isEnabledFlag(config.multi_fiscal_transfers_enabled ?? true),
+      global_invoice_auto_enabled: this.isEnabledFlag(config.global_invoice_auto_enabled),
+      global_invoice_block_after_month: this.isEnabledFlag(config.global_invoice_block_after_month),
+      global_invoice_hour: String(config.global_invoice_hour ?? 9),
+      global_invoice_timezone: config.global_invoice_timezone || 'America/Tijuana',
       persona_type: config.persona_type,
       fiscal_regime: config.fiscal_regime ?? '',
       status: config.status,
@@ -296,7 +318,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
             data: {
               message: this.useAsSystemLogo
                 ? 'Este logo se usa en el menú del sistema'
-                : 'El menú vuelve a mostrar la estrella',
+                : 'El menú vuelve a mostrar Polux | ERP',
               type: 'success',
             },
             duration: 3000,
@@ -411,6 +433,10 @@ export class FiscalConfigurationModalComponent implements OnInit {
       iva_enabled: [true],
       ieps_enabled: [true],
       multi_fiscal_transfers_enabled: [false],
+      global_invoice_auto_enabled: [false],
+      global_invoice_block_after_month: [false],
+      global_invoice_hour: ['9'],
+      global_invoice_timezone: ['America/Tijuana'],
       persona_type: ['Persona Moral', [Validators.required]],
       fiscal_regime: [''],
       digital_seal: [''],
@@ -541,6 +567,10 @@ export class FiscalConfigurationModalComponent implements OnInit {
       iva_enabled: !!formValue.iva_enabled,
       ieps_enabled: !!formValue.ieps_enabled,
       multi_fiscal_transfers_enabled: !!formValue.multi_fiscal_transfers_enabled,
+      global_invoice_auto_enabled: !!formValue.global_invoice_auto_enabled,
+      global_invoice_block_after_month: !!formValue.global_invoice_block_after_month,
+      global_invoice_hour: Number(formValue.global_invoice_hour),
+      global_invoice_timezone: String(formValue.global_invoice_timezone || 'America/Tijuana'),
       persona_type: formValue.persona_type,
       fiscal_regime: formValue.fiscal_regime || undefined,
       status: formValue.status,

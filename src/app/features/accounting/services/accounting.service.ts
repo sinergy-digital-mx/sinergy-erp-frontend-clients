@@ -480,6 +480,21 @@ export class AccountingService {
       currency: source['currency'] ? String(source['currency']) : null,
       can_generate: source['can_generate'] === true,
       blocked_reason: source['blocked_reason'] ? String(source['blocked_reason']) : null,
+      policy: this.parseGlobalInvoicePolicy(source['policy']),
+    };
+  }
+
+  private parseGlobalInvoicePolicy(raw: unknown): GlobalInvoicePage['policy'] {
+    if (!raw || typeof raw !== 'object') return null;
+    const row = raw as Record<string, unknown>;
+    const hour = row['hour'] == null || row['hour'] === '' ? null : Number(row['hour']);
+    return {
+      auto_enabled: row['auto_enabled'] === true,
+      block_after_month: row['block_after_month'] === true,
+      hour: hour != null && Number.isInteger(hour) ? hour : null,
+      timezone: String(row['timezone'] || 'America/Tijuana'),
+      timezone_label: String(row['timezone_label'] || 'Tijuana'),
+      calendar_month: String(row['calendar_month'] || ''),
     };
   }
 
@@ -501,6 +516,7 @@ export class AccountingService {
       stamp_status: row['stamp_status'] ? String(row['stamp_status']) : null,
       sat_status: row['sat_status'] ? String(row['sat_status']) : null,
       can_cancel: row['can_cancel'] === true,
+      process_folio: row['process_folio'] ? String(row['process_folio']) : null,
     };
   }
 

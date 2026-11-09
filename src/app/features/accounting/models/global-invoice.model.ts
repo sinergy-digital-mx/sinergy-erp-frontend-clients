@@ -45,6 +45,16 @@ export interface GlobalInvoiceCard {
   stamp_status: string | null;
   sat_status: string | null;
   can_cancel: boolean;
+  process_folio: string | null;
+}
+
+export interface GlobalInvoicePolicy {
+  auto_enabled: boolean;
+  block_after_month: boolean;
+  hour: number | null;
+  timezone: string;
+  timezone_label: string;
+  calendar_month: string;
 }
 
 export interface GlobalInvoicePage {
@@ -61,4 +71,5 @@ export interface GlobalInvoicePage {
   currency: string | null;
   can_generate: boolean;
   blocked_reason: string | null;
+  policy: GlobalInvoicePolicy | null;
 }
