@@ -8,6 +8,8 @@ import { ReportPeriod, ReportPeriodSelectorComponent } from '../../../../core/co
 import { AuthService } from '../../../../core/services/auth.service';
 import { BranchService } from '../../../settings/services/branch.service';
 import { Branch } from '../../../settings/models/branch.model';
+import { InventoryService } from '../../../inventory/services/inventory.service';
+import { InventoryLocationFiscal } from '../../../inventory/models/inventory-location.model';
 import { AccountingPeriod, PosDaySummary } from '../../models/accounting.model';
 import { PosSummaryTabComponent } from '../../components/pos-summary-tab/pos-summary-tab.component';
 import { PosCollectionsTabComponent } from '../../components/pos-collections-tab/pos-collections-tab.component';
@@ -56,9 +58,11 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   dateFrom = signal('');
   dateTo = signal('');
   billingBranchId = signal('');
+  fiscalConfigurationId = signal('');
   reloadToken = signal(0);
 
   branches = signal<Branch[]>([]);
+  fiscalOptions = signal<InventoryLocationFiscal[]>([]);
   posSummary = signal<PosDaySummary>(this.emptyPosSummary());
   receivableSearchDraft = '';
   receivableSearch = signal('');
@@ -76,6 +80,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
 
   constructor(
     private branchService: BranchService,
+    private inventoryService: InventoryService,
     private authService: AuthService,
     private route: ActivatedRoute,
     private router: Router,
@@ -85,6 +90,8 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const fromUrl = sharedBranchIdFromParams(this.route.snapshot.queryParamMap);
     if (fromUrl) this.billingBranchId.set(fromUrl);
+    const fiscalFromUrl = this.route.snapshot.queryParamMap.get('fiscal_configuration_id')?.trim() || '';
+    if (fiscalFromUrl) this.fiscalConfigurationId.set(fiscalFromUrl);
 
     const initial = this.route.snapshot.data['tab'];
     if (typeof initial === 'string' && this.isAccountingTab(initial)) {
@@ -96,13 +103,20 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
 
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const next = sharedBranchIdFromParams(params);
-      if (next === this.billingBranchId()) return;
-      this.billingBranchId.set(next);
-      if (!next && this.branchRequired()) this.applyDefaultBranch();
-      if (this.showPeriodFilters()) this.reloadActiveTab();
+      if (next !== this.billingBranchId()) {
+        this.billingBranchId.set(next);
+        if (!next && this.branchRequired()) this.applyDefaultBranch();
+        if (this.showPeriodFilters() && !this.showRazonFilter()) this.reloadActiveTab();
+      }
+      const fiscal = params.get('fiscal_configuration_id')?.trim() || '';
+      if (fiscal !== this.fiscalConfigurationId()) {
+        this.fiscalConfigurationId.set(fiscal);
+        if (this.showRazonFilter()) this.reloadActiveTab();
+      }
     });
 
     this.loadBranches();
+    this.loadFiscalOptions();
   }
 
   ngOnDestroy(): void {
@@ -149,7 +163,12 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   }
 
   branchOptional(): boolean {
-    return this.activeTab() === 'receivable';
+    return false;
+  }
+
+  showRazonFilter(): boolean {
+    const tab = this.activeTab();
+    return tab === 'payable' || tab === 'receivable';
   }
 
   onTabChange(tabId: string): void {
@@ -194,10 +213,11 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     this.onBranchChange();
   }
 
-  /** El flujo escribe la misma sucursal de la URL. El signal queda listo antes de que termine la navegación. */
-  onDebtBranch(id: string): void {
-    if (id === this.billingBranchId()) return;
-    this.billingBranchId.set(id);
+  onFiscalModelChange(value: string): void {
+    if (value === this.fiscalConfigurationId()) return;
+    this.fiscalConfigurationId.set(value);
+    this.persistFiscalQuery();
+    this.reloadActiveTab();
   }
 
   onPeriodChange(preset: ReportPeriod): void {
@@ -259,6 +279,25 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       style: 'currency',
       currency: 'MXN',
     }).format(Number.isFinite(value) ? value : 0);
+  }
+
+  private loadFiscalOptions(): void {
+    this.inventoryService.getLocations().subscribe({
+      next: (rows) => this.fiscalOptions.set(rows ?? []),
+      error: () => this.fiscalOptions.set([]),
+    });
+  }
+
+  private persistFiscalQuery(): void {
+    const next = this.fiscalConfigurationId().trim();
+    const current = this.route.snapshot.queryParamMap.get('fiscal_configuration_id') ?? '';
+    if (current === next) return;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { fiscal_configuration_id: next || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   private loadBranches(): void {

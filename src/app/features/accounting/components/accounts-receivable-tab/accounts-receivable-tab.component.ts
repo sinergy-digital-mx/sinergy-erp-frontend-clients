@@ -19,7 +19,7 @@ import { ReceivableDetailDialogComponent } from '../receivable-detail-dialog/rec
 export class AccountsReceivableTabComponent implements OnInit, OnChanges {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
 
-  @Input() billingBranchId?: string;
+  @Input() fiscalConfigurationId?: string;
   @Input() search = '';
   @Input() reloadToken = 0;
 
@@ -58,9 +58,10 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    const branchChanged = !!changes['billingBranchId'] && !changes['billingBranchId'].firstChange;
+    const fiscalChanged =
+      !!changes['fiscalConfigurationId'] && !changes['fiscalConfigurationId'].firstChange;
     const searchChanged = !!changes['search'] && !changes['search'].firstChange;
-    if (branchChanged || searchChanged) {
+    if (fiscalChanged || searchChanged) {
       this.loadPage(1);
       return;
     }
@@ -140,7 +141,7 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges {
       data: {
         razonSocial: row.razon_social,
         fiscalRfc: row.fiscal_rfc,
-        billingBranchId: this.billingBranchId,
+        fiscalConfigurationId: this.fiscalConfigurationId,
       },
     });
   }
@@ -150,7 +151,7 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges {
 
     this.exporting.set(true);
     this.accountingService
-      .exportAccountsReceivableExcel(this.billingBranchId, this.search, this.currencyView())
+      .exportAccountsReceivableExcel(this.fiscalConfigurationId, this.search, this.currencyView())
       .subscribe({
         next: ({ blob, filename }) => {
           this.exporting.set(false);
@@ -173,7 +174,7 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges {
     this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
 
     this.accountingService
-      .getAccountsReceivable(this.billingBranchId, this.search, page, this.tableConfig().limit, currency)
+      .getAccountsReceivable(this.fiscalConfigurationId, this.search, page, this.tableConfig().limit, currency)
       .subscribe({
         next: (res) => {
           if (this.currencyView() !== currency) return;

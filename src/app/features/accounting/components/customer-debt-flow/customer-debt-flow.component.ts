@@ -1,5 +1,4 @@
-import { Component, DestroyRef, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, computed, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, Input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -18,7 +17,6 @@ import { SalesOrderDetailDialogComponent } from '../../../sales-orders/component
 import { InventoryService } from '../../../inventory/services/inventory.service';
 import { InventoryLocationFiscal } from '../../../inventory/models/inventory-location.model';
 import { CustomerDebtFlowService } from '../../services/customer-debt-flow.service';
-import { branchQueryFromId, sharedBranchIdFromParams } from '../../utils/branch-query.util';
 import {
   DebtAgingRow,
   DebtAgingTotals,
@@ -82,19 +80,14 @@ const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', '
   templateUrl: './customer-debt-flow.component.html',
   styleUrl: './customer-debt-flow.component.scss',
 })
-export class CustomerDebtFlowComponent implements OnInit, OnChanges {
+export class CustomerDebtFlowComponent implements OnInit {
   /** Dentro del menú de Cobranza: sin título ni botón de volver. */
   @Input() embedded = false;
-  /** Sucursal ya elegida en Cobranza. En el menú manda sobre la URL si acaba de cambiar. */
-  @Input() sharedBranchId: string | null = null;
-  /** La sucursal elegida aquí es la misma de la URL de Cobranza. */
-  @Output() billingBranchChange = new EventEmitter<string>();
   view: DebtFlowView = 'aging';
   datePreset: DebtFlowPeriod = 'month';
   customDateFrom = '';
   customDateTo = '';
   fiscalConfigurationId = '';
-  billingBranchId = '';
   customerId: number | null = null;
   customerName = '';
   search = '';
@@ -119,11 +112,6 @@ export class CustomerDebtFlowComponent implements OnInit, OnChanges {
   };
   readonly pageSizeOptions = [25, 50, 100];
 
-  branchOptions = computed(() => {
-    const fiscal = this.locations().find((item) => item.id === this.fiscalConfigurationId);
-    return fiscal?.branches ?? [];
-  });
-
   constructor(
     private inventoryService: InventoryService,
     private debtFlowService: CustomerDebtFlowService,
@@ -131,35 +119,9 @@ export class CustomerDebtFlowComponent implements OnInit, OnChanges {
     private router: Router,
     private route: ActivatedRoute,
     private toast: ToastService,
-    private destroyRef: DestroyRef,
   ) {}
 
-  ngOnChanges(changes: SimpleChanges): void {
-    const change = changes['sharedBranchId'];
-    if (!this.embedded || !change || change.firstChange) return;
-    const next = this.sharedBranchId ?? '';
-    if (next === this.billingBranchId) return;
-    this.billingBranchId = next;
-    if (!this.locations().length) return;
-    this.applyLocationFromQuery();
-    this.resetPageAndLoad();
-  }
-
   ngOnInit(): void {
-    const fromUrl = sharedBranchIdFromParams(this.route.snapshot.queryParamMap);
-    const fromParent = (this.sharedBranchId ?? '').trim();
-    this.billingBranchId = this.embedded ? fromParent || fromUrl : fromUrl;
-    if (this.billingBranchId) this.billingBranchChange.emit(this.billingBranchId);
-
-    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const next = sharedBranchIdFromParams(params);
-      if (next === this.billingBranchId) return;
-      this.billingBranchId = next;
-      if (!this.locations().length) return;
-      this.applyLocationFromQuery();
-      this.resetPageAndLoad();
-    });
-
     this.inventoryService.getLocations().subscribe({
       next: (data) => {
         const list = data ?? [];
@@ -214,16 +176,8 @@ export class CustomerDebtFlowComponent implements OnInit, OnChanges {
   }
 
   onFiscalChange(): void {
-    this.billingBranchId = '';
-    this.billingBranchChange.emit(this.billingBranchId);
     this.persistDebtFilters();
     this.clearCustomerFilter(false);
-    this.resetPageAndLoad();
-  }
-
-  onBranchChange(): void {
-    this.billingBranchChange.emit(this.billingBranchId);
-    this.persistDebtFilters();
     this.resetPageAndLoad();
   }
 
@@ -403,18 +357,8 @@ export class CustomerDebtFlowComponent implements OnInit, OnChanges {
     this.loadReport();
   }
 
-  /** La sucursal de la URL elige su razón social. "Todas" conserva la razón social de la URL. */
   private applyLocationFromQuery(): void {
     const list = this.locations();
-    const branchId = this.billingBranchId;
-    if (branchId) {
-      const owner = list.find((fiscal) => fiscal.branches.some((branch) => branch.id === branchId));
-      if (owner) {
-        this.fiscalConfigurationId = owner.id;
-        return;
-      }
-      this.billingBranchId = '';
-    }
     const fiscalFromUrl = this.route.snapshot.queryParamMap.get('fiscal_configuration_id')?.trim() || '';
     if (fiscalFromUrl && list.some((fiscal) => fiscal.id === fiscalFromUrl)) {
       this.fiscalConfigurationId = fiscalFromUrl;
@@ -426,20 +370,12 @@ export class CustomerDebtFlowComponent implements OnInit, OnChanges {
   }
 
   private persistDebtFilters(): void {
-    const branch = branchQueryFromId(this.billingBranchId);
     const fiscal = this.fiscalConfigurationId.trim();
-    const params = this.route.snapshot.queryParamMap;
-    const currentBranch = params.get('billing_branch_id') ?? '';
-    const currentFiscal = params.get('fiscal_configuration_id') ?? '';
-    const dropLegacy = params.has('debt_branch_id');
-    if (currentBranch === branch && currentFiscal === fiscal && !dropLegacy) return;
+    const currentFiscal = this.route.snapshot.queryParamMap.get('fiscal_configuration_id') ?? '';
+    if (currentFiscal === fiscal) return;
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: {
-        billing_branch_id: branch,
-        debt_branch_id: null,
-        fiscal_configuration_id: fiscal || null,
-      },
+      queryParams: { fiscal_configuration_id: fiscal || null },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
@@ -453,7 +389,6 @@ export class CustomerDebtFlowComponent implements OnInit, OnChanges {
       page: this.page,
       limit: this.limit,
     };
-    if (this.billingBranchId) query.billing_branch_id = this.billingBranchId;
     if (this.customerId) query.customer_id = this.customerId;
     if (this.search.trim()) query.search = this.search.trim();
     if (this.datePreset === 'range') {

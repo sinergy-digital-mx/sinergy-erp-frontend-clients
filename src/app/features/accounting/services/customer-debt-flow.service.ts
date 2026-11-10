@@ -51,9 +51,6 @@ export class CustomerDebtFlowService {
       if (params.date_from) httpParams = httpParams.set('date_from', params.date_from);
       if (params.date_to) httpParams = httpParams.set('date_to', params.date_to);
     }
-    if (params.billing_branch_id) {
-      httpParams = httpParams.set('billing_branch_id', params.billing_branch_id);
-    }
     if (params.customer_id) {
       httpParams = httpParams.set('customer_id', String(params.customer_id));
     }

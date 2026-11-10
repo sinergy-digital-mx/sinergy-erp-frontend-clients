@@ -197,12 +197,16 @@ export class AccountingService {
     period?: AccountingPeriod,
     dateFrom?: string,
     dateTo?: string,
+    fiscalConfigurationId?: string,
   ): Observable<AccountingPaginatedResponse<AccountsPayableVendorRow, AccountsPayableListSummary>> {
     let params = new HttpParams()
       .set('page', String(page))
       .set('limit', String(limit))
       .set('currency', currency);
     params = this.withPayablePeriod(params, period, dateFrom, dateTo);
+    if (fiscalConfigurationId) {
+      params = params.set('fiscal_configuration_id', fiscalConfigurationId);
+    }
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
@@ -225,9 +229,13 @@ export class AccountingService {
     period?: AccountingPeriod,
     dateFrom?: string,
     dateTo?: string,
+    fiscalConfigurationId?: string,
   ): Observable<{ blob: Blob; filename: string }> {
     let params = new HttpParams().set('currency', currency);
     params = this.withPayablePeriod(params, period, dateFrom, dateTo);
+    if (fiscalConfigurationId) {
+      params = params.set('fiscal_configuration_id', fiscalConfigurationId);
+    }
     if (search?.trim()) {
       params = params.set('search', search.trim());
     }
@@ -260,8 +268,12 @@ export class AccountingService {
     period?: AccountingPeriod,
     dateFrom?: string,
     dateTo?: string,
+    fiscalConfigurationId?: string,
   ): Observable<AccountsPayableVendorDetail> {
-    const params = this.withPayablePeriod(new HttpParams(), period, dateFrom, dateTo);
+    let params = this.withPayablePeriod(new HttpParams(), period, dateFrom, dateTo);
+    if (fiscalConfigurationId) {
+      params = params.set('fiscal_configuration_id', fiscalConfigurationId);
+    }
     return this.http
       .get<unknown>(`${this.api}/accounts-payable/vendors/${vendorId}`, { params })
       .pipe(map((raw) => this.parsePayableVendorDetail(raw, vendorId)));
@@ -283,7 +295,7 @@ export class AccountingService {
   }
 
   getAccountsReceivable(
-    billingBranchId: string | undefined,
+    fiscalConfigurationId: string | undefined,
     search: string | undefined,
     page = 1,
     limit = 20,
@@ -293,8 +305,8 @@ export class AccountingService {
       .set('page', String(page))
       .set('limit', String(limit))
       .set('currency', currency);
-    if (billingBranchId) {
-      params = params.set('billing_branch_id', billingBranchId);
+    if (fiscalConfigurationId) {
+      params = params.set('fiscal_configuration_id', fiscalConfigurationId);
     }
     if (search?.trim()) {
       params = params.set('search', search.trim());
@@ -313,13 +325,13 @@ export class AccountingService {
   }
 
   exportAccountsReceivableExcel(
-    billingBranchId: string | undefined,
+    fiscalConfigurationId: string | undefined,
     search: string | undefined,
     currency: PayableCurrencyView
   ): Observable<{ blob: Blob; filename: string }> {
     let params = new HttpParams().set('currency', currency);
-    if (billingBranchId) {
-      params = params.set('billing_branch_id', billingBranchId);
+    if (fiscalConfigurationId) {
+      params = params.set('fiscal_configuration_id', fiscalConfigurationId);
     }
     if (search?.trim()) {
       params = params.set('search', search.trim());
@@ -350,11 +362,11 @@ export class AccountingService {
 
   getAccountsReceivableOrders(
     razonSocial: string,
-    billingBranchId?: string
+    fiscalConfigurationId?: string
   ): Observable<AccountsReceivableDetail> {
     let params = new HttpParams();
-    if (billingBranchId) {
-      params = params.set('billing_branch_id', billingBranchId);
+    if (fiscalConfigurationId) {
+      params = params.set('fiscal_configuration_id', fiscalConfigurationId);
     }
 
     const encoded = encodeURIComponent(razonSocial);

@@ -47,20 +47,6 @@
             }
           </select>
         </div>
-        <div class="sf-filters__field">
-          <label class="sf-filters__label" for="debt-branch">Sucursal</label>
-          <select
-            id="debt-branch"
-            class="sf-filters__select"
-            [(ngModel)]="billingBranchId"
-            [disabled]="!fiscalConfigurationId"
-            (change)="onBranchChange()">
-            <option value="">Todas</option>
-            @for (branch of branchOptions(); track branch.id) {
-              <option [value]="branch.id">{{ branch.name }}</option>
-            }
-          </select>
-        </div>
         <div class="sf-filters__field sf-filters__field--search">
           <label class="sf-filters__label" for="debt-search">Buscar</label>
           <input
@@ -154,7 +140,7 @@
                 <thead>
                   <tr>
                     <th class="sf-col-product sf-th-sticky">Cliente</th>
-                    <th>Sucursal</th>
+                    <th>Razón social</th>
                     <th class="sf-num debt-th debt-th--mxn">
                       <span class="debt-th__title">Pesos</span>
                       <span class="debt-th__sub">Órdenes y saldo</span>
@@ -177,7 +163,7 @@
                       </td>
                       <td>
                         <span class="dt-status-pill dt-status-pill--info">
-                          {{ row.billing_branch_name || '—' }}
+                          {{ row.fiscal_razon_social || '—' }}
                         </span>
                       </td>
                       <td class="sf-num debt-col debt-col--mxn" [title]="agingTitle(row, 'MXN')">
@@ -291,8 +277,8 @@
                         <div class="sf-product-stack">
                           <span class="sf-ellipsis" [title]="row.customer_name">{{ row.customer_name }}</span>
                           <span class="sf-sku">{{ row.customer_rfc || 'Sin RFC' }}</span>
-                          @if (row.billing_branch_name) {
-                            <span class="sf-sku">{{ row.billing_branch_name }}</span>
+                          @if (row.fiscal_razon_social) {
+                            <span class="sf-sku">{{ row.fiscal_razon_social }}</span>
                           }
                         </div>
                       </td>

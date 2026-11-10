@@ -20,6 +20,7 @@ export interface VendorPayableDetailDialogData {
   period?: AccountingPeriod;
   dateFrom?: string;
   dateTo?: string;
+  fiscalConfigurationId?: string;
 }
 
 @Component({
@@ -42,7 +43,13 @@ export class VendorPayableDetailDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.accountingService
-      .getAccountsPayableVendorDetail(this.data.vendorId, this.data.period, this.data.dateFrom, this.data.dateTo)
+      .getAccountsPayableVendorDetail(
+        this.data.vendorId,
+        this.data.period,
+        this.data.dateFrom,
+        this.data.dateTo,
+        this.data.fiscalConfigurationId,
+      )
       .subscribe({
       next: (detail) => {
         this.detail.set(detail);

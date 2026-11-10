@@ -11,7 +11,7 @@ import {
 import { MatDialogRef, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { LucideAngularModule, X } from 'lucide-angular';
-import { combineLatest, startWith, debounceTime, distinctUntilChanged, forkJoin, fromEvent } from 'rxjs';
+import { combineLatest, startWith, debounceTime, distinctUntilChanged, forkJoin, fromEvent, map, Observable, of, switchMap } from 'rxjs';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { InputComponent } from '../../../../core/components/input/input.component';
 import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
@@ -119,6 +119,10 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   leads = signal<any[]>([]);
   filteredLeads = signal<any[]>([]);
   propertyListPrice = signal<number | null>(null);
+  /** El API entrega máximo 100 lotes por página; manzana 5 queda después de ese corte. */
+  private readonly disponiblePageSize = 100;
+  private readonly disponibleMaxPages = 10;
+  private propertyLookupRequest = 0;
   
   // Signals para valores formateados
   formattedRemainingBalance = signal<string>('0.00');
@@ -316,9 +320,10 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   loadInitialData(): void {
     // Cargar datos en paralelo usando forkJoin
     // Usar limit máximo permitido por el API
+    const propertyRequest = ++this.propertyLookupRequest;
     forkJoin({
       customers: this.customerService.getCustomers({ limit: 100 }),
-      properties: this.propertyService.getProperties({ status: 'disponible', limit: 100 }),
+      properties: this.fetchDisponibleProperties(),
       sellers: this.userService.getUsers()
     }).subscribe({
       next: ({ customers, properties, sellers }) => {
@@ -335,18 +340,10 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
         this.customers.set(customerData);
         this.filteredCustomers.set(customerData);
 
-        // Procesar propiedades - manejar tanto respuestas paginadas como arrays directos
-        let propertyData = [];
-        if (properties.data) {
-          propertyData = properties.data;
-        } else if (Array.isArray(properties)) {
-          propertyData = properties;
-        } else if (properties.results) {
-          propertyData = properties.results;
+        if (propertyRequest === this.propertyLookupRequest) {
+          this.properties.set(properties);
+          this.filteredProperties.set(properties);
         }
-        
-        this.properties.set(propertyData);
-        this.filteredProperties.set(propertyData);
 
         // Procesar vendedores
         let sellerData = [];
@@ -417,20 +414,56 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
 
 
   loadAvailableProperties(): void {
-    this.propertyService.getProperties({ status: 'disponible' }).subscribe({
-      next: (response) => {
-        const propertyData = response.data || response;
-        this.properties.set(propertyData);
-        this.filteredProperties.set(propertyData);
-      },
-      error: () => {
-        this.interceptorService.openSnackbar({
-          type: 'error',
-          title: 'Error',
-          message: 'No se pudieron cargar las propiedades'
-        });
-      }
-    });
+    this.filterProperties('');
+  }
+
+  /**
+   * Lotes disponibles para el alta.
+   * Sin texto: todas las páginas (el tope de 100 deja fuera manzana 5).
+   * Con texto: búsqueda en servidor, una página.
+   */
+  private fetchDisponibleProperties(search = ''): Observable<any[]> {
+    const term = search.trim();
+    return this.propertyService.getProperties({
+      status: 'disponible',
+      limit: this.disponiblePageSize,
+      page: 1,
+      ...(term ? { search: term } : {}),
+    }).pipe(
+      switchMap((first) => {
+        const firstRows = this.readPropertyRows(first);
+        const totalPages = Math.min(Number(first?.totalPages) || 1, this.disponibleMaxPages);
+        if (term || totalPages <= 1) {
+          return of(firstRows);
+        }
+        const rest = [];
+        for (let page = 2; page <= totalPages; page++) {
+          rest.push(
+            this.propertyService.getProperties({
+              status: 'disponible',
+              limit: this.disponiblePageSize,
+              page,
+            }),
+          );
+        }
+        return forkJoin(rest).pipe(
+          map((pages) => firstRows.concat(...pages.map((page) => this.readPropertyRows(page)))),
+        );
+      }),
+    );
+  }
+
+  private readPropertyRows(response: any): any[] {
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+    if (Array.isArray(response)) {
+      return response;
+    }
+    if (Array.isArray(response?.results)) {
+      return response.results;
+    }
+    return [];
   }
 
   filterCustomers(searchTerm: string): void {
@@ -475,22 +508,27 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     });
   }
 
-  filterProperties(searchTerm: string): void {
-    if (!searchTerm || searchTerm.trim().length === 0) {
-      // Si no hay término de búsqueda, mostrar solo las propiedades disponibles cargadas
-      this.filteredProperties.set(this.properties());
+  filterProperties(searchTerm: unknown): void {
+    if (typeof searchTerm !== 'string') {
       return;
     }
 
-    // Filtrar localmente solo entre las propiedades disponibles ya cargadas
-    const term = searchTerm.toLowerCase();
-    const filtered = this.properties().filter(property =>
-      property.code.toLowerCase().includes(term) ||
-      property.name.toLowerCase().includes(term) ||
-      property.block.toLowerCase().includes(term)
-    );
-
-    this.filteredProperties.set(filtered);
+    const requestId = ++this.propertyLookupRequest;
+    this.fetchDisponibleProperties(searchTerm).subscribe({
+      next: (rows) => {
+        if (requestId !== this.propertyLookupRequest) {
+          return;
+        }
+        this.properties.set(rows);
+        this.filteredProperties.set(rows);
+      },
+      error: () => {
+        if (requestId !== this.propertyLookupRequest) {
+          return;
+        }
+        this.filteredProperties.set([]);
+      },
+    });
   }
 
   filterSellers(searchTerm: string): void {
@@ -625,9 +663,12 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   }
 
   displayProperty(property: any): string {
-    return property
-      ? `${property.code} - ${property.name} (Mz: ${property.block}, ${property.total_price.toLocaleString()})`
-      : '';
+    if (!property || typeof property !== 'object') {
+      return '';
+    }
+    const price = Number(property.total_price);
+    const priceLabel = Number.isFinite(price) ? price.toLocaleString('es-MX') : '';
+    return `${property.code} - ${property.name} (Mz: ${property.block ?? '—'}, ${priceLabel})`;
   }
 
   formatNumber(value: number | null | undefined): string {

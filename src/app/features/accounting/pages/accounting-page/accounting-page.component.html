@@ -28,7 +28,23 @@
           </div>
         }
 
-        @if (activeTab() !== 'payable') {
+        @if (showRazonFilter()) {
+          <div class="accounting-filters__field">
+            <label class="accounting-filters__label" for="accounting-fiscal">Razón social</label>
+            <select
+              id="accounting-fiscal"
+              class="accounting-filters__select"
+              [ngModel]="fiscalConfigurationId()"
+              (ngModelChange)="onFiscalModelChange($event)">
+              <option value="">Todas</option>
+              @for (fc of fiscalOptions(); track fc.id) {
+                <option [value]="fc.id">{{ fc.razon_social }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        @if (!showRazonFilter() && activeTab() !== 'payable') {
         <div class="accounting-filters__field">
           <label class="accounting-filters__label" for="accounting-branch">
             Sucursal
@@ -131,21 +147,19 @@
           [period]="period()"
           [dateFrom]="dateFrom()"
           [dateTo]="dateTo()"
+          [fiscalConfigurationId]="fiscalConfigurationId()"
           [reloadToken]="reloadToken()" />
       }
 
       @if (activeTab() === 'receivable') {
         <app-accounts-receivable-tab
-          [billingBranchId]="billingBranchId() || undefined"
+          [fiscalConfigurationId]="fiscalConfigurationId() || undefined"
           [search]="receivableSearch()"
           [reloadToken]="reloadToken()" />
       }
 
       @if (activeTab() === 'debt-flow') {
-        <app-customer-debt-flow
-          [embedded]="true"
-          [sharedBranchId]="billingBranchId()"
-          (billingBranchChange)="onDebtBranch($event)" />
+        <app-customer-debt-flow [embedded]="true" />
       }
 
       @if (activeTab() === 'average-cost') {

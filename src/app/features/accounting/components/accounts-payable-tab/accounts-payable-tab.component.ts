@@ -24,6 +24,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
   @Input() period: AccountingPeriod = 'month';
   @Input() dateFrom = '';
   @Input() dateTo = '';
+  @Input() fiscalConfigurationId = '';
   @Input() reloadToken = 0;
 
   readonly views: { id: PayableCurrencyView; label: string }[] = [
@@ -70,7 +71,9 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
     const periodChanged = !!changes['period'] && !changes['period'].firstChange;
     const fromChanged = !!changes['dateFrom'] && !changes['dateFrom'].firstChange;
     const toChanged = !!changes['dateTo'] && !changes['dateTo'].firstChange;
-    if (periodChanged || fromChanged || toChanged) {
+    const fiscalChanged =
+      !!changes['fiscalConfigurationId'] && !changes['fiscalConfigurationId'].firstChange;
+    if (periodChanged || fromChanged || toChanged || fiscalChanged) {
       this.loadPage(1);
       return;
     }
@@ -196,6 +199,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
         period: this.periodForQuery(),
         dateFrom: this.dateFrom,
         dateTo: this.dateTo,
+        fiscalConfigurationId: this.fiscalConfigurationId || undefined,
       },
     });
   }
@@ -211,6 +215,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
         this.periodForQuery(),
         this.dateFrom,
         this.dateTo,
+        this.fiscalConfigurationId || undefined,
       )
       .subscribe({
       next: ({ blob, filename }) => {
@@ -244,6 +249,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
         this.periodForQuery(),
         this.dateFrom,
         this.dateTo,
+        this.fiscalConfigurationId || undefined,
       )
       .subscribe({
         next: (res) => {

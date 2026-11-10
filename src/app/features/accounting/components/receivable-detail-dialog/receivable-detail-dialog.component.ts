@@ -12,7 +12,7 @@ import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 export interface ReceivableDetailDialogData {
   razonSocial: string;
   fiscalRfc?: string;
-  billingBranchId?: string;
+  fiscalConfigurationId?: string;
 }
 
 @Component({
@@ -35,7 +35,7 @@ export class ReceivableDetailDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.accountingService
-      .getAccountsReceivableOrders(this.data.razonSocial, this.data.billingBranchId)
+      .getAccountsReceivableOrders(this.data.razonSocial, this.data.fiscalConfigurationId)
       .subscribe({
         next: (detail) => {
           this.detail.set(detail);
