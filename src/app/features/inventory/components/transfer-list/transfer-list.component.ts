@@ -32,6 +32,7 @@ import {
   fiscalOptionLabel,
   fromTransferWarehouse,
   isSameFiscal,
+  transferNeedsShipping,
 } from '../../utils/transfer-location.util';
 
 @Component({
@@ -460,6 +461,15 @@ export class TransferListComponent implements OnInit {
 
   fiscalRelation(transfer: InventoryTransfer): boolean | null {
     return isSameFiscal(this.sourceView(transfer), this.destView(transfer));
+  }
+
+  needsShipping(transfer: InventoryTransfer): boolean {
+    return transferNeedsShipping(this.sourceView(transfer), this.destView(transfer));
+  }
+
+  canReceive(transfer: InventoryTransfer): boolean {
+    if (transfer.status === 'in_transit') return true;
+    return transfer.status === 'pending' && !this.needsShipping(transfer);
   }
 
   productTitle(item: InventoryTransfer): string {

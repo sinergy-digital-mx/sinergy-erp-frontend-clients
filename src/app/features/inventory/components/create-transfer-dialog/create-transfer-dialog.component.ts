@@ -477,7 +477,12 @@ export class CreateTransferDialogComponent implements OnInit, OnDestroy {
           this.submitting.set(false);
           const count = this.readyItems().length;
           const detail = count > 1 ? ` · ${count} productos` : '';
-          this.toast.success(`Transferencia ${result.folio} pendiente${detail}. Crea el envío para poder recibirla.`);
+          const positionMove = this.originBranchId() && this.originBranchId() === this.destBranchId();
+          this.toast.success(
+            positionMove
+              ? `Transferencia ${result.folio} pendiente${detail}. Solo cambia de posición, sin envío.`
+              : `Transferencia ${result.folio} pendiente${detail}. Crea el envío para poder recibirla.`,
+          );
           this.dialogRef.close(true);
         },
         error: (err) => {
@@ -498,9 +503,13 @@ export class CreateTransferDialogComponent implements OnInit, OnDestroy {
     this.transferService.getContext(productId, warehouseId, this.preset.uom_id).subscribe({
       next: (ctx) => {
         const branch = ctx.source_warehouse.billing_branch;
-        this.originFiscalId.set(branch?.fiscal_configuration?.id ?? '');
-        this.originBranchId.set(branch?.id ?? '');
+        const fiscalId = branch?.fiscal_configuration?.id ?? '';
+        const branchId = branch?.id ?? '';
+        this.originFiscalId.set(fiscalId);
+        this.originBranchId.set(branchId);
         this.originWarehouseId.set(ctx.source_warehouse.id);
+        if (fiscalId) this.destFiscalId.set(fiscalId);
+        if (branchId) this.destBranchId.set(branchId);
         this.cart.set([this.toCartItem(ctx, true)]);
         this.bootstrapping.set(false);
         this.searchProducts();

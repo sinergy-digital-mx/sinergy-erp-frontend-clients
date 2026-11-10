@@ -18,6 +18,7 @@ import {
   TransferLocationView,
   fromTransferWarehouse,
   isSameFiscal,
+  transferNeedsShipping,
 } from '../../utils/transfer-location.util';
 import { transferStatusLabel } from '../../utils/transfer-status.util';
 import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
@@ -30,6 +31,8 @@ import { ShippingDetailDialogComponent } from '../../../logistics/components/shi
 import { User } from '../../../rbac-tenant-ui/models';
 import { UserDetailModalComponent } from '../../../rbac-tenant-ui/components/user-detail-modal/user-detail-modal.component';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
+import { TransferReceptionDialogComponent } from '../transfer-reception-dialog/transfer-reception-dialog.component';
+import { PERMISSIONS } from '../../../../core/config/permissions.config';
 
 @Component({
   selector: 'app-transfer-detail-dialog',
@@ -71,7 +74,7 @@ export class TransferDetailDialogComponent implements OnInit {
   notes = '';
   existingShippingId = '';
 
-  private shippingChanged = false;
+  private changed = false;
 
   sourceLocation = computed<TransferLocationView | null>(() => {
     const t = this.transfer();
@@ -88,6 +91,13 @@ export class TransferDetailDialogComponent implements OnInit {
     const dest = this.destLocation();
     if (!source || !dest) return null;
     return isSameFiscal(source, dest);
+  });
+
+  needsShipping = computed(() => {
+    const source = this.sourceLocation();
+    const dest = this.destLocation();
+    if (!source || !dest) return true;
+    return transferNeedsShipping(source, dest);
   });
 
   selectedTruck = computed(() => this.trucks().find((truck) => truck.id === this.truckId) ?? null);
@@ -149,11 +159,43 @@ export class TransferDetailDialogComponent implements OnInit {
   }
 
   canAssignShipping(transfer: InventoryTransfer | null = this.transfer()): boolean {
-    return !!transfer && transfer.status === 'pending' && !transfer.shipping_id && this.canCreateShipping();
+    return (
+      !!transfer &&
+      transfer.status === 'pending' &&
+      !transfer.shipping_id &&
+      this.needsShipping() &&
+      this.canCreateShipping()
+    );
+  }
+
+  canReceiveDirect(transfer: InventoryTransfer | null = this.transfer()): boolean {
+    if (!transfer || transfer.status !== 'pending' || this.needsShipping()) return false;
+    return (
+      this.auth.hasPermission(PERMISSIONS.inventory.write) ||
+      this.auth.hasPermission(PERMISSIONS.inventory.transfer) ||
+      this.auth.hasPermission(PERMISSIONS.inventory.create)
+    );
   }
 
   close(): void {
-    this.dialogRef.close(this.shippingChanged);
+    this.dialogRef.close(this.changed);
+  }
+
+  openReception(): void {
+    const transfer = this.transfer();
+    if (!transfer || !this.canReceiveDirect(transfer)) return;
+    this.dialog
+      .open(TransferReceptionDialogComponent, {
+        data: { transfer },
+        width: 'min(860px, 96vw)',
+        maxWidth: '96vw',
+      })
+      .afterClosed()
+      .subscribe((saved) => {
+        if (!saved) return;
+        this.changed = true;
+        this.reloadTransfer();
+      });
   }
 
   downloadPdf(): void {
@@ -380,7 +422,7 @@ export class TransferDetailDialogComponent implements OnInit {
   }
 
   private reloadTransfer(): void {
-    this.shippingChanged = true;
+    this.changed = true;
     this.transferService.getTransferById(this.data.transferId).subscribe({
       next: (transfer) => this.transfer.set(transfer),
       error: (err) => this.toast.error(err?.message || 'No se pudo actualizar la transferencia'),

@@ -42,6 +42,7 @@ import {
 import { TruckService } from '../../services/truck.service';
 import { ShippingService } from '../../services/shipping.service';
 import { InventoryTransferService } from '../../../inventory/services/inventory-transfer.service';
+import { fromTransferWarehouse, transferNeedsShipping } from '../../../inventory/utils/transfer-location.util';
 import { InventoryTransfer } from '../../../inventory/models/inventory-transfer.model';
 import { ShippingMapComponent } from '../shipping-map/shipping-map.component';
 import { BranchLocationDialogComponent } from '../branch-location-dialog/branch-location-dialog.component';
@@ -378,7 +379,15 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
         { page: 1, limit: 50 },
       )
       .subscribe({
-        next: (res) => this.pendingTransfers.set(res.data ?? []),
+        next: (res) =>
+          this.pendingTransfers.set(
+            (res.data ?? []).filter((transfer) =>
+              transferNeedsShipping(
+                fromTransferWarehouse(transfer.source_warehouse),
+                fromTransferWarehouse(transfer.destination_warehouse),
+              ),
+            ),
+          ),
         error: () => this.pendingTransfers.set([]),
       });
   }

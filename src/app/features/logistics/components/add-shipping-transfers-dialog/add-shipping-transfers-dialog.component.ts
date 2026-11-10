@@ -8,6 +8,7 @@ import { SpinnerComponent } from '../../../../core/components/spinner/spinner.co
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { InventoryTransfer } from '../../../inventory/models/inventory-transfer.model';
 import { InventoryTransferService } from '../../../inventory/services/inventory-transfer.service';
+import { fromTransferWarehouse, transferNeedsShipping } from '../../../inventory/utils/transfer-location.util';
 import { Shipping } from '../../models/shipping.model';
 import { ShippingService } from '../../services/shipping.service';
 
@@ -54,7 +55,17 @@ export class AddShippingTransfersDialogComponent implements OnInit {
       .subscribe({
         next: (res) => {
           const assigned = new Set(this.data.assignedTransferIds);
-          this.transfers.set((res.data ?? []).filter((transfer) => !assigned.has(transfer.id) && !transfer.shipping_id));
+          this.transfers.set(
+            (res.data ?? []).filter(
+              (transfer) =>
+                !assigned.has(transfer.id) &&
+                !transfer.shipping_id &&
+                transferNeedsShipping(
+                  fromTransferWarehouse(transfer.source_warehouse),
+                  fromTransferWarehouse(transfer.destination_warehouse),
+                ),
+            ),
+          );
           this.loading.set(false);
         },
         error: () => {

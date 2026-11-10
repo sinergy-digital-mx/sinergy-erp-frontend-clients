@@ -112,6 +112,9 @@
                 <option [value]="warehouse.id">{{ warehouseLabel(warehouse) }}</option>
               }
             </select>
+            @if (originBranchId() && destBranchId() === originBranchId()) {
+              <em class="field__note">Misma sucursal: solo cambia de posición y no lleva envío.</em>
+            }
           </label>
         </section>
 

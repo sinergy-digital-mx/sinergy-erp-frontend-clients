@@ -241,12 +241,12 @@
   </td>
   <td class="px-2 py-2 w-[280px]">
     <div class="transfer-actions">
-      @if (canCreateShipping && item.status === 'pending') {
+      @if (canCreateShipping && item.status === 'pending' && needsShipping(item)) {
         <button type="button" class="transfer-ship-btn" (click)="openTransferDetail(item, $event)">
           Crear envío
         </button>
       }
-      @if (canCreateTransfer && item.status === 'in_transit') {
+      @if (canCreateTransfer && canReceive(item)) {
         <button type="button" class="transfer-ship-btn" (click)="openReception(item, $event)">
           Recibir
         </button>

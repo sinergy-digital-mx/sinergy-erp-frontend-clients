@@ -24,7 +24,21 @@
     </div>
   } @else if (transfer(); as t) {
     <div class="transfer-detail__body">
-      @if (t.shipping_id || canAssignShipping(t)) {
+      @if (!needsShipping() && !t.shipping_id) {
+        <section class="ship-panel">
+          <div class="ship-panel__head">
+            <h3>Envío</h3>
+          </div>
+          <p class="ship-panel__lead">
+            Movimiento de posición en la misma sucursal. No sale de la sucursal, así que no necesita un envío.
+          </p>
+          @if (canReceiveDirect(t)) {
+            <div class="ship-panel__footer">
+              <button type="button" class="ship-panel__primary" (click)="openReception()">Recibir</button>
+            </div>
+          }
+        </section>
+      } @else if (t.shipping_id || needsShipping()) {
         <section class="ship-panel">
           <div class="ship-panel__head">
             <h3>Envío</h3>
@@ -49,8 +63,9 @@
             <p class="ship-panel__meta">Este envío lleva {{ shippingCountLabel(t.shipping_transfer_count) }}.</p>
           } @else {
             <p class="ship-panel__lead">
-              La mercancía sigue apartada. Créale un envío o súmala a uno que ya esté creado en esta sucursal.
+              Sale de la sucursal y necesita un envío. La mercancía sigue apartada hasta que tenga un envío ligado.
             </p>
+            @if (canAssignShipping(t)) {
             <div class="ship-panel__modes">
               <button type="button" [class.is-on]="shipMode() === 'new'" (click)="shipMode.set('new')">
                 Nuevo envío
@@ -143,6 +158,7 @@
                   </button>
                 </div>
               }
+            }
             }
           }
         </section>

@@ -61,6 +61,12 @@ export function branchLine(view: TransferLocationView, withState = false): strin
   return code;
 }
 
+/** Misma sucursal: solo cambia de almacén, no lleva envío. */
+export function transferNeedsShipping(source: TransferLocationView, destination: TransferLocationView): boolean {
+  if (!source.branchId || !destination.branchId) return true;
+  return source.branchId !== destination.branchId;
+}
+
 export function isSameFiscal(a: TransferLocationView, b: TransferLocationView): boolean | null {
   if (a.fiscalId && b.fiscalId) {
     return a.fiscalId === b.fiscalId;
