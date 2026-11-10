@@ -138,7 +138,10 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     this.initialSearch = params.get('search')?.trim() || '';
     this.initialCustomerId = params.get('customer_id')?.trim() || '';
     this.initialCustomerLabel = params.get('customer')?.trim() || '';
-    this.initialFiscalConfigurationId = params.get('fiscal_configuration_id')?.trim() || '';
+    this.initialFiscalConfigurationId =
+      params.get('fiscal_configuration_id')?.trim() ||
+      this.authService.getDefaultListFiscalConfigurationId() ||
+      '';
     this.initialBillingBranchId = params.get('billing_branch_id')?.trim() || '';
     this.filtersState.set({
       ...(this.initialSearch ? { search: this.initialSearch } : {}),

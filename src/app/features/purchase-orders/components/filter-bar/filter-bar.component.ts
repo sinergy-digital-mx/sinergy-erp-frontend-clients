@@ -39,6 +39,7 @@ import {
 export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   /** Sincroniza el campo búsqueda con la URL o el listado (p. ej. ?search=uuid tras editar). */
   @Input() initialSearch: string | null = null;
+  @Input() initialFiscalConfigurationId: string | null = null;
   @Input() refreshing = false;
   @Output() filtersChange = new EventEmitter<OrderFilters>();
   @Output() refresh = new EventEmitter<void>();
@@ -123,6 +124,10 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
+    const fiscalId = (this.initialFiscalConfigurationId ?? '').trim();
+    if (fiscalId) {
+      this.fiscalConfigurationControl.setValue(fiscalId, { emitEvent: false });
+    }
     this.loadLocations();
     this.loadVendors();
 

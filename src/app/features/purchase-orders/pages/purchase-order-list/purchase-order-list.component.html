@@ -25,6 +25,7 @@
       <div class="mb-4">
         <app-filter-bar 
           [initialSearch]="filters().search ?? null"
+          [initialFiscalConfigurationId]="initialFiscalConfigurationId"
           [refreshing]="loading()"
           (filtersChange)="applyFilters($event)"
           (refresh)="loadOrders()">

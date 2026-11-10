@@ -7,6 +7,7 @@
   import { environment } from '../../../environments/environment';
   import { isCostaCampestreDivino, isMadereriaZonaNorte, isVerduleria } from '../config/organizations.constants';
   import { SETTINGS_PERMISSIONS } from '../config/permissions.config';
+  import { defaultListFiscalConfigurationId } from '../utils/default-list-fiscal.util';
 
 
   @Injectable({
@@ -762,6 +763,15 @@
     getFiscalConfigurationId(): string | null {
       const id = this.user_info?.fiscal_configuration_id;
       return id != null && String(id).trim() !== '' ? String(id) : null;
+    }
+
+    /** Razón social de la sucursal principal, para el filtro inicial de los listados. */
+    getDefaultListFiscalConfigurationId(): string | null {
+      return defaultListFiscalConfigurationId(
+        this.getAssignedBranches(),
+        this.getPrimaryBillingBranchId(),
+        this.getFiscalConfigurationId(),
+      );
     }
 
     /** True when the logged-in user is flagged as an employee (RH portal access). */

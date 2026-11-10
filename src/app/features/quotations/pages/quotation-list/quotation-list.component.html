@@ -33,6 +33,7 @@
           [showSellerFilter]="canViewAll"
           [restrictBranchIds]="restrictBranchIds"
           [sellers]="sellers"
+          [initialFiscalConfigurationId]="initialFiscalConfigurationId"
           [refreshing]="loading()"
           (filtersChange)="applyFilters($event)"
           (refresh)="load()">

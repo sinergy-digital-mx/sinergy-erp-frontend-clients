@@ -38,6 +38,7 @@ export class QuotationListComponent implements OnInit {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
 
   private rows = signal<Quotation[]>([]);
+  initialFiscalConfigurationId = '';
   private filters = signal<QuotationFilters>({});
   private pagination = signal({ page: 1, limit: 15 });
   private totalResults = signal(0);
@@ -108,7 +109,12 @@ export class QuotationListComponent implements OnInit {
     private dialog: MatDialog,
     private auth: AuthService,
     private taxCalculator: TaxCalculatorService,
-  ) {}
+  ) {
+    this.initialFiscalConfigurationId = this.auth.getDefaultListFiscalConfigurationId() ?? '';
+    if (this.initialFiscalConfigurationId) {
+      this.filters.set({ fiscal_configuration_id: this.initialFiscalConfigurationId });
+    }
+  }
 
   ngOnInit(): void {
     this.canCreate = this.auth.hasPermission(QUOTATION_PERMISSIONS.create);
