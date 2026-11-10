@@ -26,6 +26,7 @@
         <app-filter-bar 
           [initialSearch]="filters().search ?? null"
           [initialFiscalConfigurationId]="initialFiscalConfigurationId"
+          [initialBillingBranchId]="initialBillingBranchId"
           [refreshing]="loading()"
           (filtersChange)="applyFilters($event)"
           (refresh)="loadOrders()">

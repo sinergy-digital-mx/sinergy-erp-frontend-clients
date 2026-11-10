@@ -15,15 +15,12 @@ import { DatatableWrapperComponent } from '../../../../core/components/datatable
 import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
-import { TransferReceptionDialogComponent } from '../transfer-reception-dialog/transfer-reception-dialog.component';
 import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
-import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
-import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
 import { transferStatusLabel, transferStatusTone } from '../../utils/transfer-status.util';
-import { ArrowLeft, Download, Eye, ListFilter } from 'lucide-angular';
+import { ArrowLeft, Eye, ListFilter } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -32,7 +29,6 @@ import {
   fiscalOptionLabel,
   fromTransferWarehouse,
   isSameFiscal,
-  transferNeedsShipping,
 } from '../../utils/transfer-location.util';
 
 @Component({
@@ -54,7 +50,6 @@ export class TransferListComponent implements OnInit {
   @ViewChild('tableTemplate') tableTemplate!: TemplateRef<unknown>;
 
   readonly ArrowLeft = ArrowLeft;
-  readonly Download = Download;
   readonly Eye = Eye;
   readonly ListFilter = ListFilter;
 
@@ -67,7 +62,6 @@ export class TransferListComponent implements OnInit {
   destWarehouseId = signal('');
   createdFrom = signal('');
   createdTo = signal('');
-  downloadingPdfId = signal<string | null>(null);
 
   filtersOpen = signal(false);
   draftSourceFiscalId = signal('');
@@ -109,7 +103,7 @@ export class TransferListComponent implements OnInit {
       { name: 'Estado', prop: 'status', sortable: false, canAutoResize: false, width: 150 },
       { name: 'Usuario', prop: 'created_by_user', sortable: false, canAutoResize: false, width: 140 },
       { name: 'Fecha', prop: 'created_at', sortable: false, canAutoResize: false, width: 120 },
-      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: false, width: 280 },
+      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: false, width: 140 },
     ],
     externalPaging: true,
     externalSorting: false,
@@ -138,10 +132,6 @@ export class TransferListComponent implements OnInit {
     if (target && !this.host.nativeElement.querySelector('.filters-anchor')?.contains(target)) {
       this.closeFilters();
     }
-  }
-
-  get canCreateShipping(): boolean {
-    return this.authService.hasPermission(SHIPPING_PERMISSIONS.create);
   }
 
   get canCreateTransfer(): boolean {
@@ -349,55 +339,6 @@ export class TransferListComponent implements OnInit {
     return transferStatusTone(status);
   }
 
-  openReception(transfer: InventoryTransfer, event: Event): void {
-    event.stopPropagation();
-    const open = (current: InventoryTransfer) => {
-      this.dialog
-        .open(TransferReceptionDialogComponent, {
-          data: { transfer: current },
-          width: 'min(860px, 96vw)',
-          maxWidth: '96vw',
-        })
-        .afterClosed()
-        .subscribe((saved) => {
-          if (saved) this.loadTransfers();
-        });
-    };
-    if (transfer.lines?.some((line) => line.id)) {
-      open(transfer);
-      return;
-    }
-    this.transferService.getTransferById(transfer.id).subscribe({
-      next: (fresh) => open(fresh),
-      error: (err) => this.toast.error(err?.message || 'No se pudo abrir la recepción'),
-    });
-  }
-
-  cancelTransfer(transfer: InventoryTransfer, event: Event): void {
-    event.stopPropagation();
-    this.dialog
-      .open(ConfirmDialogComponent, {
-        width: '440px',
-        data: {
-          title: 'Cancelar transferencia',
-          message: `Se devuelve el stock de ${transfer.folio} al almacén origen.`,
-          confirmText: 'Cancelar transferencia',
-          cancelText: 'Volver',
-        },
-      })
-      .afterClosed()
-      .subscribe((ok) => {
-        if (!ok) return;
-        this.transferService.cancelTransfer(transfer.id).subscribe({
-          next: () => {
-            this.toast.success(`${transfer.folio} cancelada`);
-            this.loadTransfers();
-          },
-          error: (err) => this.toast.error(err?.message || 'No se pudo cancelar'),
-        });
-      });
-  }
-
   openTransferDetail(transfer: InventoryTransfer, event?: Event): void {
     event?.stopPropagation();
     this.dialog
@@ -411,28 +352,6 @@ export class TransferListComponent implements OnInit {
       .subscribe((changed) => {
         if (changed) this.loadTransfers();
       });
-  }
-
-  downloadPdf(transfer: InventoryTransfer, event: Event): void {
-    event.stopPropagation();
-    if (this.downloadingPdfId()) return;
-
-    this.downloadingPdfId.set(transfer.id);
-    this.transferService.downloadTransferPdf(transfer.id, transfer.folio).subscribe({
-      next: ({ blob, filename }) => {
-        this.downloadingPdfId.set(null);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-      },
-      error: (err) => {
-        this.downloadingPdfId.set(null);
-        this.toast.error(err?.message || 'No se pudo descargar el PDF');
-      },
-    });
   }
 
   formatDate(dateString: string): string {
@@ -461,15 +380,6 @@ export class TransferListComponent implements OnInit {
 
   fiscalRelation(transfer: InventoryTransfer): boolean | null {
     return isSameFiscal(this.sourceView(transfer), this.destView(transfer));
-  }
-
-  needsShipping(transfer: InventoryTransfer): boolean {
-    return transferNeedsShipping(this.sourceView(transfer), this.destView(transfer));
-  }
-
-  canReceive(transfer: InventoryTransfer): boolean {
-    if (transfer.status === 'in_transit') return true;
-    return transfer.status === 'pending' && !this.needsShipping(transfer);
   }
 
   productTitle(item: InventoryTransfer): string {

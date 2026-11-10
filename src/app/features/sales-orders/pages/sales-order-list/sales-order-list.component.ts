@@ -138,11 +138,13 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     this.initialSearch = params.get('search')?.trim() || '';
     this.initialCustomerId = params.get('customer_id')?.trim() || '';
     this.initialCustomerLabel = params.get('customer')?.trim() || '';
-    this.initialFiscalConfigurationId =
-      params.get('fiscal_configuration_id')?.trim() ||
-      this.authService.getDefaultListFiscalConfigurationId() ||
-      '';
-    this.initialBillingBranchId = params.get('billing_branch_id')?.trim() || '';
+    const queryFiscal = params.get('fiscal_configuration_id')?.trim() || '';
+    const queryBranch = params.get('billing_branch_id')?.trim() || '';
+    const defaultFiscal = this.authService.getDefaultListFiscalConfigurationId() || '';
+    const defaultBranch = this.authService.getDefaultListBillingBranchId() || '';
+    this.initialFiscalConfigurationId = queryFiscal || defaultFiscal;
+    const fiscalIsDefault = !queryFiscal || queryFiscal === defaultFiscal;
+    this.initialBillingBranchId = queryBranch || (fiscalIsDefault ? defaultBranch : '');
     this.filtersState.set({
       ...(this.initialSearch ? { search: this.initialSearch } : {}),
       ...(this.initialCustomerId ? { customer_id: this.initialCustomerId } : {}),

@@ -33,6 +33,7 @@ import { UserDetailModalComponent } from '../../../rbac-tenant-ui/components/use
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { TransferReceptionDialogComponent } from '../transfer-reception-dialog/transfer-reception-dialog.component';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
+import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-transfer-detail-dialog',
@@ -168,13 +169,22 @@ export class TransferDetailDialogComponent implements OnInit {
     );
   }
 
-  canReceiveDirect(transfer: InventoryTransfer | null = this.transfer()): boolean {
-    if (!transfer || transfer.status !== 'pending' || this.needsShipping()) return false;
+  canEditTransfer(): boolean {
     return (
       this.auth.hasPermission(PERMISSIONS.inventory.write) ||
       this.auth.hasPermission(PERMISSIONS.inventory.transfer) ||
       this.auth.hasPermission(PERMISSIONS.inventory.create)
     );
+  }
+
+  canReceive(transfer: InventoryTransfer | null = this.transfer()): boolean {
+    if (!transfer || !this.canEditTransfer()) return false;
+    if (transfer.status === 'in_transit') return true;
+    return transfer.status === 'pending' && !this.needsShipping();
+  }
+
+  canCancel(transfer: InventoryTransfer | null = this.transfer()): boolean {
+    return !!transfer && transfer.status === 'pending' && this.canEditTransfer();
   }
 
   close(): void {
@@ -183,7 +193,7 @@ export class TransferDetailDialogComponent implements OnInit {
 
   openReception(): void {
     const transfer = this.transfer();
-    if (!transfer || !this.canReceiveDirect(transfer)) return;
+    if (!transfer || !this.canReceive(transfer)) return;
     this.dialog
       .open(TransferReceptionDialogComponent, {
         data: { transfer },
@@ -195,6 +205,33 @@ export class TransferDetailDialogComponent implements OnInit {
         if (!saved) return;
         this.changed = true;
         this.reloadTransfer();
+      });
+  }
+
+  cancelTransfer(): void {
+    const transfer = this.transfer();
+    if (!transfer || !this.canCancel(transfer)) return;
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '440px',
+        data: {
+          title: 'Cancelar transferencia',
+          message: `Se devuelve el stock de ${transfer.folio} al almacén origen.`,
+          confirmText: 'Cancelar transferencia',
+          cancelText: 'Volver',
+        },
+      })
+      .afterClosed()
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.transferService.cancelTransfer(transfer.id).subscribe({
+          next: () => {
+            this.toast.success(`${transfer.folio} cancelada`);
+            this.changed = true;
+            this.reloadTransfer();
+          },
+          error: (err) => this.toast.error(err?.message || 'No se pudo cancelar'),
+        });
       });
   }
 

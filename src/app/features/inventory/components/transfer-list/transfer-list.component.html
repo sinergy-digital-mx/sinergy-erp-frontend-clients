@@ -239,38 +239,14 @@
   <td class="px-2 py-2 w-[120px]">
     <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>
   </td>
-  <td class="px-2 py-2 w-[280px]">
+  <td class="px-2 py-2 w-[140px]">
     <div class="transfer-actions">
-      @if (canCreateShipping && item.status === 'pending' && needsShipping(item)) {
-        <button type="button" class="transfer-ship-btn" (click)="openTransferDetail(item, $event)">
-          Crear envío
-        </button>
-      }
-      @if (canCreateTransfer && canReceive(item)) {
-        <button type="button" class="transfer-ship-btn" (click)="openReception(item, $event)">
-          Recibir
-        </button>
-      }
-      @if (canCreateTransfer && item.status === 'pending') {
-        <button type="button" class="transfer-pdf-btn" (click)="cancelTransfer(item, $event)">
-          Cancelar
-        </button>
-      }
       <button
         type="button"
         class="transfer-detail-btn"
         (click)="openTransferDetail(item, $event)">
         <lucide-icon [img]="Eye" [size]="14"></lucide-icon>
         Ver detalle
-      </button>
-      <button
-        type="button"
-        class="transfer-pdf-btn"
-        (click)="downloadPdf(item, $event)"
-        [disabled]="downloadingPdfId() === item.id"
-        title="Descargar PDF">
-        <lucide-icon [img]="Download" [size]="14"></lucide-icon>
-        PDF
       </button>
     </div>
   </td>

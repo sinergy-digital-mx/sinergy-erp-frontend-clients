@@ -1,4 +1,4 @@
-import { defaultListFiscalConfigurationId } from './default-list-fiscal.util';
+import { defaultListFiscalConfigurationId, defaultListLocation } from './default-list-fiscal.util';
 
 describe('defaultListFiscalConfigurationId', () => {
   const branches = [
@@ -18,5 +18,16 @@ describe('defaultListFiscalConfigurationId', () => {
   it('sin sucursales asignadas usa la razón de la sucursal activa', () => {
     expect(defaultListFiscalConfigurationId([], null, 'rfc-activa')).toBe('rfc-activa');
     expect(defaultListFiscalConfigurationId([], null, '  ')).toBeNull();
+  });
+
+  it('también devuelve la sucursal principal', () => {
+    expect(defaultListLocation(branches, 'centro', 'cedis', 'rfc-cedis')).toEqual({
+      fiscalConfigurationId: 'rfc-centro',
+      billingBranchId: 'centro',
+    });
+    expect(defaultListLocation([], null, 'cedis', 'rfc-cedis')).toEqual({
+      fiscalConfigurationId: 'rfc-cedis',
+      billingBranchId: 'cedis',
+    });
   });
 });

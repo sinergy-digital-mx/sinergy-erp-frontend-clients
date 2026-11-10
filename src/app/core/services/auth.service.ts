@@ -7,7 +7,7 @@
   import { environment } from '../../../environments/environment';
   import { isCostaCampestreDivino, isMadereriaZonaNorte, isVerduleria } from '../config/organizations.constants';
   import { SETTINGS_PERMISSIONS } from '../config/permissions.config';
-  import { defaultListFiscalConfigurationId } from '../utils/default-list-fiscal.util';
+  import { defaultListLocation } from '../utils/default-list-fiscal.util';
 
 
   @Injectable({
@@ -767,9 +767,19 @@
 
     /** Razón social de la sucursal principal, para el filtro inicial de los listados. */
     getDefaultListFiscalConfigurationId(): string | null {
-      return defaultListFiscalConfigurationId(
+      return this.defaultListLocation().fiscalConfigurationId;
+    }
+
+    /** Sucursal principal, para el filtro inicial de los listados. */
+    getDefaultListBillingBranchId(): string | null {
+      return this.defaultListLocation().billingBranchId;
+    }
+
+    private defaultListLocation() {
+      return defaultListLocation(
         this.getAssignedBranches(),
         this.getPrimaryBillingBranchId(),
+        this.getBillingBranchId(),
         this.getFiscalConfigurationId(),
       );
     }

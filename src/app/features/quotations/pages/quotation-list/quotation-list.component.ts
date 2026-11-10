@@ -39,6 +39,7 @@ export class QuotationListComponent implements OnInit {
 
   private rows = signal<Quotation[]>([]);
   initialFiscalConfigurationId = '';
+  initialBillingBranchId = '';
   private filters = signal<QuotationFilters>({});
   private pagination = signal({ page: 1, limit: 15 });
   private totalResults = signal(0);
@@ -111,9 +112,13 @@ export class QuotationListComponent implements OnInit {
     private taxCalculator: TaxCalculatorService,
   ) {
     this.initialFiscalConfigurationId = this.auth.getDefaultListFiscalConfigurationId() ?? '';
-    if (this.initialFiscalConfigurationId) {
-      this.filters.set({ fiscal_configuration_id: this.initialFiscalConfigurationId });
-    }
+    this.initialBillingBranchId = this.auth.getDefaultListBillingBranchId() ?? '';
+    this.filters.set({
+      ...(this.initialFiscalConfigurationId
+        ? { fiscal_configuration_id: this.initialFiscalConfigurationId }
+        : {}),
+      ...(this.initialBillingBranchId ? { billing_branch_id: this.initialBillingBranchId } : {}),
+    });
   }
 
   ngOnInit(): void {

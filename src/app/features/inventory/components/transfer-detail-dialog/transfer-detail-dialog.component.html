@@ -2,7 +2,17 @@
   <div class="transfer-detail__header">
     <h2 class="transfer-detail__title">{{ transfer()?.folio || 'Transferencia' }}</h2>
     <div class="transfer-detail__actions">
-      @if (transfer()) {
+      @if (transfer(); as current) {
+        @if (canReceive(current)) {
+          <button type="button" class="transfer-detail__receive-btn" (click)="openReception()">
+            Recibir
+          </button>
+        }
+        @if (canCancel(current)) {
+          <button type="button" class="transfer-detail__cancel-btn" (click)="cancelTransfer()">
+            Cancelar
+          </button>
+        }
         <button
           type="button"
           class="transfer-detail__pdf-btn"
@@ -32,11 +42,6 @@
           <p class="ship-panel__lead">
             Movimiento de posición en la misma sucursal. No sale de la sucursal, así que no necesita un envío.
           </p>
-          @if (canReceiveDirect(t)) {
-            <div class="ship-panel__footer">
-              <button type="button" class="ship-panel__primary" (click)="openReception()">Recibir</button>
-            </div>
-          }
         </section>
       } @else if (t.shipping_id || needsShipping()) {
         <section class="ship-panel">

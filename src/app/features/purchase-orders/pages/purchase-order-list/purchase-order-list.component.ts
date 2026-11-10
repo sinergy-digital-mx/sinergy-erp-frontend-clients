@@ -107,6 +107,7 @@ export class PurchaseOrderListComponent implements OnInit {
   readonly canViewStats = signal(false);
 
   readonly initialFiscalConfigurationId: string;
+  readonly initialBillingBranchId: string;
 
   constructor(
     private purchaseOrderService: PurchaseOrderService,
@@ -118,9 +119,13 @@ export class PurchaseOrderListComponent implements OnInit {
   ) {
     this.canViewStats.set(this.authService.hasPermission(PURCHASE_ORDER_PERMISSIONS.viewStats));
     this.initialFiscalConfigurationId = this.authService.getDefaultListFiscalConfigurationId() ?? '';
-    if (this.initialFiscalConfigurationId) {
-      this.filtersState.set({ fiscal_configuration_id: this.initialFiscalConfigurationId });
-    }
+    this.initialBillingBranchId = this.authService.getDefaultListBillingBranchId() ?? '';
+    this.filtersState.set({
+      ...(this.initialFiscalConfigurationId
+        ? { fiscal_configuration_id: this.initialFiscalConfigurationId }
+        : {}),
+      ...(this.initialBillingBranchId ? { billing_branch_id: this.initialBillingBranchId } : {}),
+    });
   }
 
   ngOnInit(): void {

@@ -20,6 +20,8 @@
   flex-shrink: 0;
 }
 
+.transfer-detail__receive-btn,
+.transfer-detail__cancel-btn,
 .transfer-detail__pdf-btn {
   display: inline-flex;
   align-items: center;
@@ -41,6 +43,26 @@
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+}
+
+.transfer-detail__receive-btn {
+  border-color: #6ee7b7;
+  background: #059669;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: #047857;
+  }
+}
+
+.transfer-detail__cancel-btn {
+  border-color: #e5e7eb;
+  background: #fff;
+  color: #374151;
+
+  &:hover:not(:disabled) {
+    background: #f9fafb;
   }
 }
 

@@ -1,9 +1,17 @@
 {
-  "version": "0.0.113",
-  "buildId": "0.0.113-1794348728130",
-  "builtAt": "2026-11-10T22:12:08.130Z",
+  "version": "0.0.114",
+  "buildId": "0.0.114-1794348994737",
+  "builtAt": "2026-11-10T22:16:34.737Z",
   "channel": "full",
   "changes": [
+    {
+      "scope": "frontend",
+      "message": "Cambios en facturación"
+    },
+    {
+      "scope": "frontend",
+      "message": "Cambios en inventario"
+    },
     {
       "scope": "frontend",
       "message": "Cambios en compras"
@@ -15,10 +23,6 @@
     {
       "scope": "frontend",
       "message": "Cambios en ventas"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en facturación"
     },
     {
       "scope": "backend",
