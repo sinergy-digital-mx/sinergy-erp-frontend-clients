@@ -36,6 +36,15 @@ export class PropertyService {
     });
   }
 
+  getPropertyBlocks(): Observable<string[]> {
+    return this.http.get<unknown>(`${this.api}/tenant/properties/blocks`).pipe(
+      map((response) => {
+        const list = Array.isArray(response) ? response : [];
+        return list.map((item) => String(item ?? '').trim()).filter((block) => block.length > 0);
+      }),
+    );
+  }
+
   getProperty(id: string): Observable<Property> {
     return this.http.get<Property>(`${this.api}/tenant/properties/${id}`);
   }
@@ -96,6 +105,7 @@ export class PropertyService {
 
     params = this.setIfPresent(params, 'group_id', filters.group_id);
     params = this.setIfPresent(params, 'status', filters.status);
+    params = this.setIfPresent(params, 'block', filters.block);
     params = this.setIfPresent(params, 'search', filters.search);
 
     if (includePagination) {

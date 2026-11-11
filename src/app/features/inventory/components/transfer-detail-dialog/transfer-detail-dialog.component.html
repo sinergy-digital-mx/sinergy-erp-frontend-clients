@@ -1,6 +1,13 @@
 <div class="transfer-detail">
   <div class="transfer-detail__header">
-    <h2 class="transfer-detail__title">{{ transfer()?.folio || 'Transferencia' }}</h2>
+    <div class="transfer-detail__heading">
+      <h2 class="transfer-detail__title">{{ transfer()?.folio || 'Transferencia' }}</h2>
+      @if (transfer(); as current) {
+        <span class="transfer-status" [class]="'transfer-status transfer-status--' + statusTone(current.status)">
+          {{ statusLabel(current.status) }}
+        </span>
+      }
+    </div>
     <div class="transfer-detail__actions">
       @if (transfer(); as current) {
         @if (canReceive(current)) {
@@ -35,14 +42,7 @@
   } @else if (transfer(); as t) {
     <div class="transfer-detail__body">
       @if (!needsShipping() && !t.shipping_id) {
-        <section class="ship-panel">
-          <div class="ship-panel__head">
-            <h3>Envío</h3>
-          </div>
-          <p class="ship-panel__lead">
-            Movimiento de posición en la misma sucursal. No sale de la sucursal, así que no necesita un envío.
-          </p>
-        </section>
+        <p class="position-note">Transferencia de posición dentro de la misma sucursal. No lleva envío.</p>
       } @else if (t.shipping_id || needsShipping()) {
         <section class="ship-panel">
           <div class="ship-panel__head">
@@ -169,33 +169,44 @@
         </section>
       }
 
+      @if (!needsShipping() && sameBranchContext()) {
+        <p class="route-context">{{ sameBranchContext() }}</p>
+      }
       <div class="route-cards">
         <div class="route-card">
           <span class="route-card__kicker">Origen</span>
           @if (sourceLocation(); as loc) {
-            <app-transfer-location-path
-              [location]="loc"
-              [showRfc]="true"
-              [withState]="true"
-              variant="detail">
-            </app-transfer-location-path>
+            @if (!needsShipping()) {
+              <strong class="route-card__place">{{ loc.warehouseName }}</strong>
+            } @else {
+              <app-transfer-location-path
+                [location]="loc"
+                [showRfc]="true"
+                [withState]="true"
+                variant="detail">
+              </app-transfer-location-path>
+            }
           }
         </div>
         <lucide-icon [img]="ArrowRight" [size]="18" class="route-cards__arrow"></lucide-icon>
         <div class="route-card route-card--dest">
           <span class="route-card__kicker">Destino</span>
           @if (destLocation(); as loc) {
-            <app-transfer-location-path
-              [location]="loc"
-              [showRfc]="true"
-              [withState]="true"
-              variant="detail">
-            </app-transfer-location-path>
+            @if (!needsShipping()) {
+              <strong class="route-card__place">{{ loc.warehouseName }}</strong>
+            } @else {
+              <app-transfer-location-path
+                [location]="loc"
+                [showRfc]="true"
+                [withState]="true"
+                variant="detail">
+              </app-transfer-location-path>
+            }
           }
         </div>
       </div>
 
-      @if (fiscalRelation() === true) {
+      @if (needsShipping() && fiscalRelation() === true) {
         <span class="fiscal-chip fiscal-chip--same">Misma razón</span>
       } @else if (fiscalRelation() === false) {
         <span class="fiscal-chip fiscal-chip--change">Cambio de razón social</span>
@@ -221,10 +232,6 @@
               {{ t.total_quantity | removeTrailingZeros }} {{ t.uom_name }}
             }
           </span>
-        </div>
-        <div class="info-item">
-          <span class="info-item__label">Estado</span>
-          <span class="info-item__value">{{ statusLabel(t.status) }}</span>
         </div>
         <div class="info-item">
           <span class="info-item__label">Creado por</span>

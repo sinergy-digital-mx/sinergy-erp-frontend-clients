@@ -47,7 +47,7 @@
               <input
                 type="text"
                 [ngModel]="state.searchTerm()"
-                (ngModelChange)="state.searchTerm.set($event)"
+                (ngModelChange)="onSearchInput($event)"
                 (keyup.enter)="onSearch()"
                 placeholder="Buscar..."
                 class="filter-bar__input"

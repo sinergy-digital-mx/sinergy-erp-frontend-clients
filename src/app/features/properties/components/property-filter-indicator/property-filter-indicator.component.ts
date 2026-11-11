@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core
 import { CommonModule } from '@angular/common';
 
 interface ActiveFilter {
-  type: 'status' | 'group' | 'search';
+  type: 'status' | 'group' | 'block' | 'search';
   label: string;
 }
 
@@ -114,8 +114,9 @@ export class PropertyFilterIndicatorComponent implements OnChanges {
   @Input() activeStatusLabel: string | null = null;
   @Input() activeGroupId: string | null = null;
   @Input() activeGroupName: string | null = null;
+  @Input() activeBlock: string | null = null;
   @Input() activeSearchTerm: string | null = null;
-  @Output() filterClear = new EventEmitter<'status' | 'group' | 'search' | 'all'>();
+  @Output() filterClear = new EventEmitter<'status' | 'group' | 'block' | 'search' | 'all'>();
 
   activeFilters: ActiveFilter[] = [];
 
@@ -136,6 +137,13 @@ export class PropertyFilterIndicatorComponent implements OnChanges {
       });
     }
 
+    if (this.activeBlock?.trim()) {
+      this.activeFilters.push({
+        type: 'block',
+        label: `Manzana: ${this.activeBlock.trim()}`,
+      });
+    }
+
     if (this.activeSearchTerm?.trim()) {
       this.activeFilters.push({
         type: 'search',
@@ -144,7 +152,7 @@ export class PropertyFilterIndicatorComponent implements OnChanges {
     }
   }
 
-  clearFilter(filterType: 'status' | 'group' | 'search'): void {
+  clearFilter(filterType: 'status' | 'group' | 'block' | 'search'): void {
     this.filterClear.emit(filterType);
   }
 

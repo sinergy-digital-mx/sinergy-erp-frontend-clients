@@ -280,5 +280,5 @@ export class PolluxBrandTextComponent {
   /** Muestra el logo de la razón social cuando está activo. */
   useSystemLogo = input(false, { transform: booleanAttribute });
 
-  readonly label = computed(() => (this.compact() ? 'P' : 'Polux | ERP'));
+  readonly label = computed(() => (this.compact() ? 'P' : 'Pólux'));
 }

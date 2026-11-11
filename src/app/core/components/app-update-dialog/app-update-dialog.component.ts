@@ -33,11 +33,11 @@ export interface AppUpdateDialogData {
           </span>
         </div>
 
-        <p class="px-upd__kicker">Polux</p>
+        <p class="px-upd__kicker">Pólux</p>
         <h2 class="px-upd__title">Hay una actualización</h2>
 
         <p class="px-upd__lead">
-          Hay una nueva versión de Polux disponible.
+          Hay una nueva versión de Pólux disponible.
         </p>
 
         @if (data.version) {

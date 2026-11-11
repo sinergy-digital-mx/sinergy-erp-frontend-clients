@@ -18,6 +18,7 @@ import { SearchComponent } from '../../../../core/components/search/search.compo
 import { PropertyEditModalComponent } from '../../components/property-edit-modal/property-edit-modal.component';
 import { PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { PropertyStatusDropdownComponent } from '../../components/property-status-dropdown/property-status-dropdown.component';
+import { PropertyBlockDropdownComponent } from '../../components/property-block-dropdown/property-block-dropdown.component';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { PropertyFilterIndicatorComponent } from '../../components/property-filter-indicator/property-filter-indicator.component';
 import { PropertyStatsCardsComponent } from '../../components/property-stats-cards/property-stats-cards.component';
@@ -43,6 +44,7 @@ import {
     EmptyStageComponent,
     SearchComponent,
     PropertyStatusDropdownComponent,
+    PropertyBlockDropdownComponent,
     FilterClearButtonComponent,
     PropertyFilterIndicatorComponent,
     PropertyStatsCardsComponent,
@@ -96,6 +98,8 @@ export class PropertiesListComponent implements OnDestroy {
   selectedGroupId: string | null = null;
   selectedGroupName: string | null = null;
   selectedStatus: PropertyStatus | null = null;
+  selectedBlock: string | null = null;
+  readonly blocks = signal<string[]>([]);
   currentSort: ISortEvent | null = null;
   stats = signal<PropertyStats>(EMPTY_PROPERTY_STATS);
   statsLoading = signal(true);
@@ -126,6 +130,8 @@ export class PropertiesListComponent implements OnDestroy {
       error: () => undefined,
     });
 
+    this.loadBlocks();
+
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((query) => {
       const queryString = JSON.stringify(query);
       
@@ -136,6 +142,8 @@ export class PropertiesListComponent implements OnDestroy {
 
       this.search = query?.search ?? '';
       this.selectedStatus = query?.status ?? null;
+      const block = typeof query?.block === 'string' ? query.block.trim() : '';
+      this.selectedBlock = block || null;
       this.selectedGroupId = query?.group_id ?? query?.customer_group_id ?? null;
       if (!this.selectedGroupId) {
         this.selectedGroupName = null;
@@ -330,18 +338,24 @@ export class PropertiesListComponent implements OnDestroy {
     this.navigateWithParams({ page: 1, status: event.status || undefined });
   }
 
+  onBlockSelect(event: { block: string | null }) {
+    this.selectedBlock = event.block;
+    this.navigateWithParams({ page: 1, block: event.block || undefined });
+  }
+
   get hasActiveFilters(): boolean {
-    return !!(this.search || this.selectedGroupId || this.selectedStatus);
+    return !!(this.search || this.selectedGroupId || this.selectedStatus || this.selectedBlock);
   }
 
   get sheetFilterCount(): number {
-    return Number(!!this.selectedGroupId) + Number(!!this.selectedStatus);
+    return Number(!!this.selectedGroupId) + Number(!!this.selectedStatus) + Number(!!this.selectedBlock);
   }
 
   clearAllFilters(): void {
     this.selectedGroupId = null;
     this.selectedGroupName = null;
     this.selectedStatus = null;
+    this.selectedBlock = null;
     this.search = '';
     this.router.navigate([], {
       relativeTo: this.route,
@@ -349,7 +363,7 @@ export class PropertiesListComponent implements OnDestroy {
     });
   }
 
-  onFilterClear(type: 'status' | 'group' | 'search' | 'all'): void {
+  onFilterClear(type: 'status' | 'group' | 'block' | 'search' | 'all'): void {
     if (type === 'all') {
       this.clearAllFilters();
       return;
@@ -364,6 +378,10 @@ export class PropertiesListComponent implements OnDestroy {
     }
     if (type === 'status') {
       this.onStatusSelect({ status: null });
+      return;
+    }
+    if (type === 'block') {
+      this.onBlockSelect({ block: null });
     }
   }
 
@@ -374,6 +392,7 @@ export class PropertiesListComponent implements OnDestroy {
       autoFocus: false,
     }).afterClosed().subscribe((created) => {
       if (created) {
+        this.loadBlocks();
         this.getProperties();
         this.loadStats();
       }
@@ -386,6 +405,7 @@ export class PropertiesListComponent implements OnDestroy {
       data: { property: null }
     }).afterClosed().subscribe((result) => {
       if (result) {
+        this.loadBlocks();
         this.getProperties();
         this.loadStats();
       }
@@ -398,6 +418,7 @@ export class PropertiesListComponent implements OnDestroy {
       data: { property },
     }).afterClosed().subscribe((result) => {
       if (result) {
+        this.loadBlocks();
         this.getProperties();
         this.loadStats();
       }
@@ -477,7 +498,15 @@ export class PropertiesListComponent implements OnDestroy {
       ...(this.search && { search: this.search }),
       ...(this.selectedGroupId && { group_id: this.selectedGroupId }),
       ...(this.selectedStatus && { status: this.selectedStatus }),
+      ...(this.selectedBlock && { block: this.selectedBlock }),
     };
+  }
+
+  private loadBlocks(): void {
+    this.propertyService.getPropertyBlocks().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (blocks) => this.blocks.set(blocks),
+      error: () => this.blocks.set([]),
+    });
   }
 
   private navigateWithParams(overrides: Record<string, string | number | undefined> = {}): void {
@@ -485,6 +514,7 @@ export class PropertiesListComponent implements OnDestroy {
     const search = 'search' in overrides ? overrides['search'] : this.search || undefined;
     const groupId = 'group_id' in overrides ? overrides['group_id'] : this.selectedGroupId || undefined;
     const status = 'status' in overrides ? overrides['status'] : this.selectedStatus || undefined;
+    const block = 'block' in overrides ? overrides['block'] : this.selectedBlock || undefined;
 
     this.router.navigate([], {
       relativeTo: this.route,
@@ -494,6 +524,7 @@ export class PropertiesListComponent implements OnDestroy {
         ...(search && { search }),
         ...(groupId && { group_id: groupId }),
         ...(status && { status }),
+        ...(block && { block }),
       },
     });
   }

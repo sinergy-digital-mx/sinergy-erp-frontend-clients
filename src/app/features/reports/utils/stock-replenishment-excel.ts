@@ -94,7 +94,7 @@ export async function buildStockReplenishmentExcel(
 ): Promise<ArrayBuffer> {
   const excel = await loadExcel();
   const workbook = new excel.Workbook();
-  workbook.creator = 'Polux ERP';
+  workbook.creator = 'Pólux ERP';
   workbook.created = new Date();
   const sheet = workbook.addWorksheet('Requerimiento', {
     properties: { defaultRowHeight: 18, tabColor: { argb: TITLE } },

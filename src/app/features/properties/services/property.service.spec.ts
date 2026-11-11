@@ -29,6 +29,7 @@ describe('PropertyService stats', () => {
       group_id: 'cust-group-1',
       status: 'disponible',
       search: 'MZ',
+      block: '15',
       page: 2,
       limit: 20,
     };
@@ -37,6 +38,7 @@ describe('PropertyService stats', () => {
     const listReq = httpMock.expectOne((req) => req.url === `${api}/tenant/properties`);
     expect(listReq.request.params.get('group_id')).toBe('cust-group-1');
     expect(listReq.request.params.get('status')).toBe('disponible');
+    expect(listReq.request.params.get('block')).toBe('15');
     expect(listReq.request.params.get('page')).toBe('2');
     expect(listReq.request.params.has('groupId')).toBe(false);
     expect(listReq.request.params.has('customer_group_id')).toBe(false);
@@ -46,6 +48,7 @@ describe('PropertyService stats', () => {
     const statsPromise = firstValueFrom(service.getPropertyStats(filters));
     const statsReq = httpMock.expectOne((req) => req.url === `${api}/tenant/properties/stats`);
     expect(statsReq.request.params.get('group_id')).toBe('cust-group-1');
+    expect(statsReq.request.params.get('block')).toBe('15');
     expect(statsReq.request.params.has('page')).toBe(false);
     expect(statsReq.request.params.has('limit')).toBe(false);
     expect(statsReq.request.params.has('groupId')).toBe(false);

@@ -85,6 +85,8 @@ export interface UpdatePropertyDto extends Partial<CreatePropertyDto> {}
 export interface PropertyListFilters {
   group_id?: string;
   status?: string;
+  /** Manzana exacta. */
+  block?: string;
   search?: string;
   page?: number;
   limit?: number;

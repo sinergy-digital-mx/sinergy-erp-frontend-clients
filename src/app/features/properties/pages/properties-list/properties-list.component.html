@@ -34,6 +34,13 @@
         (groupSelect)="onGroupSelect($event)">
       </app-customer-group-dropdown>
 
+      <app-property-block-dropdown
+        class="properties-page__filter"
+        [blocks]="blocks()"
+        [selectedBlock]="selectedBlock"
+        (blockSelect)="onBlockSelect($event)">
+      </app-property-block-dropdown>
+
       <app-property-status-dropdown
         class="properties-page__filter"
         [selectedStatus]="selectedStatus"
@@ -52,6 +59,7 @@
     [activeSearchTerm]="search"
     [activeGroupId]="selectedGroupId"
     [activeGroupName]="selectedGroupName"
+    [activeBlock]="selectedBlock"
     [activeStatus]="selectedStatus"
     [activeStatusLabel]="selectedStatus ? getStatusLabel(selectedStatus) : null"
     (filterClear)="onFilterClear($event)">

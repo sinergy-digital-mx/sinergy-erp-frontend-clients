@@ -195,6 +195,31 @@ export class BatchDetailDialogComponent implements OnInit {
     return this.batch()?.transfer_history ?? [];
   }
 
+  /** El lote de origen llegó por un cambio de almacén en la misma sucursal. */
+  get originIsPositionMove(): boolean {
+    const fromId = this.batch()?.transferred_from_batch_id;
+    if (!fromId) return false;
+    return this.transferHistory.some(
+      (entry) =>
+        entry.direction === 'in' &&
+        entry.related_batch_id === fromId &&
+        this.isPositionMove(entry),
+    );
+  }
+
+  /** Salidas de este lote que todavía no se reciben. */
+  get pendingMovements(): BatchTransferHistoryEntry[] {
+    const seen = new Set<string>();
+    const open = new Set(['pending', 'in_transit']);
+    return this.transferHistory.filter((entry) => {
+      if (entry.direction !== 'out' || !entry.transfer_id) return false;
+      if (!open.has(entry.status ?? '')) return false;
+      if (seen.has(entry.transfer_id)) return false;
+      seen.add(entry.transfer_id);
+      return true;
+    });
+  }
+
   get auditHistory(): BatchAuditHistoryEntry[] {
     return this.batch()?.audit_history ?? [];
   }
@@ -514,6 +539,24 @@ export class BatchDetailDialogComponent implements OnInit {
     });
   }
 
+  isPositionMove(entry: BatchTransferHistoryEntry): boolean {
+    const source = entry.source_billing_branch_id;
+    const destination = entry.destination_billing_branch_id;
+    return !!source && !!destination && source === destination;
+  }
+
+  pendingMoveText(entry: BatchTransferHistoryEntry): string {
+    const place = entry.warehouse_name?.trim();
+    const toward = place ? ` hacia ${place}` : '';
+    if (this.isPositionMove(entry)) {
+      return `Este lote tiene un cambio de posición pendiente${toward}.`;
+    }
+    if (entry.status === 'in_transit') {
+      return `Este lote tiene una transferencia en camino${toward}.`;
+    }
+    return `Este lote tiene una transferencia pendiente${toward}.`;
+  }
+
   openTransferDetail(transferId: string | undefined): void {
     if (!transferId) return;
     this.dialog.open(TransferDetailDialogComponent, {
@@ -521,7 +564,7 @@ export class BatchDetailDialogComponent implements OnInit {
       width: '800px',
       maxWidth: '95vw',
       maxHeight: '90vh',
-    });
+    }).afterClosed().subscribe(() => this.reloadBatch());
   }
 
   openRelatedBatch(batchId: string | undefined): void {

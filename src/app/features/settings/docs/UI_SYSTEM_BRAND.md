@@ -1,5 +1,9 @@
 # Marca visible
 
+## 2026-11-10
+
+Arriba del menú, en el login y en el portal de autofactura el texto es **Pólux**. Con el menú contraído se ve solo la **P**.
+
 ## 2026-11-06
 
 Arriba del menú y en el login va el texto **Polux | ERP**. La estrella queda solo en el favicon. Si una razón social tiene «Utilizar como logo del sistema», ese logo reemplaza el texto. Al quitarlo, el menú vuelve a **Polux | ERP**. Con el menú contraído se ve solo la **P**.

@@ -51,6 +51,8 @@ export class InventoryBatchListComponent implements OnInit {
   readonly ClipboardCheck = ClipboardCheck;
   readonly ChartColumn = ChartColumn;
 
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
   locations = signal<InventoryLocationFiscal[]>([]);
   stats = signal<InventoryStats | null>(null);
   statsLoading = signal(this.canViewStats());
@@ -90,9 +92,20 @@ export class InventoryBatchListComponent implements OnInit {
       if (changed) this.loadStats();
     });
     this.loadLocations();
+    this.destroyRef.onDestroy(() => this.clearSearchTimer());
+  }
+
+  onSearchInput(value: string): void {
+    this.state.searchTerm.set(value);
+    this.clearSearchTimer();
+    this.searchTimer = setTimeout(() => {
+      this.searchTimer = null;
+      this.state.reloadList();
+    }, 300);
   }
 
   onSearch(): void {
+    this.clearSearchTimer();
     this.state.reloadList();
   }
 
@@ -124,6 +137,7 @@ export class InventoryBatchListComponent implements OnInit {
   }
 
   clearFilters(): void {
+    this.clearSearchTimer();
     this.state.searchTerm.set('');
     this.state.selectedFiscalId.set('');
     this.state.selectedBranchId.set('');
@@ -159,6 +173,12 @@ export class InventoryBatchListComponent implements OnInit {
           this.toast.success('Reporte descargado');
         }
       });
+  }
+
+  private clearSearchTimer(): void {
+    if (!this.searchTimer) return;
+    clearTimeout(this.searchTimer);
+    this.searchTimer = null;
   }
 
   private reloadLocationScope(): void {

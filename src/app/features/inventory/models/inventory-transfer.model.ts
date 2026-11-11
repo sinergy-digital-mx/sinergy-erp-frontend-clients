@@ -187,6 +187,9 @@ export interface BatchTransferHistoryEntry {
   related_batch_id?: string;
   related_batch_number: string;
   warehouse_name: string;
+  status?: string;
+  source_billing_branch_id?: string | null;
+  destination_billing_branch_id?: string | null;
   created_at?: string;
 }
 

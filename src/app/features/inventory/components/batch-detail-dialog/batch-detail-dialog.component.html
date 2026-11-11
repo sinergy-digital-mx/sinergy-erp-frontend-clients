@@ -52,9 +52,17 @@
 
   @if (!loading() && batch()) {
     <div class="batch-detail__content">
+    @for (move of pendingMovements; track move.transfer_id) {
+      <div class="pending-move" [class.pending-move--position]="isPositionMove(move)">
+        <span>{{ pendingMoveText(move) }}</span>
+        <button type="button" class="pending-move__link" (click)="openTransferDetail(move.transfer_id)">
+          {{ isPositionMove(move) ? 'Ver movimiento' : 'Ver transferencia' }}
+        </button>
+      </div>
+    }
     @if (batch()?.transferred_from_batch_number) {
       <div class="transfer-origin-banner">
-        Este lote proviene de la transferencia del lote
+        {{ originIsPositionMove ? 'Este lote proviene del cambio de posición del lote' : 'Este lote proviene de la transferencia del lote' }}
         <button type="button" class="transfer-origin-banner__link" (click)="openOriginBatch()">
           {{ batch()?.transferred_from_batch_number }}
         </button>.

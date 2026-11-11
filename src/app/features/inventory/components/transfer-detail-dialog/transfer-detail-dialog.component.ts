@@ -5,7 +5,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { InventoryTransferService } from '../../services/inventory-transfer.service';
 import { InventoryTransfer, TransferLine, TransferProductSummary } from '../../models/inventory-transfer.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
-import { formatApiDate } from '../../../../core/utils/api-datetime.util';
+import { BUSINESS_TIME_ZONE, formatApiDate, parseApiDateTime } from '../../../../core/utils/api-datetime.util';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
 import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
@@ -20,7 +20,7 @@ import {
   isSameFiscal,
   transferNeedsShipping,
 } from '../../utils/transfer-location.util';
-import { transferStatusLabel } from '../../utils/transfer-status.util';
+import { transferStatusLabel, transferStatusTone } from '../../utils/transfer-status.util';
 import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.config';
 import { Shipping } from '../../../logistics/models/shipping.model';
 import { Truck, truckBusyLabel, truckSelectLabel } from '../../../logistics/models/truck.model';
@@ -56,6 +56,7 @@ export class TransferDetailDialogComponent implements OnInit {
   readonly Check = Check;
   readonly CircleAlert = CircleAlert;
   readonly statusLabel = transferStatusLabel;
+  readonly statusTone = transferStatusTone;
   readonly truckSelectLabel = truckSelectLabel;
   readonly truckBusyLabel = truckBusyLabel;
 
@@ -258,12 +259,33 @@ export class TransferDetailDialogComponent implements OnInit {
   }
 
   formatDate(dateString: string): string {
-    return formatApiDate(dateString, 'datetime');
+    const date = parseApiDateTime(dateString);
+    if (!date) return '—';
+    const day = new Intl.DateTimeFormat('es-MX', {
+      timeZone: BUSINESS_TIME_ZONE,
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
+    const time = new Intl.DateTimeFormat('es-MX', {
+      timeZone: BUSINESS_TIME_ZONE,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date);
+    return `${day}, ${time}`;
   }
 
   formatShippingDate(dateString: string | null | undefined): string {
     if (!dateString) return '';
-    return formatApiDate(dateString, 'date');
+    return formatApiDate(dateString, 'long');
+  }
+
+  sameBranchContext(): string {
+    const source = this.sourceLocation();
+    if (!source) return '';
+    const branch = source.city ? `${source.branchCode} · ${source.city}` : source.branchCode;
+    return [branch, source.fiscalName].filter(Boolean).join(' · ');
   }
 
   shippingCountLabel(count: number | null | undefined): string {
