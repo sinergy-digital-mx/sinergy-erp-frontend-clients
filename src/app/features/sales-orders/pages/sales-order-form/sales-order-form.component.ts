@@ -188,7 +188,8 @@ export class SalesOrderFormComponent implements OnInit {
       quantity: [item?.quantity || 1, [Validators.required, validateQuantity()]],
       unit_price: [item?.unit_price || 0, [Validators.required, validatePrice()]],
       iva_percentage: [item?.iva_percentage || 16, [Validators.required, validateTaxPercentage()]],
-      ieps_percentage: [item?.ieps_percentage || 0, [Validators.required, validateTaxPercentage()]]
+      ieps_percentage: [item?.ieps_percentage || 0, [Validators.required, validateTaxPercentage()]],
+      notes: [item?.notes || ''],
     });
   }
 

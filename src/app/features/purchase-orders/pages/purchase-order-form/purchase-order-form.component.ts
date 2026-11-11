@@ -377,7 +377,8 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       unit_price: [unitCost, [Validators.required, validatePrice()]],
       iva_percentage: [item?.iva_percentage ?? null, [validateTaxPercentage()]],
       ieps_percentage: [item?.ieps_percentage ?? null, [validateTaxPercentage()]],
-      currency: [currency]
+      currency: [currency],
+      notes: [item?.notes || ''],
     });
   }
 
@@ -580,7 +581,8 @@ export class PurchaseOrderFormComponent implements OnInit, OnDestroy {
       unit_total: this.toNum(row.unit_price),
       iva_percentage: this.showIva() ? this.toNum(row.iva_percentage) : 0,
       ieps_percentage: this.showIeps() ? this.toNum(row.ieps_percentage) : 0,
-      currency: normalizeVendorCostCurrency(row.currency) ?? paymentCurrency
+      currency: normalizeVendorCostCurrency(row.currency) ?? paymentCurrency,
+      ...(String(row.notes || '').trim() ? { notes: String(row.notes).trim() } : {}),
     }));
 
     const body: WritePurchaseOrderDto = {

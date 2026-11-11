@@ -136,6 +136,7 @@ export interface PurchaseOrderApiLineItem {
   iva_percentage?: number;
   ieps_percentage?: number;
   currency?: 'MXN' | 'USD';
+  notes?: string | null;
 }
 
 /**
@@ -149,6 +150,7 @@ export interface LineItemFormData {
   iva_percentage: number;
   ieps_percentage: number;
   currency?: 'MXN' | 'USD';
+  notes?: string | null;
 }
 
 /**
@@ -161,6 +163,7 @@ export interface UpdateLineItemDto {
   unit_total?: number;
   iva_percentage?: number;
   ieps_percentage?: number;
+  notes?: string | null;
 }
 
 /** POST body para agregar una línea a una OC existente (misma forma que en alta). */
@@ -172,6 +175,7 @@ export interface CreatePurchaseOrderLineItemDto {
   iva_percentage: number;
   ieps_percentage: number;
   currency?: 'MXN' | 'USD';
+  notes?: string | null;
 }
 
 /**

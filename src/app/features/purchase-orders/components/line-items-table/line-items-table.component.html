@@ -23,7 +23,10 @@
               role="row"
               class="line-item-row"
             >
-              <td role="cell" data-label="PRODUCTO">{{ item.product?.name || 'N/A' }}</td>
+              <td role="cell" data-label="PRODUCTO">
+                <div>{{ item.product?.name || 'N/A' }}</div>
+                <span *ngIf="item.notes?.trim()" class="line-note">{{ item.notes }}</span>
+              </td>
               <td role="cell" data-label="UOM">
                 <span class="uom-badge">{{ getLineUomName(item) }}</span>
               </td>
@@ -59,7 +62,10 @@
           role="row"
           class="line-item-row"
         >
-          <td role="cell" data-label="PRODUCTO">{{ item.product?.name || 'N/A' }}</td>
+          <td role="cell" data-label="PRODUCTO">
+            <div>{{ item.product?.name || 'N/A' }}</div>
+            <span *ngIf="item.notes?.trim()" class="line-note">{{ item.notes }}</span>
+          </td>
           <td role="cell" data-label="UOM">
             <span class="uom-badge">{{ getLineUomName(item) }}</span>
           </td>
@@ -123,7 +129,10 @@
       <div class="line-item-card__header">
         <div class="line-item-card__product">
           <span class="label">PRODUCTO:</span>
-          <span class="value">{{ item.product?.name || 'N/A' }}</span>
+          <span class="value">
+            {{ item.product?.name || 'N/A' }}
+            <span *ngIf="item.notes?.trim()" class="line-note">{{ item.notes }}</span>
+          </span>
         </div>
       </div>
       

@@ -50,6 +50,7 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
   selectedUnitPrice: number | null = null;
   selectedIva: number | null = 8;
   selectedIeps: number | null = 0;
+  lineNote = '';
 
   private readonly destroy$ = new Subject<void>();
   private readonly productSearch$ = new Subject<string>();
@@ -91,6 +92,10 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
       return 0;
     }
     return quantity * unitPrice;
+  }
+
+  get showLineNote(): boolean {
+    return !this.data.quotationId;
   }
 
   get showIva(): boolean {
@@ -312,6 +317,7 @@ export class AddSalesOrderLineDialogComponent implements OnInit, OnDestroy {
       unit_price: unitPrice,
       iva_percentage: iva,
       ieps_percentage: ieps,
+      ...(this.showLineNote && this.lineNote.trim() ? { notes: this.lineNote.trim() } : {}),
     };
     const request$ = (
       this.data.quotationId

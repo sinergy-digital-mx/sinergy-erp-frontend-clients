@@ -28,6 +28,7 @@ export class EditPurchaseOrderLineDialogComponent {
   unitTotal = 0;
   ivaPercentage = 0;
   iepsPercentage = 0;
+  notes = '';
   saving = signal(false);
   errorMessage = signal('');
 
@@ -49,6 +50,7 @@ export class EditPurchaseOrderLineDialogComponent {
     this.unitTotal = Number(item.unit_total ?? item.unit_price ?? 0);
     this.ivaPercentage = Number(item.iva_percentage || 0);
     this.iepsPercentage = Number(item.ieps_percentage || 0);
+    this.notes = item.notes?.trim() || '';
   }
 
   get productName(): string {
@@ -114,6 +116,7 @@ export class EditPurchaseOrderLineDialogComponent {
         unit_total: unitTotal,
         iva_percentage: iva,
         ieps_percentage: ieps,
+        notes: this.notes.trim() || null,
       })
       .subscribe({
         next: (order) => {

@@ -269,6 +269,15 @@
                   <tr>
                     <td class="lines-product">
                       <div class="lines-product__name">{{ item.product_name || '—' }}</div>
+                      @if (!asQuotation) {
+                        <textarea
+                          class="line-note-input"
+                          rows="2"
+                          maxlength="500"
+                          [(ngModel)]="item.notes"
+                          [ngModelOptions]="{standalone: true}"
+                          placeholder="Nota de la línea"></textarea>
+                      }
                       <div class="lines-product__meta">
                         <span class="sku-badge">{{ item.product_sku || 'Sin código' }}</span>
                         <span

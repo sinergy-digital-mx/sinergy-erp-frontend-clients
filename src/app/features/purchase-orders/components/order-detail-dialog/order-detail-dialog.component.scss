@@ -711,6 +711,21 @@
     }
   }
 
+  .line-note {
+    display: inline-block;
+    max-width: 100%;
+    margin-top: 0.28rem;
+    padding: 0.16rem 0.45rem;
+    border-radius: 0.4rem;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: normal;
+  }
+
   tbody tr.row-clickable:hover .product-info--clickable strong {
     color: #2563eb;
   }

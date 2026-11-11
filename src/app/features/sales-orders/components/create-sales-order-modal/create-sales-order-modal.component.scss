@@ -367,6 +367,22 @@
 .col-amount { width: 96px; }
 .col-remove { width: 40px; }
 
+.line-note-input {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  min-height: 2.4rem;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid #fde68a;
+  border-radius: 0.4rem;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
 .lines-product__name {
   overflow: hidden;
   font-weight: 650;

@@ -147,6 +147,19 @@
       }
     </div>
 
+    <div class="form-field form-field--full line-note-field">
+      <label class="form-label" for="po-add-line-note">Nota de la línea</label>
+      <textarea
+        id="po-add-line-note"
+        class="form-input"
+        rows="2"
+        maxlength="500"
+        [(ngModel)]="lineNote"
+        [ngModelOptions]="{ standalone: true }"
+        [disabled]="saving()"
+        placeholder="Opcional. Sale debajo del producto y en el PDF."></textarea>
+    </div>
+
     @if (errorMessage()) {
       <p class="add-line-dialog__error" role="alert">{{ errorMessage() }}</p>
     }

@@ -49,6 +49,7 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
   selectedUnitTotal: number | null = null;
   selectedIva: number | null = null;
   selectedIeps: number | null = null;
+  lineNote = '';
   selectedCurrency: VendorCostCurrency = 'MXN';
   selectedCurrencyLocked = true;
 
@@ -221,6 +222,7 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
       iva_percentage: iva,
       ieps_percentage: ieps,
       currency: this.data.currency,
+      ...(this.lineNote.trim() ? { notes: this.lineNote.trim() } : {}),
     };
 
     this.saving.set(true);

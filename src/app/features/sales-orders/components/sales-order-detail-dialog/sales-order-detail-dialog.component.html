@@ -788,6 +788,9 @@
                           }
                           <small>{{ item.product?.sku || '-' }}{{ (item.item_kind === 'service' || item.product?.item_kind === 'service') ? ' · Servicio' : '' }}</small>
                         </div>
+                        @if (item.notes?.trim(); as note) {
+                          <span class="line-note">{{ note }}</span>
+                        }
                       </td>
                       <td class="col-money">
                         <ng-container *ngTemplateOutlet="costCell; context: { $implicit: getLineUnitPrice(item) }" />
@@ -1331,6 +1334,9 @@
                               <small>{{ row.item.product.sku }}</small>
                             }
                           </div>
+                          @if (row.item.notes?.trim(); as note) {
+                            <span class="line-note">{{ note }}</span>
+                          }
                         </div>
                       </td>
                       <td>

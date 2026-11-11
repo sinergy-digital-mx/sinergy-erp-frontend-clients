@@ -60,6 +60,7 @@ interface LineItem {
   ieps_percentage: number | null;
   ieps_unit: number;
   currency: VendorCostCurrency;
+  notes?: string;
 }
 
 @Component({
@@ -756,7 +757,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       iva_unit: 0,
       ieps_percentage: this.showIeps ? this.selectedIeps : 0,
       ieps_unit: 0,
-      currency: this.selectedLineCurrency
+      currency: this.selectedLineCurrency,
+      notes: '',
     };
     this.calculateTotals(newItem);
     this.lineItems.push(newItem);
@@ -874,7 +876,8 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
       unit_total: Number(li.unit_total || 0),
       iva_percentage: this.showIva ? Number(li.iva_percentage || 0) : 0,
       ieps_percentage: this.showIeps ? Number(li.ieps_percentage || 0) : 0,
-      currency: li.currency || paymentCurrency
+      currency: li.currency || paymentCurrency,
+      ...(li.notes?.trim() ? { notes: li.notes.trim() } : {}),
     }));
 
     const payload: WritePurchaseOrderDto = {

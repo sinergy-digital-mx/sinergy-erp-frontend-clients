@@ -58,6 +58,8 @@ export interface SalesOrderLineItem {
   product_uom_id: string;
   /** Concepto libre; reemplaza el nombre del producto al mostrar y facturar. */
   custom_description?: string | null;
+  /** Nota de esta línea. */
+  notes?: string | null;
   quantity: string | number;
   quantity_base_uom?: string;
   base_uom_id?: string;
@@ -484,6 +486,7 @@ export interface SalesOrderFormData {
     product_discount_id?: string;
     iva_percentage: number;
     ieps_percentage: number;
+    notes?: string | null;
   }>;
 }
 

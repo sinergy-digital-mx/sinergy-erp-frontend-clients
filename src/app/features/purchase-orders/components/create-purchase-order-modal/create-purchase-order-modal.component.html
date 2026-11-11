@@ -241,6 +241,13 @@
                 <td>
                   <div class="product-cell">
                     <div class="product-cell__name">{{ item.product_name || '—' }}</div>
+                    <textarea
+                      class="line-note-input"
+                      rows="2"
+                      maxlength="500"
+                      [(ngModel)]="item.notes"
+                      [ngModelOptions]="{standalone: true}"
+                      placeholder="Nota de la línea"></textarea>
                     <div class="product-cell__meta">
                       <span>SKU: {{ item.product_sku || 'N/A' }}</span>
                     </div>

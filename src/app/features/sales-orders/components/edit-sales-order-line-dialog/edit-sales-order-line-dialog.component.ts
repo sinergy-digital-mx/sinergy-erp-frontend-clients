@@ -32,6 +32,7 @@ export class EditSalesOrderLineDialogComponent {
   unitPrice = 0;
   ivaPercentage = 0;
   iepsPercentage = 0;
+  notes = '';
   saving = signal(false);
   errorMessage = signal('');
 
@@ -49,6 +50,11 @@ export class EditSalesOrderLineDialogComponent {
     this.unitPrice = Number(item.unit_price || 0);
     this.ivaPercentage = Number(item.iva_percentage || 0);
     this.iepsPercentage = Number(item.ieps_percentage || 0);
+    this.notes = item.notes?.trim() || '';
+  }
+
+  get showLineNote(): boolean {
+    return !this.data.quotationId;
   }
 
   get productName(): string {
@@ -152,6 +158,7 @@ export class EditSalesOrderLineDialogComponent {
       unit_price: unitPrice,
       iva_percentage: iva,
       ieps_percentage: ieps,
+      ...(this.showLineNote ? { notes: this.notes.trim() || null } : {}),
     };
     const request$ = (
       this.data.quotationId

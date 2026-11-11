@@ -42,6 +42,7 @@ interface LineItem {
   discount_percentage: number;
   iva_percentage: number;
   ieps_percentage: number;
+  notes?: string;
 }
 
 @Component({
@@ -342,6 +343,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
             discount_percentage: Number(item.discount_percentage || 0),
             iva_percentage: Number(item.iva_percentage || 0),
             ieps_percentage: Number(item.ieps_percentage || 0),
+            notes: '',
           }));
 
           if (fiscalId) {
@@ -827,6 +829,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       discount_percentage: 0,
       iva_percentage: this.showIva ? Number(uom.iva_percentage || 0) : 0,
       ieps_percentage: this.showIeps ? Number(uom.ieps_percentage || 0) : 0,
+      notes: '',
     };
     this.lineItems.push(item);
     this.selectedProduct = null;
@@ -1110,6 +1113,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       iva_percentage: this.showIva ? Number(li.iva_percentage || 0) : 0,
       ieps_percentage: this.showIeps ? Number(li.ieps_percentage || 0) : 0,
       ...(li.product_discount_id ? { product_discount_id: li.product_discount_id } : {}),
+      ...(!this.asQuotation && li.notes?.trim() ? { notes: li.notes.trim() } : {}),
     }));
 
     if (this.asQuotation) {
@@ -1268,6 +1272,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
           discount_percentage: 0,
           iva_percentage: Number(this.newService.iva_percentage || 0),
           ieps_percentage: 0,
+          notes: '',
         });
         this.savingService = false;
         this.closeCreateServiceModal();

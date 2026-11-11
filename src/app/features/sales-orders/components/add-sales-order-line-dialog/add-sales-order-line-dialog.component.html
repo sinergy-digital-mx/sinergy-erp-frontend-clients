@@ -160,6 +160,21 @@
       }
     </div>
 
+    @if (showLineNote) {
+      <div class="form-field form-field--full line-note-field">
+        <label class="form-label" for="so-add-line-note">Nota de la línea</label>
+        <textarea
+          id="so-add-line-note"
+          class="form-input"
+          rows="2"
+          maxlength="500"
+          [(ngModel)]="lineNote"
+          [ngModelOptions]="{ standalone: true }"
+          [disabled]="saving()"
+          placeholder="Opcional. Sale debajo del producto y en el PDF."></textarea>
+      </div>
+    }
+
     <div class="add-line-dialog__totals">
       <div>
         <span>Sin IVA</span>

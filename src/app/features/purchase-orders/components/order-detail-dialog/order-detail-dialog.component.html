@@ -503,6 +503,9 @@
                             <strong>{{ item.product?.name || 'N/A' }}</strong>
                             <small>{{ item.product?.sku || '' }}</small>
                           </div>
+                          @if (item.notes?.trim(); as note) {
+                            <span class="line-note">{{ note }}</span>
+                          }
                         </td>
                         <td class="col-money">
                           <ng-container *ngTemplateOutlet="costCell; context: { $implicit: getLineUnitCost(item) }" />

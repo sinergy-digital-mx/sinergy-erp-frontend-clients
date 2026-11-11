@@ -24,6 +24,8 @@ export interface LineItem {
   purchase_order_id?: string;
   product_id: string;
   product_uom_id?: string;
+  /** Nota de esta línea. */
+  notes?: string | null;
   product_uom?: ProductUOM;
   uom_id: string;
   quantity: number | string;
