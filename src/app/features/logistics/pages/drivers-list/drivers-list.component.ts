@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { User } from '../../../rbac-tenant-ui/models';
-import { UserService } from '../../../rbac-tenant-ui/services/user.service';
+import { ShippingService } from '../../services/shipping.service';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import {
   IDatatableConfig,
@@ -41,10 +41,10 @@ export class DriversListComponent implements OnInit {
     reorderable: false,
   });
 
-  constructor(private userService: UserService) {}
+  constructor(private shippingService: ShippingService) {}
 
   ngOnInit(): void {
-    this.userService.getUsers().subscribe({
+    this.shippingService.getDrivers().subscribe({
       next: (users) => {
         this.drivers = (users ?? [])
           .filter((user) => this.isActive(user) && this.isDriver(user))

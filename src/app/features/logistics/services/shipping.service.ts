@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { SalesOrder } from '../../sales-orders/models/sales-order.model';
+import { User } from '../../rbac-tenant-ui/models';
 import {
   CreateShippingDto,
   ResolveOrdersDto,
@@ -111,6 +112,18 @@ export class ShippingService {
   getShipping(id: string): Observable<Shipping> {
     return this.http.get<any>(`${this.baseUrl}/${id}`).pipe(
       map((response) => normalizeShipping(response?.data ?? response))
+    );
+  }
+
+  /** Choferes activos. Usa permiso de envíos, no el listado de usuarios. */
+  getDrivers(): Observable<User[]> {
+    return this.http.get<any>(`${this.baseUrl}/drivers`).pipe(
+      map((response) => {
+        const list = Array.isArray(response)
+          ? response
+          : (response?.data ?? response?.users ?? []);
+        return (Array.isArray(list) ? list : []) as User[];
+      }),
     );
   }
 

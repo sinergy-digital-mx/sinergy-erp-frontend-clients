@@ -2,6 +2,10 @@
 
 Listado y modal de proveedores. Contrato: `src/api/vendor/docs/UI_VENDOR_PROFILE.md` del backend.
 
+## 2026-11-12 — Menú con Ver proveedores
+
+El ítem **Proveedores** del menú también aparece con `vendors:Read` / `Vendor:Read`. `vendor` y `vendors` cuentan como la misma entidad.
+
 ## 2026-11-04 — Constancia SAT
 
 En **Nuevo proveedor** (nacional) el modal abre en **Información Fiscal**. El botón **Cargar constancia SAT** llena RFC, razón social, tipo de persona y domicilio. Esos campos se pueden corregir antes de **Crear proveedor**. Al editar, el mismo botón está en ese tab.

@@ -30,7 +30,6 @@ import { TruckFormModalComponent } from '../../../logistics/components/truck-for
 import { ShippingDetailDialogComponent } from '../../../logistics/components/shipping-detail-dialog/shipping-detail-dialog.component';
 import { User } from '../../../rbac-tenant-ui/models';
 import { UserDetailModalComponent } from '../../../rbac-tenant-ui/components/user-detail-modal/user-detail-modal.component';
-import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { TransferReceptionDialogComponent } from '../transfer-reception-dialog/transfer-reception-dialog.component';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
@@ -137,7 +136,6 @@ export class TransferDetailDialogComponent implements OnInit {
     private toast: ToastService,
     private auth: AuthService,
     private truckService: TruckService,
-    private userService: UserService,
     private shippingService: ShippingService,
   ) {}
 
@@ -349,7 +347,7 @@ export class TransferDetailDialogComponent implements OnInit {
     ref.afterClosed().subscribe((saved) => {
       if (!saved) return;
       const keepId = driver.id;
-      this.userService.refreshUsers().subscribe({
+      this.shippingService.getDrivers().subscribe({
         next: (users) => {
           this.drivers.set((users ?? []).filter((user) => this.isActiveDriver(user)));
           this.driverId = keepId;
@@ -457,7 +455,7 @@ export class TransferDetailDialogComponent implements OnInit {
       next: (res) => this.trucks.set(res.data ?? []),
       error: () => this.trucks.set([]),
     });
-    this.userService.refreshUsers().subscribe({
+    this.shippingService.getDrivers().subscribe({
       next: (users) => this.drivers.set((users ?? []).filter((user) => this.isActiveDriver(user))),
       error: () => this.drivers.set([]),
     });

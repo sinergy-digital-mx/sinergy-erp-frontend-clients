@@ -184,6 +184,7 @@ export interface Product {
   category_id?: string | null;
   subcategory_id?: string | null;
   base_uom_id?: string | null;
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 
@@ -227,6 +228,14 @@ export interface ProductListResponse {
   totalPages: number;
   hasNext: boolean;
   hasPrev: boolean;
+}
+
+export interface ProductDisableImpact {
+  is_active: boolean;
+  has_inventory: boolean;
+  lot_count: number;
+  open_transfer_count: number;
+  by_uom: Array<{ uom_name: string; quantity: string }>;
 }
 
 export interface ProductQueryParams {

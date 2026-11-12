@@ -1,16 +1,40 @@
 {
-  "version": "0.0.118",
-  "buildId": "0.0.118-1794523986293",
-  "builtAt": "2026-11-12T22:53:06.293Z",
+  "version": "0.0.119",
+  "buildId": "0.0.119-1794526556835",
+  "builtAt": "2026-11-12T23:35:56.835Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Cambios en accesos y permisos"
+      "message": "Cambios en inventario"
     },
     {
       "scope": "frontend",
+      "message": "Cambios en logística"
+    },
+    {
+      "scope": "frontend",
+      "message": "Cambios en compras"
+    },
+    {
+      "scope": "frontend",
+      "message": "Cambios en productos"
+    },
+    {
+      "scope": "frontend",
+      "message": "Cambios en configuración"
+    },
+    {
+      "scope": "backend",
+      "message": "Cambios en accesos y permisos"
+    },
+    {
+      "scope": "backend",
       "message": "Cambios en ventas"
+    },
+    {
+      "scope": "backend",
+      "message": "Cambios en proveedores"
     }
   ]
 }

@@ -153,6 +153,47 @@
               <span *ngIf="saving">Guardando...</span>
             </button>
           </div>
+
+          <div class="product-status-bar" *ngIf="isPersistedProduct">
+            <div class="product-status-bar__copy">
+              <p class="product-status-bar__title">
+                Estado
+                <span
+                  class="product-status-bar__badge"
+                  [class.product-status-bar__badge--off]="product.is_active === false">
+                  {{ product.is_active === false ? 'Deshabilitado' : 'Activo' }}
+                </span>
+              </p>
+              <p class="product-status-bar__hint" *ngIf="product.is_active !== false">
+                Deshabilítalo si es un producto repetido. Dejará de aparecer en ventas.
+              </p>
+              <p class="product-status-bar__hint" *ngIf="product.is_active === false">
+                El inventario que se dio de baja no se restaura al habilitarlo.
+              </p>
+              <p class="product-status-bar__warn" *ngIf="product.is_active !== false && disableInventoryWarning">
+                {{ disableInventoryWarning }}
+              </p>
+              <p class="product-status-bar__warn" *ngIf="product.is_active !== false && (disableImpact?.open_transfer_count ?? 0) > 0">
+                Hay transferencias abiertas. Recíbelas o cancélalas antes de deshabilitarlo.
+              </p>
+            </div>
+            <button
+              *ngIf="product.is_active !== false"
+              class="btn btn--danger"
+              type="button"
+              [disabled]="statusChanging || (disableImpact?.open_transfer_count ?? 0) > 0"
+              (click)="disableProduct()">
+              Deshabilitar
+            </button>
+            <button
+              *ngIf="product.is_active === false"
+              class="btn btn--secondary"
+              type="button"
+              [disabled]="statusChanging"
+              (click)="enableProduct()">
+              Habilitar
+            </button>
+          </div>
         </div>
 
         <!-- Tab: UOMs -->

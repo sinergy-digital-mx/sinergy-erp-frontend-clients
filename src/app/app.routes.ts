@@ -101,7 +101,12 @@ export const routes: Routes = [
           import('./features/settings/components/vendor-list/vendor-list.component')
             .then(m => m.VendorListComponent),
         data: {
-          permissions: [SETTINGS_PERMISSIONS.vendors.viewMenu, 'Vendor:ViewMenu'],
+          permissions: [
+            SETTINGS_PERMISSIONS.vendors.viewMenu,
+            'Vendor:ViewMenu',
+            SETTINGS_PERMISSIONS.vendors.view,
+            'Vendor:Read',
+          ],
           permissionMode: 'any',
           title: 'Proveedores',
         },

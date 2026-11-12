@@ -10,7 +10,6 @@ import { SpinnerComponent } from '../../../../core/components/spinner/spinner.co
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
-import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { User } from '../../../rbac-tenant-ui/models';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { BranchService } from '../../../settings/services/branch.service';
@@ -110,7 +109,6 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     private fiscalConfigurationService: FiscalConfigurationService,
     private branchService: BranchService,
     private truckService: TruckService,
-    private userService: UserService,
     private shippingService: ShippingService,
     private transferService: InventoryTransferService,
     private snackBar: MatSnackBar,
@@ -344,7 +342,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     });
     ref.afterClosed().subscribe((saved) => {
       if (!saved) return;
-      this.userService.refreshUsers().subscribe({
+      this.shippingService.getDrivers().subscribe({
         next: (users) => {
           this.drivers.set(this.activeDrivers(users));
           this.form.patchValue({ driver_id: driver.id });
@@ -404,7 +402,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
       next: (res) => this.trucks.set(res.data ?? []),
       error: () => this.trucks.set([]),
     });
-    this.userService.refreshUsers().subscribe({
+    this.shippingService.getDrivers().subscribe({
       next: (users) => {
         this.drivers.set(this.activeDrivers(users));
         this.loadingCatalogs.set(false);

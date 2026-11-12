@@ -6,6 +6,7 @@ import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import {
   Product, CreateProductDto, UpdateProductDto, ProductListResponse, ProductQueryParams,
+  ProductDisableImpact,
   ProductCatalogExportFilters,
   VendorCatalogImportError,
   VendorCatalogImportPreview,
@@ -132,8 +133,20 @@ export class ProductService {
     return this.http.patch<Product>(`${this.api}/tenant/products/${id}`, data);
   }
 
-  updateProductStatus(id: string, isActive: boolean): Observable<Product> {
-    return this.http.patch<Product>(`${this.api}/tenant/products/${id}/status`, { is_active: isActive });
+  getProductDisableImpact(id: string): Observable<ProductDisableImpact> {
+    return this.http.get<ProductDisableImpact>(`${this.api}/tenant/products/${id}/disable-impact`);
+  }
+
+  updateProductStatus(
+    id: string,
+    isActive: boolean,
+    writeOffInventory = false,
+  ): Observable<Product> {
+    const body: { is_active: boolean; write_off_inventory?: boolean } = { is_active: isActive };
+    if (!isActive && writeOffInventory) {
+      body.write_off_inventory = true;
+    }
+    return this.http.patch<Product>(`${this.api}/tenant/products/${id}/status`, body);
   }
 
   deleteProduct(id: string): Observable<void> {

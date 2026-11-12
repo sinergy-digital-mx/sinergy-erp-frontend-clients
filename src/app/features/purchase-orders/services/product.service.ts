@@ -34,7 +34,9 @@ export class ProductService {
       return of(cached);
     }
 
-    return this.http.get<Product[] | { data: Product[] }>(this.baseUrl).pipe(
+    return this.http.get<Product[] | { data: Product[] }>(this.baseUrl, {
+      params: { is_active: 'true' },
+    }).pipe(
       map(response => {
         // Handle both array and {data: array} formats
         return Array.isArray(response) ? response : response.data;

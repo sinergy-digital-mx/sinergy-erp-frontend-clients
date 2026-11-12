@@ -141,6 +141,17 @@
   width: auto;
 }
 
+.product-list-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+
+  .settings-cell-primary {
+    min-width: 0;
+  }
+}
+
 .product-list-filters__clear {
   display: flex;
   flex: 0 0 auto;

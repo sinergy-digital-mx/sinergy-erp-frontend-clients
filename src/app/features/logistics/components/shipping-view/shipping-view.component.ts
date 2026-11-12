@@ -357,7 +357,7 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
       next: (res) => this.trucks.set(res.data ?? []),
       error: () => this.trucks.set([]),
     });
-    this.userService.refreshUsers().subscribe({
+    this.shippingService.getDrivers().subscribe({
       next: (users) => this.drivers.set((users ?? []).filter((user) => this.isActiveDriver(user))),
       error: () => this.drivers.set([]),
     });

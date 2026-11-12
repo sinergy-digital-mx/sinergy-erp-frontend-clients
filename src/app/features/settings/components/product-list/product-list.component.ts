@@ -68,6 +68,7 @@ export class ProductListComponent implements OnDestroy {
   Plus = Plus;
   search = '';
   itemKindFilter = '';
+  statusFilter = '';
   currentSort: ISortEvent | null = null;
   private destroy$ = new Subject<void>();
   private lastQueryParams = '';
@@ -94,6 +95,8 @@ export class ProductListComponent implements OnDestroy {
       tap((query) => {
         this.search = query?.['search'] ?? '';
         this.itemKindFilter = query?.['item_kind'] ?? '';
+        const status = query?.['status'];
+        this.statusFilter = status === 'active' || status === 'inactive' ? status : '';
 
         const page = query?.['page'] ? Number(query['page']) : 1;
         const limit = query?.['limit'] ? Number(query['limit']) : 20;
@@ -133,7 +136,7 @@ export class ProductListComponent implements OnDestroy {
     const config = this.table_config();
     const page = Number.isNaN(config.page) ? 1 : config.page;
     const limit = Number.isNaN(config.limit) ? 20 : config.limit;
-    const params: Record<string, string | number> = { page, limit };
+    const params: Record<string, string | number | boolean> = { page, limit };
 
     const normalizedSearch = this.search?.trim();
     if (normalizedSearch) {
@@ -150,6 +153,12 @@ export class ProductListComponent implements OnDestroy {
 
     if (this.itemKindFilter === 'goods' || this.itemKindFilter === 'service') {
       params['item_kind'] = this.itemKindFilter;
+    }
+
+    if (this.statusFilter === 'active') {
+      params['is_active'] = true;
+    } else if (this.statusFilter === 'inactive') {
+      params['is_active'] = false;
     }
 
     return params;
@@ -183,37 +192,20 @@ export class ProductListComponent implements OnDestroy {
   }
 
   onPageChange(event: IPaginationEvent) {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: event.page,
-        limit: event.limit,
-        search: this.search || undefined,
-        item_kind: this.itemKindFilter || undefined,
-      },
-      queryParamsHandling: 'merge',
-    });
+    this.navigateList(event.page, { limit: event.limit });
   }
 
   onSearchChange(searchTerm: string) {
     this.search = searchTerm;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        search: searchTerm || undefined,
-        item_kind: this.itemKindFilter || undefined,
-      },
-      queryParamsHandling: 'merge',
-    });
+    this.navigateList(1);
   }
 
   get hasActiveFilters(): boolean {
-    return !!this.search?.trim() || !!this.itemKindFilter;
+    return !!this.search?.trim() || !!this.itemKindFilter || !!this.statusFilter;
   }
 
-  get kindFilterCount(): number {
-    return this.itemKindFilter ? 1 : 0;
+  get sheetFilterCount(): number {
+    return (this.itemKindFilter ? 1 : 0) + (this.statusFilter ? 1 : 0);
   }
 
   itemKindLabel(kind: string | undefined): string {
@@ -222,15 +214,12 @@ export class ProductListComponent implements OnDestroy {
 
   onItemKindChange(value: string): void {
     this.itemKindFilter = value;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        search: this.search || undefined,
-        item_kind: value || undefined,
-      },
-      queryParamsHandling: 'merge',
-    });
+    this.navigateList(1);
+  }
+
+  onStatusChange(value: string): void {
+    this.statusFilter = value === 'active' || value === 'inactive' ? value : '';
+    this.navigateList(1);
   }
 
   get canExportCatalog(): boolean {
@@ -280,33 +269,41 @@ export class ProductListComponent implements OnDestroy {
     if (this.itemKindFilter === 'goods' || this.itemKindFilter === 'service') {
       filters.item_kind = this.itemKindFilter;
     }
+    if (this.statusFilter === 'active') {
+      filters.is_active = true;
+    } else if (this.statusFilter === 'inactive') {
+      filters.is_active = false;
+    }
     return filters;
   }
 
-  clearKindFilter(): void {
-    if (!this.itemKindFilter) return;
+  clearSheetFilters(): void {
+    if (!this.itemKindFilter && !this.statusFilter) return;
     this.itemKindFilter = '';
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        search: this.search || undefined,
-        item_kind: undefined,
-      },
-      queryParamsHandling: 'merge',
-    });
+    this.statusFilter = '';
+    this.navigateList(1);
   }
 
   clearFilters(): void {
     this.search = '';
     this.itemKindFilter = '';
+    this.statusFilter = '';
+    this.navigateList(1);
+  }
+
+  private navigateList(page: number, extra: { limit?: number } = {}): void {
+    const queryParams: Record<string, string | number | null> = {
+      page,
+      search: this.search?.trim() || null,
+      item_kind: this.itemKindFilter || null,
+      status: this.statusFilter || null,
+    };
+    if (extra.limit != null) {
+      queryParams['limit'] = extra.limit;
+    }
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: {
-        page: 1,
-        search: undefined,
-        item_kind: undefined,
-      },
+      queryParams,
       queryParamsHandling: 'merge',
     });
   }

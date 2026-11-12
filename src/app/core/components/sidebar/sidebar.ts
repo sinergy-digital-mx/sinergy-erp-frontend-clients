@@ -204,6 +204,8 @@ export class Sidebar implements OnInit, OnDestroy {
       permissions: [
         PERMISSIONS.settings.vendors.viewMenu,
         'Vendor:ViewMenu',
+        PERMISSIONS.settings.vendors.view,
+        'Vendor:Read',
       ],
     },
     {

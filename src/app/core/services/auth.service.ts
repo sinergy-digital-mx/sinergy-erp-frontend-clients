@@ -326,8 +326,33 @@
         return false;
       }
 
-      const normalizedPermission = this.normalizePermission(permission);
-      return this.permissions$.getValue().has(normalizedPermission);
+      const granted = this.permissions$.getValue();
+      return this.permissionAliases(this.normalizePermission(permission)).some((alias) =>
+        granted.has(alias),
+      );
+    }
+
+    /**
+     * Vendor y vendors son la misma entidad en el token.
+     * «Ver proveedores» llega como vendor:Read y el menú histórico pide vendors:ViewMenu.
+     */
+    private permissionAliases(normalized: string): string[] {
+      const aliases = [normalized];
+      const colon = normalized.indexOf(':');
+      if (colon <= 0) {
+        return aliases;
+      }
+      const entity = normalized.slice(0, colon);
+      const action = normalized.slice(colon);
+      const pairs: Record<string, string> = {
+        vendor: 'vendors',
+        vendors: 'vendor',
+      };
+      const other = pairs[entity];
+      if (other) {
+        aliases.push(`${other}${action}`);
+      }
+      return aliases;
     }
 
     /**
@@ -534,7 +559,7 @@
         { path: '/inventory', permissions: ['inventory:Read', 'inventory:ViewMenu'] },
         { path: '/products', permissions: ['products:ViewMenu', 'Product:ViewMenu'] },
         { path: '/price-updates', permissions: ['price_updates:ViewMenu', 'price_updates:Read'] },
-        { path: '/vendors', permissions: ['vendors:ViewMenu', 'Vendor:ViewMenu'] },
+        { path: '/vendors', permissions: ['vendors:ViewMenu', 'Vendor:ViewMenu', 'vendors:Read', 'Vendor:Read'] },
         { path: '/sales-orders', permissions: ['salesOrders:Read', 'sales_orders:read', 'sales_orders:ViewMenu'] },
         { path: '/quotations', permissions: ['Quotation:Read', 'Quotation:ViewMenu', 'quotation:Read', 'quotation:ViewMenu'] },
         { path: '/warehouse-control', permissions: ['WarehouseControl:Read', 'WarehouseControl:ViewMenu', 'warehousecontrol:Read', 'warehousecontrol:ViewMenu'] },

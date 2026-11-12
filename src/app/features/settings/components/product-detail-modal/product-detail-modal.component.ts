@@ -21,8 +21,10 @@ import {
   ProductDiscountType,
   VendorProductPrice,
   ProductAttribute,
-  ProductAttributeValue
+  ProductAttributeValue,
+  ProductDisableImpact,
 } from '../../models/product.model';
+import { ConfirmDialogComponent } from '../../../rbac-tenant-ui/components/confirm-dialog/confirm-dialog.component';
 import { CategoriesDialogComponent } from '../categories-dialog/categories-dialog.component';
 import { UomsDialogComponent } from '../uoms-dialog/uoms-dialog.component';
 import { formatUnitAmount as formatStoredUnitAmount } from '../../../../core/utils/unit-money.util';
@@ -44,6 +46,10 @@ export class ProductDetailModalComponent implements OnInit {
   visible = true;
   loading = false;
   saving = false;
+  statusChanging = false;
+  disableImpact: ProductDisableImpact | null = null;
+  private disableImpactRequest = 0;
+  private loadingDisableImpactAction = false;
   uploadingPhoto = false;
   loadingUoms = false;
   loadingPrices = false;
@@ -101,6 +107,9 @@ export class ProductDetailModalComponent implements OnInit {
     }
 
     this.activeTab = tabId;
+    if (tabId === 'detalles' && this.isPersistedProduct) {
+      this.loadDisableImpact();
+    }
     if (tabId === 'uoms' && this.isPersistedProduct) {
       this.loadUomCatalog(() => this.loadProductUoms());
     }
@@ -356,6 +365,7 @@ export class ProductDetailModalComponent implements OnInit {
 
         // Catálogo UOM (merge) y luego filas asignadas — evita que el <select> no tenga la opción del UUID guardado
         this.loadUomCatalog(() => this.loadProductUoms());
+        this.loadDisableImpact();
         
         // Cargar precios del producto
         this.loadProductPrices();
@@ -1044,6 +1054,157 @@ export class ProductDetailModalComponent implements OnInit {
         this.showNotification(errorMessage, 'error');
       }
     });
+  }
+
+  get disableInventoryWarning(): string {
+    const impact = this.disableImpact;
+    if (!impact?.has_inventory) return '';
+    const summary = impact.by_uom
+      .map((row) => `${row.quantity} ${row.uom_name}`.trim())
+      .filter(Boolean)
+      .join(', ');
+    const lots = impact.lot_count === 1 ? '1 lote' : `${impact.lot_count} lotes`;
+    const stock = summary ? `${summary} en ${lots}` : lots;
+    return `Tiene inventario (${stock}). Si lo deshabilitas, ese inventario se dará de baja.`;
+  }
+
+  loadDisableImpact(): void {
+    const productId = this.product?.id?.trim();
+    if (!productId) {
+      this.disableImpact = null;
+      return;
+    }
+    const request = ++this.disableImpactRequest;
+    this.productService.getProductDisableImpact(productId).subscribe({
+      next: (impact) => {
+        if (request !== this.disableImpactRequest) return;
+        this.disableImpact = impact;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        if (request !== this.disableImpactRequest) return;
+        this.disableImpact = null;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  disableProduct(): void {
+    if (!this.product?.id || this.statusChanging || this.product.is_active === false) return;
+    if (!this.disableImpact) {
+      if (this.loadingDisableImpactAction) return;
+      this.loadingDisableImpactAction = true;
+      const productId = this.product.id;
+      this.productService.getProductDisableImpact(productId).subscribe({
+        next: (impact) => {
+          this.loadingDisableImpactAction = false;
+          this.disableImpact = impact;
+          this.cdr.detectChanges();
+          this.disableProduct();
+        },
+        error: (error) => {
+          this.loadingDisableImpactAction = false;
+          this.showNotification(
+            resolveHttpErrorMessage(error, 'No se pudo revisar el inventario del producto'),
+            'error',
+          );
+        },
+      });
+      return;
+    }
+    if ((this.disableImpact?.open_transfer_count ?? 0) > 0) {
+      this.showNotification(
+        'Hay transferencias abiertas. Recíbelas o cancélalas antes de deshabilitarlo.',
+        'error',
+      );
+      return;
+    }
+
+    const name = this.product.name?.trim() || 'este producto';
+    const warning = this.disableInventoryWarning;
+    const message = warning
+      ? `¿Deshabilitar «${name}»? ${warning} Dejará de aparecer en ventas.`
+      : `¿Deshabilitar «${name}»? Dejará de aparecer en ventas y en el catálogo activo.`;
+
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '480px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: {
+          title: 'Deshabilitar producto',
+          message,
+          confirmText: 'Deshabilitar',
+          cancelText: 'Cancelar',
+          isDangerous: true,
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.applyProductStatus(false, !!warning);
+        }
+      });
+  }
+
+  enableProduct(): void {
+    if (!this.product?.id || this.statusChanging || this.product.is_active !== false) return;
+    const name = this.product.name?.trim() || 'este producto';
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '480px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: {
+          title: 'Habilitar producto',
+          message: `¿Habilitar «${name}»? Volverá a estar disponible. El inventario que se dio de baja no se restaura.`,
+          confirmText: 'Habilitar',
+          cancelText: 'Cancelar',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.applyProductStatus(true, false);
+        }
+      });
+  }
+
+  private applyProductStatus(isActive: boolean, writeOffInventory: boolean): void {
+    const productId = this.product?.id?.trim();
+    if (!productId || this.statusChanging) return;
+    this.statusChanging = true;
+    this.cdr.detectChanges();
+    this.productService
+      .updateProductStatus(productId, isActive, writeOffInventory)
+      .pipe(finalize(() => {
+        this.statusChanging = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
+        next: (updated) => {
+          if (this.product) {
+            this.product.is_active = updated.is_active ?? isActive;
+          }
+          this.loadDisableImpact();
+          this.productUpdated.emit();
+          this.showNotification(
+            isActive
+              ? 'Producto habilitado'
+              : writeOffInventory
+                ? 'Producto deshabilitado. El inventario se dio de baja.'
+                : 'Producto deshabilitado',
+            'success',
+          );
+        },
+        error: (error) => {
+          this.showNotification(
+            resolveHttpErrorMessage(error, 'No se pudo cambiar el estado del producto'),
+            'error',
+          );
+          this.loadDisableImpact();
+        },
+      });
   }
 
   save(): void {
