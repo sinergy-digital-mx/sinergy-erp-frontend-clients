@@ -27,7 +27,7 @@
       @if (activeTab === 'info') {
       <div class="form-grid">
         <div class="form-field form-field--full">
-          <label class="form-label">RAZÓN SOCIAL *</label>
+          <label class="form-label">RAZÓN SOCIAL{{ fieldRequired('fiscal_configuration_id') ? ' *' : '' }}</label>
           <select class="form-select" formControlName="fiscal_configuration_id">
             <option value="">Selecciona una razón social</option>
             <option *ngFor="let config of fiscalConfigurations" [value]="config.id">
@@ -36,8 +36,9 @@
           </select>
         </div>
 
+        @if (showField('billing_branch_id')) {
         <div class="form-field">
-          <label class="form-label">SUCURSAL *</label>
+          <label class="form-label">SUCURSAL{{ fieldRequired('billing_branch_id') ? ' *' : '' }}</label>
           <select class="form-select" formControlName="billing_branch_id">
             <option value="">Selecciona una sucursal</option>
             <option *ngFor="let branch of branches" [value]="branch.id">
@@ -45,10 +46,11 @@
             </option>
           </select>
         </div>
+        }
 
         <div class="form-field">
           <div class="form-label-row">
-            <label class="form-label">CLIENTE *</label>
+            <label class="form-label">CLIENTE{{ fieldRequired('customer') ? ' *' : '' }}</label>
             <button
               type="button"
               class="btn-label-add"
@@ -74,13 +76,16 @@
           </mat-autocomplete>
         </div>
 
+        @if (showField('expected_delivery_date')) {
         <div class="form-field">
-          <label class="form-label">FECHA DE ENTREGA *</label>
+          <label class="form-label">FECHA DE ENTREGA{{ fieldRequired('expected_delivery_date') ? ' *' : '' }}</label>
           <input type="date" class="form-input" formControlName="expected_delivery_date">
         </div>
+        }
 
+        @if (showField('sale_scope')) {
         <div class="form-field form-field--full">
-          <label class="form-label">TIPO DE ORDEN *</label>
+          <label class="form-label">TIPO DE ORDEN{{ fieldRequired('sale_scope') ? ' *' : '' }}</label>
           <select class="form-select" formControlName="sale_scope">
             <option value="inventory">Inventario</option>
             <option value="services">Servicios</option>
@@ -96,10 +101,11 @@
             }
           </p>
         </div>
+        }
 
-        @if (!asQuotation) {
+        @if (showField('currency')) {
           <div class="form-field form-field--full">
-            <label class="form-label">MONEDA DE LA ORDEN *</label>
+            <label class="form-label">MONEDA DE LA ORDEN{{ fieldRequired('currency') ? ' *' : '' }}</label>
             <select class="form-select" formControlName="currency">
               <option value="MXN">Pesos (MXN)</option>
               <option value="USD">Dólares (USD)</option>
@@ -119,36 +125,39 @@
           </div>
         }
 
-        <div class="form-field form-field--full" *ngIf="showAssemblyCheckbox">
-          <label class="assembly-checkbox">
-            <input type="checkbox" formControlName="requires_selection_assembly" />
-            <span>Necesita proceso de selección y armado</span>
-          </label>
-          <p class="assembly-helper">
-            La orden se surtirá por almacén (picking y armado en Mesa de Control)
-          </p>
-        </div>
-
-        @if (!asQuotation) {
-          <div class="form-field form-field--full">
-            <label class="assembly-checkbox">
-              <input type="checkbox" formControlName="for_shipping" />
-              <span>Para envío</span>
+        @if (showAssemblyCheckbox || showShippingToggle) {
+        <div class="option-list">
+          @if (showAssemblyCheckbox) {
+            <label class="option-card">
+              <span class="option-card__copy">
+                <span class="option-card__title">Mesa de control</span>
+                <span class="option-card__hint">La orden se surte por almacén: picking y armado.</span>
+              </span>
+              <input type="checkbox" class="switch" formControlName="requires_selection_assembly" />
             </label>
-            <p class="assembly-helper">
-              La orden queda marcada para salir en un envío. Si no se marca ahora, se puede agregar después.
-            </p>
-          </div>
+          }
+          @if (showShippingToggle) {
+            <label class="option-card">
+              <span class="option-card__copy">
+                <span class="option-card__title">Para envío</span>
+                <span class="option-card__hint">Queda marcada para salir en un envío. Si no se marca ahora, se puede agregar después.</span>
+              </span>
+              <input type="checkbox" class="switch" formControlName="for_shipping" />
+            </label>
+          }
+        </div>
         }
 
+        @if (showField('notes')) {
         <div class="form-field form-field--full">
-          <label class="form-label">{{ asQuotation ? 'OBSERVACIONES' : 'NOTAS' }}</label>
+          <label class="form-label">{{ asQuotation ? 'OBSERVACIONES' : 'NOTAS' }}{{ fieldRequired('notes') ? ' *' : '' }}</label>
           <textarea
             class="form-textarea"
             formControlName="notes"
             [placeholder]="asQuotation ? 'Texto que aparece en el PDF de la cotización' : 'Notas opcionales'"
             rows="2"></textarea>
         </div>
+        }
       </div>
       }
 
@@ -208,7 +217,9 @@
           </mat-autocomplete>
 
           @if (!hasBillingBranch) {
-            <p class="capture-hint">Selecciona una sucursal en Información para buscar.</p>
+            <p class="capture-hint">
+              {{ showField('billing_branch_id') ? 'Selecciona una sucursal en Información para buscar.' : 'Selecciona la razón social para buscar.' }}
+            </p>
           } @else if (lineItems.length === 0 && !missingProductUom) {
             <p class="capture-hint">Elige un resultado y el renglón queda en la lista. Ahí se edita.</p>
           }
@@ -223,6 +234,7 @@
           }
 
 
+        <div class="lines-scroll">
         @if (lineItems.length === 0) {
           <div class="empty-state">
             <p>Sin renglones.</p>
@@ -363,6 +375,7 @@
             <div #linesEnd></div>
           </div>
         }
+        </div>
 
         @if (lineItems.length > 0) {
           <div class="capture-totals">

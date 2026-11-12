@@ -30,6 +30,10 @@ import {
   SalesOrderPaymentsSummary,
 } from '../models/sales-order-payment.model';
 import { environment } from '../../../../environments/environment';
+import {
+  SalesOrderCreationSettings,
+  defaultSalesOrderCreationSettings,
+} from '../models/sales-order-creation-settings.model';
 
 export interface SalesOrderSellerPatchResult {
   seller_user?: SalesOrder['seller_user'];
@@ -340,6 +344,41 @@ export class SalesOrderService {
       return body['data'] as Record<string, unknown>;
     }
     return body;
+  }
+
+  getCreationSettings(): Observable<SalesOrderCreationSettings> {
+    return this.http.get<SalesOrderCreationSettings>(`${this.baseUrl}/creation-settings`).pipe(
+      map((body) => this.normalizeCreationSettings(body)),
+      catchError(() => of(defaultSalesOrderCreationSettings())),
+    );
+  }
+
+  updateCreationSettings(fields: SalesOrderCreationSettings['fields']): Observable<SalesOrderCreationSettings> {
+    return this.http
+      .put<SalesOrderCreationSettings>(`${this.baseUrl}/creation-settings`, { fields })
+      .pipe(
+        map((body) => this.normalizeCreationSettings(body)),
+        catchError((error) => this.handleError(error)),
+      );
+  }
+
+  private normalizeCreationSettings(body: SalesOrderCreationSettings | null | undefined): SalesOrderCreationSettings {
+    const defaults = defaultSalesOrderCreationSettings();
+    const incoming = body?.fields;
+    if (!incoming) return defaults;
+    const fields = { ...defaults.fields };
+    (Object.keys(fields) as (keyof typeof fields)[]).forEach((key) => {
+      const row = incoming[key];
+      if (!row) return;
+      fields[key] = {
+        ...fields[key],
+        visible: fields[key].locked ? true : row.visible !== false,
+        required: fields[key].locked ? true : !!row.required,
+        default_value: row.default_value ?? fields[key].default_value,
+        locked: fields[key].locked,
+      };
+    });
+    return { fields };
   }
 
   /**

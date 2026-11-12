@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import {
   ArrowLeftRight,
+  ClipboardList,
   ChevronRight,
   FileDown,
   FolderOpen,
@@ -29,6 +30,7 @@ import { MADERERIA_INVENTORY_IMPORT_PERMISSIONS } from '../../../madereria-inven
 import { GPS_TRACKING_PERMISSIONS } from '../../../logistics/config/permissions.config';
 import { WHATSAPP_PERMISSIONS } from '../../../settings/config/whatsapp-permissions.config';
 import { SETTINGS_PERMISSIONS } from '../../../settings/config/permissions.config';
+import { SALES_ORDER_PERMISSIONS } from '../../../sales-orders/config/permissions.config';
 
 interface SettingsSection {
   id: string;
@@ -308,6 +310,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
       icon: Monitor,
       route: 'pos-configuration',
       permissions: ['pos_configuration:ViewMenu']
+    },
+    {
+      id: 'sales-order-creation',
+      title: 'Órdenes de venta',
+      description: 'Campos visibles, obligatorios y valores por defecto del alta de órdenes de venta',
+      icon: ClipboardList,
+      route: 'sales-order-creation',
+      permissions: [SALES_ORDER_PERMISSIONS.update, SALES_ORDER_PERMISSIONS.viewMenu],
     },
     {
       id: 'exchange-rates',

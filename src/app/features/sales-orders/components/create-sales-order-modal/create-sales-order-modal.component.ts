@@ -12,6 +12,11 @@ import { SalesOrderService } from '../../services/sales-order.service';
 import { QuotationService } from '../../../quotations/services/quotation.service';
 import { ProductService } from '../../../settings/services/product.service';
 import { SalesOrderSaleScope } from '../../models/sales-order.model';
+import {
+  SalesOrderCreationFieldKey,
+  SalesOrderCreationSettings,
+  defaultSalesOrderCreationSettings,
+} from '../../models/sales-order-creation-settings.model';
 import { UoMCatalog } from '../../../settings/models/product.model';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
@@ -104,6 +109,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   private editingGlobalDiscountId: string | null = null;
   private editingQuotationType: 'POS' | 'MANUAL' | null = null;
   editingFolio: string | null = null;
+  private creationSettings: SalesOrderCreationSettings = defaultSalesOrderCreationSettings();
 
   get asQuotation(): boolean {
     return this.data?.asQuotation === true;
@@ -224,7 +230,30 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   }
 
   get showAssemblyCheckbox(): boolean {
-    return !this.asQuotation && this.saleScope !== 'services';
+    return !this.asQuotation && this.saleScope !== 'services' && this.showField('requires_selection_assembly');
+  }
+
+  get showShippingToggle(): boolean {
+    return !this.asQuotation && this.showField('for_shipping');
+  }
+
+  showField(key: SalesOrderCreationFieldKey): boolean {
+    if (this.asQuotation) {
+      return key !== 'currency' && key !== 'requires_selection_assembly' && key !== 'for_shipping';
+    }
+    const field = this.creationSettings.fields[key];
+    if (!field?.visible) return false;
+    if (key === 'billing_branch_id' && this.branches.length === 1) return false;
+    return true;
+  }
+
+  fieldRequired(key: SalesOrderCreationFieldKey): boolean {
+    if (key === 'fiscal_configuration_id' || key === 'customer') return true;
+    if (this.asQuotation) {
+      return key === 'billing_branch_id' || key === 'expected_delivery_date';
+    }
+    const field = this.creationSettings.fields[key];
+    return !!field?.visible && !!field?.required;
   }
 
   get canCreateServiceInline(): boolean {
@@ -255,10 +284,19 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   loadDropdownData(): Promise<void> {
     this.loading = true;
 
+    const settingsRequest = this.asQuotation
+      ? Promise.resolve(null)
+      : this.salesOrderService.getCreationSettings().toPromise();
+
     return Promise.all([
       this.fiscalConfigService.listFiscalConfigurations({ status: 'active', limit: 100 }).toPromise(),
-      this.customerService.getCustomers({ limit: 100 }).toPromise()
-    ]).then(([fiscalConfigs, customers]) => {
+      this.customerService.getCustomers({ limit: 100 }).toPromise(),
+      settingsRequest,
+    ]).then(([fiscalConfigs, customers, settings]) => {
+      if (settings) {
+        this.creationSettings = settings;
+        this.applyCreationSettings();
+      }
       this.fiscalConfigurations = (fiscalConfigs as any)?.data || [];
       const customerRows = (customers as any)?.data || [];
       this.customers = customerRows.map((customer: any) => ({
@@ -435,9 +473,14 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
         this.branches = Array.isArray(branches) ? branches : [];
         const current = this.form.get('billing_branch_id')?.value;
         if (!current && !this.hydrating) {
-          const preferred = this.auth.getBillingBranchId();
+          const preferred =
+            this.auth.getDefaultListBillingBranchId() || this.auth.getBillingBranchId();
           const match = this.branches.find((branch) => branch.id === preferred);
-          const pick = match || (this.branches.length === 1 ? this.branches[0] : null);
+          const hidden = !this.asQuotation && !this.creationSettings.fields.billing_branch_id.visible;
+          const pick =
+            match ||
+            (this.branches.length === 1 ? this.branches[0] : null) ||
+            (hidden ? this.branches[0] : null);
           if (pick) {
             this.form.get('billing_branch_id')?.enable({ emitEvent: false });
             this.form.patchValue({ billing_branch_id: pick.id });
@@ -538,11 +581,74 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     );
   }
 
+  private applyCreationSettings(): void {
+    if (this.asQuotation) return;
+    const fields = this.creationSettings.fields;
+    const patch: Record<string, unknown> = {};
+    if (!this.form.get('expected_delivery_date')?.value) {
+      patch['expected_delivery_date'] = this.deliveryDefault(fields.expected_delivery_date.default_value);
+    }
+    if (
+      fields.sale_scope.default_value === 'inventory' ||
+      fields.sale_scope.default_value === 'services' ||
+      fields.sale_scope.default_value === 'combined'
+    ) {
+      patch['sale_scope'] = fields.sale_scope.default_value;
+    }
+    if (fields.currency.default_value === 'MXN' || fields.currency.default_value === 'USD') {
+      patch['currency'] = fields.currency.default_value;
+    }
+    patch['requires_selection_assembly'] = fields.requires_selection_assembly.default_value === true;
+    patch['for_shipping'] = fields.for_shipping.default_value === true;
+    if (!this.form.get('notes')?.value && typeof fields.notes.default_value === 'string') {
+      patch['notes'] = fields.notes.default_value;
+    }
+    this.form.patchValue(patch, { emitEvent: false });
+    if (patch['sale_scope'] === 'services') {
+      this.form.patchValue({ requires_selection_assembly: false }, { emitEvent: false });
+    }
+    const scope = patch['sale_scope'];
+    if (scope === 'inventory' || scope === 'services' || scope === 'combined') {
+      this.tabs = this.tabs.map((tab) =>
+        tab.id === 'products'
+          ? { ...tab, title: scope === 'services' ? 'Servicios' : 'Productos' }
+          : tab,
+      );
+    }
+    this.setFieldRequired(
+      'expected_delivery_date',
+      !!fields.expected_delivery_date.visible && !!fields.expected_delivery_date.required,
+    );
+    this.setFieldRequired('sale_scope', !!fields.sale_scope.visible && !!fields.sale_scope.required);
+    this.setFieldRequired('currency', !!fields.currency.visible && !!fields.currency.required);
+    this.setFieldRequired('notes', !!fields.notes.visible && !!fields.notes.required);
+  }
+
+  private deliveryDefault(value: string | boolean | null): string {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+      return value.slice(0, 10);
+    }
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Tijuana',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  }
+
+  private setFieldRequired(name: string, required: boolean): void {
+    const control = this.form.get(name);
+    if (!control) return;
+    control.setValidators(required ? [Validators.required] : []);
+    control.updateValueAndValidity({ emitEvent: false });
+  }
+
   private prefillFiscalAndBranch(): void {
     if (this.form.get('fiscal_configuration_id')?.value) {
       return;
     }
-    const activeFiscal = this.auth.getFiscalConfigurationId();
+    const activeFiscal =
+      this.auth.getDefaultListFiscalConfigurationId() || this.auth.getFiscalConfigurationId();
     const match = this.fiscalConfigurations.find((row) => row.id === activeFiscal);
     const pick = match || (this.fiscalConfigurations.length === 1 ? this.fiscalConfigurations[0] : null);
     if (pick?.id) {

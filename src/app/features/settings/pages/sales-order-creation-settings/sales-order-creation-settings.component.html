@@ -1,0 +1,105 @@
+<div class="page">
+  <header class="page-head">
+    <div>
+      <a routerLink="/settings" class="back">Configuración</a>
+      <h1>Órdenes de venta</h1>
+      <p>Define qué campos ve el alta, cuáles son obligatorios y con qué valor nacen.</p>
+    </div>
+    <button type="button" class="save" (click)="save()" [disabled]="loading || saving || !canEdit">
+      {{ saving ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </header>
+
+  @if (loading) {
+    <p class="status">Cargando…</p>
+  } @else {
+    <div class="list">
+      @for (row of rows; track row.key) {
+        <article class="card" [class.card--locked]="field(row.key).locked">
+          <div class="card-copy">
+            <h2>{{ row.label }}</h2>
+            <p>{{ row.hint }}</p>
+          </div>
+
+          <div class="controls">
+            @if (field(row.key).locked) {
+              <span class="pill">Siempre visible</span>
+            } @else {
+              <label class="switch-row">
+                <span>Visible</span>
+                <input
+                  type="checkbox"
+                  class="switch"
+                  [checked]="field(row.key).visible"
+                  (change)="onVisibleChange(row.key, $any($event.target).checked)"
+                  [disabled]="!canEdit" />
+              </label>
+
+              @if (row.kind !== 'boolean' && row.kind !== 'branch') {
+                <label class="switch-row">
+                  <span>Obligatorio</span>
+                  <input
+                    type="checkbox"
+                    class="switch"
+                    [(ngModel)]="fields[row.key].required"
+                    [disabled]="!canEdit || !field(row.key).visible" />
+                </label>
+              }
+            }
+
+            @switch (row.kind) {
+              @case ('date') {
+                <label class="default">
+                  <span>Valor por defecto</span>
+                  <select [(ngModel)]="$any(fields[row.key]).default_value" [disabled]="!canEdit">
+                    <option value="today">Hoy</option>
+                  </select>
+                </label>
+              }
+              @case ('scope') {
+                <label class="default">
+                  <span>Valor por defecto</span>
+                  <select [(ngModel)]="$any(fields[row.key]).default_value" [disabled]="!canEdit">
+                    <option value="inventory">Inventario</option>
+                    <option value="services">Servicios</option>
+                    <option value="combined">Productos y servicios</option>
+                  </select>
+                </label>
+              }
+              @case ('currency') {
+                <label class="default">
+                  <span>Valor por defecto</span>
+                  <select [(ngModel)]="$any(fields[row.key]).default_value" [disabled]="!canEdit">
+                    <option value="MXN">Pesos (MXN)</option>
+                    <option value="USD">Dólares (USD)</option>
+                  </select>
+                </label>
+              }
+              @case ('boolean') {
+                <label class="switch-row">
+                  <span>Activa por defecto</span>
+                  <input
+                    type="checkbox"
+                    class="switch"
+                    [ngModel]="field(row.key).default_value === true"
+                    (ngModelChange)="field(row.key).default_value = $event"
+                    [disabled]="!canEdit" />
+                </label>
+              }
+              @case ('text') {
+                <label class="default default--grow">
+                  <span>Valor por defecto</span>
+                  <input
+                    type="text"
+                    [(ngModel)]="$any(fields[row.key]).default_value"
+                    [disabled]="!canEdit"
+                    placeholder="Sin nota" />
+                </label>
+              }
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>
