@@ -1858,7 +1858,7 @@
                 (click)="collectSelected()"
                 [disabled]="collecting() || printingReceipt() || returningToSales() || !amountsOk() || creditInsufficient()">
                 {{ collecting() || printingReceipt() ? 'Cobrando…' : (isAdvanceSale() ? 'Cobrar anticipo' : 'Confirmar cobro') }}
-                <span class="cobranza-action__amount">{{ saleTotal(sale) }}</span>
+                <span class="cobranza-action__amount">{{ confirmAmountLabel(sale) }}</span>
               </button>
             </div>
           </div>

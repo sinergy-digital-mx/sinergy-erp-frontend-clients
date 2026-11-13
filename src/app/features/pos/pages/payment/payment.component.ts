@@ -1438,6 +1438,23 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
 
+  /** Monto del botón de cobro: en USD cuando la orden queda en dólares. */
+  confirmAmountLabel(sale: Parameters<PaymentComponent['saleTotal']>[0]): string {
+    if (this.documentCurrency() !== 'USD') {
+      return this.saleTotal(sale);
+    }
+    const form = this.collectForm();
+    const rate =
+      form.paymentMethod === 'credit'
+        ? this.creditOrderCharge().rate ?? Number(form.usdExchangeRate)
+        : Number(form.usdExchangeRate);
+    if (!(rate > 0)) {
+      return this.saleTotal(sale);
+    }
+    const usd = Math.round((this.orderTotal() / rate) * 100) / 100;
+    return `USD ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usd)}`;
+  }
+
   creditConversionNote(): string {
     const charge = this.creditOrderCharge();
     if (charge.amount == null || charge.orderCurrency === this.creditCurrency() || !charge.rate) {
