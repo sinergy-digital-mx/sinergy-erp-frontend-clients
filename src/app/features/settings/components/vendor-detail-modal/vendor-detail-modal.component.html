@@ -328,7 +328,7 @@
       customClass="btn_primary"
       [fullWidth]="false"
       [loading]="saving()"
-      [disabled]="form.invalid || saving()"
+      [disabled]="saving()"
       (clicked)="save()">
     </app-button>
   </div>

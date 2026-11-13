@@ -1805,6 +1805,8 @@
                     <p class="cobranza-currency-hint">
                       @if (documentCurrency() === 'USD') {
                         Esta orden es en USD. La factura sale en dólares.
+                      } @else if (collectForm().paymentMethod === 'credit') {
+                        Esta orden es en MXN. La factura sale en pesos.
                       } @else {
                         El pago en dólares es mayor. Puedes dejarla en pesos o pasarla a dólares.
                       }
