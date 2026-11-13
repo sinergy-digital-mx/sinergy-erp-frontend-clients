@@ -34,6 +34,8 @@ export interface RealCostPreview {
   invoice_mxn: number | null;
   operating_extras_usd: number | null;
   operating_extras_mxn: number | null;
+  igi_usd: number | null;
+  igi_mxn: number | null;
   total_usd: number | null;
   total_mxn: number | null;
   lines: RealCostPreviewLine[];
@@ -137,6 +139,15 @@ export function previewPurchaseOrderRealCost(input: {
   const incrementRatio =
     merchandiseForRatio > 0 && extrasMxnForRatio > 0 ? extrasMxnForRatio / merchandiseForRatio : 0;
 
+  const igiVendor = input.lines.reduce(
+    (sum, line) => sum + line.quantity * line.vendor_unit_cost * (Math.max(line.igi_percentage, 0) / 100),
+    0
+  );
+  const igiMxnRaw = convert(igiVendor, input.payment_currency, 'MXN', rate);
+  const igiUsdRaw = convert(igiVendor, input.payment_currency, 'USD', rate);
+  const igiMxn = igiMxnRaw == null ? null : roundMoney(igiMxnRaw);
+  const igiUsd = igiUsdRaw == null ? null : roundMoney(igiUsdRaw);
+
   return {
     increment_percentage: incrementRatio * 100,
     extras_mxn: extrasMxn,
@@ -149,17 +160,20 @@ export function previewPurchaseOrderRealCost(input: {
     invoice_mxn: invoiceMxn,
     operating_extras_usd: operatingExtrasUsd,
     operating_extras_mxn: operatingExtrasMxn,
+    igi_usd: igiUsd,
+    igi_mxn: igiMxn,
     total_usd:
       merchandiseUsdRounded != null && extrasUsd != null
-        ? roundMoney(merchandiseUsdRounded + extrasUsd)
+        ? roundMoney(merchandiseUsdRounded + extrasUsd + (igiUsd ?? 0))
         : null,
     total_mxn:
       merchandiseMxnRounded != null && extrasMxn != null
-        ? roundMoney(merchandiseMxnRounded + extrasMxn)
+        ? roundMoney(merchandiseMxnRounded + extrasMxn + (igiMxn ?? 0))
         : null,
     lines: input.lines.map((line) => {
-      const taxed = line.vendor_unit_cost * (1 + Math.max(line.igi_percentage, 0) / 100);
-      const landed = taxed * (1 + incrementRatio);
+      // IGI% y GTOS% se suman sobre el precio del proveedor (no se multiplican entre sí).
+      const landed =
+        line.vendor_unit_cost * (1 + Math.max(line.igi_percentage, 0) / 100 + incrementRatio);
       const realUsd = convert(landed, input.payment_currency, 'USD', rate);
       const realMxn = convert(landed, input.payment_currency, 'MXN', rate);
       return {

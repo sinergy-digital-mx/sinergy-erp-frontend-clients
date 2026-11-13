@@ -1,40 +1,7 @@
 {
-  "version": "0.0.119",
-  "buildId": "0.0.119-1794526556835",
-  "builtAt": "2026-11-12T23:35:56.835Z",
-  "channel": "full",
-  "changes": [
-    {
-      "scope": "frontend",
-      "message": "Cambios en inventario"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en logística"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en compras"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en productos"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en configuración"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en accesos y permisos"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en ventas"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en proveedores"
-    }
-  ]
+  "version": "0.0.120",
+  "buildId": "0.0.120-1794601986900",
+  "builtAt": "2026-11-13T20:33:06.900Z",
+  "channel": "frontend",
+  "changes": []
 }
