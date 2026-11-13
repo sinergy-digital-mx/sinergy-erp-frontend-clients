@@ -23,8 +23,13 @@
           placeholder="16.9593" />
       </label>
       <div class="po-rc-field po-rc-field--readonly">
-        <span class="po-rc-field__label">GTOS%</span>
-        <span class="po-rc-field__value">{{ formatPercent(incrementPercentage()) }}</span>
+        <span class="po-rc-field__label">{{ uniformIgi() ? 'IGI + GTOS%' : 'GTOS%' }}</span>
+        <span class="po-rc-field__value">{{ formatPercent(headerTotalPercentage()) }}</span>
+        @if (uniformIgi()) {
+          <small class="po-rc-field__hint">{{ formatPercent(uniformIgi()) }} IGI + {{ formatPercent(incrementPercentage()) }} gastos</small>
+        } @else if (uniformIgi() === null && lineItems().length > 0) {
+          <small class="po-rc-field__hint">+ IGI por producto</small>
+        }
       </div>
     </div>
 
@@ -67,7 +72,7 @@
               <th class="col-money">Precio</th>
               <th class="col-money">Importe</th>
               <th class="col-igi">IGI</th>
-              <th class="col-gastos">GTOS%</th>
+              <th class="col-gastos">IGI + GTOS%</th>
               <th class="col-money">Cto. USD</th>
               <th class="col-money">MN</th>
               <th class="col-money">Importe</th>
@@ -100,7 +105,7 @@
                     {{ formatPercent(lineIgi(item)) }}
                   }
                 </td>
-                <td class="col-gastos">{{ formatPercent(incrementPercentage()) }}</td>
+                <td class="col-gastos">{{ formatPercent(lineTotalPercentage(item)) }}</td>
                 <td class="col-money">
                   <span class="money-cell money-cell--usd">{{ formatUnitCost(previewLine(item)?.real_unit_cost_usd) }}</span>
                 </td>
@@ -263,6 +268,13 @@
             <td class="col-money">{{ formatAmount(preview().operating_extras_usd) }}</td>
             <td class="col-money">{{ formatAmount(preview().operating_extras_mxn) }}</td>
           </tr>
+          @if ((preview().igi_mxn ?? 0) > 0) {
+            <tr>
+              <td>IGI</td>
+              <td class="col-money">{{ formatAmount(preview().igi_usd) }}</td>
+              <td class="col-money">{{ formatAmount(preview().igi_mxn) }}</td>
+            </tr>
+          }
         </tbody>
         <tfoot>
           <tr>
