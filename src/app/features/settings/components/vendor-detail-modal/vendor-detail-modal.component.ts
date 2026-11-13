@@ -416,6 +416,7 @@ export class VendorDetailModalComponent implements OnDestroy {
       if (this.form.invalid) {
         this.form.markAllAsTouched();
         this.focusTabWithErrors();
+        this.toast.error(this.missingFieldsMessage());
       }
       return;
     }
@@ -661,6 +662,43 @@ export class VendorDetailModalComponent implements OnDestroy {
         return;
       }
     }
+  }
+
+  /** Mensaje con los campos que impiden guardar, agrupados por pestaña. */
+  private missingFieldsMessage(): string {
+    const labels: Record<string, [string, string]> = {
+      vendor_type: ['Tipo de proveedor', 'General'],
+      company_name: ['Nombre de empresa (mínimo 2 letras)', 'General'],
+      legal_name: ['Nombre legal', 'General'],
+      tax_id: ['ID fiscal', 'General'],
+      status: ['Status', 'General'],
+      credit_days: ['Días de crédito (no puede ser negativo)', 'General'],
+      credit_limit: ['Límite de crédito (no puede ser negativo)', 'General'],
+      rfc: ['RFC (formato inválido)', 'Fiscal'],
+      razon_social: ['Razón social', 'Fiscal'],
+      persona_type: ['Tipo de persona', 'Fiscal'],
+      street: ['Calle', this.isNational ? 'Fiscal' : 'Dirección'],
+      city: ['Ciudad', this.isNational ? 'Fiscal' : 'Dirección'],
+      state: ['Estado', this.isNational ? 'Fiscal' : 'Dirección'],
+      country: ['País', this.isNational ? 'Fiscal' : 'Dirección'],
+      zip_code: ['Código postal', this.isNational ? 'Fiscal' : 'Dirección'],
+      bank_clabe: ['CLABE (18 dígitos)', 'Información bancaria'],
+      bank_swift_bic: ['SWIFT/BIC', 'Información bancaria'],
+      bank_iban: ['IBAN', 'Información bancaria'],
+    };
+    const missing = Object.keys(this.form.controls)
+      .filter((name) => this.form.get(name)?.invalid)
+      .map((name) => {
+        const [label, tab] = labels[name] ?? [name, ''];
+        return tab ? `${label} (${tab})` : label;
+      });
+    if (!missing.length) {
+      return 'Revisa los campos marcados en rojo.';
+    }
+    const intro = this.isNational
+      ? 'Para guardar falta:'
+      : 'Para guardar un proveedor internacional falta:';
+    return `${intro} ${missing.join(', ')}.`;
   }
 
   private keepTabForVendorType(type: VendorType): void {
