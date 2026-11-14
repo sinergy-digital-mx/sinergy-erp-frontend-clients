@@ -42,11 +42,11 @@ import {
   VENDOR_MATCH_REASON_LABELS,
 } from '../../utils/vendor-profile.util';
 import {
-  COUNTRIES,
   isMexicoCountry,
   MEXICO_COUNTRY_NAME,
   resolveCountryName,
 } from '../../../../core/utils/countries.util';
+import { CountryComboboxComponent } from '../../../../core/components/country-combobox/country-combobox.component';
 
 type VendorTabId = 'general' | 'fiscal' | 'direccion' | 'bancaria' | 'cuentas';
 
@@ -60,6 +60,7 @@ const MEXICAN_RFC_PATTERN = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/i;
     CommonModule,
     ReactiveFormsModule,
     ButtonComponent,
+    CountryComboboxComponent,
     LucideAngularModule,
     TabComponent,
     HasPermissionDirective,
@@ -97,8 +98,6 @@ export class VendorDetailModalComponent implements OnDestroy {
     { id: 'inactive', name: 'Inactivo' },
   ];
 
-  /** Catálogo completo de países (ISO 3166-1) en español. */
-  readonly countryOptions = COUNTRIES;
   currencyOptions = [
     { id: 'MXN', name: 'MXN' },
     { id: 'USD', name: 'USD' },
@@ -401,18 +400,9 @@ export class VendorDetailModalComponent implements OnDestroy {
     const country = this.form.get('country');
     if (!country) return;
     if (type === 'NATIONAL') {
-      country.setValue(MEXICO_COUNTRY_NAME, { emitEvent: false });
+      country.setValue(MEXICO_COUNTRY_NAME);
     } else if (isMexicoCountry(country.value)) {
-      country.setValue('', { emitEvent: false });
-    }
-  }
-
-  /** Al salir del campo, deja el país escrito igual que en el catálogo. */
-  normalizeCountryInput(): void {
-    const country = this.form.get('country');
-    const resolved = resolveCountryName(country?.value);
-    if (country && resolved && resolved !== country.value) {
-      country.setValue(resolved);
+      country.setValue('');
     }
   }
 
