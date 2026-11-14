@@ -6,6 +6,7 @@ import {
   Validators,
   ReactiveFormsModule,
   AbstractControl,
+  ValidationErrors,
   ValidatorFn,
 } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -40,6 +41,12 @@ import {
   vendorCompanyName,
   VENDOR_MATCH_REASON_LABELS,
 } from '../../utils/vendor-profile.util';
+import {
+  isMexicoCountry,
+  MEXICO_COUNTRY_NAME,
+  resolveCountryName,
+} from '../../../../core/utils/countries.util';
+import { CountryComboboxComponent } from '../../../../core/components/country-combobox/country-combobox.component';
 
 type VendorTabId = 'general' | 'fiscal' | 'direccion' | 'bancaria' | 'cuentas';
 
@@ -53,6 +60,7 @@ const MEXICAN_RFC_PATTERN = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/i;
     CommonModule,
     ReactiveFormsModule,
     ButtonComponent,
+    CountryComboboxComponent,
     LucideAngularModule,
     TabComponent,
     HasPermissionDirective,
@@ -90,21 +98,6 @@ export class VendorDetailModalComponent implements OnDestroy {
     { id: 'inactive', name: 'Inactivo' },
   ];
 
-  countryOptions = [
-    { id: 'México', name: 'México' },
-    { id: 'Estados Unidos', name: 'Estados Unidos' },
-    { id: 'Canadá', name: 'Canadá' },
-    { id: 'España', name: 'España' },
-    { id: 'Argentina', name: 'Argentina' },
-    { id: 'Brasil', name: 'Brasil' },
-    { id: 'Chile', name: 'Chile' },
-    { id: 'Colombia', name: 'Colombia' },
-    { id: 'Perú', name: 'Perú' },
-    { id: 'China', name: 'China' },
-    { id: 'Alemania', name: 'Alemania' },
-    { id: 'Reino Unido', name: 'Reino Unido' },
-  ];
-
   currencyOptions = [
     { id: 'MXN', name: 'MXN' },
     { id: 'USD', name: 'USD' },
@@ -138,6 +131,8 @@ export class VendorDetailModalComponent implements OnDestroy {
         localidad: data.vendor.localidad ?? '',
         credit_limit: data.vendor.credit_limit ?? 0,
         credit_days: data.vendor.credit_days ?? 0,
+        // Datos importados traen 'USA', 'CHINA', etc.: se muestran con el nombre del catálogo.
+        country: resolveCountryName(data.vendor.country) ?? data.vendor.country ?? '',
       });
     }
 
@@ -146,6 +141,7 @@ export class VendorDetailModalComponent implements OnDestroy {
       .get('vendor_type')!
       .valueChanges.pipe(takeUntil(this.destroy$))
       .subscribe((type: VendorType) => {
+        this.syncCountryForVendorType(type);
         this.applyVendorTypeValidators(type);
         this.keepTabForVendorType(type);
       });
@@ -368,7 +364,10 @@ export class VendorDetailModalComponent implements OnDestroy {
     this.setControlValidators('persona_type', national, [Validators.required]);
     this.clearControlValidators('tax_id');
     this.setControlValidators('legal_name', !national, [Validators.required]);
-    this.setControlValidators('country', !national, [Validators.required]);
+    this.setControlValidators('country', !national, [
+      Validators.required,
+      internationalCountryValidator,
+    ]);
 
     if (national) {
       this.form.patchValue(
@@ -390,6 +389,20 @@ export class VendorDetailModalComponent implements OnDestroy {
       );
       this.clearControlValidators('bank_clabe');
       this.clearControlValidators('persona_type');
+    }
+  }
+
+  /**
+   * Al cambiar el tipo: un nacional siempre es de México y un internacional
+   * no puede quedarse con México (se limpia para que elijan su país).
+   */
+  private syncCountryForVendorType(type: VendorType): void {
+    const country = this.form.get('country');
+    if (!country) return;
+    if (type === 'NATIONAL') {
+      country.setValue(MEXICO_COUNTRY_NAME);
+    } else if (isMexicoCountry(country.value)) {
+      country.setValue('');
     }
   }
 
@@ -573,7 +586,7 @@ export class VendorDetailModalComponent implements OnDestroy {
       city: trim(v.city),
       state: trim(v.state),
       zip_code: trim(v.zip_code),
-      country: trim(v.country),
+      country: resolveCountryName(v.country) ?? trim(v.country),
       status: v.status,
       credit_days: v.credit_days ?? 0,
       credit_limit: v.credit_limit ?? 0,
@@ -680,7 +693,7 @@ export class VendorDetailModalComponent implements OnDestroy {
       street: ['Calle', this.isNational ? 'Fiscal' : 'Dirección'],
       city: ['Ciudad', this.isNational ? 'Fiscal' : 'Dirección'],
       state: ['Estado', this.isNational ? 'Fiscal' : 'Dirección'],
-      country: ['País', this.isNational ? 'Fiscal' : 'Dirección'],
+      country: [this.countryMissingLabel(), this.isNational ? 'Fiscal' : 'Dirección'],
       zip_code: ['Código postal', this.isNational ? 'Fiscal' : 'Dirección'],
       bank_clabe: ['CLABE (18 dígitos)', 'Información bancaria'],
       bank_swift_bic: ['SWIFT/BIC', 'Información bancaria'],
@@ -699,6 +712,15 @@ export class VendorDetailModalComponent implements OnDestroy {
       ? 'Para guardar falta:'
       : 'Para guardar un proveedor internacional falta:';
     return `${intro} ${missing.join(', ')}.`;
+  }
+
+  private countryMissingLabel(): string {
+    const errors = this.form.get('country')?.errors;
+    if (errors?.['mexicoInternational']) {
+      return 'País (un proveedor internacional no puede ser de México; si es de México, cámbialo a Nacional)';
+    }
+    if (errors?.['countryNotInList']) return 'País (elige uno de la lista)';
+    return 'País';
   }
 
   private keepTabForVendorType(type: VendorType): void {
@@ -725,6 +747,20 @@ export class VendorDetailModalComponent implements OnDestroy {
         : 'Formato inválido';
     }
     if (c.errors['minlength']) return 'Muy corto';
+    if (c.errors['mexicoInternational']) {
+      return 'Un proveedor internacional no puede ser de México. Si es de México, cámbialo a Nacional.';
+    }
+    if (c.errors['countryNotInList']) return 'Elige un país de la lista';
     return 'Valor inválido';
   }
+}
+
+/** País de proveedor internacional: debe estar en el catálogo y no ser México. */
+function internationalCountryValidator(control: AbstractControl): ValidationErrors | null {
+  const value = control.value;
+  if (!value || !String(value).trim()) return null;
+  const resolved = resolveCountryName(value);
+  if (!resolved) return { countryNotInList: true };
+  if (resolved === MEXICO_COUNTRY_NAME) return { mexicoInternational: true };
+  return null;
 }

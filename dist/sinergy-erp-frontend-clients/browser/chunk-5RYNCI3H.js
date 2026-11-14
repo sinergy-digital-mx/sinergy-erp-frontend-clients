@@ -1,0 +1,1 @@
+import{c as a}from"./chunk-3STRJ2KZ.js";import{wb as n}from"./chunk-JC52B4LQ.js";var p=class i{transform(t,e="datetime"){if(t==null||t==="")return"";let r=a(t,e);return r==="\u2014"?"":r}static \u0275fac=function(e){return new(e||i)};static \u0275pipe=n({name:"apiDate",type:i,pure:!0})};export{p as a};

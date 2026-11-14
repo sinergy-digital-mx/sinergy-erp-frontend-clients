@@ -1,0 +1,59 @@
+<div class="country-combobox" cdkOverlayOrigin #origin="cdkOverlayOrigin">
+  <input
+    #input
+    type="text"
+    role="combobox"
+    autocomplete="off"
+    class="country-combobox__input"
+    [class.country-combobox__input--invalid]="invalid"
+    [attr.aria-expanded]="open()"
+    aria-autocomplete="list"
+    aria-controls="country-combobox-list"
+    [placeholder]="placeholder"
+    [value]="text()"
+    [disabled]="disabled"
+    (click)="openList()"
+    (focus)="openList()"
+    (input)="onInput($any($event.target).value)"
+    (keydown)="onKeydown($event)">
+  <button
+    type="button"
+    class="country-combobox__toggle"
+    tabindex="-1"
+    aria-label="Mostrar países"
+    [disabled]="disabled"
+    (mousedown)="$event.preventDefault()"
+    (click)="toggle()">
+    <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" [class.country-combobox__chevron--open]="open()">
+      <path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </button>
+</div>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="open()"
+  [cdkConnectedOverlayPositions]="positions"
+  [cdkConnectedOverlayWidth]="overlayWidth()"
+  (overlayOutsideClick)="onOutsideClick($event)"
+  (detach)="open.set(false)">
+  <ul #list id="country-combobox-list" role="listbox" class="country-combobox__list" [style.width.px]="overlayWidth()">
+    @for (option of filtered(); track option.code; let i = $index) {
+      <li
+        role="option"
+        class="country-combobox__option"
+        [attr.data-index]="i"
+        [class.country-combobox__option--active]="i === highlighted()"
+        [class.country-combobox__option--selected]="option.name === control.value"
+        [attr.aria-selected]="option.name === control.value"
+        (mousedown)="$event.preventDefault()"
+        (mouseenter)="highlighted.set(i)"
+        (click)="select(option)">
+        {{ option.name }}
+      </li>
+    } @empty {
+      <li class="country-combobox__empty">Sin resultados. Revisa cómo está escrito.</li>
+    }
+  </ul>
+</ng-template>
