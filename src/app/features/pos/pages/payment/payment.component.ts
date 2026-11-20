@@ -145,6 +145,12 @@ import { SalesOrderDetailDialogComponent } from '../../../sales-orders/component
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { SalesOrderInvoiceStampDialogComponent } from '../../../sales-orders/components/sales-order-invoice-stamp-dialog/sales-order-invoice-stamp-dialog.component';
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
+import {
+  orderRouteRequired,
+  showEstimatedDeliveryDate,
+  showOrderRoute,
+} from '../../../sales-orders/models/sales-order-creation-settings.model';
+import { AssignClientRouteModalComponent } from '../../../customers/components/assign-client-route-modal/assign-client-route-modal.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
@@ -961,8 +967,47 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private applyShippingFlag(orderId: string, next: boolean): void {
+    if (!next) {
+      this.patchShipping(orderId, false, { estimated_delivery_date: null, route_id: null });
+      return;
+    }
+    this.salesOrderService.getCreationSettings().subscribe((settings) => {
+      const date = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Tijuana',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+      const needsRoute = orderRouteRequired(settings.fields, settings.routes_enabled, true);
+      const sendDate = showEstimatedDeliveryDate(settings.fields, true) ? date : null;
+      if (needsRoute || showOrderRoute(settings.fields, settings.routes_enabled, true)) {
+        this.dialog
+          .open(AssignClientRouteModalComponent, {
+            width: '460px',
+            maxWidth: '95vw',
+            data: { routes: settings.routes, saveAsDefault: false },
+          })
+          .afterClosed()
+          .subscribe((result) => {
+            if (needsRoute && !result?.route_id) return;
+            this.patchShipping(orderId, true, {
+              estimated_delivery_date: sendDate,
+              route_id: result?.route_id || null,
+            });
+          });
+        return;
+      }
+      this.patchShipping(orderId, true, { estimated_delivery_date: sendDate });
+    });
+  }
+
+  private patchShipping(
+    orderId: string,
+    next: boolean,
+    extras?: { estimated_delivery_date?: string | null; route_id?: string | null },
+  ): void {
     this.shippingBusyId.set(orderId);
-    this.salesOrderService.setForShipping(orderId, next).subscribe({
+    this.salesOrderService.setForShipping(orderId, next, extras).subscribe({
       next: () => {
         this.shippingBusyId.set(null);
         this.pendingSales.update((list) =>

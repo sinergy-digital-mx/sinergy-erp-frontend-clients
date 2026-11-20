@@ -353,9 +353,15 @@ export class SalesOrderService {
     );
   }
 
-  updateCreationSettings(fields: SalesOrderCreationSettings['fields']): Observable<SalesOrderCreationSettings> {
+  updateCreationSettings(
+    fields: SalesOrderCreationSettings['fields'],
+    routesEnabled?: boolean,
+  ): Observable<SalesOrderCreationSettings> {
     return this.http
-      .put<SalesOrderCreationSettings>(`${this.baseUrl}/creation-settings`, { fields })
+      .put<SalesOrderCreationSettings>(`${this.baseUrl}/creation-settings`, {
+        fields,
+        ...(routesEnabled == null ? {} : { routes_enabled: routesEnabled }),
+      })
       .pipe(
         map((body) => this.normalizeCreationSettings(body)),
         catchError((error) => this.handleError(error)),
@@ -376,9 +382,11 @@ export class SalesOrderService {
         required: fields[key].locked ? true : !!row.required,
         default_value: row.default_value ?? fields[key].default_value,
         locked: fields[key].locked,
+        only_when_shipping: row.only_when_shipping ?? fields[key].only_when_shipping,
       };
     });
-    return { fields };
+    const routes = Array.isArray(body?.routes) ? body.routes : [];
+    return { fields, routes_enabled: body?.routes_enabled === true, routes };
   }
 
   /**
@@ -644,9 +652,16 @@ export class SalesOrderService {
     return '';
   }
 
-  setForShipping(orderId: string, forShipping: boolean): Observable<{ for_shipping: boolean }> {
+  setForShipping(
+    orderId: string,
+    forShipping: boolean,
+    extras?: { estimated_delivery_date?: string | null; route_id?: string | null },
+  ): Observable<{ for_shipping: boolean }> {
     return this.http
-      .patch<unknown>(`${this.baseUrl}/${orderId}/for-shipping`, { for_shipping: forShipping })
+      .patch<unknown>(`${this.baseUrl}/${orderId}/for-shipping`, {
+        for_shipping: forShipping,
+        ...extras,
+      })
       .pipe(
         map(() => ({ for_shipping: forShipping })),
         catchError(error => this.handleError(error))

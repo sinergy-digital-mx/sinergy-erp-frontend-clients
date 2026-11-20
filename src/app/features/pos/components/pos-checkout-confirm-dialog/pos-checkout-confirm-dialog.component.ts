@@ -9,6 +9,17 @@ import {
   CFDI_USO_OPTIONS,
 } from '../../../sales-orders/models/sales-order-electronic-invoice.model';
 import { inferReceptorRegimen } from '../../../customers/utils/fiscal-person-type.util';
+import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
+import {
+  SalesOrderCreationSettings,
+  defaultSalesOrderCreationSettings,
+  estimatedDateRequired,
+  orderRouteRequired,
+  showEstimatedDeliveryDate,
+  showOrderRoute,
+} from '../../../sales-orders/models/sales-order-creation-settings.model';
+import { AssignClientRouteModalComponent } from '../../../customers/components/assign-client-route-modal/assign-client-route-modal.component';
+import { MatDialog } from '@angular/material/dialog';
 
 export type PosCheckoutKind = 'sale' | 'quote';
 
@@ -49,7 +60,9 @@ export interface PosCheckoutConfirmDialogData {
   customerActions?: PosCheckoutCustomerActions;
   acceptLabel: string;
   queued?: boolean;
-  initialForShipping?: boolean;
+  initialForShipping?: boolean | null;
+  customerId?: string | number | null;
+  defaultRouteId?: string | null;
   /** Observaciones ya guardadas, al reenviar un ticket. */
   initialNotes?: string | null;
   initialAdvanceAmount?: number | null;
@@ -67,6 +80,8 @@ export interface PosCheckoutQuoteResult {
 export interface PosCheckoutSaleResult {
   forShipping: boolean;
   notes: string;
+  estimatedDeliveryDate: string | null;
+  routeId: string | null;
 }
 
 export type PosCheckoutConfirmResult = boolean | PosCheckoutSaleResult | PosCheckoutQuoteResult;
@@ -118,6 +133,9 @@ export class PosCheckoutConfirmDialogComponent {
 
   notesText = signal('');
   forShipping = signal(false);
+  rules = signal<SalesOrderCreationSettings>(defaultSalesOrderCreationSettings());
+  deliveryDate = signal('');
+  routeId = signal('');
   advanceInvoice = signal(false);
   advanceAmountText = signal('');
   usoCfdi = signal('G03');
@@ -129,6 +147,8 @@ export class PosCheckoutConfirmDialogComponent {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: PosCheckoutConfirmDialogData,
     private dialogRef: MatDialogRef<PosCheckoutConfirmDialogComponent, PosCheckoutConfirmResult>,
+    private salesOrders: SalesOrderService,
+    private dialog: MatDialog,
   ) {
     const total = Number(data.cartTotal ?? 0);
     const initialAdvance = Number(data.initialAdvanceAmount ?? 0);
@@ -146,8 +166,79 @@ export class PosCheckoutConfirmDialogComponent {
     }
     this.customerLabel.set(data.customerLabel ?? '');
     this.customerFiscal.set(data.customerFiscal ?? null);
-    this.forShipping.set(!!data.initialForShipping);
+    if (data.initialForShipping != null) {
+      this.forShipping.set(!!data.initialForShipping);
+    }
+    this.routeId.set(data.defaultRouteId || '');
     this.notesText.set(data.initialNotes?.trim() ?? '');
+    if (!this.isQuote()) {
+      this.salesOrders.getCreationSettings().subscribe((settings) => {
+        this.rules.set(settings);
+        if (data.initialForShipping == null) {
+          this.forShipping.set(settings.fields.for_shipping.default_value === true);
+        }
+        if (!this.deliveryDate()) {
+          this.deliveryDate.set(this.today());
+        }
+      });
+    }
+  }
+
+  showShipping(): boolean {
+    return this.rules().fields.for_shipping.visible !== false;
+  }
+
+  showDeliveryDate(): boolean {
+    return showEstimatedDeliveryDate(this.rules().fields, this.forShipping());
+  }
+
+  showRoute(): boolean {
+    return showOrderRoute(this.rules().fields, this.rules().routes_enabled, this.forShipping());
+  }
+
+  logisticsReady(): boolean {
+    if (this.showDeliveryDate() && estimatedDateRequired(this.rules().fields, this.forShipping()) && !this.deliveryDate()) {
+      return false;
+    }
+    if (this.showRoute() && orderRouteRequired(this.rules().fields, this.rules().routes_enabled, this.forShipping()) && !this.routeId()) {
+      return false;
+    }
+    return true;
+  }
+
+  openRoute(): void {
+    this.dialog
+      .open(AssignClientRouteModalComponent, {
+        width: '460px',
+        maxWidth: '95vw',
+        data: {
+          customerId: this.data.customerId,
+          routes: this.rules().routes,
+          selectedRouteId: this.routeId() || this.data.defaultRouteId,
+          saveAsDefault: true,
+        },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result?.route_id) return;
+        const current = this.rules();
+        if (!current.routes.some((row) => row.id === result.route_id)) {
+          this.rules.set({
+            ...current,
+            routes: [...current.routes, { id: result.route_id, name: result.route_name, code: result.route_code }],
+          });
+        }
+        this.routeId.set(result.route_id);
+      });
+  }
+
+  private today(): string {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Tijuana',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
   }
 
   isQuote(): boolean {
@@ -255,7 +346,8 @@ export class PosCheckoutConfirmDialogComponent {
   }
 
   canConfirm(): boolean {
-    if (!this.isQuote() || !this.advanceInvoice()) return true;
+    if (!this.isQuote()) return this.logisticsReady();
+    if (!this.advanceInvoice()) return true;
     return this.fiscalReady() && !this.advanceAmountError() && !this.customerBusy();
   }
 
@@ -275,9 +367,12 @@ export class PosCheckoutConfirmDialogComponent {
       });
       return;
     }
+    if (!this.logisticsReady()) return;
     this.dialogRef.close({
       forShipping: this.forShipping(),
       notes: this.notesText().trim(),
+      estimatedDeliveryDate: this.forShipping() ? this.deliveryDate() || null : null,
+      routeId: this.showRoute() ? this.routeId() || null : null,
     });
   }
 }

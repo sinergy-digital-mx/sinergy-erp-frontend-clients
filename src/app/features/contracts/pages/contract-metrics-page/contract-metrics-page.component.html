@@ -1,0 +1,179 @@
+<div class="px-0 sm:px-4 metrics">
+  <div class="metrics__head">
+    <div>
+      <h2>Métricas de contratos</h2>
+      <p>Lo que el mes debería dejar por mensualidad, y lo que sigue debiendo de antes.</p>
+    </div>
+  </div>
+
+  <div class="metrics__tools">
+    <app-contract-section-nav></app-contract-section-nav>
+
+    <div class="metrics__month">
+      <button type="button" (click)="shiftMonth(-1)" aria-label="Mes anterior">
+        <lucide-icon [img]="ChevronLeft" [size]="16"></lucide-icon>
+      </button>
+      <span>{{ analysis()?.month_label || 'Mes' }}</span>
+      <button type="button" (click)="shiftMonth(1)" aria-label="Mes siguiente">
+        <lucide-icon [img]="ChevronRight" [size]="16"></lucide-icon>
+      </button>
+    </div>
+
+    @if (monthRelation() !== 'current') {
+      <button type="button" class="metrics__today" (click)="goToCurrentMonth()">Este mes</button>
+    }
+
+    <app-customer-group-dropdown
+      class="metrics__group"
+      [selectedGroupId]="groupId()"
+      placeholder="Grupo de cliente"
+      allMessage="Todos los grupos"
+      (groupSelect)="onGroupSelect($event)">
+    </app-customer-group-dropdown>
+  </div>
+
+  @if (error(); as message) {
+    <app-pollux-error-state [message]="message" (retry)="reload()"></app-pollux-error-state>
+  } @else {
+    <div class="metrics__body" [class.is-loading]="loading()">
+      @if (currencyOptions().length > 1) {
+        <div class="metrics__currencies">
+          @for (code of currencyOptions(); track code) {
+            <button type="button" [class.is-on]="currency() === code" (click)="selectCurrency(code)">{{ code }}</button>
+          }
+        </div>
+      }
+
+      <section class="hero">
+        <div class="hero__main">
+          <p class="hero__eyebrow">Deberías recibir en {{ analysis()?.month_label }}</p>
+          <p class="hero__amount">{{ money(summary().expected) }}</p>
+          <p class="hero__meta">
+            {{ summary().contracts }} contratos con mensualidad
+            @if (summary().contracts > 0) {
+              · promedio {{ money(summary().average_installment) }}
+            }
+          </p>
+          <div class="hero__bar" aria-hidden="true">
+            <span [style.width.%]="summary().collection_pct"></span>
+          </div>
+          <div class="hero__split">
+            <div>
+              <span>Ya entró</span>
+              <strong>{{ money(summary().collected) }}</strong>
+              <em>{{ summary().paid_contracts }} al corriente</em>
+            </div>
+            <div>
+              <span>Falta de este mes</span>
+              <strong>{{ money(summary().pending) }}</strong>
+              <em>{{ summary().unpaid_contracts }} sin pago · {{ summary().partial_contracts }} parciales</em>
+            </div>
+          </div>
+          <p class="hero__pace">{{ paceLine() }}</p>
+        </div>
+
+        <aside class="hero__prior">
+          <p class="hero__eyebrow">Además, de meses anteriores</p>
+          <p class="hero__prior-amount">{{ money(summary().prior_amount) }}</p>
+          <p>{{ summary().prior_installments }} cuotas · {{ summary().prior_contracts }} contratos</p>
+          <p class="hero__prior-note">Siguen abiertas. No se suman a lo de este mes.</p>
+        </aside>
+      </section>
+
+      <section class="portfolio">
+        <div>
+          <span>Cartera activa</span>
+          <strong>{{ stats().pending.count }}</strong>
+          <em>contratos en proceso</em>
+        </div>
+        <div>
+          <span>Ya pagado de esa cartera</span>
+          <strong>{{ portfolioMoney() ? money(stats().pending.paid, stats().currency) : '—' }}</strong>
+        </div>
+        <div>
+          <span>Saldo pendiente</span>
+          <strong>{{ portfolioMoney() ? money(stats().pending.remaining, stats().currency) : '—' }}</strong>
+        </div>
+        @if (!portfolioMoney()) {
+          <p>Hay más de una moneda. El dinero de la cartera se ve en Contratos.</p>
+        }
+      </section>
+
+      @if (unscheduled().length > 0) {
+        <section class="notice">
+          <button type="button" (click)="showUnscheduled.set(!showUnscheduled())">
+            {{ unscheduled().length }} financiados activos no tienen cuota en este mes. No se suman arriba.
+          </button>
+          @if (showUnscheduled()) {
+            <ul>
+              @for (row of unscheduled(); track row.contract_id) {
+                <li>{{ row.contract_number }} · {{ row.customer_name }} · mensualidad {{ money(row.monthly_payment, row.currency) }}</li>
+              }
+            </ul>
+          }
+        </section>
+      }
+
+      <section class="list">
+        <div class="list__tools">
+          <div class="list__filters">
+            <button type="button" [class.is-on]="listFilter() === 'all'" (click)="setListFilter('all')">Todos</button>
+            <button type="button" [class.is-on]="listFilter() === 'open'" (click)="setListFilter('open')">Falta este mes</button>
+            <button type="button" [class.is-on]="listFilter() === 'prior'" (click)="setListFilter('prior')">Con atraso</button>
+          </div>
+          <input
+            type="search"
+            placeholder="Contrato o cliente"
+            [ngModel]="search()"
+            (ngModelChange)="search.set($event)" />
+        </div>
+
+        @if (rows().length === 0) {
+          <p class="list__empty">No hay mensualidades con este filtro.</p>
+        } @else {
+          <div class="list__table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Contrato</th>
+                  <th>Cliente</th>
+                  <th>Del mes</th>
+                  <th>Pagado</th>
+                  <th>Falta</th>
+                  <th>Atrasos</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of rows(); track row.contract_id) {
+                  <tr (click)="openContract(row)">
+                    <td>
+                      <strong>{{ row.contract_number }}</strong>
+                      <span [class]="'status status--' + row.month_status">{{ statusLabel(row.month_status) }}</span>
+                    </td>
+                    <td>{{ row.customer_name }}</td>
+                    <td>{{ row.month_expected > 0 ? money(row.month_expected, row.currency) : '—' }}</td>
+                    <td>{{ row.month_expected > 0 ? money(row.month_paid, row.currency) : '—' }}</td>
+                    <td [class.is-due]="row.month_pending > 0">
+                      {{ row.month_expected > 0 ? money(row.month_pending, row.currency) : '—' }}
+                    </td>
+                    <td>
+                      @if (row.prior_installments > 0) {
+                        {{ row.prior_installments }} {{ row.prior_installments === 1 ? 'cuota' : 'cuotas' }}
+                        · {{ money(row.prior_amount, row.currency) }}
+                        <span class="since">desde {{ formatDay(row.prior_oldest) }}</span>
+                      } @else {
+                        —
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <p class="metrics__foot">Solo mensualidades del contrato. El enganche y el mantenimiento no entran en estos números.</p>
+    </div>
+  }
+</div>

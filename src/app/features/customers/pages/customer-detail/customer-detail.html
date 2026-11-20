@@ -60,6 +60,20 @@
         </app-button>
       </header>
 
+      @if (routesEnabled()) {
+        <div class="bg-white shadow-md rounded-xl p-4 sm:p-6 border border-gray-100">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-semibold text-[#334155]">Ruta habitual</h3>
+              <p class="text-sm text-gray-500 mt-1">{{ routeLabel() }}</p>
+            </div>
+            <button type="button" class="text-sm font-semibold text-[#1e3a5f]" (click)="assignRoute()">
+              {{ customer()!.default_route_id ? 'Cambiar' : 'Asignar' }}
+            </button>
+          </div>
+        </div>
+      }
+
       <!-- CUSTOMER INFORMATION -->
       <div class="bg-white shadow-md rounded-xl p-4 sm:p-6 border border-gray-100">
         <h3 class="text-lg font-semibold text-[#334155] mb-4">

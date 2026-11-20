@@ -25,11 +25,10 @@
           class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
           {{ data.contract.property.code }}
         </span>
-        <span
-          *ngIf="data.contract.down_payment_financed"
-          class="chip-financed">
-          Enganche financiado
-        </span>
+        <app-contract-sale-badge
+          [saleType]="data.contract.sale_type"
+          [downPaymentFinanced]="!!data.contract.down_payment_financed">
+        </app-contract-sale-badge>
       </div>
       <div class="flex items-center gap-2 mb-3 text-xs">
         <span class="inline-flex items-center px-2.5 py-1.5 rounded bg-gray-100 text-gray-700">
@@ -83,14 +82,21 @@
           </span>
           <span class="text-red-600 font-semibold">{{ data.contract.remaining_balance | currency:data.contract.currency }}</span>
         </div>
-        <div>
-          <span class="block text-gray-500 font-medium">Meses de Pago</span>
-          <span class="text-gray-900 font-semibold">{{ data.contract.payment_months }} meses</span>
-        </div>
-        <div>
-          <span class="block text-gray-500 font-medium">Pago Mensual</span>
-          <span class="text-gray-900 font-semibold">{{ data.contract.monthly_payment | currency:data.contract.currency }}</span>
-        </div>
+        @if (!isCashContract(data.contract)) {
+          <div>
+            <span class="block text-gray-500 font-medium">Meses de Pago</span>
+            <span class="text-gray-900 font-semibold">{{ data.contract.payment_months }} meses</span>
+          </div>
+          <div>
+            <span class="block text-gray-500 font-medium">Pago Mensual</span>
+            <span class="text-gray-900 font-semibold">{{ data.contract.monthly_payment | currency:data.contract.currency }}</span>
+          </div>
+        } @else {
+          <div>
+            <span class="block text-gray-500 font-medium">Pago Mensual</span>
+            <span class="text-gray-900 font-semibold">Sin mensualidad</span>
+          </div>
+        }
       </div>
     </div>
     <lucide-icon
@@ -143,7 +149,7 @@
   <div class="dialog__body">
     <!-- Tab: Editar -->
     <div class="tab-content" [class.active]="activeTab() === 'edit'">
-      <section *ngIf="data.contract.down_payment_financed" class="financed-panel">
+      <section *ngIf="data.contract.down_payment_financed && !isCashContract(data.contract)" class="financed-panel">
         <h3 class="financed-panel__title">Enganche financiado</h3>
         <dl class="financed-panel__facts">
           <div class="financed-panel__fact">
@@ -289,29 +295,27 @@
           <app-input
             label="Saldo Pendiente"
             type="number"
+            [disabled]="isCashContract(data.contract) ? 'true' : ''"
             [form_control]="form.controls['remaining_balance']">
           </app-input>
 
-          <!-- Meses de Pago -->
-          <app-input
-            label="Meses de Pago"
-            type="number"
-            [form_control]="form.controls['payment_months']">
-          </app-input>
-
-          <!-- Pago Mensual -->
-          <app-input
-            label="Pago Mensual"
-            type="number"
-            [form_control]="form.controls['monthly_payment']">
-          </app-input>
-
-          <!-- Fecha Primer Pago -->
-          <app-input
-            label="Fecha Primer Pago"
-            type="date"
-            [form_control]="form.controls['first_payment_date']">
-          </app-input>
+          @if (!isCashContract(data.contract)) {
+            <app-input
+              label="Meses de Pago"
+              type="number"
+              [form_control]="form.controls['payment_months']">
+            </app-input>
+            <app-input
+              label="Pago Mensual"
+              type="number"
+              [form_control]="form.controls['monthly_payment']">
+            </app-input>
+            <app-input
+              label="Fecha Primer Pago"
+              type="date"
+              [form_control]="form.controls['first_payment_date']">
+            </app-input>
+          }
         </div>
 
         <app-select [label]="'Razón social *'" [config]="fiscalSelectConfig"></app-select>

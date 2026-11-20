@@ -230,6 +230,19 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 
+.dd-kpi-card--clickable {
+  cursor: pointer;
+}
+
+.dd-kpi-card__hint {
+  margin: 0.45rem 0 0;
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
 .dd-kpi-card--indigo::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
 .dd-kpi-card--emerald::before { background: linear-gradient(90deg, #10b981, #34d399); }
 .dd-kpi-card--sky::before { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }

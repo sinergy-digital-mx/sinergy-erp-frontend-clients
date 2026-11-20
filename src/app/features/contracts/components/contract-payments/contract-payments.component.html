@@ -87,15 +87,21 @@
       <lucide-icon [img]="Check" [size]="22"></lucide-icon>
     </div>
     <p class="empty-state__title">
-      {{ isContractCompleted ? 'Contrato pagado' : (isDownpaymentFinancingBlocking ? 'Enganche pendiente' : 'Sin pagos generados') }}
+      {{
+        isCashSale
+          ? 'Sin mensualidades'
+          : (isContractCompleted ? 'Contrato pagado' : (isDownpaymentFinancingBlocking ? 'Enganche pendiente' : 'Sin pagos generados'))
+      }}
     </p>
     <p class="empty-state__subtitle">
       {{
-        isContractCompleted
-          ? 'Este contrato ya esta completado y no requiere generar pagos.'
-          : (isDownpaymentFinancingBlocking
-              ? downpaymentBlockingMessage
-              : 'Genera los pagos para empezar a registrar cobros del contrato.')
+        isCashSale
+          ? 'Este contrato es de contado. Si el pago se dividió, regístralo en Enganche.'
+          : (isContractCompleted
+              ? 'Este contrato ya esta completado y no requiere generar pagos.'
+              : (isDownpaymentFinancingBlocking
+                  ? downpaymentBlockingMessage
+                  : 'Genera los pagos para empezar a registrar cobros del contrato.'))
       }}
     </p>
   </div>

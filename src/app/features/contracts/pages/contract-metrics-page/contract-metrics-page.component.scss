@@ -1,0 +1,388 @@
+.metrics {
+  color: #0f172a;
+}
+
+.metrics__head {
+  margin-bottom: 0.85rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    margin: 0.25rem 0 0;
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+}
+
+.metrics__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.metrics__month {
+  display: inline-flex;
+  align-items: center;
+  height: 2.5rem;
+  padding: 0 0.15rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+
+  span {
+    min-width: 9.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #334155;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #f8fafc;
+  }
+}
+
+.metrics__today {
+  height: 2.5rem;
+  padding: 0 0.8rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #0f766e;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.metrics__group {
+  width: 14rem;
+  max-width: 100%;
+}
+
+.metrics__body.is-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.metrics__currencies {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+
+  button {
+    height: 2rem;
+    padding: 0 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  button.is-on {
+    border-color: #0f172a;
+    background: #0f172a;
+    color: #fff;
+  }
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.8fr);
+  gap: 0.85rem;
+}
+
+.hero__main,
+.hero__prior,
+.portfolio,
+.notice,
+.list {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+.hero__main {
+  padding: 1.15rem 1.25rem 1rem;
+}
+
+.hero__eyebrow {
+  margin: 0;
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hero__amount {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 720;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.hero__meta,
+.hero__pace,
+.hero__prior p {
+  margin: 0.35rem 0 0;
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.hero__bar {
+  height: 8px;
+  margin-top: 0.9rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #0f766e;
+  }
+}
+
+.hero__split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+
+  span,
+  em {
+    display: block;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-style: normal;
+  }
+
+  strong {
+    display: block;
+    margin-top: 0.1rem;
+    font-size: 1.05rem;
+  }
+}
+
+.hero__prior {
+  padding: 1.15rem 1.15rem;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.hero__prior .hero__eyebrow {
+  color: #b45309;
+}
+
+.hero__prior-amount {
+  margin: 0.4rem 0 0;
+  font-size: 1.55rem;
+  font-weight: 720;
+  letter-spacing: -0.03em;
+}
+
+.hero__prior-note {
+  color: #92400e !important;
+}
+
+.portfolio {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding: 0.9rem 1.1rem;
+
+  span,
+  em {
+    display: block;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-style: normal;
+  }
+
+  strong {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 1.05rem;
+  }
+
+  p {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #64748b;
+    font-size: 0.8rem;
+  }
+}
+
+.notice {
+  margin-top: 0.85rem;
+  padding: 0.75rem 1rem;
+
+  button {
+    border: 0;
+    background: transparent;
+    color: #9a3412;
+    font-size: 0.84rem;
+    font-weight: 650;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  ul {
+    margin: 0.55rem 0 0;
+    padding-left: 1.1rem;
+    color: #7c2d12;
+    font-size: 0.8rem;
+  }
+}
+
+.list {
+  margin-top: 0.85rem;
+  padding: 0.85rem;
+}
+
+.list__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+
+  input {
+    width: min(100%, 16rem);
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 0.84rem;
+  }
+}
+
+.list__filters {
+  display: flex;
+  gap: 0.3rem;
+
+  button {
+    height: 2rem;
+    padding: 0 0.7rem;
+    border: 0;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  button.is-on {
+    background: #0f172a;
+    color: #fff;
+  }
+}
+
+.list__empty {
+  margin: 0;
+  padding: 1.4rem 0.4rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.list__table {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+th {
+  padding: 0.45rem 0.6rem;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+td {
+  padding: 0.65rem 0.6rem;
+  border-top: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+tr {
+  cursor: pointer;
+}
+
+tbody tr:hover td {
+  background: #f8fafc;
+}
+
+td strong {
+  display: block;
+}
+
+.status {
+  display: inline-block;
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.status--paid { color: #047857; }
+.status--partial { color: #b45309; }
+.status--unpaid { color: #be123c; }
+.status--none { color: #9a3412; }
+
+.is-due {
+  color: #be123c;
+  font-weight: 700;
+}
+
+.since {
+  display: block;
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.metrics__foot {
+  margin: 0.7rem 0 0;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 860px) {
+  .hero,
+  .portfolio {
+    grid-template-columns: 1fr;
+  }
+}

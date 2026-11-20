@@ -3,7 +3,7 @@ import { CanActivateFn, Router, Routes } from '@angular/router';
 import { permissionGuard } from '../../core/guards/permission.guard';
 import { AuthService } from '../../core/services/auth.service';
 import { INVENTORY_PERMISSIONS } from '../inventory/config/permissions.config';
-import { GPS_TRACKING_PERMISSIONS, SHIPPING_PERMISSIONS, TRUCK_PERMISSIONS } from './config/permissions.config';
+import { GPS_TRACKING_PERMISSIONS, ROUTE_PERMISSIONS, SHIPPING_PERMISSIONS, TRUCK_PERMISSIONS } from './config/permissions.config';
 import {
   LogisticsEntryComponent,
   LogisticsShellComponent,
@@ -96,6 +96,19 @@ export const LOGISTICS_ROUTES: Routes = [
           ],
           permissionMode: 'any',
           title: 'Instrucciones',
+        },
+      },
+      {
+        path: 'routes',
+        loadComponent: () =>
+          import('./pages/logistics-routes-page/logistics-routes-page.component').then(
+            (m) => m.LogisticsRoutesPageComponent,
+          ),
+        canActivate: [permissionGuard],
+        data: {
+          permissions: [ROUTE_PERMISSIONS.viewMenu, ROUTE_PERMISSIONS.viewList, 'sales_orders:Update'],
+          permissionMode: 'any',
+          title: 'Rutas',
         },
       },
       {

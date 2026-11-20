@@ -842,6 +842,9 @@ export class POSService {
       walk_in_name?: string;
       walk_in_rfc?: string;
       for_shipping?: boolean;
+      requires_shipping?: boolean;
+      estimated_delivery_date?: string | null;
+      route_id?: string | null;
       notes?: string;
     }
   ): Observable<PosSaleInProgress> {

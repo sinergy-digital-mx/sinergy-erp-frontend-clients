@@ -253,10 +253,11 @@
         placeholder="Opcional. Sale en el ticket."></textarea>
     </label>
 
+    @if (showShipping()) {
     <label class="pos-ship-toggle" [class.pos-ship-toggle--on]="forShipping()">
       <span>
-        <strong>Para envío</strong>
-        <small>La orden queda marcada para salir en un envío.</small>
+        <strong>Requiere envío</strong>
+        <small>Si se apaga, la venta queda en mostrador.</small>
       </span>
       <input
         type="checkbox"
@@ -264,6 +265,25 @@
         [checked]="forShipping()"
         (change)="forShipping.set($any($event.target).checked)" />
     </label>
+    }
+    @if (showDeliveryDate()) {
+      <label class="pos-notes">
+        <span>Fecha tentativa</span>
+        <input type="date" [ngModel]="deliveryDate()" (ngModelChange)="deliveryDate.set($event)" />
+      </label>
+    }
+    @if (showRoute()) {
+      <label class="pos-notes">
+        <span>Ruta</span>
+        <select [ngModel]="routeId()" (ngModelChange)="routeId.set($event)">
+          <option value="">Sin ruta</option>
+          @for (route of rules().routes; track route.id) {
+            <option [value]="route.id">{{ route.name }}</option>
+          }
+        </select>
+        <button type="button" (click)="$event.preventDefault(); $event.stopPropagation(); openRoute()">Asignar al cliente</button>
+      </label>
+    }
 
     <div class="pos-dialog__actions">
       <button type="button" class="pos-checkout-dialog__btn pos-checkout-dialog__btn--ghost" (click)="cancel()">

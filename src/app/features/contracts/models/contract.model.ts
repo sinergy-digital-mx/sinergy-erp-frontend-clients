@@ -1,6 +1,7 @@
 /**
  * Contract Model
  */
+export type ContractSaleType = 'cash' | 'financed';
 export type ContractPaymentPhase = 'down_payment' | 'contract';
 export type NextPaymentKind = 'down_payment' | 'contract';
 
@@ -36,6 +37,8 @@ export interface Contract {
   payment_due_day?: number | null;
   currency: string;
   status: ContractStatus;
+  /** cash = contado, sin mensualidades. financed = saldo en pagos de contrato. */
+  sale_type?: ContractSaleType;
   notes?: string;
   metadata?: any;
   /** Enganche financiado en cuotas separadas de contract_payments */
@@ -124,6 +127,9 @@ export interface CreateContractDto {
   payment_due_day?: number | null;
   currency: string;
   status?: ContractStatus;
+  sale_type?: ContractSaleType;
+  /** Solo contado. true deja el contrato completado y el saldo en cero. */
+  cash_paid_in_full?: boolean;
   notes?: string;
   /** Si true, solo habilita la pestaña de enganche; meses/fechas se definen al generar cuotas. */
   down_payment_financed?: boolean;

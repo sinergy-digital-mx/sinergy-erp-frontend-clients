@@ -76,9 +76,9 @@
           </mat-autocomplete>
         </div>
 
-        @if (showField('expected_delivery_date')) {
+        @if (showDeliveryDate()) {
         <div class="form-field">
-          <label class="form-label">FECHA DE ENTREGA{{ fieldRequired('expected_delivery_date') ? ' *' : '' }}</label>
+          <label class="form-label">FECHA TENTATIVA{{ estimatedDateMark() ? ' *' : '' }}</label>
           <input type="date" class="form-input" formControlName="expected_delivery_date">
         </div>
         }
@@ -139,13 +139,28 @@
           @if (showShippingToggle) {
             <label class="option-card">
               <span class="option-card__copy">
-                <span class="option-card__title">Para envío</span>
-                <span class="option-card__hint">Queda marcada para salir en un envío. Si no se marca ahora, se puede agregar después.</span>
+                <span class="option-card__title">Requiere envío</span>
+                <span class="option-card__hint">Si se apaga, no pide fecha tentativa ni ruta. La venta queda en mostrador.</span>
               </span>
               <input type="checkbox" class="switch" formControlName="for_shipping" />
             </label>
           }
         </div>
+        }
+
+        @if (showRouteField()) {
+          <div class="form-field form-field--full">
+            <div class="form-label-row">
+              <label class="form-label">RUTA{{ routeRequiredMark() ? ' *' : '' }}</label>
+              <button type="button" class="btn-label-add" (click)="openAssignRoute()">Asignar</button>
+            </div>
+            <select class="form-select" formControlName="route_id">
+              <option value="">Sin ruta</option>
+              @for (route of creationSettings.routes; track route.id) {
+                <option [value]="route.id">{{ route.name }} · {{ route.code }}</option>
+              }
+            </select>
+          </div>
         }
 
         @if (showField('notes')) {

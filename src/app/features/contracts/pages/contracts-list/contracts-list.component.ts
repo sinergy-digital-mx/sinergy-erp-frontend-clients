@@ -9,7 +9,6 @@ import {
   Contract,
   ContractListFilters,
   ContractOverdueBucket,
-  ContractPaymentPhase,
   ContractStats,
   EMPTY_CONTRACT_STATS,
   EMPTY_OVERDUE_BUCKET,
@@ -22,6 +21,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { PropertyService } from '../../../properties/services/property.service';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
 import { ContractCreateModalComponent } from '../../components/contract-create-modal/contract-create-modal.component';
+import { ContractSaleBadgeComponent } from '../../components/contract-sale-badge/contract-sale-badge.component';
 import { CONTRACT_CREATE_DIALOG_CONFIG, PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { ContractFilterIndicatorComponent } from '../../components/contract-filter-indicator/contract-filter-indicator.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
@@ -40,6 +40,7 @@ import { CustomerGroupFetchService } from '../../../customers/services/customer-
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { MobileFilterSheetComponent } from '../../../../core/components/mobile-filter-sheet/mobile-filter-sheet.component';
+import { ContractSectionNavComponent } from '../../components/contract-section-nav/contract-section-nav.component';
 
 @Component({
   selector: 'app-contracts-list',
@@ -50,6 +51,7 @@ import { MobileFilterSheetComponent } from '../../../../core/components/mobile-f
     SearchComponent,
     ButtonComponent,
     ContractFilterIndicatorComponent,
+    ContractSaleBadgeComponent,
     LucideAngularModule,
     MatTooltipModule,
     FilterClearButtonComponent,
@@ -57,6 +59,7 @@ import { MobileFilterSheetComponent } from '../../../../core/components/mobile-f
     EmptyStageComponent,
     LocalDatePipe,
     MobileFilterSheetComponent,
+    ContractSectionNavComponent,
   ],
   providers: [DatePipe],
   templateUrl: './contracts-list.component.html',
@@ -71,7 +74,7 @@ export class ContractsListComponent implements OnDestroy {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Número', prop: 'contract_number', sortable: true, canAutoResize: true, width: 120 },
+      { name: 'Número', prop: 'contract_number', sortable: true, canAutoResize: true, width: 168 },
       { name: 'Cliente', prop: 'customer', sortable: false, canAutoResize: false, width: 180 },
       { name: 'Grupo', prop: 'customer_group', sortable: false, canAutoResize: true, width: 120 },
       { name: 'Lote', prop: 'property', sortable: false, canAutoResize: true, width: 120 },
@@ -542,14 +545,6 @@ export class ContractsListComponent implements OnDestroy {
 
   getCustomerGroupName(contract: Contract): string {
     return contract.customer?.group?.name ?? '—';
-  }
-
-  getPaymentPhase(item: Contract): ContractPaymentPhase {
-    return item.payment_phase === 'down_payment' ? 'down_payment' : 'contract';
-  }
-
-  getPaymentPhaseLabel(item: Contract): string {
-    return this.getPaymentPhase(item) === 'down_payment' ? 'Enganche' : 'Contrato';
   }
 
   getNextPaymentKind(item: Contract): NextPaymentKind | null {

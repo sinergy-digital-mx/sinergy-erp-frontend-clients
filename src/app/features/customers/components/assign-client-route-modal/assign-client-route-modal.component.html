@@ -1,0 +1,39 @@
+<div class="route-modal">
+  <header>
+    <h2>Ruta{{ data.customerName ? ' · ' + data.customerName : '' }}</h2>
+    <button type="button" (click)="cancel()" aria-label="Cerrar">×</button>
+  </header>
+
+  <label class="field">
+    <span>Ruta</span>
+    <select [(ngModel)]="selectedId">
+      <option value="">Selecciona una ruta</option>
+      @for (route of routes; track route.id) {
+        <option [value]="route.id">{{ route.name }} · {{ route.code }}</option>
+      }
+    </select>
+  </label>
+
+  @if (data.customerId) {
+    <label class="check">
+      <input type="checkbox" [(ngModel)]="saveAsDefault" />
+      <span>Guardar como ruta habitual del cliente</span>
+    </label>
+  }
+
+  <div class="quick">
+    <p>Si no existe, créala aquí.</p>
+    <div>
+      <input [(ngModel)]="draft.name" placeholder="Nombre" />
+      <input [(ngModel)]="draft.code" placeholder="Código" />
+      <button type="button" (click)="createRoute()" [disabled]="creating">Crear</button>
+    </div>
+  </div>
+
+  <footer>
+    <button type="button" class="ghost" (click)="cancel()">Cancelar</button>
+    <button type="button" (click)="confirm()" [disabled]="!selectedId || saving">
+      {{ saving ? 'Guardando…' : 'Usar ruta' }}
+    </button>
+  </footer>
+</div>

@@ -4,6 +4,7 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
       <div class="app-filter-row">
+      <app-contract-section-nav></app-contract-section-nav>
       <app-search
         class="w-full sm:w-64"
         [param_activate]="true"
@@ -209,9 +210,10 @@
             <div class="contract-card__top">
               <div class="contract-card__chips">
                 <span class="contract-card__number">{{ item.contract_number }}</span>
-                <span class="phase-badge" [class.phase-badge--enganche]="getPaymentPhase(item) === 'down_payment'">
-                  {{ getPaymentPhaseLabel(item) }}
-                </span>
+                <app-contract-sale-badge
+                  [saleType]="item.sale_type"
+                  [downPaymentFinanced]="!!item.down_payment_financed">
+                </app-contract-sale-badge>
               </div>
               <span [class]="getStatusClass(item.status)">
                 {{ getStatusLabel(item.status) }}
@@ -298,9 +300,10 @@
       <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 whitespace-nowrap">
         {{ item.contract_number }}
       </span>
-      <span class="phase-badge" [class.phase-badge--enganche]="getPaymentPhase(item) === 'down_payment'">
-        {{ getPaymentPhaseLabel(item) }}
-      </span>
+      <app-contract-sale-badge
+        [saleType]="item.sale_type"
+        [downPaymentFinanced]="!!item.down_payment_financed">
+      </app-contract-sale-badge>
     </div>
   </td>
   <td>

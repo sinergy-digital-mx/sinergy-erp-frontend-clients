@@ -343,6 +343,10 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
     });
   }
 
+  get isCashSale(): boolean {
+    return this.contract?.sale_type === 'cash';
+  }
+
   get isContractCompleted(): boolean {
     const status = (this.contractStatus || '').toLowerCase().trim();
     return status === 'completado' || status === 'completed';
@@ -494,7 +498,8 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
   }
 
   get showScheduleForm(): boolean {
-    return !this.isContractCompleted
+    return !this.isCashSale
+      && !this.isContractCompleted
       && !this.isDownpaymentFinancingBlocking
       && (this.canGenerate || this.hasExistingSchedule);
   }

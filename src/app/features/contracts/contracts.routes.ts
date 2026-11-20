@@ -16,6 +16,17 @@ export const CONTRACTS_ROUTES: Routes = [
     }
   },
   {
+    path: 'metrics',
+    loadComponent: () =>
+      import('./pages/contract-metrics-page/contract-metrics-page.component').then(
+        (m) => m.ContractMetricsPageComponent
+      ),
+    canActivate: [madereriaRealEstateGuard, permissionGuard],
+    data: {
+      permissions: [CONTRACT_PERMISSIONS.viewList]
+    }
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./pages/contracts-list/contracts-list.component').then(

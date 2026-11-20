@@ -30,6 +30,14 @@ export const GPS_TRACKING_PERMISSIONS = {
   delete: 'gps_tracking:Delete',
 } as const;
 
+export const ROUTE_PERMISSIONS = {
+  viewMenu: 'route:ViewMenu',
+  viewList: 'route:Read',
+  create: 'route:Create',
+  update: 'route:Update',
+  delete: 'route:Delete',
+} as const;
+
 export const LOGISTICS_PERMISSIONS = {
   trucks: TRUCK_PERMISSIONS,
   shippings: SHIPPING_PERMISSIONS,

@@ -28,6 +28,9 @@ import { HasEntityDirective } from '../../../../core/directives/has-entity.direc
 import { Pencil, MapPin, FileUp } from 'lucide-angular';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { AuthService } from '../../../../core/services/auth.service';
+import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
+import { LogisticsRouteOption } from '../../../sales-orders/models/sales-order-creation-settings.model';
+import { AssignClientRouteModalComponent } from '../../components/assign-client-route-modal/assign-client-route-modal.component';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import {
   getCustomerFullName,
@@ -104,12 +107,51 @@ export class CustomerDetail implements OnInit, OnDestroy {
   invoicePrefSaving = signal(false);
   satConstanciaUploading = signal(false);
   customerId: number | null = null;
+  routesEnabled = signal(false);
+  routeOptions = signal<LogisticsRouteOption[]>([]);
   private destroy$ = new Subject<void>();
 
   readonly PencilIcon = Pencil;
   readonly MapPinIcon = MapPin;
   readonly FileUpIcon = FileUp;
   readonly permissions = CUSTOMER_PERMISSIONS;
+
+  routeLabel(): string {
+    const id = this.customer()?.default_route_id;
+    if (!id) return 'Sin ruta';
+    const route = this.routeOptions().find((row) => row.id === id);
+    return route ? `${route.name} · ${route.code}` : 'Ruta asignada';
+  }
+
+  assignRoute(): void {
+    const customer = this.customer();
+    if (!customer) return;
+    this.dialog
+      .open(AssignClientRouteModalComponent, {
+        width: '460px',
+        maxWidth: '95vw',
+        data: {
+          customerId: customer.id,
+          customerName: customer.name,
+          routes: this.routeOptions(),
+          selectedRouteId: customer.default_route_id,
+          saveAsDefault: true,
+        },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result?.route_id) return;
+        if (!this.routeOptions().some((row) => row.id === result.route_id)) {
+          this.routeOptions.set([
+            ...this.routeOptions(),
+            { id: result.route_id, name: result.route_name, code: result.route_code },
+          ]);
+        }
+        this.customer.update((current) =>
+          current ? { ...current, default_route_id: result.route_id } : current,
+        );
+      });
+  }
 
   get showRealEstateSection(): boolean {
     return !isMadereriaZonaNorte(this.authService.user_info?.tenant_id);
@@ -122,10 +164,15 @@ export class CustomerDetail implements OnInit, OnDestroy {
     private propertyService: PropertyService,
     private dialog: MatDialog,
     private authService: AuthService,
-    private interceptorService: InterceptorService
+    private interceptorService: InterceptorService,
+    private salesOrderService: SalesOrderService,
   ) {}
 
   ngOnInit() {
+    this.salesOrderService.getCreationSettings().subscribe((settings) => {
+      this.routesEnabled.set(settings.routes_enabled);
+      this.routeOptions.set(settings.routes || []);
+    });
     this.loadStatuses();
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
       this.customerId = Number(params['id']);

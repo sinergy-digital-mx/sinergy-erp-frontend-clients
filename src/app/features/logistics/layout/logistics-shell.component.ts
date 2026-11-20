@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import {
   ArrowLeftRight,
   LayoutDashboard,
+  MapPin,
   LucideAngularModule,
   BookOpen,
   Radio,
@@ -14,7 +15,7 @@ import {
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { INVENTORY_PERMISSIONS } from '../../inventory/config/permissions.config';
-import { GPS_TRACKING_PERMISSIONS, SHIPPING_PERMISSIONS, TRUCK_PERMISSIONS } from '../config/permissions.config';
+import { GPS_TRACKING_PERMISSIONS, ROUTE_PERMISSIONS, SHIPPING_PERMISSIONS, TRUCK_PERMISSIONS } from '../config/permissions.config';
 
 interface LogisticsNavItem {
   label: string;
@@ -100,6 +101,18 @@ export class LogisticsShellComponent implements OnInit, OnDestroy {
     }
 
     const catalogs: LogisticsNavItem[] = [];
+    if (
+      this.can(ROUTE_PERMISSIONS.viewMenu) ||
+      this.can(ROUTE_PERMISSIONS.viewList) ||
+      this.can('sales_orders:Update')
+    ) {
+      catalogs.push({
+        label: 'Rutas',
+        route: '/logistics/routes',
+        icon: MapPin,
+        exact: true,
+      });
+    }
     if (canFleet) {
       catalogs.push({
         label: 'Flota y remolques',

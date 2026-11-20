@@ -1,7 +1,7 @@
 <div class="downpayments-container">
   <div class="flex items-center justify-end mb-2 gap-2">
     <app-button
-      *ngIf="isFinanced"
+      *ngIf="canRecordDownPayments"
       text="Agregar abono manual"
       custom_class="btn_secondary"
       size="sm"
@@ -19,12 +19,31 @@
     </app-button>
   </div>
 
-  <div *ngIf="!isFinanced" class="empty-state empty-state--neutral">
+  <div *ngIf="!canRecordDownPayments" class="empty-state empty-state--neutral">
     <div class="empty-state__icon">DP</div>
-    <p class="empty-state__title">Enganche no financiado</p>
+    <p class="empty-state__title">Enganche ya registrado</p>
     <p class="empty-state__subtitle">
-      Activa el financiamiento de enganche al crear el contrato para registrar abonos y cuotas aquí.
+      En este financiado el enganche se capturó al crear el contrato. No se parte en cuotas.
     </p>
+  </div>
+
+  <p *ngIf="isCashSale" class="cash-note">
+    Abonos de contado. Pueden ser 2 o 3 pagos para formalizarlo. No crean mensualidad ni cambian el contrato a financiado.
+  </p>
+
+  <div *ngIf="isCashSale" class="stat-grid">
+    <article class="stat-card">
+      <span class="stat-card__label">Precio</span>
+      <span class="stat-card__value">{{ cashPrice | currency:currency }}</span>
+    </article>
+    <article class="stat-card stat-card--paid">
+      <span class="stat-card__label">Abonado</span>
+      <span class="stat-card__value">{{ appliedAmount | currency:currency }}</span>
+    </article>
+    <article class="stat-card stat-card--partial">
+      <span class="stat-card__label">Pendiente</span>
+      <span class="stat-card__value">{{ cashPending | currency:currency }}</span>
+    </article>
   </div>
 
   <div *ngIf="isFinanced" class="stat-grid stat-grid--4">
@@ -81,11 +100,15 @@
     <p class="text-sm text-gray-500">Cargando pagos de enganche...</p>
   </div>
 
-  <div *ngIf="isFinanced && !loading() && payments().length === 0" class="empty-state">
+  <div *ngIf="canRecordDownPayments && !loading() && payments().length === 0" class="empty-state">
     <div class="empty-state__icon">DP</div>
     <p class="empty-state__title">Sin movimientos de enganche</p>
     <p class="empty-state__subtitle">
-      Registra abonos manuales mientras acuerdan el monto. Cuando tengan la meta total, genera las cuotas del saldo restante.
+      {{
+        isCashSale
+          ? 'Agrega los abonos con los que se liquida este contado.'
+          : 'Registra abonos manuales mientras acuerdan el monto. Cuando tengan la meta total, genera las cuotas del saldo restante.'
+      }}
     </p>
   </div>
 

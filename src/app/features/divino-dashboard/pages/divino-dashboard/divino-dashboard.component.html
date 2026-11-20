@@ -107,7 +107,12 @@
         class="dd-kpi-card"
         [class]="'dd-kpi-card--' + card.accent"
         [class.dd-kpi-card--positive]="isDiffPositive(card) === true"
-        [class.dd-kpi-card--negative]="isDiffPositive(card) === false">
+        [class.dd-kpi-card--negative]="isDiffPositive(card) === false"
+        [class.dd-kpi-card--clickable]="card.key === 'cash_fin'"
+        [attr.role]="card.key === 'cash_fin' ? 'button' : null"
+        [attr.tabindex]="card.key === 'cash_fin' ? 0 : null"
+        (click)="openSaleMix(card)"
+        (keydown.enter)="openSaleMix(card)">
         <div class="dd-kpi-card__top">
           <span class="dd-kpi-card__icon">
             <lucide-icon [img]="card.icon" [size]="18"></lucide-icon>
@@ -122,6 +127,9 @@
         <p class="dd-kpi-card__label">{{ card.label }}</p>
         @if (getKpiSubtext(card); as sub) {
           <p class="dd-kpi-card__sub">{{ sub }}</p>
+        }
+        @if (card.key === 'cash_fin') {
+          <p class="dd-kpi-card__hint">Ver contratos</p>
         }
       </article>
     }

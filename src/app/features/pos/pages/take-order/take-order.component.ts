@@ -150,6 +150,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   editingAdvanceUsoCfdi = signal<string | null>(null);
   editingAdvanceMetodoPago = signal<'PUE' | 'PPD' | null>(null);
   editingForShipping = signal(false);
+  selectedCustomerRouteId = signal<string | null>(null);
   editingNotes = signal('');
   private pendingResumeTicketId: string | null = null;
 
@@ -1166,7 +1167,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       customerLabel: this.ticketCustomerLabel(),
       acceptLabel: this.isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta',
       queued: this.posState.salesQueueMode(),
-      initialForShipping: this.editingForShipping(),
+      initialForShipping: this.editingSaleId() ? this.editingForShipping() : null,
+      customerId: this.selectedOrderCustomerId(),
+      defaultRouteId: this.selectedCustomerRouteId(),
       initialNotes: this.editingNotes(),
     }).subscribe((confirmed) => {
       if (!confirmed || typeof confirmed !== 'object' || !('forShipping' in confirmed)) {
@@ -1182,6 +1185,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         walkInName: this.walkInName(),
         walkInRfc: normalizeWalkInRfc(this.walkInRfc()),
         forShipping: confirmed.forShipping,
+        estimatedDeliveryDate: confirmed.estimatedDeliveryDate,
+        routeId: confirmed.routeId,
         notes: confirmed.notes,
       });
 
@@ -1195,6 +1200,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           walk_in_name: payload.walk_in_name,
           walk_in_rfc: payload.walk_in_rfc,
           for_shipping: payload.for_shipping,
+          requires_shipping: payload.requires_shipping,
+          estimated_delivery_date: payload.estimated_delivery_date,
+          route_id: payload.route_id,
           notes: payload.notes,
         }).subscribe({
           next: () => {
@@ -1581,6 +1589,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
             : resolvePosCollectCustomerId({ id: result.customerId });
           this.selectedOrderCustomerId.set(collectId ?? result.customerId);
           this.selectedCustomerName.set(this.customerDisplayName(result.customer));
+          this.selectedCustomerRouteId.set(result.customer?.default_route_id || null);
           this.rememberCustomerFiscal(result.customerId, result.customer);
           return true;
         }),
@@ -1640,6 +1649,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedCustomerId.set('');
     this.selectedOrderCustomerId.set(null);
     this.selectedCustomerName.set('Público en General');
+    this.selectedCustomerRouteId.set(null);
     this.walkInTicketOpen.set(false);
     this.customerFiscalCache = null;
   }

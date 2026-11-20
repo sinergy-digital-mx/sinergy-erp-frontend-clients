@@ -1,0 +1,36 @@
+<section class="routes">
+  <header>
+    <h2>Catálogo de rutas</h2>
+    <p>Por ejemplo Ruta Otay o Ruta Centro. El código no se repite.</p>
+  </header>
+
+  <form class="draft" (ngSubmit)="create()">
+    <input [(ngModel)]="draft.name" name="name" placeholder="Nombre" required />
+    <input [(ngModel)]="draft.code" name="code" placeholder="Código" required />
+    <input [(ngModel)]="draft.description" name="description" placeholder="Descripción" />
+    <button type="submit" [disabled]="saving">Agregar</button>
+  </form>
+
+  @if (loading) {
+    <p class="muted">Cargando rutas…</p>
+  } @else if (!routes.length) {
+    <p class="muted">Todavía no hay rutas.</p>
+  } @else {
+    <ul>
+      @for (route of routes; track route.id) {
+        <li [class.off]="!route.is_active">
+          <div>
+            <strong>{{ route.name }}</strong>
+            <span>{{ route.code }}</span>
+            @if (route.description) {
+              <small>{{ route.description }}</small>
+            }
+          </div>
+          <button type="button" (click)="toggle(route)">
+            {{ route.is_active ? 'Desactivar' : 'Activar' }}
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>

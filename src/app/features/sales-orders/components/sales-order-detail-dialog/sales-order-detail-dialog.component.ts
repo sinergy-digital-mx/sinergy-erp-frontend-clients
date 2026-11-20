@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AssignClientRouteModalComponent } from '../../../customers/components/assign-client-route-modal/assign-client-route-modal.component';
 import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
@@ -551,6 +552,45 @@ export class SalesOrderDetailDialogComponent {
     return !!order && order.general_status !== 'Cancelada' && !this.shippingSaving();
   }
 
+  canEditLogistics(): boolean {
+    const status = this.order()?.general_status;
+    return !!status && status !== 'Cancelada' && status !== 'En Camino';
+  }
+
+  reassignRoute(): void {
+    const order = this.order();
+    if (!order || !this.canEditLogistics()) return;
+    this.salesOrderService.getCreationSettings().subscribe((settings) => {
+      this.dialog
+        .open(AssignClientRouteModalComponent, {
+          width: '460px',
+          maxWidth: '95vw',
+          data: {
+            customerId: order.customer_id,
+            routes: settings.routes,
+            selectedRouteId: order.route_id,
+            saveAsDefault: false,
+          },
+        })
+        .afterClosed()
+        .subscribe((result) => {
+          if (!result?.route_id) return;
+          this.salesOrderService
+            .setForShipping(order.id, true, {
+              route_id: result.route_id,
+              estimated_delivery_date: order.estimated_delivery_date || null,
+            })
+            .subscribe({
+              next: () => {
+                this.toast.success('Ruta actualizada');
+                this.loadOrder(true);
+              },
+              error: (error) => this.toast.error(resolveHttpErrorMessage(error, 'No se pudo asignar la ruta')),
+            });
+        });
+    });
+  }
+
   toggleForShipping(): void {
     const order = this.order();
     if (!order || !this.canToggleForShipping()) return;
@@ -559,8 +599,8 @@ export class SalesOrderDetailDialogComponent {
     this.salesOrderService.setForShipping(order.id, next).subscribe({
       next: () => {
         this.shippingSaving.set(false);
-        this.order.update((current) => (current ? { ...current, for_shipping: next } : current));
-        this.toast.success(next ? 'Orden marcada para envío' : 'La orden ya no es para envío');
+        this.toast.success(next ? 'Orden marcada para envío' : 'La orden queda en mostrador');
+        this.loadOrder(true);
       },
       error: (error) => {
         this.shippingSaving.set(false);

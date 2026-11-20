@@ -10,6 +10,21 @@
     </button>
   </header>
 
+  @if (!loading) {
+    <article class="card">
+      <div class="card-copy">
+        <h2>Rutas de reparto</h2>
+        <p>Actívalas para asignar una ruta al cliente y a la orden. Si están apagadas, el alta no pide ruta.</p>
+      </div>
+      <div class="controls">
+        <label class="switch-row">
+          <span>Activas</span>
+          <input type="checkbox" class="switch" [(ngModel)]="routesEnabled" [disabled]="!canEdit" />
+        </label>
+      </div>
+    </article>
+  }
+
   @if (loading) {
     <p class="status">Cargando…</p>
   } @else {
@@ -51,10 +66,35 @@
               @case ('date') {
                 <label class="default">
                   <span>Valor por defecto</span>
-                  <select [(ngModel)]="$any(fields[row.key]).default_value" [disabled]="!canEdit">
+                  <select
+                    [ngModel]="dateMode(row.key)"
+                    (ngModelChange)="onDateMode(row.key, $event)"
+                    [disabled]="!canEdit">
                     <option value="today">Hoy</option>
+                    <option value="fixed">Fecha fija</option>
                   </select>
                 </label>
+                @if (dateMode(row.key) === 'fixed') {
+                  <label class="default">
+                    <span>Fecha</span>
+                    <input
+                      type="date"
+                      [ngModel]="fixedDate(row.key)"
+                      (ngModelChange)="onFixedDate(row.key, $event)"
+                      [disabled]="!canEdit" />
+                  </label>
+                }
+                @if (row.key === 'estimated_delivery_date') {
+                  <label class="switch-row">
+                    <span>Solo si requiere envío</span>
+                    <input
+                      type="checkbox"
+                      class="switch"
+                      [ngModel]="field(row.key).only_when_shipping !== false"
+                      (ngModelChange)="field(row.key).only_when_shipping = $event"
+                      [disabled]="!canEdit" />
+                  </label>
+                }
               }
               @case ('scope') {
                 <label class="default">
@@ -86,6 +126,17 @@
                     [disabled]="!canEdit" />
                 </label>
               }
+              @case ('route') {
+                <label class="switch-row">
+                  <span>Solo si requiere envío</span>
+                  <input
+                    type="checkbox"
+                    class="switch"
+                    [ngModel]="field(row.key).only_when_shipping !== false"
+                    (ngModelChange)="field(row.key).only_when_shipping = $event"
+                    [disabled]="!canEdit" />
+                </label>
+              }
               @case ('text') {
                 <label class="default default--grow">
                   <span>Valor por defecto</span>
@@ -101,5 +152,8 @@
         </article>
       }
     </div>
+    @if (routesEnabled) {
+      <app-logistics-routes-panel />
+    }
   }
 </div>

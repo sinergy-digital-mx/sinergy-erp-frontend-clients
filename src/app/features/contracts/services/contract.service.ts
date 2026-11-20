@@ -9,6 +9,7 @@ import {
   UpdateContractDto,
   ContractStats,
 } from '../models/contract.model';
+import { MonthlyIncomeAnalysis } from '../models/monthly-income.model';
 
 @Injectable({
   providedIn: 'root',
@@ -33,6 +34,14 @@ export class ContractService {
   }
 
   /** KPIs del mismo alcance que la tabla (sin page/limit). */
+  getMonthlyIncome(year: number, month: number, groupId?: string | null): Observable<MonthlyIncomeAnalysis> {
+    let params = new HttpParams().set('year', String(year)).set('month', String(month));
+    if (groupId) {
+      params = params.set('group_id', groupId);
+    }
+    return this.http.get<MonthlyIncomeAnalysis>(`${this.api}/tenant/contracts/monthly-income`, { params });
+  }
+
   getContractStats(filters?: ContractListFilters): Observable<ContractStats> {
     return this.http.get<ContractStats>(`${this.api}/tenant/contracts/stats`, {
       params: this.buildParams(filters, false),

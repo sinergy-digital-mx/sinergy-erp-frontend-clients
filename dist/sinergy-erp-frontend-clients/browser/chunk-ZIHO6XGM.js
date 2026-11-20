@@ -1,0 +1,1 @@
+function o(t){let n=String(t??"").trim().toUpperCase();return n==="USD"||n==="MXN"?n:"USD"}function e(t){let n=Number(t),r=Number.isFinite(n)?n:0;return`$${new Intl.NumberFormat("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}).format(r)}`}function u(t,n){return`${o(n)} ${e(t)}`}export{o as a,e as b,u as c};

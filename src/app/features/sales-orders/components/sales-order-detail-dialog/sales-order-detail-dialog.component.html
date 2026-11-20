@@ -98,6 +98,11 @@
         </span>
         @if (isForShipping()) {
           <span class="status-badge status-badge--shipping">Para envío</span>
+          @if (order()!.logistics_route; as route) {
+            <span class="status-badge status-badge--invoice">{{ route.name }}</span>
+          }
+        } @else {
+          <span class="status-badge">Mostrador</span>
         }
         @if (shippingInfo()?.has_shipping) {
           <span class="status-badge status-badge--invoice">
@@ -245,13 +250,27 @@
           </div>
           <div class="info-card__content">
             <span class="info-card__label">ENVÍO</span>
-            <span class="info-card__value">{{ isForShipping() ? 'Para envío' : 'No es para envío' }}</span>
+            <span class="info-card__value">{{ isForShipping() ? 'Requiere envío' : 'Mostrador' }}</span>
             <span class="info-card__subvalue">
-              {{ isForShipping() ? 'Quedará disponible para un envío' : 'Márcala si sale a domicilio' }}
+              @if (isForShipping() && order()!.logistics_route) {
+                Ruta {{ order()!.logistics_route!.name }}
+              } @else if (isForShipping()) {
+                Sin ruta asignada
+              } @else {
+                Entrega en sucursal
+              }
             </span>
           </div>
           <span class="ship-flag__switch" [class.ship-flag__switch--on]="isForShipping()" aria-hidden="true"></span>
         </button>
+        @if (isForShipping() && canEditLogistics()) {
+          <button type="button" class="info-card" (click)="reassignRoute()">
+            <div class="info-card__content">
+              <span class="info-card__label">RUTA</span>
+              <span class="info-card__value">{{ order()!.logistics_route?.name || 'Asignar ruta' }}</span>
+            </div>
+          </button>
+        }
 
         <div class="section-card">
           <h3 class="section-title">FECHAS</h3>
@@ -259,6 +278,12 @@
             <span class="section-label">Fecha orden</span>
             <span class="section-value">{{ formatShortDate(order()!.created_at) }}</span>
           </div>
+          @if (isForShipping()) {
+            <div class="section-item">
+              <span class="section-label">Fecha tentativa</span>
+              <span class="section-value">{{ formatShortDate(order()!.estimated_delivery_date || order()!.expected_delivery_date) }}</span>
+            </div>
+          }
           <div class="section-item">
             <span class="section-label">Entrega estimada</span>
             <span class="section-value">{{ formatShortDate(order()!.expected_delivery_date || order()!.delivery_date) }}</span>

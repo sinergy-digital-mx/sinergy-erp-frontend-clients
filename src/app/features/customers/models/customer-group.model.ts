@@ -103,6 +103,7 @@ export interface Customer {
   fiscal_ready_for_invoice?: boolean;
   fiscal_missing_fields?: string[];
   is_walk_in?: boolean;
+  default_route_id?: string | null;
   fiscal_rfc?: string;
   fiscal_razon_social?: string;
   fiscal_person_type?: string;

@@ -16,7 +16,14 @@ import {
   SalesOrderCreationFieldKey,
   SalesOrderCreationSettings,
   defaultSalesOrderCreationSettings,
+  estimatedDateRequired,
+  orderRouteRequired,
+  showEstimatedDeliveryDate,
+  showOrderRoute,
 } from '../../models/sales-order-creation-settings.model';
+import {
+  AssignClientRouteModalComponent,
+} from '../../../customers/components/assign-client-route-modal/assign-client-route-modal.component';
 import { UoMCatalog } from '../../../settings/models/product.model';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
@@ -109,7 +116,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
   private editingGlobalDiscountId: string | null = null;
   private editingQuotationType: 'POS' | 'MANUAL' | null = null;
   editingFolio: string | null = null;
-  private creationSettings: SalesOrderCreationSettings = defaultSalesOrderCreationSettings();
+  creationSettings: SalesOrderCreationSettings = defaultSalesOrderCreationSettings();
 
   get asQuotation(): boolean {
     return this.data?.asQuotation === true;
@@ -154,6 +161,7 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       currency: ['MXN' as 'MXN' | 'USD', Validators.required],
       requires_selection_assembly: [false],
       for_shipping: [false],
+      route_id: [''],
       notes: ['']
     });
   }
@@ -183,6 +191,9 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
         }
         this.cdr.detectChanges();
       });
+    this.form.get('for_shipping')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.syncLogisticsValidators());
     this.form.get('customer_search')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((value) => {
@@ -245,6 +256,65 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     if (!field?.visible) return false;
     if (key === 'billing_branch_id' && this.branches.length === 1) return false;
     return true;
+  }
+
+  showDeliveryDate(): boolean {
+    if (this.asQuotation) return this.showField('expected_delivery_date');
+    return showEstimatedDeliveryDate(this.creationSettings.fields, !!this.form.get('for_shipping')?.value);
+  }
+
+  estimatedDateMark(): boolean {
+    return estimatedDateRequired(this.creationSettings.fields, !!this.form.get('for_shipping')?.value);
+  }
+
+  routeRequiredMark(): boolean {
+    return orderRouteRequired(
+      this.creationSettings.fields,
+      this.creationSettings.routes_enabled,
+      !!this.form.get('for_shipping')?.value,
+    );
+  }
+
+  showRouteField(): boolean {
+    if (this.asQuotation) return false;
+    return showOrderRoute(
+      this.creationSettings.fields,
+      this.creationSettings.routes_enabled,
+      !!this.form.get('for_shipping')?.value,
+    );
+  }
+
+  routeLabel(routeId: string): string {
+    const route = this.creationSettings.routes.find((row) => row.id === routeId);
+    return route ? `${route.name} · ${route.code}` : 'Ruta';
+  }
+
+  openAssignRoute(): void {
+    const customerId = this.form.get('customer_id')?.value;
+    const ref = this.dialog.open(AssignClientRouteModalComponent, {
+      width: '460px',
+      maxWidth: '95vw',
+      data: {
+        customerId,
+        routes: this.creationSettings.routes,
+        selectedRouteId: this.form.get('route_id')?.value || null,
+        saveAsDefault: true,
+      },
+    });
+    ref.afterClosed().subscribe((result) => {
+      if (!result?.route_id) return;
+      if (!this.creationSettings.routes.some((row) => row.id === result.route_id)) {
+        this.creationSettings = {
+          ...this.creationSettings,
+          routes: [
+            ...this.creationSettings.routes,
+            { id: result.route_id, name: result.route_name, code: result.route_code },
+          ],
+        };
+      }
+      this.form.patchValue({ route_id: result.route_id });
+      this.cdr.detectChanges();
+    });
   }
 
   fieldRequired(key: SalesOrderCreationFieldKey): boolean {
@@ -520,7 +590,8 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     if (!customer) return;
     this.form.patchValue({
       customer_id: customer.id,
-      customer_search: customer.display_name
+      customer_search: customer.display_name,
+      ...(customer.default_route_id ? { route_id: customer.default_route_id } : {}),
     }, { emitEvent: false });
     this.loadCustomerPriceLists(customer.id, true);
   }
@@ -622,6 +693,20 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
     this.setFieldRequired('sale_scope', !!fields.sale_scope.visible && !!fields.sale_scope.required);
     this.setFieldRequired('currency', !!fields.currency.visible && !!fields.currency.required);
     this.setFieldRequired('notes', !!fields.notes.visible && !!fields.notes.required);
+    this.syncLogisticsValidators();
+  }
+
+  private syncLogisticsValidators(): void {
+    if (this.asQuotation) return;
+    const shipping = !!this.form.get('for_shipping')?.value;
+    this.setFieldRequired(
+      'expected_delivery_date',
+      estimatedDateRequired(this.creationSettings.fields, shipping),
+    );
+    this.setFieldRequired('route_id', orderRouteRequired(this.creationSettings.fields, this.creationSettings.routes_enabled, shipping));
+    if (!shipping && this.creationSettings.fields.route_id?.only_when_shipping !== false) {
+      this.form.patchValue({ route_id: '' }, { emitEvent: false });
+    }
   }
 
   private deliveryDefault(value: string | boolean | null): string {
@@ -1279,6 +1364,9 @@ export class CreateSalesOrderModalComponent implements OnInit, OnDestroy {
       sale_scope: fv.sale_scope || 'inventory',
       requires_selection_assembly: fv.sale_scope === 'services' ? false : !!fv.requires_selection_assembly,
       for_shipping: !!fv.for_shipping,
+      requires_shipping: !!fv.for_shipping,
+      estimated_delivery_date: fv.for_shipping ? fv.expected_delivery_date || null : null,
+      route_id: this.showRouteField() ? fv.route_id || null : null,
       notes: (fv.notes || '').trim() || undefined,
       currency: (fv.currency === 'USD' ? 'USD' : 'MXN') as 'MXN' | 'USD',
       line_items: lineItems,

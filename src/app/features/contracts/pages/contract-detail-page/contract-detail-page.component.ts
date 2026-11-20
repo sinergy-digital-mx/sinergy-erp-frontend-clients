@@ -23,6 +23,8 @@ import { InterceptorService } from '../../../../core/services/interceptor.servic
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
 import { ContractLotSectionComponent } from '../../components/contract-lot-section/contract-lot-section.component';
+import { ContractSaleBadgeComponent } from '../../components/contract-sale-badge/contract-sale-badge.component';
+import { isCashContract } from '../../utils/contract-sale-type';
 import { buildPendingBalanceTooltip } from '../../utils/pending-balance-tooltip.util';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { ContractFiscalOption, emptyFiscalSelectConfig, toFiscalSelectData } from '../../utils/contract-fiscal-select.util';
@@ -49,6 +51,7 @@ import {
     ContractHoaPaymentsComponent,
     ContractDownpaymentPaymentsComponent,
     ContractLotSectionComponent,
+    ContractSaleBadgeComponent,
     LocalDatePipe
   ],
   providers: [DatePipe],
@@ -59,6 +62,7 @@ export class ContractDetailPageComponent implements OnInit {
   readonly ArrowLeft = ArrowLeft;
   readonly InfoIcon = Info;
   readonly getDownPaymentTarget = getDownPaymentTarget;
+  readonly isCashContract = isCashContract;
   @ViewChild('vendorAutocompleteTrigger', { read: MatAutocompleteTrigger }) vendorAutocompleteTrigger: MatAutocompleteTrigger;
 
   contract = signal<Contract | null>(null);
@@ -376,19 +380,24 @@ export class ContractDetailPageComponent implements OnInit {
       return;
     }
     this.saving.set(true);
+    const cash = isCashContract(current);
     const payload: UpdateContractDto = {
       contract_date: this.form.get('contract_date')?.value,
       total_price: this.form.get('total_price')?.value,
-      down_payment: this.form.get('down_payment')?.value,
-      payment_months: this.form.get('payment_months')?.value,
-      first_payment_date: this.form.get('first_payment_date')?.value,
-      interest_rate: this.toOptionalNumber(this.form.get('interest_rate')?.value),
-      payment_due_day: this.toOptionalNumber(this.form.get('payment_due_day')?.value),
       currency: this.form.get('currency')?.value,
       status: this.normalizeStatus(this.form.get('status')?.value),
       fiscal_configuration_id: this.form.get('fiscal_configuration_id')?.value || null,
       notes: this.form.get('notes')?.value,
-      seller_id: this.form.get('seller_id')?.value || null
+      seller_id: this.form.get('seller_id')?.value || null,
+      ...(cash
+        ? {}
+        : {
+            down_payment: this.form.get('down_payment')?.value,
+            payment_months: this.form.get('payment_months')?.value,
+            first_payment_date: this.form.get('first_payment_date')?.value,
+            interest_rate: this.toOptionalNumber(this.form.get('interest_rate')?.value),
+            payment_due_day: this.toOptionalNumber(this.form.get('payment_due_day')?.value),
+          }),
     };
     this.contractService.updateContract(current.id, payload).subscribe({
       next: () => {

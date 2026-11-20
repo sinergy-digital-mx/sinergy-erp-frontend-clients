@@ -110,6 +110,13 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
 
   // Signals para estado reactivo
   loading = signal(false);
+  step = signal(0);
+  readonly steps = [
+    { id: 'parties', label: 'Partes' },
+    { id: 'price', label: 'Precio' },
+    { id: 'terms', label: 'Pago' },
+    { id: 'close', label: 'Cierre' },
+  ];
   customers = signal<any[]>([]);
   filteredCustomers = signal<any[]>([]);
   properties = signal<any[]>([]);
@@ -188,8 +195,10 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
       contract_date: [this.getTodayDate(), Validators.required],
       total_price: [0, [contractMoneyValidator]],
       down_payment: [0, [contractMoneyValidator]],
-      payment_months: [1, [Validators.required, Validators.min(1)]],
-      first_payment_date: ['', Validators.required],
+      sale_type: [null, Validators.required],
+      cash_paid_in_full: [false],
+      payment_months: [null],
+      first_payment_date: [''],
       interest_rate: [DEFAULT_LATE_INTEREST_RATE_PERCENT, [Validators.required, Validators.min(0), Validators.max(100)]],
       payment_due_day: [DEFAULT_LATE_INTEREST_GRACE_DAYS, [Validators.required, Validators.min(0), Validators.max(365)]],
       currency: ['MXN', Validators.required],
@@ -215,6 +224,7 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     this.initializeForm();
     this.setupCalculations();
     this.setupDownPaymentFinancingRules();
+    this.setupSaleTypeRules();
     this.loadInitialData();
     this.loadFiscalConfigurations();
   }
@@ -225,7 +235,9 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     const downPayment = this.form.get('down_payment')!;
 
     const apply = (isFinanced: boolean) => {
-      if (isFinanced) {
+      if (this.form.get('sale_type')?.value === 'cash') {
+        downPayment.clearValidators();
+      } else if (isFinanced) {
         downPayment.setValidators([contractMoneyOptionalValidator]);
       } else {
         downPayment.setValidators([contractMoneyValidator]);
@@ -235,6 +247,155 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
 
     apply(!!financed.value);
     financed.valueChanges.subscribe((v) => apply(!!v));
+  }
+
+  private setupSaleTypeRules(): void {
+    const saleType = this.form.get('sale_type')!;
+    const apply = (value: string | null) => {
+      const months = this.form.get('payment_months')!;
+      const first = this.form.get('first_payment_date')!;
+      const down = this.form.get('down_payment')!;
+      const interest = this.form.get('interest_rate')!;
+      const due = this.form.get('payment_due_day')!;
+      if (value === 'cash') {
+        months.clearValidators();
+        first.clearValidators();
+        down.clearValidators();
+        interest.clearValidators();
+        due.clearValidators();
+        this.form.patchValue({ down_payment_financed: false }, { emitEvent: false });
+      } else if (value === 'financed') {
+        months.setValidators([Validators.required, Validators.min(1)]);
+        first.setValidators([Validators.required]);
+        interest.setValidators([Validators.required, Validators.min(0), Validators.max(100)]);
+        due.setValidators([Validators.required, Validators.min(0), Validators.max(365)]);
+        down.setValidators(
+          this.form.get('down_payment_financed')?.value
+            ? [contractMoneyOptionalValidator]
+            : [contractMoneyValidator],
+        );
+      }
+      for (const control of [months, first, down, interest, due]) {
+        control.updateValueAndValidity({ emitEvent: false });
+      }
+      this.calculateRemainingBalance();
+      this.calculateMonthlyPayment();
+    };
+    apply(saleType.value);
+    saleType.valueChanges.subscribe((value) => apply(value));
+  }
+
+  setSaleType(type: 'cash' | 'financed'): void {
+    this.form.patchValue({ sale_type: type });
+    if (type === 'financed' && !this.form.get('payment_months')?.value) {
+      this.form.patchValue({ payment_months: null });
+    }
+  }
+
+  goBack(): void {
+    this.step.update((current) => Math.max(0, current - 1));
+    this.scrollBody();
+  }
+
+  goNext(): void {
+    if (!this.validateStep(this.step())) {
+      return;
+    }
+    this.step.update((current) => Math.min(this.steps.length - 1, current + 1));
+    this.scrollBody();
+  }
+
+  goTo(index: number): void {
+    if (index < 0 || index >= this.steps.length || index === this.step()) {
+      return;
+    }
+    if (index < this.step()) {
+      this.step.set(index);
+      this.scrollBody();
+      return;
+    }
+    for (let i = this.step(); i < index; i++) {
+      if (!this.validateStep(i)) {
+        this.step.set(i);
+        this.scrollBody();
+        return;
+      }
+    }
+    this.step.set(index);
+    this.scrollBody();
+  }
+
+  private scrollBody(): void {
+    this.modalBody?.nativeElement?.scrollTo?.({ top: 0 });
+  }
+
+  private validateStep(index: number): boolean {
+    const fieldsByStep = [
+      ['customer_id', 'property_id', 'fiscal_configuration_id'],
+      ['contract_date', 'total_price', 'currency'],
+      ['sale_type'],
+      [],
+    ];
+    const fields = [...(fieldsByStep[index] ?? [])];
+    if (index === 2 && this.form.get('sale_type')?.value === 'financed') {
+      fields.push('payment_months', 'first_payment_date', 'down_payment', 'interest_rate', 'payment_due_day');
+    }
+    let valid = true;
+    for (const name of fields) {
+      const control = this.form.get(name);
+      control?.markAsTouched();
+      control?.updateValueAndValidity();
+      if (control?.invalid) {
+        valid = false;
+      }
+    }
+    if (index === 1) {
+      const total = parseContractAmount(this.form.get('total_price')?.value);
+      if (!(total > 0)) {
+        this.form.get('total_price')?.setErrors({ min: true });
+        this.form.get('total_price')?.markAsTouched();
+        valid = false;
+      }
+    }
+    if (index === 2 && this.form.get('sale_type')?.value === 'financed') {
+      const total = parseContractAmount(this.form.get('total_price')?.value);
+      const down = parseContractAmount(this.form.get('down_payment')?.value);
+      if (down > total) {
+        valid = false;
+      }
+    }
+    if (!valid) {
+      this.interceptorService.openSnackbar({
+        type: 'warning',
+        title: 'Falta un dato',
+        message: index === 2 && !this.form.get('sale_type')?.value
+          ? 'Elige contado o financiado'
+          : 'Completa los campos de este paso',
+      });
+    }
+    return valid;
+  }
+
+  get isCashSale(): boolean {
+    return this.form.get('sale_type')?.value === 'cash';
+  }
+
+  get isFinancedSale(): boolean {
+    return this.form.get('sale_type')?.value === 'financed';
+  }
+
+  get cashAlreadyPaid(): boolean {
+    return !!this.form.get('cash_paid_in_full')?.value;
+  }
+
+  reviewAmount(value: unknown): string {
+    return this.formatNumber(parseContractAmount(value));
+  }
+
+  reviewText(value: unknown, display?: (item: any) => string): string {
+    if (value == null || value === '') return '—';
+    if (typeof value === 'string') return value;
+    return display ? display(value) || '—' : '—';
   }
 
   ngAfterViewInit(): void {
@@ -301,17 +462,19 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     combineLatest([
       this.form.get('total_price')!.valueChanges.pipe(startWith(this.form.get('total_price')!.value)),
       this.form.get('down_payment')!.valueChanges.pipe(startWith(this.form.get('down_payment')!.value)),
-      this.form.get('down_payment_financed')!.valueChanges.pipe(startWith(this.form.get('down_payment_financed')!.value))
+      this.form.get('down_payment_financed')!.valueChanges.pipe(startWith(this.form.get('down_payment_financed')!.value)),
+      this.form.get('sale_type')!.valueChanges.pipe(startWith(this.form.get('sale_type')!.value)),
+      this.form.get('cash_paid_in_full')!.valueChanges.pipe(startWith(this.form.get('cash_paid_in_full')!.value)),
     ]).subscribe(() => {
       this.calculateRemainingBalance();
     });
 
-    // Recalcular pago mensual cuando cambia saldo pendiente o meses
     combineLatest([
       this.form.get('remaining_balance')!.valueChanges.pipe(startWith(this.form.get('remaining_balance')!.value)),
       this.form.get('payment_months')!.valueChanges.pipe(startWith(this.form.get('payment_months')!.value)),
       this.form.get('down_payment')!.valueChanges.pipe(startWith(this.form.get('down_payment')!.value)),
       this.form.get('down_payment_financed')!.valueChanges.pipe(startWith(this.form.get('down_payment_financed')!.value)),
+      this.form.get('sale_type')!.valueChanges.pipe(startWith(this.form.get('sale_type')!.value)),
     ]).subscribe(() => {
       this.calculateMonthlyPayment();
     });
@@ -631,8 +794,13 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
     const totalPrice = parseContractAmount(this.form.get('total_price')!.value);
     const downPayment = parseContractAmount(this.form.get('down_payment')!.value);
     const isFinanced = !!this.form.get('down_payment_financed')!.value;
-    // Financiado: el abono inicial es 0, así que el saldo al crear es el precio total.
-    const remainingBalance = isFinanced ? totalPrice : totalPrice - downPayment;
+    const isCash = this.form.get('sale_type')!.value === 'cash';
+    const paidInFull = !!this.form.get('cash_paid_in_full')!.value;
+    const remainingBalance = isCash
+      ? (paidInFull ? 0 : totalPrice)
+      : isFinanced
+        ? totalPrice
+        : totalPrice - downPayment;
 
     this.form.get('remaining_balance')!.setValue(remainingBalance, { emitEvent: true });
     this.formattedRemainingBalance.set(this.formatNumber(remainingBalance));
@@ -643,9 +811,14 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   }
 
   calculateMonthlyPayment(): void {
+    if (this.form.get('sale_type')!.value === 'cash') {
+      this.form.get('monthly_payment')!.setValue(0, { emitEvent: false });
+      this.formattedMonthlyPayment.set(this.formatNumber(0));
+      return;
+    }
     const totalPrice = parseContractAmount(this.form.get('total_price')!.value);
     const remainingBalance = parseContractAmount(this.form.get('remaining_balance')!.value);
-    const paymentMonths = Math.max(1, Math.round(parseContractAmount(this.form.get('payment_months')!.value) || 1));
+    const paymentMonths = Math.round(parseContractAmount(this.form.get('payment_months')!.value));
     const isFinanced = !!this.form.get('down_payment_financed')!.value;
     const target = parseContractAmount(this.form.get('down_payment')!.value);
     const balanceAfterDownPayment = isFinanced
@@ -682,48 +855,62 @@ export class ContractCreateModalComponent implements OnInit, AfterViewInit {
   }
 
   submit(): void {
-    // Verificar form.invalid y marcar todos los campos como touched
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      this.interceptorService.openSnackbar({
-        type: 'warning',
-        title: 'Advertencia',
-        message: 'Completa todos los campos obligatorios'
-      });
+    if (this.step() < this.steps.length - 1) {
+      this.goNext();
       return;
     }
+    for (let i = 0; i < this.steps.length; i++) {
+      if (!this.validateStep(i)) {
+        this.step.set(i);
+        this.scrollBody();
+        return;
+      }
+    }
 
-    // Validar que down_payment <= total_price
     const totalPrice = parseContractAmount(this.form.get('total_price')!.value);
     const downPayment = parseContractAmount(this.form.get('down_payment')!.value);
+    const isCash = this.isCashSale;
+    const downPaymentFinanced = !isCash && !!this.form.get('down_payment_financed')!.value;
 
-    if (downPayment > totalPrice) {
+    if (!isCash && downPayment > totalPrice) {
       this.interceptorService.openSnackbar({
         type: 'error',
         title: 'Error',
         message: 'El enganche no puede ser mayor al precio total'
       });
+      this.step.set(2);
       return;
     }
 
-    const downPaymentFinanced = !!this.form.get('down_payment_financed')!.value;
-
+    const contractDate = this.form.get('contract_date')!.value;
     const payload: CreateContractDto = {
       customer_id: this.form.get('customer_id')!.value,
       property_id: this.form.get('property_id')!.value,
       seller_id: this.form.get('seller_id')!.value || undefined,
-      contract_date: this.form.get('contract_date')!.value,
-      total_price: parseContractAmount(this.form.get('total_price')!.value),
-      down_payment: downPaymentFinanced ? 0 : parseContractAmount(this.form.get('down_payment')!.value),
-      payment_months: Math.max(1, Math.round(parseContractAmount(this.form.get('payment_months')!.value) || 1)),
-      first_payment_date: this.form.get('first_payment_date')!.value,
-      interest_rate: Number(this.form.get('interest_rate')!.value ?? DEFAULT_LATE_INTEREST_RATE_PERCENT),
-      payment_due_day: Number(this.form.get('payment_due_day')!.value ?? DEFAULT_LATE_INTEREST_GRACE_DAYS),
+      contract_date: contractDate,
+      total_price: totalPrice,
+      sale_type: isCash ? 'cash' : 'financed',
+      down_payment: isCash || downPaymentFinanced ? 0 : downPayment,
+      payment_months: isCash
+        ? 0
+        : Math.max(1, Math.round(parseContractAmount(this.form.get('payment_months')!.value) || 1)),
+      first_payment_date: isCash ? contractDate : this.form.get('first_payment_date')!.value,
       currency: this.form.get('currency')!.value,
-      status: this.form.get('status')!.value,
+      status: isCash
+        ? (this.cashAlreadyPaid ? 'completado' : 'activo')
+        : this.form.get('status')!.value,
       fiscal_configuration_id: this.form.get('fiscal_configuration_id')!.value,
       notes: this.form.get('notes')!.value || undefined
     };
+
+    if (isCash) {
+      payload.cash_paid_in_full = this.cashAlreadyPaid;
+      payload.interest_rate = null;
+      payload.payment_due_day = null;
+    } else {
+      payload.interest_rate = Number(this.form.get('interest_rate')!.value ?? DEFAULT_LATE_INTEREST_RATE_PERCENT);
+      payload.payment_due_day = Number(this.form.get('payment_due_day')!.value ?? DEFAULT_LATE_INTEREST_GRACE_DAYS);
+    }
 
     if (downPaymentFinanced) {
       payload.down_payment_financed = true;

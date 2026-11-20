@@ -86,8 +86,28 @@ export class ContractDownpaymentPaymentsComponent implements OnInit {
     this.loadStats();
   }
 
+  get isCashSale(): boolean {
+    return this.contract?.sale_type === 'cash';
+  }
+
+  /** Enganche en cuotas de un financiado. Un contado no entra aquí. */
   get isFinanced(): boolean {
-    return !!this.contract?.down_payment_financed;
+    return !this.isCashSale && !!this.contract?.down_payment_financed;
+  }
+
+  get canRecordDownPayments(): boolean {
+    return this.isCashSale || this.isFinanced;
+  }
+
+  get cashPrice(): number {
+    return Number(this.contract?.total_price) || 0;
+  }
+
+  get cashPending(): number {
+    if (this.contract?.status === 'completado') {
+      return 0;
+    }
+    return Math.max(0, Math.round((this.cashPrice - this.appliedAmount) * 100) / 100);
   }
 
   get appliedAmount(): number {

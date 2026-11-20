@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, TemplateRef, ViewChild, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { ChartModule } from 'primeng/chart';
 import {
   LucideAngularModule,
@@ -30,9 +31,11 @@ import {
   DashboardQueryParams,
   LeadOriginRow,
   RevenueSeriesPeriod,
+  SaleMixRow,
   SellerRow,
   YearlyBreakdownRow,
 } from '../../models/divino-dashboard.model';
+import { DivinoSaleMixDialogComponent } from '../../components/sale-mix-dialog/sale-mix-dialog.component';
 
 interface KpiCard {
   key: string;
@@ -106,6 +109,7 @@ export class DivinoDashboardComponent implements OnInit {
   loading = signal(false);
   error = signal<string | null>(null);
   kpis = signal<DashboardKpis | null>(null);
+  saleMix = signal<SaleMixRow[]>([]);
   yearlyBreakdown = signal<YearlyBreakdownRow[]>([]);
   leadOrigins = signal<LeadOriginRow[]>([]);
 
@@ -158,6 +162,7 @@ export class DivinoDashboardComponent implements OnInit {
   constructor(
     private dashboardService: DivinoDashboardService,
     private groupFetchService: CustomerGroupFetchService,
+    private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -211,6 +216,7 @@ export class DivinoDashboardComponent implements OnInit {
     }).subscribe({
       next: ({ summary, sellers, leadOrigins, revenue }) => {
         this.kpis.set(summary.kpis);
+        this.saleMix.set(summary.sale_mix ?? []);
         const breakdown = [...(summary.yearly_breakdown ?? [])].sort((a, b) => a.year - b.year);
         this.yearlyBreakdown.set(breakdown);
         this.updateSellersTable(sellers.rows);
@@ -227,6 +233,7 @@ export class DivinoDashboardComponent implements OnInit {
       error: (err) => {
         this.loading.set(false);
         this.kpis.set(null);
+        this.saleMix.set([]);
         this.yearlyBreakdown.set([]);
         this.leadOrigins.set([]);
         this.updateSellersTable([]);
@@ -492,6 +499,19 @@ export class DivinoDashboardComponent implements OnInit {
           grid: { drawOnChartArea: false },
           ticks: { color: '#10b981', stepSize: 1 },
         },
+      },
+    });
+  }
+
+  openSaleMix(card: KpiCard): void {
+    if (card.key !== 'cash_fin' || this.loading()) return;
+    this.dialog.open(DivinoSaleMixDialogComponent, {
+      width: '980px',
+      maxWidth: '96vw',
+      autoFocus: false,
+      data: {
+        periodLabel: this.periodLabel(),
+        rows: this.saleMix(),
       },
     });
   }

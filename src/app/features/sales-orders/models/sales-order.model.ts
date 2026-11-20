@@ -269,6 +269,10 @@ export interface SalesOrder {
   requires_selection_assembly?: boolean;
   /** Marcada para salir en un envío. No significa que ya tenga ruta. */
   for_shipping?: boolean | number | string | null;
+  requires_shipping?: boolean | null;
+  estimated_delivery_date?: string | null;
+  route_id?: string | null;
+  logistics_route?: { id: string; name: string; code: string } | null;
   control_desk?: SalesOrderControlDesk | null;
   corroborated_at?: string | null;
   corroborated_by?: string | null;
@@ -476,6 +480,9 @@ export interface SalesOrderFormData {
   currency?: 'MXN' | 'USD';
   requires_selection_assembly?: boolean;
   for_shipping?: boolean;
+  requires_shipping?: boolean;
+  estimated_delivery_date?: string | null;
+  route_id?: string | null;
   global_discount_id?: string;
   line_items: Array<{
     product_id: string;

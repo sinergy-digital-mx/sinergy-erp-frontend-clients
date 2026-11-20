@@ -33,9 +33,27 @@ export interface YearlyBreakdownRow extends DashboardKpis {
   year: number;
 }
 
+export interface SaleMixRow {
+  contract_id: string;
+  contract_number: string;
+  contract_date: string;
+  customer_name: string;
+  property_code: string;
+  total_price: number;
+  currency: string;
+  sale_type: 'cash' | 'financed';
+  down_payment_financed: boolean;
+  sale_label: string;
+  sale_hint: string;
+  down_payment: number;
+  payment_months: number;
+  monthly_payment: number;
+}
+
 export interface DashboardSummaryResponse {
   filters: DashboardFilters;
   kpis: DashboardKpis;
+  sale_mix?: SaleMixRow[];
   yearly_breakdown?: YearlyBreakdownRow[];
 }
 

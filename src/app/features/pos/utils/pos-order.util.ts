@@ -10,6 +10,8 @@ export interface VentasPosOrderContext {
   walkInName?: string | null;
   walkInRfc?: string | null;
   forShipping?: boolean;
+  estimatedDeliveryDate?: string | null;
+  routeId?: string | null;
   /** Observaciones del vendedor. Si vienen, reemplazan la nota automática de terminal. */
   notes?: string | null;
 }
@@ -70,6 +72,9 @@ export function buildVentasPosOrderPayload(
     sales_order_type: 'POS',
     seller_user_id: ctx.sellerUserId,
     for_shipping: !!ctx.forShipping,
+    requires_shipping: !!ctx.forShipping,
+    estimated_delivery_date: ctx.forShipping ? ctx.estimatedDeliveryDate || null : null,
+    route_id: ctx.routeId || null,
     notes: resolvePosSaleNotes(terminal, ctx.notes),
     line_items: cart.items.map(mapCartLineToOrderLine),
     ...(cart.global_discount_id ? { global_discount_id: cart.global_discount_id } : {}),

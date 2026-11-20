@@ -19,6 +19,8 @@ import { ContractPaymentsComponent } from '../contract-payments/contract-payment
 import { ContractHoaPaymentsComponent } from '../contract-hoa-payments/contract-hoa-payments.component';
 import { ContractDownpaymentPaymentsComponent } from '../contract-downpayment-payments/contract-downpayment-payments.component';
 import { ContractLotSectionComponent } from '../contract-lot-section/contract-lot-section.component';
+import { ContractSaleBadgeComponent } from '../contract-sale-badge/contract-sale-badge.component';
+import { isCashContract } from '../../utils/contract-sale-type';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { LocalDatePipe } from '../../../../core/pipes/local-date.pipe';
 import { UserService } from '../../../rbac-tenant-ui/services/user.service';
@@ -46,6 +48,7 @@ import { ContractFiscalOption, emptyFiscalSelectConfig, toFiscalSelectData } fro
     ContractHoaPaymentsComponent,
     ContractDownpaymentPaymentsComponent,
     ContractLotSectionComponent,
+    ContractSaleBadgeComponent,
     LocalDatePipe,
     GroupSelectComponent
   ],
@@ -56,6 +59,7 @@ import { ContractFiscalOption, emptyFiscalSelectConfig, toFiscalSelectData } fro
 export class ContractDetailModalComponent implements OnInit {
   readonly X = X;
   readonly getDownPaymentTarget = getDownPaymentTarget;
+  readonly isCashContract = isCashContract;
 
   @ViewChild('vendorAutocompleteTrigger', { read: MatAutocompleteTrigger }) vendorAutocompleteTrigger: MatAutocompleteTrigger;
   @ViewChild('leadAutocompleteTrigger', { read: MatAutocompleteTrigger }) leadAutocompleteTrigger: MatAutocompleteTrigger;
@@ -455,12 +459,10 @@ export class ContractDetailModalComponent implements OnInit {
 
     this.saving.set(true);
 
+    const cash = isCashContract(this.data.contract);
     const payload: UpdateContractDto = {
       contract_date: this.form.get('contract_date')?.value,
       total_price: this.form.get('total_price')?.value,
-      down_payment: this.form.get('down_payment')?.value,
-      payment_months: this.form.get('payment_months')?.value,
-      first_payment_date: this.form.get('first_payment_date')?.value,
       currency: this.form.get('currency')?.value,
       status: this.normalizeStatus(this.form.get('status')?.value),
       fiscal_configuration_id: this.form.get('fiscal_configuration_id')?.value || null,
@@ -469,6 +471,13 @@ export class ContractDetailModalComponent implements OnInit {
       lead_id: this.form.get('lead_id')?.value || null,
       lead_group_id: this.form.get('lead_group_id')?.value || null,
       list_price: this.form.get('list_price')?.value ?? null,
+      ...(cash
+        ? {}
+        : {
+            down_payment: this.form.get('down_payment')?.value,
+            payment_months: this.form.get('payment_months')?.value,
+            first_payment_date: this.form.get('first_payment_date')?.value,
+          }),
     };
 
     this.contractService.updateContract(this.data.contract.id, payload).subscribe({
