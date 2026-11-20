@@ -5,7 +5,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { LucideAngularModule, ChevronLeft, ChevronRight } from 'lucide-angular';
 import { ContractService } from '../../services/contract.service';
-import { ContractSectionNavComponent } from '../../components/contract-section-nav/contract-section-nav.component';
 import { CustomerGroupDropdownComponent } from '../../../customers/components/customer-group-dropdown/customer-group-dropdown.component';
 import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
 import { ContractStats, EMPTY_CONTRACT_STATS } from '../../models/contract.model';
@@ -28,7 +27,6 @@ type ListFilter = 'all' | 'open' | 'prior';
     CommonModule,
     FormsModule,
     LucideAngularModule,
-    ContractSectionNavComponent,
     CustomerGroupDropdownComponent,
     PolluxErrorStateComponent,
   ],
