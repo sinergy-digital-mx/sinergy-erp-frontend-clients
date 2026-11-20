@@ -279,4 +279,23 @@ describe('pago mixto — resto automático', () => {
     expect(form.mixedCardPayments).toHaveLength(2);
     expect(mixedSelectedCount(form)).toBe(3);
   });
+
+  it('a crédito en USD envía la moneda y el tipo de cambio del cobro', () => {
+    const form = { ...defaultCollectForm(3465, 17.9), paymentMethod: 'credit' as const };
+    const payload = buildCollectPayload(form, 3465, 15487, 'USD');
+    expect(payload).toMatchObject({
+      payment_method: 'credit',
+      order_currency: 'USD',
+      amount_credit_mxn: 3465,
+      usd_exchange_rate: 17.9,
+    });
+  });
+
+  it('a crédito en MXN no envía tipo de cambio', () => {
+    const form = { ...defaultCollectForm(3465, 17.9), paymentMethod: 'credit' as const };
+    const payload = buildCollectPayload(form, 3465, 15487, 'MXN');
+    expect(payload.order_currency).toBe('MXN');
+    expect(payload.usd_exchange_rate).toBeUndefined();
+  });
 });
+

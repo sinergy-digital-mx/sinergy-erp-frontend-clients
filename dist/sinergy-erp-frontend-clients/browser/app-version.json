@@ -1,56 +1,7 @@
 {
-  "version": "0.0.120",
-  "buildId": "0.0.120-1795142143416",
-  "builtAt": "2026-11-20T02:35:43.416Z",
-  "channel": "full",
-  "changes": [
-    {
-      "scope": "frontend",
-      "message": "Cambios en contratos"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en clientes"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en Divino"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en logística"
-    },
-    {
-      "scope": "frontend",
-      "message": "Cambios en ventas"
-    },
-    {
-      "scope": "backend",
-      "message": "Publicar el trabajo local que no estaba en main."
-    },
-    {
-      "scope": "backend",
-      "message": "Recibos de pago para cuotas HOA"
-    },
-    {
-      "scope": "backend",
-      "message": "Ticket POS en dólares cuando la orden es en USD"
-    },
-    {
-      "scope": "backend",
-      "message": "Compilar dist desde src (crédito en USD en POS)"
-    },
-    {
-      "scope": "backend",
-      "message": "POS: permitir orden/factura en USD en cobros a crédito"
-    },
-    {
-      "scope": "backend",
-      "message": "Reconstruir src/ desde el dist de producción (v0.0.111 + fix IGI)"
-    },
-    {
-      "scope": "backend",
-      "message": "Costo real: sumar IGI% a GTOS% e incluir IGI en total costo final"
-    }
-  ]
+  "version": "0.0.124",
+  "buildId": "0.0.124-1794956836271",
+  "builtAt": "2026-11-17T23:07:16.271Z",
+  "channel": "frontend",
+  "changes": []
 }

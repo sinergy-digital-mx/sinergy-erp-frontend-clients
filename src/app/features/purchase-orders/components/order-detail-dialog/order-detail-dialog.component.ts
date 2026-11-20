@@ -532,6 +532,10 @@ export class OrderDetailDialogComponent {
     return this.parseNumber(this.landedAmountInPaymentCurrency('operating'));
   }
 
+  displayedIgiAmount(): number {
+    return this.parseNumber(this.landedAmountInPaymentCurrency('igi'));
+  }
+
   displayedLandedTotalAmount(): number {
     return this.parseNumber(this.landedAmountInPaymentCurrency('total'));
   }
@@ -762,7 +766,7 @@ export class OrderDetailDialogComponent {
   }
 
   private landedAmountInPaymentCurrency(
-    kind: 'contracted' | 'invoice' | 'operating' | 'extras' | 'total',
+    kind: 'contracted' | 'invoice' | 'operating' | 'extras' | 'igi' | 'total',
   ): number | null {
     const currency = this.getPaymentCurrency();
     const preview = this.activeTabIndex() === 3 ? this.liveRealCostPreview() : null;
@@ -773,6 +777,7 @@ export class OrderDetailDialogComponent {
             invoice: preview.invoice_usd,
             operating: preview.operating_extras_usd,
             extras: preview.extras_usd,
+            igi: preview.igi_usd,
             total: preview.total_usd,
           }[kind]
         : {
@@ -780,6 +785,7 @@ export class OrderDetailDialogComponent {
             invoice: preview.invoice_mxn,
             operating: preview.operating_extras_mxn,
             extras: preview.extras_mxn,
+            igi: preview.igi_mxn,
             total: preview.total_mxn,
           }[kind];
       return live;
@@ -795,6 +801,7 @@ export class OrderDetailDialogComponent {
           invoice: order.landed_invoice_usd,
           operating: order.landed_operating_extras_usd,
           extras: order.landed_extras_usd,
+          igi: order.landed_igi_usd,
           total: order.landed_total_usd,
         }[kind],
       );
@@ -805,6 +812,7 @@ export class OrderDetailDialogComponent {
         invoice: order.landed_invoice_mxn,
         operating: order.landed_operating_extras_mxn,
         extras: order.landed_extras_mxn,
+        igi: order.landed_igi_mxn,
         total: order.landed_total_mxn,
       }[kind],
     );

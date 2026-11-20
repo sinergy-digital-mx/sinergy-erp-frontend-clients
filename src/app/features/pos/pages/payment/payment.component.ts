@@ -373,8 +373,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   );
 
   readonly appliedDelta = computed(() => collectAppliedDelta(this.collectForm(), this.orderTotal()));
-  readonly canChooseUsdOrder = computed(() =>
-    canDocumentOrderInUsd(this.collectForm(), this.orderTotal()),
+  /** A crédito siempre se puede elegir la moneda; en otros métodos, solo si el pago en USD es mayor. */
+  readonly canChooseUsdOrder = computed(
+    () =>
+      this.collectForm().paymentMethod === 'credit' ||
+      canDocumentOrderInUsd(this.collectForm(), this.orderTotal()),
   );
   readonly hasUsdPayment = computed(
     () => posDocumentCurrencySplit(this.collectForm(), this.orderTotal()).usdAppliedMxn > 0.009,
@@ -438,7 +441,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Saldo de la orden expresado en la moneda de la línea de crédito. */
   readonly creditOrderCharge = computed(() => {
     const sale = this.selectedSale();
-    const orderCurrency = sale?.currency === 'USD' ? 'USD' : 'MXN';
+    // Los importes de la orden siempre están en MXN; la moneda de la orden solo define el documento.
+    const orderCurrency = 'MXN' as const;
     const creditCurrency = this.creditCurrency();
     const orderRate = Number(sale?.exchange_rate);
     const dailyRate = Number(this.collectForm().usdExchangeRate);
@@ -1113,6 +1117,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       return this.applyPayerDefaults(next);
     });
+    // A crédito, la moneda de la orden arranca en la moneda de la línea de crédito del cliente.
+    this.orderCurrencyChoice.set(method === 'credit' ? this.creditCurrency() : 'MXN');
     this.collectError.set(null);
   }
 
@@ -1477,6 +1483,23 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
 
+  /** Monto del botón de cobro: en USD cuando la orden queda en dólares. */
+  confirmAmountLabel(sale: Parameters<PaymentComponent['saleTotal']>[0]): string {
+    if (this.documentCurrency() !== 'USD') {
+      return this.saleTotal(sale);
+    }
+    const form = this.collectForm();
+    const rate =
+      form.paymentMethod === 'credit'
+        ? this.creditOrderCharge().rate ?? Number(form.usdExchangeRate)
+        : Number(form.usdExchangeRate);
+    if (!(rate > 0)) {
+      return this.saleTotal(sale);
+    }
+    const usd = Math.round((this.orderTotal() / rate) * 100) / 100;
+    return `USD ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usd)}`;
+  }
+
   creditConversionNote(): string {
     const charge = this.creditOrderCharge();
     if (charge.amount == null || charge.orderCurrency === this.creditCurrency() || !charge.rate) {
@@ -1545,6 +1568,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           this.generateInvoice.set(ready && customer?.auto_generate_invoice === true);
           if (!isCustomerCreditEnabled(customer) && this.collectForm().paymentMethod === 'credit') {
             this.setPaymentMethod('cash');
+          } else if (this.collectForm().paymentMethod === 'credit') {
+            this.orderCurrencyChoice.set(this.creditCurrency());
           }
         },
         error: () => {

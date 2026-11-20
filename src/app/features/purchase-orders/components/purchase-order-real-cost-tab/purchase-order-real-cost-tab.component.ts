@@ -114,6 +114,24 @@ export class PurchaseOrderRealCostTabComponent implements OnChanges {
     return this.preview().increment_percentage;
   }
 
+  /** IGI% compartido por todos los renglones, o null si varía entre productos. */
+  uniformIgi(): number | null {
+    const values = this.lineItems().map((item) => Number(this.lineIgi(item) ?? 0));
+    if (!values.length) {
+      return null;
+    }
+    return values.every((value) => value === values[0]) ? values[0] : null;
+  }
+
+  /** Porcentaje total aplicado al precio: IGI + gastos. */
+  headerTotalPercentage(): number {
+    return this.incrementPercentage() + (this.uniformIgi() ?? 0);
+  }
+
+  lineTotalPercentage(item: LineItem): number {
+    return this.incrementPercentage() + Math.max(Number(this.lineIgi(item) ?? 0), 0);
+  }
+
   extrasMxn(): number | null {
     return this.preview().extras_mxn;
   }

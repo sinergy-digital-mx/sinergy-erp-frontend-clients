@@ -327,6 +327,14 @@
                 </span>
               </div>
             }
+            @if (displayedIgiAmount() > 0) {
+              <div class="totals-row">
+                <span class="totals-label">IGI</span>
+                <span class="totals-value">
+                  <ng-container *ngTemplateOutlet="moneyCell; context: { $implicit: displayedIgiAmount(), withCurrency: true }" />
+                </span>
+              </div>
+            }
             <div class="totals-row totals-row-total totals-row-final">
               <span class="totals-label-total">Total costo final</span>
               <span class="totals-value-total">

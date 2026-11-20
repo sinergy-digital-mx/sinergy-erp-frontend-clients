@@ -619,6 +619,9 @@ function buildCollectPayloadBody(
       ...base,
       payment_method: 'credit',
       amount_credit_mxn: roundMoney(orderTotal),
+      ...(orderCurrency === 'USD' && Number(form.usdExchangeRate) > 0
+        ? { usd_exchange_rate: Number(form.usdExchangeRate) }
+        : {}),
     };
   }
 

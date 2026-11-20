@@ -54,4 +54,22 @@ describe('previewPurchaseOrderRealCost', () => {
     expect(result.operating_extras_usd).toBe(1373.58);
     expect(result.total_mxn).toBe(450497.52);
   });
+
+  it('suma IGI% y GTOS% sobre el precio e incluye el IGI en el total (ODC-000048)', () => {
+    const result = previewPurchaseOrderRealCost({
+      payment_currency: 'USD',
+      customs_exchange_rate: 18.667,
+      extras: [
+        { amount: 84001.5, currency: 'MXN', include_in_invoice: true },
+        { amount: 54779.54, currency: 'MXN' },
+      ],
+      lines: [{ id: 'triplay', quantity: 1130, vendor_unit_cost: 17.15, igi_percentage: 5 }],
+    });
+
+    expect(result.increment_percentage).toBeCloseTo(38.36, 2);
+    // 17.15 × (1 + 0.05 + 0.3836); antes se multiplicaba y daba 24.9157
+    expect(result.lines[0].real_unit_cost_usd).toBeCloseTo(24.5868, 3);
+    expect(result.igi_usd).toBe(968.98);
+    expect(result.total_usd).toBeCloseTo(26814.07 + 968.98, 1);
+  });
 });

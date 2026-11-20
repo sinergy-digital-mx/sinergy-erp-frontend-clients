@@ -332,6 +332,8 @@ export interface PurchaseOrder {
   landed_invoice_usd?: number | string | null;
   landed_operating_extras_mxn?: number | string | null;
   landed_operating_extras_usd?: number | string | null;
+  landed_igi_mxn?: number | string | null;
+  landed_igi_usd?: number | string | null;
   extra_costs_count?: number;
   extra_costs?: PurchaseOrderExtraCost[];
   line_items: LineItem[];
