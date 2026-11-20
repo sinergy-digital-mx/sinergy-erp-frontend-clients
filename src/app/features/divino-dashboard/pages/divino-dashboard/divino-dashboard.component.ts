@@ -506,9 +506,11 @@ export class DivinoDashboardComponent implements OnInit {
   openSaleMix(card: KpiCard): void {
     if (card.key !== 'cash_fin' || this.loading()) return;
     this.dialog.open(DivinoSaleMixDialogComponent, {
-      width: '980px',
+      width: '1040px',
       maxWidth: '96vw',
+      maxHeight: '88vh',
       autoFocus: false,
+      panelClass: 'sale-mix-dialog-panel',
       data: {
         periodLabel: this.periodLabel(),
         rows: this.saleMix(),

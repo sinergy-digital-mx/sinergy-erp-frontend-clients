@@ -1,92 +1,97 @@
-<header class="mix-dialog__head">
-  <div>
-    <p class="mix-dialog__eyebrow">Contado vs financiado</p>
-    <h2>Contratos del periodo</h2>
-    <p class="mix-dialog__period">{{ data.periodLabel }}</p>
+<div class="mix">
+  <header class="mix__head">
+    <div>
+      <p class="mix__eyebrow">Contado vs financiado</p>
+      <h2>Contratos del periodo</h2>
+      <p class="mix__period">{{ data.periodLabel }}</p>
+    </div>
+    <app-close-button title="Cerrar" (clicked)="close()"></app-close-button>
+  </header>
+
+  <div class="mix__body">
+    <section class="mix__stats">
+      <button type="button" class="mix-stat mix-stat--cash" [class.is-on]="filter() === 'cash'" (click)="setFilter(filter() === 'cash' ? 'all' : 'cash')">
+        <span class="mix-stat__count">{{ cashRows().length }}</span>
+        <span class="mix-stat__label">Contado</span>
+        <span class="mix-stat__money">
+          @for (total of cashTotals(); track total.currency) {
+            <span>{{ formatMoney(total.amount, total.currency) }}</span>
+          }
+          @if (cashTotals().length === 0) {
+            <span>$0.00</span>
+          }
+        </span>
+      </button>
+      <button type="button" class="mix-stat mix-stat--financed" [class.is-on]="filter() === 'financed'" (click)="setFilter(filter() === 'financed' ? 'all' : 'financed')">
+        <span class="mix-stat__count">{{ financedRows().length }}</span>
+        <span class="mix-stat__label">Financiado</span>
+        <span class="mix-stat__split">{{ mixRows().length }} E + F · {{ financingOnlyRows().length }} F</span>
+        <span class="mix-stat__money">
+          @for (total of financedTotals(); track total.currency) {
+            <span>{{ formatMoney(total.amount, total.currency) }}</span>
+          }
+          @if (financedTotals().length === 0) {
+            <span>$0.00</span>
+          }
+        </span>
+      </button>
+    </section>
+
+    <div class="mix__tools">
+      <input
+        type="search"
+        placeholder="Buscar contrato, cliente o lote"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)" />
+      <span class="mix__count">{{ visibleRows().length }} de {{ data.rows.length }}</span>
+      @if (filter() !== 'all' || search()) {
+        <button type="button" class="mix__clear" (click)="filter.set('all'); search.set('')">Ver todos</button>
+      }
+    </div>
+
+    <div class="mix__table">
+      @if (visibleRows().length === 0) {
+        <p class="mix__empty">No hay contratos con este filtro en el periodo.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Contrato</th>
+              <th>Cliente</th>
+              <th>Lote</th>
+              <th>Inicio</th>
+              <th class="is-num">Precio</th>
+              <th>Tipo</th>
+              <th class="is-num">Mensualidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of visibleRows(); track row.contract_id) {
+              <tr (click)="openContract(row)">
+                <td class="mix__number">{{ row.contract_number }}</td>
+                <td class="mix__customer">{{ row.customer_name }}</td>
+                <td>{{ row.property_code }}</td>
+                <td class="mix__date">{{ formatDate(row.contract_date) }}</td>
+                <td class="is-num">{{ formatMoney(row.total_price, row.currency) }}</td>
+                <td>
+                  <app-contract-sale-badge
+                    [saleType]="row.sale_type"
+                    [downPaymentFinanced]="row.down_payment_financed">
+                  </app-contract-sale-badge>
+                </td>
+                <td class="is-num">
+                  @if (row.sale_type === 'cash' || row.monthly_payment <= 0) {
+                    <span class="mix__muted">Sin mensualidad</span>
+                  } @else {
+                    {{ formatMoney(row.monthly_payment, row.currency) }}
+                    <span class="mix__months">· {{ row.payment_months }} meses</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
   </div>
-  <app-close-button title="Cerrar" (clicked)="close()"></app-close-button>
-</header>
-
-<section class="mix-dialog__stats">
-  <button type="button" class="mix-stat mix-stat--cash" [class.is-on]="filter() === 'cash'" (click)="setFilter(filter() === 'cash' ? 'all' : 'cash')">
-    <span class="mix-stat__count">{{ cashRows().length }}</span>
-    <span class="mix-stat__label">Contado</span>
-    <span class="mix-stat__money">
-      @for (total of cashTotals(); track total.currency) {
-        <span>{{ formatMoney(total.amount, total.currency) }}</span>
-      }
-      @if (cashTotals().length === 0) {
-        <span>$0.00</span>
-      }
-    </span>
-  </button>
-  <button type="button" class="mix-stat mix-stat--financed" [class.is-on]="filter() === 'financed'" (click)="setFilter(filter() === 'financed' ? 'all' : 'financed')">
-    <span class="mix-stat__count">{{ financedRows().length }}</span>
-    <span class="mix-stat__label">Financiado</span>
-    <span class="mix-stat__split">{{ mixRows().length }} E + F · {{ financingOnlyRows().length }} F</span>
-    <span class="mix-stat__money">
-      @for (total of financedTotals(); track total.currency) {
-        <span>{{ formatMoney(total.amount, total.currency) }}</span>
-      }
-      @if (financedTotals().length === 0) {
-        <span>$0.00</span>
-      }
-    </span>
-  </button>
-</section>
-
-<div class="mix-dialog__tools">
-  <input
-    type="search"
-    placeholder="Buscar contrato, cliente o lote"
-    [ngModel]="search()"
-    (ngModelChange)="search.set($event)" />
-  @if (filter() !== 'all' || search()) {
-    <button type="button" class="mix-dialog__clear" (click)="filter.set('all'); search.set('')">Ver todos</button>
-  }
-</div>
-
-<div class="mix-dialog__table-wrap">
-  @if (visibleRows().length === 0) {
-    <p class="mix-dialog__empty">No hay contratos con este filtro en el periodo.</p>
-  } @else {
-    <table>
-      <thead>
-        <tr>
-          <th>Contrato</th>
-          <th>Cliente</th>
-          <th>Lote</th>
-          <th>Inicio</th>
-          <th>Precio</th>
-          <th>Tipo</th>
-          <th>Mensualidad</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (row of visibleRows(); track row.contract_id) {
-          <tr (click)="openContract(row)">
-            <td class="mix-dialog__number">{{ row.contract_number }}</td>
-            <td>{{ row.customer_name }}</td>
-            <td>{{ row.property_code }}</td>
-            <td>{{ formatDate(row.contract_date) }}</td>
-            <td>{{ formatMoney(row.total_price, row.currency) }}</td>
-            <td>
-              <app-contract-sale-badge
-                [saleType]="row.sale_type"
-                [downPaymentFinanced]="row.down_payment_financed">
-              </app-contract-sale-badge>
-            </td>
-            <td>
-              @if (row.sale_type === 'cash' || row.monthly_payment <= 0) {
-                Sin mensualidad
-              } @else {
-                {{ formatMoney(row.monthly_payment, row.currency) }}
-                <span class="mix-dialog__months">· {{ row.payment_months }} meses</span>
-              }
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  }
 </div>
