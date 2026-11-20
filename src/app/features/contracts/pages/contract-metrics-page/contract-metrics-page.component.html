@@ -91,6 +91,7 @@
               class="metrics-link metrics-link--hint"
               [class.is-on]="listFilter() === 'prior'"
               [matTooltip]="quotaHint()"
+              matTooltipClass="metrics-hint-tooltip"
               matTooltipPosition="above"
               (click)="focusList('prior')">
               {{ summary().prior_installments }} cuotas · {{ summary().prior_contracts }} contratos
@@ -118,10 +119,10 @@
       <section class="list" id="metrics-list">
         <div class="list__tools">
           <div class="list__filters">
-            <button type="button" [class.is-on]="listFilter() === 'all'" (click)="setListFilter('all')">Todos · {{ summary().contracts }}</button>
-            <button type="button" [class.is-on]="listFilter() === 'paid'" (click)="setListFilter('paid')">Ya pagaron · {{ summary().paid_contracts }}</button>
-            <button type="button" [class.is-on]="listFilter() === 'open'" (click)="setListFilter('open')">Falta este mes · {{ summary().unpaid_contracts + summary().partial_contracts }}</button>
-            <button type="button" [class.is-on]="listFilter() === 'prior'" (click)="setListFilter('prior')">Con atraso · {{ summary().prior_contracts }}</button>
+            <button type="button" [class.is-on]="listFilter() === 'all'" [matTooltip]="filterHints.all" matTooltipClass="metrics-hint-tooltip" matTooltipPosition="above" (click)="setListFilter('all')">Todos · {{ summary().contracts }}</button>
+            <button type="button" [class.is-on]="listFilter() === 'paid'" [matTooltip]="filterHints.paid" matTooltipClass="metrics-hint-tooltip" matTooltipPosition="above" (click)="setListFilter('paid')">Ya pagaron · {{ summary().paid_contracts }}</button>
+            <button type="button" [class.is-on]="listFilter() === 'open'" [matTooltip]="filterHints.open" matTooltipClass="metrics-hint-tooltip" matTooltipPosition="above" (click)="setListFilter('open')">Falta este mes · {{ summary().unpaid_contracts + summary().partial_contracts }}</button>
+            <button type="button" [class.is-on]="listFilter() === 'prior'" [matTooltip]="filterHints.prior" matTooltipClass="metrics-hint-tooltip" matTooltipPosition="above" (click)="setListFilter('prior')">Con atraso · {{ summary().prior_contracts }}</button>
           </div>
           <input
             type="search"
@@ -163,7 +164,8 @@
                     <td>
                       @if (row.prior_installments > 0) {
                         <span
-                          [matTooltip]="'Mensualidades de meses anteriores que este contrato aún no cubre.'"
+                          matTooltip="Mensualidades de meses anteriores que este contrato aún no cubre."
+                          matTooltipClass="metrics-hint-tooltip"
                           matTooltipPosition="above">
                           {{ row.prior_installments }} {{ row.prior_installments === 1 ? 'cuota' : 'cuotas' }}
                           · {{ money(row.prior_amount, row.currency) }}

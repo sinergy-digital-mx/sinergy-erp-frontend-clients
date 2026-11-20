@@ -20,6 +20,13 @@ import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-messa
 
 type ListFilter = 'all' | 'paid' | 'open' | 'unpaid' | 'partial' | 'prior';
 
+const FILTER_HINTS: Record<'all' | 'paid' | 'open' | 'prior', string> = {
+  all: 'Contratos que tienen una mensualidad con vencimiento en el mes seleccionado.',
+  paid: 'Ya cubrieron la mensualidad de este mes. Pueden seguir debiendo cuotas de meses anteriores.',
+  open: 'No han cubierto toda la mensualidad de este mes: los que no han pagado y los que pagaron solo una parte.',
+  prior: 'Tienen mensualidades de meses anteriores todavía abiertas. Esas no se suman a lo que deberías recibir este mes.',
+};
+
 @Component({
   selector: 'app-contract-metrics-page',
   standalone: true,
@@ -37,6 +44,7 @@ type ListFilter = 'all' | 'paid' | 'open' | 'unpaid' | 'partial' | 'prior';
 export class ContractMetricsPageComponent implements OnInit, OnDestroy {
   readonly ChevronLeft = ChevronLeft;
   readonly ChevronRight = ChevronRight;
+  readonly filterHints = FILTER_HINTS;
 
   readonly year = signal(this.businessMonth().year);
   readonly month = signal(this.businessMonth().month);

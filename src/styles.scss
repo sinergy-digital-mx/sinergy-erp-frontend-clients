@@ -740,6 +740,21 @@ main,
   max-width: none !important;
 }
 
+.mat-mdc-tooltip.metrics-hint-tooltip,
+.metrics-hint-tooltip.mat-mdc-tooltip {
+  max-width: 22rem !important;
+  white-space: normal !important;
+  line-height: 1.4 !important;
+  text-align: left !important;
+}
+
+.mat-mdc-tooltip.metrics-hint-tooltip .mdc-tooltip__surface,
+.metrics-hint-tooltip .mdc-tooltip__surface {
+  white-space: normal !important;
+  overflow: visible !important;
+  max-width: none !important;
+}
+
 .mat-mdc-tooltip.wc-status-tooltip,
 .wc-status-tooltip.mat-mdc-tooltip {
   max-width: 360px !important;
