@@ -1,8 +1,8 @@
 {
-  "version": "0.0.127",
-  "buildId": "0.0.127-1795144067327",
-  "builtAt": "2026-11-20T03:07:47.327Z",
-  "channel": "full",
+  "version": "0.0.128",
+  "buildId": "0.0.128-1795145033907",
+  "builtAt": "2026-11-20T03:23:53.907Z",
+  "channel": "frontend",
   "changes": [
     {
       "scope": "frontend",
