@@ -2,12 +2,12 @@ import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, forkJoin, takeUntil } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { LucideAngularModule, ChevronLeft, ChevronRight } from 'lucide-angular';
 import { ContractService } from '../../services/contract.service';
 import { CustomerGroupDropdownComponent } from '../../../customers/components/customer-group-dropdown/customer-group-dropdown.component';
 import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
-import { ContractStats, EMPTY_CONTRACT_STATS } from '../../models/contract.model';
 import {
   MonthlyIncomeAnalysis,
   MonthlyIncomeContractRow,
@@ -18,7 +18,7 @@ import { BUSINESS_TIME_ZONE } from '../../../../core/utils/api-datetime.util';
 import { formatPolluxMoney } from '../../../../core/utils/pollux-money.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 
-type ListFilter = 'all' | 'open' | 'prior';
+type ListFilter = 'all' | 'paid' | 'open' | 'unpaid' | 'partial' | 'prior';
 
 @Component({
   selector: 'app-contract-metrics-page',
@@ -27,6 +27,7 @@ type ListFilter = 'all' | 'open' | 'prior';
     CommonModule,
     FormsModule,
     LucideAngularModule,
+    MatTooltipModule,
     CustomerGroupDropdownComponent,
     PolluxErrorStateComponent,
   ],
@@ -47,7 +48,6 @@ export class ContractMetricsPageComponent implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly analysis = signal<MonthlyIncomeAnalysis | null>(null);
-  readonly stats = signal<ContractStats>(EMPTY_CONTRACT_STATS);
 
   readonly summary = computed<MonthlyIncomeCurrencySummary>(() => {
     const found = this.analysis()?.currencies.find((row) => row.currency === this.currency());
@@ -64,7 +64,11 @@ export class ContractMetricsPageComponent implements OnInit, OnDestroy {
     const filter = this.listFilter();
     return (this.analysis()?.contracts ?? []).filter((row) => {
       if (row.currency !== this.currency()) return false;
+      if (filter === 'all' && row.month_expected <= 0) return false;
+      if (filter === 'paid' && row.month_status !== 'paid') return false;
       if (filter === 'open' && row.month_pending <= 0) return false;
+      if (filter === 'unpaid' && row.month_status !== 'unpaid') return false;
+      if (filter === 'partial' && row.month_status !== 'partial') return false;
       if (filter === 'prior' && row.prior_amount <= 0) return false;
       if (!query) return true;
       return `${row.contract_number} ${row.customer_name}`.toLowerCase().includes(query);
@@ -97,7 +101,13 @@ export class ContractMetricsPageComponent implements OnInit, OnDestroy {
     return `Día ${day} de ${days}. Va cobrado el ${summary.collection_pct.toFixed(0)}% de lo que entra este mes.`;
   });
 
-  readonly portfolioMoney = computed(() => this.stats().currency != null);
+  readonly quotaHint = computed(() => {
+    const month = this.analysis()?.month_label ?? 'el mes';
+    const summary = this.summary();
+    const installments = summary.prior_installments;
+    const contracts = summary.prior_contracts;
+    return `Una cuota es una mensualidad que ya venció. ${installments} ${installments === 1 ? 'cuota es una mensualidad' : 'cuotas son mensualidades'} de meses anteriores a ${month} que siguen sin cubrirse, en ${contracts} ${contracts === 1 ? 'contrato' : 'contratos'}. No entran en lo que deberías recibir este mes.`;
+  });
 
   private readonly destroy$ = new Subject<void>();
 
@@ -159,6 +169,14 @@ export class ContractMetricsPageComponent implements OnInit, OnDestroy {
     this.listFilter.set(filter);
   }
 
+  focusList(filter: ListFilter): void {
+    this.listFilter.set(filter);
+    this.search.set('');
+    queueMicrotask(() => {
+      document.getElementById('metrics-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   openContract(row: MonthlyIncomeContractRow): void {
     void this.router.navigate(['/contracts/detail', row.contract_id]);
   }
@@ -196,14 +214,9 @@ export class ContractMetricsPageComponent implements OnInit, OnDestroy {
   private load(): void {
     this.loading.set(true);
     this.error.set(null);
-    const groupId = this.groupId();
-    forkJoin({
-      income: this.contracts.getMonthlyIncome(this.year(), this.month(), groupId),
-      stats: this.contracts.getContractStats(groupId ? { group_id: groupId } : {}),
-    }).subscribe({
-      next: ({ income, stats }) => {
+    this.contracts.getMonthlyIncome(this.year(), this.month(), this.groupId()).subscribe({
+      next: (income) => {
         this.analysis.set(income);
-        this.stats.set(stats);
         const codes = income.currencies.map((row) => row.currency);
         if (codes.length > 0 && !codes.includes(this.currency())) {
           this.currency.set(codes[0]);

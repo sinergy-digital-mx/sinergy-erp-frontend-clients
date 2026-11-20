@@ -47,9 +47,11 @@
           <p class="hero__eyebrow">Deberías recibir en {{ analysis()?.month_label }}</p>
           <p class="hero__amount">{{ money(summary().expected) }}</p>
           <p class="hero__meta">
-            {{ summary().contracts }} contratos con mensualidad
+            <button type="button" class="metrics-link" [class.is-on]="listFilter() === 'all'" (click)="focusList('all')">
+              {{ summary().contracts }} contratos con mensualidad
+            </button>
             @if (summary().contracts > 0) {
-              · promedio {{ money(summary().average_installment) }}
+              <span>· promedio {{ money(summary().average_installment) }}</span>
             }
           </p>
           <div class="hero__bar" aria-hidden="true">
@@ -57,14 +59,24 @@
           </div>
           <div class="hero__split">
             <div>
-              <span>Ya entró</span>
+              <button type="button" class="metrics-link" [class.is-on]="listFilter() === 'paid'" (click)="focusList('paid')">Ya entró</button>
               <strong>{{ money(summary().collected) }}</strong>
-              <em>{{ summary().paid_contracts }} al corriente</em>
+              <button type="button" class="metrics-link" [class.is-on]="listFilter() === 'paid'" (click)="focusList('paid')">
+                {{ summary().paid_contracts }} al corriente
+              </button>
             </div>
             <div>
-              <span>Falta de este mes</span>
+              <button type="button" class="metrics-link" [class.is-on]="listFilter() === 'open'" (click)="focusList('open')">Falta de este mes</button>
               <strong>{{ money(summary().pending) }}</strong>
-              <em>{{ summary().unpaid_contracts }} sin pago · {{ summary().partial_contracts }} parciales</em>
+              <span class="hero__counts">
+                <button type="button" class="metrics-link" [class.is-on]="listFilter() === 'unpaid'" (click)="focusList('unpaid')">
+                  {{ summary().unpaid_contracts }} sin pago
+                </button>
+                <span>·</span>
+                <button type="button" class="metrics-link" [class.is-on]="listFilter() === 'partial'" (click)="focusList('partial')">
+                  {{ summary().partial_contracts }} parciales
+                </button>
+              </span>
             </div>
           </div>
           <p class="hero__pace">{{ paceLine() }}</p>
@@ -73,28 +85,19 @@
         <aside class="hero__prior">
           <p class="hero__eyebrow">Además, de meses anteriores</p>
           <p class="hero__prior-amount">{{ money(summary().prior_amount) }}</p>
-          <p>{{ summary().prior_installments }} cuotas · {{ summary().prior_contracts }} contratos</p>
+          <p>
+            <button
+              type="button"
+              class="metrics-link metrics-link--hint"
+              [class.is-on]="listFilter() === 'prior'"
+              [matTooltip]="quotaHint()"
+              matTooltipPosition="above"
+              (click)="focusList('prior')">
+              {{ summary().prior_installments }} cuotas · {{ summary().prior_contracts }} contratos
+            </button>
+          </p>
           <p class="hero__prior-note">Siguen abiertas. No se suman a lo de este mes.</p>
         </aside>
-      </section>
-
-      <section class="portfolio">
-        <div>
-          <span>Cartera activa</span>
-          <strong>{{ stats().pending.count }}</strong>
-          <em>contratos en proceso</em>
-        </div>
-        <div>
-          <span>Ya pagado de esa cartera</span>
-          <strong>{{ portfolioMoney() ? money(stats().pending.paid, stats().currency) : '—' }}</strong>
-        </div>
-        <div>
-          <span>Saldo pendiente</span>
-          <strong>{{ portfolioMoney() ? money(stats().pending.remaining, stats().currency) : '—' }}</strong>
-        </div>
-        @if (!portfolioMoney()) {
-          <p>Hay más de una moneda. El dinero de la cartera se ve en Contratos.</p>
-        }
       </section>
 
       @if (unscheduled().length > 0) {
@@ -112,12 +115,13 @@
         </section>
       }
 
-      <section class="list">
+      <section class="list" id="metrics-list">
         <div class="list__tools">
           <div class="list__filters">
-            <button type="button" [class.is-on]="listFilter() === 'all'" (click)="setListFilter('all')">Todos</button>
-            <button type="button" [class.is-on]="listFilter() === 'open'" (click)="setListFilter('open')">Falta este mes</button>
-            <button type="button" [class.is-on]="listFilter() === 'prior'" (click)="setListFilter('prior')">Con atraso</button>
+            <button type="button" [class.is-on]="listFilter() === 'all'" (click)="setListFilter('all')">Todos · {{ summary().contracts }}</button>
+            <button type="button" [class.is-on]="listFilter() === 'paid'" (click)="setListFilter('paid')">Ya pagaron · {{ summary().paid_contracts }}</button>
+            <button type="button" [class.is-on]="listFilter() === 'open'" (click)="setListFilter('open')">Falta este mes · {{ summary().unpaid_contracts + summary().partial_contracts }}</button>
+            <button type="button" [class.is-on]="listFilter() === 'prior'" (click)="setListFilter('prior')">Con atraso · {{ summary().prior_contracts }}</button>
           </div>
           <input
             type="search"
@@ -133,6 +137,7 @@
             <table>
               <thead>
                 <tr>
+                  <th class="list__index">#</th>
                   <th>Contrato</th>
                   <th>Cliente</th>
                   <th>Del mes</th>
@@ -142,8 +147,9 @@
                 </tr>
               </thead>
               <tbody>
-                @for (row of rows(); track row.contract_id) {
+                @for (row of rows(); track row.contract_id; let index = $index) {
                   <tr (click)="openContract(row)">
+                    <td class="list__index">{{ index + 1 }}</td>
                     <td>
                       <strong>{{ row.contract_number }}</strong>
                       <span [class]="'status status--' + row.month_status">{{ statusLabel(row.month_status) }}</span>
@@ -156,8 +162,12 @@
                     </td>
                     <td>
                       @if (row.prior_installments > 0) {
-                        {{ row.prior_installments }} {{ row.prior_installments === 1 ? 'cuota' : 'cuotas' }}
-                        · {{ money(row.prior_amount, row.currency) }}
+                        <span
+                          [matTooltip]="'Mensualidades de meses anteriores que este contrato aún no cubre.'"
+                          matTooltipPosition="above">
+                          {{ row.prior_installments }} {{ row.prior_installments === 1 ? 'cuota' : 'cuotas' }}
+                          · {{ money(row.prior_amount, row.currency) }}
+                        </span>
                         <span class="since">desde {{ formatDay(row.prior_oldest) }}</span>
                       } @else {
                         —
