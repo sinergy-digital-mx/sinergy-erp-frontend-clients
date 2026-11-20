@@ -1,11 +1,11 @@
 {
-  "version": "0.0.131",
-  "buildId": "0.0.131-1795146952543",
-  "builtAt": "2026-11-20T03:55:52.543Z",
-  "channel": "frontend",
+  "version": "0.0.132",
+  "buildId": "0.0.132-1795147364364",
+  "builtAt": "2026-11-20T04:02:44.364Z",
+  "channel": "full",
   "changes": [
     {
-      "scope": "frontend",
+      "scope": "backend",
       "message": "Cambios en contratos"
     }
   ]
