@@ -14,10 +14,10 @@ import {
   stockedSummaryBatches,
 } from '../../utils/inventory-list.util';
 import {
-  formatMeasureTotalsLine,
-  hasMeasureTotals,
   inventoryMeasureLabel,
+  measureTotalLabel,
 } from '../../../../core/utils/inventory-measure.util';
+import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
 import { InventoryMarginChipComponent } from '../inventory-margin-chip/inventory-margin-chip.component';
 import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
@@ -65,17 +65,15 @@ export class InventorySummaryViewComponent {
   formatDate = formatInventoryDate;
   formatNumber = formatInventoryNumber;
   measureLabel = inventoryMeasureLabel;
+  measureTotalLabel = measureTotalLabel;
 
   stockedBatches(item: InventorySummaryItem) {
     return stockedSummaryBatches(item.batches);
   }
 
-  hasMeasureBreakdown(item: InventorySummaryItem): boolean {
-    return hasMeasureTotals(item.measure_totals);
-  }
-
-  measureTotalsLine(item: InventorySummaryItem): string {
-    return formatMeasureTotalsLine(item.measure_totals, formatInventoryNumber);
+  unitMoney(value: string | null | undefined): string {
+    if (value == null || value === '') return '—';
+    return formatUnitCurrency(value);
   }
 
   onPageChange(nextPage: number): void {

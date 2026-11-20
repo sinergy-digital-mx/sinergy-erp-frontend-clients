@@ -1,16 +1,178 @@
+.summary-shell {
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.summary-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  thead {
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+
+    th {
+      padding: 12px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 16px;
+      color: #374151;
+      letter-spacing: 0;
+      text-transform: none;
+      white-space: nowrap;
+      background: #f9fafb;
+    }
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: #fafafa;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  td {
+    padding: 0.875rem 1rem;
+    color: #64748b;
+    font-weight: 400;
+    vertical-align: middle;
+  }
+
+  .col-fit {
+    width: 1%;
+    white-space: nowrap;
+  }
+}
+
+.summary-table--nested {
+  background: #fff;
+
+  thead th {
+    padding: 10px 12px;
+  }
+
+  td {
+    padding: 0.625rem 0.75rem;
+  }
+}
+
+.lots-row > td {
+  padding: 0.75rem 1rem 1rem;
+  background: #fafafa;
+}
+
+.lots-row:hover > td {
+  background: #fafafa;
+}
+
+.lots-panel {
+  margin-left: 1.5rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid #c7d2fe;
+}
+
+.lots-cell {
+  text-align: center;
+}
+
+.cell-end {
+  text-align: right;
+}
+
+.qty-stack {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  column-gap: 0.4rem;
+  row-gap: 0.05rem;
+  align-items: baseline;
+  width: max-content;
+  font-variant-numeric: tabular-nums;
+}
+
+.qty-stack__num {
+  text-align: right;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.qty-stack__unit {
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.qty-stack__num--measure,
+.qty-stack__unit--measure {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+.money-cell {
+  text-align: left;
+}
+
+.money-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.currency-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.375rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+button.dt-folio-badge {
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: #e5e7eb;
+    color: #1d4ed8;
+  }
+}
+
 .expand-lots-btn {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
   gap: 0.3rem;
   margin-left: auto;
-  padding: 0.35rem 0.7rem;
+  height: 24px;
+  padding: 0 0.7rem;
   border: 1px solid #c7d2fe;
-  border-radius: 0.5rem;
+  border-radius: 6px;
   background: #eef2ff;
-  color: #4338ca;
+  color: #3730a3;
   font-size: 0.75rem;
-  font-weight: 650;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
 
@@ -19,46 +181,56 @@
   }
 
   &--open {
-    background: #4338ca;
-    border-color: #4338ca;
+    background: #3730a3;
+    border-color: #3730a3;
     color: #fff;
   }
 }
 
-.margin-cell {
-  vertical-align: top;
+.summary-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px 16px;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
 }
 
-.measure-chips {
-  margin-top: 0.2rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: #4f46e5;
-  line-height: 1.35;
-  white-space: normal;
+.summary-pager__summary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #9ca3af;
 }
 
-.batch-folio-badge {
-  display: inline-block;
-  max-width: 100%;
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.25;
-  color: #374151;
-  background: #f3f4f6;
-  white-space: nowrap;
-}
+.summary-pager__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 
-.batch-folio-badge--link {
-  border: none;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  button {
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
 
-  &:hover {
-    background: #e5e7eb;
-    color: #1d4ed8;
+    &:hover:not(:disabled) {
+      border-color: #d1d5db;
+      color: #374151;
+      background: #f9fafb;
+    }
+
+    &:disabled {
+      color: #d1d5db;
+      border-color: #f3f4f6;
+      background: #fafafa;
+      cursor: not-allowed;
+    }
   }
 }

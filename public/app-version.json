@@ -1,11 +1,15 @@
 {
-  "version": "0.0.135",
-  "buildId": "0.0.135-1795150832370",
-  "builtAt": "2026-11-20T05:00:32.370Z",
-  "channel": "frontend",
+  "version": "0.0.136",
+  "buildId": "0.0.136-1795195016186",
+  "builtAt": "2026-11-20T17:16:56.186Z",
+  "channel": "full",
   "changes": [
     {
       "scope": "frontend",
+      "message": "Cambios en inventario"
+    },
+    {
+      "scope": "backend",
       "message": "Cambios en Divino"
     }
   ]
