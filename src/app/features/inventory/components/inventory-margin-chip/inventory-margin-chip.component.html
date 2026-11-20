@@ -6,6 +6,6 @@
     <span class="margin-chip__empty">—</span>
   } @else {
     <span class="margin-chip__pct" [attr.data-tone]="tone">{{ percentLabel }}</span>
-    <span class="dt-status-pill" [ngClass]="sourceClass">{{ margin.source_label }}</span>
+    <span class="margin-chip__badge" [attr.data-source]="margin.source">{{ margin.source_label }}</span>
   }
 </div>

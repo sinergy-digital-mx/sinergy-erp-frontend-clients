@@ -20,7 +20,7 @@
     border-bottom: 1px solid #e5e7eb;
 
     th {
-      padding: 12px;
+      padding: 8px 12px;
       text-align: left;
       font-size: 12px;
       font-weight: 600;
@@ -47,7 +47,7 @@
   }
 
   td {
-    padding: 0.875rem 1rem;
+    padding: 0.45rem 0.75rem;
     color: #64748b;
     font-weight: 400;
     vertical-align: middle;
@@ -94,28 +94,84 @@
   text-align: right;
 }
 
+.name-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.name-stack__title,
+.name-stack__sub,
+.name-stack__meta {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name-stack__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.name-stack__sub {
+  margin-top: 0.05rem;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+.name-stack__meta {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.summary-table .dt-cell-amount,
+.summary-table .dt-cell-muted {
+  font-size: 0.75rem;
+  line-height: 1.15;
+}
+
 .qty-stack {
   display: grid;
   grid-template-columns: max-content max-content;
-  column-gap: 0.4rem;
+  column-gap: 0.35rem;
   row-gap: 0.05rem;
-  align-items: baseline;
+  align-items: center;
   width: max-content;
   font-variant-numeric: tabular-nums;
 }
 
 .qty-stack__num {
   text-align: right;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  line-height: 1.15;
   color: #334155;
+}
+
+.uom-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .qty-stack__unit {
   text-align: left;
-  font-size: 0.875rem;
-  font-weight: 400;
-  color: #64748b;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #94a3b8;
 }
 
 .qty-stack__num--measure,
@@ -165,13 +221,13 @@ button.dt-folio-badge {
   justify-content: flex-end;
   gap: 0.3rem;
   margin-left: auto;
-  height: 24px;
-  padding: 0 0.7rem;
+  height: 20px;
+  padding: 0 0.5rem;
   border: 1px solid #c7d2fe;
   border-radius: 6px;
   background: #eef2ff;
   color: #3730a3;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;

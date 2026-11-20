@@ -27,24 +27,24 @@
         @for (item of items(); track item.product_id + item.warehouse_id) {
           <tr>
             <td>
-              <div class="flex flex-col min-w-0">
-                <span class="dt-cell-primary truncate">{{ item.product_name }}</span>
-                <span class="dt-cell-subtle">{{ item.product_sku }}</span>
+              <div class="name-stack">
+                <span class="name-stack__title" [title]="item.product_name">{{ item.product_name }}</span>
+                <span class="name-stack__sub">{{ item.product_sku }}</span>
               </div>
             </td>
             <td>
-              <div class="flex flex-col min-w-0">
-                <span class="dt-cell-muted truncate">{{ locationLabel(item.sucursal) }}</span>
-                <span class="dt-cell-subtle truncate">{{ locationLabel(item.razon_social) }}</span>
+              <div class="name-stack">
+                <span class="name-stack__title" [title]="locationLabel(item.sucursal)">{{ locationLabel(item.sucursal) }}</span>
+                <span class="name-stack__sub" [title]="locationLabel(item.razon_social)">{{ locationLabel(item.razon_social) }}</span>
               </div>
             </td>
             <td>
-              <span class="dt-cell-muted">{{ item.warehouse_name }}</span>
+              <span class="name-stack__meta">{{ item.warehouse_name }}</span>
             </td>
             <td class="col-fit">
               <div class="qty-stack">
                 <span class="qty-stack__num">{{ formatNumber(item.total_available_quantity) }}</span>
-                <span class="qty-stack__unit">{{ item.uom_name }}</span>
+                <span class="uom-pill">{{ item.uom_name }}</span>
                 @for (total of item.measure_totals ?? []; track total.measure_label + (total.measure_uom_id || '')) {
                   <span class="qty-stack__num qty-stack__num--measure">{{ formatNumber(total.total_available_quantity) }}</span>
                   <span class="qty-stack__unit qty-stack__unit--measure">{{ measureTotalLabel(total) }}</span>
@@ -87,7 +87,7 @@
                 {{ isExpanded(item) ? 'Ocultar lotes' : 'Ver lotes' }}
                 <lucide-icon
                   [img]="isExpanded(item) ? ChevronDown : ChevronRight"
-                  [size]="16">
+                  [size]="14">
                 </lucide-icon>
               </button>
             </td>
@@ -141,7 +141,7 @@
                           <td class="col-fit">
                             <div class="qty-stack">
                               <span class="qty-stack__num">{{ formatNumber(batch.available_quantity) }}</span>
-                              <span class="qty-stack__unit">{{ item.uom_name }}</span>
+                              <span class="uom-pill">{{ item.uom_name }}</span>
                             </div>
                           </td>
                           <td class="col-fit money-cell">

@@ -21,19 +21,6 @@ export class InventoryMarginChipComponent {
     return 'flat';
   }
 
-  get sourceClass(): string {
-    switch (this.margin?.source) {
-      case 'purchase':
-        return 'dt-status-pill--info';
-      case 'configuration':
-        return 'dt-status-pill--warning';
-      case 'mixed':
-        return 'dt-status-pill--sky';
-      default:
-        return 'dt-status-pill--neutral';
-    }
-  }
-
   get percentLabel(): string {
     const value = Number(this.margin?.margin_percentage);
     if (!Number.isFinite(value) || this.margin?.margin_percentage == null) return '—';

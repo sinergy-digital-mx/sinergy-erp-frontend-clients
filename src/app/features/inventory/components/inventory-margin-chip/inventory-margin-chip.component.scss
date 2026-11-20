@@ -12,7 +12,7 @@
   }
 
   &__pct {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0;
@@ -21,5 +21,33 @@
     &[data-tone='up'] { color: #047857; }
     &[data-tone='down'] { color: #be123c; }
     &[data-tone='empty'] { color: #94a3b8; }
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    height: 16px;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+
+    &[data-source='purchase'] {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    &[data-source='configuration'] {
+      background: #ffedd5;
+      color: #9a3412;
+    }
+
+    &[data-source='mixed'] {
+      background: #dbeafe;
+      color: #1e40af;
+    }
   }
 }
