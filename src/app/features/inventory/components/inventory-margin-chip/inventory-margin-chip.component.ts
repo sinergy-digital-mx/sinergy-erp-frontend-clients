@@ -1,17 +1,20 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LucideAngularModule, Info } from 'lucide-angular';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { InventoryMarginSnapshot } from '../../models/inventory-margin.model';
 
 @Component({
   selector: 'app-inventory-margin-chip',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './inventory-margin-chip.component.html',
   styleUrl: './inventory-margin-chip.component.scss',
 })
 export class InventoryMarginChipComponent {
   @Input() margin: InventoryMarginSnapshot | null | undefined = null;
+
+  readonly Info = Info;
 
   get tone(): 'up' | 'down' | 'flat' | 'empty' {
     const value = Number(this.margin?.margin_percentage);
@@ -30,10 +33,10 @@ export class InventoryMarginChipComponent {
     }).format(value)}%`;
   }
 
-  /** El % es (precio − costo) / precio. El monto queda en el tooltip. */
+  /** Origen, cuenta y monto. Se ve al pasar el mouse. */
   get tooltip(): string | null {
     if (!this.margin) return null;
-    const parts = [this.margin.hint?.trim()].filter((part): part is string => !!part);
+    const parts = [this.margin.source_label, this.margin.hint?.trim()].filter((part): part is string => !!part);
     if (this.margin.margin_amount) {
       parts.push(`Margen ${this.money(this.margin.margin_amount)}`);
     }

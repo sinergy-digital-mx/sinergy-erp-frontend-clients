@@ -6,6 +6,8 @@
     <span class="margin-chip__empty">—</span>
   } @else {
     <span class="margin-chip__pct" [attr.data-tone]="tone">{{ percentLabel }}</span>
-    <span class="margin-chip__badge" [attr.data-source]="margin.source">{{ margin.source_label }}</span>
+    <span class="margin-chip__info" [attr.title]="tooltip" aria-label="Origen del margen">
+      <lucide-icon [img]="Info" [size]="13"></lucide-icon>
+    </span>
   }
 </div>

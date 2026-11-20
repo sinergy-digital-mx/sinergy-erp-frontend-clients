@@ -20,7 +20,6 @@
           <th class="col-fit" title="Costo unitario en pesos">Costo</th>
           <th class="col-fit" title="Porcentaje de margen sobre el precio. No es un porcentaje de la existencia.">Margen</th>
           <th class="col-fit">Lotes</th>
-          <th class="col-fit"></th>
         </tr>
       </thead>
       <tbody>
@@ -74,17 +73,16 @@
             <td class="col-fit">
               <app-inventory-margin-chip [margin]="item.margin"></app-inventory-margin-chip>
             </td>
-            <td class="col-fit lots-cell">
-              <span class="dt-cell-muted">{{ stockedBatches(item).length }}</span>
-            </td>
-            <td class="col-fit cell-end">
+            <td class="col-fit">
               <button
                 type="button"
-                class="expand-lots-btn"
-                [class.expand-lots-btn--open]="isExpanded(item)"
+                class="lots-toggle"
+                [class.lots-toggle--open]="isExpanded(item)"
                 (click)="toggleBatches(item)"
-                [attr.aria-expanded]="isExpanded(item)">
-                {{ isExpanded(item) ? 'Ocultar lotes' : 'Ver lotes' }}
+                [attr.aria-expanded]="isExpanded(item)"
+                [attr.aria-label]="isExpanded(item) ? 'Ocultar lotes' : 'Ver lotes'"
+                [title]="isExpanded(item) ? 'Ocultar lotes' : 'Ver lotes'">
+                <span class="lots-toggle__count">{{ stockedBatches(item).length }}</span>
                 <lucide-icon
                   [img]="isExpanded(item) ? ChevronDown : ChevronRight"
                   [size]="14">
@@ -94,7 +92,7 @@
           </tr>
           @if (isExpanded(item)) {
             <tr class="lots-row">
-              <td colspan="9">
+              <td colspan="8">
                 <div class="lots-panel">
                   <table class="summary-table summary-table--nested">
                     <thead>
@@ -108,7 +106,7 @@
                         <th class="col-fit">Costo</th>
                         <th class="col-fit">Margen</th>
                         <th class="col-fit">Inicial</th>
-                        <th>Fecha</th>
+                        <th class="col-fit">Fecha</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -170,7 +168,7 @@
                           <td class="col-fit">
                             <span class="dt-cell-muted">{{ formatNumber(batch.initial_quantity) }}</span>
                           </td>
-                          <td><span class="dt-cell-subtle">{{ formatDate(batch.created_at) }}</span></td>
+                          <td class="col-fit"><span class="lot-date">{{ formatDate(batch.created_at) }}</span></td>
                         </tr>
                       }
                     </tbody>

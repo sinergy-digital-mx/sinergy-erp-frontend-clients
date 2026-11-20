@@ -105,35 +105,25 @@
         </div>
       </div>
 
-      <div class="mb-4">
-        <div class="border-b border-gray-200">
-          <nav class="-mb-px flex space-x-8">
-            <a
-              routerLink="lotes"
-              routerLinkActive
-              #lotesTab="routerLinkActive"
-              [routerLinkActiveOptions]="{ exact: true }"
-              class="border-b-2 py-4 px-1 text-sm font-medium transition-colors"
-              [class.border-blue-500]="lotesTab.isActive"
-              [class.text-blue-600]="lotesTab.isActive"
-              [class.border-transparent]="!lotesTab.isActive"
-              [class.text-gray-500]="!lotesTab.isActive">
-              Por Lotes
-            </a>
-            <a
-              routerLink="totalizado"
-              routerLinkActive
-              #totalizadoTab="routerLinkActive"
-              [routerLinkActiveOptions]="{ exact: true }"
-              class="border-b-2 py-4 px-1 text-sm font-medium transition-colors"
-              [class.border-blue-500]="totalizadoTab.isActive"
-              [class.text-blue-600]="totalizadoTab.isActive"
-              [class.border-transparent]="!totalizadoTab.isActive"
-              [class.text-gray-500]="!totalizadoTab.isActive">
-              Totalizado
-            </a>
-          </nav>
-        </div>
+      <div class="inventory-tabs">
+        <nav>
+          <a
+            routerLink="lotes"
+            routerLinkActive
+            #lotesTab="routerLinkActive"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [class.is-active]="lotesTab.isActive">
+            Por lotes
+          </a>
+          <a
+            routerLink="totalizado"
+            routerLinkActive
+            #totalizadoTab="routerLinkActive"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [class.is-active]="totalizadoTab.isActive">
+            Totalizado
+          </a>
+        </nav>
       </div>
 
       <router-outlet />

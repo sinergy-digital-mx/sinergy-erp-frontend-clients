@@ -86,12 +86,47 @@
   border-left: 2px solid #c7d2fe;
 }
 
-.lots-cell {
-  text-align: center;
+.lot-date {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.15;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.cell-end {
-  text-align: right;
+.lots-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  height: 22px;
+  padding: 0 0.35rem 0 0.45rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #c7d2fe;
+    background: #eef2ff;
+    color: #3730a3;
+  }
+
+  &--open {
+    border-color: #c7d2fe;
+    background: #eef2ff;
+    color: #3730a3;
+  }
+}
+
+.lots-toggle__count {
+  min-width: 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: center;
 }
 
 .name-stack {
@@ -215,33 +250,6 @@ button.dt-folio-badge {
   }
 }
 
-.expand-lots-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.3rem;
-  margin-left: auto;
-  height: 20px;
-  padding: 0 0.5rem;
-  border: 1px solid #c7d2fe;
-  border-radius: 6px;
-  background: #eef2ff;
-  color: #3730a3;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-
-  &:hover {
-    background: #e0e7ff;
-  }
-
-  &--open {
-    background: #3730a3;
-    border-color: #3730a3;
-    color: #fff;
-  }
-}
 
 .summary-pager {
   display: flex;

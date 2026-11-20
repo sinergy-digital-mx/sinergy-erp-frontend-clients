@@ -7,8 +7,8 @@ import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-messa
 import { InventorySummaryFilters, InventorySummaryItem } from '../../models/inventory-item.model';
 import { InventoryService } from '../../services/inventory.service';
 import { InventoryListState } from '../../services/inventory-list-state.service';
+import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import {
-  formatInventoryDate,
   formatInventoryNumber,
   inventoryLocationLabel,
   stockedSummaryBatches,
@@ -62,8 +62,12 @@ export class InventorySummaryViewComponent {
   }
 
   locationLabel = inventoryLocationLabel;
-  formatDate = formatInventoryDate;
   formatNumber = formatInventoryNumber;
+
+  formatDate(value: string): string {
+    const formatted = formatApiDate(value, 'date');
+    return formatted === '—' ? '-' : formatted;
+  }
   measureLabel = inventoryMeasureLabel;
   measureTotalLabel = measureTotalLabel;
 
