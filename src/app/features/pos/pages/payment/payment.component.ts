@@ -568,7 +568,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @HostListener('document:keydown', ['$event'])
   onCajaKeydown(event: KeyboardEvent): void {
-    if (event.key !== 'F2') {
+    if (!event.ctrlKey || event.altKey || event.shiftKey || event.metaKey || event.code !== 'KeyQ') {
       return;
     }
     event.preventDefault();

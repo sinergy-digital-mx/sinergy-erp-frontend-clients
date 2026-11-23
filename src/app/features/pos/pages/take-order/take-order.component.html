@@ -92,7 +92,7 @@
           class="pos-session-bar__icon-btn pos-tickets-btn"
           [class.pos-tickets-btn--active]="cajaQueue().length > 0"
           (click)="openCajaQueue()"
-          title="Ventas en caja (F5)"
+          title="Ventas en caja (Ctrl+M)"
           aria-label="Ventas en caja">
           <lucide-icon [img]="Store" class="pos-ic pos-ic--btn" />
           <span class="pos-tickets-btn__label">En caja</span>
@@ -535,9 +535,9 @@
             class="pos-customer__search notranslate"
             translate="no"
             (click)="openCustomerPicker()"
-            title="Seleccionar cliente (F1)">
+            title="Seleccionar cliente (Ctrl+I)">
             {{ hasSelectedCustomer() ? 'Cambiar' : 'Existente' }}
-            <kbd class="pos-kbd">F1</kbd>
+            <kbd class="pos-kbd">Ctrl+I</kbd>
             @if (!hasSelectedCustomer()) {
               <lucide-icon [img]="ChevronRight" class="pos-customer__chevron pos-ic pos-ic--sm" />
             }
@@ -863,14 +863,14 @@
           </button>
         </header>
         <ul class="pos-shortcuts-modal__list">
-          <li><kbd>F1</kbd><span>Selecciona cliente</span></li>
+          <li><kbd>Ctrl+I</kbd><span>Selecciona cliente</span></li>
           <li><kbd>Teclear</kbd><span>Busca sin hacer click. El primero queda marcado</span></li>
           <li><kbd>↑ ↓</kbd><span>Mueve el producto marcado</span></li>
           <li><kbd>Enter</kbd><span>Agrega el producto marcado</span></li>
           <li><kbd>Esc</kbd><span>Limpia la búsqueda o cierra este panel</span></li>
-          <li><kbd>F5</kbd><span>Muestra las ventas que están en POS Caja para regresarlas a ventas</span></li>
+          <li><kbd>Ctrl+M</kbd><span>Muestra las ventas que están en POS Caja para regresarlas a ventas</span></li>
         </ul>
-        <p class="pos-shortcuts-modal__note">F2, buscar ventas pasadas para abono, queda pendiente y es de caja.</p>
+        <p class="pos-shortcuts-modal__note">En caja, Ctrl+Q busca ventas pasadas para abono. Sigue pendiente.</p>
       </div>
     </div>
   }

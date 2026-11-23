@@ -243,13 +243,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Enter llegó antes de que la búsqueda terminara: agrega el primer resultado. */
   private addHighlightedOnNextResults = false;
   private readonly onWindowKeydown = (event: KeyboardEvent): void => {
-    if (event.key === 'F1' || event.code === 'F1') {
-      event.preventDefault();
-      event.stopPropagation();
-      if (event.type === 'keyup') {
-        return;
-      }
-    }
     if (event.type !== 'keydown') {
       return;
     }
@@ -350,7 +343,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     window.addEventListener('keydown', this.onWindowKeydown, true);
-    window.addEventListener('keyup', this.onWindowKeydown, true);
     this.searchInput$
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((term) => this.applyCatalogSearch(term));
@@ -470,7 +462,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.removeEventListener('keydown', this.onWindowKeydown, true);
-    window.removeEventListener('keyup', this.onWindowKeydown, true);
     this.destroy$.next();
     this.destroy$.complete();
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);
@@ -519,7 +510,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     const key = event.key;
-    if (key === 'F1' || event.code === 'F1') {
+    if (this.isPlainCtrl(event, 'KeyI')) {
+      event.preventDefault();
       if (this.dialog.openDialogs.length || !this.canSell()) {
         return;
       }
@@ -527,7 +519,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       this.openCustomerPicker();
       return;
     }
-    if (key === 'F5') {
+    if (this.isPlainCtrl(event, 'KeyM')) {
       event.preventDefault();
       if (this.dialog.openDialogs.length) {
         return;
@@ -605,6 +597,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     event.preventDefault();
     this.catalogSearchRef?.nativeElement?.focus();
     this.onSearchInput(`${this.searchTerm()}${key}`);
+  }
+
+  /** Ctrl + letra, sin Alt, Shift ni la tecla de Windows. Esas letras no las usa el navegador. */
+  private isPlainCtrl(event: KeyboardEvent, code: string): boolean {
+    return event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey && event.code === code;
   }
 
   private catalogKeysAllowed(target: HTMLElement | null): boolean {
