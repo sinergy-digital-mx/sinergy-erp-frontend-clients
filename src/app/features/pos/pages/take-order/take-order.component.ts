@@ -1,7 +1,7 @@
 import {
   AfterViewInit,
   Component,
-  HostListener,
+  NgZone,
   OnDestroy,
   OnInit,
   signal,
@@ -114,6 +114,7 @@ import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog
 export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('posRoot') posRootRef?: ElementRef<HTMLElement>;
   @ViewChild('catalogSearch') catalogSearchRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('catalogList') catalogListRef?: ElementRef<HTMLElement>;
   readonly Search = Search;
   readonly Plus = Plus;
   readonly ShoppingCart = ShoppingCart;
@@ -151,6 +152,19 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   filteredProducts = signal<any[]>([]);
 
   searchTerm = signal<string>('');
+  /** Índice marcado en los resultados de la búsqueda. -1 si no hay búsqueda activa. */
+  catalogActiveIndex = signal(-1);
+  readonly markedCatalogIndex = computed(() => {
+    if (!this.searchTerm().trim() || this.filteredProducts().length === 0) {
+      return -1;
+    }
+    const index = this.catalogActiveIndex();
+    if (index < 0 || index >= this.filteredProducts().length) {
+      return 0;
+    }
+    return index;
+  });
+  readonly formatStock = formatInventoryNumber;
   catalogWarehouseId = signal('');
   /** Permite agregar productos con existencia 0. Esos renglones solo se pueden cotizar. */
   allowWithoutInventory = signal(false);
@@ -226,6 +240,21 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   loadingGlobalDiscounts = signal(false);
 
   private lastInventorySummary = signal<PosInventorySummaryResponse | null>(null);
+  /** Enter llegó antes de que la búsqueda terminara: agrega el primer resultado. */
+  private addHighlightedOnNextResults = false;
+  private readonly onWindowKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'F1' || event.code === 'F1') {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.type === 'keyup') {
+        return;
+      }
+    }
+    if (event.type !== 'keydown') {
+      return;
+    }
+    this.ngZone.run(() => this.onPosKeydown(event));
+  };
 
   photoLoadingStates = signal<Map<string, boolean>>(new Map());
   photoErrorStates = signal<Map<string, boolean>>(new Map());
@@ -250,6 +279,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     private productService: ProductService,
     private posBranchSession: PosBranchSessionService,
     private customerService: CustomerService,
+    private ngZone: NgZone,
   ) {}
 
   readonly canSell = computed(() => this.posState.canCaptureSales());
@@ -319,6 +349,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    window.addEventListener('keydown', this.onWindowKeydown, true);
+    window.addEventListener('keyup', this.onWindowKeydown, true);
     this.searchInput$
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((term) => this.applyCatalogSearch(term));
@@ -437,6 +469,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('keydown', this.onWindowKeydown, true);
+    window.removeEventListener('keyup', this.onWindowKeydown, true);
     this.destroy$.next();
     this.destroy$.complete();
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);
@@ -480,14 +514,12 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.catalogBranchId.set(selling);
   }
 
-  @HostListener('document:keydown', ['$event'])
   onPosKeydown(event: KeyboardEvent): void {
     if (this.isCobranzaTerminal()) {
       return;
     }
     const key = event.key;
-    if (key === 'F1') {
-      event.preventDefault();
+    if (key === 'F1' || event.code === 'F1') {
       if (this.dialog.openDialogs.length || !this.canSell()) {
         return;
       }
@@ -504,19 +536,26 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     if (key === 'Escape') {
+      if (this.dialog.openDialogs.length) {
+        return;
+      }
       if (this.shortcutsOpen()) {
+        event.preventDefault();
         this.shortcutsOpen.set(false);
         return;
       }
       if (this.cajaQueueOpen()) {
+        event.preventDefault();
         this.cajaQueueOpen.set(false);
         return;
       }
       if (this.ticketsPanelOpen()) {
+        event.preventDefault();
         this.ticketsPanelOpen.set(false);
         return;
       }
       if (this.searchTerm()) {
+        event.preventDefault();
         this.clearSearch();
       }
       return;
@@ -529,16 +568,35 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     const target = event.target as HTMLElement | null;
     const inSearch = target?.classList?.contains('pos-search__input') === true;
-    if (key === 'Enter' && (inSearch || this.searchTerm().trim())) {
-      if (this.isTypingTarget(target) && !inSearch) {
+    if (key === 'ArrowDown' || key === 'ArrowUp') {
+      if (!this.catalogKeysAllowed(target) || this.markedCatalogIndex() < 0) {
         return;
       }
-      const first = this.filteredProducts()[0];
-      if (first && this.canAddToCart(first)) {
-        event.preventDefault();
-        this.addProductToCart(first);
-        this.clearSearch();
+      event.preventDefault();
+      this.moveCatalogSelection(key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+    if (key === 'Enter') {
+      if (!this.catalogKeysAllowed(target) || event.repeat) {
+        return;
       }
+      if (target?.closest('.pos-product-row, .pos-card')) {
+        return;
+      }
+      const product = this.activeCatalogProduct();
+      if (!product) {
+        if (inSearch && this.searchTerm().trim()) {
+          event.preventDefault();
+          this.addHighlightedOnNextResults = true;
+        }
+        return;
+      }
+      if (!this.canAddToCart(product)) {
+        return;
+      }
+      event.preventDefault();
+      this.addHighlightedOnNextResults = false;
+      this.addProductToCart(product);
       return;
     }
     if (key.length !== 1 || event.repeat || this.isTypingTarget(target)) {
@@ -547,6 +605,74 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     event.preventDefault();
     this.catalogSearchRef?.nativeElement?.focus();
     this.onSearchInput(`${this.searchTerm()}${key}`);
+  }
+
+  private catalogKeysAllowed(target: HTMLElement | null): boolean {
+    if (!target) {
+      return true;
+    }
+    if (target.classList.contains('pos-search__input')) {
+      return true;
+    }
+    if (target.closest('.pos-product-row, .pos-card')) {
+      return true;
+    }
+    if (this.isTypingTarget(target)) {
+      return false;
+    }
+    const tag = target.tagName;
+    return tag !== 'BUTTON' && tag !== 'A';
+  }
+
+  private activeCatalogProduct(): any | null {
+    const index = this.markedCatalogIndex();
+    if (index < 0) {
+      return null;
+    }
+    return this.filteredProducts()[index] ?? null;
+  }
+
+  private moveCatalogSelection(delta: number): void {
+    const rows = this.filteredProducts();
+    const current = this.markedCatalogIndex();
+    if (!rows.length || current < 0) {
+      return;
+    }
+    const next = Math.min(rows.length - 1, Math.max(0, current + delta));
+    if (next === current) {
+      return;
+    }
+    this.catalogActiveIndex.set(next);
+    this.scrollCatalogActiveIntoView();
+    const input = this.catalogSearchRef?.nativeElement;
+    if (input && document.activeElement !== input) {
+      input.focus();
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    }
+  }
+
+  private scrollCatalogActiveIntoView(): void {
+    const index = this.markedCatalogIndex();
+    if (index < 0) {
+      return;
+    }
+    queueMicrotask(() => {
+      const row = this.catalogListRef?.nativeElement?.querySelector<HTMLElement>(
+        `[data-catalog-index="${index}"]`,
+      );
+      row?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  onCatalogRow(index: number, product: any): void {
+    if (this.searchTerm().trim()) {
+      this.catalogActiveIndex.set(index);
+    }
+    if (!this.canAddToCart(product)) {
+      return;
+    }
+    this.addProductToCart(product);
   }
 
   private isTypingTarget(target: EventTarget | null): boolean {
@@ -1069,8 +1195,12 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onSearchInput(term: string): void {
-    this.searchTerm.set(term);
-    this.searchInput$.next(term);
+    const next = term ?? '';
+    if (next !== this.searchTerm()) {
+      this.catalogActiveIndex.set(-1);
+    }
+    this.searchTerm.set(next);
+    this.searchInput$.next(next);
   }
 
   catalogWarehouses() {
@@ -1091,6 +1221,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       this.catalogSearchRef?.nativeElement.focus();
       return;
     }
+    this.catalogActiveIndex.set(-1);
+    this.addHighlightedOnNextResults = false;
     this.searchTerm.set('');
     this.searchInput$.next('');
     this.applyCatalogSearch('');
@@ -1110,7 +1242,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const normalized = term.toLowerCase();
     if (!normalized.trim()) {
-      this.filteredProducts.set(this.products());
+      this.publishFiltered(this.products(), '');
       return;
     }
 
@@ -1118,7 +1250,31 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       (p) =>
         p.name.toLowerCase().includes(normalized) || p.sku.toLowerCase().includes(normalized)
     );
-    this.filteredProducts.set(filtered);
+    this.publishFiltered(filtered, term);
+  }
+
+  private publishFiltered(rows: any[], search: string): void {
+    this.filteredProducts.set(rows);
+    const term = search.trim();
+    const pendingAdd = this.addHighlightedOnNextResults;
+    if (!term || rows.length === 0) {
+      this.catalogActiveIndex.set(-1);
+      if (search === this.searchTerm()) {
+        this.addHighlightedOnNextResults = false;
+      }
+      return;
+    }
+    if (this.catalogActiveIndex() < 0 || this.catalogActiveIndex() >= rows.length) {
+      this.catalogActiveIndex.set(0);
+      this.scrollCatalogActiveIntoView();
+    }
+    if (pendingAdd && search === this.searchTerm()) {
+      this.addHighlightedOnNextResults = false;
+      const picked = rows[this.catalogActiveIndex()] ?? rows[0];
+      if (picked && this.canAddToCart(picked)) {
+        this.addProductToCart(picked);
+      }
+    }
   }
 
   openProductDetail(product: any, event?: Event): void {
@@ -2216,6 +2372,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       })
       .subscribe({
         next: (summary) => {
+          if ((search ?? '') !== this.searchTerm()) {
+            return;
+          }
           this.applyInventorySummaryMeta(summary);
           const rows = summary.data ?? [];
           const normalized = (rows || []).map((row: any) => ({
@@ -2238,11 +2397,14 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
               (Array.isArray(row.applicable_discounts) && row.applicable_discounts.length > 0),
           }));
           this.products.set(normalized);
-          this.filteredProducts.set(normalized);
           this.priceListError.set(false);
+          this.publishFiltered(normalized, search);
           this.loading.set(false);
         },
         error: (error) => {
+          if ((search ?? '') !== this.searchTerm()) {
+            return;
+          }
           const recovery = normalizePosInventorySummary(error?.error);
           if (error?.status === 400 && recovery.warehouses.length > 0) {
             persistPosWarehouseId('');
@@ -2252,7 +2414,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           }
 
           this.products.set([]);
-          this.filteredProducts.set([]);
+          this.publishFiltered([], search);
           this.priceListError.set(true);
           this.loading.set(false);
           this.notifyError('No se pudo cargar inventario POS', 4000);

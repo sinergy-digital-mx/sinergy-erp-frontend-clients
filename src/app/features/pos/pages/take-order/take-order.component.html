@@ -325,7 +325,12 @@
           Sin inventario
         </button>
         </div>
-        <p class="pos-catalog__hint">{{ filteredProducts().length }} productos</p>
+        <p class="pos-catalog__hint">
+          {{ filteredProducts().length }} productos
+          @if (markedCatalogIndex() >= 0) {
+            <span class="pos-catalog__hint-keys">flechas y Enter</span>
+          }
+        </p>
       </div>
 
       @if (catalogIsReadOnly()) {
@@ -334,37 +339,58 @@
         </p>
       }
 
-      <div [class.pos-product-grid]="catalogView() === 'cards'" [class.pos-product-list]="catalogView() === 'list'">
-        @for (product of filteredProducts(); track catalogCardTrack(product)) {
+      <div class="pos-catalog__results">
+      <div
+        #catalogList
+        [class.pos-product-grid]="catalogView() === 'cards'"
+        [class.pos-product-list]="catalogView() === 'list'">
+        @if (catalogView() === 'list') {
+          <div class="pos-product-head" aria-hidden="true">
+            <span>Producto</span>
+            <span>Nº pieza</span>
+            <span class="is-num">Existencia</span>
+            <span>Unidad</span>
+            <span class="is-num">Precio</span>
+          </div>
+        }
+        @for (product of filteredProducts(); track catalogCardTrack(product); let i = $index) {
           @if (catalogView() === 'list') {
             <button
               type="button"
               class="pos-product-row"
+              [class.pos-product-row--active]="markedCatalogIndex() === i"
               [class.pos-product-row--locked]="!canAddToCart(product)"
               [disabled]="!canAddToCart(product)"
-              [attr.title]="getDisabledTooltip(product)"
-              (click)="addProductToCart(product)">
+              [attr.data-catalog-index]="i"
+              [attr.aria-selected]="markedCatalogIndex() === i"
+              [attr.title]="getDisabledTooltip(product) || null"
+              (click)="onCatalogRow(i, product)">
               <span class="pos-product-row__name">{{ product.name }}</span>
               <span class="pos-product-row__sku">{{ product.sku || '—' }}</span>
-              <span class="pos-product-row__stock">{{ product.total_available_quantity || 0 }}</span>
+              <span
+                class="pos-product-row__stock"
+                [class.pos-product-row__stock--empty]="!(product.total_available_quantity > 0)">
+                {{ formatStock(product.total_available_quantity) }}
+              </span>
               <span class="pos-product-row__uom">{{ catalogUomLabel(product) }}</span>
-              <span class="pos-product-row__price">
+              <span
+                class="pos-product-row__price"
+                [class.pos-product-row__price--none]="!product.has_price">
                 @if (product.has_price) {
                   {{ formatCatalogPrice(catalogPriceGross(product)) }}
                 } @else {
                   Sin precio
                 }
               </span>
-              @if (!catalogIsReadOnly()) {
-                <span class="pos-product-row__add">Agregar</span>
-              }
             </button>
           } @else {
           <article
             class="pos-card"
+            [class.pos-card--active]="markedCatalogIndex() === i"
             [class.pos-card--disabled]="!canAddToCart(product)"
+            [attr.data-catalog-index]="i"
             [attr.title]="getDisabledTooltip(product)"
-            (click)="canAddToCart(product) && addProductToCart(product)">
+            (click)="onCatalogRow(i, product)">
             <div class="pos-card__media">
               <button
                 type="button"
@@ -436,7 +462,7 @@
               <button
                 type="button"
                 class="pos-card__add"
-                (click)="addProductToCart(product); $event.stopPropagation()"
+                (click)="onCatalogRow(i, product); $event.stopPropagation()"
                 [disabled]="!canAddToCart(product)">
                 <lucide-icon [img]="Plus" [size]="16" class="pos-ic pos-ic--xs" />
                 <span>Agregar</span>
@@ -463,6 +489,7 @@
             <app-spinner></app-spinner>
           </div>
         }
+      </div>
       </div>
     </section>
       </div>
@@ -507,8 +534,10 @@
             type="button"
             class="pos-customer__search notranslate"
             translate="no"
-            (click)="openCustomerPicker()">
+            (click)="openCustomerPicker()"
+            title="Seleccionar cliente (F1)">
             {{ hasSelectedCustomer() ? 'Cambiar' : 'Existente' }}
+            <kbd class="pos-kbd">F1</kbd>
             @if (!hasSelectedCustomer()) {
               <lucide-icon [img]="ChevronRight" class="pos-customer__chevron pos-ic pos-ic--sm" />
             }
@@ -835,7 +864,9 @@
         </header>
         <ul class="pos-shortcuts-modal__list">
           <li><kbd>F1</kbd><span>Selecciona cliente</span></li>
-          <li><kbd>Teclear</kbd><span>Busca producto sin hacer click. Enter agrega el primero</span></li>
+          <li><kbd>Teclear</kbd><span>Busca sin hacer click. El primero queda marcado</span></li>
+          <li><kbd>↑ ↓</kbd><span>Mueve el producto marcado</span></li>
+          <li><kbd>Enter</kbd><span>Agrega el producto marcado</span></li>
           <li><kbd>Esc</kbd><span>Limpia la búsqueda o cierra este panel</span></li>
           <li><kbd>F5</kbd><span>Muestra las ventas que están en POS Caja para regresarlas a ventas</span></li>
         </ul>

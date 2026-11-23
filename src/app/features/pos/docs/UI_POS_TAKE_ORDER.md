@@ -21,7 +21,9 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 ### 2026-11-23
 
-La barra dice **POS** y la **i** abre los atajos: F1 cliente, escribir busca producto (Enter agrega el primero), Esc limpia, F5 lista lo que está en caja para regresarlo a ventas. Junto a la búsqueda hay tarjetas/lista; la vista queda en el navegador. El desplegable de sucursal solo consulta existencia: si no es la sucursal de la venta, no hay botón para agregar. Si el folio ya existe, **Cambiar** cliente lo actualiza en la orden.
+La barra dice **POS** y la **i** abre los atajos. **F1** abre el cliente (también está en el botón Existente/Cambiar; el navegador ya no se queda con esa tecla). Al buscar, el primer resultado queda marcado: las flechas lo mueven y Enter agrega ese renglón. Esc limpia la búsqueda. F5 lista lo que está en caja para regresarlo a ventas.
+
+La vista de lista tiene columnas (Producto, Nº pieza, Existencia, Unidad, Precio). El renglón marcado va en violeta. El renglón completo agrega; el precio ya no se ve como botón. Los iconos de tarjetas y lista van centrados, y el activo se pinta. Junto a la búsqueda hay tarjetas/lista; la vista queda en el navegador. El desplegable de sucursal solo consulta existencia: si no es la sucursal de la venta, no se puede agregar. Si el folio ya existe, **Cambiar** cliente lo actualiza en la orden.
 
 ### 2026-11-02
 
