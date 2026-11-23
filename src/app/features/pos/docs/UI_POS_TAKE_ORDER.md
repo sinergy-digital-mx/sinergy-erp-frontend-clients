@@ -19,6 +19,10 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 ## Cambios
 
+### 2026-11-23
+
+La barra dice **POS** y la **i** abre los atajos: F1 cliente, escribir busca producto (Enter agrega el primero), Esc limpia, F5 lista lo que está en caja para regresarlo a ventas. Junto a la búsqueda hay tarjetas/lista; la vista queda en el navegador. El desplegable de sucursal solo consulta existencia: si no es la sucursal de la venta, no hay botón para agregar. Si el folio ya existe, **Cambiar** cliente lo actualiza en la orden.
+
 ### 2026-11-02
 
 Cartas del catálogo más grandes: máximo 3 por fila en monitor e iPad anchos, 2 o 1 si el ancho no alcanza. Badges de stock y unidad con el texto centrado, sin pegarse entre sí ni al borde superior.

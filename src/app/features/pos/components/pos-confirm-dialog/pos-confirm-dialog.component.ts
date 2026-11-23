@@ -9,6 +9,7 @@ export interface PosConfirmDialogData {
   note?: string;
   cancelLabel?: string;
   acceptLabel: string;
+  hideCancel?: boolean;
 }
 
 @Component({

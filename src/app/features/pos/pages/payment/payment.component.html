@@ -3,6 +3,14 @@
     <div class="pos-session-bar__content">
       <div class="pos-session-bar__brand">
         <span>POS Caja</span>
+        <button
+          type="button"
+          class="pos-shortcuts-btn"
+          (click)="shortcutsOpen.set(true)"
+          title="Atajos"
+          aria-label="Atajos de teclado">
+          <lucide-icon [img]="Info" class="pos-ic pos-ic--btn" />
+        </button>
       </div>
 
       <nav class="pos-session-bar__meta" aria-label="Sesión POS">
@@ -719,7 +727,8 @@
                       placeholder="Nombre en el ticket"
                       autocomplete="off"
                       [ngModel]="walkInName()"
-                      (ngModelChange)="walkInName.set($event)" />
+                      (ngModelChange)="walkInName.set($event)"
+                      (blur)="syncSelectedCustomerToOrder()" />
                   </label>
                   <label class="cobranza-field">
                     <span>Teléfono</span>
@@ -729,7 +738,8 @@
                       placeholder="10 dígitos"
                       autocomplete="off"
                       [ngModel]="walkInPhone()"
-                      (ngModelChange)="walkInPhone.set($event)" />
+                      (ngModelChange)="walkInPhone.set($event)"
+                      (blur)="syncSelectedCustomerToOrder()" />
                   </label>
                   <label class="cobranza-field">
                     <span>RFC <em class="cobranza-field__hint">opcional</em></span>
@@ -740,7 +750,8 @@
                       autocomplete="off"
                       [class.cobranza-field__input--invalid]="walkInRfcInvalid()"
                       [ngModel]="walkInRfc()"
-                      (ngModelChange)="onWalkInRfcChange($event)" />
+                      (ngModelChange)="onWalkInRfcChange($event)"
+                      (blur)="syncSelectedCustomerToOrder()" />
                     @if (walkInRfcInvalid()) {
                       <small class="cobranza-walk-in-error">El RFC debe tener 12 o 13 caracteres</small>
                     }
@@ -1123,6 +1134,20 @@
                 }
 
                 @if (collectForm().paymentMethod === 'card') {
+                  <div class="cobranza-currency-toggle" role="group" aria-label="Tipo de tarjeta">
+                    <button
+                      type="button"
+                      [class.cobranza-currency-toggle__btn--active]="collectForm().cardKind === 'debit'"
+                      (click)="patchCollectForm({ cardKind: 'debit' })">
+                      Débito
+                    </button>
+                    <button
+                      type="button"
+                      [class.cobranza-currency-toggle__btn--active]="collectForm().cardKind === 'credit'"
+                      (click)="patchCollectForm({ cardKind: 'credit' })">
+                      Crédito
+                    </button>
+                  </div>
                   <label class="cobranza-field">
                     <span>Monto MXN</span>
                     <input
@@ -1603,6 +1628,20 @@
                             </div>
                           </header>
                           <div class="cobranza-mixed-card__body">
+                            <div class="cobranza-currency-toggle" role="group" [attr.aria-label]="'Tipo de tarjeta ' + ($index + 1)">
+                              <button
+                                type="button"
+                                [class.cobranza-currency-toggle__btn--active]="card.cardKind === 'debit'"
+                                (click)="onMixedCardKindChange($index, 'debit')">
+                                Débito
+                              </button>
+                              <button
+                                type="button"
+                                [class.cobranza-currency-toggle__btn--active]="card.cardKind === 'credit'"
+                                (click)="onMixedCardKindChange($index, 'credit')">
+                                Crédito
+                              </button>
+                            </div>
                             <label class="cobranza-field">
                               <span>Monto MXN</span>
                               <input
@@ -1979,7 +2018,12 @@
                       @if (cards.length > 0) {
                         @for (card of cards; track $index) {
                           <div>
-                            <dt>{{ cards.length > 1 ? 'Tarjeta ' + ($index + 1) : 'Tarjeta' }}</dt>
+                            <dt>
+                              {{ cards.length > 1 ? 'Tarjeta ' + ($index + 1) : 'Tarjeta' }}
+                              @if (cardKindLabel(card.card_kind); as kind) {
+                                {{ kind }}
+                              }
+                            </dt>
                             <dd>{{ moneyLabel(card.amount_mxn) }}</dd>
                           </div>
                           @if (card.reference) {
@@ -2066,5 +2110,22 @@
       }
     </div>
     }
+  }
+
+  @if (shortcutsOpen()) {
+    <div class="pos-shortcuts-backdrop" (click)="shortcutsOpen.set(false)">
+      <div class="pos-shortcuts-modal" role="dialog" aria-labelledby="caja-shortcuts-title" (click)="$event.stopPropagation()">
+        <header class="pos-shortcuts-modal__head">
+          <h2 id="caja-shortcuts-title">Atajos de caja</h2>
+          <button type="button" class="pos-tickets-panel__close" (click)="shortcutsOpen.set(false)" aria-label="Cerrar">
+            <lucide-icon [img]="X" [size]="16" />
+          </button>
+        </header>
+        <ul class="pos-shortcuts-modal__list">
+          <li><kbd>F2</kbd><span>Buscar ventas pasadas para abono. Pendiente.</span></li>
+        </ul>
+        <p class="pos-shortcuts-modal__note">Si Ventas regresa un folio que tienes abierto, se cierra y verás el aviso.</p>
+      </div>
+    </div>
   }
 </div>

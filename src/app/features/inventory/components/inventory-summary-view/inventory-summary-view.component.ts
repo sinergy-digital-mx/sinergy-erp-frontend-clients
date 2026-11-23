@@ -7,7 +7,7 @@ import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-messa
 import { InventorySummaryFilters, InventorySummaryItem } from '../../models/inventory-item.model';
 import { InventoryService } from '../../services/inventory.service';
 import { InventoryListState } from '../../services/inventory-list-state.service';
-import { formatApiDate } from '../../../../core/utils/api-datetime.util';
+import { parseApiDateTime } from '../../../../core/utils/api-datetime.util';
 import {
   formatInventoryNumber,
   inventoryLocationLabel,
@@ -65,8 +65,10 @@ export class InventorySummaryViewComponent {
   formatNumber = formatInventoryNumber;
 
   formatDate(value: string): string {
-    const formatted = formatApiDate(value, 'date');
-    return formatted === '—' ? '-' : formatted;
+    const date = parseApiDateTime(value);
+    if (!date) return '-';
+    const month = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][date.getMonth()];
+    return `${month} ${date.getDate()} ${String(date.getFullYear()).slice(-2)}`;
   }
   measureLabel = inventoryMeasureLabel;
   measureTotalLabel = measureTotalLabel;

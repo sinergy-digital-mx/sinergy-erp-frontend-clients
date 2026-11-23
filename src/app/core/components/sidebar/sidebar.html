@@ -27,7 +27,7 @@
     <div class="sidebar__nav-scroll flex flex-col flex-1 overflow-y-auto" (scroll)="hideRailTip()">
         <!-- Logo Section -->
         <div
-          class="logo-section py-4 border-b border-white/10"
+          class="logo-section"
           [class.px-6]="!isRailCompact()"
           [class.px-2]="isRailCompact()"
           [class.logo-section--compact]="isRailCompact()">
@@ -42,8 +42,6 @@
             <div class="nav-section" [class.nav-section--first]="first">
               @if (!isRailCompact()) {
                 <h3 class="nav-section-title">{{ section.title }}</h3>
-              } @else if (!first) {
-                <div class="nav-section-spacer" aria-hidden="true"></div>
               }
               <div class="nav-section-items flex flex-col gap-1">
                 @for (item of section.items; track item.id) {

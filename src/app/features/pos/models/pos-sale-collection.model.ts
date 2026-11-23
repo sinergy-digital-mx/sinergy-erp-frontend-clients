@@ -24,7 +24,12 @@ export interface PosSaleCollection {
   card_reference?: string | null;
   card_payer_name?: string | null;
   card_payer_phone?: string | null;
-  card_payments?: Array<{ amount_mxn?: number | string; reference?: string | null }>;
+  card_payments?: Array<{
+    amount_mxn?: number | string;
+    reference?: string | null;
+    card_kind?: 'debit' | 'credit' | null;
+  }>;
+  card_kind?: 'debit' | 'credit' | null;
   amount_check_mxn?: number | string;
   amount_check_usd?: number | string;
   check_reference?: string | null;
@@ -41,7 +46,12 @@ export interface PosSaleCollection {
 export type PosCardPaymentRow = {
   amount_mxn: number;
   reference: string | null;
+  card_kind: 'debit' | 'credit' | null;
 };
+
+function readCardKind(value: unknown): 'debit' | 'credit' | null {
+  return value === 'debit' || value === 'credit' ? value : null;
+}
 
 export function posCollectionCardRows(
   pay:
@@ -64,6 +74,7 @@ export function posCollectionCardRows(
           reference: row['reference'] != null && String(row['reference']).trim()
             ? String(row['reference']).trim()
             : null,
+          card_kind: readCardKind(row['card_kind']),
         };
       })
       .filter((item) => item.amount_mxn > 0);
@@ -76,7 +87,8 @@ export function posCollectionCardRows(
     record['card_reference'] != null && String(record['card_reference']).trim()
       ? String(record['card_reference']).trim()
       : null;
-  return [{ amount_mxn: amount, reference }];
+  const kind = readCardKind(record['card_kind']);
+  return [{ amount_mxn: amount, reference, card_kind: kind }];
 }
 
 export function normalizePosSaleCollection(raw: unknown): PosSaleCollection | null {

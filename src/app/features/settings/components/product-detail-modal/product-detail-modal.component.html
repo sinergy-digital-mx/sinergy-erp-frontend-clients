@@ -271,6 +271,7 @@
           <div class="tab-header">
             <button class="btn btn--sm btn--primary" (click)="openPriceModal()" type="button" [disabled]="loadingPrices">+ Agregar Precio</button>
           </div>
+          <p class="field-hint">La marca es de la lista, para todo el catálogo. Si este producto no tiene precio en esa lista, el margen usa la lista activa más antigua. No cambia ventas.</p>
 
           <div *ngIf="loadingPrices && (!product.prices || product.prices.length === 0)" class="tab-loader">
             <app-spinner></app-spinner>
@@ -295,7 +296,23 @@
             <tbody>
               <tr *ngFor="let price of product.prices">
                 <td>{{ price.product_uom?.uom?.name || '—' }}</td>
-                <td>{{ price.price_list?.name || '—' }}</td>
+                <td>
+                  <div class="price-list-cell">
+                    <span>{{ price.price_list?.name || '—' }}</span>
+                    <button
+                      *ngIf="price.price_list_id"
+                      type="button"
+                      class="margin-flag"
+                      [class.margin-flag--on]="price.price_list?.is_margin_default"
+                      [disabled]="savingMarginList"
+                      (click)="toggleMarginPriceList(price)"
+                      [title]="price.price_list?.is_margin_default
+                        ? 'Esta lista es el precio de los márgenes. Clic para quitarla.'
+                        : 'Usar esta lista como precio de los márgenes en todo el catálogo. No cambia ventas.'">
+                      {{ price.price_list?.is_margin_default ? 'Márgenes' : 'Para márgenes' }}
+                    </button>
+                  </div>
+                </td>
                 <td>${{ formatUnitAmount(price.price) }}</td>
                 <td>{{ price.iva_percentage || 0 }}%</td>
                 <td *ngIf="showIeps">{{ price.ieps_percentage || 0 }}%</td>
@@ -751,6 +768,14 @@
         <div class="form-field form-field--full">
           <label class="form-label">DESCRIPCIÓN</label>
           <textarea class="form-textarea" [(ngModel)]="priceListForm.description" placeholder="Descripción opcional" rows="2"></textarea>
+        </div>
+
+        <div class="form-field form-field--full">
+          <div class="checkbox-wrapper">
+            <input id="margin-default-list" type="checkbox" [(ngModel)]="priceListForm.is_margin_default">
+            <label for="margin-default-list">Usar en márgenes</label>
+          </div>
+          <p class="field-hint">Solo el precio de los márgenes. No se usa en ventas.</p>
         </div>
       </div>
 

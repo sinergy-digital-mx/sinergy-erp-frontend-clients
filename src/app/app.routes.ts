@@ -202,7 +202,7 @@ export const routes: Routes = [
             .then(m => m.TakeOrderComponent),
         data: {
           permission: 'pos:Create',
-          title: 'Punto de Venta'
+          title: 'POS'
         }
       },
       {

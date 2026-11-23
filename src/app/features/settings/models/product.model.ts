@@ -112,6 +112,7 @@ export interface PriceList {
   margin_percent?: number | null;
   description?: string | null;
   is_default: boolean;
+  is_margin_default?: boolean;
   is_active?: boolean;
   valid_from?: string | null;
   valid_to?: string | null;
@@ -325,6 +326,7 @@ export interface CreatePriceListDto {
   margin_percent?: number | null;
   description?: string;
   is_default?: boolean;
+  is_margin_default?: boolean;
   valid_from?: string | null;
   valid_to?: string | null;
 }

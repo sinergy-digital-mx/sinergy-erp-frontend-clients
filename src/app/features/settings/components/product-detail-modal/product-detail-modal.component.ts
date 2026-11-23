@@ -195,6 +195,7 @@ export class ProductDetailModalComponent implements OnInit {
   costModalVisible = false;
   discountModalVisible = false;
   priceListModalVisible = false;
+  savingMarginList = false;
   attributeModalVisible = false;
   attributeValueModalVisible = false;
 
@@ -1550,7 +1551,13 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   openPriceListModal(): void {
-    this.priceListForm = { name: '', description: '', list_number: '', margin_percent: '' };
+    this.priceListForm = {
+      name: '',
+      description: '',
+      list_number: '',
+      margin_percent: '',
+      is_margin_default: false,
+    };
     this.priceListModalVisible = true;
     this.syncDialogCloseGuard();
   }
@@ -1577,9 +1584,11 @@ export class ProductDetailModalComponent implements OnInit {
       description: string;
       list_number?: number;
       margin_percent?: number;
+      is_margin_default?: boolean;
     } = {
       name: this.priceListForm.name.trim(),
-      description: this.priceListForm.description?.trim() || ''
+      description: this.priceListForm.description?.trim() || '',
+      is_margin_default: this.priceListForm.is_margin_default === true,
     };
     if (listNumber != null) data.list_number = listNumber;
     if (margin != null) data.margin_percent = margin;
@@ -1594,6 +1603,9 @@ export class ProductDetailModalComponent implements OnInit {
           this.priceListModalVisible = false;
         });
         this.showNotification('Lista de precios creada correctamente', 'success');
+        if (newList.is_margin_default) {
+          this.applyMarginPriceList(newList.id, true);
+        }
         this.priceLists.push(newList);
         this.priceForm.price_list_id = newList.id;
       },
@@ -1603,6 +1615,42 @@ export class ProductDetailModalComponent implements OnInit {
         this.showNotification('Error al crear la lista de precios: ' + (error.error?.message || error.message), 'error');
       }
     });
+  }
+
+  toggleMarginPriceList(price: ProductPrice): void {
+    const priceListId = price.price_list_id;
+    if (!priceListId || this.savingMarginList) return;
+    const next = !price.price_list?.is_margin_default;
+    this.savingMarginList = true;
+    this.productService.updatePriceList(priceListId, { is_margin_default: next }).subscribe({
+      next: () => {
+        this.applyMarginPriceList(priceListId, next);
+        this.savingMarginList = false;
+        this.cdr.detectChanges();
+        this.showNotification(
+          next
+            ? 'Esta lista se usa en los márgenes'
+            : 'Los márgenes vuelven a la lista activa más antigua',
+          'success',
+        );
+      },
+      error: (error) => {
+        this.savingMarginList = false;
+        this.cdr.detectChanges();
+        this.showNotification(error.error?.message || 'No se pudo marcar la lista', 'error');
+      },
+    });
+  }
+
+  private applyMarginPriceList(priceListId: string, active: boolean): void {
+    this.priceLists = this.priceLists.map((list) => ({
+      ...list,
+      is_margin_default: active && list.id === priceListId,
+    }));
+    for (const row of this.product?.prices ?? []) {
+      if (!row.price_list) continue;
+      row.price_list.is_margin_default = active && row.price_list_id === priceListId;
+    }
   }
 
   private parseOptionalListNumber(value: unknown): number | null | 'invalid' {

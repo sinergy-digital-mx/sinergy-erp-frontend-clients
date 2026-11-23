@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   Component,
+  HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -38,6 +39,7 @@ import {
   Undo2,
   AlertTriangle,
   Truck,
+  Info,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -115,7 +117,9 @@ import {
   enableMixedCard,
   disableMixedCard,
   removeMixedCardPayment,
+  setMixedCardKind,
   setMixedCardReference,
+  PosCardKind,
   MAX_MIXED_CARD_PAYMENTS,
   sumCashDenominations,
   syncCashFormFromReceived,
@@ -230,6 +234,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly ArrowRightLeft = ArrowRightLeft;
   readonly Layers = Layers;
   readonly RefreshCw = RefreshCw;
+  readonly Info = Info;
+  shortcutsOpen = signal(false);
+  private cajaWatchTimer: ReturnType<typeof setInterval> | null = null;
+  private ignoreCajaEject = false;
   readonly Receipt = Receipt;
   readonly ChevronLeft = ChevronLeft;
   readonly Printer = Printer;
@@ -551,6 +559,23 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    const current = this.selectedSale();
+    this.stopCajaWatch();
+    if (current) {
+      this.releaseCajaPresence(current);
+    }
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onCajaKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'F2') {
+      return;
+    }
+    event.preventDefault();
+    if (this.dialog.openDialogs.length) {
+      return;
+    }
+    this.shortcutsOpen.set(true);
   }
 
   terminalLabel(): string {
@@ -1045,6 +1070,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   selectSale(sale: PendingSale): void {
+    const previous = this.selectedSale();
+    if (previous?.id && previous.id !== sale.id) {
+      this.releaseCajaPresence(previous);
+    }
     this.dashboardTab.set('pending');
     this.selectedCollectedSale.set(null);
     this.collectionDetail.set(null);
@@ -1057,6 +1086,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cashManualUsd.set(0);
     this.collectForm.set(this.buildCollectFormForTotal(total));
     this.initCustomerFromSale(sale);
+    this.startCajaWatch(sale);
   }
 
   openSaleDetail(event: Event, orderId?: string | null): void {
@@ -1072,6 +1102,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   clearSelectedSale(): void {
+    const current = this.selectedSale();
+    this.stopCajaWatch();
+    if (current) {
+      this.releaseCajaPresence(current);
+    }
     this.selectedSale.set(null);
     this.collectError.set(null);
   }
@@ -1230,6 +1265,17 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   onMixedCardRefChange(index: number, value: string): void {
     this.collectForm.update((form) => setMixedCardReference(form, index, value));
     this.collectError.set(null);
+  }
+
+  onMixedCardKindChange(index: number, kind: PosCardKind): void {
+    this.collectForm.update((form) => setMixedCardKind(form, index, kind));
+    this.collectError.set(null);
+  }
+
+  cardKindLabel(kind: unknown): string {
+    if (kind === 'debit') return 'débito';
+    if (kind === 'credit') return 'crédito';
+    return '';
   }
 
   applyMixedRemainderTo(part: MixedPartId): void {
@@ -1645,6 +1691,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setCustomerMode(mode: CustomerMode): void {
+    if (mode === 'walk_in' && this.isAdvanceSale()) {
+      this.toast.info('El anticipo necesita un cliente del catálogo.');
+      return;
+    }
     this.customerMode.set(mode);
     if (mode === 'walk_in') {
       const sale = this.selectedSale();
@@ -1662,6 +1712,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       if (this.collectForm().paymentMethod === 'credit') {
         this.setPaymentMethod('cash');
       }
+      this.syncSelectedCustomerToOrder();
       return;
     }
     this.walkInTicketOpen.set(false);
@@ -1727,6 +1778,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         : 'Cliente';
       this.selectedCustomerName.set(name);
       this.loadRegisteredCustomer(result.customerId);
+      this.syncSelectedCustomerToOrder();
     });
   }
 
@@ -1759,6 +1811,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         if (!confirmed) {
           return;
         }
+        this.ignoreCajaEject = true;
         this.returningToSales.set(true);
         const request$ = isAdvance
           ? this.posService.returnQuotationToVentas(sale.id)
@@ -1767,6 +1820,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           next: () => {
             this.returningToSales.set(false);
             this.clearSelectedSale();
+            this.ignoreCajaEject = false;
             this.loadPendingSales();
             this.toast.success(
               `${folio} regresó a ventas. En POS Ventas recarga Tickets para abrirlo.`,
@@ -1775,6 +1829,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           },
           error: (error) => {
             this.returningToSales.set(false);
+            this.ignoreCajaEject = false;
             this.toast.error(mapPosApiErrorMessage(error.error?.message), { duration: 5000 });
           },
         });
@@ -1869,6 +1924,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           const msg = mapPosApiErrorMessage(error.error?.message);
           this.collectError.set(msg);
           this.toast.error(msg);
+          this.noteIfVentasPulled(msg);
         },
       });
       return;
@@ -1922,8 +1978,19 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         const msg = mapPosApiErrorMessage(error.error?.message);
         this.collectError.set(msg);
         this.toast.error(msg);
+        this.noteIfVentasPulled(msg);
       },
     });
+  }
+
+  private noteIfVentasPulled(message: string): void {
+    const text = message.toLowerCase();
+    if (!text.includes('regresó esta venta') && !text.includes('regreso esta venta')) {
+      return;
+    }
+    this.stopCajaWatch();
+    this.selectedSale.set(null);
+    this.loadPendingSales();
   }
 
   openPrinterSettings(): void {
@@ -2239,6 +2306,85 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private buildCollectFormForTotal(total: number): PosCollectForm {
     return defaultCollectForm(total, this.dailyUsdMxnRate() ?? undefined);
+  }
+
+  private startCajaWatch(sale: PendingSale): void {
+    this.stopCajaWatch();
+    const tick = () => {
+      const current = this.selectedSale();
+      if (!current?.id || current.id !== sale.id) {
+        return;
+      }
+      const kind = current.kind === 'advance' ? 'advance' : 'sale';
+      this.posService.touchCajaPresence(current.id, kind).subscribe({
+        next: (status) => {
+          if (this.ignoreCajaEject || this.selectedSale()?.id !== sale.id || status?.in_caja !== false) {
+            return;
+          }
+          const folio = current.folio || current.id;
+          this.stopCajaWatch();
+          this.selectedSale.set(null);
+          this.collectError.set(null);
+          this.loadPendingSales();
+          this.dialog.open(PosConfirmDialogComponent, {
+            width: '420px',
+            maxWidth: '95vw',
+            panelClass: 'pos-dialog-panel',
+            autoFocus: 'first-tabbable',
+            data: {
+              title: 'Folio regresado',
+              message: status.message || 'Ventas regresó esta venta a POS Ventas',
+              note: `${folio} ya no está en POS Caja.`,
+              acceptLabel: 'Entendido',
+              hideCancel: true,
+            },
+          });
+        },
+      });
+    };
+    tick();
+    this.cajaWatchTimer = setInterval(tick, 4000);
+  }
+
+  private stopCajaWatch(): void {
+    if (this.cajaWatchTimer) {
+      clearInterval(this.cajaWatchTimer);
+      this.cajaWatchTimer = null;
+    }
+  }
+
+  private releaseCajaPresence(sale: PendingSale): void {
+    if (!sale?.id) {
+      return;
+    }
+    const kind = sale.kind === 'advance' ? 'advance' : 'sale';
+    this.posService.releaseCajaPresence(sale.id, kind).subscribe({ error: () => undefined });
+  }
+
+  syncSelectedCustomerToOrder(): void {
+    const sale = this.selectedSale();
+    if (!sale?.id || this.collecting()) {
+      return;
+    }
+    const registered = this.customerMode() === 'registered';
+    const customerId = registered ? this.resolveCollectCustomerId() ?? null : null;
+    if (sale.kind === 'advance') {
+      if (!customerId) {
+        return;
+      }
+      this.posService.updateQuotationCustomer(sale.id, { customer_id: customerId }).subscribe({
+        error: (error) => this.toast.error(mapPosApiErrorMessage(error?.error?.message) || 'No se pudo cambiar el cliente'),
+      });
+      return;
+    }
+    this.posService.updateSaleCustomer(sale.id, {
+      customer_id: customerId,
+      walk_in_name: this.walkInName(),
+      walk_in_phone: this.walkInPhone(),
+      walk_in_rfc: this.walkInRfc(),
+    }).subscribe({
+      error: (error) => this.toast.error(mapPosApiErrorMessage(error?.error?.message) || 'No se pudo cambiar el cliente'),
+    });
   }
 
   private resolveCollectCustomerId(): number | string | undefined {

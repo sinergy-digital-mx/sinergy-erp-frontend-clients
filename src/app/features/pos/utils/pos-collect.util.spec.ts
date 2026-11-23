@@ -40,7 +40,7 @@ describe('pago mixto — resto automático', () => {
     form.paymentMethod = 'mixed';
     form.mixedUsesCash = true;
     form = enableMixedCard(form);
-    form.mixedCardPayments = [{ amountMxn: 0, reference: '' }];
+    form.mixedCardPayments = [{ amountMxn: 0, reference: '', cardKind: '' }];
     form.mixedCashMxn = 12000;
 
     form = applyMixedRemainderToLast(form, total, 'cash');
@@ -72,7 +72,7 @@ describe('pago mixto — resto automático', () => {
     form.mixedUsesCash = true;
     form.mixedUsesTransfer = true;
     form = enableMixedCard(form);
-    form.mixedCardPayments = [{ amountMxn: 0, reference: '' }];
+    form.mixedCardPayments = [{ amountMxn: 0, reference: '', cardKind: '' }];
     form.mixedCashMxn = 400;
     form.mixedTransferMxn = 150;
 
@@ -158,8 +158,8 @@ describe('pago mixto — resto automático', () => {
     expect(mixedSelectedCount(form)).toBe(2);
 
     form.mixedCardPayments = [
-      { amountMxn: 400, reference: '4242' },
-      { amountMxn: 430.5, reference: '1111' },
+      { amountMxn: 400, reference: '4242', cardKind: 'debit' },
+      { amountMxn: 430.5, reference: '1111', cardKind: 'credit' },
     ];
     form.cardPayerName = 'Ana López';
     form.cardPayerPhone = '6641234567';
@@ -170,8 +170,8 @@ describe('pago mixto — resto automático', () => {
     expect(payload.payment_method).toBe('mixed');
     expect(payload.amount_card_mxn).toBe(830.5);
     expect(payload.card_payments).toEqual([
-      { amount_mxn: 400, reference: '4242' },
-      { amount_mxn: 430.5, reference: '1111' },
+      { amount_mxn: 400, reference: '4242', card_kind: 'debit' },
+      { amount_mxn: 430.5, reference: '1111', card_kind: 'credit' },
     ]);
     expect(payload.card_payer_name).toBe('Ana López');
     expect(payload.card_payer_phone).toBe('6641234567');

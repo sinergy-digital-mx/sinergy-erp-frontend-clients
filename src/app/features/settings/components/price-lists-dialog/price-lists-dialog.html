@@ -12,6 +12,7 @@
     <div class="dialog-actions">
       <button class="btn btn--sm btn--primary" (click)="addNew()" type="button">+ Crear Nueva</button>
     </div>
+    <p class="field-hint">La lista predeterminada solo define el precio de los márgenes. Ventas y punto de venta no cambian.</p>
 
     <div *ngIf="loading" class="loading-state">
       <app-spinner></app-spinner>
@@ -27,6 +28,7 @@
           <th>NÚMERO</th>
           <th>NOMBRE</th>
           <th>MARGEN</th>
+          <th>PARA MÁRGENES</th>
           <th>DESCRIPCIÓN</th>
           <th>ACCIONES</th>
         </tr>
@@ -62,6 +64,24 @@
               <span>%</span>
             </label>
             <span *ngIf="!list.editing">{{ marginLabel(list) }}</span>
+          </td>
+          <td>
+            <label *ngIf="list.isNew" class="margin-check">
+              <input type="checkbox" [(ngModel)]="list.is_margin_default">
+              Usar
+            </label>
+            <button
+              *ngIf="!list.isNew"
+              type="button"
+              class="margin-flag"
+              [class.margin-flag--on]="list.is_margin_default"
+              [disabled]="marginSaving || list.editing"
+              (click)="toggleMarginDefault(list)"
+              [title]="list.is_margin_default
+                ? 'Esta lista es el precio de los márgenes. Clic para quitarla.'
+                : 'Usar esta lista como precio de los márgenes. No cambia ventas.'">
+              {{ list.is_margin_default ? 'Predeterminada' : 'Usar' }}
+            </button>
           </td>
           <td>
             <input 

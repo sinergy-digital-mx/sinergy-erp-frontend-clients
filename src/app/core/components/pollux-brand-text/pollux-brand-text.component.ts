@@ -63,9 +63,10 @@ import { SystemLogoService } from '../../services/system-logo.service';
     .pollux-brand-text--compact {
       font-size: 1.65rem;
       letter-spacing: 0;
-      line-height: 1;
+      line-height: 1.25;
       max-width: 100%;
-      overflow: hidden;
+      overflow: visible;
+      padding-bottom: 0.12rem;
       animation: pollux-lights-compact 5s 750ms linear infinite;
     }
 

@@ -11,6 +11,10 @@ Fila 2: Cheque · Mixto · Crédito (Crédito solo si el cliente lo tiene en esa
 
 ## Cambios
 
+### 2026-11-23
+
+En **Tarjeta** y en cada tarjeta de **Mixto** se elige Débito o Crédito. Pueden ser distintas. Si caja cambia el cliente antes de cobrar, ese cliente queda en la orden. Mientras el folio está abierto, caja avisa cada pocos segundos: si Ventas lo regresó, se cierra y sale «Ventas regresó esta venta a POS Ventas». F2 (abonos) sigue pendiente; la **i** de la barra lo dice.
+
 ### 2026-11-02
 
 En **Cheque** (también dentro de mixto) hay dos botones: Pesos y Dólares. Un cheque es de una sola moneda. En dólares se usa el tipo de cambio del corte y se muestra a cuántos pesos equivale. El número, el nombre y el teléfono siguen igual.

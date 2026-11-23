@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { LucideAngularModule, Info } from 'lucide-angular';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { InventoryMarginSnapshot } from '../../models/inventory-margin.model';
@@ -7,7 +8,7 @@ import { InventoryMarginSnapshot } from '../../models/inventory-margin.model';
 @Component({
   selector: 'app-inventory-margin-chip',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, MatTooltipModule],
   templateUrl: './inventory-margin-chip.component.html',
   styleUrl: './inventory-margin-chip.component.scss',
 })

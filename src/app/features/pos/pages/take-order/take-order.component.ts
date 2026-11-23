@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   Component,
+  HostListener,
   OnDestroy,
   OnInit,
   signal,
@@ -14,7 +15,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subject, catchError, debounceTime, distinctUntilChanged, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
-import { AuthService } from '../../../../core/services/auth.service';
+import { AssignedBranch, AuthService } from '../../../../core/services/auth.service';
 import { MatDialog } from '@angular/material/dialog';
 import {
   LucideAngularModule,
@@ -34,6 +35,9 @@ import {
   X,
   Ticket,
   RefreshCw,
+  LayoutGrid,
+  List,
+  Store,
 } from 'lucide-angular';
 import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
@@ -53,7 +57,7 @@ import { ProductDetailModalComponent } from '../../../settings/components/produc
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { POSService } from '../../services/pos.service';
 import { PosStateService } from '../../services/pos-state.service';
-import { POSCart, POSCartItem, PosSaleInProgress } from '../../models/pos.model';
+import { POSCart, POSCartItem, PosCajaQueueTicket, PosSaleInProgress } from '../../models/pos.model';
 import {
   enrichPosInventorySummary,
   normalizePosInventorySummary,
@@ -126,6 +130,19 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly X = X;
   readonly Ticket = Ticket;
   readonly RefreshCw = RefreshCw;
+  readonly LayoutGrid = LayoutGrid;
+  readonly List = List;
+  readonly Store = Store;
+
+  private static readonly CATALOG_VIEW_KEY = 'pos_catalog_view';
+  catalogView = signal<'cards' | 'list'>(TakeOrderComponent.readCatalogView());
+  catalogBranchId = signal('');
+  browseBranches = signal<AssignedBranch[]>([]);
+  shortcutsOpen = signal(false);
+  cajaQueueOpen = signal(false);
+  cajaQueue = signal<PosCajaQueueTicket[]>([]);
+  loadingCajaQueue = signal(false);
+  recallingId = signal<string | null>(null);
 
   private static readonly CART_TOTALS_OPEN_KEY = 'pos_cart_totals_open';
   cartTotalsOpen = signal(TakeOrderComponent.readCartTotalsOpen());
@@ -257,6 +274,23 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  private static readCatalogView(): 'cards' | 'list' {
+    try {
+      return localStorage.getItem(TakeOrderComponent.CATALOG_VIEW_KEY) === 'list' ? 'list' : 'cards';
+    } catch {
+      return 'cards';
+    }
+  }
+
+  setCatalogView(view: 'cards' | 'list'): void {
+    this.catalogView.set(view);
+    try {
+      localStorage.setItem(TakeOrderComponent.CATALOG_VIEW_KEY, view);
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }
+
   private static readCartTotalsOpen(): boolean {
     try {
       return localStorage.getItem(TakeOrderComponent.CART_TOTALS_OPEN_KEY) !== 'false';
@@ -308,6 +342,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
         resetPosWarehouseForBranch(this.authService.getBillingBranchId());
+        this.syncBrowseBranches(this.authService.getBillingBranchId());
         const fiscalFromLogin = this.authService.getFiscalConfigurationId();
         if (fiscalFromLogin) {
           this.posState.fiscalConfigurationId.set(fiscalFromLogin);
@@ -420,6 +455,219 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.posBranchSession.canSwitch();
   }
 
+  catalogIsReadOnly(): boolean {
+    const view = this.catalogBranchId().trim();
+    const sell = (this.authService.getBillingBranchId() || '').trim();
+    return Boolean(view && sell && view !== sell);
+  }
+
+  catalogBranchLabel(): string {
+    const id = this.catalogBranchId();
+    const match = this.browseBranches().find((row) => row.id === id);
+    return match?.display_name || match?.code || 'otra sucursal';
+  }
+
+  onCatalogBranch(branchId: string): void {
+    this.catalogBranchId.set(branchId);
+    this.catalogWarehouseId.set('');
+    this.loadProducts(this.searchTerm());
+  }
+
+  private syncBrowseBranches(sellingBranchId?: string | null): void {
+    const branches = this.authService.getAssignedBranches();
+    this.browseBranches.set(branches);
+    const selling = (sellingBranchId || this.authService.getBillingBranchId() || '').trim();
+    this.catalogBranchId.set(selling);
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onPosKeydown(event: KeyboardEvent): void {
+    if (this.isCobranzaTerminal()) {
+      return;
+    }
+    const key = event.key;
+    if (key === 'F1') {
+      event.preventDefault();
+      if (this.dialog.openDialogs.length || !this.canSell()) {
+        return;
+      }
+      this.shortcutsOpen.set(false);
+      this.openCustomerPicker();
+      return;
+    }
+    if (key === 'F5') {
+      event.preventDefault();
+      if (this.dialog.openDialogs.length) {
+        return;
+      }
+      this.openCajaQueue();
+      return;
+    }
+    if (key === 'Escape') {
+      if (this.shortcutsOpen()) {
+        this.shortcutsOpen.set(false);
+        return;
+      }
+      if (this.cajaQueueOpen()) {
+        this.cajaQueueOpen.set(false);
+        return;
+      }
+      if (this.ticketsPanelOpen()) {
+        this.ticketsPanelOpen.set(false);
+        return;
+      }
+      if (this.searchTerm()) {
+        this.clearSearch();
+      }
+      return;
+    }
+    if (event.ctrlKey || event.altKey || event.metaKey || this.dialog.openDialogs.length) {
+      return;
+    }
+    if (this.shortcutsOpen() || this.cajaQueueOpen()) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    const inSearch = target?.classList?.contains('pos-search__input') === true;
+    if (key === 'Enter' && (inSearch || this.searchTerm().trim())) {
+      if (this.isTypingTarget(target) && !inSearch) {
+        return;
+      }
+      const first = this.filteredProducts()[0];
+      if (first && this.canAddToCart(first)) {
+        event.preventDefault();
+        this.addProductToCart(first);
+        this.clearSearch();
+      }
+      return;
+    }
+    if (key.length !== 1 || event.repeat || this.isTypingTarget(target)) {
+      return;
+    }
+    event.preventDefault();
+    this.catalogSearchRef?.nativeElement?.focus();
+    this.onSearchInput(`${this.searchTerm()}${key}`);
+  }
+
+  private isTypingTarget(target: EventTarget | null): boolean {
+    const el = target as HTMLElement | null;
+    if (!el) {
+      return false;
+    }
+    const tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+  }
+
+  openCajaQueue(): void {
+    this.ticketsPanelOpen.set(false);
+    this.shortcutsOpen.set(false);
+    this.cajaQueueOpen.set(true);
+    this.loadCajaQueue();
+  }
+
+  loadCajaQueue(): void {
+    if (this.isCobranzaTerminal()) {
+      return;
+    }
+    this.loadingCajaQueue.set(true);
+    this.posService.getSalesAwaitingCaja().subscribe({
+      next: ({ sales_in_caja }) => {
+        this.cajaQueue.set(sales_in_caja ?? []);
+        this.loadingCajaQueue.set(false);
+      },
+      error: (error) => {
+        this.loadingCajaQueue.set(false);
+        this.notifyError(
+          mapPosApiErrorMessage(error?.error?.message) || 'No se pudieron cargar las ventas en caja',
+        );
+      },
+    });
+  }
+
+  cajaTicketName(ticket: PosCajaQueueTicket): string {
+    const customer = ticket.customer;
+    if (!customer || customer.is_walk_in) {
+      return 'Público en General';
+    }
+    return (
+      customer.display_name ||
+      [customer.name, customer.lastname].filter(Boolean).join(' ').trim() ||
+      customer.company_name ||
+      'Cliente'
+    );
+  }
+
+  recallCajaTicket(ticket: PosCajaQueueTicket): void {
+    if (!ticket?.id || this.recallingId()) {
+      return;
+    }
+    const folio = ticket.folio || ticket.id;
+    const openNote = ticket.caja_open
+      ? '\n\nCaja la tiene abierta. Se le va a quitar y verá que Ventas la regresó.'
+      : '';
+    if (!confirm(`¿Regresar ${folio} a ventas? Sale de POS Caja.${openNote}`)) {
+      return;
+    }
+    this.recallingId.set(ticket.id);
+    const request$ = ticket.kind === 'advance'
+      ? this.posService.recallQuotationFromCaja(ticket.id)
+      : this.posService.recallSaleFromCaja(ticket.id);
+    request$.subscribe({
+      next: (response) => {
+        this.recallingId.set(null);
+        this.cajaQueueOpen.set(false);
+        const note = response?.caja_was_open
+          ? `${folio} volvió a ventas. Caja la tenía abierta y se le quitó.`
+          : `${folio} volvió a ventas.`;
+        this.notifySuccess(note, 5000);
+        this.posService.getSalesInProgress().subscribe({
+          next: ({ sales_in_progress }) => {
+            this.salesInProgress.set(sales_in_progress ?? []);
+            const loaded = (sales_in_progress ?? []).find((item) => item.id === ticket.id);
+            if (loaded) {
+              this.openReturnedTicket(loaded);
+            }
+          },
+        });
+        this.loadCajaQueue();
+      },
+      error: (error) => {
+        this.recallingId.set(null);
+        this.notifyError(mapPosApiErrorMessage(error?.error?.message) || 'No se pudo regresar el folio', 5000);
+        this.loadCajaQueue();
+      },
+    });
+  }
+
+  private persistEditingCustomer(): void {
+    const id = this.editingSaleId();
+    if (!id) {
+      return;
+    }
+    const customerId = this.selectedOrderCustomerId();
+    if (this.editingTicketKind() === 'advance') {
+      if (customerId == null || customerId === '') {
+        this.notifyError('El anticipo necesita un cliente del catálogo');
+        return;
+      }
+      this.posService.updateQuotationCustomer(id, { customer_id: customerId }).subscribe({
+        error: (error) => {
+          this.notifyError(mapPosApiErrorMessage(error?.error?.message) || 'No se pudo cambiar el cliente');
+        },
+      });
+      return;
+    }
+    this.posService.updateSaleCustomer(id, {
+      customer_id: customerId ?? null,
+      walk_in_name: this.walkInName(),
+      walk_in_rfc: this.walkInRfc(),
+    }).subscribe({
+      error: (error) => {
+        this.notifyError(mapPosApiErrorMessage(error?.error?.message) || 'No se pudo cambiar el cliente');
+      },
+    });
+  }
+
   changeBranch(): void {
     this.posBranchSession.pickBranch({ required: false }).subscribe({
       next: (branchId) => {
@@ -431,6 +679,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         this.clearEditingTicket();
         resetPosWarehouseForBranch(branchId);
         this.catalogWarehouseId.set('');
+        this.syncBrowseBranches(branchId);
         const fiscal = this.authService.getFiscalConfigurationId();
         if (fiscal) {
           this.posState.fiscalConfigurationId.set(fiscal);
@@ -468,6 +717,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.isCobranzaTerminal()) {
       return;
     }
+    this.loadCajaQueue();
     this.loadingTickets.set(true);
     this.posService.getSalesInProgress().subscribe({
       next: ({ sales_in_progress }) => {
@@ -516,6 +766,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   toggleTicketsPanel(): void {
     this.ticketsPanelOpen.update((open) => !open);
+    if (this.ticketsPanelOpen()) {
+      this.cajaQueueOpen.set(false);
+      this.shortcutsOpen.set(false);
+    }
     if (!this.ticketsPanelOpen()) {
       return;
     }
@@ -1598,6 +1852,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           if (changed && id) {
             this.resolveCustomerFiscal(id, true).subscribe();
           }
+          if (changed) {
+            this.persistEditingCustomer();
+          }
         }),
       );
   }
@@ -1643,6 +1900,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       switchMap(() => this.currentCustomerSnapshot(true)),
       catchError(() => of(null)),
     );
+  }
+
+  clearCustomerFromCart(): void {
+    this.clearSelectedCustomer();
+    this.persistEditingCustomer();
   }
 
   clearSelectedCustomer(): void {
@@ -1742,7 +2004,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  formatCurrency(amount: number): string {
+  formatCurrency(amount: number | string | null | undefined): string {
     return formatUnitCurrency(amount);
   }
 
@@ -1874,7 +2136,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   canAddToCart(product: any): boolean {
-    if (!this.canSell()) {
+    if (this.catalogIsReadOnly() || !this.canSell()) {
       return false;
     }
     if (this.priceListError()) {
@@ -1889,6 +2151,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getDisabledTooltip(product: any): string {
+    if (this.catalogIsReadOnly()) {
+      return 'Solo consulta. No se vende mercancía de otra sucursal';
+    }
     if (!this.posState.seller()) {
       return 'Identifica al vendedor con su código';
     }
@@ -1946,6 +2211,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       .getPosInventorySummary({
         search: search.trim() || undefined,
         warehouse_id: this.catalogWarehouseId() || undefined,
+        billing_branch_id: this.catalogBranchId() || undefined,
         limit: 200,
       })
       .subscribe({

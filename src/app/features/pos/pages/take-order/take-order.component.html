@@ -24,7 +24,15 @@
   <header class="pos-session-bar">
     <div class="pos-session-bar__content">
       <div class="pos-session-bar__brand">
-        <span>Punto de Venta</span>
+        <span>POS</span>
+        <button
+          type="button"
+          class="pos-shortcuts-btn"
+          (click)="shortcutsOpen.set(true)"
+          title="Atajos"
+          aria-label="Atajos de teclado">
+          <lucide-icon [img]="Info" class="pos-ic pos-ic--btn" />
+        </button>
       </div>
 
       <nav class="pos-session-bar__meta" aria-label="Sesión POS">
@@ -82,6 +90,19 @@
         <button
           type="button"
           class="pos-session-bar__icon-btn pos-tickets-btn"
+          [class.pos-tickets-btn--active]="cajaQueue().length > 0"
+          (click)="openCajaQueue()"
+          title="Ventas en caja (F5)"
+          aria-label="Ventas en caja">
+          <lucide-icon [img]="Store" class="pos-ic pos-ic--btn" />
+          <span class="pos-tickets-btn__label">En caja</span>
+          @if (cajaQueue().length > 0) {
+            <span class="pos-tickets-btn__badge">{{ cajaQueue().length }}</span>
+          }
+        </button>
+        <button
+          type="button"
+          class="pos-session-bar__icon-btn pos-tickets-btn"
           [class.pos-tickets-btn--active]="salesInProgress().length > 0"
           (click)="toggleTicketsPanel()"
           title="Tickets en ventas"
@@ -126,6 +147,60 @@
       {{ salesInProgress().length === 1 ? 'ticket regresado' : 'tickets regresados' }}
       de caja. Ábrelo, edita productos y pulsa Enviar a caja.
     </button>
+  }
+
+  @if (cajaQueueOpen()) {
+    <div class="pos-tickets-panel" role="dialog" aria-label="Ventas en caja">
+      <div class="pos-tickets-panel__head">
+        <strong>Ventas en caja</strong>
+        <div class="pos-tickets-panel__actions">
+          <button
+            type="button"
+            class="pos-tickets-panel__close"
+            (click)="loadCajaQueue()"
+            [disabled]="loadingCajaQueue()"
+            title="Actualizar"
+            aria-label="Actualizar ventas en caja">
+            <lucide-icon [img]="RefreshCw" [size]="16" [class.pos-tickets-panel__spin]="loadingCajaQueue()" />
+          </button>
+          <button type="button" class="pos-tickets-panel__close" (click)="cajaQueueOpen.set(false)" aria-label="Cerrar">
+            <lucide-icon [img]="X" [size]="16" />
+          </button>
+        </div>
+      </div>
+      <p class="pos-tickets-panel__note">Elige un folio para regresarlo a ventas. Sale de POS Caja.</p>
+      @if (loadingCajaQueue()) {
+        <p class="pos-tickets-panel__empty"><app-spinner size="sm"></app-spinner></p>
+      } @else if (cajaQueue().length === 0) {
+        <p class="pos-tickets-panel__empty">No hay ventas esperando en caja.</p>
+      } @else {
+        <ul class="pos-tickets-panel__list">
+          @for (ticket of cajaQueue(); track ticket.id) {
+            <li>
+              <button
+                type="button"
+                class="pos-tickets-panel__item"
+                [disabled]="recallingId() === ticket.id"
+                (click)="recallCajaTicket(ticket)">
+                <span>
+                  <strong>
+                    {{ ticket.folio || ticket.id }}
+                    @if (ticket.kind === 'advance') {
+                      <span class="pos-ticket-badge">Anticipo</span>
+                    }
+                    @if (ticket.caja_open) {
+                      <span class="pos-ticket-badge pos-ticket-badge--open">Caja abierta</span>
+                    }
+                  </strong>
+                  <small>{{ cajaTicketName(ticket) }}</small>
+                </span>
+                <strong>{{ formatCurrency(ticket.amount_pending ?? ticket.total ?? 0) }}</strong>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
   }
 
   @if (ticketsPanelOpen()) {
@@ -200,6 +275,35 @@
             </button>
           }
         </div>
+        <div class="pos-view-toggle" role="group" aria-label="Vista del catálogo">
+          <button
+            type="button"
+            [class.pos-view-toggle__btn--on]="catalogView() === 'cards'"
+            (click)="setCatalogView('cards')"
+            title="Tarjetas"
+            aria-label="Ver tarjetas">
+            <lucide-icon [img]="LayoutGrid" [size]="16" />
+          </button>
+          <button
+            type="button"
+            [class.pos-view-toggle__btn--on]="catalogView() === 'list'"
+            (click)="setCatalogView('list')"
+            title="Lista de inventario"
+            aria-label="Ver lista">
+            <lucide-icon [img]="List" [size]="16" />
+          </button>
+        </div>
+        @if (browseBranches().length > 0) {
+          <select
+            class="pos-warehouse-filter"
+            aria-label="Consultar existencia de otra sucursal"
+            [ngModel]="catalogBranchId()"
+            (ngModelChange)="onCatalogBranch($event)">
+            @for (branch of browseBranches(); track branch.id) {
+              <option [value]="branch.id">{{ branch.display_name || branch.code }}</option>
+            }
+          </select>
+        }
         <select
           class="pos-warehouse-filter"
           aria-label="Filtrar por bodega"
@@ -216,6 +320,7 @@
           [class.pos-no-stock-toggle--on]="allowWithoutInventory()"
           [attr.aria-pressed]="allowWithoutInventory()"
           title="Agregar productos sin inventario. Esos renglones solo se pueden cotizar."
+          [disabled]="catalogIsReadOnly()"
           (click)="toggleAllowWithoutInventory()">
           Sin inventario
         </button>
@@ -223,8 +328,38 @@
         <p class="pos-catalog__hint">{{ filteredProducts().length }} productos</p>
       </div>
 
-      <div class="pos-product-grid">
+      @if (catalogIsReadOnly()) {
+        <p class="pos-catalog-lock">
+          Solo consulta en {{ catalogBranchLabel() }}. No se puede vender mercancía de otra sucursal.
+        </p>
+      }
+
+      <div [class.pos-product-grid]="catalogView() === 'cards'" [class.pos-product-list]="catalogView() === 'list'">
         @for (product of filteredProducts(); track catalogCardTrack(product)) {
+          @if (catalogView() === 'list') {
+            <button
+              type="button"
+              class="pos-product-row"
+              [class.pos-product-row--locked]="!canAddToCart(product)"
+              [disabled]="!canAddToCart(product)"
+              [attr.title]="getDisabledTooltip(product)"
+              (click)="addProductToCart(product)">
+              <span class="pos-product-row__name">{{ product.name }}</span>
+              <span class="pos-product-row__sku">{{ product.sku || '—' }}</span>
+              <span class="pos-product-row__stock">{{ product.total_available_quantity || 0 }}</span>
+              <span class="pos-product-row__uom">{{ catalogUomLabel(product) }}</span>
+              <span class="pos-product-row__price">
+                @if (product.has_price) {
+                  {{ formatCatalogPrice(catalogPriceGross(product)) }}
+                } @else {
+                  Sin precio
+                }
+              </span>
+              @if (!catalogIsReadOnly()) {
+                <span class="pos-product-row__add">Agregar</span>
+              }
+            </button>
+          } @else {
           <article
             class="pos-card"
             [class.pos-card--disabled]="!canAddToCart(product)"
@@ -297,15 +432,18 @@
                 }
               </div>
             </div>
-            <button
-              type="button"
-              class="pos-card__add"
-              (click)="addProductToCart(product); $event.stopPropagation()"
-              [disabled]="!canAddToCart(product)">
-              <lucide-icon [img]="Plus" [size]="16" class="pos-ic pos-ic--xs" />
-              <span>Agregar</span>
-            </button>
+            @if (!catalogIsReadOnly()) {
+              <button
+                type="button"
+                class="pos-card__add"
+                (click)="addProductToCart(product); $event.stopPropagation()"
+                [disabled]="!canAddToCart(product)">
+                <lucide-icon [img]="Plus" [size]="16" class="pos-ic pos-ic--xs" />
+                <span>Agregar</span>
+              </button>
+            }
           </article>
+          }
         }
 
         @if (filteredProducts().length === 0 && !loading()) {
@@ -381,7 +519,7 @@
               class="pos-customer__clear"
               title="Quitar cliente"
               aria-label="Quitar cliente"
-              (click)="clearSelectedCustomer()">
+              (click)="clearCustomerFromCart()">
               <lucide-icon [img]="X" class="pos-ic pos-ic--xs" />
             </button>
           }
@@ -685,4 +823,24 @@
       </div>
     </aside>
   </div>
+
+  @if (shortcutsOpen()) {
+    <div class="pos-shortcuts-backdrop" (click)="shortcutsOpen.set(false)">
+      <div class="pos-shortcuts-modal" role="dialog" aria-labelledby="pos-shortcuts-title" (click)="$event.stopPropagation()">
+        <header class="pos-shortcuts-modal__head">
+          <h2 id="pos-shortcuts-title">Atajos de POS</h2>
+          <button type="button" class="pos-tickets-panel__close" (click)="shortcutsOpen.set(false)" aria-label="Cerrar">
+            <lucide-icon [img]="X" [size]="16" />
+          </button>
+        </header>
+        <ul class="pos-shortcuts-modal__list">
+          <li><kbd>F1</kbd><span>Selecciona cliente</span></li>
+          <li><kbd>Teclear</kbd><span>Busca producto sin hacer click. Enter agrega el primero</span></li>
+          <li><kbd>Esc</kbd><span>Limpia la búsqueda o cierra este panel</span></li>
+          <li><kbd>F5</kbd><span>Muestra las ventas que están en POS Caja para regresarlas a ventas</span></li>
+        </ul>
+        <p class="pos-shortcuts-modal__note">F2, buscar ventas pasadas para abono, queda pendiente y es de caja.</p>
+      </div>
+    </div>
+  }
 </div>

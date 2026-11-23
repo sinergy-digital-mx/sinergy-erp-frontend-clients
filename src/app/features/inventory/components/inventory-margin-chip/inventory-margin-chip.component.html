@@ -1,13 +1,16 @@
-<div
-  class="margin-chip"
-  [attr.data-source]="margin?.source || 'none'"
-  [attr.title]="tooltip">
+<div class="margin-chip" [attr.data-source]="margin?.source || 'none'">
   @if (!margin) {
     <span class="margin-chip__empty">—</span>
   } @else {
     <span class="margin-chip__pct" [attr.data-tone]="tone">{{ percentLabel }}</span>
-    <span class="margin-chip__info" [attr.title]="tooltip" aria-label="Origen del margen">
+    <button
+      type="button"
+      class="margin-chip__info"
+      [matTooltip]="tooltip || 'Sin dato de margen'"
+      matTooltipPosition="above"
+      matTooltipShowDelay="80"
+      [attr.aria-label]="tooltip || 'Origen del margen'">
       <lucide-icon [img]="Info" [size]="13"></lucide-icon>
-    </span>
+    </button>
   }
 </div>

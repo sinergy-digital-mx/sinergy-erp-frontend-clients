@@ -1,4 +1,5 @@
 export type CollectPaymentMethod = 'cash' | 'card' | 'transfer' | 'check' | 'mixed' | 'credit';
+export type PosCardKind = 'debit' | 'credit';
 export type MixedPaymentType = 'cash' | 'transfer' | 'card' | 'check';
 export type MixedPartId = 'cash' | 'transfer' | 'check' | `card:${number}`;
 
@@ -11,6 +12,7 @@ export type CashDenominationCounts = Record<string, number>;
 export interface MixedCardPayment {
   amountMxn: number;
   reference: string;
+  cardKind: PosCardKind | '';
 }
 
 export interface PosCollectForm {
@@ -24,6 +26,7 @@ export interface PosCollectForm {
   transferReference: string;
   amountCardMxn: number;
   cardReference: string;
+  cardKind: PosCardKind | '';
   amountCheckMxn: number;
   amountCheckUsd: number;
   /** Un cheque es de una sola moneda. */
@@ -63,7 +66,8 @@ export interface CollectSalePayload {
   transfer_reference?: string;
   amount_card_mxn?: number;
   card_reference?: string;
-  card_payments?: Array<{ amount_mxn: number; reference?: string }>;
+  card_kind?: PosCardKind;
+  card_payments?: Array<{ amount_mxn: number; reference?: string; card_kind?: PosCardKind }>;
   amount_check_mxn?: number;
   amount_check_usd?: number;
   check_reference?: string;
@@ -112,6 +116,7 @@ export function defaultCollectForm(orderTotal: number, usdExchangeRate?: number)
     transferReference: '',
     amountCardMxn: orderTotal,
     cardReference: '',
+    cardKind: '',
     amountCheckMxn: orderTotal,
     amountCheckUsd: 0,
     checkCurrency: 'MXN',
@@ -293,6 +298,9 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
     if (!amountsMatch(orderTotal, form.amountCardMxn)) {
       return `Los montos deben cubrir exactamente ${formatMoney(orderTotal)}`;
     }
+    if (!form.cardKind) {
+      return 'Elige si la tarjeta es de débito o crédito';
+    }
     return validatePayerContact(form);
   }
 
@@ -341,6 +349,9 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
         return form.mixedCardPayments.length > 1
           ? 'Ingresa el monto de cada tarjeta'
           : 'Ingresa el monto de tarjeta';
+      }
+      if (form.mixedCardPayments.some((card) => card.amountMxn > 0 && !card.cardKind)) {
+        return 'Elige débito o crédito en cada tarjeta';
       }
     }
     if (form.mixedUsesCheck && form.mixedCheckMxn <= 0 && form.mixedCheckUsd <= 0) {
@@ -594,10 +605,24 @@ function buildCollectPayloadBody(
   }
 
   if (form.paymentMethod === 'card') {
+    const amount = roundMoney(form.amountCardMxn);
+    const reference = form.cardReference.trim();
     return {
       ...base,
-      amount_card_mxn: roundMoney(form.amountCardMxn),
-      ...(form.cardReference.trim() ? { card_reference: form.cardReference.trim() } : {}),
+      amount_card_mxn: amount,
+      ...(reference ? { card_reference: reference } : {}),
+      ...(form.cardKind ? { card_kind: form.cardKind } : {}),
+      ...(form.cardKind
+        ? {
+            card_payments: [
+              {
+                amount_mxn: amount,
+                ...(reference ? { reference } : {}),
+                card_kind: form.cardKind,
+              },
+            ],
+          }
+        : {}),
     };
   }
 
@@ -642,6 +667,7 @@ function buildCollectPayloadBody(
     if (method === 'card') {
       single.amountCardMxn = mixedCardTotal(form);
       single.cardReference = form.mixedCardPayments[0]?.reference ?? '';
+      single.cardKind = form.mixedCardPayments[0]?.cardKind || '';
     }
     if (method === 'check') {
       single.amountCheckMxn = form.mixedCheckMxn;
@@ -711,7 +737,20 @@ function withPayerContact(form: PosCollectForm, payload: CollectSalePayload): Co
 }
 
 export function emptyMixedCardPayment(): MixedCardPayment {
-  return { amountMxn: 0, reference: '' };
+  return { amountMxn: 0, reference: '', cardKind: '' };
+}
+
+export function setMixedCardKind(
+  form: PosCollectForm,
+  index: number,
+  cardKind: PosCardKind,
+): PosCollectForm {
+  return {
+    ...form,
+    mixedCardPayments: form.mixedCardPayments.map((card, cardIndex) =>
+      cardIndex === index ? { ...card, cardKind } : card,
+    ),
+  };
 }
 
 export function mixedCardTotal(form: PosCollectForm): number {
@@ -723,7 +762,7 @@ export function mixedCardTotal(form: PosCollectForm): number {
 
 function mixedCardPayload(form: PosCollectForm): Pick<
   CollectSalePayload,
-  'amount_card_mxn' | 'card_reference' | 'card_payments'
+  'amount_card_mxn' | 'card_reference' | 'card_kind' | 'card_payments'
 > {
   if (!form.mixedUsesCard) {
     return {};
@@ -731,14 +770,17 @@ function mixedCardPayload(form: PosCollectForm): Pick<
   const cards = form.mixedCardPayments.filter((card) => card.amountMxn > 0);
   const amount = roundMoney(cards.reduce((sum, card) => sum + card.amountMxn, 0));
   const firstRef = cards.find((card) => card.reference.trim())?.reference.trim();
+  const firstKind = cards[0]?.cardKind;
   return {
     amount_card_mxn: amount,
     ...(firstRef ? { card_reference: firstRef } : {}),
-    ...(cards.length > 1
+    ...(firstKind ? { card_kind: firstKind } : {}),
+    ...(cards.length > 0
       ? {
           card_payments: cards.map((card) => ({
             amount_mxn: roundMoney(card.amountMxn),
             ...(card.reference.trim() ? { reference: card.reference.trim() } : {}),
+            ...(card.cardKind ? { card_kind: card.cardKind } : {}),
           })),
         }
       : {}),

@@ -8,9 +8,11 @@
     <p class="pos-confirm-dialog__note">{{ data.note }}</p>
   }
   <div class="pos-dialog__actions">
-    <button type="button" class="pos-confirm-dialog__btn pos-confirm-dialog__btn--ghost" (click)="cancel()">
-      {{ data.cancelLabel || 'Cancelar' }}
-    </button>
+    @if (!data.hideCancel) {
+      <button type="button" class="pos-confirm-dialog__btn pos-confirm-dialog__btn--ghost" (click)="cancel()">
+        {{ data.cancelLabel || 'Cancelar' }}
+      </button>
+    }
     <button type="button" class="pos-confirm-dialog__btn pos-confirm-dialog__btn--accent" (click)="confirm()">
       {{ data.acceptLabel }}
     </button>

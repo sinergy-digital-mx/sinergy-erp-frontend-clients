@@ -4,7 +4,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { GlobalDiscount } from '../../global-discounts/models/global-discount.model';
-import { POSCart, POSCartItem, PosSaleInProgress } from '../models/pos.model';
+import { POSCart, POSCartItem, PosCajaQueueTicket, PosSaleInProgress } from '../models/pos.model';
 import { PosApplicableDiscount } from '../models/pos-inventory-summary.model';
 import { previewLineDiscount, previewGlobalDiscount } from '../utils/pos-discount.util';
 import {
@@ -808,6 +808,66 @@ export class POSService {
     );
   }
 
+  getSalesAwaitingCaja(): Observable<{ sales_in_caja: PosCajaQueueTicket[] }> {
+    return this.http.get(`${this.API_URL}/sales-in-caja`, { params: this.branchParams() }).pipe(
+      map((res: any) => {
+        const payload = this.extractPayload(res);
+        const sales =
+          payload?.sales_in_caja ??
+          payload?.pending_sales ??
+          payload?.data ??
+          (Array.isArray(payload) ? payload : []);
+        return { sales_in_caja: Array.isArray(sales) ? sales : [] };
+      })
+    );
+  }
+
+  recallSaleFromCaja(salesOrderId: string): Observable<{ message?: string; caja_was_open?: boolean }> {
+    return this.http.post(`${this.API_URL}/sales/${salesOrderId}/recall-from-caja`, {}).pipe(
+      map((res: any) => this.extractPayload(res) ?? res)
+    );
+  }
+
+  recallQuotationFromCaja(quotationId: string): Observable<{ message?: string; caja_was_open?: boolean }> {
+    return this.http.post(`${this.API_URL}/quotations/${quotationId}/recall-from-caja`, {}).pipe(
+      map((res: any) => this.extractPayload(res) ?? res)
+    );
+  }
+
+  touchCajaPresence(id: string, kind: 'sale' | 'advance'): Observable<{ in_caja: boolean; message?: string | null; reason?: string | null }> {
+    const path = kind === 'advance'
+      ? `${this.API_URL}/quotations/${id}/caja-presence`
+      : `${this.API_URL}/sales/${id}/caja-presence`;
+    return this.http.post(path, {}).pipe(
+      map((res: any) => this.extractPayload(res) ?? res)
+    );
+  }
+
+  releaseCajaPresence(id: string, kind: 'sale' | 'advance'): Observable<unknown> {
+    const path = kind === 'advance'
+      ? `${this.API_URL}/quotations/${id}/caja-release`
+      : `${this.API_URL}/sales/${id}/caja-release`;
+    return this.http.post(path, {}).pipe(map((res: any) => this.extractPayload(res) ?? res));
+  }
+
+  updateSaleCustomer(
+    salesOrderId: string,
+    data: { customer_id?: number | string | null; walk_in_name?: string; walk_in_phone?: string; walk_in_rfc?: string },
+  ): Observable<{ message?: string; customer_id?: number }> {
+    return this.http.patch(`${this.API_URL}/sales/${salesOrderId}/customer`, data).pipe(
+      map((res: any) => this.extractPayload(res) ?? res)
+    );
+  }
+
+  updateQuotationCustomer(
+    quotationId: string,
+    data: { customer_id?: number | string | null },
+  ): Observable<{ message?: string; customer_id?: number }> {
+    return this.http.patch(`${this.API_URL}/quotations/${quotationId}/customer`, data).pipe(
+      map((res: any) => this.extractPayload(res) ?? res)
+    );
+  }
+
   getSalesInProgress(): Observable<{ sales_in_progress: PosSaleInProgress[] }> {
     return this.http.get(`${this.API_URL}/sales-in-progress`, { params: this.branchParams() }).pipe(
       map((res: any) => {
@@ -940,6 +1000,7 @@ export class POSService {
     search?: string;
     product_id?: string;
     warehouse_id?: string;
+    billing_branch_id?: string;
     page?: number;
     limit?: number;
   }): Observable<PosInventorySummaryResponse> {
@@ -960,7 +1021,7 @@ export class POSService {
       httpParams = httpParams.set('limit', String(params.limit));
     }
 
-    const branchId = this.auth.getBillingBranchId();
+    const branchId = params?.billing_branch_id?.trim() || this.auth.getBillingBranchId();
     if (branchId) {
       httpParams = httpParams.set('billing_branch_id', branchId);
     }

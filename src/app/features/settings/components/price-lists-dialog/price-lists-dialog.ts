@@ -18,6 +18,7 @@ import { PriceList } from '../../models/product.model';
 export class PriceListsDialogComponent implements OnInit {
   priceLists: any[] = [];
   loading = false;
+  marginSaving = false;
   originalData: any = {};
 
   constructor(
@@ -61,6 +62,7 @@ export class PriceListsDialogComponent implements OnInit {
       list_number: null,
       margin_percent: null,
       description: '',
+      is_margin_default: false,
       editing: true,
       isNew: true
     };
@@ -101,12 +103,21 @@ export class PriceListsDialogComponent implements OnInit {
       return;
     }
 
-    const data = {
+    const data: {
+      name: string;
+      description: string;
+      list_number: number | null;
+      margin_percent: number | null;
+      is_margin_default?: boolean;
+    } = {
       name: list.name.trim(),
       description: list.description?.trim() || '',
       list_number: listNumber,
       margin_percent: margin,
     };
+    if (list.isNew) {
+      data.is_margin_default = list.is_margin_default === true;
+    }
 
     if (list.isNew) {
       // Crear nueva lista
@@ -154,6 +165,33 @@ export class PriceListsDialogComponent implements OnInit {
         const errorMessage = error.error?.message || 'Error al eliminar la lista';
         this.showNotification(errorMessage, 'error');
       }
+    });
+  }
+
+  toggleMarginDefault(list: PriceList): void {
+    if (!list.id || this.marginSaving) return;
+    const next = !list.is_margin_default;
+    this.marginSaving = true;
+    this.productService.updatePriceList(list.id, { is_margin_default: next }).subscribe({
+      next: () => {
+        this.priceLists = this.priceLists.map((row) => ({
+          ...row,
+          is_margin_default: next && row.id === list.id,
+        }));
+        this.marginSaving = false;
+        this.cdr.detectChanges();
+        this.showNotification(
+          next
+            ? 'Esta lista se usa en los márgenes'
+            : 'Los márgenes vuelven a la lista activa más antigua',
+          'success',
+        );
+      },
+      error: (error) => {
+        this.marginSaving = false;
+        this.cdr.detectChanges();
+        this.showNotification(error.error?.message || 'No se pudo marcar la lista', 'error');
+      },
     });
   }
 

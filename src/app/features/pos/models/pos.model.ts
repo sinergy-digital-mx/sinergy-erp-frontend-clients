@@ -79,6 +79,23 @@ export interface PosSaleInProgressLine {
   selected_discount?: PosApplicableDiscount | null;
 }
 
+export interface PosCajaQueueTicket {
+  id: string;
+  kind?: 'sale' | 'advance';
+  folio?: string;
+  total?: number | string;
+  amount_pending?: number | string;
+  created_at?: string;
+  caja_open?: boolean;
+  customer?: {
+    name?: string;
+    lastname?: string;
+    company_name?: string;
+    display_name?: string;
+    is_walk_in?: boolean;
+  } | null;
+}
+
 export interface PosSaleInProgress {
   id: string;
   kind?: 'sale' | 'advance';
