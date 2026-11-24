@@ -13,7 +13,7 @@ Fila 2: Cheque · Mixto · Crédito (Crédito solo si el cliente lo tiene en esa
 
 ### 2026-11-23
 
-En **Tarjeta** y en cada tarjeta de **Mixto** se elige Débito o Crédito. Pueden ser distintas. Si caja cambia el cliente antes de cobrar, ese cliente queda en la orden. Mientras el folio está abierto, caja avisa cada pocos segundos: si Ventas lo regresó, se cierra y sale «Ventas regresó esta venta a POS Ventas». **Ctrl+Q** (abonos) sigue pendiente; la **i** de la barra lo dice. F2 queda para el navegador.
+En **Tarjeta** y en cada tarjeta de **Mixto** se elige Débito o Crédito. Pueden ser distintas. Si caja cambia el cliente antes de cobrar, ese cliente queda en la orden. Caja mantiene abierto un aviso en vivo: si Ventas regresa el folio que está cobrando, se suelta al momento y sale la ventana «{vendedor} regresó {folio} a POS Ventas». El latido de unos segundos queda de respaldo, con el mismo texto. **Ctrl+Q** (abonos) sigue pendiente; la **i** de la barra lo dice. F2 queda para el navegador.
 
 ### 2026-11-02
 

@@ -166,16 +166,18 @@
                   [attr.aria-expanded]="cajaExpandedId() === ticket.id"
                   (click)="toggleCajaCard(ticket.id)">
                   <span class="pos-caja-card__identity">
-                    <span class="pos-caja-card__folio">
-                      {{ ticket.folio || ticket.id }}
-                      @if (ticket.kind === 'advance') {
-                        <span class="pos-ticket-badge">Anticipo</span>
-                      }
-                      @if (ticket.caja_open) {
-                        <span class="pos-ticket-badge pos-ticket-badge--open">Caja abierta</span>
-                      }
+                    <span class="pos-caja-card__line">
+                      <span class="pos-caja-card__folio">
+                        {{ ticket.folio || ticket.id }}
+                        @if (ticket.kind === 'advance') {
+                          <span class="pos-ticket-badge">Anticipo</span>
+                        }
+                        @if (ticket.caja_open) {
+                          <span class="pos-ticket-badge pos-ticket-badge--open">Caja abierta</span>
+                        }
+                      </span>
+                      <span class="pos-caja-card__customer">{{ cajaTicketName(ticket) }}</span>
                     </span>
-                    <span class="pos-caja-card__customer">{{ cajaTicketName(ticket) }}</span>
                     <span class="pos-caja-card__meta">
                       {{ cajaProductLabel(ticket) }}
                       @if (cajaWhen(ticket); as when) {
@@ -192,7 +194,7 @@
                   </span>
                   <lucide-icon
                     [img]="ChevronDown"
-                    [size]="18"
+                    [size]="14"
                     class="pos-caja-card__chevron"
                     [class.pos-caja-card__chevron--open]="cajaExpandedId() === ticket.id" />
                 </button>

@@ -1,9 +1,13 @@
 {
-  "version": "0.0.147",
-  "buildId": "0.0.147-1795482828830",
-  "builtAt": "2026-11-24T01:13:48.830Z",
+  "version": "0.0.148",
+  "buildId": "0.0.148-1795484043708",
+  "builtAt": "2026-11-24T01:34:03.708Z",
   "channel": "full",
   "changes": [
+    {
+      "scope": "frontend",
+      "message": "Cambios en contabilidad"
+    },
     {
       "scope": "frontend",
       "message": "Cambios en ventas"
@@ -11,10 +15,6 @@
     {
       "scope": "backend",
       "message": "Cambios en cotizaciones"
-    },
-    {
-      "scope": "backend",
-      "message": "Cambios en accesos y permisos"
     }
   ]
 }

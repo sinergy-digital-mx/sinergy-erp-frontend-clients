@@ -120,7 +120,6 @@ export type PosCollectionPaymentMethodKey = 'cash' | 'transfer' | 'card' | 'chec
 export interface PosCollectionPaymentMethodTotal {
   orders: number;
   amount: number;
-  ticket: number;
 }
 
 export type PosCollectionPaymentMethodTotals = Record<

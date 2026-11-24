@@ -21,6 +21,10 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 ### 2026-11-23
 
+El modal de **Ventas en caja** lista los folios en filas compactas (folio y cliente en una línea, totales en una franja). Cabe una cola de varios sin ocupar media pantalla. Al abrir uno se ven productos, totales y **Regresar a ventas**.
+
+Si caja tiene ese folio abierto (lo está cobrando o editando), al regresarlo se le quita al momento. Caja abre una ventana: «{vendedor} regresó {folio} a POS Ventas». El nombre es el vendedor con código abierto en esa terminal.
+
 En cada línea del carrito, quien tenga el permiso **Ver y aplicar descuento porcentual al precio en POS Ventas** (`pos:ApplyPriceDiscount`) ve **Agregar descuento**. Abre **Modificar precio** con botones **5%** y **3%**, y un porcentaje distinto. El precio de lista se tacha, sale el precio nuevo y la pastilla `−5%`. No es descuento de producto ni global: se guarda en `discount_percentage` de la línea. Sin el permiso no se ve el botón; si el ticket ya traía el descuento, se muestra y se conserva al reenviar.
 
 La barra dice **POS** y la **i** abre los atajos. **Ctrl+I** abre el cliente (también está en el botón Existente/Cambiar). Al buscar, el primer resultado queda marcado: las flechas lo mueven y Enter agrega ese renglón. Esc limpia la búsqueda y un segundo Esc sale de pantalla completa. **Ctrl+M** abre un modal al centro con las ventas en caja: folio, cliente, productos, totales y el botón para regresarla a ventas. F1 y F5 quedan para el navegador.

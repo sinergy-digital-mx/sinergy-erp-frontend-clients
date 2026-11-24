@@ -746,13 +746,12 @@ export class AccountingService {
 
   private parsePaymentMethodTotals(raw: Record<string, unknown>): PosCollectionPaymentMethodTotals {
     const keys: PosCollectionPaymentMethodKey[] = ['cash', 'transfer', 'card', 'check', 'credit'];
-    const empty: PosCollectionPaymentMethodTotal = { orders: 0, amount: 0, ticket: 0 };
+    const empty: PosCollectionPaymentMethodTotal = { orders: 0, amount: 0 };
     return keys.reduce((acc, key) => {
       const row = this.asRecord(raw[key]);
       acc[key] = {
         orders: Number(row['orders'] ?? 0),
         amount: Number(row['amount'] ?? 0),
-        ticket: Number(row['ticket'] ?? 0),
       };
       return acc;
     }, {

@@ -37,6 +37,14 @@ import {
   normalizePosSaleReceipt,
 } from '../models/pos-receipt.model';
 
+export interface PosCajaRecallNotice {
+  type: 'recalled';
+  id: string;
+  kind: 'sale' | 'advance';
+  folio: string;
+  recalled_by_name: string;
+}
+
 export interface PosSessionInventoryParams {
   search?: string;
   warehouse_id?: string;
@@ -855,16 +863,104 @@ export class POSService {
     );
   }
 
-  recallSaleFromCaja(salesOrderId: string): Observable<{ message?: string; caja_was_open?: boolean }> {
-    return this.http.post(`${this.API_URL}/sales/${salesOrderId}/recall-from-caja`, {}).pipe(
-      map((res: any) => this.extractPayload(res) ?? res)
-    );
+  recallSaleFromCaja(
+    salesOrderId: string,
+    sellerUserId?: string | null,
+  ): Observable<{ message?: string; caja_was_open?: boolean; recalled_by_name?: string }> {
+    return this.http.post(
+      `${this.API_URL}/sales/${salesOrderId}/recall-from-caja`,
+      this.recallBody(sellerUserId),
+    ).pipe(map((res: any) => this.extractPayload(res) ?? res));
   }
 
-  recallQuotationFromCaja(quotationId: string): Observable<{ message?: string; caja_was_open?: boolean }> {
-    return this.http.post(`${this.API_URL}/quotations/${quotationId}/recall-from-caja`, {}).pipe(
-      map((res: any) => this.extractPayload(res) ?? res)
-    );
+  recallQuotationFromCaja(
+    quotationId: string,
+    sellerUserId?: string | null,
+  ): Observable<{ message?: string; caja_was_open?: boolean; recalled_by_name?: string }> {
+    return this.http.post(
+      `${this.API_URL}/quotations/${quotationId}/recall-from-caja`,
+      this.recallBody(sellerUserId),
+    ).pipe(map((res: any) => this.extractPayload(res) ?? res));
+  }
+
+  watchCajaRecalls(): Observable<PosCajaRecallNotice> {
+    return new Observable((subscriber) => {
+      const controller = new AbortController();
+      const branchId = this.auth.getBillingBranchId();
+      const query = branchId ? `?billing_branch_id=${encodeURIComponent(branchId)}` : '';
+      fetch(`${this.API_URL}/caja-recalls${query}`, {
+        headers: {
+          Authorization: `Bearer ${this.auth.token}`,
+          Accept: 'text/event-stream',
+        },
+        signal: controller.signal,
+      })
+        .then(async (response) => {
+          if (response.status === 401 || response.status === 403) {
+            subscriber.complete();
+            return;
+          }
+          if (!response.ok || !response.body) {
+            subscriber.error(new Error('caja-recalls'));
+            return;
+          }
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          while (!controller.signal.aborted) {
+            const { value, done } = await reader.read();
+            if (done) {
+              break;
+            }
+            buffer += decoder.decode(value, { stream: true });
+            const chunks = buffer.split('\n\n');
+            buffer = chunks.pop() ?? '';
+            for (const chunk of chunks) {
+              const notice = this.parseCajaRecallChunk(chunk);
+              if (notice) {
+                subscriber.next(notice);
+              }
+            }
+          }
+          if (!controller.signal.aborted) {
+            subscriber.error(new Error('caja-recalls cerrado'));
+          }
+        })
+        .catch((error: { name?: string }) => {
+          if (controller.signal.aborted || error?.name === 'AbortError') {
+            return;
+          }
+          subscriber.error(error);
+        });
+      return () => controller.abort();
+    });
+  }
+
+  private recallBody(sellerUserId?: string | null): { seller_user_id?: string } {
+    return sellerUserId ? { seller_user_id: sellerUserId } : {};
+  }
+
+  private parseCajaRecallChunk(chunk: string): PosCajaRecallNotice | null {
+    const line = chunk
+      .split('\n')
+      .map((row) => row.trim())
+      .find((row) => row.startsWith('data:'));
+    if (!line) {
+      return null;
+    }
+    const raw = line.slice(5).trim();
+    if (!raw) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(raw) as PosCajaRecallNotice;
+      if (parsed?.type !== 'recalled' || !parsed.id) {
+        return null;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
   }
 
   touchCajaPresence(id: string, kind: 'sale' | 'advance'): Observable<{ in_caja: boolean; message?: string | null; reason?: string | null }> {

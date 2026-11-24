@@ -132,7 +132,7 @@ export class PosCollectionsTabComponent implements OnChanges {
 
   paymentMethodCards(): PaymentMethodCard[] {
     const methods = this.summary().by_payment_method;
-    const empty: PosCollectionPaymentMethodTotal = { orders: 0, amount: 0, ticket: 0 };
+    const empty: PosCollectionPaymentMethodTotal = { orders: 0, amount: 0 };
     return [
       { key: 'transfer', label: 'Transferencias', icon: 'fi-rr-bank', totals: methods?.transfer ?? empty },
       { key: 'cash', label: 'Efectivo', icon: 'fi-rr-money', totals: methods?.cash ?? empty },
@@ -495,7 +495,7 @@ export class PosCollectionsTabComponent implements OnChanges {
   }
 
   private emptySummary(): PosCollectionsSummary {
-    const empty = { orders: 0, amount: 0, ticket: 0 };
+    const empty = { orders: 0, amount: 0 };
     return {
       orders_collected: 0,
       amount_collected: 0,

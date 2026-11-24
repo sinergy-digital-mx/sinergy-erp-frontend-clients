@@ -847,9 +847,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     this.recallingId.set(ticket.id);
+    const sellerId = this.posState.seller()?.id;
     const request$ = ticket.kind === 'advance'
-      ? this.posService.recallQuotationFromCaja(ticket.id)
-      : this.posService.recallSaleFromCaja(ticket.id);
+      ? this.posService.recallQuotationFromCaja(ticket.id, sellerId)
+      : this.posService.recallSaleFromCaja(ticket.id, sellerId);
     request$.subscribe({
       next: (response) => {
         this.recallingId.set(null);

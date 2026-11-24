@@ -7,6 +7,8 @@ import {
   ViewChild,
   ElementRef,
   computed,
+  inject,
+  NgZone,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -156,8 +158,9 @@ import {
 } from '../../../sales-orders/models/sales-order-creation-settings.model';
 import { AssignClientRouteModalComponent } from '../../../customers/components/assign-client-route-modal/assign-client-route-modal.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
-import { of } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { of, Subscription, timer } from 'rxjs';
+import { catchError, map, retry, switchMap } from 'rxjs/operators';
+import { PosCajaRecallNotice } from '../../services/pos.service';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { Customer } from '../../../customers/models/customer-group.model';
 import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
@@ -237,6 +240,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly Info = Info;
   shortcutsOpen = signal(false);
   private cajaWatchTimer: ReturnType<typeof setInterval> | null = null;
+  private cajaRecallSub: Subscription | null = null;
+  private readonly shownRecallIds = new Set<string>();
+  private readonly ngZone = inject(NgZone);
   private ignoreCajaEject = false;
   readonly Receipt = Receipt;
   readonly ChevronLeft = ChevronLeft;
@@ -538,6 +544,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
     document.addEventListener('visibilitychange', this.onVisibilityChange);
+    this.startCajaRecallStream();
     this.loadDailyExchangeRate();
     const orderId = this.route.snapshot.queryParamMap.get('orderId');
     if (orderId) {
@@ -560,6 +567,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     const current = this.selectedSale();
+    this.cajaRecallSub?.unsubscribe();
+    this.cajaRecallSub = null;
     this.stopCajaWatch();
     if (current) {
       this.releaseCajaPresence(current);
@@ -1984,13 +1993,16 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private noteIfVentasPulled(message: string): void {
-    const text = message.toLowerCase();
-    if (!text.includes('regresó esta venta') && !text.includes('regreso esta venta')) {
+    const text = (message || '').toLowerCase();
+    if (!text.includes('regres') || !text.includes('pos ventas')) {
       return;
     }
-    this.stopCajaWatch();
-    this.selectedSale.set(null);
-    this.loadPendingSales();
+    const sale = this.selectedSale();
+    if (!sale) {
+      this.loadPendingSales();
+      return;
+    }
+    this.showRecallWindow(sale, message);
   }
 
   openPrinterSettings(): void {
@@ -2321,29 +2333,63 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           if (this.ignoreCajaEject || this.selectedSale()?.id !== sale.id || status?.in_caja !== false) {
             return;
           }
-          const folio = current.folio || current.id;
-          this.stopCajaWatch();
-          this.selectedSale.set(null);
-          this.collectError.set(null);
-          this.loadPendingSales();
-          this.dialog.open(PosConfirmDialogComponent, {
-            width: '420px',
-            maxWidth: '95vw',
-            panelClass: 'pos-dialog-panel',
-            autoFocus: 'first-tabbable',
-            data: {
-              title: 'Folio regresado',
-              message: status.message || 'Ventas regresó esta venta a POS Ventas',
-              note: `${folio} ya no está en POS Caja.`,
-              acceptLabel: 'Entendido',
-              hideCancel: true,
-            },
-          });
+          this.showRecallWindow(
+            current,
+            status.message || 'Ventas regresó esta venta a POS Ventas',
+          );
         },
       });
     };
     tick();
     this.cajaWatchTimer = setInterval(tick, 4000);
+  }
+
+  private startCajaRecallStream(): void {
+    this.cajaRecallSub?.unsubscribe();
+    this.cajaRecallSub = this.posService.watchCajaRecalls().pipe(
+      retry({ delay: () => timer(3000) }),
+    ).subscribe((event) => {
+      this.ngZone.run(() => this.onRemoteRecall(event));
+    });
+  }
+
+  private onRemoteRecall(event: PosCajaRecallNotice): void {
+    this.loadPendingSales();
+    const open = this.selectedSale();
+    if (!open || open.id !== event.id || this.ignoreCajaEject) {
+      return;
+    }
+    const who = event.recalled_by_name || 'Ventas';
+    const folio = event.folio || open.folio || open.id;
+    this.showRecallWindow(open, `${who} regresó ${folio} a POS Ventas`);
+  }
+
+  private showRecallWindow(sale: PendingSale, message: string): void {
+    if (sale.id && this.shownRecallIds.has(sale.id)) {
+      return;
+    }
+    if (sale.id) {
+      this.shownRecallIds.add(sale.id);
+    }
+    this.stopCajaWatch();
+    this.selectedSale.set(null);
+    this.collecting.set(false);
+    this.collectError.set(null);
+    this.loadPendingSales();
+    const folio = sale.folio || sale.id;
+    this.dialog.open(PosConfirmDialogComponent, {
+      width: '420px',
+      maxWidth: '95vw',
+      panelClass: 'pos-dialog-panel',
+      autoFocus: 'first-tabbable',
+      data: {
+        title: 'Venta regresada',
+        message,
+        note: `${folio} ya no está en POS Caja. Si la estabas cobrando, esa captura se canceló.`,
+        acceptLabel: 'Entendido',
+        hideCancel: true,
+      },
+    });
   }
 
   private stopCajaWatch(): void {
