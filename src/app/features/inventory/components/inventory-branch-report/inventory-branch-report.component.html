@@ -84,8 +84,6 @@
             <strong>{{ formatMoney(report.total_cost) }}</strong>
           </div>
         </div>
-      } @else {
-        <p class="stock-mix">Cada unidad va en su renglón. No se suman entre sí.</p>
       }
 
       @if (report.lines.length === 0) {
@@ -160,35 +158,45 @@
       <div class="settings-panel__tools">
         <input
           type="text"
+          class="settings-panel__filter"
           [value]="settingsFilter()"
           (input)="settingsFilter.set($any($event.target).value)"
-          placeholder="Filtrar sucursales"
+          placeholder="Filtrar"
           aria-label="Filtrar sucursales"
         />
         <button type="button" (click)="selectAllBranches()">Todas</button>
         <button type="button" (click)="clearDraftBranches()">Ninguna</button>
       </div>
+      <p class="settings-panel__order">Arrastra para el orden del reporte.</p>
 
-      <div class="settings-panel__list">
+      <div
+        class="settings-panel__list"
+        cdkDropList
+        (cdkDropListDropped)="dropBranch($event)">
         @if (!settings()) {
           <p class="settings-panel__hint">Cargando sucursales…</p>
         } @else if (filteredSettings().length === 0) {
           <p class="settings-panel__hint">No hay sucursales con ese texto</p>
         } @else {
           @for (branch of filteredSettings(); track branch.id) {
-            <label class="branch-toggle">
-              <input
-                type="checkbox"
-                [checked]="isDraftOn(branch.id)"
-                (change)="toggleDraft(branch.id)"
-              />
-              <span>
-                <strong>{{ branch.name }}</strong>
-                @if (placeLabel(branch.city, branch.razon_social); as place) {
-                  <small>{{ place }}</small>
-                }
-              </span>
-            </label>
+            <div class="branch-row" cdkDrag [cdkDragDisabled]="settingsSaving()">
+              <button type="button" class="branch-row__handle" cdkDragHandle aria-label="Arrastrar {{ branch.name }}">
+                <lucide-icon [img]="GripVertical" [size]="14"></lucide-icon>
+              </button>
+              <label class="branch-toggle">
+                <input
+                  type="checkbox"
+                  [checked]="isDraftOn(branch.id)"
+                  (change)="toggleDraft(branch.id)"
+                />
+                <span>
+                  <strong>{{ branch.name }}</strong>
+                  @if (placeLabel(branch.city, branch.razon_social); as place) {
+                    <small>{{ place }}</small>
+                  }
+                </span>
+              </label>
+            </div>
           }
         }
       </div>

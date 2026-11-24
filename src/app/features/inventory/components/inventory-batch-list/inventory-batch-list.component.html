@@ -44,7 +44,7 @@
       <div class="mb-4">
         <div class="filter-bar" role="search" aria-label="Filtros de inventario">
           <div class="filter-bar__container">
-            <div class="filter-bar__field">
+            <div class="filter-bar__field filter-bar__field--search">
               <input
                 type="text"
                 [ngModel]="state.searchTerm()"
@@ -52,8 +52,18 @@
                 (keyup.enter)="onSearch()"
                 placeholder="Buscar..."
                 class="filter-bar__input"
+                [class.filter-bar__input--clearable]="!!state.searchTerm()"
                 aria-label="Buscar por lote o producto"
               />
+              @if (state.searchTerm()) {
+                <button
+                  type="button"
+                  class="filter-bar__search-clear"
+                  (click)="clearSearch()"
+                  aria-label="Quitar búsqueda">
+                  <lucide-icon [img]="X" [size]="14"></lucide-icon>
+                </button>
+              }
             </div>
             <div class="filter-bar__field">
               <select

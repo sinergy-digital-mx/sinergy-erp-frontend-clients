@@ -1,5 +1,34 @@
 @use '../../../../../base/filter-bar';
 
+.filter-bar__field--search {
+  position: relative;
+}
+
+.filter-bar__input--clearable {
+  padding-right: 2.25rem;
+}
+
+.filter-bar__search-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transform: translateY(-50%);
+
+  &:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+}
+
 .inventory-tabs {
   margin-bottom: 0.75rem;
   border-bottom: 1px solid #e5e7eb;

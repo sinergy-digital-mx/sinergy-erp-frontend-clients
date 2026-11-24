@@ -347,13 +347,16 @@
     <section class="pos-catalog">
       <div class="pos-catalog__toolbar">
         <div class="pos-catalog__filters">
-        <div class="pos-search">
+        <div
+          class="pos-search"
+          title="Pon ! al final para buscar el código exacto. Ejemplo: 1x12!">
           <lucide-icon [img]="Search" class="pos-search__icon" />
           <input
             #catalogSearch
             type="search"
             class="pos-search__input"
             placeholder="Buscar por nombre o SKU…"
+            title="Pon ! al final para buscar el código exacto. Ejemplo: 1x12!"
             [ngModel]="searchTerm()"
             (ngModelChange)="onSearchInput($event)"
             autocomplete="off"
@@ -444,7 +447,7 @@
           @if (!searchTerm().trim()) {
             <div class="pos-empty-grid">
               <lucide-icon [img]="Warehouse" class="pos-empty-grid__icon" />
-              <p>Usa la misma búsqueda para ver las cantidades de todas las sucursales.</p>
+              <p>Usa la misma búsqueda para ver las cantidades de todas las sucursales. Con ! al final el código es exacto, por ejemplo 1x12!.</p>
             </div>
           } @else if (branchTableLoading() && branchRows().length === 0) {
             <div class="pos-loading-grid">

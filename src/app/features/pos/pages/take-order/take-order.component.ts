@@ -1440,16 +1440,22 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    const normalized = term.toLowerCase();
-    if (!normalized.trim()) {
-      this.publishFiltered(this.products(), '');
+    const raw = term.trim();
+    const exact = raw.endsWith('!');
+    const normalized = (exact ? raw.slice(0, -1) : raw).trim().toLowerCase();
+    if (!normalized) {
+      this.publishFiltered(exact ? [] : this.products(), exact ? term : '');
       return;
     }
 
-    const filtered = this.products().filter(
-      (p) =>
-        p.name.toLowerCase().includes(normalized) || p.sku.toLowerCase().includes(normalized)
-    );
+    const filtered = this.products().filter((p) => {
+      const sku = String(p.sku ?? '').toLowerCase();
+      const externalSku = String(p.external_sku ?? '').toLowerCase();
+      if (exact) {
+        return sku === normalized || externalSku === normalized;
+      }
+      return p.name.toLowerCase().includes(normalized) || sku.includes(normalized);
+    });
     this.publishFiltered(filtered, term);
   }
 

@@ -1,7 +1,10 @@
 import { Component, DestroyRef, ElementRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule, Settings, X } from 'lucide-angular';
+import { ActivatedRoute } from '@angular/router';
+import { CdkDragDrop, CdkDrag, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
+import { LucideAngularModule, GripVertical, Settings, X } from 'lucide-angular';
 import { InventoryService } from '../../services/inventory.service';
+import { InventoryListState } from '../../services/inventory-list-state.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
@@ -26,18 +29,21 @@ interface BranchReportGroup {
 @Component({
   selector: 'app-inventory-branch-report',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, SpinnerComponent],
+  imports: [CommonModule, LucideAngularModule, SpinnerComponent, CdkDropList, CdkDrag, CdkDragHandle],
   templateUrl: './inventory-branch-report.component.html',
   styleUrl: './inventory-branch-report.component.scss',
 })
 export class InventoryBranchReportComponent implements OnInit {
   private readonly inventoryService = inject(InventoryService);
+  private readonly listState = inject(InventoryListState);
+  private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly searchRoot = viewChild<ElementRef<HTMLElement>>('searchRoot');
 
   readonly Settings = Settings;
   readonly X = X;
+  readonly GripVertical = GripVertical;
 
   readonly query = signal('');
   readonly results = signal<BranchReportProductHit[]>([]);
@@ -50,6 +56,7 @@ export class InventoryBranchReportComponent implements OnInit {
   readonly settingsOpen = signal(false);
   readonly settingsSaving = signal(false);
   readonly draftIds = signal<string[]>([]);
+  readonly draftOrder = signal<string[]>([]);
   readonly settingsFilter = signal('');
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -88,12 +95,25 @@ export class InventoryBranchReportComponent implements OnInit {
     return groups;
   });
 
-  readonly filteredSettings = computed(() => {
+  readonly orderedSettings = computed(() => {
     const settings = this.settings();
     if (!settings) return [];
+    const byId = new Map(settings.branches.map((branch) => [branch.id, branch]));
+    const order = this.draftOrder();
+    const ordered = (order.length ? order : settings.branches.map((branch) => branch.id))
+      .map((id) => byId.get(id))
+      .filter((branch): branch is BranchReportSettings['branches'][number] => !!branch);
+    for (const branch of settings.branches) {
+      if (!ordered.some((item) => item.id === branch.id)) ordered.push(branch);
+    }
+    return ordered;
+  });
+
+  readonly filteredSettings = computed(() => {
+    const branches = this.orderedSettings();
     const term = this.settingsFilter().trim().toLocaleLowerCase('es');
-    if (!term) return settings.branches;
-    return settings.branches.filter((branch) => {
+    if (!term) return branches;
+    return branches.filter((branch) => {
       const haystack = [branch.name, branch.city, branch.razon_social]
         .filter(Boolean)
         .join(' ')
@@ -111,6 +131,7 @@ export class InventoryBranchReportComponent implements OnInit {
       next: (settings) => this.settings.set(settings),
       error: (err) => this.toast.error(resolveHttpErrorMessage(err, 'No se pudieron cargar las sucursales')),
     });
+    this.applyIncomingSearch();
   }
 
   @HostListener('document:click', ['$event'])
@@ -173,10 +194,9 @@ export class InventoryBranchReportComponent implements OnInit {
   }
 
   openSettings(): void {
-    const settings = this.settings();
-    this.draftIds.set(
-      (settings?.branches ?? []).filter((branch) => branch.visible).map((branch) => branch.id),
-    );
+    const branches = this.settings()?.branches ?? [];
+    this.draftOrder.set(branches.map((branch) => branch.id));
+    this.draftIds.set(branches.filter((branch) => branch.visible).map((branch) => branch.id));
     this.settingsFilter.set('');
     this.settingsOpen.set(true);
   }
@@ -198,7 +218,20 @@ export class InventoryBranchReportComponent implements OnInit {
   }
 
   selectAllBranches(): void {
-    this.draftIds.set((this.settings()?.branches ?? []).map((branch) => branch.id));
+    this.draftIds.set(this.orderedSettings().map((branch) => branch.id));
+  }
+
+  dropBranch(event: CdkDragDrop<unknown>): void {
+    const shown = this.filteredSettings();
+    const moved = shown[event.previousIndex];
+    const target = shown[event.currentIndex];
+    if (!moved || !target || moved.id === target.id) return;
+    const order = this.orderedSettings().map((branch) => branch.id);
+    const fromIndex = order.indexOf(moved.id);
+    const toIndex = order.indexOf(target.id);
+    if (fromIndex < 0 || toIndex < 0) return;
+    moveItemInArray(order, fromIndex, toIndex);
+    this.draftOrder.set(order);
   }
 
   clearDraftBranches(): void {
@@ -206,7 +239,9 @@ export class InventoryBranchReportComponent implements OnInit {
   }
 
   saveSettings(): void {
-    const ids = this.draftIds();
+    const selected = new Set(this.draftIds());
+    const order = this.orderedSettings().map((branch) => branch.id);
+    const ids = order.filter((id) => selected.has(id));
     if (ids.length === 0 || this.settingsSaving()) return;
     this.settingsSaving.set(true);
     this.inventoryService.saveBranchReportSettings(ids).subscribe({
@@ -253,6 +288,15 @@ export class InventoryBranchReportComponent implements OnInit {
 
   placeLabel(city: string | null, company: string | null): string {
     return [city, company].map((part) => part?.trim()).filter(Boolean).join(' · ');
+  }
+
+  private applyIncomingSearch(): void {
+    const fromList = this.listState.searchTerm().trim();
+    const fromUrl = (this.route.snapshot.queryParamMap.get('search') ?? '').trim();
+    const term = (fromList || fromUrl).slice(0, 80);
+    if (!term) return;
+    this.query.set(term);
+    this.runSearch();
   }
 
   private scheduleSearch(): void {

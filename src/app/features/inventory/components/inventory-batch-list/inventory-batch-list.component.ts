@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
-import { LucideAngularModule, ArrowRightLeft, ClipboardCheck, ChartColumn } from 'lucide-angular';
+import { LucideAngularModule, ArrowRightLeft, ClipboardCheck, ChartColumn, X } from 'lucide-angular';
 import { InventoryService } from '../../services/inventory.service';
 import { InventoryListState } from '../../services/inventory-list-state.service';
 import { InventoryLocationFiscal } from '../../models/inventory-location.model';
@@ -59,6 +59,7 @@ export class InventoryBatchListComponent implements OnInit {
   readonly ArrowRightLeft = ArrowRightLeft;
   readonly ClipboardCheck = ClipboardCheck;
   readonly ChartColumn = ChartColumn;
+  readonly X = X;
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -124,6 +125,13 @@ export class InventoryBatchListComponent implements OnInit {
 
   onSearch(): void {
     this.clearSearchTimer();
+    this.writeFilters();
+    this.state.reloadList();
+  }
+
+  clearSearch(): void {
+    this.clearSearchTimer();
+    this.state.searchTerm.set('');
     this.writeFilters();
     this.state.reloadList();
   }

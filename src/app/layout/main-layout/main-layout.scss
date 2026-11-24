@@ -131,7 +131,10 @@
 .mobile-header {
   display: none;
   align-items: center;
-  gap: 0.5rem;
+  // Tres columnas iguales en los extremos: el sello queda al centro de la barra,
+  // no pegado al menú ni suelto en el verde.
+  grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+  column-gap: 0.5rem;
   padding: calc(0.4rem + env(safe-area-inset-top, 0px)) 0.75rem 0.4rem;
   color: #fff;
   // Plano, igual que el fondo del HTML: en celular el degradado del escritorio
@@ -142,11 +145,15 @@
 
 @media (max-width: 1023px) {
   .mobile-header {
-    display: flex;
+    display: grid;
   }
 }
 
 .mobile-header__brand {
+  justify-self: center;
+  min-width: 0;
+  max-width: 100%;
+
   ::ng-deep .pollux-brand-text {
     font-size: 1.05rem;
     letter-spacing: 0.06em;
@@ -156,11 +163,21 @@
     padding: 0;
     background: transparent;
   }
+}
 
-  ::ng-deep .system-logo img {
-    max-width: 132px;
-    max-height: 32px;
-  }
+// Gana al ancho fijo del componente (136×92): si no, el sello queda
+// centrado dentro de esa caja y se ve suelto a la derecha del menú.
+.mobile-header .mobile-header__brand ::ng-deep .system-logo img {
+  width: auto;
+  height: 44px;
+  max-width: 100%;
+  max-height: 44px;
+}
+
+.mobile-header__balance {
+  width: 2rem;
+  height: 2rem;
+  justify-self: end;
 }
 
 .mobile-menu-btn {
