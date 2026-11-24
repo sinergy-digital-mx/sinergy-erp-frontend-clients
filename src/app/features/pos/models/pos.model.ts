@@ -79,20 +79,42 @@ export interface PosSaleInProgressLine {
   selected_discount?: PosApplicableDiscount | null;
 }
 
+export interface PosCajaQueueLine {
+  product_name: string;
+  product_sku: string;
+  quantity: number;
+  uom_name: string;
+  unit_price: number;
+  line_total: number;
+}
+
 export interface PosCajaQueueTicket {
   id: string;
   kind?: 'sale' | 'advance';
   folio?: string;
   total?: number | string;
+  subtotal?: number | string;
+  discount_total?: number | string;
+  iva_total?: number | string;
+  ieps_total?: number | string;
+  global_discount_amount?: number | string;
   amount_pending?: number | string;
+  currency?: string;
   created_at?: string;
+  notes?: string | null;
+  walk_in_name?: string | null;
   caja_open?: boolean;
+  lines?: PosCajaQueueLine[];
   customer?: {
     name?: string;
     lastname?: string;
     company_name?: string;
     display_name?: string;
     is_walk_in?: boolean;
+  } | null;
+  seller_user?: {
+    first_name?: string;
+    last_name?: string;
   } | null;
 }
 

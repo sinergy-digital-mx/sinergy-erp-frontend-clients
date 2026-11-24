@@ -142,6 +142,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   shortcutsOpen = signal(false);
   cajaQueueOpen = signal(false);
   cajaQueue = signal<PosCajaQueueTicket[]>([]);
+  cajaExpandedId = signal<string | null>(null);
   loadingCajaQueue = signal(false);
   recallingId = signal<string | null>(null);
 
@@ -198,6 +199,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   priceListError = signal<boolean>(false);
   isFullscreen = signal<boolean>(false);
+  /** El siguiente Esc sale de pantalla completa. El primero solo limpia la búsqueda. */
+  private escExitArmed = false;
+  /** El navegador suelta pantalla completa con Esc; hay que volver a entrar si ese Esc era para la búsqueda. */
+  private restoreFullscreenAfterEsc = false;
+  private escapeLocked = false;
 
   cartAppliedDiscounts = computed(() =>
     this.posService
@@ -510,6 +516,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     const key = event.key;
+    if (key !== 'Escape') {
+      this.escExitArmed = false;
+    }
     if (this.isPlainCtrl(event, 'KeyI')) {
       event.preventDefault();
       if (this.dialog.openDialogs.length || !this.canSell()) {
@@ -528,28 +537,54 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     if (key === 'Escape') {
+      if (event.repeat) {
+        return;
+      }
       if (this.dialog.openDialogs.length) {
+        this.escExitArmed = false;
+        this.armFullscreenRestore();
         return;
       }
       if (this.shortcutsOpen()) {
         event.preventDefault();
         this.shortcutsOpen.set(false);
+        this.escExitArmed = false;
+        this.armFullscreenRestore();
         return;
       }
       if (this.cajaQueueOpen()) {
         event.preventDefault();
         this.cajaQueueOpen.set(false);
+        this.escExitArmed = false;
+        this.armFullscreenRestore();
         return;
       }
       if (this.ticketsPanelOpen()) {
         event.preventDefault();
         this.ticketsPanelOpen.set(false);
+        this.escExitArmed = false;
+        this.armFullscreenRestore();
         return;
       }
+      event.preventDefault();
       if (this.searchTerm()) {
-        event.preventDefault();
         this.clearSearch();
+        this.escExitArmed = true;
+        this.armFullscreenRestore();
+        return;
       }
+      if (this.escExitArmed && (document.fullscreenElement || this.isFullscreen())) {
+        this.escExitArmed = false;
+        this.restoreFullscreenAfterEsc = false;
+        this.escapeLocked = false;
+        if (document.fullscreenElement) {
+          void document.exitFullscreen();
+        }
+        return;
+      }
+      this.escExitArmed = true;
+      this.catalogSearchRef?.nativeElement?.focus();
+      this.armFullscreenRestore();
       return;
     }
     if (event.ctrlKey || event.altKey || event.metaKey || this.dialog.openDialogs.length) {
@@ -695,7 +730,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadingCajaQueue.set(true);
     this.posService.getSalesAwaitingCaja().subscribe({
       next: ({ sales_in_caja }) => {
-        this.cajaQueue.set(sales_in_caja ?? []);
+        const rows = sales_in_caja ?? [];
+        this.cajaQueue.set(rows);
+        if (!rows.some((row) => row.id === this.cajaExpandedId())) {
+          this.cajaExpandedId.set(null);
+        }
         this.loadingCajaQueue.set(false);
       },
       error: (error) => {
@@ -707,10 +746,14 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  toggleCajaCard(id: string): void {
+    this.cajaExpandedId.update((current) => (current === id ? null : id));
+  }
+
   cajaTicketName(ticket: PosCajaQueueTicket): string {
     const customer = ticket.customer;
     if (!customer || customer.is_walk_in) {
-      return 'Público en General';
+      return ticket.walk_in_name?.trim() || 'Público en General';
     }
     return (
       customer.display_name ||
@@ -718,6 +761,56 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       customer.company_name ||
       'Cliente'
     );
+  }
+
+  cajaLineCount(ticket: PosCajaQueueTicket): number {
+    return ticket.lines?.length ?? 0;
+  }
+
+  cajaPieceCount(ticket: PosCajaQueueTicket): number {
+    return (ticket.lines ?? []).reduce((sum, line) => sum + (Number(line.quantity) || 0), 0);
+  }
+
+  cajaProductLabel(ticket: PosCajaQueueTicket): string {
+    const lines = this.cajaLineCount(ticket);
+    const pieces = this.cajaPieceCount(ticket);
+    if (!lines) {
+      return 'Sin productos';
+    }
+    const lineLabel = lines === 1 ? '1 producto' : `${lines} productos`;
+    if (pieces > 0 && pieces !== lines) {
+      return `${lineLabel} · ${this.formatStock(pieces)} pzas`;
+    }
+    return lineLabel;
+  }
+
+  cajaSellerName(ticket: PosCajaQueueTicket): string {
+    const seller = ticket.seller_user;
+    return [seller?.first_name, seller?.last_name].filter(Boolean).join(' ').trim();
+  }
+
+  cajaWhen(ticket: PosCajaQueueTicket): string {
+    if (!ticket.created_at) {
+      return '';
+    }
+    const date = new Date(ticket.created_at);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    return date.toLocaleString('es-MX', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  cajaMoney(amount: number | string | null | undefined, ticket: PosCajaQueueTicket): string {
+    return formatUnitCurrency(amount, ticket.currency === 'USD' ? 'USD' : 'MXN');
+  }
+
+  cajaHasAmount(value: number | string | null | undefined): boolean {
+    return Math.abs(Number(value) || 0) > 0.009;
   }
 
   recallCajaTicket(ticket: PosCajaQueueTicket): void {
@@ -2324,17 +2417,62 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!root) return;
     try {
       if (document.fullscreenElement) {
+        this.escExitArmed = false;
+        this.restoreFullscreenAfterEsc = false;
+        this.escapeLocked = false;
         await document.exitFullscreen();
       } else {
         await root.requestFullscreen();
+        await this.holdEscapeInFullscreen();
       }
     } catch {
       this.notifyError('No se pudo cambiar a pantalla completa', 2500);
     }
   }
 
+  private armFullscreenRestore(): void {
+    if (this.escapeLocked) {
+      return;
+    }
+    if (document.fullscreenElement || this.isFullscreen()) {
+      this.restoreFullscreenAfterEsc = true;
+    }
+  }
+
+  /** Chrome suelta pantalla completa con Esc. Retener la tecla deja el primer Esc para la búsqueda. */
+  private async holdEscapeInFullscreen(): Promise<void> {
+    const keyboard = (navigator as Navigator & {
+      keyboard?: { lock?: (keyCodes?: string[]) => Promise<void> };
+    }).keyboard;
+    if (!keyboard?.lock || !document.fullscreenElement) {
+      this.escapeLocked = false;
+      return;
+    }
+    try {
+      await keyboard.lock(['Escape']);
+      this.escapeLocked = true;
+    } catch {
+      this.escapeLocked = false;
+    }
+  }
+
   private onFullscreenChange = (): void => {
-    this.isFullscreen.set(!!document.fullscreenElement);
+    const active = !!document.fullscreenElement;
+    this.isFullscreen.set(active);
+    if (active) {
+      void this.holdEscapeInFullscreen();
+      return;
+    }
+    this.escapeLocked = false;
+    if (!this.restoreFullscreenAfterEsc) {
+      return;
+    }
+    this.restoreFullscreenAfterEsc = false;
+    const root = this.posRootRef?.nativeElement;
+    if (!root) {
+      return;
+    }
+    void root.requestFullscreen().then(() => this.holdEscapeInFullscreen()).catch(() => undefined);
   };
 
   catalogEmptyMessage(): string {

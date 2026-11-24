@@ -150,56 +150,153 @@
   }
 
   @if (cajaQueueOpen()) {
-    <div class="pos-tickets-panel" role="dialog" aria-label="Ventas en caja">
-      <div class="pos-tickets-panel__head">
-        <strong>Ventas en caja</strong>
-        <div class="pos-tickets-panel__actions">
-          <button
-            type="button"
-            class="pos-tickets-panel__close"
-            (click)="loadCajaQueue()"
-            [disabled]="loadingCajaQueue()"
-            title="Actualizar"
-            aria-label="Actualizar ventas en caja">
-            <lucide-icon [img]="RefreshCw" [size]="16" [class.pos-tickets-panel__spin]="loadingCajaQueue()" />
-          </button>
-          <button type="button" class="pos-tickets-panel__close" (click)="cajaQueueOpen.set(false)" aria-label="Cerrar">
-            <lucide-icon [img]="X" [size]="16" />
-          </button>
+    <div class="pos-caja-modal-backdrop" (click)="cajaQueueOpen.set(false)">
+      <div
+        class="pos-caja-modal"
+        role="dialog"
+        aria-labelledby="pos-caja-modal-title"
+        (click)="$event.stopPropagation()">
+        <header class="pos-caja-modal__head">
+          <div>
+            <h2 id="pos-caja-modal-title">Ventas en caja</h2>
+            <p>{{ cajaQueue().length }} {{ cajaQueue().length === 1 ? 'folio' : 'folios' }} · ábrelo para ver productos y regresarlo a ventas</p>
+          </div>
+          <div class="pos-caja-modal__tools">
+            <button
+              type="button"
+              class="pos-caja-modal__icon"
+              (click)="loadCajaQueue()"
+              [disabled]="loadingCajaQueue()"
+              title="Actualizar"
+              aria-label="Actualizar ventas en caja">
+              <lucide-icon [img]="RefreshCw" [size]="16" [class.pos-tickets-panel__spin]="loadingCajaQueue()" />
+            </button>
+            <button type="button" class="pos-caja-modal__icon" (click)="cajaQueueOpen.set(false)" aria-label="Cerrar">
+              <lucide-icon [img]="X" [size]="16" />
+            </button>
+          </div>
+        </header>
+        <div class="pos-caja-modal__body">
+          @if (loadingCajaQueue()) {
+            <p class="pos-caja-modal__empty"><app-spinner size="sm"></app-spinner></p>
+          } @else if (cajaQueue().length === 0) {
+            <p class="pos-caja-modal__empty">No hay ventas esperando en caja.</p>
+          } @else {
+            @for (ticket of cajaQueue(); track ticket.id) {
+              <article class="pos-caja-card" [class.pos-caja-card--open]="cajaExpandedId() === ticket.id">
+                <button
+                  type="button"
+                  class="pos-caja-card__toggle"
+                  [attr.aria-expanded]="cajaExpandedId() === ticket.id"
+                  (click)="toggleCajaCard(ticket.id)">
+                  <span class="pos-caja-card__identity">
+                    <span class="pos-caja-card__folio">
+                      {{ ticket.folio || ticket.id }}
+                      @if (ticket.kind === 'advance') {
+                        <span class="pos-ticket-badge">Anticipo</span>
+                      }
+                      @if (ticket.caja_open) {
+                        <span class="pos-ticket-badge pos-ticket-badge--open">Caja abierta</span>
+                      }
+                    </span>
+                    <span class="pos-caja-card__customer">{{ cajaTicketName(ticket) }}</span>
+                    <span class="pos-caja-card__meta">
+                      {{ cajaProductLabel(ticket) }}
+                      @if (cajaWhen(ticket); as when) {
+                        <span>· {{ when }}</span>
+                      }
+                      @if (cajaSellerName(ticket); as seller) {
+                        <span>· {{ seller }}</span>
+                      }
+                    </span>
+                  </span>
+                  <span class="pos-caja-card__amount">
+                    <strong>{{ cajaMoney(ticket.amount_pending ?? ticket.total ?? 0, ticket) }}</strong>
+                    <small>{{ ticket.kind === 'advance' ? 'Anticipo' : 'Por cobrar' }}</small>
+                  </span>
+                  <lucide-icon
+                    [img]="ChevronDown"
+                    [size]="18"
+                    class="pos-caja-card__chevron"
+                    [class.pos-caja-card__chevron--open]="cajaExpandedId() === ticket.id" />
+                </button>
+                @if (cajaExpandedId() === ticket.id) {
+                  <div class="pos-caja-card__detail">
+                    @if (ticket.lines?.length) {
+                      <ul class="pos-caja-lines">
+                        @for (line of ticket.lines; track $index) {
+                          <li>
+                            <span>
+                              <strong>{{ line.product_name }}</strong>
+                              <small>
+                                {{ line.product_sku || 'Sin pieza' }}
+                                · {{ formatStock(line.quantity) }}
+                                {{ line.uom_name || 'pza' }}
+                                · {{ cajaMoney(line.unit_price, ticket) }}
+                              </small>
+                            </span>
+                            <strong>{{ cajaMoney(line.line_total, ticket) }}</strong>
+                          </li>
+                        }
+                      </ul>
+                    } @else {
+                      <p class="pos-caja-card__hint">Esta venta no trae el detalle de productos.</p>
+                    }
+                    <dl class="pos-caja-totals">
+                      <div>
+                        <dt>Subtotal</dt>
+                        <dd>{{ cajaMoney(ticket.subtotal ?? 0, ticket) }}</dd>
+                      </div>
+                      @if (cajaHasAmount(ticket.discount_total)) {
+                        <div>
+                          <dt>Descuento</dt>
+                          <dd>{{ cajaMoney(ticket.discount_total, ticket) }}</dd>
+                        </div>
+                      }
+                      @if (cajaHasAmount(ticket.global_discount_amount)) {
+                        <div>
+                          <dt>Descuento global</dt>
+                          <dd>{{ cajaMoney(ticket.global_discount_amount, ticket) }}</dd>
+                        </div>
+                      }
+                      @if (cajaHasAmount(ticket.iva_total)) {
+                        <div>
+                          <dt>IVA</dt>
+                          <dd>{{ cajaMoney(ticket.iva_total, ticket) }}</dd>
+                        </div>
+                      }
+                      @if (cajaHasAmount(ticket.ieps_total)) {
+                        <div>
+                          <dt>IEPS</dt>
+                          <dd>{{ cajaMoney(ticket.ieps_total, ticket) }}</dd>
+                        </div>
+                      }
+                      <div>
+                        <dt>Total</dt>
+                        <dd>{{ cajaMoney(ticket.total ?? 0, ticket) }}</dd>
+                      </div>
+                      <div class="pos-caja-totals__due">
+                        <dt>{{ ticket.kind === 'advance' ? 'Anticipo' : 'Por cobrar' }}</dt>
+                        <dd>{{ cajaMoney(ticket.amount_pending ?? ticket.total ?? 0, ticket) }}</dd>
+                      </div>
+                    </dl>
+                    @if (ticket.notes) {
+                      <p class="pos-caja-card__notes">{{ ticket.notes }}</p>
+                    }
+                    <button
+                      type="button"
+                      class="pos-btn pos-btn--accent pos-caja-card__recall"
+                      [disabled]="recallingId() === ticket.id"
+                      (click)="recallCajaTicket(ticket)">
+                      {{ recallingId() === ticket.id ? 'Regresando…' : 'Regresar a ventas' }}
+                    </button>
+                  </div>
+                }
+              </article>
+            }
+          }
         </div>
       </div>
-      <p class="pos-tickets-panel__note">Elige un folio para regresarlo a ventas. Sale de POS Caja.</p>
-      @if (loadingCajaQueue()) {
-        <p class="pos-tickets-panel__empty"><app-spinner size="sm"></app-spinner></p>
-      } @else if (cajaQueue().length === 0) {
-        <p class="pos-tickets-panel__empty">No hay ventas esperando en caja.</p>
-      } @else {
-        <ul class="pos-tickets-panel__list">
-          @for (ticket of cajaQueue(); track ticket.id) {
-            <li>
-              <button
-                type="button"
-                class="pos-tickets-panel__item"
-                [disabled]="recallingId() === ticket.id"
-                (click)="recallCajaTicket(ticket)">
-                <span>
-                  <strong>
-                    {{ ticket.folio || ticket.id }}
-                    @if (ticket.kind === 'advance') {
-                      <span class="pos-ticket-badge">Anticipo</span>
-                    }
-                    @if (ticket.caja_open) {
-                      <span class="pos-ticket-badge pos-ticket-badge--open">Caja abierta</span>
-                    }
-                  </strong>
-                  <small>{{ cajaTicketName(ticket) }}</small>
-                </span>
-                <strong>{{ formatCurrency(ticket.amount_pending ?? ticket.total ?? 0) }}</strong>
-              </button>
-            </li>
-          }
-        </ul>
-      }
     </div>
   }
 
@@ -867,7 +964,7 @@
           <li><kbd>Teclear</kbd><span>Busca sin hacer click. El primero queda marcado</span></li>
           <li><kbd>↑ ↓</kbd><span>Mueve el producto marcado</span></li>
           <li><kbd>Enter</kbd><span>Agrega el producto marcado</span></li>
-          <li><kbd>Esc</kbd><span>Limpia la búsqueda o cierra este panel</span></li>
+          <li><kbd>Esc</kbd><span>Limpia la búsqueda. Otro Esc sale de pantalla completa</span></li>
           <li><kbd>Ctrl+M</kbd><span>Muestra las ventas que están en POS Caja para regresarlas a ventas</span></li>
         </ul>
         <p class="pos-shortcuts-modal__note">En caja, Ctrl+Q busca ventas pasadas para abono. Sigue pendiente.</p>
