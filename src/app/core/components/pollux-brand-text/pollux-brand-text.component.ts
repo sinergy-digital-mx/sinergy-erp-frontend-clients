@@ -222,23 +222,22 @@ import { SystemLogoService } from '../../services/system-logo.service';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      max-width: 100%;
+      flex-shrink: 0;
       background: transparent;
       line-height: 0;
     }
 
     .system-logo img {
       display: block;
-      width: auto;
-      height: auto;
-      max-width: 136px;
-      max-height: 92px;
+      width: 136px;
+      height: 92px;
       object-fit: contain;
+      flex-shrink: 0;
     }
 
     .system-logo--compact img {
-      max-width: 40px;
-      max-height: 40px;
+      width: 40px;
+      height: 40px;
     }
 
     .system-logo--lg {

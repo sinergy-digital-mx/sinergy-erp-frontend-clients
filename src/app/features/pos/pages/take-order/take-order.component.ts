@@ -29,6 +29,7 @@ import {
   Package,
   User,
   Percent,
+  Check,
   Info,
   ChevronDown,
   ChevronRight,
@@ -127,6 +128,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly Package = Package;
   readonly User = User;
   readonly Percent = Percent;
+  readonly Check = Check;
   readonly Info = Info;
   readonly ChevronDown = ChevronDown;
   readonly ChevronRight = ChevronRight;

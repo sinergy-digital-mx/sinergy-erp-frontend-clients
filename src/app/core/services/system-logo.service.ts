@@ -31,7 +31,7 @@ interface SystemLogoCache {
 export class SystemLogoService {
   private readonly storageKey = 'sinergy.system_logo';
   /** Si cambia el recorte del PNG, las imágenes ya guardadas se vuelven a bajar. */
-  private readonly imageProcessVersion = '2';
+  private readonly imageProcessVersion = '3';
   private readonly api = environment.api;
   /** No consultar el menú en cada foco si ya se revisó hace poco. */
   private readonly recheckMs = 2 * 60 * 1000;
@@ -204,7 +204,7 @@ export class SystemLogoService {
     const mask = this.normalizeMask(maskColor);
     try {
       const bitmap = await createImageBitmap(blob);
-      const maxWidth = 480;
+      const maxWidth = 272;
       const scale = bitmap.width > maxWidth ? maxWidth / bitmap.width : 1;
       const width = Math.max(1, Math.round(bitmap.width * scale));
       const height = Math.max(1, Math.round(bitmap.height * scale));

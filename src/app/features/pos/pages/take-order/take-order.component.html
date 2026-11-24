@@ -751,6 +751,18 @@
                     }
                   </select>
                 }
+                @if (canApplyPriceDiscount()) {
+                  <button
+                    type="button"
+                    class="pos-line__discount-btn"
+                    [class.is-on]="hasPriceDiscount(item) || priceDiscountOpenIndex() === i"
+                    (click)="togglePriceDiscount(i)"
+                    [attr.aria-expanded]="priceDiscountOpenIndex() === i"
+                    [attr.aria-label]="hasPriceDiscount(item) ? 'Modificar descuento' : 'Agregar descuento'"
+                    [attr.title]="hasPriceDiscount(item) ? 'Modificar descuento −' + formatPriceDiscount(item.price_discount_percentage) + '%' : 'Agregar descuento'">
+                    <lucide-icon [img]="Percent" class="pos-ic pos-ic--xs" />
+                  </button>
+                }
                 <div class="pos-qty" role="group" [attr.aria-label]="'Cantidad de ' + item.product_name">
                   <button
                     type="button"
@@ -786,70 +798,54 @@
               </div>
             </div>
 
-            @if (canApplyPriceDiscount()) {
+            @if (canApplyPriceDiscount() && priceDiscountOpenIndex() === i) {
               <div class="pos-price-off">
                 <button
                   type="button"
-                  class="pos-price-off__toggle"
-                  [class.is-on]="hasPriceDiscount(item) || priceDiscountOpenIndex() === i"
-                  (click)="togglePriceDiscount(i)"
-                  [attr.aria-expanded]="priceDiscountOpenIndex() === i"
-                  title="Modificar precio">
-                  <lucide-icon [img]="Percent" class="pos-ic pos-ic--xs" />
-                  @if (hasPriceDiscount(item)) {
-                    Descuento −{{ formatPriceDiscount(item.price_discount_percentage) }}%
-                  } @else {
-                    Agregar descuento
-                  }
+                  class="pos-price-off__chip"
+                  [class.is-on]="isPriceDiscountPreset(item, 5)"
+                  (click)="applyPriceDiscount(i, 5)">
+                  5%
                 </button>
-                @if (priceDiscountOpenIndex() === i) {
-                  <div class="pos-price-off__panel">
-                    <p class="pos-price-off__title">Modificar precio</p>
-                    <div class="pos-price-off__chips">
-                      <button
-                        type="button"
-                        class="pos-price-off__chip"
-                        [class.is-on]="isPriceDiscountPreset(item, 5)"
-                        (click)="applyPriceDiscount(i, 5)">
-                        5%
-                      </button>
-                      <button
-                        type="button"
-                        class="pos-price-off__chip"
-                        [class.is-on]="isPriceDiscountPreset(item, 3)"
-                        (click)="applyPriceDiscount(i, 3)">
-                        3%
-                      </button>
-                      <label class="pos-price-off__custom">
-                        <input
-                          type="number"
-                          min="0.01"
-                          max="100"
-                          step="0.01"
-                          inputmode="decimal"
-                          placeholder="Otro"
-                          aria-label="Otro porcentaje"
-                          [ngModel]="customPriceDiscount()"
-                          (ngModelChange)="customPriceDiscount.set($event == null ? '' : '' + $event)"
-                          (keydown.enter)="applyCustomPriceDiscount(i)" />
-                        <span>%</span>
-                      </label>
-                      <button
-                        type="button"
-                        class="pos-price-off__apply"
-                        (click)="applyCustomPriceDiscount(i)">
-                        Aplicar
-                      </button>
-                      @if (hasPriceDiscount(item)) {
-                        <button
-                          type="button"
-                          class="pos-price-off__clear"
-                          (click)="clearPriceDiscount(i)">
-                          Quitar
-                        </button>
-                      }
-                    </div>
-                  </div>
+                <button
+                  type="button"
+                  class="pos-price-off__chip"
+                  [class.is-on]="isPriceDiscountPreset(item, 3)"
+                  (click)="applyPriceDiscount(i, 3)">
+                  3%
+                </button>
+                <label class="pos-price-off__custom">
+                  <input
+                    class="pos-price-off__input"
+                    type="number"
+                    min="0.01"
+                    max="100"
+                    step="0.01"
+                    inputmode="decimal"
+                    placeholder="0"
+                    aria-label="Otro porcentaje"
+                    [ngModel]="customPriceDiscount()"
+                    (ngModelChange)="customPriceDiscount.set($event == null ? '' : '' + $event)"
+                    (keydown.enter)="applyCustomPriceDiscount(i)" />
+                  <span>%</span>
+                </label>
+                <button
+                  type="button"
+                  class="pos-price-off__apply"
+                  title="Aplicar"
+                  aria-label="Aplicar descuento"
+                  (click)="applyCustomPriceDiscount(i)">
+                  <lucide-icon [img]="Check" class="pos-ic pos-ic--xs" />
+                </button>
+                @if (hasPriceDiscount(item)) {
+                  <button
+                    type="button"
+                    class="pos-price-off__clear"
+                    title="Quitar descuento"
+                    aria-label="Quitar descuento"
+                    (click)="clearPriceDiscount(i)">
+                    <lucide-icon [img]="X" class="pos-ic pos-ic--xs" />
+                  </button>
                 }
               </div>
             }
