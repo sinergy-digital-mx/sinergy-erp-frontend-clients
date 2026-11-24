@@ -1,5 +1,6 @@
 import { POSCartItem, POSCart } from '../models/pos.model';
 import { SalesOrderFormData } from '../../sales-orders/models/sales-order.model';
+import { normalizePriceDiscountPercent } from './pos-discount.util';
 
 export interface VentasPosOrderContext {
   warehouseId: string;
@@ -51,8 +52,13 @@ function mapCartLineToOrderLine(item: POSCartItem): SalesOrderFormData['line_ite
     ieps_percentage: Number(item.ieps_percentage ?? 0),
   };
 
+  const priceDiscount = item.product_discount_id
+    ? 0
+    : normalizePriceDiscountPercent(item.price_discount_percentage);
   if (item.product_discount_id) {
     line.product_discount_id = item.product_discount_id;
+  } else if (priceDiscount > 0) {
+    line.discount_percentage = priceDiscount;
   }
 
   return line;
@@ -116,9 +122,13 @@ export function mapInProgressLineToCartItem(line: {
   unit_price: number;
   iva_percentage?: number;
   ieps_percentage?: number;
+  discount_percentage?: number;
   product_discount_id?: string | null;
   selected_discount?: POSCartItem['selected_discount'];
 }): POSCartItem {
+  const priceDiscount = line.product_discount_id
+    ? 0
+    : normalizePriceDiscountPercent(line.discount_percentage);
   return {
     product_id: line.product_id,
     product_name: line.product_name || 'Producto',
@@ -133,6 +143,8 @@ export function mapInProgressLineToCartItem(line: {
     subtotal: 0,
     line_gross_subtotal: 0,
     line_discount_amount: 0,
+    price_discount_percentage: priceDiscount,
+    price_discount_amount: 0,
     iva_amount: 0,
     ieps_amount: 0,
     line_total: 0,

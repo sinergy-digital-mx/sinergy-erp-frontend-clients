@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildVentasPosOrderPayload, posSaleObservation, resolvePosSaleNotes } from './pos-order.util';
+import {
+  buildVentasPosOrderPayload,
+  mapInProgressLineToCartItem,
+  posSaleObservation,
+  resolvePosSaleNotes,
+} from './pos-order.util';
 
 const cart = {
   items: [
@@ -73,6 +78,54 @@ describe('buildVentasPosOrderPayload', () => {
       notes: '  Cortar a 2.40 m  ',
     });
     expect(payload.notes).toBe('Cortar a 2.40 m');
+  });
+
+  it('guarda el descuento de precio en la línea y no como descuento de producto', () => {
+    const payload = buildVentasPosOrderPayload({
+      ...cart,
+      items: [{ ...cart.items[0], price_discount_percentage: 5 }],
+    } as any, ctx);
+    expect(payload.line_items[0].discount_percentage).toBe(5);
+    expect(payload.line_items[0].product_discount_id).toBeUndefined();
+    expect(payload.line_items[0].unit_price).toBe(10);
+  });
+
+  it('si hay descuento de producto no manda el porcentaje de precio', () => {
+    const payload = buildVentasPosOrderPayload({
+      ...cart,
+      items: [{
+        ...cart.items[0],
+        price_discount_percentage: 5,
+        product_discount_id: 'disc-1',
+      }],
+    } as any, ctx);
+    expect(payload.line_items[0].product_discount_id).toBe('disc-1');
+    expect(payload.line_items[0].discount_percentage).toBeUndefined();
+  });
+
+  it('restaura el porcentaje al reabrir el ticket', () => {
+    const item = mapInProgressLineToCartItem({
+      product_id: 'p1',
+      product_uom_id: 'u1',
+      quantity: 1,
+      unit_price: 100,
+      discount_percentage: 3,
+    });
+    expect(item.price_discount_percentage).toBe(3);
+    expect(item.unit_price).toBe(100);
+  });
+
+  it('no trata el descuento de producto como descuento de precio', () => {
+    const item = mapInProgressLineToCartItem({
+      product_id: 'p1',
+      product_uom_id: 'u1',
+      quantity: 1,
+      unit_price: 100,
+      discount_percentage: 10,
+      product_discount_id: 'disc-1',
+    });
+    expect(item.price_discount_percentage).toBe(0);
+    expect(item.product_discount_id).toBe('disc-1');
   });
 
   it('usa la nota de terminal si no hay observaciones', () => {

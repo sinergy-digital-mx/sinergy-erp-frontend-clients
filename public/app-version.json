@@ -1,12 +1,20 @@
 {
-  "version": "0.0.146",
-  "buildId": "0.0.146-1795481900617",
-  "builtAt": "2026-11-24T00:58:20.617Z",
+  "version": "0.0.147",
+  "buildId": "0.0.147-1795482828830",
+  "builtAt": "2026-11-24T01:13:48.830Z",
   "channel": "full",
   "changes": [
     {
-      "scope": "backend",
+      "scope": "frontend",
       "message": "Cambios en ventas"
+    },
+    {
+      "scope": "backend",
+      "message": "Cambios en cotizaciones"
+    },
+    {
+      "scope": "backend",
+      "message": "Cambios en accesos y permisos"
     }
   ]
 }

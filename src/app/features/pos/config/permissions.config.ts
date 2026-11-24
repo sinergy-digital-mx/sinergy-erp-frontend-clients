@@ -26,6 +26,8 @@ export const POS_PERMISSIONS = {
   
   // Special actions
   applyDiscount: 'pos:ApplyDiscount',
+  /** Ver y aplicar el descuento porcentual al precio en el carrito de POS Ventas. */
+  applyPriceDiscount: 'pos:ApplyPriceDiscount',
   viewCost: 'pos:ViewCost',
   overridePrice: 'pos:OverridePrice',
   

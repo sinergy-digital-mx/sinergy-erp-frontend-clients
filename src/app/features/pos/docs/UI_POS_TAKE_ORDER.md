@@ -21,6 +21,8 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 ### 2026-11-23
 
+En cada línea del carrito, quien tenga el permiso **Ver y aplicar descuento porcentual al precio en POS Ventas** (`pos:ApplyPriceDiscount`) ve **Agregar descuento**. Abre **Modificar precio** con botones **5%** y **3%**, y un porcentaje distinto. El precio de lista se tacha, sale el precio nuevo y la pastilla `−5%`. No es descuento de producto ni global: se guarda en `discount_percentage` de la línea. Sin el permiso no se ve el botón; si el ticket ya traía el descuento, se muestra y se conserva al reenviar.
+
 La barra dice **POS** y la **i** abre los atajos. **Ctrl+I** abre el cliente (también está en el botón Existente/Cambiar). Al buscar, el primer resultado queda marcado: las flechas lo mueven y Enter agrega ese renglón. Esc limpia la búsqueda y un segundo Esc sale de pantalla completa. **Ctrl+M** abre un modal al centro con las ventas en caja: folio, cliente, productos, totales y el botón para regresarla a ventas. F1 y F5 quedan para el navegador.
 
 La vista de lista tiene columnas (Producto, Nº pieza, Existencia, Unidad, Precio). El renglón marcado va en violeta. El renglón completo agrega; el precio ya no se ve como botón. Los iconos de tarjetas y lista van centrados, y el activo se pinta. Junto a la búsqueda hay tarjetas/lista; la vista queda en el navegador. El desplegable de sucursal solo consulta existencia: si no es la sucursal de la venta, no se puede agregar. Si el folio ya existe, **Cambiar** cliente lo actualiza en la orden.

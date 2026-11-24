@@ -6,7 +6,7 @@ import { catchError, map, switchMap } from 'rxjs/operators';
 import { GlobalDiscount } from '../../global-discounts/models/global-discount.model';
 import { POSCart, POSCartItem, PosCajaQueueTicket, PosSaleInProgress } from '../models/pos.model';
 import { PosApplicableDiscount } from '../models/pos-inventory-summary.model';
-import { previewLineDiscount, previewGlobalDiscount } from '../utils/pos-discount.util';
+import { previewLineDiscount, previewGlobalDiscount, previewPriceDiscount, normalizePriceDiscountPercent } from '../utils/pos-discount.util';
 import {
   CurrentDailyShiftResponse,
   PosDailyShiftDetail,
@@ -59,6 +59,7 @@ export class POSService {
     items: [],
     total_gross_subtotal: 0,
     total_discount: 0,
+    total_price_discount: 0,
     total_subtotal: 0,
     total_iva: 0,
     total_ieps: 0,
@@ -135,6 +136,28 @@ export class POSService {
         ...item,
         product_discount_id: discount?.id ?? null,
         selected_discount: discount,
+        price_discount_percentage: discount ? 0 : item.price_discount_percentage,
+      });
+    });
+    this.updateCart(updatedItems);
+  }
+
+  /**
+   * Porcentaje que baja el precio de la línea. 0 lo quita.
+   * No convive con un descuento de producto en la misma línea.
+   */
+  updateItemPriceDiscount(index: number, percent: number): void {
+    const currentCart = this.cartState();
+    const priceDiscount = normalizePriceDiscountPercent(percent);
+    const updatedItems = currentCart.items.map((item, i) => {
+      if (i !== index) {
+        return item;
+      }
+      return this.recalculateItem({
+        ...item,
+        price_discount_percentage: priceDiscount,
+        product_discount_id: priceDiscount > 0 ? null : item.product_discount_id,
+        selected_discount: priceDiscount > 0 ? null : item.selected_discount,
       });
     });
     this.updateCart(updatedItems);
@@ -191,6 +214,7 @@ export class POSService {
       items: [],
       total_gross_subtotal: 0,
       total_discount: 0,
+      total_price_discount: 0,
       total_subtotal: 0,
       total_iva: 0,
       total_ieps: 0,
@@ -217,11 +241,11 @@ export class POSService {
    * Recalculate item totals (discount before tax).
    */
   recalculateItem(item: POSCartItem): POSCartItem {
-    const preview = previewLineDiscount(
-      item.unit_price,
-      item.quantity,
-      item.selected_discount
-    );
+    const priceDiscount = normalizePriceDiscountPercent(item.price_discount_percentage);
+    const productDiscount = priceDiscount > 0 ? null : item.selected_discount;
+    const preview = priceDiscount > 0
+      ? previewPriceDiscount(item.unit_price, item.quantity, priceDiscount)
+      : previewLineDiscount(item.unit_price, item.quantity, productDiscount);
     const iva_amount = preview.lineNetSubtotal * (item.iva_percentage / 100);
     const ieps_amount = 0;
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
@@ -230,6 +254,10 @@ export class POSService {
     return {
       ...item,
       product_uom_id: item.product_uom_id || item.uom_id,
+      price_discount_percentage: priceDiscount,
+      price_discount_amount: priceDiscount > 0 ? preview.lineDiscount : 0,
+      product_discount_id: priceDiscount > 0 ? null : (productDiscount?.id ?? null),
+      selected_discount: productDiscount ?? null,
       line_gross_subtotal: preview.lineGrossSubtotal,
       line_discount_amount: preview.lineDiscount,
       subtotal: preview.lineNetSubtotal,
@@ -249,7 +277,11 @@ export class POSService {
 
     const recalculated = items.map((item) => this.recalculateItem(item));
     const total_gross_subtotal = recalculated.reduce((sum, item) => sum + item.line_gross_subtotal, 0);
-    const total_discount = recalculated.reduce((sum, item) => sum + item.line_discount_amount, 0);
+    const total_price_discount = recalculated.reduce((sum, item) => sum + (item.price_discount_amount ?? 0), 0);
+    const total_discount = recalculated.reduce(
+      (sum, item) => sum + Math.max(item.line_discount_amount - (item.price_discount_amount ?? 0), 0),
+      0,
+    );
     const total_subtotal = recalculated.reduce((sum, item) => sum + item.subtotal, 0);
     const total_iva = recalculated.reduce((sum, item) => sum + item.iva_amount, 0);
     const total_ieps = recalculated.reduce((sum, item) => sum + item.ieps_amount, 0);
@@ -261,6 +293,7 @@ export class POSService {
       items: recalculated,
       total_gross_subtotal,
       total_discount,
+      total_price_discount,
       total_subtotal,
       total_iva,
       total_ieps,

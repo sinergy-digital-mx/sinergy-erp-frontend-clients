@@ -89,6 +89,8 @@ import { GlobalDiscount } from '../../../global-discounts/models/global-discount
 import { GLOBAL_DISCOUNT_PERMISSIONS } from '../../../global-discounts/config/permissions.config';
 import { GlobalDiscountFormDialogComponent } from '../../../global-discounts/components/global-discount-form-dialog/global-discount-form-dialog.component';
 import { QUOTATION_PERMISSIONS } from '../../../quotations/config/permissions.config';
+import { POS_PERMISSIONS } from '../../config/permissions.config';
+import { normalizePriceDiscountPercent } from '../../utils/pos-discount.util';
 import { mapPosApiErrorMessage, posProductLabelsById } from '../../constants/pos-api-errors';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { formatMeasureTotalsLine, hasMeasureTotals } from '../../../../core/utils/inventory-measure.util';
@@ -241,6 +243,26 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       this.authService.hasPermission(permission)
     )
   );
+
+  readonly canApplyPriceDiscount = computed(() =>
+    this.authService.hasPermission(POS_PERMISSIONS.applyPriceDiscount),
+  );
+
+  priceDiscountOpenIndex = signal<number | null>(null);
+  customPriceDiscount = signal('');
+
+  cartPriceDiscounts = computed(() =>
+    this.posService
+      .cart()
+      .items.filter((item) => (item.price_discount_amount ?? 0) > 0.009)
+      .map((item) => ({
+        productName: item.product_name,
+        percent: item.price_discount_percentage ?? 0,
+        amount: item.price_discount_amount ?? 0,
+      })),
+  );
+
+  cartHasPriceDiscount = computed(() => (this.posService.cart().total_price_discount ?? 0) > 0.009);
 
   applicableGlobalDiscounts = signal<GlobalDiscount[]>([]);
   loadingGlobalDiscounts = signal(false);
@@ -1499,6 +1521,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       subtotal: 0,
       line_gross_subtotal: 0,
       line_discount_amount: 0,
+      price_discount_percentage: 0,
+      price_discount_amount: 0,
       iva_amount: 0,
       ieps_amount: 0,
       line_total: 0,
@@ -1525,7 +1549,68 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   removeItem(index: number): void {
+    const open = this.priceDiscountOpenIndex();
+    if (open === index) {
+      this.priceDiscountOpenIndex.set(null);
+    } else if (open != null && open > index) {
+      this.priceDiscountOpenIndex.set(open - 1);
+    }
     this.posService.removeItem(index);
+  }
+
+  togglePriceDiscount(index: number): void {
+    if (!this.canApplyPriceDiscount()) return;
+    const opening = this.priceDiscountOpenIndex() !== index;
+    this.priceDiscountOpenIndex.set(opening ? index : null);
+    if (!opening) return;
+    const item = this.posService.cart().items[index];
+    const pct = Number(item?.price_discount_percentage ?? 0);
+    const isPreset = Math.abs(pct - 5) < 0.001 || Math.abs(pct - 3) < 0.001;
+    this.customPriceDiscount.set(pct > 0 && !isPreset ? String(pct) : '');
+  }
+
+  applyPriceDiscount(index: number, percent: number): void {
+    if (!this.canApplyPriceDiscount()) return;
+    const item = this.posService.cart().items[index];
+    if (!item) return;
+    const current = Number(item.price_discount_percentage ?? 0);
+    const next = Math.abs(current - percent) < 0.001 ? 0 : percent;
+    this.posService.updateItemPriceDiscount(index, next);
+  }
+
+  applyCustomPriceDiscount(index: number): void {
+    if (!this.canApplyPriceDiscount()) return;
+    const raw = String(this.customPriceDiscount() ?? '').trim().replace(',', '.');
+    const pct = Number(raw);
+    if (!raw || !Number.isFinite(pct) || pct <= 0 || pct > 100) {
+      this.notifyError('El descuento debe estar entre 0.01% y 100%', 3500);
+      return;
+    }
+    this.posService.updateItemPriceDiscount(index, normalizePriceDiscountPercent(pct));
+  }
+
+  clearPriceDiscount(index: number): void {
+    this.customPriceDiscount.set('');
+    this.posService.updateItemPriceDiscount(index, 0);
+  }
+
+  hasPriceDiscount(item: POSCartItem): boolean {
+    return Number(item.price_discount_percentage ?? 0) > 0.009;
+  }
+
+  isPriceDiscountPreset(item: POSCartItem, percent: number): boolean {
+    return Math.abs(Number(item.price_discount_percentage ?? 0) - percent) < 0.001;
+  }
+
+  formatPriceDiscount(percent: number | string | null | undefined): string {
+    const n = Number(percent);
+    if (!Number.isFinite(n)) return '0';
+    return n.toLocaleString('es-MX', { maximumFractionDigits: 2 });
+  }
+
+  priceDiscountPercent(line: { discount_percentage?: number | string | null }): number {
+    const pct = Number(line.discount_percentage ?? 0);
+    return Number.isFinite(pct) && pct > 0 ? pct : 0;
   }
 
   onLineDiscountChange(index: number, discountId: string): void {

@@ -23,6 +23,13 @@ export interface POSCartItem {
   subtotal: number;
   line_gross_subtotal: number;
   line_discount_amount: number;
+  /**
+   * Porcentaje que baja el precio de la línea.
+   * No es descuento de producto ni descuento global.
+   */
+  price_discount_percentage?: number;
+  /** Importe del descuento de precio. Va dentro de line_discount_amount. */
+  price_discount_amount?: number;
   iva_amount: number;
   ieps_amount: number;
   line_total: number;
@@ -53,6 +60,8 @@ export interface POSCart {
   total_gross_subtotal: number;
   /** Suma de descuentos por producto (línea). */
   total_discount: number;
+  /** Suma de descuentos porcentuales directos al precio. */
+  total_price_discount: number;
   total_subtotal: number;
   total_iva: number;
   total_ieps: number;
@@ -85,6 +94,7 @@ export interface PosCajaQueueLine {
   quantity: number;
   uom_name: string;
   unit_price: number;
+  discount_percentage?: number;
   line_total: number;
 }
 

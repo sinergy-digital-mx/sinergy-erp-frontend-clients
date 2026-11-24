@@ -8,6 +8,31 @@ export interface LineDiscountPreview {
   lineNetSubtotal: number;
 }
 
+export function normalizePriceDiscountPercent(value: unknown): number {
+  const pct = Number(value ?? 0);
+  if (!Number.isFinite(pct) || pct <= 0) return 0;
+  return Math.min(100, Math.round(pct * 100) / 100);
+}
+
+/** Porcentaje directo sobre el precio de lista. No usa el catálogo de descuentos. */
+export function previewPriceDiscount(
+  unitPrice: number,
+  qty: number,
+  percent: number
+): LineDiscountPreview {
+  const pct = normalizePriceDiscountPercent(percent);
+  if (pct <= 0) {
+    return previewLineDiscount(unitPrice, qty, null);
+  }
+  return previewLineDiscount(unitPrice, qty, {
+    id: 'price-discount',
+    name: 'Precio',
+    discount_type: 'percentage',
+    value: pct,
+    product_uom_id: null,
+  });
+}
+
 export function previewLineDiscount(
   unitPrice: number,
   qty: number,
