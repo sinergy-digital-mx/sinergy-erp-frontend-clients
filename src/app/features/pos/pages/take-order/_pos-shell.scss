@@ -134,26 +134,23 @@
   }
 }
 
-.pos-meta__link {
-  flex-shrink: 0;
+button.pos-meta--action {
   margin: 0;
-  padding: 0;
   border: none;
-  background: none;
-  color: #a5b4fc;
-  font-size: 0.6875rem;
-  font-weight: 650;
-  letter-spacing: 0.01em;
-  line-height: 1.2;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 
   &:hover {
-    color: #e0e7ff;
-    text-decoration: underline;
+    background: rgba(255, 255, 255, 0.08);
   }
 
-  &--emphasis {
-    color: #c7d2fe;
+  &:focus-visible {
+    outline: 2px solid #818cf8;
+    outline-offset: -2px;
   }
 }
 

@@ -49,27 +49,34 @@
           }
         </div>
 
-        <div class="pos-meta">
-          <span class="pos-meta__k">Sucursal</span>
-          <span class="pos-meta__v">{{ branchLabel() }}</span>
-          @if (canSwitchBranch()) {
-            <button type="button" class="pos-meta__link" (click)="changeBranch()">Cambiar</button>
-          }
-        </div>
+        @if (canSwitchBranch()) {
+          <button type="button" class="pos-meta pos-meta--action" (click)="changeBranch()" title="Cambiar sucursal">
+            <span class="pos-meta__k">Sucursal</span>
+            <span class="pos-meta__v">{{ branchLabel() }}</span>
+          </button>
+        } @else {
+          <div class="pos-meta">
+            <span class="pos-meta__k">Sucursal</span>
+            <span class="pos-meta__v">{{ branchLabel() }}</span>
+          </div>
+        }
 
-        <div class="pos-meta">
-          <span class="pos-meta__k">Vendedor</span>
-          @if (posState.seller()) {
+        @if (posState.seller()) {
+          <button type="button" class="pos-meta pos-meta--action" (click)="changeSeller()" title="Cambiar vendedor">
+            <span class="pos-meta__k">Vendedor</span>
             <span class="pos-meta__v">{{ posState.sellerDisplayName() }}</span>
-            <button type="button" class="pos-meta__link" (click)="changeSeller()">Cambiar</button>
-          } @else if (posState.needsSellerCode()) {
-            <button type="button" class="pos-meta__link pos-meta__link--emphasis" (click)="openSellerCodeDialog()">
-              Código
-            </button>
-          } @else {
+          </button>
+        } @else if (posState.needsSellerCode()) {
+          <button type="button" class="pos-meta pos-meta--action" (click)="openSellerCodeDialog()" title="Ingresar código de vendedor">
+            <span class="pos-meta__k">Vendedor</span>
+            <span class="pos-meta__v">Código</span>
+          </button>
+        } @else {
+          <div class="pos-meta">
+            <span class="pos-meta__k">Vendedor</span>
             <span class="pos-meta__v pos-meta__v--muted">—</span>
-          }
-        </div>
+          </div>
+        }
       </nav>
 
         <div class="pos-session-bar__tools">

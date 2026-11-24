@@ -19,6 +19,10 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 ## Cambios
 
+### 2026-11-24
+
+En la barra, **Sucursal** y **Vendedor** ya no muestran el texto Cambiar. El clic en el cuadrito abre el cambio de sucursal o el código del vendedor. En una laptop chica ese enlace quedaba fuera del cuadrito.
+
 ### 2026-11-23
 
 El modal de **Ventas en caja** es ancho (hasta 1120px). Los folios van en cartas apaisadas del mismo ancho y alto (unas tres por fila): folio, cliente, monto y un resumen (productos, hora, vendedor). Al abrir una, ocupa el ancho del modal y los productos salen en tabla (pieza, cantidad, precio, importe) con scroll, para listas de unos diez renglones. **Regresar a ventas** queda a un lado, en tamaño medio. **En caja** y **Tickets** en la barra suben un poco de tamaño.

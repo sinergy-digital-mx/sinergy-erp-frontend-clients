@@ -27,13 +27,17 @@
           }
         </div>
 
-        <div class="pos-meta">
-          <span class="pos-meta__k">Sucursal</span>
-          <span class="pos-meta__v">{{ branchLabel() }}</span>
-          @if (canSwitchBranch()) {
-            <button type="button" class="pos-meta__link" (click)="changeBranch()">Cambiar</button>
-          }
-        </div>
+        @if (canSwitchBranch()) {
+          <button type="button" class="pos-meta pos-meta--action" (click)="changeBranch()" title="Cambiar sucursal">
+            <span class="pos-meta__k">Sucursal</span>
+            <span class="pos-meta__v">{{ branchLabel() }}</span>
+          </button>
+        } @else {
+          <div class="pos-meta">
+            <span class="pos-meta__k">Sucursal</span>
+            <span class="pos-meta__v">{{ branchLabel() }}</span>
+          </div>
+        }
 
         @if (shift(); as currentShift) {
           <div class="pos-meta">

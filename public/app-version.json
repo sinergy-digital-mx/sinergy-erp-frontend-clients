@@ -1,14 +1,14 @@
 {
-  "version": "0.0.171",
-  "buildId": "0.0.171-1795558089352",
-  "builtAt": "2026-11-24T22:08:09.352Z",
+  "version": "0.0.172",
+  "buildId": "0.0.172-1795559953882",
+  "builtAt": "2026-11-24T22:39:13.882Z",
   "channel": "full",
   "changes": [
     {
-      "scope": "backend",
-      "message": "Se quitaron del API público las rutas de administración de organizaciones y de módulos. Las de cada empresa siguen registradas.",
-      "module": "platform",
-      "moduleLabel": "Plataforma"
+      "scope": "frontend",
+      "message": "En la barra del POS el clic en el cuadrito de sucursal o vendedor abre el cambio, sin el texto Cambiar.",
+      "module": "pos",
+      "moduleLabel": "POS Ventas"
     }
   ]
 }
