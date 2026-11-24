@@ -40,6 +40,8 @@
         root.style.setProperty('--brand-nav-start', entry.start);
         root.style.setProperty('--brand-nav-mid', entry.mid);
         root.style.setProperty('--brand-nav-end', entry.end);
+        if (hex.test(entry.posSales)) root.style.setProperty('--pos-sales-bar', entry.posSales);
+        if (hex.test(entry.posCash)) root.style.setProperty('--pos-cash-bar', entry.posCash);
         var metas = document.querySelectorAll('meta[name="theme-color"]');
         for (var i = 0; i < metas.length; i++) metas[i].setAttribute('content', entry.start);
       } catch (e) {}

@@ -379,6 +379,27 @@
       line-height: 1.35;
     }
 
+    .brand-pos {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 0.85rem;
+    }
+
+    .brand-stop--bar {
+      grid-template-columns: auto auto minmax(0, 1fr) 6.5rem;
+    }
+
+    .brand-pos__check {
+      width: 1rem;
+      height: 1rem;
+      accent-color: #4f46e5;
+    }
+
+    .brand-pos__picker--off {
+      opacity: 0.4;
+    }
+
     .brand-actions {
       display: flex;
       flex-wrap: wrap;

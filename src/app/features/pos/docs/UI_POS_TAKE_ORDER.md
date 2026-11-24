@@ -21,7 +21,7 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 ### 2026-11-23
 
-El modal de **Ventas en caja** lista los folios en filas compactas (folio y cliente en una línea, totales en una franja). Cabe una cola de varios sin ocupar media pantalla. Al abrir uno se ven productos, totales y **Regresar a ventas**.
+El modal de **Ventas en caja** es ancho (hasta 1120px). Los folios van en cartas apaisadas del mismo ancho y alto (unas tres por fila): folio, cliente, monto y un resumen (productos, hora, vendedor). Al abrir una, ocupa el ancho del modal y los productos salen en tabla (pieza, cantidad, precio, importe) con scroll, para listas de unos diez renglones. **Regresar a ventas** queda a un lado, en tamaño medio. **En caja** y **Tickets** en la barra suben un poco de tamaño.
 
 Si caja tiene ese folio abierto (lo está cobrando o editando), al regresarlo se le quita al momento. Caja abre una ventana: «{vendedor} regresó {folio} a POS Ventas». El nombre es el vendedor con código abierto en esa terminal.
 

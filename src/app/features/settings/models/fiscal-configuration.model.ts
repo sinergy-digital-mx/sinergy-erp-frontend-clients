@@ -31,6 +31,8 @@ export interface FiscalConfiguration {
   brand_color_start?: string | null;
   brand_color_mid?: string | null;
   brand_color_end?: string | null;
+  pos_sales_bar_color?: string | null;
+  pos_cash_bar_color?: string | null;
   status: 'active' | 'inactive';
   certificate_serial_number?: string;
   finkok_registration_status?: 'pending' | 'registered' | 'failed' | string;
@@ -68,6 +70,8 @@ export interface UpdateFiscalConfigurationDto extends Partial<CreateFiscalConfig
   brand_color_start?: string | null;
   brand_color_mid?: string | null;
   brand_color_end?: string | null;
+  pos_sales_bar_color?: string | null;
+  pos_cash_bar_color?: string | null;
 }
 
 export interface FiscalConfigurationListResponse {

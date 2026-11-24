@@ -41,7 +41,7 @@
 .pos-session-bar {
   width: 100%;
   flex-shrink: 0;
-  background: #0f172a;
+  background: var(--pos-session-bar, #0f172a);
   color: #f8fafc;
   padding: 0;
   position: relative;
@@ -55,7 +55,7 @@
 .pos-session-bar__content {
   display: flex;
   align-items: stretch;
-  min-height: 38px;
+  min-height: 46px;
   width: 100%;
 }
 
@@ -161,8 +161,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  min-width: 36px;
+  width: 44px;
+  min-width: 44px;
   padding: 0;
   border: none;
   border-left: 1px solid rgba(255, 255, 255, 0.1);
@@ -204,9 +204,9 @@
 .pos-tickets-btn {
   position: relative;
   width: auto;
-  min-width: 36px;
-  gap: 0.35rem;
-  padding: 0 0.7rem 0 0.55rem;
+  min-width: 44px;
+  gap: 0.45rem;
+  padding: 0 0.9rem 0 0.7rem;
 
   &--active {
     color: #fde68a;
@@ -215,22 +215,22 @@
 }
 
 .pos-tickets-btn__label {
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.01em;
 }
 
 .pos-tickets-btn__badge {
   position: static;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 999px;
   background: #f59e0b;
   color: #111827;
-  font-size: 0.625rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  line-height: 16px;
+  line-height: 18px;
   text-align: center;
 }
 
@@ -325,8 +325,8 @@
   }
 
   &--btn {
-    width: 17px;
-    height: 17px;
+    width: 18px;
+    height: 18px;
   }
 }
 

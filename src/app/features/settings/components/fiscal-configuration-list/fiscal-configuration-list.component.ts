@@ -7,6 +7,7 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { FiscalConfigurationService } from '../../services/fiscal-configuration.service';
 import { BranchService } from '../../services/branch.service';
 import { FiscalConfiguration } from '../../models/fiscal-configuration.model';
+import { isBrandHex } from '../../../../core/brand/brand-nav-colors';
 import { FiscalConfigurationModalComponent } from '../fiscal-configuration-modal/fiscal-configuration-modal.component';
 import { FinkokIntegrationPanelComponent } from '../finkok-integration-panel/finkok-integration-panel.component';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
@@ -43,7 +44,7 @@ export class FiscalConfigurationListComponent implements OnInit {
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Razón Social', prop: 'razon_social', sortable: true, canAutoResize: true, width: 200 },
+      { name: 'Razón Social', prop: 'razon_social', sortable: true, canAutoResize: true, width: 260 },
       { name: 'RFC', prop: 'rfc', sortable: false, canAutoResize: true, width: 120 },
       { name: 'Prefijo', prop: 'prefix', sortable: false, canAutoResize: true, width: 90 },
       { name: 'Vigencia cotiz.', prop: 'quotation_expiration_days', sortable: false, canAutoResize: true, width: 120 },
@@ -196,6 +197,34 @@ export class FiscalConfigurationListComponent implements OnInit {
 
   getStatusLabel(status: string): string {
     return status === 'active' ? 'Activo' : 'Inactivo';
+  }
+
+  menuMarks(item: FiscalConfiguration): Array<{ label: string; title: string; color: string | null }> {
+    const marks: Array<{ label: string; title: string; color: string | null }> = [];
+    if (this.isOn(item.use_as_system_logo)) {
+      marks.push({
+        label: 'Template',
+        title: 'Esta razón social define el diseño del menú',
+        color: this.swatch(item.brand_color_start),
+      });
+    }
+    const sales = this.swatch(item.pos_sales_bar_color);
+    if (sales) {
+      marks.push({ label: 'Ventas', title: 'Color de la barra de POS Ventas', color: sales });
+    }
+    const cash = this.swatch(item.pos_cash_bar_color);
+    if (cash) {
+      marks.push({ label: 'Caja', title: 'Color de la barra de POS Caja', color: cash });
+    }
+    return marks;
+  }
+
+  private isOn(value: unknown): boolean {
+    return value === true || value === 1 || value === '1' || value === 'true';
+  }
+
+  private swatch(value: string | null | undefined): string | null {
+    return isBrandHex(value) ? String(value).toLowerCase() : null;
   }
 
   expirationLabel(item: FiscalConfiguration): string {

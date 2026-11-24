@@ -1085,3 +1085,11 @@ main,
     transition: none;
   }
 }
+
+.pos-take-root {
+  --pos-session-bar: var(--pos-sales-bar, #0f172a);
+}
+
+.cobranza-root {
+  --pos-session-bar: var(--pos-cash-bar, #0f172a);
+}

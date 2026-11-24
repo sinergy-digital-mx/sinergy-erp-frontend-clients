@@ -4,6 +4,7 @@ import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import { MatCardModule } from '@angular/material/card';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { PolluxErrorStateComponent } from '../../../../core/components/pollux-error-state/pollux-error-state.component';
 import { MatDialog } from '@angular/material/dialog';
@@ -25,7 +26,7 @@ import { PhoneComponent } from '../../../../core/components/phone/phone.componen
 import { ButtonComponent } from '../../../../core/components/button/button.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
 import { HasEntityDirective } from '../../../../core/directives/has-entity.directive';
-import { Pencil, MapPin, FileUp } from 'lucide-angular';
+import { Pencil, MapPin, FileUp, Info, LucideAngularModule } from 'lucide-angular';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
@@ -73,6 +74,8 @@ import { CustomerSubscriptionsComponent } from '../../components/customer-subscr
     CustomerProductInsightsComponent,
     CustomerActivitiesComponent,
     ButtonComponent,
+    LucideAngularModule,
+    MatTooltipModule,
     HasPermissionDirective,
     HasEntityDirective,
     TabComponent,
@@ -114,6 +117,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
   readonly PencilIcon = Pencil;
   readonly MapPinIcon = MapPin;
   readonly FileUpIcon = FileUp;
+  readonly InfoIcon = Info;
   readonly permissions = CUSTOMER_PERMISSIONS;
 
   routeLabel(): string {

@@ -594,9 +594,49 @@
               </label>
             </div>
 
+            <div class="brand-pos">
+              <p class="brand-panel__kicker">Barras</p>
+              <div class="brand-stop brand-stop--bar" *ngFor="let bar of posBars">
+                <input
+                  class="brand-pos__check"
+                  type="checkbox"
+                  [checked]="posBarEnabled[bar.id]"
+                  [disabled]="savingBrand()"
+                  [attr.aria-label]="'Usar color en ' + bar.name"
+                  (change)="onPosBarToggle(bar.id, $event)"
+                />
+                <span
+                  class="brand-stop__picker"
+                  [class.brand-pos__picker--off]="!posBarEnabled[bar.id]"
+                  [style.background]="posBarColors[bar.id]">
+                  <input
+                    type="color"
+                    [value]="posBarColors[bar.id]"
+                    [disabled]="savingBrand() || !posBarEnabled[bar.id]"
+                    [attr.aria-label]="'Elegir color de ' + bar.name"
+                    (input)="onPosBarPicker(bar.id, $event)"
+                  />
+                </span>
+                <span class="brand-stop__copy">
+                  <span class="brand-stop__name">{{ bar.name }}</span>
+                  <span class="brand-stop__hint">{{ bar.hint }}</span>
+                </span>
+                <input
+                  class="brand-stop__hex"
+                  [ngModel]="posBarTexts[bar.id]"
+                  (ngModelChange)="onPosBarText(bar.id, $event)"
+                  [disabled]="savingBrand() || !posBarEnabled[bar.id]"
+                  maxlength="7"
+                  spellcheck="false"
+                  autocomplete="off"
+                  [attr.aria-label]="'Hexadecimal de ' + bar.name"
+                />
+              </div>
+            </div>
+
             <p *ngIf="brandHexError" class="brand-warning">{{ brandHexError }}</p>
             <p *ngIf="brandLooksLight" class="brand-warning">
-              El texto del menú es blanco. Con un color claro se va a perder.
+              El texto del menú y de esas barras es claro. Con un color claro se va a perder.
             </p>
 
             <div class="brand-actions">
@@ -618,7 +658,8 @@
               </button>
             </div>
             <small class="logo-help brand-panel__note">
-              El menú toma estos colores cuando esta razón social es el logo del sistema.
+              El menú y las barras de POS toman estos colores cuando esta razón social es la plantilla.
+              Si una barra no está marcada, se queda en el tono oscuro de siempre.
               En el celular, la barra y el fondo usan el de arriba para verse continuos.
               Quedan guardados aquí; este navegador los pinta al entrar y, si alguien los cambia, al regresar a la pestaña.
             </small>

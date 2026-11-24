@@ -216,6 +216,25 @@
   border-radius: 9999px;
 }
 
+.sat-constancia-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  color: #94a3b8;
+  background: transparent;
+  cursor: help;
+
+  &:hover {
+    color: #475569;
+    background: #f1f5f9;
+  }
+}
+
 .address-edit-btn {
   flex-shrink: 0;
   align-self: flex-start;

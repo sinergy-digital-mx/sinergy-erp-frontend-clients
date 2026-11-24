@@ -85,6 +85,28 @@ export class FiscalConfigurationModalComponent implements OnInit {
   brandColors: BrandNavColors = { ...DEFAULT_BRAND_NAV_COLORS };
   brandTexts: BrandNavColors = { ...DEFAULT_BRAND_NAV_COLORS };
   private persistedBrand: BrandNavColors = { ...DEFAULT_BRAND_NAV_COLORS };
+  readonly posBars: Array<{ id: 'sales' | 'cash'; name: string; hint: string }> = [
+    {
+      id: 'sales',
+      name: 'POS Ventas',
+      hint: 'Barra de arriba. Puede igualar el menú o usar otro color.',
+    },
+    {
+      id: 'cash',
+      name: 'POS Caja',
+      hint: 'Barra de arriba. Puede ser distinta para reconocer la pantalla.',
+    },
+  ];
+  posBarEnabled: Record<'sales' | 'cash', boolean> = { sales: false, cash: false };
+  posBarColors: Record<'sales' | 'cash', string> = {
+    sales: DEFAULT_BRAND_NAV_COLORS.start,
+    cash: DEFAULT_BRAND_NAV_COLORS.start,
+  };
+  posBarTexts: Record<'sales' | 'cash', string> = {
+    sales: DEFAULT_BRAND_NAV_COLORS.start,
+    cash: DEFAULT_BRAND_NAV_COLORS.start,
+  };
+  private persistedPosBars: Record<'sales' | 'cash', string | null> = { sales: null, cash: null };
   brandCustomized = false;
   logoFileName: string | null = null;
   digitalSealFileName: string | null = null;
@@ -568,13 +590,19 @@ export class FiscalConfigurationModalComponent implements OnInit {
   }
 
   get brandDirty(): boolean {
-    return (['start', 'mid', 'end'] as BrandNavStop[]).some(
+    const gradient = (['start', 'mid', 'end'] as BrandNavStop[]).some(
       (stop) => this.brandColors[stop] !== this.persistedBrand[stop],
     );
+    const bars = (['sales', 'cash'] as const).some((id) => this.desiredPosBar(id) !== this.persistedPosBars[id]);
+    return gradient || bars;
   }
 
   get brandValid(): boolean {
-    return (['start', 'mid', 'end'] as BrandNavStop[]).every((stop) => isBrandHex(this.brandTexts[stop]));
+    const menu = (['start', 'mid', 'end'] as BrandNavStop[]).every((stop) => isBrandHex(this.brandTexts[stop]));
+    const bars = (['sales', 'cash'] as const).every(
+      (id) => !this.posBarEnabled[id] || isBrandHex(this.posBarTexts[id]),
+    );
+    return menu && bars;
   }
 
   get brandHexError(): string | null {
@@ -582,13 +610,24 @@ export class FiscalConfigurationModalComponent implements OnInit {
       const value = this.brandTexts[stop].trim();
       return value.length >= 7 && !isBrandHex(value);
     });
-    return broken ? 'Cada color lleva 6 dígitos, por ejemplo #1e1b4b.' : null;
+    const barBroken = (['sales', 'cash'] as const).some((id) => {
+      if (!this.posBarEnabled[id]) {
+        return false;
+      }
+      const value = this.posBarTexts[id].trim();
+      return value.length >= 7 && !isBrandHex(value);
+    });
+    return broken || barBroken ? 'Cada color lleva 6 dígitos, por ejemplo #1e1b4b.' : null;
   }
 
   get brandLooksLight(): boolean {
-    return (['start', 'mid', 'end'] as BrandNavStop[]).some(
+    const menu = (['start', 'mid', 'end'] as BrandNavStop[]).some(
       (stop) => brandHexLuminance(this.brandColors[stop]) > 0.4,
     );
+    const bars = (['sales', 'cash'] as const).some(
+      (id) => this.posBarEnabled[id] && brandHexLuminance(this.posBarColors[id]) > 0.4,
+    );
+    return menu || bars;
   }
 
   get canRestoreBrand(): boolean {
@@ -626,7 +665,42 @@ export class FiscalConfigurationModalComponent implements OnInit {
       brand_color_start: this.brandColors.start,
       brand_color_mid: this.brandColors.mid,
       brand_color_end: this.brandColors.end,
+      pos_sales_bar_color: this.desiredPosBar('sales'),
+      pos_cash_bar_color: this.desiredPosBar('cash'),
     });
+  }
+
+  onPosBarToggle(id: 'sales' | 'cash', event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.posBarEnabled[id] = checked;
+    if (checked && !this.persistedPosBars[id]) {
+      this.posBarColors[id] = this.brandColors.start;
+      this.posBarTexts[id] = this.brandColors.start;
+    }
+  }
+
+  onPosBarPicker(id: 'sales' | 'cash', event: Event): void {
+    const hex = String((event.target as HTMLInputElement).value || '').toLowerCase();
+    if (!isBrandHex(hex)) {
+      return;
+    }
+    this.posBarColors[id] = hex;
+    this.posBarTexts[id] = hex;
+  }
+
+  onPosBarText(id: 'sales' | 'cash', value: string): void {
+    const next = String(value ?? '').trim();
+    this.posBarTexts[id] = next;
+    if (!isBrandHex(next)) {
+      return;
+    }
+    const hex = next.toLowerCase();
+    this.posBarTexts[id] = hex;
+    this.posBarColors[id] = hex;
+  }
+
+  private desiredPosBar(id: 'sales' | 'cash'): string | null {
+    return this.posBarEnabled[id] && isBrandHex(this.posBarColors[id]) ? this.posBarColors[id] : null;
   }
 
   restoreBrandColors(): void {
@@ -641,6 +715,8 @@ export class FiscalConfigurationModalComponent implements OnInit {
     brand_color_start: string | null;
     brand_color_mid: string | null;
     brand_color_end: string | null;
+    pos_sales_bar_color?: string | null;
+    pos_cash_bar_color?: string | null;
   }): void {
     const fiscalConfig = this.data.fiscalConfig;
     if (!fiscalConfig || this.savingBrand()) {
@@ -654,7 +730,11 @@ export class FiscalConfigurationModalComponent implements OnInit {
         this.applyBrandFromConfig(next);
         this.savingBrand.set(false);
         if (this.useAsSystemLogo) {
-          this.systemBrand.apply(this.brandColors);
+          this.systemBrand.apply({
+            ...this.brandColors,
+            posSales: this.desiredPosBar('sales'),
+            posCash: this.desiredPosBar('cash'),
+          });
           this.systemLogoService.refresh(true);
         }
         const restored = payload.brand_color_start === null;
@@ -706,6 +786,19 @@ export class FiscalConfigurationModalComponent implements OnInit {
     this.brandCustomized = [config.brand_color_start, config.brand_color_mid, config.brand_color_end].some(
       (value) => isBrandHex(value),
     );
+    this.applyPosBarsFromConfig(config);
+  }
+
+  private applyPosBarsFromConfig(config: FiscalConfiguration): void {
+    const sales = isBrandHex(config.pos_sales_bar_color) ? String(config.pos_sales_bar_color).toLowerCase() : null;
+    const cash = isBrandHex(config.pos_cash_bar_color) ? String(config.pos_cash_bar_color).toLowerCase() : null;
+    this.persistedPosBars = { sales, cash };
+    (['sales', 'cash'] as const).forEach((id) => {
+      const stored = id === 'sales' ? sales : cash;
+      this.posBarEnabled[id] = !!stored;
+      this.posBarColors[id] = stored ?? this.brandColors.start;
+      this.posBarTexts[id] = this.posBarColors[id];
+    });
   }
 
   loadBranches(): void {

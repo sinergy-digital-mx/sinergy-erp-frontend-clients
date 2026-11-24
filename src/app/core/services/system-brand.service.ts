@@ -11,6 +11,13 @@ interface BrandCacheEntry {
   start: string;
   mid: string;
   end: string;
+  posSales?: string | null;
+  posCash?: string | null;
+}
+
+export interface SystemBrandPaint extends BrandNavColors {
+  posSales: string | null;
+  posCash: string | null;
 }
 
 interface BrandCacheFile {
@@ -22,6 +29,8 @@ export interface SystemBrandMeta {
   start: string;
   mid: string;
   end: string;
+  pos_sales?: string | null;
+  pos_cash?: string | null;
 }
 
 /**
@@ -40,7 +49,7 @@ export class SystemBrandService {
   applyForCurrentTenant(): void {
     const tenantId = this.auth.user_info?.tenant_id;
     const cached = tenantId ? this.readTenant(tenantId) : null;
-    this.apply(cached ?? { ...DEFAULT_BRAND_NAV_COLORS });
+    this.apply(cached ?? { ...DEFAULT_BRAND_NAV_COLORS, posSales: null, posCash: null });
   }
 
   /** Respuesta del servidor. Si la clave no cambió, igual deja el menú al día. */
@@ -48,19 +57,19 @@ export class SystemBrandService {
     if (!tenantId || !brand) {
       return;
     }
-    const colors: BrandNavColors = {
-      start: normalizeBrandHex(brand.start, DEFAULT_BRAND_NAV_COLORS.start),
-      mid: normalizeBrandHex(brand.mid, DEFAULT_BRAND_NAV_COLORS.mid),
-      end: normalizeBrandHex(brand.end, DEFAULT_BRAND_NAV_COLORS.end),
-    };
+    const paint = this.toPaint(brand);
     this.writeTenant(tenantId, {
       cacheKey: brand.cache_key,
-      ...colors,
+      start: paint.start,
+      mid: paint.mid,
+      end: paint.end,
+      posSales: paint.posSales,
+      posCash: paint.posCash,
     });
-    this.apply(colors);
+    this.apply(paint);
   }
 
-  apply(colors: BrandNavColors): void {
+  apply(colors: SystemBrandPaint): void {
     if (typeof document === 'undefined') {
       return;
     }
@@ -68,6 +77,8 @@ export class SystemBrandService {
     root.style.setProperty('--brand-nav-start', colors.start);
     root.style.setProperty('--brand-nav-mid', colors.mid);
     root.style.setProperty('--brand-nav-end', colors.end);
+    this.paintOptional(root, '--pos-sales-bar', colors.posSales);
+    this.paintOptional(root, '--pos-cash-bar', colors.posCash);
     this.paintStatusBar(colors.start);
   }
 
@@ -85,7 +96,30 @@ export class SystemBrandService {
     });
   }
 
-  private readTenant(tenantId: string): BrandNavColors | null {
+  private toPaint(brand: SystemBrandMeta): SystemBrandPaint {
+    return {
+      start: normalizeBrandHex(brand.start, DEFAULT_BRAND_NAV_COLORS.start),
+      mid: normalizeBrandHex(brand.mid, DEFAULT_BRAND_NAV_COLORS.mid),
+      end: normalizeBrandHex(brand.end, DEFAULT_BRAND_NAV_COLORS.end),
+      posSales: this.optionalHex(brand.pos_sales),
+      posCash: this.optionalHex(brand.pos_cash),
+    };
+  }
+
+  private optionalHex(value: string | null | undefined): string | null {
+    const raw = String(value ?? '').trim();
+    return /^#[0-9a-fA-F]{6}$/.test(raw) ? raw.toLowerCase() : null;
+  }
+
+  private paintOptional(root: HTMLElement, name: string, color: string | null): void {
+    if (color) {
+      root.style.setProperty(name, color);
+      return;
+    }
+    root.style.removeProperty(name);
+  }
+
+  private readTenant(tenantId: string): SystemBrandPaint | null {
     const entry = this.readFile()?.byTenant?.[tenantId];
     if (!entry) {
       return null;
@@ -96,7 +130,13 @@ export class SystemBrandService {
     if (!start || !mid || !end) {
       return null;
     }
-    return { start, mid, end };
+    return {
+      start,
+      mid,
+      end,
+      posSales: this.optionalHex(entry.posSales),
+      posCash: this.optionalHex(entry.posCash),
+    };
   }
 
   private writeTenant(tenantId: string, entry: BrandCacheEntry): void {

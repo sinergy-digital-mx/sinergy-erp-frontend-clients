@@ -42,6 +42,12 @@
 <ng-template #tableTemplate let-item="$implicit">
   <td>
     <p class="settings-cell-primary truncate">{{ item.razon_social }}</p>
+    <div class="fiscal-marks" *ngIf="menuMarks(item).length">
+      <span class="fiscal-mark" *ngFor="let mark of menuMarks(item)" [attr.title]="mark.title">
+        <i *ngIf="mark.color" [style.background]="mark.color"></i>
+        {{ mark.label }}
+      </span>
+    </div>
   </td>
   <td>
     <span class="settings-cell-mono">{{ item.rfc }}</span>
