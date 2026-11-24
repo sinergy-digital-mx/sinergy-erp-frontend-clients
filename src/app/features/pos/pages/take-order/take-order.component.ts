@@ -980,6 +980,28 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return true;
   }
 
+  shiftBarTitle(): string {
+    if (this.posState.checkingShift()) {
+      return 'Verificando corte';
+    }
+    if (this.posState.requiresPreviousClose()) {
+      return 'Hay un corte de otro día sin cerrar. Caja debe cerrarlo; las ventas quedan en cola.';
+    }
+    if (this.posState.shiftOpen()) {
+      return 'Corte activo. Las ventas van directo a caja.';
+    }
+    return 'Sin corte abierto. Las ventas quedan en cola hasta que caja abra el día.';
+  }
+
+  ticketsBarTitle(): string {
+    const count = this.salesInProgress().length;
+    if (count <= 0) {
+      return 'Tickets en ventas';
+    }
+    const label = count === 1 ? 'ticket regresado' : 'tickets regresados';
+    return `Hay ${count} ${label} de caja. Ábrelo, edita productos y pulsa Enviar a caja.`;
+  }
+
   toggleTicketsPanel(): void {
     this.ticketsPanelOpen.update((open) => !open);
     if (this.ticketsPanelOpen()) {

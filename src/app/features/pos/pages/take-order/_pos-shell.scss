@@ -52,37 +52,6 @@
   box-shadow: none;
 }
 
-.pos-shift-banner {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0.4rem 1rem;
-  border-radius: 0;
-  font-size: 0.78rem;
-  font-weight: 500;
-  line-height: 1.35;
-
-  &--queue {
-    background: #fff7ed;
-    border: none;
-    border-bottom: 1px solid #fed7aa;
-    color: #9a3412;
-  }
-
-  &--open {
-    background: #ecfdf5;
-    border: none;
-    border-bottom: 1px solid #a7f3d0;
-    color: #065f46;
-  }
-
-  &--alert {
-    background: #fff7ed;
-    border: none;
-    border-bottom: 1px solid #fdba74;
-    color: #9a3412;
-  }
-}
-
 .pos-session-bar__content {
   display: flex;
   align-items: stretch;

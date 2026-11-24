@@ -36,7 +36,7 @@
       </div>
 
       <nav class="pos-session-bar__meta" aria-label="Sesión POS">
-        <div class="pos-meta">
+        <div class="pos-meta" [attr.title]="shiftBarTitle()">
           <span class="pos-meta__k">Corte</span>
           @if (posState.checkingShift()) {
             <span class="pos-meta__v">Verificando…</span>
@@ -105,8 +105,8 @@
           class="pos-session-bar__icon-btn pos-tickets-btn"
           [class.pos-tickets-btn--active]="salesInProgress().length > 0"
           (click)="toggleTicketsPanel()"
-          title="Tickets en ventas"
-          aria-label="Tickets en ventas">
+          [title]="ticketsBarTitle()"
+          [attr.aria-label]="ticketsBarTitle()">
           <lucide-icon [img]="Ticket" class="pos-ic pos-ic--btn" />
           <span class="pos-tickets-btn__label">Tickets</span>
           @if (salesInProgress().length > 0) {
@@ -124,30 +124,6 @@
       </div>
     </div>
   </header>
-
-  @if (!posState.checkingShift()) {
-    <div
-      class="pos-shift-banner"
-      [class.pos-shift-banner--open]="posState.shiftOpen()"
-      [class.pos-shift-banner--queue]="posState.salesQueueMode() && !posState.requiresPreviousClose()"
-      [class.pos-shift-banner--alert]="posState.requiresPreviousClose()">
-      @if (posState.requiresPreviousClose()) {
-        <span>Hay un corte de otro día sin cerrar. Caja debe cerrarlo; las ventas quedan en cola.</span>
-      } @else if (posState.shiftOpen()) {
-        <span>Corte activo — las ventas van directo a caja.</span>
-      } @else {
-        <span>Sin corte abierto — las ventas quedan en cola hasta que caja abra el día.</span>
-      }
-    </div>
-  }
-
-  @if (salesInProgress().length > 0) {
-    <button type="button" class="pos-tickets-banner" (click)="ticketsPanelOpen.set(true); loadSalesInProgress()">
-      Hay {{ salesInProgress().length }}
-      {{ salesInProgress().length === 1 ? 'ticket regresado' : 'tickets regresados' }}
-      de caja. Ábrelo, edita productos y pulsa Enviar a caja.
-    </button>
-  }
 
   @if (cajaQueueOpen()) {
     <div class="pos-caja-modal-backdrop" (click)="cajaQueueOpen.set(false)">
