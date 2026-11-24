@@ -1,7 +1,8 @@
 <div class="tab-container">
   <div class="tab-list" role="tablist">
+    <!-- track por id: si el padre rearma el arreglo en cada ciclo, el botón se destruye y el clic no llega -->
+    @for (tab of tabs; track tab.id) {
     <button
-      *ngFor="let tab of tabs"
       class="tab-button"
       [class.active]="tab.id === activeTabId"
       [class.disabled]="tab.disabled"
@@ -18,6 +19,7 @@
       type="button">
       {{ tab.title }}
     </button>
+    }
   </div>
 </div>
 

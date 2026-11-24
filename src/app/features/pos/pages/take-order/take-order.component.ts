@@ -243,6 +243,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   cartHasDiscounts = computed(() => this.posService.cart().total_discount > 0);
 
   cartHasGlobalDiscount = computed(() => this.posService.cart().global_discount_amount > 0);
+  globalDiscountPickerOpen = signal(false);
 
   cartHasItems = computed(() => this.posService.cart().items.length > 0);
   cartHasWithoutInventory = computed(() =>

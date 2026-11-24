@@ -1,7 +1,6 @@
 <div class="branch-report">
   <div class="branch-report__toolbar">
     <div class="product-search" #searchRoot>
-      <lucide-icon class="product-search__icon" [img]="Search" [size]="16"></lucide-icon>
       <input
         type="text"
         class="product-search__input"
@@ -59,8 +58,7 @@
   } @else if (report(); as report) {
     <article class="stock-card">
       <header class="stock-card__head">
-        <div>
-          <p class="stock-card__kicker">Por sucursal</p>
+        <div class="stock-card__identity">
           <h3 class="stock-card__title">{{ report.product.name }}</h3>
           <p class="stock-card__sku">{{ report.product.sku }}</p>
         </div>
@@ -71,63 +69,75 @@
         }
       </header>
 
-      <div class="stock-metrics">
-        <div>
-          <span>Existencia</span>
-          <strong>{{ formatQty(report.total_quantity) }}</strong>
+      @if (!report.mixed_uom) {
+        <div class="stock-metrics">
+          <div>
+            <span>Existencia</span>
+            <strong>{{ formatQty(report.total_quantity) }}</strong>
+          </div>
+          <div>
+            <span>Costo promedio</span>
+            <strong>{{ formatMoney(report.average_unit_cost) }}</strong>
+          </div>
+          <div>
+            <span>Costo total</span>
+            <strong>{{ formatMoney(report.total_cost) }}</strong>
+          </div>
         </div>
-        <div>
-          <span>Costo promedio</span>
-          <strong>{{ formatMoney(report.average_unit_cost) }}</strong>
-        </div>
-        <div>
-          <span>Costo total</span>
-          <strong>{{ formatMoney(report.total_cost) }}</strong>
-        </div>
-      </div>
+      } @else {
+        <p class="stock-mix">Cada unidad va en su renglón. No se suman entre sí.</p>
+      }
 
       @if (report.lines.length === 0) {
         <p class="stock-card__empty">No hay sucursales activas. Actívalas en el engrane.</p>
       } @else {
-        <div class="stock-table-wrap">
-          <table class="stock-table">
-            <thead>
-              <tr>
-                <th>Sucursal</th>
-                <th class="num">Existencia</th>
-                <th class="num">Costo promedio</th>
-                <th class="num">Costo total</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (line of report.lines; track line.billing_branch_id + (line.uom_name || '')) {
-                <tr [class.is-empty]="line.quantity === '0.000'">
-                  <td>
-                    <span class="branch-name">{{ line.name }}</span>
-                    @if (placeLabel(line.city, line.razon_social); as place) {
-                      <span class="branch-place">{{ place }}</span>
-                    }
-                  </td>
-                  <td class="num">
-                    <span class="qty">{{ formatQty(line.quantity) }}</span>
-                    @if (line.uom_name && report.mixed_uom) {
-                      <span class="qty-uom">{{ line.uom_name }}</span>
-                    }
-                  </td>
-                  <td class="num" [attr.title]="line.cost_complete ? null : 'Parte de la existencia no tiene costo'">
-                    {{ formatMoney(line.average_unit_cost) }}
-                  </td>
-                  <td class="num" [attr.title]="line.cost_complete ? null : 'El total solo suma los lotes que sí tienen costo'">
-                    {{ formatMoney(line.total_cost) }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        <div class="branch-sheet">
+          <div class="branch-head">
+            <span>Sucursal</span>
+            <span class="branch-head__cols">
+              <span>Existencia</span>
+              <span class="num">Costo promedio</span>
+              <span class="num">Costo total</span>
+            </span>
+          </div>
+          @for (group of branchGroups(); track group.id) {
+            <section class="branch-block" [class.is-empty]="group.empty">
+              <div class="branch-id">
+                <strong>{{ group.name }}</strong>
+                @if (placeLabel(group.city, group.company); as place) {
+                  <span>{{ place }}</span>
+                }
+              </div>
+              <div class="branch-lines">
+                @for (line of group.lines; track line.uom_name || 'uom') {
+                  <div class="branch-line">
+                    <span class="qty-pair">
+                      <b [class.is-zero]="isZeroQty(line.quantity)">{{ formatQty(line.quantity) }}</b>
+                      @if (line.uom_name && report.mixed_uom) {
+                        <em>{{ line.uom_name }}</em>
+                      }
+                    </span>
+                    <span
+                      class="money"
+                      [class.is-muted]="isBlankMoney(line.average_unit_cost)"
+                      [attr.title]="line.cost_complete ? null : 'Parte de la existencia no tiene costo'">
+                      {{ formatMoney(line.average_unit_cost) }}
+                    </span>
+                    <span
+                      class="money"
+                      [class.is-muted]="isBlankMoney(line.total_cost)"
+                      [attr.title]="line.cost_complete ? null : 'El total solo suma los lotes que sí tienen costo'">
+                      {{ formatMoney(line.total_cost) }}
+                    </span>
+                  </div>
+                }
+              </div>
+            </section>
+          }
         </div>
       }
 
-              @if (report.lines.some((line) => !line.cost_complete)) {
+      @if (report.lines.some((line) => !line.cost_complete)) {
         <p class="stock-note">Hay existencia sin costo. El promedio y el total usan solo los lotes que sí lo tienen.</p>
       }
     </article>

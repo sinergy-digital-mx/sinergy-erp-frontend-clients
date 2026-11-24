@@ -955,25 +955,13 @@
         }
 
         @if (cartTotalsOpen()) {
-          @if (canUseGlobalDiscounts()) {
+          @if (canUseGlobalDiscounts() && (cartHasGlobalDiscount() || globalDiscountPickerOpen())) {
             <div class="pos-cart__global-discount">
-              <div class="pos-cart__global-discount-head">
-                <label class="pos-cart__global-discount-label" for="pos-global-discount">
-                  <lucide-icon [img]="Percent" class="pos-ic pos-ic--xs" />
-                  Descuento global
-                </label>
-                <button
-                  type="button"
-                  class="pos-cart__global-discount-create"
-                  (click)="openCreateGlobalDiscount()"
-                  title="Crear descuento global">
-                  <lucide-icon [img]="Plus" class="pos-ic pos-ic--xs" />
-                  Crear
-                </button>
-              </div>
+              <label class="pos-cart__global-discount-label" for="pos-global-discount">Desc. global</label>
               <select
                 id="pos-global-discount"
                 class="pos-line__pricing-select pos-cart__global-discount-select"
+                aria-label="Descuento global"
                 [disabled]="loadingGlobalDiscounts() || posService.cart().items.length === 0"
                 [value]="selectedGlobalDiscountId()"
                 (change)="onGlobalDiscountChange($any($event.target).value)">
@@ -989,7 +977,24 @@
                   }
                 }
               </select>
+              @if (canCreateGlobalDiscounts()) {
+                <button
+                  type="button"
+                  class="pos-cart__global-discount-create"
+                  (click)="openCreateGlobalDiscount()"
+                  title="Crear descuento global">
+                  <lucide-icon [img]="Plus" class="pos-ic pos-ic--xs" />
+                  Crear
+                </button>
+              }
             </div>
+          } @else if (canUseGlobalDiscounts() && cartHasItems()) {
+            <button
+              type="button"
+              class="pos-cart__global-discount-link"
+              (click)="globalDiscountPickerOpen.set(true)">
+              Descuento global
+            </button>
           }
 
           @if (cartAppliedDiscounts().length > 0) {
@@ -1008,8 +1013,9 @@
               <h3 class="pos-cart__discounts-title">Desc. en precio</h3>
               @for (discount of cartPriceDiscounts(); track $index) {
                 <div class="pos-cart__discount-row">
-                  <span>• −{{ formatPriceDiscount(discount.percent) }}% · {{ discount.productName }}</span>
-                  <strong>-{{ formatCurrency(discount.amount) }}</strong>
+                  <span class="pos-cart__off-badge">−{{ formatPriceDiscount(discount.percent) }}%</span>
+                  <span class="pos-cart__discount-name">{{ discount.productName }}</span>
+                  <strong>−{{ formatCurrency(discount.amount) }}</strong>
                 </div>
               }
             </div>
@@ -1018,7 +1024,7 @@
             <span>Subtotal</span>
             <strong>{{ formatCurrency(cartHasDiscounts() || cartHasPriceDiscount() ? posService.cart().total_gross_subtotal : posService.cart().total_subtotal) }}</strong>
           </div>
-          @if (cartHasItems()) {
+          @if (cartHasDiscounts()) {
             <div class="pos-sum-row pos-sum-row--discount">
               <span>Desc. por producto</span>
               <strong>-{{ formatCurrency(posService.cart().total_discount) }}</strong>
@@ -1030,7 +1036,7 @@
               <strong>-{{ formatCurrency(posService.cart().total_price_discount) }}</strong>
             </div>
           }
-          @if (canUseGlobalDiscounts() && cartHasItems()) {
+          @if (cartHasGlobalDiscount()) {
             <div class="pos-sum-row pos-sum-row--discount">
               <span>
                 Desc. global
@@ -1038,7 +1044,7 @@
                   ({{ globalDiscount.name }})
                 }
               </span>
-              <strong>-{{ formatCurrency(posService.cart().global_discount_amount) }}</strong>
+              <strong>−{{ formatCurrency(posService.cart().global_discount_amount) }}</strong>
             </div>
           }
           <div class="pos-sum-row">

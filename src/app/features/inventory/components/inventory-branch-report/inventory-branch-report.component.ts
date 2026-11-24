@@ -1,6 +1,6 @@
 import { Component, DestroyRef, ElementRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule, Search, Settings, X } from 'lucide-angular';
+import { LucideAngularModule, Settings, X } from 'lucide-angular';
 import { InventoryService } from '../../services/inventory.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
@@ -8,10 +8,20 @@ import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { formatInventoryNumber } from '../../utils/inventory-list.util';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import {
+  BranchReportLine,
   BranchReportProductHit,
   BranchReportSettings,
   BranchStockReport,
 } from '../../models/branch-stock-report.model';
+
+interface BranchReportGroup {
+  id: string;
+  name: string;
+  city: string | null;
+  company: string | null;
+  empty: boolean;
+  lines: BranchReportLine[];
+}
 
 @Component({
   selector: 'app-inventory-branch-report',
@@ -26,7 +36,6 @@ export class InventoryBranchReportComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly searchRoot = viewChild<ElementRef<HTMLElement>>('searchRoot');
 
-  readonly Search = Search;
   readonly Settings = Settings;
   readonly X = X;
 
@@ -52,6 +61,31 @@ export class InventoryBranchReportComponent implements OnInit {
     const visible = settings.branches.filter((branch) => branch.visible).length;
     if (!settings.configured || visible === settings.branches.length) return 'Todas';
     return `${visible} de ${settings.branches.length}`;
+  });
+
+  readonly branchGroups = computed((): BranchReportGroup[] => {
+    const lines = this.report()?.lines ?? [];
+    const groups: BranchReportGroup[] = [];
+    const index = new Map<string, BranchReportGroup>();
+    for (const line of lines) {
+      const current = index.get(line.billing_branch_id);
+      if (current) {
+        current.lines.push(line);
+        current.empty = current.empty && this.isZeroQty(line.quantity);
+        continue;
+      }
+      const group: BranchReportGroup = {
+        id: line.billing_branch_id,
+        name: line.name,
+        city: line.city,
+        company: line.razon_social,
+        empty: this.isZeroQty(line.quantity),
+        lines: [line],
+      };
+      index.set(line.billing_branch_id, group);
+      groups.push(group);
+    }
+    return groups;
   });
 
   readonly filteredSettings = computed(() => {
@@ -189,6 +223,17 @@ export class InventoryBranchReportComponent implements OnInit {
         this.toast.error(resolveHttpErrorMessage(err, 'No se pudieron guardar las sucursales'));
       },
     });
+  }
+
+  isZeroQty(value: string | null | undefined): boolean {
+    const amount = Number(value);
+    return !Number.isFinite(amount) || amount === 0;
+  }
+
+  isBlankMoney(value: string | null | undefined): boolean {
+    if (value == null || value === '') return true;
+    const amount = Number(value);
+    return !Number.isFinite(amount) || amount === 0;
   }
 
   formatQty(value: string | null | undefined): string {
