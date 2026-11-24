@@ -135,10 +135,10 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
       { share: openShare, tone: 'indigo' },
       { share: deliveredShare, tone: 'emerald' },
     ];
-    const deliveredMoney = this.moneyFooter(
+    const openLines = this.moneyLines(this.bucketAmount('open', 'MXN'), this.bucketAmount('open', 'USD'));
+    const deliveredLines = this.moneyLines(
       this.bucketAmount('delivered', 'MXN'),
       this.bucketAmount('delivered', 'USD'),
-      'row',
     );
     return [
       {
@@ -154,18 +154,18 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
       },
       {
         key: 'open',
-        label: 'Abiertas',
-        hint: 'Aún no entregadas y no canceladas. La barra verde es lo ya surtido. Canceladas no entran.',
+        label: 'Abiertas y entregadas',
+        hint: 'Izquierda: aún no entregadas. Derecha: surtidas. Canceladas no entran. La barra es esa misma comparación.',
         tone: 'indigo',
         icon: ClipboardList,
         value: openCount,
         share: openShare,
         segments: flow > 0 ? openSegments.filter((segment) => segment.share > 0) : undefined,
-        shareLabel: deliveredCount > 0
-          ? `${new Intl.NumberFormat('es-MX').format(deliveredCount)} entregadas · ${deliveredMoney}`
-          : 'Sin entregadas',
-        shareTone: 'emerald',
-        footer: this.moneyFooter(this.bucketAmount('open', 'MXN'), this.bucketAmount('open', 'USD'), 'row'),
+        pair: {
+          left: { label: 'Abiertas', value: openCount, lines: openLines, tone: 'indigo' },
+          right: { label: 'Entregadas', value: deliveredCount, lines: deliveredLines, tone: 'emerald' },
+        },
+        footer: openLines[0] || '',
         footerKind: 'pill',
       },
       {
@@ -479,6 +479,14 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
 
   private bucketAmount(key: 'open' | 'delivered' | 'paid' | 'pending', currency: 'MXN' | 'USD'): number {
     return this.statNumber(this.statsState().by_currency[currency][key].amount);
+  }
+
+  /** Una línea por moneda, para que el monto no se recorte. */
+  private moneyLines(mxn: number, usd: number): string[] {
+    if (!this.hasUsd() && usd <= 0) return [this.formatCurrency(mxn)];
+    const lines = [`MXN ${this.formatCurrency(mxn)}`];
+    if (usd > 0) lines.push(`USD ${this.formatCurrency(usd)}`);
+    return lines;
   }
 
   /** Mismo $ de la columna Total. Si hay dólares, no se mezclan con pesos. */

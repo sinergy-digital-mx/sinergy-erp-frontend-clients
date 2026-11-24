@@ -119,6 +119,7 @@
 
 /* ——— Catálogo ——— */
 .pos-catalog {
+  position: relative;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -178,6 +179,48 @@
     background: linear-gradient(135deg, var(--pos-accent), var(--pos-accent2));
     color: #fff;
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.28);
+  }
+}
+
+.pos-branch-picker {
+  position: relative;
+  display: flex;
+  flex: 0 1 11rem;
+  width: 11rem;
+  max-width: 40%;
+  height: 36px;
+
+  .pos-warehouse-filter {
+    width: 100%;
+    max-width: none;
+    flex: none;
+  }
+}
+
+.pos-branch-picker__value {
+  position: absolute;
+  z-index: 1;
+  left: 0.65rem;
+  right: 1.6rem;
+  top: 0;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.pos-branch-picker__select {
+  color: transparent;
+
+  option {
+    color: #0f172a;
   }
 }
 
@@ -325,11 +368,6 @@
   color: var(--pos-muted);
   font-weight: 500;
   white-space: nowrap;
-}
-
-.pos-catalog__hint-keys {
-  color: #4338ca;
-  font-weight: 700;
 }
 
 .pos-catalog__results {
@@ -2058,7 +2096,7 @@
 /* Lucide: el SVG respeta el tamaño del host (evita solaparse con el texto) */
 .pos-lock-card__icon svg,
 .pos-search lucide-icon ::ng-deep svg,
-.pos-view-toggle lucide-icon ::ng-deep svg,
+.pos-stock-btn lucide-icon ::ng-deep svg,
 .pos-card__add lucide-icon ::ng-deep svg,
 .pos-cart-empty__icon svg {
   width: 100%;
@@ -2712,46 +2750,46 @@
   }
 }
 
-.pos-view-toggle {
+.pos-stock-btn {
   display: inline-flex;
   flex: 0 0 auto;
-  align-items: stretch;
+  align-items: center;
+  gap: 0.35rem;
   height: 36px;
+  margin: 0;
+  padding: 0 0.75rem 0 0.6rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  overflow: hidden;
   background: #fff;
+  color: #1e293b;
+  font-size: 0.75rem;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
 
-  button {
-    display: inline-flex;
+  lucide-icon {
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: #64748b;
+    width: 16px;
+    height: 16px;
+    color: var(--pos-accent);
     line-height: 0;
-    cursor: pointer;
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--pos-accent) 35%, white);
+    color: var(--pos-accent);
+  }
+
+  &--on {
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--pos-accent), var(--pos-accent2));
+    color: #fff;
 
     lucide-icon {
-      display: flex !important;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      line-height: 0;
-    }
-
-    & + button {
-      border-left: 1px solid #e2e8f0;
-    }
-
-    &.pos-view-toggle__btn--on {
-      background: #e0e7ff;
-      color: #312e81;
+      color: #fff;
     }
   }
 }

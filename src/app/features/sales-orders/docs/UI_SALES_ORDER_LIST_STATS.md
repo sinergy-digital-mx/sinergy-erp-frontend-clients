@@ -2,9 +2,9 @@
 
 ## 2026-11-23 — Abiertas contra entregadas
 
-La segunda card ya no es Creadas. Se llama Abiertas: el número grande y el monto de abajo son las órdenes que siguen en curso (Creada, En Selección, Lista para entrega, En cola, En Camino).
+La segunda card se parte en dos columnas: Abiertas y Entregadas. Cada una trae su conteo y su monto en líneas aparte. Si hay dólares, van en su propio renglón.
 
-La barra tiene dos colores sobre ese universo, sin canceladas. Morado = abiertas. Verde = entregadas (`Surtida`). Debajo va el conteo y el monto de las entregadas.
+Abiertas es lo que no está Surtida ni Cancelada. Entregadas es Surtida. La barra de abajo repite esa comparación. Las canceladas no entran.
 
 ## 2026-11-23 — Totales del filtro, sin Surtidas
 

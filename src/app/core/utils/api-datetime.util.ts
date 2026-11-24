@@ -1,7 +1,7 @@
 /** Reloj de la operación (Baja California). Las fechas del API llegan en UTC. */
 export const BUSINESS_TIME_ZONE = 'America/Tijuana';
 
-const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
+const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'] as const;
 
 const MONTHS_ES = [
   'Enero',
@@ -149,7 +149,7 @@ export function formatBusinessDateTime(
   };
 }
 
-/** Fecha corta en el reloj de la operación: "ago 3 26". Sin hora. */
+/** Fecha corta en el reloj de la operación: "Ago 3 26". Sin hora. */
 export function formatCompactBusinessDate(value: string | Date | null | undefined): string {
   const instant = parseApiDateTime(value);
   if (!instant) {

@@ -1,0 +1,114 @@
+<section class="stock" role="dialog" aria-modal="true" aria-labelledby="pos-branch-stock-title">
+  <header class="stock__head">
+    <div class="stock__title">
+      <span class="stock__mark" aria-hidden="true">
+        <lucide-icon [img]="Warehouse" [size]="18" />
+      </span>
+      <div>
+        <h2 id="pos-branch-stock-title">Existencias por sucursal</h2>
+        <p>Solo cantidades</p>
+      </div>
+    </div>
+
+    <label class="stock__search">
+      <lucide-icon [img]="Search" class="stock__search-icon" />
+      <input
+        #lookup
+        type="search"
+        [ngModel]="draft()"
+        (ngModelChange)="onDraft($event)"
+        placeholder="Nombre o número de pieza"
+        aria-label="Buscar existencias"
+        autocomplete="off"
+      />
+      @if (draft()) {
+        <button type="button" class="stock__clear" (click)="clearDraft()" aria-label="Limpiar búsqueda">
+          <lucide-icon [img]="X" [size]="14" />
+        </button>
+      }
+    </label>
+
+    <button type="button" class="stock__close" (click)="close()" aria-label="Cerrar existencias">
+      <lucide-icon [img]="X" [size]="18" />
+    </button>
+  </header>
+
+  @if (loading() && result()) {
+    <div class="stock__bar" aria-hidden="true"></div>
+  }
+
+  @if (loading() && !result()) {
+    <div class="stock__state">
+      <app-spinner size="sm"></app-spinner>
+    </div>
+  } @else if (error()) {
+    <div class="stock__state">
+      <p>{{ error() }}</p>
+      <button type="button" class="stock__retry" (click)="retry()">Reintentar</button>
+    </div>
+  } @else if (!draft().trim()) {
+    <div class="stock__state">
+      <span class="stock__state-mark" aria-hidden="true">
+        <lucide-icon [img]="Warehouse" [size]="22" />
+      </span>
+      <p>Escribe un producto o número de pieza para ver cuánto hay en cada sucursal.</p>
+    </div>
+  } @else if (result(); as data) {
+    <div class="stock__meta">
+      <span>{{ data.products.length }} {{ data.products.length === 1 ? 'producto' : 'productos' }}</span>
+      <span>{{ orderedBranches().length }} sucursales</span>
+      @if (data.has_more) {
+        <span class="stock__more">Hay más. Afina la búsqueda.</span>
+      }
+      @if (loading()) {
+        <span>Buscando…</span>
+      }
+    </div>
+
+    <div class="stock__scroll" [class.stock__scroll--busy]="loading()">
+      @if (data.products.length === 0) {
+        <div class="stock__state stock__state--flat">
+          <p>No hay productos con esa búsqueda.</p>
+        </div>
+      }
+      @for (product of data.products; track product.product_id) {
+        <article class="sheet" [class.sheet--empty]="qty(product.total_quantity) <= 0">
+          <div class="sheet__id">
+            @if (product.sku) {
+              <span class="sheet__sku">{{ product.sku }}</span>
+            }
+            <h3>{{ product.name }}</h3>
+            <p class="sheet__where">{{ whereLabel(product) }}</p>
+            <div class="sheet__total" [class.sheet__total--empty]="qty(product.total_quantity) <= 0">
+              <span>Total</span>
+              <strong>{{ formatQty(product.total_quantity) }}</strong>
+              <small>{{ product.uom_name }}</small>
+            </div>
+          </div>
+          <div class="sheet__grid">
+            @for (cell of cells(product); track cell.branch.id) {
+              <div
+                class="cell"
+                [class.cell--in]="cell.quantity > 0"
+                [class.cell--here]="cell.branch.id === currentBranchId()">
+                <div class="cell__top">
+                  <span class="cell__name">{{ branchName(cell.branch) }}</span>
+                  @if (cell.branch.id === currentBranchId()) {
+                    <span class="cell__here">Aquí</span>
+                  }
+                </div>
+                @if (branchCity(cell.branch); as city) {
+                  <span class="cell__city">{{ city }}</span>
+                }
+                <strong class="cell__qty">{{ formatQty(cell.quantity) }}</strong>
+                @if (cell.quantity > 0 && cell.uom) {
+                  <span class="cell__uom">{{ cell.uom }}</span>
+                }
+              </div>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

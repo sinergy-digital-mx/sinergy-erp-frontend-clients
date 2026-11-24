@@ -11,6 +11,13 @@ export interface ListStatSegment {
   tone: ListStatTone;
 }
 
+export interface ListStatPairSide {
+  label: string;
+  value: number;
+  lines: string[];
+  tone: ListStatTone;
+}
+
 export interface ListStatCard {
   key: string;
   label: string;
@@ -24,6 +31,11 @@ export interface ListStatCard {
   /** Si viene, sustituye el porcentaje bajo la barra. */
   shareLabel?: string;
   shareTone?: ListStatTone;
+  /** Dos columnas con conteo y monto propios. Sustituye el número grande. */
+  pair?: {
+    left: ListStatPairSide;
+    right: ListStatPairSide;
+  };
   footer: string;
   footerKind: ListStatFooterKind;
 }

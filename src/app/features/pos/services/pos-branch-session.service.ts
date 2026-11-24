@@ -7,6 +7,7 @@ import {
   PosBranchSelectDialogComponent,
   PosBranchSelectResult,
 } from '../components/pos-branch-select-dialog/pos-branch-select-dialog.component';
+import { posBranchTitle } from '../utils/pos-branch-label.util';
 
 @Injectable({ providedIn: 'root' })
 export class PosBranchSessionService {
@@ -93,6 +94,6 @@ export class PosBranchSessionService {
   private computeLabel(): string {
     const currentId = this.auth.getBillingBranchId();
     const match = this.auth.getAssignedBranches().find((row) => row.id === currentId);
-    return match?.display_name || match?.code || 'Sucursal';
+    return match ? posBranchTitle(match) : 'Sucursal';
   }
 }

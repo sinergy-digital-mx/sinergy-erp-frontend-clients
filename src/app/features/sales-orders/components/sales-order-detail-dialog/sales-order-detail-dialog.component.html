@@ -1004,7 +1004,18 @@
                         <td>{{ payment.payment_date | apiDate: 'date' }}</td>
                         <td>{{ paymentMethodLabel(payment.payment_method) }}</td>
                         <td class="font-semibold">{{ formatPaymentCurrency(payment.amount) }}</td>
-                        <td>{{ payment.reference_number || '—' }}</td>
+                        <td>
+                          <div class="payment-ref">
+                            @if (payment.reference_number) {
+                              <span>{{ payment.reference_number }}</span>
+                            } @else if (!payment.notes) {
+                              <span>—</span>
+                            }
+                            @if (payment.notes) {
+                              <span class="payment-ref__note">{{ payment.notes }}</span>
+                            }
+                          </div>
+                        </td>
                         <td>
                           <span
                             class="so-collection-chip"

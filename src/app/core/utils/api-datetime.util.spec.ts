@@ -35,7 +35,7 @@ describe('parseApiDateTime', () => {
 describe('formatBusinessDateTime', () => {
   it('muestra el reloj de Tijuana, no el de UTC', () => {
     expect(formatBusinessDateTime('2026-09-01 22:00:00')).toEqual({
-      date: '1 sep 2026',
+      date: '1 Sep 2026',
       time: '3:00 p.m.',
     });
   });
@@ -43,12 +43,12 @@ describe('formatBusinessDateTime', () => {
 
 describe('formatCompactBusinessDate', () => {
   it('resume el día en Tijuana, mes corto y año de dos dígitos, sin hora', () => {
-    expect(formatCompactBusinessDate('2026-08-03 20:00:00')).toBe('ago 3 26');
-    expect(formatCompactBusinessDate('2026-11-09 23:09:00')).toBe('nov 9 26');
+    expect(formatCompactBusinessDate('2026-08-03 20:00:00')).toBe('Ago 3 26');
+    expect(formatCompactBusinessDate('2026-11-09 23:09:00')).toBe('Nov 9 26');
   });
 
   it('no brinca al día siguiente cuando en UTC ya cambió la fecha', () => {
-    expect(formatCompactBusinessDate('2026-08-04 05:00:00')).toBe('ago 3 26');
+    expect(formatCompactBusinessDate('2026-08-04 05:00:00')).toBe('Ago 3 26');
   });
 });
 

@@ -37,9 +37,8 @@ import {
   X,
   Ticket,
   RefreshCw,
-  LayoutGrid,
-  List,
   Store,
+  Warehouse,
 } from 'lucide-angular';
 import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
 import {
@@ -87,6 +86,7 @@ import {
   resolveFiscalConfigurationIdFromBranch,
 } from '../../utils/pos-order.util';
 import { isValidWalkInRfc, normalizeWalkInRfc } from '../../utils/walk-in-ticket.util';
+import { posBranchName } from '../../utils/pos-branch-label.util';
 import { resolvePosCollectCustomerId } from '../../utils/pos-collect.util';
 import { posRegisteredCustomerLabel } from '../../models/pos-collected-sales.model';
 import { isDiscountApiError, formatGlobalDiscountLabel, formatApplicableDiscountLabel } from '../../utils/pos-discount.util';
@@ -111,11 +111,19 @@ import {
 } from '../../components/pos-checkout-confirm-dialog/pos-checkout-confirm-dialog.component';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
 import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import { PosBranchStockPanelComponent } from '../../components/pos-branch-stock-panel/pos-branch-stock-panel.component';
 
 @Component({
   selector: 'app-take-order',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, SpinnerComponent, PosOverlayHostDirective],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LucideAngularModule,
+    SpinnerComponent,
+    PosOverlayHostDirective,
+    PosBranchStockPanelComponent,
+  ],
   templateUrl: './take-order.component.html',
   styleUrls: ['./take-order.component.scss'],
 })
@@ -140,12 +148,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly X = X;
   readonly Ticket = Ticket;
   readonly RefreshCw = RefreshCw;
-  readonly LayoutGrid = LayoutGrid;
-  readonly List = List;
   readonly Store = Store;
-
-  private static readonly CATALOG_VIEW_KEY = 'pos_catalog_view';
-  catalogView = signal<'cards' | 'list'>(TakeOrderComponent.readCatalogView());
+  readonly Warehouse = Warehouse;
+  branchStockOpen = signal(false);
   catalogBranchId = signal('');
   browseBranches = signal<AssignedBranch[]>([]);
   shortcutsOpen = signal(false);
@@ -334,21 +339,21 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private static readCatalogView(): 'cards' | 'list' {
-    try {
-      return localStorage.getItem(TakeOrderComponent.CATALOG_VIEW_KEY) === 'list' ? 'list' : 'cards';
-    } catch {
-      return 'cards';
+  toggleBranchStock(): void {
+    if (this.branchStockOpen()) {
+      this.closeBranchStock();
+      return;
     }
+    this.branchStockOpen.set(true);
   }
 
-  setCatalogView(view: 'cards' | 'list'): void {
-    this.catalogView.set(view);
-    try {
-      localStorage.setItem(TakeOrderComponent.CATALOG_VIEW_KEY, view);
-    } catch {
-      /* ignore quota / private mode */
+  closeBranchStock(): void {
+    if (!this.branchStockOpen()) {
+      return;
     }
+    this.branchStockOpen.set(false);
+    this.escExitArmed = false;
+    this.armFullscreenRestore();
   }
 
   private static readCartTotalsOpen(): boolean {
@@ -529,6 +534,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return match?.display_name || match?.code || 'otra sucursal';
   }
 
+  /** Texto del select cerrado: solo el nombre. La lista sigue con la ciudad. */
+  catalogBranchShortLabel(): string {
+    const id = this.catalogBranchId();
+    const match = this.browseBranches().find((row) => row.id === id);
+    return match ? posBranchName(match) : '';
+  }
+
   onCatalogBranch(branchId: string): void {
     this.catalogBranchId.set(branchId);
     this.catalogWarehouseId.set('');
@@ -547,6 +559,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     const key = event.key;
+    if (this.branchStockOpen()) {
+      if (key === 'Escape' && !event.repeat) {
+        event.preventDefault();
+        this.closeBranchStock();
+      }
+      return;
+    }
     if (key !== 'Escape') {
       this.escExitArmed = false;
     }

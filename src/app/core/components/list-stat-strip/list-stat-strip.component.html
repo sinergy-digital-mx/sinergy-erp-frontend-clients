@@ -10,38 +10,61 @@
   } @else {
     <div class="list-stats__panel" [attr.data-cols]="cards.length" [class.is-refreshing]="loading">
       @for (card of cards; track card.key) {
-        <article class="list-stat" [attr.data-tone]="card.tone" [attr.title]="card.hint">
-          <div class="list-stat__top">
-            <span class="list-stat__icon">
-              <lucide-icon [img]="card.icon" [size]="15"></lucide-icon>
-            </span>
-            <span class="list-stat__label">{{ card.label }}</span>
-          </div>
-
-          <p class="list-stat__value">{{ formatCount(card.value) }}</p>
-
-          <div class="list-stat__meter" aria-hidden="true">
-            @if (card.segments?.length) {
+        <article
+          class="list-stat"
+          [class.list-stat--pair]="!!card.pair"
+          [attr.data-tone]="card.tone"
+          [attr.title]="card.hint">
+          @if (card.pair) {
+            <div class="list-stat__pair">
+              @for (side of [card.pair.left, card.pair.right]; track side.label) {
+                <div class="list-stat__side" [attr.data-tone]="side.tone">
+                  <span class="list-stat__side-label"><i aria-hidden="true"></i>{{ side.label }}</span>
+                  <span class="list-stat__side-value">{{ formatCount(side.value) }}</span>
+                  @for (line of side.lines; track $index) {
+                    <span class="list-stat__side-money">{{ line }}</span>
+                  }
+                </div>
+              }
+            </div>
+            <div class="list-stat__meter" aria-hidden="true">
               @for (segment of card.segments; track segment.tone) {
                 <span [attr.data-tone]="segment.tone" [style.width.%]="segment.share"></span>
               }
-            } @else {
-              <span [style.width.%]="card.share"></span>
-            }
-          </div>
-          <span
-            class="list-stat__share"
-            [attr.data-tone]="card.shareTone"
-            [attr.title]="card.shareLabel || null">
-            {{ card.shareLabel || card.share + '%' }}
-          </span>
-
-          @if (card.footerKind === 'quiet') {
-            <p class="list-stat__quiet">{{ card.footer }}</p>
+            </div>
           } @else {
-            <p class="list-stat__gap" [attr.data-kind]="card.footerKind">
-              <span>{{ card.footer }}</span>
-            </p>
+            <div class="list-stat__top">
+              <span class="list-stat__icon">
+                <lucide-icon [img]="card.icon" [size]="15"></lucide-icon>
+              </span>
+              <span class="list-stat__label">{{ card.label }}</span>
+            </div>
+
+            <p class="list-stat__value">{{ formatCount(card.value) }}</p>
+
+            <div class="list-stat__meter" aria-hidden="true">
+              @if (card.segments?.length) {
+                @for (segment of card.segments; track segment.tone) {
+                  <span [attr.data-tone]="segment.tone" [style.width.%]="segment.share"></span>
+                }
+              } @else {
+                <span [style.width.%]="card.share"></span>
+              }
+            </div>
+            <span
+              class="list-stat__share"
+              [attr.data-tone]="card.shareTone"
+              [attr.title]="card.shareLabel || null">
+              {{ card.shareLabel || card.share + '%' }}
+            </span>
+
+            @if (card.footerKind === 'quiet') {
+              <p class="list-stat__quiet">{{ card.footer }}</p>
+            } @else {
+              <p class="list-stat__gap" [attr.data-kind]="card.footerKind">
+                <span>{{ card.footer }}</span>
+              </p>
+            }
           }
         </article>
       }

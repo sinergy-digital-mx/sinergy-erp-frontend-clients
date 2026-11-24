@@ -31,6 +31,10 @@ import {
   normalizePosInventorySummary,
 } from '../models/pos-inventory-summary.model';
 import {
+  PosBranchStockResponse,
+  normalizePosBranchStock,
+} from '../models/pos-branch-stock.model';
+import {
   CollectSaleResponse,
   PosSaleReceipt,
   normalizeCollectSaleResponse,
@@ -1159,6 +1163,13 @@ export class POSService {
 
     return this.http.get(`${this.INVENTORY_URL}/pos/summary`, { params: httpParams }).pipe(
       map((res: unknown) => normalizePosInventorySummary(this.unwrapPosSummaryEnvelope(res)))
+    );
+  }
+
+  getPosBranchStock(search: string): Observable<PosBranchStockResponse> {
+    const httpParams = new HttpParams().set('search', search.trim());
+    return this.http.get(`${this.INVENTORY_URL}/pos/branch-stock`, { params: httpParams }).pipe(
+      map((res: unknown) => normalizePosBranchStock(res)),
     );
   }
 

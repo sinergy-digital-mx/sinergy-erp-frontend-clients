@@ -5,6 +5,7 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
 import { AuthService, AssignedBranch } from '../../../../core/services/auth.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { mapPosApiErrorMessage } from '../../constants/pos-api-errors';
+import { posBranchCity, posBranchTitle } from '../../utils/pos-branch-label.util';
 
 export interface PosBranchSelectDialogData {
   branches: AssignedBranch[];
@@ -39,45 +40,12 @@ export class PosBranchSelectDialogComponent {
     );
   }
 
-  branchLabel(branch: AssignedBranch): string {
-    const title = this.branchTitle(branch);
-    const city = this.branchSubtitle(branch);
-    return city ? `${title} — ${city}` : title;
-  }
-
   branchTitle(branch: AssignedBranch): string {
-    const fromDisplay = this.splitDisplayName(branch.display_name).name;
-    return this.prettyLabel(fromDisplay || branch.code || branch.id);
+    return posBranchTitle(branch);
   }
 
   branchSubtitle(branch: AssignedBranch): string | null {
-    if (branch.city?.trim()) {
-      return this.prettyLabel(branch.city);
-    }
-    const fromDisplay = this.splitDisplayName(branch.display_name).city;
-    return fromDisplay ? this.prettyLabel(fromDisplay) : null;
-  }
-
-  /** Evita códigos en MAYÚSCULAS que se leen como texto gigante. */
-  private prettyLabel(raw: string): string {
-    return raw.replace(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/g, (word) => {
-      if (word.length <= 2) {
-        return word.toUpperCase();
-      }
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-    });
-  }
-
-  private splitDisplayName(displayName?: string): { name: string; city: string | null } {
-    const raw = displayName?.trim() ?? '';
-    if (!raw) {
-      return { name: '', city: null };
-    }
-    const parts = raw.split(/\s*[—–-]\s*/);
-    if (parts.length < 2) {
-      return { name: raw, city: null };
-    }
-    return { name: parts[0], city: parts.slice(1).join(' — ') };
+    return posBranchCity(branch);
   }
 
   selectBranch(branch: AssignedBranch): void {
@@ -106,7 +74,7 @@ export class PosBranchSelectDialogComponent {
       return;
     }
 
-    const result: PosBranchSelectResult = { id: value, label: this.branchLabel(branch) };
+    const result: PosBranchSelectResult = { id: value, label: this.branchTitle(branch) };
     if (value === this.data.currentId) {
       this.dialogRef.close(result);
       return;
