@@ -1,7 +1,7 @@
 {
-  "version": "0.0.158",
-  "buildId": "0.0.158-1795503850372",
-  "builtAt": "2026-11-24T07:04:10.372Z",
+  "version": "0.0.160",
+  "buildId": "0.0.160-1795504637412",
+  "builtAt": "2026-11-24T07:17:17.412Z",
   "channel": "full",
   "changes": [
     {
@@ -27,6 +27,24 @@
       "message": "Versiones carga de 8 en 8 y cada nota dice el módulo y qué se cambió. El deploy publica esas notas.",
       "module": "settings",
       "moduleLabel": "Configuración"
+    },
+    {
+      "scope": "frontend",
+      "message": "La card Creadas pasó a Abiertas contra entregadas, sin canceladas, con la barra en dos colores y el monto de cada lado.",
+      "module": "sales-orders",
+      "moduleLabel": "Órdenes de venta"
+    },
+    {
+      "scope": "backend",
+      "message": "El cobro de anticipo en punto de venta devuelve el id de la factura timbrada.",
+      "module": "quotations",
+      "moduleLabel": "Cotizaciones"
+    },
+    {
+      "scope": "frontend",
+      "message": "El build de órdenes de venta vuelve a pasar: la barra de Abiertas conserva los tonos índigo y verde.",
+      "module": "sales-orders",
+      "moduleLabel": "Órdenes de venta"
     }
   ]
 }

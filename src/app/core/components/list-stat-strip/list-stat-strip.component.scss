@@ -93,6 +93,7 @@
   }
 
   &__meter {
+    display: flex;
     margin-top: 0.7rem;
     height: 4px;
     border-radius: 999px;
@@ -102,9 +103,19 @@
     span {
       display: block;
       height: 100%;
-      border-radius: inherit;
+      border-radius: 0;
       width: 0;
       transition: width 0.25s ease;
+
+      &:first-child {
+        border-top-left-radius: 999px;
+        border-bottom-left-radius: 999px;
+      }
+
+      &:last-child {
+        border-top-right-radius: 999px;
+        border-bottom-right-radius: 999px;
+      }
     }
   }
 
@@ -115,6 +126,13 @@
     font-weight: 700;
     color: #94a3b8;
     font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &[data-tone='emerald'] {
+      color: #047857;
+    }
   }
 
   &__gap {
@@ -189,6 +207,13 @@
     .list-stat__icon { background: #fff1f2; color: #e11d48; }
     .list-stat__meter span { background: #e11d48; }
   }
+
+  &[data-tone] .list-stat__meter span[data-tone='slate'] { background: #94a3b8; }
+  &[data-tone] .list-stat__meter span[data-tone='indigo'] { background: #6366f1; }
+  &[data-tone] .list-stat__meter span[data-tone='emerald'] { background: #10b981; }
+  &[data-tone] .list-stat__meter span[data-tone='sky'] { background: #0ea5e9; }
+  &[data-tone] .list-stat__meter span[data-tone='amber'] { background: #f59e0b; }
+  &[data-tone] .list-stat__meter span[data-tone='rose'] { background: #e11d48; }
 }
 
 @keyframes list-stat-shimmer {

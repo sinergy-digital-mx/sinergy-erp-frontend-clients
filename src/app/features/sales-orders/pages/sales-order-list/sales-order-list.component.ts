@@ -43,7 +43,7 @@ import { getInvoiceStatusLabel } from '../../utils/cfdi-xml-builder.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { SALES_ORDER_PERMISSIONS } from '../../config/permissions.config';
 import { GlanceSwitchComponent } from '../../../../core/components/glance-switch/glance-switch.component';
-import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
+import { ListStatCard, ListStatSegment, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
 import { CircleAlert, CircleDollarSign, ClipboardList, ShoppingBag } from 'lucide-angular';
 
 @Component({
@@ -115,7 +115,8 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
   /** Cards leen stats del GET (todo el filtro), no la página. */
   totalOrders = computed(() => this.statsState().count);
   hasUsd = computed(() => this.statNumber(this.statsState().by_currency.USD.count) > 0);
-  creadasCount = computed(() => this.bucketCount('created'));
+  openCount = computed(() => this.bucketCount('open'));
+  deliveredCount = computed(() => this.bucketCount('delivered'));
   pagadasCount = computed(() => this.bucketCount('paid'));
   pendientesCount = computed(() => this.bucketCount('pending'));
 
@@ -123,6 +124,22 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     const total = this.totalOrders();
     const share = (count: number) => (total > 0 ? Math.min(100, Math.round((count / total) * 100)) : 0);
     const pending = this.pendientesCount() > 0 || this.bucketAmount('pending', 'MXN') > 0 || this.bucketAmount('pending', 'USD') > 0;
+    const openCount = this.openCount();
+    const deliveredCount = this.deliveredCount();
+    const flow = openCount + deliveredCount;
+    let openShare = flow > 0 ? Math.round((openCount / flow) * 100) : 0;
+    if (openCount > 0 && openShare === 0) openShare = 1;
+    if (deliveredCount > 0 && openShare === 100) openShare = 99;
+    const deliveredShare = flow > 0 ? 100 - openShare : 0;
+    const openSegments: ListStatSegment[] = [
+      { share: openShare, tone: 'indigo' },
+      { share: deliveredShare, tone: 'emerald' },
+    ];
+    const deliveredMoney = this.moneyFooter(
+      this.bucketAmount('delivered', 'MXN'),
+      this.bucketAmount('delivered', 'USD'),
+      'row',
+    );
     return [
       {
         key: 'total',
@@ -136,14 +153,19 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
         footerKind: 'quiet',
       },
       {
-        key: 'created',
-        label: 'Creadas',
-        hint: 'Órdenes en estado Creada, de todo el filtro',
+        key: 'open',
+        label: 'Abiertas',
+        hint: 'Aún no entregadas y no canceladas. La barra verde es lo ya surtido. Canceladas no entran.',
         tone: 'indigo',
         icon: ClipboardList,
-        value: this.creadasCount(),
-        share: share(this.creadasCount()),
-        footer: this.moneyFooter(this.bucketAmount('created', 'MXN'), this.bucketAmount('created', 'USD'), 'row'),
+        value: openCount,
+        share: openShare,
+        segments: flow > 0 ? openSegments.filter((segment) => segment.share > 0) : undefined,
+        shareLabel: deliveredCount > 0
+          ? `${new Intl.NumberFormat('es-MX').format(deliveredCount)} entregadas · ${deliveredMoney}`
+          : 'Sin entregadas',
+        shareTone: 'emerald',
+        footer: this.moneyFooter(this.bucketAmount('open', 'MXN'), this.bucketAmount('open', 'USD'), 'row'),
         footerKind: 'pill',
       },
       {
@@ -446,7 +468,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
-  private bucketCount(key: 'created' | 'paid' | 'pending'): number {
+  private bucketCount(key: 'open' | 'delivered' | 'paid' | 'pending'): number {
     const stats = this.statsState().by_currency;
     return this.statNumber(stats.MXN[key].count) + this.statNumber(stats.USD[key].count);
   }
@@ -455,7 +477,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     return this.statNumber(this.statsState().by_currency[currency].amount);
   }
 
-  private bucketAmount(key: 'created' | 'paid' | 'pending', currency: 'MXN' | 'USD'): number {
+  private bucketAmount(key: 'open' | 'delivered' | 'paid' | 'pending', currency: 'MXN' | 'USD'): number {
     return this.statNumber(this.statsState().by_currency[currency][key].amount);
   }
 

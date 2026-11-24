@@ -21,9 +21,20 @@
           <p class="list-stat__value">{{ formatCount(card.value) }}</p>
 
           <div class="list-stat__meter" aria-hidden="true">
-            <span [style.width.%]="card.share"></span>
+            @if (card.segments?.length) {
+              @for (segment of card.segments; track segment.tone) {
+                <span [attr.data-tone]="segment.tone" [style.width.%]="segment.share"></span>
+              }
+            } @else {
+              <span [style.width.%]="card.share"></span>
+            }
           </div>
-          <span class="list-stat__share">{{ card.share }}%</span>
+          <span
+            class="list-stat__share"
+            [attr.data-tone]="card.shareTone"
+            [attr.title]="card.shareLabel || null">
+            {{ card.shareLabel || card.share + '%' }}
+          </span>
 
           @if (card.footerKind === 'quiet') {
             <p class="list-stat__quiet">{{ card.footer }}</p>

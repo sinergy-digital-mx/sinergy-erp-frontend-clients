@@ -5,7 +5,7 @@ alwaysApply: true
 
 ## Changelog de solicitudes
 
-Fuente: `scripts/changelog.json` del repo backend (`../sinergy-erp-backend-clients`). La lectura es `scripts/CHANGELOG.md` de ese repo. No los edites a mano.
+Fuente: `scripts/changelog.json` del repo backend (`../sinergy-erp-backend-clients`). La lectura sigue siendo `scripts/CHANGELOG.md` de ese repo (pendientes y enviados, agrupados por mes). No la edites a mano: el script la vuelve a generar.
 
 Al terminar una solicitud que cambie código, comportamiento o documentación:
 

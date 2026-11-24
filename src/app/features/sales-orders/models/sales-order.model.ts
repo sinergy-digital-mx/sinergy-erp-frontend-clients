@@ -440,7 +440,8 @@ export interface SalesOrderStatBucket {
 export interface SalesOrderCurrencyStats {
   count: number;
   amount: number;
-  created: SalesOrderStatBucket;
+  open: SalesOrderStatBucket;
+  delivered: SalesOrderStatBucket;
   paid: SalesOrderStatBucket;
   pending: SalesOrderStatBucket;
 }
@@ -462,7 +463,8 @@ function emptySalesOrderCurrencyStats(): SalesOrderCurrencyStats {
   return {
     count: 0,
     amount: 0,
-    created: emptySalesOrderStatBucket(),
+    open: emptySalesOrderStatBucket(),
+    delivered: emptySalesOrderStatBucket(),
     paid: emptySalesOrderStatBucket(),
     pending: emptySalesOrderStatBucket(),
   };
@@ -492,7 +494,8 @@ function mergeSalesOrderCurrencyStats(
   return {
     count: Number(raw.count) || 0,
     amount: Number(raw.amount) || 0,
-    created: mergeSalesOrderStatBucket(raw.created),
+    open: mergeSalesOrderStatBucket(raw.open),
+    delivered: mergeSalesOrderStatBucket(raw.delivered),
     paid: mergeSalesOrderStatBucket(raw.paid),
     pending: mergeSalesOrderStatBucket(raw.pending),
   };

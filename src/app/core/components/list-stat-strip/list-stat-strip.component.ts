@@ -6,6 +6,11 @@ export type ListStatTone = 'slate' | 'indigo' | 'emerald' | 'sky' | 'amber' | 'r
 export type ListStatFooterKind = 'quiet' | 'pill' | 'debt' | 'ok';
 export type ListStatIcon = typeof ShoppingBag;
 
+export interface ListStatSegment {
+  share: number;
+  tone: ListStatTone;
+}
+
 export interface ListStatCard {
   key: string;
   label: string;
@@ -14,6 +19,11 @@ export interface ListStatCard {
   icon: ListStatIcon;
   value: number;
   share: number;
+  /** Si viene, la barra se parte en estos tramos en lugar de un solo color. */
+  segments?: ListStatSegment[];
+  /** Si viene, sustituye el porcentaje bajo la barra. */
+  shareLabel?: string;
+  shareTone?: ListStatTone;
   footer: string;
   footerKind: ListStatFooterKind;
 }
