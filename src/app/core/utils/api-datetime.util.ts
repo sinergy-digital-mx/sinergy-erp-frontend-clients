@@ -148,3 +148,25 @@ export function formatBusinessDateTime(
     time: `${Number(pick('hour'))}:${minute} ${period}`,
   };
 }
+
+/** Fecha corta en el reloj de la operación: "ago 3 26". Sin hora. */
+export function formatCompactBusinessDate(value: string | Date | null | undefined): string {
+  const instant = parseApiDateTime(value);
+  if (!instant) {
+    return '—';
+  }
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: BUSINESS_TIME_ZONE,
+    day: 'numeric',
+    month: 'numeric',
+    year: '2-digit',
+  }).formatToParts(instant);
+  const pick = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  const monthIndex = Number(pick('month')) - 1;
+  const month = MONTHS_SHORT[monthIndex] ?? pick('month');
+  const year = pick('year').slice(-2);
+
+  return `${month} ${Number(pick('day'))} ${year}`;
+}

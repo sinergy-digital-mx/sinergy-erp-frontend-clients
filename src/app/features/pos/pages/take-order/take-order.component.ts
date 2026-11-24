@@ -41,6 +41,10 @@ import {
   Store,
 } from 'lucide-angular';
 import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
+import {
+  PosConfirmDialogComponent,
+  PosConfirmDialogData,
+} from '../../components/pos-confirm-dialog/pos-confirm-dialog.component';
 import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
 import {
   PosCustomerPickerDialogComponent,
@@ -842,12 +846,24 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     const folio = ticket.folio || ticket.id;
-    const openNote = ticket.caja_open
-      ? '\n\nCaja la tiene abierta. Se le va a quitar y verá que Ventas la regresó.'
-      : '';
-    if (!confirm(`¿Regresar ${folio} a ventas? Sale de POS Caja.${openNote}`)) {
-      return;
-    }
+    this.askPosConfirm({
+      title: 'Regresar a ventas',
+      message: `¿Regresar ${folio} a ventas? Sale de POS Caja.`,
+      note: ticket.caja_open
+        ? 'Caja la tiene abierta. Se le va a quitar y verá que Ventas la regresó.'
+        : undefined,
+      cancelLabel: 'Cancelar',
+      acceptLabel: 'Regresar a ventas',
+    }).subscribe((confirmed) => {
+      if (!confirmed || !ticket.id || this.recallingId()) {
+        return;
+      }
+      this.runCajaRecall(ticket);
+    });
+  }
+
+  private runCajaRecall(ticket: PosCajaQueueTicket): void {
+    const folio = ticket.folio || ticket.id;
     this.recallingId.set(ticket.id);
     const sellerId = this.posState.seller()?.id;
     const request$ = ticket.kind === 'advance'
@@ -1044,11 +1060,22 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     if (this.posService.cart().items.length > 0 && this.editingSaleId() !== ticket.id) {
-      if (!confirm('Hay productos en el carrito. ¿Cargar este ticket y descartar el carrito actual?')) {
-        return;
-      }
+      this.askPosConfirm({
+        title: 'Cargar ticket',
+        message: 'Hay productos en el carrito. ¿Cargar este ticket y descartar el carrito actual?',
+        cancelLabel: 'Cancelar',
+        acceptLabel: 'Cargar ticket',
+      }).subscribe((confirmed) => {
+        if (confirmed) {
+          this.applyReturnedTicket(ticket);
+        }
+      });
+      return;
     }
+    this.applyReturnedTicket(ticket);
+  }
 
+  private applyReturnedTicket(ticket: PosSaleInProgress): void {
     const lines = (ticket.line_items ?? []).map((line) =>
       this.posService.recalculateItem(mapInProgressLineToCartItem(line))
     );
@@ -2350,14 +2377,39 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   cancel(): void {
-    const discardMessage = this.isEditingReturnedTicket()
-      ? `¿Descartar cambios de ${this.editingFolio()}? El ticket sigue en ventas.`
-      : '¿Descartar orden actual?';
-    if (confirm(discardMessage)) {
+    const editing = this.isEditingReturnedTicket();
+    this.askPosConfirm({
+      title: editing ? 'Descartar cambios' : 'Descartar orden',
+      message: editing
+        ? `¿Descartar cambios de ${this.editingFolio()}? El ticket sigue en ventas.`
+        : '¿Descartar orden actual?',
+      cancelLabel: 'Seguir',
+      acceptLabel: 'Descartar',
+    }).subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
       this.posService.clearCart();
       this.resetCustomerSelection();
       this.clearEditingTicket();
-    }
+    });
+  }
+
+  /** Diálogo de la app. `confirm()` del navegador saca el POS de pantalla completa. */
+  private askPosConfirm(data: PosConfirmDialogData): Observable<boolean> {
+    return this.dialog
+      .open(PosConfirmDialogComponent, {
+        width: '420px',
+        maxWidth: '95vw',
+        panelClass: 'pos-dialog-panel',
+        autoFocus: 'first-tabbable',
+        data,
+      })
+      .afterClosed()
+      .pipe(
+        map((confirmed) => confirmed === true),
+        takeUntil(this.destroy$),
+      );
   }
 
   formatCurrency(amount: number | string | null | undefined): string {

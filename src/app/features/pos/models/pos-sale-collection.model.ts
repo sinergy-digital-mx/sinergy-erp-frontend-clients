@@ -114,6 +114,235 @@ export function posCollectionMethodLabel(method?: string | null): string {
   return paymentMethodLabel(method);
 }
 
+export type PosCollectionPayTone = 'cash' | 'card' | 'transfer' | 'check' | 'credit' | 'change';
+
+export interface PosCollectionPayLine {
+  title: string;
+  amount: string;
+  details: string[];
+}
+
+export interface PosCollectionPayGroup {
+  tone: PosCollectionPayTone;
+  lines: PosCollectionPayLine[];
+  note: string | null;
+}
+
+function readAmount(value: unknown): number {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function readText(value: unknown): string {
+  return value == null ? '' : String(value).trim();
+}
+
+function presentDetails(...parts: Array<string | null | undefined>): string[] {
+  return parts.map((part) => (part ?? '').trim()).filter((part) => part.length > 0);
+}
+
+function payerNote(name: string, phone: string): string | null {
+  const who = name.trim();
+  const tel = formatPayerPhone(phone);
+  if (who && tel) return `Pagó ${who} · ${tel}`;
+  if (who) return `Pagó ${who}`;
+  if (tel) return tel;
+  return null;
+}
+
+function formatPayerPhone(value: string): string {
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+  return trimmed;
+}
+
+function formatExchangeRate(value: number): string {
+  return new Intl.NumberFormat('es-MX', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(value);
+}
+
+function cardKindLabel(kind: PosCardPaymentRow['card_kind']): string | null {
+  if (kind === 'debit') return 'débito';
+  if (kind === 'credit') return 'crédito';
+  return null;
+}
+
+function amountsDiffer(left: number, right: number): boolean {
+  return Math.abs(left - right) > 0.009;
+}
+
+/** Desglose del cobro POS: un bloque por medio, tarjetas juntas y el cambio al final. */
+export function posCollectionBreakdown(
+  pay: PosSaleCollection | null | undefined,
+): PosCollectionPayGroup[] {
+  if (!pay) {
+    return [];
+  }
+
+  const groups: PosCollectionPayGroup[] = [];
+  const rate = readAmount(pay.usd_exchange_rate);
+  const rateDetail = rate > 0 ? `TC ${formatExchangeRate(rate)}` : '';
+  let rateUsed = false;
+  const takeRate = (): string => {
+    if (!rateDetail || rateUsed) {
+      return '';
+    }
+    rateUsed = true;
+    return rateDetail;
+  };
+
+  const cashLines: PosCollectionPayLine[] = [];
+  const cashMxn = readAmount(pay.amount_cash_mxn);
+  const receivedMxn = readAmount(pay.received_cash_mxn);
+  if (cashMxn > 0 || receivedMxn > 0) {
+    const shown = cashMxn > 0 ? cashMxn : receivedMxn;
+    cashLines.push({
+      title: 'Efectivo',
+      amount: posCollectionMoneyLabel(shown),
+      details: presentDetails(
+        receivedMxn > 0 && amountsDiffer(receivedMxn, shown)
+          ? `recibió ${posCollectionMoneyLabel(receivedMxn)}`
+          : '',
+      ),
+    });
+  }
+
+  const cashUsd = readAmount(pay.amount_cash_usd);
+  const receivedUsd = readAmount(pay.received_cash_usd);
+  if (cashUsd > 0 || receivedUsd > 0) {
+    const shown = cashUsd > 0 ? cashUsd : receivedUsd;
+    cashLines.push({
+      title: 'Dólares',
+      amount: posCollectionUsdLabel(shown),
+      details: presentDetails(
+        takeRate(),
+        receivedUsd > 0 && amountsDiffer(receivedUsd, shown)
+          ? `recibió ${posCollectionUsdLabel(receivedUsd)}`
+          : '',
+      ),
+    });
+  }
+  if (cashLines.length) {
+    groups.push({ tone: 'cash', lines: cashLines, note: null });
+  }
+
+  const transfer = readAmount(pay.amount_transfer_mxn);
+  const transferDetails = presentDetails(
+    readText(pay.transfer_reference) ? `ref. ${readText(pay.transfer_reference)}` : '',
+    readText(pay.transfer_payer_name),
+    readText(pay.transfer_payer_business_name),
+  );
+  if (transfer > 0 || transferDetails.length) {
+    groups.push({
+      tone: 'transfer',
+      lines: [
+        {
+          title: 'Transferencia',
+          amount: transfer > 0 ? posCollectionMoneyLabel(transfer) : '—',
+          details: transferDetails,
+        },
+      ],
+      note: null,
+    });
+  }
+
+  const cards = posCollectionCardRows(pay);
+  if (cards.length) {
+    groups.push({
+      tone: 'card',
+      lines: cards.map((card, index) => {
+        const kind = cardKindLabel(card.card_kind);
+        const title = cards.length > 1 ? `Tarjeta ${index + 1}` : 'Tarjeta';
+        return {
+          title,
+          amount: posCollectionMoneyLabel(card.amount_mxn),
+          details: presentDetails(
+            kind,
+            card.reference ? `voucher ${card.reference}` : '',
+          ),
+        };
+      }),
+      note: payerNote(readText(pay.card_payer_name), readText(pay.card_payer_phone)),
+    });
+  }
+
+  const checkMxn = readAmount(pay.amount_check_mxn);
+  const checkUsd = readAmount(pay.amount_check_usd);
+  const checkMeta = presentDetails(
+    readText(pay.check_reference) ? `ref. ${readText(pay.check_reference)}` : '',
+    readText(pay.check_payer_name),
+    formatPayerPhone(readText(pay.check_payer_phone)),
+  );
+  const checkLines: PosCollectionPayLine[] = [];
+  if (checkMxn > 0) {
+    checkLines.push({
+      title: 'Cheque',
+      amount: posCollectionMoneyLabel(checkMxn),
+      details: [],
+    });
+  }
+  if (checkUsd > 0) {
+    checkLines.push({
+      title: 'Cheque USD',
+      amount: posCollectionUsdLabel(checkUsd),
+      details: [],
+    });
+  }
+  if (!checkLines.length && checkMeta.length) {
+    checkLines.push({ title: 'Cheque', amount: '—', details: [] });
+  }
+  if (checkLines.length) {
+    checkLines[checkLines.length - 1].details = presentDetails(
+      checkUsd > 0 ? takeRate() : '',
+      ...checkMeta,
+    );
+    groups.push({ tone: 'check', lines: checkLines, note: null });
+  }
+
+  const credit = readAmount(pay.amount_credit_mxn);
+  if (credit > 0) {
+    groups.push({
+      tone: 'credit',
+      lines: [
+        {
+          title: 'Crédito',
+          amount: posCollectionMoneyLabel(credit),
+          details: [],
+        },
+      ],
+      note: null,
+    });
+  }
+
+  const changeMxn = readAmount(pay.change_cash_mxn);
+  const changeUsd = readAmount(pay.change_cash_usd);
+  const changeLines: PosCollectionPayLine[] = [];
+  if (changeMxn > 0) {
+    changeLines.push({
+      title: 'Cambio',
+      amount: posCollectionMoneyLabel(changeMxn),
+      details: [],
+    });
+  }
+  if (changeUsd > 0) {
+    changeLines.push({
+      title: 'Cambio USD',
+      amount: posCollectionUsdLabel(changeUsd),
+      details: [],
+    });
+  }
+  if (changeLines.length) {
+    groups.push({ tone: 'change', lines: changeLines, note: null });
+  }
+
+  return groups;
+}
+
 export function posCollectionCustomerLabel(collection?: PosSaleCollection | null): string | null {
   const customer = collection?.customer;
   if (customer?.display_name?.trim()) {

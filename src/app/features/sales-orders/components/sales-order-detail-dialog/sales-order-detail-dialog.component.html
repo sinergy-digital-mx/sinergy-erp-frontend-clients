@@ -457,120 +457,36 @@
 
         @if (posCollection(); as pay) {
           <div class="section-card section-card--pos-pay">
+            <div class="pos-pay__head">
               <h3 class="section-title">COBRO POS</h3>
-              <div class="section-item">
-                <span class="section-label">Método</span>
-                <span class="section-value">{{ posPaymentMethodLabel() }}</span>
-              </div>
               @if (pay.collected_at) {
-                <div class="section-item">
-                  <span class="section-label">Cobrado</span>
-                  <span class="section-value">{{ formatPosCollectedAt(pay.collected_at) }}</span>
-                </div>
-              }
-              @if (pay.received_cash_mxn != null && +pay.received_cash_mxn > 0) {
-                <div class="section-item">
-                  <span class="section-label">Efectivo recibido</span>
-                  <span class="section-value">{{ posCollectionMoney(pay.received_cash_mxn) }}</span>
-                </div>
-              }
-              @if (pay.received_cash_usd != null && +pay.received_cash_usd > 0) {
-                <div class="section-item">
-                  <span class="section-label">USD recibido</span>
-                  <span class="section-value">{{ posCollectionUsd(pay.received_cash_usd) }}</span>
-                </div>
-              }
-              @if (pay.amount_transfer_mxn != null && +pay.amount_transfer_mxn > 0) {
-                <div class="section-item">
-                  <span class="section-label">Transferencia</span>
-                  <span class="section-value">{{ posCollectionMoney(pay.amount_transfer_mxn) }}</span>
-                </div>
-              }
-              @if (pay.transfer_payer_name) {
-                <div class="section-item">
-                  <span class="section-label">Nombre transferencia</span>
-                  <span class="section-value">{{ pay.transfer_payer_name }}</span>
-                </div>
-              }
-              @if (pay.transfer_payer_business_name) {
-                <div class="section-item">
-                  <span class="section-label">Razón social</span>
-                  <span class="section-value">{{ pay.transfer_payer_business_name }}</span>
-                </div>
-              }
-              @if (posCollectionCardRows(pay); as cards) {
-                @for (card of cards; track $index) {
-                  <div class="section-item">
-                    <span class="section-label">{{ cards.length > 1 ? 'Tarjeta ' + ($index + 1) : 'Tarjeta' }}</span>
-                    <span class="section-value">{{ posCollectionMoney(card.amount_mxn) }}</span>
-                  </div>
-                  @if (card.reference) {
-                    <div class="section-item">
-                      <span class="section-label">{{ cards.length > 1 ? 'Núm. voucher ' + ($index + 1) : 'Núm. voucher' }}</span>
-                      <span class="section-value">{{ card.reference }}</span>
-                    </div>
-                  }
-                }
-              }
-              @if (pay.card_payer_name) {
-                <div class="section-item">
-                  <span class="section-label">Nombre tarjeta</span>
-                  <span class="section-value">{{ pay.card_payer_name }}</span>
-                </div>
-              }
-              @if (pay.card_payer_phone) {
-                <div class="section-item">
-                  <span class="section-label">Tel. tarjeta</span>
-                  <span class="section-value">{{ pay.card_payer_phone }}</span>
-                </div>
-              }
-              @if (pay.amount_check_mxn != null && +pay.amount_check_mxn > 0) {
-                <div class="section-item">
-                  <span class="section-label">Cheque</span>
-                  <span class="section-value">{{ posCollectionMoney(pay.amount_check_mxn) }}</span>
-                </div>
-              }
-              @if (pay.amount_check_usd != null && +pay.amount_check_usd > 0) {
-                <div class="section-item">
-                  <span class="section-label">Cheque USD</span>
-                  <span class="section-value">{{ posCollectionUsd(pay.amount_check_usd) }}</span>
-                </div>
-              }
-              @if (pay.check_reference) {
-                <div class="section-item">
-                  <span class="section-label">Ref. cheque</span>
-                  <span class="section-value">{{ pay.check_reference }}</span>
-                </div>
-              }
-              @if (pay.check_payer_name) {
-                <div class="section-item">
-                  <span class="section-label">Nombre cheque</span>
-                  <span class="section-value">{{ pay.check_payer_name }}</span>
-                </div>
-              }
-              @if (pay.check_payer_phone) {
-                <div class="section-item">
-                  <span class="section-label">Tel. cheque</span>
-                  <span class="section-value">{{ pay.check_payer_phone }}</span>
-                </div>
-              }
-              @if (pay.amount_credit_mxn != null && +pay.amount_credit_mxn > 0) {
-                <div class="section-item">
-                  <span class="section-label">Crédito</span>
-                  <span class="section-value">{{ posCollectionMoney(pay.amount_credit_mxn) }}</span>
-                </div>
-              }
-              @if (posCollectionChangeDisplay(pay).mxn > 0 || posCollectionChangeDisplay(pay).usd > 0) {
-                <div class="section-item section-item--highlight">
-                  <span class="section-label">Cambio USD</span>
-                  <span class="section-value section-value--change">{{ posCollectionUsd(posCollectionChangeDisplay(pay).usd) }}</span>
-                </div>
-                <div class="section-item section-item--highlight">
-                  <span class="section-label">Cambio MXN</span>
-                  <span class="section-value section-value--change">{{ posCollectionMoney(posCollectionChangeDisplay(pay).mxn) }}</span>
-                </div>
+                <time class="pos-pay__date">{{ formatPosCollectedAt(pay.collected_at) }}</time>
               }
             </div>
+            @if (posPaymentMethodLabel() === 'Mixto') {
+              <p class="pos-pay__method">Mixto</p>
+            }
+            <div class="pos-pay__groups">
+              @for (group of posCollectionBreakdown(pay); track $index) {
+                <section class="pos-pay-group" [attr.data-tone]="group.tone">
+                  @for (line of group.lines; track $index) {
+                    <div class="pos-pay-line">
+                      <div class="pos-pay-line__main">
+                        <span class="pos-pay-line__title">{{ line.title }}</span>
+                        <span class="pos-pay-line__amount">{{ line.amount }}</span>
+                      </div>
+                      @if (line.details.length) {
+                        <p class="pos-pay-line__meta">{{ line.details.join(' · ') }}</p>
+                      }
+                    </div>
+                  }
+                  @if (group.note) {
+                    <p class="pos-pay-group__note">{{ group.note }}</p>
+                  }
+                </section>
+              }
+            </div>
+          </div>
         }
 
         <div class="section-card section-card--totals">

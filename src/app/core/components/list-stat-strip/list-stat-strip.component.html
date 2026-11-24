@@ -1,14 +1,14 @@
 <section class="list-stats" [attr.aria-label]="label">
   @if (loading && !ready) {
-    <div class="list-stats__panel" aria-hidden="true">
-      @for (item of skeletons; track item) {
+    <div class="list-stats__panel" [attr.data-cols]="columns" aria-hidden="true">
+      @for (item of skeletonSlots; track item) {
         <div class="list-stat list-stat--skeleton"></div>
       }
     </div>
   } @else if (error && !ready) {
     <p class="list-stats__error" role="alert">No se pudo cargar el resumen.</p>
   } @else {
-    <div class="list-stats__panel" [class.is-refreshing]="loading">
+    <div class="list-stats__panel" [attr.data-cols]="cards.length" [class.is-refreshing]="loading">
       @for (card of cards; track card.key) {
         <article class="list-stat" [attr.data-tone]="card.tone" [attr.title]="card.hint">
           <div class="list-stat__top">

@@ -9,6 +9,11 @@
   position: relative;
 }
 
+.filter-bar__field--actions .filter-bar__field--glance {
+  width: auto;
+  flex: 0 0 auto;
+}
+
 .customer-lookup {
   position: absolute;
   z-index: 20;

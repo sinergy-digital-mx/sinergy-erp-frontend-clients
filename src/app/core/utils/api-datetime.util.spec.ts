@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatApiDate, formatApiDateTime, formatBusinessDateTime, isApiCalendarDate, parseApiDateTime } from './api-datetime.util';
+import {
+  formatApiDate,
+  formatApiDateTime,
+  formatBusinessDateTime,
+  formatCompactBusinessDate,
+  isApiCalendarDate,
+  parseApiDateTime,
+} from './api-datetime.util';
 
 describe('parseApiDateTime', () => {
   it('trata el datetime de MySQL sin zona como UTC', () => {
@@ -31,6 +38,17 @@ describe('formatBusinessDateTime', () => {
       date: '1 sep 2026',
       time: '3:00 p.m.',
     });
+  });
+});
+
+describe('formatCompactBusinessDate', () => {
+  it('resume el día en Tijuana, mes corto y año de dos dígitos, sin hora', () => {
+    expect(formatCompactBusinessDate('2026-08-03 20:00:00')).toBe('ago 3 26');
+    expect(formatCompactBusinessDate('2026-11-09 23:09:00')).toBe('nov 9 26');
+  });
+
+  it('no brinca al día siguiente cuando en UTC ya cambió la fecha', () => {
+    expect(formatCompactBusinessDate('2026-08-04 05:00:00')).toBe('ago 3 26');
   });
 });
 

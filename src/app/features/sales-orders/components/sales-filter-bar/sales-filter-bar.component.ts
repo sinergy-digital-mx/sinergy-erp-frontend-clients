@@ -26,7 +26,7 @@ interface CustomerFilterOption {
 })
 export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() refreshing = false;
-  /** Muestra el control proyectado a la derecha de la búsqueda. */
+  /** Muestra las bolitas de vista, a la izquierda de recargar. */
   @Input() showGlance = false;
   /** `quotation` oculta pago/crédito y usa estados de cotización. */
   @Input() mode: 'sales' | 'quotation' = 'sales';

@@ -931,6 +931,11 @@ main,
     z-index: 30;
   }
 
+  /* Ventas en caja y atajos van en z-index 80. El confirm tiene que quedar encima. */
+  .cdk-overlay-container:has(.pos-dialog-panel) {
+    z-index: 100;
+  }
+
   /* El detalle OV va en fixed al viewport y el menú (z-index 1100) tapa la izquierda. */
   .cdk-overlay-container:has(.order-detail-dialog-container),
   .cdk-overlay-container:has(.batch-detail-dialog-container) {

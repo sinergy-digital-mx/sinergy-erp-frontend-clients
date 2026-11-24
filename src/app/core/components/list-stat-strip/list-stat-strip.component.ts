@@ -28,11 +28,15 @@ export interface ListStatCard {
 export class ListStatStripComponent {
   @Input() label = 'Resumen';
   @Input() cards: ListStatCard[] = [];
+  @Input() columns = 5;
   @Input() loading = false;
   @Input() ready = false;
   @Input() error = false;
 
-  readonly skeletons = [1, 2, 3, 4, 5];
+  get skeletonSlots(): number[] {
+    const count = Math.min(6, Math.max(1, Math.trunc(this.columns) || 5));
+    return Array.from({ length: count }, (_, index) => index + 1);
+  }
 
   formatCount(value: number): string {
     return new Intl.NumberFormat('es-MX').format(value || 0);

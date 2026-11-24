@@ -7,7 +7,7 @@ import { AssignClientRouteModalComponent } from '../../../customers/components/a
 import { isFiscalFlagOn } from '../../../settings/utils/fiscal-tax-flags.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { ApiDatePipe } from '../../../../core/pipes/api-date.pipe';
-import { formatApiDate } from '../../../../core/utils/api-datetime.util';
+import { formatApiDate, formatCompactBusinessDate } from '../../../../core/utils/api-datetime.util';
 import { SalesOrderService } from '../../services/sales-order.service';
 import { SalesOrderControlDeskTabComponent } from '../sales-order-control-desk-tab/sales-order-control-desk-tab.component';
 import {
@@ -41,12 +41,10 @@ import {
 } from '../../utils/sales-order-document.util';
 import {
   PosSaleCollection,
-  posCollectionCardRows as buildPosCollectionCardRows,
+  posCollectionBreakdown as buildPosCollectionBreakdown,
   posCollectionMethodLabel,
-  posCollectionMoneyLabel,
   posCollectionUsdLabel,
 } from '../../../pos/models/pos-sale-collection.model';
-import { displayCashChange } from '../../../pos/utils/pos-collect.util';
 import { normalizePosSaleReceipt } from '../../../pos/models/pos-receipt.model';
 import { PosReceiptPrintService } from '../../../pos/services/pos-receipt-print.service';
 import { PosPrinterSettingsDialogComponent } from '../../../pos/components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
@@ -1629,28 +1627,16 @@ export class SalesOrderDetailDialogComponent {
     return posCollectionMethodLabel(this.posCollection()?.payment_method);
   }
 
-  posCollectionMoney(value: unknown): string {
-    return posCollectionMoneyLabel(value);
-  }
-
-  posCollectionCardRows(pay: PosSaleCollection) {
-    return buildPosCollectionCardRows(pay);
+  posCollectionBreakdown(pay: PosSaleCollection) {
+    return buildPosCollectionBreakdown(pay);
   }
 
   posCollectionUsd(value: unknown): string {
     return posCollectionUsdLabel(value);
   }
 
-  posCollectionChangeDisplay(pay: PosSaleCollection | null | undefined): { mxn: number; usd: number } {
-    return displayCashChange(
-      Number(pay?.change_cash_mxn ?? 0),
-      Number(pay?.change_cash_usd ?? 0),
-      Number(pay?.usd_exchange_rate ?? 0),
-    );
-  }
-
   formatPosCollectedAt(value?: string | null): string {
-    return formatApiDate(value, 'short');
+    return formatCompactBusinessDate(value);
   }
 
   isPosOrder(): boolean {

@@ -432,6 +432,86 @@ export interface PaginationParams {
   limit: number;
 }
 
+export interface SalesOrderStatBucket {
+  count: number;
+  amount: number;
+}
+
+export interface SalesOrderCurrencyStats {
+  count: number;
+  amount: number;
+  created: SalesOrderStatBucket;
+  paid: SalesOrderStatBucket;
+  pending: SalesOrderStatBucket;
+}
+
+/** `stats` del GET /sales-orders: todas las órdenes del filtro, no la página. */
+export interface SalesOrderListStats {
+  count: number;
+  by_currency: {
+    MXN: SalesOrderCurrencyStats;
+    USD: SalesOrderCurrencyStats;
+  };
+}
+
+function emptySalesOrderStatBucket(): SalesOrderStatBucket {
+  return { count: 0, amount: 0 };
+}
+
+function emptySalesOrderCurrencyStats(): SalesOrderCurrencyStats {
+  return {
+    count: 0,
+    amount: 0,
+    created: emptySalesOrderStatBucket(),
+    paid: emptySalesOrderStatBucket(),
+    pending: emptySalesOrderStatBucket(),
+  };
+}
+
+export function emptySalesOrderListStats(count = 0): SalesOrderListStats {
+  return {
+    count,
+    by_currency: {
+      MXN: emptySalesOrderCurrencyStats(),
+      USD: emptySalesOrderCurrencyStats(),
+    },
+  };
+}
+
+function mergeSalesOrderStatBucket(raw?: SalesOrderStatBucket | null): SalesOrderStatBucket {
+  return {
+    count: Number(raw?.count) || 0,
+    amount: Number(raw?.amount) || 0,
+  };
+}
+
+function mergeSalesOrderCurrencyStats(
+  raw?: SalesOrderCurrencyStats | null,
+): SalesOrderCurrencyStats {
+  if (!raw) return emptySalesOrderCurrencyStats();
+  return {
+    count: Number(raw.count) || 0,
+    amount: Number(raw.amount) || 0,
+    created: mergeSalesOrderStatBucket(raw.created),
+    paid: mergeSalesOrderStatBucket(raw.paid),
+    pending: mergeSalesOrderStatBucket(raw.pending),
+  };
+}
+
+export function normalizeSalesOrderListStats(
+  stats?: SalesOrderListStats | null,
+  fallbackCount = 0,
+): SalesOrderListStats {
+  if (!stats?.by_currency) return emptySalesOrderListStats(fallbackCount);
+  return {
+    count: Number(stats.count) || fallbackCount,
+    by_currency: {
+      MXN: mergeSalesOrderCurrencyStats(stats.by_currency.MXN),
+      USD: mergeSalesOrderCurrencyStats(stats.by_currency.USD),
+    },
+  };
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   page: number;
@@ -440,6 +520,7 @@ export interface PaginatedResponse<T> {
   totalPages: number;
   hasNext?: boolean;
   hasPrev?: boolean;
+  stats?: SalesOrderListStats;
 }
 
 export interface SalesOrderControlDeskMissing {

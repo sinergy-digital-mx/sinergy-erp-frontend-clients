@@ -5,7 +5,16 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SalesOrderService } from '../../services/sales-order.service';
-import { SalesOrder, SalesOrderFilters, SalesOrderInvoiceShortcut, SalesOrderTrend, PaginationParams } from '../../models/sales-order.model';
+import {
+  emptySalesOrderListStats,
+  normalizeSalesOrderListStats,
+  SalesOrder,
+  SalesOrderFilters,
+  SalesOrderInvoiceShortcut,
+  SalesOrderListStats,
+  SalesOrderTrend,
+  PaginationParams,
+} from '../../models/sales-order.model';
 import { SalesOrderTrendComponent } from '../../components/sales-order-trend/sales-order-trend.component';
 import { SalesFilterBarComponent } from '../../components/sales-filter-bar/sales-filter-bar.component';
 import { CreateSalesOrderModalComponent } from '../../components/create-sales-order-modal/create-sales-order-modal.component';
@@ -35,7 +44,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { SALES_ORDER_PERMISSIONS } from '../../config/permissions.config';
 import { GlanceSwitchComponent } from '../../../../core/components/glance-switch/glance-switch.component';
 import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
-import { CircleAlert, CircleDollarSign, ClipboardList, Package, ShoppingBag } from 'lucide-angular';
+import { CircleAlert, CircleDollarSign, ClipboardList, ShoppingBag } from 'lucide-angular';
 
 @Component({
   selector: 'app-sales-order-list',
@@ -99,85 +108,66 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
   loading = this.loadingState.asReadonly();
   hasMore = this.hasMoreState.asReadonly();
 
-  // Stats
-  totalOrders = computed(() => this.totalResultsState());
-  totalAmount = computed(() =>
-    this.ordersData().reduce((sum, o) => sum + this.getOrderTotal(o), 0)
-  );
-
-  creadasCount = computed(() => this.ordersData().filter(o => getSalesOrderStatus(o) === 'Creada').length);
-  surtidasCount = computed(() => this.ordersData().filter(o => getSalesOrderStatus(o) === 'Surtida').length);
-  canceladasCount = computed(() => this.ordersData().filter(o => getSalesOrderStatus(o) === 'Cancelada').length);
-
-  creadasAmount = computed(() => this.ordersData().filter(o => getSalesOrderStatus(o) === 'Creada').reduce((s, o) => s + this.getOrderTotal(o), 0));
-  surtidasAmount = computed(() => this.ordersData().filter(o => getSalesOrderStatus(o) === 'Surtida').reduce((s, o) => s + this.getOrderTotal(o), 0));
-
-  pagadasCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pagado').length);
-  pendientesCount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pendiente').length);
-  pagadasAmount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pagado').reduce((s, o) => s + this.getOrderTotal(o), 0));
-  pendientesAmount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pendiente').reduce((s, o) => s + this.getOrderTotal(o), 0));
-
+  private statsState = signal<SalesOrderListStats>(emptySalesOrderListStats());
   statsReady = signal(false);
   statsError = signal(false);
+
+  /** Cards leen stats del GET (todo el filtro), no la página. */
+  totalOrders = computed(() => this.statsState().count);
+  hasUsd = computed(() => this.statNumber(this.statsState().by_currency.USD.count) > 0);
+  creadasCount = computed(() => this.bucketCount('created'));
+  pagadasCount = computed(() => this.bucketCount('paid'));
+  pendientesCount = computed(() => this.bucketCount('pending'));
 
   readonly statCards = computed((): ListStatCard[] => {
     const total = this.totalOrders();
     const share = (count: number) => (total > 0 ? Math.min(100, Math.round((count / total) * 100)) : 0);
-    const pending = this.pendientesCount() > 0 || this.pendientesAmount() > 0;
+    const pending = this.pendientesCount() > 0 || this.bucketAmount('pending', 'MXN') > 0 || this.bucketAmount('pending', 'USD') > 0;
     return [
       {
         key: 'total',
         label: 'Órdenes',
-        hint: 'Cantidad del filtro. El monto es de esta página',
+        hint: 'Todas las órdenes del filtro',
         tone: 'slate',
         icon: ShoppingBag,
         value: total,
         share: total > 0 ? 100 : 0,
-        footer: this.formatCurrency(this.totalAmount()),
+        footer: this.moneyFooter(this.currencyAmount('MXN'), this.currencyAmount('USD'), 'total'),
         footerKind: 'quiet',
       },
       {
         key: 'created',
         label: 'Creadas',
-        hint: 'Creadas de esta página',
+        hint: 'Órdenes en estado Creada, de todo el filtro',
         tone: 'indigo',
         icon: ClipboardList,
         value: this.creadasCount(),
         share: share(this.creadasCount()),
-        footer: this.formatCurrency(this.creadasAmount()),
-        footerKind: 'pill',
-      },
-      {
-        key: 'fulfilled',
-        label: 'Surtidas',
-        hint: 'Surtidas de esta página',
-        tone: 'emerald',
-        icon: Package,
-        value: this.surtidasCount(),
-        share: share(this.surtidasCount()),
-        footer: this.formatCurrency(this.surtidasAmount()),
+        footer: this.moneyFooter(this.bucketAmount('created', 'MXN'), this.bucketAmount('created', 'USD'), 'row'),
         footerKind: 'pill',
       },
       {
         key: 'paid',
         label: 'Pagadas',
-        hint: 'Pagadas de esta página',
+        hint: 'Órdenes pagadas de todo el filtro',
         tone: 'sky',
         icon: CircleDollarSign,
         value: this.pagadasCount(),
         share: share(this.pagadasCount()),
-        footer: this.formatCurrency(this.pagadasAmount()),
+        footer: this.moneyFooter(this.bucketAmount('paid', 'MXN'), this.bucketAmount('paid', 'USD'), 'row'),
         footerKind: 'pill',
       },
       {
         key: 'pending',
         label: 'Pendientes',
-        hint: 'Pendientes de esta página',
+        hint: 'Órdenes sin pagar de todo el filtro',
         tone: pending ? 'rose' : 'emerald',
         icon: CircleAlert,
         value: this.pendientesCount(),
         share: share(this.pendientesCount()),
-        footer: pending ? this.formatCurrency(this.pendientesAmount()) : 'Sin pendiente',
+        footer: pending
+          ? this.moneyFooter(this.bucketAmount('pending', 'MXN'), this.bucketAmount('pending', 'USD'), 'row')
+          : 'Sin pendiente',
         footerKind: pending ? 'debt' : 'ok',
       },
     ];
@@ -237,6 +227,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
       }
       if (first || changed) {
         this.loadTrend();
+        if (changed && allowed) this.loadOrders();
         if (this.glanceTimer == null) this.startGlance();
       }
     });
@@ -300,8 +291,13 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
           loading: false,
         }));
 
-        this.statsReady.set(true);
-        this.statsError.set(false);
+        if (response.stats) {
+          this.statsState.set(normalizeSalesOrderListStats(response.stats, total));
+          this.statsReady.set(true);
+          this.statsError.set(false);
+        } else if (!this.statsReady() && this.canViewStats()) {
+          this.statsError.set(true);
+        }
         this.loadingState.set(false);
       },
       error: (error) => {
@@ -443,6 +439,35 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
 
   formatCurrency(amount: number): string {
     return this.taxCalculator.formatCurrency(amount);
+  }
+
+  private statNumber(value: number): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private bucketCount(key: 'created' | 'paid' | 'pending'): number {
+    const stats = this.statsState().by_currency;
+    return this.statNumber(stats.MXN[key].count) + this.statNumber(stats.USD[key].count);
+  }
+
+  private currencyAmount(currency: 'MXN' | 'USD'): number {
+    return this.statNumber(this.statsState().by_currency[currency].amount);
+  }
+
+  private bucketAmount(key: 'created' | 'paid' | 'pending', currency: 'MXN' | 'USD'): number {
+    return this.statNumber(this.statsState().by_currency[currency][key].amount);
+  }
+
+  /** Mismo $ de la columna Total. Si hay dólares, no se mezclan con pesos. */
+  private moneyFooter(mxn: number, usd: number, mode: 'total' | 'row'): string {
+    if (!this.hasUsd() && usd <= 0) {
+      return this.formatCurrency(mxn);
+    }
+    const parts: string[] = [];
+    if (mode === 'total' || mxn > 0) parts.push(`MXN ${this.formatCurrency(mxn)}`);
+    if ((mode === 'total' && this.hasUsd()) || usd > 0) parts.push(`USD ${this.formatCurrency(usd)}`);
+    return parts.join(' · ') || this.formatCurrency(0);
   }
 
   formatDateHuman(date: string | Date): string {
