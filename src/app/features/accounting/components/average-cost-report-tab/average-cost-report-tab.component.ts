@@ -1,7 +1,7 @@
 import { Component, ElementRef, HostListener, Input, OnChanges, OnDestroy, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -14,6 +14,7 @@ import { QuotationDetailDialogComponent } from '../../../quotations/components/q
 import { AccountingPeriod, AverageCostReportRow, AverageCostReportSummary } from '../../models/accounting.model';
 import { AccountingService } from '../../services/accounting.service';
 import { sharedBranchIdFromParams } from '../../utils/branch-query.util';
+import { pageFromQuery, replaceQuery } from '../../utils/accounting-view-query.util';
 
 @Component({
   selector: 'app-average-cost-report-tab',
@@ -40,6 +41,8 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
   infoOpen = signal(false);
   branchMissing = signal(false);
   private requestId = 0;
+  private viewReady = false;
+  private readonly restoredPage: number;
 
   tableConfig = signal<IDatatableConfig>({
     rows: [] as AverageCostReportRow[],
@@ -64,22 +67,24 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
     private toast: ToastService,
     private elementRef: ElementRef<HTMLElement>,
     private route: ActivatedRoute,
+    private router: Router,
   ) {
+    const params = this.route.snapshot.queryParamMap;
+    this.searchControl.setValue(params.get('vq') ?? '', { emitEvent: false });
+    this.restoredPage = pageFromQuery(params.get('vpage'));
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => this.loadPage(1));
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (
-      changes['reloadToken'] ||
-      changes['billingBranchId'] ||
-      changes['period'] ||
-      changes['dateFrom'] ||
-      changes['dateTo']
-    ) {
-      this.loadPage(1);
-    }
+    const inputs = ['billingBranchId', 'period', 'dateFrom', 'dateTo'] as const;
+    const inputChanged = inputs.some((key) => !!changes[key]);
+    if (!changes['reloadToken'] && !inputChanged) return;
+    const onlyReload = !!changes['reloadToken'] && !inputs.some((key) => changes[key] && !changes[key].firstChange);
+    const page = !this.viewReady ? this.restoredPage : onlyReload ? (this.tableConfig().page ?? 1) : 1;
+    this.viewReady = true;
+    this.loadPage(page);
   }
 
   toggleInfo(event: MouseEvent): void {
@@ -212,6 +217,10 @@ export class AverageCostReportTabComponent implements OnChanges, OnDestroy {
       return;
     }
 
+    void replaceQuery(this.router, this.route, {
+      vq: this.searchControl.value.trim() || null,
+      vpage: page > 1 ? page : null,
+    });
     this.branchMissing.set(false);
     const limit = this.tableConfig().limit;
     const requestId = ++this.requestId;

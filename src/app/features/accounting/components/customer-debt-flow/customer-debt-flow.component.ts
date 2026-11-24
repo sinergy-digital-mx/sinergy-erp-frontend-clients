@@ -18,6 +18,12 @@ import { InventoryService } from '../../../inventory/services/inventory.service'
 import { InventoryLocationFiscal } from '../../../inventory/models/inventory-location.model';
 import { CustomerDebtFlowService } from '../../services/customer-debt-flow.service';
 import {
+  debtPeriodFromQuery,
+  debtViewFromQuery,
+  pageFromQuery,
+  replaceQuery,
+} from '../../utils/accounting-view-query.util';
+import {
   DebtAgingRow,
   DebtAgingTotals,
   DebtCurrency,
@@ -122,6 +128,7 @@ export class CustomerDebtFlowComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.readViewFromUrl();
     this.inventoryService.getLocations().subscribe({
       next: (data) => {
         const list = data ?? [];
@@ -166,7 +173,9 @@ export class CustomerDebtFlowComponent implements OnInit {
       this.customDateFrom = '';
       this.customDateTo = '';
       this.resetPageAndLoad();
+      return;
     }
+    this.rememberView();
   }
 
   onRangeChange(range: { dateFrom: string; dateTo: string }): void {
@@ -181,8 +190,17 @@ export class CustomerDebtFlowComponent implements OnInit {
     this.resetPageAndLoad();
   }
 
+  onSearchDraft(value: string): void {
+    this.search = value;
+    this.rememberView();
+  }
+
   onSearch(): void {
     this.resetPageAndLoad();
+  }
+
+  refresh(): void {
+    this.loadReport();
   }
 
   openCustomerFlow(row: DebtAgingRow): void {
@@ -296,6 +314,7 @@ export class CustomerDebtFlowComponent implements OnInit {
   }
 
   loadReport(): void {
+    this.rememberView();
     if (this.rangeIncomplete || this.fiscalRequired) {
       this.aging.set([]);
       this.agingTotals.set(null);
@@ -355,6 +374,36 @@ export class CustomerDebtFlowComponent implements OnInit {
   private resetPageAndLoad(): void {
     this.page = 1;
     this.loadReport();
+  }
+
+  private readViewFromUrl(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const view = debtViewFromQuery(params.get('dview'));
+    if (view) this.view = view;
+    const period = debtPeriodFromQuery(params.get('dperiod'));
+    if (period) this.datePreset = period;
+    this.customDateFrom = params.get('dfrom') ?? '';
+    this.customDateTo = params.get('dto') ?? '';
+    this.search = params.get('dq') ?? '';
+    const customerId = Number(params.get('dcust'));
+    if (Number.isInteger(customerId) && customerId > 0) {
+      this.customerId = customerId;
+      this.customerName = params.get('dname') ?? '';
+    }
+    this.page = pageFromQuery(params.get('dpage'));
+  }
+
+  private rememberView(): void {
+    void replaceQuery(this.router, this.route, {
+      dq: this.search.trim() || null,
+      dview: this.view === 'aging' ? null : this.view,
+      dperiod: this.datePreset === 'month' ? null : this.datePreset,
+      dfrom: this.datePreset === 'range' ? this.customDateFrom || null : null,
+      dto: this.datePreset === 'range' ? this.customDateTo || null : null,
+      dcust: this.customerId,
+      dname: this.customerId ? this.customerName || null : null,
+      dpage: this.page > 1 ? this.page : null,
+    });
   }
 
   private applyLocationFromQuery(): void {

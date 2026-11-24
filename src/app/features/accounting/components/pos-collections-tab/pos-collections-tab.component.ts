@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import {
@@ -24,6 +25,12 @@ import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detai
 import { paymentMethodLabel } from '../../../pos/models/pos-collected-sales.model';
 import { PosUserSummary, isForShippingFlag } from '../../../sales-orders/models/sales-order.model';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
+import {
+  customerTypeFromQuery,
+  pageFromQuery,
+  paymentMethodFromQuery,
+  replaceQuery,
+} from '../../utils/accounting-view-query.util';
 
 interface CollectionFilterChip {
   type: CollectionCustomerType;
@@ -77,6 +84,8 @@ export class PosCollectionsTabComponent implements OnChanges {
   exporting = signal(false);
   summary = signal<PosCollectionsSummary>(this.emptySummary());
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private fetchedOnce = false;
+  private readonly restoredPage: number;
 
   tableConfig = signal<IDatatableConfig>({
     rows: [] as PosCollectionRow[],
@@ -107,27 +116,26 @@ export class PosCollectionsTabComponent implements OnChanges {
     private accountingService: AccountingService,
     private dialog: MatDialog,
     private taxCalculator: TaxCalculatorService,
-    private toast: ToastService
-  ) {}
+    private toast: ToastService,
+    private route: ActivatedRoute,
+    private router: Router,
+  ) {
+    const params = this.route.snapshot.queryParamMap;
+    this.customerType.set(customerTypeFromQuery(params.get('ctype')));
+    this.paymentMethod.set(paymentMethodFromQuery(params.get('pay')));
+    this.forShipping.set(params.get('ship') === '1');
+    this.search.set(params.get('pq') ?? '');
+    this.restoredPage = pageFromQuery(params.get('ppage'));
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (
-      changes['reloadToken'] ||
-      changes['billingBranchId'] ||
-      changes['period'] ||
-      changes['dateFrom'] ||
-      changes['dateTo']
-    ) {
-      this.customerType.set('all');
-      this.paymentMethod.set(null);
-      this.forShipping.set(false);
-      this.search.set('');
-      if (this.searchTimer) {
-        clearTimeout(this.searchTimer);
-        this.searchTimer = null;
-      }
-      this.reload(1);
-    }
+    const inputs = ['billingBranchId', 'period', 'dateFrom', 'dateTo'] as const;
+    const inputChanged = inputs.some((key) => !!changes[key]);
+    if (!changes['reloadToken'] && !inputChanged) return;
+    const onlyReload = !!changes['reloadToken'] && !inputs.some((key) => changes[key] && !changes[key].firstChange);
+    const page = !this.fetchedOnce ? this.restoredPage : onlyReload ? (this.tableConfig().page ?? 1) : 1;
+    if (this.billingBranchId) this.fetchedOnce = true;
+    this.reload(page);
   }
 
   paymentMethodCards(): PaymentMethodCard[] {
@@ -167,6 +175,7 @@ export class PosCollectionsTabComponent implements OnChanges {
       return;
     }
     this.forShipping.set(!this.forShipping());
+    this.remember(1);
     this.fetchPage(1);
   }
 
@@ -175,6 +184,7 @@ export class PosCollectionsTabComponent implements OnChanges {
       return;
     }
     this.paymentMethod.set(this.paymentMethod() === key ? null : key);
+    this.remember(1);
     this.fetchPage(1);
   }
 
@@ -195,11 +205,13 @@ export class PosCollectionsTabComponent implements OnChanges {
       return;
     }
     this.customerType.set(type);
+    this.remember(1);
     this.fetchPage(1);
   }
 
   onSearchChange(value: string): void {
     this.search.set(value);
+    this.remember(1);
     if (this.searchTimer) {
       clearTimeout(this.searchTimer);
     }
@@ -322,6 +334,7 @@ export class PosCollectionsTabComponent implements OnChanges {
   }
 
   onPageChange(event: IPaginationEvent): void {
+    this.remember(event.page);
     this.fetchPage(event.page);
   }
 
@@ -461,6 +474,16 @@ export class PosCollectionsTabComponent implements OnChanges {
           }));
         },
       });
+  }
+
+  private remember(page: number): void {
+    void replaceQuery(this.router, this.route, {
+      pq: this.search().trim() || null,
+      ctype: this.customerType() === 'all' ? null : this.customerType(),
+      pay: this.paymentMethod(),
+      ship: this.forShipping() ? '1' : null,
+      ppage: page > 1 ? page : null,
+    });
   }
 
   private periodQuery() {

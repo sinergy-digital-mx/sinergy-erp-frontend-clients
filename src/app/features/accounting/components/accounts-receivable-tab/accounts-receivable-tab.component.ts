@@ -1,5 +1,6 @@
 import { Component, Input, OnChanges, OnInit, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IColumn, IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
@@ -8,6 +9,7 @@ import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { AccountingService } from '../../services/accounting.service';
 import { AccountsReceivableListSummary, AccountsReceivableRow, PayableCurrencyView } from '../../models/accounting.model';
 import { ReceivableDetailDialogComponent } from '../receivable-detail-dialog/receivable-detail-dialog.component';
+import { currencyViewFromQuery, pageFromQuery, replaceQuery } from '../../utils/accounting-view-query.util';
 
 @Component({
   selector: 'app-accounts-receivable-tab',
@@ -47,14 +49,29 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges {
     reorderable: false,
   });
 
+  private readonly restoredPage: number;
+
   constructor(
     private accountingService: AccountingService,
     private dialog: MatDialog,
-    private toast: ToastService
-  ) {}
+    private toast: ToastService,
+    private route: ActivatedRoute,
+    private router: Router,
+  ) {
+    const params = this.route.snapshot.queryParamMap;
+    this.currencyView.set(currencyViewFromQuery(params.get('rcur')));
+    this.restoredPage = pageFromQuery(params.get('rpage'));
+    if (this.currencyView() !== 'all') {
+      this.tableConfig.update((cfg) => ({
+        ...cfg,
+        columns: this.columnsFor(this.currencyView()),
+        emptyState: this.emptyStateFor(this.currencyView()),
+      }));
+    }
+  }
 
   ngOnInit(): void {
-    this.loadPage(1);
+    this.loadPage(this.restoredPage);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -170,6 +187,7 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges {
   }
 
   private loadPage(page: number): void {
+    this.remember(page);
     const currency = this.currencyView();
     this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
 
@@ -198,6 +216,14 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges {
           }));
         },
       });
+  }
+
+  private remember(page: number): void {
+    void replaceQuery(this.router, this.route, {
+      rq: this.search.trim() || null,
+      rcur: this.currencyView() === 'all' ? null : this.currencyView(),
+      rpage: page > 1 ? page : null,
+    });
   }
 
   private columnsFor(view: PayableCurrencyView): IColumn[] {

@@ -2,7 +2,7 @@ import { Component, EventEmitter, HostListener, Input, OnChanges, OnInit, Output
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -16,6 +16,7 @@ import {
   GlobalInvoicePaymentLine,
 } from '../../models/global-invoice.model';
 import { sharedBranchIdFromParams } from '../../utils/branch-query.util';
+import { monthFromQuery, replaceQuery } from '../../utils/accounting-view-query.util';
 
 @Component({
   selector: 'app-global-invoices-tab',
@@ -49,8 +50,12 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
     private auth: AuthService,
     private toast: ToastService,
     private route: ActivatedRoute,
+    private router: Router,
     private dialog: MatDialog,
-  ) {}
+  ) {
+    const month = monthFromQuery(this.route.snapshot.queryParamMap.get('month'));
+    if (month) this.month.set(month);
+  }
 
   ngOnInit(): void {
     const fromParent = this.billingBranchId || '';
@@ -58,6 +63,11 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
     const branch = fromParent || fromUrl;
     this.branchId.set(branch);
     if (branch && branch !== fromParent) this.billingBranchChange.emit(branch);
+    this.rememberMonth();
+    this.load();
+  }
+
+  refresh(): void {
     this.load();
   }
 
@@ -76,6 +86,7 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
     this.calendarAligned = true;
     this.month.set(value);
     this.confirmCancel.set(false);
+    this.rememberMonth();
     this.load();
   }
 
@@ -349,6 +360,10 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
 
   showBreakdown(order: GlobalInvoiceOrderRow): boolean {
     return order.payment_lines.length > 1 || order.payment_method === 'mixed';
+  }
+
+  private rememberMonth(): void {
+    void replaceQuery(this.router, this.route, { month: this.month() });
   }
 
   private load(): void {

@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -10,6 +11,7 @@ import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { AccountingService } from '../../services/accounting.service';
 import { AccountingPeriod, AccountsPayableListSummary, AccountsPayableVendorRow, PayableCurrencyView } from '../../models/accounting.model';
 import { VendorPayableDetailDialogComponent } from '../vendor-payable-detail-dialog/vendor-payable-detail-dialog.component';
+import { currencyViewFromQuery, pageFromQuery, replaceQuery } from '../../utils/accounting-view-query.util';
 
 @Component({
   selector: 'app-accounts-payable-tab',
@@ -53,18 +55,34 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
     reorderable: false,
   });
 
+  private readonly restoredPage: number;
+
   constructor(
     private accountingService: AccountingService,
     private dialog: MatDialog,
-    private toast: ToastService
-  ) {}
+    private toast: ToastService,
+    private route: ActivatedRoute,
+    private router: Router,
+  ) {
+    const params = this.route.snapshot.queryParamMap;
+    this.searchControl.setValue(params.get('aq') ?? '', { emitEvent: false });
+    this.currencyView.set(currencyViewFromQuery(params.get('acur')));
+    this.restoredPage = pageFromQuery(params.get('apage'));
+    if (this.currencyView() !== 'all') {
+      this.tableConfig.update((cfg) => ({
+        ...cfg,
+        columns: this.columnsFor(this.currencyView()),
+        emptyState: this.emptyStateFor(this.currencyView()),
+      }));
+    }
+  }
 
   ngOnInit(): void {
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => this.loadPage(1));
 
-    this.loadPage(1);
+    this.loadPage(this.restoredPage);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -237,6 +255,7 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
   private loadPage(page: number): void {
     if (this.period === 'range' && (!this.dateFrom || !this.dateTo)) return;
 
+    this.remember(page);
     const currency = this.currencyView();
     this.tableConfig.update((cfg) => ({ ...cfg, loading: true, page }));
 
@@ -331,6 +350,14 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
       minimumFractionDigits: 2,
       maximumFractionDigits: 4,
     }).format(rate);
+  }
+
+  private remember(page: number): void {
+    void replaceQuery(this.router, this.route, {
+      aq: this.searchControl.value.trim() || null,
+      acur: this.currencyView() === 'all' ? null : this.currencyView(),
+      apage: page > 1 ? page : null,
+    });
   }
 
   /** Hoy y semana no recortan el saldo. Mes y rango sí. */

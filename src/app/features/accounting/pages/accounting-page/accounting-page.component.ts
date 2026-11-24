@@ -2,7 +2,7 @@ import { Component, DestroyRef, OnDestroy, OnInit, signal, ViewChild } from '@an
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { ReportPeriod, ReportPeriodSelectorComponent } from '../../../../core/components/report-period-selector/report-period-selector.component';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -19,6 +19,11 @@ import { CustomerDebtFlowComponent } from '../../components/customer-debt-flow/c
 import { AverageCostReportTabComponent } from '../../components/average-cost-report-tab/average-cost-report-tab.component';
 import { GlobalInvoicesTabComponent } from '../../components/global-invoices-tab/global-invoices-tab.component';
 import { branchQueryFromId, isAllBranchesQuery, sharedBranchIdFromParams } from '../../utils/branch-query.util';
+import {
+  accountingPeriodFromQuery,
+  accountingTabFromQuery,
+  replaceQuery,
+} from '../../utils/accounting-view-query.util';
 
 export type AccountingTab =
   | 'pos'
@@ -67,6 +72,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   receivableSearchDraft = '';
   receivableSearch = signal('');
   private receivableSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private queryReady = false;
 
   readonly menuTabs: TabItem[] = [
     { id: 'pos', title: 'Puntos de venta' },
@@ -88,31 +94,16 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const fromUrl = sharedBranchIdFromParams(this.route.snapshot.queryParamMap);
-    if (fromUrl) this.billingBranchId.set(fromUrl);
-    const fiscalFromUrl = this.route.snapshot.queryParamMap.get('fiscal_configuration_id')?.trim() || '';
-    if (fiscalFromUrl) this.fiscalConfigurationId.set(fiscalFromUrl);
-
-    const initial = this.route.snapshot.data['tab'];
-    if (typeof initial === 'string' && this.isAccountingTab(initial)) {
-      this.activeTab.set(initial);
-      if (initial === 'average-cost' || initial === 'pos-collections') {
-        this.applyCurrentMonth();
-      }
-    }
-
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const next = sharedBranchIdFromParams(params);
-      if (next !== this.billingBranchId()) {
-        this.billingBranchId.set(next);
-        if (!next && this.branchRequired()) this.applyDefaultBranch();
-        if (this.showPeriodFilters() && !this.showRazonFilter()) this.reloadActiveTab();
+      const branchChanged = this.applyBranchFromParams(params);
+      const fiscalChanged = this.applyFiscalFromParams(params);
+      const viewChanged = this.applyViewFromParams(params);
+      if (!this.queryReady) {
+        this.queryReady = true;
+        this.syncSharedQuery();
+        return;
       }
-      const fiscal = params.get('fiscal_configuration_id')?.trim() || '';
-      if (fiscal !== this.fiscalConfigurationId()) {
-        this.fiscalConfigurationId.set(fiscal);
-        if (this.showRazonFilter()) this.reloadActiveTab();
-      }
+      if (branchChanged || fiscalChanged || viewChanged) this.reloadActiveTab();
     });
 
     this.loadBranches();
@@ -128,7 +119,12 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     if (this.receivableSearchTimer) clearTimeout(this.receivableSearchTimer);
     this.receivableSearchTimer = setTimeout(() => {
       this.receivableSearch.set(value.trim());
+      void replaceQuery(this.router, this.route, { rq: value.trim() || null, rpage: null });
     }, 300);
+  }
+
+  refreshView(): void {
+    this.reloadActiveTab();
   }
 
   showPeriodFilters(): boolean {
@@ -173,12 +169,9 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
 
   onTabChange(tabId: string): void {
     if (!this.isAccountingTab(tabId)) return;
-    if (this.route.snapshot.routeConfig?.path === 'flujo-deuda' && tabId !== 'debt-flow') {
-      void this.router.navigate(['/accounting'], { queryParamsHandling: 'preserve' });
-      return;
-    }
     const tab = tabId;
     const previousTab = this.activeTab();
+    if (tab === previousTab) return;
     if (tab === 'pos' && this.period() !== 'today' && this.period() !== 'range') {
       this.period.set('today');
       this.dateFrom.set('');
@@ -197,11 +190,25 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     if (tab === 'average-cost' || (tab === 'pos-collections' && previousTab !== 'pos-collections')) {
       this.applyCurrentMonth();
     }
+    if (tab === 'receivable') {
+      const q = this.route.snapshot.queryParamMap.get('rq') ?? '';
+      this.receivableSearchDraft = q;
+      this.receivableSearch.set(q.trim());
+    }
+    const leavingDebtRoute = this.route.snapshot.routeConfig?.path === 'flujo-deuda' && tab !== 'debt-flow';
     this.activeTab.set(tab);
     this.restoreBranchFromUrl();
     if (this.branchRequired() && !this.billingBranchId()) {
       this.applyDefaultBranch();
     }
+    if (leavingDebtRoute) {
+      void this.router.navigate(['/accounting'], {
+        queryParams: this.sharedQueryPatch(),
+        queryParamsHandling: 'merge',
+      });
+      return;
+    }
+    this.syncSharedQuery();
     this.reloadActiveTab();
   }
 
@@ -232,6 +239,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       this.dateFrom.set('');
       this.dateTo.set('');
     }
+    this.syncSharedQuery();
     this.reloadActiveTab();
   }
 
@@ -240,6 +248,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     this.period.set('today');
     this.dateFrom.set('');
     this.dateTo.set('');
+    this.syncSharedQuery();
     this.reloadActiveTab();
   }
 
@@ -247,6 +256,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     this.dateFrom.set(range.dateFrom);
     this.dateTo.set(range.dateTo);
     this.period.set('range');
+    this.syncSharedQuery();
     this.reloadActiveTab();
   }
 
@@ -388,6 +398,90 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
+  }
+
+  private applyBranchFromParams(params: ParamMap): boolean {
+    const next = sharedBranchIdFromParams(params);
+    if (next === this.billingBranchId()) return false;
+    this.billingBranchId.set(next);
+    if (!next && this.branchRequired()) this.applyDefaultBranch();
+    return this.showPeriodFilters() && !this.showRazonFilter();
+  }
+
+  private applyFiscalFromParams(params: ParamMap): boolean {
+    const fiscal = params.get('fiscal_configuration_id')?.trim() || '';
+    if (fiscal === this.fiscalConfigurationId()) return false;
+    this.fiscalConfigurationId.set(fiscal);
+    return this.showRazonFilter();
+  }
+
+  /** Restaura pestaña, periodo y búsqueda. Devuelve true si hay que volver a cargar. */
+  private applyViewFromParams(params: ParamMap): boolean {
+    let changed = false;
+    const routeTab = this.route.snapshot.data['tab'];
+    const nextTab =
+      accountingTabFromQuery(params.get('tab')) ??
+      (typeof routeTab === 'string' && this.isAccountingTab(routeTab) ? routeTab : null);
+    if (nextTab && nextTab !== this.activeTab()) {
+      this.activeTab.set(nextTab);
+      changed = true;
+    }
+    if (!this.showPeriodFilters()) return changed;
+
+    const period = accountingPeriodFromQuery(params.get('period'));
+    const from = params.get('from') ?? '';
+    const to = params.get('to') ?? '';
+    if (period) {
+      const nextFrom = period === 'range' ? from : '';
+      const nextTo = period === 'range' ? to : '';
+      if (period !== this.period()) {
+        this.period.set(period);
+        changed = true;
+      }
+      if (nextFrom !== this.dateFrom()) {
+        this.dateFrom.set(nextFrom);
+        changed = true;
+      }
+      if (nextTo !== this.dateTo()) {
+        this.dateTo.set(nextTo);
+        changed = true;
+      }
+    }
+
+    if (this.activeTab() === 'receivable') {
+      const q = params.get('rq') ?? '';
+      if (q !== this.receivableSearch() && q !== this.receivableSearchDraft) {
+        this.receivableSearchDraft = q;
+        this.receivableSearch.set(q.trim());
+        changed = true;
+      }
+    }
+    if (period) return changed;
+
+    if (
+      (this.activeTab() === 'average-cost' || this.activeTab() === 'pos-collections') &&
+      !this.dateFrom() &&
+      !this.dateTo()
+    ) {
+      this.applyCurrentMonth();
+      return true;
+    }
+    return changed;
+  }
+
+  private sharedQueryPatch(): Record<string, string | null> {
+    const withPeriod = this.showPeriodFilters();
+    const ranged = withPeriod && this.period() === 'range';
+    return {
+      tab: this.activeTab(),
+      period: withPeriod ? this.period() : null,
+      from: ranged ? this.dateFrom() || null : null,
+      to: ranged ? this.dateTo() || null : null,
+    };
+  }
+
+  private syncSharedQuery(): void {
+    void replaceQuery(this.router, this.route, this.sharedQueryPatch());
   }
 
   private reloadActiveTab(): void {

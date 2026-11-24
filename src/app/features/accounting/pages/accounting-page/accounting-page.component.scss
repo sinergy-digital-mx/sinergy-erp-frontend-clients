@@ -94,6 +94,30 @@ app-report-period-selector.zn-period-drop {
   width: min(100%, 22rem);
 }
 
+.accounting-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-self: flex-end;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #4338ca;
+  cursor: pointer;
+
+  svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  &:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+  }
+}
+
 .accounting-filters__clear {
   align-self: end;
   height: 40px;
