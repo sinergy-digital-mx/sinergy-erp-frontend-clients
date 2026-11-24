@@ -22,7 +22,8 @@ export class PosPrinterSettingsDialogComponent {
   readonly X = X;
 
   printerName = this.printService.getPrinterName();
-  autoPrint = this.printService.isAutoPrintEnabled();
+  invoicePrinterName = this.printService.getInvoicePrinterName();
+  printerTarget: 'ticket' | 'invoice' = 'ticket';
   printers = signal<string[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
@@ -32,7 +33,11 @@ export class PosPrinterSettingsDialogComponent {
   }
 
   selectPrinter(name: string): void {
-    this.printerName = name;
+    if (this.printerTarget === 'invoice') {
+      this.invoicePrinterName = name;
+    } else {
+      this.printerName = name;
+    }
     this.error.set(null);
   }
 
@@ -46,8 +51,8 @@ export class PosPrinterSettingsDialogComponent {
         this.error.set('No se encontraron impresoras. Verifica que QZ Tray esté abierto.');
         return;
       }
-      if (!this.printerName && list.length === 1) {
-        this.printerName = list[0];
+      if (list.length === 1 && !(this.printerTarget === 'invoice' ? this.invoicePrinterName : this.printerName)) {
+        this.selectPrinter(list[0]);
       }
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'No se pudo conectar con QZ Tray');
@@ -59,7 +64,7 @@ export class PosPrinterSettingsDialogComponent {
 
   save(): void {
     this.printService.setPrinterName(this.printerName.trim());
-    this.printService.setAutoPrintEnabled(this.autoPrint);
+    this.printService.setInvoicePrinterName(this.invoicePrinterName.trim());
     this.dialogRef.close(true);
   }
 }

@@ -24,18 +24,18 @@
       <lucide-icon [img]="icons.X" class="w-5 h-5"></lucide-icon>
     </button>
 
-    <div class="sidebar__nav-scroll flex flex-col flex-1 overflow-y-auto" (scroll)="hideRailTip()">
-        <!-- Logo Section -->
-        <div
-          class="logo-section"
-          [class.px-6]="!isRailCompact()"
-          [class.px-2]="isRailCompact()"
-          [class.logo-section--compact]="isRailCompact()">
-            <div class="text-center logo-section__brand">
-                <app-pollux-brand-text [useSystemLogo]="true" [compact]="isRailCompact()" />
-            </div>
+    <!-- El logo queda fuera del scroll: si se encoge, el sello se corta. -->
+    <div
+      class="logo-section shrink-0"
+      [class.px-6]="!isRailCompact()"
+      [class.px-2]="isRailCompact()"
+      [class.logo-section--compact]="isRailCompact()">
+        <div class="text-center logo-section__brand">
+            <app-pollux-brand-text [useSystemLogo]="true" [compact]="isRailCompact()" />
         </div>
+    </div>
 
+    <div class="sidebar__nav-scroll flex flex-col flex-1 min-h-0 overflow-y-auto" (scroll)="hideRailTip()">
         <div [class]="'flex flex-col pt-4 pb-3 transition-all duration-300 ' + (isRailCompact() ? 'px-2' : 'px-4')">
         <nav class="flex flex-col">
           @for (section of visibleMenuSections(); track section.id; let first = $first) {

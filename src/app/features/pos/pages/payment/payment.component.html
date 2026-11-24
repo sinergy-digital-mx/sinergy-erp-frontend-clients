@@ -117,12 +117,22 @@
           type="button"
           class="cobranza-dashboard-tab"
           [class.cobranza-dashboard-tab--active]="dashboardTab() === 'collected'"
+          [class.cobranza-dashboard-tab--rise]="collectedBadgePulse()"
           (click)="setDashboardTab('collected')">
           Órdenes cobradas
-          @if ((collectedSummary()?.count ?? collectedSales().length) > 0) {
-            <span class="cobranza-dashboard-tab__badge cobranza-dashboard-tab__badge--muted">
-              {{ collectedSummary()?.count ?? collectedSales().length }}
+          @if (collectedBadgeVisible() > 0 || collectedBadgePulse()) {
+            <span
+              class="cobranza-dashboard-tab__badge cobranza-dashboard-tab__badge--muted"
+              [class.cobranza-dashboard-tab__badge--rise]="collectedBadgePulse()">
+              <span
+                class="cobranza-dashboard-tab__count"
+                [class.cobranza-dashboard-tab__count--pop]="collectedBadgePop()">
+                {{ collectedBadgeVisible() }}
+              </span>
             </span>
+          }
+          @if (collectedBadgeDelta() > 0) {
+            <span class="cobranza-dashboard-tab__delta">+{{ collectedBadgeDelta() }}</span>
           }
         </button>
         <button
@@ -1933,7 +1943,7 @@
                       (click)="reprintTicket(item)"
                       [disabled]="printingReceipt()">
                       <lucide-icon [img]="Printer" class="pos-ic pos-ic--sm" />
-                      {{ printingReceipt() ? 'Imprimiendo…' : 'Reimprimir ticket' }}
+                      Imprimir
                     </button>
                     <button type="button" class="cobranza-head-btn" (click)="clearSelectedCollected()">
                       <lucide-icon [img]="ChevronLeft" class="pos-ic pos-ic--sm" />

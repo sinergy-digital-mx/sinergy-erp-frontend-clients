@@ -1,1 +1,0 @@
-import{K as i,e as a}from"./chunk-NJD66HSX.js";import{d as o}from"./chunk-BTBCC3S4.js";import{fa as r}from"./chunk-MJXZ62PP.js";var p=()=>{let e=r(i),n=r(o);if(!a(e.user_info?.tenant_id))return!0;let t=e.resolvePostLoginRoute();return n.navigateByUrl(t&&t!=="/properties"&&t!=="/contracts"?t:"/customers"),!1};export{p as a};

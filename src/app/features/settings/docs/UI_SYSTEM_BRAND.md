@@ -1,5 +1,9 @@
 # Marca visible
 
+## 2026-11-23
+
+Con el menú abierto el logo queda arriba, completo (136×92 px). La lista de opciones se desplaza debajo y ya no lo recorta.
+
 ## 2026-11-10
 
 Arriba del menú, en el login y en el portal de autofactura el texto es **Pólux**. Con el menú contraído se ve solo la **P**.

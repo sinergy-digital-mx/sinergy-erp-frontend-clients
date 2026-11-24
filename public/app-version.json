@@ -1,16 +1,32 @@
 {
-  "version": "0.0.157",
-  "buildId": "0.0.157-1795502785771",
-  "builtAt": "2026-11-24T06:46:25.771Z",
+  "version": "0.0.158",
+  "buildId": "0.0.158-1795503850372",
+  "builtAt": "2026-11-24T07:04:10.372Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Cambios en ventas"
+      "message": "En el carrito de POS Ventas el botón % abre 5%, 3% y otro porcentaje en un panel flotante, para que la carta no crezca.",
+      "module": "pos",
+      "moduleLabel": "POS Ventas"
     },
     {
-      "scope": "backend",
-      "message": "Cambios en facturación"
+      "scope": "frontend",
+      "message": "Con el menú abierto el logo ya no se recorta: queda arriba completo y la lista se desplaza debajo.",
+      "module": "settings",
+      "moduleLabel": "Configuración"
+    },
+    {
+      "scope": "frontend",
+      "message": "En POS Caja, al terminar de cobrar se abre un modal para imprimir el ticket (2 copias) y, si se facturó, el PDF; al cerrarlo el contador de Órdenes cobradas sube animado.",
+      "module": "pos-cash",
+      "moduleLabel": "POS Caja"
+    },
+    {
+      "scope": "frontend",
+      "message": "Versiones carga de 8 en 8 y cada nota dice el módulo y qué se cambió. El deploy publica esas notas.",
+      "module": "settings",
+      "moduleLabel": "Configuración"
     }
   ]
 }

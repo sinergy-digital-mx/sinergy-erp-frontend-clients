@@ -1074,6 +1074,7 @@ export class POSService {
     change_cash_mxn?: number;
     change_cash_usd?: number;
     usd_exchange_rate?: number;
+    invoice_id?: string | null;
   }> {
     const branchId = this.auth.getBillingBranchId();
     return this.http.post(`${this.API_URL}/quotations/${quotationId}/collect-advance`, {
@@ -1086,6 +1087,7 @@ export class POSService {
         change_cash_mxn?: number;
         change_cash_usd?: number;
         usd_exchange_rate?: number;
+        invoice_id?: string | null;
       }),
     );
   }

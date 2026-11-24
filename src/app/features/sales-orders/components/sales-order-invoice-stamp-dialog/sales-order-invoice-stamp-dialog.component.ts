@@ -47,6 +47,7 @@ export interface SalesOrderInvoiceStampDialogData {
 
 export interface SalesOrderInvoiceStampDialogResult {
   stamped?: boolean;
+  invoiceId?: string | null;
 }
 
 @Component({
@@ -320,11 +321,14 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
     this.dialogRef.disableClose = true;
 
     this.invoiceService.stampInvoice(this.data.orderId, payload).subscribe({
-      next: () => {
+      next: (invoice) => {
         this.stamping.set(false);
         this.dialogRef.disableClose = false;
         this.toast.success('Factura timbrada correctamente');
-        this.dialogRef.close({ stamped: true } satisfies SalesOrderInvoiceStampDialogResult);
+        this.dialogRef.close({
+          stamped: true,
+          invoiceId: invoice?.id ? String(invoice.id) : null,
+        } satisfies SalesOrderInvoiceStampDialogResult);
       },
       error: (error) => {
         this.stamping.set(false);

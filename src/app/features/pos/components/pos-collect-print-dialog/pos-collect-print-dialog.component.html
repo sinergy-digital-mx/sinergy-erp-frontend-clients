@@ -1,0 +1,138 @@
+<div class="modal-container">
+  <div class="modal-header">
+    <div class="modal-header__title">
+      <span class="modal-header__icon" aria-hidden="true">
+        <lucide-icon [img]="Printer" />
+      </span>
+      <h2>{{ title() }}</h2>
+    </div>
+    <button type="button" class="close-btn" (click)="close()" aria-label="Cerrar">
+      <lucide-icon [img]="X" />
+    </button>
+  </div>
+
+  @if (showTabs()) {
+    <div class="print-tabs" role="tablist" aria-label="Qué imprimir">
+      <button
+        type="button"
+        role="tab"
+        class="print-tabs__btn"
+        [class.print-tabs__btn--active]="tab() === 'ticket'"
+        [attr.aria-selected]="tab() === 'ticket'"
+        (click)="selectTab('ticket')">
+        <lucide-icon [img]="Receipt" />
+        Ticket
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="print-tabs__btn"
+        [class.print-tabs__btn--active]="tab() === 'invoice'"
+        [attr.aria-selected]="tab() === 'invoice'"
+        (click)="selectTab('invoice')">
+        <lucide-icon [img]="FileText" />
+        PDF factura
+      </button>
+    </div>
+  }
+
+  <div class="modal-body">
+    @if (tab() === 'ticket') {
+      @if (ticketLoading()) {
+        <p class="status-msg"><app-spinner></app-spinner></p>
+      } @else if (ticketError() && previewLines().length === 0) {
+        <p class="status-msg status-msg--error">{{ ticketError() }}</p>
+      } @else if (previewLines().length === 0) {
+        <p class="status-msg">No hay ticket para mostrar.</p>
+      } @else {
+        <div class="preview-wrap">
+          <article class="thermal-receipt" aria-label="Vista previa del ticket">
+            @for (line of previewLines(); track $index) {
+              @if (line.kind === 'qr' && line.qrSafe) {
+                <div class="thermal-receipt__qr-wrap">
+                  <img class="thermal-receipt__qr" [src]="line.qrSafe" alt="Código QR" />
+                </div>
+              } @else {
+                <p
+                  class="thermal-receipt__line"
+                  [class.thermal-receipt__line--center]="line.align === 'center'"
+                  [class.thermal-receipt__line--right]="line.align === 'right'"
+                  [class.thermal-receipt__line--bold]="line.bold">
+                  {{ line.text || ' ' }}
+                </p>
+              }
+            }
+          </article>
+        </div>
+      }
+    } @else {
+      @if (invoiceLoading() && !pdfSafe()) {
+        <p class="status-msg"><app-spinner></app-spinner> Preparando el PDF…</p>
+      } @else if (invoiceError() && !pdfSafe()) {
+        <p class="status-msg status-msg--error">{{ invoiceError() }}</p>
+      } @else if (pdfSafe(); as src) {
+        <iframe class="pdf-frame" [src]="src" [title]="pdfName()"></iframe>
+      } @else {
+        <p class="status-msg">No hay PDF de factura.</p>
+      }
+
+      <div class="printer-pick">
+        <div class="printer-pick__head">
+          <span>Impresora del PDF</span>
+          <strong>{{ invoicePrinter() || 'Sin elegir' }}</strong>
+          <button type="button" class="printer-pick__search" (click)="loadPrinters()" [disabled]="printersLoading()">
+            {{ printersLoading() ? 'Buscando…' : 'Buscar' }}
+          </button>
+        </div>
+        <p class="printer-pick__hint">Es la impresora de la factura, no la térmica del ticket.</p>
+        @if (printers().length > 0) {
+          <div class="printer-pick__list">
+            @for (name of printers(); track name) {
+              <button
+                type="button"
+                class="printer-chip"
+                [class.printer-chip--selected]="invoicePrinter() === name"
+                (click)="choosePrinter(name)">
+                {{ name }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (actionError()) {
+      <p class="inline-error">{{ actionError() }}</p>
+    }
+  </div>
+
+  <div class="modal-footer">
+    <div class="copies">
+      <span class="copies__label" id="print-copies-label">Copias</span>
+      <div class="copies__stepper">
+        <button type="button" aria-label="Menos copias" (click)="changeCopies(-1)" [disabled]="printing() || copies() <= 1">−</button>
+        <input
+          type="number"
+          inputmode="numeric"
+          aria-labelledby="print-copies-label"
+          [min]="1"
+          [max]="copiesMax"
+          [ngModel]="copies()"
+          (ngModelChange)="setCopies($event)"
+          [disabled]="printing()" />
+        <button type="button" aria-label="Más copias" (click)="changeCopies(1)" [disabled]="printing() || copies() >= copiesMax">+</button>
+      </div>
+    </div>
+
+    <div class="modal-footer__actions">
+      @if (tab() === 'invoice' && pdfUrl()) {
+        <button type="button" class="btn btn--ghost" (click)="openPdf()">Abrir PDF</button>
+      }
+      <button type="button" class="btn btn--ghost" (click)="close()">Cerrar</button>
+      <button type="button" class="btn btn--primary" (click)="printActive()" [disabled]="printDisabled()">
+        <lucide-icon [img]="Printer" />
+        {{ printLabel() }}
+      </button>
+    </div>
+  </div>
+</div>

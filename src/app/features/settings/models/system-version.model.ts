@@ -4,6 +4,8 @@ export type SystemVersionScope = 'frontend' | 'backend';
 export interface SystemVersionChange {
   scope: SystemVersionScope;
   message: string;
+  module?: string | null;
+  module_label?: string | null;
 }
 
 export interface SystemVersion {

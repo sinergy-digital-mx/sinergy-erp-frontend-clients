@@ -7,13 +7,16 @@ import { decodeEscPosBase64 } from '../utils/escpos-preview.util';
 import { rewriteSelfInvoiceEscPos, uint8ToBase64 } from '../utils/self-invoice-escpos.util';
 
 const LS_PRINTER = 'pos_printer_name';
+const LS_INVOICE_PRINTER = 'pos_invoice_printer_name';
 const LS_AUTO_PRINT = 'pos_auto_print_on_collect';
 const LS_COPIES = 'pos_ticket_copies';
+const LS_INVOICE_COPIES = 'pos_invoice_copies';
 const QZ_SCRIPT = 'https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js';
 
-export const POS_TICKET_COPY_OPTIONS = [1, 2, 3, 4, 5] as const;
+export const POS_TICKET_COPY_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 export const POS_TICKET_COPIES_MIN = 1;
-export const POS_TICKET_COPIES_MAX = 5;
+export const POS_TICKET_COPIES_DEFAULT = 2;
+export const POS_TICKET_COPIES_MAX = 10;
 
 type QzSecurityApi = {
   setSignatureAlgorithm: (algorithm: string) => void;
@@ -27,7 +30,7 @@ type QzSecurityApi = {
 
 type QzApi = {
   websocket: { isActive: () => boolean; connect: () => Promise<void> };
-  configs: { create: (printer: string) => unknown };
+  configs: { create: (printer: string, options?: { jobName?: string }) => unknown };
   printers: { find: () => Promise<string[]> };
   print: (config: unknown, data: unknown[]) => Promise<void>;
   security?: QzSecurityApi;
@@ -45,12 +48,15 @@ export class PosReceiptPrintService {
   }
 
   setPrinterName(name: string): void {
-    const value = name.trim();
-    if (value) {
-      localStorage.setItem(LS_PRINTER, value);
-    } else {
-      localStorage.removeItem(LS_PRINTER);
-    }
+    this.writeStoredName(LS_PRINTER, name);
+  }
+
+  getInvoicePrinterName(): string {
+    return localStorage.getItem(LS_INVOICE_PRINTER)?.trim() ?? '';
+  }
+
+  setInvoicePrinterName(name: string): void {
+    this.writeStoredName(LS_INVOICE_PRINTER, name);
   }
 
   isAutoPrintEnabled(): boolean {
@@ -62,11 +68,19 @@ export class PosReceiptPrintService {
   }
 
   getTicketCopies(): number {
-    return clampTicketCopies(Number(localStorage.getItem(LS_COPIES)));
+    return this.readStoredCopies(LS_COPIES);
   }
 
   setTicketCopies(copies: number): void {
     localStorage.setItem(LS_COPIES, String(clampTicketCopies(copies)));
+  }
+
+  getInvoiceCopies(): number {
+    return this.readStoredCopies(LS_INVOICE_COPIES);
+  }
+
+  setInvoiceCopies(copies: number): void {
+    localStorage.setItem(LS_INVOICE_COPIES, String(clampTicketCopies(copies)));
   }
 
   isQzSigningEnabled(): boolean {
@@ -116,6 +130,51 @@ export class PosReceiptPrintService {
     for (let i = 0; i < count; i += 1) {
       await qz.print(config, payload);
     }
+  }
+
+  async printInvoicePdf(url: string, copies = POS_TICKET_COPIES_DEFAULT): Promise<void> {
+    const fileUrl = url?.trim();
+    if (!fileUrl) {
+      throw new Error('No hay PDF de la factura');
+    }
+    const printerName = this.getInvoicePrinterName();
+    if (!printerName) {
+      throw new Error('Elige la impresora del PDF. No es la térmica del ticket.');
+    }
+
+    const qz = await this.ensureQz();
+    await this.connectQz(qz);
+    const config = qz.configs.create(printerName, { jobName: 'Factura' });
+    const payload = [
+      {
+        type: 'pixel',
+        format: 'pdf',
+        flavor: 'file',
+        data: fileUrl,
+      },
+    ];
+    const count = clampTicketCopies(copies);
+    this.setInvoiceCopies(count);
+    for (let i = 0; i < count; i += 1) {
+      await qz.print(config, payload);
+    }
+  }
+
+  private writeStoredName(key: string, name: string): void {
+    const value = name.trim();
+    if (value) {
+      localStorage.setItem(key, value);
+    } else {
+      localStorage.removeItem(key);
+    }
+  }
+
+  private readStoredCopies(key: string): number {
+    const raw = localStorage.getItem(key);
+    if (raw == null || raw.trim() === '') {
+      return POS_TICKET_COPIES_DEFAULT;
+    }
+    return clampTicketCopies(Number(raw));
   }
 
   private setupQzSecurity(qz: QzApi): void {
@@ -224,8 +283,8 @@ export class PosReceiptPrintService {
 }
 
 export function clampTicketCopies(value: number): number {
-  if (!Number.isFinite(value)) {
-    return POS_TICKET_COPIES_MIN;
+  if (!Number.isFinite(value) || value <= 0) {
+    return POS_TICKET_COPIES_DEFAULT;
   }
   return Math.min(POS_TICKET_COPIES_MAX, Math.max(POS_TICKET_COPIES_MIN, Math.trunc(value)));
 }

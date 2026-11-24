@@ -28,11 +28,11 @@
     </div>
   }
 
-  @if (!showLoader && errorMessage && allItems.length === 0) {
+  @if (!showLoader && errorMessage && items.length === 0) {
     <p class="versions-page__error">{{ errorMessage }}</p>
   }
 
-  @if (!showLoader && !errorMessage && filteredItems.length === 0) {
+  @if (!showLoader && !errorMessage && items.length === 0) {
     <div class="versions-empty">
       @if (searchQuery.trim()) {
         <p class="versions-empty__title">Sin resultados</p>
@@ -44,9 +44,9 @@
     </div>
   }
 
-  @if (!showLoader && pagedItems.length > 0) {
+  @if (!showLoader && items.length > 0) {
     <ol class="versions-list">
-      @for (item of pagedItems; track item.id) {
+      @for (item of items; track item.id) {
         <li class="version-card">
           <div class="version-card__top">
             <div>
@@ -56,16 +56,20 @@
             <time [attr.datetime]="item.released_at">{{ formatReleasedAt(item.released_at) }}</time>
           </div>
 
-          <ul>
-            @for (change of item.changes; track $index) {
-              <li>
-                @if (hasMixedScopes(item)) {
-                  <span class="version-card__scope">{{ scopeLabel(change.scope) }}</span>
+          <div class="version-card__groups">
+            @for (group of groups(item); track group.label) {
+              <section>
+                <p class="version-card__module">{{ group.label }}</p>
+                @if (group.messages.length) {
+                  <ul>
+                    @for (message of group.messages; track $index) {
+                      <li>{{ message }}</li>
+                    }
+                  </ul>
                 }
-                {{ change.message }}
-              </li>
+              </section>
             }
-          </ul>
+          </div>
         </li>
       }
     </ol>

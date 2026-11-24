@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   Component,
+  HostListener,
   NgZone,
   OnDestroy,
   OnInit,
@@ -255,6 +256,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   );
 
   priceDiscountOpenIndex = signal<number | null>(null);
+  priceDiscountDropUp = signal(false);
+  priceDiscountAlignEnd = signal(false);
   customPriceDiscount = signal('');
 
   cartPriceDiscounts = computed(() =>
@@ -569,6 +572,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         return;
       }
       if (this.dialog.openDialogs.length) {
+        this.escExitArmed = false;
+        this.armFullscreenRestore();
+        return;
+      }
+      if (this.priceDiscountOpenIndex() != null) {
+        event.preventDefault();
+        this.priceDiscountOpenIndex.set(null);
         this.escExitArmed = false;
         this.armFullscreenRestore();
         return;
@@ -1588,15 +1598,41 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.posService.removeItem(index);
   }
 
-  togglePriceDiscount(index: number): void {
+  @HostListener('document:click', ['$event'])
+  closePriceDiscountOnOutside(event: MouseEvent): void {
+    if (this.priceDiscountOpenIndex() == null) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest('.pos-line__off')) return;
+    this.priceDiscountOpenIndex.set(null);
+  }
+
+  togglePriceDiscount(index: number, event?: Event): void {
     if (!this.canApplyPriceDiscount()) return;
     const opening = this.priceDiscountOpenIndex() !== index;
     this.priceDiscountOpenIndex.set(opening ? index : null);
     if (!opening) return;
+    const button = event?.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+    if (button) this.placePriceDiscountPopover(button);
     const item = this.posService.cart().items[index];
     const pct = Number(item?.price_discount_percentage ?? 0);
     const isPreset = Math.abs(pct - 5) < 0.001 || Math.abs(pct - 3) < 0.001;
     this.customPriceDiscount.set(pct > 0 && !isPreset ? String(pct) : '');
+  }
+
+  private placePriceDiscountPopover(button: HTMLElement): void {
+    const scroller = button.closest('.pos-cart__lines');
+    const line = button.closest('.pos-line');
+    const limit = scroller instanceof HTMLElement ? scroller.getBoundingClientRect() : null;
+    const lineBox = line instanceof HTMLElement ? line.getBoundingClientRect() : button.getBoundingClientRect();
+    if (!limit) {
+      this.priceDiscountDropUp.set(false);
+      this.priceDiscountAlignEnd.set(false);
+      return;
+    }
+    const spaceBelow = limit.bottom - lineBox.bottom;
+    const spaceAbove = lineBox.top - limit.top;
+    this.priceDiscountDropUp.set(spaceBelow < 52 && spaceAbove > spaceBelow);
+    this.priceDiscountAlignEnd.set(lineBox.width < 240);
   }
 
   applyPriceDiscount(index: number, percent: number): void {

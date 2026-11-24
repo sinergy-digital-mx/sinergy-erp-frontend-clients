@@ -4,7 +4,7 @@
       <span class="modal-header__icon" aria-hidden="true">
         <lucide-icon [img]="Printer" />
       </span>
-      <h2>Impresora térmica</h2>
+      <h2>Impresoras</h2>
     </div>
     <button type="button" class="close-btn" (click)="cancel()" aria-label="Cerrar">
       <lucide-icon [img]="X" />
@@ -17,12 +17,22 @@
     </p>
 
     <label class="field">
-      <span class="field__label">Nombre de impresora</span>
+      <span class="field__label">Impresora del ticket</span>
       <input
         type="text"
         class="field__input"
         [(ngModel)]="printerName"
         placeholder="BIXOLON SRP-330III"
+        autocomplete="off" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Impresora del PDF de factura</span>
+      <input
+        type="text"
+        class="field__input"
+        [(ngModel)]="invoicePrinterName"
+        placeholder="Nombre en Windows"
         autocomplete="off" />
     </label>
 
@@ -36,6 +46,22 @@
     </button>
 
     @if (printers().length > 0) {
+      <div class="printer-target" role="group" aria-label="A qué impresora asignar">
+        <button
+          type="button"
+          class="printer-chip"
+          [class.printer-chip--selected]="printerTarget === 'ticket'"
+          (click)="printerTarget = 'ticket'">
+          Asignar al ticket
+        </button>
+        <button
+          type="button"
+          class="printer-chip"
+          [class.printer-chip--selected]="printerTarget === 'invoice'"
+          (click)="printerTarget = 'invoice'">
+          Asignar a la factura
+        </button>
+      </div>
       <div class="printer-list">
         <span class="printer-list__label">Selecciona una impresora</span>
         <div class="printer-list__items">
@@ -43,10 +69,10 @@
             <button
               type="button"
               class="printer-chip"
-              [class.printer-chip--selected]="printerName === name"
+              [class.printer-chip--selected]="(printerTarget === 'invoice' ? invoicePrinterName : printerName) === name"
               (click)="selectPrinter(name)">
               {{ name }}
-              @if (printerName === name) {
+              @if ((printerTarget === 'invoice' ? invoicePrinterName : printerName) === name) {
                 <lucide-icon [img]="Check" class="printer-chip__check" />
               }
             </button>
@@ -59,10 +85,9 @@
       <p class="error-msg">{{ error() }}</p>
     }
 
-    <label class="auto-print">
-      <input type="checkbox" [(ngModel)]="autoPrint" />
-      <span>Imprimir ticket al confirmar cobro</span>
-    </label>
+    <p class="hint">
+      Al cobrar se abre la ventana para imprimir el ticket y, si se timbró factura, el PDF.
+    </p>
   </div>
 
   <div class="modal-footer">

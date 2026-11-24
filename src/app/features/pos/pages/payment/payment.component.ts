@@ -144,12 +144,17 @@ import {
 import { PosSaleReceipt } from '../../models/pos-receipt.model';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { posCollectionCardRows } from '../../models/pos-sale-collection.model';
-import { PosReceiptPrintService } from '../../services/pos-receipt-print.service';
 import { PosPrinterSettingsDialogComponent } from '../../components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
-import { PosReceiptPreviewDialogComponent } from '../../components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
+import {
+  PosCollectPrintDialogComponent,
+  PosCollectPrintDialogData,
+} from '../../components/pos-collect-print-dialog/pos-collect-print-dialog.component';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
-import { SalesOrderInvoiceStampDialogComponent } from '../../../sales-orders/components/sales-order-invoice-stamp-dialog/sales-order-invoice-stamp-dialog.component';
+import {
+  SalesOrderInvoiceStampDialogComponent,
+  SalesOrderInvoiceStampDialogResult,
+} from '../../../sales-orders/components/sales-order-invoice-stamp-dialog/sales-order-invoice-stamp-dialog.component';
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import {
   orderRouteRequired,
@@ -244,6 +249,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly shownRecallIds = new Set<string>();
   private readonly ngZone = inject(NgZone);
   private ignoreCajaEject = false;
+  private destroyed = false;
+  private collectedBadgeTimer: ReturnType<typeof setTimeout> | null = null;
+  collectedBadgeHold = signal<number | null>(null);
+  collectedBadgePulse = signal(false);
+  collectedBadgePop = signal(false);
+  collectedBadgeDelta = signal(0);
   readonly Receipt = Receipt;
   readonly ChevronLeft = ChevronLeft;
   readonly Printer = Printer;
@@ -339,6 +350,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       const method = paymentMethodLabel(item.payment?.payment_method).toLowerCase();
       return folio.includes(term) || customer.includes(term) || company.includes(term) || method.includes(term);
     });
+  });
+
+  readonly collectedBadgeVisible = computed(() => {
+    const hold = this.collectedBadgeHold();
+    if (hold != null) return hold;
+    return this.collectedCountNow();
   });
 
   readonly collectedSummaryLabel = computed(() => {
@@ -532,7 +549,6 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     private toast: ToastService,
     private dialog: MatDialog,
     private exchangeRateService: ExchangeRateService,
-    private receiptPrintService: PosReceiptPrintService,
     private customerService: CustomerService,
     private salesOrderService: SalesOrderService,
     private fiscalConfigService: FiscalConfigurationService,
@@ -564,6 +580,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    this.clearCollectedBadgeTimer();
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     const current = this.selectedSale();
@@ -1650,7 +1668,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   };
 
-  private openStampAfterCollect(orderId: string): void {
+  private openStampAfterCollect(orderId: string, done: (invoiceId: string | null) => void): void {
     this.salesOrderService.getOrderDetailById(orderId).pipe(
       switchMap((payload) => {
         const order = payload?.header;
@@ -1677,9 +1695,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     ).subscribe({
       next: (data) => {
         if (!data) {
+          done(null);
           return;
         }
-        this.dialog.open(SalesOrderInvoiceStampDialogComponent, {
+        const ref = this.dialog.open(SalesOrderInvoiceStampDialogComponent, {
           width: '860px',
           maxWidth: '95vw',
           panelClass: 'invoice-stamp-dialog-panel',
@@ -1692,9 +1711,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
             canStamp: true,
           },
         });
+        ref.afterClosed().subscribe((result: SalesOrderInvoiceStampDialogResult | undefined) => {
+          done(result?.stamped ? result.invoiceId ?? null : null);
+        });
       },
       error: () => {
         this.toast.info('El cobro pidió factura. Ábrela desde el detalle de la orden.');
+        done(null);
       },
     });
   }
@@ -1927,6 +1950,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           this.loadPendingSales();
           this.loadCollectedSales();
           this.refreshDailyShift();
+          this.presentCollectPrint({
+            folio: String(folio),
+            quotationId: sale.id,
+            invoiceId: response?.invoice_id ?? null,
+          });
         },
         error: (error) => {
           this.collecting.set(false);
@@ -1973,14 +2001,16 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         if (form.paymentMethod === 'credit') {
           this.toast.info('Orden a crédito: sigue pendiente de cobro', { duration: 5000 });
         }
-        if (response.invoice?.requested) {
-          this.openStampAfterCollect(sale.id);
-        }
-        void this.handleReceiptAfterCollect(sale.id, folio, response.receipt);
         this.selectedSale.set(null);
         this.loadPendingSales();
         this.loadCollectedSales();
         this.refreshDailyShift();
+        this.presentCollectPrint({
+          folio: String(folio),
+          salesOrderId: sale.id,
+          receipt: response.receipt,
+          invoiceRequested: !!response.invoice?.requested,
+        });
       },
       error: (error) => {
         this.collecting.set(false);
@@ -2007,7 +2037,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   openPrinterSettings(): void {
     this.dialog.open(PosPrinterSettingsDialogComponent, {
-      width: '440px',
+      width: '480px',
       maxWidth: '95vw',
       panelClass: 'pos-dialog-panel',
       autoFocus: false,
@@ -2023,49 +2053,131 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!saleId) {
       return;
     }
-
-    this.openTicketPrintDialog(`Ticket ${collectedSaleFolio(item)}`, {
+    this.openCollectPrintDialog({
+      folio: collectedSaleFolio(item),
       salesOrderId: saleId,
+      discoverInvoice: true,
     });
   }
 
-  private async handleReceiptAfterCollect(
-    salesOrderId: string,
-    folio: string,
-    receipt: PosSaleReceipt | null | undefined
-  ): Promise<void> {
-    if (!this.receiptPrintService.isAutoPrintEnabled()) {
+  private presentCollectPrint(options: {
+    folio: string;
+    salesOrderId?: string;
+    quotationId?: string;
+    receipt?: PosSaleReceipt | null;
+    invoiceId?: string | null;
+    invoiceRequested?: boolean;
+  }): void {
+    this.holdCollectedBadge();
+    const open = (invoiceId?: string | null) => {
+      if (this.destroyed) return;
+      this.openCollectPrintDialog(
+        {
+          folio: options.folio,
+          salesOrderId: options.salesOrderId,
+          quotationId: options.quotationId,
+          receipt: options.receipt ?? null,
+          invoiceId: invoiceId ?? null,
+          discoverInvoice: !!options.salesOrderId && !invoiceId,
+        },
+        true,
+      );
+    };
+    if (options.invoiceRequested && options.salesOrderId) {
+      this.openStampAfterCollect(options.salesOrderId, open);
       return;
     }
-
-    if (!this.receiptPrintService.hasPrintableReceipt(receipt)) {
-      this.toast.info(`Venta ${folio} cobrada. No se generó ticket; puedes reimprimir después.`, {
-        duration: 5000,
-      });
-      return;
-    }
-
-    this.openTicketPrintDialog(`Ticket ${folio}`, {
-      receipt,
-      salesOrderId,
-    });
+    open(options.invoiceId ?? null);
   }
 
-  private openTicketPrintDialog(
-    title: string,
-    data: { receipt?: PosSaleReceipt | null; salesOrderId?: string }
-  ): void {
-    this.dialog.open(PosReceiptPreviewDialogComponent, {
-      width: '480px',
-      maxWidth: '95vw',
+  private openCollectPrintDialog(data: PosCollectPrintDialogData, animateCollected = false): void {
+    const ref = this.dialog.open(PosCollectPrintDialogComponent, {
+      width: '680px',
+      maxWidth: '96vw',
+      maxHeight: '92vh',
       panelClass: 'pos-dialog-panel',
       autoFocus: false,
-      data: {
-        title,
-        receipt: data.receipt ?? null,
-        salesOrderId: data.salesOrderId,
-      },
+      data,
     });
+    if (!animateCollected) return;
+    ref.afterClosed().subscribe(() => {
+      if (this.destroyed) return;
+      this.collectedBadgeTimer = setTimeout(() => this.finishCollectedBadgeHold(), 80);
+    });
+  }
+
+  private collectedCountNow(): number {
+    const summary = this.collectedSummary()?.count;
+    const listed = this.collectedSales().length;
+    if (summary == null) return listed;
+    return Math.max(summary, listed);
+  }
+
+  private holdCollectedBadge(): void {
+    this.clearCollectedBadgeTimer();
+    this.collectedBadgeDelta.set(0);
+    this.collectedBadgePulse.set(false);
+    this.collectedBadgePop.set(false);
+    this.collectedBadgeHold.set(this.collectedCountNow());
+  }
+
+  private finishCollectedBadgeHold(): void {
+    const from = this.collectedBadgeHold() ?? this.collectedCountNow();
+    const start = () => {
+      if (this.destroyed) return;
+      const to = this.collectedCountNow();
+      if (to <= from) {
+        this.collectedBadgeHold.set(null);
+        this.collectedBadgeDelta.set(0);
+        this.collectedBadgePulse.set(false);
+        this.collectedBadgePop.set(false);
+        return;
+      }
+      this.collectedBadgeDelta.set(to - from);
+      this.collectedBadgePulse.set(true);
+      this.stepCollectedBadge(from, to);
+    };
+    if (this.loadingCollected()) {
+      const started = Date.now();
+      const wait = () => {
+        if (this.destroyed) return;
+        if (!this.loadingCollected() || Date.now() - started > 4000) {
+          this.ngZone.run(() => start());
+          return;
+        }
+        this.collectedBadgeTimer = setTimeout(wait, 80);
+      };
+      wait();
+      return;
+    }
+    start();
+  }
+
+  private stepCollectedBadge(current: number, to: number): void {
+    if (this.destroyed) return;
+    if (current >= to) {
+      this.collectedBadgeTimer = setTimeout(() => {
+        this.collectedBadgeHold.set(null);
+        this.collectedBadgePulse.set(false);
+        this.collectedBadgePop.set(false);
+        this.collectedBadgeDelta.set(0);
+      }, 1100);
+      return;
+    }
+    const next = current + 1;
+    this.collectedBadgePop.set(false);
+    this.collectedBadgeHold.set(next);
+    this.collectedBadgeTimer = setTimeout(() => {
+      this.collectedBadgePop.set(true);
+      this.collectedBadgeTimer = setTimeout(() => this.stepCollectedBadge(next, to), 420);
+    }, 30);
+  }
+
+  private clearCollectedBadgeTimer(): void {
+    if (this.collectedBadgeTimer != null) {
+      clearTimeout(this.collectedBadgeTimer);
+      this.collectedBadgeTimer = null;
+    }
   }
 
   async toggleFullscreen(): Promise<void> {

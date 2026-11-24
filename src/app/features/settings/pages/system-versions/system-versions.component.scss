@@ -183,6 +183,21 @@
   font-size: 0.8125rem;
 }
 
+.version-card__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.version-card__module {
+  margin: 0 0 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4f46e5;
+}
+
 .version-card ul {
   display: flex;
   flex-direction: column;

@@ -1,16 +1,20 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LucideAngularModule, ArrowLeft, Search } from 'lucide-angular';
+import { Subscription } from 'rxjs';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
-import { AuthService } from '../../../../core/services/auth.service';
 import { SystemVersionsService } from '../../services/system-versions.service';
 import {
   SystemVersion,
   SystemVersionChannel,
-  SystemVersionScope,
 } from '../../models/system-version.model';
+
+interface VersionGroup {
+  label: string;
+  messages: string[];
+}
 
 @Component({
   selector: 'app-system-versions',
@@ -19,57 +23,37 @@ import {
   templateUrl: './system-versions.component.html',
   styleUrl: './system-versions.component.scss',
 })
-export class SystemVersionsComponent implements OnInit {
+export class SystemVersionsComponent implements OnInit, OnDestroy {
   readonly ArrowLeft = ArrowLeft;
   readonly Search = Search;
-  readonly pageSize = 20;
+  readonly pageSize = 8;
 
   loading = false;
   errorMessage = '';
   searchQuery = '';
   page = 1;
-  allItems: SystemVersion[] = [];
+  totalPages = 0;
+  items: SystemVersion[] = [];
+
+  private request?: Subscription;
+  private searchTimer = 0;
 
   constructor(
     private systemVersionsService: SystemVersionsService,
-    private authService: AuthService,
     private router: Router,
   ) {}
 
   ngOnInit(): void {
-    const cached = this.systemVersionsService.readCachedList(this.tenantId);
-    if (cached?.length) {
-      this.allItems = cached;
-    } else {
-      this.loading = true;
-    }
-    this.load();
+    this.fetch(1);
+  }
+
+  ngOnDestroy(): void {
+    this.request?.unsubscribe();
+    window.clearTimeout(this.searchTimer);
   }
 
   get showLoader(): boolean {
-    return this.loading && this.allItems.length === 0;
-  }
-
-  get filteredItems(): SystemVersion[] {
-    const term = this.searchQuery.trim().toLowerCase();
-    if (!term) {
-      return this.allItems;
-    }
-    return this.allItems.filter((item) =>
-      item.version.toLowerCase().includes(term)
-      || item.title.toLowerCase().includes(term)
-      || item.changes.some((change) => change.message.toLowerCase().includes(term)),
-    );
-  }
-
-  get totalPages(): number {
-    const total = this.filteredItems.length;
-    return total === 0 ? 0 : Math.ceil(total / this.pageSize);
-  }
-
-  get pagedItems(): SystemVersion[] {
-    const start = (this.page - 1) * this.pageSize;
-    return this.filteredItems.slice(start, start + this.pageSize);
+    return this.loading;
   }
 
   back(): void {
@@ -78,21 +62,22 @@ export class SystemVersionsComponent implements OnInit {
 
   onSearch(value: string): void {
     this.searchQuery = value;
-    this.page = 1;
+    window.clearTimeout(this.searchTimer);
+    this.searchTimer = window.setTimeout(() => this.fetch(1), 300);
   }
 
   previousPage(): void {
-    if (this.page <= 1) {
+    if (this.page <= 1 || this.loading) {
       return;
     }
-    this.page -= 1;
+    this.fetch(this.page - 1);
   }
 
   nextPage(): void {
-    if (this.page >= this.totalPages) {
+    if (this.page >= this.totalPages || this.loading) {
       return;
     }
-    this.page += 1;
+    this.fetch(this.page + 1);
   }
 
   channelLabel(channel: SystemVersionChannel): string {
@@ -101,13 +86,23 @@ export class SystemVersionsComponent implements OnInit {
     return 'Aplicación';
   }
 
-  scopeLabel(scope: SystemVersionScope): string {
-    return scope === 'backend' ? 'Servidor' : 'Aplicación';
-  }
-
-  hasMixedScopes(item: SystemVersion): boolean {
-    const scopes = new Set((item.changes ?? []).map((change) => change.scope));
-    return scopes.size > 1;
+  groups(item: SystemVersion): VersionGroup[] {
+    const groups: VersionGroup[] = [];
+    const index = new Map<string, VersionGroup>();
+    for (const change of item.changes ?? []) {
+      const label = change.module_label || 'Plataforma';
+      let group = index.get(label);
+      if (!group) {
+        group = { label, messages: [] };
+        index.set(label, group);
+        groups.push(group);
+      }
+      const message = (change.message || '').trim();
+      if (message) {
+        group.messages.push(message);
+      }
+    }
+    return groups;
   }
 
   formatReleasedAt(value: string): string {
@@ -122,26 +117,21 @@ export class SystemVersionsComponent implements OnInit {
     }).format(date);
   }
 
-  private get tenantId(): string {
-    return this.authService.user_info?.tenant_id || '';
-  }
-
-  private load(): void {
+  private fetch(page: number): void {
+    this.request?.unsubscribe();
+    this.loading = true;
     this.errorMessage = '';
-    this.systemVersionsService.loadAll().subscribe({
+    this.items = [];
+    this.request = this.systemVersionsService.page(page, this.pageSize, this.searchQuery).subscribe({
       next: (response) => {
-        this.allItems = response?.data ?? [];
-        this.systemVersionsService.rememberList(this.tenantId, this.allItems);
+        this.items = response?.data ?? [];
+        this.page = response?.page || page;
+        this.totalPages = response?.totalPages || 0;
         this.loading = false;
-        if (this.page > this.totalPages) {
-          this.page = this.totalPages || 1;
-        }
       },
       error: (error) => {
         this.loading = false;
-        if (this.allItems.length) {
-          return;
-        }
+        this.items = [];
         const status = error?.status;
         this.errorMessage = status === 403
           ? 'Tu organización no tiene acceso al módulo de versiones.'

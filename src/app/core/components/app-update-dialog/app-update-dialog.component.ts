@@ -8,6 +8,8 @@ import { SETTINGS_PERMISSIONS } from '../../../features/settings/config/permissi
 export interface AppUpdateChange {
   scope?: 'frontend' | 'backend' | string;
   message?: string;
+  module?: string;
+  moduleLabel?: string;
 }
 
 export interface AppUpdateDialogData {
@@ -51,7 +53,9 @@ export interface AppUpdateDialogData {
           <ul class="px-upd__changes">
             @for (change of changes; track $index) {
               <li>
-                @if (hasMixedScopes) {
+                @if (change.moduleLabel) {
+                  <span class="px-upd__scope">{{ change.moduleLabel }}</span>
+                } @else if (hasMixedScopes) {
                   <span class="px-upd__scope">{{ scopeLabel(change.scope) }}</span>
                 }
                 {{ change.message }}
@@ -426,7 +430,7 @@ export class AppUpdateDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: AppUpdateDialogData
   ) {}
 
-  get changes(): Array<{ scope: 'frontend' | 'backend'; message: string }> {
+  get changes(): Array<{ scope: 'frontend' | 'backend'; message: string; moduleLabel: string }> {
     if (!Array.isArray(this.data?.changes)) {
       return [];
     }
@@ -434,6 +438,7 @@ export class AppUpdateDialogComponent {
       .map((change) => ({
         scope: change?.scope === 'backend' ? 'backend' as const : 'frontend' as const,
         message: String(change?.message ?? '').trim(),
+        moduleLabel: String(change?.moduleLabel ?? '').trim(),
       }))
       .filter((change) => change.message);
   }

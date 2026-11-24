@@ -909,11 +909,19 @@
   }
 }
 
+.pos-line__off {
+  flex-shrink: 0;
+}
+
+.pos-line:has(.pos-price-off) {
+  position: relative;
+  z-index: 6;
+}
+
 .pos-line__discount-btn {
-  width: 26px;
   height: 26px;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 5px;
   border: 1px solid var(--pos-border);
   border-radius: 4px;
   background: #fff;
@@ -937,11 +945,60 @@
   }
 }
 
+.pos-line__discount-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 16px;
+  margin-left: 2px;
+  border-left: 1px solid #e7e5e4;
+  color: #a8a29e;
+
+  .pos-ic {
+    width: 10px;
+    height: 10px;
+    transition: transform 0.15s ease;
+  }
+}
+
+.pos-line__discount-btn:hover .pos-line__discount-caret,
+.pos-line__discount-btn.is-on .pos-line__discount-caret {
+  border-left-color: #fdba74;
+  color: #c2410c;
+}
+
+.pos-line__discount-btn.is-open .pos-line__discount-caret {
+  .pos-ic {
+    transform: rotate(180deg);
+  }
+}
+
 .pos-price-off {
+  position: absolute;
+  top: calc(100% - 2px);
+  left: var(--pos-panel-x);
+  z-index: 8;
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  margin-top: 0.35rem;
+  margin: 0;
+  padding: 0.28rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.14);
+  white-space: nowrap;
+
+  &--up {
+    top: auto;
+    bottom: calc(100% - 2px);
+  }
+
+  &--end {
+    left: auto;
+    right: var(--pos-panel-x);
+  }
 }
 
 .pos-price-off__chip,

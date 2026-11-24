@@ -261,6 +261,7 @@
 }
 
 .cobranza-dashboard-tab {
+  position: relative;
   flex: 0 0 auto;
   border: none;
   background: transparent;
@@ -289,6 +290,12 @@
     border-bottom-color: #4f46e5;
   }
 
+  &--rise {
+    color: #047857;
+    background: #ecfdf5;
+    border-bottom-color: #059669;
+  }
+
   &__badge {
     min-width: 1.15rem;
     height: 1.15rem;
@@ -306,7 +313,46 @@
       background: #e2e8f0;
       color: #475569;
     }
+
+    &--rise {
+      overflow: visible;
+      background: #059669;
+      color: #fff;
+    }
   }
+
+  &__count {
+    display: inline-block;
+    min-width: 0.55rem;
+    text-align: center;
+    line-height: 1;
+
+    &--pop {
+      animation: cobranza-count-pop 0.48s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+  }
+
+  &__delta {
+    position: absolute;
+    left: 58%;
+    top: 0.15rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #047857;
+    pointer-events: none;
+    animation: cobranza-delta-up 1s ease forwards;
+  }
+}
+
+@keyframes cobranza-count-pop {
+  0% { transform: translateY(70%) scale(0.65); opacity: 0.15; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes cobranza-delta-up {
+  0% { opacity: 0; top: 0.45rem; }
+  18% { opacity: 1; }
+  100% { opacity: 0; top: -0.7rem; }
 }
 
 .cobranza-collected-summary {
