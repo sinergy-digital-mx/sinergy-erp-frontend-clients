@@ -56,6 +56,12 @@ export class FiscalConfigurationService {
     return this.http.post(`${this.api}/tenant/fiscal-configurations/${id}/logo`, formData);
   }
 
+  getFiscalLogoFile(id: string): Observable<Blob> {
+    return this.http.get(`${this.api}/tenant/fiscal-configurations/${id}/logo-file`, {
+      responseType: 'blob',
+    });
+  }
+
   deleteFiscalConfiguration(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/tenant/fiscal-configurations/${id}`);
   }

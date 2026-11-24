@@ -8,7 +8,13 @@ import { SystemBrandMeta, SystemBrandService } from './system-brand.service';
 interface SystemLogoMeta {
   enabled: boolean;
   cache_key: string | null;
+  mask_color?: string | null;
   brand?: SystemBrandMeta;
+}
+
+export interface PreparedMenuLogo {
+  dataUrl: string;
+  maskApplied: boolean;
 }
 
 interface SystemLogoCache {
@@ -123,7 +129,8 @@ export class SystemLogoService {
           responseType: 'blob',
         }),
       );
-      const dataUrl = await this.blobToDataUrl(blob);
+      const prepared = await this.prepareMenuLogo(blob, meta.mask_color);
+      const dataUrl = prepared.dataUrl;
       this.writeCache({ tenantId, cacheKey: this.imageCacheKey(meta.cache_key), dataUrl });
       this.dataUrl.set(dataUrl);
       this.checkedThisSession = true;
@@ -189,7 +196,12 @@ export class SystemLogoService {
     localStorage.removeItem(this.storageKey);
   }
 
-  private async blobToDataUrl(blob: Blob): Promise<string> {
+  /**
+   * Deja el logo listo para el menú. Si hay máscara, el dibujo queda de ese
+   * color y el blanco se vuelve transparente. El archivo guardado no cambia.
+   */
+  async prepareMenuLogo(blob: Blob, maskColor: string | null | undefined): Promise<PreparedMenuLogo> {
+    const mask = this.normalizeMask(maskColor);
     try {
       const bitmap = await createImageBitmap(blob);
       const maxWidth = 480;
@@ -202,14 +214,63 @@ export class SystemLogoService {
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) {
         bitmap.close();
-        return this.blobToRawDataUrl(blob);
+        return { dataUrl: await this.blobToRawDataUrl(blob), maskApplied: false };
       }
       ctx.drawImage(bitmap, 0, 0, width, height);
       bitmap.close();
-      return this.isolateLogo(canvas).toDataURL('image/png');
+      const isolated = this.isolateLogo(canvas);
+      if (!mask) {
+        return { dataUrl: isolated.toDataURL('image/png'), maskApplied: false };
+      }
+      const masked = this.paintColorMask(isolated, mask);
+      return {
+        dataUrl: (masked ?? isolated).toDataURL('image/png'),
+        maskApplied: !!masked,
+      };
     } catch {
-      return this.blobToRawDataUrl(blob);
+      return { dataUrl: await this.blobToRawDataUrl(blob), maskApplied: false };
     }
+  }
+
+  private normalizeMask(value: string | null | undefined): string | null {
+    const raw = String(value ?? '').trim().toLowerCase();
+    return /^#[0-9a-f]{6}$/.test(raw) ? raw : null;
+  }
+
+  /**
+   * La tinta que no es blanco pasa al color elegido. El blanco, también el
+   * encerrado dentro del sello, queda transparente para asentarse en el menú.
+   */
+  private paintColorMask(source: HTMLCanvasElement, hex: string): HTMLCanvasElement | null {
+    const ctx = source.getContext('2d', { willReadFrequently: true });
+    if (!ctx) {
+      return null;
+    }
+    const image = ctx.getImageData(0, 0, source.width, source.height);
+    const color = parseInt(hex.slice(1), 16);
+    const red = (color >> 16) & 255;
+    const green = (color >> 8) & 255;
+    const blue = color & 255;
+    const { data } = image;
+    let kept = 0;
+    for (let offset = 0; offset < data.length; offset += 4) {
+      if (data[offset + 3] < 16) {
+        continue;
+      }
+      if (this.isNearWhite(data, offset)) {
+        data[offset + 3] = 0;
+        continue;
+      }
+      data[offset] = red;
+      data[offset + 1] = green;
+      data[offset + 2] = blue;
+      kept++;
+    }
+    if (kept < 24) {
+      return null;
+    }
+    ctx.putImageData(image, 0, 0);
+    return this.cropToOpaque(source, data) ?? source;
   }
 
   /**

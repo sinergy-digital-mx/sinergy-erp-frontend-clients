@@ -460,8 +460,11 @@
 
         <div *ngIf="!isNew" class="brand-layout">
           <section class="brand-layout__logo" aria-label="Logo del sistema">
-            <div class="logo-preview">
-              <img *ngIf="logoUrl; else emptyLogo" [src]="logoUrl" alt="Logo fiscal" />
+            <div
+              class="logo-preview"
+              [class.logo-preview--mask]="!!logoMaskPreview"
+              [style.background]="logoMaskPreview ? brandGradient : null">
+              <img *ngIf="logoMaskPreview || logoUrl; else emptyLogo" [src]="logoMaskPreview || logoUrl" alt="Logo fiscal" />
               <ng-template #emptyLogo>
                 <div class="logo-placeholder">Sin logo</div>
               </ng-template>
@@ -498,8 +501,47 @@
               </label>
               <small class="logo-help">
                 Si lo activas, este logo reemplaza Pólux arriba del menú. Solo una razón social puede tenerlo activo.
-                Se guarda en este navegador y no se vuelve a descargar hasta que cambies el archivo.
+                Se guarda en este navegador y se vuelve a armar si cambias el archivo o la máscara.
               </small>
+              <label
+                class="logo-system-toggle"
+                [class.logo-system-toggle--disabled]="!logoUrl || savingLogoMask()">
+                <input
+                  type="checkbox"
+                  [checked]="logoMaskEnabled"
+                  [disabled]="!logoUrl || savingLogoMask()"
+                  (change)="onLogoMaskToggle($event)"
+                />
+                <span>Agregar máscara de color</span>
+              </label>
+              <div *ngIf="logoMaskEnabled" class="logo-mask">
+                <label class="logo-mask__picker" [style.background]="logoMaskColor">
+                  <input
+                    type="color"
+                    [value]="logoMaskColor"
+                    [disabled]="savingLogoMask()"
+                    aria-label="Color de la máscara"
+                    (input)="onLogoMaskPicker($event)"
+                  />
+                </label>
+                <input
+                  class="logo-mask__hex"
+                  [ngModel]="logoMaskText"
+                  (ngModelChange)="onLogoMaskText($event)"
+                  [disabled]="savingLogoMask()"
+                  maxlength="7"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Hexadecimal de la máscara"
+                />
+              </div>
+              <small class="logo-help">
+                Pinta el dibujo de un solo color y vuelve transparente el blanco, para verlo sobre el menú oscuro.
+                El archivo original no cambia.
+              </small>
+              <p *ngIf="logoMaskSkipped" class="brand-warning">
+                Este archivo casi no tiene dibujo. La máscara lo dejaría vacío, así que se muestra como está.
+              </p>
             </div>
           </section>
 

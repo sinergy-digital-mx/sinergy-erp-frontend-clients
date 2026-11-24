@@ -27,6 +27,7 @@ export interface FiscalConfiguration {
   has_digital_seal_password?: boolean | number;
   logo?: string;
   use_as_system_logo?: boolean | number;
+  logo_mask_color?: string | null;
   brand_color_start?: string | null;
   brand_color_mid?: string | null;
   brand_color_end?: string | null;
@@ -63,6 +64,7 @@ export interface CreateFiscalConfigurationDto {
 }
 
 export interface UpdateFiscalConfigurationDto extends Partial<CreateFiscalConfigurationDto> {
+  logo_mask_color?: string | null;
   brand_color_start?: string | null;
   brand_color_mid?: string | null;
   brand_color_end?: string | null;

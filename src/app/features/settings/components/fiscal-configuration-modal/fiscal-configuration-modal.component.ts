@@ -1,4 +1,5 @@
 import { Component, Inject, signal, OnInit, ChangeDetectorRef } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -57,9 +58,21 @@ export class FiscalConfigurationModalComponent implements OnInit {
   uploadingLogo = signal(false);
   savingSystemLogo = signal(false);
   savingBrand = signal(false);
+  savingLogoMask = signal(false);
   isNew = true;
   logoUrl: string | null = null;
   useAsSystemLogo = false;
+  logoMaskEnabled = false;
+  logoMaskColor = '#ffffff';
+  logoMaskText = '#ffffff';
+  logoMaskPreview: string | null = null;
+  logoMaskSkipped = false;
+  private persistedLogoMask: string | null = null;
+  private logoSourceBlob: Blob | null = null;
+  private logoSourceKey: string | null = null;
+  private maskPreviewToken = 0;
+  private maskSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private maskSaveQueued = false;
   readonly brandStops: Array<{ id: BrandNavStop; name: string; hint: string }> = [
     {
       id: 'start',
@@ -172,6 +185,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
       this.applyFiscalConfigToForm(this.data.fiscalConfig);
       this.logoUrl = this.data.fiscalConfig.logo || null;
       this.useAsSystemLogo = this.isEnabledFlag(this.data.fiscalConfig.use_as_system_logo);
+      this.applyLogoMaskFromConfig(this.data.fiscalConfig);
       this.applyBrandFromConfig(this.data.fiscalConfig);
       this.clearStaleFinkokError();
       this.loadBranches();
@@ -189,6 +203,9 @@ export class FiscalConfigurationModalComponent implements OnInit {
         this.applyFiscalConfigToForm(config);
         this.logoUrl = config.logo || null;
         this.useAsSystemLogo = this.isEnabledFlag(config.use_as_system_logo);
+        if (!this.logoMaskDirty) {
+          this.applyLogoMaskFromConfig(config);
+        }
         if (!this.brandDirty) {
           this.applyBrandFromConfig(config);
         }
@@ -276,6 +293,9 @@ export class FiscalConfigurationModalComponent implements OnInit {
             this.data.fiscalConfig = updatedConfig;
             this.logoUrl = updatedConfig.logo || null;
             this.useAsSystemLogo = this.isEnabledFlag(updatedConfig.use_as_system_logo);
+            this.logoSourceBlob = null;
+            this.logoSourceKey = null;
+            this.applyLogoMaskFromConfig(updatedConfig);
             this.uploadingLogo.set(false);
             if (this.useAsSystemLogo) {
               this.systemLogoService.refresh(true);
@@ -369,6 +389,177 @@ export class FiscalConfigurationModalComponent implements OnInit {
 
   private isEnabledFlag(value: unknown): boolean {
     return value === true || value === 1 || value === '1' || value === 'true';
+  }
+
+  get logoMaskDirty(): boolean {
+    const current = this.logoMaskEnabled && isBrandHex(this.logoMaskColor) ? this.logoMaskColor : null;
+    return current !== this.persistedLogoMask;
+  }
+
+  onLogoMaskToggle(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!this.logoUrl || this.savingLogoMask()) {
+      input.checked = this.logoMaskEnabled;
+      return;
+    }
+    this.logoMaskEnabled = input.checked;
+    if (this.logoMaskEnabled && !isBrandHex(this.logoMaskColor)) {
+      this.logoMaskColor = '#ffffff';
+      this.logoMaskText = '#ffffff';
+    }
+    void this.refreshMaskPreview();
+    this.persistLogoMask(true);
+  }
+
+  onLogoMaskPicker(event: Event): void {
+    const hex = String((event.target as HTMLInputElement).value || '').toLowerCase();
+    if (!isBrandHex(hex)) {
+      return;
+    }
+    this.logoMaskColor = hex;
+    this.logoMaskText = hex;
+    void this.refreshMaskPreview();
+    this.scheduleMaskSave();
+  }
+
+  onLogoMaskText(value: string): void {
+    const next = String(value ?? '').trim();
+    this.logoMaskText = next;
+    if (!isBrandHex(next)) {
+      return;
+    }
+    const hex = next.toLowerCase();
+    this.logoMaskText = hex;
+    this.logoMaskColor = hex;
+    void this.refreshMaskPreview();
+    this.scheduleMaskSave();
+  }
+
+  private scheduleMaskSave(): void {
+    if (this.maskSaveTimer) {
+      clearTimeout(this.maskSaveTimer);
+    }
+    this.maskSaveTimer = setTimeout(() => this.persistLogoMask(false), 400);
+  }
+
+  private persistLogoMask(announce: boolean): void {
+    const fiscalConfig = this.data.fiscalConfig;
+    if (!fiscalConfig) {
+      return;
+    }
+    const desired = this.logoMaskEnabled && isBrandHex(this.logoMaskColor) ? this.logoMaskColor : null;
+    if (this.logoMaskEnabled && !desired) {
+      return;
+    }
+    if (desired === this.persistedLogoMask) {
+      return;
+    }
+    if (this.savingLogoMask()) {
+      this.maskSaveQueued = true;
+      return;
+    }
+    this.savingLogoMask.set(true);
+    this.fiscalConfigService.updateFiscalConfiguration(fiscalConfig.id, { logo_mask_color: desired }).subscribe({
+      next: (updated) => {
+        this.persistedLogoMask = desired;
+        this.data.fiscalConfig = {
+          ...fiscalConfig,
+          ...updated,
+          logo_mask_color: desired,
+        };
+        this.savingLogoMask.set(false);
+        if (this.useAsSystemLogo) {
+          this.systemLogoService.refresh(true);
+        }
+        if (this.maskSaveQueued) {
+          this.maskSaveQueued = false;
+          this.persistLogoMask(announce);
+          return;
+        }
+        if (announce) {
+          this.snackBar.openFromComponent(CustomSnackbarComponent, {
+            data: { message: this.logoMaskSavedMessage(desired), type: 'success' },
+            duration: 3000,
+          });
+        }
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        this.savingLogoMask.set(false);
+        this.maskSaveQueued = false;
+        this.logoMaskEnabled = !!this.persistedLogoMask;
+        this.logoMaskColor = this.persistedLogoMask ?? '#ffffff';
+        this.logoMaskText = this.logoMaskColor;
+        void this.refreshMaskPreview();
+        this.cdr.detectChanges();
+        const raw = error?.error?.message;
+        const message = Array.isArray(raw) ? raw[0] : raw;
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: { message: message || 'No se pudo guardar la máscara del logo', type: 'error' },
+          duration: 4000,
+        });
+      },
+    });
+  }
+
+  private logoMaskSavedMessage(color: string | null): string {
+    if (!color) {
+      return this.useAsSystemLogo
+        ? 'El logo del menú volvió a sus colores'
+        : 'Se quitó la máscara de esta razón social';
+    }
+    return this.useAsSystemLogo
+      ? 'El logo del menú ya usa esta máscara'
+      : 'Máscara guardada. Se aplica cuando esta razón social es el logo del sistema';
+  }
+
+  private applyLogoMaskFromConfig(config: FiscalConfiguration): void {
+    const stored = isBrandHex(config.logo_mask_color) ? String(config.logo_mask_color).toLowerCase() : null;
+    this.persistedLogoMask = stored;
+    this.logoMaskEnabled = !!stored;
+    this.logoMaskColor = stored ?? '#ffffff';
+    this.logoMaskText = this.logoMaskColor;
+    void this.refreshMaskPreview();
+  }
+
+  private async refreshMaskPreview(): Promise<void> {
+    const token = ++this.maskPreviewToken;
+    const id = this.data.fiscalConfig?.id;
+    if (!this.logoMaskEnabled || !id || !this.logoUrl) {
+      this.logoMaskPreview = null;
+      this.logoMaskSkipped = false;
+      this.cdr.detectChanges();
+      return;
+    }
+    try {
+      const blob = await this.loadLogoBlob(id);
+      if (token !== this.maskPreviewToken) {
+        return;
+      }
+      const prepared = await this.systemLogoService.prepareMenuLogo(blob, this.logoMaskColor);
+      if (token !== this.maskPreviewToken) {
+        return;
+      }
+      this.logoMaskPreview = prepared.maskApplied ? prepared.dataUrl : null;
+      this.logoMaskSkipped = !prepared.maskApplied;
+    } catch {
+      if (token !== this.maskPreviewToken) {
+        return;
+      }
+      this.logoMaskPreview = null;
+      this.logoMaskSkipped = false;
+    }
+    this.cdr.detectChanges();
+  }
+
+  private async loadLogoBlob(id: string): Promise<Blob> {
+    if (this.logoSourceBlob && this.logoSourceKey === this.logoUrl) {
+      return this.logoSourceBlob;
+    }
+    const blob = await firstValueFrom(this.fiscalConfigService.getFiscalLogoFile(id));
+    this.logoSourceKey = this.logoUrl;
+    this.logoSourceBlob = blob;
+    return blob;
   }
 
   get brandGradient(): string {

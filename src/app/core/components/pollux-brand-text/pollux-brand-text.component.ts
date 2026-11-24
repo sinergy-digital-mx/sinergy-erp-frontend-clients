@@ -231,8 +231,8 @@ import { SystemLogoService } from '../../services/system-logo.service';
       display: block;
       width: auto;
       height: auto;
-      max-width: 176px;
-      max-height: 120px;
+      max-width: 136px;
+      max-height: 92px;
       object-fit: contain;
     }
 
