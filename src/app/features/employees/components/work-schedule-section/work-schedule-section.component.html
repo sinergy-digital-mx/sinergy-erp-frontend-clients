@@ -47,22 +47,24 @@
       </li>
     </ul>
 
-    <div class="schedule__notes" *ngIf="canEdit || schedule?.notes">
-      <label *ngIf="canEdit">
-        Notas
-        <input
-          type="text"
-          maxlength="255"
-          [ngModel]="notes()"
-          (ngModelChange)="setNotes($event)"
-          placeholder="Ej. Turno matutino, comida 14:00–15:00">
-      </label>
-      <p *ngIf="!canEdit && schedule?.notes">{{ schedule?.notes }}</p>
+    <div class="schedule__foot" *ngIf="canEdit || schedule?.notes">
+      <div class="schedule__notes">
+        <label *ngIf="canEdit">
+          Notas
+          <input
+            type="text"
+            maxlength="255"
+            [ngModel]="notes()"
+            (ngModelChange)="setNotes($event)"
+            placeholder="Ej. Turno matutino, comida 14:00–15:00">
+        </label>
+        <p *ngIf="!canEdit && schedule?.notes">{{ schedule?.notes }}</p>
+      </div>
+      <button *ngIf="canEdit && persist" type="button" class="btn btn--primary" (click)="save()" [disabled]="saving()">
+        {{ saving() ? 'Guardando...' : 'Guardar horario' }}
+      </button>
     </div>
 
     <p *ngIf="canEdit && !persist" class="schedule__hint">Se guarda junto con el empleado.</p>
-    <button *ngIf="canEdit && persist" type="button" class="btn btn--primary" (click)="save()" [disabled]="saving()">
-      {{ saving() ? 'Guardando...' : 'Guardar horario' }}
-    </button>
   </ng-container>
 </section>

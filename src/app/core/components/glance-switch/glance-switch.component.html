@@ -1,0 +1,22 @@
+<div class="glance-switch" role="tablist" aria-label="Cambiar vista">
+  <button
+    type="button"
+    class="glance-switch__dot"
+    role="tab"
+    [class.is-active]="panel === 0"
+    [attr.aria-selected]="panel === 0"
+    [attr.aria-label]="firstLabel"
+    (click)="pick(0)">
+    <span></span>
+  </button>
+  <button
+    type="button"
+    class="glance-switch__dot"
+    role="tab"
+    [class.is-active]="panel === 1"
+    [attr.aria-selected]="panel === 1"
+    [attr.aria-label]="secondLabel"
+    (click)="pick(1)">
+    <span></span>
+  </button>
+</div>

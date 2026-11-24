@@ -6,6 +6,8 @@ import { PermissionSyncService } from '../../core/services/permission-sync.servi
 import { SidebarService } from '../../core/services/sidebar.service';
 import { PolluxBrandTextComponent } from '../../core/components/pollux-brand-text/pollux-brand-text.component';
 import { SystemLogoService } from '../../core/services/system-logo.service';
+import { SystemBrandService } from '../../core/services/system-brand.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -14,8 +16,6 @@ import { SystemLogoService } from '../../core/services/system-logo.service';
   styleUrl: './main-layout.scss',
 })
 export class MainLayout implements OnInit, OnDestroy {
-  /** Índigo de arriba del sidebar. Pinta la barra del sistema en el celular. */
-  private static readonly mobileThemeColor = '#1e1b4b';
   private static readonly chromeClass = 'has-app-chrome';
 
   readonly icons = { Menu };
@@ -29,14 +29,16 @@ export class MainLayout implements OnInit, OnDestroy {
     private permissionSyncService: PermissionSyncService,
     private sidebarService: SidebarService,
     private systemLogoService: SystemLogoService,
+    private systemBrand: SystemBrandService,
+    private auth: AuthService,
   ) {
     this.isMobileMenuOpen = this.sidebarService.isMobileOpen.asReadonly();
   }
 
   ngOnInit(): void {
     this.permissionSyncService.initialize();
+    this.systemBrand.applyForCurrentTenant();
     this.systemLogoService.refresh();
-    this.setMobileThemeColor(MainLayout.mobileThemeColor);
     document.documentElement.classList.add(MainLayout.chromeClass);
     document.body.classList.add(MainLayout.chromeClass);
     this.watchDesktopNav();
@@ -47,19 +49,9 @@ export class MainLayout implements OnInit, OnDestroy {
     this.sidebarService.closeMobile();
     document.documentElement.classList.remove(MainLayout.chromeClass);
     document.body.classList.remove(MainLayout.chromeClass);
-  }
-
-  private setMobileThemeColor(color: string | null): void {
-    const existing = document.querySelector('meta[name="theme-color"]');
-    if (!color) {
-      existing?.remove();
-      return;
-    }
-    const meta = existing ?? document.createElement('meta');
-    meta.setAttribute('name', 'theme-color');
-    meta.setAttribute('content', color);
-    if (!existing) {
-      document.head.appendChild(meta);
+    if (!this.auth.token) {
+      this.systemBrand.releaseStatusBar();
+      this.systemLogoService.endSession();
     }
   }
 

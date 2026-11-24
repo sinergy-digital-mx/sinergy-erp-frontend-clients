@@ -51,7 +51,7 @@ body {
 
 html.has-app-chrome,
 body.has-app-chrome {
-  background-color: #1e1b4b;
+  background-color: var(--brand-nav-start, #1e1b4b);
 }
 
 @media (max-width: 1023px) {
@@ -76,6 +76,9 @@ body {
   --pollux-control-height: #{fc.$pollux-control-height};
   --pollux-control-radius: #{fc.$pollux-control-radius};
   --pollux-control-border: #{fc.$pollux-control-border};
+  --brand-nav-start: #1e1b4b;
+  --brand-nav-mid: #312e81;
+  --brand-nav-end: #4c1d95;
 }
 
 /* Edge/Chrome: oculta el botón de autocompletar (círculo/candado) dentro del input */

@@ -60,6 +60,35 @@
     max-width: none;
   }
 
+  &__search-line--with-glance &__field--search {
+    min-width: 0;
+  }
+
+  &__search-line {
+    display: contents;
+  }
+
+  &__search-line--with-glance {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1 1 200px;
+    min-width: 0;
+    max-width: none;
+  }
+
+  &__field--glance {
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    min-width: 0;
+
+    &.is-off {
+      display: none;
+    }
+  }
+
   &__container--toolbar &__field--key {
     flex: 0 1 240px;
     min-width: 180px;
@@ -240,11 +269,26 @@
     flex-wrap: wrap;
   }
 
+  .filter-bar__container--toolbar .filter-bar__search-line--with-glance {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
   .filter-bar__container--toolbar .filter-bar__field--search,
   .filter-bar__container--toolbar .filter-bar__field--key {
     flex: 1 1 calc(50% - 0.4rem);
     min-width: 0;
     max-width: none;
+  }
+
+  .filter-bar__container--toolbar .filter-bar__search-line--with-glance .filter-bar__field--search,
+  .filter-bar__container--toolbar .filter-bar__search-line--with-glance .filter-bar__field--glance {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .filter-bar__container--toolbar .filter-bar__search-line--with-glance .filter-bar__field--glance {
+    flex: 0 0 auto;
   }
 
   .filter-bar__row--secondary {

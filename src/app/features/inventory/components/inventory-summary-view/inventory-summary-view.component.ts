@@ -1,5 +1,6 @@
 import { Component, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { LucideAngularModule, ChevronRight, ChevronDown } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -11,6 +12,8 @@ import { parseApiDateTime } from '../../../../core/utils/api-datetime.util';
 import {
   formatInventoryNumber,
   inventoryLocationLabel,
+  inventoryPageFromQuery,
+  replaceInventoryQuery,
   stockedSummaryBatches,
 } from '../../utils/inventory-list.util';
 import {
@@ -34,7 +37,10 @@ export class InventorySummaryViewComponent {
   private readonly inventoryService = inject(InventoryService);
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly state = inject(InventoryListState);
+  private booted = false;
 
   readonly ChevronRight = ChevronRight;
   readonly ChevronDown = ChevronDown;
@@ -50,8 +56,15 @@ export class InventorySummaryViewComponent {
     effect(() => {
       if (!this.state.locationsReady()) return;
       this.state.listEpoch();
+      const keepPage = this.state.keepPage();
       untracked(() => {
-        this.page.set(1);
+        if (!this.booted) {
+          this.booted = true;
+          this.page.set(inventoryPageFromQuery(this.route.snapshot.queryParamMap.get('spage')));
+        } else if (!keepPage) {
+          this.page.set(1);
+          this.writePage(1);
+        }
         this.loadSummary();
       });
     });
@@ -84,6 +97,7 @@ export class InventorySummaryViewComponent {
 
   onPageChange(nextPage: number): void {
     this.page.set(nextPage);
+    this.writePage(nextPage);
     this.loadSummary();
   }
 
@@ -104,10 +118,19 @@ export class InventorySummaryViewComponent {
 
   openBatchDetail(batchId: string): void {
     if (!batchId) return;
-    this.dialog.open(BatchDetailDialogComponent, {
-      ...BATCH_DETAIL_DIALOG_OPTIONS,
-      data: { batchId },
-    });
+    this.dialog
+      .open(BatchDetailDialogComponent, {
+        ...BATCH_DETAIL_DIALOG_OPTIONS,
+        data: { batchId },
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed === true) this.state.reloadListKeepPage();
+      });
+  }
+
+  private writePage(page: number): void {
+    replaceInventoryQuery(this.router, this.route, { spage: page > 1 ? page : null });
   }
 
   private loadSummary(): void {

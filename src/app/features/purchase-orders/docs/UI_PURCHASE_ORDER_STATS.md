@@ -1,5 +1,9 @@
 # UI — Stats de órdenes de compra (MXN / USD)
 
+## 2026-11-23 — Franja como clientes
+
+El resumen es una franja de cinco columnas (Órdenes, Creadas, Recibidas, Pagadas, Deuda), con el alto y el skeleton del resumen de clientes. En móvil quedan en dos columnas. El número grande es el conteo; abajo el monto, MXN y USD por separado.
+
 Las cards **Por Estado** y **Estado de Pago** no suman pesos y dólares. El listado trae `stats` partido por moneda. No hay endpoint extra.
 
 Nunca `MXN + USD`. No convertir. El monto es `requested_total` (la misma cifra que la columna Total).
@@ -18,9 +22,9 @@ No sumar `data[]`. Eso mezcla monedas y se corta con la paginación.
 
 `stats.by_currency.MXN` y `.USD` siempre vienen. Si no hay OC en esa moneda: `count: 0`, `amount: 0`.
 
-## Cards
+## Columnas
 
-Dos cards a la misma altura. El **total** va en el header (conteo + chips MXN/USD), no como tercera fila. Abajo, dos métricas alineadas.
+Cinco columnas en una franja. El total es la columna Órdenes. Deuda es la última.
 
 Cada monto es un chip: `MXN $1,045,914.40` / `USD $500.00`. No mezclar. USD $0 en una fila se oculta.
 

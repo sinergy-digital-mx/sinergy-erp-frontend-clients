@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, X } from 'lucide-angular';
 import { CustomerService } from '../../../../core/services/customer.service';
+import { CUSTOMER_ADDRESS_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { CustomerAddressDialogComponent } from '../../../customers/components/customer-address-dialog/customer-address-dialog.component';
 import { CustomerAddress } from '../../../customers/models/customer-group.model';
 import { ShippingCustomerAddress } from '../../models/shipping.model';
@@ -90,8 +91,7 @@ export class StopAddressPickerDialogComponent implements OnInit {
 
   edit(address: PickerAddress): void {
     const ref = this.dialog.open(CustomerAddressDialogComponent, {
-      width: '960px',
-      maxWidth: '96vw',
+      ...CUSTOMER_ADDRESS_DIALOG_CONFIG,
       data: {
         customerId: this.data.customerId,
         defaultType: 'shipping',
@@ -108,8 +108,7 @@ export class StopAddressPickerDialogComponent implements OnInit {
 
   addNew(): void {
     const ref = this.dialog.open(CustomerAddressDialogComponent, {
-      width: '960px',
-      maxWidth: '96vw',
+      ...CUSTOMER_ADDRESS_DIALOG_CONFIG,
       data: {
         customerId: this.data.customerId,
         address: null,

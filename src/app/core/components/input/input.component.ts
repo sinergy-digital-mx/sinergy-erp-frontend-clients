@@ -19,6 +19,7 @@ export class InputComponent {
   @Input() type: 'text' | 'number' | 'time' | 'date' | 'textarea' = 'text'
   @Input() maxlength?: number
   @Input() has_error: boolean = false
+  @Input() uppercase: boolean = false
   @Input() debounce: number = 0
   @Output() change = new EventEmitter()
   subscription: Subscription
@@ -55,6 +56,28 @@ export class InputComponent {
   onInputChange(event) {
     const value = (event.target as HTMLTextAreaElement).value;
     this.change.emit(value)
+  }
+
+  onNativeInput(event: Event): void {
+    const input = event.target as HTMLInputElement | HTMLTextAreaElement;
+    if (this.uppercase) {
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      const upper = input.value.toUpperCase();
+      if (input.value !== upper) {
+        input.value = upper;
+        if (this.form_control) {
+          this.form_control.setValue(upper, { emitModelToViewChange: false });
+        }
+        if ((input as HTMLInputElement).type !== 'number' && start != null && end != null) {
+          input.setSelectionRange(start, end);
+        }
+      }
+    }
+
+    if (!this.form_control) {
+      this.onInputChange(event);
+    }
   }
 
   get showError(): boolean {

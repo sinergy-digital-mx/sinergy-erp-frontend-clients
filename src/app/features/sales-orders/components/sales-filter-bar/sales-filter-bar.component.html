@@ -1,12 +1,17 @@
 <div class="filter-bar" role="search" [attr.aria-label]="mode === 'quotation' ? 'Filtros de cotizaciones' : 'Filtros de órdenes de venta'">
   <div class="filter-bar__container filter-bar__container--toolbar">
-    <div class="filter-bar__field filter-bar__field--search">
-      <input
-        type="text"
-        [formControl]="searchControl"
-        placeholder="Buscar…"
-        class="filter-bar__input"
-        [attr.aria-label]="mode === 'quotation' ? 'Buscar cotización por folio' : 'Buscar orden de venta por folio'" />
+    <div class="filter-bar__search-line" [class.filter-bar__search-line--with-glance]="showGlance">
+      <div class="filter-bar__field filter-bar__field--search">
+        <input
+          type="text"
+          [formControl]="searchControl"
+          placeholder="Buscar…"
+          class="filter-bar__input"
+          [attr.aria-label]="mode === 'quotation' ? 'Buscar cotización por folio' : 'Buscar orden de venta por folio'" />
+      </div>
+      <div class="filter-bar__field filter-bar__field--glance" [class.is-off]="!showGlance">
+        <ng-content select="[glanceSwitch]"></ng-content>
+      </div>
     </div>
 
     @if (mode === 'sales') {

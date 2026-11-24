@@ -60,6 +60,8 @@ export class ProductDetailModalComponent implements OnInit {
   productMargin: ProductMarginResponse | null = null;
   savingNested = false;
   product: Product | null = null;
+  /** Precio, costo o datos del producto que el listado de atrás debe volver a leer. */
+  private listChanged = false;
 
   // Exponer Number para el template
   Number = Number;
@@ -232,6 +234,10 @@ export class ProductDetailModalComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {
+    const originalClose = this.dialogRef.close.bind(this.dialogRef);
+    this.dialogRef.close = ((result?: unknown) => {
+      originalClose(result === undefined ? this.listChanged : result);
+    }) as MatDialogRef<ProductDetailModalComponent>['close'];
     console.log('ProductDetailModal constructor - data:', data);
     
     // Timeout de seguridad para evitar loading infinito
@@ -499,7 +505,11 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   hide(): void {
-    this.dialogRef.close(true);
+    this.dialogRef.close(this.listChanged);
+  }
+
+  private markListChanged(): void {
+    this.listChanged = true;
   }
 
   loadCatalogs(): void {
@@ -998,6 +1008,7 @@ export class ProductDetailModalComponent implements OnInit {
   }
 
   private applyCreatedProduct(newProduct: Product): void {
+    this.markListChanged();
     const pendingUoms = this.product?.uoms ?? [];
     const id = String(newProduct?.id ?? '').trim();
     this.product = {
@@ -1252,6 +1263,7 @@ export class ProductDetailModalComponent implements OnInit {
           this.saving = false;
           this.cdr.detectChanges();
           this.showNotification('Producto actualizado correctamente', 'success');
+          this.markListChanged();
           this.productUpdated.emit();
           this.reloadCurrentTab();
         },
@@ -1365,6 +1377,7 @@ export class ProductDetailModalComponent implements OnInit {
         next: () => {
           this.product!.uoms!.splice(index, 1);
           this.showNotification('UOM eliminada correctamente', 'success');
+          this.markListChanged();
         },
         error: (error) => {
           console.error('Error deleting UOM:', error);
@@ -1485,6 +1498,7 @@ export class ProductDetailModalComponent implements OnInit {
       if (completed === total) {
         this.saving = false;
         this.showNotification('UOMs guardadas correctamente', 'success');
+        this.markListChanged();
         // Lo que había en pantalla al guardar (evita que un GET desfasado vuelva a “Pieza” al editar una fila existente)
         const catalogSnapshot = new Map<string, string>();
         for (const u of this.product!.uoms) {
@@ -1739,6 +1753,7 @@ export class ProductDetailModalComponent implements OnInit {
         next: () => {
           this.endNestedSave();
           this.showNotification('Precio actualizado correctamente', 'success');
+          this.markListChanged();
           this.reloadCurrentTab();
           this.dismissPriceModal();
         },
@@ -1754,6 +1769,7 @@ export class ProductDetailModalComponent implements OnInit {
         next: () => {
           this.endNestedSave();
           this.showNotification('Precio creado correctamente', 'success');
+          this.markListChanged();
           this.reloadCurrentTab();
           this.dismissPriceModal();
         },
@@ -1772,6 +1788,7 @@ export class ProductDetailModalComponent implements OnInit {
     this.productService.deleteProductPrice(this.product!.id, priceId).subscribe({
       next: () => {
         this.showNotification('Precio eliminado correctamente', 'success');
+        this.markListChanged();
         this.reloadCurrentTab();
       },
       error: (error) => {
@@ -1852,6 +1869,7 @@ export class ProductDetailModalComponent implements OnInit {
         next: () => {
           this.endNestedSave();
           this.showNotification('Costo actualizado correctamente', 'success');
+          this.markListChanged();
           this.reloadCurrentTab();
           this.dismissCostModal();
         },
@@ -1868,6 +1886,7 @@ export class ProductDetailModalComponent implements OnInit {
         next: () => {
           this.endNestedSave();
           this.showNotification('Costo creado correctamente', 'success');
+          this.markListChanged();
           this.reloadCurrentTab();
           this.dismissCostModal();
         },
@@ -1887,6 +1906,7 @@ export class ProductDetailModalComponent implements OnInit {
     this.productService.deleteVendorCost(this.product!.id, costId).subscribe({
       next: () => {
         this.showNotification('Costo eliminado correctamente', 'success');
+        this.markListChanged();
         this.reloadCurrentTab();
       },
       error: (error) => {

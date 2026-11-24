@@ -42,6 +42,8 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() initialFiscalConfigurationId: string | null = null;
   @Input() initialBillingBranchId: string | null = null;
   @Input() refreshing = false;
+  /** Muestra el control proyectado a la derecha de la búsqueda. */
+  @Input() showGlance = false;
   @Output() filtersChange = new EventEmitter<OrderFilters>();
   @Output() refresh = new EventEmitter<void>();
 

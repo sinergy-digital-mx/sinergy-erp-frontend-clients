@@ -223,9 +223,7 @@ import { SystemLogoService } from '../../services/system-logo.service';
       align-items: center;
       justify-content: center;
       max-width: 100%;
-      background: rgba(255, 255, 255, 0.94);
-      border-radius: 8px;
-      padding: 0.35rem 0.65rem;
+      background: transparent;
       line-height: 0;
     }
 
@@ -233,19 +231,14 @@ import { SystemLogoService } from '../../services/system-logo.service';
       display: block;
       width: auto;
       height: auto;
-      max-width: 148px;
-      max-height: 36px;
+      max-width: 176px;
+      max-height: 120px;
       object-fit: contain;
     }
 
-    .system-logo--compact {
-      padding: 0.25rem;
-      border-radius: 6px;
-    }
-
     .system-logo--compact img {
-      max-width: 32px;
-      max-height: 32px;
+      max-width: 40px;
+      max-height: 40px;
     }
 
     .system-logo--lg {

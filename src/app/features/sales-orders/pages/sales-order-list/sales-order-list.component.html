@@ -25,6 +25,7 @@
       <div class="mb-4">
         <app-sales-filter-bar
           [refreshing]="loading()"
+          [showGlance]="canViewStats()"
           [initialSearch]="initialSearch"
           [initialCustomerId]="initialCustomerId"
           [initialCustomerLabel]="initialCustomerLabel"
@@ -32,100 +33,28 @@
           [initialBillingBranchId]="initialBillingBranchId"
           (filtersChange)="applyFilters($event)"
           (refresh)="loadOrders()">
+          @if (canViewStats()) {
+            <app-glance-switch
+              glanceSwitch
+              [panel]="glancePanel()"
+              firstLabel="Por estado y pago"
+              secondLabel="Ventas de los últimos 12 meses"
+              (panelChange)="selectGlance($event)">
+            </app-glance-switch>
+          }
         </app-sales-filter-bar>
       </div>
 
       @if (canViewStats()) {
-      <!-- Resumen o gráfica. Las bolitas rotan solas; un clic las detiene. -->
-      <section class="sales-glance" aria-label="Resumen de ventas">
-        <div class="sales-glance__dots" role="tablist" aria-label="Cambiar vista">
-          <button
-            type="button"
-            class="sales-glance__dot"
-            role="tab"
-            [class.is-active]="glancePanel() === 0"
-            [attr.aria-selected]="glancePanel() === 0"
-            aria-label="Por estado y pago"
-            (click)="selectGlance(0)">
-            <span></span>
-          </button>
-          <button
-            type="button"
-            class="sales-glance__dot"
-            role="tab"
-            [class.is-active]="glancePanel() === 1"
-            [attr.aria-selected]="glancePanel() === 1"
-            aria-label="Ventas de los últimos 12 meses"
-            (click)="selectGlance(1)">
-            <span></span>
-          </button>
-        </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6" [hidden]="glancePanel() !== 0">
-        <!-- Por Estado -->
-        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-sm font-semibold text-gray-700">Por Estado</h3>
-            <span class="text-sm text-gray-600">Total: {{ totalOrders() }} ({{ formatCurrency(totalAmount()) }})</span>
-          </div>
-          <div class="border-b border-gray-200 mb-4"></div>
-          <div class="space-y-4">
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Creadas</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ creadasCount() }}</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-blue-500 h-2 rounded-full transition-all" [style.width.%]="creadasPercent()"></div>
-              </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(creadasAmount()) }}</p>
-            </div>
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Surtidas</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ surtidasCount() }}</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-green-500 h-2 rounded-full transition-all" [style.width.%]="surtidasPercent()"></div>
-              </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(surtidasAmount()) }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Estado de Pago -->
-        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-sm font-semibold text-gray-700">Estado de Pago</h3>
-            <span class="text-sm text-gray-600">Total: {{ totalOrders() }} ({{ formatCurrency(totalAmount()) }})</span>
-          </div>
-          <div class="border-b border-gray-200 mb-4"></div>
-          <div class="space-y-4">
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Pagadas</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ pagadasCount() }}</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-green-500 h-2 rounded-full transition-all" [style.width.%]="pagadasPercent()"></div>
-              </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(pagadasAmount()) }}</p>
-            </div>
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Pendientes</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ pendientesCount() }}</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-red-500 h-2 rounded-full transition-all" [style.width.%]="pendientesPercent()"></div>
-              </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(pendientesAmount()) }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-        @if (glancePanel() === 1) {
+        @if (glancePanel() === 0) {
+          <app-list-stat-strip
+            label="Resumen de ventas"
+            [cards]="statCards()"
+            [loading]="loading()"
+            [ready]="statsReady()"
+            [error]="statsError()">
+          </app-list-stat-strip>
+        } @else {
           <app-sales-order-trend
             [trend]="trend()"
             [loading]="trendLoading()"
@@ -133,7 +62,6 @@
             (retry)="loadTrend()">
           </app-sales-order-trend>
         }
-      </section>
       }
 
       <!-- Table -->

@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
-import { LucideAngularModule, Plus, Paperclip, X } from 'lucide-angular';
+import { LucideAngularModule, Paperclip, X } from 'lucide-angular';
 import { InterceptorService } from '../../../../core/services/interceptor.service';
 import { EmployeePortalService } from '../../../employee-portal/services/employee-portal.service';
 import { EmployeeService } from '../../services/employee.service';
@@ -37,7 +37,6 @@ export class SickLeaveSectionComponent {
   @Input() canCancel = false;
   @Output() refreshed = new EventEmitter<void>();
 
-  readonly plus = Plus;
   readonly paperclip = Paperclip;
   readonly closeIcon = X;
   readonly accept = ACCEPT;

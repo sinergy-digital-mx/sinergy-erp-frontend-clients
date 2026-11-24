@@ -16,6 +16,8 @@ export class InventoryListState {
   readonly locationsReady = signal(false);
   /** Incrementar para recargar el listado activo (sin recargar stats). */
   readonly listEpoch = signal(0);
+  /** El siguiente listEpoch conserva la página. Lo apaga el recarga normal. */
+  readonly keepPage = signal(false);
   /** Incrementar para recargar stats desde una vista hija. */
   readonly statsEpoch = signal(0);
 
@@ -31,6 +33,13 @@ export class InventoryListState {
   }
 
   reloadList(): void {
+    this.keepPage.set(false);
+    this.listEpoch.update((n) => n + 1);
+  }
+
+  /** Misma página. Lo usa un modal que cambió precio o costo. */
+  reloadListKeepPage(): void {
+    this.keepPage.set(true);
     this.listEpoch.update((n) => n + 1);
   }
 

@@ -128,7 +128,15 @@ export class BatchDetailDialogComponent implements OnInit {
     private dialog: MatDialog,
     private toast: ToastService,
     private authService: AuthService
-  ) {}
+  ) {
+    const originalClose = this.dialogRef.close.bind(this.dialogRef);
+    this.dialogRef.close = ((result?: unknown) => {
+      originalClose(result === undefined ? this.listChanged : result);
+    }) as MatDialogRef<BatchDetailDialogComponent>['close'];
+  }
+
+  /** El listado de atrás se recarga solo si un modal hijo guardó precio o costo. */
+  private listChanged = false;
 
   get canCount(): boolean {
     return this.authService.hasEntityPermission('Inventory', 'Count');
@@ -489,10 +497,17 @@ export class BatchDetailDialogComponent implements OnInit {
   openProductDetail(): void {
     const b = this.batch();
     if (!b?.product_id) return;
-    this.dialog.open(ProductDetailModalComponent, {
-      ...PRODUCT_DETAIL_DIALOG_CONFIG,
-      data: { product: { id: b.product_id }, isNew: false },
-    });
+    this.dialog
+      .open(ProductDetailModalComponent, {
+        ...PRODUCT_DETAIL_DIALOG_CONFIG,
+        data: { product: { id: b.product_id }, isNew: false },
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed !== true) return;
+        this.listChanged = true;
+        this.reloadBatch();
+      });
   }
 
   openWarehouseDetail(): void {
@@ -511,7 +526,7 @@ export class BatchDetailDialogComponent implements OnInit {
   }
 
   close(): void {
-    this.dialogRef.close();
+    this.dialogRef.close(this.listChanged);
   }
 
   openTransfer(event?: Event): void {
@@ -569,10 +584,15 @@ export class BatchDetailDialogComponent implements OnInit {
 
   openRelatedBatch(batchId: string | undefined): void {
     if (!batchId) return;
-    this.dialog.open(BatchDetailDialogComponent, {
-      ...BATCH_DETAIL_DIALOG_OPTIONS,
-      data: { batchId },
-    });
+    this.dialog
+      .open(BatchDetailDialogComponent, {
+        ...BATCH_DETAIL_DIALOG_OPTIONS,
+        data: { batchId },
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed === true) this.listChanged = true;
+      });
   }
 
   openOriginBatch(): void {

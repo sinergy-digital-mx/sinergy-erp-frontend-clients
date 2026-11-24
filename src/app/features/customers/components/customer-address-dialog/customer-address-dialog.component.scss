@@ -1,15 +1,44 @@
+.cdk-overlay-pane.customer-address-dialog,
+.mat-mdc-dialog-panel.customer-address-dialog {
+  max-width: min(960px, 95vw) !important;
+}
+
+.cdk-overlay-pane.customer-address-dialog .mat-mdc-dialog-container,
+.mat-mdc-dialog-panel.customer-address-dialog .mat-mdc-dialog-container,
+.cdk-overlay-pane.customer-address-dialog .mat-mdc-dialog-surface,
+.mat-mdc-dialog-panel.customer-address-dialog .mat-mdc-dialog-surface {
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+app-customer-address-dialog {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .addr-dialog {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
   max-height: 90vh;
-  width: min(960px, 95vw);
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #fff;
 }
 
 .addr-dialog__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.25rem;
+  flex-shrink: 0;
+  padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #e5e7eb;
 
   h2 {
@@ -20,17 +49,26 @@
 }
 
 .addr-dialog__body {
-  padding: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  overflow-x: hidden;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-width: 0;
+  box-sizing: border-box;
+
+  > * {
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 .addr-dialog__extras {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.75rem;
+  min-width: 0;
 
   label {
     display: block;
@@ -42,6 +80,8 @@
 
   select {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     border: 1px solid #d1d5db;
     border-radius: 0.375rem;
     padding: 0.5rem 0.65rem;
@@ -53,12 +93,28 @@
   display: flex;
   align-items: flex-end;
   padding-bottom: 0.15rem;
+  min-width: 0;
 }
 
 .addr-dialog__footer {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.5rem;
   border-top: 1px solid #e5e7eb;
+  box-sizing: border-box;
+}
+
+@media (max-width: 720px) {
+  .addr-dialog__extras {
+    grid-template-columns: 1fr;
+  }
+
+  .addr-dialog__header,
+  .addr-dialog__body,
+  .addr-dialog__footer {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
 }

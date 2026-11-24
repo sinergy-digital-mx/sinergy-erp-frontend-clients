@@ -308,10 +308,15 @@ export class InventoryStockFlowComponent implements OnInit {
   openProductDetail(productId: string, event?: Event): void {
     event?.stopPropagation();
     if (!productId) return;
-    this.dialog.open(ProductDetailModalComponent, {
-      ...PRODUCT_DETAIL_DIALOG_CONFIG,
-      data: { product: { id: productId }, isNew: false },
-    });
+    this.dialog
+      .open(ProductDetailModalComponent, {
+        ...PRODUCT_DETAIL_DIALOG_CONFIG,
+        data: { product: { id: productId }, isNew: false },
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed === true) this.loadReport();
+      });
   }
 
   canOpenReference(row: StockFlowLedgerRow): boolean {
@@ -350,10 +355,15 @@ export class InventoryStockFlowComponent implements OnInit {
         });
         return;
       case 'inventory_batch':
-        this.dialog.open(BatchDetailDialogComponent, {
-          ...BATCH_DETAIL_DIALOG_OPTIONS,
-          data: { batchId: row.reference_id },
-        });
+        this.dialog
+          .open(BatchDetailDialogComponent, {
+            ...BATCH_DETAIL_DIALOG_OPTIONS,
+            data: { batchId: row.reference_id },
+          })
+          .afterClosed()
+          .subscribe((changed) => {
+            if (changed === true) this.loadReport();
+          });
         return;
       default:
         this.toast.error('No se puede abrir este documento desde el flujo');

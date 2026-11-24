@@ -156,7 +156,7 @@ export class CustomerEditModalComponent {
         phone_code: this.data.customer.phone_code || '+52',
         phone_country: titularCountry,
         company_name: this.data.customer.company_name || '',
-        fiscal_rfc: this.data.customer.fiscal_rfc || '',
+        fiscal_rfc: (this.data.customer.fiscal_rfc || '').toUpperCase(),
         fiscal_razon_social: this.data.customer.fiscal_razon_social || '',
         fiscal_person_type: resolveFiscalPersonType(
           this.data.customer.fiscal_person_type,
@@ -213,10 +213,15 @@ export class CustomerEditModalComponent {
   }
 
   private setupFiscalRfcAutoPersonType(): void {
-    this.form
-      .get('fiscal_rfc')
-      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((rfc) => this.applyInferredFiscalPersonType(rfc));
+    const control = this.form.get('fiscal_rfc');
+    control?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((rfc) => {
+      const raw = String(rfc ?? '');
+      const upper = raw.toUpperCase();
+      if (raw !== upper) {
+        control.setValue(upper, { emitEvent: false, emitModelToViewChange: false });
+      }
+      this.applyInferredFiscalPersonType(upper);
+    });
   }
 
   private applyInferredFiscalPersonType(rfc: string | null | undefined): void {
@@ -801,7 +806,7 @@ export class CustomerEditModalComponent {
       payload.name = trim(v.name);
       payload.lastname = trim(v.lastname);
     }
-    if (trim(v.fiscal_rfc)) payload.fiscal_rfc = trim(v.fiscal_rfc);
+    if (trim(v.fiscal_rfc)) payload.fiscal_rfc = trim(v.fiscal_rfc).toUpperCase();
 
     return Object.keys(payload).length > 0 ? payload : null;
   }

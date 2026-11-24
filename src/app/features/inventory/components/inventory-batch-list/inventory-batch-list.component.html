@@ -109,6 +109,7 @@
         <nav>
           <a
             routerLink="lotes"
+            queryParamsHandling="preserve"
             routerLinkActive
             #lotesTab="routerLinkActive"
             [routerLinkActiveOptions]="{ exact: true }"
@@ -117,6 +118,7 @@
           </a>
           <a
             routerLink="totalizado"
+            queryParamsHandling="preserve"
             routerLinkActive
             #totalizadoTab="routerLinkActive"
             [routerLinkActiveOptions]="{ exact: true }"

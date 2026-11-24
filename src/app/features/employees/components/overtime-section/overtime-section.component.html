@@ -11,12 +11,9 @@
 
   <p *ngIf="loading()" class="overtime__empty">Cargando horas extras...</p>
 
-  <div *ngIf="!loading() && requests().length === 0" class="overtime__empty">
-    <p>Todavía no hay solicitudes de horas extras.</p>
-    <button *ngIf="canRequest" type="button" class="btn btn--primary" (click)="openCreate()">
-      Solicitar horas extras
-    </button>
-  </div>
+  <p *ngIf="!loading() && requests().length === 0" class="overtime__empty">
+    Todavía no hay solicitudes de horas extras.
+  </p>
 
   <ul *ngIf="!loading() && requests().length > 0" class="overtime__list">
     <li *ngFor="let req of requests()" class="ot-card">

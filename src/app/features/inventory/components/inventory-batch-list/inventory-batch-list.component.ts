@@ -2,7 +2,7 @@ import { Component, DestroyRef, OnInit, computed, effect, inject, signal, untrac
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { LucideAngularModule, ArrowRightLeft, ClipboardCheck, ChartColumn } from 'lucide-angular';
 import { InventoryService } from '../../services/inventory.service';
@@ -19,6 +19,11 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { INVENTORY_PERMISSIONS } from '../../config/permissions.config';
+import {
+  INVENTORY_ALL_FISCAL,
+  inventoryFiscalFromQuery,
+  replaceInventoryQuery,
+} from '../../utils/inventory-list.util';
 
 @Component({
   selector: 'app-inventory-batch-list',
@@ -42,6 +47,8 @@ export class InventoryBatchListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private fiscalChoice: string | 'all' | null = null;
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   readonly state = inject(InventoryListState);
@@ -77,6 +84,7 @@ export class InventoryBatchListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.readFiltersFromUrl();
     let known = false;
     this.auth.permissions$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       const allowed = this.auth.hasPermission(INVENTORY_PERMISSIONS.viewStats);
@@ -97,6 +105,7 @@ export class InventoryBatchListComponent implements OnInit {
 
   onSearchInput(value: string): void {
     this.state.searchTerm.set(value);
+    this.writeFilters();
     this.clearSearchTimer();
     this.searchTimer = setTimeout(() => {
       this.searchTimer = null;
@@ -106,24 +115,29 @@ export class InventoryBatchListComponent implements OnInit {
 
   onSearch(): void {
     this.clearSearchTimer();
+    this.writeFilters();
     this.state.reloadList();
   }
 
   onFiscalChange(id: string): void {
+    this.fiscalChoice = id ? id : 'all';
     this.state.selectedFiscalId.set(id || '');
     this.state.selectedBranchId.set('');
     this.state.selectedWarehouseId.set('');
+    this.writeFilters();
     this.reloadLocationScope();
   }
 
   onBranchChange(id: string): void {
     this.state.selectedBranchId.set(id || '');
     this.state.selectedWarehouseId.set('');
+    this.writeFilters();
     this.reloadLocationScope();
   }
 
   onWarehouseChange(id: string): void {
     this.state.selectedWarehouseId.set(id || '');
+    this.writeFilters();
     this.reloadLocationScope();
   }
 
@@ -138,10 +152,12 @@ export class InventoryBatchListComponent implements OnInit {
 
   clearFilters(): void {
     this.clearSearchTimer();
+    this.fiscalChoice = 'all';
     this.state.searchTerm.set('');
     this.state.selectedFiscalId.set('');
     this.state.selectedBranchId.set('');
     this.state.selectedWarehouseId.set('');
+    this.writeFilters();
     this.reloadLocationScope();
   }
 
@@ -186,14 +202,63 @@ export class InventoryBatchListComponent implements OnInit {
     this.state.reloadList();
   }
 
+  private readFiltersFromUrl(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const search = params.get('search') ?? '';
+    if (search) this.state.searchTerm.set(search);
+    this.fiscalChoice = inventoryFiscalFromQuery(params.get('fiscal_configuration_id'));
+    if (typeof this.fiscalChoice === 'string' && this.fiscalChoice !== 'all') {
+      this.state.selectedFiscalId.set(this.fiscalChoice);
+    }
+    const branch = params.get('billing_branch_id') ?? '';
+    const warehouse = params.get('warehouse_id') ?? '';
+    if (branch) this.state.selectedBranchId.set(branch);
+    if (warehouse) this.state.selectedWarehouseId.set(warehouse);
+  }
+
+  private applyLocationFromCatalog(locations: InventoryLocationFiscal[]): void {
+    const explicitAll = this.fiscalChoice === 'all';
+    const fiscal = locations.find((item) => item.id === this.state.selectedFiscalId());
+    if (!fiscal) {
+      if (!explicitAll && locations[0]) {
+        this.state.selectedFiscalId.set(locations[0].id);
+        this.fiscalChoice = locations[0].id;
+      } else {
+        this.state.selectedFiscalId.set('');
+        this.state.selectedBranchId.set('');
+        this.state.selectedWarehouseId.set('');
+      }
+      return;
+    }
+    const branch = fiscal.branches.find((item) => item.id === this.state.selectedBranchId());
+    if (!branch) {
+      this.state.selectedBranchId.set('');
+      this.state.selectedWarehouseId.set('');
+      return;
+    }
+    if (!branch.warehouses.some((item) => item.id === this.state.selectedWarehouseId())) {
+      this.state.selectedWarehouseId.set('');
+    }
+  }
+
+  private writeFilters(): void {
+    const fiscalId = this.state.selectedFiscalId();
+    const fiscal =
+      fiscalId || this.fiscalChoice === 'all' ? fiscalId || INVENTORY_ALL_FISCAL : null;
+    replaceInventoryQuery(this.router, this.route, {
+      search: this.state.searchTerm().trim() || null,
+      fiscal_configuration_id: fiscal,
+      billing_branch_id: this.state.selectedBranchId() || null,
+      warehouse_id: this.state.selectedWarehouseId() || null,
+    });
+  }
+
   private loadLocations(): void {
     this.inventoryService.getLocations().subscribe({
       next: (locations) => {
         this.locations.set(locations);
-        const first = locations[0];
-        if (first && !this.state.selectedFiscalId()) {
-          this.state.selectedFiscalId.set(first.id);
-        }
+        this.applyLocationFromCatalog(locations);
+        this.writeFilters();
         this.state.locationsReady.set(true);
         this.loadStats();
       },

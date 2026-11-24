@@ -1,13 +1,11 @@
-$nav-top: #1e1b4b;
-
 .layout-shell {
   display: flex;
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-  // Mismo índigo del nav: pinta el hueco de la barra del sistema en el celular.
-  background: $nav-top;
+  // Mismo color de arriba del menú: pinta el hueco de la barra del sistema en el celular.
+  background: var(--brand-nav-start, #1e1b4b);
 }
 
 .layout-sidebar {
@@ -137,8 +135,8 @@ $nav-top: #1e1b4b;
   padding: calc(0.4rem + env(safe-area-inset-top, 0px)) 0.75rem 0.4rem;
   color: #fff;
   // Plano, igual que el fondo del HTML: en celular el degradado del escritorio
-  // partía la barra y no se juntaba con el índigo de arriba.
-  background: $nav-top;
+  // partía la barra y no se juntaba con el color de arriba del menú.
+  background: var(--brand-nav-start, #1e1b4b);
   z-index: 40;
 }
 
@@ -155,13 +153,13 @@ $nav-top: #1e1b4b;
   }
 
   ::ng-deep .system-logo {
-    padding: 0.12rem 0.35rem;
-    border-radius: 6px;
+    padding: 0;
+    background: transparent;
   }
 
   ::ng-deep .system-logo img {
-    max-width: 88px;
-    max-height: 20px;
+    max-width: 132px;
+    max-height: 32px;
   }
 }
 

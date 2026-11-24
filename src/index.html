@@ -17,6 +17,34 @@
   <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.5.0/uicons-regular-rounded/css/uicons-regular-rounded.css">
   <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/3.0.0/uicons-solid-rounded/css/uicons-solid-rounded.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <script>
+    (function () {
+      try {
+        var token = localStorage.getItem('sinergy_erp_token');
+        var raw = localStorage.getItem('sinergy.system_brand');
+        if (!token || !raw) return;
+        var part = token.split('.')[1];
+        if (!part) return;
+        var b64 = part.replace(/-/g, '+').replace(/_/g, '/');
+        var pad = b64.length % 4;
+        if (pad) b64 += '===='.slice(pad);
+        var utf8 = decodeURIComponent(Array.prototype.map.call(atob(b64), function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        var tenant = JSON.parse(utf8).tenant_id;
+        var stored = JSON.parse(raw);
+        var entry = stored && stored.byTenant ? stored.byTenant[tenant] : null;
+        var hex = /^#[0-9a-fA-F]{6}$/;
+        if (!entry || !hex.test(entry.start) || !hex.test(entry.mid) || !hex.test(entry.end)) return;
+        var root = document.documentElement;
+        root.style.setProperty('--brand-nav-start', entry.start);
+        root.style.setProperty('--brand-nav-mid', entry.mid);
+        root.style.setProperty('--brand-nav-end', entry.end);
+        var metas = document.querySelectorAll('meta[name="theme-color"]');
+        for (var i = 0; i < metas.length; i++) metas[i].setAttribute('content', entry.start);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

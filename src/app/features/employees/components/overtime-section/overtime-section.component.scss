@@ -3,39 +3,35 @@
 .overtime {
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 18px 20px;
+  border-radius: 8px;
+  padding: 10px 12px;
 
   &__head {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 
     h3 {
       margin: 0;
-      font-size: 15px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 650;
       color: #111827;
     }
 
     p {
-      margin: 4px 0 0;
-      font-size: 13px;
+      margin: 2px 0 0;
+      font-size: 12px;
       color: #6b7280;
     }
   }
 
   &__empty {
     margin: 0;
-    padding: 22px 16px;
-    border: 1px dashed #d1d5db;
-    border-radius: 12px;
-    text-align: center;
+    padding: 2px 0 0;
     color: #6b7280;
-
-    p { margin: 0 0 12px; }
+    font-size: 12px;
   }
 
   &__list {
@@ -113,10 +109,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 9px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  flex: 0 0 auto;
+  width: auto;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   border: 1px solid transparent;
 

@@ -1,14 +1,19 @@
 <div class="filter-bar" role="search" aria-label="Filtros de órdenes de compra">
   <div class="filter-bar__container filter-bar__container--toolbar">
-    <div class="filter-bar__field filter-bar__field--search">
-      <input
-        type="text"
-        id="search"
-        [formControl]="searchControl"
-        placeholder="Buscar folio, proveedor…"
-        class="filter-bar__input"
-        aria-label="Buscar órdenes por folio, proveedor, pedimento o factura"
-      />
+    <div class="filter-bar__search-line" [class.filter-bar__search-line--with-glance]="showGlance">
+      <div class="filter-bar__field filter-bar__field--search">
+        <input
+          type="text"
+          id="search"
+          [formControl]="searchControl"
+          placeholder="Buscar folio, proveedor…"
+          class="filter-bar__input"
+          aria-label="Buscar órdenes por folio, proveedor, pedimento o factura"
+        />
+      </div>
+      <div class="filter-bar__field filter-bar__field--glance" [class.is-off]="!showGlance">
+        <ng-content select="[glanceSwitch]"></ng-content>
+      </div>
     </div>
 
     <div class="filter-bar__field filter-bar__field--key">

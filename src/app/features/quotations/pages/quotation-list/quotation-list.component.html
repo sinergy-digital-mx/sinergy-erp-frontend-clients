@@ -41,67 +41,13 @@
         </app-sales-filter-bar>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-sm font-semibold text-gray-700">Por Estado</h3>
-            <span class="text-sm text-gray-600">Total: {{ totalOrders() }} ({{ formatCurrency(totalAmount()) }})</span>
-          </div>
-          <div class="border-b border-gray-200 mb-4"></div>
-          <div class="space-y-4">
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Creadas</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ creadasCount() }}</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-blue-500 h-2 rounded-full transition-all" [style.width.%]="creadasPercent()"></div>
-              </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(creadasAmount()) }}</p>
-            </div>
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Convertidas</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ convertidasCount() }}</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-green-500 h-2 rounded-full transition-all" [style.width.%]="convertidasPercent()"></div>
-              </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(convertidasAmount()) }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-sm font-semibold text-gray-700">Por Tipo</h3>
-            <span class="text-sm text-gray-600">Total: {{ totalOrders() }} ({{ formatCurrency(totalAmount()) }})</span>
-          </div>
-          <div class="border-b border-gray-200 mb-4"></div>
-          <div class="space-y-4">
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">POS</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ posCount() }}</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-green-500 h-2 rounded-full transition-all" [style.width.%]="posPercent()"></div>
-              </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(posAmount()) }}</p>
-            </div>
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-600">Manual</span>
-                <span class="text-sm font-semibold text-[#334155]">{{ manualCount() }}</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div class="bg-blue-500 h-2 rounded-full transition-all" [style.width.%]="manualPercent()"></div>
-              </div>
-              <p class="text-xs text-gray-500">{{ formatCurrency(manualAmount()) }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <app-list-stat-strip
+        label="Resumen de cotizaciones"
+        [cards]="statCards()"
+        [loading]="loading()"
+        [ready]="statsReady()"
+        [error]="statsError()">
+      </app-list-stat-strip>
 
       <div class="hidden md:block">
         <app-datatable-wrapper

@@ -15,6 +15,8 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { QUOTATION_PERMISSIONS } from '../../config/permissions.config';
+import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
+import { CircleDollarSign, ClipboardList, FileText, Package, ShoppingBag } from 'lucide-angular';
 import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
 import { PosUserSummary } from '../../../sales-orders/models/sales-order.model';
 import {
@@ -27,7 +29,7 @@ import {
 @Component({
   selector: 'app-quotation-list',
   standalone: true,
-  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent],
+  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, ListStatStripComponent],
   templateUrl: './quotation-list.component.html',
   styleUrls: [
     '../../../sales-orders/pages/sales-order-list/sales-order-list.component.scss',
@@ -43,7 +45,9 @@ export class QuotationListComponent implements OnInit {
   private filters = signal<QuotationFilters>({});
   private pagination = signal({ page: 1, limit: 15 });
   private totalResults = signal(0);
-  loading = signal(false);
+  loading = signal(true);
+  statsReady = signal(false);
+  statsError = signal(false);
   canCreate = false;
   canViewAll = false;
   canViewAllBranches = false;
@@ -68,7 +72,7 @@ export class QuotationListComponent implements OnInit {
     page: 1,
     limit: 15,
     totalResults: 0,
-    loading: false,
+    loading: true,
     emptyState: { title: 'Sin resultados', subtitle: 'No se encontraron cotizaciones' },
     columnMode: 'force',
     reorderable: false,
@@ -98,12 +102,67 @@ export class QuotationListComponent implements OnInit {
     this.rows().filter((r) => r.quotation_type === 'MANUAL').reduce((s, r) => s + this.getTotal(r), 0),
   );
 
-  creadasPercent = computed(() => (this.totalOrders() > 0 ? (this.creadasCount() / this.totalOrders()) * 100 : 0));
-  convertidasPercent = computed(() =>
-    this.totalOrders() > 0 ? (this.convertidasCount() / this.totalOrders()) * 100 : 0,
-  );
-  posPercent = computed(() => (this.totalOrders() > 0 ? (this.posCount() / this.totalOrders()) * 100 : 0));
-  manualPercent = computed(() => (this.totalOrders() > 0 ? (this.manualCount() / this.totalOrders()) * 100 : 0));
+  readonly statCards = computed((): ListStatCard[] => {
+    const total = this.totalOrders();
+    const share = (count: number) => (total > 0 ? Math.min(100, Math.round((count / total) * 100)) : 0);
+    return [
+      {
+        key: 'total',
+        label: 'Cotizaciones',
+        hint: 'Cantidad del filtro. El monto es de esta página',
+        tone: 'slate',
+        icon: ShoppingBag,
+        value: total,
+        share: total > 0 ? 100 : 0,
+        footer: this.formatCurrency(this.totalAmount()),
+        footerKind: 'quiet',
+      },
+      {
+        key: 'created',
+        label: 'Creadas',
+        hint: 'Creadas de esta página',
+        tone: 'indigo',
+        icon: ClipboardList,
+        value: this.creadasCount(),
+        share: share(this.creadasCount()),
+        footer: this.formatCurrency(this.creadasAmount()),
+        footerKind: 'pill',
+      },
+      {
+        key: 'converted',
+        label: 'Convertidas',
+        hint: 'Convertidas de esta página',
+        tone: 'emerald',
+        icon: Package,
+        value: this.convertidasCount(),
+        share: share(this.convertidasCount()),
+        footer: this.formatCurrency(this.convertidasAmount()),
+        footerKind: 'pill',
+      },
+      {
+        key: 'pos',
+        label: 'POS',
+        hint: 'Cotizaciones POS de esta página',
+        tone: 'sky',
+        icon: CircleDollarSign,
+        value: this.posCount(),
+        share: share(this.posCount()),
+        footer: this.formatCurrency(this.posAmount()),
+        footerKind: 'pill',
+      },
+      {
+        key: 'manual',
+        label: 'Manual',
+        hint: 'Cotizaciones manuales de esta página',
+        tone: 'amber',
+        icon: FileText,
+        value: this.manualCount(),
+        share: share(this.manualCount()),
+        footer: this.formatCurrency(this.manualAmount()),
+        footerKind: 'pill',
+      },
+    ];
+  });
 
   constructor(
     private quotationService: QuotationService,
@@ -170,9 +229,12 @@ export class QuotationListComponent implements OnInit {
           hasNext: page < totalPages,
           loading: false,
         }));
+        this.statsReady.set(true);
+        this.statsError.set(false);
         this.loading.set(false);
       },
       error: () => {
+        if (!this.statsReady()) this.statsError.set(true);
         this.loading.set(false);
         this.table_config.update((c) => ({ ...c, loading: false }));
       },

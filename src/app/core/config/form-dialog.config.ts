@@ -28,6 +28,14 @@ export const VENDOR_DUPLICATE_DIALOG_CONFIG: MatDialogConfig = {
   autoFocus: 'first-tabbable',
 };
 
+export const CUSTOMER_ADDRESS_DIALOG_CONFIG: MatDialogConfig = {
+  width: '960px',
+  maxWidth: '95vw',
+  maxHeight: '90vh',
+  panelClass: 'customer-address-dialog',
+  autoFocus: 'first-tabbable',
+};
+
 export const CUSTOMER_ACTIVITY_FORM_DIALOG_CONFIG: MatDialogConfig = {
   ...formDialogBase,
   width: '640px',

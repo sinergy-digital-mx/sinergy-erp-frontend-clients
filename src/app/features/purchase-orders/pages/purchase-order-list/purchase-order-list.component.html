@@ -23,7 +23,7 @@
 
       <!-- Filter Bar -->
       <div class="mb-4">
-        <app-filter-bar 
+        <app-filter-bar
           [initialSearch]="filters().search ?? null"
           [initialFiscalConfigurationId]="initialFiscalConfigurationId"
           [initialBillingBranchId]="initialBillingBranchId"
@@ -34,121 +34,13 @@
       </div>
 
       @if (canViewStats()) {
-      <div class="po-stats">
-        <article class="po-stats-card">
-          <header class="po-stats-card__header">
-            <div class="po-stats-card__intro">
-              <h3 class="po-stats-card__title">Por estado</h3>
-              <div class="po-stat__money">
-                <span class="po-stat__chip po-stat__chip--mxn">{{ formatStatsAmount(currencyAmount('MXN'), 'MXN') }}</span>
-                @if (hasUsd()) {
-                  <span class="po-stat__chip po-stat__chip--usd">{{ formatStatsAmount(currencyAmount('USD'), 'USD') }}</span>
-                }
-              </div>
-            </div>
-            <span class="po-stats-card__total">{{ totalOrders() }}</span>
-          </header>
-
-          <div class="po-stats-card__metrics">
-            <div class="po-stat">
-              <div class="po-stat__head">
-                <span class="po-stat__label">Creadas</span>
-                <span class="po-stat__count">{{ creadasCount() }}</span>
-              </div>
-              <div class="po-stat__bar">
-                <div class="po-stat__fill po-stat__fill--blue" [style.width.%]="creadasPercent()"></div>
-              </div>
-              <div class="po-stat__money">
-                <span class="po-stat__chip po-stat__chip--mxn">{{ formatStatsAmount(statusAmount('Creada', 'MXN'), 'MXN') }}</span>
-                @if (hasUsd() && statusAmount('Creada', 'USD') > 0) {
-                  <span class="po-stat__chip po-stat__chip--usd">{{ formatStatsAmount(statusAmount('Creada', 'USD'), 'USD') }}</span>
-                }
-              </div>
-            </div>
-
-            <div class="po-stat">
-              <div class="po-stat__head">
-                <span class="po-stat__label">Recibidas</span>
-                <span class="po-stat__count">{{ recibidasCount() }}</span>
-              </div>
-              <div class="po-stat__bar">
-                <div class="po-stat__fill po-stat__fill--green" [style.width.%]="recibidasPercent()"></div>
-              </div>
-              <div class="po-stat__money">
-                <span class="po-stat__chip po-stat__chip--mxn">{{ formatStatsAmount(statusAmount('Recibida', 'MXN'), 'MXN') }}</span>
-                @if (hasUsd() && statusAmount('Recibida', 'USD') > 0) {
-                  <span class="po-stat__chip po-stat__chip--usd">{{ formatStatsAmount(statusAmount('Recibida', 'USD'), 'USD') }}</span>
-                }
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <article class="po-stats-card">
-          <header class="po-stats-card__header">
-            <div class="po-stats-card__intro">
-              <h3 class="po-stats-card__title">Estado de pago</h3>
-              <div class="po-stat__money">
-                <span class="po-stat__chip po-stat__chip--mxn">{{ formatStatsAmount(currencyAmount('MXN'), 'MXN') }}</span>
-                @if (hasUsd()) {
-                  <span class="po-stat__chip po-stat__chip--usd">{{ formatStatsAmount(currencyAmount('USD'), 'USD') }}</span>
-                }
-              </div>
-            </div>
-            <span class="po-stats-card__total">{{ totalOrders() }}</span>
-          </header>
-
-          <div class="po-stats-card__metrics">
-            <div class="po-stat">
-              <div class="po-stat__head">
-                <span class="po-stat__label">Pagadas</span>
-                <span class="po-stat__count">{{ pagadasCount() }}</span>
-              </div>
-              <div class="po-stat__bar">
-                <div class="po-stat__fill po-stat__fill--green" [style.width.%]="pagadasPercent()"></div>
-              </div>
-              <div class="po-stat__money">
-                <span class="po-stat__chip po-stat__chip--mxn">{{ formatStatsAmount(paymentAmount('Pagado', 'MXN'), 'MXN') }}</span>
-                @if (hasUsd() && paymentAmount('Pagado', 'USD') > 0) {
-                  <span class="po-stat__chip po-stat__chip--usd">{{ formatStatsAmount(paymentAmount('Pagado', 'USD'), 'USD') }}</span>
-                }
-              </div>
-            </div>
-
-            <div
-              class="po-stat"
-              [class.po-stat--debt]="!loading() && hasAnyDebt()"
-              [class.po-stat--ok]="!loading() && !hasAnyDebt()">
-              <div class="po-stat__head">
-                <span class="po-stat__label">Deuda</span>
-                <span class="po-stat__count">{{ loading() ? '…' : pendientesCount() }}</span>
-              </div>
-              <div class="po-stat__bar">
-                <div
-                  class="po-stat__fill"
-                  [class.po-stat__fill--rose]="hasAnyDebt()"
-                  [class.po-stat__fill--green]="!hasAnyDebt()"
-                  [style.width.%]="pendientesPercent()">
-                </div>
-              </div>
-              <div class="po-stat__money">
-                @if (loading()) {
-                  <span class="po-stat__chip po-stat__chip--muted">Cargando</span>
-                } @else if (hasAnyDebt()) {
-                  @if (paymentAmount('Pendiente', 'MXN') > 0) {
-                    <span class="po-stat__chip po-stat__chip--debt-mxn">{{ formatStatsAmount(paymentAmount('Pendiente', 'MXN'), 'MXN') }}</span>
-                  }
-                  @if (paymentAmount('Pendiente', 'USD') > 0) {
-                    <span class="po-stat__chip po-stat__chip--debt-usd">{{ formatStatsAmount(paymentAmount('Pendiente', 'USD'), 'USD') }}</span>
-                  }
-                } @else {
-                  <span class="po-stat__chip po-stat__chip--ok">Sin deuda</span>
-                }
-              </div>
-            </div>
-          </div>
-        </article>
-      </div>
+        <app-list-stat-strip
+          label="Resumen de compras"
+          [cards]="statCards()"
+          [loading]="loading()"
+          [ready]="statsReady()"
+          [error]="statsError()">
+        </app-list-stat-strip>
       }
 
       <!-- Desktop Table -->

@@ -1,4 +1,44 @@
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { formatApiDate } from '../../../core/utils/api-datetime.util';
+
+/** Razón social en la URL cuando el usuario eligió todas. */
+export const INVENTORY_ALL_FISCAL = 'all';
+
+export function inventoryFiscalFromQuery(raw: string | null): string | 'all' | null {
+  if (raw == null) return null;
+  const value = raw.trim();
+  if (!value || value === INVENTORY_ALL_FISCAL) return 'all';
+  return value;
+}
+
+export function inventoryPageFromQuery(raw: string | null): number {
+  const page = Number(raw);
+  return Number.isInteger(page) && page > 1 ? page : 1;
+}
+
+export function replaceInventoryQuery(
+  router: Router,
+  route: ActivatedRoute,
+  patch: Record<string, string | number | null | undefined>,
+): void {
+  const current: ParamMap = route.snapshot.queryParamMap;
+  const queryParams: Record<string, string | null> = {};
+  let changed = false;
+  for (const [key, raw] of Object.entries(patch)) {
+    const next = raw == null || String(raw).trim() === '' ? null : String(raw);
+    if ((current.get(key) ?? null) !== next) {
+      changed = true;
+      queryParams[key] = next;
+    }
+  }
+  if (!changed) return;
+  void router.navigate([], {
+    relativeTo: route,
+    queryParams,
+    queryParamsHandling: 'merge',
+    replaceUrl: true,
+  });
+}
 
 export function inventoryLocationLabel(value?: string | null): string {
   const trimmed = value?.trim();

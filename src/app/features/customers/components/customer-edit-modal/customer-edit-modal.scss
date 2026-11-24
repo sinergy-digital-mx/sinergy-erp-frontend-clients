@@ -78,20 +78,53 @@
   &__body {
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 1.5rem;
+    box-sizing: border-box;
 
     form {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1rem;
+      min-width: 0;
+
+      input,
+      select,
+      textarea {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
 
       .col-span-2 {
         grid-column: 1 / -1;
+        min-width: 0;
       }
     }
+  }
+
+  app-input {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+
+    > div {
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+  }
+
+  &__rfc input {
+    text-transform: uppercase;
   }
 
   &__footer {
@@ -155,7 +188,7 @@
   }
 
   .customer-modal__body form {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .customer-modal__footer {

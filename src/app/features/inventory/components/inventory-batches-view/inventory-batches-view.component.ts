@@ -1,5 +1,6 @@
 import { Component, TemplateRef, ViewChild, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig, IPaginationEvent, ISortEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
@@ -10,7 +11,12 @@ import { OrderDetailDialogComponent } from '../../../purchase-orders/components/
 import { InventoryBatch } from '../../models/inventory-batch.model';
 import { InventoryBatchService, BatchFilters } from '../../services/inventory-batch.service';
 import { InventoryListState } from '../../services/inventory-list-state.service';
-import { formatInventoryDate, inventoryLocationLabel } from '../../utils/inventory-list.util';
+import {
+  formatInventoryDate,
+  inventoryLocationLabel,
+  inventoryPageFromQuery,
+  replaceInventoryQuery,
+} from '../../utils/inventory-list.util';
 import { inventoryMeasureLabel } from '../../../../core/utils/inventory-measure.util';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -27,7 +33,10 @@ export class InventoryBatchesViewComponent {
   private readonly batchService = inject(InventoryBatchService);
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly state = inject(InventoryListState);
+  private booted = false;
 
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<unknown>;
 
@@ -61,8 +70,16 @@ export class InventoryBatchesViewComponent {
     effect(() => {
       if (!this.state.locationsReady()) return;
       this.state.listEpoch();
+      const keepPage = this.state.keepPage();
       untracked(() => {
-        this.pagination.set({ ...this.pagination(), page: 1 });
+        if (!this.booted) {
+          this.booted = true;
+          const page = inventoryPageFromQuery(this.route.snapshot.queryParamMap.get('bpage'));
+          this.pagination.set({ ...this.pagination(), page });
+        } else if (!keepPage) {
+          this.pagination.set({ ...this.pagination(), page: 1 });
+          this.writePage(1);
+        }
         this.loadBatches();
       });
     });
@@ -74,16 +91,26 @@ export class InventoryBatchesViewComponent {
 
   onPageChange(event: IPaginationEvent): void {
     this.pagination.set({ page: event.page, limit: event.limit });
+    this.writePage(event.page);
     this.loadBatches();
   }
 
   onSortChange(_event: ISortEvent): void {}
 
   openBatchDetail(batch: InventoryBatch): void {
-    this.dialog.open(BatchDetailDialogComponent, {
-      ...BATCH_DETAIL_DIALOG_OPTIONS,
-      data: { batchId: batch.id },
-    });
+    this.dialog
+      .open(BatchDetailDialogComponent, {
+        ...BATCH_DETAIL_DIALOG_OPTIONS,
+        data: { batchId: batch.id },
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed === true) this.state.reloadListKeepPage();
+      });
+  }
+
+  private writePage(page: number): void {
+    replaceInventoryQuery(this.router, this.route, { bpage: page > 1 ? page : null });
   }
 
   openPurchaseOrderDetail(batch: InventoryBatch, event: Event): void {

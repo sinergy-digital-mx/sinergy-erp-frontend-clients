@@ -16,7 +16,7 @@ import { CustomerPurchaseTrendComponent } from '../../components/customer-purcha
 import { CustomerProductInsightsComponent } from '../../components/customer-product-insights/customer-product-insights.component';
 import { CustomerActivitiesComponent } from '../../components/customer-activities/customer-activities.component';
 import { PropertyEditModalComponent } from '../../../properties/components/property-edit-modal/property-edit-modal.component';
-import { CUSTOMER_FORM_DIALOG_CONFIG, PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import { CUSTOMER_ADDRESS_DIALOG_CONFIG, CUSTOMER_FORM_DIALOG_CONFIG, PROPERTY_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { ContractDetailModalComponent } from '../../../contracts/components/contract-detail-modal/contract-detail-modal.component';
 import { Customer, CustomerAddress, CustomerStatus } from '../../models/customer-group.model';
 import { forkJoin, of, Subject } from 'rxjs';
@@ -383,8 +383,7 @@ export class CustomerDetail implements OnInit, OnDestroy {
 
     this.dialog
       .open(CustomerAddressDialogComponent, {
-        width: '980px',
-        maxWidth: '95vw',
+        ...CUSTOMER_ADDRESS_DIALOG_CONFIG,
         data: {
           customerId: String(customer.id),
           address: address ?? null,

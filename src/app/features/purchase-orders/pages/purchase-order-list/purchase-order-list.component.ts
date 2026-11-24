@@ -31,11 +31,13 @@ import { TaxCalculatorService } from '../../services/tax-calculator.service';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PURCHASE_ORDER_PERMISSIONS } from '../../config/permissions.config';
+import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
+import { CircleAlert, CircleDollarSign, ClipboardList, Package, ShoppingBag } from 'lucide-angular';
 
 @Component({
   selector: 'app-purchase-order-list',
   standalone: true,
-  imports: [CommonModule, FilterBarComponent, DatatableWrapperComponent, EmptyStageComponent],
+  imports: [CommonModule, FilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, ListStatStripComponent],
   templateUrl: './purchase-order-list.component.html',
   styleUrls: ['./purchase-order-list.component.scss']
 })
@@ -54,6 +56,8 @@ export class PurchaseOrderListComponent implements OnInit {
   private totalResultsState = signal<number>(0);
   private hasMoreState = signal<boolean>(true);
   private statsState = signal<PurchaseOrderListStats>(emptyPurchaseOrderListStats());
+  statsReady = signal(false);
+  statsError = signal(false);
   private loadGeneration = 0;
   
   // Table configuration
@@ -96,13 +100,74 @@ export class PurchaseOrderListComponent implements OnInit {
   pagadasCount = computed(() => this.paymentCount('Pagado'));
   pendientesCount = computed(() => this.paymentCount('Pendiente'));
 
-  creadasPercent = computed(() => this.countPercent(this.creadasCount()));
-  recibidasPercent = computed(() => this.countPercent(this.recibidasCount()));
-  pagadasPercent = computed(() => this.countPercent(this.pagadasCount()));
-  pendientesPercent = computed(() => this.countPercent(this.pendientesCount()));
   hasAnyDebt = computed(() =>
     this.paymentAmount('Pendiente', 'MXN') > 0 || this.paymentAmount('Pendiente', 'USD') > 0
   );
+
+  readonly statCards = computed((): ListStatCard[] => {
+    const total = this.totalOrders();
+    const share = (count: number) => (total > 0 ? Math.min(100, Math.round((count / total) * 100)) : 0);
+    const debt = this.hasAnyDebt();
+    return [
+      {
+        key: 'total',
+        label: 'Órdenes',
+        hint: 'Todas las órdenes del filtro',
+        tone: 'slate',
+        icon: ShoppingBag,
+        value: total,
+        share: total > 0 ? 100 : 0,
+        footer: this.moneyLine(this.currencyAmount('MXN'), this.currencyAmount('USD'), 'total'),
+        footerKind: 'quiet',
+      },
+      {
+        key: 'created',
+        label: 'Creadas',
+        hint: 'Órdenes en estado Creada',
+        tone: 'indigo',
+        icon: ClipboardList,
+        value: this.creadasCount(),
+        share: share(this.creadasCount()),
+        footer: this.moneyLine(this.statusAmount('Creada', 'MXN'), this.statusAmount('Creada', 'USD'), 'row'),
+        footerKind: 'pill',
+      },
+      {
+        key: 'received',
+        label: 'Recibidas',
+        hint: 'Órdenes en estado Recibida',
+        tone: 'emerald',
+        icon: Package,
+        value: this.recibidasCount(),
+        share: share(this.recibidasCount()),
+        footer: this.moneyLine(this.statusAmount('Recibida', 'MXN'), this.statusAmount('Recibida', 'USD'), 'row'),
+        footerKind: 'pill',
+      },
+      {
+        key: 'paid',
+        label: 'Pagadas',
+        hint: 'Órdenes con pago cubierto',
+        tone: 'sky',
+        icon: CircleDollarSign,
+        value: this.pagadasCount(),
+        share: share(this.pagadasCount()),
+        footer: this.moneyLine(this.paymentAmount('Pagado', 'MXN'), this.paymentAmount('Pagado', 'USD'), 'row'),
+        footerKind: 'pill',
+      },
+      {
+        key: 'debt',
+        label: 'Deuda',
+        hint: 'Órdenes con pago pendiente',
+        tone: debt ? 'rose' : 'emerald',
+        icon: CircleAlert,
+        value: this.pendientesCount(),
+        share: share(this.pendientesCount()),
+        footer: debt
+          ? this.moneyLine(this.paymentAmount('Pendiente', 'MXN'), this.paymentAmount('Pendiente', 'USD'), 'debt')
+          : 'Sin deuda',
+        footerKind: debt ? 'debt' : 'ok',
+      },
+    ];
+  });
 
   readonly canViewStats = signal(false);
 
@@ -238,6 +303,8 @@ export class PurchaseOrderListComponent implements OnInit {
                 )
               : emptyPurchaseOrderListStats(),
           );
+          this.statsReady.set(true);
+          this.statsError.set(false);
           
           this.table_config.update(c => ({
             ...c,
@@ -256,6 +323,7 @@ export class PurchaseOrderListComponent implements OnInit {
             return;
           }
           console.error('Error loading orders:', error);
+          if (!this.statsReady()) this.statsError.set(true);
           this.loadingState.set(false);
           this.table_config.update(c => ({ ...c, loading: false }));
         }
@@ -370,6 +438,14 @@ export class PurchaseOrderListComponent implements OnInit {
     return this.statNumber(this.statsState().by_currency[currency].by_payment[status].amount);
   }
 
+  /** MXN siempre. USD del total si hay dólares; en una fila solo si ese monto es mayor a cero. */
+  private moneyLine(mxn: number, usd: number, mode: 'total' | 'row' | 'debt'): string {
+    const parts: string[] = [];
+    if (mode !== 'debt' || mxn > 0) parts.push(this.formatStatsAmount(mxn, 'MXN'));
+    if ((mode === 'total' && this.hasUsd()) || usd > 0) parts.push(this.formatStatsAmount(usd, 'USD'));
+    return parts.join(' · ');
+  }
+
   /** Formato de cards: `MXN $1,045,914.40`. Nunca un $ genérico mezclado. */
   formatStatsAmount(amount: number, currency: PaymentCurrency): string {
     const body = new Intl.NumberFormat('es-MX', {
@@ -479,11 +555,6 @@ export class PurchaseOrderListComponent implements OnInit {
     const stats = this.statsState().by_currency;
     return this.statNumber(stats.MXN.by_payment[status].count)
       + this.statNumber(stats.USD.by_payment[status].count);
-  }
-
-  private countPercent(count: number): number {
-    const total = this.totalOrders();
-    return total > 0 ? (count / total) * 100 : 0;
   }
 
   private statNumber(value: number | string | undefined | null): number {

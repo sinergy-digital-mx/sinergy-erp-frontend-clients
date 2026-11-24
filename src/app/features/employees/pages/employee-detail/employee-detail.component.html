@@ -131,7 +131,7 @@
           <div><dt>Banco</dt><dd>{{ emp.bank_name || '—' }}</dd></div>
           <div><dt>CLABE</dt><dd>{{ emp.clabe || '—' }}</dd></div>
         </dl>
-        <label *ngIf="canUpdate" class="btn btn--ghost">
+        <label *ngIf="canUpdate" class="btn btn--ghost photo-btn">
           <input type="file" accept="image/*" (change)="onPhotoSelected($event)" [disabled]="uploadingPhoto()" hidden>
           {{ uploadingPhoto() ? 'Subiendo foto...' : 'Cambiar foto' }}
         </label>
@@ -146,7 +146,6 @@
 
       <div *ngIf="otherLeaveRequests().length === 0" class="empty-requests">
         <p>Todavía no hay solicitudes de vacaciones o permisos.</p>
-        <button *ngIf="canRequestLeave" class="btn btn--primary" (click)="openLeaveRequest()">Pedir vacaciones</button>
       </div>
 
       <ul *ngIf="otherLeaveRequests().length > 0" class="request-list">

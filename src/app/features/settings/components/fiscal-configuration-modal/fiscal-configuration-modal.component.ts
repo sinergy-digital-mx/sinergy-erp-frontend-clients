@@ -32,6 +32,15 @@ import { BranchModalComponent } from '../branch-modal/branch-modal.component';
 import { Eye, EyeOff, X } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { SystemLogoService } from '../../../../core/services/system-logo.service';
+import { SystemBrandService } from '../../../../core/services/system-brand.service';
+import {
+  BrandNavColors,
+  BrandNavStop,
+  DEFAULT_BRAND_NAV_COLORS,
+  brandHexLuminance,
+  isBrandHex,
+  normalizeBrandHex,
+} from '../../../../core/brand/brand-nav-colors';
 
 @Component({
   selector: 'app-fiscal-configuration-modal',
@@ -47,9 +56,23 @@ export class FiscalConfigurationModalComponent implements OnInit {
   loading = signal(false);
   uploadingLogo = signal(false);
   savingSystemLogo = signal(false);
+  savingBrand = signal(false);
   isNew = true;
   logoUrl: string | null = null;
   useAsSystemLogo = false;
+  readonly brandStops: Array<{ id: BrandNavStop; name: string; hint: string }> = [
+    {
+      id: 'start',
+      name: 'Arriba',
+      hint: 'Inicio del degradado. En el celular pinta la barra y el fondo.',
+    },
+    { id: 'mid', name: 'Centro', hint: 'Mitad del degradado del menú.' },
+    { id: 'end', name: 'Abajo', hint: 'Final del degradado del menú.' },
+  ];
+  brandColors: BrandNavColors = { ...DEFAULT_BRAND_NAV_COLORS };
+  brandTexts: BrandNavColors = { ...DEFAULT_BRAND_NAV_COLORS };
+  private persistedBrand: BrandNavColors = { ...DEFAULT_BRAND_NAV_COLORS };
+  brandCustomized = false;
   logoFileName: string | null = null;
   digitalSealFileName: string | null = null;
   privateKeyFileName: string | null = null;
@@ -64,7 +87,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
     { id: 'cotizaciones', title: 'Cotizaciones' },
     { id: 'publico', title: 'Público en general' },
     { id: 'sucursales', title: 'Sucursales' },
-    { id: 'logo', title: 'Logo' }
+    { id: 'logo', title: 'Logo y color' }
   ];
   activeTab = 'configuracion';
 
@@ -128,6 +151,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private authService: AuthService,
     private systemLogoService: SystemLogoService,
+    private systemBrand: SystemBrandService,
     public dialogRef: MatDialogRef<FiscalConfigurationModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { fiscalConfig: FiscalConfiguration | null }
   ) {
@@ -148,6 +172,7 @@ export class FiscalConfigurationModalComponent implements OnInit {
       this.applyFiscalConfigToForm(this.data.fiscalConfig);
       this.logoUrl = this.data.fiscalConfig.logo || null;
       this.useAsSystemLogo = this.isEnabledFlag(this.data.fiscalConfig.use_as_system_logo);
+      this.applyBrandFromConfig(this.data.fiscalConfig);
       this.clearStaleFinkokError();
       this.loadBranches();
       this.refreshFiscalConfigFromApi();
@@ -164,6 +189,9 @@ export class FiscalConfigurationModalComponent implements OnInit {
         this.applyFiscalConfigToForm(config);
         this.logoUrl = config.logo || null;
         this.useAsSystemLogo = this.isEnabledFlag(config.use_as_system_logo);
+        if (!this.brandDirty) {
+          this.applyBrandFromConfig(config);
+        }
         this.clearStaleFinkokError();
         this.cdr.detectChanges();
       },
@@ -341,6 +369,152 @@ export class FiscalConfigurationModalComponent implements OnInit {
 
   private isEnabledFlag(value: unknown): boolean {
     return value === true || value === 1 || value === '1' || value === 'true';
+  }
+
+  get brandGradient(): string {
+    const { start, mid, end } = this.brandColors;
+    return `linear-gradient(180deg, ${start} 0%, ${mid} 50%, ${end} 100%)`;
+  }
+
+  get brandDirty(): boolean {
+    return (['start', 'mid', 'end'] as BrandNavStop[]).some(
+      (stop) => this.brandColors[stop] !== this.persistedBrand[stop],
+    );
+  }
+
+  get brandValid(): boolean {
+    return (['start', 'mid', 'end'] as BrandNavStop[]).every((stop) => isBrandHex(this.brandTexts[stop]));
+  }
+
+  get brandHexError(): string | null {
+    const broken = (['start', 'mid', 'end'] as BrandNavStop[]).some((stop) => {
+      const value = this.brandTexts[stop].trim();
+      return value.length >= 7 && !isBrandHex(value);
+    });
+    return broken ? 'Cada color lleva 6 dígitos, por ejemplo #1e1b4b.' : null;
+  }
+
+  get brandLooksLight(): boolean {
+    return (['start', 'mid', 'end'] as BrandNavStop[]).some(
+      (stop) => brandHexLuminance(this.brandColors[stop]) > 0.4,
+    );
+  }
+
+  get canRestoreBrand(): boolean {
+    const atDefault = (['start', 'mid', 'end'] as BrandNavStop[]).every(
+      (stop) => this.brandColors[stop] === DEFAULT_BRAND_NAV_COLORS[stop],
+    );
+    return this.brandCustomized || !atDefault;
+  }
+
+  onBrandPicker(stop: BrandNavStop, event: Event): void {
+    const hex = String((event.target as HTMLInputElement).value || '').toLowerCase();
+    if (!isBrandHex(hex)) {
+      return;
+    }
+    this.brandColors[stop] = hex;
+    this.brandTexts[stop] = hex;
+  }
+
+  onBrandText(stop: BrandNavStop, value: string): void {
+    const next = String(value ?? '').trim();
+    this.brandTexts[stop] = next;
+    if (!isBrandHex(next)) {
+      return;
+    }
+    const hex = next.toLowerCase();
+    this.brandTexts[stop] = hex;
+    this.brandColors[stop] = hex;
+  }
+
+  saveBrandColors(): void {
+    if (!this.brandValid || !this.brandDirty) {
+      return;
+    }
+    this.persistBrand({
+      brand_color_start: this.brandColors.start,
+      brand_color_mid: this.brandColors.mid,
+      brand_color_end: this.brandColors.end,
+    });
+  }
+
+  restoreBrandColors(): void {
+    this.persistBrand({
+      brand_color_start: null,
+      brand_color_mid: null,
+      brand_color_end: null,
+    });
+  }
+
+  private persistBrand(payload: {
+    brand_color_start: string | null;
+    brand_color_mid: string | null;
+    brand_color_end: string | null;
+  }): void {
+    const fiscalConfig = this.data.fiscalConfig;
+    if (!fiscalConfig || this.savingBrand()) {
+      return;
+    }
+    this.savingBrand.set(true);
+    this.fiscalConfigService.updateFiscalConfiguration(fiscalConfig.id, payload).subscribe({
+      next: (updated) => {
+        const next = { ...fiscalConfig, ...updated };
+        this.data.fiscalConfig = next;
+        this.applyBrandFromConfig(next);
+        this.savingBrand.set(false);
+        if (this.useAsSystemLogo) {
+          this.systemBrand.apply(this.brandColors);
+          this.systemLogoService.refresh(true);
+        }
+        const restored = payload.brand_color_start === null;
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: {
+            message: this.brandSavedMessage(restored),
+            type: 'success',
+          },
+          duration: 3500,
+        });
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        this.savingBrand.set(false);
+        this.cdr.detectChanges();
+        const raw = error?.error?.message;
+        const message = Array.isArray(raw) ? raw[0] : raw;
+        this.snackBar.openFromComponent(CustomSnackbarComponent, {
+          data: {
+            message: message || 'No se pudieron guardar los colores del menú',
+            type: 'error',
+          },
+          duration: 4000,
+        });
+      },
+    });
+  }
+
+  private brandSavedMessage(restored: boolean): string {
+    if (restored) {
+      return this.useAsSystemLogo
+        ? 'El menú volvió a los colores de Pólux'
+        : 'Se restauraron los colores de Pólux en esta razón social';
+    }
+    return this.useAsSystemLogo
+      ? 'El menú ya usa estos colores'
+      : 'Colores guardados. El menú los usa cuando esta razón social es el logo del sistema';
+  }
+
+  private applyBrandFromConfig(config: FiscalConfiguration): void {
+    const colors: BrandNavColors = {
+      start: normalizeBrandHex(config.brand_color_start, DEFAULT_BRAND_NAV_COLORS.start),
+      mid: normalizeBrandHex(config.brand_color_mid, DEFAULT_BRAND_NAV_COLORS.mid),
+      end: normalizeBrandHex(config.brand_color_end, DEFAULT_BRAND_NAV_COLORS.end),
+    };
+    this.brandColors = { ...colors };
+    this.brandTexts = { ...colors };
+    this.persistedBrand = { ...colors };
+    this.brandCustomized = [config.brand_color_start, config.brand_color_mid, config.brand_color_end].some(
+      (value) => isBrandHex(value),
+    );
   }
 
   loadBranches(): void {

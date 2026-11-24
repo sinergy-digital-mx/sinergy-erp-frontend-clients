@@ -32,3 +32,8 @@ input[type="date"],
 textarea {
   background-color: white;
 }
+
+input.uppercase,
+textarea.uppercase {
+  text-transform: uppercase;
+}

@@ -33,11 +33,14 @@ import { salesOrderListPaymentMetaLabel } from '../../utils/sales-order-collecti
 import { getInvoiceStatusLabel } from '../../utils/cfdi-xml-builder.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { SALES_ORDER_PERMISSIONS } from '../../config/permissions.config';
+import { GlanceSwitchComponent } from '../../../../core/components/glance-switch/glance-switch.component';
+import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
+import { CircleAlert, CircleDollarSign, ClipboardList, Package, ShoppingBag } from 'lucide-angular';
 
 @Component({
   selector: 'app-sales-order-list',
   standalone: true,
-  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, SalesOrderTrendComponent],
+  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, SalesOrderTrendComponent, ListStatStripComponent, GlanceSwitchComponent],
   templateUrl: './sales-order-list.component.html',
   styleUrls: ['./sales-order-list.component.scss']
 })
@@ -53,7 +56,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
   private ordersData = signal<SalesOrder[]>([]);
   private filtersState = signal<SalesOrderFilters>({});
   private paginationState = signal<PaginationParams>({ page: 1, limit: 15 });
-  private loadingState = signal<boolean>(false);
+  private loadingState = signal<boolean>(true);
   private totalResultsState = signal<number>(0);
   private hasMoreState = signal<boolean>(true);
   private loadSeq = 0;
@@ -86,7 +89,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     limit: 15,
     pageSizeOptions: [15, 30, 50, 100],
     totalResults: 0,
-    loading: false,
+    loading: true,
     emptyState: { title: 'Sin resultados', subtitle: 'No se encontraron órdenes de venta' },
     columnMode: 'force',
     reorderable: false,
@@ -114,10 +117,71 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
   pagadasAmount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pagado').reduce((s, o) => s + this.getOrderTotal(o), 0));
   pendientesAmount = computed(() => this.ordersData().filter(o => o.payment_status === 'Pendiente').reduce((s, o) => s + this.getOrderTotal(o), 0));
 
-  creadasPercent = computed(() => this.totalOrders() > 0 ? (this.creadasCount() / this.totalOrders()) * 100 : 0);
-  surtidasPercent = computed(() => this.totalOrders() > 0 ? (this.surtidasCount() / this.totalOrders()) * 100 : 0);
-  pagadasPercent = computed(() => this.totalOrders() > 0 ? (this.pagadasCount() / this.totalOrders()) * 100 : 0);
-  pendientesPercent = computed(() => this.totalOrders() > 0 ? (this.pendientesCount() / this.totalOrders()) * 100 : 0);
+  statsReady = signal(false);
+  statsError = signal(false);
+
+  readonly statCards = computed((): ListStatCard[] => {
+    const total = this.totalOrders();
+    const share = (count: number) => (total > 0 ? Math.min(100, Math.round((count / total) * 100)) : 0);
+    const pending = this.pendientesCount() > 0 || this.pendientesAmount() > 0;
+    return [
+      {
+        key: 'total',
+        label: 'Órdenes',
+        hint: 'Cantidad del filtro. El monto es de esta página',
+        tone: 'slate',
+        icon: ShoppingBag,
+        value: total,
+        share: total > 0 ? 100 : 0,
+        footer: this.formatCurrency(this.totalAmount()),
+        footerKind: 'quiet',
+      },
+      {
+        key: 'created',
+        label: 'Creadas',
+        hint: 'Creadas de esta página',
+        tone: 'indigo',
+        icon: ClipboardList,
+        value: this.creadasCount(),
+        share: share(this.creadasCount()),
+        footer: this.formatCurrency(this.creadasAmount()),
+        footerKind: 'pill',
+      },
+      {
+        key: 'fulfilled',
+        label: 'Surtidas',
+        hint: 'Surtidas de esta página',
+        tone: 'emerald',
+        icon: Package,
+        value: this.surtidasCount(),
+        share: share(this.surtidasCount()),
+        footer: this.formatCurrency(this.surtidasAmount()),
+        footerKind: 'pill',
+      },
+      {
+        key: 'paid',
+        label: 'Pagadas',
+        hint: 'Pagadas de esta página',
+        tone: 'sky',
+        icon: CircleDollarSign,
+        value: this.pagadasCount(),
+        share: share(this.pagadasCount()),
+        footer: this.formatCurrency(this.pagadasAmount()),
+        footerKind: 'pill',
+      },
+      {
+        key: 'pending',
+        label: 'Pendientes',
+        hint: 'Pendientes de esta página',
+        tone: pending ? 'rose' : 'emerald',
+        icon: CircleAlert,
+        value: this.pendientesCount(),
+        share: share(this.pendientesCount()),
+        footer: pending ? this.formatCurrency(this.pendientesAmount()) : 'Sin pendiente',
+        footerKind: pending ? 'debt' : 'ok',
+      },
+    ];
+  });
 
   readonly initialSearch: string;
   readonly initialCustomerId: string;
@@ -236,11 +300,14 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
           loading: false,
         }));
 
+        this.statsReady.set(true);
+        this.statsError.set(false);
         this.loadingState.set(false);
       },
       error: (error) => {
         if (seq !== this.loadSeq) return;
         console.error('Error loading sales orders:', error);
+        if (!this.statsReady()) this.statsError.set(true);
         this.loadingState.set(false);
         this.table_config.update(c => ({ ...c, loading: false }));
       }

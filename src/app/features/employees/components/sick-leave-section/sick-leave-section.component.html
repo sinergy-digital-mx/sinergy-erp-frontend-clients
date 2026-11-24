@@ -1,41 +1,25 @@
 <section class="sick" aria-labelledby="sick-leave-title">
   <header class="sick__band">
-    <div class="sick__copy">
-      <p class="sick__kicker">Año {{ year }}</p>
-      <h3 id="sick-leave-title">Incapacidad médica</h3>
-      <p>Días aprobados en el año. En cada solicitud van los comentarios y los comprobantes.</p>
-    </div>
+    <h3 id="sick-leave-title">Incapacidad médica</h3>
 
     <div class="sick__meter">
-      <div class="sick__orb" aria-hidden="true">{{ dayFigure(approvedDays) }}</div>
-      <div class="sick__meter-copy">
-        <strong>{{ daysLabel(approvedDays) }}</strong>
-        <span>en {{ year }}</span>
-        <div class="sick__chips">
-          @if (pendingDays > 0) {
-            <em>{{ daysLabel(pendingDays) }} en revisión</em>
-          }
-          @if (requestCount > 0) {
-            <em>{{ requestCount }} {{ requestCount === 1 ? 'solicitud' : 'solicitudes' }} este año</em>
-          }
-        </div>
-      </div>
+      <span class="sick__count">{{ daysLabel(approvedDays) }} · {{ year }}</span>
+      @if (pendingDays > 0) {
+        <em>{{ daysLabel(pendingDays) }} en revisión</em>
+      }
+      @if (requestCount > 0) {
+        <em>{{ requestCount }} {{ requestCount === 1 ? 'solicitud' : 'solicitudes' }}</em>
+      }
     </div>
 
     @if (canRequest) {
-      <button type="button" class="sick__cta" (click)="openCreate()">
-        <lucide-icon [img]="plus" [size]="16"></lucide-icon>
-        Solicitar incapacidad
-      </button>
+      <button type="button" class="sick__cta" (click)="openCreate()">Solicitar</button>
     }
   </header>
 
   @if (!rows.length) {
     <div class="sick__empty">
-      <p>Todavía no hay incapacidades en este expediente.</p>
-      @if (canRequest) {
-        <button type="button" (click)="openCreate()">Registrar la primera</button>
-      }
+      <p>Sin incapacidades en este expediente.</p>
     </div>
   } @else {
     <ul class="sick__list">

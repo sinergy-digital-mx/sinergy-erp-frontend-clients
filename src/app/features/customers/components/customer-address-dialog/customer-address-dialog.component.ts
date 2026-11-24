@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -38,6 +38,7 @@ export interface CustomerAddressDialogData {
   ],
   templateUrl: './customer-address-dialog.component.html',
   styleUrl: './customer-address-dialog.component.scss',
+  encapsulation: ViewEncapsulation.None,
 })
 export class CustomerAddressDialogComponent implements OnInit {
   readonly X = X;

@@ -452,54 +452,135 @@
         </div>
       </div>
 
-      <!-- Tab: Logo -->
+      <!-- Tab: Logo y color -->
       <div *ngIf="activeTab === 'logo'" class="tab-pane">
         <div *ngIf="isNew" class="empty-state">
-          <p>Guarda la configuración fiscal antes de subir un logo.</p>
+          <p>Guarda la razón social antes de subir el logo y elegir los colores del menú.</p>
         </div>
 
-        <div *ngIf="!isNew" class="logo-tab">
-          <div class="logo-preview">
-            <img *ngIf="logoUrl; else emptyLogo" [src]="logoUrl" alt="Logo fiscal" />
-            <ng-template #emptyLogo>
-              <div class="logo-placeholder">Sin logo</div>
-            </ng-template>
-          </div>
+        <div *ngIf="!isNew" class="brand-layout">
+          <section class="brand-layout__logo" aria-label="Logo del sistema">
+            <div class="logo-preview">
+              <img *ngIf="logoUrl; else emptyLogo" [src]="logoUrl" alt="Logo fiscal" />
+              <ng-template #emptyLogo>
+                <div class="logo-placeholder">Sin logo</div>
+              </ng-template>
+            </div>
 
-          <input
-            #logoFileInput
-            type="file"
-            accept="image/png,image/jpeg,image/jpg,image/webp"
-            class="hidden-file-input"
-            (change)="onLogoSelected($event)"
-          />
+            <input
+              #logoFileInput
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              class="hidden-file-input"
+              (change)="onLogoSelected($event)"
+            />
 
-          <div class="logo-actions">
-            <button
-              type="button"
-              class="logo-upload-btn"
-              (click)="openLogoPicker(logoFileInput)"
-              [disabled]="uploadingLogo()"
-            >
-              {{ uploadingLogo() ? 'Subiendo...' : 'Subir logo' }}
-            </button>
-            <p *ngIf="logoFileName" class="logo-file-name">{{ logoFileName }}</p>
-            <label
-              class="logo-system-toggle"
-              [class.logo-system-toggle--disabled]="!logoUrl || savingSystemLogo()">
-              <input
-                type="checkbox"
-                [checked]="useAsSystemLogo"
-                [disabled]="!logoUrl || savingSystemLogo()"
-                (change)="onUseAsSystemLogoChange($event)"
-              />
-              <span>Utilizar como logo del sistema</span>
-            </label>
-            <small class="logo-help">
-              Si lo activas, este logo reemplaza Pólux arriba del menú. Solo una razón social puede tenerlo activo.
-              Se guarda en este navegador y no se vuelve a descargar hasta que cambies el archivo.
+            <div class="logo-actions">
+              <button
+                type="button"
+                class="logo-upload-btn"
+                (click)="openLogoPicker(logoFileInput)"
+                [disabled]="uploadingLogo()"
+              >
+                {{ uploadingLogo() ? 'Subiendo...' : 'Subir logo' }}
+              </button>
+              <p *ngIf="logoFileName" class="logo-file-name">{{ logoFileName }}</p>
+              <label
+                class="logo-system-toggle"
+                [class.logo-system-toggle--disabled]="!logoUrl || savingSystemLogo()">
+                <input
+                  type="checkbox"
+                  [checked]="useAsSystemLogo"
+                  [disabled]="!logoUrl || savingSystemLogo()"
+                  (change)="onUseAsSystemLogoChange($event)"
+                />
+                <span>Utilizar como logo del sistema</span>
+              </label>
+              <small class="logo-help">
+                Si lo activas, este logo reemplaza Pólux arriba del menú. Solo una razón social puede tenerlo activo.
+                Se guarda en este navegador y no se vuelve a descargar hasta que cambies el archivo.
+              </small>
+            </div>
+          </section>
+
+          <section class="brand-panel" aria-label="Colores del menú">
+            <header class="brand-panel__head">
+              <p class="brand-panel__kicker">Menú</p>
+              <h3>Colores de la marca</h3>
+              <p>El mismo degradado de la barra: arriba, centro y abajo.</p>
+            </header>
+
+            <div class="brand-stage">
+              <div class="brand-stage__nav" [style.background]="brandGradient">
+                <span class="brand-stage__mark"></span>
+                <span class="brand-stage__line"></span>
+                <span class="brand-stage__line brand-stage__line--on"></span>
+                <span class="brand-stage__line brand-stage__line--short"></span>
+                <span class="brand-stage__caption">Escritorio</span>
+              </div>
+              <div class="brand-stage__phone" [style.background]="brandColors.start">
+                <span class="brand-stage__status"></span>
+                <span class="brand-stage__caption">Celular</span>
+              </div>
+            </div>
+
+            <div class="brand-stops">
+              <label class="brand-stop" *ngFor="let stop of brandStops">
+                <span class="brand-stop__picker" [style.background]="brandColors[stop.id]">
+                  <input
+                    type="color"
+                    [value]="brandColors[stop.id]"
+                    [disabled]="savingBrand()"
+                    [attr.aria-label]="'Elegir color de ' + stop.name"
+                    (input)="onBrandPicker(stop.id, $event)"
+                  />
+                </span>
+                <span class="brand-stop__copy">
+                  <span class="brand-stop__name">{{ stop.name }}</span>
+                  <span class="brand-stop__hint">{{ stop.hint }}</span>
+                </span>
+                <input
+                  class="brand-stop__hex"
+                  [ngModel]="brandTexts[stop.id]"
+                  (ngModelChange)="onBrandText(stop.id, $event)"
+                  [disabled]="savingBrand()"
+                  maxlength="7"
+                  spellcheck="false"
+                  autocomplete="off"
+                  [attr.aria-label]="'Hexadecimal de ' + stop.name"
+                />
+              </label>
+            </div>
+
+            <p *ngIf="brandHexError" class="brand-warning">{{ brandHexError }}</p>
+            <p *ngIf="brandLooksLight" class="brand-warning">
+              El texto del menú es blanco. Con un color claro se va a perder.
+            </p>
+
+            <div class="brand-actions">
+              <button
+                type="button"
+                class="logo-upload-btn"
+                (click)="saveBrandColors()"
+                [disabled]="savingBrand() || !brandDirty || !brandValid"
+              >
+                {{ savingBrand() ? 'Guardando...' : 'Guardar colores' }}
+              </button>
+              <button
+                type="button"
+                class="brand-restore"
+                (click)="restoreBrandColors()"
+                [disabled]="savingBrand() || !canRestoreBrand"
+              >
+                Restaurar Pólux
+              </button>
+            </div>
+            <small class="logo-help brand-panel__note">
+              El menú toma estos colores cuando esta razón social es el logo del sistema.
+              En el celular, la barra y el fondo usan el de arriba para verse continuos.
+              Quedan guardados aquí; este navegador los pinta al entrar y, si alguien los cambia, al regresar a la pestaña.
             </small>
-          </div>
+          </section>
         </div>
       </div>
     </div>

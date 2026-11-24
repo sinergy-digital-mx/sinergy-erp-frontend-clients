@@ -198,10 +198,11 @@
       }
 
       @if (activeTab() === 'fiscal') {
-        <div>
+        <div class="customer-modal__rfc">
           <app-input
             label="RFC"
             placeholder="RFC"
+            [uppercase]="true"
             [form_control]="form.controls['fiscal_rfc']">
           </app-input>
         </div>
@@ -224,7 +225,7 @@
             placeholder="Como aparece en la CSF"
             [form_control]="form.controls['fiscal_razon_social']">
           </app-input>
-          <p class="text-xs text-gray-400 mt-1 px-1">Exacto CSF, MAYÚSCULAS SAT. Debe coincidir letra por letra para timbrar.</p>
+          <p class="text-xs text-gray-400 mt-1">Exacto CSF, MAYÚSCULAS SAT. Debe coincidir letra por letra para timbrar.</p>
         </div>
 
         <div>

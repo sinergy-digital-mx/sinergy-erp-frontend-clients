@@ -901,7 +901,7 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
   private openFiscalModal(fiscalConfig: FiscalConfiguration): void {
     this.dialog.open(FiscalConfigurationModalComponent, {
       width: '92vw',
-      maxWidth: '760px',
+      maxWidth: '1000px',
       data: { fiscalConfig },
     });
   }
