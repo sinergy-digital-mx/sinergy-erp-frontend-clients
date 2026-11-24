@@ -40,6 +40,7 @@
         </app-inventory-stats-cards>
       }
 
+      @if (!branchReport()) {
       <div class="mb-4">
         <div class="filter-bar" role="search" aria-label="Filtros de inventario">
           <div class="filter-bar__container">
@@ -104,6 +105,7 @@
           </div>
         </div>
       </div>
+      }
 
       <div class="inventory-tabs">
         <nav>
@@ -124,6 +126,15 @@
             [routerLinkActiveOptions]="{ exact: true }"
             [class.is-active]="totalizadoTab.isActive">
             Totalizado
+          </a>
+          <a
+            routerLink="sucursal"
+            queryParamsHandling="preserve"
+            routerLinkActive
+            #sucursalTab="routerLinkActive"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [class.is-active]="sucursalTab.isActive">
+            Por sucursal
           </a>
         </nav>
       </div>

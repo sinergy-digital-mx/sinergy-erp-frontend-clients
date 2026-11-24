@@ -1,56 +1,53 @@
-<div class="purchase-order-list-container">
-  <div class="purchase-content">
-    <div class="px-4">
-      <!-- Header -->
-      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-        <h2 class="text-2xl font-semibold text-gray-800">Órdenes de Venta</h2>
-        <div class="flex items-center gap-2 flex-wrap">
+<div class="doc-page">
+      <div class="doc-page__header">
+        <h1 class="doc-page__title">Órdenes de Venta</h1>
+        <div class="doc-page__actions">
           <button
             type="button"
-            class="page-export-btn"
-            (click)="openExportModal()">
+            class="doc-page__export"
+            (click)="openExportModal()"
+            aria-label="Descargar Excel">
             <i class="fi fi-rr-download" aria-hidden="true"></i>
-            Descargar Excel
+            <span>Descargar Excel</span>
           </button>
           <button
             type="button"
-            class="page-create-btn"
-            (click)="navigateToCreate()">
-            Crear
+            class="doc-page__create"
+            (click)="navigateToCreate()"
+            aria-label="Crear">
+            <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
+            <span>Crear</span>
           </button>
         </div>
       </div>
 
-      <!-- Filter Bar -->
-      <div class="mb-4">
-        <app-sales-filter-bar
-          [refreshing]="loading()"
-          [showGlance]="canViewStats()"
-          [initialSearch]="initialSearch"
-          [initialCustomerId]="initialCustomerId"
-          [initialCustomerLabel]="initialCustomerLabel"
-          [initialFiscalConfigurationId]="initialFiscalConfigurationId"
-          [initialBillingBranchId]="initialBillingBranchId"
-          (filtersChange)="applyFilters($event)"
-          (refresh)="loadOrders()">
-          @if (canViewStats()) {
-            <app-glance-switch
-              glanceSwitch
-              [panel]="glancePanel()"
-              firstLabel="Por estado y pago"
-              secondLabel="Ventas de los últimos 12 meses"
-              (panelChange)="selectGlance($event)">
-            </app-glance-switch>
-          }
-        </app-sales-filter-bar>
-      </div>
+      <app-sales-filter-bar
+        [refreshing]="loading()"
+        [showGlance]="canViewStats()"
+        [initialSearch]="initialSearch"
+        [initialCustomerId]="initialCustomerId"
+        [initialCustomerLabel]="initialCustomerLabel"
+        [initialFiscalConfigurationId]="initialFiscalConfigurationId"
+        [initialBillingBranchId]="initialBillingBranchId"
+        (filtersChange)="applyFilters($event)"
+        (refresh)="loadOrders()">
+        @if (canViewStats()) {
+          <app-glance-switch
+            glanceSwitch
+            [panel]="glancePanel()"
+            firstLabel="Por estado y pago"
+            secondLabel="Ventas de los últimos 12 meses"
+            (panelChange)="selectGlance($event)">
+          </app-glance-switch>
+        }
+      </app-sales-filter-bar>
 
       @if (canViewStats()) {
         @if (glancePanel() === 0) {
           <app-list-stat-strip
             label="Resumen de ventas"
             [cards]="statCards()"
-            [columns]="4"
+            [columns]="5"
             [loading]="loading()"
             [ready]="statsReady()"
             [error]="statsError()">
@@ -78,83 +75,80 @@
         </app-datatable-wrapper>
       </div>
 
-      <!-- Mobile Cards -->
-      <div class="block md:hidden">
-        @if (!loading() && !table_config().rows?.length) {
+      <div class="doc-feed md:hidden">
+        @if (loading() && !table_config().rows?.length) {
+          <div class="doc-feed__list" aria-busy="true">
+            @for (slot of cardSkeletonSlots; track slot) {
+              <div class="doc-card doc-card--skeleton" aria-hidden="true">
+                <span class="doc-card__avatar"></span>
+                <span class="doc-card__main">
+                  <span class="doc-card__skel doc-card__skel--name"></span>
+                  <span class="doc-card__skel doc-card__skel--meta"></span>
+                </span>
+              </div>
+            }
+          </div>
+        } @else if (!table_config().rows?.length) {
           <app-empty-stage
             message="Sin resultados"
             sub_message="No se encontraron órdenes de venta">
           </app-empty-stage>
-        }
-        <div class="space-y-3">
-          @for (order of table_config().rows; track order.id) {
-            <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm" (click)="navigateToDetail(order)">
-              <div class="flex justify-between items-start mb-2">
-                <span class="dt-folio-badge dt-folio-badge--odv">{{ order.folio || order.id.substring(0, 8) }}</span>
-                <span [ngClass]="getStatusClass(getOrderStatus(order))">{{ getOrderStatus(order) }}</span>
-              </div>
-              <div class="text-sm text-gray-600 space-y-1">
-                <div class="sales-order-list__mobile-customer">
-                  <strong>Cliente:</strong>
-                  <span class="sales-orders-col-customer__stack">
-                    <span class="sales-orders-col-customer__name" [title]="getOrderCustomerName(order)">{{ getOrderCustomerName(order) }}</span>
-                    @if (getOrderCompanyName(order)) {
-                      <span class="sales-orders-col-customer__company" [title]="getOrderCompanyName(order)">{{ getOrderCompanyName(order) }}</span>
+        } @else {
+          <div class="doc-feed__list">
+            @for (order of table_config().rows; track order.id) {
+              <button type="button" class="doc-card" (click)="navigateToDetail(order)">
+                <span class="doc-card__avatar" aria-hidden="true">{{ partyInitials(getOrderCustomerName(order)) }}</span>
+                <span class="doc-card__main">
+                  <span class="doc-card__top">
+                    <span class="doc-card__name" [title]="getOrderCustomerName(order)">{{ getOrderCustomerName(order) }}</span>
+                    <span class="doc-card__status" [ngClass]="getStatusClass(getOrderStatus(order))">{{ getOrderStatus(order) }}</span>
+                  </span>
+                  <span class="doc-card__meta">{{ order.folio || order.id.substring(0, 8) }} · {{ getSaleScopeLabel(order) }}</span>
+                  @if (getOrderCompanyName(order)) {
+                    <span class="doc-card__meta">{{ getOrderCompanyName(order) }}</span>
+                  }
+                  <span class="doc-card__tags">
+                    <span class="doc-card__tag doc-card__tag--money">{{ formatCurrency(getOrderTotal(order)) }}</span>
+                    <span class="doc-card__tag" [attr.data-pay]="order.payment_status">{{ order.payment_status }}</span>
+                    @if (paymentMetaLabel(order)) {
+                      <span class="doc-card__tag">{{ paymentMetaLabel(order) }}</span>
+                    }
+                    @if (showBranchColumn()) {
+                      <span class="doc-card__tag">{{ getBranchLabel(order) }}</span>
+                    }
+                    @if (orderInvoice(order); as invoice) {
+                      <span class="doc-card__tag" [attr.data-tone]="invoiceTone(invoice)">{{ invoiceBadgeLabel(invoice) }}</span>
+                    } @else {
+                      <span class="doc-card__tag">Sin factura</span>
                     }
                   </span>
-                </div>
-                <div><strong>Tipo:</strong> {{ getSaleScopeLabel(order) }}</div>
-                <div class="sales-order-list__mobile-billing">
-                  <strong>Sucursal:</strong>
-                  <span class="sales-orders-col-billing__stack">
-                    <span class="sales-orders-col-billing__branch" [title]="getBranchLabel(order)">{{ getBranchLabel(order) }}</span>
-                    <span class="sales-orders-col-billing__fiscal" [title]="getFiscalLabel(order)">{{ getFiscalLabel(order) }}</span>
-                  </span>
-                </div>
-                <div><strong>Total:</strong> {{ formatCurrency(getOrderTotal(order)) }}</div>
-                <div class="sales-order-list__mobile-pay">
-                  <strong>Pago:</strong>
-                  <span class="sales-order-pay-cell" [title]="paymentMetaLabel(order)">
-                    <span [ngClass]="getPaymentStatusClass(order.payment_status)">{{ order.payment_status }}</span>
-                    <span class="sales-order-pay-cell__meta">{{ paymentMetaLabel(order) }}</span>
-                  </span>
-                </div>
-                <div class="sales-order-list__mobile-pay">
-                  <strong>Factura:</strong>
-                  <ng-container *ngTemplateOutlet="invoiceBadge; context: { $implicit: order }"></ng-container>
-                </div>
-                <div class="text-xs text-gray-500">{{ formatDateHuman(order.created_at) }}</div>
-              </div>
-            </div>
-          }
-        </div>
+                </span>
+                <lucide-icon class="doc-card__go" [img]="ChevronRight" [size]="18"></lucide-icon>
+              </button>
+            }
+          </div>
 
-        @if ((table_config().totalResults || 0) > (table_config().limit || 15)) {
-          <div class="mt-4 flex justify-center">
-            <div class="flex items-center gap-2">
+          @if ((table_config().totalResults || 0) > (table_config().limit || 15)) {
+            <div class="doc-feed__pager">
               <button
                 type="button"
                 [disabled]="(table_config().page || 1) <= 1 || loading()"
-                (click)="onPageChange({ page: (table_config().page || 1) - 1, limit: table_config().limit })"
-                class="px-3 py-1 text-sm border rounded disabled:opacity-50">
+                (click)="onPageChange({ page: (table_config().page || 1) - 1, limit: table_config().limit })">
                 Anterior
               </button>
-              <span class="text-sm text-gray-600">
-                Página {{ table_config().page }} de {{ Math.ceil(table_config().totalResults / table_config().limit) }}
+              <span>
+                {{ table_config().page }} / {{ Math.ceil((table_config().totalResults || 0) / (table_config().limit || 15)) }}
               </span>
               <button
                 type="button"
                 [disabled]="!table_config().hasNext || loading()"
-                (click)="onPageChange({ page: (table_config().page || 1) + 1, limit: table_config().limit })"
-                class="px-3 py-1 text-sm border rounded disabled:opacity-50">
+                (click)="onPageChange({ page: (table_config().page || 1) + 1, limit: table_config().limit })">
                 Siguiente
               </button>
             </div>
-          </div>
+          }
         }
       </div>
-    </div>
-  </div>
 </div>
 
 <ng-template #tableTemplate let-item="$implicit">
@@ -172,12 +166,14 @@
       }
     </span>
   </td>
-  <td class="sales-orders-col-billing">
-    <span class="sales-orders-col-billing__stack" [title]="getBranchLabel(item) + ' · ' + getFiscalLabel(item)">
-      <span class="sales-orders-col-billing__branch">{{ getBranchLabel(item) }}</span>
-      <span class="sales-orders-col-billing__fiscal">{{ getFiscalLabel(item) }}</span>
-    </span>
-  </td>
+  @if (showBranchColumn()) {
+    <td class="sales-orders-col-billing">
+      <span class="sales-orders-col-billing__stack" [title]="getBranchLabel(item) + ' · ' + getFiscalLabel(item)">
+        <span class="sales-orders-col-billing__branch">{{ getBranchLabel(item) }}</span>
+        <span class="sales-orders-col-billing__fiscal">{{ getFiscalLabel(item) }}</span>
+      </span>
+    </td>
+  }
   <td class="w-[120px]">
     <span [ngClass]="getStatusClass(getOrderStatus(item))">{{ getOrderStatus(item) }}</span>
   </td>

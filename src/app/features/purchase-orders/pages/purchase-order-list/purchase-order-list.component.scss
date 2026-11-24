@@ -1,3 +1,7 @@
+@use '../../../../../base/doc-list' as doc;
+
+@include doc.doc-list-chrome;
+
 :host {
   display: block;
   width: 100%;

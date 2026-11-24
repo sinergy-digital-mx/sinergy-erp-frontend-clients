@@ -16,20 +16,28 @@
           [attr.data-tone]="card.tone"
           [attr.title]="card.hint">
           @if (card.pair) {
-            <div class="list-stat__pair">
+            <div class="list-stat__top list-stat__pair-head">
               @for (side of [card.pair.left, card.pair.right]; track side.label) {
-                <div class="list-stat__side" [attr.data-tone]="side.tone">
-                  <span class="list-stat__side-label"><i aria-hidden="true"></i>{{ side.label }}</span>
-                  <span class="list-stat__side-value">{{ formatCount(side.value) }}</span>
-                  @for (line of side.lines; track $index) {
-                    <span class="list-stat__side-money">{{ line }}</span>
-                  }
-                </div>
+                <span class="list-stat__side-label" [attr.data-tone]="side.tone"><i aria-hidden="true"></i>{{ side.label }}</span>
+              }
+            </div>
+            <div class="list-stat__pair-values">
+              @for (side of [card.pair.left, card.pair.right]; track side.label) {
+                <span class="list-stat__side-value">{{ formatCount(side.value) }}</span>
               }
             </div>
             <div class="list-stat__meter" aria-hidden="true">
               @for (segment of card.segments; track segment.tone) {
                 <span [attr.data-tone]="segment.tone" [style.width.%]="segment.share"></span>
+              }
+            </div>
+            <div class="list-stat__pair-money">
+              @for (side of [card.pair.left, card.pair.right]; track side.label) {
+                <div class="list-stat__side-lines">
+                  @for (line of side.lines; track $index) {
+                    <span class="list-stat__side-money">{{ line }}</span>
+                  }
+                </div>
               }
             </div>
           } @else {
@@ -51,20 +59,39 @@
                 <span [style.width.%]="card.share"></span>
               }
             </div>
-            <span
-              class="list-stat__share"
-              [attr.data-tone]="card.shareTone"
-              [attr.title]="card.shareLabel || null">
-              {{ card.shareLabel || card.share + '%' }}
-            </span>
+            <div class="list-stat__below">
+              <span
+                class="list-stat__share"
+                [attr.data-tone]="card.shareTone"
+                [attr.title]="card.shareLabel || null">
+                {{ card.shareLabel || card.share + '%' }}
+              </span>
 
-            @if (card.footerKind === 'quiet') {
-              <p class="list-stat__quiet">{{ card.footer }}</p>
-            } @else {
-              <p class="list-stat__gap" [attr.data-kind]="card.footerKind">
-                <span>{{ card.footer }}</span>
-              </p>
-            }
+              @if (card.footerKind === 'quiet') {
+                <p class="list-stat__quiet" [class.list-stat__quiet--stack]="!!card.footerLines?.length">
+                  @if (card.footerLines?.length) {
+                    @for (line of card.footerLines; track $index) {
+                      <span>{{ line }}</span>
+                    }
+                  } @else {
+                    {{ card.footer }}
+                  }
+                </p>
+              } @else {
+                <p
+                  class="list-stat__gap"
+                  [class.list-stat__gap--stack]="!!card.footerLines?.length"
+                  [attr.data-kind]="card.footerKind">
+                  @if (card.footerLines?.length) {
+                    @for (line of card.footerLines; track $index) {
+                      <span>{{ line }}</span>
+                    }
+                  } @else {
+                    <span>{{ card.footer }}</span>
+                  }
+                </p>
+              }
+            </div>
           }
         </article>
       }

@@ -10,15 +10,15 @@
 .pos-summary-layout {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.65rem;
 }
 
 .pos-summary-section {
   background: #fff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 1rem;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  box-shadow: none;
 }
 
 .pos-summary-error {
@@ -80,12 +80,13 @@
 .collection-card {
   display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-  gap: 0.875rem 1.25rem;
-  padding: 1rem 1.1rem;
-  border-radius: 16px;
+  gap: 0.65rem 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #1e1b4b;
+  border-radius: 10px;
   background: linear-gradient(120deg, #0f172a 0%, #1e1b4b 42%, #312e81 100%);
   color: #fff;
-  box-shadow: 0 12px 28px rgba(49, 46, 129, 0.22);
+  box-shadow: none;
 }
 
 .collection-card__lead {
@@ -113,7 +114,7 @@
   justify-content: center;
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.12);
   color: #c7d2fe;
   font-size: 1.125rem;
@@ -140,20 +141,19 @@
   align-items: flex-start;
   gap: 0.2rem;
   width: 100%;
-  padding: 0.9rem 1rem;
+  padding: 0.7rem 0.8rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.08);
   color: inherit;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.14);
     border-color: rgba(255, 255, 255, 0.22);
-    transform: translateY(-1px);
   }
 }
 
@@ -194,20 +194,19 @@
   justify-content: space-between;
   gap: 0.75rem;
   width: 100%;
-  padding: 0.7rem 0.85rem;
+  padding: 0.55rem 0.7rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgba(15, 23, 42, 0.22);
   color: inherit;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
   }
 }
 
@@ -243,9 +242,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  padding: 0.65rem 0.75rem;
+  padding: 0.5rem 0.65rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgba(15, 23, 42, 0.18);
 }
 

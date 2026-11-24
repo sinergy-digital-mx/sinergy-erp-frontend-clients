@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
@@ -103,8 +103,29 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
       this.searchControl.value.trim() ||
       this.fiscalConfigurationControl.value ||
       this.billingBranchControl.value ||
+      this.vendorControl.value ||
       this.extraFilterCount
     );
+  }
+
+  compactFilters = false;
+
+  @HostListener('window:resize')
+  syncCompactFilters(): void {
+    this.compactFilters = window.innerWidth < 1024;
+  }
+
+  get keyFilterCount(): number {
+    let count = 0;
+    if (this.fiscalConfigurationControl.value) count += 1;
+    if (this.billingBranchControl.value) count += 1;
+    if (this.vendorControl.value) count += 1;
+    return count;
+  }
+
+  /** En móvil razón social, sucursal y proveedor viven dentro de Filtros. */
+  get panelFilterCount(): number {
+    return this.extraFilterCount + (this.compactFilters ? this.keyFilterCount : 0);
   }
 
   get extraFilterCount(): number {
@@ -127,6 +148,7 @@ export class FilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.syncCompactFilters();
     const fiscalId = (this.initialFiscalConfigurationId ?? '').trim();
     const branchId = (this.initialBillingBranchId ?? '').trim();
     if (fiscalId) {

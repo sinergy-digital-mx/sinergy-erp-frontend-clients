@@ -10,3 +10,9 @@
   opacity: 0.45;
   cursor: default;
 }
+
+@media (max-width: 1023px) {
+  :host-context(.filter-bar__container--toolbar) {
+    display: none;
+  }
+}

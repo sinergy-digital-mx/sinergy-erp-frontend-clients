@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChartModule } from 'primeng/chart';
+import { titledMonthLabel } from '../../../../core/utils/month-label.util';
 import { SalesOrderTrend, SalesOrderTrendMonth } from '../../models/sales-order.model';
 
 const salesTrendGlow = {
@@ -37,7 +38,10 @@ export class SalesOrderTrendComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['trend']) return;
-    this.months = this.trend?.months ?? [];
+    this.months = (this.trend?.months ?? []).map((month) => ({
+      ...month,
+      label: titledMonthLabel(month.label),
+    }));
     const peak = Math.max(0, ...this.months.map((month) => month.total));
     this.chartOptions.set(this.createChartOptions(peak));
     this.chartData.set(this.months.length ? this.createChartData(this.months) : null);

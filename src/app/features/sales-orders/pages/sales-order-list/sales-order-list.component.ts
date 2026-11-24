@@ -43,13 +43,13 @@ import { getInvoiceStatusLabel } from '../../utils/cfdi-xml-builder.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { SALES_ORDER_PERMISSIONS } from '../../config/permissions.config';
 import { GlanceSwitchComponent } from '../../../../core/components/glance-switch/glance-switch.component';
-import { ListStatCard, ListStatSegment, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
-import { CircleAlert, CircleDollarSign, ClipboardList, ShoppingBag } from 'lucide-angular';
+import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
+import { ChevronRight, CircleAlert, CircleDollarSign, ClipboardList, LucideAngularModule, Package, Plus, ShoppingBag } from 'lucide-angular';
 
 @Component({
   selector: 'app-sales-order-list',
   standalone: true,
-  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, SalesOrderTrendComponent, ListStatStripComponent, GlanceSwitchComponent],
+  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, SalesOrderTrendComponent, ListStatStripComponent, GlanceSwitchComponent, LucideAngularModule],
   templateUrl: './sales-order-list.component.html',
   styleUrls: ['./sales-order-list.component.scss']
 })
@@ -61,6 +61,9 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
   readonly canViewStats = signal(this.authService.hasPermission(SALES_ORDER_PERMISSIONS.viewStats));
 
   readonly Math = Math;
+  readonly Plus = Plus;
+  readonly ChevronRight = ChevronRight;
+  readonly cardSkeletonSlots = [1, 2, 3, 4];
 
   private ordersData = signal<SalesOrder[]>([]);
   private filtersState = signal<SalesOrderFilters>({});
@@ -81,17 +84,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
 
   table_config = signal<IDatatableConfig>({
     rows: [],
-    columns: [
-      { name: 'Folio', prop: 'folio', sortable: true, canAutoResize: false, width: 140 },
-      { name: 'Tipo', prop: 'sale_scope', sortable: false, canAutoResize: false, width: 120 },
-      { name: 'Cliente', prop: 'customer', sortable: true, canAutoResize: false, width: 140 },
-      { name: 'Sucursal', prop: 'billing_branch', sortable: false, canAutoResize: false, width: 190 },
-      { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 120 },
-      { name: 'Total', prop: 'requested_total', sortable: true, canAutoResize: false, width: 120 },
-      { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 186 },
-      { name: 'Factura', prop: 'invoice', sortable: false, canAutoResize: false, width: 148 },
-      { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
-    ],
+    columns: this.listColumns(true),
     externalPaging: true,
     externalSorting: true,
     page: 1,
@@ -124,48 +117,47 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     const total = this.totalOrders();
     const share = (count: number) => (total > 0 ? Math.min(100, Math.round((count / total) * 100)) : 0);
     const pending = this.pendientesCount() > 0 || this.bucketAmount('pending', 'MXN') > 0 || this.bucketAmount('pending', 'USD') > 0;
-    const openCount = this.openCount();
-    const deliveredCount = this.deliveredCount();
-    const flow = openCount + deliveredCount;
-    let openShare = flow > 0 ? Math.round((openCount / flow) * 100) : 0;
-    if (openCount > 0 && openShare === 0) openShare = 1;
-    if (deliveredCount > 0 && openShare === 100) openShare = 99;
-    const deliveredShare = flow > 0 ? 100 - openShare : 0;
-    const openSegments: ListStatSegment[] = [
-      { share: openShare, tone: 'indigo' },
-      { share: deliveredShare, tone: 'emerald' },
-    ];
-    const openLines = this.moneyLines(this.bucketAmount('open', 'MXN'), this.bucketAmount('open', 'USD'));
-    const deliveredLines = this.moneyLines(
-      this.bucketAmount('delivered', 'MXN'),
-      this.bucketAmount('delivered', 'USD'),
-    );
+    const lines = (mxn: number, usd: number) => this.moneyLines(mxn, usd);
+    const totalLines = lines(this.currencyAmount('MXN'), this.currencyAmount('USD'));
+    const openLines = lines(this.bucketAmount('open', 'MXN'), this.bucketAmount('open', 'USD'));
+    const deliveredLines = lines(this.bucketAmount('delivered', 'MXN'), this.bucketAmount('delivered', 'USD'));
+    const paidLines = lines(this.bucketAmount('paid', 'MXN'), this.bucketAmount('paid', 'USD'));
+    const pendingLines = lines(this.bucketAmount('pending', 'MXN'), this.bucketAmount('pending', 'USD'));
     return [
       {
         key: 'total',
         label: 'Órdenes',
-        hint: 'Todas las órdenes del filtro',
+        hint: 'Todas las órdenes del filtro. El monto es el total, MXN y USD por separado.',
         tone: 'slate',
         icon: ShoppingBag,
         value: total,
         share: total > 0 ? 100 : 0,
-        footer: this.moneyFooter(this.currencyAmount('MXN'), this.currencyAmount('USD'), 'total'),
-        footerKind: 'quiet',
+        footer: totalLines[0] || '',
+        footerLines: totalLines,
+        footerKind: 'pill',
       },
       {
         key: 'open',
-        label: 'Abiertas y entregadas',
-        hint: 'Izquierda: aún no entregadas. Derecha: surtidas. Canceladas no entran. La barra es esa misma comparación.',
+        label: 'Abiertas',
+        hint: 'Aún no surtidas. Las canceladas no entran.',
         tone: 'indigo',
         icon: ClipboardList,
-        value: openCount,
-        share: openShare,
-        segments: flow > 0 ? openSegments.filter((segment) => segment.share > 0) : undefined,
-        pair: {
-          left: { label: 'Abiertas', value: openCount, lines: openLines, tone: 'indigo' },
-          right: { label: 'Entregadas', value: deliveredCount, lines: deliveredLines, tone: 'emerald' },
-        },
+        value: this.openCount(),
+        share: share(this.openCount()),
         footer: openLines[0] || '',
+        footerLines: openLines,
+        footerKind: 'pill',
+      },
+      {
+        key: 'delivered',
+        label: 'Entregadas',
+        hint: 'Órdenes surtidas de todo el filtro.',
+        tone: 'emerald',
+        icon: Package,
+        value: this.deliveredCount(),
+        share: share(this.deliveredCount()),
+        footer: deliveredLines[0] || '',
+        footerLines: deliveredLines,
         footerKind: 'pill',
       },
       {
@@ -176,7 +168,8 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
         icon: CircleDollarSign,
         value: this.pagadasCount(),
         share: share(this.pagadasCount()),
-        footer: this.moneyFooter(this.bucketAmount('paid', 'MXN'), this.bucketAmount('paid', 'USD'), 'row'),
+        footer: paidLines[0] || '',
+        footerLines: paidLines,
         footerKind: 'pill',
       },
       {
@@ -187,9 +180,8 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
         icon: CircleAlert,
         value: this.pendientesCount(),
         share: share(this.pendientesCount()),
-        footer: pending
-          ? this.moneyFooter(this.bucketAmount('pending', 'MXN'), this.bucketAmount('pending', 'USD'), 'row')
-          : 'Sin pendiente',
+        footer: pending ? (pendingLines[0] || '') : 'Sin pendiente',
+        footerLines: pending ? pendingLines : undefined,
         footerKind: pending ? 'debt' : 'ok',
       },
     ];
@@ -229,6 +221,7 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
         : {}),
       ...(this.initialBillingBranchId ? { billing_branch_id: this.initialBillingBranchId } : {}),
     });
+    this.syncBranchColumn();
   }
 
   ngOnInit(): void {
@@ -332,9 +325,35 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     });
   }
 
+  showBranchColumn(): boolean {
+    return !this.filtersState().billing_branch_id?.trim();
+  }
+
+  private listColumns(showBranch: boolean): IDatatableConfig['columns'] {
+    return [
+      { name: 'Folio', prop: 'folio', sortable: true, canAutoResize: false, width: 140 },
+      { name: 'Tipo', prop: 'sale_scope', sortable: false, canAutoResize: false, width: 120 },
+      { name: 'Cliente', prop: 'customer', sortable: true, canAutoResize: false, width: 140 },
+      ...(showBranch
+        ? [{ name: 'Sucursal', prop: 'billing_branch', sortable: false, canAutoResize: false, width: 190 }]
+        : []),
+      { name: 'Estado', prop: 'status', sortable: true, canAutoResize: false, width: 120 },
+      { name: 'Total', prop: 'requested_total', sortable: true, canAutoResize: false, width: 120 },
+      { name: 'Pago', prop: 'payment_status', sortable: false, canAutoResize: false, width: 186 },
+      { name: 'Factura', prop: 'invoice', sortable: false, canAutoResize: false, width: 148 },
+      { name: 'Fecha', prop: 'created_at', sortable: true, canAutoResize: false, width: 160 },
+    ];
+  }
+
+  private syncBranchColumn(): void {
+    const columns = this.listColumns(this.showBranchColumn());
+    this.table_config.update((config) => ({ ...config, columns }));
+  }
+
   applyFilters(filters: SalesOrderFilters): void {
     const { customer_label: customerLabel, ...apiFilters } = filters;
     this.filtersState.set(apiFilters);
+    this.syncBranchColumn();
     this.paginationState.set({ page: 1, limit: this.paginationState().limit || 15 });
     void this.router.navigate([], {
       relativeTo: this.route,
@@ -489,17 +508,6 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     return lines;
   }
 
-  /** Mismo $ de la columna Total. Si hay dólares, no se mezclan con pesos. */
-  private moneyFooter(mxn: number, usd: number, mode: 'total' | 'row'): string {
-    if (!this.hasUsd() && usd <= 0) {
-      return this.formatCurrency(mxn);
-    }
-    const parts: string[] = [];
-    if (mode === 'total' || mxn > 0) parts.push(`MXN ${this.formatCurrency(mxn)}`);
-    if ((mode === 'total' && this.hasUsd()) || usd > 0) parts.push(`USD ${this.formatCurrency(usd)}`);
-    return parts.join(' · ') || this.formatCurrency(0);
-  }
-
   formatDateHuman(date: string | Date): string {
     if (!date) return '';
     const formatted = formatApiDate(date, 'human');
@@ -585,5 +593,14 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
     if (order.sale_scope === 'services') return 'Servicios';
     if (order.sale_scope === 'combined') return 'Prod. y serv.';
     return 'Inventario';
+  }
+
+  partyInitials(name: string | null | undefined): string {
+    const raw = String(name || '').trim();
+    if (!raw || /^sin\s/i.test(raw) || raw === '—') return '•';
+    const parts = raw.split(/\s+/).filter((part) => part && part !== '—');
+    const first = parts[0]?.charAt(0) || '';
+    const second = parts.length > 1 ? parts[1].charAt(0) : parts[0]?.charAt(1) || '';
+    return `${first}${second}`.toLocaleUpperCase('es-MX') || '•';
   }
 }

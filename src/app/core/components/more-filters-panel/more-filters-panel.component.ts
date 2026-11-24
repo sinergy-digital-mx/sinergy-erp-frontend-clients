@@ -1,4 +1,4 @@
-import { Component, HostListener, Input, OnDestroy } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnDestroy, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CloseButtonComponent } from '../close-button/close-button.component';
 
@@ -11,7 +11,9 @@ import { CloseButtonComponent } from '../close-button/close-button.component';
 })
 export class MoreFiltersPanelComponent implements OnDestroy {
   @Input() activeCount = 0;
+  @Input() canClear = false;
   @Input() title = 'Más filtros';
+  @Output() cleared = new EventEmitter<void>();
 
   open = false;
 

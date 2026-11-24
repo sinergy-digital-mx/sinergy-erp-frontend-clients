@@ -2,7 +2,8 @@ import { Component, DestroyRef, OnInit, computed, effect, inject, signal, untrac
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { LucideAngularModule, ArrowRightLeft, ClipboardCheck, ChartColumn } from 'lucide-angular';
 import { InventoryService } from '../../services/inventory.service';
@@ -53,6 +54,7 @@ export class InventoryBatchListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   readonly state = inject(InventoryListState);
   readonly canViewStats = signal(this.auth.hasPermission(INVENTORY_PERMISSIONS.viewStats));
+  readonly branchReport = signal(this.isBranchReportUrl(this.router.url));
 
   readonly ArrowRightLeft = ArrowRightLeft;
   readonly ClipboardCheck = ClipboardCheck;
@@ -76,6 +78,13 @@ export class InventoryBatchListComponent implements OnInit {
   );
 
   constructor() {
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe((event) => this.branchReport.set(this.isBranchReportUrl(event.urlAfterRedirects)));
+
     effect(() => {
       const epoch = this.state.statsEpoch();
       if (epoch === 0) return;
@@ -165,6 +174,10 @@ export class InventoryBatchListComponent implements OnInit {
     const name = fiscal.razon_social?.trim() || 'Sin razón social';
     const rfc = fiscal.rfc?.trim();
     return rfc ? `${name} (${rfc})` : name;
+  }
+
+  private isBranchReportUrl(url: string): boolean {
+    return url.split('?')[0].endsWith('/sucursal');
   }
 
   openExportModal(): void {

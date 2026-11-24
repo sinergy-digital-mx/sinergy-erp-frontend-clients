@@ -37,6 +37,8 @@ import {
   X,
   Ticket,
   RefreshCw,
+  LayoutGrid,
+  List,
   Store,
   Warehouse,
 } from 'lucide-angular';
@@ -86,7 +88,8 @@ import {
   resolveFiscalConfigurationIdFromBranch,
 } from '../../utils/pos-order.util';
 import { isValidWalkInRfc, normalizeWalkInRfc } from '../../utils/walk-in-ticket.util';
-import { posBranchName } from '../../utils/pos-branch-label.util';
+import { prettyPosBranchLabel } from '../../utils/pos-branch-label.util';
+import { PosBranchStockResponse } from '../../models/pos-branch-stock.model';
 import { resolvePosCollectCustomerId } from '../../utils/pos-collect.util';
 import { posRegisteredCustomerLabel } from '../../models/pos-collected-sales.model';
 import { isDiscountApiError, formatGlobalDiscountLabel, formatApplicableDiscountLabel } from '../../utils/pos-discount.util';
@@ -111,7 +114,6 @@ import {
 } from '../../components/pos-checkout-confirm-dialog/pos-checkout-confirm-dialog.component';
 import { CustomerEditModalComponent } from '../../../customers/components/customer-edit-modal/customer-edit-modal.component';
 import { CUSTOMER_FORM_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
-import { PosBranchStockPanelComponent } from '../../components/pos-branch-stock-panel/pos-branch-stock-panel.component';
 
 @Component({
   selector: 'app-take-order',
@@ -122,7 +124,6 @@ import { PosBranchStockPanelComponent } from '../../components/pos-branch-stock-
     LucideAngularModule,
     SpinnerComponent,
     PosOverlayHostDirective,
-    PosBranchStockPanelComponent,
   ],
   templateUrl: './take-order.component.html',
   styleUrls: ['./take-order.component.scss'],
@@ -149,8 +150,17 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly Ticket = Ticket;
   readonly RefreshCw = RefreshCw;
   readonly Store = Store;
+  readonly LayoutGrid = LayoutGrid;
+  readonly List = List;
   readonly Warehouse = Warehouse;
-  branchStockOpen = signal(false);
+
+  private static readonly CATALOG_VIEW_KEY = 'pos_catalog_view';
+  catalogView = signal<'cards' | 'list' | 'branches'>(TakeOrderComponent.readCatalogView());
+  branchStock = signal<PosBranchStockResponse | null>(null);
+  branchTableLoading = signal(false);
+  branchTableError = signal('');
+  private branchTableRequest = 0;
+  readonly branchRows = computed(() => this.buildBranchRows());
   catalogBranchId = signal('');
   browseBranches = signal<AssignedBranch[]>([]);
   shortcutsOpen = signal(false);
@@ -339,21 +349,28 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  toggleBranchStock(): void {
-    if (this.branchStockOpen()) {
-      this.closeBranchStock();
-      return;
+  private static readCatalogView(): 'cards' | 'list' | 'branches' {
+    try {
+      const saved = localStorage.getItem(TakeOrderComponent.CATALOG_VIEW_KEY);
+      if (saved === 'list' || saved === 'branches') {
+        return saved;
+      }
+    } catch {
+      /* ignore */
     }
-    this.branchStockOpen.set(true);
+    return 'cards';
   }
 
-  closeBranchStock(): void {
-    if (!this.branchStockOpen()) {
-      return;
+  setCatalogView(view: 'cards' | 'list' | 'branches'): void {
+    this.catalogView.set(view);
+    try {
+      localStorage.setItem(TakeOrderComponent.CATALOG_VIEW_KEY, view);
+    } catch {
+      /* ignore quota / private mode */
     }
-    this.branchStockOpen.set(false);
-    this.escExitArmed = false;
-    this.armFullscreenRestore();
+    if (view === 'branches') {
+      this.loadBranchTable(this.searchTerm());
+    }
   }
 
   private static readCartTotalsOpen(): boolean {
@@ -534,13 +551,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return match?.display_name || match?.code || 'otra sucursal';
   }
 
-  /** Texto del select cerrado: solo el nombre. La lista sigue con la ciudad. */
-  catalogBranchShortLabel(): string {
-    const id = this.catalogBranchId();
-    const match = this.browseBranches().find((row) => row.id === id);
-    return match ? posBranchName(match) : '';
-  }
-
   onCatalogBranch(branchId: string): void {
     this.catalogBranchId.set(branchId);
     this.catalogWarehouseId.set('');
@@ -559,13 +569,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     const key = event.key;
-    if (this.branchStockOpen()) {
-      if (key === 'Escape' && !event.repeat) {
-        event.preventDefault();
-        this.closeBranchStock();
-      }
-      return;
-    }
     if (key !== 'Escape') {
       this.escExitArmed = false;
     }
@@ -653,7 +656,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     const target = event.target as HTMLElement | null;
     const inSearch = target?.classList?.contains('pos-search__input') === true;
     if (key === 'ArrowDown' || key === 'ArrowUp') {
-      if (!this.catalogKeysAllowed(target) || this.markedCatalogIndex() < 0) {
+      if (this.catalogView() === 'branches' || !this.catalogKeysAllowed(target) || this.markedCatalogIndex() < 0) {
         return;
       }
       event.preventDefault();
@@ -661,7 +664,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     if (key === 'Enter') {
-      if (!this.catalogKeysAllowed(target) || event.repeat) {
+      if (this.catalogView() === 'branches' || !this.catalogKeysAllowed(target) || event.repeat) {
         return;
       }
       if (target?.closest('.pos-product-row, .pos-card')) {
@@ -1430,6 +1433,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (this.canSell()) {
       this.loadProducts(term);
+      if (this.catalogView() === 'branches') {
+        this.loadBranchTable(term);
+      }
       return;
     }
 
@@ -1640,18 +1646,17 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private placePriceDiscountPopover(button: HTMLElement): void {
     const scroller = button.closest('.pos-cart__lines');
-    const line = button.closest('.pos-line');
     const limit = scroller instanceof HTMLElement ? scroller.getBoundingClientRect() : null;
-    const lineBox = line instanceof HTMLElement ? line.getBoundingClientRect() : button.getBoundingClientRect();
+    const buttonBox = button.getBoundingClientRect();
     if (!limit) {
       this.priceDiscountDropUp.set(false);
       this.priceDiscountAlignEnd.set(false);
       return;
     }
-    const spaceBelow = limit.bottom - lineBox.bottom;
-    const spaceAbove = lineBox.top - limit.top;
+    const spaceBelow = limit.bottom - buttonBox.bottom;
+    const spaceAbove = buttonBox.top - limit.top;
     this.priceDiscountDropUp.set(spaceBelow < 52 && spaceAbove > spaceBelow);
-    this.priceDiscountAlignEnd.set(lineBox.width < 240);
+    this.priceDiscountAlignEnd.set(limit.right - buttonBox.left < 230);
   }
 
   applyPriceDiscount(index: number, percent: number): void {
@@ -2707,6 +2712,97 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   retryCatalogLoad(): void {
     this.loadProducts(this.searchTerm());
+    if (this.catalogView() === 'branches') {
+      this.loadBranchTable(this.searchTerm());
+    }
+  }
+
+  retryBranchTable(): void {
+    this.loadBranchTable(this.searchTerm());
+  }
+
+  private buildBranchRows(): Array<{
+    key: string;
+    product: string;
+    sku: string;
+    branch: string;
+    city: string | null;
+    quantity: number;
+    uom: string;
+    here: boolean;
+  }> {
+    const data = this.branchStock();
+    if (!data) {
+      return [];
+    }
+    const hereId = this.catalogBranchId();
+    const branches = new Map(data.branches.map((branch) => [branch.id, branch]));
+    const rows = data.products.flatMap((product) =>
+      product.branches.map((cell) => {
+        const branch = branches.get(cell.billing_branch_id);
+        const quantity = Number(cell.quantity);
+        const city = this.branchCityLabel(branch?.city, branch?.name);
+        return {
+          key: `${product.product_id}:${cell.billing_branch_id}`,
+          product: product.name,
+          sku: product.sku,
+          branch: prettyPosBranchLabel(branch?.name || 'Sucursal'),
+          city,
+          quantity: Number.isFinite(quantity) ? quantity : 0,
+          uom: cell.uom_name || product.uom_name || 'Pieza',
+          here: cell.billing_branch_id === hereId,
+        };
+      }),
+    );
+    rows.sort(
+      (a, b) =>
+        b.quantity - a.quantity ||
+        a.product.localeCompare(b.product, 'es') ||
+        a.branch.localeCompare(b.branch, 'es'),
+    );
+    return rows;
+  }
+
+  private branchCityLabel(city: string | null | undefined, name: string | null | undefined): string | null {
+    const prettyCity = city?.trim() ? prettyPosBranchLabel(city) : '';
+    const prettyName = name?.trim() ? prettyPosBranchLabel(name) : '';
+    if (!prettyCity || prettyCity.toLowerCase() === prettyName.toLowerCase()) {
+      return null;
+    }
+    return prettyCity;
+  }
+
+  private loadBranchTable(search: string): void {
+    const term = search.trim();
+    if (!term) {
+      this.branchTableRequest += 1;
+      this.branchStock.set(null);
+      this.branchTableLoading.set(false);
+      this.branchTableError.set('');
+      return;
+    }
+    const requestId = ++this.branchTableRequest;
+    this.branchTableLoading.set(true);
+    this.branchTableError.set('');
+    this.posService.getPosBranchStock(term).subscribe({
+      next: (response) => {
+        if (requestId !== this.branchTableRequest || term !== this.searchTerm().trim()) {
+          return;
+        }
+        this.branchStock.set(response);
+        this.branchTableLoading.set(false);
+      },
+      error: (error: unknown) => {
+        if (requestId !== this.branchTableRequest) {
+          return;
+        }
+        this.branchStock.set(null);
+        this.branchTableLoading.set(false);
+        this.branchTableError.set(
+          resolveHttpErrorMessage(error, 'No se pudieron consultar las sucursales.'),
+        );
+      },
+    });
   }
 
   private loadProducts(search = ''): void {

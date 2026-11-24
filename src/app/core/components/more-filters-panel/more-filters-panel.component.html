@@ -6,7 +6,7 @@
   (click)="toggle()"
   [attr.aria-expanded]="open"
   aria-haspopup="dialog"
-  [attr.aria-label]="activeCount > 0 ? 'Más filtros, ' + activeCount + ' activos' : 'Más filtros'">
+  [attr.aria-label]="activeCount > 0 ? 'Filtros, ' + activeCount + ' activos' : 'Filtros'">
   <svg class="more-filters__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <path
       d="M4 6H20M7 12H17M10 18H14"
@@ -14,7 +14,8 @@
       stroke-width="1.7"
       stroke-linecap="round" />
   </svg>
-  <span>Más filtros</span>
+  <span class="more-filters__label more-filters__label--wide">Más filtros</span>
+  <span class="more-filters__label more-filters__label--short">Filtros</span>
   @if (activeCount > 0) {
     <span class="more-filters__badge">{{ activeCount }}</span>
   }
@@ -34,13 +35,7 @@
     <header class="more-filters__header">
       <div>
         <h2 class="more-filters__title">{{ title }}</h2>
-        <p class="more-filters__subtitle">
-          @if (activeCount > 0) {
-            {{ activeCount }} {{ activeCount === 1 ? 'filtro extra activo' : 'filtros extras activos' }}
-          } @else {
-            Lo que elijas aquí se refleja también en la barra
-          }
-        </p>
+        <p class="more-filters__subtitle">Se aplican al listado</p>
       </div>
       <app-close-button title="Cerrar" (clicked)="close()"></app-close-button>
     </header>
@@ -50,6 +45,9 @@
     </div>
 
     <footer class="more-filters__footer">
+      @if (canClear) {
+        <button type="button" class="more-filters__clear" (click)="cleared.emit()">Limpiar</button>
+      }
       <button type="button" class="more-filters__done" (click)="close()">
         Listo
       </button>

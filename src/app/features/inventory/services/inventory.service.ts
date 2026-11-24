@@ -19,6 +19,11 @@ import {
 } from '../models/inventory-location.model';
 import { InventoryStats } from '../models/inventory-stats.model';
 import { ProductMarginResponse } from '../models/inventory-margin.model';
+import {
+  BranchReportProductHit,
+  BranchReportSettings,
+  BranchStockReport,
+} from '../models/branch-stock-report.model';
 import { InventoryMovement } from '../models/inventory-movement.model';
 import { StockReservation } from '../models/stock-reservation.model';
 import { environment } from '../../../../environments/environment';
@@ -236,6 +241,28 @@ export class InventoryService {
           return this.handleError(error);
         })
       );
+  }
+
+  searchBranchReportProducts(search: string): Observable<BranchReportProductHit[]> {
+    const params = new HttpParams().set('search', search);
+    return this.http
+      .get<{ products: BranchReportProductHit[] }>(`${this.baseUrl}/branch-report/products`, { params })
+      .pipe(map((response) => response.products ?? []));
+  }
+
+  getBranchReportSettings(): Observable<BranchReportSettings> {
+    return this.http.get<BranchReportSettings>(`${this.baseUrl}/branch-report/settings`);
+  }
+
+  saveBranchReportSettings(branchIds: string[]): Observable<BranchReportSettings> {
+    return this.http.put<BranchReportSettings>(`${this.baseUrl}/branch-report/settings`, {
+      branch_ids: branchIds,
+    });
+  }
+
+  getBranchStockReport(productId: string): Observable<BranchStockReport> {
+    const params = new HttpParams().set('product_id', productId);
+    return this.http.get<BranchStockReport>(`${this.baseUrl}/branch-report`, { params });
   }
 
   getProductMargin(productId: string): Observable<ProductMarginResponse> {

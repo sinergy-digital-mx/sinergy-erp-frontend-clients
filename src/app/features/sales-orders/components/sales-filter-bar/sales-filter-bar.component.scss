@@ -5,8 +5,15 @@
   width: 100%;
 }
 
-.filter-bar__field--customer {
+.filter-bar__field--customer,
+.more-filters__field--customer {
   position: relative;
+}
+
+.more-filters__field--customer .customer-lookup {
+  position: static;
+  margin-top: 4px;
+  box-shadow: none;
 }
 
 .filter-bar__field--actions .filter-bar__field--glance {

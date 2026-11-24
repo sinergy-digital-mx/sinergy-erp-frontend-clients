@@ -32,12 +32,12 @@ import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PURCHASE_ORDER_PERMISSIONS } from '../../config/permissions.config';
 import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
-import { CircleAlert, CircleDollarSign, ClipboardList, Package, ShoppingBag } from 'lucide-angular';
+import { ChevronRight, CircleAlert, CircleDollarSign, ClipboardList, LucideAngularModule, Package, Plus, ShoppingBag } from 'lucide-angular';
 
 @Component({
   selector: 'app-purchase-order-list',
   standalone: true,
-  imports: [CommonModule, FilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, ListStatStripComponent],
+  imports: [CommonModule, FilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, ListStatStripComponent, LucideAngularModule],
   templateUrl: './purchase-order-list.component.html',
   styleUrls: ['./purchase-order-list.component.scss']
 })
@@ -47,6 +47,9 @@ export class PurchaseOrderListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly Math = Math;
+  readonly Plus = Plus;
+  readonly ChevronRight = ChevronRight;
+  readonly cardSkeletonSlots = [1, 2, 3, 4];
 
   // State signals
   private ordersData = signal<PurchaseOrder[]>([]);
@@ -93,7 +96,6 @@ export class PurchaseOrderListComponent implements OnInit {
 
   /** Cards leen stats del GET (todos los filtros), no la página. */
   totalOrders = computed(() => this.statsState().count || this.totalResultsState());
-  hasUsd = computed(() => this.statNumber(this.statsState().by_currency.USD.count) > 0);
 
   creadasCount = computed(() => this.statusCount('Creada'));
   recibidasCount = computed(() => this.statusCount('Recibida'));
@@ -117,8 +119,9 @@ export class PurchaseOrderListComponent implements OnInit {
         icon: ShoppingBag,
         value: total,
         share: total > 0 ? 100 : 0,
-        footer: this.moneyLine(this.currencyAmount('MXN'), this.currencyAmount('USD'), 'total'),
-        footerKind: 'quiet',
+        footer: this.moneyLine(this.currencyAmount('MXN'), this.currencyAmount('USD')),
+        footerLines: this.cardLines(this.currencyAmount('MXN'), this.currencyAmount('USD')),
+        footerKind: 'pill',
       },
       {
         key: 'created',
@@ -128,7 +131,8 @@ export class PurchaseOrderListComponent implements OnInit {
         icon: ClipboardList,
         value: this.creadasCount(),
         share: share(this.creadasCount()),
-        footer: this.moneyLine(this.statusAmount('Creada', 'MXN'), this.statusAmount('Creada', 'USD'), 'row'),
+        footer: this.moneyLine(this.statusAmount('Creada', 'MXN'), this.statusAmount('Creada', 'USD')),
+        footerLines: this.cardLines(this.statusAmount('Creada', 'MXN'), this.statusAmount('Creada', 'USD')),
         footerKind: 'pill',
       },
       {
@@ -139,7 +143,8 @@ export class PurchaseOrderListComponent implements OnInit {
         icon: Package,
         value: this.recibidasCount(),
         share: share(this.recibidasCount()),
-        footer: this.moneyLine(this.statusAmount('Recibida', 'MXN'), this.statusAmount('Recibida', 'USD'), 'row'),
+        footer: this.moneyLine(this.statusAmount('Recibida', 'MXN'), this.statusAmount('Recibida', 'USD')),
+        footerLines: this.cardLines(this.statusAmount('Recibida', 'MXN'), this.statusAmount('Recibida', 'USD')),
         footerKind: 'pill',
       },
       {
@@ -150,20 +155,24 @@ export class PurchaseOrderListComponent implements OnInit {
         icon: CircleDollarSign,
         value: this.pagadasCount(),
         share: share(this.pagadasCount()),
-        footer: this.moneyLine(this.paymentAmount('Pagado', 'MXN'), this.paymentAmount('Pagado', 'USD'), 'row'),
+        footer: this.moneyLine(this.paymentAmount('Pagado', 'MXN'), this.paymentAmount('Pagado', 'USD')),
+        footerLines: this.cardLines(this.paymentAmount('Pagado', 'MXN'), this.paymentAmount('Pagado', 'USD')),
         footerKind: 'pill',
       },
       {
         key: 'debt',
         label: 'Deuda',
-        hint: 'Órdenes con pago pendiente',
+        hint: 'Órdenes con pago pendiente, en pesos y en dólares',
         tone: debt ? 'rose' : 'emerald',
         icon: CircleAlert,
         value: this.pendientesCount(),
         share: share(this.pendientesCount()),
         footer: debt
-          ? this.moneyLine(this.paymentAmount('Pendiente', 'MXN'), this.paymentAmount('Pendiente', 'USD'), 'debt')
+          ? this.moneyLine(this.paymentAmount('Pendiente', 'MXN'), this.paymentAmount('Pendiente', 'USD'))
           : 'Sin deuda',
+        footerLines: debt
+          ? this.cardLines(this.paymentAmount('Pendiente', 'MXN'), this.paymentAmount('Pendiente', 'USD'))
+          : undefined,
         footerKind: debt ? 'debt' : 'ok',
       },
     ];
@@ -438,12 +447,23 @@ export class PurchaseOrderListComponent implements OnInit {
     return this.statNumber(this.statsState().by_currency[currency].by_payment[status].amount);
   }
 
-  /** MXN siempre. USD del total si hay dólares; en una fila solo si ese monto es mayor a cero. */
-  private moneyLine(mxn: number, usd: number, mode: 'total' | 'row' | 'debt'): string {
-    const parts: string[] = [];
-    if (mode !== 'debt' || mxn > 0) parts.push(this.formatStatsAmount(mxn, 'MXN'));
-    if ((mode === 'total' && this.hasUsd()) || usd > 0) parts.push(this.formatStatsAmount(usd, 'USD'));
-    return parts.join(' · ');
+  /** MXN siempre. USD solo si ese monto es mayor a cero, para no llenar la card. */
+  private cardLines(mxn: number, usd: number): string[] {
+    const lines = [this.formatStatsAmount(mxn, 'MXN')];
+    if (usd > 0) lines.push(this.formatStatsAmount(usd, 'USD'));
+    return lines;
+  }
+
+  /** Pesos y dólares siempre, cada uno en su renglón. Cero se muestra. No se suman. */
+  private moneyLines(mxn: number, usd: number): string[] {
+    return [
+      this.formatStatsAmount(mxn, 'MXN'),
+      this.formatStatsAmount(usd, 'USD'),
+    ];
+  }
+
+  private moneyLine(mxn: number, usd: number): string {
+    return this.moneyLines(mxn, usd).join(' · ');
   }
 
   /** Formato de cards: `MXN $1,045,914.40`. Nunca un $ genérico mezclado. */
@@ -483,6 +503,19 @@ export class PurchaseOrderListComponent implements OnInit {
   /**
    * Get total amount from order
    */
+  vendorName(order: PurchaseOrder): string {
+    return order.vendor?.company_name || order.vendor?.name || 'Sin proveedor';
+  }
+
+  partyInitials(name: string | null | undefined): string {
+    const raw = String(name || '').trim();
+    if (!raw || /^sin\s/i.test(raw) || raw === '—') return '•';
+    const parts = raw.split(/\s+/).filter((part) => part && part !== '—');
+    const first = parts[0]?.charAt(0) || '';
+    const second = parts.length > 1 ? parts[1].charAt(0) : parts[0]?.charAt(1) || '';
+    return `${first}${second}`.toLocaleUpperCase('es-MX') || '•';
+  }
+
   getOrderTotal(order: PurchaseOrder): number {
     const payable = order.payable_total;
     if (payable != null && payable !== '') {

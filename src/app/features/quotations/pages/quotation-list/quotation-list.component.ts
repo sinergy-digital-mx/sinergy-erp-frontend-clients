@@ -16,7 +16,7 @@ import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calc
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { QUOTATION_PERMISSIONS } from '../../config/permissions.config';
 import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
-import { CircleDollarSign, ClipboardList, FileText, Package, ShoppingBag } from 'lucide-angular';
+import { ChevronRight, CircleDollarSign, ClipboardList, FileText, LucideAngularModule, Package, Plus, ShoppingBag } from 'lucide-angular';
 import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
 import { PosUserSummary } from '../../../sales-orders/models/sales-order.model';
 import {
@@ -29,7 +29,7 @@ import {
 @Component({
   selector: 'app-quotation-list',
   standalone: true,
-  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, ListStatStripComponent],
+  imports: [CommonModule, SalesFilterBarComponent, DatatableWrapperComponent, EmptyStageComponent, ListStatStripComponent, LucideAngularModule],
   templateUrl: './quotation-list.component.html',
   styleUrls: [
     '../../../sales-orders/pages/sales-order-list/sales-order-list.component.scss',
@@ -38,6 +38,11 @@ import {
 })
 export class QuotationListComponent implements OnInit {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
+
+  readonly Math = Math;
+  readonly Plus = Plus;
+  readonly ChevronRight = ChevronRight;
+  readonly cardSkeletonSlots = [1, 2, 3, 4];
 
   private rows = signal<Quotation[]>([]);
   initialFiscalConfigurationId = '';
@@ -344,5 +349,14 @@ export class QuotationListComponent implements OnInit {
 
   getTotal(row: Quotation): number {
     return Number(row.total || 0);
+  }
+
+  partyInitials(name: string | null | undefined): string {
+    const raw = String(name || '').trim();
+    if (!raw || /^sin\s/i.test(raw) || raw === '—') return '•';
+    const parts = raw.split(/\s+/).filter((part) => part && part !== '—');
+    const first = parts[0]?.charAt(0) || '';
+    const second = parts.length > 1 ? parts[1].charAt(0) : parts[0]?.charAt(1) || '';
+    return `${first}${second}`.toLocaleUpperCase('es-MX') || '•';
   }
 }

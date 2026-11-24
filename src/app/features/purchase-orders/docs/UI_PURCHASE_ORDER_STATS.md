@@ -1,5 +1,9 @@
 # UI — Stats de órdenes de compra (MXN / USD)
 
+## 2026-11-24 — Listado móvil como clientes
+
+En celular el título queda con descargar y crear en iconos. La búsqueda se queda afuera; razón social, sucursal, proveedor y el resto entran en Filtros. Cada orden es una tarjeta: proveedor, estado, folio, almacén, total, moneda, pago y sucursal. En el resumen, USD en cero no ocupa renglón.
+
 ## 2026-11-23 — Franja como clientes
 
 El resumen es una franja de cinco columnas (Órdenes, Creadas, Recibidas, Pagadas, Deuda), con el alto y el skeleton del resumen de clientes. En móvil quedan en dos columnas. El número grande es el conteo; abajo el monto, MXN y USD por separado.

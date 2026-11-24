@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, switchMap, takeUntil, of, catchError, map } from 'rxjs';
@@ -133,6 +133,26 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
     );
   }
 
+  compactFilters = false;
+
+  @HostListener('window:resize')
+  syncCompactFilters(): void {
+    this.compactFilters = window.innerWidth < 1024;
+  }
+
+  get keyFilterCount(): number {
+    let count = 0;
+    if (this.selectedCustomer) count += 1;
+    if (this.fiscalConfigurationControl.value) count += 1;
+    if (this.billingBranchControl.value) count += 1;
+    return count;
+  }
+
+  /** En móvil razón social, sucursal y cliente viven dentro de Filtros. */
+  get panelFilterCount(): number {
+    return this.extraFilterCount + (this.compactFilters ? this.keyFilterCount : 0);
+  }
+
   get extraFilterCount(): number {
     let count = 0;
     if (this.dateRangeControl.value || this.dateFromControl.value || this.dateToControl.value) count += 1;
@@ -147,6 +167,7 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.syncCompactFilters();
     this.restoreInitialFilters();
     this.loadFiscalConfigurations();
     if (this.fiscalConfigurationControl.value) {

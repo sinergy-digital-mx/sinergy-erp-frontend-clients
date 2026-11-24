@@ -78,12 +78,14 @@
 
     <div class="filter-bar__field filter-bar__field--actions">
       <app-more-filters-panel
-        [activeCount]="extraFilterCount"
-        title="Filtros de órdenes de compra">
+        [activeCount]="panelFilterCount"
+        [canClear]="hasActiveFilters"
+        title="Filtros de órdenes de compra"
+        (cleared)="clearFilters()">
         <section class="more-filters__section">
-          <h3 class="more-filters__section-title">También en la barra</h3>
+          <h3 class="more-filters__section-title">General</h3>
           <div class="more-filters__grid">
-            <div class="more-filters__field more-filters__field--wide">
+            <div class="more-filters__field more-filters__field--wide more-filters__field--search-copy">
               <label class="more-filters__label" for="search-modal">Búsqueda</label>
               <input
                 type="text"

@@ -75,13 +75,87 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
   private queryReady = false;
 
   readonly menuTabs: TabItem[] = [
-    { id: 'pos', title: 'Puntos de venta' },
-    { id: 'pos-collections', title: 'Cobranza POS' },
-    { id: 'payable', title: 'Cuentas por pagar' },
-    { id: 'receivable', title: 'Cuentas por cobrar' },
-    { id: 'debt-flow', title: 'Flujo de deuda' },
-    { id: 'average-cost', title: 'Rep. Vent. Cost. Prom' },
-    { id: 'global-invoices', title: 'Factura público en general' },
+    {
+      id: 'pos',
+      title: 'Caja del día',
+      hint: {
+        summary: 'El corte y las ventas de un solo día.',
+        points: [
+          'Órdenes que entraron, cobradas o pendientes.',
+          'El dinero es del corte de ese día.',
+          'Un cobro de madrugada sigue en el corte de ayer.',
+        ],
+      },
+    },
+    {
+      id: 'pos-collections',
+      title: 'Cobros',
+      hint: {
+        summary: 'Lo que ya se cobró en el periodo.',
+        points: [
+          'Cuenta la fecha de cobro, no la del corte.',
+          'Efectivo, transferencia, tarjeta, cheque y abonos.',
+          'El crédito que sigue pendiente no entra.',
+        ],
+      },
+    },
+    {
+      id: 'payable',
+      title: 'Cuentas por pagar',
+      hint: {
+        summary: 'Lo que la empresa debe a proveedores.',
+        points: [
+          'Saldo de órdenes de compra.',
+          'Por razón social y por moneda.',
+          'Al abrir se ve todo el saldo; el mes lo acota.',
+        ],
+      },
+    },
+    {
+      id: 'receivable',
+      title: 'Cuentas por cobrar',
+      hint: {
+        summary: 'Lo que los clientes todavía deben.',
+        points: [
+          'Saldo pendiente por razón social.',
+          'El clic en la fila abre las órdenes de esa cuenta.',
+        ],
+      },
+    },
+    {
+      id: 'debt-flow',
+      title: 'Flujo de deuda',
+      hint: {
+        summary: 'Antigüedad de saldos y abonos.',
+        points: [
+          'Quién debe y desde cuándo.',
+          'El flujo lista los movimientos de cada cliente.',
+        ],
+      },
+    },
+    {
+      id: 'average-cost',
+      title: 'Rep. Vent. Cost. Prom',
+      hint: {
+        summary: 'Ventas contra su costo promedio.',
+        points: [
+          'Cada fila es un documento de venta.',
+          'El costo sale del lote o del producto.',
+          'El margen es el precio sin impuesto menos el costo.',
+        ],
+      },
+    },
+    {
+      id: 'global-invoices',
+      title: 'Factura público en general',
+      hint: {
+        summary: 'Órdenes que el cliente no facturó.',
+        points: [
+          'Se timbran juntas en un solo CFDI.',
+          'Una factura vigente por sucursal y mes.',
+        ],
+      },
+    },
   ];
 
   constructor(
@@ -186,7 +260,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       this.dateFrom.set('');
       this.dateTo.set('');
     }
-    // Rep. Vent. Cost. Prom. y Cobranza POS abren en el mes actual.
+    // Rep. Vent. Cost. Prom. y Cobros abren en el mes actual.
     if (tab === 'average-cost' || (tab === 'pos-collections' && previousTab !== 'pos-collections')) {
       this.applyCurrentMonth();
     }

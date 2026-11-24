@@ -360,6 +360,37 @@
   }
 }
 
+@media (max-width: 1023px) {
+  .filter-bar__container--toolbar {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .filter-bar__container--toolbar .filter-bar__field--search {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .filter-bar__container--toolbar .filter-bar__field--key {
+    display: none;
+  }
+
+  .filter-bar__container--toolbar .filter-bar__field--actions {
+    width: auto;
+    flex: 0 0 auto;
+    margin-left: 0;
+    justify-content: flex-end;
+    gap: 0.35rem;
+  }
+
+  .more-filters__field--search-copy {
+    display: none;
+  }
+}
+
 @keyframes filter-bar-spin {
   from {
     transform: rotate(0deg);

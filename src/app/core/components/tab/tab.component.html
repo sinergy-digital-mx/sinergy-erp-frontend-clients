@@ -9,9 +9,30 @@
       role="tab"
       [attr.aria-selected]="tab.id === activeTabId"
       [attr.aria-disabled]="tab.disabled || null"
+      [attr.aria-describedby]="hintTab?.id === tab.id ? 'tab-hint' : null"
       (click)="selectTab(tab.id)"
+      (mouseenter)="scheduleHint(tab, $event)"
+      (mouseleave)="closeHint(true)"
+      (focus)="scheduleHint(tab, $event)"
+      (blur)="closeHint(true)"
       type="button">
       {{ tab.title }}
     </button>
   </div>
+</div>
+
+<div
+  *ngIf="hintTab?.hint as hint"
+  id="tab-hint"
+  class="tab-hint"
+  role="tooltip"
+  [class.tab-hint--above]="hintAbove"
+  [style.top.px]="hintTop"
+  [style.left.px]="hintLeft"
+  [style.--hint-arrow.px]="hintArrow">
+  <p class="tab-hint__title">{{ hintTab?.title }}</p>
+  <p class="tab-hint__summary">{{ hint.summary }}</p>
+  <ul class="tab-hint__points">
+    <li *ngFor="let point of hint.points">{{ point }}</li>
+  </ul>
 </div>

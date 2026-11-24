@@ -5,7 +5,7 @@
         <input
           type="text"
           [formControl]="searchControl"
-          placeholder="Buscar…"
+          [placeholder]="mode === 'quotation' ? 'Buscar cotizaciones…' : 'Buscar órdenes…'"
           class="filter-bar__input"
           [attr.aria-label]="mode === 'quotation' ? 'Buscar cotización por folio' : 'Buscar orden de venta por folio'" />
       </div>
@@ -56,21 +56,49 @@
 
     <div class="filter-bar__field filter-bar__field--actions">
       <app-more-filters-panel
-        [activeCount]="extraFilterCount"
-        [title]="mode === 'quotation' ? 'Filtros de cotizaciones' : 'Filtros de órdenes de venta'">
+        [activeCount]="panelFilterCount"
+        [canClear]="hasActiveFilters"
+        [title]="mode === 'quotation' ? 'Filtros de cotizaciones' : 'Filtros de órdenes de venta'"
+        (cleared)="clearFilters()">
         <section class="more-filters__section">
-          <h3 class="more-filters__section-title">También en la barra</h3>
+          <h3 class="more-filters__section-title">General</h3>
           <div class="more-filters__grid">
-            <div class="more-filters__field more-filters__field--wide">
+            <div class="more-filters__field more-filters__field--wide more-filters__field--search-copy">
               <label class="more-filters__label" for="sales-filter-search-modal">Búsqueda</label>
               <input
                 type="text"
                 id="sales-filter-search-modal"
                 [formControl]="searchControl"
-                placeholder="Buscar…"
+                [placeholder]="mode === 'quotation' ? 'Buscar cotizaciones…' : 'Buscar órdenes…'"
                 class="filter-bar__input"
                 [attr.aria-label]="mode === 'quotation' ? 'Buscar cotización por folio' : 'Buscar orden de venta por folio'" />
             </div>
+
+            @if (mode === 'sales') {
+              <div class="more-filters__field more-filters__field--wide more-filters__field--customer">
+                <label class="more-filters__label" for="sales-filter-customer-modal">Cliente</label>
+                <input
+                  type="search"
+                  id="sales-filter-customer-modal"
+                  [formControl]="customerSearchControl"
+                  placeholder="Buscar cliente"
+                  class="filter-bar__input"
+                  autocomplete="off"
+                  aria-label="Filtrar por cliente"
+                  (blur)="closeCustomerLookup()" />
+                @if (customerLookupOpen) {
+                  <div class="customer-lookup" role="listbox">
+                    @if (customerOptions.length === 0) {
+                      <div class="customer-lookup__empty">Sin coincidencias</div>
+                    } @else {
+                      @for (option of customerOptions; track option.id) {
+                        <button type="button" role="option" (mousedown)="pickCustomer(option)">{{ option.label }}</button>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            }
 
             <div class="more-filters__field">
               <label class="more-filters__label" for="sales-filter-fiscal-modal">Razón social</label>

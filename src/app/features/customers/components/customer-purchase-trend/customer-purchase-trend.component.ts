@@ -2,6 +2,7 @@ import { Component, Input, OnChanges, SimpleChanges, signal } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { ChartModule } from 'primeng/chart';
 import { CustomerPurchaseTrend, CustomerService } from '../../../../core/services/customer.service';
+import { titledMonthLabel } from '../../../../core/utils/month-label.util';
 
 const purchaseTrendGlow = {
   id: 'purchaseTrendGlow',
@@ -53,8 +54,12 @@ export class CustomerPurchaseTrendComponent implements OnChanges {
     this.customerService.getCustomerPurchaseTrend(String(this.customerId)).subscribe({
       next: (trend) => {
         if (requestId !== this.requestId) return;
-        this.months = trend.months ?? [];
-        this.trend.set(trend);
+        const months = (trend.months ?? []).map((month) => ({
+          ...month,
+          label: titledMonthLabel(month.label),
+        }));
+        this.months = months;
+        this.trend.set({ ...trend, months });
         const peak = Math.max(0, ...this.months.map((month) => month.total));
         this.chartOptions.set(this.createChartOptions(peak));
         this.chartData.set(this.createChartData(this.months));

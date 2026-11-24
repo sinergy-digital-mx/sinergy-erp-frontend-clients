@@ -1,11 +1,9 @@
-<div class="purchase-order-list-container">
-  <div class="purchase-content">
-    <div class="px-4">
-      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-        <div>
-          <h2 class="text-2xl font-semibold text-gray-800">Cotizaciones</h2>
+<div class="doc-page">
+      <div class="doc-page__header">
+        <div class="doc-page__heading">
+          <h1 class="doc-page__title">Cotizaciones</h1>
           @if (!canViewAll || !canViewAllBranches) {
-            <p class="text-sm text-gray-500 mt-1">
+            <p class="doc-page__note">
               @if (!canViewAll) {
                 Tus cotizaciones como vendedor o comisionado
               }
@@ -18,28 +16,27 @@
             </p>
           }
         </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          @if (canCreate) {
-            <button type="button" class="page-create-btn" (click)="openCreate()">
-              Crear
+        @if (canCreate) {
+          <div class="doc-page__actions">
+            <button type="button" class="doc-page__create" (click)="openCreate()" aria-label="Crear">
+              <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
+              <span>Crear</span>
             </button>
-          }
-        </div>
+          </div>
+        }
       </div>
 
-      <div class="mb-4">
-        <app-sales-filter-bar
-          mode="quotation"
-          [showSellerFilter]="canViewAll"
-          [restrictBranchIds]="restrictBranchIds"
-          [sellers]="sellers"
-          [initialFiscalConfigurationId]="initialFiscalConfigurationId"
-          [initialBillingBranchId]="initialBillingBranchId"
-          [refreshing]="loading()"
-          (filtersChange)="applyFilters($event)"
-          (refresh)="load()">
-        </app-sales-filter-bar>
-      </div>
+      <app-sales-filter-bar
+        mode="quotation"
+        [showSellerFilter]="canViewAll"
+        [restrictBranchIds]="restrictBranchIds"
+        [sellers]="sellers"
+        [initialFiscalConfigurationId]="initialFiscalConfigurationId"
+        [initialBillingBranchId]="initialBillingBranchId"
+        [refreshing]="loading()"
+        (filtersChange)="applyFilters($event)"
+        (refresh)="load()">
+      </app-sales-filter-bar>
 
       <app-list-stat-strip
         label="Resumen de cotizaciones"
@@ -61,54 +58,75 @@
         </app-datatable-wrapper>
       </div>
 
-      <div class="block md:hidden">
-        @if (!loading() && !table_config().rows?.length) {
+      <div class="doc-feed md:hidden">
+        @if (loading() && !table_config().rows?.length) {
+          <div class="doc-feed__list" aria-busy="true">
+            @for (slot of cardSkeletonSlots; track slot) {
+              <div class="doc-card doc-card--skeleton" aria-hidden="true">
+                <span class="doc-card__avatar"></span>
+                <span class="doc-card__main">
+                  <span class="doc-card__skel doc-card__skel--name"></span>
+                  <span class="doc-card__skel doc-card__skel--meta"></span>
+                </span>
+              </div>
+            }
+          </div>
+        } @else if (!table_config().rows?.length) {
           <app-empty-stage
             message="Sin resultados"
             sub_message="No se encontraron cotizaciones">
           </app-empty-stage>
-        }
-        <div class="space-y-3">
-          @for (row of table_config().rows; track row.id) {
-            <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm" (click)="openDetail(row)">
-              <div class="flex justify-between items-start mb-2">
-                <span class="dt-folio-badge dt-folio-badge--odv">{{ row.folio || row.id.substring(0, 8) }}</span>
-                <span [ngClass]="statusClass(row.general_status)">{{ row.general_status }}</span>
-              </div>
-              <div class="text-sm text-gray-600 space-y-1">
-                <div class="sales-order-list__mobile-customer">
-                  <strong>Cliente:</strong>
-                  <span class="sales-orders-col-customer__stack">
-                    <span class="sales-orders-col-customer__name" [title]="customerName(row)">{{ customerName(row) }}</span>
-                    @if (companyName(row)) {
-                      <span class="sales-orders-col-customer__company" [title]="companyName(row)">{{ companyName(row) }}</span>
+        } @else {
+          <div class="doc-feed__list">
+            @for (row of table_config().rows; track row.id) {
+              <button type="button" class="doc-card" (click)="openDetail(row)">
+                <span class="doc-card__avatar" aria-hidden="true">{{ partyInitials(customerName(row)) }}</span>
+                <span class="doc-card__main">
+                  <span class="doc-card__top">
+                    <span class="doc-card__name" [title]="customerName(row)">{{ customerName(row) }}</span>
+                    <span class="doc-card__status" [ngClass]="statusClass(row.general_status)">{{ row.general_status }}</span>
+                  </span>
+                  <span class="doc-card__meta">{{ row.folio || row.id.substring(0, 8) }} · {{ sellerLabel(row) }}</span>
+                  @if (companyName(row)) {
+                    <span class="doc-card__meta">{{ companyName(row) }}</span>
+                  }
+                  <span class="doc-card__tags">
+                    <span class="doc-card__tag doc-card__tag--money">{{ formatCurrency(getTotal(row)) }}</span>
+                    <span class="doc-card__tag">{{ typeLabel(row.quotation_type) }}</span>
+                    <span class="doc-card__tag">{{ branchLabel(row) }}</span>
+                    @if (row.expires_at && row.general_status === 'Creada') {
+                      <span class="doc-card__tag">Vence {{ formatDateHuman(row.expires_at) }}</span>
+                    } @else {
+                      <span class="doc-card__tag">{{ formatDateHuman(row.created_at) }}</span>
                     }
                   </span>
-                </div>
-                <div><strong>Vendedor:</strong> {{ sellerLabel(row) }}</div>
-                <div class="sales-order-list__mobile-billing">
-                  <strong>Sucursal:</strong>
-                  <span class="sales-orders-col-billing__stack">
-                    <span class="sales-orders-col-billing__branch" [title]="branchLabel(row)">{{ branchLabel(row) }}</span>
-                    <span class="sales-orders-col-billing__fiscal" [title]="fiscalLabel(row)">{{ fiscalLabel(row) }}</span>
-                  </span>
-                </div>
-                <div><strong>Total:</strong> {{ formatCurrency(getTotal(row)) }}</div>
-                <div class="sales-order-list__mobile-pay">
-                  <strong>Tipo:</strong>
-                  <span [ngClass]="typeClass(row.quotation_type)">{{ typeLabel(row.quotation_type) }}</span>
-                </div>
-                <div class="text-xs text-gray-500">{{ formatDateHuman(row.created_at) }}</div>
-                @if (row.expires_at && row.general_status === 'Creada') {
-                  <div class="text-xs text-gray-500">Vence: {{ formatDateHuman(row.expires_at) }}</div>
-                }
-              </div>
+                </span>
+                <lucide-icon class="doc-card__go" [img]="ChevronRight" [size]="18"></lucide-icon>
+              </button>
+            }
+          </div>
+
+          @if ((table_config().totalResults || 0) > (table_config().limit || 15)) {
+            <div class="doc-feed__pager">
+              <button
+                type="button"
+                [disabled]="(table_config().page || 1) <= 1 || loading()"
+                (click)="onPageChange({ page: (table_config().page || 1) - 1, limit: table_config().limit || 15 })">
+                Anterior
+              </button>
+              <span>
+                {{ table_config().page }} / {{ Math.ceil((table_config().totalResults || 0) / (table_config().limit || 15)) }}
+              </span>
+              <button
+                type="button"
+                [disabled]="!table_config().hasNext || loading()"
+                (click)="onPageChange({ page: (table_config().page || 1) + 1, limit: table_config().limit || 15 })">
+                Siguiente
+              </button>
             </div>
           }
-        </div>
+        }
       </div>
-    </div>
-  </div>
 </div>
 
 <ng-template #tableTemplate let-item="$implicit">

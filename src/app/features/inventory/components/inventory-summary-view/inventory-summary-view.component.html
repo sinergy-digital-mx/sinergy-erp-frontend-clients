@@ -24,7 +24,10 @@
       </thead>
       <tbody>
         @for (item of items(); track item.product_id + item.warehouse_id) {
-          <tr>
+          <tr
+            class="summary-row"
+            [class.summary-row--menu]="isRowMenu(item)"
+            (click)="onRowClick($event, item)">
             <td>
               <div class="name-stack">
                 <span class="name-stack__title" [title]="item.product_name">{{ item.product_name }}</span>
@@ -190,4 +193,21 @@
       </div>
     </div>
   </div>
+
+  @if (rowMenu(); as menu) {
+    <div
+      class="inv-row-menu"
+      role="menu"
+      [style.left.px]="menu.x"
+      [style.top.px]="menu.y">
+      <button type="button" role="menuitem" (click)="openProductConfig(menu.item)">
+        <lucide-icon [img]="Settings" [size]="15"></lucide-icon>
+        Configuración de producto
+      </button>
+      <button type="button" role="menuitem" (click)="expandFromMenu(menu.item)">
+        <lucide-icon [img]="isExpanded(menu.item) ? ChevronDown : ChevronRight" [size]="15"></lucide-icon>
+        {{ isExpanded(menu.item) ? 'Ocultar lotes' : 'Expandir lotes' }}
+      </button>
+    </div>
+  }
 }

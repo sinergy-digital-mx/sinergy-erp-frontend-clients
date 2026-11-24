@@ -37,6 +37,8 @@ export interface ListStatCard {
     right: ListStatPairSide;
   };
   footer: string;
+  /** Cada moneda en su renglón. `footer` queda como texto de respaldo. */
+  footerLines?: string[];
   footerKind: ListStatFooterKind;
 }
 

@@ -1,8 +1,8 @@
-import { Component, effect, inject, signal, untracked } from '@angular/core';
+import { Component, DestroyRef, HostListener, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { LucideAngularModule, ChevronRight, ChevronDown } from 'lucide-angular';
+import { LucideAngularModule, ChevronRight, ChevronDown, Settings } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { InventorySummaryFilters, InventorySummaryItem } from '../../models/inventory-item.model';
@@ -24,7 +24,16 @@ import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
 import { BatchDetailDialogComponent } from '../batch-detail-dialog/batch-detail-dialog.component';
 import { InventoryMarginChipComponent } from '../inventory-margin-chip/inventory-margin-chip.component';
 import { BATCH_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/batch-detail-dialog.config';
+import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+
+interface SummaryRowMenu {
+  key: string;
+  item: InventorySummaryItem;
+  x: number;
+  y: number;
+}
 
 @Component({
   selector: 'app-inventory-summary-view',
@@ -35,6 +44,7 @@ import { SpinnerComponent } from '../../../../core/components/spinner/spinner.co
 })
 export class InventorySummaryViewComponent {
   private readonly inventoryService = inject(InventoryService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
@@ -44,6 +54,7 @@ export class InventorySummaryViewComponent {
 
   readonly ChevronRight = ChevronRight;
   readonly ChevronDown = ChevronDown;
+  readonly Settings = Settings;
 
   readonly items = signal<InventorySummaryItem[]>([]);
   readonly loading = signal(true);
@@ -51,8 +62,15 @@ export class InventorySummaryViewComponent {
   readonly page = signal(1);
   readonly limit = signal(20);
   readonly expandedItems = signal<Set<string>>(new Set());
+  readonly rowMenu = signal<SummaryRowMenu | null>(null);
 
   constructor() {
+    const closeOnScroll = () => {
+      if (this.rowMenu()) this.rowMenu.set(null);
+    };
+    document.addEventListener('scroll', closeOnScroll, true);
+    this.destroyRef.onDestroy(() => document.removeEventListener('scroll', closeOnScroll, true));
+
     effect(() => {
       if (!this.state.locationsReady()) return;
       this.state.listEpoch();
@@ -101,8 +119,12 @@ export class InventorySummaryViewComponent {
     this.loadSummary();
   }
 
+  itemKey(item: InventorySummaryItem): string {
+    return `${item.product_id}_${item.warehouse_id}`;
+  }
+
   toggleBatches(item: InventorySummaryItem): void {
-    const key = `${item.product_id}_${item.warehouse_id}`;
+    const key = this.itemKey(item);
     const expanded = this.expandedItems();
     if (expanded.has(key)) {
       expanded.delete(key);
@@ -113,7 +135,51 @@ export class InventorySummaryViewComponent {
   }
 
   isExpanded(item: InventorySummaryItem): boolean {
-    return this.expandedItems().has(`${item.product_id}_${item.warehouse_id}`);
+    return this.expandedItems().has(this.itemKey(item));
+  }
+
+  isRowMenu(item: InventorySummaryItem): boolean {
+    return this.rowMenu()?.key === this.itemKey(item);
+  }
+
+  onRowClick(event: MouseEvent, item: InventorySummaryItem): void {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button, a')) {
+      this.rowMenu.set(null);
+      return;
+    }
+    this.openRowMenu(event, item);
+  }
+
+  openProductConfig(item: InventorySummaryItem): void {
+    this.rowMenu.set(null);
+    if (!item.product_id) return;
+    this.dialog
+      .open(ProductDetailModalComponent, {
+        ...PRODUCT_DETAIL_DIALOG_CONFIG,
+        data: { product: { id: item.product_id }, isNew: false },
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed === true) this.state.reloadListKeepPage();
+      });
+  }
+
+  expandFromMenu(item: InventorySummaryItem): void {
+    this.rowMenu.set(null);
+    this.toggleBatches(item);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('.inv-row-menu, .summary-row')) return;
+    this.rowMenu.set(null);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.rowMenu.set(null);
   }
 
   openBatchDetail(batchId: string): void {
@@ -133,7 +199,24 @@ export class InventorySummaryViewComponent {
     replaceInventoryQuery(this.router, this.route, { spage: page > 1 ? page : null });
   }
 
+  private openRowMenu(event: MouseEvent, item: InventorySummaryItem): void {
+    const menuWidth = 240;
+    const menuHeight = 84;
+    const pad = 8;
+    let x = event.clientX;
+    let y = event.clientY;
+    if (x + menuWidth > window.innerWidth - pad) x = window.innerWidth - menuWidth - pad;
+    if (y + menuHeight > window.innerHeight - pad) y = event.clientY - menuHeight;
+    this.rowMenu.set({
+      key: this.itemKey(item),
+      item,
+      x: Math.max(pad, x),
+      y: Math.max(pad, y),
+    });
+  }
+
   private loadSummary(): void {
+    this.rowMenu.set(null);
     this.loading.set(true);
 
     const filters: InventorySummaryFilters = {

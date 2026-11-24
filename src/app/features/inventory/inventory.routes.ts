@@ -68,6 +68,13 @@ export const INVENTORY_ROUTES: Routes = [
             .then(m => m.InventorySummaryViewComponent),
         data: { title: 'Inventario totalizado' },
       },
+      {
+        path: 'sucursal',
+        loadComponent: () =>
+          import('./components/inventory-branch-report/inventory-branch-report.component')
+            .then(m => m.InventoryBranchReportComponent),
+        data: { title: 'Inventario por sucursal' },
+      },
     ],
   },
 ];

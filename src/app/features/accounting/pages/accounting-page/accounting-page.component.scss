@@ -8,27 +8,37 @@
 }
 
 .accounting-content {
-  padding: 0 1rem 2rem;
+  padding: 0 1rem 1.5rem;
 }
 
 .accounting-header {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
 }
 
 .accounting-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  color: #1e293b;
+  letter-spacing: -0.02em;
+  color: #0f172a;
 }
 
 .accounting-nav {
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.65rem;
 
   app-tab {
     display: block;
     min-width: 0;
-    overflow-x: auto;
+  }
+
+  ::ng-deep .tab-list {
+    gap: 0;
+    border-bottom-color: #e2e8f0;
+  }
+
+  ::ng-deep .tab-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
   }
 }
 
@@ -36,8 +46,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 1rem 1.25rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem 0.65rem;
+  margin-bottom: 0.65rem;
   overflow: visible;
 }
 
@@ -48,20 +58,46 @@ app-report-period-selector.zn-period-drop {
   overflow: visible;
 }
 
+:host ::ng-deep app-report-period-selector .zn-period-panel {
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: none;
+  border: 1px solid #e2e8f0;
+  min-height: 36px;
+  justify-content: center;
+}
+
+:host ::ng-deep app-report-period-selector .zn-period-toggle {
+  padding: 0;
+  gap: 2px;
+}
+
+:host ::ng-deep app-report-period-selector .zn-period-toggle__btn {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 0.7rem;
+  border-radius: 6px;
+}
+
+:host ::ng-deep app-report-period-selector .zn-period-toggle__btn--active {
+  background: #4f46e5;
+  box-shadow: none;
+}
+
 .accounting-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
 }
 
 .summary-card {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.85rem 1rem;
+  gap: 0.1rem;
+  padding: 0.65rem 0.8rem;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 10px;
   background: #fff;
 }
 
@@ -74,7 +110,7 @@ app-report-period-selector.zn-period-drop {
 }
 
 .summary-card__value {
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   line-height: 1.2;
   color: #0f172a;
 }
@@ -98,11 +134,11 @@ app-report-period-selector.zn-period-drop {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 36px;
+  height: 36px;
   align-self: flex-end;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   color: #4338ca;
   cursor: pointer;
@@ -120,10 +156,10 @@ app-report-period-selector.zn-period-drop {
 
 .accounting-filters__clear {
   align-self: end;
-  height: 40px;
-  padding: 0 0.85rem;
+  height: 36px;
+  padding: 0 0.75rem;
   border: 1px solid #c7d2fe;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   color: #4338ca;
   font: inherit;
@@ -133,6 +169,8 @@ app-report-period-selector.zn-period-drop {
 }
 
 .accounting-filters__field {
+  flex: 0 1 20rem;
+  width: min(100%, 20rem);
   min-width: 0;
 }
 
@@ -142,7 +180,7 @@ app-report-period-selector.zn-period-drop {
   font-weight: 600;
   letter-spacing: 0.03em;
   color: #64748b;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
 }
 
 .accounting-filters__required {
@@ -157,10 +195,11 @@ app-report-period-selector.zn-period-drop {
 .accounting-filters__input,
 .accounting-filters__select {
   width: 100%;
-  min-height: 2.5rem;
-  padding: 0.5rem 0.75rem;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 0.7rem;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 0.8125rem;
   font-weight: 500;
   color: #334155;
@@ -174,13 +213,7 @@ app-report-period-selector.zn-period-drop {
 }
 
 .accounting-filters__select {
-  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #334155;
-  background: #fff;
+  padding: 0 2rem 0 0.7rem;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");

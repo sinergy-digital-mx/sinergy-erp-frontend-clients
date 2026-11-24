@@ -369,30 +369,42 @@
             </button>
           }
         </div>
-        <button
-          type="button"
-          class="pos-stock-btn"
-          [class.pos-stock-btn--on]="branchStockOpen()"
-          (click)="toggleBranchStock()"
-          title="Ver existencias por sucursal de lo que está en la búsqueda"
-          aria-label="Existencias por sucursal"
-          [attr.aria-pressed]="branchStockOpen()">
-          <lucide-icon [img]="Warehouse" [size]="16" />
-          <span>Existencias</span>
-        </button>
+        <div class="pos-view-toggle" role="group" aria-label="Vista del catálogo">
+          <button
+            type="button"
+            [class.pos-view-toggle__btn--on]="catalogView() === 'cards'"
+            (click)="setCatalogView('cards')"
+            title="Tarjetas"
+            aria-label="Ver tarjetas">
+            <lucide-icon [img]="LayoutGrid" [size]="16" />
+          </button>
+          <button
+            type="button"
+            [class.pos-view-toggle__btn--on]="catalogView() === 'list'"
+            (click)="setCatalogView('list')"
+            title="Lista"
+            aria-label="Ver lista">
+            <lucide-icon [img]="List" [size]="16" />
+          </button>
+          <button
+            type="button"
+            [class.pos-view-toggle__btn--on]="catalogView() === 'branches'"
+            (click)="setCatalogView('branches')"
+            title="Todas las sucursales"
+            aria-label="Ver existencias de todas las sucursales">
+            <lucide-icon [img]="Warehouse" [size]="16" />
+          </button>
+        </div>
         @if (browseBranches().length > 0) {
-          <label class="pos-branch-picker">
-            <span class="pos-branch-picker__value" aria-hidden="true">{{ catalogBranchShortLabel() }}</span>
-            <select
-              class="pos-warehouse-filter pos-branch-picker__select"
-              aria-label="Consultar existencia de otra sucursal"
-              [ngModel]="catalogBranchId()"
-              (ngModelChange)="onCatalogBranch($event)">
-              @for (branch of browseBranches(); track branch.id) {
-                <option [value]="branch.id">{{ branch.display_name || branch.code }}</option>
-              }
-            </select>
-          </label>
+          <select
+            class="pos-warehouse-filter"
+            aria-label="Consultar existencia de otra sucursal"
+            [ngModel]="catalogBranchId()"
+            (ngModelChange)="onCatalogBranch($event)">
+            @for (branch of browseBranches(); track branch.id) {
+              <option [value]="branch.id">{{ branch.display_name || branch.code }}</option>
+            }
+          </select>
         }
         <select
           class="pos-warehouse-filter"
@@ -427,8 +439,107 @@
       }
 
       <div class="pos-catalog__results">
-      <div #catalogList class="pos-product-grid">
+      @if (catalogView() === 'branches') {
+        <div class="pos-branch-table-wrap">
+          @if (!searchTerm().trim()) {
+            <div class="pos-empty-grid">
+              <lucide-icon [img]="Warehouse" class="pos-empty-grid__icon" />
+              <p>Usa la misma búsqueda para ver las cantidades de todas las sucursales.</p>
+            </div>
+          } @else if (branchTableLoading() && branchRows().length === 0) {
+            <div class="pos-loading-grid">
+              <app-spinner></app-spinner>
+            </div>
+          } @else if (branchTableError()) {
+            <div class="pos-empty-grid">
+              <p>{{ branchTableError() }}</p>
+              <button type="button" class="pos-btn pos-btn--ghost pos-empty-grid__retry" (click)="retryBranchTable()">
+                Reintentar
+              </button>
+            </div>
+          } @else if (branchRows().length === 0) {
+            <div class="pos-empty-grid">
+              <lucide-icon [img]="Package" class="pos-empty-grid__icon" />
+              <p>No hay productos que coincidan con tu búsqueda.</p>
+            </div>
+          } @else {
+            <table class="pos-branch-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Nº pieza</th>
+                  <th>Sucursal</th>
+                  <th class="is-num">Existencia</th>
+                  <th>Unidad</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of branchRows(); track row.key) {
+                  <tr [class.is-zero]="row.quantity <= 0" [class.is-here]="row.here">
+                    <td class="pos-branch-table__product">{{ row.product }}</td>
+                    <td class="pos-branch-table__sku">{{ row.sku || '—' }}</td>
+                    <td>
+                      <span class="pos-branch-table__branch">{{ row.branch }}</span>
+                      @if (row.city) {
+                        <span class="pos-branch-table__city">{{ row.city }}</span>
+                      }
+                    </td>
+                    <td class="is-num" [class.is-stock]="row.quantity > 0">{{ formatStock(row.quantity) }}</td>
+                    <td>{{ row.quantity > 0 ? row.uom : '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            @if (branchStock()?.has_more) {
+              <p class="pos-branch-table__more">Hay más productos. Afina la búsqueda.</p>
+            }
+          }
+        </div>
+      } @else {
+      <div
+        #catalogList
+        [class.pos-product-grid]="catalogView() === 'cards'"
+        [class.pos-product-list]="catalogView() === 'list'">
+        @if (catalogView() === 'list') {
+          <div class="pos-product-head" aria-hidden="true">
+            <span>Producto</span>
+            <span>Nº pieza</span>
+            <span class="is-num">Existencia</span>
+            <span>Unidad</span>
+            <span class="is-num">Precio</span>
+          </div>
+        }
         @for (product of filteredProducts(); track catalogCardTrack(product); let i = $index) {
+          @if (catalogView() === 'list') {
+            <button
+              type="button"
+              class="pos-product-row"
+              [class.pos-product-row--active]="markedCatalogIndex() === i"
+              [class.pos-product-row--locked]="!canAddToCart(product)"
+              [disabled]="!canAddToCart(product)"
+              [attr.data-catalog-index]="i"
+              [attr.aria-selected]="markedCatalogIndex() === i"
+              [attr.title]="getDisabledTooltip(product) || null"
+              (click)="onCatalogRow(i, product)">
+              <span class="pos-product-row__name">{{ product.name }}</span>
+              <span class="pos-product-row__sku">{{ product.sku || '—' }}</span>
+              <span
+                class="pos-product-row__stock"
+                [class.pos-product-row__stock--empty]="!(product.total_available_quantity > 0)">
+                {{ formatStock(product.total_available_quantity) }}
+              </span>
+              <span class="pos-product-row__uom">{{ catalogUomLabel(product) }}</span>
+              <span
+                class="pos-product-row__price"
+                [class.pos-product-row__price--none]="!product.has_price">
+                @if (product.has_price) {
+                  {{ formatCatalogPrice(catalogPriceGross(product)) }}
+                } @else {
+                  Sin precio
+                }
+              </span>
+            </button>
+          } @else {
           <article
             class="pos-card"
             [class.pos-card--active]="markedCatalogIndex() === i"
@@ -514,6 +625,7 @@
               </button>
             }
           </article>
+          }
         }
 
         @if (filteredProducts().length === 0 && !loading()) {
@@ -534,13 +646,8 @@
           </div>
         }
       </div>
-      </div>
-      @if (branchStockOpen()) {
-        <app-pos-branch-stock-panel
-          [initialSearch]="searchTerm()"
-          [currentBranchId]="catalogBranchId()"
-          (closed)="closeBranchStock()" />
       }
+      </div>
     </section>
       </div>
     </div>

@@ -1,0 +1,199 @@
+<div class="branch-report">
+  <div class="branch-report__toolbar">
+    <div class="product-search" #searchRoot>
+      <lucide-icon class="product-search__icon" [img]="Search" [size]="16"></lucide-icon>
+      <input
+        type="text"
+        class="product-search__input"
+        [value]="query()"
+        (input)="onQueryInput($any($event.target).value)"
+        (focus)="results().length && resultsOpen.set(true)"
+        (keydown)="onSearchKeydown($event)"
+        placeholder="Busca un producto por nombre o número de pieza"
+        aria-label="Buscar un producto"
+        autocomplete="off"
+      />
+      @if (query()) {
+        <button type="button" class="product-search__clear" (click)="clearProduct()" aria-label="Quitar producto">
+          <lucide-icon [img]="X" [size]="14"></lucide-icon>
+        </button>
+      }
+      @if (resultsOpen()) {
+        <div class="product-search__menu" role="listbox">
+          @if (searching()) {
+            <p class="product-search__hint">Buscando…</p>
+          } @else if (results().length === 0) {
+            <p class="product-search__hint">No hay productos con ese texto</p>
+          } @else {
+            @for (product of results(); track product.id) {
+              <button type="button" class="product-search__option" (click)="selectProduct(product)">
+                <span class="product-search__sku">{{ product.sku }}</span>
+                <span class="product-search__name">{{ product.name }}</span>
+              </button>
+            }
+          }
+        </div>
+      }
+    </div>
+
+    <button type="button" class="gear-btn" (click)="openSettings()" aria-label="Elegir sucursales del reporte">
+      <lucide-icon [img]="Settings" [size]="16"></lucide-icon>
+      <span>Sucursales</span>
+      @if (scopeLabel()) {
+        <span class="gear-btn__count">{{ scopeLabel() }}</span>
+      }
+    </button>
+  </div>
+
+  @if (!selected()) {
+    <section class="branch-empty">
+      <p class="branch-empty__title">Existencia de un producto</p>
+      <p class="branch-empty__text">
+        Busca una pieza. El reporte muestra su existencia y su costo en cada sucursal que dejes activa.
+      </p>
+    </section>
+  } @else if (reportLoading()) {
+    <div class="branch-loading">
+      <app-spinner></app-spinner>
+    </div>
+  } @else if (report(); as report) {
+    <article class="stock-card">
+      <header class="stock-card__head">
+        <div>
+          <p class="stock-card__kicker">Por sucursal</p>
+          <h3 class="stock-card__title">{{ report.product.name }}</h3>
+          <p class="stock-card__sku">{{ report.product.sku }}</p>
+        </div>
+        @if (report.uom_name) {
+          <span class="uom-pill">{{ report.uom_name }}</span>
+        } @else if (report.mixed_uom) {
+          <span class="uom-pill">Varias unidades</span>
+        }
+      </header>
+
+      <div class="stock-metrics">
+        <div>
+          <span>Existencia</span>
+          <strong>{{ formatQty(report.total_quantity) }}</strong>
+        </div>
+        <div>
+          <span>Costo promedio</span>
+          <strong>{{ formatMoney(report.average_unit_cost) }}</strong>
+        </div>
+        <div>
+          <span>Costo total</span>
+          <strong>{{ formatMoney(report.total_cost) }}</strong>
+        </div>
+      </div>
+
+      @if (report.lines.length === 0) {
+        <p class="stock-card__empty">No hay sucursales activas. Actívalas en el engrane.</p>
+      } @else {
+        <div class="stock-table-wrap">
+          <table class="stock-table">
+            <thead>
+              <tr>
+                <th>Sucursal</th>
+                <th class="num">Existencia</th>
+                <th class="num">Costo promedio</th>
+                <th class="num">Costo total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (line of report.lines; track line.billing_branch_id + (line.uom_name || '')) {
+                <tr [class.is-empty]="line.quantity === '0.000'">
+                  <td>
+                    <span class="branch-name">{{ line.name }}</span>
+                    @if (placeLabel(line.city, line.razon_social); as place) {
+                      <span class="branch-place">{{ place }}</span>
+                    }
+                  </td>
+                  <td class="num">
+                    <span class="qty">{{ formatQty(line.quantity) }}</span>
+                    @if (line.uom_name && report.mixed_uom) {
+                      <span class="qty-uom">{{ line.uom_name }}</span>
+                    }
+                  </td>
+                  <td class="num" [attr.title]="line.cost_complete ? null : 'Parte de la existencia no tiene costo'">
+                    {{ formatMoney(line.average_unit_cost) }}
+                  </td>
+                  <td class="num" [attr.title]="line.cost_complete ? null : 'El total solo suma los lotes que sí tienen costo'">
+                    {{ formatMoney(line.total_cost) }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+              @if (report.lines.some((line) => !line.cost_complete)) {
+        <p class="stock-note">Hay existencia sin costo. El promedio y el total usan solo los lotes que sí lo tienen.</p>
+      }
+    </article>
+  }
+</div>
+
+@if (settingsOpen()) {
+  <div class="settings-backdrop" (click)="closeSettings()">
+    <aside class="settings-panel" role="dialog" aria-labelledby="branch-settings-title" (click)="$event.stopPropagation()">
+      <header class="settings-panel__head">
+        <div>
+          <h3 id="branch-settings-title">Sucursales del reporte</h3>
+          <p>Activa las que quieres ver. Se guarda para quien entre a Inventario.</p>
+        </div>
+        <button type="button" class="icon-btn" (click)="closeSettings()" aria-label="Cerrar">
+          <lucide-icon [img]="X" [size]="16"></lucide-icon>
+        </button>
+      </header>
+
+      <div class="settings-panel__tools">
+        <input
+          type="text"
+          [value]="settingsFilter()"
+          (input)="settingsFilter.set($any($event.target).value)"
+          placeholder="Filtrar sucursales"
+          aria-label="Filtrar sucursales"
+        />
+        <button type="button" (click)="selectAllBranches()">Todas</button>
+        <button type="button" (click)="clearDraftBranches()">Ninguna</button>
+      </div>
+
+      <div class="settings-panel__list">
+        @if (!settings()) {
+          <p class="settings-panel__hint">Cargando sucursales…</p>
+        } @else if (filteredSettings().length === 0) {
+          <p class="settings-panel__hint">No hay sucursales con ese texto</p>
+        } @else {
+          @for (branch of filteredSettings(); track branch.id) {
+            <label class="branch-toggle">
+              <input
+                type="checkbox"
+                [checked]="isDraftOn(branch.id)"
+                (change)="toggleDraft(branch.id)"
+              />
+              <span>
+                <strong>{{ branch.name }}</strong>
+                @if (placeLabel(branch.city, branch.razon_social); as place) {
+                  <small>{{ place }}</small>
+                }
+              </span>
+            </label>
+          }
+        }
+      </div>
+
+      <footer class="settings-panel__foot">
+        <span>{{ draftIds().length }} seleccionadas</span>
+        <button type="button" class="text-btn" (click)="closeSettings()" [disabled]="settingsSaving()">Cancelar</button>
+        <button
+          type="button"
+          class="save-btn"
+          (click)="saveSettings()"
+          [disabled]="settingsSaving() || draftIds().length === 0">
+          {{ settingsSaving() ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </footer>
+    </aside>
+  </div>
+}
