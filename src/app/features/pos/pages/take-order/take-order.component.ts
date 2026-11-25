@@ -1055,16 +1055,17 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   shiftBarTitle(): string {
+    const terminal = this.terminalLabel();
     if (this.posState.checkingShift()) {
-      return 'Verificando corte';
+      return terminal;
     }
     if (this.posState.requiresPreviousClose()) {
-      return 'Hay un corte de otro día sin cerrar. Caja debe cerrarlo; las ventas quedan en cola.';
+      return `${terminal}. Hay un corte de otro día sin cerrar. Caja debe cerrarlo; las ventas quedan en cola.`;
     }
     if (this.posState.shiftOpen()) {
-      return 'Corte activo. Las ventas van directo a caja.';
+      return `${terminal}. Corte activo. Las ventas van directo a caja.`;
     }
-    return 'Sin corte abierto. Las ventas quedan en cola hasta que caja abra el día.';
+    return `${terminal}. Sin corte abierto. Las ventas quedan en cola hasta que caja abra el día.`;
   }
 
   ticketsBarTitle(): string {

@@ -14,16 +14,15 @@
       </div>
 
       <nav class="pos-session-bar__meta" aria-label="Sesión POS">
-        <div class="pos-meta">
-          <span class="pos-meta__k">Corte</span>
+        <div class="pos-meta" [attr.title]="terminalLabel()">
           @if (posState.checkingShift()) {
-            <span class="pos-meta__v">Verificando…</span>
+            <span class="pos-meta__v">Verificando corte…</span>
           } @else if (requiresPreviousClose() && shift(); as currentShift) {
-            <span class="pos-meta__v pos-meta__v--warn">{{ currentShift.shift_date }}</span>
+            <span class="pos-meta__v pos-meta__v--warn">Corte {{ currentShift.shift_date }}</span>
           } @else if (shiftOpen()) {
-            <span class="pos-meta__v pos-meta__v--ok">Abierto</span>
+            <span class="pos-meta__v pos-meta__v--ok">Corte abierto</span>
           } @else {
-            <span class="pos-meta__v pos-meta__v--warn">Cerrado</span>
+            <span class="pos-meta__v pos-meta__v--warn">Corte cerrado</span>
           }
         </div>
 
@@ -48,10 +47,6 @@
       </nav>
 
       <div class="pos-session-bar__tools">
-        <div class="pos-meta">
-          <span class="pos-meta__k">Terminal</span>
-          <span class="pos-meta__v">{{ terminalLabel() }}</span>
-        </div>
         <button
           type="button"
           class="pos-session-bar__icon-btn"
