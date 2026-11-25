@@ -334,8 +334,9 @@ export class POSService {
       advance_uso_cfdi?: string;
       advance_metodo_pago?: 'PUE' | 'PPD';
       advance_stamp_environment?: 'demo' | 'production';
+      advance_forma_pago?: '01' | '02' | '03' | '04' | '28';
     },
-  ): Observable<{ folio?: string; id?: string }> {
+  ): Observable<{ folio?: string; id?: string; sales_order_folio?: string }> {
     const { sales_order_type: _salesOrderType, ...rest } = orderData as SalesOrderFormData & {
       sales_order_type?: string;
     };

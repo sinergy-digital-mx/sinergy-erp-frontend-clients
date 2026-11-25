@@ -21,7 +21,7 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 ### 2026-11-25
 
-En el catálogo, **Bodega** (Todas las bodegas) y **Sin inventario** salen del botón **Filtros**, para que la búsqueda no se corte. Si hay alguno activo, el botón muestra el número.
+En el catálogo, **Bodega** (Todas las bodegas) y **Sin inventario** salen del botón **Filtros**, para que la búsqueda no se corte. Si hay alguno activo, el botón muestra el número. La sucursal, **Filtros** y el cambio de vista miden 26px, el mismo alto.
 
 En pantallas chicas la barra de POS Ventas baja el texto y no se parte en dos filas. Si queda angosta, se ocultan las palabras Sucursal y Vendedor y se dejan el nombre y los botones Folios, En caja y Tickets más chicos. Las cartas de la cuadrícula se achican cuando el catálogo es angosto o la ventana es baja. El carrito no cambia.
 

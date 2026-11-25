@@ -42,6 +42,15 @@ export interface PosFolioCartPick {
   walkInName: string;
   walkInRfc: string;
   lines: PosCartSlotLine[];
+  /** Anticipo ya timbrado. El carrito completa esa cotización o su venta. */
+  advance?: {
+    documentId: string;
+    quotationId: string;
+    quotationFolio: string;
+    paid: number;
+    environment: 'demo' | 'production' | null;
+    kind: 'sale' | 'advance';
+  };
 }
 
 type AbonoMethod = 'cash' | 'card' | 'transfer' | 'check';
@@ -284,6 +293,19 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   takeToCart(row: FolioRow): void {
     if (this.takingId()) return;
     this.error.set('');
+    if (row.kind === 'quotation') {
+      this.takingId.set(row.id);
+      this.readingFor.set('cart');
+      this.quotations.getDetail(row.id).subscribe({
+        next: (detail) => this.routeQuotationToCart(row, detail),
+        error: (error: unknown) => {
+          this.takingId.set('');
+          this.readingFor.set('');
+          this.error.set(resolveHttpErrorMessage(error, 'No se pudo leer la cotización'));
+        },
+      });
+      return;
+    }
     this.readDetail(row, (pick) => {
       if (!pick.lines.length) {
         this.error.set(`${row.folio} no tiene productos para el carrito`);
@@ -303,6 +325,85 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   cancelAsk(): void {
     this.cartAsk.set(null);
     this.cartAskKey.set('');
+  }
+
+  private routeQuotationToCart(row: FolioRow, detail: { header?: Quotation; line_items?: QuotationLineItem[] }): void {
+    const header = detail.header;
+    const invoice = header?.advance_invoice;
+    const openAdvance = !!invoice?.uuid && invoice.applied !== true;
+    if (header?.general_status === 'Convertida' && header.converted_to_sales_order_id) {
+      if (!openAdvance) {
+        this.takingId.set('');
+        this.readingFor.set('');
+        this.error.set('Esa cotización ya es una venta. Búscala en Tickets.');
+        return;
+      }
+      const orderId = header.converted_to_sales_order_id;
+      this.salesOrders.getOrderDetailById(orderId).subscribe({
+        next: (order) => {
+          this.takingId.set('');
+          this.readingFor.set('');
+          const stage = order.header?.pos_stage;
+          if (stage && stage !== 'ventas') {
+            this.error.set('Esa venta ya está en caja.');
+            return;
+          }
+          const saleRow: FolioRow = {
+            ...row,
+            kind: 'sale',
+            id: order.header.id,
+            folio: order.header.folio || row.folio,
+          };
+          const pick = this.pickFromDetail(saleRow, order);
+          pick.lines = pick.lines.filter((line) => line.productSku !== 'anticipo_CFDI');
+          pick.advance = {
+            documentId: order.header.id,
+            quotationId: header.id,
+            quotationFolio: header.folio || row.folio,
+            paid: Number(invoice?.total ?? header.advance_requested_total ?? 0),
+            environment:
+              header.advance_stamp_environment === 'demo' || header.advance_stamp_environment === 'production'
+                ? header.advance_stamp_environment
+                : null,
+            kind: 'sale',
+          };
+          this.cartAsk.set(pick);
+          this.cartAskKey.set(row.key);
+        },
+        error: (error: unknown) => {
+          this.takingId.set('');
+          this.readingFor.set('');
+          this.error.set(resolveHttpErrorMessage(error, 'No se pudo leer la venta'));
+        },
+      });
+      return;
+    }
+    this.takingId.set('');
+    this.readingFor.set('');
+    const pick = this.pickFromDetail(row, detail);
+    pick.lines = pick.lines.filter((line) => line.productSku !== 'anticipo_CFDI');
+    if (openAdvance && header) {
+      pick.advance = {
+        documentId: header.id,
+        quotationId: header.id,
+        quotationFolio: header.folio || row.folio,
+        paid: Number(invoice?.total ?? header.advance_requested_total ?? 0),
+        environment:
+          header.advance_stamp_environment === 'demo' || header.advance_stamp_environment === 'production'
+            ? header.advance_stamp_environment
+            : null,
+        kind: 'advance',
+      };
+      this.cartAsk.set(pick);
+      this.cartAskKey.set(row.key);
+      return;
+    }
+    if (!pick.lines.length) {
+      this.error.set(`${row.folio} no tiene productos para el carrito`);
+      return;
+    }
+    this.cartAsk.set(pick);
+    this.cartAskKey.set(row.key);
   }
 
   private readDetail(

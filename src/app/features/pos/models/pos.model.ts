@@ -134,6 +134,8 @@ export interface PosSaleInProgress {
   /** Anticipo ya cobrado. En tickets se abre para armar la venta. */
   advance_collected?: boolean;
   advance_stamp_environment?: 'demo' | 'production' | null;
+  quotation_id?: string | null;
+  quotation_folio?: string | null;
   folio?: string;
   total?: number;
   subtotal?: number;

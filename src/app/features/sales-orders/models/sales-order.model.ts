@@ -213,6 +213,7 @@ export interface SalesOrder {
   fiscal_razon_social?: string;
   status?: SalesOrderStatus;
   general_status?: SalesOrderStatus;
+  pos_stage?: 'caja' | 'ventas' | null;
   can_cancel?: boolean;
   cancel_blocked_reason?: string | null;
   can_send_to_collection?: boolean;

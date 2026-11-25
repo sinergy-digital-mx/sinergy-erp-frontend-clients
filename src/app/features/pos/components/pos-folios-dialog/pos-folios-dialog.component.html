@@ -159,11 +159,6 @@
                   Productos
                 </button>
                 @if (data.mode === 'ventas') {
-                  @if (row.kind === 'quotation' && row.status === 'Creada' && (row.advanceRequested || 0) > 0) {
-                    <button type="button" class="pos-folios__copy-cart" (click)="openAdvanceSale(row)">
-                      Generar venta
-                    </button>
-                  }
                   <button
                     type="button"
                     class="pos-folios__copy-cart"

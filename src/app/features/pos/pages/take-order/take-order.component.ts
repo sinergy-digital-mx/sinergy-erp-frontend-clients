@@ -237,6 +237,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   editingAdvanceMetodoPago = signal<'PUE' | 'PPD' | null>(null);
   editingAdvanceCollected = signal(false);
   editingAdvanceEnvironment = signal<'demo' | 'production' | null>(null);
+  editingQuotationId = signal<string | null>(null);
+  editingQuotationFolio = signal<string | null>(null);
+  ticketSlotAsk = signal<PosSaleInProgress | null>(null);
+  ticketQuery = signal('');
   editingForShipping = signal(false);
   selectedCustomerRouteId = signal<string | null>(null);
   editingNotes = signal('');
@@ -1169,24 +1173,53 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!ticket?.id) {
       return;
     }
-    if (this.posService.cart().items.length > 0 && this.editingSaleId() !== ticket.id) {
-      this.askPosConfirm({
-        title: 'Cargar ticket',
-        message: 'Hay productos en el carrito. ¿Cargar este ticket y descartar el carrito actual?',
-        cancelLabel: 'Cancelar',
-        acceptLabel: 'Cargar ticket',
-      }).subscribe((confirmed) => {
-        if (confirmed) {
-          this.applyReturnedTicket(ticket);
-        }
-      });
+    if (this.editingSaleId() && this.editingSaleId() !== ticket.id) {
+      this.notifyInfo('Termina el ticket que tienes abierto.');
       return;
+    }
+    this.ticketSlotAsk.set(ticket);
+  }
+
+  confirmTicketSlot(slot: PosCartSlotId): void {
+    const ticket = this.ticketSlotAsk();
+    if (!ticket) return;
+    this.ticketSlotAsk.set(null);
+    this.ticketsPanelOpen.set(false);
+    if (slot !== this.activeCartSlot()) {
+      this.switchCartSlot(slot);
     }
     this.applyReturnedTicket(ticket);
   }
 
+  advanceGap(): number {
+    if (!this.editingAdvanceCollected()) return 0;
+    const paid = Number(this.editingAdvanceAmount() ?? 0);
+    const sale = Number(this.posService.cart().grand_total || 0);
+    return Math.round((paid - sale) * 100) / 100;
+  }
+
+  filteredTickets(): PosSaleInProgress[] {
+    const query = this.ticketQuery().trim().toLowerCase();
+    const rows = this.salesInProgress();
+    if (!query) return rows;
+    return rows.filter((ticket) => {
+      const haystack = [
+        ticket.folio,
+        ticket.quotation_folio,
+        ticket.customer?.company_name,
+        ticket.customer?.name,
+        ticket.customer?.lastname,
+        ticket.walk_in_name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }
+
   private applyReturnedTicket(ticket: PosSaleInProgress): void {
-    const collected = ticket.kind === 'advance' && !!ticket.advance_collected;
+    const collected = !!ticket.advance_collected;
     const lines = (ticket.line_items ?? [])
       .filter((line) => !collected || line.product_sku !== ADVANCE_CONCEPT_SKU)
       .map((line) => this.posService.recalculateItem(mapInProgressLineToCartItem(line)));
@@ -1195,8 +1228,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.editingFolio.set(ticket.folio || ticket.id);
     this.editingTicketKind.set(ticket.kind === 'advance' ? 'advance' : 'sale');
     this.editingAdvanceAmount.set(
-      ticket.kind === 'advance' ? Number(ticket.amount_pending ?? 0) || null : null,
+      collected || ticket.kind === 'advance' ? Number(ticket.amount_pending ?? 0) || null : null,
     );
+    this.editingQuotationId.set(collected ? ticket.quotation_id || ticket.id : null);
+    this.editingQuotationFolio.set(collected ? ticket.quotation_folio || ticket.folio || null : null);
     this.editingAdvanceUsoCfdi.set(ticket.advance_uso_cfdi ?? null);
     this.editingAdvanceMetodoPago.set(ticket.advance_metodo_pago ?? null);
     this.editingAdvanceCollected.set(collected);
@@ -1259,6 +1294,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.editingAdvanceMetodoPago.set(null);
     this.editingAdvanceCollected.set(false);
     this.editingAdvanceEnvironment.set(null);
+    this.editingQuotationId.set(null);
+    this.editingQuotationFolio.set(null);
     this.editingForShipping.set(false);
     this.editingNotes.set('');
   }
@@ -1362,11 +1399,26 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       globalDiscountId: null,
       lines: pick.lines,
     });
+    if (pick.advance) {
+      this.editingSaleId.set(pick.advance.documentId);
+      this.editingFolio.set(pick.folio);
+      this.editingTicketKind.set(pick.advance.kind);
+      this.editingAdvanceAmount.set(pick.advance.paid);
+      this.editingAdvanceCollected.set(true);
+      this.editingAdvanceEnvironment.set(pick.advance.environment);
+      this.editingQuotationId.set(pick.advance.quotationId);
+      this.editingQuotationFolio.set(pick.advance.quotationFolio);
+    }
     this.slotsReady.set(true);
     this.landedSlot.set(pick.slot);
     if (this.landedTimer) clearTimeout(this.landedTimer);
     this.landedTimer = setTimeout(() => this.landedSlot.set(null), 900);
-    this.notifyInfo(`${pick.folio} en C${pick.slot}. Se cobra el precio vigente.`, 3500);
+    this.notifyInfo(
+      pick.advance
+        ? `${pick.advance.quotationFolio} en C${pick.slot}. Anticipo ${this.formatCurrency(pick.advance.paid)}.`
+        : `${pick.folio} en C${pick.slot}. Se cobra el precio vigente.`,
+      3500,
+    );
   }
 
   private restoreParkedSlot(): void {
@@ -2263,7 +2315,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private completeCollectedAdvance(): void {
-    const quotationId = this.editingSaleId();
+    const quotationId = this.editingQuotationId() || this.editingSaleId();
     if (!quotationId || this.saving() || this.confirming()) return;
     const cart = this.posService.cart();
     if (cart.items.length === 0) {
@@ -2273,7 +2325,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     const paid = Number(this.editingAdvanceAmount() ?? 0);
     const sale = Number(cart.grand_total || 0);
     if (sale + 0.009 < paid) {
-      this.notifyError('La venta no puede ser menor al anticipo.', 4000);
+      this.notifyError(`Sobran ${this.formatCurrency(paid - sale)}. Agrega otro producto.`, 4000);
       return;
     }
     this.saving.set(true);
@@ -2682,10 +2734,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const cart = this.posService.cart();
-    if (cart.items.length === 0) {
-      this.notifyInfo('Agrega productos a la cotización', 3000);
-      return;
-    }
 
     const seller = this.posState.seller();
     if (!seller?.id) {
@@ -2716,9 +2764,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.confirmCheckout({
       kind: 'quote',
       title: 'Guardar cotización',
-      subtitle: 'No se retiene inventario. Revisa el cliente y, si aplica, genera el anticipo.',
+      subtitle: 'Activa la factura de anticipo si el cliente deja dinero. Con productos se abre la venta. Sin productos queda la cotización.',
       totalLabel: this.formatCurrency(cart.grand_total),
       cartTotal: Number(cart.grand_total),
+      itemCount: cart.items.length,
       itemSummary: this.cartItemSummary(cart),
       customerLabel: this.selectedCustomerName(),
       customerFiscal: this.selectedCustomerId() ? customerFiscal : undefined,
@@ -2758,6 +2807,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
               ...(confirmed.advanceStampEnvironment
                 ? { advance_stamp_environment: confirmed.advanceStampEnvironment }
                 : {}),
+              ...(confirmed.advanceFormaPago
+                ? { advance_forma_pago: confirmed.advanceFormaPago }
+                : {}),
+              advance_case: cart.items.length ? 'products' : 'unknown',
+              advance_iva_percentage: this.saleIvaPercent() === 16 ? 16 : 8,
             }
           : payload,
       ).subscribe({
@@ -2766,7 +2820,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           const folioLabel = quotation.folio ? quotation.folio : 'sin folio';
           if (advanceAmount != null) {
             this.notifySuccess(
-              `Cotización ${folioLabel} guardada. El anticipo de ${this.formatCurrency(advanceAmount)} ya está en caja.`,
+              cart.items.length
+                ? `Cotización ${folioLabel} lista. Anticipo timbrado y venta con los productos.`
+                : `Cotización ${folioLabel} lista. Anticipo timbrado. Cuando regrese, ábrela en Tickets.`,
               7000,
             );
           } else {

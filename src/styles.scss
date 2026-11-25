@@ -120,7 +120,7 @@ main,
     box-sizing: border-box;
   }
 
-  select:not(.mat-mdc-select-trigger):not([class*='p-']):not(.form-select):not(.pos-line__pricing-select):not(.wc-assign-select):not(.capture-control):not(.cell-input) {
+  select:not(.mat-mdc-select-trigger):not([class*='p-']):not(.form-select):not(.pos-line__pricing-select):not(.pos-warehouse-filter):not(.wc-assign-select):not(.capture-control):not(.cell-input) {
     @include fc.pollux-select-field;
   }
 }

@@ -56,6 +56,8 @@ export interface PosCheckoutConfirmDialogData {
   totalLabel: string;
   /** Total con IVA de la cotización. El anticipo puede ser menor. */
   cartTotal?: number;
+  /** Productos ya capturados. En cero, la cotización solo puede ser anticipo. */
+  itemCount?: number;
   itemSummary: string;
   customerLabel?: string;
   customerFiscal?: PosCheckoutCustomerFiscal;
@@ -79,6 +81,7 @@ export interface PosCheckoutQuoteResult {
   advanceUsoCfdi: string | null;
   advanceMetodoPago: 'PUE' | 'PPD' | null;
   advanceStampEnvironment: 'demo' | 'production' | null;
+  advanceFormaPago: '01' | '02' | '03' | '04' | null;
 }
 
 export interface PosCheckoutSaleResult {
@@ -145,6 +148,7 @@ export class PosCheckoutConfirmDialogComponent {
   usoCfdi = signal('G03');
   metodoPago = signal<'PUE' | 'PPD'>('PUE');
   stampEnvironment = signal<'demo' | 'production'>(defaultStampEnvironment());
+  formaPago = signal<'01' | '02' | '03' | '04'>('03');
   customerLabel = signal('');
   customerFiscal = signal<PosCheckoutCustomerFiscal | null>(null);
   customerBusy = signal(false);
@@ -355,7 +359,7 @@ export class PosCheckoutConfirmDialogComponent {
 
   canConfirm(): boolean {
     if (!this.isQuote()) return this.logisticsReady();
-    if (!this.advanceInvoice()) return true;
+    if (!this.advanceInvoice()) return (this.data.itemCount ?? 1) > 0;
     return this.fiscalReady() && !this.advanceAmountError() && !this.customerBusy();
   }
 
@@ -363,10 +367,16 @@ export class PosCheckoutConfirmDialogComponent {
     this.advanceInvoice.set(checked);
   }
 
+  setFormaPago(value: string): void {
+    if (value === '01' || value === '02' || value === '03' || value === '04') {
+      this.formaPago.set(value);
+    }
+  }
+
   selectStampEnvironment(environment: 'demo' | 'production'): void {
     if (environment === this.stampEnvironment()) return;
     if (environment === 'production' && isLocalStampHost()) {
-      const confirmed = window.confirm('Esto timbrará un CFDI real al cobrar en caja. ¿Continuar?');
+      const confirmed = window.confirm('Esto timbrará un CFDI real. ¿Continuar?');
       if (!confirmed) return;
     }
     this.stampEnvironment.set(environment);
@@ -382,6 +392,7 @@ export class PosCheckoutConfirmDialogComponent {
         advanceUsoCfdi: advance ? this.usoCfdi() : null,
         advanceMetodoPago: advance ? this.metodoPago() : null,
         advanceStampEnvironment: advance ? this.stampEnvironment() : null,
+        advanceFormaPago: advance ? this.formaPago() : null,
       });
       return;
     }

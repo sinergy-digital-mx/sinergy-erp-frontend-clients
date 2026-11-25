@@ -331,18 +331,42 @@
           </button>
         </div>
       </div>
+      <label class="pos-tickets-panel__search">
+        <input
+          type="search"
+          placeholder="Folio, cotización o cliente"
+          [ngModel]="ticketQuery()"
+          (ngModelChange)="ticketQuery.set($event)"
+        />
+      </label>
+      @if (ticketSlotAsk(); as asked) {
+        <div class="pos-tickets-panel__ask">
+          <p>Enviar {{ asked.folio || asked.id }} a</p>
+          <div>
+            @for (slot of cartSlotBadges(); track slot.id) {
+              <button type="button" (click)="confirmTicketSlot(slot.id)">
+                C{{ slot.id }}@if (slot.count) { · {{ slot.count }} }
+              </button>
+            }
+            <button type="button" (click)="ticketSlotAsk.set(null)">Cancelar</button>
+          </div>
+        </div>
+      }
       @if (loadingTickets()) {
         <p class="pos-tickets-panel__empty"><app-spinner size="sm"></app-spinner></p>
       } @else if (salesInProgress().length === 0) {
         <p class="pos-tickets-panel__empty">No hay tickets en ventas.</p>
       } @else {
         <ul class="pos-tickets-panel__list">
-          @for (ticket of salesInProgress(); track ticket.id) {
+          @for (ticket of filteredTickets(); track ticket.id) {
             <li>
               <button type="button" class="pos-tickets-panel__item" (click)="openReturnedTicket(ticket)">
                 <span>
                   <strong>
                     {{ ticket.folio || ticket.id }}
+                    @if (ticket.quotation_folio && ticket.quotation_folio !== ticket.folio) {
+                      · {{ ticket.quotation_folio }}
+                    }
                     @if (ticket.advance_collected) {
                       <span class="pos-ticket-badge">Por completar</span>
                     } @else if (ticket.kind === 'advance') {
@@ -716,9 +740,22 @@
             <span class="pos-cart__editing">{{ folio }}</span>
           }
           @if (editingAdvanceCollected()) {
-            <span class="pos-cart__editing">Anticipo {{ formatCurrency(editingAdvanceAmount() ?? 0) }}</span>
+            <span class="pos-cart__editing">
+              {{ editingQuotationFolio() || editingFolio() }} · Anticipo {{ formatCurrency(editingAdvanceAmount() ?? 0) }}
+            </span>
           }
         </div>
+        @if (editingAdvanceCollected()) {
+          <p class="pos-cart__advance">
+            @if (advanceGap() > 0.009) {
+              Sobran {{ formatCurrency(advanceGap()) }}. Agrega otro producto.
+            } @else if (advanceGap() < -0.009) {
+              Caja cobra {{ formatCurrency(-advanceGap()) }}.
+            } @else {
+              El anticipo cubre la venta.
+            }
+          </p>
+        }
         @if (!editingSaleId()) {
           <div class="pos-cart__slots" role="tablist" aria-label="Carritos">
             @for (slot of cartSlotBadges(); track slot.id) {
@@ -1153,23 +1190,11 @@
         @if (canQuote() && !isEditingReturnedTicket()) {
           <button
             type="button"
-            class="pos-btn pos-btn--muted"
-            (click)="openAdvanceWizard()"
-            [disabled]="saving() || confirming() || !canSell()">
-            Anticipo
-          </button>
-          <button
-            type="button"
             class="pos-btn"
             [class.pos-btn--accent]="cartHasWithoutInventory()"
             [class.pos-btn--muted]="!cartHasWithoutInventory()"
             (click)="saveQuotation()"
-            [disabled]="
-              saving() ||
-              confirming() ||
-              !canSell() ||
-              posService.cart().items.length === 0
-            ">
+            [disabled]="saving() || confirming() || !canSell()">
             {{ saving() ? 'Guardando…' : 'Cotizar' }}
           </button>
         }
@@ -1184,7 +1209,8 @@
             confirming() ||
             !canSell() ||
             posService.cart().items.length === 0 ||
-            (!isEditingReturnedAdvance() && cartHasWithoutInventory())
+            (editingAdvanceCollected() && advanceGap() > 0.009) ||
+            (!isEditingReturnedAdvance() && !editingAdvanceCollected() && cartHasWithoutInventory())
           "
           [attr.title]="!isEditingReturnedAdvance() && cartHasWithoutInventory() ? 'Hay productos sin inventario. Solo se puede cotizar.' : null">
           {{ saving() ? 'Guardando…' : editingAdvanceCollected() ? 'Registrar venta' : isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta' }}

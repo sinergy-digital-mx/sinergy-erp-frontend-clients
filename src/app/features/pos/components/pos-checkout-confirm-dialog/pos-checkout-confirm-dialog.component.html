@@ -84,7 +84,7 @@
           <span class="quote-advance__text">
             <strong>Factura de anticipo</strong>
             <small>
-              El monto pasa a caja igual que una venta. Caja lo cobra y timbra la factura sola.
+              Se timbra al guardar, con el concepto Anticipo del bien o servicio.
             </small>
           </span>
           <input
@@ -189,10 +189,19 @@
                   @if (stampEnvironment() === 'demo') {
                     Factura de prueba. No vale ante el SAT.
                   } @else {
-                    Al cobrar en caja se timbra un CFDI real.
+                    Al guardar se timbra un CFDI real.
                   }
                 </p>
               </div>
+              <label class="quote-field">
+                <span class="quote-label">Forma de pago</span>
+                <select [ngModel]="formaPago()" (ngModelChange)="setFormaPago($event)">
+                  <option value="01">01 Efectivo</option>
+                  <option value="02">02 Cheque</option>
+                  <option value="03">03 Transferencia</option>
+                  <option value="04">04 Tarjeta</option>
+                </select>
+              </label>
               <label class="quote-field">
                 <span class="quote-label">Uso CFDI</span>
                 <select [ngModel]="usoCfdi()" (ngModelChange)="usoCfdi.set($event)">
@@ -231,6 +240,8 @@
         @if (advanceInvoice() && !advanceAmountError()) {
           Se enviarán <strong>{{ formatMoney(advanceAmount() ?? 0) }}</strong> a caja
           ({{ stampEnvironment() === 'demo' ? 'demo' : 'producción' }}).
+        } @else if ((data.itemCount ?? 0) === 0) {
+          Sin productos. Activa la factura de anticipo o vuelve y agrega productos.
         } @else {
           Sin retención de inventario.
         }

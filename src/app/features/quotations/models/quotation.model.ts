@@ -98,6 +98,7 @@ export interface Quotation {
   can_stamp_advance?: boolean;
   can_close_advance?: boolean;
   advance_case?: 'unknown' | 'products' | null;
+  advance_stamp_environment?: 'demo' | 'production' | null;
   advance_requested_total?: number | string | null;
   amount_paid?: number | string;
   amount_pending?: number | string;
