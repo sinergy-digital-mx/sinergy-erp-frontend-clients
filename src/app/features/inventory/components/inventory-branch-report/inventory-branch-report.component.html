@@ -9,7 +9,8 @@
         (focus)="results().length && resultsOpen.set(true)"
         (keydown)="onSearchKeydown($event)"
         placeholder="Busca un producto por nombre o número de pieza"
-        aria-label="Buscar un producto"
+        title="Pon ! al final para buscar el código exacto. Ejemplo: 1x12!"
+        aria-label="Buscar un producto. Con ! al final el código es exacto"
         autocomplete="off"
       />
       @if (query()) {

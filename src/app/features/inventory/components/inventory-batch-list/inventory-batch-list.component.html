@@ -52,9 +52,10 @@
                 (ngModelChange)="onSearchInput($event)"
                 (keyup.enter)="onSearch()"
                 placeholder="Buscar..."
+                title="Pon ! al final para buscar el código exacto. Ejemplo: 1x12!"
                 class="filter-bar__input"
                 [class.filter-bar__input--clearable]="!!state.searchTerm()"
-                aria-label="Buscar por lote o producto"
+                aria-label="Buscar por lote o producto. Con ! al final el código es exacto"
               />
               @if (state.searchTerm()) {
                 <button
