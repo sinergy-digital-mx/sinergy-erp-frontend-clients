@@ -48,7 +48,7 @@
     <section class="branch-empty">
       <p class="branch-empty__title">Existencia de un producto</p>
       <p class="branch-empty__text">
-        Busca una pieza. El reporte muestra su existencia y su costo en cada sucursal que dejes activa.
+        Busca una pieza. El reporte muestra su existencia{{ canViewMargin ? ' y su costo' : '' }} en cada sucursal que dejes activa.
       </p>
     </section>
   } @else if (reportLoading()) {
@@ -70,32 +70,36 @@
       </header>
 
       @if (!report.mixed_uom) {
-        <div class="stock-metrics">
+        <div class="stock-metrics" [class.stock-metrics--qty]="!canViewMargin">
           <div>
             <span>Existencia</span>
             <strong>{{ formatQty(report.total_quantity) }}</strong>
           </div>
-          <div>
-            <span>Costo promedio</span>
-            <strong>{{ formatMoney(report.average_unit_cost) }}</strong>
-          </div>
-          <div>
-            <span>Costo total</span>
-            <strong>{{ formatMoney(report.total_cost) }}</strong>
-          </div>
+          @if (canViewMargin) {
+            <div>
+              <span>Costo promedio</span>
+              <strong>{{ formatMoney(report.average_unit_cost) }}</strong>
+            </div>
+            <div>
+              <span>Costo total</span>
+              <strong>{{ formatMoney(report.total_cost) }}</strong>
+            </div>
+          }
         </div>
       }
 
       @if (report.lines.length === 0) {
         <p class="stock-card__empty">No hay sucursales activas. Actívalas en el engrane.</p>
       } @else {
-        <div class="branch-sheet">
+        <div class="branch-sheet" [class.branch-sheet--qty]="!canViewMargin">
           <div class="branch-head">
             <span>Sucursal</span>
             <span class="branch-head__cols">
               <span>Existencia</span>
-              <span class="num">Costo promedio</span>
-              <span class="num">Costo total</span>
+              @if (canViewMargin) {
+                <span class="num">Costo promedio</span>
+                <span class="num">Costo total</span>
+              }
             </span>
           </div>
           @for (group of branchGroups(); track group.id) {
@@ -115,18 +119,20 @@
                         <em>{{ line.uom_name }}</em>
                       }
                     </span>
-                    <span
-                      class="money"
-                      [class.is-muted]="isBlankMoney(line.average_unit_cost)"
-                      [attr.title]="line.cost_complete ? null : 'Parte de la existencia no tiene costo'">
-                      {{ formatMoney(line.average_unit_cost) }}
-                    </span>
-                    <span
-                      class="money"
-                      [class.is-muted]="isBlankMoney(line.total_cost)"
-                      [attr.title]="line.cost_complete ? null : 'El total solo suma los lotes que sí tienen costo'">
-                      {{ formatMoney(line.total_cost) }}
-                    </span>
+                    @if (canViewMargin) {
+                      <span
+                        class="money"
+                        [class.is-muted]="isBlankMoney(line.average_unit_cost)"
+                        [attr.title]="line.cost_complete ? null : 'Parte de la existencia no tiene costo'">
+                        {{ formatMoney(line.average_unit_cost) }}
+                      </span>
+                      <span
+                        class="money"
+                        [class.is-muted]="isBlankMoney(line.total_cost)"
+                        [attr.title]="line.cost_complete ? null : 'El total solo suma los lotes que sí tienen costo'">
+                        {{ formatMoney(line.total_cost) }}
+                      </span>
+                    }
                   </div>
                 }
               </div>
@@ -135,7 +141,7 @@
         </div>
       }
 
-      @if (report.lines.some((line) => !line.cost_complete)) {
+      @if (canViewMargin && report.lines.some((line) => !line.cost_complete)) {
         <p class="stock-note">Hay existencia sin costo. El promedio y el total usan solo los lotes que sí lo tienen.</p>
       }
     </article>

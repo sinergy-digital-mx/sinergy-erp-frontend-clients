@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, computed, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { QuotationService } from '../../services/quotation.service';
 import { Quotation, QuotationFilters, QuotationType } from '../../models/quotation.model';
@@ -45,8 +46,14 @@ export class QuotationListComponent implements OnInit {
   readonly cardSkeletonSlots = [1, 2, 3, 4];
 
   private rows = signal<Quotation[]>([]);
-  initialFiscalConfigurationId = '';
-  initialBillingBranchId = '';
+  readonly initialSearch: string;
+  readonly initialStatus: string;
+  readonly initialQuotationType: string;
+  readonly initialDateFrom: string;
+  readonly initialDateTo: string;
+  readonly initialSellerId: string;
+  readonly initialFiscalConfigurationId: string;
+  readonly initialBillingBranchId: string;
   private filters = signal<QuotationFilters>({});
   private pagination = signal({ page: 1, limit: 15 });
   private totalResults = signal(0);
@@ -174,15 +181,42 @@ export class QuotationListComponent implements OnInit {
     private dialog: MatDialog,
     private auth: AuthService,
     private taxCalculator: TaxCalculatorService,
+    private route: ActivatedRoute,
+    private router: Router,
   ) {
-    this.initialFiscalConfigurationId = this.auth.getDefaultListFiscalConfigurationId() ?? '';
-    this.initialBillingBranchId = this.auth.getDefaultListBillingBranchId() ?? '';
+    const params = this.route.snapshot.queryParamMap;
+    this.initialSearch = params.get('search')?.trim() || '';
+    this.initialStatus = quotationStatusFromQuery(params.get('status'));
+    this.initialQuotationType = quotationTypeFromQuery(params.get('type')) || '';
+    this.initialDateFrom = dateInputFromQuery(params.get('from'));
+    this.initialDateTo = dateInputFromQuery(params.get('to'));
+    this.initialSellerId = params.get('seller')?.trim() || '';
+    const queryFiscal = params.get('fiscal_configuration_id')?.trim() || '';
+    const queryBranch = params.get('billing_branch_id')?.trim() || '';
+    const defaultFiscal = this.auth.getDefaultListFiscalConfigurationId() || '';
+    const defaultBranch = this.auth.getDefaultListBillingBranchId() || '';
+    this.initialFiscalConfigurationId = queryFiscal || defaultFiscal;
+    const fiscalIsDefault = !queryFiscal || queryFiscal === defaultFiscal;
+    this.initialBillingBranchId = queryBranch || (fiscalIsDefault ? defaultBranch : '');
+    const page = pageFromQuery(params.get('page'));
     this.filters.set({
+      ...(this.initialSearch ? { search: this.initialSearch } : {}),
+      ...(this.initialStatus ? { general_status: this.initialStatus } : {}),
+      ...(this.initialQuotationType
+        ? { quotation_type: this.initialQuotationType as QuotationType }
+        : {}),
+      ...(this.initialDateFrom ? { created_from: new Date(this.initialDateFrom).toISOString() } : {}),
+      ...(this.initialDateTo ? { created_to: new Date(this.initialDateTo).toISOString() } : {}),
+      ...(this.initialSellerId ? { assigned_seller_user_id: this.initialSellerId } : {}),
       ...(this.initialFiscalConfigurationId
         ? { fiscal_configuration_id: this.initialFiscalConfigurationId }
         : {}),
       ...(this.initialBillingBranchId ? { billing_branch_id: this.initialBillingBranchId } : {}),
     });
+    if (page > 1) {
+      this.pagination.set({ page, limit: 15 });
+      this.table_config.update((config) => ({ ...config, page }));
+    }
   }
 
   ngOnInit(): void {
@@ -210,6 +244,7 @@ export class QuotationListComponent implements OnInit {
         },
       });
     }
+    this.writeListQuery(this.filters(), this.pagination().page);
     this.load();
   }
 
@@ -248,7 +283,7 @@ export class QuotationListComponent implements OnInit {
 
   applyFilters(filters: SalesOrderFilters): void {
     const type = filters.sales_order_type;
-    this.filters.set({
+    const next: QuotationFilters = {
       search: filters.search,
       general_status: filters.status,
       fiscal_configuration_id: filters.fiscal_configuration_id,
@@ -257,14 +292,39 @@ export class QuotationListComponent implements OnInit {
       created_to: filters.dateTo,
       quotation_type: type === 'POS' || type === 'MANUAL' ? (type as QuotationType) : undefined,
       assigned_seller_user_id: filters.assigned_seller_user_id,
-    });
+    };
+    this.filters.set(next);
     this.pagination.set({ page: 1, limit: 15 });
+    this.writeListQuery(next, 1);
     this.load();
   }
 
   onPageChange(event: IPaginationEvent): void {
-    this.pagination.set({ page: event.page, limit: event.limit });
+    const page = Number(event.page) || 1;
+    const limit = Number(event.limit) || 15;
+    this.pagination.set({ page, limit });
+    this.writeListQuery(this.filters(), page);
     this.load();
+  }
+
+  private writeListQuery(filters: QuotationFilters, page: number): void {
+    const status = typeof filters.general_status === 'string' ? filters.general_status : '';
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        search: filters.search?.trim() || null,
+        status: quotationStatusFromQuery(status) || null,
+        type: quotationTypeFromQuery(filters.quotation_type) || null,
+        fiscal_configuration_id: filters.fiscal_configuration_id?.trim() || null,
+        billing_branch_id: filters.billing_branch_id?.trim() || null,
+        from: dateInputFromQuery(filters.created_from) || null,
+        to: dateInputFromQuery(filters.created_to) || null,
+        seller: filters.assigned_seller_user_id?.trim() || null,
+        page: page > 1 ? String(page) : null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   onSortChange(_event: ISortEvent): void {}
@@ -359,4 +419,26 @@ export class QuotationListComponent implements OnInit {
     const second = parts.length > 1 ? parts[1].charAt(0) : parts[0]?.charAt(1) || '';
     return `${first}${second}`.toLocaleUpperCase('es-MX') || '•';
   }
+}
+
+function quotationStatusFromQuery(value: string | null | undefined): string {
+  const raw = value?.trim() || '';
+  return raw === 'Creada' || raw === 'Convertida' || raw === 'Cancelada' ? raw : '';
+}
+
+function quotationTypeFromQuery(value: string | null | undefined): QuotationType | '' {
+  return value === 'POS' || value === 'MANUAL' ? value : '';
+}
+
+function dateInputFromQuery(value: string | null | undefined): string {
+  const raw = value?.trim() || '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (!raw || Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+}
+
+function pageFromQuery(value: string | null | undefined): number {
+  const page = Number(value);
+  return Number.isInteger(page) && page > 1 ? page : 1;
 }

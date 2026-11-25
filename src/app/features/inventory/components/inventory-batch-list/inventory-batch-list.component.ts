@@ -20,6 +20,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { INVENTORY_PERMISSIONS } from '../../config/permissions.config';
+import { canViewInventoryMargin } from '../../utils/inventory-margin-access.util';
 import {
   INVENTORY_ALL_FISCAL,
   inventoryFiscalFromQuery,
@@ -54,6 +55,7 @@ export class InventoryBatchListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   readonly state = inject(InventoryListState);
   readonly canViewStats = signal(this.auth.hasPermission(INVENTORY_PERMISSIONS.viewStats));
+  readonly canViewMargin = signal(canViewInventoryMargin(this.auth));
   readonly branchReport = signal(this.isBranchReportUrl(this.router.url));
 
   readonly ArrowRightLeft = ArrowRightLeft;
@@ -101,6 +103,7 @@ export class InventoryBatchListComponent implements OnInit {
       const changed = known && allowed !== this.canViewStats();
       known = true;
       this.canViewStats.set(allowed);
+      this.canViewMargin.set(canViewInventoryMargin(this.auth));
       if (!allowed) {
         this.stats.set(null);
         this.statsLoading.set(false);

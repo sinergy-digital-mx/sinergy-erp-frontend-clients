@@ -24,6 +24,8 @@ export class InventoryStatsCardsComponent {
   @Input() stats: InventoryStats | null = null;
   @Input() loading = false;
   @Input() failed = false;
+  /** Precio, costo y margen. Sin el permiso solo quedan lotes y existencia. */
+  @Input() showMoney = true;
 
   readonly Layers = Layers;
   readonly Receipt = Receipt;
@@ -31,7 +33,9 @@ export class InventoryStatsCardsComponent {
   readonly TrendingUp = TrendingUp;
   readonly Package = Package;
   readonly AlertTriangle = AlertTriangle;
-  readonly skeletonSlots = [0, 1, 2, 3, 4];
+  get skeletonSlots(): number[] {
+    return this.showMoney ? [0, 1, 2, 3, 4] : [0, 1];
+  }
 
   get isNegativeMargin(): boolean {
     if (this.failed || !this.stats) {

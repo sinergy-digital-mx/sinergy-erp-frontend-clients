@@ -11,7 +11,10 @@
 
   @if (abonoRow(); as row) {
     <div class="pos-folios__abono">
-      <p class="pos-folios__abono-title">{{ row.customerName }}</p>
+      <p class="pos-folios__abono-title">{{ row.companyName || row.personName || row.customerName }}</p>
+      @if (row.companyName && row.personName) {
+        <p class="pos-folios__abono-person">{{ row.personName }}</p>
+      }
       <p class="pos-folios__abono-folio">{{ row.folio }}</p>
       @if (abonoLoading()) {
         <p>Leyendo saldo…</p>
@@ -60,22 +63,44 @@
         (ngModelChange)="onSearch($event)" />
     </label>
 
+    @if (data.mode === 'ventas') {
+      <div class="pos-folios__filters" role="tablist" aria-label="Tipo de folio">
+        <button
+          type="button"
+          role="tab"
+          [class.is-on]="listKind() === 'sale'"
+          [attr.aria-selected]="listKind() === 'sale'"
+          (click)="setListKind('sale')">
+          Ventas
+        </button>
+        <button
+          type="button"
+          role="tab"
+          [class.is-on]="listKind() === 'quotation'"
+          [attr.aria-selected]="listKind() === 'quotation'"
+          (click)="setListKind('quotation')">
+          Cotizaciones
+        </button>
+      </div>
+    }
+
     @if (error()) {
       <p class="pos-folios__error">{{ error() }}</p>
     }
     @if (loading()) {
       <p class="pos-folios__empty">Cargando…</p>
     } @else if (!rows().length) {
-      <p class="pos-folios__empty">
-        {{ data.mode === 'caja' ? 'No hay órdenes con saldo.' : 'No hay cotizaciones ni ventas.' }}
-      </p>
+      <p class="pos-folios__empty">{{ emptyLabel() }}</p>
     } @else {
       <ul class="pos-folios__list">
         @for (row of rows(); track row.key) {
           <li class="pos-folios__card" [class.is-open]="openKey() === row.key">
             <div class="pos-folios__top">
-              <button type="button" class="pos-folios__name" (click)="toggleLines(row)">
-                {{ row.customerName }}
+              <button type="button" class="pos-folios__who" (click)="toggleLines(row)">
+                <span class="pos-folios__name">{{ row.companyName || row.personName || row.customerName }}</span>
+                @if (row.companyName && row.personName) {
+                  <span class="pos-folios__person">{{ row.personName }}</span>
+                }
               </button>
               @if (row.status) {
                 <span [class]="statusClass(row.status)">{{ row.status }}</span>
@@ -92,9 +117,6 @@
                 [title]="copiedFolio() === row.folio ? 'Copiado' : 'Copiar folio'">
                 <lucide-icon [img]="copiedFolio() === row.folio ? Check : Copy" [size]="13" />
               </button>
-              @if (row.kind === 'quotation') {
-                <span class="dt-status-pill dt-status-pill--info">{{ kindLabel(row) }}</span>
-              }
               @if (row.paymentStatus) {
                 <span [class]="paymentClass(row.paymentStatus)">{{ row.paymentStatus }}</span>
               }

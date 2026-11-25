@@ -1,9 +1,12 @@
 import { Component, DestroyRef, HostListener, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { LucideAngularModule, ChevronRight, ChevronDown, Settings } from 'lucide-angular';
+import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { canViewInventoryMargin } from '../../utils/inventory-margin-access.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { InventorySummaryFilters, InventorySummaryItem } from '../../models/inventory-item.model';
 import { InventoryService } from '../../services/inventory.service';
@@ -44,6 +47,7 @@ interface SummaryRowMenu {
 })
 export class InventorySummaryViewComponent {
   private readonly inventoryService = inject(InventoryService);
+  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
@@ -63,8 +67,13 @@ export class InventorySummaryViewComponent {
   readonly limit = signal(20);
   readonly expandedItems = signal<Set<string>>(new Set());
   readonly rowMenu = signal<SummaryRowMenu | null>(null);
+  readonly canViewMargin = signal(canViewInventoryMargin(this.auth));
 
   constructor() {
+    this.auth.permissions$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.canViewMargin.set(canViewInventoryMargin(this.auth));
+    });
+
     const closeOnScroll = () => {
       if (this.rowMenu()) this.rowMenu.set(null);
     };

@@ -1,10 +1,12 @@
-import { ChangeDetectorRef, Component, Inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, Inject, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, ExternalLink } from 'lucide-angular';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
+import { AuthService } from '../../../../core/services/auth.service';
+import { canViewInventoryMargin } from '../../../inventory/utils/inventory-margin-access.util';
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import {
   VendorCostCurrency,
@@ -52,6 +54,11 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
   lineNote = '';
   selectedCurrency: VendorCostCurrency = 'MXN';
   selectedCurrencyLocked = true;
+  private readonly authService = inject(AuthService);
+
+  get canViewCost(): boolean {
+    return canViewInventoryMargin(this.authService);
+  }
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddPurchaseOrderLineDialogData,
@@ -180,7 +187,7 @@ export class AddPurchaseOrderLineDialogComponent implements OnInit {
             sku: this.selectedProduct?.product_sku || this.selectedProduct?.sku,
           },
           isNew: false,
-          initialTab: 'costos',
+          initialTab: this.canViewCost ? 'costos' : 'detalles',
           iepsEnabled: this.showIeps,
         },
       })

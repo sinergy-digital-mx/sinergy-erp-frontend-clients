@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,7 +12,9 @@ import {
 import { EmptyStageComponent } from '../../../../core/components/empty-stage/empty-stage.component';
 import { PaginationComponent } from '../../../../core/components/pagination/pagination.component';
 import { BackButtonComponent } from '../../../rbac-tenant-ui/components/back-button/back-button.component';
+import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { canViewInventoryMargin } from '../../utils/inventory-margin-access.util';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
@@ -59,6 +61,11 @@ type StockFlowVendorOption = Vendor & { display_name: string };
   styleUrl: './inventory-stock-flow.component.scss',
 })
 export class InventoryStockFlowComponent implements OnInit {
+  private readonly auth = inject(AuthService);
+
+  get canViewMargin(): boolean {
+    return canViewInventoryMargin(this.auth);
+  }
 
   view: StockFlowView = 'summary';
   datePreset: StockFlowPeriod = 'month';

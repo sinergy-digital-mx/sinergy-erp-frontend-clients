@@ -69,7 +69,7 @@
                   <span class="stat__label">Ordenado</span>
                   <span class="stat__value">{{ getOrderedQty(lineItem) | removeTrailingZeros }} {{ getLineUomName(lineItem) }}</span>
                 </span>
-                @if (getUnitCost(lineItem) !== null) {
+                @if (canViewCost && getUnitCost(lineItem) !== null) {
                   <span class="stat">
                     <span class="stat__label">Costo unit.</span>
                     <span class="stat__value">{{ formatUnitCost(getUnitCost(lineItem)!) }}</span>

@@ -16,9 +16,11 @@
           <th>Sucursal</th>
           <th>Almacén</th>
           <th class="col-fit">Disponible</th>
-          <th class="col-fit" title="Precio unitario de la lista activa">Precio</th>
-          <th class="col-fit" title="Costo unitario en pesos">Costo</th>
-          <th class="col-fit" title="Porcentaje de margen sobre el precio. No es un porcentaje de la existencia.">Margen</th>
+          @if (canViewMargin()) {
+            <th class="col-fit" title="Precio unitario de la lista activa">Precio</th>
+            <th class="col-fit" title="Costo unitario en pesos">Costo</th>
+            <th class="col-fit" title="Porcentaje de margen sobre el precio. No es un porcentaje de la existencia.">Margen</th>
+          }
           <th class="col-fit">Lotes</th>
         </tr>
       </thead>
@@ -53,29 +55,31 @@
                 }
               </div>
             </td>
-            <td class="col-fit money-cell" [attr.title]="item.margin?.price_list_name || null">
-              @if (item.margin?.unit_price) {
-                <div class="money-pair">
-                  <span class="dt-cell-amount">{{ unitMoney(item.margin?.unit_price) }}</span>
-                  <span class="currency-pill">MXN</span>
-                </div>
-              } @else {
-                <span class="dt-cell-subtle">—</span>
-              }
-            </td>
-            <td class="col-fit money-cell">
-              @if (item.margin?.unit_cost) {
-                <div class="money-pair">
-                  <span class="dt-cell-amount">{{ unitMoney(item.margin?.unit_cost) }}</span>
-                  <span class="currency-pill">MXN</span>
-                </div>
-              } @else {
-                <span class="dt-cell-subtle">—</span>
-              }
-            </td>
-            <td class="col-fit">
-              <app-inventory-margin-chip [margin]="item.margin"></app-inventory-margin-chip>
-            </td>
+            @if (canViewMargin()) {
+              <td class="col-fit money-cell" [attr.title]="item.margin?.price_list_name || null">
+                @if (item.margin?.unit_price) {
+                  <div class="money-pair">
+                    <span class="dt-cell-amount">{{ unitMoney(item.margin?.unit_price) }}</span>
+                    <span class="currency-pill">MXN</span>
+                  </div>
+                } @else {
+                  <span class="dt-cell-subtle">—</span>
+                }
+              </td>
+              <td class="col-fit money-cell">
+                @if (item.margin?.unit_cost) {
+                  <div class="money-pair">
+                    <span class="dt-cell-amount">{{ unitMoney(item.margin?.unit_cost) }}</span>
+                    <span class="currency-pill">MXN</span>
+                  </div>
+                } @else {
+                  <span class="dt-cell-subtle">—</span>
+                }
+              </td>
+              <td class="col-fit">
+                <app-inventory-margin-chip [margin]="item.margin"></app-inventory-margin-chip>
+              </td>
+            }
             <td class="col-fit">
               <button
                 type="button"
@@ -95,7 +99,7 @@
           </tr>
           @if (isExpanded(item)) {
             <tr class="lots-row">
-              <td colspan="8">
+              <td [attr.colspan]="canViewMargin() ? 8 : 5">
                 <div class="lots-panel">
                   <table class="summary-table summary-table--nested">
                     <thead>
@@ -105,9 +109,11 @@
                         <th>Tag</th>
                         <th>Medida</th>
                         <th class="col-fit">Disponible</th>
-                        <th class="col-fit">Precio</th>
-                        <th class="col-fit">Costo</th>
-                        <th class="col-fit">Margen</th>
+                        @if (canViewMargin()) {
+                          <th class="col-fit">Precio</th>
+                          <th class="col-fit">Costo</th>
+                          <th class="col-fit">Margen</th>
+                        }
                         <th class="col-fit">Inicial</th>
                         <th class="col-fit">Fecha</th>
                       </tr>
@@ -145,29 +151,31 @@
                               <span class="uom-pill">{{ item.uom_name }}</span>
                             </div>
                           </td>
-                          <td class="col-fit money-cell">
-                            @if (batch.margin?.unit_price) {
-                              <div class="money-pair">
-                                <span class="dt-cell-amount">{{ unitMoney(batch.margin?.unit_price) }}</span>
-                                <span class="currency-pill">MXN</span>
-                              </div>
-                            } @else {
-                              <span class="dt-cell-subtle">—</span>
-                            }
-                          </td>
-                          <td class="col-fit money-cell">
-                            @if (batch.margin?.unit_cost) {
-                              <div class="money-pair">
-                                <span class="dt-cell-amount">{{ unitMoney(batch.margin?.unit_cost) }}</span>
-                                <span class="currency-pill">MXN</span>
-                              </div>
-                            } @else {
-                              <span class="dt-cell-subtle">—</span>
-                            }
-                          </td>
-                          <td class="col-fit">
-                            <app-inventory-margin-chip [margin]="batch.margin"></app-inventory-margin-chip>
-                          </td>
+                          @if (canViewMargin()) {
+                            <td class="col-fit money-cell">
+                              @if (batch.margin?.unit_price) {
+                                <div class="money-pair">
+                                  <span class="dt-cell-amount">{{ unitMoney(batch.margin?.unit_price) }}</span>
+                                  <span class="currency-pill">MXN</span>
+                                </div>
+                              } @else {
+                                <span class="dt-cell-subtle">—</span>
+                              }
+                            </td>
+                            <td class="col-fit money-cell">
+                              @if (batch.margin?.unit_cost) {
+                                <div class="money-pair">
+                                  <span class="dt-cell-amount">{{ unitMoney(batch.margin?.unit_cost) }}</span>
+                                  <span class="currency-pill">MXN</span>
+                                </div>
+                              } @else {
+                                <span class="dt-cell-subtle">—</span>
+                              }
+                            </td>
+                            <td class="col-fit">
+                              <app-inventory-margin-chip [margin]="batch.margin"></app-inventory-margin-chip>
+                            </td>
+                          }
                           <td class="col-fit">
                             <span class="dt-cell-muted">{{ formatNumber(batch.initial_quantity) }}</span>
                           </td>

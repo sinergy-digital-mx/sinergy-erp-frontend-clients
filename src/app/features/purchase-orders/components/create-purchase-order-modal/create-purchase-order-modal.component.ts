@@ -1,8 +1,10 @@
-import { Component, OnInit, OnDestroy, Inject, ChangeDetectorRef, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, ChangeDetectorRef, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { canViewInventoryMargin } from '../../../inventory/utils/inventory-margin-access.util';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { LucideAngularModule, ExternalLink, Pencil, Plus, ChevronDown } from 'lucide-angular';
 import { Subject } from 'rxjs';
@@ -116,6 +118,11 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
   readonly vendorInvoiceMaxCount = VENDOR_INVOICE_MAX_COUNT;
   vendorInvoiceInputs = signal<string[]>(['']);
   selectedVendor: (Vendor & { display_name?: string }) | null = null;
+  private readonly authService = inject(AuthService);
+
+  get canViewCost(): boolean {
+    return canViewInventoryMargin(this.authService);
+  }
 
   constructor(
     private fb: FormBuilder,
@@ -648,7 +655,7 @@ export class CreatePurchaseOrderModalComponent implements OnInit, OnDestroy {
           sku: this.selectedProduct?.product_sku || this.selectedProduct?.sku,
         },
         isNew: false,
-        initialTab: 'costos',
+        initialTab: this.canViewCost ? 'costos' : 'detalles',
         iepsEnabled: this.showIeps,
       },
     }).afterClosed().subscribe(() => {

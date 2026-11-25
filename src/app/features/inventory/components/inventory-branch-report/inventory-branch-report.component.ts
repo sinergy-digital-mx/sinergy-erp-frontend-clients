@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { CdkDragDrop, CdkDrag, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { LucideAngularModule, GripVertical, Settings, X } from 'lucide-angular';
+import { AuthService } from '../../../../core/services/auth.service';
 import { InventoryService } from '../../services/inventory.service';
+import { canViewInventoryMargin } from '../../utils/inventory-margin-access.util';
 import { InventoryListState } from '../../services/inventory-list-state.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
@@ -34,7 +36,12 @@ interface BranchReportGroup {
   styleUrl: './inventory-branch-report.component.scss',
 })
 export class InventoryBranchReportComponent implements OnInit {
+  get canViewMargin(): boolean {
+    return canViewInventoryMargin(this.auth);
+  }
+
   private readonly inventoryService = inject(InventoryService);
+  private readonly auth = inject(AuthService);
   private readonly listState = inject(InventoryListState);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);

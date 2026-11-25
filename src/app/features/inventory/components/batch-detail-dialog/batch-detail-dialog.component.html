@@ -199,6 +199,7 @@
                   <span class="costs-row__value">{{ formatBatchRate(batch()?.customs_exchange_rate) }}</span>
                 </div>
               }
+              @if (canViewMargin) {
               <div class="costs-row">
                 <span class="costs-row__label">Precio sugerido</span>
                 <span class="costs-row__value">
@@ -206,6 +207,7 @@
                   {{ formatSuggestedPrice(batch()?.suggested_unit_price) }}
                 </span>
               </div>
+              }
             </div>
           </div>
         }
@@ -335,7 +337,7 @@
       </div>
     }
 
-    @if (activeTab === 'margen') {
+    @if (canViewMargin && activeTab === 'margen') {
       <div class="batch-detail__body">
         @if (batch()?.margin_detail) {
           <app-inventory-margin-panel

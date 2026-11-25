@@ -475,7 +475,9 @@
                 <thead>
                   <tr>
                     <th class="col-product">PRODUCTO</th>
-                    <th class="col-money">COSTO</th>
+                    @if (canViewCost) {
+                      <th class="col-money">COSTO</th>
+                    }
                     <th class="col-money">
                       IMPORTE
                       @if (hasLineIvaColumn() || hasLineIepsColumn()) {
@@ -515,9 +517,11 @@
                             <span class="line-note">{{ note }}</span>
                           }
                         </td>
-                        <td class="col-money">
-                          <ng-container *ngTemplateOutlet="costCell; context: { $implicit: getLineUnitCost(item) }" />
-                        </td>
+                        @if (canViewCost) {
+                          <td class="col-money">
+                            <ng-container *ngTemplateOutlet="costCell; context: { $implicit: getLineUnitCost(item) }" />
+                          </td>
+                        }
                         <td class="col-money">
                           <ng-container
                             *ngTemplateOutlet="importeCell; context: {
@@ -603,7 +607,9 @@
                   <tfoot>
                     <tr>
                       <td class="col-product products-footer-label">Totales</td>
-                      <td></td>
+                      @if (canViewCost) {
+                        <td></td>
+                      }
                       <td class="col-money">
                         <ng-container
                           *ngTemplateOutlet="importeCell; context: {

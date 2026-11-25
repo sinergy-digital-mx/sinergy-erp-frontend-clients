@@ -1,5 +1,9 @@
 # UI — Listado de cotizaciones
 
+## 2026-11-25 — Búsqueda y filtros en la URL
+
+Búsqueda, razón social, sucursal, estado, tipo, fechas, vendedor y página quedan en la query de `/quotations`. Al refrescar se restauran en la barra y en el listado.
+
 ## 2026-11-24 — Listado móvil como clientes
 
 Misma estructura que órdenes de venta: título con crear en icono, búsqueda y Filtros en hoja, resumen en cards y cada cotización en tarjeta (cliente, estado, folio, vendedor, total, tipo y sucursal).

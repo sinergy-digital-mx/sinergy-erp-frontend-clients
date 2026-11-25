@@ -10,7 +10,7 @@ export const ACCOUNTING_ROUTES: Routes = [
     canActivate: [permissionGuard],
     data: {
       permissions: [ACCOUNTING_PERMISSIONS.read],
-      title: 'Cobranza / Contabilidad',
+      title: 'Caja y cuentas',
     },
   },
   {

@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { AuthService } from '../../../../core/services/auth.service';
+import { canViewInventoryMargin } from '../../../inventory/utils/inventory-margin-access.util';
 import { canViewPurchaseOrderRealCost } from '../../utils/purchase-order-real-cost-access.util';
 import { CommonModule } from '@angular/common';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
@@ -37,6 +38,10 @@ export class PurchaseOrderLotsTabComponent {
   @Output() openBatch = new EventEmitter<string>();
 
   collapsedIds = new Set<string>();
+
+  get canViewCost(): boolean {
+    return canViewInventoryMargin(this.authService);
+  }
 
   receivedLots(): PurchaseOrderLotNode[] {
     return purchaseOrderReceivedLots(this.lots);
@@ -154,8 +159,16 @@ export class PurchaseOrderLotsTabComponent {
   }
 
   hasRealCostColumns(): boolean {
-    return canViewPurchaseOrderRealCost(this.authService)
+    return this.canViewCost
+      && canViewPurchaseOrderRealCost(this.authService)
       && this.receivedLots().some((lot) => this.hasRealCost(lot));
+  }
+
+  footerLabelColspan(): number {
+    if (!this.canViewCost) {
+      return 3;
+    }
+    return this.hasRealCostColumns() ? 6 : 4;
   }
 
   hasRealCost(lot: PurchaseOrderLotNode): boolean {

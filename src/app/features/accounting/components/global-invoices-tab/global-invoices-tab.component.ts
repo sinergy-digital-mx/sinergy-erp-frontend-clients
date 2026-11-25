@@ -344,6 +344,11 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
     }).format(date);
   }
 
+  currencyCode(currency: string | null | undefined): string {
+    const code = (currency || 'MXN').trim().toUpperCase();
+    return code || 'MXN';
+  }
+
   formatMoney(value: number, currency = 'MXN'): string {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',

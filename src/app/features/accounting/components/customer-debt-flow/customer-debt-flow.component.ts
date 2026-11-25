@@ -87,7 +87,7 @@ const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', '
   styleUrl: './customer-debt-flow.component.scss',
 })
 export class CustomerDebtFlowComponent implements OnInit {
-  /** Dentro del menú de Cobranza: sin título ni botón de volver. */
+  /** Dentro de Caja y cuentas: sin título ni botón de volver. */
   @Input() embedded = false;
   view: DebtFlowView = 'aging';
   datePreset: DebtFlowPeriod = 'month';

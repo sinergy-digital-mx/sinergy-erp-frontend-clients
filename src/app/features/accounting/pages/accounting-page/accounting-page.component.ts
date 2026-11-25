@@ -89,9 +89,9 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
     },
     {
       id: 'pos-collections',
-      title: 'Cobros',
+      title: 'Ventas cobradas',
       hint: {
-        summary: 'Lo que ya se cobró en el periodo.',
+        summary: 'Las ventas que ya se cobraron en el periodo.',
         points: [
           'Cuenta la fecha de cobro, no la del corte.',
           'Efectivo, transferencia, tarjeta, cheque y abonos.',
@@ -260,7 +260,7 @@ export class AccountingPageComponent implements OnInit, OnDestroy {
       this.dateFrom.set('');
       this.dateTo.set('');
     }
-    // Rep. Vent. Cost. Prom. y Cobros abren en el mes actual.
+    // Rep. Vent. Cost. Prom. y Ventas cobradas abren en el mes actual.
     if (tab === 'average-cost' || (tab === 'pos-collections' && previousTab !== 'pos-collections')) {
       this.applyCurrentMonth();
     }

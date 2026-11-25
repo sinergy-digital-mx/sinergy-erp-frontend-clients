@@ -452,7 +452,7 @@
           </table>
         </div>
 
-        <div *ngIf="activeTab === 'margen'" class="tab-pane">
+        <div *ngIf="canViewMargin && activeTab === 'margen'" class="tab-pane">
           <div *ngIf="loadingMargin" class="tab-loader">
             <app-spinner></app-spinner>
           </div>

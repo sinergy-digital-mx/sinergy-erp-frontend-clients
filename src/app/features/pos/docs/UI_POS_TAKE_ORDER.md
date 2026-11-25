@@ -19,6 +19,12 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 ## Cambios
 
+### 2026-11-25
+
+En **Folios**, ventas y cotizaciones no se mezclan: hay dos filtros, **Ventas** y **Cotizaciones**. Cada carta muestra la empresa y, debajo y más chica, la persona cuando son distintas.
+
+**Cotizaciones** lista las de la sucursal y la razón social (`GET /tenant/pos/folio-quotations`), no solo las del usuario que inició sesión.
+
 ### 2026-11-24
 
 En el cuadrito de **Corte abierto**, al pasar el cursor la terminal sale abajo como submenú. La barra no crece y no empuja el resto.

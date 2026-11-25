@@ -12,6 +12,8 @@ export const INVENTORY_PERMISSIONS = {
   viewList: 'inventory:Read',
   viewDetail: 'inventory:Read',
   viewStats: 'inventory:ViewStats',
+  /** Precio, costo y margen del inventario. Sin este permiso no se muestran ni se entregan. */
+  viewMargin: 'inventory:ViewMargin',
   viewBatches: 'inventory:Read',
 
   /** Reporte de existencia / kardex */

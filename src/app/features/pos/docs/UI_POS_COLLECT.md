@@ -11,6 +11,10 @@ Fila 2: Cheque · Mixto · Crédito (Crédito solo si el cliente lo tiene en esa
 
 ## Cambios
 
+### 2026-11-25
+
+En **Folios** de caja, la carta muestra la empresa y, debajo y más chica, la persona cuando son distintas. Sigue listando solo órdenes con saldo.
+
 ### 2026-11-24
 
 En el cuadrito de **Corte abierto**, al pasar el cursor la terminal sale abajo como submenú. La barra no crece y no empuja el resto.

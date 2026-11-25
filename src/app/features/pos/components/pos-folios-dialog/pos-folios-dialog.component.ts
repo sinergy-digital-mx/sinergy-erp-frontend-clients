@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, Check, ChevronDown, Copy, Hash, X } from 'lucide-angular';
-import { Subject, forkJoin, of } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { catchError, debounceTime, takeUntil } from 'rxjs/operators';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { QuotationService } from '../../../quotations/services/quotation.service';
@@ -48,6 +48,8 @@ interface FolioRow {
   id: string;
   folio: string;
   customerName: string;
+  companyName: string;
+  personName: string;
   status: string;
   total: number;
   createdAt: string;
@@ -55,6 +57,8 @@ interface FolioRow {
   isCredit: boolean;
   pending: number | null;
 }
+
+type FolioListKind = 'sale' | 'quotation';
 
 @Component({
   selector: 'app-pos-folios-dialog',
@@ -77,6 +81,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   readonly razonSocial = signal('');
   readonly copiedFolio = signal('');
   readonly search = signal('');
+  readonly listKind = signal<FolioListKind>('sale');
   readonly takingId = signal('');
   readonly readingFor = signal<'lines' | 'cart' | ''>('');
   readonly openKey = signal('');
@@ -95,6 +100,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
 
   private readonly search$ = new Subject<string>();
   private readonly destroy$ = new Subject<void>();
+  private loadSeq = 0;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: PosFoliosDialogData,
@@ -130,6 +136,20 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
     this.search$.next(value);
   }
 
+  setListKind(kind: FolioListKind): void {
+    if (this.data.mode === 'caja' || this.listKind() === kind) return;
+    this.listKind.set(kind);
+    this.openKey.set('');
+    this.cancelAsk();
+    this.load();
+  }
+
+  emptyLabel(): string {
+    if (this.search().trim()) return 'Nada coincide con la búsqueda.';
+    if (this.data.mode === 'caja') return 'No hay órdenes con saldo.';
+    return this.listKind() === 'quotation' ? 'No hay cotizaciones.' : 'No hay ventas.';
+  }
+
   close(): void {
     this.dialogRef.close();
   }
@@ -146,10 +166,6 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       },
       () => this.error.set('No se pudo copiar el folio'),
     );
-  }
-
-  kindLabel(row: FolioRow): string {
-    return row.kind === 'quotation' ? 'Cotización' : 'Orden';
   }
 
   statusClass(status: string): string {
@@ -347,58 +363,48 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   }
 
   private load(): void {
+    const seq = ++this.loadSeq;
     this.loading.set(true);
     this.error.set('');
     const search = this.search().trim();
     const branchId = this.data.branchId;
     const fiscalId = this.data.fiscalConfigurationId;
-    if (this.data.mode === 'caja') {
+    const filters = {
+      search: search || undefined,
+      billing_branch_id: branchId,
+      fiscal_configuration_id: fiscalId,
+    };
+    const apply = (rows: FolioRow[]) => {
+      if (seq !== this.loadSeq) return;
+      this.rows.set(rows.filter((row) => row.status !== 'Cancelada'));
+      this.loading.set(false);
+    };
+
+    if (this.data.mode === 'caja' || this.listKind() === 'sale') {
       this.salesOrders
         .getOrders(
           {
-            search: search || undefined,
-            billing_branch_id: branchId,
-            fiscal_configuration_id: fiscalId,
-            payment_status: 'Pendiente',
+            ...filters,
+            ...(this.data.mode === 'caja' ? { payment_status: 'Pendiente' as const } : {}),
           },
-          { page: 1, limit: 40 },
+          { page: 1, limit: this.data.mode === 'caja' ? 40 : 30 },
         )
         .pipe(catchError(() => of({ data: [] as SalesOrder[] })))
-        .subscribe((page) => {
-          this.rows.set(this.salesRows(page.data ?? []).filter((row) => row.status !== 'Cancelada'));
-          this.loading.set(false);
-        });
+        .subscribe((page) => apply(this.salesRows(page.data ?? [])));
       return;
     }
 
-    forkJoin({
-      quotations: this.quotations
-        .getQuotations(
-          { search: search || undefined, billing_branch_id: branchId, fiscal_configuration_id: fiscalId },
-          { page: 1, limit: 30 },
-        )
-        .pipe(catchError(() => of({ data: [] as Quotation[] }))),
-      sales: this.salesOrders
-        .getOrders(
-          { search: search || undefined, billing_branch_id: branchId, fiscal_configuration_id: fiscalId },
-          { page: 1, limit: 30 },
-        )
-        .pipe(catchError(() => of({ data: [] as SalesOrder[] }))),
-    }).subscribe({
-      next: ({ quotations, sales }) => {
-        const mixed = [
-          ...this.quotationRows(quotations.data ?? []),
-          ...this.salesRows(sales.data ?? []),
-        ].filter((row) => row.status !== 'Cancelada');
-        mixed.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-        this.rows.set(mixed);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.error.set('No se pudieron cargar los folios');
-      },
-    });
+    this.posService
+      .getFolioQuotations({ ...filters, page: 1, limit: 30 })
+      .subscribe({
+        next: (page) => apply(this.quotationRows(page.data ?? [])),
+        error: (error: unknown) => {
+          if (seq !== this.loadSeq) return;
+          this.rows.set([]);
+          this.loading.set(false);
+          this.error.set(resolveHttpErrorMessage(error, 'No se pudieron cargar las cotizaciones'));
+        },
+      });
   }
 
   private noteCompany(value?: string | null): void {
@@ -412,12 +418,13 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   private quotationRows(rows: Quotation[]): FolioRow[] {
     return rows.map((row) => {
       this.noteCompany(row.fiscal_razon_social || row.razon_social);
+      const party = partyFrom(row.customer, row.customer_summary, row.customer_display_name);
       return {
       key: `q:${row.id}`,
       kind: 'quotation',
       id: row.id,
       folio: row.folio || row.id.slice(0, 8),
-      customerName: partyName(row.customer, row.customer_display_name),
+      ...party,
       status: row.general_status,
       total: Number(row.total ?? 0),
       createdAt: row.created_at || '',
@@ -433,12 +440,18 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       this.noteCompany(row.fiscal_razon_social);
       const pendingRaw = row.payments_summary?.amount_pending;
       const pending = pendingRaw == null ? null : Number(pendingRaw);
+      const party = partyFrom(
+        row.customer,
+        row.customer_summary,
+        row.customer_display_name,
+        row.walk_in_name,
+      );
       return {
         key: `s:${row.id}`,
         kind: 'sale' as const,
         id: row.id,
         folio: row.folio || row.id.slice(0, 8),
-        customerName: partyName(row.customer, row.customer_display_name),
+        ...party,
         status: row.general_status || row.status || '',
         total: Number(row.total ?? row.grand_total ?? 0),
         createdAt: (row as { created_at?: string }).created_at || '',
@@ -498,13 +511,42 @@ function todayIso(): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-function partyName(
-  customer?: { name?: string; lastname?: string; company_name?: string; display_name?: string },
+const PUBLIC_NAMES = new Set(['público en general', 'publico en general', 'venta de mostrador']);
+
+function cleanName(value?: string | null): string {
+  return String(value ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function isPublicName(value: string): boolean {
+  return PUBLIC_NAMES.has(value.trim().toLowerCase());
+}
+
+function joinPerson(source?: { name?: string; lastname?: string } | null): string {
+  return [cleanName(source?.name), cleanName(source?.lastname)].filter(Boolean).join(' ');
+}
+
+function partyFrom(
+  customer?: { name?: string; lastname?: string; company_name?: string; display_name?: string } | null,
+  summary?: { name?: string; lastname?: string; company_name?: string; display_name?: string } | null,
   displayName?: string,
-): string {
-  const company = customer?.company_name?.trim();
-  const person = [customer?.name, customer?.lastname].filter(Boolean).join(' ').trim();
-  return company || customer?.display_name?.trim() || displayName?.trim() || person || 'Público en General';
+  walkInName?: string | null,
+): { customerName: string; companyName: string; personName: string } {
+  const company = cleanName(customer?.company_name) || cleanName(summary?.company_name);
+  let person = joinPerson(customer) || joinPerson(summary);
+  const walkIn = cleanName(walkInName);
+  if (walkIn && (!person || isPublicName(person))) {
+    person = walkIn;
+  }
+  if (company && person && company.toLowerCase() === person.toLowerCase()) {
+    person = '';
+  }
+  if (company && isPublicName(person)) {
+    person = '';
+  }
+  const fallback =
+    cleanName(customer?.display_name) || cleanName(summary?.display_name) || cleanName(displayName);
+  const customerName = company || person || (isPublicName(fallback) ? '' : fallback) || 'Público en General';
+  return { customerName, companyName: company, personName: person };
 }
 
 function mapLine(line: QuotationLineItem | SalesOrderLineItem): PosCartSlotLine {

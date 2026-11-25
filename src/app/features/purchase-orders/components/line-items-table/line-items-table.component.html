@@ -10,7 +10,7 @@
               <th role="columnheader" scope="col">PRODUCTO</th>
               <th role="columnheader" scope="col">UOM</th>
               <th role="columnheader" scope="col" class="text-right">CANTIDAD</th>
-              <th role="columnheader" scope="col" class="text-right">COSTO UNIT.</th>
+              <th *ngIf="showCost" role="columnheader" scope="col" class="text-right">COSTO UNIT.</th>
               <th role="columnheader" scope="col" class="text-right">SUBTOTAL</th>
               <th role="columnheader" scope="col" class="text-right">IVA</th>
               <th *ngIf="showIeps" role="columnheader" scope="col" class="text-right">IEPS</th>
@@ -31,7 +31,7 @@
                 <span class="uom-badge">{{ getLineUomName(item) }}</span>
               </td>
               <td role="cell" data-label="CANTIDAD" class="text-right">{{ item.quantity }}</td>
-              <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatUnitCost(item.unit_price ?? item.unit_total ?? 0) }}</td>
+              <td *ngIf="showCost" role="cell" data-label="COSTO UNIT." class="text-right">{{ formatUnitCost(item.unit_price ?? item.unit_total ?? 0) }}</td>
               <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
               <td role="cell" data-label="IVA" class="text-right">{{ formatCurrency(item.iva_amount) }}</td>
               <td *ngIf="showIeps" role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
@@ -49,7 +49,7 @@
           <th role="columnheader" scope="col">PRODUCTO</th>
           <th role="columnheader" scope="col">UOM</th>
           <th role="columnheader" scope="col" class="text-right">CANTIDAD</th>
-          <th role="columnheader" scope="col" class="text-right">COSTO UNIT.</th>
+          <th *ngIf="showCost" role="columnheader" scope="col" class="text-right">COSTO UNIT.</th>
           <th role="columnheader" scope="col" class="text-right">SUBTOTAL</th>
           <th role="columnheader" scope="col" class="text-right">IVA</th>
           <th *ngIf="showIeps" role="columnheader" scope="col" class="text-right">IEPS</th>
@@ -70,7 +70,7 @@
             <span class="uom-badge">{{ getLineUomName(item) }}</span>
           </td>
           <td role="cell" data-label="CANTIDAD" class="text-right">{{ item.quantity }}</td>
-          <td role="cell" data-label="COSTO UNIT." class="text-right">{{ formatUnitCost(item.unit_price ?? item.unit_total ?? 0) }}</td>
+          <td *ngIf="showCost" role="cell" data-label="COSTO UNIT." class="text-right">{{ formatUnitCost(item.unit_price ?? item.unit_total ?? 0) }}</td>
           <td role="cell" data-label="SUBTOTAL" class="text-right">{{ formatCurrency(item.subtotal) }}</td>
           <td role="cell" data-label="IVA" class="text-right">{{ formatCurrency(item.iva_amount) }}</td>
           <td *ngIf="showIeps" role="cell" data-label="IEPS" class="text-right">{{ formatCurrency(item.ieps_amount) }}</td>
@@ -87,7 +87,7 @@
       <!-- Totals Row -->
       <tfoot *ngIf="lineItems.length > 0">
         <tr role="row" class="totals-row">
-          <td colspan="4" class="text-right font-weight-bold">TOTALES:</td>
+          <td [attr.colspan]="showCost ? 4 : 3" class="text-right font-weight-bold">TOTALES:</td>
           <td class="text-right font-weight-bold">{{ formatCurrency(totals.total_subtotal) }}</td>
           <td class="text-right font-weight-bold">{{ formatCurrency(totals.total_iva) }}</td>
           <td *ngIf="showIeps" class="text-right font-weight-bold">{{ formatCurrency(totals.total_ieps) }}</td>
@@ -145,7 +145,7 @@
           <span class="label">CANTIDAD:</span>
           <span class="value">{{ item.quantity }}</span>
         </div>
-        <div class="line-item-card__row">
+        <div class="line-item-card__row" *ngIf="showCost">
           <span class="label">COSTO UNIT.:</span>
           <span class="value">{{ formatUnitCost(item.unit_price ?? item.unit_total ?? 0) }}</span>
         </div>

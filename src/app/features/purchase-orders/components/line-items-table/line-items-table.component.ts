@@ -1,6 +1,8 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScrollingModule } from '@angular/cdk/scrolling';
+import { AuthService } from '../../../../core/services/auth.service';
+import { canViewInventoryMargin } from '../../../inventory/utils/inventory-margin-access.util';
 import { LineItem } from '../../models/line-item.model';
 import { TaxCalculatorService } from '../../services/tax-calculator.service';
 import { formatPurchaseOrderUnitCost } from '../../utils/purchase-order-display.util';
@@ -20,6 +22,8 @@ import { formatPurchaseOrderUnitCost } from '../../utils/purchase-order-display.
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LineItemsTableComponent {
+  private readonly auth = inject(AuthService, { optional: true });
+
   @Input() lineItems: LineItem[] = [];
   @Input() editable: boolean = false;
   /** Apagado cuando la razón social no calcula IEPS. */
@@ -40,8 +44,13 @@ export class LineItemsTableComponent {
     return this.iepsEnabled !== false;
   }
 
+  get showCost(): boolean {
+    return !!this.auth && canViewInventoryMargin(this.auth);
+  }
+
   get columnCount(): number {
-    return this.showIeps ? 8 : 7;
+    const count = this.showIeps ? 8 : 7;
+    return this.showCost ? count : count - 1;
   }
 
   /**

@@ -371,6 +371,35 @@
   width: 2.4rem;
 }
 
+.gi-ccy {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.gi-ccy__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.25rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.gi-ccy__badge--mxn {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.gi-ccy__badge--usd {
+  background: #d1fae5;
+  color: #047857;
+}
+
 .gi-num {
   text-align: right;
   white-space: nowrap;

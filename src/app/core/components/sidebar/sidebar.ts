@@ -284,7 +284,7 @@ export class Sidebar implements OnInit, OnDestroy {
       hiddenForOrganizationIds: [COSTA_CAMPESTRE_DIVINO_ORGANIZATION_ID],
     },
     {
-      label: 'Cobranza',
+      label: 'Caja y cuentas',
       route: '/accounting',
       icon: Landmark,
       id: 'menu-accounting',

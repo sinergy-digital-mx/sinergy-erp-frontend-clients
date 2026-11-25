@@ -32,6 +32,8 @@ import { InventoryService } from '../../../inventory/services/inventory.service'
 import { InventoryMarginPanelComponent } from '../../../inventory/components/inventory-margin-panel/inventory-margin-panel.component';
 import { ProductMarginResponse } from '../../../inventory/models/inventory-margin.model';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import { AuthService } from '../../../../core/services/auth.service';
+import { canViewInventoryMargin } from '../../../inventory/utils/inventory-margin-access.util';
 
 @Component({
   selector: 'app-product-detail-modal',
@@ -68,6 +70,10 @@ export class ProductDetailModalComponent implements OnInit {
 
   activeTab = 'detalles';
 
+  get canViewMargin(): boolean {
+    return canViewInventoryMargin(this.auth);
+  }
+
   get isPersistedProduct(): boolean {
     return !!this.product?.id?.trim();
   }
@@ -85,9 +91,11 @@ export class ProductDetailModalComponent implements OnInit {
       { id: 'uoms', title: 'UOMs', disabled: productLocked },
       { id: 'precios', title: 'Precios', disabled: uomLocked },
       { id: 'descuentos', title: 'Descuentos', disabled: uomLocked },
-      { id: 'costos', title: 'Costos de Proveedor', disabled: uomLocked },
     ];
-    if (this.product?.item_kind !== 'service') {
+    if (this.canViewMargin) {
+      tabs.push({ id: 'costos', title: 'Costos de Proveedor', disabled: uomLocked });
+    }
+    if (this.product?.item_kind !== 'service' && this.canViewMargin) {
       tabs.push({ id: 'margen', title: 'Margen', disabled: productLocked });
     }
     tabs.push({ id: 'fotos', title: 'Fotos', disabled: productLocked });
@@ -98,6 +106,11 @@ export class ProductDetailModalComponent implements OnInit {
     if (tabId !== 'detalles' && !this.isPersistedProduct) {
       this.activeTab = 'detalles';
       this.showNotification('Primero crea el producto (nombre y SKU). Después podrás asignar UOMs.', 'info');
+      return;
+    }
+
+    if ((tabId === 'costos' || tabId === 'margen') && !this.canViewMargin) {
+      this.activeTab = 'detalles';
       return;
     }
 
@@ -118,13 +131,13 @@ export class ProductDetailModalComponent implements OnInit {
     if (tabId === 'precios' && this.isPersistedProduct) {
       this.loadProductPrices();
     }
-    if (tabId === 'costos' && this.isPersistedProduct) {
+    if (tabId === 'costos' && this.isPersistedProduct && this.canViewMargin) {
       this.loadVendorCosts();
     }
     if (tabId === 'descuentos' && this.isPersistedProduct) {
       this.loadProductDiscounts();
     }
-    if (tabId === 'margen' && this.isPersistedProduct) {
+    if (tabId === 'margen' && this.isPersistedProduct && this.canViewMargin) {
       this.loadProductMargin();
     }
   }
@@ -232,7 +245,8 @@ export class ProductDetailModalComponent implements OnInit {
     private dialog: MatDialog,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private auth: AuthService,
   ) {
     const originalClose = this.dialogRef.close.bind(this.dialogRef);
     this.dialogRef.close = ((result?: unknown) => {
@@ -377,11 +391,13 @@ export class ProductDetailModalComponent implements OnInit {
         // Cargar precios del producto
         this.loadProductPrices();
         
-        // Cargar costos de proveedor
-        this.loadVendorCosts();
+        if (this.canViewMargin) {
+          this.loadVendorCosts();
+        }
 
         const initialTab = this.data?.initialTab;
-        if (typeof initialTab === 'string' && initialTab) {
+        const costTab = initialTab === 'costos' || initialTab === 'margen';
+        if (typeof initialTab === 'string' && initialTab && (!costTab || this.canViewMargin)) {
           this.activeTab = initialTab;
         }
         

@@ -11,10 +11,12 @@
       <span>Origen {{ summary.remaining_on_received_lots | removeTrailingZeros }} {{ summaryUom() }}</span>
       <span>Almacenes {{ summary.remaining_total | removeTrailingZeros }} {{ summaryUom() }}</span>
       <span>Migrados {{ summary.migrated_quantity | removeTrailingZeros }} {{ summaryUom() }}</span>
-      <span class="lots-caption__amount">
-        <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
-        {{ formatAmount(summary.amount_total) }}
-      </span>
+      @if (canViewCost) {
+        <span class="lots-caption__amount">
+          <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
+          {{ formatAmount(summary.amount_total) }}
+        </span>
+      }
     </p>
   }
 
@@ -25,12 +27,14 @@
           <th class="col-lot">Lote</th>
           <th class="col-product">Producto</th>
           <th class="col-place">Almacén</th>
-          <th class="col-money">Costo</th>
-          @if (hasRealCostColumns()) {
-            <th class="col-money">Real USD</th>
-            <th class="col-money">Real MXN</th>
+          @if (canViewCost) {
+            <th class="col-money">Costo</th>
+            @if (hasRealCostColumns()) {
+              <th class="col-money">Real USD</th>
+              <th class="col-money">Real MXN</th>
+            }
+            <th class="col-money">Importe</th>
           }
-          <th class="col-money">Importe</th>
           <th class="col-qty">Llegaron</th>
           <th class="col-qty">Quedan</th>
           <th class="col-qty">Migrados</th>
@@ -101,40 +105,42 @@
                 }
               </div>
             </td>
-            <td class="col-money">
-              @if (!row.isMigration) {
-                <span class="money-cell">
-                  <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
-                  {{ formatUnitCost(row.lot.unit_cost) }}
-                </span>
-              }
-            </td>
-            @if (hasRealCostColumns()) {
+            @if (canViewCost) {
               <td class="col-money">
                 @if (!row.isMigration) {
-                  <span class="money-cell money-cell--usd">
-                    <span class="currency-badge currency-badge--real-usd">USD</span>
-                    {{ formatOptionalUnitCost(row.lot.real_unit_cost_usd) }}
+                  <span class="money-cell">
+                    <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
+                    {{ formatUnitCost(row.lot.unit_cost) }}
                   </span>
                 }
               </td>
+              @if (hasRealCostColumns()) {
+                <td class="col-money">
+                  @if (!row.isMigration) {
+                    <span class="money-cell money-cell--usd">
+                      <span class="currency-badge currency-badge--real-usd">USD</span>
+                      {{ formatOptionalUnitCost(row.lot.real_unit_cost_usd) }}
+                    </span>
+                  }
+                </td>
+                <td class="col-money">
+                  @if (!row.isMigration) {
+                    <span class="money-cell money-cell--mxn">
+                      <span class="currency-badge currency-badge--real-mxn">MXN</span>
+                      {{ formatOptionalUnitCost(row.lot.real_unit_cost_mxn) }}
+                    </span>
+                  }
+                </td>
+              }
               <td class="col-money">
                 @if (!row.isMigration) {
-                  <span class="money-cell money-cell--mxn">
-                    <span class="currency-badge currency-badge--real-mxn">MXN</span>
-                    {{ formatOptionalUnitCost(row.lot.real_unit_cost_mxn) }}
+                  <span class="money-cell">
+                    <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
+                    {{ formatAmount(row.lot.amount) }}
                   </span>
                 }
               </td>
             }
-            <td class="col-money">
-              @if (!row.isMigration) {
-                <span class="money-cell">
-                  <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
-                  {{ formatAmount(row.lot.amount) }}
-                </span>
-              }
-            </td>
             <td class="col-qty">
               <span class="qty-cell" [class.qty-cell--soft]="row.isMigration">
                 <span class="qty-cell__amount">
@@ -165,13 +171,15 @@
       @if (summary) {
         <tfoot>
           <tr>
-            <td [attr.colspan]="hasRealCostColumns() ? 6 : 4" class="lots-foot-label">Totales</td>
-            <td class="col-money">
-              <span class="money-cell">
-                <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
-                {{ formatAmount(summary.amount_total) }}
-              </span>
-            </td>
+            <td [attr.colspan]="footerLabelColspan()" class="lots-foot-label">Totales</td>
+            @if (canViewCost) {
+              <td class="col-money">
+                <span class="money-cell">
+                  <span class="currency-badge" [class.currency-badge--usd]="currency === 'USD'">{{ currency }}</span>
+                  {{ formatAmount(summary.amount_total) }}
+                </span>
+              </td>
+            }
             <td class="col-qty">
               <span class="qty-cell">
                 <span class="qty-cell__amount">{{ summary.received_quantity | removeTrailingZeros }}</span>

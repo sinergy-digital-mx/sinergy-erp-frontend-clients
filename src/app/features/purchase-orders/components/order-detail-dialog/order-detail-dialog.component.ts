@@ -52,6 +52,7 @@ import {
   parsePurchaseOrderDecimal,
 } from '../../utils/purchase-order-display.util';
 import { RealCostPreview } from '../../utils/purchase-order-real-cost-preview.util';
+import { canViewInventoryMargin } from '../../../inventory/utils/inventory-margin-access.util';
 import { canViewPurchaseOrderRealCost } from '../../utils/purchase-order-real-cost-access.util';
 import {
   PurchaseOrderPedimentoDialogComponent,
@@ -144,7 +145,13 @@ export class OrderDetailDialogComponent {
       && this.authService.hasPermission(PURCHASE_ORDER_PERMISSIONS.correctReceipt);
   });
 
-  canViewRealCost = computed(() => canViewPurchaseOrderRealCost(this.authService));
+  canViewRealCost = computed(() =>
+    canViewInventoryMargin(this.authService) && canViewPurchaseOrderRealCost(this.authService),
+  );
+
+  get canViewCost(): boolean {
+    return canViewInventoryMargin(this.authService);
+  }
 
   canAddPayment = computed(() => {
     const order = this.order();
@@ -678,7 +685,7 @@ export class OrderDetailDialogComponent {
   }
 
   getProductsColspan(): number {
-    let count = 5;
+    let count = this.canViewCost ? 5 : 4;
     if (this.hasLineIvaColumn()) count += 1;
     if (this.hasLineIepsColumn()) count += 1;
     if (this.canEditLines()) count += 1;

@@ -36,7 +36,8 @@
         <app-inventory-stats-cards
           [stats]="stats()"
           [loading]="statsLoading()"
-          [failed]="statsFailed()">
+          [failed]="statsFailed()"
+          [showMoney]="canViewMargin()">
         </app-inventory-stats-cards>
       }
 

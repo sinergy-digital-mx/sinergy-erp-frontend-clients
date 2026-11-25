@@ -39,6 +39,11 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() initialCustomerLabel = '';
   @Input() initialFiscalConfigurationId = '';
   @Input() initialBillingBranchId = '';
+  @Input() initialStatus = '';
+  @Input() initialQuotationType = '';
+  @Input() initialDateFrom = '';
+  @Input() initialDateTo = '';
+  @Input() initialSellerId = '';
   @Output() filtersChange = new EventEmitter<SalesOrderFilters>();
   @Output() refresh = new EventEmitter<void>();
 
@@ -392,6 +397,26 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
       this.fiscalConfigurationControl.setValue(fiscalId, { emitEvent: false });
     }
     this.pendingBranchId = this.initialBillingBranchId.trim();
+    const status = this.initialStatus.trim();
+    if (status) {
+      this.statusControl.setValue(status, { emitEvent: false });
+    }
+    const quotationType = this.initialQuotationType.trim();
+    if (quotationType === 'POS' || quotationType === 'MANUAL') {
+      this.typeControl.setValue(quotationType, { emitEvent: false });
+    }
+    const sellerId = this.initialSellerId.trim();
+    if (sellerId) {
+      this.sellerControl.setValue(sellerId, { emitEvent: false });
+    }
+    const dateFrom = this.initialDateFrom.trim();
+    const dateTo = this.initialDateTo.trim();
+    if (dateFrom || dateTo) {
+      this.dateRangeControl.setValue('range', { emitEvent: false });
+      this.showCustomDateRange = true;
+      if (dateFrom) this.dateFromControl.setValue(dateFrom, { emitEvent: false });
+      if (dateTo) this.dateToControl.setValue(dateTo, { emitEvent: false });
+    }
   }
 
   private setLoadedBranches(branches: Branch[]): void {

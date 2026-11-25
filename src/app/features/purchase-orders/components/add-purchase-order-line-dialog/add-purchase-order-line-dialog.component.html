@@ -34,7 +34,7 @@
           [disabled]="!selectedProduct || saving()"
           (click)="openSelectedProductDetail()">
           <lucide-icon [img]="ExternalLink" [size]="16"></lucide-icon>
-          <span>{{ selectedProductHasVendorCost ? 'Ver producto' : 'Configurar costo' }}</span>
+          <span>{{ canViewCost && !selectedProductHasVendorCost ? 'Configurar costo' : 'Ver producto' }}</span>
         </button>
       </div>
       @if (selectedProduct && !selectedProductHasVendorCost) {

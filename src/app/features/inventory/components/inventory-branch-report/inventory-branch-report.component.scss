@@ -307,6 +307,15 @@
   gap: 0.45rem;
 }
 
+.branch-sheet--qty .branch-head__cols,
+.branch-sheet--qty .branch-line {
+  grid-template-columns: minmax(6.5rem, 1fr);
+}
+
+.stock-metrics--qty {
+  grid-template-columns: minmax(0, 12rem);
+}
+
 .branch-head__cols .num {
   text-align: right;
 }

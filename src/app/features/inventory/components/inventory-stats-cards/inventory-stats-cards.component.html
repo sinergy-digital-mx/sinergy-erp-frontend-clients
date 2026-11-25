@@ -1,6 +1,6 @@
 <section class="inv-stats" aria-label="Estadísticas de inventario">
   @if (loading) {
-    <div class="inv-stats__grid" aria-busy="true" aria-live="polite">
+    <div class="inv-stats__grid" [class.inv-stats__grid--counts]="!showMoney" aria-busy="true" aria-live="polite">
       @for (slot of skeletonSlots; track slot) {
         <div class="inv-stats__card inv-stats__card--skeleton" aria-hidden="true">
           <div class="inv-stats__top">
@@ -13,7 +13,7 @@
       }
     </div>
   } @else {
-    <div class="inv-stats__grid">
+    <div class="inv-stats__grid" [class.inv-stats__grid--counts]="!showMoney">
       <article class="inv-stats__card">
         <div class="inv-stats__top">
           <p class="inv-stats__label">Lotes</p>
@@ -25,6 +25,7 @@
         <p class="inv-stats__sub">{{ batchesSub() }}</p>
       </article>
 
+      @if (showMoney) {
       <article class="inv-stats__card">
         <div class="inv-stats__top">
           <p class="inv-stats__label">Costo en inventario</p>
@@ -73,6 +74,7 @@
           {{ formatPercent(stats?.gross_margin_percentage) }}
         </span>
       </article>
+      }
 
       <article class="inv-stats__card">
         <div class="inv-stats__top">
@@ -86,7 +88,7 @@
       </article>
     </div>
 
-    @if (showWarningChips) {
+    @if (showMoney && showWarningChips) {
       <div class="inv-stats__chips">
         @if (stats!.batches_without_cost > 0) {
           <span

@@ -172,6 +172,7 @@
             <th>Fecha</th>
             <th>Cliente</th>
             <th>Estado</th>
+            <th class="gi-ccy">Moneda</th>
             <th class="gi-num">Total</th>
             <th>Pago</th>
           </tr>
@@ -199,12 +200,17 @@
                 @if (order.company_name) {
                   <span class="gi-sub">{{ order.company_name }}</span>
                 }
-                @if (order.branch_label) {
-                  <span class="gi-sub">{{ order.branch_label }}</span>
-                }
               </td>
               <td>
                 <span [class]="statusClass(order.general_status)">{{ order.general_status }}</span>
+              </td>
+              <td class="gi-ccy">
+                <span
+                  class="gi-ccy__badge"
+                  [class.gi-ccy__badge--mxn]="currencyCode(order.currency) === 'MXN'"
+                  [class.gi-ccy__badge--usd]="currencyCode(order.currency) === 'USD'">
+                  {{ currencyCode(order.currency) }}
+                </span>
               </td>
               <td class="gi-num">
                 <strong>{{ formatMoney(order.total, order.currency) }}</strong>

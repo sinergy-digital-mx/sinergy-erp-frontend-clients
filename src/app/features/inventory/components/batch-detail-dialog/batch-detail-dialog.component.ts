@@ -33,6 +33,7 @@ import { X, Package, MapPin, FileText, Calendar, ShoppingCart, ArrowRight, Edit,
 import { LucideAngularModule } from 'lucide-angular';
 import { formatPedimentoDisplay, formatPurchaseOrderUnitCost, formatVendorInvoiceDisplay, parsePurchaseOrderDecimal } from '../../../purchase-orders/utils/purchase-order-display.util';
 import { canViewPurchaseOrderRealCost } from '../../../purchase-orders/utils/purchase-order-real-cost-access.util';
+import { canViewInventoryMargin } from '../../utils/inventory-margin-access.util';
 import {
   auditStatusLabel,
   auditUserName,
@@ -85,10 +86,14 @@ export class BatchDetailDialogComponent implements OnInit {
 
   activeTab = 'general';
 
+  get canViewMargin(): boolean {
+    return canViewInventoryMargin(this.authService);
+  }
+
   get tabs(): Array<{ id: string; label: string; count?: number }> {
     return [
       { id: 'general', label: 'General' },
-      { id: 'margen', label: 'Margen' },
+      ...(this.canViewMargin ? [{ id: 'margen', label: 'Margen' }] : []),
       { id: 'movimientos', label: 'Movimientos', count: this.movementsCount },
       { id: 'transferencias', label: 'Transferencias' },
       { id: 'auditorias', label: 'Auditorías', count: this.auditsLoading() ? undefined : (this.visibleAuditHistory.length || undefined) },
@@ -357,11 +362,13 @@ export class BatchDetailDialogComponent implements OnInit {
 
   get showCostsCard(): boolean {
     const batch = this.batch();
-    return !!batch?.purchase_order_id || batch?.suggested_unit_price != null;
+    if (!batch || !this.canViewMargin) return false;
+    if (this.hasRealCost) return true;
+    return !!batch.purchase_order_id || batch.suggested_unit_price != null;
   }
 
   get showVendorCost(): boolean {
-    return !!this.batch()?.purchase_order_id;
+    return this.canViewMargin && !!this.batch()?.purchase_order_id;
   }
 
   get hasRealCost(): boolean {

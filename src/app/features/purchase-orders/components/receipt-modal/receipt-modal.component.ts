@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Inject, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -9,6 +9,8 @@ import { LotMode, ReceivedItem, ReceivedLot, ReceiptRequest, ReceiptResponse, Uo
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
+import { AuthService } from '../../../../core/services/auth.service';
+import { canViewInventoryMargin } from '../../../inventory/utils/inventory-margin-access.util';
 import { formatPurchaseOrderUnitCost } from '../../utils/purchase-order-display.util';
 
 @Component({
@@ -19,6 +21,8 @@ import { formatPurchaseOrderUnitCost } from '../../utils/purchase-order-display.
   styleUrl: './receipt-modal.component.scss'
 })
 export class ReceiptModalComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+
   isLoading = false;
   purchaseOrder: PurchaseOrder;
   receivedQuantities: { [key: string]: number | null } = {};
@@ -77,6 +81,10 @@ export class ReceiptModalComponent implements OnInit {
    */
   getLineUomName(lineItem: LineItem): string {
     return lineItem.product_uom?.uom?.name || lineItem.uom?.name || 'Unidad';
+  }
+
+  get canViewCost(): boolean {
+    return canViewInventoryMargin(this.authService);
   }
 
   getUnitCost(lineItem: LineItem): number | null {

@@ -34,7 +34,7 @@
 
 .pos-folios__search {
   display: block;
-  margin: 0.85rem 0;
+  margin: 0.85rem 0 0.55rem;
 
   input {
     width: 100%;
@@ -43,6 +43,34 @@
     border-radius: 10px;
     padding: 0.55rem 0.75rem;
     font: inherit;
+  }
+}
+
+.pos-folios__filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  margin: 0 0 0.75rem;
+  padding: 0.2rem;
+  background: #f1f5f9;
+  border-radius: 12px;
+
+  button {
+    border: none;
+    background: transparent;
+    border-radius: 9px;
+    padding: 0.42rem 0.6rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+
+    &.is-on {
+      background: #fff;
+      color: #0f172a;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
   }
 }
 
@@ -78,24 +106,46 @@
 }
 
 .pos-folios__top {
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
 }
 
-.pos-folios__name {
+.pos-folios__who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1;
   border: none;
   background: transparent;
   padding: 0;
   text-align: left;
   font: inherit;
-  font-weight: 700;
-  font-size: 0.92rem;
   color: inherit;
   cursor: pointer;
+}
+
+.pos-folios__name,
+.pos-folios__person {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pos-folios__name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.pos-folios__person {
+  font-size: 0.75rem;
+  font-weight: 550;
+  line-height: 1.2;
+  color: #64748b;
 }
 
 .pos-folios__folio-row {
@@ -352,6 +402,12 @@
 .pos-folios__abono-title {
   margin: 0;
   font-weight: 700;
+}
+
+.pos-folios__abono-person {
+  margin: -0.35rem 0 0;
+  color: #64748b;
+  font-size: 0.8rem;
 }
 
 .pos-folios__abono-folio {

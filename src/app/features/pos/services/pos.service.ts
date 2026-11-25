@@ -20,6 +20,7 @@ import {
   unclosedAlertFromShift,
 } from '../models/pos-daily-shift.model';
 import { SalesOrder, SalesOrderFormData } from '../../sales-orders/models/sales-order.model';
+import { Quotation } from '../../quotations/models/quotation.model';
 import { environment } from '../../../../environments/environment';
 import { CollectSalePayload } from '../utils/pos-collect.util';
 import {
@@ -999,6 +1000,25 @@ export class POSService {
     return this.http.patch(`${this.API_URL}/quotations/${quotationId}/customer`, data).pipe(
       map((res: any) => this.extractPayload(res) ?? res)
     );
+  }
+
+  getFolioQuotations(filters: {
+    billing_branch_id?: string;
+    fiscal_configuration_id?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Observable<{ data: Quotation[] }> {
+    let params = new HttpParams();
+    if (filters.billing_branch_id) {
+      params = params.set('billing_branch_id', filters.billing_branch_id);
+    }
+    if (filters.fiscal_configuration_id) {
+      params = params.set('fiscal_configuration_id', filters.fiscal_configuration_id);
+    }
+    if (filters.search) params = params.set('search', filters.search);
+    params = params.set('page', String(filters.page ?? 1)).set('limit', String(filters.limit ?? 30));
+    return this.http.get<{ data: Quotation[] }>(`${this.API_URL}/folio-quotations`, { params });
   }
 
   getSalesInProgress(): Observable<{ sales_in_progress: PosSaleInProgress[] }> {
