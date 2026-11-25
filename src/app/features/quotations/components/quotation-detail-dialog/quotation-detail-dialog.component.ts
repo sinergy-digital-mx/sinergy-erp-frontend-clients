@@ -46,6 +46,11 @@ import {
   QuotationConvertDialogComponent,
   QuotationConvertDialogResult,
 } from '../quotation-convert-dialog/quotation-convert-dialog.component';
+import {
+  ADVANCE_CONCEPT_SKU,
+  AdvanceWizardDialogComponent,
+  wizardLinesFromQuotation,
+} from '../advance-wizard-dialog/advance-wizard-dialog.component';
 
 type InstructionFilter = 'all' | 'caseA' | 'caseB' | 'cash' | 'close';
 
@@ -61,30 +66,26 @@ interface InstructionSection {
 const INSTRUCTION_SECTIONS: InstructionSection[] = [
   {
     id: 'caseA',
-    label: 'Caso A — Ya saben qué compran',
-    shortLabel: 'Caso A',
+    label: 'Caso 2 — Sí sabe, pero no hay',
+    shortLabel: 'Caso 2',
     icon: 'fi fi-rr-box-open',
     tone: 'blue',
     points: [
-      'El cliente ya eligió productos (madera A, madera B, etc.). Arma la cotización con esas líneas reales. El total que ves ya incluye IVA.',
-      'Cuando ya recibieron el dinero, pulsa Factura de anticipo. Captura el monto que dejó, en pesos y con IVA. Puede ser el total de la cotización o menos. No se captura en porcentaje.',
-      'Ejemplo: cotización de $10,000. Dejó $10,000 o $8,000. El diálogo muestra el total, lo anticipado y lo pendiente.',
-      'El CFDI de anticipo no lista las maderas. Sale una sola partida: clave SAT 84111506, código de identificación anticipo_CFDI, unidad ACT, clave unidad H87, descripción «Anticipo del bien o servicio». Uso CFDI G01. Tipo de comprobante I-Ingreso.',
-      'Ese cobro entra al corte abierto de la sucursal, ligado a esta cotización. Sin corte de hoy no se timbra.',
-      'Cuando vengan por la mercancía, convierte esta cotización a orden. Sigue en Entrega y factura.',
+      'Caso 2. El cliente ya eligió productos, pero no hay. Esos productos se quedan en la cotización.',
+      'Pedir anticipo manda el monto, con IVA, a la caja de esta sucursal. La factura no lista las maderas: sale «Anticipo del bien o servicio».',
+      'Cuando regrese, Generar venta arma la orden con esos productos o con más. Si se lleva más, caja cobra la diferencia.',
     ],
   },
   {
     id: 'caseB',
-    label: 'Caso B — Solo dejan dinero',
-    shortLabel: 'Caso B',
+    label: 'Caso 1 — No sabe qué quiere',
+    shortLabel: 'Caso 1',
     icon: 'fi fi-rr-sack-dollar',
     tone: 'violet',
     points: [
-      'El cliente no eligió productos: solo deja dinero para facturar o gastar en el mes. Crea la cotización con una línea temporal: el producto «Anticipo del bien o servicio» (clave SAT 84111506, identificación anticipo_CFDI, unidad ACT, cantidad 1). El importe de esa línea es lo que dejó, con IVA.',
-      'Pulsa Factura de anticipo y captura esa misma cantidad con IVA. Caja recibe el dinero igual que en el caso A, ligado a la cotización.',
-      'Cuando ya sepan qué van a llevar, quita la línea temporal y agrega los productos reales. El anticipo vigente se queda; no se timbra otro.',
-      'Convierte a orden con esas líneas reales. El cierre fiscal es el mismo del caso A (descuentos + relación 07).',
+      'Caso 1. No sabe qué va a llevar. En punto de venta, Anticipo pide el monto con IVA y la cotización no lleva maderas.',
+      'Caja cobra y ahí se timbra el mismo concepto: anticipo del bien o servicio.',
+      'Cuando regrese, Generar venta, en Folios o aquí, agrega los productos. La venta tiene que cubrir el anticipo.',
     ],
   },
   {
@@ -94,9 +95,9 @@ const INSTRUCTION_SECTIONS: InstructionSection[] = [
     icon: 'fi fi-rr-cash-register',
     tone: 'amber',
     points: [
-      'Al timbrar el anticipo, caja recibe el dinero como ingreso de esta cotización (no como venta de madera). Efectivo, tarjeta, transferencia, cheque o mixto, según cómo pagó. Entra al corte del día, igual que una orden cobrada.',
-      'La cotización tiene que verse en caja para saber que ya hay dinero a cuenta de ese folio.',
-      'Al convertir a orden, el sistema pregunta si envías a caja. Si el anticipo cubrió el total, la orden queda pagada y no vuelve a cobrarse. Si quedó pendiente, caja cobra solo la diferencia cuando recogen la mercancía.',
+      'El anticipo no se timbra desde aquí. Lo cobra la caja de la sucursal, como una venta: efectivo, tarjeta, transferencia, cheque o mixto.',
+      'Sin corte abierto no hay factura.',
+      'Si la venta es mayor al anticipo, caja cobra solo la diferencia. Si es igual, la orden queda pagada.',
     ],
   },
   {
@@ -106,10 +107,10 @@ const INSTRUCTION_SECTIONS: InstructionSection[] = [
     icon: 'fi fi-rr-file-invoice-dollar',
     tone: 'rose',
     points: [
-      'La factura de entrega es de la mercancía real (las líneas de la cotización), no del concepto de anticipo.',
-      'En Descuentos va el total que se anticipó (con IVA). Tipo Relación 07 — CFDI por aplicación de anticipos — al UUID de la factura de anticipo.',
-      'Si anticiparon el total: el descuento iguala el importe de las partidas y el gran total queda en $0. No se cobra otra vez. La salida de almacén es el surtido de la orden.',
-      'Si anticiparon menos: el descuento es solo lo anticipado y caja cobra lo pendiente. Ejemplo: cotización $10,000, anticipo $8,000 → cobran $2,000 al recoger.',
+      'Generar venta crea la orden y la factura de la mercancía. El descuento es la base del anticipo. Tipo de relación 07 y UUID Rel apuntan a la factura de anticipo.',
+      'También se timbra la nota de crédito de aplicación, ligada a la orden.',
+      'Si el anticipo cubre la venta, el total de esa factura queda en cero. Si se llevan más, caja cobra la diferencia.',
+      'Si la venta es menor al anticipo, no se deja pasar. Eso se define aparte.',
     ],
   },
 ];
@@ -839,6 +840,98 @@ export class QuotationDetailDialogComponent implements OnInit {
             this.toast.error(err?.error?.message || 'No se pudo convertir');
           },
         });
+      });
+  }
+
+  advanceStep(): number {
+    const q = this.header();
+    if (!q) return 0;
+    if (q.advance_invoice?.applied) return 4;
+    if (q.general_status === 'Convertida') return 3;
+    if (q.can_close_advance) return 2;
+    if (Number(q.advance_requested_total ?? 0) > 0 || q.advance_invoice) return 1;
+    return 0;
+  }
+
+  canAskAdvance(): boolean {
+    const q = this.header();
+    return !!q && q.general_status === 'Creada' && !q.advance_invoice && !(Number(q.advance_requested_total ?? 0) > 0);
+  }
+
+  askAdvance(): void {
+    const q = this.header();
+    if (!q || !this.canAskAdvance()) return;
+    const realLines = this.lineItems().filter((line) => line.product?.sku !== ADVANCE_CONCEPT_SKU);
+    const taxable = Math.max(
+      Number(q.subtotal || 0) - Number(q.discount_total || 0) - Number(q.global_discount_amount || 0),
+      0,
+    );
+    const iva = taxable > 0 ? Math.round((Number(q.iva_total || 0) / taxable) * 10000) / 100 : 8;
+    const ivaPct = Math.abs(iva - 8) < 0.3 ? 8 : Math.abs(iva - 16) < 0.3 ? 16 : 8;
+    this.dialog
+      .open(AdvanceWizardDialogComponent, {
+        width: '720px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: {
+          mode: 'start',
+          quotationId: q.id,
+          folio: q.folio,
+          quotationTotal: Number(q.total || 0),
+          hasRealProducts: realLines.length > 0,
+          customerLabel: q.customer_display_name || q.customer?.name || '',
+          customerReady: !!q.customer?.fiscal_rfc,
+          missingFiscal: q.customer?.fiscal_rfc ? [] : ['RFC'],
+          ivaPercent: ivaPct,
+        },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result || result.mode === 'close' || !('advanceCase' in result)) return;
+        this.quotationService
+          .startAdvance(q.id, {
+            advance_amount: result.amount,
+            advance_case: result.advanceCase,
+            advance_iva_percentage: result.ivaPercent,
+            advance_uso_cfdi: 'G01',
+            advance_metodo_pago: 'PUE',
+          })
+          .subscribe({
+            next: () => {
+              this.toast.success('Anticipo enviado a la caja de la sucursal');
+              this.reload(true);
+            },
+            error: (err) => this.toast.error(err?.error?.message || 'No se pudo pedir el anticipo'),
+          });
+      });
+  }
+
+  generateAdvanceSale(): void {
+    const q = this.header();
+    if (!q?.can_close_advance) return;
+    this.dialog
+      .open(AdvanceWizardDialogComponent, {
+        width: '720px',
+        maxWidth: '95vw',
+        autoFocus: false,
+        data: {
+          mode: 'close',
+          quotationId: q.id,
+          folio: q.folio,
+          paid: Number(q.advance_invoice?.total ?? q.amount_paid ?? 0),
+          warehouseId: q.warehouse_id,
+          billingBranchId: q.billing_branch_id,
+          lines: wizardLinesFromQuotation(this.lineItems()),
+        },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result || result.mode !== 'close') return;
+        const extra = result.difference > 0.009
+          ? ` Caja cobra la diferencia.`
+          : ' No hay diferencia por cobrar.';
+        this.toast.success(`Venta ${result.salesOrderFolio} generada.${extra}`);
+        this.reload(true);
       });
   }
 

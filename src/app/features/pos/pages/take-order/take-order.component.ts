@@ -100,7 +100,12 @@ import {
   mapInProgressLineToCartItem,
   posSaleObservation,
   resolveFiscalConfigurationIdFromBranch,
+  todayIsoDate,
 } from '../../utils/pos-order.util';
+import {
+  AdvanceWizardDialogComponent,
+  AdvanceWizardOpenResult,
+} from '../../../quotations/components/advance-wizard-dialog/advance-wizard-dialog.component';
 import { isValidWalkInRfc, normalizeWalkInRfc } from '../../utils/walk-in-ticket.util';
 import { prettyPosBranchLabel } from '../../utils/pos-branch-label.util';
 import { PosBranchStockResponse } from '../../models/pos-branch-stock.model';
@@ -2464,6 +2469,98 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           },
         });
       });
+    });
+  }
+
+  openAdvanceWizard(): void {
+    if (this.saving() || this.confirming()) return;
+    if (!this.canQuote()) {
+      this.notifyError('No tienes permiso para cotizar', 4000);
+      return;
+    }
+    if (!this.canSell()) {
+      this.notifyError('Identifica al vendedor con su código para el anticipo', 4000);
+      this.openSellerCodeDialog();
+      return;
+    }
+    const seller = this.posState.seller();
+    const ctx = this.resolvePosSaleContext();
+    if (!seller?.id || !ctx) return;
+    const customerId = this.selectedCustomerId();
+    this.resolveCustomerFiscal(customerId, true).subscribe((customerFiscal) => {
+      const cart = this.posService.cart();
+      this.dialog
+        .open(AdvanceWizardDialogComponent, {
+          width: '720px',
+          maxWidth: '95vw',
+          autoFocus: false,
+          data: {
+            mode: 'open',
+            cartTotal: Number(cart.grand_total || 0),
+            cartCount: cart.items.length,
+            customerLabel: this.selectedCustomerName(),
+            customerReady: !!customerId && customerFiscal.ready,
+            missingFiscal: customerFiscal.missing,
+            ivaPercent: this.saleIvaPercent(),
+          },
+        })
+        .afterClosed()
+        .subscribe((result: AdvanceWizardOpenResult | undefined) => {
+          if (!result || result.mode !== 'open') return;
+          const orderCustomerId = this.selectedOrderCustomerId();
+          if (orderCustomerId == null || orderCustomerId === '') {
+            this.notifyError('Elige un cliente del catálogo para el anticipo', 4000);
+            return;
+          }
+          const payload = result.advanceCase === 'products'
+            ? buildVentasPosOrderPayload(cart, {
+                warehouseId: ctx.warehouseId,
+                fiscalConfigurationId: ctx.fiscalConfigurationId,
+                sellerUserId: seller.id,
+                terminalLabel: this.terminalLabel(),
+                customerId: orderCustomerId ?? undefined,
+              })
+            : {
+                fiscal_configuration_id: ctx.fiscalConfigurationId,
+                warehouse_id: ctx.warehouseId,
+                customer_id: orderCustomerId,
+                expected_delivery_date: todayIsoDate(),
+                seller_user_id: seller.id,
+                notes: `Anticipo - ${this.terminalLabel()}`,
+                line_items: [],
+              };
+          this.saving.set(true);
+          this.posService
+            .createPosQuotation({
+              ...payload,
+              advance_amount: result.amount,
+              advance_case: result.advanceCase,
+              advance_iva_percentage: result.ivaPercent,
+              advance_uso_cfdi: 'G01',
+              advance_metodo_pago: 'PUE',
+            })
+            .subscribe({
+              next: (quotation) => {
+                this.saving.set(false);
+                const folioLabel = quotation.folio || 'sin folio';
+                this.notifySuccess(
+                  `Anticipo ${folioLabel} en caja por ${this.formatCurrency(result.amount)}.`,
+                  7000,
+                );
+                if (result.advanceCase === 'products') {
+                  this.posService.clearCart();
+                }
+                this.resetCustomerSelection();
+              },
+              error: (error) => {
+                this.saving.set(false);
+                this.notifyError(
+                  this.mapPosError(error?.error?.message, cart.items) || 'No se pudo crear el anticipo',
+                  6000,
+                );
+              },
+            });
+        });
     });
   }
 

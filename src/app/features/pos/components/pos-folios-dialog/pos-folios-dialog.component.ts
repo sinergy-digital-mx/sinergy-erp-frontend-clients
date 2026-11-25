@@ -1,7 +1,7 @@
 import { Component, Inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { LucideAngularModule, Check, ChevronDown, Copy, Hash, X } from 'lucide-angular';
 import { Subject, of } from 'rxjs';
 import { catchError, debounceTime, takeUntil } from 'rxjs/operators';
@@ -11,6 +11,10 @@ import { Quotation, QuotationLineItem } from '../../../quotations/models/quotati
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import { SalesOrder, SalesOrderLineItem } from '../../../sales-orders/models/sales-order.model';
 import { POSService } from '../../services/pos.service';
+import {
+  AdvanceWizardDialogComponent,
+  wizardLinesFromQuotation,
+} from '../../../quotations/components/advance-wizard-dialog/advance-wizard-dialog.component';
 import { PosCartSlotId, PosCartSlotLine } from '../../services/pos-cart-slots.service';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 
@@ -56,6 +60,7 @@ interface FolioRow {
   paymentStatus: string;
   isCredit: boolean;
   pending: number | null;
+  advanceRequested?: number | null;
 }
 
 type FolioListKind = 'sale' | 'quotation';
@@ -77,6 +82,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
 
   readonly loading = signal(false);
   readonly error = signal('');
+  readonly notice = signal('');
   readonly rows = signal<FolioRow[]>([]);
   readonly razonSocial = signal('');
   readonly copiedFolio = signal('');
@@ -106,6 +112,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
     @Inject(MAT_DIALOG_DATA) public data: PosFoliosDialogData,
     private dialogRef: MatDialogRef<PosFoliosDialogComponent, PosFolioCartPick | undefined>,
     private quotations: QuotationService,
+    private dialog: MatDialog,
     private salesOrders: SalesOrderService,
     private posService: POSService,
     private fiscalConfigs: FiscalConfigurationService,
@@ -225,6 +232,52 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(
       Number.isFinite(amount) ? amount : 0,
     );
+  }
+
+  openAdvanceSale(row: FolioRow): void {
+    this.error.set('');
+    this.notice.set('');
+    this.quotations.getDetail(row.id).subscribe({
+      next: (detail) => {
+        const header = detail.header;
+        if (!header?.can_close_advance) {
+          this.error.set(
+            header?.advance_invoice
+              ? 'Ese anticipo ya se aplicó.'
+              : 'El anticipo sigue en caja. Primero tiene que cobrarse.',
+          );
+          return;
+        }
+        const paid = Number(header.advance_invoice?.total ?? header.amount_paid ?? 0);
+        this.dialog
+          .open(AdvanceWizardDialogComponent, {
+            width: '720px',
+            maxWidth: '95vw',
+            autoFocus: false,
+            data: {
+              mode: 'close',
+              quotationId: header.id,
+              folio: header.folio,
+              paid,
+              warehouseId: header.warehouse_id,
+              billingBranchId: header.billing_branch_id,
+              lines: wizardLinesFromQuotation(detail.line_items ?? []),
+            },
+          })
+          .afterClosed()
+          .subscribe((result) => {
+            if (!result || result.mode !== 'close') return;
+            const extra = result.difference > 0.009
+              ? ` Caja cobra ${this.formatMoney(result.difference)}.`
+              : ' No hay diferencia por cobrar.';
+            this.notice.set(`Venta ${result.salesOrderFolio} generada.${extra}`);
+            this.load();
+          });
+      },
+      error: (error: unknown) => {
+        this.error.set(resolveHttpErrorMessage(error, 'No se pudo leer la cotización'));
+      },
+    });
   }
 
   takeToCart(row: FolioRow): void {
@@ -431,6 +484,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       paymentStatus: '',
       isCredit: false,
       pending: null,
+      advanceRequested: Number(row.advance_requested_total ?? 0) || null,
     };
     });
   }

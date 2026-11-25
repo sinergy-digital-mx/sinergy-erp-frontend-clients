@@ -112,3 +112,32 @@
   line-height: 1.45;
   color: #1e3a8a;
 }
+
+.advance-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.advance-steps li {
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+  color: #78716c;
+}
+
+.advance-steps li.is-done {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.advance-step-note {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: #1e3a8a;
+}

@@ -292,11 +292,27 @@
           </p>
         }
 
+        <ol class="advance-steps">
+          <li [class.is-done]="advanceStep() >= 1">1. Anticipo</li>
+          <li [class.is-done]="advanceStep() >= 2">2. Cobrado en caja</li>
+          <li [class.is-done]="advanceStep() >= 3">3. Venta</li>
+          <li [class.is-done]="advanceStep() >= 4">4. Factura ligada</li>
+        </ol>
+        @if (advanceStep() === 1 && !header()!.advance_invoice) {
+          <p class="advance-step-note">Está en la caja de la sucursal. La factura sale cuando cobran.</p>
+        }
+
         <div class="action-buttons">
-          @if (header()!.can_stamp_advance) {
-            <button type="button" class="btn-convert-order" (click)="openAdvanceInvoice()">
+          @if (canAskAdvance()) {
+            <button type="button" class="btn-convert-order" (click)="askAdvance()">
               <i class="fi fi-rr-file-invoice"></i>
-              Factura de anticipo
+              Pedir anticipo
+            </button>
+          }
+          @if (header()!.can_close_advance) {
+            <button type="button" class="btn-convert-order" (click)="generateAdvanceSale()">
+              <i class="fi fi-rr-shopping-cart"></i>
+              Generar venta
             </button>
           }
           @if (header()!.advance_invoice && !header()!.advance_invoice!.applied) {

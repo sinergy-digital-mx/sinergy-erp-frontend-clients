@@ -1113,6 +1113,13 @@
         @if (canQuote() && !isEditingReturnedTicket()) {
           <button
             type="button"
+            class="pos-btn pos-btn--muted"
+            (click)="openAdvanceWizard()"
+            [disabled]="saving() || confirming() || !canSell()">
+            Anticipo
+          </button>
+          <button
+            type="button"
             class="pos-btn"
             [class.pos-btn--accent]="cartHasWithoutInventory()"
             [class.pos-btn--muted]="!cartHasWithoutInventory()"

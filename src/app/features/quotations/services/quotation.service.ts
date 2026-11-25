@@ -139,6 +139,45 @@ export class QuotationService {
       );
   }
 
+  startAdvance(
+    id: string,
+    body: {
+      advance_amount: number;
+      advance_case: 'unknown' | 'products';
+      advance_iva_percentage?: number;
+      advance_uso_cfdi?: string;
+      advance_metodo_pago?: 'PUE' | 'PPD';
+    },
+  ): Observable<Quotation> {
+    return this.http.post<Quotation>(`${this.baseUrl}/${id}/request-advance`, body);
+  }
+
+  closeAdvance(
+    id: string,
+    body: {
+      line_items: Array<{
+        product_id: string;
+        product_uom_id: string;
+        quantity: number;
+        unit_price: number;
+        iva_percentage?: number;
+        ieps_percentage?: number;
+        discount_percentage?: number;
+      }>;
+      environment?: 'demo' | 'production';
+    },
+  ): Observable<{
+    quotation_id: string;
+    difference: number;
+    sales_order: { id: string; folio: string; payment_status?: string; total?: number };
+  }> {
+    return this.http.post<{
+      quotation_id: string;
+      difference: number;
+      sales_order: { id: string; folio: string; payment_status?: string; total?: number };
+    }>(`${this.baseUrl}/${id}/close-advance`, body);
+  }
+
   convert(
     id: string,
     body: { customer_id?: number; notes?: string; send_to_pos_caja?: boolean } = {},

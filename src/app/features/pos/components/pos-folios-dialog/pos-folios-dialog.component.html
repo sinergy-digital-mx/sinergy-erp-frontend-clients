@@ -84,6 +84,9 @@
       </div>
     }
 
+    @if (notice()) {
+      <p>{{ notice() }}</p>
+    }
     @if (error()) {
       <p class="pos-folios__error">{{ error() }}</p>
     }
@@ -156,6 +159,11 @@
                   Productos
                 </button>
                 @if (data.mode === 'ventas') {
+                  @if (row.kind === 'quotation' && row.status === 'Creada' && (row.advanceRequested || 0) > 0) {
+                    <button type="button" class="pos-folios__copy-cart" (click)="openAdvanceSale(row)">
+                      Generar venta
+                    </button>
+                  }
                   <button
                     type="button"
                     class="pos-folios__copy-cart"
