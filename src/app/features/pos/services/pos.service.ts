@@ -1096,6 +1096,29 @@ export class POSService {
     );
   }
 
+  registerShiftAbono(
+    salesOrderId: string,
+    data: {
+      amount: number;
+      payment_date: string;
+      payment_method: 'cash' | 'card' | 'transfer' | 'check';
+      reference_number?: string;
+      billing_branch_id?: string;
+    },
+  ): Observable<{
+    folio?: string;
+    amount_pending?: number;
+    payment_status?: string;
+  }> {
+    return this.http.post(`${this.API_URL}/sales/${salesOrderId}/abono`, data).pipe(
+      map((res: unknown) => (this.extractPayload(res) ?? res) as {
+        folio?: string;
+        amount_pending?: number;
+        payment_status?: string;
+      }),
+    );
+  }
+
   collectSale(salesOrderId: string, data?: CollectSalePayload): Observable<CollectSaleResponse> {
     const branchId = this.auth.getBillingBranchId();
     return this.http.post(`${this.API_URL}/sales/${salesOrderId}/collect`, {

@@ -5,6 +5,8 @@ import {
   NgZone,
   OnDestroy,
   OnInit,
+  effect,
+  untracked,
   signal,
   computed,
   ViewChild,
@@ -13,7 +15,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, Subject, catchError, debounceTime, distinctUntilChanged, map, of, switchMap, takeUntil, tap } from 'rxjs';
+import { Observable, Subject, catchError, debounceTime, distinctUntilChanged, forkJoin, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AssignedBranch, AuthService } from '../../../../core/services/auth.service';
@@ -41,6 +43,7 @@ import {
   List,
   Store,
   Warehouse,
+  Hash,
 } from 'lucide-angular';
 import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
 import {
@@ -63,6 +66,16 @@ import {
 import { ProductDetailModalComponent } from '../../../settings/components/product-detail-modal/product-detail-modal.component';
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { POSService } from '../../services/pos.service';
+import {
+  PosCartSlotId,
+  PosCartSlotLine,
+  PosCartSlotState,
+  PosCartSlotsService,
+} from '../../services/pos-cart-slots.service';
+import {
+  PosFolioCartPick,
+  PosFoliosDialogComponent,
+} from '../../components/pos-folios-dialog/pos-folios-dialog.component';
 import { PosStateService } from '../../services/pos-state.service';
 import { POSCart, POSCartItem, PosCajaQueueTicket, PosSaleInProgress } from '../../models/pos.model';
 import {
@@ -153,6 +166,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly LayoutGrid = LayoutGrid;
   readonly List = List;
   readonly Warehouse = Warehouse;
+  readonly Hash = Hash;
 
   private static readonly CATALOG_VIEW_KEY = 'pos_catalog_view';
   catalogView = signal<'cards' | 'list' | 'branches'>(TakeOrderComponent.readCatalogView());
@@ -218,6 +232,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly saleIvaPercent = signal<8 | 16>(8);
   walkInTicketOpen = signal(false);
   walkInRfc = signal('');
+  activeCartSlot = signal<PosCartSlotId>(1);
+  slotsReady = signal(false);
+  private repriceToken = 0;
+  private pendingGlobalDiscountId: string | null = null;
   readonly hasSelectedCustomer = computed(() => Boolean(this.selectedCustomerId()));
   readonly walkInRfcInvalid = computed(() => !isValidWalkInRfc(this.walkInRfc()));
 
@@ -326,7 +344,36 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     private posBranchSession: PosBranchSessionService,
     private customerService: CustomerService,
     private ngZone: NgZone,
-  ) {}
+    private cartSlots: PosCartSlotsService,
+  ) {
+    effect(() => {
+      const ready = this.slotsReady();
+      const editing = this.editingSaleId();
+      const slot = this.activeCartSlot();
+      const cart = this.posService.cart();
+      const customerId = this.selectedCustomerId();
+      const customerName = this.selectedCustomerName();
+      const orderCustomerId = this.selectedOrderCustomerId();
+      const walkInName = this.walkInName();
+      const walkInRfc = this.walkInRfc();
+      if (!ready || editing) {
+        return;
+      }
+      const key = this.slotScopeKey();
+      if (!key) {
+        return;
+      }
+      const state: PosCartSlotState = {
+        customerId: customerId || (orderCustomerId != null ? String(orderCustomerId) : null),
+        customerName,
+        walkInName,
+        walkInRfc,
+        globalDiscountId: cart.global_discount_id,
+        lines: cart.items.map((item) => this.lineIdentity(item)),
+      };
+      untracked(() => this.cartSlots.writeSlot(key, slot, state));
+    });
+  }
 
   readonly canSell = computed(() => this.posState.canCaptureSales());
   readonly canQuote = computed(
@@ -434,6 +481,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         if (this.canUseGlobalDiscounts()) {
           this.loadApplicableGlobalDiscounts();
         }
+        this.loadCartSlots();
         this.loadData();
       },
       error: (error) => {
@@ -455,6 +503,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         this.applicableGlobalDiscounts.set(discounts ?? []);
         this.loadingGlobalDiscounts.set(false);
         this.syncSelectedGlobalDiscount(discounts ?? []);
+        this.tryApplyPendingGlobalDiscount();
       },
       error: () => {
         this.applicableGlobalDiscounts.set([]);
@@ -959,9 +1008,12 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   changeBranch(): void {
+    this.slotsReady.set(false);
+    this.persistActiveSlotNow();
     this.posBranchSession.pickBranch({ required: false }).subscribe({
       next: (branchId) => {
         if (!branchId) {
+          this.slotsReady.set(true);
           return;
         }
         this.posService.clearCart();
@@ -976,10 +1028,12 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         this.posState.setDailyShift(null);
         this.refreshDailyShift(() => this.notifyBranchSwitchResult(), branchId);
+        this.loadCartSlots();
         this.loadProducts(this.searchTerm());
         this.loadSalesInProgress();
       },
       error: (error) => {
+        this.slotsReady.set(true);
         this.notifyError(
           mapPosApiErrorMessage(resolveHttpErrorMessage(error, 'No se pudo cambiar la sucursal')),
           5000
@@ -1172,6 +1226,317 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.editingAdvanceMetodoPago.set(null);
     this.editingForShipping.set(false);
     this.editingNotes.set('');
+  }
+
+  cartSlotBadges(): Array<{ id: PosCartSlotId; count: number; active: boolean }> {
+    const snap = this.cartSlots.snapshot();
+    const active = this.activeCartSlot();
+    const liveCount =
+      this.slotsReady() && !this.editingSaleId() ? this.posService.cart().items.length : null;
+    return ([1, 2, 3] as const).map((id) => ({
+      id,
+      active: id === active,
+      count: id === active && liveCount != null ? liveCount : snap.slots[id].lines.length,
+    }));
+  }
+
+  switchCartSlot(slot: PosCartSlotId): void {
+    if (this.editingSaleId() || slot === this.activeCartSlot()) {
+      return;
+    }
+    this.slotsReady.set(false);
+    this.persistActiveSlotNow();
+    this.activeCartSlot.set(slot);
+    const key = this.slotScopeKey();
+    if (key) {
+      this.cartSlots.setActive(key, slot);
+    }
+    const state = this.cartSlots.snapshot().slots[slot];
+    this.applySlotContents(state);
+    this.slotsReady.set(true);
+  }
+
+  openFolios(): void {
+    if (this.editingSaleId()) {
+      this.notifyInfo('Termina o suelta el ticket de caja antes de usar otro carrito.');
+      return;
+    }
+    const branchId = this.authService.getBillingBranchId();
+    const fiscalId = this.posState.fiscalConfigurationId() || this.authService.getFiscalConfigurationId();
+    if (!branchId || !fiscalId) {
+      this.notifyError('Falta la sucursal o la razón social de la sesión.');
+      return;
+    }
+    this.dialog
+      .open(PosFoliosDialogComponent, {
+        width: '760px',
+        maxWidth: '96vw',
+        maxHeight: '90vh',
+        panelClass: 'pos-dialog-panel',
+        autoFocus: 'first-tabbable',
+        data: {
+          mode: 'ventas',
+          branchId,
+          branchLabel: this.branchLabel(),
+          fiscalConfigurationId: fiscalId,
+          hasOpenShift: true,
+          slots: this.cartSlotBadges(),
+        },
+      })
+      .afterClosed()
+      .subscribe((pick: PosFolioCartPick | undefined) => {
+        if (pick) {
+          this.placeFolioInSlot(pick);
+        }
+      });
+  }
+
+  private loadCartSlots(): void {
+    const key = this.slotScopeKey();
+    if (!key) {
+      return;
+    }
+    this.slotsReady.set(false);
+    const snap = this.cartSlots.bind(key);
+    this.activeCartSlot.set(snap.active);
+    this.applySlotContents(snap.slots[snap.active]);
+    this.slotsReady.set(true);
+  }
+
+  private placeFolioInSlot(pick: PosFolioCartPick): void {
+    if (this.editingSaleId()) {
+      this.notifyInfo('Termina o suelta el ticket de caja antes de usar otro carrito.');
+      return;
+    }
+    this.slotsReady.set(false);
+    this.persistActiveSlotNow();
+    this.activeCartSlot.set(pick.slot);
+    const key = this.slotScopeKey();
+    if (key) {
+      this.cartSlots.setActive(key, pick.slot);
+    }
+    this.applySlotContents({
+      customerId: pick.customerId,
+      customerName: pick.customerName,
+      walkInName: pick.walkInName,
+      walkInRfc: pick.walkInRfc,
+      globalDiscountId: null,
+      lines: pick.lines,
+    });
+    this.slotsReady.set(true);
+    this.notifyInfo(`${pick.folio} en C${pick.slot}. Se cobra el precio vigente.`, 3500);
+  }
+
+  private restoreParkedSlot(): void {
+    this.slotsReady.set(false);
+    this.clearEditingTicket();
+    this.resetCustomerSelection();
+    const snap = this.cartSlots.snapshot();
+    this.activeCartSlot.set(snap.active);
+    this.applySlotContents(snap.slots[snap.active]);
+    this.slotsReady.set(true);
+  }
+
+  private applySlotContents(state: PosCartSlotState): void {
+    this.resetCustomerSelection();
+    if (state.customerId) {
+      this.selectedCustomerId.set(state.customerId);
+      this.selectedOrderCustomerId.set(state.customerId);
+      this.selectedCustomerName.set(state.customerName || 'Cliente');
+    } else {
+      this.walkInName.set(state.walkInName || '');
+      this.walkInRfc.set(state.walkInRfc || '');
+    }
+    const placeholders = state.lines.map((line) =>
+      this.posService.recalculateItem(
+        mapInProgressLineToCartItem({
+          product_id: line.productId,
+          product_name: line.productName,
+          product_sku: line.productSku,
+          product_uom_id: line.productUomId,
+          uom_name: line.uomName,
+          quantity: line.quantity,
+          unit_price: 0,
+          discount_percentage: line.priceDiscountPercentage,
+          product_discount_id: line.priceDiscountPercentage ? null : line.productDiscountId,
+        }),
+      ),
+    );
+    this.pendingGlobalDiscountId = state.globalDiscountId;
+    this.posService.replaceCart(placeholders, null);
+    this.tryApplyPendingGlobalDiscount();
+    this.repriceSlotLines(state.lines);
+  }
+
+  private repriceSlotLines(lines: PosCartSlotLine[]): void {
+    if (!lines.length) {
+      return;
+    }
+    const token = ++this.repriceToken;
+    forkJoin(
+      lines.map((line) =>
+        this.posService
+          .getPosInventorySummary({
+            product_id: line.productId,
+            warehouse_id: this.catalogWarehouseId() || undefined,
+            billing_branch_id: this.authService.getBillingBranchId() || undefined,
+            limit: 20,
+          })
+          .pipe(catchError(() => of(null))),
+      ),
+    ).subscribe((results) => {
+      if (token !== this.repriceToken || this.editingSaleId()) {
+        return;
+      }
+      const notices: string[] = [];
+      const items: POSCartItem[] = [];
+      results.forEach((summary, index) => {
+        const line = lines[index];
+        const rows = (summary?.data ?? []) as Array<Record<string, unknown>>;
+        const row = rows.find((candidate) => {
+          const productId = String(candidate['product_id'] || candidate['id'] || '');
+          const uomId = String(candidate['product_uom_id'] || candidate['uom_id'] || '');
+          return productId === line.productId && uomId === line.productUomId;
+        });
+        const label = line.productName || 'Un producto';
+        if (!row) {
+          notices.push(`${label} ya no está en el catálogo`);
+          return;
+        }
+        const product = {
+          ...row,
+          id: row['product_id'] || row['id'],
+          name: row['product_name'] || row['name'] || label,
+          sku: row['product_sku'] || row['sku'] || line.productSku || '',
+          product_uom_id: line.productUomId,
+          uom_name: row['uom_name'] || line.uomName || 'Pieza',
+          suggested_unit_price: Number(row['suggested_unit_price'] ?? row['cost'] ?? 0),
+          total_available_quantity: Number(row['total_available_quantity'] ?? row['available_quantity'] ?? 0),
+          applicable_discounts: Array.isArray(row['applicable_discounts']) ? row['applicable_discounts'] : [],
+        };
+        const discounts = product.applicable_discounts as PosApplicableDiscount[];
+        const priceDiscount = Number(line.priceDiscountPercentage ?? 0);
+        const discount =
+          priceDiscount > 0 || !line.productDiscountId
+            ? null
+            : discounts.find((item) => item.id === line.productDiscountId) ?? null;
+        if (line.productDiscountId && priceDiscount <= 0 && !discount) {
+          notices.push(`${product.name}: el descuento ya no aplica`);
+        }
+        let item = this.buildCartItem(product, {
+          quantity: line.quantity,
+          product_discount_id: discount?.id ?? null,
+          selected_discount: discount,
+        });
+        const options = Array.isArray(item.pricing_options) ? item.pricing_options : [];
+        const wanted = line.priceListId || '';
+        const match = wanted
+          ? options.find((option) => String(option.price_list_id) === wanted)
+          : undefined;
+        const chosen = match ?? options[0];
+        if (wanted && !match && chosen) {
+          notices.push(`${product.name}: la lista anterior ya no aplica`);
+        }
+        const unitPrice = Number(chosen?.price ?? product.suggested_unit_price ?? 0);
+        if (!Number.isFinite(unitPrice) || unitPrice < 0 || (!chosen && unitPrice <= 0)) {
+          notices.push(`${product.name} no tiene precio vigente`);
+          return;
+        }
+        const documentPrice = line.documentUnitPrice;
+        if (documentPrice != null && Math.abs(documentPrice - unitPrice) > 0.009) {
+          notices.push(`${product.name}: el precio cambió`);
+        }
+        item = this.posService.recalculateItem({
+          ...item,
+          unit_price: unitPrice,
+          iva_percentage: this.saleIvaPercent(),
+          ieps_percentage: 0,
+          selected_price_list_id: chosen ? String(chosen.price_list_id) : '',
+          price_discount_percentage: priceDiscount > 0 ? priceDiscount : 0,
+          product_discount_id: priceDiscount > 0 ? null : discount?.id ?? null,
+          selected_discount: priceDiscount > 0 ? null : discount,
+          without_inventory: product.total_available_quantity <= 0,
+        });
+        items.push(item);
+      });
+      const globalId = this.pendingGlobalDiscountId ?? this.posService.cart().global_discount_id;
+      this.slotsReady.set(false);
+      this.posService.replaceCart(items);
+      this.pendingGlobalDiscountId = globalId;
+      this.tryApplyPendingGlobalDiscount(notices);
+      this.slotsReady.set(true);
+      if (notices.length) {
+        this.notifyInfo(notices.slice(0, 3).join('. '), 5000);
+      }
+    });
+  }
+
+  private tryApplyPendingGlobalDiscount(notices?: string[]): void {
+    const id = this.pendingGlobalDiscountId;
+    if (!id) {
+      return;
+    }
+    if (this.loadingGlobalDiscounts()) {
+      return;
+    }
+    const discount = this.applicableGlobalDiscounts().find((item) => item.id === id) ?? null;
+    this.pendingGlobalDiscountId = null;
+    if (!discount) {
+      if (this.canUseGlobalDiscounts()) {
+        if (notices) {
+          notices.push('El descuento de la orden ya no aplica');
+        } else {
+          this.notifyInfo('El descuento de la orden ya no aplica');
+        }
+      }
+      return;
+    }
+    this.posService.setGlobalDiscount(discount);
+  }
+
+  private persistActiveSlotNow(): void {
+    if (this.editingSaleId()) {
+      return;
+    }
+    const key = this.slotScopeKey();
+    if (!key) {
+      return;
+    }
+    const cart = this.posService.cart();
+    const customerId = this.selectedCustomerId();
+    const orderCustomerId = this.selectedOrderCustomerId();
+    this.cartSlots.writeSlot(key, this.activeCartSlot(), {
+      customerId: customerId || (orderCustomerId != null ? String(orderCustomerId) : null),
+      customerName: this.selectedCustomerName(),
+      walkInName: this.walkInName(),
+      walkInRfc: this.walkInRfc(),
+      globalDiscountId: cart.global_discount_id,
+      lines: cart.items.map((item) => this.lineIdentity(item)),
+    });
+  }
+
+  private lineIdentity(item: POSCartItem): PosCartSlotLine {
+    return {
+      productId: item.product_id,
+      productUomId: item.product_uom_id,
+      quantity: item.quantity,
+      priceListId: item.selected_price_list_id || null,
+      productDiscountId: item.product_discount_id ?? null,
+      priceDiscountPercentage: item.price_discount_percentage || 0,
+      productName: item.product_name,
+      productSku: item.product_sku,
+      uomName: item.uom_name,
+    };
+  }
+
+  private slotScopeKey(): string {
+    const userId = this.authService.user_info?.sub || '';
+    const branchId = this.authService.getBillingBranchId() || '';
+    const fiscalId = this.posState.fiscalConfigurationId() || this.authService.getFiscalConfigurationId() || '';
+    if (!userId || !branchId || !fiscalId) {
+      return '';
+    }
+    return `${userId}:${branchId}:${fiscalId}`;
   }
 
   private applyInventorySummaryMeta(summary: PosInventorySummaryResponse): void {
@@ -1921,9 +2286,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
                   ? `Venta en cola (${folioLabel}) para ${customerLabel}. El cliente debe pasar a caja cuando abran el corte del día.`
                   : `Venta enviada a caja (${folioLabel}) para ${customerLabel}. El cliente debe pasar a caja para pagar.`;
                 this.notifySuccess(message, 6000);
-                this.posService.clearCart();
-                this.resetCustomerSelection();
-                this.clearEditingTicket();
+                this.restoreParkedSlot();
                 this.loadProducts(this.searchTerm());
                 this.loadSalesInProgress();
               },
@@ -2064,9 +2427,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
               `Anticipo ${folioLabel} enviado a caja (${this.formatCurrency(confirmed.advanceAmount ?? 0)}).`,
               7000,
             );
-            this.posService.clearCart();
-            this.resetCustomerSelection();
-            this.clearEditingTicket();
+            this.restoreParkedSlot();
             this.loadProducts(this.searchTerm());
             this.loadSalesInProgress();
           },
@@ -2457,9 +2818,12 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       if (!confirmed) {
         return;
       }
+      if (editing) {
+        this.restoreParkedSlot();
+        return;
+      }
       this.posService.clearCart();
       this.resetCustomerSelection();
-      this.clearEditingTicket();
     });
   }
 

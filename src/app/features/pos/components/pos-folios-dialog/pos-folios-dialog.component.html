@@ -1,0 +1,132 @@
+<section class="pos-folios">
+  <header class="pos-folios__head">
+    <div>
+      <h2>{{ data.mode === 'caja' ? 'Folios con saldo' : 'Folios' }}</h2>
+      <p>{{ scopeLine() }}</p>
+    </div>
+    <button type="button" class="pos-folios__close" (click)="close()" aria-label="Cerrar">
+      <lucide-icon [img]="X" />
+    </button>
+  </header>
+
+  @if (slotPick(); as pick) {
+    <div class="pos-folios__pick">
+      <p><strong>{{ pick.folio }}</strong> tiene {{ pick.lines.length }} productos. El carrito activo ya tiene productos.</p>
+      <div class="pos-folios__slots">
+        @for (slot of slotsToOffer(); track slot.id) {
+          <button type="button" class="pos-folios__slot" (click)="confirmSlot(slot.id)">
+            {{ slotButtonLabel(slot) }}
+          </button>
+        }
+      </div>
+      <button type="button" class="pos-folios__ghost" (click)="cancelSlot()">Volver</button>
+    </div>
+  } @else if (abonoRow(); as row) {
+    <div class="pos-folios__abono">
+      <p class="pos-folios__abono-title">{{ row.customerName }}</p>
+      <p class="pos-folios__abono-folio">{{ row.folio }}</p>
+      @if (abonoLoading()) {
+        <p>Leyendo saldo…</p>
+      } @else {
+        <p>Saldo {{ formatMoney(abonoPending()) }}</p>
+      }
+      @if (!data.hasOpenShift) {
+        <p class="pos-folios__error">No hay corte abierto. El abono no se registra.</p>
+      }
+      <div class="pos-folios__methods">
+        <button type="button" [class.is-on]="abonoMethod() === 'cash'" (click)="abonoMethod.set('cash')">Efectivo</button>
+        <button type="button" [class.is-on]="abonoMethod() === 'card'" (click)="abonoMethod.set('card')">Tarjeta</button>
+        <button type="button" [class.is-on]="abonoMethod() === 'transfer'" (click)="abonoMethod.set('transfer')">Transferencia</button>
+        <button type="button" [class.is-on]="abonoMethod() === 'check'" (click)="abonoMethod.set('check')">Cheque</button>
+      </div>
+      <label>
+        Monto
+        <input type="number" min="0.01" step="0.01" [max]="abonoPending() ?? undefined" [(ngModel)]="abonoAmount" />
+      </label>
+      @if (needsReference()) {
+        <label>
+          Referencia
+          <input type="text" maxlength="120" [(ngModel)]="abonoReference" />
+        </label>
+      }
+      @if (abonoError()) {
+        <p class="pos-folios__error">{{ abonoError() }}</p>
+      }
+      <div class="pos-folios__abono-actions">
+        <button type="button" class="pos-folios__ghost" (click)="closeAbono()">Volver</button>
+        <button
+          type="button"
+          class="pos-folios__go"
+          [disabled]="abonoSaving() || abonoLoading() || !data.hasOpenShift"
+          (click)="submitAbono()">
+          {{ abonoSaving() ? 'Registrando…' : 'Registrar abono' }}
+        </button>
+      </div>
+    </div>
+  } @else {
+    <label class="pos-folios__search">
+      <input
+        type="search"
+        placeholder="Folio o cliente"
+        [ngModel]="search()"
+        (ngModelChange)="onSearch($event)" />
+    </label>
+
+    @if (error()) {
+      <p class="pos-folios__error">{{ error() }}</p>
+    }
+    @if (loading()) {
+      <p class="pos-folios__empty">Cargando…</p>
+    } @else if (!rows().length) {
+      <p class="pos-folios__empty">
+        {{ data.mode === 'caja' ? 'No hay órdenes con saldo.' : 'No hay cotizaciones ni ventas.' }}
+      </p>
+    } @else {
+      <ul class="pos-folios__list">
+        @for (row of rows(); track row.key) {
+          <li class="pos-folios__card">
+            <div class="pos-folios__main">
+              <div class="pos-folios__top">
+                <span class="pos-folios__name">{{ row.customerName }}</span>
+                <span class="pos-folios__status">{{ row.status }}</span>
+              </div>
+              <div class="pos-folios__meta">
+                <button type="button" class="pos-folios__folio" (click)="copyFolio(row.folio, $event)">
+                  <lucide-icon [img]="Copy" />
+                  {{ row.folio }}
+                  @if (copiedFolio() === row.folio) {
+                    <span>Copiado</span>
+                  }
+                </button>
+                <span class="pos-folios__tag">{{ kindLabel(row) }}</span>
+                @if (row.paymentStatus) {
+                  <span class="pos-folios__tag">{{ row.paymentStatus }}</span>
+                }
+                @if (row.isCredit) {
+                  <span class="pos-folios__tag">Crédito</span>
+                }
+              </div>
+              <div class="pos-folios__money">
+                {{ formatMoney(row.total) }}
+                @if (row.pending != null) {
+                  <span>Saldo {{ formatMoney(row.pending) }}</span>
+                }
+              </div>
+            </div>
+            @if (data.mode === 'ventas') {
+              <button
+                type="button"
+                class="pos-folios__go"
+                [disabled]="takingId() === row.id"
+                (click)="takeToCart(row)">
+                {{ takingId() === row.id ? 'Leyendo…' : 'Llevar a carrito' }}
+              </button>
+            } @else {
+              <button type="button" class="pos-folios__go" (click)="openAbono(row)">Abonar</button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>

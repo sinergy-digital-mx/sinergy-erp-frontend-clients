@@ -1,12 +1,12 @@
 {
-  "version": "0.0.175",
-  "buildId": "0.0.175-1795577124602",
-  "builtAt": "2026-11-25T03:25:24.602Z",
+  "version": "0.0.176",
+  "buildId": "0.0.176-1795583223054",
+  "builtAt": "2026-11-25T05:07:03.054Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "En POS, la barra muestra Corte abierto y el nombre de la terminal sale al pasar el cursor.",
+      "message": "En Ventas, Folios lleva cotizaciones y ventas a tres carritos con el precio vigente. En Caja, el abono queda en la orden y en el corte abierto.",
       "module": "pos",
       "moduleLabel": "POS Ventas"
     }

@@ -21,6 +21,8 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 ### 2026-11-24
 
+**Folios** en la barra lista cotizaciones y ventas de la sucursal y la razón social. **Llevar a carrito** las copia a C1, C2 o C3. Esos carritos guardan cliente y productos, sin precio, y al usarlos cobran el precio vigente. Un ticket regresado de caja no se mezcla con ellos hasta enviarlo o soltarlo.
+
 En la barra, **Sucursal** y **Vendedor** ya no muestran el texto Cambiar. El clic en el cuadrito abre el cambio de sucursal o el código del vendedor. En una laptop chica ese enlace quedaba fuera del cuadrito.
 
 ### 2026-11-23

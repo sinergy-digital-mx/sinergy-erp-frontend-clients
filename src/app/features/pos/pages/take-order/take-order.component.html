@@ -81,6 +81,15 @@
         <div class="pos-session-bar__tools">
         <button
           type="button"
+          class="pos-session-bar__icon-btn pos-tickets-btn"
+          (click)="openFolios()"
+          title="Folios de esta sucursal"
+          aria-label="Folios">
+          <lucide-icon [img]="Hash" class="pos-ic pos-ic--btn" />
+          <span class="pos-tickets-btn__label">Folios</span>
+        </button>
+        <button
+          type="button"
           class="pos-session-bar__icon-btn"
           (click)="refreshFromHeader()"
           [disabled]="loadingTickets() || loading() || posState.checkingShift()"
@@ -666,6 +675,24 @@
             <span class="pos-cart__editing">{{ folio }}</span>
           }
         </div>
+        @if (!editingSaleId()) {
+          <div class="pos-cart__slots" role="tablist" aria-label="Carritos">
+            @for (slot of cartSlotBadges(); track slot.id) {
+              <button
+                type="button"
+                role="tab"
+                class="pos-cart__slot"
+                [class.is-active]="slot.active"
+                [attr.aria-selected]="slot.active"
+                (click)="switchCartSlot(slot.id)">
+                C{{ slot.id }}
+                @if (slot.count > 0) {
+                  <span>{{ slot.count }}</span>
+                }
+              </button>
+            }
+          </div>
+        }
       </div>
 
       <div class="pos-customer">
@@ -1131,7 +1158,7 @@
           <li><kbd>Esc</kbd><span>Limpia la búsqueda. Otro Esc sale de pantalla completa</span></li>
           <li><kbd>Ctrl+M</kbd><span>Muestra las ventas que están en POS Caja para regresarlas a ventas</span></li>
         </ul>
-        <p class="pos-shortcuts-modal__note">En caja, Ctrl+Q busca ventas pasadas para abono. Sigue pendiente.</p>
+        <p class="pos-shortcuts-modal__note">En caja, Ctrl+Q abre Folios para abonar ventas con saldo.</p>
       </div>
     </div>
   }

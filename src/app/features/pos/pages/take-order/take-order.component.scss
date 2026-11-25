@@ -782,7 +782,42 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   border-bottom: 1px solid var(--pos-border);
+}
+
+.pos-cart__slots {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.pos-cart__slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 2.35rem;
+  height: 1.7rem;
+  padding: 0 0.4rem;
+  border-radius: 8px;
+  border: 1px solid var(--pos-border);
+  background: transparent;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+
+  span {
+    min-width: 1rem;
+    font-size: 0.65rem;
+  }
+
+  &.is-active {
+    background: #0f172a;
+    border-color: #0f172a;
+    color: #fff;
+  }
 }
 
 .pos-cart__head-title {

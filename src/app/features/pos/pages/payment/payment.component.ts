@@ -42,10 +42,12 @@ import {
   AlertTriangle,
   Truck,
   Info,
+  Hash,
 } from 'lucide-angular';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PosConfirmDialogComponent } from '../../components/pos-confirm-dialog/pos-confirm-dialog.component';
+import { PosFoliosDialogComponent } from '../../components/pos-folios-dialog/pos-folios-dialog.component';
 import { POS_PERMISSIONS } from '../../config/permissions.config';
 import { ExchangeRateService } from '../../../../core/services/exchange-rate.service';
 import { PosOverlayHostDirective } from '../../directives/pos-overlay-host.directive';
@@ -258,6 +260,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly Receipt = Receipt;
   readonly ChevronLeft = ChevronLeft;
   readonly Printer = Printer;
+  readonly Hash = Hash;
   readonly Eye = Eye;
   readonly Landmark = Landmark;
   readonly Pencil = Pencil;
@@ -602,7 +605,32 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.dialog.openDialogs.length) {
       return;
     }
-    this.shortcutsOpen.set(true);
+    this.openFolios();
+  }
+
+  openFolios(): void {
+    const branchId = this.authService.getBillingBranchId();
+    const fiscalId = this.posState.fiscalConfigurationId() || this.authService.getFiscalConfigurationId();
+    if (!branchId || !fiscalId) {
+      this.toast.error('Falta la sucursal o la razón social de la sesión.');
+      return;
+    }
+    this.dialog.open(PosFoliosDialogComponent, {
+      width: '760px',
+      maxWidth: '96vw',
+      maxHeight: '90vh',
+      panelClass: 'pos-dialog-panel',
+      autoFocus: 'first-tabbable',
+      data: {
+        mode: 'caja',
+        branchId,
+        branchLabel: this.branchLabel(),
+        fiscalConfigurationId: fiscalId,
+        hasOpenShift: this.posState.hasOpenShiftRecord(),
+        slots: [],
+        onAbonoRecorded: () => this.refreshFromHeader(),
+      },
+    });
   }
 
   terminalLabel(): string {

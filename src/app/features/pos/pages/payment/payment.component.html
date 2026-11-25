@@ -49,6 +49,15 @@
       <div class="pos-session-bar__tools">
         <button
           type="button"
+          class="pos-session-bar__icon-btn pos-tickets-btn"
+          (click)="openFolios()"
+          title="Folios con saldo de esta sucursal"
+          aria-label="Folios">
+          <lucide-icon [img]="Hash" class="pos-ic pos-ic--btn" />
+          <span class="pos-tickets-btn__label">Folios</span>
+        </button>
+        <button
+          type="button"
           class="pos-session-bar__icon-btn"
           (click)="refreshFromHeader()"
           [disabled]="posState.checkingShift() || loading()"
@@ -2131,7 +2140,7 @@
           </button>
         </header>
         <ul class="pos-shortcuts-modal__list">
-          <li><kbd>Ctrl+Q</kbd><span>Buscar ventas pasadas para abono. Pendiente.</span></li>
+          <li><kbd>Ctrl+Q</kbd><span>Folios: ventas con saldo para abonar.</span></li>
         </ul>
         <p class="pos-shortcuts-modal__note">Si Ventas regresa un folio que tienes abierto, se cierra y verás el aviso.</p>
       </div>
