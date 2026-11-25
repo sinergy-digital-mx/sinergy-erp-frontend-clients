@@ -2,17 +2,12 @@
   <!-- Cotización: cabecera fija, cuerpo con scroll y pie de acciones siempre visible -->
   <div class="quote-dialog">
     <header class="quote-dialog__header">
-      <div class="quote-dialog__mark" aria-hidden="true">
-        <lucide-icon [img]="FileText" />
-      </div>
       <div class="quote-dialog__heading">
         <h2>{{ data.title }}</h2>
-        <p>{{ data.subtitle }}</p>
       </div>
       <div class="quote-dialog__total">
         <span>Total</span>
         <strong>{{ data.totalLabel }}</strong>
-        <small>{{ data.itemSummary }}</small>
       </div>
       <button type="button" class="quote-dialog__close" aria-label="Cerrar" (click)="cancel()">
         <lucide-icon [img]="X" />
@@ -22,49 +17,36 @@
     <div class="quote-dialog__body">
       <!-- Columna izquierda: cliente y observaciones -->
       <div class="quote-dialog__col">
-        <section class="quote-card">
-          <div class="quote-card__head">
-            <h3>Cliente</h3>
+        <section class="quote-card quote-card--slim">
+          <div class="quote-line">
+            <span class="quote-label">Cliente</span>
+            <strong>{{ customerLabel() || 'Público en General' }}</strong>
             <div class="quote-card__actions">
               @if (canEditCustomer()) {
-                <button type="button" [disabled]="customerBusy()" (click)="editCustomer()">
-                  Editar datos
-                </button>
+                <button type="button" [disabled]="customerBusy()" (click)="editCustomer()">Editar</button>
               }
               @if (data.customerActions) {
                 <button type="button" [disabled]="customerBusy()" (click)="changeCustomer()">
-                  {{ hasCustomer() ? 'Cambiar' : 'Elegir cliente' }}
+                  {{ hasCustomer() ? 'Cambiar' : 'Elegir' }}
                 </button>
               }
             </div>
           </div>
-
-          <p class="quote-customer__name">{{ customerLabel() || 'Público en General' }}</p>
-
-          @if (hasCustomer()) {
-            <dl class="quote-customer__fiscal">
-              <div>
-                <dt>RFC</dt>
-                <dd [class.is-missing]="!customerFiscal()?.rfc">{{ customerFiscal()?.rfc || 'Falta' }}</dd>
-              </div>
-              <div>
-                <dt>Razón social</dt>
-                <dd [class.is-missing]="!customerFiscal()?.razonSocial">
-                  {{ customerFiscal()?.razonSocial || 'Falta' }}
-                </dd>
-              </div>
-              <div>
-                <dt>CP fiscal</dt>
-                <dd [class.is-missing]="!customerFiscal()?.postalCode">
-                  {{ customerFiscal()?.postalCode || 'Falta' }}
-                </dd>
-              </div>
-            </dl>
-          } @else {
-            <p class="quote-hint">
-              Sin cliente registrado. Para facturar un anticipo elige uno con datos fiscales.
-            </p>
-          }
+          <p class="quote-line__meta" [class.is-missing]="hasCustomer() && !fiscalReady()">
+            @if (hasCustomer()) {
+              {{ customerFiscal()?.rfc || 'Sin RFC' }}
+              · {{ customerFiscal()?.razonSocial || 'Sin razón social' }}
+              · CP {{ customerFiscal()?.postalCode || '—' }}
+            } @else {
+              Para un anticipo elige un cliente con RFC.
+            }
+          </p>
+          <div class="quote-line">
+            <span class="quote-label">Productos</span>
+            <span class="quote-line__text" [title]="data.itemLine || data.itemSummary">
+              {{ data.itemLine || data.itemSummary }}
+            </span>
+          </div>
         </section>
 
         <section class="quote-card quote-card--grow">
@@ -129,6 +111,7 @@
                 <span aria-hidden="true">$</span>
                 <input
                   id="quote-advance-amount"
+                  class="quote-amount__input"
                   type="number"
                   inputmode="decimal"
                   min="0.01"

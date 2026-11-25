@@ -47,31 +47,72 @@
 }
 
 .pos-folios__filters {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 1rem;
   margin: 0 0 0.75rem;
-  padding: 0.2rem;
-  background: #f1f5f9;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
+  background: #f8fafc;
+}
 
-  button {
-    border: none;
-    background: transparent;
-    border-radius: 9px;
-    padding: 0.42rem 0.6rem;
-    font: inherit;
-    font-size: 0.8rem;
+.pos-folios__facet {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+
+  legend {
+    padding: 0;
+    font-size: 0.68rem;
     font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     color: #64748b;
-    cursor: pointer;
+  }
 
-    &.is-on {
-      background: #fff;
+  label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: #334155;
+    cursor: pointer;
+    border-radius: 6px;
+
+    &:hover {
       color: #0f172a;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
     }
   }
+
+  input {
+    margin: 0;
+    accent-color: #334155;
+    cursor: pointer;
+  }
+
+  &--check {
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: #334155;
+    cursor: pointer;
+  }
+}
+
+.pos-folios__advance {
+  flex: 0 0 auto;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  color: #475569;
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
 .pos-folios__list {

@@ -1010,6 +1010,7 @@ export class POSService {
     billing_branch_id?: string;
     fiscal_configuration_id?: string;
     search?: string;
+    has_advance?: boolean;
     page?: number;
     limit?: number;
   }): Observable<{ data: Quotation[] }> {
@@ -1021,6 +1022,7 @@ export class POSService {
       params = params.set('fiscal_configuration_id', filters.fiscal_configuration_id);
     }
     if (filters.search) params = params.set('search', filters.search);
+    if (filters.has_advance) params = params.set('has_advance', 'true');
     params = params.set('page', String(filters.page ?? 1)).set('limit', String(filters.limit ?? 30));
     return this.http.get<{ data: Quotation[] }>(`${this.API_URL}/folio-quotations`, { params });
   }

@@ -126,6 +126,12 @@ export class SalesOrderService {
     if (filters.is_credit === true) {
       params = params.set('is_credit', 'true');
     }
+    if (filters.exclude_paid) {
+      params = params.set('exclude_paid', 'true');
+    }
+    if (filters.has_advance) {
+      params = params.set('has_advance', 'true');
+    }
 
     return params;
   }

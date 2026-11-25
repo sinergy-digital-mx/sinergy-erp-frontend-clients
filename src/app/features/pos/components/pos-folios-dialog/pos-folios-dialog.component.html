@@ -58,31 +58,62 @@
     <label class="pos-folios__search">
       <input
         type="search"
-        placeholder="Folio o cliente"
+        placeholder="Folio, cliente, empresa, RFC o teléfono"
         [ngModel]="search()"
         (ngModelChange)="onSearch($event)" />
     </label>
 
-    @if (data.mode === 'ventas') {
-      <div class="pos-folios__filters" role="tablist" aria-label="Tipo de folio">
-        <button
-          type="button"
-          role="tab"
-          [class.is-on]="listKind() === 'sale'"
-          [attr.aria-selected]="listKind() === 'sale'"
-          (click)="setListKind('sale')">
-          Ventas
-        </button>
-        <button
-          type="button"
-          role="tab"
-          [class.is-on]="listKind() === 'quotation'"
-          [attr.aria-selected]="listKind() === 'quotation'"
-          (click)="setListKind('quotation')">
-          Cotizaciones
-        </button>
-      </div>
-    }
+    <div class="pos-folios__filters">
+      @if (data.mode === 'ventas') {
+        <fieldset class="pos-folios__facet">
+          <legend>Ver</legend>
+          <label>
+            <input
+              type="radio"
+              name="folio-kind"
+              [checked]="listKind() === 'sale'"
+              (change)="setListKind('sale')" />
+            Ventas
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="folio-kind"
+              [checked]="listKind() === 'quotation'"
+              (change)="setListKind('quotation')" />
+            Cotizaciones
+          </label>
+        </fieldset>
+      }
+      <label class="pos-folios__facet pos-folios__facet--check">
+        <input
+          type="checkbox"
+          [checked]="withAdvance()"
+          (change)="setWithAdvance($any($event.target).checked)" />
+        Con anticipo
+      </label>
+      @if (data.mode === 'ventas' && listKind() === 'sale') {
+        <fieldset class="pos-folios__facet">
+          <legend>Pagadas</legend>
+          <label>
+            <input
+              type="radio"
+              name="folio-paid"
+              [checked]="!showPaid()"
+              (change)="setShowPaid(false)" />
+            Ocultar
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="folio-paid"
+              [checked]="showPaid()"
+              (change)="setShowPaid(true)" />
+            Mostrar
+          </label>
+        </fieldset>
+      }
+    </div>
 
     @if (notice()) {
       <p>{{ notice() }}</p>
@@ -125,6 +156,9 @@
               }
               @if (row.isCredit) {
                 <span class="dt-status-pill dt-status-pill--warning">Crédito</span>
+              }
+              @if (row.hasAdvance) {
+                <span class="pos-folios__advance">Anticipo</span>
               }
               <span class="pos-folios__money">
                 {{ formatMoney(row.total) }}

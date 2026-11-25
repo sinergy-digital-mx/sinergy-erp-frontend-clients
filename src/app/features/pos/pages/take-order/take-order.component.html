@@ -155,7 +155,7 @@
                 <span class="pos-caja-modal__count">{{ cajaQueue().length }}</span>
               }
             </div>
-            <p>Abre una carta para ver los productos y regresarla a ventas.</p>
+            <p>Abre Información para ver el detalle y regresarla a ventas.</p>
           </div>
           <div class="pos-caja-modal__tools">
             <button
@@ -212,7 +212,7 @@
                       }
                     </span>
                     <span class="pos-caja-card__expand">
-                      {{ cajaExpandedId() === ticket.id ? 'Ocultar' : 'Productos' }}
+                      {{ cajaExpandedId() === ticket.id ? 'Ocultar' : 'Información' }}
                       <lucide-icon
                         [img]="ChevronDown"
                         [size]="16"
@@ -315,7 +315,10 @@
   @if (ticketsPanelOpen()) {
     <div class="pos-tickets-panel" role="dialog" aria-label="Tickets en ventas">
       <div class="pos-tickets-panel__head">
-        <strong>Tickets en ventas</strong>
+        <div>
+          <strong>Tickets en ventas</strong>
+          <p>Ventas que siguen aquí. Lo que ya está en caja se ve en En caja, y de ahí se regresa si hace falta.</p>
+        </div>
         <div class="pos-tickets-panel__actions">
           <button
             type="button"

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
-import { LucideAngularModule, AlertTriangle, Check, FileText, ShoppingCart, X } from 'lucide-angular';
+import { LucideAngularModule, AlertTriangle, Check, ShoppingCart, X } from 'lucide-angular';
 import {
   CFDI_REGIMEN_RECEPTOR_OPTIONS,
   CFDI_USO_OPTIONS,
@@ -59,6 +59,8 @@ export interface PosCheckoutConfirmDialogData {
   /** Productos ya capturados. En cero, la cotización solo puede ser anticipo. */
   itemCount?: number;
   itemSummary: string;
+  /** Nombres de productos en una sola línea. */
+  itemLine?: string;
   customerLabel?: string;
   customerFiscal?: PosCheckoutCustomerFiscal;
   customerActions?: PosCheckoutCustomerActions;
@@ -131,7 +133,6 @@ export function buildCustomerFiscalSnapshot(customer: any): PosCheckoutCustomerF
 })
 export class PosCheckoutConfirmDialogComponent {
   readonly ShoppingCart = ShoppingCart;
-  readonly FileText = FileText;
   readonly X = X;
   readonly Check = Check;
   readonly AlertTriangle = AlertTriangle;

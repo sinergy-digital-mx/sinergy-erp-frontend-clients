@@ -408,6 +408,10 @@ export interface SalesOrderFilters {
   dateFrom?: string;
   dateTo?: string;
   is_credit?: boolean;
+  /** Folios: no incluye órdenes Pagado. */
+  exclude_paid?: boolean;
+  /** Folios: solo órdenes con anticipo. */
+  has_advance?: boolean;
   assigned_seller_user_id?: string;
 }
 

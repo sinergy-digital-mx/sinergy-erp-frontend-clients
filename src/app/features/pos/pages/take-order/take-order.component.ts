@@ -17,6 +17,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subject, Subscription, catchError, debounceTime, distinctUntilChanged, forkJoin, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { formatBusinessDateTime } from '../../../../core/utils/api-datetime.util';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AssignedBranch, AuthService } from '../../../../core/services/auth.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -872,7 +873,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.isCobranzaTerminal()) {
       return;
     }
-    this.loadingCajaQueue.set(true);
+    if (this.cajaQueue().length === 0) {
+      this.loadingCajaQueue.set(true);
+    }
     this.posService.getSalesAwaitingCaja().subscribe({
       next: ({ sales_in_caja }) => {
         const rows = sales_in_caja ?? [];
@@ -935,19 +938,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   cajaWhen(ticket: PosCajaQueueTicket): string {
-    if (!ticket.created_at) {
+    const when = formatBusinessDateTime(ticket.created_at);
+    if (!when) {
       return '';
     }
-    const date = new Date(ticket.created_at);
-    if (Number.isNaN(date.getTime())) {
-      return '';
-    }
-    return date.toLocaleString('es-MX', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return `${when.date}, ${when.time}`;
   }
 
   cajaMoney(amount: number | string | null | undefined, ticket: PosCajaQueueTicket): string {
@@ -1115,12 +1110,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private afterTicketsLoaded(): void {
-    if (this.tryResumeReturnedTicket()) {
-      return;
-    }
-    if (this.canSell() && this.salesInProgress().length > 0) {
-      this.ticketsPanelOpen.set(true);
-    }
+    this.tryResumeReturnedTicket();
   }
 
   private tryResumeReturnedTicket(): boolean {
@@ -2561,6 +2551,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         totalLabel: this.formatCurrency(cart.grand_total),
         cartTotal: Number(cart.grand_total),
         itemSummary: this.cartItemSummary(cart),
+        itemLine: this.cartItemLine(cart),
         customerLabel: this.selectedCustomerName(),
         customerFiscal: this.selectedCustomerId() ? customerFiscal : undefined,
         customerActions: {
@@ -2769,6 +2760,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       cartTotal: Number(cart.grand_total),
       itemCount: cart.items.length,
       itemSummary: this.cartItemSummary(cart),
+      itemLine: this.cartItemLine(cart),
       customerLabel: this.selectedCustomerName(),
       customerFiscal: this.selectedCustomerId() ? customerFiscal : undefined,
       customerActions: {
@@ -2884,7 +2876,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       .open<PosCheckoutConfirmDialogComponent, PosCheckoutConfirmDialogData, PosCheckoutConfirmResult>(
         PosCheckoutConfirmDialogComponent,
         {
-          width: data.kind === 'quote' ? '920px' : '420px',
+          width: data.kind === 'quote' ? '1280px' : '420px',
           maxWidth: '95vw',
           maxHeight: '95vh',
           disableClose: true,
@@ -2897,6 +2889,18 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       .pipe(
         tap(() => this.confirming.set(false)),
       );
+  }
+
+  private cartItemLine(cart: POSCart): string {
+    const parts = cart.items
+      .map((item) => {
+        const name = item.product_name?.trim();
+        if (!name) return '';
+        const qty = Number(item.quantity || 0);
+        return qty > 0 ? `${name} × ${qty}` : name;
+      })
+      .filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'Sin productos';
   }
 
   private cartItemSummary(cart: POSCart): string {

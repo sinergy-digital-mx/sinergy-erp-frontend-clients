@@ -70,6 +70,7 @@ interface FolioRow {
   isCredit: boolean;
   pending: number | null;
   advanceRequested?: number | null;
+  hasAdvance?: boolean;
 }
 
 type FolioListKind = 'sale' | 'quotation';
@@ -97,6 +98,9 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   readonly copiedFolio = signal('');
   readonly search = signal('');
   readonly listKind = signal<FolioListKind>('sale');
+  /** Las pagadas no salen hasta que se elige Mostrar. */
+  readonly showPaid = signal(false);
+  readonly withAdvance = signal(false);
   readonly takingId = signal('');
   readonly readingFor = signal<'lines' | 'cart' | ''>('');
   readonly openKey = signal('');
@@ -160,10 +164,31 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
     this.load();
   }
 
+  setShowPaid(show: boolean): void {
+    if (this.showPaid() === show) return;
+    this.showPaid.set(show);
+    this.load();
+  }
+
+  setWithAdvance(on: boolean): void {
+    if (this.withAdvance() === on) return;
+    this.withAdvance.set(on);
+    this.load();
+  }
+
   emptyLabel(): string {
     if (this.search().trim()) return 'Nada coincide con la búsqueda.';
-    if (this.data.mode === 'caja') return 'No hay órdenes con saldo.';
-    return this.listKind() === 'quotation' ? 'No hay cotizaciones.' : 'No hay ventas.';
+    const advance = this.withAdvance();
+    if (this.data.mode === 'caja') {
+      return advance ? 'No hay órdenes con anticipo y saldo.' : 'No hay órdenes con saldo.';
+    }
+    if (this.listKind() === 'quotation') {
+      return advance ? 'No hay cotizaciones con anticipo.' : 'No hay cotizaciones.';
+    }
+    if (advance && !this.showPaid()) return 'No hay ventas con anticipo por cobrar.';
+    if (advance) return 'No hay ventas con anticipo.';
+    if (!this.showPaid()) return 'No hay ventas por cobrar.';
+    return 'No hay ventas.';
   }
 
   close(): void {
@@ -528,7 +553,9 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       search: search || undefined,
       billing_branch_id: branchId,
       fiscal_configuration_id: fiscalId,
+      ...(this.withAdvance() ? { has_advance: true } : {}),
     };
+    const hidePaid = this.data.mode === 'ventas' && this.listKind() === 'sale' && !this.showPaid();
     const apply = (rows: FolioRow[]) => {
       if (seq !== this.loadSeq) return;
       this.rows.set(rows.filter((row) => row.status !== 'Cancelada'));
@@ -541,6 +568,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
           {
             ...filters,
             ...(this.data.mode === 'caja' ? { payment_status: 'Pendiente' as const } : {}),
+            ...(hidePaid ? { exclude_paid: true } : {}),
           },
           { page: 1, limit: this.data.mode === 'caja' ? 40 : 30 },
         )
@@ -587,6 +615,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       isCredit: false,
       pending: null,
       advanceRequested: Number(row.advance_requested_total ?? 0) || null,
+      hasAdvance: this.withAdvance() || Number(row.advance_requested_total ?? 0) > 0.009,
     };
     });
   }
@@ -614,6 +643,9 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
         paymentStatus: row.payment_status || '',
         isCredit: row.is_credit === true,
         pending: pending != null && Number.isFinite(pending) ? pending : null,
+        hasAdvance:
+          this.withAdvance() ||
+          !!(row as SalesOrder & { advance_invoice_id?: string | null }).advance_invoice_id,
       };
     });
   }
