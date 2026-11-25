@@ -1,111 +1,140 @@
-<section class="advance-wizard">
-  <header class="advance-wizard__head">
+<div class="advance-wizard">
+  <header class="advance-wizard__header">
     <div>
-      <p class="advance-wizard__kicker">{{ data.mode === 'close' ? 'Paso 3' : 'Paso 1' }}</p>
       <h2>{{ title() }}</h2>
+      @if (data.customerLabel) {
+        <p>{{ data.customerLabel }}</p>
+      }
     </div>
-    <button type="button" class="advance-wizard__close" (click)="dialogRef.close()" aria-label="Cerrar">×</button>
+    <button type="button" class="advance-wizard__close" (click)="dialogRef.close()" aria-label="Cerrar">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
   </header>
 
-  @if (data.customerLabel) {
-    <p class="advance-wizard__customer">{{ data.customerLabel }}</p>
-  }
+  <div class="advance-wizard__body">
+    @if (data.mode !== 'close' && step() === 1) {
+      <div class="advance-wizard__choices">
+        <button type="button" (click)="choose('unknown')">
+          <span class="advance-wizard__choice-icon" aria-hidden="true">
+            <i class="fi fi-rr-sack-dollar"></i>
+          </span>
+          <span class="advance-wizard__choice-text">
+            <strong>Sin productos</strong>
+            <span>Todavía no elige. Solo captura el monto.</span>
+          </span>
+        </button>
+        <button type="button" (click)="choose('products')">
+          <span class="advance-wizard__choice-icon" aria-hidden="true">
+            <i class="fi fi-rr-box"></i>
+          </span>
+          <span class="advance-wizard__choice-text">
+            <strong>Con productos</strong>
+            <span>Usa lo que ya está en el ticket. Puede dejar una parte o el total.</span>
+          </span>
+        </button>
+      </div>
+    }
 
-  @if (data.mode !== 'close' && step() === 1) {
-    <div class="advance-wizard__cases">
-      <button type="button" (click)="choose('unknown')">
-        <strong>Caso 1. No sabe qué quiere</strong>
-        <span>Deja un monto con IVA. La cotización no lleva maderas. La factura sale como anticipo del bien o servicio.</span>
-      </button>
-      <button type="button" (click)="choose('products')">
-        <strong>Caso 2. Sí sabe, pero no hay</strong>
-        <span>Los productos se quedan en la cotización. La factura de anticipo usa el mismo concepto, no las maderas.</span>
-      </button>
-    </div>
-  }
+    @if (data.mode !== 'close' && step() === 2) {
+      <p class="advance-wizard__note">
+        @if (advanceCase() === 'unknown') {
+          IVA {{ ivaPercent }}% incluido. Lo cobra la caja de esta sucursal.
+        } @else {
+          IVA {{ ivaPercent }}% incluido. Puede ser una parte o el total.
+        }
+      </p>
+      <label class="advance-wizard__field">
+        Monto
+        <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          inputmode="decimal"
+          [ngModel]="amountText()"
+          (ngModelChange)="amountText.set($event)" />
+      </label>
+    }
 
-  @if (data.mode !== 'close' && step() === 2) {
-    <p class="advance-wizard__lead">
-      @if (advanceCase() === 'unknown') {
-        ¿Cuánto deja, ya con IVA {{ ivaPercent }}%? Caja de esta sucursal lo cobra y ahí se timbra.
-      } @else {
-        El anticipo puede ser una parte o el total de los productos, siempre con IVA.
+    @if (data.mode === 'close') {
+      <p class="advance-wizard__note">
+        Ya pagó {{ money(paid) }}. Agrega los productos. Si el total es mayor, caja cobra la diferencia.
+      </p>
+      <label class="advance-wizard__field">
+        Buscar producto
+        <input
+          type="search"
+          placeholder="Nombre o código"
+          [ngModel]="search()"
+          (ngModelChange)="onSearch($event)" />
+      </label>
+      @if (searching()) {
+        <p class="advance-wizard__hint">Buscando…</p>
       }
-    </p>
-    <label class="advance-wizard__amount">
-      Monto con IVA
-      <input
-        type="number"
-        min="0.01"
-        step="0.01"
-        [ngModel]="amountText()"
-        (ngModelChange)="amountText.set($event)" />
-    </label>
-    <div class="advance-wizard__actions">
-      <button type="button" class="advance-wizard__ghost" (click)="back()">Atrás</button>
-      <button type="button" class="advance-wizard__go" (click)="confirmOpen()">Mandar a caja</button>
-    </div>
-  }
+      @if (hits().length) {
+        <ul class="advance-wizard__hits">
+          @for (hit of hits(); track hit.product_id + hit.product_uom_id) {
+            <li>
+              <button type="button" (click)="addHit(hit)">
+                <span>{{ hit.name }}</span>
+                <small>{{ money(hit.unit_price) }}</small>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+      @if (!lines().length) {
+        <p class="advance-wizard__hint">Agrega productos.</p>
+      } @else {
+        <ul class="advance-wizard__lines">
+          @for (line of lines(); track line.product_id + line.product_uom_id; let index = $index) {
+            <li>
+              <span>{{ line.name }}</span>
+              <input
+                class="advance-wizard__qty"
+                type="number"
+                min="0.001"
+                step="1"
+                [ngModel]="line.quantity"
+                (ngModelChange)="changeQty(index, $event)" />
+              <strong>{{ money(line.quantity * line.unit_price) }}</strong>
+            </li>
+          }
+        </ul>
+      }
+      <dl class="advance-wizard__totals">
+        <div><dt>Venta</dt><dd>{{ money(saleTotal) }}</dd></div>
+        <div><dt>Anticipo</dt><dd>{{ money(paid) }}</dd></div>
+        <div>
+          <dt>{{ shortfall ? 'Falta' : 'Por cobrar' }}</dt>
+          <dd>{{ money(shortfall ? paid - saleTotal : difference) }}</dd>
+        </div>
+      </dl>
+    }
 
-  @if (data.mode === 'close') {
-    <p class="advance-wizard__lead">
-      Anticipo cobrado {{ money(paid) }}. Arma lo que se lleva. Si es más, caja cobra la diferencia.
-    </p>
-    <label class="advance-wizard__amount">
-      Agregar producto
-      <input
-        type="search"
-        placeholder="Nombre o código"
-        [ngModel]="search()"
-        (ngModelChange)="onSearch($event)" />
-    </label>
-    @if (searching()) {
-      <p class="advance-wizard__hint">Buscando…</p>
+    @if (error()) {
+      <p class="advance-wizard__error">{{ error() }}</p>
     }
-    @if (hits().length) {
-      <ul class="advance-wizard__hits">
-        @for (hit of hits(); track hit.product_id + hit.product_uom_id) {
-          <li>
-            <button type="button" (click)="addHit(hit)">
-              <span>{{ hit.name }}</span>
-              <small>{{ money(hit.unit_price) }}</small>
-            </button>
-          </li>
-        }
-      </ul>
-    }
-    @if (!lines().length) {
-      <p class="advance-wizard__hint">Todavía no hay mercancía en esta venta.</p>
-    } @else {
-      <ul class="advance-wizard__lines">
-        @for (line of lines(); track line.product_id + line.product_uom_id; let index = $index) {
-          <li>
-            <span>{{ line.name }}</span>
-            <input
-              type="number"
-              min="0.001"
-              step="1"
-              [ngModel]="line.quantity"
-              (ngModelChange)="changeQty(index, $event)" />
-            <strong>{{ money(line.quantity * line.unit_price) }}</strong>
-          </li>
-        }
-      </ul>
-    }
-    <dl class="advance-wizard__totals">
-      <div><dt>Venta</dt><dd>{{ money(saleTotal) }}</dd></div>
-      <div><dt>Anticipo</dt><dd>{{ money(paid) }}</dd></div>
-      <div><dt>{{ shortfall ? 'Falta cubrir' : 'Caja cobra' }}</dt><dd>{{ money(shortfall ? paid - saleTotal : difference) }}</dd></div>
-    </dl>
-    <div class="advance-wizard__actions">
-      <button type="button" class="advance-wizard__ghost" (click)="dialogRef.close()">Cancelar</button>
-      <button type="button" class="advance-wizard__go" [disabled]="saving() || shortfall" (click)="confirmClose()">
-        {{ saving() ? 'Generando…' : 'Generar venta' }}
-      </button>
-    </div>
-  }
+  </div>
 
-  @if (error()) {
-    <p class="advance-wizard__error">{{ error() }}</p>
+  @if (data.mode === 'close' || step() === 2) {
+    <footer class="advance-wizard__footer">
+      @if (data.mode !== 'close') {
+        <button type="button" class="advance-wizard__btn advance-wizard__btn--ghost" (click)="back()">Atrás</button>
+        <button type="button" class="advance-wizard__btn advance-wizard__btn--primary" (click)="confirmOpen()">
+          Enviar a caja
+        </button>
+      } @else {
+        <button type="button" class="advance-wizard__btn advance-wizard__btn--ghost" (click)="dialogRef.close()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="advance-wizard__btn advance-wizard__btn--primary"
+          [disabled]="saving() || shortfall"
+          (click)="confirmClose()">
+          {{ saving() ? 'Generando…' : 'Generar venta' }}
+        </button>
+      }
+    </footer>
   }
-</section>
+</div>

@@ -1,4 +1,4 @@
-import { Component, Inject, OnDestroy, signal } from '@angular/core';
+import { Component, Inject, OnDestroy, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -62,6 +62,7 @@ export interface AdvanceWizardCloseResult {
   imports: [CommonModule, FormsModule, MatDialogModule],
   templateUrl: './advance-wizard-dialog.component.html',
   styleUrl: './advance-wizard-dialog.component.scss',
+  encapsulation: ViewEncapsulation.None,
 })
 export class AdvanceWizardDialogComponent implements OnDestroy {
   readonly step = signal(1);
@@ -129,14 +130,14 @@ export class AdvanceWizardDialogComponent implements OnDestroy {
   }
 
   title(): string {
-    if (this.data.mode === 'close') return `Venta del anticipo ${this.data.folio || ''}`.trim();
+    if (this.data.mode === 'close') return this.data.folio ? `Venta ${this.data.folio}` : 'Venta';
     return 'Anticipo';
   }
 
   choose(caseId: 'unknown' | 'products'): void {
     this.error.set('');
     if (caseId === 'products' && !(this.data.cartCount || this.data.hasRealProducts)) {
-      this.error.set('Primero agrega en el punto de venta los productos que quiere.');
+      this.error.set('Agrega productos al ticket antes de este anticipo.');
       return;
     }
     this.advanceCase.set(caseId);
@@ -164,7 +165,7 @@ export class AdvanceWizardDialogComponent implements OnDestroy {
 
   amountError(): string {
     const amount = this.amount();
-    if (amount == null) return 'Escribe el monto con IVA';
+    if (amount == null) return 'Escribe el monto';
     if (!this.data.customerReady) {
       const missing = (this.data.missingFiscal ?? []).join(', ');
       return missing ? `Al cliente le falta ${missing}` : 'Elige un cliente con RFC';
@@ -173,7 +174,7 @@ export class AdvanceWizardDialogComponent implements OnDestroy {
       ? Number(this.data.mode === 'start' ? this.data.quotationTotal : this.data.cartTotal) || 0
       : 0;
     if (cap > 0 && amount - cap > 0.01) {
-      return 'El anticipo no puede pasar el total de los productos';
+      return 'El anticipo no puede ser mayor al total';
     }
     return '';
   }
@@ -227,16 +228,16 @@ export class AdvanceWizardDialogComponent implements OnDestroy {
   confirmClose(): void {
     if (this.saving()) return;
     if (!this.lines().length) {
-      this.error.set('Agrega lo que se va a llevar');
+      this.error.set('Agrega productos');
       return;
     }
     if (this.shortfall) {
-      this.error.set('La venta tiene que ser igual o mayor al anticipo. El sobrante queda pendiente de definir.');
+      this.error.set('La venta no puede ser menor al anticipo.');
       return;
     }
     const rates = new Set(this.lines().map((line) => line.iva_percentage));
     if (rates.size > 1) {
-      this.error.set('Todas las líneas tienen que llevar el mismo IVA');
+      this.error.set('Todos los productos tienen que llevar el mismo IVA');
       return;
     }
     const quotationId = this.data.quotationId;

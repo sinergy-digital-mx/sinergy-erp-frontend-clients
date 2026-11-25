@@ -2491,9 +2491,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       const cart = this.posService.cart();
       this.dialog
         .open(AdvanceWizardDialogComponent, {
-          width: '720px',
+          width: '440px',
           maxWidth: '95vw',
           autoFocus: false,
+          panelClass: 'advance-wizard-dialog',
           data: {
             mode: 'open',
             cartTotal: Number(cart.grand_total || 0),

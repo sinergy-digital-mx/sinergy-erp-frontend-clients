@@ -66,26 +66,26 @@ interface InstructionSection {
 const INSTRUCTION_SECTIONS: InstructionSection[] = [
   {
     id: 'caseA',
-    label: 'Caso 2 — Sí sabe, pero no hay',
-    shortLabel: 'Caso 2',
+    label: 'Con productos',
+    shortLabel: 'Con productos',
     icon: 'fi fi-rr-box-open',
     tone: 'blue',
     points: [
-      'Caso 2. El cliente ya eligió productos, pero no hay. Esos productos se quedan en la cotización.',
-      'Pedir anticipo manda el monto, con IVA, a la caja de esta sucursal. La factura no lista las maderas: sale «Anticipo del bien o servicio».',
-      'Cuando regrese, Generar venta arma la orden con esos productos o con más. Si se lleva más, caja cobra la diferencia.',
+      'El cliente ya eligió, pero no hay. Esos productos se quedan en la cotización.',
+      'Pedir anticipo manda el monto, con IVA, a la caja de esta sucursal.',
+      'Cuando regrese, Generar venta arma la orden. Si se lleva más, caja cobra la diferencia.',
     ],
   },
   {
     id: 'caseB',
-    label: 'Caso 1 — No sabe qué quiere',
-    shortLabel: 'Caso 1',
+    label: 'Sin productos',
+    shortLabel: 'Sin productos',
     icon: 'fi fi-rr-sack-dollar',
     tone: 'violet',
     points: [
-      'Caso 1. No sabe qué va a llevar. En punto de venta, Anticipo pide el monto con IVA y la cotización no lleva maderas.',
-      'Caja cobra y ahí se timbra el mismo concepto: anticipo del bien o servicio.',
-      'Cuando regrese, Generar venta, en Folios o aquí, agrega los productos. La venta tiene que cubrir el anticipo.',
+      'Todavía no elige. En punto de venta, Anticipo pide el monto con IVA y la cotización queda sin productos.',
+      'Caja cobra y ahí se factura el anticipo.',
+      'Cuando regrese, Generar venta agrega los productos. La venta tiene que cubrir el anticipo.',
     ],
   },
   {
@@ -107,10 +107,10 @@ const INSTRUCTION_SECTIONS: InstructionSection[] = [
     icon: 'fi fi-rr-file-invoice-dollar',
     tone: 'rose',
     points: [
-      'Generar venta crea la orden y la factura de la mercancía. El descuento es la base del anticipo. Tipo de relación 07 y UUID Rel apuntan a la factura de anticipo.',
-      'También se timbra la nota de crédito de aplicación, ligada a la orden.',
-      'Si el anticipo cubre la venta, el total de esa factura queda en cero. Si se llevan más, caja cobra la diferencia.',
-      'Si la venta es menor al anticipo, no se deja pasar. Eso se define aparte.',
+      'Generar venta crea la orden y la factura de los productos. El anticipo se descuenta y queda ligado a su factura.',
+      'También se timbra la nota de crédito, ligada a la orden.',
+      'Si el anticipo cubre la venta, esa factura queda en cero. Si se llevan más, caja cobra la diferencia.',
+      'Si la venta es menor al anticipo, no se deja pasar.',
     ],
   },
 ];
@@ -870,9 +870,10 @@ export class QuotationDetailDialogComponent implements OnInit {
     const ivaPct = Math.abs(iva - 8) < 0.3 ? 8 : Math.abs(iva - 16) < 0.3 ? 16 : 8;
     this.dialog
       .open(AdvanceWizardDialogComponent, {
-        width: '720px',
+        width: '440px',
         maxWidth: '95vw',
         autoFocus: false,
+        panelClass: 'advance-wizard-dialog',
         data: {
           mode: 'start',
           quotationId: q.id,
@@ -911,9 +912,10 @@ export class QuotationDetailDialogComponent implements OnInit {
     if (!q?.can_close_advance) return;
     this.dialog
       .open(AdvanceWizardDialogComponent, {
-        width: '720px',
+        width: '560px',
         maxWidth: '95vw',
         autoFocus: false,
+        panelClass: 'advance-wizard-dialog',
         data: {
           mode: 'close',
           quotationId: q.id,

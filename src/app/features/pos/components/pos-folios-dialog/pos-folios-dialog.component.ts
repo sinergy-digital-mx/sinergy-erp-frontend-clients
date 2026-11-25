@@ -251,9 +251,10 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
         const paid = Number(header.advance_invoice?.total ?? header.amount_paid ?? 0);
         this.dialog
           .open(AdvanceWizardDialogComponent, {
-            width: '720px',
+            width: '560px',
             maxWidth: '95vw',
             autoFocus: false,
+            panelClass: 'advance-wizard-dialog',
             data: {
               mode: 'close',
               quotationId: header.id,
