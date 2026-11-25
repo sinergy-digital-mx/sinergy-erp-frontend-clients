@@ -1,14 +1,12 @@
 {
-  "version": "0.0.172",
-  "buildId": "0.0.172-1795559953882",
-  "builtAt": "2026-11-24T22:39:13.882Z",
+  "version": "0.0.173",
+  "buildId": "0.0.173-1795566231652",
+  "builtAt": "2026-11-25T00:23:51.652Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "En la barra del POS el clic en el cuadrito de sucursal o vendedor abre el cambio, sin el texto Cambiar.",
-      "module": "pos",
-      "moduleLabel": "POS Ventas"
+      "message": "Actualización de la plataforma."
     }
   ]
 }
