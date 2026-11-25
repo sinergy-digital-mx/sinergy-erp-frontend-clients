@@ -147,6 +147,7 @@ export class QuotationService {
       advance_iva_percentage?: number;
       advance_uso_cfdi?: string;
       advance_metodo_pago?: 'PUE' | 'PPD';
+      advance_stamp_environment?: 'demo' | 'production';
     },
   ): Observable<Quotation> {
     return this.http.post<Quotation>(`${this.baseUrl}/${id}/request-advance`, body);

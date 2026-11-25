@@ -41,6 +41,7 @@ import {
   RefreshCw,
   LayoutGrid,
   List,
+  ListFilter,
   Store,
   Warehouse,
   Hash,
@@ -97,15 +98,19 @@ import { ProductService } from '../../../settings/services/product.service';
 import {
   buildVentasPosOrderPayload,
   isPosOrderQueued,
+  mapCartLineToOrderLine,
   mapInProgressLineToCartItem,
   posSaleObservation,
   resolveFiscalConfigurationIdFromBranch,
   todayIsoDate,
 } from '../../utils/pos-order.util';
 import {
+  ADVANCE_CONCEPT_SKU,
   AdvanceWizardDialogComponent,
   AdvanceWizardOpenResult,
 } from '../../../quotations/components/advance-wizard-dialog/advance-wizard-dialog.component';
+import { QuotationService } from '../../../quotations/services/quotation.service';
+import { defaultStampEnvironment } from '../../../sales-orders/models/sales-order-electronic-invoice.model';
 import { isValidWalkInRfc, normalizeWalkInRfc } from '../../utils/walk-in-ticket.util';
 import { prettyPosBranchLabel } from '../../utils/pos-branch-label.util';
 import { PosBranchStockResponse } from '../../models/pos-branch-stock.model';
@@ -171,6 +176,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly Store = Store;
   readonly LayoutGrid = LayoutGrid;
   readonly List = List;
+  readonly ListFilter = ListFilter;
   readonly Warehouse = Warehouse;
   readonly Hash = Hash;
 
@@ -211,8 +217,12 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   });
   readonly formatStock = formatInventoryNumber;
   catalogWarehouseId = signal('');
+  catalogFiltersOpen = signal(false);
   /** Permite agregar productos con existencia 0. Esos renglones solo se pueden cotizar. */
   allowWithoutInventory = signal(false);
+  readonly catalogFiltersCount = computed(
+    () => (this.catalogWarehouseId() ? 1 : 0) + (this.allowWithoutInventory() ? 1 : 0),
+  );
   loading = signal<boolean>(false);
   saving = signal<boolean>(false);
   confirming = signal<boolean>(false);
@@ -225,6 +235,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   editingAdvanceAmount = signal<number | null>(null);
   editingAdvanceUsoCfdi = signal<string | null>(null);
   editingAdvanceMetodoPago = signal<'PUE' | 'PPD' | null>(null);
+  editingAdvanceCollected = signal(false);
+  editingAdvanceEnvironment = signal<'demo' | 'production' | null>(null);
   editingForShipping = signal(false);
   selectedCustomerRouteId = signal<string | null>(null);
   editingNotes = signal('');
@@ -354,6 +366,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     private customerService: CustomerService,
     private ngZone: NgZone,
     private cartSlots: PosCartSlotsService,
+    private quotations: QuotationService,
   ) {
     effect(() => {
       const ready = this.slotsReady();
@@ -662,6 +675,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       if (this.priceDiscountOpenIndex() != null) {
         event.preventDefault();
         this.priceDiscountOpenIndex.set(null);
+        this.escExitArmed = false;
+        this.armFullscreenRestore();
+        return;
+      }
+      if (this.catalogFiltersOpen()) {
+        event.preventDefault();
+        this.catalogFiltersOpen.set(false);
         this.escExitArmed = false;
         this.armFullscreenRestore();
         return;
@@ -1124,8 +1144,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (count <= 0) {
       return 'Tickets en ventas';
     }
-    const label = count === 1 ? 'ticket regresado' : 'tickets regresados';
-    return `Hay ${count} ${label} de caja. Ábrelo, edita productos y pulsa Enviar a caja.`;
+    const collected = this.salesInProgress().filter((ticket) => ticket.advance_collected).length;
+    if (collected > 0 && collected === count) {
+      const label = count === 1 ? 'anticipo cobrado' : 'anticipos cobrados';
+      return `Hay ${count} ${label}. Ábrelo, agrega los productos y registra la venta.`;
+    }
+    const label = count === 1 ? 'ticket' : 'tickets';
+    return `Hay ${count} ${label}. Ábrelo para seguir la venta.`;
   }
 
   toggleTicketsPanel(): void {
@@ -1161,9 +1186,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private applyReturnedTicket(ticket: PosSaleInProgress): void {
-    const lines = (ticket.line_items ?? []).map((line) =>
-      this.posService.recalculateItem(mapInProgressLineToCartItem(line))
-    );
+    const collected = ticket.kind === 'advance' && !!ticket.advance_collected;
+    const lines = (ticket.line_items ?? [])
+      .filter((line) => !collected || line.product_sku !== ADVANCE_CONCEPT_SKU)
+      .map((line) => this.posService.recalculateItem(mapInProgressLineToCartItem(line)));
     this.posService.replaceCart(lines, ticket.global_discount ?? null);
     this.editingSaleId.set(ticket.id);
     this.editingFolio.set(ticket.folio || ticket.id);
@@ -1173,15 +1199,25 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     this.editingAdvanceUsoCfdi.set(ticket.advance_uso_cfdi ?? null);
     this.editingAdvanceMetodoPago.set(ticket.advance_metodo_pago ?? null);
+    this.editingAdvanceCollected.set(collected);
+    this.editingAdvanceEnvironment.set(
+      ticket.advance_stamp_environment === 'demo' || ticket.advance_stamp_environment === 'production'
+        ? ticket.advance_stamp_environment
+        : null,
+    );
     this.editingForShipping.set(
       ticket.for_shipping === true || ticket.for_shipping === 1 || ticket.for_shipping === '1',
     );
     this.editingNotes.set(ticket.kind === 'advance' ? '' : posSaleObservation(ticket.notes));
     this.ticketsPanelOpen.set(false);
+    const folio = ticket.folio || ticket.id;
+    const paid = Number(ticket.amount_pending ?? 0);
     this.notifySuccess(
-      ticket.kind === 'advance'
-        ? `${ticket.folio || ticket.id} cargado. Corrige el anticipo y pulsa Enviar a caja.`
-        : `${ticket.folio || ticket.id} cargado. Edita y pulsa Enviar a caja.`,
+      collected
+        ? `${folio} cargado. Anticipo cobrado ${this.formatCurrency(paid)}. Agrega los productos y registra la venta.`
+        : ticket.kind === 'advance'
+          ? `${folio} cargado. Corrige el anticipo y pulsa Enviar a caja.`
+          : `${folio} cargado. Edita y pulsa Enviar a caja.`,
       4500,
     );
 
@@ -1221,6 +1257,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.editingAdvanceAmount.set(null);
     this.editingAdvanceUsoCfdi.set(null);
     this.editingAdvanceMetodoPago.set(null);
+    this.editingAdvanceCollected.set(false);
+    this.editingAdvanceEnvironment.set(null);
     this.editingForShipping.set(false);
     this.editingNotes.set('');
   }
@@ -1808,6 +1846,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadProducts(this.searchTerm());
   }
 
+  toggleCatalogFilters(event: Event): void {
+    event.stopPropagation();
+    this.catalogFiltersOpen.update((open) => !open);
+  }
+
   clearSearch(): void {
     if (!this.searchTerm()) {
       this.catalogSearchRef?.nativeElement.focus();
@@ -2027,10 +2070,15 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   closePriceDiscountOnOutside(event: MouseEvent): void {
-    if (this.priceDiscountOpenIndex() == null) return;
     const target = event.target;
-    if (target instanceof Element && target.closest('.pos-line__off')) return;
-    this.priceDiscountOpenIndex.set(null);
+    if (this.priceDiscountOpenIndex() != null) {
+      if (!(target instanceof Element) || !target.closest('.pos-line__off')) {
+        this.priceDiscountOpenIndex.set(null);
+      }
+    }
+    if (!this.catalogFiltersOpen()) return;
+    if (target instanceof Element && target.closest('.pos-filters')) return;
+    this.catalogFiltersOpen.set(false);
   }
 
   togglePriceDiscount(index: number, event?: Event): void {
@@ -2214,7 +2262,57 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  private completeCollectedAdvance(): void {
+    const quotationId = this.editingSaleId();
+    if (!quotationId || this.saving() || this.confirming()) return;
+    const cart = this.posService.cart();
+    if (cart.items.length === 0) {
+      this.notifyInfo('Agrega los productos de la venta', 3000);
+      return;
+    }
+    const paid = Number(this.editingAdvanceAmount() ?? 0);
+    const sale = Number(cart.grand_total || 0);
+    if (sale + 0.009 < paid) {
+      this.notifyError('La venta no puede ser menor al anticipo.', 4000);
+      return;
+    }
+    this.saving.set(true);
+    this.quotations
+      .closeAdvance(quotationId, {
+        environment: this.editingAdvanceEnvironment() ?? defaultStampEnvironment(),
+        line_items: cart.items.map((item) => mapCartLineToOrderLine(item)),
+      })
+      .subscribe({
+        next: (result) => {
+          this.saving.set(false);
+          const folio = result.sales_order?.folio || 'OV';
+          const difference = Number(result.difference || 0);
+          this.notifySuccess(
+            difference > 0.009
+              ? `Venta ${folio} lista. Caja cobra ${this.formatCurrency(difference)}.`
+              : `Venta ${folio} lista. El anticipo la cubre.`,
+            7000,
+          );
+          this.posService.clearCart();
+          this.clearEditingTicket();
+          this.resetCustomerSelection();
+          this.loadSalesInProgress();
+        },
+        error: (error) => {
+          this.saving.set(false);
+          this.notifyError(
+            resolveHttpErrorMessage(error, 'No se pudo generar la venta'),
+            6000,
+          );
+        },
+      });
+  }
+
   saveOrder(): void {
+    if (this.editingAdvanceCollected()) {
+      this.completeCollectedAdvance();
+      return;
+    }
     if (this.isEditingReturnedAdvance()) {
       this.resendReturnedQuotation();
       return;
@@ -2542,6 +2640,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
               advance_iva_percentage: result.ivaPercent,
               advance_uso_cfdi: 'G01',
               advance_metodo_pago: 'PUE',
+              advance_stamp_environment: result.stampEnvironment,
             })
             .subscribe({
               next: (quotation) => {

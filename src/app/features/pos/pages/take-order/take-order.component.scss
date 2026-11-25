@@ -118,6 +118,11 @@
 }
 
 /* ——— Catálogo ——— */
+.pos-session-bar {
+  container-type: inline-size;
+  container-name: pos-bar;
+}
+
 .pos-catalog {
   position: relative;
   flex: 1 1 auto;
@@ -129,6 +134,8 @@
   border-radius: 0;
   box-shadow: none;
   overflow: hidden;
+  container-type: inline-size;
+  container-name: pos-catalog;
 }
 
 .pos-catalog__toolbar {
@@ -207,10 +214,109 @@
   }
 }
 
-.pos-search {
-  flex: 1;
+.pos-filters {
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 6;
+}
+
+.pos-filters__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 36px;
+  margin: 0;
+  padding: 0 0.7rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+
+  lucide-icon {
+    display: flex !important;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  &:hover,
+  .pos-filters--open & {
+    border-color: #c7d2fe;
+    color: #4338ca;
+  }
+
+  &--on {
+    border-color: #c7d2fe;
+    background: #eef2ff;
+    color: #4338ca;
+  }
+}
+
+.pos-filters__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 16px;
+}
+
+.pos-filters__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 16.5rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+
+  .pos-warehouse-filter {
+    flex: none;
+    width: 100%;
+    max-width: none;
+  }
+
+  .pos-no-stock-toggle {
+    width: 100%;
+  }
+}
+
+.pos-filters__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
   min-width: 0;
-  max-width: 520px;
+
+  > span {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+}
+
+.pos-search {
+  flex: 1 1 auto;
+  min-width: 8rem;
+  max-width: none;
   height: 36px;
   display: flex;
   align-items: center;
@@ -321,11 +427,28 @@
   flex-shrink: 0;
   display: flex;
   align-items: baseline;
-  gap: 0.45rem;
+  gap: 0.35rem;
   font-size: 0.75rem;
   color: var(--pos-muted);
   font-weight: 500;
   white-space: nowrap;
+}
+
+@container pos-catalog (max-width: 860px) {
+  .pos-catalog__filters > .pos-warehouse-filter {
+    flex-basis: 6rem;
+    width: 6rem;
+    max-width: 6rem;
+  }
+
+  .pos-search {
+    gap: 0.35rem;
+    padding: 0 0.55rem;
+  }
+
+  .pos-catalog__hint-label {
+    display: none;
+  }
 }
 
 .pos-catalog__results {
@@ -2187,6 +2310,7 @@
 .pos-lock-card__icon svg,
 .pos-search lucide-icon ::ng-deep svg,
 .pos-view-toggle lucide-icon ::ng-deep svg,
+.pos-filters__btn lucide-icon ::ng-deep svg,
 .pos-card__add lucide-icon ::ng-deep svg,
 .pos-cart-empty__icon svg {
   width: 100%;
@@ -2215,6 +2339,179 @@
     height: auto;
     min-height: 280px;
   }
+
+  .pos-session-bar__content {
+    flex-wrap: nowrap;
+  }
+
+  .pos-session-bar__tools {
+    margin-left: auto;
+  }
+}
+
+// Pantalla chica: la barra no debe partirse en dos filas y los textos bajan.
+@media (max-width: 1600px) {
+  .pos-session-bar__content {
+    flex-wrap: nowrap;
+    min-height: 36px;
+  }
+
+  .pos-session-bar__brand {
+    padding: 0 0.45rem;
+    font-size: 0.65rem;
+  }
+
+  .pos-meta {
+    flex: 0 1 auto;
+    gap: 0.22rem;
+    padding: 0 0.38rem;
+    min-width: 0;
+    max-width: 13rem;
+  }
+
+  .pos-meta--shift {
+    flex: 0 0 auto;
+    max-width: none;
+  }
+
+  .pos-meta__k {
+    font-size: 0.52rem;
+    letter-spacing: 0.04em;
+  }
+
+  .pos-meta__v {
+    font-size: 0.65rem;
+  }
+
+  .pos-session-bar__icon-btn {
+    width: 32px;
+    min-width: 32px;
+  }
+
+  .pos-tickets-btn {
+    width: auto;
+    min-width: 0;
+    gap: 0.22rem;
+    padding: 0 0.4rem 0 0.32rem;
+  }
+
+  .pos-tickets-btn__label {
+    font-size: 0.65rem;
+  }
+
+  .pos-tickets-btn__badge {
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    font-size: 0.6rem;
+    line-height: 15px;
+  }
+
+  .pos-ic--btn {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+// La barra vive solo sobre el catálogo. Si queda angosta, Folios / En caja / Tickets
+// se quedan en icono para que sucursal y vendedor no se corten a tres letras.
+@container pos-bar (max-width: 760px) {
+  .pos-meta > .pos-meta__k {
+    display: none;
+  }
+}
+
+@mixin pos-catalog-cards-compact {
+  .pos-product-grid {
+    --pos-card-gap: 0.5rem;
+    padding: 0.55rem;
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(#{'min(100%, max(10rem, calc((100% - 3 * var(--pos-card-gap)) / 4 + 1px)))'}, 1fr)
+    );
+  }
+
+  .pos-card {
+    border-radius: 10px;
+  }
+
+  .pos-card__media {
+    aspect-ratio: 3 / 2;
+    min-height: 0;
+    max-height: 6.5rem;
+  }
+
+  .pos-card__detail {
+    top: 0.28rem;
+    right: 0.28rem;
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  .pos-card__body {
+    padding: 0.4rem 0.5rem 0.28rem;
+    gap: 0.25rem;
+  }
+
+  .pos-card__name {
+    min-height: calc(1.25em * 2);
+    max-height: calc(1.25em * 2);
+    font-size: clamp(0.75rem, 4cqi, 0.9rem);
+    line-height: 1.25;
+  }
+
+  .pos-card__sku,
+  .pos-card__chip {
+    min-height: 1.35rem;
+    gap: 0.25rem;
+    padding: 0.12rem 0.4rem;
+    border-radius: 6px;
+  }
+
+  .pos-card__sku-k,
+  .pos-card__chip-k {
+    font-size: 0.55rem;
+    letter-spacing: 0.03em;
+  }
+
+  .pos-card__sku-v,
+  .pos-card__chip-v {
+    font-size: 0.7rem;
+  }
+
+  .pos-card__warehouse,
+  .pos-card__measures {
+    font-size: 0.68rem;
+  }
+
+  .pos-card__price-row {
+    min-height: 1.15rem;
+  }
+
+  .pos-card__price {
+    font-size: clamp(0.85rem, 4.6cqi, 1.05rem);
+  }
+
+  .pos-card__no-price {
+    font-size: 0.75rem;
+  }
+
+  .pos-card__add {
+    height: 1.75rem;
+    min-height: 1.75rem;
+    margin: 0 0.5rem 0.4rem;
+    width: calc(100% - 1rem);
+    font-size: 0.72rem;
+    border-radius: 8px;
+  }
+}
+
+@container pos-catalog (max-width: 860px) {
+  @include pos-catalog-cards-compact;
+}
+
+@media (max-height: 860px) {
+  @include pos-catalog-cards-compact;
 }
 
 .pos-caja-modal-backdrop {
@@ -2880,6 +3177,17 @@
     &.pos-view-toggle__btn--on {
       background: #e0e7ff;
       color: #312e81;
+    }
+  }
+}
+
+@container pos-catalog (max-width: 860px) {
+  .pos-view-toggle {
+    height: 32px;
+
+    button {
+      width: 32px;
+      height: 32px;
     }
   }
 }

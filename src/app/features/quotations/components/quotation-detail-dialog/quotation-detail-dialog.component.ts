@@ -896,6 +896,7 @@ export class QuotationDetailDialogComponent implements OnInit {
             advance_iva_percentage: result.ivaPercent,
             advance_uso_cfdi: 'G01',
             advance_metodo_pago: 'PUE',
+            advance_stamp_environment: result.stampEnvironment,
           })
           .subscribe({
             next: () => {

@@ -131,6 +131,9 @@ export interface PosCajaQueueTicket {
 export interface PosSaleInProgress {
   id: string;
   kind?: 'sale' | 'advance';
+  /** Anticipo ya cobrado. En tickets se abre para armar la venta. */
+  advance_collected?: boolean;
+  advance_stamp_environment?: 'demo' | 'production' | null;
   folio?: string;
   total?: number;
   subtotal?: number;

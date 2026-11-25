@@ -9,8 +9,8 @@
           @if (salesInProgress().length > 0) {
             <p class="pos-lock-card__tickets">
               Hay {{ salesInProgress().length }}
-              {{ salesInProgress().length === 1 ? 'ticket regresado' : 'tickets regresados' }}
-              de caja. Con el código podrás abrirlos.
+              {{ salesInProgress().length === 1 ? 'ticket' : 'tickets' }}
+              en ventas. Con el código podrás abrirlos.
             </p>
           }
           <button type="button" class="pos-btn pos-btn--primary pos-btn--lg" (click)="openSellerCodeDialog()">
@@ -334,7 +334,7 @@
       @if (loadingTickets()) {
         <p class="pos-tickets-panel__empty"><app-spinner size="sm"></app-spinner></p>
       } @else if (salesInProgress().length === 0) {
-        <p class="pos-tickets-panel__empty">No hay tickets regresados de caja.</p>
+        <p class="pos-tickets-panel__empty">No hay tickets en ventas.</p>
       } @else {
         <ul class="pos-tickets-panel__list">
           @for (ticket of salesInProgress(); track ticket.id) {
@@ -343,11 +343,18 @@
                 <span>
                   <strong>
                     {{ ticket.folio || ticket.id }}
-                    @if (ticket.kind === 'advance') {
+                    @if (ticket.advance_collected) {
+                      <span class="pos-ticket-badge">Por completar</span>
+                    } @else if (ticket.kind === 'advance') {
                       <span class="pos-ticket-badge">Anticipo</span>
                     }
                   </strong>
-                  <small>{{ ticketCustomerName(ticket) }}</small>
+                  <small>
+                    {{ ticketCustomerName(ticket) }}
+                    @if (ticket.advance_collected) {
+                      · Anticipo cobrado
+                    }
+                  </small>
                 </span>
                 <strong>{{ formatCurrency(ticket.kind === 'advance' ? (ticket.amount_pending ?? ticket.total ?? 0) : (ticket.total ?? 0)) }}</strong>
               </button>
@@ -424,29 +431,59 @@
             }
           </select>
         }
-        <select
-          class="pos-warehouse-filter"
-          aria-label="Filtrar por bodega"
-          [ngModel]="catalogWarehouseId()"
-          (ngModelChange)="onWarehouseFilter($event)">
-          <option value="">Todas las bodegas</option>
-          @for (warehouse of catalogWarehouses(); track warehouse.id) {
-            <option [value]="warehouse.id">{{ warehouse.name }}</option>
+        <div class="pos-filters" [class.pos-filters--open]="catalogFiltersOpen()">
+          <button
+            type="button"
+            class="pos-filters__btn"
+            [class.pos-filters__btn--on]="catalogFiltersCount() > 0"
+            [attr.aria-expanded]="catalogFiltersOpen()"
+            aria-haspopup="dialog"
+            aria-controls="pos-catalog-filters"
+            title="Bodega y productos sin inventario"
+            (click)="toggleCatalogFilters($event)">
+            <lucide-icon [img]="ListFilter" [size]="16" />
+            <span>Filtros</span>
+            @if (catalogFiltersCount() > 0) {
+              <span class="pos-filters__count">{{ catalogFiltersCount() }}</span>
+            }
+          </button>
+          @if (catalogFiltersOpen()) {
+            <div
+              id="pos-catalog-filters"
+              class="pos-filters__panel"
+              role="dialog"
+              aria-label="Filtros del catálogo"
+              (click)="$event.stopPropagation()">
+              <label class="pos-filters__field">
+                <span>Bodega</span>
+                <select
+                  class="pos-warehouse-filter"
+                  aria-label="Filtrar por bodega"
+                  [ngModel]="catalogWarehouseId()"
+                  (ngModelChange)="onWarehouseFilter($event)">
+                  <option value="">Todas las bodegas</option>
+                  @for (warehouse of catalogWarehouses(); track warehouse.id) {
+                    <option [value]="warehouse.id">{{ warehouse.name }}</option>
+                  }
+                </select>
+              </label>
+              <button
+                type="button"
+                class="pos-no-stock-toggle"
+                [class.pos-no-stock-toggle--on]="allowWithoutInventory()"
+                [attr.aria-pressed]="allowWithoutInventory()"
+                title="Agregar productos sin inventario. Esos renglones solo se pueden cotizar."
+                [disabled]="catalogIsReadOnly()"
+                (click)="toggleAllowWithoutInventory()">
+                Sin inventario
+              </button>
+            </div>
           }
-        </select>
-        <button
-          type="button"
-          class="pos-no-stock-toggle"
-          [class.pos-no-stock-toggle--on]="allowWithoutInventory()"
-          [attr.aria-pressed]="allowWithoutInventory()"
-          title="Agregar productos sin inventario. Esos renglones solo se pueden cotizar."
-          [disabled]="catalogIsReadOnly()"
-          (click)="toggleAllowWithoutInventory()">
-          Sin inventario
-        </button>
+        </div>
         </div>
         <p class="pos-catalog__hint">
-          {{ filteredProducts().length }} productos
+          {{ filteredProducts().length }}
+          <span class="pos-catalog__hint-label">productos</span>
         </p>
       </div>
 
@@ -677,6 +714,9 @@
           <h2>{{ cartProductsTabLabel() }}</h2>
           @if (editingFolio(); as folio) {
             <span class="pos-cart__editing">{{ folio }}</span>
+          }
+          @if (editingAdvanceCollected()) {
+            <span class="pos-cart__editing">Anticipo {{ formatCurrency(editingAdvanceAmount() ?? 0) }}</span>
           }
         </div>
         @if (!editingSaleId()) {
@@ -1147,7 +1187,7 @@
             (!isEditingReturnedAdvance() && cartHasWithoutInventory())
           "
           [attr.title]="!isEditingReturnedAdvance() && cartHasWithoutInventory() ? 'Hay productos sin inventario. Solo se puede cotizar.' : null">
-          {{ saving() ? 'Guardando…' : isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta' }}
+          {{ saving() ? 'Guardando…' : editingAdvanceCollected() ? 'Registrar venta' : isEditingReturnedTicket() ? 'Enviar a caja' : 'Registrar venta' }}
         </button>
       </div>
     </aside>

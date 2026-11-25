@@ -7,7 +7,10 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
 import { POSService } from '../../../pos/services/pos.service';
 import { QuotationService } from '../../services/quotation.service';
 import { QuotationLineItem } from '../../models/quotation.model';
-import { defaultStampEnvironment } from '../../../sales-orders/models/sales-order-electronic-invoice.model';
+import {
+  defaultStampEnvironment,
+  isLocalStampHost,
+} from '../../../sales-orders/models/sales-order-electronic-invoice.model';
 import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 
 export const ADVANCE_CONCEPT_SKU = 'anticipo_CFDI';
@@ -40,6 +43,7 @@ export interface AdvanceWizardData {
   warehouseId?: string | null;
   billingBranchId?: string | null;
   lines?: AdvanceWizardLine[];
+  stampEnvironment?: 'demo' | 'production' | null;
 }
 
 export interface AdvanceWizardOpenResult {
@@ -47,6 +51,7 @@ export interface AdvanceWizardOpenResult {
   advanceCase: 'unknown' | 'products';
   amount: number;
   ivaPercent: number;
+  stampEnvironment: 'demo' | 'production';
 }
 
 export interface AdvanceWizardCloseResult {
@@ -74,6 +79,7 @@ export class AdvanceWizardDialogComponent implements OnDestroy {
   readonly search = signal('');
   readonly hits = signal<AdvanceWizardLine[]>([]);
   readonly searching = signal(false);
+  readonly stampEnvironment = signal<'demo' | 'production'>(defaultStampEnvironment());
 
   private readonly search$ = new Subject<string>();
   private readonly destroy$ = new Subject<void>();
@@ -87,6 +93,9 @@ export class AdvanceWizardDialogComponent implements OnDestroy {
     private quotations: QuotationService,
     private pos: POSService,
   ) {
+    if (data.stampEnvironment === 'demo' || data.stampEnvironment === 'production') {
+      this.stampEnvironment.set(data.stampEnvironment);
+    }
     if (data.mode === 'close') {
       this.lines.set((data.lines ?? []).filter((line) => line.sku !== ADVANCE_CONCEPT_SKU));
     } else if (data.mode === 'start') {
@@ -132,6 +141,15 @@ export class AdvanceWizardDialogComponent implements OnDestroy {
   title(): string {
     if (this.data.mode === 'close') return this.data.folio ? `Venta ${this.data.folio}` : 'Venta';
     return 'Anticipo';
+  }
+
+  selectStampEnvironment(environment: 'demo' | 'production'): void {
+    if (environment === this.stampEnvironment()) return;
+    if (environment === 'production' && isLocalStampHost()) {
+      const confirmed = window.confirm('Esto timbrará un CFDI real. ¿Continuar?');
+      if (!confirmed) return;
+    }
+    this.stampEnvironment.set(environment);
   }
 
   choose(caseId: 'unknown' | 'products'): void {
@@ -193,6 +211,7 @@ export class AdvanceWizardDialogComponent implements OnDestroy {
       advanceCase,
       amount,
       ivaPercent: this.ivaPercent,
+      stampEnvironment: this.stampEnvironment(),
     });
   }
 
@@ -246,7 +265,7 @@ export class AdvanceWizardDialogComponent implements OnDestroy {
     this.error.set('');
     this.quotations
       .closeAdvance(quotationId, {
-        environment: defaultStampEnvironment(),
+        environment: this.stampEnvironment(),
         line_items: this.lines().map((line) => ({
           product_id: line.product_id,
           product_uom_id: line.product_uom_id,

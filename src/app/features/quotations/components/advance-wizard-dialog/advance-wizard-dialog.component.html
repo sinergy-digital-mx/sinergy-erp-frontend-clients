@@ -12,6 +12,23 @@
   </header>
 
   <div class="advance-wizard__body">
+    @if (data.mode === 'close' || step() === 2) {
+      <div class="advance-wizard__env" role="group" aria-label="Timbrado">
+        <span>Timbrado</span>
+        <button
+          type="button"
+          [class.is-on]="stampEnvironment() === 'demo'"
+          (click)="selectStampEnvironment('demo')">
+          Demo
+        </button>
+        <button
+          type="button"
+          [class.is-on]="stampEnvironment() === 'production'"
+          (click)="selectStampEnvironment('production')">
+          Producción
+        </button>
+      </div>
+    }
     @if (data.mode !== 'close' && step() === 1) {
       <div class="advance-wizard__choices">
         <button type="button" (click)="choose('unknown')">

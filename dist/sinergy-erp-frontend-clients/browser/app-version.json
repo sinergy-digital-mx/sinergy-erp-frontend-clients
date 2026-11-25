@@ -1,14 +1,26 @@
 {
-  "version": "0.0.184",
-  "buildId": "0.0.184-1795636802623",
-  "builtAt": "2026-11-25T20:00:02.623Z",
+  "version": "0.0.186",
+  "buildId": "0.0.186-1795639356500",
+  "builtAt": "2026-11-25T20:42:36.500Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Al cotizar con factura de anticipo se elige Demo o Producción, y caja timbra con ese ambiente.",
+      "message": "El anticipo cobrado aparece en Tickets de ventas: se agregan los productos y al registrar se crea la orden. Demo o Producción se elige al pedirlo.",
       "module": "quotations",
       "moduleLabel": "Cotizaciones"
+    },
+    {
+      "scope": "frontend",
+      "message": "En pantallas chicas la barra de Ventas usa textos más chicos y las cartas del catálogo se achican para que quepan más productos.",
+      "module": "pos",
+      "moduleLabel": "POS Ventas"
+    },
+    {
+      "scope": "frontend",
+      "message": "En el catálogo, bodega y sin inventario quedan en el botón Filtros para que la búsqueda no se corte.",
+      "module": "pos",
+      "moduleLabel": "POS Ventas"
     }
   ]
 }

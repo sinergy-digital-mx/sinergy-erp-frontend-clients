@@ -42,7 +42,7 @@ export function todayIsoDate(): string {
   return `${y}-${m}-${day}`;
 }
 
-function mapCartLineToOrderLine(item: POSCartItem): SalesOrderFormData['line_items'][number] {
+export function mapCartLineToOrderLine(item: POSCartItem): SalesOrderFormData['line_items'][number] {
   const line: SalesOrderFormData['line_items'][number] = {
     product_id: item.product_id,
     product_uom_id: item.product_uom_id || item.uom_id,

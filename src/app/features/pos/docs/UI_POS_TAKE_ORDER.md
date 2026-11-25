@@ -13,13 +13,17 @@ El botón no debe mostrar ambos textos a la vez.
 
 ## Catálogo
 
-En monitor caben **3 cartas** por fila. El ancho mínimo impide una cuarta columna; si el catálogo se angosta (iPad con el carrito al lado, o celular), bajan a 2 o a 1 y la carta sigue grande. La foto usa proporción 4:3.
+En monitor caben **3 cartas** por fila y se ven grandes (foto 4:3). El ancho mínimo impide una cuarta columna. Si el catálogo se angosta o la pantalla es baja, las cartas se achican (foto más baja, menos padding y letra más chica) y siguen en 3, 2 o 1 según el ancho.
 
 Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la misma altura para que la etiqueta no se pegue al borde de arriba.
 
 ## Cambios
 
 ### 2026-11-25
+
+En el catálogo, **Bodega** (Todas las bodegas) y **Sin inventario** salen del botón **Filtros**, para que la búsqueda no se corte. Si hay alguno activo, el botón muestra el número.
+
+En pantallas chicas la barra de POS Ventas baja el texto y no se parte en dos filas. Si queda angosta, se ocultan las palabras Sucursal y Vendedor y se dejan el nombre y los botones Folios, En caja y Tickets más chicos. Las cartas de la cuadrícula se achican cuando el catálogo es angosto o la ventana es baja. El carrito no cambia.
 
 En **Folios**, ventas y cotizaciones no se mezclan: hay dos filtros, **Ventas** y **Cotizaciones**. Cada carta muestra la empresa y, debajo y más chica, la persona cuando son distintas.
 

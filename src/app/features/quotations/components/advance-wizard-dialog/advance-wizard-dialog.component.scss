@@ -131,6 +131,36 @@
   }
 }
 
+.advance-wizard__env {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  span {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  button {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    color: #374151;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &.is-on {
+      border-color: #6366f1;
+      background: #eef2ff;
+      color: #4338ca;
+    }
+  }
+}
+
 .advance-wizard__note,
 .advance-wizard__hint {
   margin: 0;
