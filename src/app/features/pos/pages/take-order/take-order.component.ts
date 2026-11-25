@@ -110,6 +110,7 @@ import {
   AdvanceWizardOpenResult,
 } from '../../../quotations/components/advance-wizard-dialog/advance-wizard-dialog.component';
 import { QuotationService } from '../../../quotations/services/quotation.service';
+import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import { defaultStampEnvironment } from '../../../sales-orders/models/sales-order-electronic-invoice.model';
 import { isValidWalkInRfc, normalizeWalkInRfc } from '../../utils/walk-in-ticket.util';
 import { prettyPosBranchLabel } from '../../utils/pos-branch-label.util';
@@ -237,6 +238,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   editingAdvanceEnvironment = signal<'demo' | 'production' | null>(null);
   editingQuotationId = signal<string | null>(null);
   editingQuotationFolio = signal<string | null>(null);
+  editingAdvanceInvoiceId = signal<string | null>(null);
+  readonly pdfBusy = signal<'' | 'advance' | 'quote' | 'sale'>('');
   ticketSlotAsk = signal<PosSaleInProgress | null>(null);
   editingForShipping = signal(false);
   selectedCustomerRouteId = signal<string | null>(null);
@@ -368,6 +371,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     private ngZone: NgZone,
     private cartSlots: PosCartSlotsService,
     private quotations: QuotationService,
+    private salesOrders: SalesOrderService,
   ) {
     effect(() => {
       const ready = this.slotsReady();
@@ -1166,6 +1170,94 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return Math.round((paid - sale) * 100) / 100;
   }
 
+  openAdvancePdf(): void {
+    const quotationId = this.editingQuotationId();
+    if (!quotationId || this.pdfBusy()) return;
+    const known = this.editingAdvanceInvoiceId();
+    if (known) {
+      this.fetchAdvancePdf(quotationId, known);
+      return;
+    }
+    this.pdfBusy.set('advance');
+    this.quotations.getDetail(quotationId).subscribe({
+      next: (detail) => {
+        const invoiceId = detail.header?.advance_invoice?.id ?? null;
+        if (!invoiceId) {
+          this.pdfBusy.set('');
+          this.notifyError('Esa cotización no tiene PDF de anticipo');
+          return;
+        }
+        this.editingAdvanceInvoiceId.set(invoiceId);
+        this.fetchAdvancePdf(quotationId, invoiceId);
+      },
+      error: (error: unknown) => {
+        this.pdfBusy.set('');
+        this.notifyError(resolveHttpErrorMessage(error, 'No se pudo abrir el PDF del anticipo'));
+      },
+    });
+  }
+
+  openQuotationPdf(): void {
+    const quotationId = this.editingQuotationId();
+    if (!quotationId || this.pdfBusy()) return;
+    this.pdfBusy.set('quote');
+    this.quotations.getDetail(quotationId).subscribe({
+      next: (detail) => {
+        this.pdfBusy.set('');
+        this.openDocumentPath(
+          detail.documents?.find((doc) => doc.document_type_name === 'DOCUMENTO_ORIGINAL')?.path,
+          'El PDF de la cotización aún se está generando.',
+        );
+      },
+      error: (error: unknown) => {
+        this.pdfBusy.set('');
+        this.notifyError(resolveHttpErrorMessage(error, 'No se pudo abrir la cotización'));
+      },
+    });
+  }
+
+  openSalePdf(): void {
+    const orderId = this.editingTicketKind() === 'sale' ? this.editingSaleId() : null;
+    if (!orderId || this.pdfBusy()) return;
+    this.pdfBusy.set('sale');
+    this.salesOrders.getOrderDetailById(orderId).subscribe({
+      next: (detail) => {
+        this.pdfBusy.set('');
+        this.openDocumentPath(
+          detail.documents?.find((doc) => doc.document_type_name === 'DOCUMENTO_ORIGINAL')?.path,
+          'El PDF de la orden aún se está generando.',
+        );
+      },
+      error: (error: unknown) => {
+        this.pdfBusy.set('');
+        this.notifyError(resolveHttpErrorMessage(error, 'No se pudo abrir la orden'));
+      },
+    });
+  }
+
+  private fetchAdvancePdf(quotationId: string, invoiceId: string): void {
+    this.pdfBusy.set('advance');
+    this.quotations.getAdvancePdf(quotationId, invoiceId).subscribe({
+      next: (response) => {
+        this.pdfBusy.set('');
+        this.openDocumentPath(response.signedUrl, 'No se recibió el PDF del anticipo');
+      },
+      error: (error: unknown) => {
+        this.pdfBusy.set('');
+        this.notifyError(resolveHttpErrorMessage(error, 'No se pudo abrir el PDF del anticipo'));
+      },
+    });
+  }
+
+  private openDocumentPath(path: string | null | undefined, missing: string): void {
+    const url = String(path ?? '').trim();
+    if (!url) {
+      this.notifyError(missing);
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
   private applyReturnedTicket(ticket: PosSaleInProgress): void {
     const collected = !!ticket.advance_collected;
     const lines = (ticket.line_items ?? [])
@@ -1180,6 +1272,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     this.editingQuotationId.set(collected ? ticket.quotation_id || ticket.id : null);
     this.editingQuotationFolio.set(collected ? ticket.quotation_folio || ticket.folio || null : null);
+    this.editingAdvanceInvoiceId.set(null);
     this.editingAdvanceUsoCfdi.set(ticket.advance_uso_cfdi ?? null);
     this.editingAdvanceMetodoPago.set(ticket.advance_metodo_pago ?? null);
     this.editingAdvanceCollected.set(collected);
@@ -1244,6 +1337,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.editingAdvanceEnvironment.set(null);
     this.editingQuotationId.set(null);
     this.editingQuotationFolio.set(null);
+    this.editingAdvanceInvoiceId.set(null);
+    this.pdfBusy.set('');
     this.editingForShipping.set(false);
     this.editingNotes.set('');
   }
@@ -1356,6 +1451,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       this.editingAdvanceEnvironment.set(pick.advance.environment);
       this.editingQuotationId.set(pick.advance.quotationId);
       this.editingQuotationFolio.set(pick.advance.quotationFolio);
+      this.editingAdvanceInvoiceId.set(pick.advance.invoiceId);
+    } else {
+      this.editingAdvanceInvoiceId.set(null);
     }
     this.slotsReady.set(true);
     this.landedSlot.set(pick.slot);
@@ -1399,7 +1497,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           product_uom_id: line.productUomId,
           uom_name: line.uomName,
           quantity: line.quantity,
-          unit_price: 0,
+          // El anticipo marca edición antes de que responda el catálogo. Sin este precio la línea se queda en 0.
+          unit_price: Number(line.documentUnitPrice ?? 0),
+          iva_percentage: line.documentUnitPrice != null ? this.saleIvaPercent() : 0,
           discount_percentage: line.priceDiscountPercentage,
           product_discount_id: line.priceDiscountPercentage ? null : line.productDiscountId,
         }),
@@ -1504,9 +1604,16 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         if (wanted && !match && chosen) {
           notices.push(`${product.name}: la lista anterior ya no aplica`);
         }
-        const unitPrice = Number(chosen?.price ?? product.suggested_unit_price ?? 0);
-        if (!Number.isFinite(unitPrice) || unitPrice < 0 || (!chosen && unitPrice <= 0)) {
+        const catalogPrice = Number(chosen?.price ?? product.suggested_unit_price ?? 0);
+        const quotedPrice = line.documentUnitPrice;
+        const unitPrice =
+          Number.isFinite(catalogPrice) && catalogPrice > 0 ? catalogPrice : Number(quotedPrice ?? 0);
+        if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
           notices.push(`${product.name} no tiene precio vigente`);
+          const existing = currentItems[index];
+          if (existing && existing.product_id === line.productId && existing.unit_price > 0) {
+            items.push(existing);
+          }
           return;
         }
         const documentPrice = line.documentUnitPrice;

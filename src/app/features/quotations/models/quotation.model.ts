@@ -93,6 +93,7 @@ export interface Quotation {
   can_send?: boolean;
   customer_email?: string | null;
   converted_to_sales_order_id?: string | null;
+  converted_sales_order_folio?: string | null;
   cancel_blocked_reason?: string | null;
   advance_invoicing_enabled?: boolean;
   can_stamp_advance?: boolean;

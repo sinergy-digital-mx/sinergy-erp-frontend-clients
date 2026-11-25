@@ -693,18 +693,14 @@
       }
 
       @if (editingAdvanceCollected()) {
-        <section class="pos-cart__folio" aria-label="Cotización en el carrito">
-          <div>
-            <p class="pos-cart__folio-k">Cotización</p>
-            <p class="pos-cart__folio-v">{{ editingQuotationFolio() || editingFolio() }}</p>
-            @if (editingFolio() && editingQuotationFolio() && editingFolio() !== editingQuotationFolio()) {
-              <p class="pos-cart__folio-sub">Venta {{ editingFolio() }}</p>
+        <section class="pos-cart__folio" aria-label="Anticipo en el carrito">
+          <div class="pos-cart__folio-line">
+            <span class="pos-cart__pill">{{ editingQuotationFolio() || editingFolio() }}</span>
+            @if (editingTicketKind() === 'sale' && editingFolio() && editingFolio() !== editingQuotationFolio()) {
+              <span class="pos-cart__pill">{{ editingFolio() }}</span>
             }
-          </div>
-          <div class="pos-cart__folio-money">
-            <p class="pos-cart__folio-k">Anticipo cobrado</p>
-            <p class="pos-cart__folio-v">{{ formatCurrency(editingAdvanceAmount() ?? 0) }}</p>
-            <p class="pos-cart__folio-sub" [class.is-short]="advanceGap() > 0.009" [class.is-due]="advanceGap() < -0.009">
+            <span class="pos-cart__pill pos-cart__pill--money">Anticipo {{ formatCurrency(editingAdvanceAmount() ?? 0) }}</span>
+            <span class="pos-cart__folio-note" [class.is-short]="advanceGap() > 0.009" [class.is-due]="advanceGap() < -0.009">
               @if (advanceGap() > 0.009) {
                 Sobran {{ formatCurrency(advanceGap()) }}. Agrega otro producto.
               } @else if (advanceGap() < -0.009) {
@@ -712,16 +708,34 @@
               } @else {
                 El anticipo cubre la venta.
               }
-            </p>
+            </span>
+          </div>
+          <div class="pos-cart__folio-docs">
+            <button
+              type="button"
+              class="pos-cart__doc pos-cart__doc--advance"
+              [disabled]="pdfBusy() === 'advance'"
+              (click)="openAdvancePdf()">
+              PDF Anticipo
+            </button>
+            @if (editingQuotationId()) {
+              <button type="button" class="pos-cart__doc" [disabled]="pdfBusy() === 'quote'" (click)="openQuotationPdf()">
+                Cotización
+              </button>
+            }
+            @if (editingTicketKind() === 'sale') {
+              <button type="button" class="pos-cart__doc" [disabled]="pdfBusy() === 'sale'" (click)="openSalePdf()">
+                Orden
+              </button>
+            }
           </div>
         </section>
       } @else if (editingFolio(); as folio) {
         <section class="pos-cart__folio" aria-label="Venta en el carrito">
-          <div>
-            <p class="pos-cart__folio-k">Venta</p>
-            <p class="pos-cart__folio-v">{{ folio }}</p>
+          <div class="pos-cart__folio-line">
+            <span class="pos-cart__pill">{{ folio }}</span>
+            <span class="pos-cart__folio-note">Lista para enviar a caja.</span>
           </div>
-          <p class="pos-cart__folio-sub">Lista para enviar a caja.</p>
         </section>
       }
 

@@ -55,7 +55,9 @@
 .pos-session-bar__content {
   display: flex;
   align-items: stretch;
-  min-height: 46px;
+  height: var(--pos-panel-head-h);
+  min-height: var(--pos-panel-head-h);
+  max-height: var(--pos-panel-head-h);
   width: 100%;
 }
 

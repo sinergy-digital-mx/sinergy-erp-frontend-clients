@@ -47,6 +47,7 @@ export interface PosFolioCartPick {
     documentId: string;
     quotationId: string;
     quotationFolio: string;
+    invoiceId: string | null;
     paid: number;
     environment: 'demo' | 'production' | null;
     kind: 'sale' | 'advance';
@@ -71,6 +72,8 @@ interface FolioRow {
   pending: number | null;
   advanceRequested?: number | null;
   hasAdvance?: boolean;
+  hasSale?: boolean;
+  saleFolio?: string | null;
 }
 
 type FolioListKind = 'sale' | 'quotation';
@@ -371,6 +374,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
             documentId: order.header.id,
             quotationId: header.id,
             quotationFolio: header.folio || row.folio,
+            invoiceId: invoice?.id ?? null,
             paid: Number(invoice?.total ?? header.advance_requested_total ?? 0),
             environment:
               header.advance_stamp_environment === 'demo' || header.advance_stamp_environment === 'production'
@@ -398,6 +402,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
         documentId: header.id,
         quotationId: header.id,
         quotationFolio: header.folio || row.folio,
+        invoiceId: invoice?.id ?? null,
         paid: Number(invoice?.total ?? header.advance_requested_total ?? 0),
         environment:
           header.advance_stamp_environment === 'demo' || header.advance_stamp_environment === 'production'
@@ -606,6 +611,8 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       pending: null,
       advanceRequested: Number(row.advance_requested_total ?? 0) || null,
       hasAdvance: this.withAdvance() || Number(row.advance_requested_total ?? 0) > 0.009,
+      hasSale: row.general_status === 'Convertida' || !!row.converted_to_sales_order_id,
+      saleFolio: row.converted_sales_order_folio || null,
     };
     });
   }

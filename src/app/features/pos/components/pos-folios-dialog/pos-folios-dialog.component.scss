@@ -73,6 +73,41 @@
   font-weight: 600;
 }
 
+.pos-folios__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  flex-shrink: 0;
+}
+
+.pos-folios__badge {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding: 0 0.42rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.64rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+
+  &--advance {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #047857;
+  }
+
+  &--sale {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #3730a3;
+  }
+}
+
 .pos-folios__search {
   display: block;
   margin: 0.85rem 0 0.55rem;

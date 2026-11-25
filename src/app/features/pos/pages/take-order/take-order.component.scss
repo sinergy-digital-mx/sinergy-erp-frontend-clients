@@ -2348,9 +2348,15 @@
 
 // Pantalla chica: la barra no debe partirse en dos filas y los textos bajan.
 @media (max-width: 1600px) {
+  .pos-session-bar__content,
+  .pos-cart__head {
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+  }
+
   .pos-session-bar__content {
     flex-wrap: nowrap;
-    min-height: 36px;
   }
 
   .pos-session-bar__brand {
@@ -3128,55 +3134,108 @@
 }
 
 .pos-cart__folio {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.35rem 1.25rem;
-  align-items: end;
-  padding: 0.7rem var(--pos-panel-x) 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.65rem;
+  min-height: 0;
+  padding: 0.28rem var(--pos-panel-x);
   border-bottom: 1px solid var(--pos-border);
   background: #f8fafc;
 }
 
-.pos-cart__folio-k,
-.pos-cart__folio-v,
-.pos-cart__folio-sub {
+.pos-cart__folio-line,
+.pos-cart__folio-docs {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.pos-cart__folio-line {
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.pos-cart__folio-docs {
+  flex-shrink: 0;
+}
+
+.pos-cart__pill,
+.pos-cart__folio-note,
+.pos-cart__doc {
   margin: 0;
 }
 
-.pos-cart__folio-k {
+.pos-cart__pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  height: 1.35rem;
+  padding: 0 0.45rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.68rem;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pos-cart__pill--money {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.pos-cart__folio-note {
   color: #64748b;
   font-size: 0.68rem;
   font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.pos-cart__folio-v {
-  margin-top: 0.08rem;
-  color: #0f172a;
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.pos-cart__folio-sub {
-  margin-top: 0.12rem;
-  color: #475569;
-  font-size: 0.82rem;
+  white-space: nowrap;
 
   &.is-short {
     color: #9a3412;
-    font-weight: 650;
   }
 
   &.is-due {
     color: #0f172a;
-    font-weight: 650;
   }
 }
 
-.pos-cart__folio-money {
-  text-align: right;
+.pos-cart__doc {
+  height: 1.35rem;
+  padding: 0 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.66rem;
+  font-weight: 750;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+.pos-cart__doc--advance {
+  border-color: #0f172a;
+  background: #0f172a;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: #1e293b;
+    border-color: #1e293b;
+  }
 }
 
 .pos-cart__slot-ask {

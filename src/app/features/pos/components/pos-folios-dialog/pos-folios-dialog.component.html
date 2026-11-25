@@ -106,7 +106,18 @@
                   <span class="pos-folios__person">{{ row.personName }}</span>
                 }
               </button>
-              @if (row.status) {
+              @if (intent() === 'advance' && row.kind === 'quotation') {
+                <span class="pos-folios__badges">
+                  <span class="pos-folios__badge pos-folios__badge--advance">Anticipo</span>
+                  @if (row.saleFolio) {
+                    <span class="pos-folios__badge pos-folios__badge--sale">Venta {{ row.saleFolio }}</span>
+                  } @else if (row.hasSale) {
+                    <span class="pos-folios__badge pos-folios__badge--sale">Con venta</span>
+                  } @else {
+                    <span class="pos-folios__badge">Sin venta</span>
+                  }
+                </span>
+              } @else if (row.status) {
                 <span class="pos-folios__quiet">{{ row.status }}</span>
               }
             </div>
