@@ -2448,6 +2448,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           advance_amount: confirmed.advanceAmount,
           ...(confirmed.advanceUsoCfdi ? { advance_uso_cfdi: confirmed.advanceUsoCfdi } : {}),
           ...(confirmed.advanceMetodoPago ? { advance_metodo_pago: confirmed.advanceMetodoPago } : {}),
+          ...(confirmed.advanceStampEnvironment
+            ? { advance_stamp_environment: confirmed.advanceStampEnvironment }
+            : {}),
         }).subscribe({
           next: (response) => {
             this.saving.set(false);
@@ -2653,6 +2656,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
               advance_amount: advanceAmount,
               ...(advanceUsoCfdi ? { advance_uso_cfdi: advanceUsoCfdi } : {}),
               ...(advanceMetodoPago ? { advance_metodo_pago: advanceMetodoPago } : {}),
+              ...(confirmed.advanceStampEnvironment
+                ? { advance_stamp_environment: confirmed.advanceStampEnvironment }
+                : {}),
             }
           : payload,
       ).subscribe({

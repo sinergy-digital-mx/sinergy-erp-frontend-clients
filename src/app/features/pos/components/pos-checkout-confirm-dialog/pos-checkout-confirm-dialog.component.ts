@@ -7,6 +7,8 @@ import { LucideAngularModule, AlertTriangle, Check, FileText, ShoppingCart, X } 
 import {
   CFDI_REGIMEN_RECEPTOR_OPTIONS,
   CFDI_USO_OPTIONS,
+  defaultStampEnvironment,
+  isLocalStampHost,
 } from '../../../sales-orders/models/sales-order-electronic-invoice.model';
 import { inferReceptorRegimen } from '../../../customers/utils/fiscal-person-type.util';
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
@@ -68,6 +70,7 @@ export interface PosCheckoutConfirmDialogData {
   initialAdvanceAmount?: number | null;
   initialAdvanceUsoCfdi?: string | null;
   initialAdvanceMetodoPago?: 'PUE' | 'PPD' | null;
+  initialAdvanceStampEnvironment?: 'demo' | 'production' | null;
 }
 
 export interface PosCheckoutQuoteResult {
@@ -75,6 +78,7 @@ export interface PosCheckoutQuoteResult {
   advanceAmount: number | null;
   advanceUsoCfdi: string | null;
   advanceMetodoPago: 'PUE' | 'PPD' | null;
+  advanceStampEnvironment: 'demo' | 'production' | null;
 }
 
 export interface PosCheckoutSaleResult {
@@ -140,6 +144,7 @@ export class PosCheckoutConfirmDialogComponent {
   advanceAmountText = signal('');
   usoCfdi = signal('G03');
   metodoPago = signal<'PUE' | 'PPD'>('PUE');
+  stampEnvironment = signal<'demo' | 'production'>(defaultStampEnvironment());
   customerLabel = signal('');
   customerFiscal = signal<PosCheckoutCustomerFiscal | null>(null);
   customerBusy = signal(false);
@@ -163,6 +168,9 @@ export class PosCheckoutConfirmDialogComponent {
     }
     if (data.initialAdvanceMetodoPago) {
       this.metodoPago.set(data.initialAdvanceMetodoPago);
+    }
+    if (data.initialAdvanceStampEnvironment === 'demo' || data.initialAdvanceStampEnvironment === 'production') {
+      this.stampEnvironment.set(data.initialAdvanceStampEnvironment);
     }
     this.customerLabel.set(data.customerLabel ?? '');
     this.customerFiscal.set(data.customerFiscal ?? null);
@@ -355,6 +363,15 @@ export class PosCheckoutConfirmDialogComponent {
     this.advanceInvoice.set(checked);
   }
 
+  selectStampEnvironment(environment: 'demo' | 'production'): void {
+    if (environment === this.stampEnvironment()) return;
+    if (environment === 'production' && isLocalStampHost()) {
+      const confirmed = window.confirm('Esto timbrará un CFDI real al cobrar en caja. ¿Continuar?');
+      if (!confirmed) return;
+    }
+    this.stampEnvironment.set(environment);
+  }
+
   confirm(): void {
     if (this.isQuote()) {
       if (!this.canConfirm()) return;
@@ -364,6 +381,7 @@ export class PosCheckoutConfirmDialogComponent {
         advanceAmount: advance ? this.advanceAmount() : null,
         advanceUsoCfdi: advance ? this.usoCfdi() : null,
         advanceMetodoPago: advance ? this.metodoPago() : null,
+        advanceStampEnvironment: advance ? this.stampEnvironment() : null,
       });
       return;
     }

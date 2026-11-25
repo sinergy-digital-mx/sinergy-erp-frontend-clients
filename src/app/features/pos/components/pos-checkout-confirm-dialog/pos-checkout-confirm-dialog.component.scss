@@ -683,6 +683,10 @@
 .quote-chips {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+
+  &--two {
+    grid-template-columns: 1fr 1fr;
+  }
   gap: 0.4rem;
   margin-top: 0.1rem;
 

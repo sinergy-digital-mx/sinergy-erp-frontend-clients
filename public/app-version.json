@@ -1,12 +1,12 @@
 {
-  "version": "0.0.183",
-  "buildId": "0.0.183-1795634790231",
-  "builtAt": "2026-11-25T19:26:30.231Z",
+  "version": "0.0.184",
+  "buildId": "0.0.184-1795636802623",
+  "builtAt": "2026-11-25T20:00:02.623Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "El anticipo en punto de venta pregunta sin productos o con productos, con el mismo estilo de los otros diálogos.",
+      "message": "Al cotizar con factura de anticipo se elige Demo o Producción, y caja timbra con ese ambiente.",
       "module": "quotations",
       "moduleLabel": "Cotizaciones"
     }

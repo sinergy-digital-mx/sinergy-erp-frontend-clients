@@ -169,6 +169,30 @@
 
             <div class="quote-cfdi">
               <h4>Datos del CFDI</h4>
+              <div class="quote-field">
+                <span class="quote-label">Timbrado</span>
+                <div class="quote-chips quote-chips--two" role="group" aria-label="Ambiente de timbrado">
+                  <button
+                    type="button"
+                    [class.is-active]="stampEnvironment() === 'demo'"
+                    (click)="selectStampEnvironment('demo')">
+                    Demo
+                  </button>
+                  <button
+                    type="button"
+                    [class.is-active]="stampEnvironment() === 'production'"
+                    (click)="selectStampEnvironment('production')">
+                    Producción
+                  </button>
+                </div>
+                <p class="quote-hint">
+                  @if (stampEnvironment() === 'demo') {
+                    Factura de prueba. No vale ante el SAT.
+                  } @else {
+                    Al cobrar en caja se timbra un CFDI real.
+                  }
+                </p>
+              </div>
               <label class="quote-field">
                 <span class="quote-label">Uso CFDI</span>
                 <select [ngModel]="usoCfdi()" (ngModelChange)="usoCfdi.set($event)">
@@ -205,7 +229,8 @@
     <footer class="quote-dialog__footer">
       <p class="quote-dialog__note">
         @if (advanceInvoice() && !advanceAmountError()) {
-          Se enviarán <strong>{{ formatMoney(advanceAmount() ?? 0) }}</strong> a caja.
+          Se enviarán <strong>{{ formatMoney(advanceAmount() ?? 0) }}</strong> a caja
+          ({{ stampEnvironment() === 'demo' ? 'demo' : 'producción' }}).
         } @else {
           Sin retención de inventario.
         }

@@ -333,6 +333,7 @@ export class POSService {
       advance_iva_percentage?: number;
       advance_uso_cfdi?: string;
       advance_metodo_pago?: 'PUE' | 'PPD';
+      advance_stamp_environment?: 'demo' | 'production';
     },
   ): Observable<{ folio?: string; id?: string }> {
     const { sales_order_type: _salesOrderType, ...rest } = orderData as SalesOrderFormData & {
@@ -1084,6 +1085,7 @@ export class POSService {
       advance_amount?: number;
       advance_uso_cfdi?: string;
       advance_metodo_pago?: 'PUE' | 'PPD';
+      advance_stamp_environment?: 'demo' | 'production';
     },
   ): Observable<{ quotation?: { folio?: string }; message?: string }> {
     return this.http.post(`${this.API_URL}/quotations/${quotationId}/send-to-caja`, data ?? {}).pipe(
