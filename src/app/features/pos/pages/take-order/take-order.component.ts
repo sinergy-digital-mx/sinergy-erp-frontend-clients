@@ -15,7 +15,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, Subject, catchError, debounceTime, distinctUntilChanged, forkJoin, map, of, switchMap, takeUntil, tap } from 'rxjs';
+import { Observable, Subject, Subscription, catchError, debounceTime, distinctUntilChanged, forkJoin, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AssignedBranch, AuthService } from '../../../../core/services/auth.service';
@@ -67,6 +67,7 @@ import { ProductDetailModalComponent } from '../../../settings/components/produc
 import { PRODUCT_DETAIL_DIALOG_CONFIG } from '../../../../core/config/form-dialog.config';
 import { POSService } from '../../services/pos.service';
 import {
+  acceptSlotReprice,
   PosCartSlotId,
   PosCartSlotLine,
   PosCartSlotState,
@@ -236,6 +237,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly landedSlot = signal<PosCartSlotId | null>(null);
   slotsReady = signal(false);
   private repriceToken = 0;
+  private repriceSub: Subscription | null = null;
   private landedTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingGlobalDiscountId: string | null = null;
   readonly hasSelectedCustomer = computed(() => Boolean(this.selectedCustomerId()));
@@ -572,6 +574,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.cancelSlotReprice();
     if (this.landedTimer) clearTimeout(this.landedTimer);
     window.removeEventListener('keydown', this.onWindowKeydown, true);
     this.destroy$.next();
@@ -1233,6 +1236,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.editingSaleId() || slot === this.activeCartSlot()) {
       return;
     }
+    // El reprecio del carrito que dejas no puede caer en el que abres.
+    this.cancelSlotReprice();
     this.slotsReady.set(false);
     this.persistActiveSlotNow();
     this.activeCartSlot.set(slot);
@@ -1285,6 +1290,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!key) {
       return;
     }
+    this.cancelSlotReprice();
     this.slotsReady.set(false);
     const snap = this.cartSlots.bind(key);
     this.activeCartSlot.set(snap.active);
@@ -1297,6 +1303,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       this.notifyInfo('Termina o suelta el ticket de caja antes de usar otro carrito.');
       return;
     }
+    this.cancelSlotReprice();
     this.slotsReady.set(false);
     this.persistActiveSlotNow();
     this.activeCartSlot.set(pick.slot);
@@ -1320,6 +1327,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private restoreParkedSlot(): void {
+    this.cancelSlotReprice();
     this.slotsReady.set(false);
     this.clearEditingTicket();
     this.resetCustomerSelection();
@@ -1360,12 +1368,20 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.repriceSlotLines(state.lines);
   }
 
+  private cancelSlotReprice(): void {
+    this.repriceToken += 1;
+    this.repriceSub?.unsubscribe();
+    this.repriceSub = null;
+  }
+
   private repriceSlotLines(lines: PosCartSlotLine[]): void {
+    this.cancelSlotReprice();
     if (!lines.length) {
       return;
     }
-    const token = ++this.repriceToken;
-    forkJoin(
+    const token = this.repriceToken;
+    const slot = this.activeCartSlot();
+    this.repriceSub = forkJoin(
       lines.map((line) =>
         this.posService
           .getPosInventorySummary({
@@ -1377,14 +1393,30 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           .pipe(catchError(() => of(null))),
       ),
     ).subscribe((results) => {
-      if (token !== this.repriceToken || this.editingSaleId()) {
+      if (
+        !acceptSlotReprice(
+          { token, slot },
+          { token: this.repriceToken, slot: this.activeCartSlot(), editing: Boolean(this.editingSaleId()) },
+        )
+      ) {
+        return;
+      }
+      if (results.every((summary) => summary == null)) {
         return;
       }
       const notices: string[] = [];
       const items: POSCartItem[] = [];
+      const currentItems = this.posService.cart().items;
       results.forEach((summary, index) => {
         const line = lines[index];
-        const rows = (summary?.data ?? []) as Array<Record<string, unknown>>;
+        if (summary == null) {
+          const existing = currentItems[index];
+          if (existing && existing.product_id === line.productId) {
+            items.push(existing);
+          }
+          return;
+        }
+        const rows = (summary.data ?? []) as Array<Record<string, unknown>>;
         const row = rows.find((candidate) => {
           const productId = String(candidate['product_id'] || candidate['id'] || '');
           const uomId = String(candidate['product_uom_id'] || candidate['uom_id'] || '');

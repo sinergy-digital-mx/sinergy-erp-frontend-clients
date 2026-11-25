@@ -57,6 +57,14 @@ function isSlotId(value: unknown): value is PosCartSlotId {
   return value === 1 || value === 2 || value === 3;
 }
 
+/** El reprecio solo pinta el carrito si sigue siendo el mismo turno y la misma pestaña. */
+export function acceptSlotReprice(
+  request: { token: number; slot: PosCartSlotId },
+  current: { token: number; slot: PosCartSlotId; editing: boolean },
+): boolean {
+  return !current.editing && request.token === current.token && request.slot === current.slot;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PosCartSlotsService {
   readonly snapshot = signal<PosCartSlotsSnapshot>(emptySnapshot());
@@ -72,7 +80,7 @@ export class PosCartSlotsService {
   writeSlot(scopeKey: string, slot: PosCartSlotId, state: PosCartSlotState): void {
     const base = this.boundKey === scopeKey ? this.snapshot() : this.read(scopeKey);
     const next: PosCartSlotsSnapshot = {
-      active: slot,
+      active: base.active,
       slots: {
         1: slot === 1 ? state : base.slots[1],
         2: slot === 2 ? state : base.slots[2],

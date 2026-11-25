@@ -21,7 +21,7 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 ### 2026-11-24
 
-En el cuadrito de **Corte abierto**, al pasar el cursor sale abajo **Terminal** y su nombre, como estaba. Ya no es el aviso del navegador.
+En el cuadrito de **Corte abierto**, al pasar el cursor la terminal sale abajo como submenú. La barra no crece y no empuja el resto.
 
 **Folios** en la barra lista cotizaciones y ventas de la sucursal y la razón social. **Llevar a carrito** las copia a C1, C2 o C3. Esos carritos guardan cliente y productos, sin precio, y al usarlos cobran el precio vigente. Un ticket regresado de caja no se mezcla con ellos hasta enviarlo o soltarlo.
 

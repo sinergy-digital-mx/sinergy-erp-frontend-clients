@@ -13,7 +13,7 @@ Fila 2: Cheque · Mixto · Crédito (Crédito solo si el cliente lo tiene en esa
 
 ### 2026-11-24
 
-En el cuadrito de **Corte abierto**, al pasar el cursor sale abajo **Terminal** y su nombre, como estaba. Ya no es el aviso del navegador.
+En el cuadrito de **Corte abierto**, al pasar el cursor la terminal sale abajo como submenú. La barra no crece y no empuja el resto.
 
 **Folios** en la barra (y Ctrl+Q) lista órdenes con saldo de la sucursal y la razón social de la sesión. **Abonar** registra el pago en la orden y el dinero en el corte abierto. Sin corte abierto no se registra. Los anticipos no entran.
 

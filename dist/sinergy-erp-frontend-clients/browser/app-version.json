@@ -1,24 +1,12 @@
 {
-  "version": "0.0.177",
-  "buildId": "0.0.177-1795591475181",
-  "builtAt": "2026-11-25T07:24:35.181Z",
+  "version": "0.0.178",
+  "buildId": "0.0.178-1795592977615",
+  "builtAt": "2026-11-25T07:49:37.615Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "En Folios el copiar queda en un ícono junto al folio, sin meter Copiado en la fila.",
-      "module": "pos",
-      "moduleLabel": "POS Ventas"
-    },
-    {
-      "scope": "frontend",
-      "message": "En Folios, copiar a carrito pregunta C1, C2 o C3 y la fila se abre con los productos.",
-      "module": "pos",
-      "moduleLabel": "POS Ventas"
-    },
-    {
-      "scope": "frontend",
-      "message": "En la barra, al pasar el cursor por el cuadrito de corte sale abajo la terminal, como estaba.",
+      "message": "En Ventas, cambiar de carrito ya no arrastra ni borra los productos del otro.",
       "module": "pos",
       "moduleLabel": "POS Ventas"
     }
