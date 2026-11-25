@@ -30,6 +30,9 @@
         @if (data.registered_fiscal_configuration_id) {
           <li><span class="export-dialog__filter-label">Razón social:</span> {{ data.fiscal_name || data.registered_fiscal_configuration_id }}</li>
         }
+        @if (data.registered_billing_branch_id) {
+          <li><span class="export-dialog__filter-label">Sucursal:</span> {{ data.branch_name || data.registered_billing_branch_id }}</li>
+        }
         @if (data.insight) {
           <li><span class="export-dialog__filter-label">Resumen:</span> {{ data.insight_label || data.insight }}</li>
         }

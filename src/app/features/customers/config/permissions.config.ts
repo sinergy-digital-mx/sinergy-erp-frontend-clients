@@ -8,6 +8,8 @@ export const CUSTOMER_PERMISSIONS = {
   viewList: 'customers:Read',
   viewDetail: 'customers:Read',
   viewStats: 'customers:ViewStats',
+  /** Entra al listado sin la razón y sucursal asignadas. No impide elegir «Todas» en el select. */
+  viewAll: 'customers:ViewAll',
 
   create: 'customers:Create',
   update: 'customers:Update',

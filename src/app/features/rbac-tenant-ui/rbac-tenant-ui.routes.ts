@@ -13,7 +13,9 @@ import { WhatsappIntegrationGuideComponent } from '../settings/pages/whatsapp-in
 import { WHATSAPP_PERMISSIONS } from '../settings/config/whatsapp-permissions.config';
 import { ExchangeRateSettingsComponent } from '../settings/components/exchange-rate-settings/exchange-rate-settings.component';
 import { SalesOrderCreationSettingsComponent } from '../settings/pages/sales-order-creation-settings/sales-order-creation-settings.component';
+import { CustomerListSettingsComponent } from '../settings/pages/customer-list-settings/customer-list-settings.component';
 import { SALES_ORDER_PERMISSIONS } from '../sales-orders/config/permissions.config';
+import { CUSTOMER_PERMISSIONS } from '../customers/config/permissions.config';
 import { SystemVersionsComponent } from '../settings/pages/system-versions/system-versions.component';
 import { SETTINGS_PERMISSIONS } from '../settings/config/permissions.config';
 import { permissionGuard } from '../../core/guards/permission.guard';
@@ -106,6 +108,16 @@ export const RBAC_TENANT_UI_ROUTES: Routes = [
       {
         path: 'exchange-rates',
         component: ExchangeRateSettingsComponent
+      },
+      {
+        path: 'customer-list',
+        component: CustomerListSettingsComponent,
+        canActivate: [permissionGuard],
+        data: {
+          permissions: [CUSTOMER_PERMISSIONS.update, CUSTOMER_PERMISSIONS.viewMenu],
+          permissionMode: 'any',
+          title: 'Clientes',
+        },
       },
       {
         path: 'sales-order-creation',

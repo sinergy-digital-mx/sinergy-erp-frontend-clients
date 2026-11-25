@@ -113,6 +113,7 @@
         <button type="button" aria-label="Menos copias" (click)="changeCopies(-1)" [disabled]="printing() || copies() <= 1">−</button>
         <input
           type="number"
+          class="copies-stepper__value"
           inputmode="numeric"
           aria-labelledby="print-copies-label"
           [min]="1"

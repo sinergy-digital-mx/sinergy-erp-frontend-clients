@@ -1,0 +1,45 @@
+<div class="page">
+  <header class="page-head">
+    <div>
+      <a routerLink="/settings" class="back">Configuración</a>
+      <h1>Clientes</h1>
+      <p>
+        Al abrir el listado, la razón social y la sucursal del usuario quedan seleccionadas.
+        En el select siempre puede cambiar a todas.
+      </p>
+    </div>
+    <button type="button" class="save" (click)="save()" [disabled]="loading || saving || !canEdit">
+      {{ saving ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </header>
+
+  @if (loading) {
+    <p class="status">Cargando…</p>
+  } @else {
+    <article class="card">
+      <div class="card-copy">
+        <h2>Quién entra prefiltrado</h2>
+        <p>
+          La ubicación es la sucursal principal del usuario y su razón social.
+          Si no tiene sucursal asignada, el listado abre sin ese filtro.
+        </p>
+      </div>
+      <div class="options">
+        @for (option of options; track option.value) {
+          <label class="option">
+            <input
+              type="radio"
+              name="prefilter"
+              [value]="option.value"
+              [(ngModel)]="prefilter"
+              [disabled]="!canEdit" />
+            <span>
+              <strong>{{ option.label }}</strong>
+              <small>{{ option.hint }}</small>
+            </span>
+          </label>
+        }
+      </div>
+    </article>
+  }
+</div>

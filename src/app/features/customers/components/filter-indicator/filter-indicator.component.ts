@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 
 interface ActiveFilter {
-  type: 'status' | 'group' | 'fiscal' | 'search' | 'insight';
+  type: 'status' | 'group' | 'fiscal' | 'branch' | 'search' | 'insight';
   value: string;
   label: string;
 }
@@ -130,9 +130,11 @@ export class FilterIndicatorComponent {
   @Input() activeGroupName: string | null = null;
   @Input() activeFiscalId: string | null = null;
   @Input() activeFiscalName: string | null = null;
+  @Input() activeBranchId: string | null = null;
+  @Input() activeBranchName: string | null = null;
   @Input() activeSearchTerm: string | null = null;
   @Input() activeInsightLabel: string | null = null;
-  @Output() filterClear = new EventEmitter<'status' | 'group' | 'fiscal' | 'search' | 'insight' | 'all'>();
+  @Output() filterClear = new EventEmitter<'status' | 'group' | 'fiscal' | 'branch' | 'search' | 'insight' | 'all'>();
 
   activeFilters: ActiveFilter[] = [];
 
@@ -170,6 +172,14 @@ export class FilterIndicatorComponent {
       });
     }
 
+    if (this.activeBranchId) {
+      this.activeFilters.push({
+        type: 'branch',
+        value: this.activeBranchId,
+        label: `Sucursal: ${this.activeBranchName || this.activeBranchId}`,
+      });
+    }
+
     if (this.activeSearchTerm) {
       this.activeFilters.push({
         type: 'search',
@@ -197,7 +207,7 @@ export class FilterIndicatorComponent {
   /**
    * Clear a specific filter
    */
-  clearFilter(filterType: 'status' | 'group' | 'fiscal' | 'search' | 'insight') {
+  clearFilter(filterType: 'status' | 'group' | 'fiscal' | 'branch' | 'search' | 'insight') {
     this.filterClear.emit(filterType);
   }
 
@@ -211,7 +221,7 @@ export class FilterIndicatorComponent {
   /**
    * Get the icon for a filter type
    */
-  getFilterIcon(filterType: 'status' | 'group' | 'fiscal' | 'search' | 'insight'): string {
+  getFilterIcon(filterType: 'status' | 'group' | 'fiscal' | 'branch' | 'search' | 'insight'): string {
     switch (filterType) {
       case 'status':
         return 'pi-filter';
@@ -219,6 +229,8 @@ export class FilterIndicatorComponent {
         return 'pi-tag';
       case 'fiscal':
         return 'pi-building';
+      case 'branch':
+        return 'pi-map-marker';
       case 'search':
         return 'pi-search';
       case 'insight':

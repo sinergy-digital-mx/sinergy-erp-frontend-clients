@@ -1,12 +1,20 @@
 {
-  "version": "0.0.173",
-  "buildId": "0.0.173-1795566231652",
-  "builtAt": "2026-11-25T00:23:51.652Z",
+  "version": "0.0.174",
+  "buildId": "0.0.174-1795575835214",
+  "builtAt": "2026-11-25T03:03:55.214Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Actualización de la plataforma."
+      "message": "En el modal de imprimir, el campo de copias queda compacto y el ícono del botón queda alineado.",
+      "module": "pos",
+      "moduleLabel": "POS Ventas"
+    },
+    {
+      "scope": "frontend",
+      "message": "El listado de clientes abre con la razón y sucursal del vendedor; se puede ver todas y configurarlo en Configuración.",
+      "module": "customers",
+      "moduleLabel": "Clientes"
     }
   ]
 }

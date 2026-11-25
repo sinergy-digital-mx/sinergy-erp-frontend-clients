@@ -11,6 +11,8 @@ export interface CustomerExportDialogData {
   group_name?: string | null;
   registered_fiscal_configuration_id?: string | null;
   fiscal_name?: string | null;
+  registered_billing_branch_id?: string | null;
+  branch_name?: string | null;
   insight?: string | null;
   insight_label?: string | null;
 }
@@ -31,8 +33,8 @@ export class CustomerExportDialogComponent {
   errorMessage = signal('');
 
   hasActiveFilters = computed(() => {
-    const { search, status_id, group_id, registered_fiscal_configuration_id, insight } = this.data;
-    return !!(search || status_id || group_id || registered_fiscal_configuration_id || insight);
+    const { search, status_id, group_id, registered_fiscal_configuration_id, registered_billing_branch_id, insight } = this.data;
+    return !!(search || status_id || group_id || registered_fiscal_configuration_id || registered_billing_branch_id || insight);
   });
 
   canDownload = computed(() => !this.exporting());
@@ -70,6 +72,9 @@ export class CustomerExportDialogComponent {
     }
     if (this.data.registered_fiscal_configuration_id) {
       filters.registered_fiscal_configuration_id = this.data.registered_fiscal_configuration_id;
+    }
+    if (this.data.registered_billing_branch_id) {
+      filters.registered_billing_branch_id = this.data.registered_billing_branch_id;
     }
     if (this.data.insight) {
       filters.insight = this.data.insight;

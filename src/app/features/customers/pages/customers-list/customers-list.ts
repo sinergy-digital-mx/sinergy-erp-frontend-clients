@@ -47,6 +47,11 @@ import {
   customerInsightLabel,
   isCustomerListInsight,
 } from '../../utils/customer-list-insight';
+import {
+  CustomerListPrefilter,
+  normalizeCustomerListPrefilter,
+  shouldPrefilterCustomerList,
+} from '../../utils/customer-list-prefilter.util';
 
 @Component({
   selector: 'app-customers-list',
@@ -110,6 +115,10 @@ export class CustomersList implements OnInit, OnDestroy {
   selectedStatusName: string | null = null;
   selectedFiscalId: string | null = null;
   selectedFiscalName: string | null = null;
+  selectedBranchId: string | null = null;
+  selectedBranchName: string | null = null;
+  /** El usuario eligió ver todas las razones. No se vuelve a poner la suya hasta limpiar. */
+  viewAllLocations = false;
   selectedInsight: CustomerListInsight | null = null;
   customerStats: CustomerListStats | null = null;
   statsLoading = false;
@@ -121,6 +130,9 @@ export class CustomersList implements OnInit, OnDestroy {
   private lastQueryParams: string = '';
   private customerStatuses: CustomerStatus[] = [];
   private fiscalOptions: CustomerRegistrationFiscalOption[] = [];
+  private prefilter: CustomerListPrefilter = 'sellers';
+  private prefilterLoaded = false;
+  private locationReady = false;
 
   statusSelectConfig: ISelect = {
     placeholder: 'Estatus',
@@ -141,7 +153,18 @@ export class CustomersList implements OnInit, OnDestroy {
     value_default: null,
     data: [],
     all: true,
-    all_message: 'Razón social',
+    all_message: 'Todas las razones sociales',
+  };
+
+  branchSelectConfig: ISelect = {
+    placeholder: 'Sucursal',
+    name_select: 'registered_branch',
+    value: 'id',
+    option: 'label',
+    value_default: null,
+    data: [],
+    all: true,
+    all_message: 'Todas las sucursales',
   };
 
   constructor(
@@ -166,8 +189,15 @@ export class CustomersList implements OnInit, OnDestroy {
       this.selectedGroupId = query?.group_id ?? null;
       this.selectedStatusId = query?.status_id ?? null;
       this.selectedStatusName = this.resolveStatusName(this.selectedStatusId);
-      this.selectedFiscalId = query?.registered_fiscal_configuration_id ?? null;
+      this.viewAllLocations = query?.location_scope === 'all';
+      this.selectedFiscalId = this.viewAllLocations
+        ? null
+        : (query?.registered_fiscal_configuration_id ?? null);
+      this.selectedBranchId = this.viewAllLocations
+        ? null
+        : (query?.registered_billing_branch_id ?? null);
       this.syncFiscalFilterConfig();
+      this.syncBranchFilterConfig();
       const insight = typeof query?.insight === 'string' ? query.insight : null;
       this.selectedInsight = this.canViewStats && isCustomerListInsight(insight) ? insight : null;
 
@@ -180,15 +210,20 @@ export class CustomersList implements OnInit, OnDestroy {
         limit: isNaN(limit) ? 20 : limit,
       }));
 
-      this.getCustomers();
+      this.resolveLocationAndLoad(query);
     });
   }
 
   ngOnInit(): void {
+    this.customer_service.getCustomerListSettings().subscribe({
+      next: (settings) => this.finishPrefilter(normalizeCustomerListPrefilter(settings?.prefilter)),
+      error: () => this.finishPrefilter('sellers'),
+    });
     this.customer_service.getRegistrationOptions().subscribe({
       next: (options) => {
         this.fiscalOptions = options.fiscal_configurations ?? [];
         this.syncFiscalFilterConfig();
+        this.syncBranchFilterConfig();
       },
     });
     this.customer_service.getCustomerStatuses().subscribe({
@@ -206,10 +241,10 @@ export class CustomersList implements OnInit, OnDestroy {
       if (!this.canViewStats) {
         this.customerStats = null;
         this.statsLoading = false;
-        if (lostInsight) this.getCustomers();
+        if (lostInsight && this.locationReady) this.getCustomers();
         return;
       }
-      if (gainedInsight) {
+      if (gainedInsight && this.locationReady) {
         this.getCustomers();
         return;
       }
@@ -223,6 +258,66 @@ export class CustomersList implements OnInit, OnDestroy {
     return this.authService.hasPermission(this.permissions.viewStats);
   }
 
+  /** Admin y quien tiene customers:ViewAll no entran prefiltrados en el modo vendedores. */
+  private skipsLocationPrefilter(): boolean {
+    return (
+      this.authService.hasAdminRole() ||
+      this.authService.hasGrantedPermission(this.permissions.viewAll)
+    );
+  }
+
+  private hasExplicitLocation(query: {
+    location_scope?: string;
+    registered_fiscal_configuration_id?: string;
+    registered_billing_branch_id?: string;
+  }): boolean {
+    return (
+      query?.location_scope === 'all' ||
+      !!query?.registered_fiscal_configuration_id ||
+      !!query?.registered_billing_branch_id
+    );
+  }
+
+  private resolveLocationAndLoad(query: {
+    location_scope?: string;
+    registered_fiscal_configuration_id?: string;
+    registered_billing_branch_id?: string;
+  }): void {
+    if (!this.prefilterLoaded && !this.hasExplicitLocation(query)) {
+      this.table_config.update((c) => ({ ...c, loading: true }));
+      return;
+    }
+    if (this.prefilterLoaded && !this.hasExplicitLocation(query) && this.applyAssignedLocation()) {
+      return;
+    }
+    this.locationReady = true;
+    this.getCustomers();
+  }
+
+  /** Escribe la razón y sucursal del usuario en la URL. Devuelve false si no hay que prefiltrar. */
+  private applyAssignedLocation(): boolean {
+    if (!shouldPrefilterCustomerList(this.prefilter, this.skipsLocationPrefilter())) {
+      return false;
+    }
+    const fiscalId = this.authService.getDefaultListFiscalConfigurationId();
+    const branchId = this.authService.getDefaultListBillingBranchId();
+    if (!fiscalId) return false;
+    this.viewAllLocations = false;
+    this.selectedFiscalId = fiscalId;
+    this.selectedBranchId = branchId;
+    this.syncFiscalFilterConfig();
+    this.syncBranchFilterConfig();
+    this.navigateList(this.table_config().page || 1);
+    return true;
+  }
+
+  private finishPrefilter(mode: CustomerListPrefilter): void {
+    this.prefilter = mode;
+    this.prefilterLoaded = true;
+    if (this.locationReady) return;
+    this.resolveLocationAndLoad(this.route.snapshot.queryParams);
+  }
+
   get insightLabel(): string | null {
     return this.selectedInsight ? customerInsightLabel(this.selectedInsight) : null;
   }
@@ -233,6 +328,7 @@ export class CustomersList implements OnInit, OnDestroy {
   }
 
   getCustomers() {
+    if (!this.locationReady) return;
     this.table_config.update(c => ({ ...c, loading: true }));
     const config = this.table_config();
     const page = isNaN(config.page) ? 1 : config.page;
@@ -245,6 +341,7 @@ export class CustomersList implements OnInit, OnDestroy {
       ...(this.selectedGroupId && { group_id: this.selectedGroupId }),
       ...(this.selectedStatusId && { status_id: this.selectedStatusId }),
       ...(this.selectedFiscalId && { registered_fiscal_configuration_id: this.selectedFiscalId }),
+      ...(this.selectedBranchId && { registered_billing_branch_id: this.selectedBranchId }),
       ...(this.canViewStats && this.selectedInsight && { insight: this.selectedInsight }),
       ...(this.currentSort && this.currentSort.direction && { sort: this.currentSort.column.prop, order: this.currentSort.direction })
     };
@@ -266,14 +363,16 @@ export class CustomersList implements OnInit, OnDestroy {
   }
 
   private loadStats(): void {
-    if (!this.canViewStats) {
-      this.customerStats = null;
-      this.statsLoading = false;
-      this.statsError = false;
-      this.statsScopeKey = '';
+    if (!this.canViewStats || !this.locationReady) {
+      if (!this.canViewStats) {
+        this.customerStats = null;
+        this.statsLoading = false;
+        this.statsError = false;
+        this.statsScopeKey = '';
+      }
       return;
     }
-    const scopeKey = `${this.search}|${this.selectedGroupId ?? ''}|${this.selectedStatusId ?? ''}|${this.selectedFiscalId ?? ''}`;
+    const scopeKey = `${this.search}|${this.selectedGroupId ?? ''}|${this.selectedStatusId ?? ''}|${this.selectedFiscalId ?? ''}|${this.selectedBranchId ?? ''}`;
     if (scopeKey === this.statsScopeKey && (this.customerStats || this.statsLoading)) {
       return;
     }
@@ -286,6 +385,7 @@ export class CustomersList implements OnInit, OnDestroy {
       ...(this.selectedGroupId && { group_id: this.selectedGroupId }),
       ...(this.selectedStatusId && { status_id: this.selectedStatusId }),
       ...(this.selectedFiscalId && { registered_fiscal_configuration_id: this.selectedFiscalId }),
+      ...(this.selectedBranchId && { registered_billing_branch_id: this.selectedBranchId }),
     }).subscribe({
       next: (stats) => {
         if (request !== this.statsRequest) return;
@@ -310,6 +410,8 @@ export class CustomersList implements OnInit, OnDestroy {
         group_id: this.selectedGroupId || undefined,
         status_id: this.selectedStatusId || undefined,
         registered_fiscal_configuration_id: this.selectedFiscalId || null,
+        registered_billing_branch_id: this.selectedBranchId || null,
+        location_scope: this.viewAllLocations ? 'all' : null,
         insight: this.canViewStats && this.selectedInsight ? this.selectedInsight : null,
         ...extra,
       },
@@ -336,6 +438,40 @@ export class CustomersList implements OnInit, OnDestroy {
       })),
       value_default: this.selectedFiscalId,
     };
+  }
+
+  private syncBranchFilterConfig(): void {
+    const fiscal = this.selectedFiscalId
+      ? this.fiscalOptions.find((item) => item.id === this.selectedFiscalId)
+      : undefined;
+    const branches = fiscal?.branches ?? [];
+    if (
+      this.selectedBranchId &&
+      fiscal &&
+      !branches.some((branch) => branch.id === this.selectedBranchId)
+    ) {
+      this.selectedBranchId = null;
+    }
+    this.selectedBranchName = this.resolveBranchName(this.selectedBranchId);
+    this.branchSelectConfig = {
+      ...this.branchSelectConfig,
+      data: branches.map((branch) => ({
+        id: branch.id,
+        label: branch.name?.trim() || 'Sucursal',
+      })),
+      value_default: this.selectedBranchId,
+    };
+  }
+
+  private branchesForSelectedFiscal() {
+    if (!this.selectedFiscalId) return [];
+    return this.fiscalOptions.find((item) => item.id === this.selectedFiscalId)?.branches ?? [];
+  }
+
+  private resolveBranchName(branchId: string | null): string | null {
+    if (!branchId) return null;
+    const match = this.branchesForSelectedFiscal().find((branch) => branch.id === branchId);
+    return match?.name?.trim() || null;
   }
 
   private resolveFiscalName(fiscalId: string | null): string | null {
@@ -378,8 +514,18 @@ export class CustomersList implements OnInit, OnDestroy {
 
   onFiscalSelect(event: { value?: string | null }): void {
     const fiscalId = event?.value != null && event.value !== '' ? String(event.value) : null;
+    this.viewAllLocations = !fiscalId;
     this.selectedFiscalId = fiscalId;
+    this.selectedBranchId = null;
     this.syncFiscalFilterConfig();
+    this.syncBranchFilterConfig();
+    this.navigateList(1);
+  }
+
+  onBranchSelect(event: { value?: string | null }): void {
+    const branchId = event?.value != null && event.value !== '' ? String(event.value) : null;
+    this.selectedBranchId = branchId;
+    this.syncBranchFilterConfig();
     this.navigateList(1);
   }
 
@@ -401,7 +547,7 @@ export class CustomersList implements OnInit, OnDestroy {
   }
 
   get sheetFilterCount(): number {
-    return [this.selectedGroupId, this.selectedStatusId, this.selectedFiscalId].filter(Boolean).length;
+    return [this.selectedGroupId, this.selectedStatusId, this.selectedFiscalId, this.selectedBranchId].filter(Boolean).length;
   }
 
   get hasActiveFilters(): boolean {
@@ -410,30 +556,43 @@ export class CustomersList implements OnInit, OnDestroy {
       this.selectedGroupId ||
       this.selectedStatusId ||
       this.selectedFiscalId ||
+      this.selectedBranchId ||
       this.selectedInsight
     );
   }
 
   get statsAreScoped(): boolean {
-    return !!(this.search || this.selectedGroupId || this.selectedStatusId || this.selectedFiscalId);
+    return !!(this.search || this.selectedGroupId || this.selectedStatusId || this.selectedFiscalId || this.selectedBranchId);
   }
 
-  onFilterClear(filterType: 'status' | 'group' | 'fiscal' | 'search' | 'insight' | 'all') {
+  onFilterClear(filterType: 'status' | 'group' | 'fiscal' | 'branch' | 'search' | 'insight' | 'all') {
     if (filterType === 'all') {
       this.selectedGroupId = null;
       this.selectedGroupName = null;
       this.selectedStatusId = null;
       this.selectedStatusName = null;
       this.statusSelectConfig = { ...this.statusSelectConfig, value_default: null };
+      this.viewAllLocations = false;
       this.selectedFiscalId = null;
       this.selectedFiscalName = null;
+      this.selectedBranchId = null;
+      this.selectedBranchName = null;
       this.syncFiscalFilterConfig();
+      this.syncBranchFilterConfig();
       this.search = '';
       this.selectedInsight = null;
     } else if (filterType === 'fiscal') {
+      this.viewAllLocations = true;
       this.selectedFiscalId = null;
       this.selectedFiscalName = null;
+      this.selectedBranchId = null;
+      this.selectedBranchName = null;
       this.syncFiscalFilterConfig();
+      this.syncBranchFilterConfig();
+    } else if (filterType === 'branch') {
+      this.selectedBranchId = null;
+      this.selectedBranchName = null;
+      this.syncBranchFilterConfig();
     } else if (filterType === 'group') {
       this.selectedGroupId = null;
       this.selectedGroupName = null;
@@ -456,9 +615,13 @@ export class CustomersList implements OnInit, OnDestroy {
     this.selectedStatusId = null;
     this.selectedStatusName = null;
     this.statusSelectConfig = { ...this.statusSelectConfig, value_default: null };
+    this.viewAllLocations = false;
     this.selectedFiscalId = null;
     this.selectedFiscalName = null;
+    this.selectedBranchId = null;
+    this.selectedBranchName = null;
     this.syncFiscalFilterConfig();
+    this.syncBranchFilterConfig();
     this.navigateList(1);
   }
 
@@ -554,6 +717,8 @@ export class CustomersList implements OnInit, OnDestroy {
           group_name: this.selectedGroupName,
           registered_fiscal_configuration_id: this.selectedFiscalId,
           fiscal_name: this.selectedFiscalName,
+          registered_billing_branch_id: this.selectedBranchId,
+          branch_name: this.selectedBranchName,
           insight: this.canViewStats ? this.selectedInsight : null,
           insight_label: this.canViewStats ? this.insightLabel : null,
         },

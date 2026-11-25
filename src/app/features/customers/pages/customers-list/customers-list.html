@@ -43,6 +43,14 @@
         (changeOption)="onFiscalSelect($event)">
       </app-select>
 
+      @if (selectedFiscalId) {
+        <app-select
+          class="customers-page__filter"
+          [config]="branchSelectConfig"
+          (changeOption)="onBranchSelect($event)">
+        </app-select>
+      }
+
       <app-select
         class="customers-page__filter"
         [config]="statusSelectConfig"
@@ -57,13 +65,15 @@
     </app-mobile-filter-sheet>
   </div>
 
-  @if (search || selectedGroupId || selectedStatusId || selectedFiscalId || selectedInsight) {
+  @if (search || selectedGroupId || selectedStatusId || selectedFiscalId || selectedBranchId || selectedInsight) {
     <app-customer-filter-indicator
       class="customers-page__filter-indicator"
       [activeGroupId]="selectedGroupId"
       [activeGroupName]="selectedGroupName"
       [activeFiscalId]="selectedFiscalId"
       [activeFiscalName]="selectedFiscalName"
+      [activeBranchId]="selectedBranchId"
+      [activeBranchName]="selectedBranchName"
       [activeStatusFilter]="selectedStatusId"
       [activeStatusName]="selectedStatusName"
       [activeSearchTerm]="search"

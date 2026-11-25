@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   ClipboardList,
   ChevronRight,
+  Contact,
   FileDown,
   FolderOpen,
   History,
@@ -31,6 +32,7 @@ import { GPS_TRACKING_PERMISSIONS } from '../../../logistics/config/permissions.
 import { WHATSAPP_PERMISSIONS } from '../../../settings/config/whatsapp-permissions.config';
 import { SETTINGS_PERMISSIONS } from '../../../settings/config/permissions.config';
 import { SALES_ORDER_PERMISSIONS } from '../../../sales-orders/config/permissions.config';
+import { CUSTOMER_PERMISSIONS } from '../../../customers/config/permissions.config';
 
 interface SettingsSection {
   id: string;
@@ -310,6 +312,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
       icon: Monitor,
       route: 'pos-configuration',
       permissions: ['pos_configuration:ViewMenu']
+    },
+    {
+      id: 'customer-list',
+      title: 'Clientes',
+      description: 'Quién abre el listado con su razón social y sucursal ya seleccionadas',
+      icon: Contact,
+      route: 'customer-list',
+      permissions: [CUSTOMER_PERMISSIONS.update, CUSTOMER_PERMISSIONS.viewMenu],
     },
     {
       id: 'sales-order-creation',

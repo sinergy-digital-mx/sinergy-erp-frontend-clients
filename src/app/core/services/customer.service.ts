@@ -58,8 +58,11 @@ export interface CustomersExportFilters {
   status_id?: number | string;
   group_id?: string;
   registered_fiscal_configuration_id?: string;
+  registered_billing_branch_id?: string;
   insight?: string;
 }
+
+export type CustomerListPrefilterMode = 'off' | 'sellers' | 'everyone';
 
 export interface CustomerListStats {
   total: number;
@@ -107,11 +110,27 @@ export class CustomerService {
     });
   }
 
+  getCustomerListSettings(): Observable<{ prefilter: CustomerListPrefilterMode }> {
+    return this.http.get<{ prefilter: CustomerListPrefilterMode }>(
+      `${this.api}/tenant/customers/list-settings`,
+    );
+  }
+
+  updateCustomerListSettings(
+    prefilter: CustomerListPrefilterMode,
+  ): Observable<{ prefilter: CustomerListPrefilterMode }> {
+    return this.http.put<{ prefilter: CustomerListPrefilterMode }>(
+      `${this.api}/tenant/customers/list-settings`,
+      { prefilter },
+    );
+  }
+
   getCustomerListStats(params: {
     search?: string;
     status_id?: string | number;
     group_id?: string;
     registered_fiscal_configuration_id?: string;
+    registered_billing_branch_id?: string;
   }): Observable<CustomerListStats> {
     let httpParams = new HttpParams();
     if (params.search) httpParams = httpParams.set('search', params.search);
@@ -123,6 +142,12 @@ export class CustomerService {
       httpParams = httpParams.set(
         'registered_fiscal_configuration_id',
         params.registered_fiscal_configuration_id,
+      );
+    }
+    if (params.registered_billing_branch_id) {
+      httpParams = httpParams.set(
+        'registered_billing_branch_id',
+        params.registered_billing_branch_id,
       );
     }
     return this.http.get<CustomerListStats>(`${this.api}/tenant/customers/stats`, {
@@ -302,6 +327,7 @@ export class CustomerService {
       ['status_id', filters.status_id],
       ['group_id', filters.group_id],
       ['registered_fiscal_configuration_id', filters.registered_fiscal_configuration_id],
+      ['registered_billing_branch_id', filters.registered_billing_branch_id],
       ['insight', filters.insight],
     ];
 

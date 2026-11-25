@@ -15,6 +15,8 @@ Fila 2: Cheque · Mixto · Crédito (Crédito solo si el cliente lo tiene en esa
 
 En la barra de caja, el clic en el cuadrito de **Sucursal** abre el cambio. Ya no hace falta el texto Cambiar.
 
+En el modal de imprimir, el campo de **Copias** queda corto (menos, número, más) y el ícono del botón Imprimir queda del tamaño del texto.
+
 ### 2026-11-23
 
 En **Tarjeta** y en cada tarjeta de **Mixto** se elige Débito o Crédito. Pueden ser distintas. Si caja cambia el cliente antes de cobrar, ese cliente queda en la orden. Caja mantiene abierto un aviso en vivo: si Ventas regresa el folio que está cobrando, se suelta al momento y sale la ventana «{vendedor} regresó {folio} a POS Ventas». El latido de unos segundos queda de respaldo, con el mismo texto. **Ctrl+Q** (abonos) sigue pendiente; la **i** de la barra lo dice. F2 queda para el navegador.
@@ -61,7 +63,7 @@ En tarjeta, el campo opcional es **Número de voucher** (referencia del ticket d
 
 ## Ticket
 
-Al cobrar (si está activo “Imprimir ticket al confirmar cobro”) se abre el modal de vista previa. Ahí eliges **Copias** (1–5) y pulsas Imprimir. Recuerda la última cantidad.
+Al cobrar (si está activo “Imprimir ticket al confirmar cobro”) se abre el modal de vista previa. Ahí eliges **Copias** (1–5) con un control corto (− número +) y pulsas Imprimir. Recuerda la última cantidad.
 
 ## Cliente
 
