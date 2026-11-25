@@ -23,7 +23,7 @@ Stock y unidad van en badges separados, con el texto centrado. Nº pieza usa la 
 
 En **Folios**, ventas y cotizaciones no se mezclan: hay dos filtros, **Ventas** y **Cotizaciones**. Cada carta muestra la empresa y, debajo y más chica, la persona cuando son distintas.
 
-**Cotizaciones** lista las de la sucursal y la razón social (`GET /tenant/pos/folio-quotations`), no solo las del usuario que inició sesión.
+**Cotizaciones** lista todas las de la sucursal y la razón social, de cualquier vendedor (`GET /tenant/pos/folio-quotations`). No se recortan al usuario de la sesión ni a las primeras 30.
 
 ### 2026-11-24
 

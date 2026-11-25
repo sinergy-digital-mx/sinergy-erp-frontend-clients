@@ -395,7 +395,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
     }
 
     this.posService
-      .getFolioQuotations({ ...filters, page: 1, limit: 30 })
+      .getFolioQuotations({ ...filters, page: 1, limit: 200 })
       .subscribe({
         next: (page) => apply(this.quotationRows(page.data ?? [])),
         error: (error: unknown) => {
