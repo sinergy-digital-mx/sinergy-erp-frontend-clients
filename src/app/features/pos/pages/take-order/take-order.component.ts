@@ -38,7 +38,6 @@ import {
   ChevronDown,
   ChevronRight,
   X,
-  Ticket,
   RefreshCw,
   LayoutGrid,
   List,
@@ -172,7 +171,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly ChevronDown = ChevronDown;
   readonly ChevronRight = ChevronRight;
   readonly X = X;
-  readonly Ticket = Ticket;
   readonly RefreshCw = RefreshCw;
   readonly Store = Store;
   readonly LayoutGrid = LayoutGrid;
@@ -228,7 +226,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   saving = signal<boolean>(false);
   confirming = signal<boolean>(false);
   salesInProgress = signal<PosSaleInProgress[]>([]);
-  ticketsPanelOpen = signal(false);
   loadingTickets = signal(false);
   editingSaleId = signal<string | null>(null);
   editingFolio = signal<string | null>(null);
@@ -241,7 +238,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   editingQuotationId = signal<string | null>(null);
   editingQuotationFolio = signal<string | null>(null);
   ticketSlotAsk = signal<PosSaleInProgress | null>(null);
-  ticketQuery = signal('');
   editingForShipping = signal(false);
   selectedCustomerRouteId = signal<string | null>(null);
   editingNotes = signal('');
@@ -700,14 +696,11 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       if (this.cajaQueueOpen()) {
         event.preventDefault();
-        this.cajaQueueOpen.set(false);
-        this.escExitArmed = false;
-        this.armFullscreenRestore();
-        return;
-      }
-      if (this.ticketsPanelOpen()) {
-        event.preventDefault();
-        this.ticketsPanelOpen.set(false);
+        if (this.cajaExpandedId()) {
+          this.cajaExpandedId.set(null);
+        } else {
+          this.cajaQueueOpen.set(false);
+        }
         this.escExitArmed = false;
         this.armFullscreenRestore();
         return;
@@ -863,7 +856,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   openCajaQueue(): void {
-    this.ticketsPanelOpen.set(false);
     this.shortcutsOpen.set(false);
     this.cajaQueueOpen.set(true);
     this.loadCajaQueue();
@@ -894,8 +886,20 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  toggleCajaCard(id: string): void {
-    this.cajaExpandedId.update((current) => (current === id ? null : id));
+  openCajaCard(id: string): void {
+    this.cajaExpandedId.set(id);
+  }
+
+  closeCajaCard(): void {
+    this.cajaExpandedId.set(null);
+  }
+
+  expandedCajaTicket(): PosCajaQueueTicket | null {
+    const id = this.cajaExpandedId();
+    if (!id) {
+      return null;
+    }
+    return this.cajaQueue().find((row) => row.id === id) ?? null;
   }
 
   cajaTicketName(ticket: PosCajaQueueTicket): string {
@@ -1120,7 +1124,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     const ticket = this.salesInProgress().find((item) => item.id === resumeId);
     if (!ticket) {
-      this.ticketsPanelOpen.set(true);
+      this.pendingResumeTicketId = null;
+      this.notifyInfo('Ese folio ya no está en ventas. Búscalo en Folios.');
       return false;
     }
     this.pendingResumeTicketId = null;
@@ -1131,32 +1136,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       replaceUrl: true,
     });
     return true;
-  }
-
-  ticketsBarTitle(): string {
-    const count = this.salesInProgress().length;
-    if (count <= 0) {
-      return 'Tickets en ventas';
-    }
-    const collected = this.salesInProgress().filter((ticket) => ticket.advance_collected).length;
-    if (collected > 0 && collected === count) {
-      const label = count === 1 ? 'anticipo cobrado' : 'anticipos cobrados';
-      return `Hay ${count} ${label}. Ábrelo, agrega los productos y registra la venta.`;
-    }
-    const label = count === 1 ? 'ticket' : 'tickets';
-    return `Hay ${count} ${label}. Ábrelo para seguir la venta.`;
-  }
-
-  toggleTicketsPanel(): void {
-    this.ticketsPanelOpen.update((open) => !open);
-    if (this.ticketsPanelOpen()) {
-      this.cajaQueueOpen.set(false);
-      this.shortcutsOpen.set(false);
-    }
-    if (!this.ticketsPanelOpen()) {
-      return;
-    }
-    this.loadSalesInProgress();
   }
 
   openReturnedTicket(ticket: PosSaleInProgress): void {
@@ -1174,7 +1153,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     const ticket = this.ticketSlotAsk();
     if (!ticket) return;
     this.ticketSlotAsk.set(null);
-    this.ticketsPanelOpen.set(false);
     if (slot !== this.activeCartSlot()) {
       this.switchCartSlot(slot);
     }
@@ -1186,26 +1164,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     const paid = Number(this.editingAdvanceAmount() ?? 0);
     const sale = Number(this.posService.cart().grand_total || 0);
     return Math.round((paid - sale) * 100) / 100;
-  }
-
-  filteredTickets(): PosSaleInProgress[] {
-    const query = this.ticketQuery().trim().toLowerCase();
-    const rows = this.salesInProgress();
-    if (!query) return rows;
-    return rows.filter((ticket) => {
-      const haystack = [
-        ticket.folio,
-        ticket.quotation_folio,
-        ticket.customer?.company_name,
-        ticket.customer?.name,
-        ticket.customer?.lastname,
-        ticket.walk_in_name,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(query);
-    });
   }
 
   private applyReturnedTicket(ticket: PosSaleInProgress): void {
@@ -1234,7 +1192,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       ticket.for_shipping === true || ticket.for_shipping === 1 || ticket.for_shipping === '1',
     );
     this.editingNotes.set(ticket.kind === 'advance' ? '' : posSaleObservation(ticket.notes));
-    this.ticketsPanelOpen.set(false);
     const folio = ticket.folio || ticket.id;
     const paid = Number(ticket.amount_pending ?? 0);
     this.notifySuccess(
@@ -1259,13 +1216,14 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         .filter(Boolean)
         .join(' ')
         .trim();
+      const company = String(ticket.customer.company_name ?? '').trim();
       this.selectedCustomerId.set(String(ticket.customer.id ?? ticket.customer_id));
       this.selectedOrderCustomerId.set(ticket.customer_id);
       this.selectedCustomerName.set(
-        ticket.customer.company_name
-          ? nameParts
-            ? `${nameParts} · ${ticket.customer.company_name}`
-            : ticket.customer.company_name
+        company
+          ? !nameParts || nameParts.toLowerCase() === company.toLowerCase()
+            ? company
+            : `${nameParts} · ${company}`
           : nameParts || 'Cliente'
       );
     }
@@ -2814,7 +2772,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
             this.notifySuccess(
               cart.items.length
                 ? `Cotización ${folioLabel} lista. Anticipo timbrado y venta con los productos.`
-                : `Cotización ${folioLabel} lista. Anticipo timbrado. Cuando regrese, ábrela en Tickets.`,
+                : `Cotización ${folioLabel} lista. Anticipo timbrado. Cuando regrese, ábrela en Folios.`,
               7000,
             );
           } else {
@@ -3086,8 +3044,12 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       return 'Cliente';
     }
     const parts = [customer.name, customer.lastname].filter(Boolean).join(' ').trim();
-    if (customer.company_name) {
-      return parts ? `${parts} · ${customer.company_name}` : customer.company_name;
+    const company = String(customer.company_name ?? '').trim();
+    if (company) {
+      if (!parts || parts.toLowerCase() === company.toLowerCase()) {
+        return company;
+      }
+      return `${parts} · ${company}`;
     }
     return parts || customer.email || 'Cliente';
   }

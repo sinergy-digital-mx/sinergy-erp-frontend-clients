@@ -118,13 +118,19 @@ import {
   MixedPaymentType,
   MixedPartId,
   addMixedCardPayment,
+  addMixedTransferPayment,
   enableMixedCard,
+  enableMixedTransfer,
+  disableMixedTransfer,
+  removeMixedTransferPayment,
+  setMixedTransferReference,
   disableMixedCard,
   removeMixedCardPayment,
   setMixedCardKind,
   setMixedCardReference,
   PosCardKind,
   MAX_MIXED_CARD_PAYMENTS,
+  MAX_MIXED_TRANSFER_PAYMENTS,
   sumCashDenominations,
   syncCashFormFromReceived,
   validateCollectForm,
@@ -145,7 +151,7 @@ import {
 } from '../../models/pos-collected-sales.model';
 import { PosSaleReceipt } from '../../models/pos-receipt.model';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
-import { posCollectionCardRows } from '../../models/pos-sale-collection.model';
+import { posCollectionCardRows, posCollectionTransferRows } from '../../models/pos-sale-collection.model';
 import { PosPrinterSettingsDialogComponent } from '../../components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
 import {
   PosCollectPrintDialogComponent,
@@ -209,6 +215,7 @@ interface PendingSale {
   amount_pending?: number | string;
   amount_paid?: number | string;
   created_at?: string;
+  updated_at?: string;
   fiscal_configuration_id?: string;
   fiscal_configuration?: { id?: string; razon_social?: string; rfc?: string };
   customer?: PendingSaleCustomer;
@@ -272,6 +279,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly Truck = Truck;
 
   pendingSales = signal<PendingSale[]>([]);
+  /** Folios que acaban de llegar, para marcar la carta. */
+  arrivedIds = signal<string[]>([]);
   collectedSales = signal<CollectedSaleItem[]>([]);
   collectedSummary = signal<CollectedSalesSummary | null>(null);
   selectedSale = signal<PendingSale | null>(null);
@@ -323,6 +332,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     return shift ? this.buildCloseDailyShiftData(shift) : null;
   });
   private unclosedDialogRef: MatDialogRef<UnclosedDailyShiftDialogComponent> | null = null;
+
+  readonly queueBoard = computed(() => {
+    if (this.dashboardTab() === 'pending') return !this.selectedSale();
+    if (this.dashboardTab() === 'collected') return !this.selectedCollectedSale();
+    return false;
+  });
 
   readonly filteredPendingSales = computed(() => {
     const term = this.searchFolio().trim().toLowerCase();
@@ -1009,12 +1024,18 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     return 'Corte cerrado. La caja cuadra.';
   }
 
-  loadPendingSales(): void {
-    this.loading.set(true);
+  loadPendingSales(options?: { quiet?: boolean }): void {
+    if (!options?.quiet) {
+      this.loading.set(true);
+    }
     this.posService.getPendingSales().subscribe({
       next: ({ pending_sales }) => {
-        const list = (pending_sales ?? []) as PendingSale[];
+        const list = this.newestFirst((pending_sales ?? []) as PendingSale[]);
         this.pendingSales.set(list);
+        const selected = this.selectedSale();
+        if (selected && !list.some((sale) => sale.id === selected.id)) {
+          this.selectedSale.set(null);
+        }
         const preselect = this.preselectOrderId();
         if (preselect) {
           const match = list.find((s) => s.id === preselect);
@@ -1196,13 +1217,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         next.mixedUsesCard = false;
         next.mixedUsesCheck = false;
         next.mixedCashMxn = 0;
-        next.mixedTransferMxn = 0;
         next.mixedReceivedMxn = 0;
+        next.mixedTransferPayments = [];
         next.mixedCardPayments = [];
         next.mixedCheckMxn = 0;
         next.mixedCheckUsd = 0;
         next.mixedCheckCurrency = 'MXN';
-        next.mixedTransferRef = '';
         next.mixedCheckRef = '';
       }
       return this.applyPayerDefaults(next);
@@ -1236,7 +1256,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     if (type === 'transfer') {
-      this.patchCollectForm({ mixedTransferMxn: amount }, 'transfer');
+      this.onMixedTransferAmountChange(0, value);
       return;
     }
     if (type === 'card') {
@@ -1297,6 +1317,29 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onMixedCashUsdChange(value: string | number | null): void {
     this.patchCollectForm({ mixedCashUsd: this.parseMoneyInput(value) }, 'cash');
+  }
+
+  onMixedTransferAmountChange(index: number, value: string | number | null): void {
+    const amount = this.parseMoneyInput(value);
+    const part: MixedPartId = `transfer:${index}`;
+    this.collectForm.update((form) =>
+      applyMixedRemainderToLast(
+        {
+          ...form,
+          mixedTransferPayments: form.mixedTransferPayments.map((transfer, transferIndex) =>
+            transferIndex === index ? { ...transfer, amountMxn: amount } : transfer,
+          ),
+        },
+        this.orderTotal(),
+        part,
+      ),
+    );
+    this.collectError.set(null);
+  }
+
+  onMixedTransferRefChange(index: number, value: string): void {
+    this.collectForm.update((form) => setMixedTransferReference(form, index, value));
+    this.collectError.set(null);
   }
 
   onMixedCardAmountChange(index: number, value: string | number | null): void {
@@ -1475,9 +1518,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         next.mixedReceivedUsd = enabled ? Math.max(next.mixedReceivedUsd, next.mixedCashUsd) : 0;
       }
       if (type === 'transfer') {
-        next.mixedUsesTransfer = enabled;
-        next.mixedTransferMxn = enabled ? next.mixedTransferMxn : 0;
-        next.mixedTransferRef = enabled ? next.mixedTransferRef : '';
+        next = enabled ? enableMixedTransfer(next) : disableMixedTransfer(next);
       }
       if (type === 'card') {
         next = enabled ? enableMixedCard(next) : disableMixedCard(next);
@@ -1493,6 +1534,34 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       return this.applyPayerDefaults(next);
     });
     this.collectError.set(null);
+  }
+
+  addMixedTransfer(): void {
+    this.collectForm.update((form) =>
+      applyMixedRemainderToLast(addMixedTransferPayment(form), this.orderTotal(), null),
+    );
+    this.collectError.set(null);
+  }
+
+  removeMixedTransfer(index: number): void {
+    const onlyOne = this.collectForm().mixedTransferPayments.length <= 1;
+    if (index === 0 && onlyOne) {
+      this.toggleMixedType('transfer', false);
+      return;
+    }
+    this.collectForm.update((form) =>
+      applyMixedRemainderToLast(removeMixedTransferPayment(form, index), this.orderTotal(), null),
+    );
+    this.collectError.set(null);
+  }
+
+  canAddMixedTransfer(): boolean {
+    const form = this.collectForm();
+    return form.mixedUsesTransfer && form.mixedTransferPayments.length < MAX_MIXED_TRANSFER_PAYMENTS;
+  }
+
+  mixedTransferPart(index: number): MixedPartId {
+    return `transfer:${index}`;
   }
 
   addMixedCard(): void {
@@ -1555,7 +1624,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.mixedRemainder() < -0.009) {
       return 'Te pasaste';
     }
-    return 'Listo';
+    return validateCollectForm(this.collectForm(), this.orderTotal()) ?? 'Listo';
   }
 
   showMixedFill(): boolean {
@@ -1861,7 +1930,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           message: isAdvance
             ? `El anticipo ${folio} saldrá de caja. No se puede cobrar hasta que Ventas lo reenvíe.`
             : `El folio ${folio} saldrá de caja. No se puede cobrar hasta que Ventas lo reenvíe.`,
-          note: 'En POS Ventas aparece en Tickets. Ahí se edita y se pulsa Enviar a caja.',
+          note: 'En POS Ventas se abre en Folios, se corrige y se pulsa Enviar a caja.',
           cancelLabel: 'Cancelar',
           acceptLabel: 'Regresar a ventas',
         },
@@ -1883,7 +1952,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
             this.ignoreCajaEject = false;
             this.loadPendingSales();
             this.toast.success(
-              `${folio} regresó a ventas. En POS Ventas recarga Tickets para abrirlo.`,
+              `${folio} regresó a ventas. En POS Ventas ábrelo en Folios.`,
               { duration: 6000 },
             );
           },
@@ -2411,6 +2480,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     return posCollectionCardRows(pay);
   }
 
+  transferPaymentRows(pay: Record<string, unknown> | null | undefined) {
+    return posCollectionTransferRows(pay);
+  }
+
   moneyLabel(value: unknown): string {
     return formatPosMoney(value as number | string);
   }
@@ -2489,14 +2562,46 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cajaRecallSub = this.posService.watchCajaRecalls().pipe(
       retry({ delay: () => timer(3000) }),
     ).subscribe((event) => {
-      this.ngZone.run(() => this.onRemoteRecall(event));
+      this.ngZone.run(() => {
+        if (event.type === 'arrived') {
+          this.onRemoteArrived(event);
+          return;
+        }
+        this.onRemoteRecall(event);
+      });
+    });
+  }
+
+  private onRemoteArrived(event: PosCajaRecallNotice): void {
+    this.markArrived(event.id);
+    this.toast.success(`Llegó ${event.folio || 'una venta'}`, { duration: 5000 });
+    this.loadPendingSales({ quiet: true });
+  }
+
+  private markArrived(id: string): void {
+    this.arrivedIds.update((ids) => (ids.includes(id) ? ids : [id, ...ids]));
+    setTimeout(() => {
+      if (this.destroyed) return;
+      this.arrivedIds.update((ids) => ids.filter((item) => item !== id));
+    }, 8000);
+  }
+
+  private newestFirst(list: PendingSale[]): PendingSale[] {
+    return [...list].sort((a, b) => {
+      const left = new Date(b.updated_at || b.created_at || 0).getTime();
+      const right = new Date(a.updated_at || a.created_at || 0).getTime();
+      return left - right;
     });
   }
 
   private onRemoteRecall(event: PosCajaRecallNotice): void {
-    this.loadPendingSales();
+    this.loadPendingSales({ quiet: true });
     const open = this.selectedSale();
     if (!open || open.id !== event.id || this.ignoreCajaEject) {
+      if (!this.ignoreCajaEject) {
+        const who = event.recalled_by_name || 'Ventas';
+        this.toast.info(`${who} regresó ${event.folio || 'un folio'} a ventas`, { duration: 5000 });
+      }
       return;
     }
     const who = event.recalled_by_name || 'Ventas';
@@ -2515,7 +2620,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedSale.set(null);
     this.collecting.set(false);
     this.collectError.set(null);
-    this.loadPendingSales();
+    this.loadPendingSales({ quiet: true });
     const folio = sale.folio || sale.id;
     this.dialog.open(PosConfirmDialogComponent, {
       width: '420px',

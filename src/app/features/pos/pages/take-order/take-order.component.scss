@@ -85,17 +85,6 @@
     max-width: 28ch;
   }
 
-  .pos-lock-card__tickets {
-    margin: -0.7rem 0 1.2rem;
-    padding: 0.55rem 0.7rem;
-    border-radius: 10px;
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    color: #92400e;
-    font-size: 0.8rem;
-    max-width: 34ch;
-  }
-
   .pos-btn {
     min-width: 11rem;
   }
@@ -2523,7 +2512,7 @@
 }
 
 .pos-caja-modal-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 80;
   display: flex;
@@ -2534,7 +2523,8 @@
 }
 
 .pos-caja-modal {
-  width: min(1120px, 100%);
+  width: min(1280px, 100%);
+  height: min(900px, 92vh);
   max-height: min(900px, 92vh);
   display: flex;
   flex-direction: column;
@@ -2616,6 +2606,8 @@
   }
 
   &__body {
+    flex: 1;
+    min-height: 0;
     overflow: auto;
     padding: 1.1rem 1.25rem 1.3rem;
     display: grid;
@@ -2623,6 +2615,13 @@
     gap: 0.9rem;
     align-items: start;
     align-content: start;
+  }
+
+  &__body--sheet {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    overflow: hidden;
   }
 
   &__empty {
@@ -2658,20 +2657,6 @@
     background: #c7d2fe;
   }
 
-  &--open {
-    height: auto;
-    overflow: visible;
-    border-color: #c7d2fe;
-    box-shadow: 0 14px 36px rgba(79, 70, 229, 0.1);
-
-    &::before {
-      top: 0;
-      bottom: 0;
-      border-radius: 0;
-      background: #6366f1;
-    }
-  }
-
   &__toggle {
     width: 100%;
     flex: 1;
@@ -2698,11 +2683,6 @@
       outline: 2px solid #818cf8;
       outline-offset: -2px;
     }
-  }
-
-  &--open &__toggle {
-    flex: 0 0 auto;
-    border-bottom: 1px solid #eef2f6;
   }
 
   &__top {
@@ -2800,14 +2780,6 @@
 
   &__chevron {
     transition: transform 0.15s ease;
-
-    &--open {
-      transform: rotate(180deg);
-    }
-  }
-
-  &__detail {
-    padding: 0.85rem 1rem 1rem 1.15rem;
   }
 
   &__hint {
@@ -2840,6 +2812,97 @@
     border-radius: 10px;
     font-size: 0.88rem;
     font-weight: 650;
+  }
+}
+
+.pos-caja-sheet {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e4e8ef;
+  border-radius: 16px;
+  overflow: hidden;
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1rem 1.15rem 0.85rem;
+    border-bottom: 1px solid #eef2f6;
+
+    h3 {
+      margin: 0.12rem 0 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+    }
+  }
+
+  &__folio {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__meta {
+    margin: 0.28rem 0 0;
+    color: #64748b;
+    font-size: 0.8rem;
+
+    span::before {
+      content: ' · ';
+    }
+  }
+
+  &__side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+
+  &__amount {
+    margin: 0;
+    text-align: right;
+
+    strong {
+      display: block;
+      font-size: 1.4rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+    }
+
+    span {
+      color: #64748b;
+      font-size: 0.75rem;
+    }
+  }
+
+  &__back {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: #334155;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    cursor: pointer;
+  }
+
+  &__foot {
+    padding: 0.75rem 1rem 1rem;
+    border-top: 1px solid #eef2f6;
   }
 }
 
@@ -2943,6 +3006,28 @@
   &__row > span:nth-child(3) {
     text-align: right;
   }
+
+  &--sheet {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+
+    .pos-caja-lines__scroll {
+      max-height: none;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .pos-caja-lines__head,
+    .pos-caja-lines__row {
+      grid-template-columns: minmax(0, 1.8fr) minmax(5.5rem, 0.55fr) 7rem 6.5rem 7rem;
+      min-width: 0;
+    }
+  }
 }
 
 .pos-caja-totals {
@@ -3006,43 +3091,6 @@
   }
 }
 
-.pos-tickets-panel {
-  position: absolute;
-  top: 56px;
-  right: 12px;
-  z-index: 20;
-  width: min(360px, calc(100% - 24px));
-  max-height: min(420px, 70vh);
-  overflow: auto;
-  background: #fff;
-  border: 1px solid var(--pos-border);
-  border-radius: 12px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
-}
-
-.pos-tickets-panel__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.75rem 0.9rem;
-  border-bottom: 1px solid var(--pos-border);
-
-  p {
-    margin: 0.2rem 0 0;
-    color: #64748b;
-    font-size: 0.75rem;
-    font-weight: 500;
-    line-height: 1.3;
-  }
-}
-
-.pos-tickets-panel__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-}
-
 .pos-tickets-panel__close {
   border: none;
   background: transparent;
@@ -3057,58 +3105,6 @@
 
 .pos-tickets-panel__spin {
   animation: pos-spin 0.8s linear infinite;
-}
-
-.pos-tickets-panel__empty {
-  margin: 0;
-  padding: 1rem;
-  color: #64748b;
-  font-size: 0.85rem;
-}
-
-.pos-tickets-panel__list {
-  list-style: none;
-  margin: 0;
-  padding: 0.4rem;
-}
-
-.pos-tickets-panel__item {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.7rem 0.75rem;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: #0f172a;
-  text-align: left;
-
-  span {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-
-  strong {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    flex-wrap: wrap;
-  }
-
-  small {
-    color: #64748b;
-    font-size: 0.72rem;
-    font-weight: 500;
-  }
-
-  &:hover {
-    background: #f8fafc;
-  }
 }
 
 .pos-ticket-badge {
@@ -3131,61 +3127,90 @@
   }
 }
 
-.pos-cart__editing {
+.pos-cart__folio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 1.25rem;
+  align-items: end;
+  padding: 0.7rem var(--pos-panel-x) 0.75rem;
+  border-bottom: 1px solid var(--pos-border);
+  background: #f8fafc;
+}
+
+.pos-cart__folio-k,
+.pos-cart__folio-v,
+.pos-cart__folio-sub {
   margin: 0;
-  padding: 0.15rem 0.45rem;
-  border-radius: 999px;
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 0.7rem;
+}
+
+.pos-cart__folio-k {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pos-cart__folio-v {
+  margin-top: 0.08rem;
+  color: #0f172a;
+  font-size: 1.05rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-.pos-cart__advance {
-  margin: 0.35rem 0 0;
-  padding: 0.45rem 0.6rem;
-  border-radius: 8px;
-  background: #eef2ff;
-  color: #3730a3;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
+.pos-cart__folio-sub {
+  margin-top: 0.12rem;
+  color: #475569;
+  font-size: 0.82rem;
 
-.pos-tickets-panel__search {
-  display: block;
-  padding: 0.55rem 0.75rem 0;
+  &.is-short {
+    color: #9a3412;
+    font-weight: 650;
+  }
 
-  input {
-    width: 100%;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 0.4rem 0.55rem;
-    font-size: 0.8rem;
+  &.is-due {
+    color: #0f172a;
+    font-weight: 650;
   }
 }
 
-.pos-tickets-panel__ask {
-  padding: 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
+.pos-cart__folio-money {
+  text-align: right;
+}
+
+.pos-cart__slot-ask {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem var(--pos-panel-x);
+  border-bottom: 1px solid var(--pos-border);
 
   p {
-    margin: 0 0 0.45rem;
-    font-size: 0.8rem;
-    font-weight: 600;
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 650;
+    color: #0f172a;
   }
 
   div {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.35rem;
   }
 
   button {
-    border: 1px solid #e5e7eb;
+    min-width: 2.4rem;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
     background: #fff;
-    padding: 0.35rem 0.6rem;
+    padding: 0.28rem 0.5rem;
     font-weight: 700;
     cursor: pointer;
+
+    &:hover {
+      border-color: #0f172a;
+    }
   }
 }
 
@@ -3483,7 +3508,6 @@
   }
 }
 
-.pos-tickets-panel__note,
 .pos-shortcuts-modal__note {
   margin: 0;
   padding: 0 0.9rem 0.35rem;

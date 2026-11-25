@@ -18,6 +18,10 @@ export interface PosSaleCollection {
   usd_exchange_rate?: number | string;
   amount_transfer_mxn?: number | string;
   transfer_reference?: string | null;
+  transfer_payments?: Array<{
+    amount_mxn?: number | string;
+    reference?: string | null;
+  }>;
   transfer_payer_name?: string | null;
   transfer_payer_business_name?: string | null;
   amount_card_mxn?: number | string;
@@ -41,6 +45,48 @@ export interface PosSaleCollection {
   change_cash_mxn?: number | string;
   change_cash_usd?: number | string;
   collected_at?: string;
+}
+
+export type PosTransferPaymentRow = {
+  amount_mxn: number;
+  reference: string | null;
+};
+
+export function posCollectionTransferRows(
+  pay:
+    | Pick<PosSaleCollection, 'amount_transfer_mxn' | 'transfer_reference' | 'transfer_payments'>
+    | Record<string, unknown>
+    | null
+    | undefined,
+): PosTransferPaymentRow[] {
+  if (!pay) {
+    return [];
+  }
+  const record = pay as Record<string, unknown>;
+  const raw = record['transfer_payments'];
+  if (Array.isArray(raw) && raw.length > 0) {
+    return raw
+      .map((item) => {
+        const row = (item ?? {}) as Record<string, unknown>;
+        return {
+          amount_mxn: Number(row['amount_mxn'] ?? 0),
+          reference:
+            row['reference'] != null && String(row['reference']).trim()
+              ? String(row['reference']).trim()
+              : null,
+        };
+      })
+      .filter((item) => item.amount_mxn > 0);
+  }
+  const amount = Number(record['amount_transfer_mxn'] ?? 0);
+  if (!(amount > 0)) {
+    return [];
+  }
+  const reference =
+    record['transfer_reference'] != null && String(record['transfer_reference']).trim()
+      ? String(record['transfer_reference']).trim()
+      : null;
+  return [{ amount_mxn: amount, reference }];
 }
 
 export type PosCardPaymentRow = {
@@ -231,20 +277,45 @@ export function posCollectionBreakdown(
     groups.push({ tone: 'cash', lines: cashLines, note: null });
   }
 
-  const transfer = readAmount(pay.amount_transfer_mxn);
-  const transferDetails = presentDetails(
-    readText(pay.transfer_reference) ? `ref. ${readText(pay.transfer_reference)}` : '',
+  const transfers = posCollectionTransferRows(pay);
+  const transferWho = presentDetails(
     readText(pay.transfer_payer_name),
     readText(pay.transfer_payer_business_name),
   );
-  if (transfer > 0 || transferDetails.length) {
+  if (transfers.length > 1) {
+    groups.push({
+      tone: 'transfer',
+      lines: transfers.map((transfer, index) => ({
+        title: `Transferencia ${index + 1}`,
+        amount: posCollectionMoneyLabel(transfer.amount_mxn),
+        details: presentDetails(transfer.reference ? `ref. ${transfer.reference}` : ''),
+      })),
+      note: transferWho.length ? transferWho.join(' · ') : null,
+    });
+  } else if (transfers.length === 1) {
+    const transfer = transfers[0];
     groups.push({
       tone: 'transfer',
       lines: [
         {
           title: 'Transferencia',
-          amount: transfer > 0 ? posCollectionMoneyLabel(transfer) : '—',
-          details: transferDetails,
+          amount: posCollectionMoneyLabel(transfer.amount_mxn),
+          details: presentDetails(
+            transfer.reference ? `ref. ${transfer.reference}` : '',
+            ...transferWho,
+          ),
+        },
+      ],
+      note: null,
+    });
+  } else if (transferWho.length) {
+    groups.push({
+      tone: 'transfer',
+      lines: [
+        {
+          title: 'Transferencia',
+          amount: '—',
+          details: transferWho,
         },
       ],
       note: null,

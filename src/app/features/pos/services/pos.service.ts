@@ -43,11 +43,11 @@ import {
 } from '../models/pos-receipt.model';
 
 export interface PosCajaRecallNotice {
-  type: 'recalled';
+  type: 'arrived' | 'recalled';
   id: string;
   kind: 'sale' | 'advance';
   folio: string;
-  recalled_by_name: string;
+  recalled_by_name?: string;
 }
 
 export interface PosSessionInventoryParams {
@@ -925,7 +925,7 @@ export class POSService {
             const chunks = buffer.split('\n\n');
             buffer = chunks.pop() ?? '';
             for (const chunk of chunks) {
-              const notice = this.parseCajaRecallChunk(chunk);
+              const notice = this.parseCajaLiveChunk(chunk);
               if (notice) {
                 subscriber.next(notice);
               }
@@ -949,7 +949,7 @@ export class POSService {
     return sellerUserId ? { seller_user_id: sellerUserId } : {};
   }
 
-  private parseCajaRecallChunk(chunk: string): PosCajaRecallNotice | null {
+  private parseCajaLiveChunk(chunk: string): PosCajaRecallNotice | null {
     const line = chunk
       .split('\n')
       .map((row) => row.trim())
@@ -963,7 +963,7 @@ export class POSService {
     }
     try {
       const parsed = JSON.parse(raw) as PosCajaRecallNotice;
-      if (parsed?.type !== 'recalled' || !parsed.id) {
+      if ((parsed?.type !== 'recalled' && parsed?.type !== 'arrived') || !parsed.id) {
         return null;
       }
       return parsed;

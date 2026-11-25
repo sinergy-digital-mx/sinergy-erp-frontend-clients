@@ -1,8 +1,8 @@
 <section class="pos-folios">
   <header class="pos-folios__head">
     <div>
-      <h2>{{ data.mode === 'caja' ? 'Folios con saldo' : 'Folios' }}</h2>
-      <p>{{ scopeLine() }}</p>
+      <h2>{{ folioTitle() }}</h2>
+      <p>{{ folioHint() }}</p>
     </div>
     <button type="button" class="pos-folios__close" (click)="close()" aria-label="Cerrar">
       <lucide-icon [img]="X" />
@@ -55,65 +55,35 @@
       </div>
     </div>
   } @else {
+    @if (data.mode === 'ventas') {
+      <nav class="pos-folios__intent" aria-label="Qué buscar">
+        <button type="button" [class.is-on]="intent() === 'advance'" (click)="setIntent('advance')">
+          Anticipos
+        </button>
+        <button type="button" [class.is-on]="intent() === 'copy'" (click)="setIntent('copy')">
+          Copiar orden
+        </button>
+      </nav>
+    }
+
     <label class="pos-folios__search">
       <input
         type="search"
-        placeholder="Folio, cliente, empresa, RFC o teléfono"
+        [placeholder]="intent() === 'copy' ? 'Folio o cliente' : 'Folio, cliente, empresa o RFC'"
         [ngModel]="search()"
         (ngModelChange)="onSearch($event)" />
     </label>
 
-    <div class="pos-folios__filters">
-      @if (data.mode === 'ventas') {
-        <fieldset class="pos-folios__facet">
-          <legend>Ver</legend>
-          <label>
-            <input
-              type="radio"
-              name="folio-kind"
-              [checked]="listKind() === 'sale'"
-              (change)="setListKind('sale')" />
-            Ventas
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="folio-kind"
-              [checked]="listKind() === 'quotation'"
-              (change)="setListKind('quotation')" />
-            Cotizaciones
-          </label>
-        </fieldset>
-      }
-      <label class="pos-folios__facet pos-folios__facet--check">
-        <input
-          type="checkbox"
-          [checked]="withAdvance()"
-          (change)="setWithAdvance($any($event.target).checked)" />
-        Con anticipo
-      </label>
-      @if (data.mode === 'ventas' && listKind() === 'sale') {
-        <fieldset class="pos-folios__facet">
-          <legend>Pagadas</legend>
-          <label>
-            <input
-              type="radio"
-              name="folio-paid"
-              [checked]="!showPaid()"
-              (change)="setShowPaid(false)" />
-            Ocultar
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="folio-paid"
-              [checked]="showPaid()"
-              (change)="setShowPaid(true)" />
-            Mostrar
-          </label>
-        </fieldset>
-      }
-    </div>
+    @if (data.mode === 'ventas' && intent() === 'copy') {
+      <nav class="pos-folios__intent pos-folios__intent--sub" aria-label="Tipo de folio">
+        <button type="button" [class.is-on]="listKind() === 'sale'" (click)="setListKind('sale')">
+          Ventas
+        </button>
+        <button type="button" [class.is-on]="listKind() === 'quotation'" (click)="setListKind('quotation')">
+          Cotizaciones
+        </button>
+      </nav>
+    }
 
     @if (notice()) {
       <p>{{ notice() }}</p>
@@ -137,7 +107,7 @@
                 }
               </button>
               @if (row.status) {
-                <span [class]="statusClass(row.status)">{{ row.status }}</span>
+                <span class="pos-folios__quiet">{{ row.status }}</span>
               }
             </div>
             <div class="pos-folios__folio-row">
@@ -152,18 +122,20 @@
                 <lucide-icon [img]="copiedFolio() === row.folio ? Check : Copy" [size]="13" />
               </button>
               @if (row.paymentStatus) {
-                <span [class]="paymentClass(row.paymentStatus)">{{ row.paymentStatus }}</span>
+                <span class="pos-folios__quiet">{{ row.paymentStatus }}</span>
               }
               @if (row.isCredit) {
-                <span class="dt-status-pill dt-status-pill--warning">Crédito</span>
-              }
-              @if (row.hasAdvance) {
-                <span class="pos-folios__advance">Anticipo</span>
+                <span class="pos-folios__quiet">Crédito</span>
               }
               <span class="pos-folios__money">
-                {{ formatMoney(row.total) }}
-                @if (row.pending != null && row.pending < row.total) {
-                  <span>Saldo {{ formatMoney(row.pending) }}</span>
+                @if (intent() === 'advance' && row.advanceRequested) {
+                  {{ formatMoney(row.advanceRequested) }}
+                  <span>Anticipo</span>
+                } @else {
+                  {{ formatMoney(row.total) }}
+                  @if (row.pending != null && row.pending < row.total) {
+                    <span>Saldo {{ formatMoney(row.pending) }}</span>
+                  }
                 }
               </span>
             </div>
@@ -198,7 +170,7 @@
                     class="pos-folios__copy-cart"
                     [disabled]="readingFor() === 'cart' && takingId() === row.id"
                     (click)="takeToCart(row)">
-                    {{ readingFor() === 'cart' && takingId() === row.id ? 'Leyendo…' : 'Copiar a carrito' }}
+                    {{ readingFor() === 'cart' && takingId() === row.id ? 'Leyendo…' : intent() === 'advance' ? 'Continuar' : 'Copiar a carrito' }}
                   </button>
                 } @else {
                   <button type="button" class="pos-folios__copy-cart" (click)="openAbono(row)">Abonar</button>

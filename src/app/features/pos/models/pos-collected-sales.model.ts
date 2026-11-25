@@ -10,6 +10,7 @@ export interface CollectedSalePayment {
   usd_exchange_rate?: number | string;
   amount_transfer_mxn?: number | string;
   transfer_reference?: string | null;
+  transfer_payments?: Array<{ amount_mxn?: number | string; reference?: string | null }>;
   transfer_payer_name?: string | null;
   transfer_payer_business_name?: string | null;
   amount_card_mxn?: number | string;

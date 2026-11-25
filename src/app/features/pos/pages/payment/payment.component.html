@@ -412,7 +412,7 @@
       </main>
     </div>
     } @else {
-    <div class="cobranza-body">
+    <div class="cobranza-body" [class.cobranza-body--board]="queueBoard()">
       <aside class="cobranza-panel cobranza-panel--list">
         @if (dashboardTab() === 'pending') {
           <div class="cobranza-panel__head">
@@ -445,12 +445,13 @@
             } @else if (filteredPendingSales().length === 0) {
               <p class="cobranza-empty">{{ pendingEmptyMessage() }}</p>
             } @else {
-              <ul class="cobranza-sales">
+              <ul class="cobranza-sales" [class.cobranza-sales--grid]="queueBoard()">
                 @for (sale of filteredPendingSales(); track sale.id) {
                   <li>
                     <article
                       class="cobranza-sale"
-                      [class.cobranza-sale--selected]="selectedSale()?.id === sale.id">
+                      [class.cobranza-sale--selected]="selectedSale()?.id === sale.id"
+                      [class.cobranza-sale--fresh]="arrivedIds().includes(sale.id)">
                       <button
                         type="button"
                         class="cobranza-sale__main"
@@ -458,6 +459,9 @@
                         <div class="cobranza-sale__row">
                           <span class="cobranza-sale__identity">
                             <strong>{{ sale.folio || sale.id.substring(0, 8) }}</strong>
+                            @if (arrivedIds().includes(sale.id)) {
+                              <span class="cobranza-badge cobranza-badge--arrive">Llegó</span>
+                            }
                             @if (sale.kind === 'advance') {
                               <span class="cobranza-badge cobranza-badge--advance">Anticipo</span>
                             } @else if (sale.quotation_folio) {
@@ -545,7 +549,7 @@
             } @else if (filteredCollectedSales().length === 0 && !currentShift.advance_payments?.length) {
               <p class="cobranza-empty">No hay ventas cobradas en este corte.</p>
             } @else {
-              <ul class="cobranza-sales">
+              <ul class="cobranza-sales" [class.cobranza-sales--grid]="queueBoard()">
                 @for (item of filteredCollectedSales(); track item.collection_id || item.sales_order?.id) {
                   <li>
                     <article
@@ -635,7 +639,7 @@
         }
       </aside>
 
-      @if (dashboardTab() === 'pending') {
+      @if (dashboardTab() === 'pending' && selectedSale()) {
       <main class="cobranza-panel cobranza-panel--collect">
         @if (selectedSale(); as sale) {
           <div class="cobranza-collect-scroll">
@@ -1542,27 +1546,36 @@
                         </article>
                       }
 
-                      @if (collectForm().mixedUsesTransfer) {
+                      @for (transfer of collectForm().mixedTransferPayments; track $index) {
                         <article class="cobranza-mixed-card cobranza-mixed-card--transfer">
                           <header class="cobranza-mixed-card__head">
                             <div class="cobranza-mixed-card__title">
-                              <span class="cobranza-mixed-card__index">Pago {{ mixedPartIndex('transfer') }}</span>
+                              <span class="cobranza-mixed-card__index">Pago {{ mixedPartIndex(mixedTransferPart($index)) }}</span>
                               <lucide-icon [img]="ArrowRightLeft" [size]="16" />
-                              <h4>Transferencia</h4>
-                              @if (mixedAutoTarget() === 'transfer') {
+                              <h4>
+                                @if (collectForm().mixedTransferPayments.length > 1) {
+                                  Transferencia {{ $index + 1 }}
+                                } @else {
+                                  Transferencia
+                                }
+                              </h4>
+                              @if (mixedAutoTarget() === mixedTransferPart($index)) {
                                 <span class="cobranza-mixed-card__badge">Resto</span>
                               }
                             </div>
                             <div class="cobranza-mixed-card__actions">
                               @if (showMixedFill()) {
-                                <button type="button" class="cobranza-mixed-card__fill" (click)="applyMixedRemainderTo('transfer')">
+                                <button
+                                  type="button"
+                                  class="cobranza-mixed-card__fill"
+                                  (click)="applyMixedRemainderTo(mixedTransferPart($index))">
                                   Completar resto
                                 </button>
                               }
                               <button
                                 type="button"
                                 class="cobranza-mixed-card__remove"
-                                (click)="toggleMixedType('transfer', false)"
+                                (click)="removeMixedTransfer($index)"
                                 aria-label="Quitar transferencia">
                                 <lucide-icon [img]="X" [size]="16" />
                               </button>
@@ -1576,42 +1589,58 @@
                                 min="0"
                                 step="0.01"
                                 placeholder="0.00"
-                                [ngModel]="moneyInputValue(collectForm().mixedTransferMxn)"
-                                (ngModelChange)="onMixedAmountChange('transfer', $event)" />
+                                [ngModel]="moneyInputValue(transfer.amountMxn)"
+                                (ngModelChange)="onMixedTransferAmountChange($index, $event)" />
                             </label>
                             <label class="cobranza-field">
                               <span>Referencia SPEI</span>
                               <input
                                 type="text"
-                                placeholder="SPEI-123456"
-                                [ngModel]="collectForm().mixedTransferRef"
-                                (ngModelChange)="patchCollectForm({ mixedTransferRef: $event })" />
+                                maxlength="120"
+                                placeholder="Folio de rastreo"
+                                [ngModel]="transfer.reference"
+                                (ngModelChange)="onMixedTransferRefChange($index, $event)" />
                             </label>
-                            <div class="cobranza-field-grid cobranza-field-grid--2">
-                              <label class="cobranza-field">
-                                <span>Nombre</span>
-                                <input
-                                  type="text"
-                                  maxlength="120"
-                                  placeholder="Quien transfiere"
-                                  autocomplete="off"
-                                  [ngModel]="collectForm().transferPayerName"
-                                  (ngModelChange)="patchCollectForm({ transferPayerName: $event })" />
-                              </label>
-                              <label class="cobranza-field">
-                                <span>Razón social</span>
-                                <input
-                                  type="text"
-                                  maxlength="180"
-                                  placeholder="Empresa"
-                                  autocomplete="off"
-                                  [ngModel]="collectForm().transferPayerBusinessName"
-                                  (ngModelChange)="patchCollectForm({ transferPayerBusinessName: $event })" />
-                              </label>
-                            </div>
-                            <p class="cobranza-cash-hint">Nombre o razón social. Con uno basta.</p>
+                            @if ($index === 0) {
+                              <div class="cobranza-field-grid cobranza-field-grid--2">
+                                <label class="cobranza-field">
+                                  <span>Nombre</span>
+                                  <input
+                                    type="text"
+                                    maxlength="120"
+                                    placeholder="Quien transfiere"
+                                    autocomplete="off"
+                                    [ngModel]="collectForm().transferPayerName"
+                                    (ngModelChange)="patchCollectForm({ transferPayerName: $event })" />
+                                </label>
+                                <label class="cobranza-field">
+                                  <span>Razón social</span>
+                                  <input
+                                    type="text"
+                                    maxlength="180"
+                                    placeholder="Empresa"
+                                    autocomplete="off"
+                                    [ngModel]="collectForm().transferPayerBusinessName"
+                                    (ngModelChange)="patchCollectForm({ transferPayerBusinessName: $event })" />
+                                </label>
+                              </div>
+                              <p class="cobranza-cash-hint">
+                                @if (collectForm().mixedTransferPayments.length > 1) {
+                                  Nombre o razón social. Se capturan una sola vez para todas las transferencias.
+                                } @else {
+                                  Nombre o razón social. Con uno basta.
+                                }
+                              </p>
+                            }
                           </div>
                         </article>
+                      }
+
+                      @if (canAddMixedTransfer()) {
+                        <button type="button" class="cobranza-mixed__add-card cobranza-mixed__add-card--transfer" (click)="addMixedTransfer()">
+                          <lucide-icon [img]="Plus" [size]="16" />
+                          Agregar otra transferencia
+                        </button>
                       }
 
                       @for (card of collectForm().mixedCardPayments; track $index) {
@@ -1931,7 +1960,7 @@
           </div>
         }
       </main>
-      } @else if (dashboardTab() === 'collected') {
+      } @else if (dashboardTab() === 'collected' && selectedCollectedSale()) {
       <main class="cobranza-panel cobranza-panel--collect">
         @if (selectedCollectedSale(); as item) {
           <div class="cobranza-collect-scroll">
@@ -2024,11 +2053,19 @@
                     @if (pay['usd_exchange_rate'] != null && +pay['usd_exchange_rate'] > 0) {
                       <div><dt>Tipo de cambio</dt><dd>{{ pay['usd_exchange_rate'] }}</dd></div>
                     }
-                    @if (pay['amount_transfer_mxn'] != null && +pay['amount_transfer_mxn'] > 0) {
-                      <div><dt>Transferencia</dt><dd>{{ moneyLabel(pay['amount_transfer_mxn']) }}</dd></div>
-                    }
-                    @if (pay['transfer_reference']) {
-                      <div><dt>Ref. SPEI</dt><dd>{{ pay['transfer_reference'] }}</dd></div>
+                    @if (transferPaymentRows(pay); as transfers) {
+                      @for (transfer of transfers; track $index) {
+                        <div>
+                          <dt>{{ transfers.length > 1 ? 'Transferencia ' + ($index + 1) : 'Transferencia' }}</dt>
+                          <dd>{{ moneyLabel(transfer.amount_mxn) }}</dd>
+                        </div>
+                        @if (transfer.reference) {
+                          <div>
+                            <dt>{{ transfers.length > 1 ? 'Ref. SPEI ' + ($index + 1) : 'Ref. SPEI' }}</dt>
+                            <dd>{{ transfer.reference }}</dd>
+                          </div>
+                        }
+                      }
                     }
                     @if (pay['transfer_payer_name']) {
                       <div><dt>Nombre transferencia</dt><dd>{{ pay['transfer_payer_name'] }}</dd></div>

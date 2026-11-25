@@ -97,9 +97,9 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   readonly razonSocial = signal('');
   readonly copiedFolio = signal('');
   readonly search = signal('');
+  /** Anticipos es el proceso. Copiar orden es la búsqueda aparte. */
+  readonly intent = signal<'advance' | 'copy'>('advance');
   readonly listKind = signal<FolioListKind>('sale');
-  /** Las pagadas no salen hasta que se elige Mostrar. */
-  readonly showPaid = signal(false);
   readonly withAdvance = signal(false);
   readonly takingId = signal('');
   readonly readingFor = signal<'lines' | 'cart' | ''>('');
@@ -132,6 +132,10 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    if (this.data.mode === 'ventas') {
+      this.listKind.set('quotation');
+      this.withAdvance.set(true);
+    }
     this.fiscalConfigs.getFiscalConfiguration(this.data.fiscalConfigurationId).subscribe({
       next: (config) => this.noteCompany(config?.razon_social),
       error: () => undefined,
@@ -151,44 +155,58 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
     return company ? `${this.data.branchLabel} · ${company}` : this.data.branchLabel;
   }
 
+  folioTitle(): string {
+    if (this.data.mode === 'caja') return 'Folios con saldo';
+    return this.intent() === 'copy' ? 'Copiar orden' : 'Anticipos';
+  }
+
+  folioHint(): string {
+    if (this.data.mode === 'caja') return this.scopeLine();
+    if (this.intent() === 'copy') {
+      return 'Busca un folio o un cliente. La copia cobra el precio vigente.';
+    }
+    return `${this.scopeLine()}. Al continuar se elige el carrito.`;
+  }
+
   onSearch(value: string): void {
     this.search.set(value);
     this.search$.next(value);
   }
 
+  setIntent(intent: 'advance' | 'copy'): void {
+    if (this.data.mode === 'caja' || this.intent() === intent) return;
+    this.intent.set(intent);
+    this.openKey.set('');
+    this.cancelAsk();
+    if (intent === 'advance') {
+      this.listKind.set('quotation');
+      this.withAdvance.set(true);
+    } else {
+      this.listKind.set('sale');
+      this.withAdvance.set(false);
+    }
+    this.load();
+  }
+
   setListKind(kind: FolioListKind): void {
-    if (this.data.mode === 'caja' || this.listKind() === kind) return;
+    if (this.data.mode === 'caja' || this.intent() !== 'copy' || this.listKind() === kind) return;
     this.listKind.set(kind);
     this.openKey.set('');
     this.cancelAsk();
     this.load();
   }
 
-  setShowPaid(show: boolean): void {
-    if (this.showPaid() === show) return;
-    this.showPaid.set(show);
-    this.load();
-  }
-
-  setWithAdvance(on: boolean): void {
-    if (this.withAdvance() === on) return;
-    this.withAdvance.set(on);
-    this.load();
-  }
-
   emptyLabel(): string {
-    if (this.search().trim()) return 'Nada coincide con la búsqueda.';
-    const advance = this.withAdvance();
     if (this.data.mode === 'caja') {
-      return advance ? 'No hay órdenes con anticipo y saldo.' : 'No hay órdenes con saldo.';
+      return this.search().trim() ? 'Nada coincide con la búsqueda.' : 'No hay órdenes con saldo.';
     }
-    if (this.listKind() === 'quotation') {
-      return advance ? 'No hay cotizaciones con anticipo.' : 'No hay cotizaciones.';
+    if (this.intent() === 'copy') {
+      if (this.search().trim().length < 2) return 'Escribe un folio o un cliente.';
+      return 'Nada coincide con la búsqueda.';
     }
-    if (advance && !this.showPaid()) return 'No hay ventas con anticipo por cobrar.';
-    if (advance) return 'No hay ventas con anticipo.';
-    if (!this.showPaid()) return 'No hay ventas por cobrar.';
-    return 'No hay ventas.';
+    return this.search().trim()
+      ? 'No hay un anticipo con ese dato.'
+      : 'No hay cotizaciones con anticipo.';
   }
 
   close(): void {
@@ -207,38 +225,6 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       },
       () => this.error.set('No se pudo copiar el folio'),
     );
-  }
-
-  statusClass(status: string): string {
-    switch (status) {
-      case 'Creada':
-        return 'dt-status-pill dt-status-pill--info';
-      case 'En Selección':
-        return 'dt-status-pill dt-status-pill--warning';
-      case 'Lista para entrega':
-      case 'En Camino':
-        return 'dt-status-pill dt-status-pill--sky';
-      case 'Surtida':
-      case 'Convertida':
-        return 'dt-status-pill dt-status-pill--success';
-      case 'Cancelada':
-        return 'dt-status-pill dt-status-pill--danger';
-      default:
-        return 'dt-status-pill dt-status-pill--neutral';
-    }
-  }
-
-  paymentClass(status: string): string {
-    switch (status) {
-      case 'Pagado':
-        return 'dt-status-pill dt-status-pill--success';
-      case 'Parcial':
-        return 'dt-status-pill dt-status-pill--warning';
-      case 'Pendiente':
-        return 'dt-status-pill dt-status-pill--danger';
-      default:
-        return 'dt-status-pill dt-status-pill--neutral';
-    }
   }
 
   formatQty(value: number): string {
@@ -360,7 +346,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       if (!openAdvance) {
         this.takingId.set('');
         this.readingFor.set('');
-        this.error.set('Esa cotización ya es una venta. Búscala en Tickets.');
+        this.error.set('Esa cotización ya es una venta. Ábrela en Copiar orden.');
         return;
       }
       const orderId = header.converted_to_sales_order_id;
@@ -547,6 +533,12 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set('');
     const search = this.search().trim();
+    if (this.data.mode === 'ventas' && this.intent() === 'copy' && search.length < 2) {
+      this.rows.set([]);
+      this.loading.set(false);
+      this.error.set('');
+      return;
+    }
     const branchId = this.data.branchId;
     const fiscalId = this.data.fiscalConfigurationId;
     const filters = {
@@ -555,7 +547,6 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       fiscal_configuration_id: fiscalId,
       ...(this.withAdvance() ? { has_advance: true } : {}),
     };
-    const hidePaid = this.data.mode === 'ventas' && this.listKind() === 'sale' && !this.showPaid();
     const apply = (rows: FolioRow[]) => {
       if (seq !== this.loadSeq) return;
       this.rows.set(rows.filter((row) => row.status !== 'Cancelada'));
@@ -568,7 +559,6 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
           {
             ...filters,
             ...(this.data.mode === 'caja' ? { payment_status: 'Pendiente' as const } : {}),
-            ...(hidePaid ? { exclude_paid: true } : {}),
           },
           { page: 1, limit: this.data.mode === 'caja' ? 40 : 30 },
         )

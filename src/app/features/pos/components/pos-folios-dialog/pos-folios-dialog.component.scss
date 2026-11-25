@@ -32,6 +32,47 @@
   padding: 0.2rem;
 }
 
+.pos-folios__intent {
+  display: flex;
+  gap: 1.15rem;
+  margin: 0.9rem 0 0;
+  border-bottom: 1px solid #e2e8f0;
+
+  button {
+    margin: 0 0 -1px;
+    padding: 0.2rem 0 0.55rem;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #64748b;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 650;
+    cursor: pointer;
+
+    &.is-on {
+      color: #0f172a;
+      border-bottom-color: #0f172a;
+    }
+  }
+
+  &--sub {
+    margin-top: 0.15rem;
+    border-bottom: 0;
+
+    button {
+      padding-top: 0;
+      font-size: 0.8rem;
+    }
+  }
+}
+
+.pos-folios__quiet {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .pos-folios__search {
   display: block;
   margin: 0.85rem 0 0.55rem;

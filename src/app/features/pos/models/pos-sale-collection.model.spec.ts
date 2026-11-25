@@ -71,4 +71,21 @@ describe('posCollectionBreakdown', () => {
     });
     expect(groups[1].lines[0].details).toEqual(['ref. SPEI-99', 'Juan Pérez']);
   });
+
+  it('separa cada transferencia y deja al ordenante una sola vez', () => {
+    const [group] = posCollectionBreakdown({
+      transfer_payments: [
+        { amount_mxn: 300, reference: 'SPEI-1' },
+        { amount_mxn: 500, reference: 'SPEI-2' },
+      ],
+      transfer_payer_name: 'Juan Pérez',
+      transfer_payer_business_name: 'Maderería',
+    });
+
+    expect(group.tone).toBe('transfer');
+    expect(group.lines.map((line) => line.title)).toEqual(['Transferencia 1', 'Transferencia 2']);
+    expect(group.lines[0].details).toEqual(['ref. SPEI-1']);
+    expect(group.lines[1].details).toEqual(['ref. SPEI-2']);
+    expect(group.note).toBe('Juan Pérez · Maderería');
+  });
 });

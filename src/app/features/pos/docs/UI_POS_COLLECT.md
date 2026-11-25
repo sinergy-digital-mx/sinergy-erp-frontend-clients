@@ -53,7 +53,7 @@ El crédito de la razón social es en pesos o en dólares (`credit_currency`). S
 
 En anticipos (`kind: "advance"`) también sale **Mixto**. Crédito no. El desglose es el mismo que en una venta: efectivo, transferencia, tarjeta y/o cheque; mínimo dos. Solo el efectivo de ese mixto entra a caja.
 
-**Regresar a ventas** también sale en el anticipo seleccionado. Misma confirmación y permiso `pos:ReturnToSales`. El folio COT aparece en Tickets de POS Ventas.
+**Regresar a ventas** también sale en el anticipo seleccionado. Misma confirmación y permiso `pos:ReturnToSales`. El folio COT se abre después en Folios de POS Ventas.
 
 Badge **Anticipo** en la lista y en el folio. Debajo del cliente: RFC, razón social, CP y régimen. **Editar RFC** abre la pestaña fiscal. Si el RFC y el tipo de persona no cuadran, aviso con Corregir RFC / Regresar a ventas. El cobro ya no manda 612 sobre un RFC de persona moral.
 

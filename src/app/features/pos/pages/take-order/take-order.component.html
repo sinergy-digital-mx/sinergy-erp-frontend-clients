@@ -6,13 +6,6 @@
           <lucide-icon [img]="User" class="pos-lock-card__icon" />
           <h3>Identifica al vendedor</h3>
           <p>Ingresa el código del vendedor POS para cargar el catálogo y registrar ventas.</p>
-          @if (salesInProgress().length > 0) {
-            <p class="pos-lock-card__tickets">
-              Hay {{ salesInProgress().length }}
-              {{ salesInProgress().length === 1 ? 'ticket' : 'tickets' }}
-              en ventas. Con el código podrás abrirlos.
-            </p>
-          }
           <button type="button" class="pos-btn pos-btn--primary pos-btn--lg" (click)="openSellerCodeDialog()">
             <span>Ingresar código</span>
           </button>
@@ -117,19 +110,6 @@
         </button>
         <button
           type="button"
-          class="pos-session-bar__icon-btn pos-tickets-btn"
-          [class.pos-tickets-btn--active]="salesInProgress().length > 0"
-          (click)="toggleTicketsPanel()"
-          [title]="ticketsBarTitle()"
-          [attr.aria-label]="ticketsBarTitle()">
-          <lucide-icon [img]="Ticket" class="pos-ic pos-ic--btn" />
-          <span class="pos-tickets-btn__label">Tickets</span>
-          @if (salesInProgress().length > 0) {
-            <span class="pos-tickets-btn__badge">{{ salesInProgress().length }}</span>
-          }
-        </button>
-        <button
-          type="button"
           class="pos-session-bar__icon-btn"
           (click)="toggleFullscreen()"
           [attr.aria-label]="isFullscreen() ? 'Salir de pantalla completa' : 'Pantalla completa'"
@@ -155,7 +135,7 @@
                 <span class="pos-caja-modal__count">{{ cajaQueue().length }}</span>
               }
             </div>
-            <p>Abre Información para ver el detalle y regresarla a ventas.</p>
+            <p>{{ expandedCajaTicket() ? 'El detalle usa todo el ancho.' : 'Abre Información para ver los productos y regresarla a ventas.' }}</p>
           </div>
           <div class="pos-caja-modal__tools">
             <button
@@ -172,19 +152,124 @@
             </button>
           </div>
         </header>
-        <div class="pos-caja-modal__body">
+        <div class="pos-caja-modal__body" [class.pos-caja-modal__body--sheet]="expandedCajaTicket()">
           @if (loadingCajaQueue()) {
             <p class="pos-caja-modal__empty"><app-spinner size="sm"></app-spinner></p>
           } @else if (cajaQueue().length === 0) {
             <p class="pos-caja-modal__empty">No hay ventas esperando en caja.</p>
+          } @else if (expandedCajaTicket(); as ticket) {
+            <article class="pos-caja-sheet">
+              <header class="pos-caja-sheet__head">
+                <div>
+                  <p class="pos-caja-sheet__folio">{{ ticket.folio || ticket.id }}</p>
+                  <h3>{{ cajaTicketName(ticket) }}</h3>
+                  <p class="pos-caja-sheet__meta">
+                    {{ cajaProductLabel(ticket) }}
+                    @if (cajaWhen(ticket); as when) {
+                      <span>{{ when }}</span>
+                    }
+                    @if (cajaSellerName(ticket); as seller) {
+                      <span>{{ seller }}</span>
+                    }
+                  </p>
+                </div>
+                <div class="pos-caja-sheet__side">
+                  <p class="pos-caja-sheet__amount">
+                    <strong>{{ cajaMoney(ticket.amount_pending ?? ticket.total ?? 0, ticket) }}</strong>
+                    <span>{{ ticket.kind === 'advance' ? 'Anticipo' : 'Por cobrar' }}</span>
+                  </p>
+                  <button type="button" class="pos-caja-sheet__back" (click)="closeCajaCard()">Ocultar</button>
+                </div>
+              </header>
+              @if (ticket.lines?.length) {
+                <div class="pos-caja-lines pos-caja-lines--sheet">
+                  <div class="pos-caja-lines__head">
+                    <span>Producto</span>
+                    <span>Pieza</span>
+                    <span>Cantidad</span>
+                    <span>Precio</span>
+                    <span>Importe</span>
+                  </div>
+                  <div class="pos-caja-lines__scroll">
+                    @for (line of ticket.lines; track $index) {
+                      <div class="pos-caja-lines__row">
+                        <span class="pos-caja-lines__name">
+                          <strong>{{ line.product_name }}</strong>
+                          @if (priceDiscountPercent(line) > 0) {
+                            <em>−{{ formatPriceDiscount(priceDiscountPercent(line)) }}%</em>
+                          }
+                        </span>
+                        <span class="pos-caja-lines__sku">{{ line.product_sku || '—' }}</span>
+                        <span>{{ formatStock(line.quantity) }} {{ line.uom_name || 'pza' }}</span>
+                        <span class="pos-caja-lines__num">{{ cajaMoney(line.unit_price, ticket) }}</span>
+                        <span class="pos-caja-lines__num pos-caja-lines__num--strong">{{ cajaMoney(line.line_total, ticket) }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <p class="pos-caja-card__hint">Esta venta no trae el detalle de productos.</p>
+              }
+              <footer class="pos-caja-sheet__foot">
+                <dl class="pos-caja-totals">
+                  <div>
+                    <dt>Subtotal</dt>
+                    <dd>{{ cajaMoney(ticket.subtotal ?? 0, ticket) }}</dd>
+                  </div>
+                  @if (cajaHasAmount(ticket.discount_total)) {
+                    <div>
+                      <dt>Descuento</dt>
+                      <dd>{{ cajaMoney(ticket.discount_total, ticket) }}</dd>
+                    </div>
+                  }
+                  @if (cajaHasAmount(ticket.global_discount_amount)) {
+                    <div>
+                      <dt>Desc. global</dt>
+                      <dd>{{ cajaMoney(ticket.global_discount_amount, ticket) }}</dd>
+                    </div>
+                  }
+                  @if (cajaHasAmount(ticket.iva_total)) {
+                    <div>
+                      <dt>IVA</dt>
+                      <dd>{{ cajaMoney(ticket.iva_total, ticket) }}</dd>
+                    </div>
+                  }
+                  @if (cajaHasAmount(ticket.ieps_total)) {
+                    <div>
+                      <dt>IEPS</dt>
+                      <dd>{{ cajaMoney(ticket.ieps_total, ticket) }}</dd>
+                    </div>
+                  }
+                  <div>
+                    <dt>Total</dt>
+                    <dd>{{ cajaMoney(ticket.total ?? 0, ticket) }}</dd>
+                  </div>
+                  <div class="pos-caja-totals__due">
+                    <dt>{{ ticket.kind === 'advance' ? 'Anticipo' : 'Por cobrar' }}</dt>
+                    <dd>{{ cajaMoney(ticket.amount_pending ?? ticket.total ?? 0, ticket) }}</dd>
+                  </div>
+                </dl>
+                <div class="pos-caja-card__actions">
+                  @if (ticket.notes) {
+                    <p class="pos-caja-card__notes">{{ ticket.notes }}</p>
+                  }
+                  <button
+                    type="button"
+                    class="pos-btn pos-btn--accent pos-caja-card__recall"
+                    [disabled]="recallingId() === ticket.id"
+                    (click)="recallCajaTicket(ticket)">
+                    {{ recallingId() === ticket.id ? 'Regresando…' : 'Regresar a ventas' }}
+                  </button>
+                </div>
+              </footer>
+            </article>
           } @else {
             @for (ticket of cajaQueue(); track ticket.id) {
-              <article class="pos-caja-card" [class.pos-caja-card--open]="cajaExpandedId() === ticket.id">
+              <article class="pos-caja-card">
                 <button
                   type="button"
                   class="pos-caja-card__toggle"
-                  [attr.aria-expanded]="cajaExpandedId() === ticket.id"
-                  (click)="toggleCajaCard(ticket.id)">
+                  (click)="openCajaCard(ticket.id)">
                   <span class="pos-caja-card__top">
                     <span class="pos-caja-card__folio">
                       {{ ticket.folio || ticket.id }}
@@ -212,183 +297,16 @@
                       }
                     </span>
                     <span class="pos-caja-card__expand">
-                      {{ cajaExpandedId() === ticket.id ? 'Ocultar' : 'Información' }}
-                      <lucide-icon
-                        [img]="ChevronDown"
-                        [size]="16"
-                        class="pos-caja-card__chevron"
-                        [class.pos-caja-card__chevron--open]="cajaExpandedId() === ticket.id" />
+                      Información
+                      <lucide-icon [img]="ChevronDown" [size]="16" class="pos-caja-card__chevron" />
                     </span>
                   </span>
                 </button>
-                @if (cajaExpandedId() === ticket.id) {
-                  <div class="pos-caja-card__detail">
-                    @if (ticket.lines?.length) {
-                      <div class="pos-caja-lines">
-                        <div class="pos-caja-lines__head">
-                          <span>Producto</span>
-                          <span>Pieza</span>
-                          <span>Cantidad</span>
-                          <span>Precio</span>
-                          <span>Importe</span>
-                        </div>
-                        <div class="pos-caja-lines__scroll">
-                          @for (line of ticket.lines; track $index) {
-                            <div class="pos-caja-lines__row">
-                              <span class="pos-caja-lines__name">
-                                <strong>{{ line.product_name }}</strong>
-                                @if (priceDiscountPercent(line) > 0) {
-                                  <em>−{{ formatPriceDiscount(priceDiscountPercent(line)) }}%</em>
-                                }
-                              </span>
-                              <span class="pos-caja-lines__sku">{{ line.product_sku || '—' }}</span>
-                              <span>{{ formatStock(line.quantity) }} {{ line.uom_name || 'pza' }}</span>
-                              <span class="pos-caja-lines__num">{{ cajaMoney(line.unit_price, ticket) }}</span>
-                              <span class="pos-caja-lines__num pos-caja-lines__num--strong">{{ cajaMoney(line.line_total, ticket) }}</span>
-                            </div>
-                          }
-                        </div>
-                      </div>
-                    } @else {
-                      <p class="pos-caja-card__hint">Esta venta no trae el detalle de productos.</p>
-                    }
-                    <dl class="pos-caja-totals">
-                      <div>
-                        <dt>Subtotal</dt>
-                        <dd>{{ cajaMoney(ticket.subtotal ?? 0, ticket) }}</dd>
-                      </div>
-                      @if (cajaHasAmount(ticket.discount_total)) {
-                        <div>
-                          <dt>Descuento</dt>
-                          <dd>{{ cajaMoney(ticket.discount_total, ticket) }}</dd>
-                        </div>
-                      }
-                      @if (cajaHasAmount(ticket.global_discount_amount)) {
-                        <div>
-                          <dt>Desc. global</dt>
-                          <dd>{{ cajaMoney(ticket.global_discount_amount, ticket) }}</dd>
-                        </div>
-                      }
-                      @if (cajaHasAmount(ticket.iva_total)) {
-                        <div>
-                          <dt>IVA</dt>
-                          <dd>{{ cajaMoney(ticket.iva_total, ticket) }}</dd>
-                        </div>
-                      }
-                      @if (cajaHasAmount(ticket.ieps_total)) {
-                        <div>
-                          <dt>IEPS</dt>
-                          <dd>{{ cajaMoney(ticket.ieps_total, ticket) }}</dd>
-                        </div>
-                      }
-                      <div>
-                        <dt>Total</dt>
-                        <dd>{{ cajaMoney(ticket.total ?? 0, ticket) }}</dd>
-                      </div>
-                      <div class="pos-caja-totals__due">
-                        <dt>{{ ticket.kind === 'advance' ? 'Anticipo' : 'Por cobrar' }}</dt>
-                        <dd>{{ cajaMoney(ticket.amount_pending ?? ticket.total ?? 0, ticket) }}</dd>
-                      </div>
-                    </dl>
-                    <div class="pos-caja-card__actions">
-                      @if (ticket.notes) {
-                        <p class="pos-caja-card__notes">{{ ticket.notes }}</p>
-                      }
-                      <button
-                        type="button"
-                        class="pos-btn pos-btn--accent pos-caja-card__recall"
-                        [disabled]="recallingId() === ticket.id"
-                        (click)="recallCajaTicket(ticket)">
-                        {{ recallingId() === ticket.id ? 'Regresando…' : 'Regresar a ventas' }}
-                      </button>
-                    </div>
-                  </div>
-                }
               </article>
             }
           }
         </div>
       </div>
-    </div>
-  }
-
-  @if (ticketsPanelOpen()) {
-    <div class="pos-tickets-panel" role="dialog" aria-label="Tickets en ventas">
-      <div class="pos-tickets-panel__head">
-        <div>
-          <strong>Tickets en ventas</strong>
-          <p>Ventas que siguen aquí. Lo que ya está en caja se ve en En caja, y de ahí se regresa si hace falta.</p>
-        </div>
-        <div class="pos-tickets-panel__actions">
-          <button
-            type="button"
-            class="pos-tickets-panel__close"
-            (click)="loadSalesInProgress()"
-            [disabled]="loadingTickets()"
-            title="Actualizar"
-            aria-label="Actualizar tickets">
-            <lucide-icon [img]="RefreshCw" [size]="16" [class.pos-tickets-panel__spin]="loadingTickets()" />
-          </button>
-          <button type="button" class="pos-tickets-panel__close" (click)="ticketsPanelOpen.set(false)" aria-label="Cerrar">
-            <lucide-icon [img]="X" [size]="16" />
-          </button>
-        </div>
-      </div>
-      <label class="pos-tickets-panel__search">
-        <input
-          type="search"
-          placeholder="Folio, cotización o cliente"
-          [ngModel]="ticketQuery()"
-          (ngModelChange)="ticketQuery.set($event)"
-        />
-      </label>
-      @if (ticketSlotAsk(); as asked) {
-        <div class="pos-tickets-panel__ask">
-          <p>Enviar {{ asked.folio || asked.id }} a</p>
-          <div>
-            @for (slot of cartSlotBadges(); track slot.id) {
-              <button type="button" (click)="confirmTicketSlot(slot.id)">
-                C{{ slot.id }}@if (slot.count) { · {{ slot.count }} }
-              </button>
-            }
-            <button type="button" (click)="ticketSlotAsk.set(null)">Cancelar</button>
-          </div>
-        </div>
-      }
-      @if (loadingTickets()) {
-        <p class="pos-tickets-panel__empty"><app-spinner size="sm"></app-spinner></p>
-      } @else if (salesInProgress().length === 0) {
-        <p class="pos-tickets-panel__empty">No hay tickets en ventas.</p>
-      } @else {
-        <ul class="pos-tickets-panel__list">
-          @for (ticket of filteredTickets(); track ticket.id) {
-            <li>
-              <button type="button" class="pos-tickets-panel__item" (click)="openReturnedTicket(ticket)">
-                <span>
-                  <strong>
-                    {{ ticket.folio || ticket.id }}
-                    @if (ticket.quotation_folio && ticket.quotation_folio !== ticket.folio) {
-                      · {{ ticket.quotation_folio }}
-                    }
-                    @if (ticket.advance_collected) {
-                      <span class="pos-ticket-badge">Por completar</span>
-                    } @else if (ticket.kind === 'advance') {
-                      <span class="pos-ticket-badge">Anticipo</span>
-                    }
-                  </strong>
-                  <small>
-                    {{ ticketCustomerName(ticket) }}
-                    @if (ticket.advance_collected) {
-                      · Anticipo cobrado
-                    }
-                  </small>
-                </span>
-                <strong>{{ formatCurrency(ticket.kind === 'advance' ? (ticket.amount_pending ?? ticket.total ?? 0) : (ticket.total ?? 0)) }}</strong>
-              </button>
-            </li>
-          }
-        </ul>
-      }
     </div>
   }
 
@@ -739,26 +657,7 @@
         <div class="pos-cart__head-title">
           <lucide-icon [img]="ShoppingCart" class="pos-ic" />
           <h2>{{ cartProductsTabLabel() }}</h2>
-          @if (editingFolio(); as folio) {
-            <span class="pos-cart__editing">{{ folio }}</span>
-          }
-          @if (editingAdvanceCollected()) {
-            <span class="pos-cart__editing">
-              {{ editingQuotationFolio() || editingFolio() }} · Anticipo {{ formatCurrency(editingAdvanceAmount() ?? 0) }}
-            </span>
-          }
         </div>
-        @if (editingAdvanceCollected()) {
-          <p class="pos-cart__advance">
-            @if (advanceGap() > 0.009) {
-              Sobran {{ formatCurrency(advanceGap()) }}. Agrega otro producto.
-            } @else if (advanceGap() < -0.009) {
-              Caja cobra {{ formatCurrency(-advanceGap()) }}.
-            } @else {
-              El anticipo cubre la venta.
-            }
-          </p>
-        }
         @if (!editingSaleId()) {
           <div class="pos-cart__slots" role="tablist" aria-label="Carritos">
             @for (slot of cartSlotBadges(); track slot.id) {
@@ -779,6 +678,52 @@
           </div>
         }
       </div>
+
+      @if (ticketSlotAsk(); as asked) {
+        <div class="pos-cart__slot-ask">
+          <p>{{ asked.folio || asked.id }} · ¿en qué carrito?</p>
+          <div>
+            @for (slot of cartSlotBadges(); track slot.id) {
+              <button type="button" (click)="confirmTicketSlot(slot.id)">
+                C{{ slot.id }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      @if (editingAdvanceCollected()) {
+        <section class="pos-cart__folio" aria-label="Cotización en el carrito">
+          <div>
+            <p class="pos-cart__folio-k">Cotización</p>
+            <p class="pos-cart__folio-v">{{ editingQuotationFolio() || editingFolio() }}</p>
+            @if (editingFolio() && editingQuotationFolio() && editingFolio() !== editingQuotationFolio()) {
+              <p class="pos-cart__folio-sub">Venta {{ editingFolio() }}</p>
+            }
+          </div>
+          <div class="pos-cart__folio-money">
+            <p class="pos-cart__folio-k">Anticipo cobrado</p>
+            <p class="pos-cart__folio-v">{{ formatCurrency(editingAdvanceAmount() ?? 0) }}</p>
+            <p class="pos-cart__folio-sub" [class.is-short]="advanceGap() > 0.009" [class.is-due]="advanceGap() < -0.009">
+              @if (advanceGap() > 0.009) {
+                Sobran {{ formatCurrency(advanceGap()) }}. Agrega otro producto.
+              } @else if (advanceGap() < -0.009) {
+                Caja cobra {{ formatCurrency(-advanceGap()) }}.
+              } @else {
+                El anticipo cubre la venta.
+              }
+            </p>
+          </div>
+        </section>
+      } @else if (editingFolio(); as folio) {
+        <section class="pos-cart__folio" aria-label="Venta en el carrito">
+          <div>
+            <p class="pos-cart__folio-k">Venta</p>
+            <p class="pos-cart__folio-v">{{ folio }}</p>
+          </div>
+          <p class="pos-cart__folio-sub">Lista para enviar a caja.</p>
+        </section>
+      }
 
       <div class="pos-customer">
         <div

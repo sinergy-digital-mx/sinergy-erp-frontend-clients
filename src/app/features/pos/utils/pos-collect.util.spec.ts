@@ -15,6 +15,7 @@ import {
   collectReceivedTotalMxn,
   defaultCollectForm,
   enableMixedCard,
+  enableMixedTransfer,
   fillMixedMethodWithRemainder,
   mixedAppliedTotal,
   mixedRemainderMxn,
@@ -74,7 +75,7 @@ describe('pago mixto — resto automático', () => {
     form = enableMixedCard(form);
     form.mixedCardPayments = [{ amountMxn: 0, reference: '', cardKind: '' }];
     form.mixedCashMxn = 400;
-    form.mixedTransferMxn = 150;
+    form.mixedTransferPayments = [{ amountMxn: 150, reference: 'SPEI-1' }];
 
     form = fillMixedMethodWithRemainder(form, total, 'card:0');
 
@@ -252,8 +253,7 @@ describe('pago mixto — resto automático', () => {
     form.mixedCashUsd = 10;
     form.mixedReceivedUsd = 15;
     form.usdExchangeRate = 20;
-    form.mixedTransferMxn = 600;
-    form.mixedTransferRef = 'SPEI-1';
+    form.mixedTransferPayments = [{ amountMxn: 600, reference: 'SPEI-1' }];
     form.transferPayerName = 'Ana';
 
     expect(mixedAppliedTotal(form)).toBe(1000);
@@ -267,6 +267,51 @@ describe('pago mixto — resto automático', () => {
     expect(payload.received_cash_usd).toBe(15);
     expect(payload.usd_exchange_rate).toBe(20);
     expect(payload.amount_transfer_mxn).toBe(600);
+    expect(payload.transfer_reference).toBe('SPEI-1');
+    expect(payload.transfer_payments).toEqual([{ amount_mxn: 600, reference: 'SPEI-1' }]);
+    expect(payload.transfer_payer_name).toBe('Ana');
+  });
+
+  it('dos transferencias cubren el mixto y el ordenante se envía una sola vez', () => {
+    const total = 900;
+    let form = defaultCollectForm(total);
+    form.paymentMethod = 'mixed';
+    form = enableMixedTransfer(form);
+    expect(form.mixedTransferPayments).toHaveLength(2);
+    expect(mixedSelectedCount(form)).toBe(2);
+
+    form.mixedTransferPayments = [
+      { amountMxn: 400, reference: 'SPEI-1' },
+      { amountMxn: 500, reference: 'SPEI-2' },
+    ];
+    form.transferPayerName = 'Ana López';
+
+    expect(validateCollectForm(form, total)).toBeNull();
+
+    const payload = buildCollectPayload(form, total);
+    expect(payload.payment_method).toBe('mixed');
+    expect(payload.amount_transfer_mxn).toBe(900);
+    expect(payload.transfer_reference).toBe('SPEI-1');
+    expect(payload.transfer_payments).toEqual([
+      { amount_mxn: 400, reference: 'SPEI-1' },
+      { amount_mxn: 500, reference: 'SPEI-2' },
+    ]);
+    expect(payload.transfer_payer_name).toBe('Ana López');
+    expect(payload.transfer_payer_business_name).toBeUndefined();
+  });
+
+  it('no deja repetir la referencia de transferencia en la misma venta', () => {
+    const total = 300;
+    let form = defaultCollectForm(total);
+    form.paymentMethod = 'mixed';
+    form = enableMixedTransfer(form);
+    form.mixedTransferPayments = [
+      { amountMxn: 100, reference: 'SPEI-1' },
+      { amountMxn: 200, reference: ' spei-1 ' },
+    ];
+    form.transferPayerBusinessName = 'Maderería';
+
+    expect(validateCollectForm(form, total)).toBe('La referencia spei-1 está repetida en esta venta');
   });
 
   it('agregar otra tarjeta cuenta como un pago más', () => {

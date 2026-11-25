@@ -247,6 +247,10 @@
   overflow: hidden;
   margin-top: 0.65rem;
   margin-bottom: 0.65rem;
+
+  &--board {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .cobranza-dashboard-tabs {
@@ -700,6 +704,12 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+
+  &--grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    align-content: start;
+  }
 }
 
 .cobranza-sale {
@@ -723,6 +733,11 @@
     border-color: #4f46e5;
     background: linear-gradient(180deg, #faf5ff 0%, #eef2ff 100%);
     box-shadow: 0 2px 8px rgba(79, 70, 229, 0.12);
+  }
+
+  &--fresh {
+    border-color: #059669;
+    background: #ecfdf5;
   }
 
   &__main {
@@ -900,6 +915,11 @@
     background: #ecfdf5;
     color: #047857;
     border: 1px solid #a7f3d0;
+  }
+
+  &--arrive {
+    background: #059669;
+    color: #fff;
   }
 }
 
@@ -1559,6 +1579,21 @@
   &:hover {
     background: #f5f3ff;
     border-color: #8b5cf6;
+  }
+
+  &--transfer {
+    border-color: #93c5fd;
+    background: #f8fbff;
+    color: #1d4ed8;
+
+    lucide-icon {
+      color: #2563eb;
+    }
+
+    &:hover {
+      background: #eff6ff;
+      border-color: #3b82f6;
+    }
   }
 }
 
@@ -2671,6 +2706,10 @@
   .cobranza-body {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(240px, 35vh) minmax(0, 1fr);
+  }
+
+  .cobranza-body--board {
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .cobranza-chrome {

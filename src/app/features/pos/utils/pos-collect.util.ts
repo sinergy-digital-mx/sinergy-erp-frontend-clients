@@ -1,11 +1,12 @@
 export type CollectPaymentMethod = 'cash' | 'card' | 'transfer' | 'check' | 'mixed' | 'credit';
 export type PosCardKind = 'debit' | 'credit';
 export type MixedPaymentType = 'cash' | 'transfer' | 'card' | 'check';
-export type MixedPartId = 'cash' | 'transfer' | 'check' | `card:${number}`;
+export type MixedPartId = 'cash' | 'check' | `transfer:${number}` | `card:${number}`;
 
 export const CASH_MXN_DENOMINATIONS = [1000, 500, 200, 100, 50, 20] as const;
 export const CASH_USD_DENOMINATIONS = [100, 50, 20, 10, 5, 1] as const;
 export const MAX_MIXED_CARD_PAYMENTS = 8;
+export const MAX_MIXED_TRANSFER_PAYMENTS = 8;
 
 export type CashDenominationCounts = Record<string, number>;
 
@@ -13,6 +14,11 @@ export interface MixedCardPayment {
   amountMxn: number;
   reference: string;
   cardKind: PosCardKind | '';
+}
+
+export interface MixedTransferPayment {
+  amountMxn: number;
+  reference: string;
 }
 
 export interface PosCollectForm {
@@ -46,8 +52,7 @@ export interface PosCollectForm {
   mixedCashUsd: number;
   mixedReceivedMxn: number;
   mixedReceivedUsd: number;
-  mixedTransferMxn: number;
-  mixedTransferRef: string;
+  mixedTransferPayments: MixedTransferPayment[];
   mixedCardPayments: MixedCardPayment[];
   mixedCheckMxn: number;
   mixedCheckUsd: number;
@@ -64,6 +69,7 @@ export interface CollectSalePayload {
   received_cash_usd?: number;
   amount_transfer_mxn?: number;
   transfer_reference?: string;
+  transfer_payments?: Array<{ amount_mxn: number; reference: string }>;
   amount_card_mxn?: number;
   card_reference?: string;
   card_kind?: PosCardKind;
@@ -135,8 +141,7 @@ export function defaultCollectForm(orderTotal: number, usdExchangeRate?: number)
     mixedCashUsd: 0,
     mixedReceivedMxn: 0,
     mixedReceivedUsd: 0,
-    mixedTransferMxn: 0,
-    mixedTransferRef: '',
+    mixedTransferPayments: [],
     mixedCardPayments: [],
     mixedCheckMxn: 0,
     mixedCheckUsd: 0,
@@ -338,8 +343,24 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
     if (form.mixedUsesCash && form.mixedCashUsd > 0 && form.usdExchangeRate <= 0) {
       return 'Ingresa tipo de cambio';
     }
-    if (form.mixedUsesTransfer && form.mixedTransferMxn <= 0) {
-      return 'Ingresa el monto de transferencia';
+    if (form.mixedUsesTransfer) {
+      if (form.mixedTransferPayments.length === 0) {
+        return 'Ingresa el monto de transferencia';
+      }
+      if (form.mixedTransferPayments.some((transfer) => transfer.amountMxn <= 0)) {
+        return form.mixedTransferPayments.length > 1
+          ? 'Ingresa el monto de cada transferencia'
+          : 'Ingresa el monto de transferencia';
+      }
+      if (form.mixedTransferPayments.some((transfer) => !transfer.reference.trim())) {
+        return form.mixedTransferPayments.length > 1
+          ? 'Ingresa la referencia de cada transferencia'
+          : 'Ingresa referencia de transferencia';
+      }
+      const repeated = duplicateMixedTransferReference(form.mixedTransferPayments);
+      if (repeated) {
+        return `La referencia ${repeated} está repetida en esta venta`;
+      }
     }
     if (form.mixedUsesCard) {
       if (form.mixedCardPayments.length === 0) {
@@ -367,9 +388,6 @@ export function validateCollectForm(form: PosCollectForm, orderTotal: number): s
     const tolerance = usdLegs > 0 ? usdCentToleranceMxn(form.usdExchangeRate) * usdLegs : 0.01;
     if (Math.abs(paid - orderTotal) > tolerance + 0.001) {
       return `Los montos deben cubrir exactamente ${formatMoney(orderTotal)}`;
-    }
-    if (form.mixedUsesTransfer && !form.mixedTransferRef.trim()) {
-      return 'Ingresa referencia de transferencia';
     }
     if (form.mixedUsesCheck && !form.mixedCheckRef.trim()) {
       return 'Ingresa el número de cheque';
@@ -652,7 +670,8 @@ function buildCollectPayloadBody(
 
   const selected = mixedSelectedMethods(form);
   const cardCount = form.mixedUsesCard ? form.mixedCardPayments.length : 0;
-  if (selected.length === 1 && cardCount <= 1) {
+  const transferCount = form.mixedUsesTransfer ? form.mixedTransferPayments.length : 0;
+  if (selected.length === 1 && cardCount <= 1 && transferCount <= 1) {
     const method = selected[0];
     const single: PosCollectForm = { ...form, paymentMethod: method };
     if (method === 'cash') {
@@ -661,8 +680,8 @@ function buildCollectPayloadBody(
       single.usdExchangeRate = form.usdExchangeRate;
     }
     if (method === 'transfer') {
-      single.amountTransferMxn = form.mixedTransferMxn;
-      single.transferReference = form.mixedTransferRef;
+      single.amountTransferMxn = form.mixedTransferPayments[0]?.amountMxn ?? 0;
+      single.transferReference = form.mixedTransferPayments[0]?.reference ?? '';
     }
     if (method === 'card') {
       single.amountCardMxn = mixedCardTotal(form);
@@ -695,12 +714,7 @@ function buildCollectPayloadBody(
             : {}),
         }
       : {}),
-    ...(form.mixedUsesTransfer
-      ? {
-          amount_transfer_mxn: roundMoney(form.mixedTransferMxn),
-          transfer_reference: form.mixedTransferRef.trim(),
-        }
-      : {}),
+    ...mixedTransferPayload(form),
     ...mixedCardPayload(form),
     ...(form.mixedUsesCheck
       ? {
@@ -733,6 +747,116 @@ function withPayerContact(form: PosCollectForm, payload: CollectSalePayload): Co
     ...(card ? { card_payer_phone: collectPhoneDigits(form.cardPayerPhone) } : {}),
     ...(check && checkName ? { check_payer_name: checkName } : {}),
     ...(check ? { check_payer_phone: collectPhoneDigits(form.checkPayerPhone) } : {}),
+  };
+}
+
+export function emptyMixedTransferPayment(): MixedTransferPayment {
+  return { amountMxn: 0, reference: '' };
+}
+
+export function transferReferenceKey(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+export function duplicateMixedTransferReference(payments: MixedTransferPayment[]): string | null {
+  const seen = new Set<string>();
+  for (const payment of payments) {
+    const key = transferReferenceKey(payment.reference);
+    if (!key) continue;
+    if (seen.has(key)) return payment.reference.trim().replace(/\s+/g, ' ');
+    seen.add(key);
+  }
+  return null;
+}
+
+export function mixedTransferTotal(form: PosCollectForm): number {
+  if (!form.mixedUsesTransfer) {
+    return 0;
+  }
+  return roundMoney(form.mixedTransferPayments.reduce((sum, transfer) => sum + transfer.amountMxn, 0));
+}
+
+function mixedTransferPayload(form: PosCollectForm): Pick<
+  CollectSalePayload,
+  'amount_transfer_mxn' | 'transfer_reference' | 'transfer_payments'
+> {
+  if (!form.mixedUsesTransfer) {
+    return {};
+  }
+  const transfers = form.mixedTransferPayments.filter((transfer) => transfer.amountMxn > 0);
+  const amount = roundMoney(transfers.reduce((sum, transfer) => sum + transfer.amountMxn, 0));
+  const firstRef = transfers.find((transfer) => transfer.reference.trim())?.reference.trim();
+  return {
+    amount_transfer_mxn: amount,
+    ...(firstRef ? { transfer_reference: firstRef } : {}),
+    ...(transfers.length > 0
+      ? {
+          transfer_payments: transfers.map((transfer) => ({
+            amount_mxn: roundMoney(transfer.amountMxn),
+            reference: transfer.reference.trim(),
+          })),
+        }
+      : {}),
+  };
+}
+
+export function setMixedTransferReference(
+  form: PosCollectForm,
+  index: number,
+  reference: string,
+): PosCollectForm {
+  return {
+    ...form,
+    mixedTransferPayments: form.mixedTransferPayments.map((transfer, transferIndex) =>
+      transferIndex === index ? { ...transfer, reference } : transfer,
+    ),
+  };
+}
+
+export function enableMixedTransfer(form: PosCollectForm): PosCollectForm {
+  if (form.mixedUsesTransfer) {
+    return form;
+  }
+  const others =
+    (form.mixedUsesCash ? 1 : 0) +
+    (form.mixedUsesCard ? 1 : 0) +
+    (form.mixedUsesCheck ? 1 : 0);
+  const slots = others === 0 ? 2 : 1;
+  return {
+    ...form,
+    mixedUsesTransfer: true,
+    mixedTransferPayments: Array.from({ length: slots }, () => emptyMixedTransferPayment()),
+  };
+}
+
+export function disableMixedTransfer(form: PosCollectForm): PosCollectForm {
+  return {
+    ...form,
+    mixedUsesTransfer: false,
+    mixedTransferPayments: [],
+  };
+}
+
+export function addMixedTransferPayment(form: PosCollectForm): PosCollectForm {
+  if (!form.mixedUsesTransfer || form.mixedTransferPayments.length >= MAX_MIXED_TRANSFER_PAYMENTS) {
+    return form;
+  }
+  return {
+    ...form,
+    mixedTransferPayments: [...form.mixedTransferPayments, emptyMixedTransferPayment()],
+  };
+}
+
+export function removeMixedTransferPayment(form: PosCollectForm, index: number): PosCollectForm {
+  if (!form.mixedUsesTransfer) {
+    return form;
+  }
+  if (form.mixedTransferPayments.length <= 1) {
+    return disableMixedTransfer(form);
+  }
+  return {
+    ...form,
+    mixedTransferPayments: form.mixedTransferPayments.filter((_, transferIndex) => transferIndex !== index),
   };
 }
 
@@ -799,7 +923,13 @@ export function mixedSelectedMethods(form: PosCollectForm): MixedPaymentType[] {
 export function mixedSelectedParts(form: PosCollectForm): MixedPartId[] {
   const parts: MixedPartId[] = [];
   if (form.mixedUsesCash) parts.push('cash');
-  if (form.mixedUsesTransfer) parts.push('transfer');
+  if (form.mixedUsesTransfer) {
+    const transfers =
+      form.mixedTransferPayments.length > 0
+        ? form.mixedTransferPayments
+        : [emptyMixedTransferPayment()];
+    transfers.forEach((_, index) => parts.push(`transfer:${index}`));
+  }
   if (form.mixedUsesCard) {
     const cards = form.mixedCardPayments.length > 0 ? form.mixedCardPayments : [emptyMixedCardPayment()];
     cards.forEach((_, index) => parts.push(`card:${index}`));
@@ -810,6 +940,14 @@ export function mixedSelectedParts(form: PosCollectForm): MixedPartId[] {
 
 export function mixedSelectedCount(form: PosCollectForm): number {
   return mixedSelectedParts(form).length;
+}
+
+export function parseMixedTransferPart(part: MixedPartId): number | null {
+  if (!part.startsWith('transfer:')) {
+    return null;
+  }
+  const index = Number(part.slice('transfer:'.length));
+  return Number.isInteger(index) && index >= 0 ? index : null;
 }
 
 export function parseMixedCardPart(part: MixedPartId): number | null {
@@ -858,8 +996,9 @@ export function mixedCashAppliedMxn(form: PosCollectForm): number {
 
 export function mixedAmountOf(form: PosCollectForm, part: MixedPartId): number {
   if (part === 'cash') return mixedCashAppliedMxn(form);
-  if (part === 'transfer') return form.mixedTransferMxn;
   if (part === 'check') return mixedCheckAppliedMxn(form);
+  const transferIndex = parseMixedTransferPart(part);
+  if (transferIndex != null) return form.mixedTransferPayments[transferIndex]?.amountMxn ?? 0;
   const index = parseMixedCardPart(part);
   if (index == null) return 0;
   return form.mixedCardPayments[index]?.amountMxn ?? 0;
@@ -876,10 +1015,6 @@ export function setMixedAmount(form: PosCollectForm, part: MixedPartId, amount: 
     }
     return next;
   }
-  if (part === 'transfer') {
-    next.mixedTransferMxn = value;
-    return next;
-  }
   if (part === 'check') {
     if (next.mixedCheckCurrency === 'USD') {
       next.mixedCheckMxn = 0;
@@ -888,6 +1023,13 @@ export function setMixedAmount(form: PosCollectForm, part: MixedPartId, amount: 
     }
     next.mixedCheckMxn = value;
     next.mixedCheckUsd = 0;
+    return next;
+  }
+  const transferIndex = parseMixedTransferPart(part);
+  if (transferIndex != null) {
+    next.mixedTransferPayments = form.mixedTransferPayments.map((transfer, index) =>
+      index === transferIndex ? { ...transfer, amountMxn: value } : transfer,
+    );
     return next;
   }
   const index = parseMixedCardPart(part);
@@ -961,7 +1103,7 @@ export function removeMixedCardPayment(form: PosCollectForm, index: number): Pos
 export function mixedAppliedTotal(form: PosCollectForm): number {
   return roundMoney(
     mixedCashAppliedMxn(form) +
-      (form.mixedUsesTransfer ? form.mixedTransferMxn : 0) +
+      mixedTransferTotal(form) +
       mixedCardTotal(form) +
       mixedCheckAppliedMxn(form),
   );
@@ -1131,15 +1273,16 @@ export function collectAppliedDelta(form: PosCollectForm, orderTotal: number): n
   return roundMoney(collectAppliedTotal(form) - orderTotal);
 }
 
-export function splitMixedPaymentDefault(orderTotal: number): Pick<
-  PosCollectForm,
-  'mixedCashMxn' | 'mixedTransferMxn' | 'mixedReceivedMxn'
-> {
+export function splitMixedPaymentDefault(orderTotal: number): {
+  mixedCashMxn: number;
+  mixedTransferPayments: MixedTransferPayment[];
+  mixedReceivedMxn: number;
+} {
   const cash = roundMoney(orderTotal / 2);
   const transfer = roundMoney(orderTotal - cash);
   return {
     mixedCashMxn: cash,
-    mixedTransferMxn: transfer,
+    mixedTransferPayments: [{ amountMxn: transfer, reference: '' }],
     mixedReceivedMxn: cash,
   };
 }
