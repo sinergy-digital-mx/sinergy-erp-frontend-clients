@@ -9,19 +9,7 @@
     </button>
   </header>
 
-  @if (slotPick(); as pick) {
-    <div class="pos-folios__pick">
-      <p><strong>{{ pick.folio }}</strong> tiene {{ pick.lines.length }} productos. El carrito activo ya tiene productos.</p>
-      <div class="pos-folios__slots">
-        @for (slot of slotsToOffer(); track slot.id) {
-          <button type="button" class="pos-folios__slot" (click)="confirmSlot(slot.id)">
-            {{ slotButtonLabel(slot) }}
-          </button>
-        }
-      </div>
-      <button type="button" class="pos-folios__ghost" (click)="cancelSlot()">Volver</button>
-    </div>
-  } @else if (abonoRow(); as row) {
+  @if (abonoRow(); as row) {
     <div class="pos-folios__abono">
       <p class="pos-folios__abono-title">{{ row.customerName }}</p>
       <p class="pos-folios__abono-folio">{{ row.folio }}</p>
@@ -84,45 +72,98 @@
     } @else {
       <ul class="pos-folios__list">
         @for (row of rows(); track row.key) {
-          <li class="pos-folios__card">
-            <div class="pos-folios__main">
-              <div class="pos-folios__top">
-                <span class="pos-folios__name">{{ row.customerName }}</span>
-                <span class="pos-folios__status">{{ row.status }}</span>
-              </div>
-              <div class="pos-folios__meta">
-                <button type="button" class="pos-folios__folio" (click)="copyFolio(row.folio, $event)">
-                  <lucide-icon [img]="Copy" />
-                  {{ row.folio }}
-                  @if (copiedFolio() === row.folio) {
-                    <span>Copiado</span>
-                  }
-                </button>
-                <span class="pos-folios__tag">{{ kindLabel(row) }}</span>
-                @if (row.paymentStatus) {
-                  <span class="pos-folios__tag">{{ row.paymentStatus }}</span>
-                }
-                @if (row.isCredit) {
-                  <span class="pos-folios__tag">Crédito</span>
-                }
-              </div>
-              <div class="pos-folios__money">
-                {{ formatMoney(row.total) }}
-                @if (row.pending != null) {
-                  <span>Saldo {{ formatMoney(row.pending) }}</span>
-                }
-              </div>
+          <li class="pos-folios__card" [class.is-open]="openKey() === row.key">
+            <div class="pos-folios__top">
+              <button type="button" class="pos-folios__name" (click)="toggleLines(row)">
+                {{ row.customerName }}
+              </button>
+              @if (row.status) {
+                <span [class]="statusClass(row.status)">{{ row.status }}</span>
+              }
             </div>
-            @if (data.mode === 'ventas') {
+            <div class="pos-folios__folio-row">
+              <span class="pos-folios__folio">{{ row.folio }}</span>
               <button
                 type="button"
-                class="pos-folios__go"
-                [disabled]="takingId() === row.id"
-                (click)="takeToCart(row)">
-                {{ takingId() === row.id ? 'Leyendo…' : 'Llevar a carrito' }}
+                class="pos-folios__copy"
+                [class.is-done]="copiedFolio() === row.folio"
+                (click)="copyFolio(row.folio, $event)"
+                [attr.aria-label]="copiedFolio() === row.folio ? 'Copiado' : 'Copiar folio'"
+                [title]="copiedFolio() === row.folio ? 'Copiado' : 'Copiar folio'">
+                <lucide-icon [img]="copiedFolio() === row.folio ? Check : Copy" [size]="13" />
               </button>
+              @if (row.kind === 'quotation') {
+                <span class="dt-status-pill dt-status-pill--info">{{ kindLabel(row) }}</span>
+              }
+              @if (row.paymentStatus) {
+                <span [class]="paymentClass(row.paymentStatus)">{{ row.paymentStatus }}</span>
+              }
+              @if (row.isCredit) {
+                <span class="dt-status-pill dt-status-pill--warning">Crédito</span>
+              }
+              <span class="pos-folios__money">
+                {{ formatMoney(row.total) }}
+                @if (row.pending != null && row.pending < row.total) {
+                  <span>Saldo {{ formatMoney(row.pending) }}</span>
+                }
+              </span>
+            </div>
+            @if (cartAskKey() === row.key && cartAsk(); as pick) {
+              <div class="pos-folios__ask">
+                <span>¿A qué carrito?</span>
+                @for (slot of data.slots; track slot.id) {
+                  <button
+                    type="button"
+                    class="pos-folios__slot"
+                    [class.is-free]="slot.count === 0"
+                    (click)="confirmSlot(slot.id)">
+                    C{{ slot.id }}
+                    <small>{{ slot.count === 0 ? 'Disponible' : 'Reemplaza' }}</small>
+                  </button>
+                }
+                <button type="button" class="pos-folios__ghost" (click)="cancelAsk()">Cancelar</button>
+              </div>
             } @else {
-              <button type="button" class="pos-folios__go" (click)="openAbono(row)">Abonar</button>
+              <div class="pos-folios__actions">
+                <button
+                  type="button"
+                  class="pos-folios__expand"
+                  [attr.aria-expanded]="openKey() === row.key"
+                  (click)="toggleLines(row)">
+                  <lucide-icon [img]="ChevronDown" [size]="14" />
+                  Productos
+                </button>
+                @if (data.mode === 'ventas') {
+                  <button
+                    type="button"
+                    class="pos-folios__copy-cart"
+                    [disabled]="readingFor() === 'cart' && takingId() === row.id"
+                    (click)="takeToCart(row)">
+                    {{ readingFor() === 'cart' && takingId() === row.id ? 'Leyendo…' : 'Copiar a carrito' }}
+                  </button>
+                } @else {
+                  <button type="button" class="pos-folios__copy-cart" (click)="openAbono(row)">Abonar</button>
+                }
+              </div>
+            }
+            @if (openKey() === row.key) {
+              @if (readingFor() === 'lines' && takingId() === row.id && !previewLines(row).length) {
+                <p class="pos-folios__lines-empty">Leyendo productos…</p>
+              } @else if (!previewLines(row).length) {
+                <p class="pos-folios__lines-empty">Sin productos.</p>
+              } @else {
+                <ul class="pos-folios__lines">
+                  @for (line of previewLines(row); track $index) {
+                    <li>
+                      <span>{{ formatQty(line.quantity) }}</span>
+                      {{ line.productName }}
+                      @if (line.uomName) {
+                        <em>{{ line.uomName }}</em>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
             }
           </li>
         }

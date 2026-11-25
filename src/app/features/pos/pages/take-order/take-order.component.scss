@@ -818,6 +818,27 @@
     border-color: #0f172a;
     color: #fff;
   }
+
+  &.is-landed {
+    animation: pos-slot-land 0.9s ease;
+  }
+}
+
+@keyframes pos-slot-land {
+  0% {
+    transform: scale(0.92);
+    box-shadow: 0 0 0 0 rgba(15, 23, 42, 0.28);
+  }
+
+  45% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 6px rgba(15, 23, 42, 0.12);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(15, 23, 42, 0);
+  }
 }
 
 .pos-cart__head-title {

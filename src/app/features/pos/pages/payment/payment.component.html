@@ -14,7 +14,7 @@
       </div>
 
       <nav class="pos-session-bar__meta" aria-label="Sesión POS">
-        <div class="pos-meta" [attr.title]="terminalLabel()">
+        <div class="pos-meta pos-meta--shift">
           @if (posState.checkingShift()) {
             <span class="pos-meta__v">Verificando corte…</span>
           } @else if (requiresPreviousClose() && shift(); as currentShift) {
@@ -24,6 +24,10 @@
           } @else {
             <span class="pos-meta__v pos-meta__v--warn">Corte cerrado</span>
           }
+          <span class="pos-meta__line">
+            <span class="pos-meta__k">Terminal</span>
+            <span class="pos-meta__v">{{ terminalLabel() }}</span>
+          </span>
         </div>
 
         @if (canSwitchBranch()) {

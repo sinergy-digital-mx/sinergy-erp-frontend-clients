@@ -233,8 +233,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   walkInTicketOpen = signal(false);
   walkInRfc = signal('');
   activeCartSlot = signal<PosCartSlotId>(1);
+  readonly landedSlot = signal<PosCartSlotId | null>(null);
   slotsReady = signal(false);
   private repriceToken = 0;
+  private landedTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingGlobalDiscountId: string | null = null;
   readonly hasSelectedCustomer = computed(() => Boolean(this.selectedCustomerId()));
   readonly walkInRfcInvalid = computed(() => !isValidWalkInRfc(this.walkInRfc()));
@@ -570,6 +572,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.landedTimer) clearTimeout(this.landedTimer);
     window.removeEventListener('keydown', this.onWindowKeydown, true);
     this.destroy$.next();
     this.destroy$.complete();
@@ -1108,20 +1111,6 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return true;
   }
 
-  shiftBarTitle(): string {
-    const terminal = this.terminalLabel();
-    if (this.posState.checkingShift()) {
-      return terminal;
-    }
-    if (this.posState.requiresPreviousClose()) {
-      return `${terminal}. Hay un corte de otro día sin cerrar. Caja debe cerrarlo; las ventas quedan en cola.`;
-    }
-    if (this.posState.shiftOpen()) {
-      return `${terminal}. Corte activo. Las ventas van directo a caja.`;
-    }
-    return `${terminal}. Sin corte abierto. Las ventas quedan en cola hasta que caja abra el día.`;
-  }
-
   ticketsBarTitle(): string {
     const count = this.salesInProgress().length;
     if (count <= 0) {
@@ -1324,6 +1313,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       lines: pick.lines,
     });
     this.slotsReady.set(true);
+    this.landedSlot.set(pick.slot);
+    if (this.landedTimer) clearTimeout(this.landedTimer);
+    this.landedTimer = setTimeout(() => this.landedSlot.set(null), 900);
     this.notifyInfo(`${pick.folio} en C${pick.slot}. Se cobra el precio vigente.`, 3500);
   }
 

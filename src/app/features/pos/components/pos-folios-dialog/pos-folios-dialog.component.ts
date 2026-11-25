@@ -2,7 +2,7 @@ import { Component, Inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { LucideAngularModule, Copy, Hash, X } from 'lucide-angular';
+import { LucideAngularModule, Check, ChevronDown, Copy, Hash, X } from 'lucide-angular';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, takeUntil } from 'rxjs/operators';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
@@ -66,7 +66,10 @@ interface FolioRow {
 export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   readonly Hash = Hash;
   readonly Copy = Copy;
+  readonly Check = Check;
+  readonly ChevronDown = ChevronDown;
   readonly X = X;
+  private copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly loading = signal(false);
   readonly error = signal('');
@@ -75,7 +78,11 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   readonly copiedFolio = signal('');
   readonly search = signal('');
   readonly takingId = signal('');
-  readonly slotPick = signal<PosFolioCartPick | null>(null);
+  readonly readingFor = signal<'lines' | 'cart' | ''>('');
+  readonly openKey = signal('');
+  readonly cartAskKey = signal('');
+  readonly cartAsk = signal<PosFolioCartPick | null>(null);
+  readonly previews = signal<Record<string, PosFolioCartPick>>({});
 
   readonly abonoRow = signal<FolioRow | null>(null);
   readonly abonoPending = signal<number | null>(null);
@@ -108,6 +115,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.copiedTimer) clearTimeout(this.copiedTimer);
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -131,13 +139,69 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
     const text = folio.trim();
     if (!text) return;
     navigator.clipboard?.writeText(text).then(
-      () => this.copiedFolio.set(text),
+      () => {
+        this.copiedFolio.set(text);
+        if (this.copiedTimer) clearTimeout(this.copiedTimer);
+        this.copiedTimer = setTimeout(() => this.copiedFolio.set(''), 1200);
+      },
       () => this.error.set('No se pudo copiar el folio'),
     );
   }
 
   kindLabel(row: FolioRow): string {
     return row.kind === 'quotation' ? 'Cotización' : 'Orden';
+  }
+
+  statusClass(status: string): string {
+    switch (status) {
+      case 'Creada':
+        return 'dt-status-pill dt-status-pill--info';
+      case 'En Selección':
+        return 'dt-status-pill dt-status-pill--warning';
+      case 'Lista para entrega':
+      case 'En Camino':
+        return 'dt-status-pill dt-status-pill--sky';
+      case 'Surtida':
+      case 'Convertida':
+        return 'dt-status-pill dt-status-pill--success';
+      case 'Cancelada':
+        return 'dt-status-pill dt-status-pill--danger';
+      default:
+        return 'dt-status-pill dt-status-pill--neutral';
+    }
+  }
+
+  paymentClass(status: string): string {
+    switch (status) {
+      case 'Pagado':
+        return 'dt-status-pill dt-status-pill--success';
+      case 'Parcial':
+        return 'dt-status-pill dt-status-pill--warning';
+      case 'Pendiente':
+        return 'dt-status-pill dt-status-pill--danger';
+      default:
+        return 'dt-status-pill dt-status-pill--neutral';
+    }
+  }
+
+  formatQty(value: number): string {
+    return new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(
+      Number.isFinite(value) ? value : 0,
+    );
+  }
+
+  toggleLines(row: FolioRow): void {
+    if (this.openKey() === row.key) {
+      this.openKey.set('');
+      return;
+    }
+    this.openKey.set(row.key);
+    if (this.previews()[row.key]) return;
+    this.readDetail(row, () => undefined, 'lines');
+  }
+
+  previewLines(row: FolioRow): PosCartSlotLine[] {
+    return this.previews()[row.key]?.lines ?? [];
   }
 
   formatMoney(value: number | null | undefined): string {
@@ -149,11 +213,50 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
 
   takeToCart(row: FolioRow): void {
     if (this.takingId()) return;
-    this.takingId.set(row.id);
     this.error.set('');
-    const onDetail = (detail: unknown) => this.finishPick(row, detail);
+    this.readDetail(row, (pick) => {
+      if (!pick.lines.length) {
+        this.error.set(`${row.folio} no tiene productos para el carrito`);
+        return;
+      }
+      this.cartAsk.set(pick);
+      this.cartAskKey.set(row.key);
+    }, 'cart');
+  }
+
+  confirmSlot(slot: PosCartSlotId): void {
+    const pick = this.cartAsk();
+    if (!pick) return;
+    this.dialogRef.close({ ...pick, slot });
+  }
+
+  cancelAsk(): void {
+    this.cartAsk.set(null);
+    this.cartAskKey.set('');
+  }
+
+  private readDetail(
+    row: FolioRow,
+    done: (pick: PosFolioCartPick) => void,
+    purpose: 'lines' | 'cart',
+  ): void {
+    const cached = this.previews()[row.key];
+    if (cached) {
+      done(cached);
+      return;
+    }
+    this.takingId.set(row.id);
+    this.readingFor.set(purpose);
+    const onDetail = (detail: unknown) => {
+      this.takingId.set('');
+      this.readingFor.set('');
+      const pick = this.pickFromDetail(row, detail);
+      this.previews.update((current) => ({ ...current, [row.key]: pick }));
+      done(pick);
+    };
     const onError = (error: unknown) => {
       this.takingId.set('');
+      this.readingFor.set('');
       this.error.set(resolveHttpErrorMessage(error, 'No se pudo leer el folio'));
     };
     if (row.kind === 'quotation') {
@@ -161,47 +264,6 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       return;
     }
     this.salesOrders.getOrderDetailById(row.id).subscribe({ next: onDetail, error: onError });
-  }
-
-  private finishPick(row: FolioRow, detail: unknown): void {
-    this.takingId.set('');
-    const pick = this.pickFromDetail(row, detail);
-    if (!pick.lines.length) {
-      this.error.set(`${row.folio} no tiene productos para el carrito`);
-      return;
-    }
-    const active = this.data.slots.find((slot) => slot.active) ?? this.data.slots[0];
-    if (!active || active.count === 0) {
-      this.dialogRef.close({ ...pick, slot: active?.id ?? 1 });
-      return;
-    }
-    this.slotPick.set(pick);
-  }
-
-  confirmSlot(slot: PosCartSlotId): void {
-    const pick = this.slotPick();
-    if (!pick) return;
-    this.dialogRef.close({ ...pick, slot });
-  }
-
-  cancelSlot(): void {
-    this.slotPick.set(null);
-  }
-
-  slotButtonLabel(slot: PosFoliosSlotChoice): string {
-    if (slot.count === 0) return `Usar C${slot.id}`;
-    return `Reemplazar C${slot.id}`;
-  }
-
-  slotsToOffer(): PosFoliosSlotChoice[] {
-    const active = this.data.slots.find((slot) => slot.active);
-    const empty = this.data.slots.find((slot) => slot.count === 0);
-    const full = this.data.slots.every((slot) => slot.count > 0);
-    if (full) return this.data.slots;
-    const offered: PosFoliosSlotChoice[] = [];
-    if (active && active.count > 0) offered.push(active);
-    if (empty && empty.id !== active?.id) offered.push(empty);
-    return offered.length ? offered : this.data.slots;
   }
 
   openAbono(row: FolioRow): void {

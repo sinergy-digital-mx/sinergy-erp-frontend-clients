@@ -13,6 +13,8 @@ Fila 2: Cheque · Mixto · Crédito (Crédito solo si el cliente lo tiene en esa
 
 ### 2026-11-24
 
+En el cuadrito de **Corte abierto**, al pasar el cursor sale abajo **Terminal** y su nombre, como estaba. Ya no es el aviso del navegador.
+
 **Folios** en la barra (y Ctrl+Q) lista órdenes con saldo de la sucursal y la razón social de la sesión. **Abonar** registra el pago en la orden y el dinero en el corte abierto. Sin corte abierto no se registra. Los anticipos no entran.
 
 En la barra de caja, el clic en el cuadrito de **Sucursal** abre el cambio. Ya no hace falta el texto Cambiar.

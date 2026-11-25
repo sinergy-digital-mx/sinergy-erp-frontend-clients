@@ -36,7 +36,7 @@
       </div>
 
       <nav class="pos-session-bar__meta" aria-label="Sesión POS">
-        <div class="pos-meta" [attr.title]="shiftBarTitle()">
+        <div class="pos-meta pos-meta--shift">
           @if (posState.checkingShift()) {
             <span class="pos-meta__v">Verificando corte…</span>
           } @else if (posState.requiresPreviousClose()) {
@@ -46,6 +46,10 @@
           } @else {
             <span class="pos-meta__v pos-meta__v--warn">Corte en cola</span>
           }
+          <span class="pos-meta__line">
+            <span class="pos-meta__k">Terminal</span>
+            <span class="pos-meta__v">{{ terminalLabel() }}</span>
+          </span>
         </div>
 
         @if (canSwitchBranch()) {
@@ -683,6 +687,7 @@
                 role="tab"
                 class="pos-cart__slot"
                 [class.is-active]="slot.active"
+                [class.is-landed]="landedSlot() === slot.id"
                 [attr.aria-selected]="slot.active"
                 (click)="switchCartSlot(slot.id)">
                 C{{ slot.id }}
