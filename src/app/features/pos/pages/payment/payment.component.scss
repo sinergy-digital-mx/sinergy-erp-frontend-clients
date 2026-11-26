@@ -11,7 +11,6 @@
   min-height: 0;
   max-height: 100%;
   overflow: hidden;
-  background: #eef2f6;
 }
 
 .cobranza-root > :not(.pos-session-bar):not(.cobranza-chrome) {
@@ -251,7 +250,6 @@
 
   &--board {
     grid-template-columns: minmax(0, 1fr);
-    background: transparent;
   }
 }
 
@@ -520,66 +518,6 @@
   overflow: hidden;
 }
 
-.cobranza-panel--list:has(.cobranza-list-dock) {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  border-radius: 0;
-  gap: 0.75rem;
-  overflow: hidden;
-}
-
-.cobranza-list-dock {
-  flex-shrink: 0;
-  background: #fff;
-  border: 1px solid var(--pos-border);
-  border-radius: 12px;
-  box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.45);
-  overflow: hidden;
-
-  .cobranza-panel__head {
-    border-bottom: 1px solid var(--pos-border);
-  }
-
-  .cobranza-search,
-  .cobranza-queue-filters,
-  .cobranza-collected-summary {
-    margin: 0.75rem 0.85rem;
-  }
-
-  .cobranza-search + .cobranza-queue-filters,
-  .cobranza-collected-summary + .cobranza-search {
-    margin-top: 0;
-  }
-}
-
-.cobranza-panel--list:has(.cobranza-list-dock) .cobranza-panel__content {
-  background: transparent;
-  padding: 0;
-  overflow: hidden;
-}
-
-.cobranza-body--board {
-  .cobranza-panel--list:has(.cobranza-list-dock) {
-    display: grid;
-    grid-template-columns: 22rem minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-    column-gap: 0.75rem;
-    align-items: stretch;
-  }
-
-  .cobranza-list-dock {
-    grid-column: 1;
-    align-self: start;
-  }
-
-  .cobranza-panel__content {
-    grid-column: 2;
-    grid-row: 1;
-    min-height: 0;
-  }
-}
-
 .cobranza-panel__head {
   display: flex;
   align-items: center;
@@ -752,6 +690,8 @@
 .cobranza-sales-scroll {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -765,7 +705,9 @@
 
   &--grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
     align-content: start;
     align-items: stretch;
   }
@@ -783,7 +725,9 @@
     }
 
     .cobranza-sale__customer {
-      min-height: 2.2rem;
+      min-height: 2.35rem;
+      max-height: 2.35rem;
+      overflow: hidden;
     }
 
     .cobranza-sale__customer > span {
@@ -794,8 +738,28 @@
       white-space: nowrap;
     }
 
-    .cobranza-sale__detail {
+    .cobranza-sale__actions {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
       margin-top: auto;
+    }
+
+    .cobranza-sale:not(.cobranza-sale--collected) .cobranza-sale__actions {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.35rem;
+      min-height: 1.85rem;
+      overflow: visible;
+    }
+
+    .cobranza-sale:has(.cobranza-icon-btn:hover) {
+      position: relative;
+      z-index: 3;
+    }
+
+    .cobranza-sale--collected .cobranza-sale__actions {
+      min-height: 6.7rem;
     }
   }
 }
@@ -809,8 +773,7 @@
   border: 1px solid var(--pos-border);
   border-radius: 10px;
   padding: 0.9rem 1.1rem;
-  background: #fff;
-  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.55);
+  background: #f8fafc;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 
   &:hover {
@@ -976,6 +939,77 @@
   }
 }
 
+.cobranza-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  border: 1px solid #e0e7ff;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &::after,
+  &::before {
+    position: absolute;
+    left: 50%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  &::after {
+    content: attr(data-tip);
+    bottom: calc(100% + 7px);
+    transform: translateX(-50%);
+    padding: 0.22rem 0.45rem;
+    border-radius: 6px;
+    background: #312e81;
+    color: #eef2ff;
+    font-size: 0.68rem;
+    font-weight: 650;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  &::before {
+    content: '';
+    bottom: calc(100% + 2px);
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #312e81;
+  }
+
+  &:hover::after,
+  &:hover::before,
+  &:focus-visible::after,
+  &:focus-visible::before {
+    opacity: 1;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: #c7d2fe;
+    background: #eef2ff;
+    color: #4338ca;
+  }
+
+  &.is-on {
+    border-color: #99f6e4;
+    background: #f0fdfa;
+    color: #0f766e;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
 .cobranza-sale__prints {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1035,7 +1069,13 @@
 
   &--card {
     width: 100%;
-    margin: 0.75rem 0 0;
+    margin: 0;
+    padding: 0.5rem 1.25rem;
+    border: 0;
+    border-top: 1px solid #f1f5f9;
+    border-radius: 0;
+    justify-content: flex-start;
+    background: transparent;
   }
 
   &:disabled {
@@ -1101,28 +1141,52 @@
   }
 }
 
+.cobranza-queue-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+
+  .cobranza-search {
+    flex: 1;
+    min-width: 12rem;
+  }
+}
+
 .cobranza-queue-filters {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  flex-wrap: wrap;
+  flex-shrink: 0;
+
+  .cobranza-refresh-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+
+    lucide-icon {
+      width: 14px;
+      height: 14px;
+    }
+  }
 }
 
 .cobranza-queue-kinds {
   display: inline-flex;
-  border: 1px solid #e2e8f0;
+  height: 30px;
+  border: 1px solid #e0e7ff;
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
 
   button {
+    height: 100%;
     border: 0;
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid #e0e7ff;
     background: transparent;
     color: #64748b;
     font-size: 0.72rem;
     font-weight: 650;
-    padding: 0.38rem 0.55rem;
+    padding: 0 0.55rem;
     cursor: pointer;
 
     &:last-child {
@@ -1130,21 +1194,28 @@
     }
 
     &.is-on {
-      background: #0f172a;
-      color: #fff;
+      background: #eef2ff;
+      color: #4338ca;
     }
   }
 }
 
 .cobranza-queue-seller {
-  height: 2rem;
-  border: 1px solid #e2e8f0;
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
+  box-sizing: border-box;
+  border: 1px solid #e0e7ff;
   border-radius: 8px;
-  background: #fff;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 0.4rem center;
   color: #334155;
-  font-size: 0.75rem;
-  padding: 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 28px;
+  padding: 0 1.35rem 0 0.5rem;
   max-width: 11rem;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .cobranza-collect-nav {
@@ -1152,11 +1223,6 @@
   align-items: center;
   gap: 0.55rem;
   min-height: 2.2rem;
-  padding: 0.45rem 0.7rem;
-  background: #fff;
-  border: 1px solid var(--pos-border);
-  border-radius: 12px;
-  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.55);
 
   strong {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -1225,79 +1291,161 @@
   }
 }
 
-.cobranza-ledger {
-  display: grid;
-  gap: 0;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+.cobranza-balance {
   background: #fff;
+  border: 1px solid var(--pos-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   overflow: hidden;
 
   &__fx {
     margin: 0;
-    padding: 0.4rem 0.75rem;
+    padding: 0.45rem 0.9rem;
     border-bottom: 1px solid #f1f5f9;
     font-size: 0.72rem;
     color: #64748b;
   }
 
-  &__head,
-  &__row {
+  &__cols {
     display: grid;
-    grid-template-columns: 5.5rem 1fr 1fr;
-    gap: 0.5rem;
-    align-items: center;
-    padding: 0.4rem 0.75rem;
+    grid-template-columns: 1fr 1fr;
   }
 
-  &__head {
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
+  &__col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.75rem 1rem 0.85rem;
+
+    & + & {
+      border-left: 1px solid #f1f5f9;
+    }
 
     span {
-      font-size: 0.65rem;
+      font-size: 0.68rem;
       font-weight: 700;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       color: #94a3b8;
-      text-align: right;
-    }
-
-    span:first-child {
-      text-align: left;
-    }
-  }
-
-  &__row {
-    border-top: 1px solid #f1f5f9;
-
-    span {
-      font-size: 0.75rem;
-      font-weight: 650;
-      color: #64748b;
     }
 
     strong {
-      font-variant-numeric: tabular-nums;
-      font-size: 0.95rem;
+      font-size: 1.15rem;
       font-weight: 750;
-      text-align: right;
+      font-variant-numeric: tabular-nums;
       color: #0f172a;
+      line-height: 1.2;
+    }
+
+    small {
+      font-size: 0.75rem;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+      color: #64748b;
     }
   }
 
-  &.is-short &__row:first-of-type strong {
+  &.is-short &__col:first-child strong,
+  &.is-short &__col:first-child small {
     color: #9a3412;
+  }
+
+  &.is-change &__col:last-child strong,
+  &.is-change &__col:last-child small {
+    color: #047857;
   }
 }
 
 /* ——— Panel cobro ——— */
+.cobranza-collect-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(15, 23, 42, 0.32);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
 .cobranza-panel--collect {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  border-radius: 0;
+  background: #f8fafc;
   min-height: 0;
+}
+
+.cobranza-panel--drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 71;
+  width: min(72rem, calc(100% - 3.25rem));
+  height: 100dvh;
+  border-radius: 16px 0 0 16px;
+  border-right: 0;
+  box-shadow: -18px 0 48px rgba(15, 23, 42, 0.22);
+}
+
+.cobranza-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0.85rem 0.8rem 1.1rem;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.cobranza-drawer__id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+
+  small {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+    line-height: 1.2;
+  }
+}
+
+.cobranza-drawer__folio {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  min-width: 0;
+
+  strong {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.05rem;
+    font-weight: 750;
+    color: #0f172a;
+  }
+
+  span,
+  time {
+    font-size: 0.78rem;
+    color: #64748b;
+    white-space: nowrap;
+  }
+}
+
+.cobranza-drawer__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
 }
 
 .cobranza-panel__sub {
@@ -1347,7 +1495,7 @@
   border: 1px solid var(--pos-border);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.55);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 
   &__top {
     display: flex;
@@ -1479,7 +1627,7 @@
   border: 1px solid var(--pos-border);
   border-radius: 12px;
   padding: 1rem 1.25rem 1.15rem;
-  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.55);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .cobranza-block__title {
@@ -1495,20 +1643,26 @@
   display: flex;
   align-items: stretch;
   gap: 0.5rem;
-  margin-top: 0.5rem;
+  margin-top: 0;
+}
+
+.cobranza-customer-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 .cobranza-customer-pick {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.45rem;
   margin-top: 0;
-  padding: 0.7rem 0.8rem;
+  padding: 0.32rem 0.6rem;
   border: 1px solid #e0e7ff;
   border-radius: 10px;
   background: #fafbff;
-  cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, box-shadow 0.15s;
   flex: 1;
@@ -1519,14 +1673,27 @@
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
   }
 
+  &__open {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+  }
+
   &__avatar {
     flex-shrink: 0;
-    width: 2.1rem;
-    height: 2.1rem;
+    width: 1.55rem;
+    height: 1.55rem;
     border-radius: 999px;
     background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     color: #fff;
-    font-size: 0.72rem;
+    font-size: 0.62rem;
     font-weight: 700;
     display: inline-flex;
     align-items: center;
@@ -1541,23 +1708,36 @@
     gap: 0.1rem;
   }
 
-  &__label {
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #9ca3af;
-  }
-
   &__name {
-    font-size: 0.82rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 650;
     color: #111827;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    line-height: 1.2;
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.cobranza-credit-badge {
+  align-self: center;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  height: 1.35rem;
+  padding: 0 0.45rem;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.62rem;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: #fef3c7;
+    border-color: #f59e0b;
   }
 }
 
@@ -1566,13 +1746,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  padding: 0 0.85rem;
+  gap: 0.25rem;
+  padding: 0 0.55rem;
   border: 1px solid #e0e7ff;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   color: #4b3e8e;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 700;
   cursor: pointer;
 
@@ -1644,18 +1824,45 @@
   color: #92400e;
 }
 
-.cobranza-stamp__envs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.35rem;
+.cobranza-invoice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 36px;
+  padding: 0.28rem 0.7rem 0.28rem 0.85rem;
+  border: 1px solid #e0e7ff;
+  border-radius: 10px;
+  background: #fafbff;
+
+  &.is-on {
+    border-color: #c4b5fd;
+    background: #f5f3ff;
+  }
+}
+
+.cobranza-invoice__label {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.cobranza-invoice__envs {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  min-width: 0;
 
   button {
-    height: 32px;
+    height: 24px;
+    padding: 0 0.7rem;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    border-radius: 7px;
     background: #fff;
     color: #475569;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 700;
     cursor: pointer;
   }
@@ -1667,10 +1874,48 @@
   }
 }
 
-.cobranza-invoice-hint {
-  margin: 0.35rem 0 0;
-  font-size: 0.72rem;
-  color: #b45309;
+.cobranza-invoice__switch {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 1.125rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.cobranza-invoice__track {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: #d6d3e8;
+  position: relative;
+}
+
+.cobranza-invoice__thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(75, 62, 142, 0.28);
+  transition: transform 160ms ease;
+}
+
+.cobranza-invoice__switch.is-on .cobranza-invoice__track {
+  background: #6b46c1;
+}
+
+.cobranza-invoice__switch.is-on .cobranza-invoice__thumb {
+  transform: translateX(1.5rem);
 }
 
 .cobranza-mixed {
@@ -2901,13 +3146,11 @@
 .cobranza-collect-actions {
   display: flex;
   gap: 0.65rem;
-  padding: 0.7rem 0.85rem;
+  padding: 0.85rem 1rem 1rem;
   background: #fff;
-  border: 1px solid var(--pos-border);
-  border-radius: 12px;
-  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.55);
+  border-top: 1px solid var(--pos-border);
   flex-shrink: 0;
-  margin: 0 0.85rem 0.85rem;
+  margin-top: auto;
 }
 
 .cobranza-action {

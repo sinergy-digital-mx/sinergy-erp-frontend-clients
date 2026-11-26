@@ -26,6 +26,7 @@ import {
 } from '../../models/customer-group.model';
 import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
 import { CustomerAssignmentHistoryComponent } from '../customer-assignment-history/customer-assignment-history.component';
+import { CustomerFiscalCreditsComponent } from '../customer-fiscal-credits/customer-fiscal-credits.component';
 import { TabComponent, TabItem } from '../../../../core/components/tab/tab.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import {
@@ -62,6 +63,7 @@ import {
     TabComponent,
     SlimSwitchComponent,
     CustomerAssignmentHistoryComponent,
+    CustomerFiscalCreditsComponent,
   ],
   templateUrl: './customer-edit-modal.html',
   styleUrls: ['./customer-edit-modal.scss'],
@@ -72,12 +74,19 @@ export class CustomerEditModalComponent {
   update = signal(false);
   selectedGroup = signal<any>(null);
   isCreateMode = signal(false);
-  activeTab = signal<'customer' | 'fiscal' | 'registration'>('customer');
-  readonly tabs: TabItem[] = [
-    { id: 'customer', title: 'Información del Cliente' },
-    { id: 'fiscal', title: 'Información Fiscal' },
-    { id: 'registration', title: 'Registro' }
-  ];
+  activeTab = signal<'customer' | 'fiscal' | 'registration' | 'credit'>('customer');
+
+  get tabs(): TabItem[] {
+    const items: TabItem[] = [
+      { id: 'customer', title: 'Información del Cliente' },
+      { id: 'fiscal', title: 'Información Fiscal' },
+      { id: 'registration', title: 'Registro' },
+    ];
+    if (!this.isCreateMode() && this.data?.customer?.id) {
+      items.push({ id: 'credit', title: 'Crédito' });
+    }
+    return items;
+  }
   registrationFiscals = signal<CustomerRegistrationFiscalOption[]>([]);
   registrationUsers = signal<CustomerRegistrationUserOption[]>([]);
   registrationSellers = signal<CustomerRegistrationSellerOption[]>([]);
@@ -100,7 +109,8 @@ export class CustomerEditModalComponent {
     public dialog_ref: MatDialogRef<CustomerEditModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: {
       customer: Customer | null;
-      initialTab?: 'customer' | 'fiscal' | 'registration';
+      initialTab?: 'customer' | 'fiscal' | 'registration' | 'credit';
+      onlyCredit?: boolean;
     },
     private customerService: CustomerService,
     private interceptor_service: InterceptorService,
@@ -458,7 +468,7 @@ export class CustomerEditModalComponent {
   }
 
   setActiveTab(tab: string): void {
-    if (tab === 'customer' || tab === 'fiscal' || tab === 'registration') {
+    if (tab === 'customer' || tab === 'fiscal' || tab === 'registration' || tab === 'credit') {
       this.activeTab.set(tab);
     }
   }

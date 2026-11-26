@@ -176,7 +176,6 @@ import { catchError, map, retry, switchMap } from 'rxjs/operators';
 import { PosCajaRecallNotice } from '../../services/pos.service';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { Customer } from '../../../customers/models/customer-group.model';
-import { SlimSwitchComponent } from '../../../../core/components/slim-switch/slim-switch.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { CreditUsageBarComponent } from '../../../customers/components/credit-usage-bar/credit-usage-bar.component';
 import { isCustomerCreditEnabled, unwrapCustomerPayload } from '../../../customers/utils/customer-credit.util';
@@ -235,7 +234,7 @@ type DashboardTab = 'pending' | 'collected' | 'shifts';
 @Component({
   selector: 'app-payment',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, SlimSwitchComponent, CreditUsageBarComponent, SpinnerComponent, PosOverlayHostDirective],
+  imports: [CommonModule, FormsModule, LucideAngularModule, CreditUsageBarComponent, SpinnerComponent, PosOverlayHostDirective],
   templateUrl: './payment.component.html',
   styleUrls: ['./payment.component.scss'],
 })
@@ -317,7 +316,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly walkInRfcInvalid = computed(() => this.customerMode() === 'walk_in' && !isValidWalkInRfc(this.walkInRfc()));
   selectedCustomerDetail = signal<Customer | null>(null);
   generateInvoice = signal(false);
-  stampEnvironment = signal<'demo' | 'production'>('demo');
+  stampEnvironment = signal<'demo' | 'production' | null>(null);
   collectError = signal<string | null>(null);
   dailyUsdMxnRate = signal<number | null>(null);
   orderCurrencyChoice = signal<'MXN' | 'USD'>('MXN');
@@ -341,7 +340,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   private unclosedDialogRef: MatDialogRef<UnclosedDailyShiftDialogComponent> | null = null;
 
   readonly queueBoard = computed(() => {
-    if (this.dashboardTab() === 'pending') return !this.selectedSale();
+    if (this.dashboardTab() === 'pending') return true;
     if (this.dashboardTab() === 'collected') return !this.selectedCollectedSale();
     return false;
   });
@@ -593,7 +592,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     return /régimen|regimen|persona moral|persona física/i.test(message);
   }
 
-  readonly invoiceSwitchDisabled = computed(() => !this.fiscalReadyForInvoice());
+  readonly invoiceSwitchDisabled = computed(
+    () => !this.stampEnvironment() || !this.fiscalReadyForInvoice(),
+  );
 
   constructor(
     private posService: POSService,
@@ -650,6 +651,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @HostListener('document:keydown', ['$event'])
   onCajaKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && this.selectedSale() && !this.dialog.openDialogs.length && !this.collecting()) {
+      event.preventDefault();
+      this.clearSelectedSale();
+      return;
+    }
     if (!event.ctrlKey || event.altKey || event.shiftKey || event.metaKey || event.code !== 'KeyQ') {
       return;
     }
@@ -1191,7 +1197,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedCollectedSale.set(null);
     this.collectionDetail.set(null);
     this.selectedSale.set(sale);
-    this.stampEnvironment.set('demo');
+    this.stampEnvironment.set(null);
     this.orderCurrencyChoice.set('MXN');
     this.collectError.set(null);
     const total = this.amountPending(sale);
@@ -1732,7 +1738,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     void this.router.navigate(['/customers/detail', customerId], { queryParams: { tab: 'credit' } });
   }
 
-  openCustomerEditModal(tab: 'customer' | 'fiscal' | 'registration' = 'customer'): void {
+  openCreditBadge(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.openCustomerEditModal('credit', true);
+  }
+
+  openCustomerEditModal(tab: 'customer' | 'fiscal' | 'registration' | 'credit' = 'customer', onlyCredit = false): void {
     const customer = this.selectedCustomerDetail();
     if (!customer) {
       return;
@@ -1740,7 +1752,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dialog
       .open(CustomerEditModalComponent, {
         ...CUSTOMER_FORM_DIALOG_CONFIG,
-        data: { customer, initialTab: this.isAdvanceSale() && tab === 'customer' ? 'fiscal' : tab },
+        data: {
+          customer,
+          initialTab: onlyCredit ? 'credit' : (this.isAdvanceSale() && tab === 'customer' ? 'fiscal' : tab),
+          onlyCredit,
+        },
       })
       .afterClosed()
       .subscribe(() => {
@@ -1760,6 +1776,17 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       if (!confirmed) return;
     }
     this.stampEnvironment.set(environment);
+    if (!this.isAdvanceSale() && this.fiscalReadyForInvoice()) {
+      this.generateInvoice.set(true);
+    }
+  }
+
+  editSelectedCustomer(): void {
+    if (this.customerMode() === 'walk_in' && !this.isAdvanceSale()) {
+      this.walkInTicketOpen.update((open) => !open);
+      return;
+    }
+    this.openCustomerEditModal(this.isAdvanceSale() ? 'fiscal' : 'customer');
   }
 
   onGenerateInvoiceChange(enabled: boolean): void {
@@ -1784,7 +1811,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
           this.selectedCustomerName.set(name);
           this.collectForm.update((form) => this.applyPayerDefaults(form));
           const ready = customer?.fiscal_ready_for_invoice === true;
-          this.generateInvoice.set(ready && customer?.auto_generate_invoice === true);
+          this.generateInvoice.set(ready && !!this.stampEnvironment());
           if (!isCustomerCreditEnabled(customer) && this.collectForm().paymentMethod === 'credit') {
             this.setPaymentMethod('cash');
           } else if (this.collectForm().paymentMethod === 'credit') {
@@ -1855,7 +1882,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
             finkokConfig: null,
             validationIssues: [],
             canStamp: true,
-            initialEnvironment: this.stampEnvironment(),
+            initialEnvironment: this.stampEnvironment() ?? undefined,
           },
         });
         ref.afterClosed().subscribe((result: SalesOrderInvoiceStampDialogResult | undefined) => {
@@ -2043,6 +2070,11 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if ((this.generateInvoice() || this.isAdvanceSale()) && !this.stampEnvironment()) {
+      this.collectError.set('Elige Demo o Producción antes de facturar.');
+      return;
+    }
+
     if (this.customerMode() === 'walk_in' && !isValidWalkInRfc(this.walkInRfc())) {
       this.walkInTicketOpen.set(true);
       this.collectError.set('El RFC debe tener 12 o 13 caracteres');
@@ -2066,10 +2098,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     const payload = {
       ...buildCollectPayload(form, total, customerId, this.documentCurrency()),
       ...(this.customerMode() === 'walk_in' ? this.walkInTicketPayload(form) : {}),
-      ...(this.generateInvoice() && this.customerMode() === 'registered' && this.fiscalReadyForInvoice()
+      ...(this.generateInvoice() && this.stampEnvironment() && this.customerMode() === 'registered' && this.fiscalReadyForInvoice()
         ? { generate_invoice: true }
         : {}),
-      stamp_environment: this.stampEnvironment(),
+      ...(this.stampEnvironment() ? { stamp_environment: this.stampEnvironment() } : {}),
       ...(form.paymentMethod === 'cash'
         ? buildCashBreakdownPayload(
             this.cashBillCounts(),
