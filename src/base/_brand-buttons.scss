@@ -1,33 +1,31 @@
-/// Botones de acción principal — alineados al sidebar (índigo / violeta).
+/// Botón de acción principal: índigo sobrio, degradado apenas perceptible.
 @mixin brand-btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  border: none;
+  gap: 0.4rem;
+  box-sizing: border-box;
+  border: 1px solid #3730a3;
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
   color: #fff;
-  background: linear-gradient(135deg, #4338ca 0%, #6366f1 48%, #7c3aed 100%);
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.32);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
 
   &:hover:not(:disabled) {
-    filter: brightness(1.06);
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.42);
-    transform: translateY(-1px);
+    background: linear-gradient(180deg, #4338ca 0%, #3730a3 100%);
+    border-color: #312e81;
   }
 
   &:active:not(:disabled) {
-    transform: translateY(0);
-    filter: brightness(0.98);
+    background: #3730a3;
   }
 
   &:disabled {
     opacity: 0.55;
     cursor: not-allowed;
-    transform: none;
   }
 }
 
@@ -68,12 +66,14 @@
 // Clase legacy usada con app-button en todo el sistema
 .btn_primary {
   color: #fff !important;
-  background: linear-gradient(135deg, #4338ca 0%, #6366f1 48%, #7c3aed 100%) !important;
-  border: none !important;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.32) !important;
+  background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%) !important;
+  border: 1px solid #3730a3 !important;
+  box-shadow: none !important;
 
   &:hover:not(:disabled) {
-    filter: brightness(1.06);
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.42) !important;
+    background: linear-gradient(180deg, #4338ca 0%, #3730a3 100%) !important;
+    border-color: #312e81 !important;
+    filter: none;
+    box-shadow: none !important;
   }
 }

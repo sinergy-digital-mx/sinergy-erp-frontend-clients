@@ -1,20 +1,20 @@
 {
-  "version": "0.0.203",
-  "buildId": "0.0.203-1795727469267",
-  "builtAt": "2026-11-26T21:11:09.267Z",
+  "version": "0.0.204",
+  "buildId": "0.0.204-1795728586700",
+  "builtAt": "2026-11-26T21:29:46.700Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "Los botones de acción quedaron en 32 px de alto, con texto de 12 px.",
-      "module": "platform",
-      "moduleLabel": "Plataforma"
+      "message": "En el listado del CRM el nombre del cliente se corta al final si no cabe, sin partirse en dos líneas.",
+      "module": "crm",
+      "moduleLabel": "CRM"
     },
     {
       "scope": "frontend",
-      "message": "En el CRM se quitó el subtítulo de seguimiento de todos los usuarios.",
-      "module": "crm",
-      "moduleLabel": "CRM"
+      "message": "El botón principal quedó en índigo sobrio, con un degradado muy leve y el mismo alto que el secundario.",
+      "module": "platform",
+      "moduleLabel": "Plataforma"
     }
   ]
 }

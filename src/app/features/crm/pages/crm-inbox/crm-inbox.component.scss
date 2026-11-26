@@ -298,11 +298,18 @@
   }
 }
 
+.crm-col-customer {
+  width: 18rem;
+  max-width: 18rem;
+}
+
 .crm-party {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.28rem;
+  width: 18rem;
+  max-width: 18rem;
   min-width: 0;
 }
 
@@ -310,6 +317,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
   border: none;
   background: none;
   padding: 0;
@@ -317,6 +326,17 @@
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  lucide-icon {
+    flex-shrink: 0;
+  }
 }
 
 .crm-creator {
