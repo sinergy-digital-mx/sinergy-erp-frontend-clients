@@ -581,7 +581,7 @@
             } @else if (filteredCollectedSales().length === 0 && !currentShift.advance_payments?.length) {
               <p class="cobranza-empty">No hay ventas cobradas en este corte.</p>
             } @else {
-              <ul class="cobranza-sales" [class.cobranza-sales--grid]="queueBoard()">
+              <ul class="cobranza-sales cobranza-sales--even" [class.cobranza-sales--grid]="queueBoard()">
                 @for (item of filteredCollectedSales(); track item.collection_id || item.sales_order?.id) {
                   <li>
                     <article
@@ -601,10 +601,8 @@
                         </div>
                         <div class="cobranza-sale__row cobranza-sale__row--customer">
                           <div class="cobranza-sale__customer">
-                            <span>{{ collectedSaleCustomerLabel(item) }}</span>
-                            @if (collectedSaleCustomerCompany(item)) {
-                              <span class="cobranza-sale__customer-company">{{ collectedSaleCustomerCompany(item) }}</span>
-                            }
+                            <span [title]="collectedSaleCustomerLabel(item)">{{ collectedSaleCustomerLabel(item) }}</span>
+                            <span class="cobranza-sale__customer-company" [title]="collectedSaleCustomerCompany(item) || ''">{{ collectedSaleCustomerCompany(item) }}</span>
                           </div>
                           <lucide-icon [img]="ChevronRight" class="pos-ic pos-ic--xs" />
                         </div>
@@ -616,6 +614,24 @@
                         <lucide-icon [img]="Eye" [size]="14" class="pos-ic pos-ic--xs" />
                         Ver detalle
                       </button>
+                      <div class="cobranza-sale__prints">
+                        <button
+                          type="button"
+                          class="cobranza-print-btn"
+                          [disabled]="!item.sales_order?.id"
+                          (click)="previewTicket(item)">
+                          <lucide-icon [img]="Receipt" [size]="13" />
+                          Ticket
+                        </button>
+                        <button
+                          type="button"
+                          class="cobranza-print-btn"
+                          [disabled]="!item.sales_order?.id"
+                          (click)="previewTicket(item)">
+                          <lucide-icon [img]="FileText" [size]="13" />
+                          Factura
+                        </button>
+                      </div>
                       @if (item.sales_order?.id) {
                         <button
                           type="button"
