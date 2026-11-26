@@ -1885,10 +1885,9 @@
 }
 
 .cobranza-pay-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
-  margin-bottom: 0.85rem;
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
 }
 
 .cobranza-pay-tabs--with-credit {
@@ -1896,20 +1895,23 @@
 }
 
 .cobranza-pay-tab {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  flex: 1 1 0;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 0.28rem;
-  min-height: 58px;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 2.15rem;
   border: 1px solid #e2e8f0;
   background: #fff;
-  padding: 0.5rem 0.4rem;
-  border-radius: 12px;
+  padding: 0.3rem 0.45rem;
+  border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 700;
   color: #64748b;
   cursor: pointer;
+  white-space: nowrap;
   transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
 
   lucide-icon {
@@ -2060,6 +2062,11 @@
   grid-template-columns: 1fr;
   gap: 0.75rem;
   margin-bottom: 0.75rem;
+
+  &.is-split {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
 }
 
 .cobranza-cash-currency__head {
@@ -2991,7 +2998,11 @@
   }
 
   .cobranza-pay-tabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex-wrap: wrap;
+  }
+
+  .cobranza-cash-currencies.is-split {
+    grid-template-columns: 1fr;
   }
 
   .cobranza-field-grid--2 {

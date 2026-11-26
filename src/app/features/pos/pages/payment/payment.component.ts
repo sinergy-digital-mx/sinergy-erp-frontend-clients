@@ -2248,11 +2248,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private openCollectPrintDialog(data: PosCollectPrintDialogData, animateCollected = false): void {
+    const wide = !!(data.invoiceId?.trim() || data.quotationId?.trim());
     const ref = this.dialog.open(PosCollectPrintDialogComponent, {
-      width: '680px',
+      width: wide ? '96vw' : '680px',
+      height: wide ? '94vh' : undefined,
       maxWidth: '96vw',
-      maxHeight: '92vh',
-      panelClass: 'pos-dialog-panel',
+      maxHeight: '94vh',
+      panelClass: wide ? ['pos-dialog-panel', 'pos-print-wide'] : 'pos-dialog-panel',
       autoFocus: false,
       data,
     });

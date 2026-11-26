@@ -975,6 +975,15 @@ main,
   }
 }
 
+.cdk-overlay-pane.pos-print-wide {
+  .mat-mdc-dialog-container,
+  .mat-mdc-dialog-inner-container,
+  .mat-mdc-dialog-surface {
+    height: 100%;
+    max-height: 94vh;
+  }
+}
+
 .cdk-overlay-pane.pos-dialog-panel,
 .mat-mdc-dialog-panel.pos-dialog-panel {
   .mat-mdc-dialog-container {

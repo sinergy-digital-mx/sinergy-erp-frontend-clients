@@ -43,6 +43,9 @@ interface ReceiptPreviewLine extends EscPosPreviewLine {
   imports: [CommonModule, FormsModule, LucideAngularModule, SpinnerComponent],
   templateUrl: './pos-collect-print-dialog.component.html',
   styleUrl: './pos-collect-print-dialog.component.scss',
+  host: {
+    '[class.is-wide]': 'invoiceAvailable()',
+  },
 })
 export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
   private readonly dialogRef = inject(MatDialogRef<PosCollectPrintDialogComponent>);
@@ -85,6 +88,11 @@ export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
   });
 
   readonly showTabs = computed(() => this.ticketAvailable() && this.invoiceAvailable());
+  readonly layout = computed<'both' | 'ticket' | 'invoice'>(() => {
+    if (this.ticketAvailable() && this.invoiceAvailable()) return 'both';
+    if (this.invoiceAvailable()) return 'invoice';
+    return 'ticket';
+  });
 
   private pdfRetried = false;
   private pdfRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -111,7 +119,8 @@ export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
     if (hasTicket) {
       this.loadTicket();
     }
-    if (this.tab() === 'invoice') {
+    this.fitDialog();
+    if (this.invoiceAvailable()) {
       void this.loadPrinters();
     }
   }
@@ -126,6 +135,16 @@ export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
   title(): string {
     const folio = this.data.folio?.trim();
     return folio ? `Imprimir ${folio}` : 'Imprimir';
+  }
+
+  private fitDialog(): void {
+    if (this.invoiceAvailable()) {
+      this.dialogRef.addPanelClass('pos-print-wide');
+      this.dialogRef.updateSize('96vw', '94vh');
+      return;
+    }
+    this.dialogRef.removePanelClass('pos-print-wide');
+    this.dialogRef.updateSize('680px', '');
   }
 
   selectTab(tab: PrintTab): void {
@@ -143,16 +162,31 @@ export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
   }
 
   setCopies(value: number | string): void {
-    const parsed = typeof value === 'number' ? value : Number(value);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
-    const count = clampTicketCopies(parsed);
     if (this.tab() === 'invoice') {
-      this.invoiceCopies.set(count);
-      this.printService.setInvoiceCopies(count);
+      this.setInvoiceCopies(value);
       return;
     }
+    this.setTicketCopies(value);
+  }
+
+  setTicketCopies(value: number | string): void {
+    const count = this.parseCopies(value);
+    if (count == null) return;
     this.ticketCopies.set(count);
     this.printService.setTicketCopies(count);
+  }
+
+  setInvoiceCopies(value: number | string): void {
+    const count = this.parseCopies(value);
+    if (count == null) return;
+    this.invoiceCopies.set(count);
+    this.printService.setInvoiceCopies(count);
+  }
+
+  private parseCopies(value: number | string): number | null {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    return clampTicketCopies(parsed);
   }
 
   changeCopies(delta: number): void {
@@ -272,6 +306,8 @@ export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
         }
         this.invoiceId.set(picked.id);
         this.invoiceAvailable.set(true);
+        this.fitDialog();
+        void this.loadPrinters();
         this.loadPdf();
       },
       error: () => {
@@ -308,6 +344,8 @@ export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
         this.pdfName.set(pdf.fileName);
         this.invoiceLoading.set(false);
         this.invoiceAvailable.set(true);
+        this.fitDialog();
+        void this.loadPrinters();
       },
       error: () => {
         if (this.destroyed) return;
@@ -328,7 +366,7 @@ export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
     this.invoiceError.set('No se pudo cargar el PDF de la factura.');
   }
 
-  private async printTicket(): Promise<void> {
+  async printTicket(): Promise<void> {
     const receipt = this.receipt();
     if (!this.canPrintTicket() || this.printing()) return;
     if (!this.printService.getPrinterName()) {
@@ -346,7 +384,7 @@ export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async printInvoice(): Promise<void> {
+  async printInvoice(): Promise<void> {
     const url = this.pdfUrl();
     if (!url || this.printing()) return;
     if (!this.invoicePrinter().trim()) {

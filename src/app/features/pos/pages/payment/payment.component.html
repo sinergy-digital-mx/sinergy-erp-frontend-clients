@@ -997,9 +997,6 @@
 
               <div class="cobranza-pay-form">
                 @if (collectForm().paymentMethod === 'cash') {
-                  <p class="cobranza-cash-hint">
-                    Elige pesos, dólares o ambas. Toca los billetes o escribe el monto.
-                  </p>
                   <div class="cobranza-cash-mode" role="group" aria-label="Moneda del efectivo">
                     <button
                       type="button"
@@ -1024,7 +1021,7 @@
                     </button>
                   </div>
 
-                  <div class="cobranza-cash-currencies">
+                  <div class="cobranza-cash-currencies" [class.is-split]="cashCurrencyView() === 'both'">
                     @if (cashCurrencyView() !== 'USD') {
                     <section class="cobranza-cash-currency cobranza-cash-currency--mxn">
                       <div class="cobranza-cash-currency__head">
@@ -1922,6 +1919,7 @@
                   </div>
                 }
 
+                @if (canChooseUsdOrder() || hasUsdPayment()) {
                 <section class="cobranza-order-currency">
                   <h3 class="cobranza-block__title">Moneda de la orden</h3>
                   @if (canChooseUsdOrder()) {
@@ -1957,6 +1955,7 @@
                     }
                   }
                 </section>
+                }
 
                 @if (collectError()) {
                   <div class="cobranza-form-error" [class.cobranza-form-error--box]="isAdvanceSale()">
