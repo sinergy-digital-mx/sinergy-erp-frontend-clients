@@ -2544,59 +2544,79 @@
 
 .cobranza-bill-btns {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
 }
 
 .cobranza-bill-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  flex: 0 0 auto;
-  width: auto;
-  gap: 0.28rem;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #475569;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  padding: 0.32rem 0.62rem;
-  border-radius: 999px;
+  padding: 0.48rem 0.15rem;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.08s;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+
+  & + & {
+    border-left: 1px solid #e2e8f0;
+  }
 
   &:hover {
-    border-color: #a5b4fc;
+    background: #f8fafc;
     color: #4338ca;
-    background: #eef2ff;
   }
 
   &:active {
-    transform: scale(0.97);
+    background: #eef2ff;
   }
 
   &--on {
-    border-color: #6366f1;
     background: #eef2ff;
     color: #4338ca;
-    box-shadow: inset 0 0 0 1px #c7d2fe;
+  }
+
+  &--usd:hover,
+  &--usd:active {
+    color: #047857;
+    background: #f0fdf4;
   }
 
   &--usd.cobranza-bill-btn--on {
-    border-color: #34d399;
     background: #ecfdf5;
     color: #047857;
-    box-shadow: inset 0 0 0 1px #a7f3d0;
   }
 
   &__count {
-    min-width: 1.15rem;
-    padding: 0 0.28rem;
+    position: absolute;
+    top: 0.18rem;
+    right: 0.18rem;
+    min-width: 0.9rem;
+    height: 0.9rem;
+    padding: 0 0.16rem;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.85);
-    font-size: 0.68rem;
+    background: #4338ca;
+    color: #fff;
+    font-size: 0.58rem;
     font-weight: 800;
-    line-height: 1.15rem;
+    line-height: 0.9rem;
     text-align: center;
+  }
+
+  &--usd &__count {
+    background: #047857;
   }
 }
 
