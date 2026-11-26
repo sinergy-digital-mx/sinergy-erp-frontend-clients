@@ -1345,6 +1345,29 @@
     }
   }
 
+  &__line {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    em {
+      font-style: normal;
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      padding: 0.16rem 0.32rem;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #4338ca;
+    }
+
+    &--usd em {
+      background: #ecfdf5;
+      color: #047857;
+    }
+  }
+
   &.is-short &__col:first-child strong,
   &.is-short &__col:first-child small {
     color: #9a3412;
@@ -1426,6 +1449,78 @@
     font-size: 0.78rem;
     color: #64748b;
     white-space: nowrap;
+  }
+}
+
+.cobranza-drawer__tools {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.cobranza-drawer__ship {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  height: 1.7rem;
+  padding: 0 0.55rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &.is-on {
+    border-color: #5eead4;
+    background: #f0fdfa;
+    color: #0f766e;
+  }
+
+  &::after,
+  &::before {
+    position: absolute;
+    right: 0;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  &::after {
+    content: attr(data-tip);
+    top: calc(100% + 7px);
+    padding: 0.22rem 0.45rem;
+    border-radius: 6px;
+    background: #312e81;
+    color: #eef2ff;
+    font-size: 0.68rem;
+    font-weight: 650;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  &::before {
+    content: '';
+    top: calc(100% + 2px);
+    right: 0.85rem;
+    border: 5px solid transparent;
+    border-bottom-color: #312e81;
+  }
+
+  &:hover::after,
+  &:hover::before,
+  &:focus-visible::after,
+  &:focus-visible::before {
+    opacity: 1;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
   }
 }
 
@@ -1717,27 +1812,45 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  &__go {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+
+    &:hover {
+      background: #eef2ff;
+      color: #4338ca;
+    }
+  }
 }
 
 .cobranza-credit-badge {
-  align-self: center;
-  position: relative;
-  z-index: 2;
   flex-shrink: 0;
-  height: 1.35rem;
-  padding: 0 0.45rem;
-  border: 1px solid #fcd34d;
-  border-radius: 999px;
-  background: #fffbeb;
+  height: 1.5rem;
+  padding: 0 0.55rem;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  background: #fff;
   color: #92400e;
-  font-size: 0.62rem;
-  font-weight: 750;
+  font-size: 0.68rem;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(146, 64, 14, 0.08);
 
   &:hover {
-    background: #fef3c7;
-    border-color: #f59e0b;
+    background: #fffbeb;
+    border-color: #d97706;
   }
 }
 
@@ -2442,7 +2555,7 @@
 
   &.is-split {
     grid-template-columns: 1fr 1fr;
-    align-items: start;
+    align-items: stretch;
   }
 }
 
@@ -2452,6 +2565,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   min-width: 0;
+  min-height: 1.35rem;
 }
 
 .cobranza-cash-currency__head-actions {
@@ -2491,9 +2605,10 @@
 
 .cobranza-tc-badge {
   flex-shrink: 0;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 800;
-  padding: 0.22rem 0.55rem;
+  line-height: 1.15;
+  padding: 0.08rem 0.4rem;
   border-radius: 999px;
   background: #ecfdf5;
   border: 1px solid #a7f3d0;
@@ -2696,8 +2811,9 @@
   }
 
   &__title {
-    font-size: 0.78rem;
+    font-size: 0.64rem;
     font-weight: 800;
+    line-height: 1.15;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: #334155;

@@ -3154,8 +3154,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   walkInCustomerHint(): string {
-    const label = this.ticketCustomerLabel();
-    return label === 'Público en General' ? 'Público en General · toca para el ticket' : label;
+    return this.ticketCustomerLabel();
   }
 
   ticketCustomerName(ticket: PosSaleInProgress): string {

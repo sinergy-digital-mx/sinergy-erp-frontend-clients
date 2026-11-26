@@ -701,9 +701,24 @@
               </div>
               <small>{{ sellerLabel(sale) }}</small>
             </div>
-            <button type="button" class="cobranza-drawer__close" (click)="clearSelectedSale()" aria-label="Cerrar">
-              <lucide-icon [img]="X" [size]="18" />
-            </button>
+            <div class="cobranza-drawer__tools">
+              @if (!isAdvanceSale(sale)) {
+                <button
+                  type="button"
+                  class="cobranza-drawer__ship"
+                  [class.is-on]="isForShipping(sale.for_shipping)"
+                  [disabled]="shippingBusyId() === sale.id"
+                  [attr.data-tip]="isForShipping(sale.for_shipping) ? 'Ya marcada para envío' : 'Marcar para envío'"
+                  [attr.aria-label]="isForShipping(sale.for_shipping) ? 'Ya marcada para envío' : 'Marcar para envío'"
+                  (click)="togglePendingShipping($event, sale)">
+                  <lucide-icon [img]="Truck" [size]="13" />
+                  Para envío
+                </button>
+              }
+              <button type="button" class="cobranza-drawer__close" (click)="clearSelectedSale()" aria-label="Cerrar">
+                <lucide-icon [img]="X" [size]="18" />
+              </button>
+            </div>
           </header>
           <div class="cobranza-collect-scroll">
             <div class="cobranza-collect-body">
@@ -724,17 +739,6 @@
                   <strong>{{ saleTotal(sale) }}</strong>
                 </div>
               </div>
-              @if (!isAdvanceSale(sale)) {
-                <button
-                  type="button"
-                  class="cobranza-ship-toggle cobranza-ship-toggle--card"
-                  [class.cobranza-ship-toggle--on]="isForShipping(sale.for_shipping)"
-                  [disabled]="shippingBusyId() === sale.id"
-                  (click)="togglePendingShipping($event, sale)">
-                  <lucide-icon [img]="Truck" [size]="16" />
-                  {{ isForShipping(sale.for_shipping) ? 'Para envío' : 'Marcar para envío' }}
-                </button>
-              }
             </section>
 
             <section class="cobranza-block">
@@ -747,18 +751,20 @@
                     <span class="cobranza-customer-pick__body">
                       <span class="cobranza-customer-pick__name">{{ selectedCustomerName() }}</span>
                     </span>
+                  </button>
+                  @if (customerMode() === 'registered' && selectedCustomerDetail() && !showCreditTab() && !isAdvanceSale()) {
+                    <button
+                      type="button"
+                      class="cobranza-credit-badge"
+                      (mousedown)="$event.stopPropagation()"
+                      (click)="openCreditBadge($event)">
+                      Sin crédito
+                    </button>
+                  }
+                  <button type="button" class="cobranza-customer-pick__go" (click)="openCustomerPicker()" aria-label="Cambiar cliente">
                     <lucide-icon [img]="ChevronRight" class="pos-ic pos-ic--sm" />
                   </button>
                 </div>
-                @if (customerMode() === 'registered' && selectedCustomerDetail() && !showCreditTab() && !isAdvanceSale()) {
-                  <button
-                    type="button"
-                    class="cobranza-credit-badge"
-                    (mousedown)="$event.stopPropagation()"
-                    (click)="openCreditBadge($event)">
-                    Sin crédito
-                  </button>
-                }
                 <div class="cobranza-customer-actions">
                   <button
                     type="button"
@@ -1928,13 +1934,25 @@
                 <div class="cobranza-balance__cols">
                   <div class="cobranza-balance__col">
                     <span>Falta</span>
-                    <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
-                    <small>{{ formatCurrencyUsd(cashShortfallUsd()) }}</small>
+                    <div class="cobranza-balance__line">
+                      <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
+                      <em>MXN</em>
+                    </div>
+                    <div class="cobranza-balance__line cobranza-balance__line--usd">
+                      <small>{{ formatCurrencyUsd(cashShortfallUsd()) }}</small>
+                      <em>USD</em>
+                    </div>
                   </div>
                   <div class="cobranza-balance__col">
                     <span>Cambio</span>
-                    <strong>{{ formatCurrency(changeDisplay().mxn) }}</strong>
-                    <small>{{ formatCurrencyUsd(changeDisplay().usd) }}</small>
+                    <div class="cobranza-balance__line">
+                      <strong>{{ formatCurrency(changeDisplay().mxn) }}</strong>
+                      <em>MXN</em>
+                    </div>
+                    <div class="cobranza-balance__line cobranza-balance__line--usd">
+                      <small>{{ formatCurrencyUsd(changeDisplay().usd) }}</small>
+                      <em>USD</em>
+                    </div>
                   </div>
                 </div>
               </section>

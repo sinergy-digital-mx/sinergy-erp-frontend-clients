@@ -928,7 +928,8 @@ main,
 
   .cdk-overlay-container {
     pointer-events: none;
-    z-index: 30;
+    /* El panel de cobro va en 71. Cualquier diálogo del POS queda encima. */
+    z-index: 80;
   }
 
   /* Ventas en caja y atajos van en z-index 80. El confirm tiene que quedar encima. */

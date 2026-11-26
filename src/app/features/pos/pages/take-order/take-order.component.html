@@ -655,7 +655,9 @@
     <aside class="pos-cart">
       <div class="pos-cart__head">
         <div class="pos-cart__head-title">
-          <lucide-icon [img]="ShoppingCart" class="pos-ic" />
+          <span class="pos-cart__mark">
+            <lucide-icon [img]="ShoppingCart" [size]="14" />
+          </span>
           <h2>{{ cartProductsTabLabel() }}</h2>
         </div>
         @if (!editingSaleId()) {
