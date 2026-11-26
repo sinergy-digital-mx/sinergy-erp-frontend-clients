@@ -415,6 +415,7 @@
     <div class="cobranza-body" [class.cobranza-body--board]="queueBoard()">
       <aside class="cobranza-panel cobranza-panel--list">
         @if (dashboardTab() === 'pending') {
+          <div class="cobranza-list-dock">
           <div class="cobranza-panel__head">
             <div class="cobranza-panel__title">
               <h2>Ventas por cobrar</h2>
@@ -427,7 +428,6 @@
             </button>
           </div>
 
-          <div class="cobranza-panel__content">
           <div class="cobranza-search">
             <lucide-icon [img]="Search" class="cobranza-search__icon" />
             <input
@@ -456,7 +456,9 @@
               }
             </select>
           </div>
+          </div>
 
+          <div class="cobranza-panel__content">
           <div class="cobranza-sales-scroll">
             @if (loading()) {
               <p class="cobranza-empty"><app-spinner size="sm"></app-spinner></p>
@@ -544,6 +546,7 @@
           </div>
           </div>
         } @else if (dashboardTab() === 'collected') {
+          <div class="cobranza-list-dock">
           <div class="cobranza-panel__head">
             <div class="cobranza-panel__title">
               <h2>Órdenes cobradas</h2>
@@ -553,7 +556,6 @@
             </button>
           </div>
 
-          <div class="cobranza-panel__content">
           <div class="cobranza-collected-summary">
             <span class="cobranza-collected-summary__icon-wrap" aria-hidden="true">
               <lucide-icon [img]="Receipt" class="cobranza-collected-summary__icon" />
@@ -574,7 +576,9 @@
               (ngModelChange)="searchCollectedFolio.set($event)"
               autocomplete="off" />
           </div>
+          </div>
 
+          <div class="cobranza-panel__content">
           <div class="cobranza-sales-scroll">
             @if (loadingCollected()) {
               <p class="cobranza-empty"><app-spinner size="sm"></app-spinner></p>

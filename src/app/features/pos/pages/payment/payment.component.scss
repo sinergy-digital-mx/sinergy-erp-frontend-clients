@@ -11,6 +11,7 @@
   min-height: 0;
   max-height: 100%;
   overflow: hidden;
+  background: #eef2f6;
 }
 
 .cobranza-root > :not(.pos-session-bar):not(.cobranza-chrome) {
@@ -250,6 +251,7 @@
 
   &--board {
     grid-template-columns: minmax(0, 1fr);
+    background: transparent;
   }
 }
 
@@ -518,6 +520,66 @@
   overflow: hidden;
 }
 
+.cobranza-panel--list:has(.cobranza-list-dock) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.cobranza-list-dock {
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid var(--pos-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.45);
+  overflow: hidden;
+
+  .cobranza-panel__head {
+    border-bottom: 1px solid var(--pos-border);
+  }
+
+  .cobranza-search,
+  .cobranza-queue-filters,
+  .cobranza-collected-summary {
+    margin: 0.75rem 0.85rem;
+  }
+
+  .cobranza-search + .cobranza-queue-filters,
+  .cobranza-collected-summary + .cobranza-search {
+    margin-top: 0;
+  }
+}
+
+.cobranza-panel--list:has(.cobranza-list-dock) .cobranza-panel__content {
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+
+.cobranza-body--board {
+  .cobranza-panel--list:has(.cobranza-list-dock) {
+    display: grid;
+    grid-template-columns: 22rem minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    column-gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .cobranza-list-dock {
+    grid-column: 1;
+    align-self: start;
+  }
+
+  .cobranza-panel__content {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+  }
+}
+
 .cobranza-panel__head {
   display: flex;
   align-items: center;
@@ -747,7 +809,8 @@
   border: 1px solid var(--pos-border);
   border-radius: 10px;
   padding: 0.9rem 1.1rem;
-  background: #f8fafc;
+  background: #fff;
+  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.55);
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 
   &:hover {
@@ -1089,6 +1152,11 @@
   align-items: center;
   gap: 0.55rem;
   min-height: 2.2rem;
+  padding: 0.45rem 0.7rem;
+  background: #fff;
+  border: 1px solid var(--pos-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.55);
 
   strong {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -1225,7 +1293,10 @@
 
 /* ——— Panel cobro ——— */
 .cobranza-panel--collect {
-  background: #f8fafc;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
   min-height: 0;
 }
 
@@ -1276,7 +1347,7 @@
   border: 1px solid var(--pos-border);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.55);
 
   &__top {
     display: flex;
@@ -1408,7 +1479,7 @@
   border: 1px solid var(--pos-border);
   border-radius: 12px;
   padding: 1rem 1.25rem 1.15rem;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.55);
 }
 
 .cobranza-block__title {
@@ -2830,11 +2901,13 @@
 .cobranza-collect-actions {
   display: flex;
   gap: 0.65rem;
-  padding: 0.85rem 1rem 1rem;
+  padding: 0.7rem 0.85rem;
   background: #fff;
-  border-top: 1px solid var(--pos-border);
+  border: 1px solid var(--pos-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.55);
   flex-shrink: 0;
-  margin-top: auto;
+  margin: 0 0.85rem 0.85rem;
 }
 
 .cobranza-action {
