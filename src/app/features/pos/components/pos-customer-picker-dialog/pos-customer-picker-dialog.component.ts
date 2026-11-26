@@ -1,4 +1,14 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  OnInit,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -22,7 +32,7 @@ export interface PosCustomerPickerDialogResult {
   templateUrl: './pos-customer-picker-dialog.component.html',
   styleUrls: ['./pos-customer-picker-dialog.component.scss'],
 })
-export class PosCustomerPickerDialogComponent implements OnInit {
+export class PosCustomerPickerDialogComponent implements OnInit, AfterViewInit {
   private readonly dialogRef = inject(MatDialogRef<PosCustomerPickerDialogComponent, PosCustomerPickerDialogResult>);
   readonly data = inject<PosCustomerPickerDialogData>(MAT_DIALOG_DATA);
   private readonly customerService = inject(CustomerService);
@@ -32,10 +42,14 @@ export class PosCustomerPickerDialogComponent implements OnInit {
   readonly Check = Check;
   readonly String = String;
 
+  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('customerList') customerList?: ElementRef<HTMLElement>;
+
   customers = signal<any[]>([]);
   customerSearch = signal('');
   loadingCustomers = signal(false);
   selectedCustomerId = signal('');
+  highlightIndex = signal(0);
 
   readonly filteredCustomers = computed(() => {
     const term = this.customerSearch().trim().toLowerCase();
@@ -51,6 +65,34 @@ export class PosCustomerPickerDialogComponent implements OnInit {
     this.loadCustomers();
   }
 
+  ngAfterViewInit(): void {
+    this.focusSearch();
+  }
+
+  @HostListener('keydown', ['$event'])
+  onDialogKeydown(event: KeyboardEvent): void {
+    const list = this.filteredCustomers();
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (!list.length) return;
+      this.highlightIndex.update((index) => Math.min(index + 1, list.length - 1));
+      this.scrollHighlighted();
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!list.length) return;
+      this.highlightIndex.update((index) => Math.max(index - 1, 0));
+      this.scrollHighlighted();
+      return;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const customer = list[this.highlightIndex()];
+      if (customer) this.selectCustomer(String(customer.id));
+    }
+  }
+
   private loadCustomers(search = ''): void {
     this.loadingCustomers.set(true);
     const params: Record<string, string | number> = { limit: 100 };
@@ -61,7 +103,9 @@ export class PosCustomerPickerDialogComponent implements OnInit {
       next: (customers) => {
         const list = Array.isArray(customers) ? customers : (customers as any)?.data || [];
         this.customers.set(list);
+        this.highlightIndex.set(0);
         this.loadingCustomers.set(false);
+        this.focusSearch();
       },
       error: () => {
         this.customers.set([]);
@@ -71,6 +115,7 @@ export class PosCustomerPickerDialogComponent implements OnInit {
   }
 
   onSearchChange(term: string): void {
+    this.highlightIndex.set(0);
     this.customerSearch.set(term);
     if (term.trim().length >= 2) {
       this.loadCustomers(term);
@@ -101,6 +146,17 @@ export class PosCustomerPickerDialogComponent implements OnInit {
       return parts ? `${parts} · ${customer.company_name}` : customer.company_name;
     }
     return parts || customer.email || 'Cliente';
+  }
+
+  private focusSearch(): void {
+    queueMicrotask(() => this.searchInput?.nativeElement.focus());
+  }
+
+  private scrollHighlighted(): void {
+    queueMicrotask(() => {
+      const row = this.customerList?.nativeElement.querySelector('.customer-row--active');
+      row?.scrollIntoView({ block: 'nearest' });
+    });
   }
 
   customerInitials(customer: any): string {

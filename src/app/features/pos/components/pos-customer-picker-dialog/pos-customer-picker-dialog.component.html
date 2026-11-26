@@ -14,6 +14,7 @@
     <div class="search-field">
       <lucide-icon [img]="Search" class="search-field__icon" />
       <input
+        #searchInput
         id="pos-customer-search"
         class="pos-customer-search__input"
         type="search"
@@ -44,17 +45,18 @@
 
     <p class="list-label">Clientes registrados</p>
 
-    <div class="customer-list">
+    <div #customerList class="customer-list">
       @if (loadingCustomers()) {
         <p class="customer-list__empty"><app-spinner></app-spinner></p>
       } @else if (filteredCustomers().length === 0) {
         <p class="customer-list__empty">No hay clientes que coincidan con la búsqueda</p>
       } @else {
-        @for (customer of filteredCustomers(); track customer.id) {
+        @for (customer of filteredCustomers(); track customer.id; let i = $index) {
           <button
             type="button"
             class="customer-row"
             [class.customer-row--selected]="selectedCustomerId() === String(customer.id)"
+            [class.customer-row--active]="highlightIndex() === i"
             (click)="selectCustomer(String(customer.id))">
             <span class="customer-row__avatar">{{ customerInitials(customer) }}</span>
             <span class="customer-row__info">

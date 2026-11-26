@@ -22,6 +22,8 @@ import {
   truckUsageTitle,
 } from '../../models/truck.model';
 import { TruckService } from '../../services/truck.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { operatorTruckQuery, userHasAssignedBranches } from '../../utils/truck-branch-scope.util';
 import { TruckFormModalComponent } from '../../components/truck-form-modal/truck-form-modal.component';
 
 @Component({
@@ -68,6 +70,7 @@ export class TrucksListComponent implements OnDestroy {
 
   search = '';
   onlyActive = true;
+  onlyMyBranches = true;
   private destroy$ = new Subject<void>();
   private searchTimer?: ReturnType<typeof setTimeout>;
   private lastQueryParams = '';
@@ -76,6 +79,7 @@ export class TrucksListComponent implements OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private truckService: TruckService,
+    private auth: AuthService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {
@@ -131,7 +135,11 @@ export class TrucksListComponent implements OnDestroy {
     const normalizedSearch = this.search?.trim();
     if (normalizedSearch) params.search = normalizedSearch;
     if (this.onlyActive) params.status = 'active';
-    return params;
+    return operatorTruckQuery(this.auth, !this.onlyMyBranches, params);
+  }
+
+  get showBranchScope(): boolean {
+    return userHasAssignedBranches(this.auth);
   }
 
   private applyResponse(res: {
@@ -192,6 +200,11 @@ export class TrucksListComponent implements OnDestroy {
     this.searchTimer = setTimeout(() => {
       this.syncQuery({ page: 1, search: value.trim() || undefined });
     }, 400);
+  }
+
+  onOnlyMyBranchesChange(checked: boolean): void {
+    this.onlyMyBranches = checked;
+    this.reload();
   }
 
   onOnlyActiveChange(checked: boolean): void {

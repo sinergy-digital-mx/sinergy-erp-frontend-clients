@@ -1156,11 +1156,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   confirmTicketSlot(slot: PosCartSlotId): void {
     const ticket = this.ticketSlotAsk();
     if (!ticket) return;
+    const kept = this.captureSelectedCustomer();
     this.ticketSlotAsk.set(null);
     if (slot !== this.activeCartSlot()) {
       this.switchCartSlot(slot);
     }
     this.applyReturnedTicket(ticket);
+    this.restoreCustomerIfMissing(kept);
   }
 
   advanceGap(): number {
@@ -1296,7 +1298,9 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       4500,
     );
 
-    if (ticket.customer?.is_walk_in || ticket.customer_id == null) {
+    const customer = ticket.customer;
+    const customerId = customer?.id ?? ticket.customer_id;
+    if (customerId == null || this.isCounterCustomer(customer)) {
       this.clearSelectedCustomer();
       this.walkInName.set(ticket.walk_in_name ?? '');
       this.walkInRfc.set(ticket.walk_in_rfc ?? '');
@@ -1305,13 +1309,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       this.walkInName.set('');
       this.walkInRfc.set('');
       this.walkInTicketOpen.set(false);
-      const nameParts = [ticket.customer?.name, ticket.customer?.lastname]
+      const nameParts = [customer?.name, customer?.lastname]
         .filter(Boolean)
         .join(' ')
         .trim();
-      const company = String(ticket.customer.company_name ?? '').trim();
-      this.selectedCustomerId.set(String(ticket.customer.id ?? ticket.customer_id));
-      this.selectedOrderCustomerId.set(ticket.customer_id);
+      const company = String(customer?.company_name ?? '').trim();
+      this.selectedCustomerId.set(String(customerId));
+      this.selectedOrderCustomerId.set(ticket.customer_id ?? customerId);
       this.selectedCustomerName.set(
         company
           ? !nameParts || nameParts.toLowerCase() === company.toLowerCase()
@@ -1319,6 +1323,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
             : `${nameParts} · ${company}`
           : nameParts || 'Cliente'
       );
+      this.resolveCustomerFiscal(String(customerId), true).subscribe();
     }
 
     for (const item of this.posService.cart().items) {
@@ -1428,6 +1433,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.cancelSlotReprice();
     this.slotsReady.set(false);
+    const kept = this.captureSelectedCustomer();
     this.persistActiveSlotNow();
     this.activeCartSlot.set(pick.slot);
     const key = this.slotScopeKey();
@@ -1435,13 +1441,16 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       this.cartSlots.setActive(key, pick.slot);
     }
     this.applySlotContents({
-      customerId: pick.customerId,
-      customerName: pick.customerName,
-      walkInName: pick.walkInName,
-      walkInRfc: pick.walkInRfc,
+      customerId: pick.customerId ?? kept?.customerId ?? null,
+      customerName: pick.customerId ? pick.customerName : (kept?.customerName || pick.customerName),
+      walkInName: pick.customerId || kept ? '' : pick.walkInName,
+      walkInRfc: pick.customerId || kept ? '' : pick.walkInRfc,
       globalDiscountId: null,
       lines: pick.lines,
     });
+    if (!pick.customerId && kept) {
+      this.selectedOrderCustomerId.set(kept.orderCustomerId);
+    }
     if (pick.advance) {
       this.editingSaleId.set(pick.advance.documentId);
       this.editingFolio.set(pick.folio);
@@ -1484,6 +1493,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
       this.selectedCustomerId.set(state.customerId);
       this.selectedOrderCustomerId.set(state.customerId);
       this.selectedCustomerName.set(state.customerName || 'Cliente');
+      this.resolveCustomerFiscal(state.customerId, true).subscribe();
     } else {
       this.walkInName.set(state.walkInName || '');
       this.walkInRfc.set(state.walkInRfc || '');
@@ -2878,8 +2888,8 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
           if (advanceAmount != null) {
             this.notifySuccess(
               cart.items.length
-                ? `Cotización ${folioLabel} lista. Anticipo timbrado y venta con los productos.`
-                : `Cotización ${folioLabel} lista. Anticipo timbrado. Cuando regrese, ábrela en Folios.`,
+                ? `Cotización ${folioLabel} en caja. Ahí se cobra el anticipo. La venta quedó con los productos.`
+                : `Cotización ${folioLabel} en caja. Ahí se cobra el anticipo.`,
               7000,
             );
           } else {
@@ -2987,7 +2997,10 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.dialog
       .open(PosCustomerPickerDialogComponent, {
         width: '520px',
+        height: '640px',
         maxWidth: '95vw',
+        maxHeight: '85vh',
+        autoFocus: false,
         panelClass: 'pos-dialog-panel',
         data: { selectedCustomerId: this.selectedCustomerId() },
       })
@@ -3069,6 +3082,48 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   clearCustomerFromCart(): void {
     this.clearSelectedCustomer();
     this.persistEditingCustomer();
+  }
+
+  private captureSelectedCustomer(): {
+    customerId: string;
+    orderCustomerId: number | string | null;
+    customerName: string;
+  } | null {
+    const customerId = this.selectedCustomerId();
+    if (!customerId) return null;
+    return {
+      customerId,
+      orderCustomerId: this.selectedOrderCustomerId(),
+      customerName: this.selectedCustomerName(),
+    };
+  }
+
+  private restoreCustomerIfMissing(
+    kept: { customerId: string; orderCustomerId: number | string | null; customerName: string } | null,
+  ): void {
+    if (!kept || this.selectedCustomerId()) return;
+    this.selectedCustomerId.set(kept.customerId);
+    this.selectedOrderCustomerId.set(kept.orderCustomerId);
+    this.selectedCustomerName.set(kept.customerName);
+    this.walkInName.set('');
+    this.walkInRfc.set('');
+    this.resolveCustomerFiscal(kept.customerId, true).subscribe();
+  }
+
+  private isCounterCustomer(customer?: {
+    name?: string;
+    lastname?: string;
+    company_name?: string;
+    is_walk_in?: boolean;
+  } | null): boolean {
+    if (!customer?.is_walk_in) return false;
+    const company = String(customer.company_name ?? '').trim().toLowerCase();
+    const person = [customer.name, customer.lastname].filter(Boolean).join(' ').trim().toLowerCase();
+    const publicName = (value: string) =>
+      value === 'público en general' || value === 'publico en general' || value === 'venta de mostrador';
+    const companyIsPublic = !company || publicName(company);
+    const personIsPublic = !person || publicName(person);
+    return companyIsPublic && personIsPublic;
   }
 
   clearSelectedCustomer(): void {

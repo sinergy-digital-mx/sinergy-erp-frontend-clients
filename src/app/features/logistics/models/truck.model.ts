@@ -21,6 +21,8 @@ export interface Truck {
   status: TruckStatus;
   gps_unit_uid?: string | null;
   gps_unit_name?: string | null;
+  default_billing_branch_id?: string | null;
+  default_billing_branch_name?: string | null;
   /** Envío Creado o En Ruta que ya usa esta unidad. */
   active_shipping_id?: string | null;
   active_shipping_status?: string | null;
@@ -45,6 +47,7 @@ export interface CreateTruckDto {
   placa_remolque1?: string;
   gps_unit_uid?: string | null;
   gps_unit_name?: string | null;
+  default_billing_branch_id?: string | null;
 }
 
 export type UpdateTruckDto = Partial<CreateTruckDto>;
@@ -54,6 +57,7 @@ export interface TruckQueryParams {
   limit?: number;
   search?: string;
   status?: TruckStatus;
+  billing_branch_ids?: string;
 }
 
 export interface TruckListResponse {

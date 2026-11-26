@@ -16,7 +16,7 @@ export { CRM_PERMISSIONS } from '../../features/crm/config/permissions.config';
 export { LEAD_PERMISSIONS } from '../../features/leads/config/permissions.config';
 export { PROPERTY_PERMISSIONS } from '../../features/properties/config/permissions.config';
 export { SETTINGS_PERMISSIONS } from '../../features/settings/config/permissions.config';
-export { INVENTORY_PERMISSIONS } from '../../features/inventory/config/permissions.config';
+export { INVENTORY_PERMISSIONS, TRANSFER_PERMISSIONS } from '../../features/inventory/config/permissions.config';
 export { MARKETING_PERMISSIONS } from '../../features/marketing/config/permissions.config';
 export { POS_PERMISSIONS } from '../../features/pos/config/permissions.config';
 export { PURCHASE_ORDER_PERMISSIONS } from '../../features/purchase-orders/config/permissions.config';
@@ -50,7 +50,7 @@ import { CRM_PERMISSIONS } from '../../features/crm/config/permissions.config';
 import { LEAD_PERMISSIONS } from '../../features/leads/config/permissions.config';
 import { PROPERTY_PERMISSIONS } from '../../features/properties/config/permissions.config';
 import { SETTINGS_PERMISSIONS } from '../../features/settings/config/permissions.config';
-import { INVENTORY_PERMISSIONS } from '../../features/inventory/config/permissions.config';
+import { INVENTORY_PERMISSIONS, TRANSFER_PERMISSIONS } from '../../features/inventory/config/permissions.config';
 import { MARKETING_PERMISSIONS } from '../../features/marketing/config/permissions.config';
 import { POS_PERMISSIONS } from '../../features/pos/config/permissions.config';
 import { PURCHASE_ORDER_PERMISSIONS } from '../../features/purchase-orders/config/permissions.config';
@@ -83,6 +83,7 @@ export const PERMISSIONS = {
   properties: PROPERTY_PERMISSIONS,
   settings: SETTINGS_PERMISSIONS,
   inventory: INVENTORY_PERMISSIONS,
+  transfers: TRANSFER_PERMISSIONS,
   marketing: MARKETING_PERMISSIONS,
   pos: POS_PERMISSIONS,
   purchaseOrders: PURCHASE_ORDER_PERMISSIONS,

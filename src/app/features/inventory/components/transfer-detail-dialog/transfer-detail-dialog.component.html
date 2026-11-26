@@ -111,6 +111,11 @@
                       </option>
                     }
                   </select>
+                  @if (showOtherBranchTrucks()) {
+                    <button type="button" (click)="toggleOtherTrucks()">
+                      {{ includeOtherTrucks() ? 'Solo mis sucursales' : 'Ver otras sucursales' }}
+                    </button>
+                  }
                 </div>
                 <div class="ship-panel__field">
                   <div class="ship-panel__field-label">

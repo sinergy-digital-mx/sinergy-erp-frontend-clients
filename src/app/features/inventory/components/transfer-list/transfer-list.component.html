@@ -2,18 +2,8 @@
   <div class="purchase-content">
     <div class="px-4">
       <div class="transfers-header">
-        <div class="transfers-header__left">
-          <a routerLink="/inventory" class="back-link" title="Volver a inventario">
-            <lucide-icon [img]="ArrowLeft" [size]="18"></lucide-icon>
-          </a>
-          <h2 class="transfers-header__title">Transferencias de inventario</h2>
-        </div>
+        <h2 class="transfers-header__title">Transferencias</h2>
         <div class="flex items-center gap-2 flex-wrap">
-          <a
-            routerLink="/inventory/audits"
-            class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
-            Auditorías
-          </a>
           @if (canCreateTransfer) {
             <button type="button" class="page-create-btn" (click)="openCreate()">
               Crear
@@ -190,7 +180,7 @@
 </div>
 
 <ng-template #tableTemplate let-item="$implicit">
-  <td class="px-2 py-2 w-[120px]">
+  <td>
     <button
       type="button"
       class="folio-open-btn"
@@ -199,55 +189,25 @@
       {{ item.folio }}
     </button>
   </td>
-  <td class="px-2 py-2 w-[220px]">
-    <div class="flex flex-col">
+  <td>
+    <div class="trf-product">
       <span class="transfer-product truncate">{{ productTitle(item) }}</span>
-      <span class="transfer-product-sku truncate">{{ productSubtitle(item) }}</span>
+      <span class="transfer-product-sku truncate">{{ quantityLabel(item) }} · {{ productSubtitle(item) }}</span>
     </div>
   </td>
-  <td class="px-2 py-2 w-[150px]">
-    <span class="transfer-qty">{{ quantityLabel(item) }}</span>
+  <td>
+    <span class="trf-route">
+      <span class="truncate">{{ branchLine(sourceView(item)) }}</span>
+      <span class="trf-route__arrow" aria-hidden="true">→</span>
+      <span class="truncate">{{ branchLine(destView(item)) }}</span>
+    </span>
   </td>
-  <td class="px-2 py-2 w-[210px] route-cell">
-    <app-transfer-location-path
-      [location]="sourceView(item)"
-      [showFiscal]="fiscalRelation(item) !== true"
-      [fiscalBold]="fiscalRelation(item) === false">
-    </app-transfer-location-path>
-    @if (fiscalRelation(item) === true) {
-      <span class="fiscal-chip fiscal-chip--same">Misma razón</span>
-    } @else if (fiscalRelation(item) === false) {
-      <span class="fiscal-chip fiscal-chip--change">Cambio de razón social</span>
-    }
-  </td>
-  <td class="px-2 py-2 w-[220px] route-cell route-cell--dest">
-    <span class="route-arrow" aria-hidden="true">→</span>
-    <app-transfer-location-path
-      [location]="destView(item)"
-      [showFiscal]="fiscalRelation(item) !== true"
-      [fiscalBold]="fiscalRelation(item) === false">
-    </app-transfer-location-path>
-  </td>
-  <td class="px-2 py-2 w-[150px]">
-    <span class="transfer-status" [class]="'transfer-status transfer-status--' + statusTone(item.status)">
+  <td>
+    <span class="trf-state" [class]="'trf-state trf-state--' + statusTone(item.status)">
       {{ statusLabel(item.status) }}
     </span>
   </td>
-  <td class="px-2 py-2 w-[140px]">
-    <span class="transfer-user">{{ item.created_by_user?.name || '—' }}</span>
-  </td>
-  <td class="px-2 py-2 w-[120px]">
-    <span class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</span>
-  </td>
-  <td class="px-2 py-2 w-[140px]">
-    <div class="transfer-actions">
-      <button
-        type="button"
-        class="transfer-detail-btn"
-        (click)="openTransferDetail(item, $event)">
-        <lucide-icon [img]="Eye" [size]="14"></lucide-icon>
-        Ver detalle
-      </button>
-    </div>
+  <td>
+    <span class="trf-date">{{ formatDate(item.created_at) }}</span>
   </td>
 </ng-template>

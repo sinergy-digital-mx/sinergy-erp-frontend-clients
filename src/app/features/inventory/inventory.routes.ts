@@ -21,14 +21,7 @@ export const INVENTORY_ROUTES: Routes = [
   },
   {
     path: 'transfers',
-    loadComponent: () =>
-      import('./components/transfer-list/transfer-list.component')
-        .then(m => m.TransferListComponent),
-    canActivate: [permissionGuard],
-    data: {
-      permissions: [INVENTORY_PERMISSIONS.viewList],
-      title: 'Transferencias de inventario'
-    }
+    redirectTo: '/transfers',
   },
   {
     path: 'existencia',

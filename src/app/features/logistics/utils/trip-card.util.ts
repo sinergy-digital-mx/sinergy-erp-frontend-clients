@@ -57,19 +57,47 @@ function dateParts(value: string | undefined): { day: string; month: string; lab
   return { day: String(day), month: monthName, label: `${day} ${monthName}` };
 }
 
+function uniqueLabels(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.map((value) => value?.trim()).filter((value): value is string => !!value))];
+}
+
+export function shippingRouteLabels(shipping: ShippingListItem | null | undefined): {
+  origin: string;
+  destination: string;
+} {
+  if (!shipping) return { origin: 'Sucursal', destination: 'Destino' };
+  const stops = [...(shipping.stops ?? [])].sort(
+    (a, b) => (a.stop_sequence ?? 0) - (b.stop_sequence ?? 0),
+  );
+  const transfers = shipping.transfers ?? [];
+  const transferOrigins = uniqueLabels(
+    transfers.map((transfer) => transfer.source_branch_name || transfer.source_warehouse_name),
+  );
+  const transferDestinations = uniqueLabels(
+    transfers.map(
+      (transfer) => transfer.destination_branch_name || transfer.destination_warehouse_name,
+    ),
+  );
+  const origin =
+    shipping.origin_billing_branch_name ||
+    shipping.origin?.name ||
+    shipping.origin_warehouse_name ||
+    transferOrigins.join(' · ') ||
+    'Sucursal';
+  const last = stops[stops.length - 1];
+  const stopDestination = stopCustomer(last) || last?.address_summary?.trim() || '';
+  const destination = stopDestination || transferDestinations.join(' · ') || 'Destino';
+  return { origin, destination };
+}
+
 export function buildTripCard(shipping: ShippingListItem): TripCardModel {
   const stops = [...(shipping.stops ?? [])].sort(
     (a, b) => (a.stop_sequence ?? 0) - (b.stop_sequence ?? 0),
   );
   const names = [...new Set(stops.map((stop) => stopCustomer(stop)).filter(Boolean))];
-  const origin =
-    shipping.origin_billing_branch_name ||
-    shipping.origin?.name ||
-    shipping.origin_warehouse_name ||
-    'Origen';
-  const last = stops[stops.length - 1];
-  const destination =
-    stopCustomer(last) || last?.address_summary?.trim() || 'Sin destino';
+  const route = shippingRouteLabels(shipping);
+  const origin = route.origin;
+  const destination = route.destination;
 
   const plate = shipping.truck_placa?.trim() || '';
   const truckName = shipping.truck_name?.trim() || '';

@@ -15,6 +15,8 @@ import { GPS_TRACKING_PERMISSIONS } from '../../config/permissions.config';
 import { CreateTruckDto, Truck } from '../../models/truck.model';
 import { GpsCatalogUnit } from '../../models/gps-unit.model';
 import { TruckService } from '../../services/truck.service';
+import { BranchService } from '../../../settings/services/branch.service';
+import { Branch } from '../../../settings/models/branch.model';
 import { GpsTrackingService } from '../../services/gps-tracking.service';
 import {
   SAT_CONFIG_AUTOTRANSPORTE,
@@ -73,9 +75,12 @@ export class TruckFormModalComponent implements OnInit {
     { id: 'fotos', title: 'Fotos', disabled: true },
   ];
 
+  branches: Branch[] = [];
+
   constructor(
     private fb: FormBuilder,
     private truckService: TruckService,
+    private branchService: BranchService,
     private gpsTracking: GpsTrackingService,
     private snackBar: MatSnackBar,
     private authService: AuthService,
@@ -98,10 +103,19 @@ export class TruckFormModalComponent implements OnInit {
       subtipo_remolque1: [''],
       placa_remolque1: [''],
       gps_unit_uid: [''],
+      default_billing_branch_id: [''],
     });
   }
 
   ngOnInit(): void {
+    this.branchService.getAllBranches().subscribe({
+      next: (rows) => {
+        this.branches = rows ?? [];
+      },
+      error: () => {
+        this.branches = [];
+      },
+    });
     if (this.canLinkGps) this.loadGpsUnits();
     if (this.data.truck) {
       this.truckId = this.data.truck.id;
@@ -273,6 +287,7 @@ export class TruckFormModalComponent implements OnInit {
       subtipo_remolque1: truck.subtipo_remolque1 ?? '',
       placa_remolque1: truck.placa_remolque1 ?? '',
       gps_unit_uid: truck.gps_unit_uid ?? '',
+      default_billing_branch_id: truck.default_billing_branch_id ?? '',
     });
     this.photoUrl = truck.photo?.trim() || null;
     this.cartaPorteMissing = truck.carta_porte_ready ? [] : (truck.carta_porte_missing ?? []);
@@ -292,6 +307,9 @@ export class TruckFormModalComponent implements OnInit {
       placa: String(raw.placa).trim().toUpperCase(),
       serial_number: serial || null,
     };
+
+    payload.default_billing_branch_id =
+      String(raw.default_billing_branch_id ?? '').trim() || null;
 
     const optionalKeys = [
       'anio',

@@ -43,6 +43,14 @@ export const INVENTORY_PERMISSIONS = {
   manageWarehouse: 'inventory:ManageWarehouse'
 } as const;
 
+export const TRANSFER_PERMISSIONS = {
+  viewMenu: 'transfer:ViewMenu',
+  viewList: 'transfer:Read',
+  viewDetail: 'transfer:Read',
+  create: 'transfer:Create',
+  update: 'transfer:Update',
+} as const;
+
 /**
  * Helper type for permission values
  */

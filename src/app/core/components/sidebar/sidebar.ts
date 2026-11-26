@@ -27,6 +27,7 @@ import {
   Banknote,
   UserCog,
   Truck,
+  ArrowLeftRight,
   ClipboardCheck,
   Phone,
   Repeat,
@@ -273,6 +274,18 @@ export class Sidebar implements OnInit, OnDestroy {
       id: 'menu-inventory',
       permission: PERMISSIONS.inventory.viewMenu,
       exact: false,
+      hiddenForOrganizationIds: [COSTA_CAMPESTRE_DIVINO_ORGANIZATION_ID],
+    },
+    {
+      label: 'Transferencias',
+      route: '/transfers',
+      icon: ArrowLeftRight,
+      id: 'menu-transfers',
+      permissions: [
+        PERMISSIONS.transfers.viewMenu,
+        PERMISSIONS.transfers.viewList,
+        PERMISSIONS.inventory.transfer,
+      ],
       hiddenForOrganizationIds: [COSTA_CAMPESTRE_DIVINO_ORGANIZATION_ID],
     },
     {

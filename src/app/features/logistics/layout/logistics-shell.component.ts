@@ -2,7 +2,6 @@ import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import {
-  ArrowLeftRight,
   LayoutDashboard,
   MapPin,
   LucideAngularModule,
@@ -14,8 +13,8 @@ import {
 } from 'lucide-angular';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { INVENTORY_PERMISSIONS } from '../../inventory/config/permissions.config';
 import { GPS_TRACKING_PERMISSIONS, ROUTE_PERMISSIONS, SHIPPING_PERMISSIONS, TRUCK_PERMISSIONS } from '../config/permissions.config';
+import { INVENTORY_PERMISSIONS, TRANSFER_PERMISSIONS } from '../../inventory/config/permissions.config';
 
 interface LogisticsNavItem {
   label: string;
@@ -66,7 +65,9 @@ export class LogisticsShellComponent implements OnInit, OnDestroy {
     const canFleet =
       this.can(TRUCK_PERMISSIONS.viewList) || this.can(TRUCK_PERMISSIONS.viewMenu);
     const canTransfers =
-      this.can(INVENTORY_PERMISSIONS.viewList) || this.can(INVENTORY_PERMISSIONS.viewMenu);
+      this.can(TRANSFER_PERMISSIONS.viewMenu) ||
+      this.can(TRANSFER_PERMISSIONS.viewList) ||
+      this.can(INVENTORY_PERMISSIONS.transfer);
 
     const execution: LogisticsNavItem[] = [];
     if (canTrips) {
@@ -74,14 +75,6 @@ export class LogisticsShellComponent implements OnInit, OnDestroy {
         { label: 'Dashboard', route: '/logistics/dashboard', icon: LayoutDashboard, exact: true },
         { label: 'Viajes', route: '/logistics/trips', icon: Route, exact: true },
       );
-    }
-    if (canTransfers) {
-      execution.push({
-        label: 'Transferencias de inventario',
-        route: '/logistics/transfers',
-        icon: ArrowLeftRight,
-        exact: true,
-      });
     }
     if (this.can(GPS_TRACKING_PERMISSIONS.viewMenu) || this.can(GPS_TRACKING_PERMISSIONS.read)) {
       execution.push({
@@ -150,9 +143,5 @@ export function logisticsHomePath(auth: AuthService): string {
     auth.hasPermission(TRUCK_PERMISSIONS.viewList) ||
     auth.hasPermission(TRUCK_PERMISSIONS.viewMenu);
   if (canFleet) return '/logistics/trucks';
-  const canTransfers =
-    auth.hasPermission(INVENTORY_PERMISSIONS.viewList) ||
-    auth.hasPermission(INVENTORY_PERMISSIONS.viewMenu);
-  if (canTransfers) return '/logistics/transfers';
   return '/';
 }

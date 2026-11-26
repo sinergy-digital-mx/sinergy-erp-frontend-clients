@@ -25,6 +25,7 @@ import { SHIPPING_PERMISSIONS } from '../../../logistics/config/permissions.conf
 import { Shipping } from '../../../logistics/models/shipping.model';
 import { Truck, truckBusyLabel, truckSelectLabel } from '../../../logistics/models/truck.model';
 import { TruckService } from '../../../logistics/services/truck.service';
+import { operatorTruckQuery, userHasAssignedBranches } from '../../../logistics/utils/truck-branch-scope.util';
 import { ShippingService } from '../../../logistics/services/shipping.service';
 import { TruckFormModalComponent } from '../../../logistics/components/truck-form-modal/truck-form-modal.component';
 import { ShippingDetailDialogComponent } from '../../../logistics/components/shipping-detail-dialog/shipping-detail-dialog.component';
@@ -64,6 +65,7 @@ export class TransferDetailDialogComponent implements OnInit {
   downloadingPdf = signal(false);
   shipMode = signal<'new' | 'existing'>('new');
   trucks = signal<Truck[]>([]);
+  includeOtherTrucks = signal(false);
   drivers = signal<User[]>([]);
   openShippings = signal<Shipping[]>([]);
   loadingShipOptions = signal(false);
@@ -368,7 +370,7 @@ export class TransferDetailDialogComponent implements OnInit {
     ref.afterClosed().subscribe((saved: Truck | null) => {
       if (!saved) return;
       const keepId = saved.id || truck.id;
-      this.truckService.getTrucks({ status: 'active', limit: 100 }).subscribe({
+      this.truckService.getTrucks(this.truckQuery()).subscribe({
         next: (res) => {
           this.trucks.set(res.data ?? []);
           this.truckId = keepId;
@@ -448,10 +450,28 @@ export class TransferDetailDialogComponent implements OnInit {
     });
   }
 
+  private truckQuery() {
+    return operatorTruckQuery(this.auth, this.includeOtherTrucks(), {
+      status: 'active',
+      limit: 100,
+    });
+  }
+
+  showOtherBranchTrucks(): boolean {
+    return userHasAssignedBranches(this.auth);
+  }
+
+  toggleOtherTrucks(): void {
+    this.includeOtherTrucks.update((value) => !value);
+    this.truckService.getTrucks(this.truckQuery()).subscribe({
+      next: (res) => this.trucks.set(res.data ?? []),
+    });
+  }
+
   private loadShipOptions(): void {
     const branchId = this.transfer()?.source_warehouse?.billing_branch_id;
     this.loadingShipOptions.set(true);
-    this.truckService.getTrucks({ status: 'active', limit: 100 }).subscribe({
+    this.truckService.getTrucks(this.truckQuery()).subscribe({
       next: (res) => this.trucks.set(res.data ?? []),
       error: () => this.trucks.set([]),
     });

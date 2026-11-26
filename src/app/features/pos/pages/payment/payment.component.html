@@ -439,6 +439,24 @@
               autocomplete="off" />
           </div>
 
+          <div class="cobranza-queue-filters">
+            <div class="cobranza-queue-kinds" role="group" aria-label="Tipo de recibo">
+              <button type="button" [class.is-on]="queueKind() === 'all'" (click)="queueKind.set('all')">Todos</button>
+              <button type="button" [class.is-on]="queueKind() === 'advance'" (click)="queueKind.set('advance')">Solo anticipos</button>
+              <button type="button" [class.is-on]="queueKind() === 'sale'" (click)="queueKind.set('sale')">Solo ventas</button>
+            </div>
+            <select
+              class="cobranza-queue-seller"
+              aria-label="Vendedor"
+              [ngModel]="queueSeller()"
+              (ngModelChange)="queueSeller.set($event)">
+              <option value="">Vendedor</option>
+              @for (seller of queueSellers(); track seller) {
+                <option [value]="seller">{{ seller }}</option>
+              }
+            </select>
+          </div>
+
           <div class="cobranza-sales-scroll">
             @if (loading()) {
               <p class="cobranza-empty"><app-spinner size="sm"></app-spinner></p>
@@ -450,6 +468,8 @@
                   <li>
                     <article
                       class="cobranza-sale"
+                      [class.cobranza-sale--advance]="sale.kind === 'advance'"
+                      [class.cobranza-sale--order]="sale.kind !== 'advance'"
                       [class.cobranza-sale--selected]="selectedSale()?.id === sale.id"
                       [class.cobranza-sale--fresh]="arrivedIds().includes(sale.id)">
                       <button
@@ -468,7 +488,10 @@
                               <span class="cobranza-sale__from">Desde {{ sale.quotation_folio }}</span>
                             }
                           </span>
-                          <span class="cobranza-sale__total">{{ saleTotal(sale) }}</span>
+                          <span class="cobranza-sale__total">
+                            <small>{{ sale.kind === 'advance' ? 'Anticipo' : 'Venta' }}</small>
+                            {{ saleTotal(sale) }}
+                          </span>
                         </div>
                         <div class="cobranza-sale__row cobranza-sale__row--meta">
                           <span>{{ formatDate(sale.created_at) }}</span>
@@ -502,6 +525,15 @@
                           (click)="togglePendingShipping($event, sale)">
                           <lucide-icon [img]="Truck" [size]="14" />
                           {{ isForShipping(sale.for_shipping) ? 'Para envío' : 'Marcar envío' }}
+                        </button>
+                      }
+                      @if (canReturnToSales()) {
+                        <button
+                          type="button"
+                          class="cobranza-sale__detail"
+                          [disabled]="returningToSales()"
+                          (click)="returnSaleFromCard($event, sale)">
+                          Regresar a ventas
                         </button>
                       }
                     </article>
@@ -644,28 +676,24 @@
         @if (selectedSale(); as sale) {
           <div class="cobranza-collect-scroll">
             <div class="cobranza-collect-body">
+            <div class="cobranza-collect-nav">
+              <button type="button" class="cobranza-head-btn" (click)="clearSelectedSale()">Volver</button>
+              <strong>{{ sale.folio || sale.id }}</strong>
+              @if (isAdvanceSale(sale)) {
+                <span>Anticipo</span>
+              }
+              <time>{{ formatDate(sale.created_at) }}</time>
+              @if (canReturnToSales()) {
+                <button
+                  type="button"
+                  class="cobranza-head-btn cobranza-head-btn--return"
+                  (click)="returnSelectedToVentas()"
+                  [disabled]="collecting() || returningToSales()">
+                  {{ returningToSales() ? 'Regresando…' : 'Regresar a ventas' }}
+                </button>
+              }
+            </div>
             <section class="cobranza-total-card">
-              <div class="cobranza-total-card__top">
-                <span class="cobranza-total-card__folio">
-                  {{ sale.folio || sale.id }}
-                  @if (isAdvanceSale(sale)) {
-                    <span class="cobranza-badge cobranza-badge--advance">Anticipo</span>
-                  }
-                </span>
-                <div class="cobranza-total-card__top-end">
-                  <time class="cobranza-total-card__date">{{ formatDate(sale.created_at) }}</time>
-                  <button type="button" class="cobranza-head-btn" (click)="clearSelectedSale()">Cancelar</button>
-                  @if (canReturnToSales()) {
-                    <button
-                      type="button"
-                      class="cobranza-head-btn cobranza-head-btn--return"
-                      (click)="returnSelectedToVentas()"
-                      [disabled]="collecting() || returningToSales()">
-                      {{ returningToSales() ? 'Regresando…' : 'Regresar a ventas' }}
-                    </button>
-                  }
-                </div>
-              </div>
               <div class="cobranza-total-card__breakdown">
                 <div class="cobranza-total-card__row">
                   <span>{{ isAdvanceSale() ? 'Total cotización' : 'Total orden' }}</span>
@@ -701,8 +729,16 @@
               }
             </section>
 
-            <section class="cobranza-block">
-              <h3 class="cobranza-block__title">Cliente</h3>
+            <section class="cobranza-block" [class.is-customer-collapsed]="!customerPanelOpen()">
+              <div class="cobranza-customer-bar">
+                <button type="button" class="cobranza-customer-bar__main" (click)="customerPanelOpen.set(!customerPanelOpen())">
+                  <span>{{ customerMode() === 'walk_in' ? 'Público' : 'Cliente' }}</span>
+                  <strong>{{ selectedCustomerName() }}</strong>
+                </button>
+                <button type="button" class="cobranza-head-btn" (click)="customerPanelOpen.set(!customerPanelOpen())">
+                  {{ customerPanelOpen() ? 'Cerrar' : 'Editar' }}
+                </button>
+              </div>
               @if (!isAdvanceSale()) {
               <div class="cobranza-customer-options">
                 <label
@@ -859,16 +895,38 @@
                     </div>
                   }
                 }
-                @if (showInvoiceSwitch()) {
-                  <div class="cobranza-invoice-switch">
-                    <app-slim-switch
-                      label="Generar factura"
-                      [checked]="generateInvoice()"
-                      [disabled]="invoiceSwitchDisabled()"
-                      (checkedChange)="onGenerateInvoiceChange($event)">
-                    </app-slim-switch>
-                    @if (invoiceSwitchDisabled()) {
+                @if (showInvoiceSwitch() || isAdvanceSale()) {
+                  <div class="cobranza-stamp">
+                    @if (showInvoiceSwitch()) {
+                      <app-slim-switch
+                        label="Generar factura"
+                        [checked]="generateInvoice()"
+                        [disabled]="invoiceSwitchDisabled()"
+                        (checkedChange)="onGenerateInvoiceChange($event)">
+                      </app-slim-switch>
+                    } @else {
+                      <span class="cobranza-stamp__label">Timbrar anticipo</span>
+                    }
+                    <div class="cobranza-stamp__envs" role="group" aria-label="Ambiente de timbrado">
+                      <button
+                        type="button"
+                        [class.is-active]="stampEnvironment() === 'demo'"
+                        (click)="selectStampEnvironment('demo')">
+                        Demo
+                      </button>
+                      <button
+                        type="button"
+                        [class.is-active]="stampEnvironment() === 'production'"
+                        (click)="selectStampEnvironment('production')">
+                        Producción
+                      </button>
+                    </div>
+                    @if (showInvoiceSwitch() && invoiceSwitchDisabled()) {
                       <p class="cobranza-invoice-hint">Completa RFC, razón social y CP (5 dígitos)</p>
+                    } @else if (stampEnvironment() === 'demo') {
+                      <p class="cobranza-invoice-hint">Factura de prueba. No vale ante el SAT.</p>
+                    } @else {
+                      <p class="cobranza-invoice-hint">Se timbra un CFDI real.</p>
                     }
                   </div>
                 }
@@ -1075,42 +1133,31 @@
                   }
 
                   <div
-                    class="cobranza-cash-result cobranza-cash-result--band"
-                    [class.cobranza-cash-result--change]="changeDisplay().mxn > 0 || changeDisplay().usd > 0"
-                    [class.cobranza-cash-result--short]="cashShortfallMxn() > 0">
+                    class="cobranza-ledger"
+                    [class.is-short]="cashShortfallMxn() > 0"
+                    [class.is-change]="changeDisplay().mxn > 0 || changeDisplay().usd > 0">
                     @if (collectForm().amountCashUsd > 0) {
-                      <p class="cobranza-cash-fx">
+                      <p class="cobranza-ledger__fx">
                         Aplican {{ formatCurrencyUsd(collectForm().amountCashUsd) }}
                         a TC {{ collectForm().usdExchangeRate }}
                       </p>
                     }
-                    <div class="cobranza-cash-result__copy">
-                      @if (cashShortfallMxn() > 0) {
-                        <span>Falta por recibir</span>
-                      }
-                      <span>Cambio a entregar</span>
+                    <div class="cobranza-ledger__head">
+                      <span></span>
+                      <span>MXN</span>
+                      <span>USD</span>
                     </div>
-                    <div class="cobranza-cash-result__values">
-                      @if (cashShortfallMxn() > 0) {
-                        <strong class="cobranza-cash-result__amount">
-                          {{ formatCurrency(cashShortfallMxn()) }}
-                          <span>MXN</span>
-                        </strong>
-                        @if (cashShortfallUsd() > 0) {
-                          <strong class="cobranza-cash-result__amount cobranza-cash-result__amount--sub">
-                            {{ formatCurrencyUsd(cashShortfallUsd()) }}
-                            <span>USD</span>
-                          </strong>
-                        }
-                      }
-                      <strong class="cobranza-cash-result__change">
-                        {{ formatCurrencyUsd(changeDisplay().usd) }}
-                        <span>USD</span>
-                      </strong>
-                      <strong class="cobranza-cash-result__change">
-                        {{ formatCurrency(changeDisplay().mxn) }}
-                        <span>MXN</span>
-                      </strong>
+                    @if (cashShortfallMxn() > 0 || cashShortfallUsd() > 0) {
+                      <div class="cobranza-ledger__row">
+                        <span>Falta</span>
+                        <strong>{{ formatCurrency(cashShortfallMxn()) }}</strong>
+                        <strong>{{ cashShortfallUsd() > 0 ? formatCurrencyUsd(cashShortfallUsd()) : '—' }}</strong>
+                      </div>
+                    }
+                    <div class="cobranza-ledger__row">
+                      <span>Cambio</span>
+                      <strong>{{ formatCurrency(changeDisplay().mxn) }}</strong>
+                      <strong>{{ formatCurrencyUsd(changeDisplay().usd) }}</strong>
                     </div>
                   </div>
                 }

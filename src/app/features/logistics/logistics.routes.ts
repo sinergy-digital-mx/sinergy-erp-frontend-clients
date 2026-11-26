@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router, Routes } from '@angular/router';
 import { permissionGuard } from '../../core/guards/permission.guard';
 import { AuthService } from '../../core/services/auth.service';
-import { INVENTORY_PERMISSIONS } from '../inventory/config/permissions.config';
+import { INVENTORY_PERMISSIONS, TRANSFER_PERMISSIONS } from '../inventory/config/permissions.config';
 import { GPS_TRACKING_PERMISSIONS, ROUTE_PERMISSIONS, SHIPPING_PERMISSIONS, TRUCK_PERMISSIONS } from './config/permissions.config';
 import {
   LogisticsEntryComponent,
@@ -53,16 +53,7 @@ export const LOGISTICS_ROUTES: Routes = [
       },
       {
         path: 'transfers',
-        loadComponent: () =>
-          import('../inventory/components/transfer-list/transfer-list.component').then(
-            (m) => m.TransferListComponent,
-          ),
-        canActivate: [permissionGuard],
-        data: {
-          permissions: [INVENTORY_PERMISSIONS.viewList, INVENTORY_PERMISSIONS.viewMenu],
-          permissionMode: 'any',
-          title: 'Transferencias de inventario',
-        },
+        redirectTo: '/transfers',
       },
       {
         path: 'tracking',
@@ -91,6 +82,9 @@ export const LOGISTICS_ROUTES: Routes = [
           permissions: [
             INVENTORY_PERMISSIONS.viewList,
             INVENTORY_PERMISSIONS.viewMenu,
+            INVENTORY_PERMISSIONS.transfer,
+            TRANSFER_PERMISSIONS.viewList,
+            TRANSFER_PERMISSIONS.viewMenu,
             SHIPPING_PERMISSIONS.viewList,
             SHIPPING_PERMISSIONS.viewMenu,
           ],

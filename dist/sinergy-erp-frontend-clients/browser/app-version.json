@@ -1,26 +1,38 @@
 {
-  "version": "0.0.193",
-  "buildId": "0.0.193-1795648636699",
-  "builtAt": "2026-11-25T23:17:16.699Z",
+  "version": "0.0.194",
+  "buildId": "0.0.194-1795674345483",
+  "builtAt": "2026-11-26T06:25:45.483Z",
   "channel": "full",
   "changes": [
     {
-      "scope": "backend",
-      "message": "En el PDF de la orden, el SKU sale chico debajo del producto y arriba de la unidad.",
-      "module": "purchase-orders",
-      "moduleLabel": "Órdenes de compra"
-    },
-    {
       "scope": "frontend",
-      "message": "En Folios se ve si el anticipo ya tiene venta. Al continuar, el carrito conserva el precio y la ficha queda en una línea con el PDF.",
+      "message": "En POS Caja el anticipo se cobra en el corte, con carta distinta a la venta, y el timbrado abre en demo. Quien ve POS puede regresarlo a ventas. El cliente sigue en el carrito y el buscador se mueve con las flechas.",
       "module": "pos",
       "moduleLabel": "POS Ventas"
     },
     {
       "scope": "backend",
-      "message": "Folios de anticipo indica el folio de la venta cuando la cotización ya se convirtió.",
+      "message": "La cotización de anticipo entra a caja para cobrarse, aunque ya tenga la venta de los productos.",
       "module": "quotations",
       "moduleLabel": "Cotizaciones"
+    },
+    {
+      "scope": "frontend",
+      "message": "En caja el folio va en una barra con anticipo y saldo a favor, el cobro queda más compacto con fecha legible y los recibos se filtran por anticipo, venta y vendedor.",
+      "module": "pos",
+      "moduleLabel": "POS Ventas"
+    },
+    {
+      "scope": "frontend",
+      "message": "Los camiones guardan sucursal por defecto y el listado prefiltra las del usuario sin bloquear otras. Los envíos de transferencia muestran sucursal origen y destino.",
+      "module": "logistics",
+      "moduleLabel": "Logística"
+    },
+    {
+      "scope": "frontend",
+      "message": "Transferencias quedó como módulo del menú principal, con listado compacto y PDF que encabeza sucursal origen hacia sucursal destino.",
+      "module": "inventory",
+      "moduleLabel": "Inventario"
     }
   ]
 }

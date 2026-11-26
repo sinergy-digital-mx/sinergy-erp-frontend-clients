@@ -48,6 +48,18 @@
       Solo activos
     </button>
 
+    @if (showBranchScope) {
+      <button
+        type="button"
+        class="trucks-active-btn"
+        [class.trucks-active-btn--on]="onlyMyBranches"
+        [attr.aria-pressed]="onlyMyBranches"
+        (click)="onOnlyMyBranchesChange(!onlyMyBranches)"
+      >
+        {{ onlyMyBranches ? 'Mis sucursales' : 'Todas las sucursales' }}
+      </button>
+    }
+
     <app-filter-clear-button [active]="hasActiveFilters" (clear)="clearFilters()">
     </app-filter-clear-button>
   </div>
@@ -74,6 +86,7 @@
   </td>
   <td>
     <p class="dt-cell-primary m-0 truncate">{{ item.name }}</p>
+    <p class="dt-cell-subtle m-0 truncate">{{ item.default_billing_branch_name || 'Sin sucursal' }}</p>
   </td>
   <td>
     <span class="dt-folio-badge">{{ item.placa }}</span>

@@ -651,24 +651,27 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
     const payload = (detail ?? {}) as {
       header?: {
         customer_id?: number | string;
-        customer?: { is_walk_in?: boolean };
-        customer_summary?: { is_walk_in?: boolean };
+        customer?: { id?: number | string; is_walk_in?: boolean };
+        customer_summary?: { id?: number | string; is_walk_in?: boolean };
         walk_in_name?: string | null;
         walk_in_rfc?: string | null;
         line_items?: Array<QuotationLineItem | SalesOrderLineItem>;
       };
       line_items?: Array<QuotationLineItem | SalesOrderLineItem>;
       customer_id?: number | string;
-      customer?: { is_walk_in?: boolean };
-      customer_summary?: { is_walk_in?: boolean };
+      customer?: { id?: number | string; is_walk_in?: boolean };
+      customer_summary?: { id?: number | string; is_walk_in?: boolean };
       walk_in_name?: string | null;
       walk_in_rfc?: string | null;
     };
     const header = payload.header ?? payload;
     const lines = (payload.line_items ?? header.line_items ?? []).map((line) => mapLine(line));
-    const walkIn =
-      header.customer?.is_walk_in === true || header.customer_summary?.is_walk_in === true;
-    const customerId = walkIn ? null : header.customer_id != null ? String(header.customer_id) : null;
+    const customer = header.customer ?? payload.customer;
+    const summary = header.customer_summary ?? payload.customer_summary;
+    const rawId = header.customer_id ?? payload.customer_id ?? customer?.id ?? summary?.id;
+    const markedWalkIn = customer?.is_walk_in === true || summary?.is_walk_in === true;
+    const walkIn = rawId == null || rawId === '' || (markedWalkIn && isPublicName(row.customerName));
+    const customerId = walkIn || rawId == null || rawId === '' ? null : String(rawId);
     const walkInName =
       'walk_in_name' in header && header.walk_in_name ? String(header.walk_in_name) : '';
     const walkInRfc = 'walk_in_rfc' in header && header.walk_in_rfc ? String(header.walk_in_rfc) : '';

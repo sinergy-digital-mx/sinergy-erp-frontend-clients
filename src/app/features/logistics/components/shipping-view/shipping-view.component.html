@@ -63,6 +63,10 @@
         {{ originLabel() }}
       </div>
       <div>
+        <span>Destino</span>
+        {{ destinationLabel() }}
+      </div>
+      <div>
         <div class="sv__crew-label">
           <span>Chofer</span>
           <div class="sv__crew-actions">
@@ -125,6 +129,11 @@
             >
               Editar
             </button>
+            @if (showOtherBranchTrucks()) {
+              <button type="button" class="sv__edit" (click)="toggleOtherTrucks()">
+                {{ includeOtherTrucks() ? 'Mis sucursales' : 'Otras' }}
+              </button>
+            }
           </div>
         </div>
         @if (canReassignCrew(s)) {

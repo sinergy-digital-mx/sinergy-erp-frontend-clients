@@ -13,6 +13,8 @@ Fila 2: Cheque · Mixto · Crédito (Crédito solo si el cliente lo tiene en esa
 
 ### 2026-11-25
 
+La cotización con anticipo aparece en por cobrar. Su carta es ámbar y dice Anticipo; la venta es índigo. Se cobra el anticipo de la cotización y el dinero entra al corte. La diferencia queda en la venta. Junto a Generar factura (y en el anticipo) se elige Demo o Producción; abre en Demo. Quien ve POS puede regresarlo a ventas.
+
 En **Folios** de caja, la carta muestra la empresa y, debajo y más chica, la persona cuando son distintas. Sigue listando solo órdenes con saldo.
 
 ### 2026-11-24

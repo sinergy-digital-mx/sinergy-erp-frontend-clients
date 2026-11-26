@@ -141,7 +141,10 @@ export interface Shipping {
     folio: string;
     status?: string | null;
     total_quantity?: string | number | null;
+    source_warehouse_name?: string | null;
     destination_warehouse_name?: string | null;
+    source_branch_name?: string | null;
+    destination_branch_name?: string | null;
   }>;
   stops?: ShippingStop[];
   origin?: ShippingOrigin;

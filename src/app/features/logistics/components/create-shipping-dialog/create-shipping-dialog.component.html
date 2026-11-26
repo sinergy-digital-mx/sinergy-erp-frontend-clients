@@ -86,6 +86,11 @@
               </option>
             }
           </select>
+          @if (showOtherBranchTrucks()) {
+            <button type="button" class="field-edit" (click)="toggleOtherTrucks()">
+              {{ includeOtherTrucks() ? 'Solo mis sucursales' : 'Ver otras sucursales' }}
+            </button>
+          }
         </div>
         <div>
           <div class="field-label">

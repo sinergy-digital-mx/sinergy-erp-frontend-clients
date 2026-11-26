@@ -39,6 +39,8 @@ import {
   ShippingRoutePoint,
 } from '../../models/shipping.model';
 import { TruckService } from '../../services/truck.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { operatorTruckQuery, userHasAssignedBranches } from '../../utils/truck-branch-scope.util';
 import { ShippingService } from '../../services/shipping.service';
 import { InventoryTransferService } from '../../../inventory/services/inventory-transfer.service';
 import { fromTransferWarehouse, transferNeedsShipping } from '../../../inventory/utils/transfer-location.util';
@@ -94,6 +96,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
   loadingOrders = signal(false);
   previewing = signal(false);
   creating = signal(false);
+  includeOtherTrucks = signal(false);
 
   selectedOrderIds = new Set<string>();
   selectedTransferIds = new Set<string>();
@@ -109,6 +112,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     private fiscalConfigurationService: FiscalConfigurationService,
     private branchService: BranchService,
     private truckService: TruckService,
+    private auth: AuthService,
     private shippingService: ShippingService,
     private transferService: InventoryTransferService,
     private snackBar: MatSnackBar,
@@ -317,7 +321,9 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
     ref.afterClosed().subscribe((saved: Truck | null) => {
       if (!saved) return;
       const keepId = saved.id || truck.id;
-      this.truckService.getTrucks({ status: 'active', limit: 100 }).subscribe({
+      this.truckService
+        .getTrucks(this.truckQuery())
+        .subscribe({
         next: (res) => {
           this.trucks.set(res.data ?? []);
           this.form.patchValue({ truck_id: keepId });
@@ -398,7 +404,7 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
         next: (res) => this.fiscalConfigurations.set(Array.isArray(res) ? res : (res.data ?? [])),
         error: () => this.fiscalConfigurations.set([]),
       });
-    this.truckService.getTrucks({ status: 'active', limit: 100 }).subscribe({
+    this.truckService.getTrucks(this.truckQuery()).subscribe({
       next: (res) => this.trucks.set(res.data ?? []),
       error: () => this.trucks.set([]),
     });
@@ -411,6 +417,24 @@ export class CreateShippingDialogComponent implements OnInit, OnDestroy {
         this.drivers.set([]);
         this.loadingCatalogs.set(false);
       },
+    });
+  }
+
+  private truckQuery() {
+    return operatorTruckQuery(this.auth, this.includeOtherTrucks(), {
+      status: 'active',
+      limit: 100,
+    });
+  }
+
+  showOtherBranchTrucks(): boolean {
+    return userHasAssignedBranches(this.auth);
+  }
+
+  toggleOtherTrucks(): void {
+    this.includeOtherTrucks.update((value) => !value);
+    this.truckService.getTrucks(this.truckQuery()).subscribe({
+      next: (res) => this.trucks.set(res.data ?? []),
     });
   }
 

@@ -44,9 +44,11 @@ import {
   normalizeShippingStatusKey,
 } from '../../models/shipping.model';
 import { ShippingService } from '../../services/shipping.service';
+import { operatorTruckQuery, userHasAssignedBranches } from '../../utils/truck-branch-scope.util';
 import { AddShippingStopsDialogComponent } from '../add-shipping-stops-dialog/add-shipping-stops-dialog.component';
 import { AddShippingTransfersDialogComponent } from '../add-shipping-transfers-dialog/add-shipping-transfers-dialog.component';
 import { BranchLocationDialogComponent } from '../branch-location-dialog/branch-location-dialog.component';
+import { shippingRouteLabels } from '../../utils/trip-card.util';
 
 @Component({
   selector: 'app-shipping-view',
@@ -85,6 +87,7 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   shipping = signal<Shipping | null>(null);
   trucks = signal<Truck[]>([]);
   drivers = signal<User[]>([]);
+  includeOtherTrucks = signal(false);
   crewSaving = signal(false);
   stops = signal<ShippingStop[]>([]);
   loading = signal(false);
@@ -352,8 +355,24 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
     });
   }
 
+  private truckQuery() {
+    return operatorTruckQuery(this.auth, this.includeOtherTrucks(), {
+      status: 'active',
+      limit: 100,
+    });
+  }
+
+  showOtherBranchTrucks(): boolean {
+    return userHasAssignedBranches(this.auth);
+  }
+
+  toggleOtherTrucks(): void {
+    this.includeOtherTrucks.update((value) => !value);
+    this.loadCrewCatalogs();
+  }
+
   private loadCrewCatalogs(): void {
-    this.truckService.getTrucks({ status: 'active', limit: 100 }).subscribe({
+    this.truckService.getTrucks(this.truckQuery()).subscribe({
       next: (res) => this.trucks.set(res.data ?? []),
       error: () => this.trucks.set([]),
     });
@@ -472,14 +491,11 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   }
 
   originLabel(): string {
-    const s = this.shipping();
-    return (
-      s?.origin_billing_branch_name ||
-      s?.origin?.name ||
-      s?.origin_warehouse_name ||
-      s?.origin?.warehouse_name ||
-      'Sucursal'
-    );
+    return shippingRouteLabels(this.shipping()).origin;
+  }
+
+  destinationLabel(): string {
+    return shippingRouteLabels(this.shipping()).destination;
   }
 
   stopLabel(stop: ShippingStop): string {

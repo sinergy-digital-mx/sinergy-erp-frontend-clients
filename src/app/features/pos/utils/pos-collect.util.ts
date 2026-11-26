@@ -86,6 +86,7 @@ export interface CollectSalePayload {
   amount_credit_mxn?: number;
   customer_id?: number | string;
   generate_invoice?: boolean;
+  stamp_environment?: 'demo' | 'production';
   /** Moneda del documento. USD solo si el pago en dólares es mayor. */
   order_currency?: 'MXN' | 'USD';
   walk_in_name?: string;

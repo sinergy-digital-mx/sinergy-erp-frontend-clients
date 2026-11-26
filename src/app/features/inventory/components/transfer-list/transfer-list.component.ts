@@ -1,7 +1,6 @@
 import { Component, OnInit, signal, computed, ViewChild, TemplateRef, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { InventoryTransferService } from '../../services/inventory-transfer.service';
 import { InventoryService } from '../../services/inventory.service';
@@ -15,17 +14,17 @@ import { DatatableWrapperComponent } from '../../../../core/components/datatable
 import { IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { TransferDetailDialogComponent } from '../transfer-detail-dialog/transfer-detail-dialog.component';
 import { CreateTransferDialogComponent } from '../create-transfer-dialog/create-transfer-dialog.component';
-import { TransferLocationPathComponent } from '../transfer-location-path/transfer-location-path.component';
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PERMISSIONS } from '../../../../core/config/permissions.config';
 import { transferStatusLabel, transferStatusTone } from '../../utils/transfer-status.util';
-import { ArrowLeft, Eye, ListFilter } from 'lucide-angular';
+import { ListFilter } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import {
   TransferLocationView,
+  branchLine,
   fiscalOptionLabel,
   fromTransferWarehouse,
   isSameFiscal,
@@ -37,9 +36,7 @@ import {
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink,
     DatatableWrapperComponent,
-    TransferLocationPathComponent,
     LucideAngularModule,
     FilterClearButtonComponent,
   ],
@@ -49,9 +46,8 @@ import {
 export class TransferListComponent implements OnInit {
   @ViewChild('tableTemplate') tableTemplate!: TemplateRef<unknown>;
 
-  readonly ArrowLeft = ArrowLeft;
-  readonly Eye = Eye;
   readonly ListFilter = ListFilter;
+  readonly branchLine = branchLine;
 
   searchTerm = signal('');
   sourceFiscalId = signal('');
@@ -96,14 +92,10 @@ export class TransferListComponent implements OnInit {
     rows: [],
     columns: [
       { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 120 },
-      { name: 'Producto', prop: 'product_name', sortable: false, canAutoResize: false, width: 220 },
-      { name: 'Cantidad', prop: 'total_quantity', sortable: false, canAutoResize: false, width: 150 },
-      { name: 'Origen', prop: 'source_warehouse', sortable: false, canAutoResize: false, width: 210 },
-      { name: 'Destino', prop: 'destination_warehouse', sortable: false, canAutoResize: false, width: 220 },
-      { name: 'Estado', prop: 'status', sortable: false, canAutoResize: false, width: 150 },
-      { name: 'Usuario', prop: 'created_by_user', sortable: false, canAutoResize: false, width: 140 },
-      { name: 'Fecha', prop: 'created_at', sortable: false, canAutoResize: false, width: 120 },
-      { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: false, width: 140 },
+      { name: 'Producto', prop: 'product_name', sortable: false, canAutoResize: true, width: 220 },
+      { name: 'Ruta', prop: 'route', sortable: false, canAutoResize: true, width: 280 },
+      { name: 'Estado', prop: 'status', sortable: false, canAutoResize: false, width: 130 },
+      { name: 'Fecha', prop: 'created_at', sortable: false, canAutoResize: false, width: 110 },
     ],
     externalPaging: true,
     externalSorting: false,
@@ -136,6 +128,7 @@ export class TransferListComponent implements OnInit {
 
   get canCreateTransfer(): boolean {
     return (
+      this.authService.hasPermission(PERMISSIONS.transfers.create) ||
       this.authService.hasPermission(PERMISSIONS.inventory.write) ||
       this.authService.hasPermission(PERMISSIONS.inventory.transfer) ||
       this.authService.hasPermission(PERMISSIONS.inventory.create)

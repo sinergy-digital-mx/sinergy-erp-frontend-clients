@@ -7,6 +7,7 @@ import { defaultRouteGuard } from './core/guards/default-route.guard';
 import { divinoInventoryGuard } from './core/guards/divino-inventory.guard';
 import { settingsAccessGuard } from './features/settings/guards/settings-access.guard';
 import { permissionGuard } from './core/guards/permission.guard';
+import { INVENTORY_PERMISSIONS, TRANSFER_PERMISSIONS } from './features/inventory/config/permissions.config';
 import { SETTINGS_PERMISSIONS } from './features/settings/config/permissions.config';
 import { posCobranzaGuard, posEntryRedirectGuard, posVentasGuard } from './core/guards/pos-user-type.guard';
 
@@ -146,6 +147,23 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/inventory/inventory.routes')
             .then(m => m.INVENTORY_ROUTES),
+      },
+      {
+        path: 'transfers',
+        canActivate: [permissionGuard],
+        loadComponent: () =>
+          import('./features/inventory/components/transfer-list/transfer-list.component')
+            .then(m => m.TransferListComponent),
+        data: {
+          permissions: [
+            TRANSFER_PERMISSIONS.viewMenu,
+            TRANSFER_PERMISSIONS.viewList,
+            INVENTORY_PERMISSIONS.viewList,
+            INVENTORY_PERMISSIONS.transfer,
+          ],
+          permissionMode: 'any',
+          title: 'Transferencias',
+        },
       },
       {
         path: 'sales-orders',

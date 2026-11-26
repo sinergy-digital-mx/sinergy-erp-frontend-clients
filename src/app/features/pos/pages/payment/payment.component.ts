@@ -150,7 +150,7 @@ import {
   posRegisteredCustomerLabel,
 } from '../../models/pos-collected-sales.model';
 import { PosSaleReceipt } from '../../models/pos-receipt.model';
-import { formatApiDate } from '../../../../core/utils/api-datetime.util';
+import { parseApiDateTime } from '../../../../core/utils/api-datetime.util';
 import { posCollectionCardRows, posCollectionTransferRows } from '../../models/pos-sale-collection.model';
 import { PosPrinterSettingsDialogComponent } from '../../components/pos-printer-settings-dialog/pos-printer-settings-dialog.component';
 import {
@@ -191,7 +191,10 @@ import {
   inferReceptorRegimen,
 } from '../../../customers/utils/fiscal-person-type.util';
 import { buildCustomerFiscalSnapshot } from '../../components/pos-checkout-confirm-dialog/pos-checkout-confirm-dialog.component';
-import { CFDI_REGIMEN_RECEPTOR_OPTIONS } from '../../../sales-orders/models/sales-order-electronic-invoice.model';
+import {
+  CFDI_REGIMEN_RECEPTOR_OPTIONS,
+  isLocalStampHost,
+} from '../../../sales-orders/models/sales-order-electronic-invoice.model';
 
 interface PendingSaleCustomer {
   id?: number;
@@ -298,6 +301,9 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   dashboardTab = signal<DashboardTab>('pending');
   searchFolio = signal('');
   searchCollectedFolio = signal('');
+  queueKind = signal<'all' | 'advance' | 'sale'>('all');
+  queueSeller = signal('');
+  customerPanelOpen = signal(false);
   collectForm = signal<PosCollectForm>(defaultCollectForm(0));
   customerMode = signal<CustomerMode>('walk_in');
   selectedCustomerId = signal('');
@@ -311,6 +317,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly walkInRfcInvalid = computed(() => this.customerMode() === 'walk_in' && !isValidWalkInRfc(this.walkInRfc()));
   selectedCustomerDetail = signal<Customer | null>(null);
   generateInvoice = signal(false);
+  stampEnvironment = signal<'demo' | 'production'>('demo');
   collectError = signal<string | null>(null);
   dailyUsdMxnRate = signal<number | null>(null);
   orderCurrencyChoice = signal<'MXN' | 'USD'>('MXN');
@@ -341,18 +348,36 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly filteredPendingSales = computed(() => {
     const term = this.searchFolio().trim().toLowerCase();
-    const list = this.pendingSales();
-    if (!term) {
-      return list;
-    }
-    return list.filter((sale) => {
+    const kind = this.queueKind();
+    const seller = this.queueSeller();
+    return this.pendingSales().filter((sale) => {
+      if (kind === 'advance' && sale.kind !== 'advance') return false;
+      if (kind === 'sale' && sale.kind === 'advance') return false;
+      if (seller && this.sellerLabel(sale) !== seller) return false;
+      if (!term) return true;
       const folio = (sale.folio || '').toLowerCase();
-      const seller = this.sellerLabel(sale).toLowerCase();
+      const sellerName = this.sellerLabel(sale).toLowerCase();
       const customer = this.customerLabel(sale).toLowerCase();
       const company = this.customerCompanyLabel(sale).toLowerCase();
       const rfc = (sale.walk_in_rfc || '').toLowerCase();
-      return folio.includes(term) || seller.includes(term) || customer.includes(term) || company.includes(term) || rfc.includes(term) || sale.id.toLowerCase().includes(term);
+      return (
+        folio.includes(term) ||
+        sellerName.includes(term) ||
+        customer.includes(term) ||
+        company.includes(term) ||
+        rfc.includes(term) ||
+        sale.id.toLowerCase().includes(term)
+      );
     });
+  });
+
+  readonly queueSellers = computed(() => {
+    const names = new Set<string>();
+    for (const sale of this.pendingSales()) {
+      const label = this.sellerLabel(sale);
+      if (label && label !== '—') names.add(label);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, 'es'));
   });
 
   readonly filteredCollectedSales = computed(() => {
@@ -388,6 +413,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   });
 
   readonly pendingEmptyMessage = computed(() => {
+    if (
+      this.pendingSales().length > 0 &&
+      (this.queueKind() !== 'all' || !!this.queueSeller() || !!this.searchFolio().trim())
+    ) {
+      return 'Ningún recibo coincide con los filtros.';
+    }
     const collectedCount = this.collectedSummary()?.count ?? this.collectedSales().length;
     if (collectedCount > 0) {
       return `No hay ventas por cobrar. Ya hay ${collectedCount} orden(es) cobrada(s) en este corte — revisa la pestaña Órdenes cobradas.`;
@@ -513,7 +544,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   );
 
   readonly canReturnToSales = computed(() =>
-    this.authService.hasPermission(POS_PERMISSIONS.returnToSales)
+    this.authService.hasPermission(POS_PERMISSIONS.returnToSales) ||
+    this.authService.hasPermission(POS_PERMISSIONS.viewSales) ||
+    this.authService.hasPermission(POS_PERMISSIONS.createSale) ||
+    this.authService.hasPermission('pos:Create') ||
+    this.authService.hasPermission('pos:Update') ||
+    this.authService.hasPermission('PosShift:Read') ||
+    this.authService.hasPermission('PosShift:Update')
   );
 
   readonly fiscalReadyForInvoice = computed(() => this.selectedCustomerDetail()?.fiscal_ready_for_invoice === true);
@@ -1154,6 +1191,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedCollectedSale.set(null);
     this.collectionDetail.set(null);
     this.selectedSale.set(sale);
+    this.stampEnvironment.set('demo');
     this.orderCurrencyChoice.set('MXN');
     this.collectError.set(null);
     const total = this.amountPending(sale);
@@ -1713,6 +1751,17 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
+  selectStampEnvironment(environment: 'demo' | 'production'): void {
+    if (environment === this.stampEnvironment()) return;
+    if (environment === 'production' && isLocalStampHost()) {
+      const confirmed = window.confirm(
+        'Esto timbrará un CFDI real con Finkok producción. ¿Continuar?',
+      );
+      if (!confirmed) return;
+    }
+    this.stampEnvironment.set(environment);
+  }
+
   onGenerateInvoiceChange(enabled: boolean): void {
     if (this.invoiceSwitchDisabled()) {
       return;
@@ -1806,6 +1855,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
             finkokConfig: null,
             validationIssues: [],
             canStamp: true,
+            initialEnvironment: this.stampEnvironment(),
           },
         });
         ref.afterClosed().subscribe((result: SalesOrderInvoiceStampDialogResult | undefined) => {
@@ -1874,7 +1924,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   openCustomerPicker(): void {
     const dialogRef = this.dialog.open(PosCustomerPickerDialogComponent, {
       width: '520px',
+      height: '640px',
       maxWidth: '95vw',
+      maxHeight: '85vh',
+      autoFocus: false,
       panelClass: 'pos-dialog-panel',
       data: { selectedCustomerId: this.selectedCustomerId() },
     });
@@ -1911,8 +1964,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  returnSelectedToVentas(): void {
-    const sale = this.selectedSale();
+  returnSelectedToVentas(target?: PendingSale): void {
+    const sale = target ?? this.selectedSale();
     if (!sale?.id || !this.canReturnToSales() || this.returningToSales()) {
       return;
     }
@@ -1965,6 +2018,12 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
+  returnSaleFromCard(event: Event, sale: PendingSale): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.returnSelectedToVentas(sale);
+  }
+
   collectSelected(): void {
     const sale = this.selectedSale();
     if (!sale?.id) {
@@ -2010,6 +2069,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       ...(this.generateInvoice() && this.customerMode() === 'registered' && this.fiscalReadyForInvoice()
         ? { generate_invoice: true }
         : {}),
+      stamp_environment: this.stampEnvironment(),
       ...(form.paymentMethod === 'cash'
         ? buildCashBreakdownPayload(
             this.cashBillCounts(),
@@ -2309,6 +2369,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       this.walkInName.set(sale.walk_in_name ?? '');
       this.walkInRfc.set(sale.walk_in_rfc ?? '');
       this.walkInTicketOpen.set(false);
+      this.customerPanelOpen.set(false);
       return;
     }
     this.customerMode.set('registered');
@@ -2325,6 +2386,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.selectedCustomerDetail.set(null);
     }
+    this.customerPanelOpen.set(sale.kind === 'advance' && !customer?.id);
   }
 
   shiftSalesTotal(shift: PosDailyShiftDetail): string {
@@ -2436,7 +2498,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   formatDate(value?: string): string {
-    return formatApiDate(value, 'short');
+    const date = parseApiDateTime(value);
+    if (!date) return '—';
+    const month = date
+      .toLocaleDateString('es-MX', { month: 'short' })
+      .replace(/\./g, '')
+      .trim();
+    return `${date.getDate()} ${month} ${String(date.getFullYear()).slice(-2)}`;
   }
 
   formatCurrency(amount: number): string {

@@ -103,7 +103,8 @@ export function isLocalStampHost(): boolean {
 }
 
 export function defaultStampEnvironment(): 'demo' | 'production' {
-  return isLocalStampHost() ? 'demo' : 'production';
+  // Por ahora el timbrado abre en demo. Producción se elige a mano.
+  return 'demo';
 }
 
 export interface InvoiceValidationIssue {

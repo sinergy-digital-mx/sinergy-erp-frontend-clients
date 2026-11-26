@@ -43,6 +43,7 @@ export interface SalesOrderInvoiceStampDialogData {
   validationIssues: InvoiceValidationIssue[];
   canStamp: boolean;
   hasActiveProductionInvoice?: boolean;
+  initialEnvironment?: 'demo' | 'production';
 }
 
 export interface SalesOrderInvoiceStampDialogResult {
@@ -159,6 +160,10 @@ export class SalesOrderInvoiceStampDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    const initial = this.data.initialEnvironment;
+    if (initial === 'demo' || initial === 'production') {
+      this.stampEnvironment.set(initial);
+    }
     this.syncXmlFromForm();
     this.form.valueChanges.subscribe(() => this.syncXmlFromForm());
     this.invoiceService.getFinkokConfiguration().subscribe({
